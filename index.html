@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workforce Hub</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/css/index.css" />
+  </head>
+
+  <body>
+    <div class="app-shell">
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-icon">WH</div>
+          <div>
+            <h1>Workforce Hub</h1>
+            <p>HR Management Platform</p>
+          </div>
+        </div>
+
+        <nav class="side-nav">
+          <a class="nav-item active" href="#">
+            <span class="material-symbols-outlined">dashboard</span>
+            Dashboard
+          </a>
+          <a class="nav-item" href="#">
+            <span class="material-symbols-outlined">groups</span>
+            พนักงาน
+          </a>
+          <a class="nav-item" href="#">
+            <span class="material-symbols-outlined">schedule</span>
+            ลงเวลา
+          </a>
+          <a class="nav-item" href="#">
+            <span class="material-symbols-outlined">event_available</span>
+            การลา
+          </a>
+          <a class="nav-item" href="#">
+            <span class="material-symbols-outlined">payments</span>
+            เงินเดือน
+          </a>
+          <a class="nav-item" href="#">
+            <span class="material-symbols-outlined">admin_panel_settings</span>
+            Admin
+          </a>
+        </nav>
+      </aside>
+
+      <!-- ================= MAIN ================= -->
+      <main class="main-content">
+        <!-- ================= TOPBAR ================= -->
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">EA Workforce Hub</p>
+            <h2>หน้าแรกระบบบริหารบุคลากร</h2>
+          </div>
+
+          <div class="user-box">
+            <span class="material-symbols-outlined">account_circle</span>
+            <div>
+              <strong>Ton Teuy</strong>
+              <small>Admin</small>
+            </div>
+          </div>
+        </header>
+
+        <!-- ================= HERO ================= -->
+        <section class="hero-card">
+          <div class="hero-text">
+            <span class="hero-badge">WORKFORCE OVERVIEW</span>
+            <h3>สวัสดีค่ะ 👋</h3>
+            <p>
+              ศูนย์กลางสำหรับจัดการข้อมูลพนักงาน การลงเวลา การลา OT เอกสาร
+              และงาน HR ภายในองค์กร
+            </p>
+
+            <div class="hero-actions">
+              <button class="btn primary">
+                <span class="material-symbols-outlined">add_circle</span>
+                เพิ่มพนักงาน
+              </button>
+              <button class="btn soft">
+                <span class="material-symbols-outlined">qr_code_scanner</span>
+                สแกนเข้างาน
+              </button>
+            </div>
+          </div>
+
+          <div class="hero-panel">
+            <p>วันนี้</p>
+            <h4 id="todayText">-</h4>
+            <div class="mini-status">
+              <span></span>
+              ระบบพร้อมใช้งาน
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SUMMARY ================= -->
+        <section class="summary-grid">
+          <div class="summary-card">
+            <span class="material-symbols-outlined icon blue">groups</span>
+            <p>พนักงานทั้งหมด</p>
+            <h3>185</h3>
+            <small>คน</small>
+          </div>
+
+          <div class="summary-card">
+            <span class="material-symbols-outlined icon green">login</span>
+            <p>เข้างานวันนี้</p>
+            <h3>172</h3>
+            <small>คน</small>
+          </div>
+
+          <div class="summary-card">
+            <span class="material-symbols-outlined icon orange">event_busy</span>
+            <p>ลางาน</p>
+            <h3>8</h3>
+            <small>รายการ</small>
+          </div>
+
+          <div class="summary-card">
+            <span class="material-symbols-outlined icon red">warning</span>
+            <p>ขาดงาน</p>
+            <h3>5</h3>
+            <small>คน</small>
+          </div>
+        </section>
+
+        <!-- ================= MENU ================= -->
+        <section class="section-block">
+          <div class="section-head">
+            <h3>เมนูหลัก</h3>
+            <p>เลือกโมดูลที่ต้องการใช้งาน</p>
+          </div>
+
+          <div class="menu-grid">
+            <a class="menu-card" href="#">
+              <span class="material-symbols-outlined">badge</span>
+              <strong>ทะเบียนพนักงาน</strong>
+              <small>ข้อมูลพนักงาน / แผนก / ตำแหน่ง</small>
+            </a>
+
+            <a class="menu-card" href="#">
+              <span class="material-symbols-outlined">schedule</span>
+              <strong>ลงเวลา</strong>
+              <small>เข้างาน ออกงาน และประวัติเวลา</small>
+            </a>
+
+            <a class="menu-card" href="#">
+              <span class="material-symbols-outlined">event_available</span>
+              <strong>การลา</strong>
+              <small>ขอลา อนุมัติลา และสรุปวันลา</small>
+            </a>
+
+            <a class="menu-card" href="#">
+              <span class="material-symbols-outlined">more_time</span>
+              <strong>OT</strong>
+              <small>ขอทำล่วงเวลา และอนุมัติ OT</small>
+            </a>
+
+            <a class="menu-card" href="#">
+              <span class="material-symbols-outlined">payments</span>
+              <strong>เงินเดือน</strong>
+              <small>ค่าจ้าง สวัสดิการ และรายงาน</small>
+            </a>
+
+            <a class="menu-card" href="#">
+              <span class="material-symbols-outlined">description</span>
+              <strong>เอกสาร HR</strong>
+              <small>ใบรับรอง หนังสือแจ้ง และแบบฟอร์ม</small>
+            </a>
+
+            <a class="menu-card" href="#">
+              <span class="material-symbols-outlined">school</span>
+              <strong>อบรม</strong>
+              <small>ประวัติอบรม และแผนพัฒนาพนักงาน</small>
+            </a>
+
+            <a class="menu-card" href="#">
+              <span class="material-symbols-outlined">analytics</span>
+              <strong>รายงาน</strong>
+              <small>Dashboard และสถิติ HR</small>
+            </a>
+          </div>
+        </section>
+
+        <!-- ================= LOWER CONTENT ================= -->
+        <section class="bottom-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>ดำเนินการด่วน</h3>
+            </div>
+
+            <div class="quick-list">
+              <button>
+                <span class="material-symbols-outlined">add</span>
+                ขออนุมัติลา
+              </button>
+              <button>
+                <span class="material-symbols-outlined">add</span>
+                ขอ OT
+              </button>
+              <button>
+                <span class="material-symbols-outlined">add</span>
+                ขอเอกสารรับรองการทำงาน
+              </button>
+              <button>
+                <span class="material-symbols-outlined">add</span>
+                แจ้งปรับข้อมูลพนักงาน
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>ข่าวสารองค์กร</h3>
+            </div>
+
+            <div class="news-list">
+              <div class="news-item">
+                <strong>ประกาศวันหยุดประจำเดือน</strong>
+                <p>กรุณาตรวจสอบตารางวันหยุดและเวรประจำแผนก</p>
+              </div>
+
+              <div class="news-item">
+                <strong>เปิดลงทะเบียนตรวจสุขภาพ</strong>
+                <p>พนักงานสามารถลงทะเบียนผ่านระบบ Workforce Hub</p>
+              </div>
+
+              <div class="news-item">
+                <strong>ปรับปรุงข้อมูลพนักงาน</strong>
+                <p>กรุณาตรวจสอบเบอร์โทรและข้อมูลติดต่อฉุกเฉิน</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/js/index.js"></script>
+  </body>
+</html>
