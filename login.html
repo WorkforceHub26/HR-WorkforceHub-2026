@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>PVT HR Leave</title>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="/css/login.css" />
+</head>
+
+<body>
+
+<div class="login-page">
+
+  <div class="logo-area">
+    <div class="logo-circle">
+      🏢
+    </div>
+
+    <h1>PVT HR Leave</h1>
+
+    <p>
+      ระบบขออนุญาตลาออนไลน์
+    </p>
+  </div>
+
+  <form id="loginForm" class="login-card">
+
+    <h2>เข้าสู่ระบบ</h2>
+
+    <div class="form-group">
+      <label>รหัสพนักงาน</label>
+
+      <input
+        type="text"
+        id="username"
+        placeholder="เช่น 20282"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label>รหัสผ่าน</label>
+
+      <div class="password-wrapper">
+
+        <input
+          type="password"
+          id="password"
+          placeholder="กรอกรหัสผ่าน"
+          required
+        />
+
+        <button
+          type="button"
+          class="eye-btn"
+          onclick="togglePassword()"
+        >
+          👁
+        </button>
+
+      </div>
+    </div>
+
+    <div class="option-row">
+
+      <label class="remember">
+        <input type="checkbox" id="rememberMe">
+        จดจำการเข้าสู่ระบบ
+      </label>
+
+      <button
+        type="button"
+        class="forgot-btn"
+      >
+        ลืมรหัสผ่าน
+      </button>
+
+    </div>
+
+    <button
+      type="submit"
+      class="login-btn"
+    >
+      เข้าสู่ระบบ
+    </button>
+
+    <button
+      type="button"
+      class="qr-btn"
+      onclick="loginByQr()"
+    >
+      📷 เข้าสู่ระบบด้วย QR Code
+    </button>
+
+  </form>
+
+  <div class="footer-text">
+    Version 1.0.0
+  </div>
+
+</div>
+
+<script src="/auth/login.js"></script>
+
+</body>
+</html>
