@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ใบลาออนไลน์</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/leave-user.css" />
+</head>
+
+<body>
+  <main class="page">
+    <section class="leave-form">
+
+      <header class="form-header">
+        <div>
+          <h1>บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด</h1>
+          <h2>ใบลาออนไลน์ ประจำปี 2569</h2>
+          <p>วันที่ 1 ธันวาคม 2568 - 30 พฤศจิกายน 2569</p>
+        </div>
+
+        <div class="logo-box">
+          <div class="logo-mark">PVT</div>
+          <small>20282</small>
+        </div>
+      </header>
+
+      <section class="employee-info">
+        <div class="field">
+          <label>ชื่อ - สกุล</label>
+          <input type="text" id="employeeName" placeholder="กรอกชื่อพนักงาน" />
+        </div>
+
+        <div class="field">
+          <label>ชื่อเล่น</label>
+          <input type="text" id="nickname" />
+        </div>
+
+        <div class="field">
+          <label>อายุ</label>
+          <input type="number" id="age" />
+        </div>
+
+        <div class="field">
+          <label>ตำแหน่ง</label>
+          <input type="text" id="position" />
+        </div>
+
+        <div class="field">
+          <label>ฝ่าย</label>
+          <input type="text" id="department" />
+        </div>
+
+        <div class="field">
+          <label>แผนก</label>
+          <input type="text" id="section" />
+        </div>
+
+        <div class="field">
+          <label>สถานะ</label>
+          <input type="text" id="status" placeholder="พนักงานปกติ" />
+        </div>
+
+        <div class="field">
+          <label>วันเริ่มงาน</label>
+          <input type="date" id="startWorkDate" />
+        </div>
+
+        <div class="field">
+          <label>วันลาพักผ่อนคงเหลือ</label>
+          <input type="number" id="vacationRemain" />
+        </div>
+
+        <div class="field">
+          <label>เริ่มมีสิทธิ์</label>
+          <input type="date" id="eligibleDate" />
+        </div>
+      </section>
+
+      <section class="table-section">
+        <div class="table-wrap">
+          <table class="leave-table">
+            <thead>
+              <tr>
+                <th rowspan="2">ว/ด/ป<br />ที่เขียน</th>
+                <th colspan="2">วันที่ลา</th>
+                <th colspan="3">จำนวน</th>
+                <th rowspan="2">ประเภท<br />การลา</th>
+                <th rowspan="2">สาเหตุการลา</th>
+                <th rowspan="2">หลักฐาน<br />การลา</th>
+                <th rowspan="2">ลงชื่อผู้ลา</th>
+                <th colspan="3">ผู้อนุมัติ</th>
+                <th rowspan="2">ฝ่าย<br />บุคคล</th>
+              </tr>
+              <tr>
+                <th>เริ่มวันที่</th>
+                <th>ถึงวันที่</th>
+                <th>ชั่วโมงเช้า</th>
+                <th>ชั่วโมงบ่าย</th>
+                <th>วัน</th>
+                <th>หน.แผนก</th>
+                <th>ผจก.ฝ่าย</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+
+            <tbody id="leaveTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="actions">
+        <button type="button" class="btn secondary" onclick="addLeaveRow()">+ เพิ่มรายการลา</button>
+        <button type="button" class="btn" onclick="saveLeave()">บันทึกข้อมูล</button>
+        <button type="button" class="btn outline" onclick="window.print()">พิมพ์ใบลา</button>
+      </section>
+
+      <footer class="form-footer">
+        ระยะเวลาในการใช้สิทธิ์การลา เริ่มวันที่ 1 ธันวาคม 2568 - 30 พฤศจิกายน 2569
+      </footer>
+
+    </section>
+  </main>
+
+  <script src="/js/leave-user.js"></script>
+</body>
+</html>
