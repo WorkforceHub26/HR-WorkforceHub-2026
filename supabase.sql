@@ -3,7 +3,21 @@
 -- START SUPABASE 18/06/2569
 -- ======================================================
 
+// ตัวอย่างโครงสร้างที่ถูกต้องของ /js/supabase-config.js
+const SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co"; // 👈 URL ของพี่
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";                 // 👈 Key ของพี่
 
+// ตรวจสอบให้แน่ใจว่าเปิด-ปิดปีกกาและวงเล็บถูกต้อง
+window.pvtSupabase = {
+  client: null,
+  
+  getClient: function() {
+    if (!this.client) {
+      this.client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return this.client;
+  } // 👈 บรรทัดแถว ๆ นี้มักจะลืมใส่ปีกกาปิด หรือใส่จุลภาค (,) ผิดจุด
+};
 
 -- ======================================================
 -- EXTENSIONS
@@ -324,6 +338,110 @@ on profiles for update
 to authenticated
 using (id = auth.uid())
 with check (id = auth.uid());
+
+
+-- ======================================================
+-- RLS Policy สำหรับระบบใบลาและงาน HR
+-- ======================================================
+
+drop policy if exists "authenticated can read relevant leave requests" on leave_requests;
+create policy "authenticated can read relevant leave requests"
+on leave_requests for select
+to authenticated
+using (
+  exists (
+    select 1
+    from profiles p
+    where p.id = auth.uid()
+      and (
+        p.employee_id = leave_requests.employee_id
+        or p.role in ('admin', 'hr', 'manager', 'supervisor')
+      )
+  )
+);
+
+drop policy if exists "employees can create own leave requests" on leave_requests;
+create policy "employees can create own leave requests"
+on leave_requests for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from profiles p
+    where p.id = auth.uid()
+      and p.employee_id = leave_requests.employee_id
+      and p.status = 'active'
+  )
+);
+
+drop policy if exists "employees can cancel own pending leave requests" on leave_requests;
+create policy "employees can cancel own pending leave requests"
+on leave_requests for update
+to authenticated
+using (
+  status = 'pending'
+  and exists (
+    select 1
+    from profiles p
+    where p.id = auth.uid()
+      and p.employee_id = leave_requests.employee_id
+  )
+)
+with check (
+  status = 'cancelled'
+  and exists (
+    select 1
+    from profiles p
+    where p.id = auth.uid()
+      and p.employee_id = leave_requests.employee_id
+  )
+);
+
+drop policy if exists "hr can approve leave requests" on leave_requests;
+create policy "hr can approve leave requests"
+on leave_requests for update
+to authenticated
+using (
+  exists (
+    select 1
+    from profiles p
+    where p.id = auth.uid()
+      and p.role in ('admin', 'hr', 'manager', 'supervisor')
+      and p.status = 'active'
+  )
+)
+with check (
+  exists (
+    select 1
+    from profiles p
+    where p.id = auth.uid()
+      and p.role in ('admin', 'hr', 'manager', 'supervisor')
+      and p.status = 'active'
+  )
+);
+
+drop policy if exists "hr can manage employees" on employees;
+create policy "hr can manage employees"
+on employees for all
+to authenticated
+using (
+  exists (
+    select 1
+    from profiles p
+    where p.id = auth.uid()
+      and p.role in ('admin', 'hr')
+      and p.status = 'active'
+  )
+)
+with check (
+  exists (
+    select 1
+    from profiles p
+    where p.id = auth.uid()
+      and p.role in ('admin', 'hr')
+      and p.status = 'active'
+  )
+);
 
 
 -- ======================================================

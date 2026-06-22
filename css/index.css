@@ -1,20 +1,27 @@
+/* ==========================================================================
+   🤍 PVT Main Dashboard - White Cream Premium & Luxury UI Animation Edition
+   ========================================================================== */
+
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --primary-soft: #dbeafe;
+  --primary: #10b981;          /* 🟢 อัปเกรดเป็นสีเขียวพรีเมียมนุ่มนวล */
+  --primary-dark: #059669;
+  --primary-soft: #e6f7ed;
 
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
 
-  --bg: #f6f8fb;
+  --bg: #fcfcf9;               /* สีพื้นหลังขาวนวลครีมอ่อน สบายตา */
   --card: #ffffff;
   --text: #0f172a;
   --text-soft: #64748b;
-  --border: #e2e8f0;
+  --border: #f1f3ee;           /* เส้นขอบนุ่มพิเศษ */
 
-  --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --shadow: 0 12px 35px rgba(142, 153, 125, 0.04); /* เงานวลนุ่มลึก */
   --radius: 24px;
+  
+  /* ⏱️ Luxury Timing Function สำหรับอนิเมชันที่สมูทที่สุด */
+  --pvt-ease: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 * {
@@ -25,9 +32,10 @@ body {
   margin: 0;
   font-family: "Kanit", "Noto Sans Thai", sans-serif;
   background:
-    radial-gradient(circle at top left, #dbeafe 0, transparent 35%),
+    radial-gradient(circle at top left, #f0fdf4 0, transparent 40%),
     var(--bg);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -40,47 +48,49 @@ button {
 }
 
 /* ================= APP LAYOUT ================= */
-
 .app-shell {
   display: flex;
   min-height: 100vh;
 }
 
-/* ================= SIDEBAR ================= */
-
+/* ================= SIDEBAR (DESKTOP) ================= */
 .sidebar {
   width: 280px;
-  padding: 24px;
-  background: #ffffffcc;
-  backdrop-filter: blur(16px);
+  padding: 32px 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
   border-right: 1px solid var(--border);
   position: sticky;
   top: 0;
   height: 100vh;
+  box-shadow: 6px 0 30px rgba(142, 153, 125, 0.02);
+  z-index: 100;
 }
 
 .brand {
   display: flex;
   gap: 14px;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
 
 .brand-icon {
   width: 52px;
   height: 52px;
-  border-radius: 18px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--primary), #38bdf8);
+  background: linear-gradient(135deg, var(--primary), #34d399);
   color: white;
   font-weight: 800;
-  box-shadow: var(--shadow);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.2);
 }
 
 .brand h1 {
   margin: 0;
   font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .brand p {
@@ -89,43 +99,62 @@ button {
   font-size: 12px;
 }
 
+.brand-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 6px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
 .side-nav {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: 14px 18px;
+  border-radius: 14px;
   color: var(--text-soft);
-  transition: 0.2s;
+  font-weight: 400;
+  transition: var(--pvt-ease);
 }
 
-.nav-item:hover,
+/* 🎯 Animation: เมนูเยื้องขวาพรีเมียมเวลาชี้บนคอม */
+.nav-item:hover {
+  background: #f4f7f1;
+  color: var(--text);
+  transform: translateX(6px);
+}
+
 .nav-item.active {
-  background: var(--primary-soft);
-  color: var(--primary-dark);
+  background: var(--primary-soft) !important;
+  color: var(--primary-dark) !important;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
 }
 
-/* ================= MAIN ================= */
-
+/* ================= MAIN CONTENT ================= */
 .main-content {
   flex: 1;
-  padding: 28px;
+  padding: 40px;
   max-width: 1500px;
   margin: 0 auto;
+  width: 100%;
 }
 
 /* ================= TOPBAR ================= */
-
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .eyebrow {
@@ -133,24 +162,31 @@ button {
   color: var(--primary);
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .topbar h2 {
   margin: 0;
   font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
 }
 
 .user-box {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   background: var(--card);
-  padding: 10px 14px;
+  padding: 10px 16px;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: var(--shadow);
+  transition: var(--pvt-ease);
+}
+.user-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.03);
 }
 
 .user-box span {
@@ -167,40 +203,47 @@ button {
   color: var(--text-soft);
 }
 
-/* ================= HERO ================= */
-
+/* ================= HERO CARD ================= */
 .hero-card {
   display: grid;
   grid-template-columns: 1fr 320px;
-  gap: 24px;
-  padding: 30px;
+  gap: 32px;
+  padding: 36px;
   border-radius: var(--radius);
-  background: linear-gradient(135deg, #1d4ed8, #2563eb 55%, #38bdf8);
+  background: linear-gradient(135deg, #059669, #10b981 60%, #34d399); /* ปรับไล่เฉดเขียวหรูหรา */
   color: white;
-  box-shadow: var(--shadow);
-  margin-bottom: 24px;
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+  margin-bottom: 32px;
+  transition: var(--pvt-ease);
+}
+.hero-card:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: 0 24px 50px rgba(16, 185, 129, 0.22);
 }
 
 .hero-badge {
   display: inline-flex;
-  padding: 7px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.18);
   font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 16px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .hero-text h3 {
   margin: 0;
   font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
 }
 
 .hero-text p {
-  margin: 10px 0 22px;
+  margin: 12px 0 24px;
   max-width: 720px;
-  color: rgba(255, 255, 255, 0.86);
-  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.7;
 }
 
 .hero-actions {
@@ -209,42 +252,60 @@ button {
   flex-wrap: wrap;
 }
 
+/* ปุ่มกดสไตล์สปริงตอบสนอง */
 .btn {
   border: 0;
-  border-radius: 16px;
-  padding: 13px 18px;
+  border-radius: 14px;
+  padding: 12px 22px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 14px;
+  transition: var(--pvt-ease);
 }
 
 .btn.primary {
   background: white;
   color: var(--primary-dark);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
 }
 
 .btn.soft {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.15);
   color: white;
+  backdrop-filter: blur(4px);
+}
+.btn.soft:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+.btn:active {
+  transform: translateY(0) scale(0.96);
 }
 
 .hero-panel {
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 22px;
-  padding: 22px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(8px);
 }
 
 .hero-panel p {
-  margin: 0 0 8px;
-  opacity: 0.8;
+  margin: 0 0 6px;
+  opacity: 0.85;
 }
 
 .hero-panel h4 {
   margin: 0 0 20px;
   font-size: 24px;
+  font-weight: 600;
 }
 
 .mini-status {
@@ -257,74 +318,81 @@ button {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #22c55e;
+  background: #34d399;
+  box-shadow: 0 0 12px #34d399;
 }
 
-/* ================= SUMMARY ================= */
-
+/* ================= SUMMARY GRID (ขาวนวลพรีเมียม) ================= */
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
-  margin-bottom: 26px;
+  gap: 20px;
+  margin-bottom: 32px;
 }
 
 .summary-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  padding: 22px;
+  background: #fdfdfb !important; /* สลับเป็นสีครีมนวลพรีเมียม */
+  border: 1px solid #eef0eb !important;
+  border-radius: 20px;
+  padding: 24px;
   box-shadow: var(--shadow);
+  transition: var(--pvt-ease);
+}
+
+/* 🎯 Animation: กล่องสถิติยกตัวพร้อมขยายเงา */
+.summary-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 35px rgba(142, 153, 125, 0.08);
+  border-color: #e2e7dc !important;
 }
 
 .summary-card .icon {
-  font-size: 34px;
-  margin-bottom: 12px;
+  font-size: 32px;
+  margin-bottom: 14px;
+  display: inline-flex;
+  padding: 10px;
+  border-radius: 12px;
 }
 
 .summary-card p {
   margin: 0;
   color: var(--text-soft);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .summary-card h3 {
   margin: 6px 0 0;
-  font-size: 32px;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .summary-card small {
-  color: var(--text-soft);
+  color: #94a3b8;
+  display: block;
+  margin-top: 4px;
 }
 
-.blue {
-  color: var(--primary);
-}
+/* โทนสีไอคอนแบบ Soft พาสเทล */
+.blue { color: #2563eb; }
+.green { color: var(--success); }
+.orange { color: var(--warning); }
+.red { color: var(--danger); }
 
-.green {
-  color: var(--success);
-}
-
-.orange {
-  color: var(--warning);
-}
-
-.red {
-  color: var(--danger);
-}
-
-/* ================= MENU ================= */
-
+/* ================= MENU GRID (ANIMATED) ================= */
 .section-block {
-  margin-bottom: 26px;
+  margin-bottom: 32px;
 }
 
 .section-head {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .section-head h3 {
   margin: 0;
   font-size: 22px;
+  font-weight: 600;
 }
 
 .section-head p {
@@ -335,75 +403,91 @@ button {
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 20px;
 }
 
 .menu-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 22px;
-  padding: 22px;
+  border-radius: 20px;
+  padding: 24px;
   box-shadow: var(--shadow);
-  transition: 0.2s;
+  transition: var(--pvt-ease);
 }
 
+/* 🎯 Animation: กล่องเมนูกางขยายพร้อมเปลี่ยนสีเส้นขอบ */
 .menu-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px) scale(1.01);
   border-color: var(--primary);
+  box-shadow: 0 22px 40px rgba(16, 185, 129, 0.06);
 }
 
 .menu-card span {
   font-size: 36px;
   color: var(--primary);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+  display: block;
 }
 
 .menu-card strong {
   display: block;
   font-size: 17px;
+  font-weight: 500;
   margin-bottom: 6px;
+  color: var(--text);
 }
 
 .menu-card small {
   color: var(--text-soft);
-  line-height: 1.5;
+  line-height: 1.6;
+  font-size: 13px;
+  display: block;
 }
 
-/* ================= BOTTOM ================= */
-
+/* ================= BOTTOM PANELS ================= */
 .bottom-grid {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
-  gap: 18px;
+  gap: 24px;
 }
 
 .panel {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 24px;
-  padding: 22px;
+  padding: 26px;
   box-shadow: var(--shadow);
 }
 
 .panel-head h3 {
-  margin: 0 0 16px;
+  margin: 0 0 18px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .quick-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .quick-list button {
   border: 1px solid var(--border);
-  background: #f8fafc;
-  padding: 13px 14px;
-  border-radius: 16px;
+  background: #fafaf8;
+  padding: 14px 16px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
   color: var(--text);
+  font-weight: 500;
+  transition: var(--pvt-ease);
+}
+.quick-list button:hover {
+  background: #ffffff;
+  border-color: var(--primary);
+  transform: translateX(4px);
+  color: var(--primary);
 }
 
 .news-list {
@@ -412,68 +496,193 @@ button {
 }
 
 .news-item {
-  padding: 14px;
-  background: #f8fafc;
-  border-radius: 16px;
+  padding: 16px;
+  background: #fafaf8;
+  border-radius: 14px;
   border: 1px solid var(--border);
+  transition: var(--pvt-ease);
+}
+.news-item:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
 }
 
 .news-item strong {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .news-item p {
   margin: 0;
   color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-/* ================= RESPONSIVE ================= */
+/* ==========================================================================
+   📱 RESPONSIVE & MOBILE DESIGN (พับเก็บเมนูล่าง สไตล์ Premium iOS)
+   ========================================================================== */
 
 @media (max-width: 1100px) {
+  /* ซ่อนเมนูข้างฝั่ง Desktop เมื่อจอยุบ */
   .sidebar {
-    display: none;
+    display: none !important;
+  }
+
+  .main-content {
+    padding: 24px 20px 100px 20px !important; /* เว้นฐานล่าง 100px กันแถบบัง */
   }
 
   .hero-card {
     grid-template-columns: 1fr;
+    padding: 28px;
   }
 
   .summary-grid,
   .menu-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
   }
 
   .bottom-grid {
     grid-template-columns: 1fr;
   }
+
+  /* 🤍 ⚠️ แปลงร่างเนวิเกชันมาตรึงที่ฐานจอมือถืออัตโนมัติ สีขาวครีมนวล */
+  .side-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    height: 70px !important;
+    background-color: rgba(253, 253, 251, 0.96) !important; /* ขาวนวลเบลอหลัง */
+    backdrop-filter: blur(15px);
+    border-top: 1px solid rgba(238, 240, 235, 0.9) !important;
+    padding: 0 10px !important;
+    margin: 0 !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    flex-direction: row !important; /* เรียงแถวกระดานนอน */
+    align-items: center !important;
+    justify-content: space-around !important;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 20px 20px 0 0;
+    gap: 0 !important;
+  }
+
+  /* เมนูล่างแบบปุ่มแอปกลมมน มี Elastic Tap Effect */
+  .nav-item {
+    display: flex !important;
+    flex-direction: column !important; /* ไอคอนอยู่ด้านบน ข้อความอยู่ด้านล่าง */
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 !important;
+    height: 100% !important;
+    padding: 4px 2px !important;
+    margin: 0 !important;
+    font-size: 11px !important;
+    gap: 2px !important;
+    color: var(--text-soft) !important;
+    background: transparent !important;
+    white-space: nowrap !important;
+    border-radius: 14px !important;
+  }
+
+  .nav-item:hover {
+    transform: none !important; /* ล้างค่าเลื่อนขวาของ Desktop */
+  }
+
+  .nav-item:active {
+    transform: scale(0.92) !important; /* จังหวะนิ้วกดจะยุบตัวเบาๆ แบบแอป */
+  }
+
+  .nav-item.active {
+    background: var(--primary-soft) !important;
+    color: var(--primary) !important;
+    height: 80% !important; /* คุมความสูงกล่องไฮไลต์ให้พอดีไอคอนสวยงาม */
+    font-weight: 600;
+  }
 }
 
+/* หน้าจอมือถือเล็กแคบ (iPhone / Android แนวตั้ง) */
 @media (max-width: 640px) {
   .main-content {
-    padding: 18px;
+    padding: 16px 16px 100px 16px !important;
   }
 
   .topbar {
     align-items: flex-start;
-    gap: 14px;
+    gap: 16px;
     flex-direction: column;
-  }
-
-  .hero-card {
-    padding: 22px;
-  }
-
-  .hero-text h3 {
-    font-size: 28px;
-  }
-
-  .summary-grid,
-  .menu-grid {
-    grid-template-columns: 1fr;
   }
 
   .user-box {
     width: 100%;
+    justify-content: flex-start;
   }
+
+  .hero-card {
+    padding: 20px;
+  }
+
+  .hero-text h3 {
+    font-size: 26px;
+  }
+
+  /* ยุบแถวสถิติและเมนูให้เหลือช่องเดี่ยวเต็มจอ เพื่อความสแกนง่ายในมือถือ */
+  .summary-grid,
+  .menu-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+}
+
+/* ==========================================================================
+   🔙 PREMIUM BACK BUTTON (สำหรับหน้าย่อยฝั่งพนักงาน)
+   ========================================================================== */
+
+.back-nav {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px; /* ระยะห่างจากหัวข้อด้านล่าง */
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  background: #ffffff;
+  color: var(--text);
+  font-family: "Kanit", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(142, 153, 125, 0.03);
+  cursor: pointer;
+  transition: var(--pvt-ease); /* ใช้แอนิเมชันสมูทตัวเดียวกับหลัก */
+}
+
+/* เอฟเฟกต์ตอนใช้นิ้วแตะปุ่มย้อนกลับ (Elastic Tap) */
+.btn-back:active {
+  transform: scale(0.92);
+  background: #fafaf8;
+  border-color: #cbd5e1;
+}
+
+.back-icon {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary); /* ลูกศรสีเขียวพรีเมียมชี้ทาง */
+  transition: var(--pvt-ease);
+}
+
+/* เพิ่มแอนิเมชันลูกศรขยับถอยหลังเบา ๆ ตอนกด */
+.btn-back:active .back-icon {
+  transform: translateX(-4px);
 }

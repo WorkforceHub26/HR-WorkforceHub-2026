@@ -3,62 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>หน้าแรกพนักงาน</title>
-
+  <title>หน้าพนักงาน | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/index-user.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
   <main class="app">
-
-    <!-- Header -->
+    <!-- ปุ่มย้อนกลับเวอร์ชันเสถียรสำหรับมือถือ -->
+<div class="back-nav">
+  <button type="button" class="btn-back" onclick="history.back(); return false;">
+    <span class="back-icon">←</span> ย้อนกลับ
+  </button>
+</div>
     <header class="user-header">
-      <div>
-        <p class="hello">สวัสดีค่ะ</p>
-        <h1 id="userName">พนักงาน</h1>
-        <span id="userDepartment">ฝ่าย / แผนก</span>
+      <div class="brand-row">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" />
+        <div>
+          <p class="hello">สวัสดีค่ะ</p>
+          <h1 id="userName">พนักงาน</h1>
+          <span id="userDepartment">PVT HR Leave</span>
+        </div>
       </div>
-
-      <button class="logout-btn" onclick="logoutUser()">
-        ออก
-      </button>
+      <button class="logout-btn" onclick="logoutUser()">ออก</button>
     </header>
 
-    <!-- Summary -->
     <section class="summary-card">
       <div>
-        <span>วันลาคงเหลือ</span>
+        <span>พักผ่อนคงเหลือ</span>
         <strong id="leaveBalance">6</strong>
         <p>วัน</p>
       </div>
-
       <div>
-        <span>คำขอรออนุมัติ</span>
+        <span>รออนุมัติ</span>
         <strong id="pendingCount">0</strong>
         <p>รายการ</p>
       </div>
     </section>
 
-    <!-- Quick Action -->
     <section class="primary-action">
       <h2>ต้องการทำรายการอะไร?</h2>
-
       <button class="request-leave-btn" onclick="goToLeaveForm()">
         <span>+</span>
         ขออนุญาตลา
       </button>
     </section>
 
-    <!-- Menu -->
     <section class="menu-grid">
-
       <button class="menu-card" onclick="goToLeaveForm()">
         <div class="menu-icon blue">📝</div>
         <div>
           <strong>ขอลา</strong>
-          <p>กรอกคำขอลาใหม่</p>
+          <p>กรอกใบลาออนไลน์ตามแบบฟอร์มบริษัท</p>
+        </div>
+      </button>
+
+      <button class="menu-card" onclick="goToRules()">
+        <div class="menu-icon purple">📘</div>
+        <div>
+          <strong>หลักเกณฑ์การลา</strong>
+          <p>อ่านเงื่อนไขและขั้นตอนอนุมัติก่อนส่งคำขอ</p>
         </div>
       </button>
 
@@ -66,44 +71,58 @@
         <div class="menu-icon green">📋</div>
         <div>
           <strong>ประวัติการลา</strong>
-          <p>ดูรายการที่เคยส่ง</p>
+          <p>ดูสถานะคำขอที่ส่งไปแล้ว</p>
         </div>
       </button>
+
+ <section class="summary-grid">
+  
+          <div class="summary-card" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+            <span class="material-symbols-outlined icon green">event_available</span>
+            <p>วันลาคงเหลือ</p>
+            <h3 id="leaveBalance">-</h3>
+            <small>วัน</small>
+          </div>
+
+          <div class="summary-card" style="background: #fef2f2; border: 1px solid #fee2e2;">
+            <span class="material-symbols-outlined icon red">history</span>
+            <p>ใช้ไปแล้ว</p>
+            <h3 id="usedBalance">-</h3>
+            <small>วัน</small>
+          </div>
+
+          <div class="summary-card" style="background: #fef9c3; border: 1px solid #fef08a;">
+            <span class="material-symbols-outlined icon orange">pending_actions</span>
+            <p>รออนุมัติลา</p>
+            <h3 id="pendingCount">-</h3>
+            <small>รายการ</small>
+          </div>
+
+</section>
 
       <button class="menu-card" onclick="goToProfile()">
         <div class="menu-icon orange">👤</div>
         <div>
           <strong>ข้อมูลพนักงาน</strong>
-          <p>ตรวจสอบข้อมูลส่วนตัว</p>
+          <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
         </div>
       </button>
-
-      <button class="menu-card" onclick="goToContactHR()">
-        <div class="menu-icon purple">☎️</div>
-        <div>
-          <strong>ติดต่อ HR</strong>
-          <p>สอบถามเรื่องการลา</p>
-        </div>
-      </button>
-
     </section>
 
-    <!-- Recent -->
     <section class="recent-card">
       <div class="section-head">
         <h2>รายการล่าสุด</h2>
         <button onclick="goToLeaveHistory()">ดูทั้งหมด</button>
       </div>
-
       <div id="recentList" class="recent-list">
-        <div class="empty-state">
-          ยังไม่มีรายการลา
-        </div>
+        <div class="empty-state">กำลังโหลดรายการลา...</div>
       </div>
     </section>
 
+    <button class="contact-fab" onclick="goToContactHR()">ติดต่อ HR</button>
   </main>
 
+  <script src="/js/supabase-config.js"></script>
   <script src="/js/index-user.js"></script>
 </body>
 </html>
