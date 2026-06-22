@@ -13,7 +13,7 @@ window.pvtSupabase = {
   
   getClient: function() {
     if (!this.client) {
-      this.client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      this.client = supabase.createClient("https://pgogmhqjdchakcytsomx.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8");
     }
     return this.client;
   } // 👈 บรรทัดแถว ๆ นี้มักจะลืมใส่ปีกกาปิด หรือใส่จุลภาค (,) ผิดจุด

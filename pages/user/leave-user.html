@@ -6,107 +6,131 @@
   <title>ใบลาออนไลน์ | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/leave-user.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sriracha&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
-  <main class="page">
-    <form id="leaveForm" class="leave-sheet">
-      <header class="sheet-header">
-        <div class="sheet-title">
-          <h1>บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด</h1>
-          <h2>ใบลา ประจำปี 2569</h2>
-          <p>วันที่ 1 ธันวาคม 2568 - 30 พฤศจิกายน 2569</p>
-        </div>
-        <div class="logo-box">
-          <img src="/assets/icons/logo-pvt.png" alt="PVT" />
-          <span>HR Leave</span>
-        </div>
-      </header>
 
-      <section class="top-actions no-print">
-        <button type="button" class="btn ghost" onclick="location.href='/pages/user/index-user.html'">กลับหน้าหลัก</button>
-        <button type="button" class="btn ghost" onclick="location.href='/pages/user/leave-rules.html'">อ่านหลักเกณฑ์</button>
-        <button type="button" class="btn ghost" onclick="window.print()">พิมพ์ใบลา</button>
-      </section>
+  <!-- TOP BAR -->
+  <nav class="topbar">
+    <div class="topbar-left">
+      <a class="btn-back" href="/pages/user/index-user.html">← กลับ</a>
+      <div class="topbar-title">
+        ใบลาออนไลน์
+        <small>บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด · ปี 2569</small>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="location.href='/pages/user/leave-rules.html'">📘 หลักเกณฑ์</button>
+      <button class="btn btn-ghost" onclick="window.print()">🖨️ พิมพ์</button>
+    </div>
+  </nav>
 
-      <section class="employee-strip">
-        <input type="hidden" id="employeeId" />
-        <label>
-          ชื่อ - สกุล
-          <input type="text" id="employeeName" list="employeeOptions" placeholder="ค้นหาชื่อหรือรหัสพนักงาน" required />
+  <div class="page">
+
+    <!-- PRINT HEADER (สำหรับพิมพ์เท่านั้น) -->
+    <div class="print-header">
+      <h1>บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด</h1>
+      <h2>ใบลา ประจำปี 2569</h2>
+      <p>วันที่ 1 ธันวาคม 2568 – 30 พฤศจิกายน 2569</p>
+    </div>
+
+    <!-- EMPLOYEE INFO CARD -->
+    <div class="info-card">
+      <div class="info-card-head">
+        <h2>ข้อมูลพนักงาน <span class="badge-autofill">⚡ Auto-fill</span></h2>
+        <span id="loadingBadge" style="font-size:12px;color:var(--muted);">⏳ กำลังโหลด...</span>
+      </div>
+      <div class="info-grid">
+        <div class="info-field" style="grid-column: span 2">
+          <label>ชื่อ – สกุล</label>
+          <input type="text" id="employeeName" list="employeeOptions" placeholder="ค้นหาชื่อหรือรหัสพนักงาน" autocomplete="off" />
           <datalist id="employeeOptions"></datalist>
-        </label>
-        <label>
-          รหัส
-          <input type="text" id="employeeCode" placeholder="เช่น 20282" />
-        </label>
-        <label>
-          ตำแหน่ง
-          <input type="text" id="position" />
-        </label>
-        <label>
-          ฝ่าย/แผนก
-          <input type="text" id="department" />
-        </label>
-        <label>
-          วันเริ่มงาน
-          <input type="date" id="startWorkDate" />
-        </label>
-        <label>
-          วันลาพักผ่อนคงเหลือ
-          <input type="number" id="vacationRemain" min="0" step="0.5" value="6" />
-        </label>
-      </section>
-
-      <section class="notice-box no-print">
-        <strong>ตรวจสอบก่อนบันทึก:</strong>
-        ลาพักผ่อนต้องล่วงหน้าอย่างน้อย 3 วันและไม่น้อยกว่า 4 ชั่วโมง, ลากิจควรแจ้งล่วงหน้า 1 วัน, ลาป่วยต้องแจ้งภายใน 4 ชั่วโมงแรกและแนบหลักฐานตามระเบียบ
-      </section>
-
-      <section class="table-section">
-        <div class="table-wrap">
-          <table class="leave-table">
-            <thead>
-              <tr>
-                <th rowspan="2">ว/ด/ป<br />ที่เขียน</th>
-                <th colspan="2">วันที่ลา</th>
-                <th colspan="3">จำนวน</th>
-                <th rowspan="2">ประเภท<br />การลา</th>
-                <th rowspan="2">สาเหตุการลา</th>
-                <th rowspan="2">หลักฐาน<br />การลา</th>
-                <th rowspan="2">ลงชื่อผู้ลา</th>
-                <th colspan="3">ผู้อนุมัติ</th>
-                <th rowspan="2" class="no-print">ลบ</th>
-              </tr>
-              <tr>
-                <th>เริ่มวันที่</th>
-                <th>ถึงวันที่</th>
-                <th>ชม.เช้า</th>
-                <th>ชม.บ่าย</th>
-                <th>วัน</th>
-                <th>หน.แผนก</th>
-                <th>ผจก.ฝ่าย</th>
-                <th>ฝ่ายบุคคล</th>
-              </tr>
-            </thead>
-            <tbody id="leaveTableBody"></tbody>
-          </table>
         </div>
-      </section>
+        <input type="hidden" id="employeeId" />
+        <div class="info-field">
+          <label>รหัสพนักงาน</label>
+          <input type="text" id="employeeCode" readonly placeholder="–" />
+        </div>
+        <div class="info-field">
+          <label>ตำแหน่งงาน</label>
+          <input type="text" id="position" readonly placeholder="–" />
+        </div>
+        <div class="info-field">
+          <label>ฝ่าย / แผนก</label>
+          <input type="text" id="department" readonly placeholder="–" />
+        </div>
+        <div class="info-field">
+          <label>วันเริ่มงาน</label>
+          <input type="text" id="startWorkDate" readonly placeholder="–" />
+        </div>
+        <div class="info-field balance-field">
+          <label>วันลาพักผ่อนคงเหลือ</label>
+          <input type="text" id="vacationRemain" readonly placeholder="–" />
+        </div>
+      </div>
+    </div>
 
-      <p id="formStatus" class="form-status no-print" aria-live="polite"></p>
+    <!-- NOTICE -->
+    <div class="notice-box no-print">
+      ⚠️ <strong>ตรวจสอบก่อนบันทึก:</strong>
+      ลาพักผ่อนล่วงหน้าอย่างน้อย 3 วัน · ลากิจแจ้งล่วงหน้า 1 วัน · ลาป่วยแจ้งภายใน 4 ชั่วโมงแรก พร้อมใบรับรองแพทย์
+    </div>
 
-      <section class="actions no-print">
-        <button type="button" class="btn secondary" onclick="addLeaveRow()">+ เพิ่มรายการลา</button>
-        <button type="submit" class="btn primary">บันทึกคำขอลา</button>
-      </section>
+    <!-- LEAVE TABLE -->
+    <div class="table-card">
+      <div class="table-card-head">
+        <h2>รายการลา</h2>
+        <button class="btn btn-green btn-sm no-print" onclick="addLeaveRow()">＋ เพิ่มรายการ</button>
+      </div>
+      <div class="table-scroll">
+        <table class="leave-table">
+          <thead>
+            <tr>
+                  
+                  <th>วันที่เขียน</th>
+                  <th colspan="2">ช่วงวันลา</th>
+                  <th colspan="3">จำนวน</th>
+                  <th>ประเภทการลา</th>
+                  <th>สาเหตุ / เหตุผล</th>
+                  <th>หลักฐาน</th>
+                  <th>ยืนยันตัวตนผู้ลา</th> <th colspan="3">ผู้อนุมัติ</th>
+                  <th class="no-print">ลบ</th>
+                </tr>
 
-      <footer class="sheet-footer">
-        หมายเหตุ: ระบบจะส่งคำขอไปยังหัวหน้าแผนก ผู้จัดการฝ่าย และฝ่ายบุคคลตามลำดับ เมื่ออนุมัติแล้วรายการจะปรากฏในประวัติการลา
-      </footer>
-    </form>
-  </main>
+                
+            </tr>
+            <tr>
+              <th>เริ่มวันที่</th>
+              <th>ถึงวันที่</th>
+              <th>ชม.เช้า</th>
+              <th>ชม.บ่าย</th>
+              <th>วัน</th>
+              <th>หน.แผนก</th>
+              <th>ผจก.ฝ่าย</th>
+              <th>ฝ่ายบุคคล</th>
+            </tr>
+          </thead>
+          <tbody id="leaveTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BOTTOM ACTIONS -->
+    <div class="bottom-actions no-print">
+      <button class="btn btn-ghost" onclick="location.href='/pages/user/index-user.html'">← ยกเลิก</button>
+      <div class="spacer"></div>
+      <button class="btn btn-green" onclick="addLeaveRow()">＋ เพิ่มรายการ</button>
+      <button class="btn btn-primary" onclick="saveLeave()">💾 บันทึกคำขอลา</button>
+    </div>
+
+  </div>
+
+  <!-- STATUS TOAST -->
+  <div id="statusToast" class="status-toast"></div>
 
   <script src="/js/supabase-config.js"></script>
   <script src="/js/leave-user.js"></script>

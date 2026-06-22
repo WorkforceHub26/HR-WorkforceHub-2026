@@ -21,7 +21,7 @@ window.pvtSupabase = (() => {
     return data.session || null;
   }
 
-  aasync function getCurrentProfile() {
+  async function getCurrentProfile() {
     const sb = getClient();
     const session = await getSession();
     if (!sb || !session) return null;

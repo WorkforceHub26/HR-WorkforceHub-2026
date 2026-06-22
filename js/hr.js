@@ -202,6 +202,7 @@ async function uploadEmployeeCSV() {
     } catch (err) {
       statusDiv.innerHTML = "❌ ระบบอัตโนมัติขัดข้อง: " + err.message;
       console.error(err);
+      
     }
   };
 
@@ -304,20 +305,29 @@ async function fetchLeaveRequests() {
 
     if (error) throw error;
 
-    tbody.innerHTML = (data || []).map((item) => `
-      <tr>
-        <td>
-          <strong>${window.pvtSupabase.escapeHtml(item.employees?.full_name || "ไม่ระบุชื่อ")}</strong>
-          <br><small style="color: #64748b;">รหัส: ${item.employees?.employee_code || "-"}</small>
-        </td>
-        <td><span class="badge-type">${window.pvtSupabase.escapeHtml(item.leave_types?.leave_name || "การลา")}</span></td>
-        <td>${window.pvtSupabase.formatThaiDate(item.start_date)} - ${window.pvtSupabase.formatThaiDate(item.end_date)}</td>
-        <td><strong>${item.total_days}</strong> วัน</td>
-        <td>${window.pvtSupabase.escapeHtml(item.reason || "-")}</td>
-        <td><span class="status ${item.status}">${window.pvtSupabase.statusLabel(item.status)}</span></td>
-        <td>${renderLeaveActions(item)}</td>
-      </tr>
-    `).join("");
+    // ตัวอย่างการเพิ่มปุ่ม "เปิดดูหน้าใบลา" ในไฟล์ admin.js ตอนที่ render ตารางคำขอลา
+tbody.innerHTML = data.map((item) => {
+  const emp = item.employees || {};
+  const leaveTypeName = item.leave_types?.leave_name || "ไม่ระบุประเภท";
+  
+  return `
+    <tr>
+      <td><strong>${window.pvtSupabase.escapeHtml(emp.full_name || "-")}</strong></td>
+      <td>${window.pvtSupabase.escapeHtml(leaveTypeName)}</td>
+      <td>${window.pvtSupabase.formatThaiDate(item.start_date)} - ${window.pvtSupabase.formatThaiDate(item.end_date)}</td>
+      <td>${item.total_days} วัน</td>
+      <td>${window.pvtSupabase.escapeHtml(item.reason || "-")}</td>
+      <td><span class="status ${item.status}">${window.pvtSupabase.statusLabel(item.status)}</span></td>
+      <td>
+        <button class="btn-approve" onclick="approveLeave('${item.id}')">อนุมัติ</button>
+        <button class="btn-reject" onclick="rejectLeave('${item.id}')">ปฏิเสธ</button>
+      </td>
+      <td>
+        <a href="/pages/user/leave-user.html?id=${item.id}&viewOnly=true" class="btn-view-form" target="_blank" style="text-decoration: none; color: #2563eb;">👁️ ดูหน้าใบลา</a>
+      </td>
+    </tr>
+  `;
+}).join("");
   } catch (error) {
     console.error(error);
     tbody.innerHTML = `<tr><td colspan='7' class='error-text'>โหลดคำขอไม่สำเร็จ: ${window.pvtSupabase.escapeHtml(error.message)}</td></tr>`;
@@ -381,15 +391,17 @@ async function fetchLeaveBalances() {
     const currentYear = new Date().getFullYear() + 543;
 
     // ดึงยอดคงเหลือพร้อมจอย (Join) ข้อมูลรหัสและชื่อพนักงาน
-    const { data, error } = await sb
-      .from("leave_balances")
-      .select(`
-        year,
-        total_days,
-        remaining_days,
-        employees (employee_code, full_name)
-      `)
-      .eq("year", currentYear);
+    // โค้ดเก่าใน admin.js คาดหวังฟิลด์ total_days
+       // ค้นหาโค้ดช่วงนี้ในฟังก์ชัน fetchLeaveBalances()
+        const { data, error } = await sb
+  .from("leave_balances")
+  .select(`
+    year,
+    entitlement_days,
+    remaining_days,
+    employees (employee_code, full_name)
+  `)
+  .eq("year", currentYear);
 
     if (error) throw error;
 
@@ -406,7 +418,7 @@ async function fetchLeaveBalances() {
           <td><strong>${window.pvtSupabase.escapeHtml(emp.employee_code || "-")}</strong></td>
           <td>${window.pvtSupabase.escapeHtml(emp.full_name || "ไม่ระบุชื่อ")}</td>
           <td>ปี พ.ศ. ${item.year}</td>
-          <td>${item.total_days} วัน</td>
+          <td>${item.entitlement_days} วัน</td>
           <td>
             <strong style="font-size: 15px; color: ${isOut ? '#dc2626' : '#16a34a'};">
               ${item.remaining_days} วัน
@@ -418,5 +430,45 @@ async function fetchLeaveBalances() {
   } catch (error) {
     console.error(error);
     tbody.innerHTML = `<tr><td colspan="5" class="error-text" style="text-align: center;">โหลดข้อมูลไม่สำเร็จ: ${window.pvtSupabase.escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+
+// ฟังก์ชันมาตรฐานสำหรับ HR สร้างบัญชีพนักงานใหม่
+async function createNewEmployee(empCode, fullName, password, departmentId, positionId) {
+  const sb = window.pvtSupabase.getClient();
+  const email = `${empCode}@pvt.com`;
+
+  try {
+    // 1. สร้างบัญชีเข้า Auth ด้วย API (นี่คือวิธีที่ถูกต้อง พาสเวิร์ดจะไม่เพี้ยน)
+    const { data: authData, error: authError } = await sb.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: { full_name: fullName, role: 'user' } // ข้อมูลตรงนี้ Trigger จะดูดไปลง Profiles เอง
+      }
+    });
+
+    if (authError) throw authError;
+
+    // 2. เอา ID ที่ได้จากข้อ 1 มาสร้างประวัติพนักงานในตาราง Employees
+    const newUserId = authData.user.id;
+    const { error: empError } = await sb.from('employees').insert({
+      id: newUserId,
+      employee_code: empCode,
+      full_name: fullName,
+      email: email,
+      department_id: departmentId,
+      position_id: positionId,
+      employment_type: 'monthly',
+      start_date: new Date().toISOString().split('T')[0],
+      status: 'active'
+    });
+
+    if (empError) throw empError;
+
+    alert("✅ สร้างบัญชีพนักงานสมบูรณ์ 100% สามารถล็อกอินได้ทันที!");
+  } catch (err) {
+    alert("❌ เกิดข้อผิดพลาด: " + err.message);
   }
 }

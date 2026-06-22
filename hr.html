@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HR Admin | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/admin.css" />
+  <link rel="stylesheet" href="/css/hr.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -16,7 +16,7 @@
     <aside class="sidebar">
       <div class="brand">
         <img src="/assets/icons/logo-pvt.png" alt="PVT" class="admin-logo" />
-        <h2>PVT HR Admin</h2>
+        <h2>PVT HR </h2>
         <p>ระบบจัดการฝ่ายบุคคล</p>
       </div>
       <nav class="side-nav">
@@ -103,13 +103,17 @@
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>พนักงาน</th>
-                  <th>ประเภท</th>
-                  <th>ช่วงวันที่</th>
-                  <th>จำนวน</th>
-                  <th>เหตุผล</th>
-                  <th>สถานะ</th>
-                  <th>จัดการ</th>
+                  <thead>
+                    <tr>
+                      <th>พนักงาน</th>
+                      <th>ประเภท</th>
+                      <th>ช่วงวันที่</th>
+                      <th>จำนวน</th>
+                      <th>เหตุผล</th>
+                      <th>สถานะ</th>
+                      <th>จัดการ</th>
+                      <th>ลิงก์ใบลา</th> </tr>
+                  </thead>
                 </tr>
               </thead>
               <tbody id="leaveRequestBody"></tbody>
@@ -151,6 +155,6 @@
   </div>
 
   <script src="/js/supabase-config.js"></script>
-  <script src="/js/admin.js"></script>
+  <script src="/js/hr.js"></script>
 </body>
 </html>

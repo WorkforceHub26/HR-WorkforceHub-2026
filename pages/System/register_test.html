@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>สมัครสมาชิกพนักงานทดสอบ</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div style="padding: 50px; text-align: center;">
+    <h2>ระบบสร้างบัญชีพนักงานทดสอบ (3512@pvt.com)</h2>
+    <button id="regBtn" style="padding: 15px 30px; font-size: 16px; cursor: pointer;">
+      👉 กดตรงนี้เพื่อสร้างบัญชีเข้าระบบ 👈
+    </button>
+    <p id="result" style="margin-top: 20px; font-weight: bold; font-size: 18px;"></p>
+  </div>
+
+  <script src="/js/supabase-config.js"></script>
+  
+  <script>
+    document.getElementById('regBtn').addEventListener('click', async () => {
+      const resultEl = document.getElementById('result');
+      resultEl.textContent = "⏳ กำลังสร้างบัญชี...";
+      resultEl.style.color = "orange";
+
+      const sb = window.pvtSupabase?.getClient();
+      if (!sb) {
+        resultEl.textContent = "❌ ไม่สามารถเชื่อมต่อ Supabase Config ได้ (เช็ค Path ไฟล์ดูครับ)";
+        resultEl.style.color = "red";
+        return;
+      }
+
+      try {
+        // ใช้คำสั่ง signUp ของ Supabase หน้าบ้านโดยตรง
+        const { data, error } = await sb.auth.signUp({
+          email: '3512@pvt.com',
+          password: '123456',
+          options: {
+            // ส่งค่า data แนบไปด้วยเพื่อป้องกัน Trigger หลังบ้านเออเร่อ
+            data: {
+              full_name: 'สมชาย ใจดี',
+              role: 'user'
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        resultEl.textContent = "✅ สร้างบัญชี '3512@pvt.com' สำเร็จแล้ว! รหัส UID คือ: " + data.user.id;
+        resultEl.style.color = "green";
+        console.log("User Data:", data);
+
+      } catch (err) {
+        console.error(err);
+        resultEl.textContent = "❌ เกิดข้อผิดพลาด: " + err.message;
+        resultEl.style.color = "red";
+      }
+    });
+  </script>
+</body>
+</html>
