@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HR Admin | PVT HR Leave</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/admin.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+    
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="admin-logo" />
+        <h2>PVT HR Admin</h2>
+        <p>ระบบจัดการฝ่ายบุคคล</p>
+      </div>
+      <nav class="side-nav">
+        <a class="nav-item active" href="#" data-tab="dashboard">แดชบอร์ด</a>
+        <a class="nav-item" href="#" data-tab="employees">พนักงาน / นำเข้า CSV</a>
+        <a class="nav-item" href="#" data-tab="leaves">อนุมัติใบลา</a>
+        <a class="nav-item" href="/pages/user/leave-rules.html">หลักเกณฑ์การลา</a>
+      </nav>
+      <a class="nav-item" href="#" data-tab="balances">ตรวจสอบโควตาวันลา</a>
+      <div class="back-nav">
+  <!-- ปุ่มย้อนกลับเวอร์ชันเสถียรสำหรับมือถือ -->
+<div class="back-nav">
+  <button type="button" class="btn-back" onclick="history.back(); return false;">
+    <span class="back-icon">←</span> ย้อนกลับ
+  </button>
+</div>
+</div>
+    </aside>
+
+    <main class="main-content">
+      <section id="tab-dashboard" class="tab-content">
+        <h1>ภาพรวมระบบวันนี้</h1>
+        <div class="stats-grid">
+          <article class="panel stat-panel">
+            <span>พนักงานทั้งหมด</span>
+            <strong id="statEmployees">-</strong>
+          </article>
+          <article class="panel stat-panel">
+            <span>คำขอรออนุมัติ</span>
+            <strong id="statPending">-</strong>
+          </article>
+          <article class="panel stat-panel">
+            <span>อนุมัติแล้ว</span>
+            <strong id="statApproved">-</strong>
+          </article>
+        </div>
+        <div class="panel">
+          <h3>ลำดับงาน</h3>
+          <p>พนักงานส่งคำขอลา → หัวหน้าแผนกตรวจสอบ → ผู้จัดการฝ่ายอนุมัติ → ฝ่ายบุคคลบันทึกและเก็บประวัติ</p>
+        </div>
+      </section>
+
+      <section id="tab-employees" class="tab-content" hidden>
+        <h1>จัดการข้อมูลพนักงาน</h1>
+        <div class="upload-box">
+          <h3>นำเข้าไฟล์รายชื่อพนักงาน (.csv)</h3>
+          <p>รองรับคอลัมน์: employee_code, title_name, first_name, last_name, position_name, department_name, start_date</p>
+          <div class="upload-row">
+            <input type="file" id="csvFileInput" accept=".csv" />
+            <button class="btn-primary" onclick="uploadEmployeeCSV()">เริ่มนำเข้าข้อมูล</button>
+          </div>
+          <div id="uploadStatus" class="admin-status"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>รายชื่อพนักงานในระบบ</h3>
+            <button class="btn-light" onclick="fetchEmployees()">รีเฟรช</button>
+          </div>
+          <div class="table-scroll">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>รหัส</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>วันเริ่มงาน</th>
+                  <th>สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="employeeTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-leaves" class="tab-content" hidden>
+        <h1>รายการคำขออนุมัติลา</h1>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>คำขอทั้งหมด</h3>
+            <button class="btn-light" onclick="fetchLeaveRequests()">รีเฟรช</button>
+          </div>
+          <div class="table-scroll">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>พนักงาน</th>
+                  <th>ประเภท</th>
+                  <th>ช่วงวันที่</th>
+                  <th>จำนวน</th>
+                  <th>เหตุผล</th>
+                  <th>สถานะ</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="leaveRequestBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-balances" class="tab-content" hidden>
+        <h1>โควตาวันลาคงเหลือพนักงาน</h1>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>ยอดคงเหลือของปีปัจจุบัน (พ.ศ.)</h3>
+            <button class="btn-light" onclick="fetchLeaveBalances()">รีเฟรชข้อมูล</button>
+          </div>
+          <div class="table-scroll">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>รหัสพนักงาน</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>ปีโควตา</th>
+                  <th>สิทธิ์วันลาทั้งหมด</th>
+                  <th>คงเหลือจริง (วัน)</th>
+                </tr>
+              </thead>
+              <tbody id="leaveBalanceBody">
+                <tr><td colspan="5" style="text-align: center;">กำลังโหลดข้อมูลโควตา...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      
+      
+      
+
+    </main>
+  </div>
+
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

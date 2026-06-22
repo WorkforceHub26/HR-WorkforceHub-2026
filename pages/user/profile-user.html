@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ข้อมูลพนักงาน | PVT HR Leave</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/index-user.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <main class="app">
+    <header class="user-header">
+      <div class="brand-row">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" />
+        <div>
+          <p class="hello">PVT HR Leave</p>
+          <h1>ข้อมูลพนักงาน</h1>
+          <span>ตรวจสอบข้อมูลจาก Supabase</span>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับ</button>
+    </header>
+
+    <section class="recent-card">
+      <div id="profileBox" class="profile-box">
+        <div class="empty-state">กำลังโหลดข้อมูล...</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/profile-user.js"></script>
+</body>
+</html>

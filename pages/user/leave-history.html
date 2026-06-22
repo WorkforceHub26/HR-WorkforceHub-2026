@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ประวัติการลา | PVT HR Leave</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/index-user.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <main class="app">
+    <header class="user-header">
+      <div class="brand-row">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" />
+        <div>
+          <p class="hello">PVT HR Leave</p>
+          <h1>ประวัติการลา</h1>
+          <span>ติดตามสถานะคำขอของคุณ</span>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับ</button>
+    </header>
+
+    <section class="recent-card">
+      <div class="section-head">
+        <h2>รายการทั้งหมด</h2>
+        <button onclick="location.href='/pages/user/leave-user.html'">ขอลาใหม่</button>
+      </div>
+      <div id="historyList" class="recent-list">
+        <div class="empty-state">กำลังโหลดประวัติ...</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/leave-history.js"></script>
+</body>
+</html>

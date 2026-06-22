@@ -1,7 +1,3 @@
-/* ======================================================
-   RESET / BASE
-====================================================== */
-
 *,
 *::before,
 *::after {
@@ -11,27 +7,12 @@
 :root {
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
-
-  --success: #16a34a;
-
   --bg: #eef4ff;
-  --card: #ffffff;
-
+  --sheet: #ffffff;
   --text: #0f172a;
   --muted: #64748b;
-
-  --border: #dbe3ef;
-  --input-bg: #f8fafc;
-
-  --radius-lg: 24px;
-  --radius-md: 16px;
-
-  --shadow-card: 0 12px 28px rgba(15, 23, 42, 0.08);
-  --shadow-btn: 0 12px 24px rgba(37, 99, 235, 0.32);
-}
-
-html {
-  scroll-behavior: smooth;
+  --line: #64748b;
+  --soft-line: #cbd5e1;
 }
 
 body {
@@ -44,291 +25,371 @@ body {
     linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
 }
 
-/* ======================================================
-   PAGE
-====================================================== */
-
-.app {
+.page {
   width: 100%;
-  max-width: 520px;
   min-height: 100vh;
+  padding: 18px 12px 34px;
+}
+
+.leave-sheet {
+  width: min(1220px, 100%);
   margin: 0 auto;
-  padding: 18px 14px 110px;
+  background: var(--sheet);
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  padding: 18px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
 }
 
-/* ======================================================
-   HEADER
-====================================================== */
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-
-  display: flex;
+.sheet-header {
+  display: grid;
+  grid-template-columns: 1fr 120px;
   align-items: center;
-  gap: 12px;
-
-  margin: -18px -14px 16px;
-  padding: 18px 14px 14px;
-
-  background: rgba(248, 251, 255, 0.92);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(219, 227, 239, 0.8);
+  gap: 14px;
+  border: 2px solid var(--line);
+  border-bottom: none;
+  padding: 10px 14px;
+  text-align: center;
 }
 
-.back-btn {
-  flex: 0 0 auto;
+.sheet-title h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
 
-  width: 44px;
+.sheet-title h2 {
+  margin: 4px 0;
+  font-size: 16px;
+}
+
+.sheet-title p {
+  margin: 0;
+  color: #334155;
+  font-size: 13px;
+}
+
+.logo-box {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  color: #334155;
+  font-size: 12px;
+}
+
+.logo-box img {
+  width: 76px;
   height: 44px;
+  object-fit: contain;
+}
 
-  border: 1px solid var(--border);
-  border-radius: 16px;
+.top-actions,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
 
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.btn.secondary {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.btn.ghost {
+  border: 1px solid #dbe3ef;
   background: #ffffff;
   color: #334155;
-
-  font-size: 34px;
-  line-height: 1;
-  cursor: pointer;
-
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
-.back-btn:active {
-  transform: scale(0.96);
-}
-
-.topbar h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-}
-
-.topbar p {
-  margin: 3px 0 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* ======================================================
-   FORM LAYOUT
-====================================================== */
-
-.leave-card {
+.employee-strip {
   display: grid;
-  gap: 14px;
+  grid-template-columns: 1.7fr 0.75fr 1fr 1fr 0.9fr 0.8fr;
+  border: 2px solid var(--line);
+  border-bottom: none;
 }
 
-.section {
-  background: var(--card);
-  border: 1px solid rgba(219, 227, 239, 0.9);
-  border-radius: var(--radius-lg);
-  padding: 18px 16px 16px;
-  box-shadow: var(--shadow-card);
-}
-
-.section h2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  margin: 0 0 16px;
-
-  font-size: 17px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.section h2::before {
-  content: "";
-  width: 7px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--primary);
-}
-
-/* ======================================================
-   FORM FIELD
-====================================================== */
-
-label {
-  display: block;
-  margin-bottom: 14px;
-
-  color: #334155;
-  font-size: 14px;
+.employee-strip label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  border-right: 1px solid var(--soft-line);
+  font-size: 12px;
   font-weight: 600;
+  color: #334155;
+}
+
+.employee-strip label:last-child {
+  border-right: none;
 }
 
 input,
 select,
 textarea {
   width: 100%;
-  min-height: 48px;
-
-  margin-top: 7px;
-  padding: 13px 14px;
-
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-
-  background: var(--input-bg);
+  min-height: 34px;
+  border: 1px solid #d9e2ef;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #ffffff;
   color: var(--text);
-
   font-family: inherit;
-  font-size: 16px;
-  font-weight: 400;
-
+  font-size: 13px;
   outline: none;
-  transition: 0.18s ease;
 }
 
 textarea {
-  min-height: 110px;
-  line-height: 1.6;
+  min-height: 46px;
   resize: vertical;
-}
-
-select {
-  appearance: none;
-  background-image:
-    linear-gradient(45deg, transparent 50%, #64748b 50%),
-    linear-gradient(135deg, #64748b 50%, transparent 50%);
-  background-position:
-    calc(100% - 20px) 50%,
-    calc(100% - 14px) 50%;
-  background-size: 6px 6px;
-  background-repeat: no-repeat;
-  padding-right: 38px;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: #94a3b8;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--primary);
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-/* ======================================================
-   DATE / SMALL GRID
-====================================================== */
-
-.date-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+.notice-box {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
-/* ======================================================
-   FILE INPUT
-====================================================== */
-
-input[type="file"] {
-  padding: 12px;
-  background: #ffffff;
-  border-style: dashed;
+.table-wrap {
+  overflow-x: auto;
+  border: 2px solid var(--line);
 }
 
-input[type="file"]::file-selector-button {
-  margin-right: 10px;
-  border: none;
-  border-radius: 12px;
-  padding: 9px 12px;
-  background: #e0ecff;
-  color: var(--primary-dark);
-  font-family: inherit;
-  font-weight: 600;
-  cursor: pointer;
+.leave-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
 }
 
-/* ======================================================
-   SUBMIT BUTTON
-====================================================== */
+.leave-table th,
+.leave-table td {
+  border: 1px solid var(--line);
+  padding: 5px;
+  text-align: center;
+  vertical-align: middle;
+}
 
-.submit-btn {
-  position: fixed;
-  left: 50%;
-  bottom: 14px;
-  z-index: 30;
-
-  width: calc(100% - 28px);
-  max-width: 492px;
-
-  transform: translateX(-50%);
-
-  border: none;
-  border-radius: 20px;
-
-  padding: 16px 18px;
-
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #ffffff;
-
-  font-family: inherit;
-  font-size: 17px;
+.leave-table th {
+  background: #f1f5f9;
   font-weight: 700;
+}
 
+.leave-table tbody tr {
+  min-height: 52px;
+}
+
+.leave-table input,
+.leave-table select,
+.leave-table textarea {
+  min-height: 32px;
+  padding: 5px;
+  font-size: 12px;
+}
+
+.leave-table textarea {
+  min-height: 42px;
+}
+
+.leave-table .date-col {
+  width: 112px;
+}
+
+.leave-table .hours-col,
+.leave-table .days-col {
+  width: 70px;
+}
+
+.leave-table .reason-cell {
+  width: 230px;
+}
+
+.approval-cell {
+  color: #64748b;
+  font-size: 11px;
+  background: #f8fafc;
+}
+
+.remove-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-family: inherit;
   cursor: pointer;
-  box-shadow: var(--shadow-btn);
 }
 
-.submit-btn:active {
-  transform: translateX(-50%) scale(0.98);
+.form-status {
+  min-height: 24px;
+  margin: 12px 0 0;
+  color: #475569;
+  font-size: 14px;
 }
 
-/* ======================================================
-   TABLET / DESKTOP
-====================================================== */
-
-@media (min-width: 768px) {
-  .app {
-    max-width: 760px;
-    padding: 28px 22px 120px;
-  }
-
-  .topbar {
-    margin: -28px -22px 22px;
-    padding: 22px;
-  }
-
-  .section {
-    padding: 22px;
-  }
-
-  .date-grid {
-    gap: 16px;
-  }
-
-  .submit-btn {
-    max-width: 716px;
-  }
+.form-status.error {
+  color: #dc2626;
 }
 
-/* ======================================================
-   SMALL MOBILE
-====================================================== */
+.form-status.success {
+  color: #16a34a;
+}
 
-@media (max-width: 390px) {
-  .app {
-    padding-left: 12px;
-    padding-right: 12px;
+.sheet-footer {
+  margin-top: 14px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-top: none;
+  color: #475569;
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .leave-sheet {
+    padding: 12px;
   }
 
-  .date-grid {
+  .sheet-header {
     grid-template-columns: 1fr;
-    gap: 0;
   }
 
-  .topbar h1 {
-    font-size: 20px;
+  .employee-strip {
+    grid-template-columns: 1fr 1fr;
   }
+
+  .employee-strip label:nth-child(2n) {
+    border-right: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .page {
+    padding: 10px 8px 24px;
+  }
+
+  .employee-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-strip label {
+    border-right: none;
+  }
+
+  .top-actions,
+  .actions {
+    display: grid;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .page {
+    padding: 0;
+  }
+
+  .leave-sheet {
+    width: 100%;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  .leave-table {
+    min-width: 0;
+    font-size: 9px;
+  }
+
+  input,
+  select,
+  textarea {
+    border: none;
+    min-height: 22px;
+    padding: 0;
+    appearance: none;
+  }
+}
+
+/* ==========================================================================
+   🔙 PREMIUM BACK BUTTON (สำหรับหน้าย่อยฝั่งพนักงาน)
+   ========================================================================== */
+
+.back-nav {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px; /* ระยะห่างจากหัวข้อด้านล่าง */
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  background: #ffffff;
+  color: var(--text);
+  font-family: "Kanit", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(142, 153, 125, 0.03);
+  cursor: pointer;
+  transition: var(--pvt-ease); /* ใช้แอนิเมชันสมูทตัวเดียวกับหลัก */
+}
+
+/* เอฟเฟกต์ตอนใช้นิ้วแตะปุ่มย้อนกลับ (Elastic Tap) */
+.btn-back:active {
+  transform: scale(0.92);
+  background: #fafaf8;
+  border-color: #cbd5e1;
+}
+
+.back-icon {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary); /* ลูกศรสีเขียวพรีเมียมชี้ทาง */
+  transition: var(--pvt-ease);
+}
+
+/* เพิ่มแอนิเมชันลูกศรขยับถอยหลังเบา ๆ ตอนกด */
+.btn-back:active .back-icon {
+  transform: translateX(-4px);
 }

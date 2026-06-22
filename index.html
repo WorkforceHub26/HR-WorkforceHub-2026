@@ -1,255 +1,161 @@
 <!doctype html>
 <html lang="th">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Workforce Hub</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workforce Hub | PVT HR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
 
-    <link
-      href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" />
+        <div>
+          <h1>Workforce Hub</h1>
+          <p>HR Management Platform</p>
+        </div>
+      </div>
 
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-      rel="stylesheet"
-    />
+      <nav class="side-nav">
+        <a class="nav-item active" href="/">
+          <span class="material-symbols-outlined">dashboard</span>
+          แดชบอร์ด
+        </a>
+        <a class="nav-item" href="/admin.html">
+          <span class="material-symbols-outlined">admin_panel_settings</span>
+          ฝ่ายบุคคล
+        </a>
+        <a class="nav-item" href="/pages/user/index-user.html">
+          <span class="material-symbols-outlined">person</span>
+          พนักงาน
+        </a>
+        <a class="nav-item" href="/pages/user/leave-user.html">
+          <span class="material-symbols-outlined">event_available</span>
+          ใบลาออนไลน์
+        </a>
+        <a class="nav-item" href="/pages/user/leave-rules.html">
+          <span class="material-symbols-outlined">menu_book</span>
+          หลักเกณฑ์การลา
+        </a>
+        <a class="nav-item" href="/login.html">
+          <span class="material-symbols-outlined">login</span>
+          เข้าสู่ระบบ
+        </a>
+      </nav>
+    </aside>
 
-    <link rel="stylesheet" href="/css/index.css" />
-  </head>
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">EA Workforce Hub</p>
+          <h2>ระบบบริหารงานบุคคล PVT</h2>
+        </div>
 
-  <body>
-    <div class="app-shell">
-      <!-- ================= SIDEBAR ================= -->
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brand-icon">WH</div>
+        <div class="user-box">
+          <span class="material-symbols-outlined">account_circle</span>
           <div>
-            <h1>Workforce Hub</h1>
-            <p>HR Management Platform</p>
+            <strong>HR Team</strong>
+            <small id="todayText">-</small>
+          </div>
+        </div>
+      </header>
+
+      <section class="hero-card">
+        <div class="hero-text">
+          <span class="hero-badge">WORKFORCE OVERVIEW</span>
+          <h3>ศูนย์กลางการลาและข้อมูลพนักงาน</h3>
+          <p>
+            ใช้สำหรับนำเข้ารายชื่อพนักงาน อ่านหลักเกณฑ์การลา กรอกใบลาออนไลน์ ติดตามสถานะ และอนุมัติคำขอผ่าน Supabase
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn primary" href="/pages/user/leave-user.html">
+              <span class="material-symbols-outlined">add_circle</span>
+              ขออนุญาตลา
+            </a>
+            <a class="btn soft" href="/admin.html">
+              <span class="material-symbols-outlined">fact_check</span>
+              เปิดหน้าฝ่ายบุคคล
+            </a>
           </div>
         </div>
 
-        <nav class="side-nav">
-          <a class="nav-item active" href="#">
-            <span class="material-symbols-outlined">dashboard</span>
-            Dashboard
+        <div class="hero-panel">
+          <p>สถานะระบบ</p>
+          <h4>พร้อมใช้งาน</h4>
+          <div class="mini-status">
+            <span></span>
+            เชื่อมต่อ Supabase เมื่อเข้าสู่ระบบ
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-grid">
+        <div class="summary-card">
+          <span class="material-symbols-outlined icon blue">groups</span>
+          <p>พนักงานทั้งหมด</p>
+          <h3 id="employeeCount">-</h3>
+          <small>คน</small>
+        </div>
+        <div class="summary-card">
+          <span class="material-symbols-outlined icon orange">pending_actions</span>
+          <p>รออนุมัติลา</p>
+          <h3 id="pendingLeaveCount">-</h3>
+          <small>รายการ</small>
+        </div>
+        <div class="summary-card">
+          <span class="material-symbols-outlined icon green">verified</span>
+          <p>อนุมัติแล้ว</p>
+          <h3 id="approvedLeaveCount">-</h3>
+          <small>รายการ</small>
+        </div>
+        <div class="summary-card">
+          <span class="material-symbols-outlined icon red">rule</span>
+          <p>หลักเกณฑ์</p>
+          <h3>11</h3>
+          <small>หมวด</small>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-head">
+          <h3>เมนูหลัก</h3>
+          <p>เลือกงานที่ต้องการใช้งาน</p>
+        </div>
+
+        <div class="menu-grid">
+          <a class="menu-card" href="/admin.html">
+            <span class="material-symbols-outlined">upload_file</span>
+            <strong>นำเข้าพนักงาน</strong>
+            <small>อัปโหลดรายชื่อจาก CSV และตรวจสอบข้อมูลใน Supabase</small>
           </a>
-          <a class="nav-item" href="#">
-            <span class="material-symbols-outlined">groups</span>
-            พนักงาน
+          <a class="menu-card" href="/pages/user/leave-user.html">
+            <span class="material-symbols-outlined">edit_note</span>
+            <strong>ใบลาออนไลน์</strong>
+            <small>กรอกแบบฟอร์มตามกระดาษใบลาของบริษัท</small>
           </a>
-          <a class="nav-item" href="#">
-            <span class="material-symbols-outlined">schedule</span>
-            ลงเวลา
+          <a class="menu-card" href="/pages/user/leave-rules.html">
+            <span class="material-symbols-outlined">menu_book</span>
+            <strong>หลักเกณฑ์การลา</strong>
+            <small>อ่านเงื่อนไขและขั้นตอนอนุมัติก่อนส่งคำขอ</small>
           </a>
-          <a class="nav-item" href="#">
-            <span class="material-symbols-outlined">event_available</span>
-            การลา
+          <a class="menu-card" href="/pages/user/leave-history.html">
+            <span class="material-symbols-outlined">history</span>
+            <strong>ประวัติการลา</strong>
+            <small>ติดตามสถานะคำขอและผลอนุมัติ</small>
           </a>
-          <a class="nav-item" href="#">
-            <span class="material-symbols-outlined">payments</span>
-            เงินเดือน
-          </a>
-          <a class="nav-item" href="#">
-            <span class="material-symbols-outlined">admin_panel_settings</span>
-            Admin
-          </a>
-        </nav>
-      </aside>
+         
+        </div>
+      </section>
+    </main>
+  </div>
 
-      <!-- ================= MAIN ================= -->
-      <main class="main-content">
-        <!-- ================= TOPBAR ================= -->
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">EA Workforce Hub</p>
-            <h2>หน้าแรกระบบบริหารบุคลากร</h2>
-          </div>
-
-          <div class="user-box">
-            <span class="material-symbols-outlined">account_circle</span>
-            <div>
-              <strong>Ton Teuy</strong>
-              <small>Admin</small>
-            </div>
-          </div>
-        </header>
-
-        <!-- ================= HERO ================= -->
-        <section class="hero-card">
-          <div class="hero-text">
-            <span class="hero-badge">WORKFORCE OVERVIEW</span>
-            <h3>สวัสดีค่ะ 👋</h3>
-            <p>
-              ศูนย์กลางสำหรับจัดการข้อมูลพนักงาน การลงเวลา การลา OT เอกสาร
-              และงาน HR ภายในองค์กร
-            </p>
-
-            <div class="hero-actions">
-              <button class="btn primary">
-                <span class="material-symbols-outlined">add_circle</span>
-                เพิ่มพนักงาน
-              </button>
-              <button class="btn soft">
-                <span class="material-symbols-outlined">qr_code_scanner</span>
-                สแกนเข้างาน
-              </button>
-            </div>
-          </div>
-
-          <div class="hero-panel">
-            <p>วันนี้</p>
-            <h4 id="todayText">-</h4>
-            <div class="mini-status">
-              <span></span>
-              ระบบพร้อมใช้งาน
-            </div>
-          </div>
-        </section>
-
-        <!-- ================= SUMMARY ================= -->
-        <section class="summary-grid">
-          <div class="summary-card">
-            <span class="material-symbols-outlined icon blue">groups</span>
-            <p>พนักงานทั้งหมด</p>
-            <h3>185</h3>
-            <small>คน</small>
-          </div>
-
-          <div class="summary-card">
-            <span class="material-symbols-outlined icon green">login</span>
-            <p>เข้างานวันนี้</p>
-            <h3>172</h3>
-            <small>คน</small>
-          </div>
-
-          <div class="summary-card">
-            <span class="material-symbols-outlined icon orange">event_busy</span>
-            <p>ลางาน</p>
-            <h3>8</h3>
-            <small>รายการ</small>
-          </div>
-
-          <div class="summary-card">
-            <span class="material-symbols-outlined icon red">warning</span>
-            <p>ขาดงาน</p>
-            <h3>5</h3>
-            <small>คน</small>
-          </div>
-        </section>
-
-        <!-- ================= MENU ================= -->
-        <section class="section-block">
-          <div class="section-head">
-            <h3>เมนูหลัก</h3>
-            <p>เลือกโมดูลที่ต้องการใช้งาน</p>
-          </div>
-
-          <div class="menu-grid">
-            <a class="menu-card" href="#">
-              <span class="material-symbols-outlined">badge</span>
-              <strong>ทะเบียนพนักงาน</strong>
-              <small>ข้อมูลพนักงาน / แผนก / ตำแหน่ง</small>
-            </a>
-
-            <a class="menu-card" href="#">
-              <span class="material-symbols-outlined">schedule</span>
-              <strong>ลงเวลา</strong>
-              <small>เข้างาน ออกงาน และประวัติเวลา</small>
-            </a>
-
-            <a class="menu-card" href="#">
-              <span class="material-symbols-outlined">event_available</span>
-              <strong>การลา</strong>
-              <small>ขอลา อนุมัติลา และสรุปวันลา</small>
-            </a>
-
-            <a class="menu-card" href="#">
-              <span class="material-symbols-outlined">more_time</span>
-              <strong>OT</strong>
-              <small>ขอทำล่วงเวลา และอนุมัติ OT</small>
-            </a>
-
-            <a class="menu-card" href="#">
-              <span class="material-symbols-outlined">payments</span>
-              <strong>เงินเดือน</strong>
-              <small>ค่าจ้าง สวัสดิการ และรายงาน</small>
-            </a>
-
-            <a class="menu-card" href="#">
-              <span class="material-symbols-outlined">description</span>
-              <strong>เอกสาร HR</strong>
-              <small>ใบรับรอง หนังสือแจ้ง และแบบฟอร์ม</small>
-            </a>
-
-            <a class="menu-card" href="#">
-              <span class="material-symbols-outlined">school</span>
-              <strong>อบรม</strong>
-              <small>ประวัติอบรม และแผนพัฒนาพนักงาน</small>
-            </a>
-
-            <a class="menu-card" href="#">
-              <span class="material-symbols-outlined">analytics</span>
-              <strong>รายงาน</strong>
-              <small>Dashboard และสถิติ HR</small>
-            </a>
-          </div>
-        </section>
-
-        <!-- ================= LOWER CONTENT ================= -->
-        <section class="bottom-grid">
-          <div class="panel">
-            <div class="panel-head">
-              <h3>ดำเนินการด่วน</h3>
-            </div>
-
-            <div class="quick-list">
-              <button>
-                <span class="material-symbols-outlined">add</span>
-                ขออนุมัติลา
-              </button>
-              <button>
-                <span class="material-symbols-outlined">add</span>
-                ขอ OT
-              </button>
-              <button>
-                <span class="material-symbols-outlined">add</span>
-                ขอเอกสารรับรองการทำงาน
-              </button>
-              <button>
-                <span class="material-symbols-outlined">add</span>
-                แจ้งปรับข้อมูลพนักงาน
-              </button>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-head">
-              <h3>ข่าวสารองค์กร</h3>
-            </div>
-
-            <div class="news-list">
-              <div class="news-item">
-                <strong>ประกาศวันหยุดประจำเดือน</strong>
-                <p>กรุณาตรวจสอบตารางวันหยุดและเวรประจำแผนก</p>
-              </div>
-
-              <div class="news-item">
-                <strong>เปิดลงทะเบียนตรวจสุขภาพ</strong>
-                <p>พนักงานสามารถลงทะเบียนผ่านระบบ Workforce Hub</p>
-              </div>
-
-              <div class="news-item">
-                <strong>ปรับปรุงข้อมูลพนักงาน</strong>
-                <p>กรุณาตรวจสอบเบอร์โทรและข้อมูลติดต่อฉุกเฉิน</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <script src="/js/index.js"></script>
-  </body>
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/index.js"></script>
+</body>
 </html>
