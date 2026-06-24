@@ -16,9 +16,9 @@
 
   <!-- TOP BAR -->
   <nav class="topbar">
-    <div class="topbar-left">
-      <a class="btn-back" href="/pages/user/index-user.html">← กลับ</a>
-      <div class="topbar-title">
+     <button type="button" class="btn-back" onclick="history.back(); return false;">
+    <span class="back-icon">←</span> ย้อนกลับ
+  </button>
         ใบลาออนไลน์
         <small>บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด · ปี 2569</small>
       </div>
@@ -44,35 +44,44 @@
         <h2>ข้อมูลพนักงาน <span class="badge-autofill">⚡ Auto-fill</span></h2>
         <span id="loadingBadge" style="font-size:12px;color:var(--muted);">⏳ กำลังโหลด...</span>
       </div>
-      <div class="info-grid">
-        <div class="info-field" style="grid-column: span 2">
-          <label>ชื่อ – สกุล</label>
-          <input type="text" id="employeeName" list="employeeOptions" placeholder="ค้นหาชื่อหรือรหัสพนักงาน" autocomplete="off" />
-          <datalist id="employeeOptions"></datalist>
-        </div>
-        <input type="hidden" id="employeeId" />
-        <div class="info-field">
-          <label>รหัสพนักงาน</label>
-          <input type="text" id="employeeCode" readonly placeholder="–" />
-        </div>
-        <div class="info-field">
-          <label>ตำแหน่งงาน</label>
-          <input type="text" id="position" readonly placeholder="–" />
-        </div>
-        <div class="info-field">
-          <label>ฝ่าย / แผนก</label>
-          <input type="text" id="department" readonly placeholder="–" />
-        </div>
-        <div class="info-field">
-          <label>วันเริ่มงาน</label>
-          <input type="text" id="startWorkDate" readonly placeholder="–" />
-        </div>
-        <div class="info-field balance-field">
-          <label>วันลาพักผ่อนคงเหลือ</label>
-          <input type="text" id="vacationRemain" readonly placeholder="–" />
-        </div>
-      </div>
-    </div>
+     <!-- ของเดิมที่เป็น <select id="employeeName">...</select> ให้เปลี่ยนเป็นก้อนนี้ครับ -->
+<div class="info-card-head">
+  <h2>👤 ข้อมูลผู้ขออนุมัติลา</h2>
+  <span class="badge-autofill">✨ ระบบดึงข้อมูลอัตโนมัติ</span>
+</div>
+
+    <div class="info-grid">
+  <div class="info-field">
+    <label>รหัสพนักงาน</label>
+    <input type="text" id="employeeCode" readonly placeholder="กำลังโหลด...">
+  </div>
+
+  <div class="info-field">
+    <label>ชื่อ-นามสกุล พนักงาน</label>
+    <input type="text" id="employeeName" readonly placeholder="กำลังโหลดข้อมูลพนักงาน...">
+  </div>
+  
+  <div class="info-field">
+    <label>ตำแหน่ง</label>
+    <input type="text" id="employeePosition" readonly>
+  </div>
+  
+  <div class="info-field">
+    <label>แผนก / ฝ่าย</label>
+    <input type="text" id="employeeDepartment" readonly>
+  </div>
+
+  <div class="info-field">
+    <label>วันเริ่มงาน</label>
+    <input type="text" id="employeeStartDate" readonly>
+  </div>
+  
+  <div class="info-field balance-field">
+    <label>สิทธิ์คงเหลือ (วัน)</label>
+    <input type="text" id="leaveBalance" readonly>
+  </div>
+</div>
+
 
     <!-- NOTICE -->
     <div class="notice-box no-print">
@@ -87,28 +96,25 @@
         <button class="btn btn-green btn-sm no-print" onclick="addLeaveRow()">＋ เพิ่มรายการ</button>
       </div>
       <div class="table-scroll">
-        <table class="leave-table">
+       <table class="leave-table">
           <thead>
             <tr>
-                  
-                  <th>วันที่เขียน</th>
-                  <th colspan="2">ช่วงวันลา</th>
-                  <th colspan="3">จำนวน</th>
-                  <th>ประเภทการลา</th>
-                  <th>สาเหตุ / เหตุผล</th>
-                  <th>หลักฐาน</th>
-                  <th>ยืนยันตัวตนผู้ลา</th> <th colspan="3">ผู้อนุมัติ</th>
-                  <th class="no-print">ลบ</th>
-                </tr>
-
-                
+              <th rowspan="2" style="vertical-align: middle;">วันที่เขียน</th>
+              <th colspan="2" style="text-align: center;">ช่วงวันลา</th>
+              <th colspan="3" style="text-align: center;">จำนวนที่ลา</th>
+              <th rowspan="2" style="vertical-align: middle;">ประเภทการลา</th>
+              <th rowspan="2" style="vertical-align: middle;">สาเหตุ / เหตุผล</th>
+              <th rowspan="2" style="vertical-align: middle;">หลักฐาน</th>
+              <th rowspan="2" style="vertical-align: middle;">ยืนยันตัวตนผู้ลา</th>
+              <th colspan="3" style="text-align: center;">สถานะผูอนุมัติ</th>
+              <th rowspan="2" class="no-print" style="vertical-align: middle;">ลบ</th>
             </tr>
             <tr>
               <th>เริ่มวันที่</th>
               <th>ถึงวันที่</th>
-              <th>ชม.เช้า</th>
-              <th>ชม.บ่าย</th>
-              <th>วัน</th>
+              <th style="text-align: center;">ชม.เช้า</th>
+              <th style="text-align: center;">ชม.บ่าย</th>
+              <th style="text-align: center;">วัน</th>
               <th>หน.แผนก</th>
               <th>ผจก.ฝ่าย</th>
               <th>ฝ่ายบุคคล</th>
@@ -121,8 +127,6 @@
 
     <!-- BOTTOM ACTIONS -->
     <div class="bottom-actions no-print">
-      <button class="btn btn-ghost" onclick="location.href='/pages/user/index-user.html'">← ยกเลิก</button>
-      <div class="spacer"></div>
       <button class="btn btn-green" onclick="addLeaveRow()">＋ เพิ่มรายการ</button>
       <button class="btn btn-primary" onclick="saveLeave()">💾 บันทึกคำขอลา</button>
     </div>
@@ -133,6 +137,24 @@
   <div id="statusToast" class="status-toast"></div>
 
   <script src="/js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/js/auth-guard.js"></script>
+  <script>
+  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
+  document.addEventListener("DOMContentLoaded", () => {
+     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+  });
+
+  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
+  async function handleFormSubmit() {
+     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
+     
+     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
+     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
+  }
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
   <script src="/js/leave-user.js"></script>
+</body>
 </body>
 </html>

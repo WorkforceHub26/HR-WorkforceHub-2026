@@ -5,48 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>หน้าพนักงาน | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="stylesheet" href="/css/index-user.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
   <main class="app">
-    <!-- ปุ่มย้อนกลับเวอร์ชันเสถียรสำหรับมือถือ -->
-<div class="back-nav">
-  <button type="button" class="btn-back" onclick="history.back(); return false;">
-    <span class="back-icon">←</span> ย้อนกลับ
-  </button>
-</div>
+    
     <header class="user-header">
       <div class="brand-row">
         <img src="/assets/icons/logo-pvt.png" alt="PVT" />
         <div>
           <p class="hello">สวัสดีค่ะ</p>
-          <h1 id="userName">พนักงาน</h1>
+          <h1 id="userName">กำลังโหลด...</h1>
           <span id="userDepartment">PVT HR Leave</span>
         </div>
       </div>
-      <button class="logout-btn" onclick="logoutUser()">ออก</button>
+      <button type="button" class="logout-btn" onclick="logout(); return false;">
+        ออก
+      </button>
     </header>
 
-    <section class="summary-card">
-      <div>
-        <span>พักผ่อนคงเหลือ</span>
-        <strong id="leaveBalance">6</strong>
-        <p>วัน</p>
+    <section class="summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0;">
+      
+      <div class="summary-card" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 12px; text-align: center;">
+        <span class="material-symbols-outlined icon green" style="color: #16a34a;">event_available</span>
+        <p style="margin: 4px 0; font-size: 12px; color: #166534;">วันลาคงเหลือ</p>
+        <h3 id="leaveBalance" style="margin: 4px 0; font-size: 20px; color: #16a34a;">-</h3>
+        <small style="color: #166534; font-size: 11px;">วัน</small>
       </div>
-      <div>
-        <span>รออนุมัติ</span>
-        <strong id="pendingCount">0</strong>
-        <p>รายการ</p>
+
+      <div class="summary-card" style="background: #fef2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: 12px; text-align: center;">
+        <span class="material-symbols-outlined icon red" style="color: #dc2626;">history</span>
+        <p style="margin: 4px 0; font-size: 12px; color: #991b1b;">ใช้ไปแล้ว</p>
+        <h3 id="usedBalance" style="margin: 4px 0; font-size: 20px; color: #dc2626;">-</h3>
+        <small style="color: #991b1b; font-size: 11px;">วัน</small>
       </div>
+
+      <div class="summary-card" style="background: #fef9c3; border: 1px solid #fef08a; padding: 12px; border-radius: 12px; text-align: center;">
+        <span class="material-symbols-outlined icon orange" style="color: #d97706;">pending_actions</span>
+        <p style="margin: 4px 0; font-size: 12px; color: #854d0e;">รออนุมัติลา</p>
+        <h3 id="pendingCount" style="margin: 4px 0; font-size: 20px; color: #d97706;">-</h3>
+        <small style="color: #854d0e; font-size: 11px;">รายการ</small>
+      </div>
+
     </section>
 
     <section class="primary-action">
       <h2>ต้องการทำรายการอะไร?</h2>
       <button class="request-leave-btn" onclick="goToLeaveForm()">
-        <span>+</span>
-        ขออนุญาตลา
+        <span>+</span> ขออนุญาตลา
       </button>
     </section>
 
@@ -75,31 +84,6 @@
         </div>
       </button>
 
- <section class="summary-grid">
-  
-          <div class="summary-card" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
-            <span class="material-symbols-outlined icon green">event_available</span>
-            <p>วันลาคงเหลือ</p>
-            <h3 id="leaveBalance">-</h3>
-            <small>วัน</small>
-          </div>
-
-          <div class="summary-card" style="background: #fef2f2; border: 1px solid #fee2e2;">
-            <span class="material-symbols-outlined icon red">history</span>
-            <p>ใช้ไปแล้ว</p>
-            <h3 id="usedBalance">-</h3>
-            <small>วัน</small>
-          </div>
-
-          <div class="summary-card" style="background: #fef9c3; border: 1px solid #fef08a;">
-            <span class="material-symbols-outlined icon orange">pending_actions</span>
-            <p>รออนุมัติลา</p>
-            <h3 id="pendingCount">-</h3>
-            <small>รายการ</small>
-          </div>
-
-</section>
-
       <button class="menu-card" onclick="goToProfile()">
         <div class="menu-icon orange">👤</div>
         <div>
@@ -123,6 +107,22 @@
   </main>
 
   <script src="/js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/js/auth-guard.js"></script>
+  <script>
+  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
+  document.addEventListener("DOMContentLoaded", () => {
+     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+  });
+
+  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
+  async function handleFormSubmit() {
+     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
+     
+     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
+     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
+  }
+</script>
   <script src="/js/index-user.js"></script>
 </body>
 </html>

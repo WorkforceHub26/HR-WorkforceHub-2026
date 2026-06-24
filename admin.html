@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Enterprise System Control Console</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/admin.css">
+</head>
+<body>
+
+<div class="dashboard-wrapper">
+  
+  <header class="main-header">
+    <div class="header-logo">
+      <span class="pulse-indicator"></span>
+      <h1>CORE BASE AUDIT TRAIL SYSTEM v4.0</h1>
+    </div>
+    <div class="header-meta">
+      <button class="action-btn btn-refresh" onclick="executeTelemetryCycle()">🔄 Force Re-Ping</button>
+      <div class="meta-badge">PROJECT: <span style="color:#38bdf8;">pgogmhqjdchakcytsomx</span></div>
+      <div class="meta-badge" id="lastRefreshTime">REFRESH: -</div>
+    </div>
+  </header>
+
+  <section class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-title">📡 ENGINE PING & LATENCY</span>
+        <span class="metric-icon">⚡</span>
+      </div>
+      <div id="pingStatus" class="metric-value loading">⏳ ANALYZING...</div>
+      <div class="metric-footer" id="pingDetails">กำลังตรวจสอบสัญญาณ...</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-title">💾 TOTAL DATABASE QUANTITY</span>
+        <span class="metric-icon">📊</span>
+      </div>
+      <div id="dbSizeStatus" class="metric-value loading">⏳ FETCHING...</div>
+      <div class="metric-footer" id="dbSizeDetails">นับจำนวนแถวสะสมรวมทุกตารางหลัก</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-title">🔑 SECURITY RLS STATUS</span>
+        <span class="metric-icon">🔒</span>
+      </div>
+      <div id="rlsStatus" class="metric-value loading">⏳ CHECKING...</div>
+      <div class="metric-footer" id="rlsDetails">วิเคราะห์สิทธิ์ RLS</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-title">📡 REALTIME STREAMING</span>
+        <span class="metric-icon">🟢</span>
+      </div>
+      <div id="realtimeStatus" class="metric-value text-warn">CONNECTING</div>
+      <div class="metric-footer">สถานะท่อ WebSocket ดักจับคนกดปุ่ม</div>
+    </div>
+  </section>
+
+  <section class="data-layout-grid" style="grid-template-columns: 1fr;">
+    <div class="data-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>👥 Live User Audit Logs Stream (ใครทำอะไร หน้าไหน แก้ไขอะไร รู้หมด!)</h3>
+        <span style="font-size: 12px; color: #10b981; font-family: 'JetBrains Mono', monospace;">● REALTIME FEED ACTIVE</span>
+      </div>
+      <table class="telemetry-table">
+        <thead>
+          <tr>
+            <th style="width: 12%;">เวลา (Time)</th>
+            <th style="width: 18%;">ชื่อผู้ใช้งาน (User)</th>
+            <th style="width: 15%;">หน้าเว็บ (Page URL)</th>
+            <th style="width: 15%;">คำสั่ง/ปุ่มกด (Action)</th>
+            <th style="width: 40%;">รายละเอียดเชิงลึกการแก้ไข (Description)</th>
+          </tr>
+        </thead>
+        <tbody id="auditLogsTableBody">
+          <tr><td colspan="5" style="text-align:center; color:#64748b;">⏳ ระบบกำลังรอพนักงานกดปุ่มใช้งาน หรือกำลังดึงข้อมูลประวัติล่าสุด...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="advanced-console-wrapper">
+    <div class="console-action-bar">
+      <div class="console-title">
+        <span class="console-flash-icon">👾</span>
+        <h2>SYSTEM DEVOPS ENGINE LOGGER</h2>
+      </div>
+      <div class="console-search-box">
+        <input type="text" id="logSearchInput" placeholder="🔍 ค้นหาคำใน Log..." oninput="handleLogSearch()">
+      </div>
+      <div class="console-buttons">
+        <button class="action-btn btn-copy" onclick="copyConsoleLog()">📋 Copy Logs</button>
+        <button class="action-btn btn-download" onclick="downloadLogs()">📥 Download Log File</button>
+        <button class="action-btn" onclick="clearConsoleLog()">Clear</button>
+      </div>
+    </div>
+    <div id="debugLogContainer" class="console-terminal-screen"></div>
+  </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/admin.js"></script>
+</body>
+</html>

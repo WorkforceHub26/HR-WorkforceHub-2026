@@ -35,6 +35,22 @@
   </main>
 
   <script src="/js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/js/auth-guard.js"></script>
+  <script>
+  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
+  document.addEventListener("DOMContentLoaded", () => {
+     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+  });
+
+  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
+  async function handleFormSubmit() {
+     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
+     
+     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
+     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
+  }
+</script>
   <script src="/js/leave-history.js"></script>
 </body>
 </html>

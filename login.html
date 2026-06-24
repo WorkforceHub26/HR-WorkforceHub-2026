@@ -12,7 +12,7 @@
 <body>
   <main class="login-page">
     <section class="logo-area">
-      <img src="/assets/icons/logo-pvt.png" alt="PVT" class="login-logo" />
+      <img src="/assets/icons/logo-pvt.png" alt="PVT" style="height: 110px; width: auto; vertical-align: middle;"/>
       <h1>PVT HR Leave</h1>
       <p>ระบบขออนุญาตลาออนไลน์</p>
     </section>
@@ -51,6 +51,24 @@
   </main>
 
   <script src="/js/supabase-config.js"></script>
+
+  <script src="/js/pvt-logger.js"></script>
+
   <script src="/auth/login.js"></script>
+
+  <script>
+  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
+  document.addEventListener("DOMContentLoaded", () => {
+     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+  });
+
+  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
+  async function handleFormSubmit() {
+     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
+     
+     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
+     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
+  }
+</script>
 </body>
 </html>

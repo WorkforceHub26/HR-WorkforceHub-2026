@@ -11,26 +11,46 @@
 
 <body>
   <main class="app">
+    
     <header class="user-header">
       <div class="brand-row">
         <img src="/assets/icons/logo-pvt.png" alt="PVT" />
         <div>
           <p class="hello">PVT HR Leave</p>
           <h1>ข้อมูลพนักงาน</h1>
-          <span>ตรวจสอบข้อมูลจาก Supabase</span>
+          <span>ตรวจสอบข้อมูลโปรไฟล์ของท่าน</span>
         </div>
       </div>
       <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับ</button>
     </header>
 
     <section class="recent-card">
-      <div id="profileBox" class="profile-box">
-        <div class="empty-state">กำลังโหลดข้อมูล...</div>
+      <div class="section-head">
+        <h2>รายละเอียดโปรไฟล์</h2>
+      </div>
+      <div id="profileBox" class="recent-list">
+        <div class="empty-state">กำลังโหลดข้อมูลพนักงาน...</div>
       </div>
     </section>
+
   </main>
 
   <script src="/js/supabase-config.js"></script>
+  <script src="/js/auth-guard.js"></script>
+  <script>
+  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
+  document.addEventListener("DOMContentLoaded", () => {
+     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+  });
+
+  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
+  async function handleFormSubmit() {
+     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
+     
+     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
+     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
+  }
+</script>
   <script src="/js/profile-user.js"></script>
 </body>
 </html>

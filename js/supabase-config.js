@@ -1,5 +1,5 @@
 const PVT_SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
-const PVT_SUPABASE_ANON_KEY = "sb_publishable_iA8FjvM0C-6A24AjaanOKw_FG30LtE6";
+const PVT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
 window.pvtSupabase = (() => {
   let client = null;
@@ -26,13 +26,14 @@ window.pvtSupabase = (() => {
     const session = await getSession();
     if (!sb || !session) return null;
 
-    // ดึงโปรไฟล์พนักงานพร้อมข้อมูลแผนกและตำแหน่งพนักงานแบบอัตโนมัติในคำสั่งเดียว
+    // ✅ ปรับปรุงให้ดึงโครงสร้างพนักงาน แผนก และตำแหน่ง มัดรวมกันในคำสั่งเดียวอย่างถูกต้อง
     const { data, error } = await sb
       .from("profiles")
       .select(`
         id, employee_id, email, username, display_name, role, status,
         employees (
           id, employee_code, full_name, start_date, status,
+          department_id, position_id,
           departments ( department_name ),
           positions ( position_name )
         )
@@ -41,7 +42,7 @@ window.pvtSupabase = (() => {
       .maybeSingle();
 
     if (error) {
-      console.warn("Profile lookup failed", error);
+      console.error("Error fetching current profile:", error);
       return null;
     }
     return data;

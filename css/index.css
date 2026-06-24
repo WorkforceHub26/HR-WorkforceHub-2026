@@ -686,3 +686,20 @@ button {
 .btn-back:active .back-icon {
   transform: translateX(-4px);
 }
+
+.logout-btn {
+  flex: 0 0 auto;
+  border: 1px solid #fee2e2;
+  border-radius: 12px;
+  padding: 8px 14px;
+  background: #fff5f5;
+  color: #dc2626;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  transition: var(--pvt-ease);
+}
+.logout-btn:active {
+  transform: scale(0.92);
+  background: #fecdd3;
+}

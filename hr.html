@@ -10,13 +10,11 @@
 </head>
 
 <body>
-
-    
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="admin-logo" />
-        <h2>PVT HR </h2>
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" style="height: 125px; width: auto; vertical-align: middle;"/>
+        <h2>PVT HR</h2>
         <p>ระบบจัดการฝ่ายบุคคล</p>
       </div>
       <nav class="side-nav">
@@ -26,14 +24,11 @@
         <a class="nav-item" href="/pages/user/leave-rules.html">หลักเกณฑ์การลา</a>
       </nav>
       <a class="nav-item" href="#" data-tab="balances">ตรวจสอบโควตาวันลา</a>
-      <div class="back-nav">
-  <!-- ปุ่มย้อนกลับเวอร์ชันเสถียรสำหรับมือถือ -->
-<div class="back-nav">
-  <button type="button" class="btn-back" onclick="history.back(); return false;">
-    <span class="back-icon">←</span> ย้อนกลับ
-  </button>
-</div>
-</div>
+      <div class="back-nav" style="margin-top: 20px; padding: 0 16px;">
+        <button type="button" class="btn-back" onclick="history.back(); return false;" style="width: 100%; padding: 10px; background: #64748b; color: white; border: none; border-radius: 8px; cursor: pointer;">
+          ← ย้อนกลับ
+        </button>
+      </div>
     </aside>
 
     <main class="main-content">
@@ -83,7 +78,7 @@
                   <th>รหัส</th>
                   <th>ชื่อ-นามสกุล</th>
                   <th>วันเริ่มงาน</th>
-                  <th>สถานะ</th>
+                  <th>暗号 / สถานะ</th>
                 </tr>
               </thead>
               <tbody id="employeeTableBody"></tbody>
@@ -103,17 +98,14 @@
             <table class="admin-table">
               <thead>
                 <tr>
-                  <thead>
-                    <tr>
-                      <th>พนักงาน</th>
-                      <th>ประเภท</th>
-                      <th>ช่วงวันที่</th>
-                      <th>จำนวน</th>
-                      <th>เหตุผล</th>
-                      <th>สถานะ</th>
-                      <th>จัดการ</th>
-                      <th>ลิงก์ใบลา</th> </tr>
-                  </thead>
+                  <th>พนักงาน</th>
+                  <th>ประเภท</th>
+                  <th>ช่วงวันที่</th>
+                  <th>จำนวน</th>
+                  <th>เหตุผล</th>
+                  <th>สถานะ</th>
+                  <th>จัดการ</th>
+                  <th>ลิงก์ใบลา</th>
                 </tr>
               </thead>
               <tbody id="leaveRequestBody"></tbody>
@@ -129,17 +121,22 @@
             <h3>ยอดคงเหลือของปีปัจจุบัน (พ.ศ.)</h3>
             <button class="btn-light" onclick="fetchLeaveBalances()">รีเฟรชข้อมูล</button>
           </div>
+          <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+  <input type="text" id="searchBalanceInput" placeholder="🔍 ค้นหาด้วยชื่อ หรือรหัสพนักงาน..." 
+         style="padding: 8px 12px; width: 300px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-family: 'Sarabun', sans-serif;">
+</div>
           <div class="table-scroll">
             <table class="admin-table">
               <thead>
-                <tr>
-                  <th>รหัสพนักงาน</th>
-                  <th>ชื่อ-นามสกุล</th>
-                  <th>ปีโควตา</th>
-                  <th>สิทธิ์วันลาทั้งหมด</th>
-                  <th>คงเหลือจริง (วัน)</th>
-                </tr>
-              </thead>
+  <tr style="background: #0f172a; color: white;">
+    <th style="padding: 10px;">รหัสพนักงาน</th>
+    <th style="padding: 10px;">ชื่อ-นามสกุล</th>
+    <th style="padding: 10px; text-align:center;">ปี พ.ศ.</th>
+    <th style="padding: 10px; text-align:center;">ลาป่วยคงเหลือ</th>
+    <th style="padding: 10px; text-align:center;">ลากิจคงเหลือ</th>
+    <th style="padding: 10px; text-align:center;">ลาพักร้อนคงเหลือ</th>
+  </tr>
+</thead>
               <tbody id="leaveBalanceBody">
                 <tr><td colspan="5" style="text-align: center;">กำลังโหลดข้อมูลโควตา...</td></tr>
               </tbody>
@@ -147,14 +144,27 @@
           </div>
         </div>
       </section>
-      
-      
-      
-
     </main>
   </div>
 
   <script src="/js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/js/auth-guard.js"></script>
+
+  <script>
+  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
+  document.addEventListener("DOMContentLoaded", () => {
+     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+  });
+
+  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
+  async function handleFormSubmit() {
+     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
+     
+     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
+     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
+  }
+</script>
   <script src="/js/hr.js"></script>
 </body>
 </html>
