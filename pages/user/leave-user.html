@@ -6,97 +6,91 @@
   <title>ใบลาออนไลน์ | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/leave-user.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sriracha&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-  <!-- TOP BAR -->
   <nav class="topbar">
-     <button type="button" class="btn-back" onclick="history.back(); return false;">
-    <span class="back-icon">←</span> ย้อนกลับ
-  </button>
-        ใบลาออนไลน์
-        <small>บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด · ปี 2569</small>
+    <div class="topbar-container">
+      <div class="topbar-left">
+        <button type="button" class="btn-back" onclick="history.back(); return false;">
+          ย้อนกลับ
+        </button>
+        <img src="/" alt="PVT Logo" class="company-logo">
       </div>
-    </div>
-    <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="location.href='/pages/user/leave-rules.html'">📘 หลักเกณฑ์</button>
-      <button class="btn btn-ghost" onclick="window.print()">🖨️ พิมพ์</button>
+      
+      <div class="topbar-center">
+        <span class="topbar-title">ใบลาออนไลน์</span>
+        <small class="topbar-subtitle">บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด</small>
+      </div>
+      
+      <div class="topbar-actions no-print">
+        <button class="btn btn-ghost btn-sm" onclick="location.href='/pages/user/leave-rules.html'">หลักเกณฑ์</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">พิมพ์</button>
+      </div>
     </div>
   </nav>
 
   <div class="page">
 
-    <!-- PRINT HEADER (สำหรับพิมพ์เท่านั้น) -->
     <div class="print-header">
-      <h1>บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด</h1>
+      <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="print-logo" style="height: 95px; width: auto; vertical-align: middle;">
       <h2>ใบลา ประจำปี 2569</h2>
       <p>วันที่ 1 ธันวาคม 2568 – 30 พฤศจิกายน 2569</p>
     </div>
 
-    <!-- EMPLOYEE INFO CARD -->
     <div class="info-card">
       <div class="info-card-head">
-        <h2>ข้อมูลพนักงาน <span class="badge-autofill">⚡ Auto-fill</span></h2>
-        <span id="loadingBadge" style="font-size:12px;color:var(--muted);">⏳ กำลังโหลด...</span>
+        <h2>ข้อมูลผู้ขออนุมัติลา</h2>
+        <span class="badge-autofill">ระบบดึงข้อมูลอัตโนมัติ</span>
       </div>
-     <!-- ของเดิมที่เป็น <select id="employeeName">...</select> ให้เปลี่ยนเป็นก้อนนี้ครับ -->
-<div class="info-card-head">
-  <h2>👤 ข้อมูลผู้ขออนุมัติลา</h2>
-  <span class="badge-autofill">✨ ระบบดึงข้อมูลอัตโนมัติ</span>
-</div>
 
-    <div class="info-grid">
-  <div class="info-field">
-    <label>รหัสพนักงาน</label>
-    <input type="text" id="employeeCode" readonly placeholder="กำลังโหลด...">
-  </div>
+      <div class="info-grid">
+        <div class="info-field">
+          <label>รหัสพนักงาน</label>
+          <input type="text" id="employeeCode" readonly placeholder="กำลังโหลด...">
+        </div>
 
-  <div class="info-field">
-    <label>ชื่อ-นามสกุล พนักงาน</label>
-    <input type="text" id="employeeName" readonly placeholder="กำลังโหลดข้อมูลพนักงาน...">
-  </div>
-  
-  <div class="info-field">
-    <label>ตำแหน่ง</label>
-    <input type="text" id="employeePosition" readonly>
-  </div>
-  
-  <div class="info-field">
-    <label>แผนก / ฝ่าย</label>
-    <input type="text" id="employeeDepartment" readonly>
-  </div>
+        <div class="info-field">
+          <label>ชื่อ-นามสกุล พนักงาน</label>
+          <input type="text" id="employeeName" readonly placeholder="กำลังโหลดข้อมูลพนักงาน...">
+        </div>
+        
+        <div class="info-field">
+          <label>ตำแหน่ง</label>
+          <input type="text" id="employeePosition" readonly>
+        </div>
+        
+        <div class="info-field">
+          <label>แผนก / ฝ่าย</label>
+          <input type="text" id="employeeDepartment" readonly>
+        </div>
 
-  <div class="info-field">
-    <label>วันเริ่มงาน</label>
-    <input type="text" id="employeeStartDate" readonly>
-  </div>
-  
-  <div class="info-field balance-field">
-    <label>สิทธิ์คงเหลือ (วัน)</label>
-    <input type="text" id="leaveBalance" readonly>
-  </div>
-</div>
-
-
-    <!-- NOTICE -->
-    <div class="notice-box no-print">
-      ⚠️ <strong>ตรวจสอบก่อนบันทึก:</strong>
-      ลาพักผ่อนล่วงหน้าอย่างน้อย 3 วัน · ลากิจแจ้งล่วงหน้า 1 วัน · ลาป่วยแจ้งภายใน 4 ชั่วโมงแรก พร้อมใบรับรองแพทย์
+        <div class="info-field">
+          <label>วันเริ่มงาน</label>
+          <input type="text" id="employeeStartDate" readonly>
+        </div>
+        
+        <div class="info-field balance-field">
+          <label>สิทธิ์คงเหลือ (วัน)</label>
+          <input type="text" id="leaveBalance" readonly>
+        </div>
+      </div>
     </div>
 
-    <!-- LEAVE TABLE -->
+    <div class="notice-box no-print">
+      คำแนะนำ: ตรวจสอบความถูกต้องของ วันที่ลา และประเภทการลาก่อนส่งบันทึกทุกครั้ง เพื่อความรวดเร็วในการพิจารณาอนุมัติ
+    </div>
+
     <div class="table-card">
       <div class="table-card-head">
         <h2>รายการลา</h2>
-        <button class="btn btn-green btn-sm no-print" onclick="addLeaveRow()">＋ เพิ่มรายการ</button>
+        <button class="btn btn-green btn-sm no-print" onclick="addLeaveRow()">เพิ่มรายการ</button>
       </div>
+      
       <div class="table-scroll">
-       <table class="leave-table">
+        <table class="leave-table">
           <thead>
             <tr>
               <th rowspan="2" style="vertical-align: middle;">วันที่เขียน</th>
@@ -104,9 +98,8 @@
               <th colspan="3" style="text-align: center;">จำนวนที่ลา</th>
               <th rowspan="2" style="vertical-align: middle;">ประเภทการลา</th>
               <th rowspan="2" style="vertical-align: middle;">สาเหตุ / เหตุผล</th>
-              <th rowspan="2" style="vertical-align: middle;">หลักฐาน</th>
-              <th rowspan="2" style="vertical-align: middle;">ยืนยันตัวตนผู้ลา</th>
-              <th colspan="3" style="text-align: center;">สถานะผูอนุมัติ</th>
+              <th rowspan="2" style="vertical-align: middle;">แนบหลักฐาน</th>
+              <th colspan="3" style="text-align: center;">สถานะผู้อนุมัติ</th>
               <th rowspan="2" class="no-print" style="vertical-align: middle;">ลบ</th>
             </tr>
             <tr>
@@ -120,41 +113,76 @@
               <th>ฝ่ายบุคคล</th>
             </tr>
           </thead>
-          <tbody id="leaveTableBody"></tbody>
+          <tbody id="leaveTableBody">
+            </tbody>
         </table>
       </div>
     </div>
 
-    <!-- BOTTOM ACTIONS -->
     <div class="bottom-actions no-print">
-      <button class="btn btn-green" onclick="addLeaveRow()">＋ เพิ่มรายการ</button>
-      <button class="btn btn-primary" onclick="saveLeave()">💾 บันทึกคำขอลา</button>
+      <button class="btn btn-green" onclick="addLeaveRow()">เพิ่มรายการ</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" onclick="showDraftPreview()">บันทึกคำขอลา</button>
     </div>
 
   </div>
 
-  <!-- STATUS TOAST -->
   <div id="statusToast" class="status-toast"></div>
 
   <script src="/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/auth-guard.js"></script>
-  <script>
-  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
-  document.addEventListener("DOMContentLoaded", () => {
-     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
-  });
-
-  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
-  async function handleFormSubmit() {
-     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
-     
-     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
-     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
-  }
-</script>
-  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
   <script src="/js/leave-user.js"></script>
-</body>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+       if (typeof logUserAction === "function") {
+          logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+       }
+    });
+
+    // ⚡ ฟังก์ชันแสดงป๊อปอัปแจ้งเตือนตรวจสอบแบบร่างก่อนบันทึกใบลาจริง (Draft Preview)
+    function showDraftPreview() {
+      const row = document.querySelector("#leaveTableBody tr");
+      if(!row) {
+        Swal.fire({ icon: 'warning', title: 'ไม่พบข้อมูล', text: 'กรุณาเพิ่มรายการลาอย่างน้อย 1 รายการ', confirmButtonColor: '#2563eb' });
+        return;
+      }
+
+      const leaveTypeSelect = row.querySelector('select[name="leave_type_id"]');
+      const leaveTypeText = leaveTypeSelect ? leaveTypeSelect.options[leaveTypeSelect.selectedIndex].text : 'ไม่ได้ระบุ';
+      const startDate = row.querySelector('input[name="start_date"]')?.value || '-';
+      const endDate = row.querySelector('input[name="end_date"]')?.value || '-';
+      const totalDays = row.querySelector('input[name="leave_days"]')?.value || '0';
+
+      Swal.fire({
+        title: 'ยืนยันแบบร่างใบลา',
+        html: `
+          <p style="text-align:center; color:#475569; margin-bottom:15px; font-size:14px;">โปรดตรวจสอบข้อมูลแบบร่างคำขอลาของท่านให้ถูกต้องก่อนส่งยืนยัน</p>
+          <div class="draft-preview-box">
+            <div class="draft-item"><span class="draft-label">ผู้ยื่นคำขอ:</span><span class="draft-value">${document.getElementById('employeeName').value || '-'}</span></div>
+            <div class="draft-item"><span class="draft-label">ประเภทการลา:</span><span class="draft-value" style="color:#2563eb;">${leaveTypeText}</span></div>
+            <div class="draft-item"><span class="draft-label">วันเริ่มลา:</span><span class="draft-value">${startDate}</span></div>
+            <div class="draft-item"><span class="draft-label">ลาถึงวันที่:</span><span class="draft-value">${endDate}</span></div>
+            <div class="draft-item"><span class="draft-label">จำนวนรวม:</span><span class="draft-value" style="color:#10b981;">${totalDays} วัน</span></div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'ยืนยันและส่งใบลา',
+        cancelButtonText: 'แก้ไขข้อมูลเพิ่มเติม',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          if (typeof saveLeave === "function") {
+            saveLeave();
+          } else {
+            Swal.fire('สำเร็จ', 'บันทึกข้อมูลคำขอลาเรียบร้อยแล้ว', 'success');
+          }
+        }
+      });
+    }
+  </script>
 </body>
 </html>

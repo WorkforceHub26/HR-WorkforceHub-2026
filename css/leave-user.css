@@ -1,22 +1,25 @@
 /* ==========================================================================
-   🏢 PVT HR Leave — ใบลาออนไลน์ (Cleaned Responsive Version)
+   🏢 PVT HR Leave — ใบลาออนไลน์ (Ultra Premium Categorized Grid View)
    ========================================================================== */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   --primary: #2563eb;
+  --primary-light: #eff6ff;
   --primary-dark: #1d4ed8;
   --green: #10b981;
+  --green-light: #f0fdf4;
   --green-dark: #059669;
   --red: #ef4444;
-  --bg: #f1f5f9;
+  --red-light: #fef2f2;
+  --bg: #f8fafc;        
   --card: #ffffff;
   --text: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --line: #334155;
-  --ease: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --muted: #475569;     
+  --border: #cbd5e1;    
+  --input-bg: #fdfdfd;
+  --ease: all 0.2s ease-in-out;
 }
 
 body {
@@ -30,554 +33,304 @@ body {
 /* ─── TOP BAR ─── */
 .topbar {
   background: var(--card);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  border-bottom: 2px solid #e2e8f0; 
+  padding: 14px 24px; 
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
 }
 
-.topbar-left {
+.topbar-container {
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
 }
+
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.company-logo { height: 42px; width: auto; object-fit: contain; }
 
 .btn-back {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 10px;
-  padding: 7px 12px;
+  padding: 8px 18px; 
   background: var(--card);
   color: var(--text);
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: var(--ease);
   text-decoration: none;
 }
-.btn-back:hover { background: var(--bg); }
-.btn-back:active { transform: scale(0.95); }
-
-.topbar-title { font-size: 16px; font-weight: 600; }
-.topbar-title small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
-.topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-back:hover { background: #f1f5f9; border-color: var(--primary); color: var(--primary); }
+.topbar-center { text-align: center; }
+.topbar-title { font-size: 22px; font-weight: 700; color: var(--text); display: block; letter-spacing: -0.5px; }
+.topbar-subtitle { font-size: 12px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
+.topbar-actions { display: flex; gap: 8px; }
 
 /* ─── LAYOUT ─── */
-.page { padding: 20px 16px 60px; max-width: 1280px; margin: 0 auto; }
+.page { padding: 32px 24px 120px; max-width: 1400px; margin: 0 auto; }
 
 /* ─── EMPLOYEE INFO CARD ─── */
 .info-card {
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px; 
+  padding: 28px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
 }
-
 .info-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 12px;
 }
-
-.info-card-head h2 {
-  font-size: 15px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.badge-autofill {
-  font-size: 11px;
-  font-weight: 500;
-  background: #dbeafe;
-  color: #1d4ed8;
-  padding: 3px 8px;
-  border-radius: 99px;
-}
-
-#employeeName {
-  height: 44px;
-  border: 2px solid #dbeafe;
-  border-radius: 12px;
-  padding: 0 12px;
-  background: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  width: 100%;
-}
-#employeeName:hover { border-color: #93c5fd; }
-#employeeName:focus { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,.15); }
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.info-field { display: flex; flex-direction: column; gap: 4px; }
-.info-field label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-
-.info-field input {
-  height: 40px;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 0 12px;
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--text);
-  background: #f8fafc;
-  outline: none;
-  transition: var(--ease);
-}
+.info-card-head h2 { font-size: 18px; font-weight: 700; color: #1e293b; }
+.badge-autofill { font-size: 12px; font-weight: 600; background: var(--primary-light); color: var(--primary); padding: 4px 14px; border-radius: 99px; border: 1.5px solid #bfdbfe; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
+.info-field { display: flex; flex-direction: column; gap: 8px; }
+.info-field label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.info-field input { height: 50px; border: 2px solid var(--border); border-radius: 10px; padding: 0 16px; font-family: inherit; font-size: 15px; color: var(--text); background: #f8fafc; outline: none; transition: var(--ease); }
 .info-field input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-.info-field input[readonly] { background: #f1f5f9; color: var(--muted); cursor: default; }
-.info-field input[readonly]:focus { border-color: var(--border); box-shadow: none; }
-
-.balance-field input { color: var(--green-dark); font-weight: 600; background: #f0fdf4; border-color: #bbf7d0; }
+.info-field input[readonly] { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; cursor: default; }
+.balance-field input { color: var(--green-dark); font-weight: 700; background: var(--green-light); border-color: #a7f3d0; font-size: 16px; }
 
 /* ─── NOTICE BOX ─── */
-.notice-box {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #1e3a8a;
-  line-height: 1.6;
-}
+.notice-box { background: var(--primary-light); border: 2px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 32px; font-size: 14px; color: #1e40af; line-height: 1.5; }
 
-/* ─── LEAVE TABLE CARD ─── */
-.table-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-}
+/* ─── LEAVE CARD CONTAINER ─── */
+.table-card { background: transparent; border: none; box-shadow: none; margin-bottom: 32px; }
+.table-card-head { padding: 16px 0; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+.table-card-head h2 { font-size: 20px; font-weight: 700; color: #1e293b; }
 
-.table-card-head {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.table-card-head h2 { font-size: 15px; font-weight: 600; }
-
-/* 📦 ตัวกรอบสกรอลล์ส่วนกลาง */
-.table-scroll {
+/* รีเซ็ตคุณสมบัติตารางแนวขวางธรรมดาให้แสดงผลแบบกล่องหรูหรา */
+.leave-table, .leave-table thead, .leave-table tbody, .leave-table tr, .leave-table td {
+  display: block;
   width: 100%;
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
-  background: #ffffff;
-}
-
-.leave-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-/* ตั้งค่าอินพุตมาตรฐานภายในตาราง */
-.leave-table input,
-.leave-table select,
-.leave-table textarea {
-  width: 100%;
-  height: 38px !important;
-  border: 1.5px solid var(--border) !important;
-  border-radius: 8px !important;
-  padding: 6px 10px !important;
-  font-family: inherit;
-  font-size: 13px !important;
-  color: var(--text) !important;
-  background: #fff !important;
-  outline: none;
   box-sizing: border-box;
+}
+.leave-table thead { display: none; } 
+
+/* 📦 ตัวกล่องเหลี่ยมขนาดใหญ่ พรีเมียม และมีมิติ */
+.leave-table tbody tr {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.02);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr); 
+  gap: 24px 20px;
+  transition: var(--ease);
+  position: relative;
+}
+.leave-table tbody tr:hover { border-color: var(--primary); box-shadow: 0 12px 35px rgba(37, 99, 235, 0.07); }
+
+/* สไตล์กล่องข้อความย่อยภายในกลุ่ม */
+.leave-table tbody td { padding: 0; border: none; display: flex; flex-direction: column; gap: 8px; }
+.leave-table tbody td::before { content: attr(data-label); display: block; font-weight: 700; color: var(--text); font-size: 13.5px; }
+
+/* 🛠️ ช่องอินพุต สรรพคุณสมบูรณ์แบบไม่ขาดไม่เกิน */
+.leave-table input, .leave-table select, .leave-table textarea {
+  width: 100%;
+  height: 50px; 
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--input-bg);
+  outline: none;
   transition: var(--ease);
 }
-.leave-table input:focus,
-.leave-table select:focus,
-.leave-table textarea:focus {
-  border-color: var(--primary) !important;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.15) !important;
+.leave-table textarea { height: 50px; resize: none; }
+.leave-table input:focus, .leave-table select:focus, .leave-table textarea:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+/* ─── 🛡️ ตัวแบ่งกลุ่มและหัวข้อหมวดหมู่ภายในกล่อง (Row Section Dividers) ─── */
+.row-divider {
+  grid-column: span 12;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--primary);
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--primary-light);
+  padding-bottom: 6px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+}
+.row-divider:first-child { margin-top: 0; }
+
+/* 📐 วางตำแหน่งช่องข้อมูลของคอมพิวเตอร์ให้อยู่ล็อกแถวเดียวกันอย่างลงตัวสูงสุด */
+
+/* หมวดหมู่ 1: วันที่และเวลา */
+.leave-table tbody tr td:nth-child(2) { grid-column: span 4; }   /* วันที่เขียนคำขอ */
+.leave-table tbody tr td:nth-child(3) { grid-column: span 4; }   /* เริ่มวันที่ลา */
+.leave-table tbody tr td:nth-child(4) { grid-column: span 4; }   /* ถึงวันที่ลา */
+
+/* หมวดหมู่ 2: สรุปจำนวนเวลาลา */
+.leave-table tbody tr td:nth-child(5) { grid-column: span 4; }   /* จำนวนชั่วโมงเช้า */
+.leave-table tbody tr td:nth-child(6) { grid-column: span 4; }   /* จำนวนชั่วโมงบ่าย */
+.leave-table tbody tr td:nth-child(7) { grid-column: span 4; }   /* สรุปรวมจำนวนวัน */
+
+/* หมวดหมู่ 3: รายละเอียดการลาและหลักฐาน */
+.leave-table tbody tr td:nth-child(8) { grid-column: span 4; }   /* ประเภทการลา */
+.leave-table tbody tr td:nth-child(9) { grid-column: span 4; }   /* สาเหตุ / เหตุผล */
+.leave-table tbody tr td:nth-child(10) { grid-column: span 4; }  /* แนบรูปหลักฐาน */
+
+/* หมวดหมู่ 4: คณะกรรมการผู้อนุมัติ */
+.leave-table tbody tr td:nth-child(11) { grid-column: span 4; }  /* หัวหน้าแผนก */
+.leave-table tbody tr td:nth-child(12) { grid-column: span 4; }  /* ผู้จัดการฝ่าย */
+.leave-table tbody tr td:nth-child(13) { grid-column: span 4; }  /* ฝ่ายบุคคล */
+
+
+/* ─── COMPONENT DESIGN DETAILED ─── */
+.leave-table .badge {
+  padding: 10px; font-size: 14px; font-weight: 600; text-align: center; border-radius: 10px; width: 100%; background: #f1f5f9; color: #475569; border: 2px solid #e2e8f0; height: 50px; display: inline-flex; align-items: center; justify-content: center;
 }
 
-.leave-table tbody tr:hover td { background: #f8fafc !important; }
+.custom-file-upload { display: block; width: 100%; }
+.custom-file-upload input[type="file"] { display: none; }
+.file-upload-label { display: flex; align-items: center; justify-content: center; width: 100%; height: 50px; border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc; color: #475569; font-weight: 600; font-size: 14px; cursor: pointer; transition: var(--ease); }
+.file-upload-label:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 
-/* กระดานลายเซ็นดิจิทัล Canvas */
-.leave-table canvas.sig-pad {
-  background: #f8fafc;
-  border-radius: 4px;
-  cursor: crosshair;
+/* ปุ่มลบแถวดีไซน์แยกสัดส่วนชัดเจนด้านล่างขวาของกล่อง */
+.leave-table tbody tr td:last-child {
+  grid-column: span 12; 
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 2px dashed #e2e8f0;
+  align-items: flex-end;
 }
+.leave-table .btn-danger { width: auto; padding: 10px 28px; height: 44px; font-size: 14px; border-radius: 8px; }
 
 /* ─── BUTTONS ─── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  border-radius: 10px;
-  padding: 9px 16px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--ease);
-  white-space: nowrap;
-}
-.btn:active { transform: scale(0.96); }
-.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 3px 12px rgba(37,99,235,0.25); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; border-radius: 10px; padding: 12px 26px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: var(--ease); white-space: nowrap; }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.btn-primary { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); }
-.btn-green { background: var(--green); color: #fff; box-shadow: 0 3px 12px rgba(16,185,129,0.25); }
+.btn-green { background: var(--green); color: #fff; }
 .btn-green:hover { background: var(--green-dark); }
-.btn-ghost { border: 1.5px solid var(--border); background: #fff; color: var(--text); }
-.btn-ghost:hover { background: var(--bg); }
-.btn-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-.btn-danger:hover { background: #fecaca; }
-.btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+.btn-ghost { border: 2px solid var(--border); background: #fff; color: var(--text); }
+.btn-ghost:hover { background: #f1f5f9; }
+.btn-sm { padding: 8px 18px; font-size: 14px; border-radius: 8px; }
 
-/* ─── BOTTOM ACTIONS ─── */
-.bottom-actions {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 16px 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-}
+.bottom-actions { background: var(--card); border: 2px solid #e2e8f0; border-radius: 16px; padding: 20px 24px; display: flex; gap: 16px; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
 .bottom-actions .spacer { flex: 1; }
-
-/* ─── STATUS TOAST & SKELETON & PRINT (คงเดิม) ─── */
-.status-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #0f172a; color: #fff; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 9999; white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.2); max-width: 90vw; text-align: center; }
-.status-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.status-toast.error  { background: #dc2626; }
-.status-toast.success { background: #16a34a; }
-.skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; height: 36px; }
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-@media print { .topbar, .bottom-actions, .notice-box, .no-print { display: none !important; } body { background: #fff; } .page { padding: 0; max-width: 100%; } .info-card, .table-card { box-shadow: none; border: 1px solid #ccc; border-radius: 0; margin-bottom: 8px; } .leave-table { min-width: 0; font-size: 10px; } .leave-table input, .leave-table select, .leave-table textarea { border: none; background: transparent; font-size: 10px; } .print-header { display: block !important; } }
-.print-header { display: none; text-align: center; margin-bottom: 12px; }
-.print-header h1 { font-size: 16px; font-weight: 700; }
-.print-header h2 { font-size: 14px; }
-.print-header p  { font-size: 12px; color: #555; }
+.draft-preview-box { text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-top: 12px; }
+.draft-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+.draft-item:last-child { border-bottom: none; }
+.draft-label { font-weight: 600; color: #475569; }
+.draft-value { font-weight: 700; color: #0f172a; }
+.status-toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 14px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; opacity: 0; z-index: 9999; transition: var(--ease); }
+.status-toast.show { opacity: 1; }
 
 
 /* ==========================================================================
-   ⚡ ⚡ ⚡ UNIVERSAL RESPONSIVE ENGINE (คุมมวยทุกหน้าจอ) ⚡ ⚡ ⚡
+   🖨️ PERFECT PRINT ENGINE (กระชับแบบฟอร์มให้เรียบร้อย คลีน จบหน้าเดียว)
    ========================================================================== */
 
-/* 💻 MODE 1: หน้าจอคอมพิวเตอร์และโน้ตบุ๊ก (Desktop / Laptop) */
-@media screen and (min-width: 992px) {
-  .leave-table {
-    min-width: 1250px !important; /* บังคับหน้ากว้างเพื่อไม่ให้อัดเบียด */
-  }
-  .leave-table th {
-    padding: 14px 8px !important;
-    background: #f8fafc;
-    color: var(--muted);
-    font-size: 12px;
-    border: 1px solid var(--border);
-  }
-  .leave-table td {
-    padding: 12px 6px !important;
-    border: 1px solid #f1f5f9;
-  }
-  /* ล็อกขนาดความกว้างรายช่องให้สมมาตรสมดุล */
-  .leave-table input[name="write_date"],
-  .leave-table input[name="start_date"],
-  .leave-table input[name="end_date"] { width: 125px !important; }
-  .leave-table input[name="hours_am"],
-  .leave-table input[name="hours_pm"],
-  .leave-table input[name="leave_days"] { width: 60px !important; text-align: center; }
-  .leave-table select[name="leave_type_id"] { width: 170px !important; }
-}
+@media print {
+  @page { size: A4 portrait; margin: 8mm 10mm; }
 
-/* 📱 MODE 2: หน้าจอมือถือและแท็บเล็ตทุกขนาด (All Mobile / Tablet Devices) */
-@media screen and (max-width: 991px) {
-  /* ล้างโครงสร้างตารางแนวนอนทิ้งทั้งหมดเพื่อป้องกันการเบี้ยว */
-  .leave-table, 
-  .leave-table thead, 
-  .leave-table tbody, 
-  .leave-table tr, 
-  .leave-table td {
-    display: block !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  /* ซ่อนหัวตารางดั้งเดิม */
-  .leave-table thead { display: none !important; }
-
-  /* เปลี่ยนแถวให้เป็น "การ์ดกรอกแนวตั้ง" */
-  .leave-table tbody tr {
+  body, html {
     background: #ffffff !important;
-    border: 2px solid #cbd5e1 !important;
-    border-radius: 12px !important;
-    padding: 16px !important;
-    margin-bottom: 24px !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+    color: #000000 !important;
+    height: auto;
+    max-height: 100vh; 
+    overflow: hidden !important; 
+    font-size: 12px !important;
   }
 
-  /* จัดช่องอินพุตตอนลึก */
-  .leave-table tbody td {
-    padding: 8px 0 !important;
-    border: none !important;
-    text-align: left !important;
+  .page { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+  .topbar, .bottom-actions, .notice-box, .no-print, .table-card-head button, .row-divider { display: none !important; } 
+
+  .print-header { 
+    display: flex !important; 
+    flex-direction: column; 
+    align-items: center; 
+    margin-bottom: 14px !important; 
+    border-bottom: 2px solid #000;
+    padding-bottom: 6px;
+  } 
+  .print-logo { height: 44px; margin-bottom: 4px; }
+  .print-header h1 { font-size: 16px !important; font-weight: 700; }
+  .print-header h2 { font-size: 13px !important; }
+  .print-header p { font-size: 11px !important; }
+
+  .info-card { border: 1px solid #000 !important; border-radius: 8px !important; padding: 12px !important; margin-bottom: 14px !important; box-shadow: none !important; }
+  .info-card-head { margin-bottom: 8px !important; padding-bottom: 4px !important; }
+  .info-card-head h2 { font-size: 12px !important; }
+  .badge-autofill { display: none !important; } 
+
+  .info-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px 12px !important; }
+  .info-field label { font-size: 11px !important; }
+  .info-field input { height: 30px !important; border: 1px solid #000 !important; border-radius: 4px !important; padding: 0 6px !important; font-size: 12px !important; background: transparent !important; }
+
+  /* แปลงสลับข้อมูลกลับเป็นตารางมาตรฐานเพื่อความคลีนตอนออกเครื่องพิมพ์ */
+  .table-card { border: none !important; background: transparent !important; }
+  .table-card-head h2 { font-size: 12px !important; font-weight: 700; margin-bottom: 4px; }
+
+  .leave-table { display: table !important; border-collapse: collapse !important; width: 100% !important; }
+  .leave-table thead { display: table-header-group !important; }
+  .leave-table thead tr { display: table-row !important; }
+  .leave-table thead th {
+    display: table-cell !important; border: 1px solid #000 !important; background: #e6e6e6 !important; font-weight: 700 !important; font-size: 10.5px !important; padding: 6px 2px !important; text-align: center !important;
   }
 
-  /* ดึงข้อความจาก HTML data-label ออกมาโชว์หัวข้อเหนือกล่องกรอก */
-  .leave-table tbody td::before {
-    content: attr(data-label) !important;
-    display: block !important;
-    font-weight: 600 !important;
-    color: #1e293b !important;
-    font-size: 13px !important;
-    margin-bottom: 6px !important;
-  }
+  .leave-table tbody { display: table-row-group !important; }
+  .leave-table tbody tr { display: table-row !important; border: none !important; padding: 0 !important; background: transparent !important; box-shadow: none !important; }
+  .leave-table tbody td { display: table-cell !important; border: 1px solid #000 !important; padding: 6px 2px !important; vertical-align: middle !important; }
+  .leave-table tbody td::before { display: none !important; } 
 
-  /* อินพุตในมือถือต้องใหญ่ เต็มหน้าจอ จิ้มง่าย */
-  .leave-table input[type="date"],
-  .leave-table input[type="number"],
-  .leave-table input[type="text"],
-  .leave-table select {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 44px !important;
-    font-size: 14px !important;
-    border-radius: 8px !important;
-  }
+  .leave-table input, .leave-table select, .leave-table textarea { height: 26px !important; border: none !important; padding: 0 !important; font-size: 11.5px !important; background: transparent !important; text-align: center !important; }
+  .leave-table textarea { height: 26px !important; text-align: left !important; padding-left: 2px !important; }
 
-  /* จัดกล่องวาดลายเซ็นสดให้ใหญ่ขึ้นบนสมาร์ทโฟน */
-  .leave-table tbody td[data-label*="ยืนยันตัวตน"] div {
-    width: 100% !important;
-    height: 85px !important;
-  }
-
-  /* ดันปุ่มลบรายการไปข้างล่างสุดขยายเต็มบล็อก */
-  .leave-table tbody tr td:last-child {
-    margin-top: 15px !important;
-    padding-top: 15px !important;
-    border-top: 1px dashed #cbd5e1 !important;
-  }
-  .leave-table .btn-danger {
-    width: 100% !important;
-    height: 42px !important;
-    font-weight: bold !important;
-  }
+  .custom-file-upload { display: none !important; }
+  .leave-table tbody td[data-label*="หลักฐาน"]::after { content: "หลักฐานแนบในระบบ" !important; font-size: 10px; text-align: center; display: block; color: #444; }
   
-  /* ตัวเสริมปรับโครงสร้างบนหัวฟอร์มข้อมูลส่วนตัว */
-  .info-grid { grid-template-columns: 1fr !important; }
-  .topbar { padding: 10px; flex-direction: column; align-items: flex-start; }
-  .topbar-actions { width: 100%; justify-content: flex-end; }
+  .leave-table .badge { border: none !important; background: transparent !important; height: auto !important; padding: 0 !important; font-size: 11px !important; color: #000 !important; }
+  .leave-table tbody tr td:last-child { display: none !important; }
 }
+.print-header { display: none; }
+
 
 /* ==========================================================================
-   🛠️ FIX: แก้บั๊กกล่องกรอกใบลารั่ว/ตกขอบขวาบนหน้าจอมือถือ
+   📱 MOBILE RESPONSIVE ENGINE (เรียงข้อมูลตรงแนวตั้งอย่างเป็นระเบียบ)
    ========================================================================== */
 
 @media screen and (max-width: 991px) {
-  
-  /* 1. ปลดล็อกตัวครอบภายนอกสุด ไม่ให้ล็อกความกว้าง และยอมให้มันปรับตามจอมือถือจริง */
-  .page {
-    padding: 10px 8px 60px !important; /* ลด padding ข้าง ๆ เพื่อเพิ่มพื้นที่กรอก */
-    width: 100% !important;
-    overflow-x: hidden !important; /* ป้องกันหน้าจอรวมเลื่อนโย้ซ้ายขวา */
-  }
+  .topbar { padding: 10px 16px; }
+  .topbar-container { flex-direction: row; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+  .topbar-left { width: auto; gap: 10px; }
+  .company-logo { height: 32px; } 
+  .btn-back { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+  .topbar-center { width: 100%; text-align: left; order: 3; border-top: 1px solid #f1f5f9; padding-top: 6px; }
+  .topbar-title { font-size: 17px; }
+  .topbar-actions { width: auto; order: 2; }
 
-  /* 2. ตัวการ์ดครอบตาราง ต้องยอมให้กว้างเต็มพิกัดและล้าง padding ด้านข้างที่ค้ำอยู่ */
-  .table-card {
-    border-radius: 12px !important;
-    margin-bottom: 16px !important;
-    overflow: visible !important; /* เปลี่ยนจาก hidden เป็น visible ป้องกันขอบถูกตัดขาด */
-    background: transparent !important; /* ปล่อยให้พื้นหลังโปร่งแสง แล้วไปเด่นที่ตัวการ์ดใน tr */
-    border: none !important;
-    box-shadow: none !important;
-  }
+  .page { padding: 16px 12px 100px !important; }
+  .info-grid { grid-template-columns: 1fr !important; gap: 16px; }
+  .row-divider { font-size: 12px; margin-top: 4px; }
 
-  .table-card-head {
-    padding: 12px 4px !important;
-  }
-
-  .table-scroll {
-    overflow-x: visible !important; /* ไม่ต้องเกิดแถบเลื่อนแนวนอนบนมือถือ */
-    width: 100% !important;
-  }
-
-  /* 3. จัดระเบียบตัวการ์ดใบลา (tr) แต่ละใบ ไม่ให้ล้นขอบ */
-  .leave-table tbody tr {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding: 12px 12px !important; /* จัดช่องไฟในกล่องให้พอดี */
-    border: 1px solid #cbd5e1 !important;
-    background: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
-  }
-
-  /* 4. บังคับอินพุตทุกตัวให้คำนวณขนาดพอดีขอบการ์ด ไม่ดันจนทะลุขวา */
-  .leave-table tbody td {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 6px 0 !important;
-  }
-
-  .leave-table input[type="date"],
-  .leave-table input[type="number"],
-  .leave-table input[type="text"],
-  .leave-table select {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important; /* บังคับให้ขอบอินพุตหดอยู่ด้านใน */
-  }
-
-  /* 5. กล่องลายเซ็นดิจิทัล (Canvas) ปรับให้กว้างสมดุลกับจอมือถือจริง */
-  .leave-table tbody td[data-label*="ยืนยันตัวตน"] div {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 90px !important;
-    box-sizing: border-box !important;
-  }
-  
-  .leave-table canvas.sig-pad {
-    width: 100% !important;
-    height: 100% !important;
-  }
-}
-
-@media screen and (min-width: 992px) {
-  /* ยกเลิกระบบตารางหน้ากระดานแนวนอน */
-  .leave-table, 
-  .leave-table thead, 
-  .leave-table tbody, 
-  .leave-table tr, 
-  .leave-table td {
-    display: block !important;
-    width: 100% !important;
-  }
-
-  .leave-table thead { display: none !important; }
-
-  /* 📦 1 รายการใบลา (tr) เปิด Layout แบบ 12 คอลัมน์ย่อย */
-  .leave-table tbody tr {
-    background: #ffffff !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 14px !important;
-    padding: 24px !important;
-    margin-bottom: 24px !important;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04) !important;
-    
-    display: grid !important;
-    grid-template-columns: repeat(12, 1fr) !important; 
-    gap: 20px 16px !important;
-  }
-
-  .leave-table tbody td {
-    padding: 0 !important;
-    border: none !important;
-    text-align: left !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-
-  /* หัวข้อกำกับด้านบนแต่ละกล่อง */
-  .leave-table tbody td::before {
-    content: attr(data-label) !important;
-    display: block !important;
-    font-weight: 600 !important;
-    color: var(--muted) !important;
-    font-size: 12px !important;
-    margin-bottom: 6px !important;
-  }
-
-  /* ---------------------------------------------------------
-     📅 [หมู่ที่ 1: วันเวลาและจำนวนที่ลา] - รวมกลุ่มให้อยู่เซ็ตแรก
-     --------------------------------------------------------- */
-  .leave-table tbody tr td:nth-child(1) { grid-column: span 4 !important; order: 1; } /* วันที่เขียน */
-  .leave-table tbody tr td:nth-child(2) { grid-column: span 4 !important; order: 2; } /* เริ่มวันที่ */
-  .leave-table tbody tr td:nth-child(3) { grid-column: span 4 !important; order: 3; } /* ถึงวันที่ */
-  
-  .leave-table tbody tr td:nth-child(4) { grid-column: span 4 !important; order: 4; } /* จำนวน ชม.เช้า */
-  .leave-table tbody tr td:nth-child(5) { grid-column: span 4 !important; order: 5; } /* จำนวน ชม.บ่าย */
-  .leave-table tbody tr td:nth-child(6) { grid-column: span 4 !important; order: 6; } /* จำนวนวันลาทั้งหมด */
-
-
-  /* ---------------------------------------------------------
-     📝 [หมู่ที่ 2: รายละเอียดการลา] - แถวกลางพิมพ์ยาวๆ
-     --------------------------------------------------------- */
-  .leave-table tbody tr td:nth-child(7) { grid-column: span 4 !important; order: 7; } /* ประเภทการลา */
-  .leave-table tbody tr td:nth-child(8) { grid-column: span 5 !important; order: 8; } /* เหตุผลการลา */
-  .leave-table tbody tr td:nth-child(9) { grid-column: span 3 !important; order: 9; } /* แนบหลักฐาน */
-
-
-  /* ---------------------------------------------------------
-     ✍️ [หมู่ที่ 3: ตรวจสอบ & ลายเซ็น] - โซนท้ายฟอร์ม
-     --------------------------------------------------------- */
-  /* ช่องลายเซ็นดิจิทัล */
-  .leave-table tbody tr td:nth-child(10) { 
-    grid-column: span 6 !important; 
-    order: 10; 
-    border-right: 1px dashed var(--border) !important; 
-    padding-right: 16px !important;
-  }
-  .leave-table tbody td[data-label*="ยืนยันตัวตน"] div {
-    width: 100% !important;
-    height: 110px !important; 
-  }
-
-  /* สถานะผู้อนุมัติ 3 ช่อง */
-  .leave-table tbody tr td:nth-child(11) { grid-column: span 2 !important; order: 11; padding-left: 8px !important; } /* หน.แผนก */
-  .leave-table tbody tr td:nth-child(12) { grid-column: span 2 !important; order: 12; } /* ผจก.ฝ่าย */
-  .leave-table tbody tr td:nth-child(13) { grid-column: span 2 !important; order: 13; } /* ฝ่ายบุคคล */
-
-  .leave-table .badge {
-    padding: 12px !important;
-    font-size: 12px !important;
-    font-weight: 500;
-    text-align: center;
-    border-radius: 8px;
-    width: 100%;
-    background: #f1f5f9;
-    color: #475569;
-    margin-top: auto; 
-    margin-bottom: 10px;
-  }
-
-  /* ---------------------------------------------------------
-     🗑️ [ปุ่มลบรายการ] - อยู่ล่างสุดขวาสุดแยกโซน
-     --------------------------------------------------------- */
-  .leave-table tbody tr td:last-child {
-    grid-column: span 12 !important; 
-    order: 14;
-    margin-top: 12px;
-    padding-top: 16px !important;
-    border-top: 1px solid #f1f5f9 !important;
-    align-items: flex-end !important; 
-  }
-  
-  .leave-table .btn-danger {
-    width: auto !important;
-    padding: 8px 20px !important;
-    height: 38px !important;
-    font-size: 13px !important;
-  }
+  /* โหมดมือถือยุบตัวเป็นหนึ่งคอลัมน์แนวตั้ง เพื่อให้อินพุตคงรูปใหญ่สวยงามเหมือนเดิม */
+  .leave-table tbody tr { grid-template-columns: 1fr !important; gap: 16px !important; padding: 20px !important; }
+  .leave-table tbody tr td:last-child { align-items: stretch !important; }
+  .leave-table .btn-danger { width: 100% !important; }
+  .bottom-actions { padding: 16px; flex-direction: column; width: 100%; gap: 12px; }
+  .bottom-actions .btn { width: 100% !important; height: 50px; }
+  .bottom-actions .spacer { display: none; }
 }
