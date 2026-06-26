@@ -1,0 +1,210 @@
+/* ==========================================================================
+   🤍 LEADER APPROVAL CORE CSS (มินิมอลสไตล์ ไม่ปนเปื้อนกับสไตล์หลัก)
+   ========================================================================== */
+:root {
+  --primary: #0fa472;          
+  --primary-dark: #0b845c;
+  --primary-soft: #ebf7f3;     
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --bg: #f8fafc;               
+  --card: #ffffff;             
+  --text: #0f172a;             
+  --text-soft: #64748b;        
+  --border: #e2e8f0;           
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 2px 8px -1px rgba(15, 23, 42, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+.sidebar.collapsed {
+  width: 0;
+  overflow: hidden;
+  border-right: none;
+}
+
+.brand {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-logo { width: 40px; height: 40px; object-fit: contain; }
+.brand-text h3 { font-size: 16px; font-weight: 700; color: var(--text); }
+.brand-text p { font-size: 11px; color: var(--text-soft); }
+
+.sidebar-profile-box {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  margin: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+.profile-avatar {
+  width: 40px;
+  height: 40px;
+  background: #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-soft);
+}
+.profile-info-text h4 { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.role-badge { font-size: 11px; color: var(--primary); font-weight: 600; }
+
+.side-nav { padding: 8px 16px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-section-title { font-size: 11px; font-weight: 600; color: var(--text-soft); padding: 12px 12px 6px; text-transform: uppercase; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.nav-item:hover, .nav-item.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* Main Content Area */
+.main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.main-header {
+  background: var(--card);
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header-left { display: flex; align-items: center; gap: 16px; }
+.header-title h1 { font-size: 18px; font-weight: 700; }
+.header-title p { font-size: 12px; color: var(--text-soft); }
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* กระดิ่งและดีไซน์เดิมของพี่มิก */
+.header-notification-wrapper { position: relative; }
+.bell-trigger-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-soft);
+  position: relative;
+}
+.bell-dropdown-panel {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 360px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+  display: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+.bell-dropdown-panel.active { display: block; }
+.bell-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: #fafafa; }
+.bell-panel-body { max-height: 320px; overflow-y: auto; }
+
+/* Grid การ์ดสถิติ ด้านบน */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 32px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.stat-icon { width: 54px; height: 54px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.stat-icon span { font-size: 28px; }
+.icon-green { background: var(--primary-soft); color: var(--primary); }
+.icon-amber { background: #fffbeb; color: #b45309; }
+.icon-purple { background: #faf5ff; color: #6b21a8; }
+.stat-info .stat-label { font-size: 12px; color: var(--text-soft); }
+.stat-info h2 { font-size: 24px; font-weight: 700; margin-top: 2px; }
+
+/* โซนตารางอนุมัติใบลา */
+.quick-menu-section { padding: 0 32px 32px 32px; }
+.section-title { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.table-container-box { background: #ffffff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow-sm); }
+
+.approval-data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.approval-data-table th { background: #f8fafc; padding: 16px 20px; color: var(--text-soft); font-weight: 600; border-bottom: 1px solid var(--border); }
+.approval-data-table td { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+
+/* ปุ่มคำสั่งสำหรับหัวหน้างาน */
+.btn-action-group { display: flex; gap: 8px; justify-content: center; }
+.btn-approve { background: var(--primary); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; }
+.btn-reject { background: #fee2e2; color: #b91c1c; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; }
+.btn-approve:hover { background: var(--primary-dark); }
+.btn-reject:hover { background: #fca5a5; }
+
+/* Toast แจ้งเตือนมุมจอ */
+.status-toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 24px; background: #0f172a; color: white; border-radius: 8px; font-size: 14px; transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 2000; }
+.status-toast.show { transform: translateY(0); opacity: 1; }

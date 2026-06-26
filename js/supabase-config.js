@@ -1,6 +1,31 @@
 const PVT_SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
 const PVT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
+
+
+// 🟢 ไฟล์ /js/supabase-config.js (เวอร์ชันล็อกลำดับเวลาทำงาน)
+console.log("%c[Timeline Step 1]: เริ่มต้นโหลดสคริปต์โครงสร้างหลักใน supabase-config.js...", "color: #9333ea; font-weight: bold;");
+
+const SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co"; // URL ของพี่มิก
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8"; // KEY ของพี่มิก
+
+try {
+  // สั่งสร้าง Client ประทับตราลงสู่เบราว์เซอร์
+  window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  console.log("%c[Timeline Step 2]: ท่อเชื่อมโยงฐานข้อมูลหลัก (window.supabaseClient) ถูกสร้างสำเร็จบนหน่วยความจำ! ✅", "color: #2563eb; font-weight: bold;");
+  console.log("-> ตรวจสอบฟังก์ชันคิวรีภายในสคริปต์คอนฟิก: .from() =", typeof window.supabaseClient.from);
+} catch (err) {
+  console.error("❌ เกิดข้อผิดพลาดในจังหวะสร้าง Client ต้นทาง:", err.message);
+}
+
+
+
+
+window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+console.log("✅ [Supabase Config] สร้างท่อเชื่อมต่อ window.supabaseClient สำเร็จแล้ว!");
+
 window.pvtSupabase = (() => {
   let client = null;
 
@@ -113,3 +138,4 @@ window.pvtSupabase = (() => {
     statusLabel,
   };
 })();
+

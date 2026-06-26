@@ -3,107 +3,171 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>หลักเกณฑ์การลา | PVT HR Leave</title>
+  <title>หลักเกณฑ์การลา | PVT HR Hub</title>
+  
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/index-user.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/index.css" />
+  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
-  <main class="app rules-page">
-    <header class="user-header">
-      <div class="brand-row">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT" />
-        <div>
-          <p class="hello">PVT HR Leave</p>
-          <h1>หลักเกณฑ์การลา</h1>
-          <span>อ่านเงื่อนไขก่อนส่งคำขอ</span>
+  <div class="app-shell">
+    
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" />
+        <div class="brand-text">
+          <h1>Workforce Hub</h1>
+          <p>HR Management Platform</p>
         </div>
       </div>
-      <button class="logout-btn" onclick="history.back()">กลับ</button>
-    </header>
+      <nav class="side-nav">
+        <a class="nav-item" href="/index.html"><span class="material-symbols-outlined">dashboard</span><span class="nav-label">หน้าหลักบอร์ด HR</span></a>
+        <a class="nav-item" href="/pages/user/approver.html"><span class="material-symbols-outlined">fact_check</span><span class="nav-label">รายการรออนุมัติใบลา</span></a>
+        <a class="nav-item" href="/pages/hr/approved-leaves.html"><span class="material-symbols-outlined">task_alt</span><span class="nav-label">ใบลาที่อนุมัติแล้ว</span></a>
+        <a class="nav-item" href="/pages/hr/employee-directory.html"><span class="material-symbols-outlined">groups</span><span class="nav-label">รายชื่อพนักงานทั้งหมด</span></a>
+        <a class="nav-item" href="/pages/hr/employee-tracker.html"><span class="material-symbols-outlined">badge_keep_public</span><span class="nav-label">เช็คประวัติ & วันลาคงเหลือ</span></a>
+        <a class="nav-item active" href="#"><span class="material-symbols-outlined">gavel</span><span class="nav-label">หลักเกณฑ์การลา</span></a>
+      </nav>
+    </aside>
 
-    <section class="primary-action">
-      <h2>ขั้นตอนการส่งใบลา</h2>
-      <div class="flow-list">
-        <div><b>1</b><span>อ่านหลักเกณฑ์และเตรียมเอกสาร</span></div>
-        <div><b>2</b><span>กรอกใบลาออนไลน์ตามแบบฟอร์ม</span></div>
-        <div><b>3</b><span>หัวหน้าแผนกตรวจสอบ</span></div>
-        <div><b>4</b><span>ผู้จัดการฝ่ายอนุมัติ/ไม่อนุมัติ</span></div>
-        <div><b>5</b><span>ฝ่ายบุคคลบันทึกผลและเก็บประวัติ</span></div>
-      </div>
-    </section>
+    <main class="main-content">
+      
+      <header class="content-header">
+        <div class="header-left" style="display: flex; align-items: center; gap: 16px;">
+          <button onclick="window.history.back();" class="btn-header-back">
+            <span class="material-symbols-outlined">arrow_back</span> ย้อนกลับ
+          </button>
 
-    <section class="rules-grid">
-      <article class="rule-card">
-        <h2>ลาพักผ่อนประจำปี</h2>
-        <ul>
-          <li>ทำงานครบ 1 ปี มีสิทธิ 6 วัน/ปี ปีแรกคิดตามสัดส่วนที่กำหนด</li>
-          <li>สิทธิที่ไม่ได้ใช้ไม่สะสมไปปีถัดไป และบริษัทจ่ายคืนตามอัตราค่าจ้างรายวัน</li>
-          <li>ใช้สิทธิต่อครั้งไม่น้อยกว่า 4 ชั่วโมง และไม่เกิน 3 วันทำงาน</li>
-          <li>ต้องแจ้งและได้รับอนุมัติล่วงหน้าไม่น้อยกว่า 3 วัน</li>
-          <li>ห้ามใช้สิทธิหลังยื่นใบลาออกก่อนครบ 15 วัน</li>
-        </ul>
-      </article>
+          <span style="color: var(--border); font-size: 20px;">|</span>
 
-      <article class="rule-card">
-        <h2>ลาป่วย</h2>
-        <ul>
-          <li>ลาได้เท่าที่ป่วยจริง บริษัทจ่ายค่าจ้างไม่เกิน 30 วัน/ปี</li>
-          <li>ต้องแจ้งผู้บังคับบัญชาภายใน 4 ชั่วโมงแรกของการทำงาน</li>
-          <li>การลาทุกครั้งต้องมีใบรับรองแพทย์แผนปัจจุบันชั้น 1</li>
-          <li>เจ็บป่วยระหว่างทำงานหรือเนื่องจากงานต้องแจ้งผู้บังคับบัญชาทันที</li>
-        </ul>
-      </article>
+          <div class="header-titles">
+            <span class="sub-title">COMPANY REGULATION</span>
+            <h2>หลักเกณฑ์และเงื่อนไขการลาหยุดงาน</h2>
+          </div>
+        </div>
+      </header>
 
-      <article class="rule-card">
-        <h2>ลากิจธุระส่วนตัว</h2>
-        <ul>
-          <li>ลาได้เท่าที่จำเป็น แต่ไม่เกินปีละ 6 วัน/ปี</li>
-          <li>พนักงานรายวันได้รับค่าจ้างลาธุระจำเป็นไม่เกิน 3 วัน/ปี</li>
-          <li>ใช้สิทธิไม่น้อยกว่าครึ่งชั่วโมง หรือเท่าที่จำเป็นจริง</li>
-          <li>ต้องแจ้งให้อนุมัติล่วงหน้าอย่างน้อย 1 วัน ยกเว้นเหตุเร่งด่วนให้แจ้งภายใน 4 ชั่วโมงแรก</li>
-        </ul>
-      </article>
+      <section class="rules-grid-layout">
+        
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-vacation">
+            <span class="material-symbols-outlined">nature_people</span> 1. วันหยุดพักผ่อนประจำปี (พักร้อน)
+          </div>
+          <ul class="rule-list-item">
+            <li>ทำงานติดต่อกันครบ 1 ปี มีสิทธิลาพักผ่อนได้ <b>6 วัน/ปี</b> (ปีแรกเฉลี่ยตามสัดส่วน)</li>
+            <li>วันลาที่เหลือในปีนั้น ๆ <b>ไม่สามารถสะสม</b> ไปปีถัดไปได้ บริษัทฯ จะจ่ายเงินคืนตามอัตราค่าจ้างรายวัน</li>
+            <li>การใช้สิทธิ: ครั้งละไม่น้อยกว่า 4 ชั่วโมง ไม่เกิน 3 วันทำงาน และไม่ติดกับวันหยุดประเพณีบริษัทฯ</li>
+            <li>ต้องแจ้งผู้บังคับบัญชาและได้รับอนุมัติล่วงหน้า <b>ไม่น้อยกว่า 3 วัน</b></li>
+            <li class="rule-caution">ห้ามใช้สิทธิลาพักผ่อนหลังยื่นใบลาออกก่อน 15 วัน</li>
+          </ul>
+        </article>
 
-      <article class="rule-card">
-        <h2>ลาอื่น ๆ</h2>
-        <ul>
-          <li>ลาทำหมัน: จำนวนวันตามแพทย์กำหนด แจ้งล่วงหน้าอย่างน้อย 3 วัน และส่งใบรับรองแพทย์เมื่อกลับมาทำงาน</li>
-          <li>ลาคลอด: ลาได้ไม่เกิน 120 วัน บริษัทจ่าย 60 วัน และประกันสังคม 45 วัน</li>
-          <li>ลารับราชการทหาร: จำนวนวันตามราชการกำหนด แจ้งล่วงหน้าไม่น้อยกว่า 3 วัน</li>
-          <li>ลาเพื่อฌาปกิจศพ: บุตร คู่สมรส บิดา มารดา เสียชีวิต ลาได้ไม่เกิน 7 วันรวมวันหยุด</li>
-          <li>ลาอุปสมบท: อายุงานครบ 1 ปี ลาได้ไม่เกิน 30 วัน ได้รับค่าจ้างตามจริงไม่เกิน 15 วัน ใช้สิทธิได้ 1 ครั้งตลอดอายุงาน</li>
-          <li>ลาอบรม/พัฒนาความรู้: ต้องเป็นประโยชน์ต่องาน และแจ้งล่วงหน้าอย่างน้อย 7 วัน</li>
-        </ul>
-      </article>
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-sick">
+            <span class="material-symbols-outlined">medical_services</span> 2. การลาป่วย
+          </div>
+          <ul class="rule-list-item">
+            <li>ลาป่วยได้เท่าที่ป่วยจริง โดยบริษัทฯ จ่ายค่าจ้างให้ <b>ไม่เกิน 30 วันทำงาน/ปี</b></li>
+            <li>ต้องแจ้งผู้บังคับบัญชาทราบภายใน <b>4 ชั่วโมงแรก</b> ของการทำงาน</li>
+            <li>ลาป่วยตั้งแต่ <b>3 วันทำงานขึ้นไป</b> ต้องนำส่งใบรับรองแพทย์แผนปัจจุบันชั้นหนึ่งหรือของสถานพยาบาลทางราชการ</li>
+            <li>กรณีประสบอันตราย/เจ็บป่วยเนื่องจากการทำงาน ห้ามมิให้ประมวลผลวันลาในหมวดนี้</li>
+          </ul>
+        </article>
 
-      <article class="rule-card warning-card">
-        <h2>ข้อควรระวัง</h2>
-        <ul>
-          <li>มาสาย 3 ครั้ง/เดือน จะได้รับหนังสือเตือน</li>
-          <li>หยุดงานโดยไม่แจ้งใบลา หรือใบลาไม่ได้รับอนุมัติ ถือว่าผิดระเบียบและอาจได้รับหนังสือเตือน</li>
-        </ul>
-      </article>
-    </section>
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-personal">
+            <span class="material-symbols-outlined">badge</span> 3. การลากิจจำเป็น
+          </div>
+          <ul class="rule-list-item">
+            <li>พนักงานมีสิทธิลากิจจำเป็นโดยได้รับค่าจ้าง <b>ไม่เกิน 3 วันทำงาน/ปี</b></li>
+            <li>การยื่นใบลา: ต้องยื่นต่อผู้บังคับบัญชาล่วงหน้าอย่างน้อย <b>1 วันทำงาน</b></li>
+            <li>เหตุผลที่อนุญาต: ติดต่อหน่วยงานราชการ, ธุรกรรมทางกฎหมาย, จัดการงานศพครอบครัว หรือกรณีฉุกเฉินร้ายแรง</li>
+          </ul>
+        </article>
 
-    <button class="request-leave-btn" onclick="location.href='/pages/user/leave-user.html'">ไปกรอกใบลา</button>
-    
-  </main>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-maternity">
+            <span class="material-symbols-outlined">child_care</span> 4. การลาเพื่อคลอดบุตร
+          </div>
+          <ul class="rule-list-item">
+            <li>พนักงานครรภ์ลาเพื่อคลอดบุตรได้ครรภ์หนึ่ง <b>ไม่เกิน 98 วัน</b> (รวมวันหยุดที่มีในระหว่างลา)</li>
+            <li>ได้รับค่าจ้างจากบริษัทฯ ในวันลาเท่ากับอัตราค่าจ้างปกติแต่ <b>ไม่เกิน 45 วัน</b></li>
+            <li>วันลาคลอดให้นับรวมถึงวันลาเพื่อตรวจครรภ์ก่อนคลอดบุตรด้วย</li>
+          </ul>
+        </article>
+
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-general">
+            <span class="material-symbols-outlined">vaccines</span> 5. การลาเพื่อทำหมัน
+          </div>
+          <ul class="rule-list-item">
+            <li>พนักงานมีสิทธิลาเพื่อทำหมันและเนื่องจากการทำหมันได้ตามระยะเวลาที่ <b>แพทย์แผนปัจจุบันกำหนด</b></li>
+            <li>ได้รับค่าจ้างในวันลานั้นตามปกติ โดยต้องยื่นใบลาและใบรับรองแพทย์ล่วงหน้า</li>
+          </ul>
+        </article>
+
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-general">
+            <span class="material-symbols-outlined">military_tech</span> 6. การลาเพื่อรับราชการทหาร
+          </div>
+          <ul class="rule-list-item">
+            <li>ลาเพื่อรับเรียกพลในการตรวจสอบ ฝึกความพร้อม หรือทดสอบความพรั่งพร้อม ตามกฎหมายทหาร</li>
+            <li>ได้รับค่าจ้างตลอดเวลาที่ลาแต่ <b>ไม่เกิน 60 วัน/ปี</b></li>
+            <li>ต้องยื่นใบลาพร้อมหมายเรียกให้ผู้บังคับบัญชาอนุมัติล่วงหน้า <b>ไม่น้อยกว่า 3 วัน</b> และกลับมาทำงานใน 3 วันหลังพ้นกำหนด</li>
+          </ul>
+        </article>
+
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-personal">
+            <span class="material-symbols-outlined">heart_broken</span> 7. การลาเพื่อฌาปนกิจศพ
+          </div>
+          <ul class="rule-list-item">
+            <li>ใช้สิทธิได้ในกรณี บุตร, คู่สมรส, บิดา, มารดา ของพนักงานประจำเสียชีวิต</li>
+            <li>ลาได้ศพละ <b>ไม่เกิน 7 วันรวมวันหยุด</b></li>
+            <li>พนักงานต้องแจ้งให้ผู้บังคับบัญชาทราบทันที และส่งหลักฐานใบมรณะบัตรในวันแรกที่กลับมาทำงาน</li>
+          </ul>
+        </article>
+
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-general">
+            <span class="material-symbols-outlined">self_care</span> 8. การลาเพื่ออุปสมบท
+          </div>
+          <ul class="rule-list-item">
+            <li>เฉพาะพนักงานชายที่มี <b>อายุงาน 1 ปีขึ้นไป</b> ลาได้ตามจริง <b>ไม่เกิน 30 วันรวมวันหยุด</b></li>
+            <li>ได้รับค่าจ้างตามความเป็นจริง <b>ไม่เกิน 15 วัน</b> (ตลอดอายุงานใช้สิทธิได้เพียง 1 ครั้ง)</li>
+            <li>ต้องขออนุมัติล่วงหน้าไม่น้อยกว่า 15 วัน และกลับเข้าทำงานภายใน 3 วันหลังลาสิกขาบท</li>
+          </ul>
+        </article>
+
+        <article class="rule-box-card">
+          <div class="card-header-tag tag-general">
+            <span class="material-symbols-outlined">school</span> 9. การลาเพื่อฝึกอบรมพัฒนาความรู้
+          </div>
+          <ul class="rule-list-item">
+            <li>ลาเพื่อประโยชน์ต่อการจ้างงาน/สวัสดิการ หรือเพิ่มทักษะความชำนาญในตำแหน่งหน้าที่</li>
+            <li class="rule-caution">การลาเพื่อการศึกษาต่อของพนักงานเอง ไม่สามารถใช้สิทธิการลาประเภทนี้ได้</li>
+            <li>ต้องแจ้งล่วงหน้าไม่น้อยกว่า 7 วัน และต้องได้รับอนุมัติจากผู้บริหารก่อนทุกครั้ง</li>
+          </ul>
+        </article>
+
+        <article class="rule-box-card caution-box-layout">
+          <div class="card-header-tag tag-warning">
+            <span class="material-symbols-outlined">warning</span> ข้อควรระวัง & บทลงโทษทางวินัย
+          </div>
+          <ul class="rule-list-item">
+            <li>พนักงานที่มาสาย <b>3 ครั้งภายในรอบเดือน</b> จะได้รับหนังสือเตือนเป็นลายลักษณ์อักษร</li>
+            <li>การหยุดงานโดยไม่ส่งใบลา หรือใบลาไม่ได้รับการอนุมัติ ถือเป็นการละทิ้งหน้าที่และผิดวินัยร้ายแรง</li>
+          </ul>
+        </article>
+
+      </section>
+
+    </main>
+  </div>
+
   <script src="/js/auth-guard.js"></script>
-  <script>
-  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
-  document.addEventListener("DOMContentLoaded", () => {
-     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
-  });
-
-  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
-  async function handleFormSubmit() {
-     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
-     
-     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
-     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
-  }
-</script>
 </body>
 </html>
