@@ -454,3 +454,284 @@
 .btn-back:active .back-icon {
   transform: translateX(-4px);
 }
+
+/* ==========================================================================
+   ✨ PVT UI EDITIONS - PREMIUM ICON-DRIVEN & LUXURY WHITE CREAM
+   ========================================================================== */
+
+/* 1. สไตล์ปุ่มไอคอน Action ทรงกลมสไตล์มินิมอล */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(142, 153, 125, 0.06);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-btn span {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* สีปุ่มไอคอนพาสเทลหรูหรา ไม่ฉูดฉาด */
+.icon-btn.info { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+.icon-btn.info:hover { background: #64748b; color: #ffffff; transform: translateY(-2px); }
+
+.icon-btn.approve { background: #e6f7ed; color: #10b981; }
+.icon-btn.approve:hover { background: #10b981; color: #ffffff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+
+.icon-btn.reject { background: #fef2f2; color: #ef4444; }
+.icon-btn.reject:hover { background: #ef4444; color: #ffffff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+
+
+/* 2. สไตล์การ์ดหลักเกณฑ์ความงามระดับ Luxury (White Cream Grid) */
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.rule-card {
+  background: #ffffff;
+  border: 1px solid #f1f3ee; /* ขอบนุ่มนวลพิเศษสไตล์ครีม */
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 15px rgba(142, 153, 125, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rule-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(16, 185, 129, 0.06);
+  border-color: #10b981;
+}
+
+.rule-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.rule-icon-box {
+  width: 42px;
+  height: 42px;
+  background: #f0fdf4;
+  color: #10b981;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rule-icon-box span { font-size: 22px; }
+
+.rule-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.quota-badge {
+  display: inline-block;
+  background: #f8fafc;
+  color: #334155;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.rule-text {
+  margin: 0;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   ✨ LUXURY EDITIONS - UPGRADE LEAVE TABLE & MINIMAL SPHERE ICONS
+   ========================================================================= */
+
+/* 🌟 การ์ดแสดงผลใบลาดีไซน์พรีเมียม */
+.luxury-leave-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f1f3ee; /* เส้นขอบนุ่มนวล pvt */
+  padding: 24px;
+  box-shadow: 0 6px 20px rgba(142, 153, 125, 0.04); /* เงานุ่มโทนเขียวนวล */
+  margin-bottom: 24px;
+  transition: var(--pvt-transition, all 0.3s cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.card-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+/* ตารางดีไซน์ Luxury (หัวตารางเขียวเข้มหรู) */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.luxury-admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #f1f3ee;
+}
+
+.luxury-admin-table thead tr {
+  background-color: #0f172a; /* PVT Dark Green */
+  color: #ffffff;
+  text-align: left;
+}
+
+.luxury-admin-table th, 
+.luxury-admin-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f3ee;
+}
+
+.luxury-admin-table th { font-weight: 600; }
+
+.luxury-admin-table tbody tr {
+  transition: var(--pvt-transition);
+}
+
+/* เอฟเฟกต์ไฮไลท์แถวตอนเมาส์ชี้ */
+.luxury-admin-table tbody tr:hover {
+  background-color: #fbfdfa;
+  transform: translateX(3px); /* แถบขยับมาทางขวาบางๆ เพิ่มมิติ */
+}
+
+/* ปุ่มรีเฟรชสไตล์ pvt */
+.btn-pvt-light {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #fcfcf9;
+  border: 1px solid #f1f3ee;
+  border-radius: 10px;
+  color: #334155;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--pvt-transition);
+}
+.btn-pvt-light:hover {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 10px rgba(142, 153, 125, 0.08);
+  transform: translateY(-1px);
+}
+.btn-pvt-light .material-symbols-outlined { font-size: 18px; }
+
+/* คอลัมน์แอ็กชันกลุ่ม */
+.th-actions-group { width: 140px; text-center: center; }
+.th-info { width: 70px; text-center: center; }
+.text-center { text-align: center; }
+
+/* ตัวอย่างปุ่มไอคอนกลม (Minimal Sphere) เวลาเมาส์ชี้ */
+.minimal-sphere-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+/* เปลี่ยนเป็นสีทึบตอน Hover เพื่อให้เด่น */
+.minimal-sphere-btn.action-approve:hover { background: #10b981 !important; color: #ffffff !important; }
+.sphere-btn.action-reject:hover { background: #ef4444 !important; color: #ffffff !important; }
+.minimal-sphere-btn.view-slip:hover { background: #64748b !important; color: #ffffff !important; }
+
+/* ข้อความรอโหลดข้อมูล */
+.table-loading-luxury {
+  text-align: center;
+  padding: 30px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ==========================================================================
+   ✨ BUTTON "ดูใบลา" MODERN TEXT-ICON & SMOOTH ANIMATION (NO IMAGES)
+   ========================================================================= */
+
+/* ตัวปุ่มเริ่มต้น: ดีไซน์โค้งมน มีเส้นขอบนุ่มนวล โทนสี Slate Grey สะอาดตา */
+.luxury-text-btn.view-slip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px; /* ทรงแคปซูลมินิมอล */
+  color: #475569;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  
+  /* 🪄 หัวใจหลักของอนิเมชั่น: กำหนดจุดเริ่มต้นของการเคลื่อนไหวให้สมูท */
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ไอคอนภายในปุ่ม */
+.luxury-text-btn.view-slip-btn .material-symbols-outlined {
+  font-size: 17px;
+  transition: transform 0.25s ease;
+}
+
+/* ข้อความภายในปุ่ม */
+.luxury-text-btn.view-slip-btn .btn-text {
+  letter-spacing: 0.3px;
+}
+
+/* 🚀 [HOVER ANIMATION EFFECT] เอฟเฟกต์เมื่อเมาส์ชี้ */
+.luxury-text-btn.view-slip-btn:hover {
+  background-color: #475569; /* เปลี่ยนพื้นหลังเป็นสีทึบพรีเมียม */
+  color: #ffffff;            /* เปลี่ยนตัวอักษรเป็นสีขาว */
+  border-color: #475569;
+  
+  /* อนิเมชั่นปุ่มลอยขึ้น + มีเงาฟุ้งมิติใหม่ */
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(71, 85, 105, 0.2);
+}
+
+/* อนิเมชั่นย่อย: ให้ไอคอนขยับหมุนองศาเล็กน้อยตอน Hover เพิ่มความขี้เล่น */
+.luxury-text-btn.view-slip-btn:hover .material-symbols-outlined {
+  transform: scale(1.05) rotate(-5deg);
+}
+
+/* เอฟเฟกต์ตอนกดปุ่ม (Active) ให้ปุ่มยุบลงไปนิดนึงเหมือนกดสวิตช์จริง */
+.luxury-text-btn.view-slip-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(71, 85, 105, 0.15);
+}

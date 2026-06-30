@@ -121,22 +121,33 @@ async function fetchEmployees() {
 }
 
 // 3. ฟังก์ชันดึงรายการคำขออนุมัติลา 
+// 3. ฟังก์ชันดึงรายการคำขออนุมัติลา (เวอร์ชันอัปเกรดเป็นชุดไอคอนทรงกลม Minimal Sphere Icons สวยหรู)
 async function fetchLeaveRequests() {
   const sb = window.pvtSupabase?.getClient();
   const tbody = document.getElementById("leaveRequestBody");
   if (!sb || !tbody) return;
   
-  tbody.innerHTML = "<tr><td colspan='8' style='text-align:center;'>⏳ กำลังโหลดรายการคำขอลา...</td></tr>";
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="8" class="table-loading-luxury">
+        <div class="pvt-loading-dots">🔄 กำลังเรียกคำขอลาพนักงานจากฐานข้อมูล...</div>
+      </td>
+    </tr>
+  `;
 
   try {
+    // 🌟 เปลี่ยนมาใช้คิวรี่ชุดนี้: ดึงเฉพาะใบลาที่ผ่านการอนุมัติจากบอสทั้ง 2 ด่านแล้ว และส่งต่อมาถึงมือ HR
     const { data: leaves, error: leaveError } = await sb
       .from("leave_requests")
       .select("*")
+      .eq("manager_status", "approved")   // 1. หัวหน้างาน (ด่าน 2) ต้องกดอนุมัติแล้ว
+      .eq("director_status", "approved")  // 2. ผู้จัดการฝ่าย (ด่าน 3) ต้องกดอนุมัติแล้ว
+      .eq("status", "pending")            // 3. สถานะหลักยังค้างอยู่ เพื่อรอให้ HR (ด่าน 4) เป็นคนกดจบงาน
       .order("created_at", { ascending: false });
 
     if (leaveError) throw leaveError;
     if (!leaves || leaves.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='8' style='text-align:center;'>📭 ยังไม่มีรายการคำขอลาในระบบ</td></tr>";
+      tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; padding: 24px; color: #64748b;'>📭 ยังไม่มีรายการคำขอลาในระบบ</td></tr>";
       return;
     }
 
@@ -155,32 +166,52 @@ async function fetchLeaveRequests() {
       
       const empName = emp?.full_name || "ไม่ระบุชื่อพนักงาน";
       const leaveTypeName = leaveType?.leave_name || "ทั่วไป";
-      const showActions = item.status === "pending" || item.status === "รออนุมัติ";
+      
+      // ตรวจสอบเงื่อนไขการแสดงปุ่มอนุมัติ/ปฏิเสธ (เฉพาะสถานะ pending หรือ รออนุมัติ เท่านั้น)
+      const isPending = item.status === "pending" || item.status === "รออนุมัติ";
+      const days = Number(item.total_days || 0);
+
+      // 🎯 [UPGRADE] เปลี่ยนปุ่มเป็นชุดไอคอนทรงกลมสไตล์มินิมอล (Minimal Sphere Icons) ตามบรีฟ
+      const actionButtons = isPending ? `
+        <div class="action-icon-wrapper">
+          <button class="sphere-btn action-approve" onclick="updateLeaveStatus('${item.id}', 'approved')" title="อนุมัติคำขอลาและตัดโควตาอัตโนมัติ">
+            <span class="material-symbols-outlined">check</span>
+          </button>
+          
+          <button class="sphere-btn action-reject" onclick="updateLeaveStatus('${item.id}', 'rejected')" title="ปฏิเสธคำขอลาฉบับนี้">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      ` : `<span style="color:#94a3b8; font-size:13px;">พิจารณาแล้ว</span>`;
+
+      // 👁️ ปุ่มเปิดดูสลิปเอกสารดิจิทัล
+      const slipButton = `
+        <div class="action-icon-wrapper" style="display: flex; justify-content: center;">
+          <button class="luxury-text-btn view-slip-btn" onclick="openLeavePopupModal('${item.id}')" title="เปิดดูรายละเอียดใบลาฉบับเต็ม">
+            <span class="material-symbols-outlined"></span>
+            <span class="btn-text">ดูใบลา</span>
+          </button>
+        </div>
+      `;
 
       return `
         <tr>
           <td><strong>${escapeFn(empName)}</strong></td>
-          <td>${escapeFn(leaveTypeName)}</td>
-          <td>${dateFn(item.start_date)} - ${dateFn(item.end_date)}</td>
-          <td><strong style="color:#1e293b;">${item.total_days}</strong> วัน</td>
-          <td>${escapeFn(item.reason)}</td>
-          <td><span class="status ${item.status}">${labelFn(item.status)}</span></td>
-          <td>
-            ${showActions ? `
-              <button class="btn-approve" onclick="updateLeaveStatus('${item.id}', 'approved')" style="background:#16a34a; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; margin-right:4px; font-size:13px;">อนุมัติ</button>
-              <button class="btn-reject" onclick="updateLeaveStatus('${item.id}', 'rejected')" style="background:#dc2626; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:13px;">ปฏิเสธ</button>
-            ` : '-'}
-          </td>
-          <td>
-            <button onclick="openLeavePopupModal('${item.id}')" style="background:none; border:none; color:#2563eb; font-weight:500; font-size:13px; cursor:pointer; text-decoration:underline; padding:0;">👁️ เปิดดูใบลา</button>
-          </td>
+          <td><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-weight: 500; color: #334155;">${escapeFn(leaveTypeName)}</span></td>
+          <td style="color: #475569;">${dateFn(item.start_date)} - ${dateFn(item.end_date)}</td>
+          <td><strong style="color:#10b981; font-size: 15px;">${days}</strong> วัน</td>
+          <td style="max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #64748b;" title="${escapeFn(item.reason)}">${escapeFn(item.reason)}</td>
+          <td class="text-center"><span class="status ${item.status}">${labelFn(item.status)}</span></td>
+          <td class="text-center">${actionButtons}</td>
+          <td class="text-center">${slipButton}</td>
         </tr>
       `;
     }).join("");
-    console.log("✅ [SUCCESS] โหลดคำขอลาขึ้นจอเรียบร้อย!");
+    
+    console.log("✅ [SUCCESS] โชว์รายการใบลาพร้อมชุดไอคอนมินิมอลเรียบร้อย!");
   } catch (error) {
     console.error("❌ [LEAVES REQUESTS ERROR]:", error);
-    tbody.innerHTML = `<tr><td colspan='8' style='color:red; text-align:center;'>เกิดข้อผิดพลาดในการโหลดคำขอลา: ${error.message || error}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan='8' style='color:red; text-align:center; padding: 20px;'>เกิดข้อผิดพลาดในการโหลดคำขอลา: ${error.message || error}</td></tr>`;
   }
 }
 

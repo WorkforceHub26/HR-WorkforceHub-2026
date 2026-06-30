@@ -1,0 +1,428 @@
+/* ==========================================================================
+   ✨ PVT HR - ULTRA LUXURY LEAVE HISTORY SPECIFIC STYLESHEET
+   🎨 Theme: Premium Cream-White, Velvet Slate, & High-Motion Micro-Interactions
+   ========================================================================== */
+
+:root {
+  --pvt-bg: #faf9f5;             /* ขาวนวลครีมอ่อน สไตล์ลักชัวรี่ผ่อนคลาย */
+  --pvt-card: #ffffff;
+  --pvt-primary: #2563eb;        /* สีน้ำเงินหลักภูมิฐาน */
+  --pvt-primary-hover: #1d4ed8;
+  --pvt-text-main: #0f172a;      /* Slate เข้มหรูหรา */
+  --pvt-text-sub: #475569;
+  --pvt-text-muted: #94a3b8;
+  --pvt-border: #f1f3ee;         /* เส้นขอบนุ่มโทนธรรมชาติ */
+  
+  /* สถานะใบลาพาสเทลพรีเมียม */
+  --pvt-status-pending: #fef3c7;   /* เหลืองนวลอุ่นใจ */
+  --pvt-text-pending: #d97706;
+  --pvt-status-approved: #e6f7ed;  /* เขียวนุ่มพรีเมียม */
+  --pvt-text-approved: #10b981;
+  --pvt-status-rejected: #fef2f2;  /* แดงเวลเวตซอฟต์ */
+  --pvt-text-rejected: #ef4444;
+
+  /* 🪄 แอนิเมชัน Elastic (สปริงนุ่มนวลสูงสุดแบบ iOS/Luxury Web) */
+  --pvt-transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --pvt-ease-out: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ─── โครงสร้างสไตล์พื้นฐานและรีเซ็ต ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Kanit', sans-serif;
+  background-color: var(--pvt-bg);
+  color: var(--pvt-text-main);
+  min-height: 100vh;
+  padding: 24px 16px;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* 📦 คอนเทนเนอร์หลักคลุมแอป */
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  opacity: 0;
+  animation: pvt-fade-in-up 0.6s var(--pvt-ease-out) forwards;
+}
+
+/* ─── 👑 ส่วนหัวดีไซน์ระดับไฮเอนด์ (User Header) ─── */
+.user-header {
+  background: var(--pvt-card);
+  border: 1px solid var(--pvt-border);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(142, 153, 125, 0.04);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* เอฟเฟกต์แสงสะท้อนหรูหราด้านหลังหัวข้อ */
+.user-header::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -20%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(37,99,235,0.03) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-row img {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.03));
+  animation: pvt-pulse-slow 3s infinite ease-in-out;
+}
+
+.hello {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pvt-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.user-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pvt-text-main);
+  line-height: 1.2;
+}
+
+.user-header span {
+  font-size: 13px;
+  color: var(--pvt-text-sub);
+}
+
+/* ปุ่มย้อนกลับสไตล์เด่นชัดสัมผัสง่าย (ขยายใหญ่ขึ้นตามบรีฟ) */
+.logout-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: var(--pvt-text-sub);
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 48px; /* เพิ่มขนาดพื้นที่สัมผัสให้กดง่าย */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--pvt-transition);
+}
+
+.logout-btn:hover {
+  background: var(--pvt-text-main);
+  color: #ffffff;
+  border-color: var(--pvt-text-main);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 15px rgba(15, 23, 42, 0.15);
+}
+
+.logout-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* ─── 📑 การ์ดรวมประวัติ (Recent Card Container) ─── */
+.recent-card {
+  background: var(--pvt-card);
+  border: 1px solid var(--pvt-border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 12px 40px rgba(142, 153, 125, 0.03);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--pvt-border);
+  padding-bottom: 16px;
+}
+
+.section-head h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--pvt-text-main);
+  position: relative;
+}
+
+.section-head h2::after {
+  content: "";
+  position: absolute;
+  bottom: -17px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: var(--pvt-primary);
+  border-radius: 99px;
+}
+
+/* ปุ่มขอลาใหม่ ตัวใหญ่เด่นสะดุดตา (เพิ่มแอนิเมชันเด้งสปริงเมื่อวางเมาส์) */
+.section-head button {
+  background: linear-gradient(135deg, var(--pvt-primary) 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: none;
+  padding: 12px 26px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 48px; /* ปุ่มใหญ่เต็มขนาดนิ้วมือ */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  transition: var(--pvt-transition);
+}
+
+.section-head button:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.4);
+}
+
+.section-head button:active {
+  transform: translateY(-1px) scale(0.97);
+}
+
+/* ─── 🏃‍♂️ รายการการ์ดประวัติย่อย (Dynamic History Card Items) ─── */
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* เอฟเฟกต์การ์ดคำขอเลื่อนตัวขึ้นมาจากด้านล่างแบบนุ่มนวล (Staggered Load Effect) */
+.recent-list article {
+  background: #ffffff;
+  border: 1px solid var(--pvt-border);
+  border-radius: 18px;
+  padding: 22px;
+  position: relative;
+  transition: var(--pvt-transition);
+  animation: pvt-slide-in-card 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+/* หน่วงเวลาโหลดให้เรียงตัวสวยงาม */
+.recent-list article:nth-child(1) { animation-delay: 0.05s; }
+.recent-list article:nth-child(2) { animation-delay: 0.12s; }
+.recent-list article:nth-child(3) { animation-delay: 0.19s; }
+.recent-list article:nth-child(4) { animation-delay: 0.26s; }
+
+.recent-list article:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-5px) scale(1.015);
+  box-shadow: 0 14px 28px rgba(142, 153, 125, 0.08);
+}
+
+/* ส่วนแสดงผลข้อมูลภายในการ์ด */
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.leave-type-badge {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #f1f5f9;
+  padding: 6px 14px;
+  border-radius: 10px;
+}
+
+.leave-date-text {
+  font-size: 14px;
+  color: var(--pvt-text-sub);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leave-days-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pvt-text-main);
+  margin-bottom: 14px;
+}
+
+.leave-days-count strong {
+  color: var(--pvt-primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.leave-reason-box {
+  background: #fafafa;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: var(--pvt-text-sub);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  border-left: 4px solid #cbd5e1;
+}
+
+/* 🏷️ ป้ายกำกับสถานะ (Status Badges) พริ้วไหวมีมิติ */
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status.pending, .status.รอพิจารณา, .status.รออนุมัติ {
+  background-color: var(--pvt-status-pending);
+  color: var(--pvt-text-pending);
+  animation: pvt-pulse-glow 2s infinite ease-in-out; /* อนิเมชั่นกระพริบนุ่มนวลกรณีรอตรวจ */
+}
+
+.status.approved, .status.อนุมัติแล้ว, .status.อนุมัติ {
+  background-color: var(--pvt-status-approved);
+  color: var(--pvt-text-approved);
+}
+
+.status.rejected, .status.ปฏิเสธ, .status.ไม่อนุมัติ {
+  background-color: var(--pvt-status-rejected);
+  color: var(--pvt-text-rejected);
+}
+
+/* ❌ ปุ่มยกเลิกใบลาฝั่งพนักงาน (ขยายขนาดแตะติดหนึบ) */
+.btn-cancel-leave, .cancel-btn {
+  background: #ffffff;
+  border: 1px solid #fecaca;
+  color: var(--pvt-text-rejected);
+  padding: 12px 22px;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 46px; /* ขยายขนาดใหญ่ขึ้นตามบรีฟสำหรับกดบนมือถือ */
+  margin-top: 6px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.05);
+  transition: var(--pvt-transition);
+}
+
+.btn-cancel-leave:hover, .cancel-btn:hover {
+  background: var(--pvt-text-rejected);
+  color: #ffffff;
+  border-color: var(--pvt-text-rejected);
+  transform: scale(1.04);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.2);
+}
+
+.btn-cancel-leave:active, .cancel-btn:active {
+  transform: scale(0.96);
+}
+
+/* 📭 กล่องว่างเปล่าขณะรอโหลดข้อมูล */
+.empty-state {
+  text-align: center;
+  padding: 54px 24px;
+  color: var(--pvt-text-muted);
+  font-style: italic;
+  font-size: 14px;
+  background: #ffffff;
+  border: 1px solid var(--pvt-border);
+  border-radius: 20px;
+}
+
+/* ==========================================================================
+   🌀 KEYFRAMES ANIMATIONS ENGINE
+   ========================================================================== */
+@keyframes pvt-fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pvt-slide-in-card {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pvt-pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.25); }
+  70% { box-shadow: 0 0 0 10px rgba(217, 119, 6, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+
+@keyframes pvt-pulse-slow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ==========================================================================
+   📱 MOBILE & SMARTPHONE RESPONSIVE (⚡ AUTO TARGET ADJUSTMENT)
+   ========================================================================== */
+@media (max-width: 576px) {
+  body {
+    padding: 16px 12px;
+  }
+  
+  .user-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 20px;
+  }
+  
+  .logout-btn {
+    width: 100%; /* เต็มความกว้างหน้าจอมือถือ กดง่ายสุดๆ */
+    min-height: 50px;
+    font-size: 15px;
+  }
+  
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  
+  .section-head button {
+    width: 100%; /* ปุ่มขอลาใหม่ยืดเต็มหน้าจอในมือถือ */
+    min-height: 50px;
+    justify-content: center;
+    font-size: 15px;
+  }
+  
+  .card-top-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .btn-cancel-leave, .cancel-btn {
+    width: 100%; /* ปุ่มยกเลิกคำขอยืดเต็มการ์ด แตะสะดวกผ่านนิ้วโป้ง */
+    min-height: 48px;
+    text-align: center;
+  }
+}

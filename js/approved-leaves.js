@@ -75,10 +75,22 @@ function renderTable(requests) {
     tbody.innerHTML = requests.map(req => {
         const isPending = req.status === 'pending';
         // สร้างปุ่มจัดการ ปิดการใช้งานหากอนุมัติ/ไม่อนุมัติไปแล้ว
-        const actionButtons = isPending ? `
-            <button class="btn-approve" onclick="openActionModal('${req.id}', '${req.employees.full_name}', 'approved')">อนุมัติ</button>
-            <button class="btn-reject" onclick="openActionModal('${req.id}', '${req.employees.full_name}', 'rejected')">ไม่อนุมัติ</button>
-        ` : `<span style="color:#95a5a6; font-size:13px">จัดการเรียบร้อยแล้ว</span>`;
+        // 💡 ให้หาจุดเรนเดอร์ตารางใบลาใน hr.js แล้วปรับโครงสร้างกลุ่มปุ่ม (Action Buttons) ให้เป็นแบบนี้ครับ
+            const actionButtons = `
+            <div class="action-icon-group" style="display: flex; gap: 8px; justify-content: center;">
+                <button class="icon-btn info" onclick="openLeaveSlipModal('${item.id}')" title="ดูรายละเอียดใบลา">
+                <span class="material-symbols-outlined">visibility</span>
+                </button>
+                
+                <button class="icon-btn approve" onclick="approveAndDeductBalance('${item.id}', '${item.employee_id}', '${item.leave_type_id}', ${item.total_days})" title="อนุมัติ & ตัดยอดวันลา">
+                <span class="material-symbols-outlined">check</span>
+                </button>
+
+                <button class="icon-btn reject" onclick="rejectLeaveByHR('${item.id}')" title="ปฏิเสธคำขอ">
+                <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            `;
 
         // แปลงสถานะเป็น Badge ภาษาไทย/อังกฤษเพื่อความสวยงาม
         let statusBadge = `<span class="badge pending">รออนุมัติ</span>`;

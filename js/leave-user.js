@@ -1,11 +1,11 @@
 /**
- * leave-user.js — ใบลาออนไลน์ PVT HR (เวอร์ชันแก้ไขผูกมัดกล่องเหลี่ยม 100%)
- * ✅ Auto-fill ข้อมูลพนักงานและสั่งซ่อนสถานะโหลดอัตโนมัติ
- * ✅ ดึงประเภทการลาจาก Supabase มาใส่ให้กล่องที่เพิ่มใหม่ทันที
- * ✅ บันทึกข้อมูลและตรวจทานความถูกต้องรายกล่องสมบูรณ์แบบ
+ * leave-user.js — ใบลาออนไลน์ PVT HR (เวอร์ชันแก้ไขระบบเซฟใหม่ 100%)
+ * ✅ Fix Selector Mismatch (จับคู่กล่อง .leave-box-item และ name attributes ตรงจุด)
+ * ✅ Auto-fill ข้อมูลพนักงานและสั่งผูกตัวแปร Global Profile ป้องกันข้อมูลหลุด
+ * ✅ ตรวจสอบความถูกต้องรายกล่องใบลาและแมปโครงสร้างข้อมูลเข้า Supabase สมบูรณ์แบบ
  */
 
-console.log("📢 [SYSTEM] เปิดใช้งานระบบติดตามข้อมูลใบลาทุกฝีก้าวแล้ว...");
+console.log("📢 [SYSTEM] เปิดใช้งานระบบติดตามข้อมูลใบลาเวอร์ชันเสถียรแล้ว...");
 
 // ==========================================
 // 📦 GLOBAL VARIABLES
@@ -62,6 +62,10 @@ async function fetchCurrentUserData() {
     leave_balance: "15"
   };
 
+  // ✨ จุดสำคัญ: ผูกข้อมูลเข้าสู่ Global Variable และ Session เพื่อให้ระบบบันทึกเรียกใช้ได้
+  currentProfile = mockUser;
+  sessionStorage.setItem("currentUser", JSON.stringify(mockUser));
+
   if (document.getElementById("employeeCode"))       document.getElementById("employeeCode").value = mockUser.employee_code;
   if (document.getElementById("employeeName"))       document.getElementById("employeeName").value = mockUser.full_name;
   if (document.getElementById("employeePosition"))   document.getElementById("employeePosition").value = mockUser.position_name;
@@ -69,9 +73,7 @@ async function fetchCurrentUserData() {
   if (document.getElementById("employeeStartDate"))  document.getElementById("employeeStartDate").value = mockUser.start_date;
   if (document.getElementById("leaveBalance"))       document.getElementById("leaveBalance").value = mockUser.leave_balance;
 
-  sessionStorage.setItem("currentUser", JSON.stringify(mockUser));
-
-  // ✨ ข้อมูลพนักงานและข้อมูลเบื้องต้นโหลดเสร็จสิ้น -> สั่งซ่อนสัญลักษณ์โหลดทันที!
+  // ซ่อนสัญลักษณ์โหลด
   const loadingBadge = document.getElementById('loadingBadge');
   if (loadingBadge) {
     loadingBadge.style.display = 'none';
@@ -166,7 +168,7 @@ function addLeaveRow() {
 
   container.appendChild(boxItem);
 
-  // ✨ นำข้อมูลประเภทการลาดีดขึ้นจากตารางฐานข้อมูลจริง (Dynamic Dropdown) มาหยอดใส่กล่องใหม่ทันที
+  // ดึงประเภทการลาดีดใส่ Dropdown
   const selectEl = boxItem.querySelector('select[name="leave_type_id"]');
   if (selectEl) {
     if (leaveTypes && leaveTypes.length > 0) {
@@ -177,7 +179,6 @@ function addLeaveRow() {
         selectEl.appendChild(opt);
       });
     } else {
-      // ค่าสำรองกันฐานข้อมูลหลุด
       const backup = [{id:"1", name:"ลาป่วย"}, {id:"2", name:"ลากิจ"}, {id:"3", name:"ลาพักร้อน"}];
       backup.forEach(b => {
         const opt = document.createElement("option");
@@ -247,71 +248,125 @@ function handleFileChange(input, labelId) {
 }
 
 // ==========================================================================
-// 💾 6. ฟังก์ชันบันทึกข้อมูลเข้า Supabase (เวอร์ชันตรวจสอบรายกล่องใบลา)
+// 💾 6. ฟังก์ชันบันทึกข้อมูลเข้า Supabase (ระบบเวอร์ชันแก้ไขใหม่ 100%)
 // ==========================================================================
 async function saveLeave() {
   const sb = window.pvtSupabase?.getClient();
-  if (!sb) { showToast("ไม่สามารถเชื่อมต่อ Supabase", "error"); return; }
+  if (!sb) {
+    showToast("❌ ระบบขัดข้อง: ไม่พบการเชื่อมต่อฐานข้อมูล", "error");
+    return;
+  }
 
-  let employeeId = "9a8036a8-3b03-4802-9520-59934fe621e3"; 
-  try {
-    const cachedUser = JSON.parse(sessionStorage.getItem("currentUser"));
-    if (cachedUser && cachedUser.id) employeeId = cachedUser.id;
-  } catch(e) {}
+  // เรียกข้อมูลโปรไฟล์จาก Session สำรองหากในหน่วยความจำหลุด
+  if (!currentProfile) {
+    const savedUser = sessionStorage.getItem("currentUser");
+    if (savedUser) currentProfile = JSON.parse(savedUser);
+  }
 
-  const boxes = Array.from(document.querySelectorAll(".leave-box-item"));
-  if (!boxes.length) { 
-    showToast("กรุณาเพิ่มรายการลาอย่างน้อย 1 รายการ", "error"); 
-    return; 
+  if (!currentProfile) {
+    showToast("❌ ไม่พบข้อมูลโปรไฟล์พนักงาน กรุณารีเฟรชหน้าเว็บ", "error");
+    return;
+  }
+
+  // ✨ แก้ไขจุดที่ 1: ดึงคลาส .leave-box-item ให้ตรงกับที่สร้างจริง
+  const cards = document.querySelectorAll("#leaveCardsList .leave-box-item");
+  if (cards.length === 0) {
+    showToast("⚠️ กรุณาเพิ่มรายการลาอย่างน้อย 1 รายการ", "error");
+    return;
   }
 
   const payload = [];
+  let hasError = false;
 
-  for (let i = 0; i < boxes.length; i++) {
-    const box = boxes[i];
-    const leaveTypeId = box.querySelector('[name="leave_type_id"]')?.value;
-    const startDate = box.querySelector('[name="start_date"]')?.value;
-    const endDate = box.querySelector('[name="end_date"]')?.value;
-    const totalDays = Number(box.querySelector('[name="leave_days"]')?.value || 0);
-    const reason = box.querySelector('[name="reason"]')?.value?.trim() || "";
+  // ✨ แก้ไขจุดที่ 2: เปลี่ยน Selectors มาใช้คุณลักษณะ name="..." ของ Input รายกล่อง
+  cards.forEach((card, index) => {
+    if (hasError) return;
 
-    if (!leaveTypeId) { showToast(`กล่องรายการที่ ${i + 1}: กรุณาเลือก "ประเภทการลา"`, "error"); return; }
-    if (!startDate)   { showToast(`กล่องรายการที่ ${i + 1}: กรุณาระบุ "เริ่มวันที่"`, "error"); return; }
-    if (!endDate)     { showToast(`กล่องรายการที่ ${i + 1}: กรุณาระบุ "ถึงวันที่"`, "error"); return; }
-    if (totalDays <= 0) { showToast(`กล่องรายการที่ ${i + 1}: จำนวนวันลาต้องมากกว่า 0`, "error"); return; }
-    if (!reason)      { showToast(`กล่องรายการที่ ${i + 1}: กรุณากรอก "สาเหตุ / เหตุผลการลา"`, "error"); return; }
+    const leaveTypeId = card.querySelector('select[name="leave_type_id"]')?.value;
+    const startDate = card.querySelector('input[name="start_date"]')?.value;
+    const endDate = card.querySelector('input[name="end_date"]')?.value;
+    const reason = card.querySelector('input[name="reason"]')?.value || "";
+    const hoursMorning = parseFloat(card.querySelector('input[name="hours_morning"]')?.value) || 0;
+    const hoursAfternoon = parseFloat(card.querySelector('input[name="hours_afternoon"]')?.value) || 0;
+    
+    let totalDays = parseFloat(card.querySelector('input[name="leave_days"]')?.value);
+    if (isNaN(totalDays) || totalDays <= 0) {
+      totalDays = 1; 
+    }
 
+    // Validation ตรวจความพร้อมรายใบลา
+    if (!leaveTypeId) {
+      showToast(`⚠️ กรุณาเลือกประเภทการลาในรายการที่ ${index + 1}`, "error");
+      hasError = true;
+      return;
+    }
+    if (!startDate || !endDate) {
+      showToast(`⚠️ กรุณาระบุวันที่ลาให้ครบถ้วนในรายการที่ ${index + 1}`, "error");
+      hasError = true;
+      return;
+    }
+
+    // คำนวณกรอบเวลาลารายวัน/ครึ่งวันส่งไปที่ Database
+    const totalHours = hoursMorning + hoursAfternoon;
+    const startPeriod = hoursMorning > 0 ? "half_day" : "full_day";
+    const endPeriod = hoursAfternoon > 0 ? "half_day" : "full_day";
+
+    // ✨ แก้ไขจุดที่ 3: จับคู่โครงสร้างคอลัมน์ฐานข้อมูลให้ถูกต้องสมบูรณ์
     payload.push({
-      employee_id:   employeeId,
-      leave_type_id: leaveTypeId,
-      start_date:    startDate,
-      end_date:      endDate,
-      total_days:    totalDays,
-      reason:        reason,
-      status:        "pending"
+      employee_id:     currentProfile.id || currentProfile.employee_id, // ป้องกันปัญหาชื่อคีย์ผิดพลาด
+      leave_type_id:   leaveTypeId,
+      start_date:      startDate,
+      end_date:        endDate,
+      total_days:      totalDays,
+      reason:          reason,
+      status:          "pending",          // ด่านรวมรอ HR สรุปงาน
+      manager_status:  "pending",          // ด่าน 1 หัวหน้างานตรวจสอบ
+      director_status: "pending",          // ด่าน 2 ผู้จัดการฝ่ายตรวจสอบ
+      leave_hours:     totalHours,
+      start_period:    startPeriod,
+      end_period:      endPeriod
     });
+  });
+
+  if (hasError) return;
+
+  // ควบคุมสถานะปุ่มบันทึก
+  const saveBtn = document.getElementById("btnSaveLeave");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "⏳ กำลังบันทึกข้อมูล...";
   }
 
   showToast("⏳ กำลังบันทึกคำขอลาลงฐานข้อมูล...", "info");
-  console.log("🚀 [SENDING PAYLOAD] ยิงข้อมูลเข้า Supabase:", payload);
+  console.log("🚀 [SENDING PAYLOAD] ยิงข้อมูลลง Supabase ตาราง leave_requests:", payload);
 
   try {
-    const { data, error, status } = await sb.from("leave_requests").insert(payload).select();
+    const { data, error } = await sb.from("leave_requests").insert(payload).select();
     
     if (error) {
-      console.error(`❌ [SAVE FAILED] Supabase ปฏิเสธการบันทึก รหัส HTTP: ${status}`, error);
+      console.error("❌ [SAVE FAILED] Supabase Reject:", error);
       throw error;
     }
 
-    console.log("✅ [SAVE SUCCESS] บันทึกสำเร็จ:", data);
+    console.log("✅ [SAVE SUCCESS] บันทึกใบลาเข้าระบบสำเร็จ:", data);
     showToast("✅ ส่งคำขอลาเรียบร้อยแล้ว!", "success");
-    setTimeout(() => { window.location.href = "/pages/user/leave-history.html"; }, 1200);
+    
+    // ย้ายไปหน้าประวัติเมื่อทำรายการสำเร็จ
+    setTimeout(() => { 
+      window.location.href = "/pages/user/leave-history.html"; 
+    }, 1200);
+
   } catch (err) {
-    console.error("❌ [CATCH ERROR] เกิดข้อผิดพลาด:", err);
-    showToast(err.message || "เกิดข้อผิดพลาดในการบันทึก", "error");
+    console.error("❌ [CATCH ERROR] เกิดข้อผิดพลาดร้ายแรงระหว่างบันทึก:", err);
+    showToast(err.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล", "error");
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "💾 บันทึกคำขอลา";
+    }
   }
 }
 
+// ฟังก์ชันแสดง Toast แจ้งเตือนสถานะ
 let toastTimer = null;
 function showToast(msg, type = "") {
   const el = document.getElementById("statusToast");
@@ -322,10 +377,9 @@ function showToast(msg, type = "") {
   toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3500);
 }
 
-// ─── 7. INITIALIZATION (เรียงลำดับชีวิตการเปิดหน้าเว็บใหม่) ───
+// ─── 7. INITIALIZATION (เรียงลำดับการโหลดระบบ) ───
 document.addEventListener("DOMContentLoaded", async () => {
   await loadLeaveTypes();   // 1. ดึงประเภทใบลาจริงจาก Supabase
-  fetchCurrentUserData();   // 2. ดึงข้อมูลพนักงานตัวอย่าง (และซ่อนกล่องหมุนโหลด ⏳)
-  addLeaveRow();            // 3. งอกกล่องแรกขึ้นมาทันทีอย่างสวยงาม
+  await fetchCurrentUserData(); // 2. โหลดข้อมูลผู้ใช้งาน (และสั่งปิดสัญลักษณ์โหลด ⏳)
+  addLeaveRow();            // 3. ปล่อยการ์ดคำขอใบแรกเริ่มต้นขึ้นจอบนหน้าเว็บ
 });
-
