@@ -10,6 +10,170 @@
   <link rel="stylesheet" href="/css/index.css" />
   
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* แอนิเมชันตอนหน้าเว็บโหลดเสร็จ ให้ Element ค่อยๆ ลอยขึ้นมา */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* กำหนด Layout การ์ดเป็น Grid ที่ตอบสนองหน้าจอทุกขนาด */
+    .rules-grid-layout {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+      padding-bottom: 40px;
+    }
+
+    /* ตัวการ์ดหลักเกณฑ์แบบพรีเมียม พร้อม Animation */
+    .rule-box-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    /* ใส่หน่วงเวลาให้การ์ดแต่ละใบ ค่อยๆ ทยอยลอยขึ้นมาไม่พร้อมกัน */
+    .rule-box-card:nth-child(1) { animation-delay: 0.05s; }
+    .rule-box-card:nth-child(2) { animation-delay: 0.10s; }
+    .rule-box-card:nth-child(3) { animation-delay: 0.15s; }
+    .rule-box-card:nth-child(4) { animation-delay: 0.20s; }
+    .rule-box-card:nth-child(5) { animation-delay: 0.25s; }
+    .rule-box-card:nth-child(6) { animation-delay: 0.30s; }
+    .rule-box-card:nth-child(7) { animation-delay: 0.35s; }
+    .rule-box-card:nth-child(8) { animation-delay: 0.40s; }
+    .rule-box-card:nth-child(9) { animation-delay: 0.45s; }
+    .rule-box-card:nth-child(10) { animation-delay: 0.50s; }
+
+    /* เอฟเฟกต์เมื่อเอาเมาส์ชี้ (Hover Lift & Glow) */
+    .rule-box-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 20px -3px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+      border-color: #cbd5e1;
+    }
+
+    /* แถบหัวเรื่องไอคอนภายในการ์ด */
+    .card-header-tag {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1.5px dashed #f1f5f9;
+    }
+
+    .card-header-tag .material-symbols-outlined {
+      font-size: 22px;
+    }
+
+    /* แยกสีตามสไตล์ประเภทวันลา */
+    .tag-vacation { color: #0284c7; }
+    .tag-sick { color: #ef4444; }
+    .tag-personal { color: #f59e0b; }
+    .tag-maternity { color: #ec4899; }
+    .tag-general { color: #6366f1; }
+    .tag-warning { color: #b91c1c; }
+
+    /* จัดสไตล์รายการหัวข้อรายละเอียด */
+    .rule-list-item {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: space-y-3;
+      gap: 12px;
+      flex-direction: column;
+    }
+
+    .rule-list-item li {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      position: relative;
+      padding-left: 20px;
+    }
+
+    /* จุด Bullet custom เป็นวงกลมเล็กสวยๆ */
+    .rule-list-item li::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 9px;
+      width: 6px;
+      height: 6px;
+      background: #cbd5e1;
+      border-radius: 50%;
+      transition: background 0.3s ease;
+    }
+
+    .rule-box-card:hover .rule-list-item li::before {
+      background: #94a3b8;
+    }
+
+    /* ไฮไลท์สำหรับข้อความแจ้งเตือนสีแดงภายในลิสต์ */
+    .rule-list-item .rule-caution {
+      color: #dc2626;
+      background: #fef2f2;
+      padding: 8px 12px 8px 24px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .rule-list-item .rule-caution::before {
+      background: #ef4444;
+      left: 10px;
+      top: 15px;
+    }
+
+    /* กล่องแจ้งเตือนภัย/ข้อควรระวังขนาดใหญ่ด้านล่าง */
+    .caution-box-layout {
+      grid-column: 1 / -1;
+      background: #fff5f5;
+      border: 1px dashed #fca5a5;
+    }
+    
+    .caution-box-layout:hover {
+      border-color: #ef4444;
+    }
+
+    /* ปุ่มกดสไตล์ย้อนกลับด้านบน */
+    .btn-header-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-header-back:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      transform: translateX(-2px);
+    }
+  </style>
 </head>
 
 <body>
@@ -26,9 +190,9 @@
       <nav class="side-nav">
         <a class="nav-item" href="/index.html"><span class="material-symbols-outlined">dashboard</span><span class="nav-label">หน้าหลักบอร์ด HR</span></a>
         <a class="nav-item" href="/pages/user/approver.html"><span class="material-symbols-outlined">fact_check</span><span class="nav-label">รายการรออนุมัติใบลา</span></a>
-        <a class="nav-item" href="/pages/hr/approved-leaves.html"><span class="material-symbols-outlined">task_alt</span><span class="nav-label">ใบลาที่อนุมัติแล้ว</span></a>
-        <a class="nav-item" href="/pages/hr/employee-directory.html"><span class="material-symbols-outlined">groups</span><span class="nav-label">รายชื่อพนักงานทั้งหมด</span></a>
-        <a class="nav-item" href="/pages/hr/employee-tracker.html"><span class="material-symbols-outlined">badge_keep_public</span><span class="nav-label">เช็คประวัติ & วันลาคงเหลือ</span></a>
+        <a class="nav-item" href="/pages/user/approved-leaves.html"><span class="material-symbols-outlined">task_alt</span><span class="nav-label">ใบลาที่อนุมัติแล้ว</span></a>
+        <a class="nav-item" href="/pages/user/employee-directory.html"><span class="material-symbols-outlined">groups</span><span class="nav-label">รายชื่อพนักงานทั้งหมด</span></a>
+        <a class="nav-item" href="/pages/user/employee-tracker.html"><span class="material-symbols-outlined">badge_keep_public</span><span class="nav-label">เช็คประวัติ & วันลาคงเหลือ</span></a>
         <a class="nav-item active" href="#"><span class="material-symbols-outlined">gavel</span><span class="nav-label">หลักเกณฑ์การลา</span></a>
       </nav>
     </aside>

@@ -1,638 +1,666 @@
-/**
- * hr.js — (เวอร์ชันเสถียรขั้นสุด: Built-in Digital Slip Modal)
- * ✅ กดดูใบลาแล้วเด้งเป็นป๊อปอัปกลางหน้าจอทันที ไม่เปิดแท็บใหม่ ไม่เด้งออกจากระบบ
- * ✅ ถอดดีไซน์ใบลาแบบแผ่นกระดาษจาก IMG_0863.jpeg มาโชว์ในป๊อปอัปสวยงาม อ่านง่าย
- * ✅ ระบบดึงข้อมูลแยกตารางแล้วแมปด้วย JS (Ultra-Safe Client Mapping) ป้องกัน SQL พัง
- */
+// ============================================================================
+// 🚀 PVT HR Admin System - [FIXED MULTIPLE RELATIONSHIPS BUG]
+// ============================================================================
 
-let adminProfile = null;
+if (typeof window.adminProfile === "undefined") {
+    window.adminProfile = null; 
+}
 
-document.addEventListener("DOMContentLoaded", initAdmin);
+document.addEventListener("DOMContentLoaded", () => {
+    console.clear(); 
+    console.group("🚀 [SYSTEM BOOT] 1. เริ่มต้นระบบ HR Admin (DOMContentLoaded)");
+    console.time("⏱️ เวลาที่ใช้ Boot ระบบทั้งหมด");
+    initAdmin();
+    console.groupEnd();
+});
 
+// ==========================================
+// 🟢 2. ฟังก์ชันเริ่มต้นระบบ (Init)
+// ==========================================
 async function initAdmin() {
-  console.log("📢 [HR SYSTEM] กำลังเริ่มต้นระบบจัดการฝ่ายบุคคล...");
-
+  console.groupCollapsed("🟢 [INIT PROCESS] ฟังก์ชัน initAdmin() กำลังทำงาน...");
   try {
-    // 1. ดึงโปรไฟล์ผู้ใช้งานปัจจุบัน
-    adminProfile = await window.pvtSupabase?.getCurrentProfile();
+    const sb = window.pvtSupabase?.getClient();
+    if (!sb) throw new Error("ไม่พบ window.pvtSupabase.getClient()");
+
+    window.adminProfile = await window.pvtSupabase?.getCurrentProfile();
     
-    // 🌟 [DEV MODE FALLBACK] ป้องกันระบบค้างหากไม่มีเซสชันล็อกอินจริง
-    if (!adminProfile || !adminProfile.employee_id) {
-      console.log("🛠️ [HR SYSTEM] ไม่พบเซสชันผู้ใช้จริง ระบบสวมสิทธิ์แอดมินจำลองระดับสูงให้...");
-      adminProfile = {
+    if (!window.adminProfile || !window.adminProfile.employee_id) {
+      console.warn("⚠️ [AUTH] ไม่พบเซสชันผู้ใช้จริง! สลับเข้าสู่ DEV MODE จำลองสิทธิ์ HR...");
+      window.adminProfile = {
         employee_id: "11111111-1111-1111-1111-111111111111",
         display_name: "คุณมิกกี้ (HR Administrator)",
-        role: "admin",
-        email: "mickey.hr@pvt.co.th"
+        role: "admin"
       };
     }
 
-    // 2. ผูกอีเวนต์ปุ่มเมนูแท็บด้านข้าง
-    document.querySelectorAll(".nav-item[data-tab]").forEach((item) => {
-      item.addEventListener("click", (event) => {
-        event.preventDefault();
-        switchTab(item.dataset.tab);
-      });
-    });
+    console.log("👉 Step 3: กำลังสั่งให้ตาราง 'อนุมัติใบลา' ดึงข้อมูล...");
+    if (typeof loadPendingLeavesHR === "function") {
+       await loadPendingLeavesHR();
+    }
 
-    // 3. สั่งโหลดข้อมูลแดชบอร์ดหลักทันทีเมื่อเปิดหน้าเว็บ
-    await loadStats();
-    await fetchLeaveRequests(); 
-
-  } catch (error) {
-    console.error("❌ [INIT ERROR]:", error);
+  } catch (err) {
+    console.error("❌ [CRITICAL ERROR] ระบบล่มระหว่างการ Boot:", err.message);
+  } finally {
+    console.timeEnd("⏱️ เวลาที่ใช้ Boot ระบบทั้งหมด");
+    console.groupEnd();
   }
 }
 
-// ฟังก์ชันสลับการมองเห็นของแท็บ
-function switchTab(tabName) {
-  console.log(`🔄 สลับไปที่แท็บ: ${tabName}`);
+// ==========================================
+// 2. ฟังก์ชันดึงข้อมูลใบลา (ปุ่มแบบ ไอคอน + ข้อความ ชัดเจน 100%)
+// ==========================================
+async function loadPendingLeavesHR() {
+  console.groupCollapsed("🟡 [FETCH] โหลดข้อมูลคำขออนุมัติลา (loadPendingLeavesHR)");
   
-  document.querySelectorAll(".tab-content").forEach((tab) => {
-    tab.hidden = tab.id !== `tab-${tabName}`;
-  });
-  
-  document.querySelectorAll(".nav-item[data-tab]").forEach((item) => {
-    item.classList.toggle("active", item.dataset.tab === tabName);
-  });
-
-  if (tabName === "dashboard") loadStats();
-  if (tabName === "employees") fetchEmployees();
-  if (tabName === "leaves") fetchLeaveRequests();
-  if (tabName === "balances") fetchLeaveBalances();
-}
-
-// 1. ฟังก์ชันโหลดตัวเลขสถิติบนแดชบอร์ด
-async function loadStats() {
-  const sb = window.pvtSupabase?.getClient();
-  if (!sb) return;
-
-  try {
-    const [{ count: employees }, { count: pending }, { count: approved }] = await Promise.all([
-      sb.from("employees").select("*", { count: "exact", head: true }),
-      sb.from("leave_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      sb.from("leave_requests").select("*", { count: "exact", head: true }).eq("status", "approved"),
-    ]);
-
-    document.getElementById("statEmployees").textContent = employees ?? 0;
-    document.getElementById("statPending").textContent = pending ?? 0;
-    document.getElementById("statApproved").textContent = approved ?? 0;
-    console.log("📊 อัปเดตสถิติตัวเลขแดชบอร์ดสำเร็จ");
-  } catch (error) {
-    console.warn("⚠️ [STATS WARN]:", error.message);
+  const tbody = document.getElementById("leaveRequestsBody");
+  if (!tbody) {
+    console.error("❌ [DOM ERROR] หา ID 'leaveRequestsBody' ไม่เจอ (เช็คใน hr.html ด่วน!)");
+    console.groupEnd();
+    return;
   }
-}
-
-// 2. ฟังก์ชันดึงรายชื่อพนักงานทั้งหมด
-async function fetchEmployees() {
-  const tbody = document.getElementById("employeeTableBody");
-  const sb = window.pvtSupabase?.getClient();
-  if (!tbody || !sb) return;
   
-  tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>⏳ กำลังโหลดรายชื่อพนักงาน...</td></tr>";
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align: center;">⏳ กำลังเชื่อมต่อและดึงข้อมูลใบลา...</td></tr>`;
+
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) {
+    console.error("❌ [DB ERROR] Supabase Client ยังไม่พร้อมทำงาน");
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">❌ ฐานข้อมูลขัดข้อง</td></tr>`;
+    console.groupEnd();
+    return;
+  }
 
   try {
     const { data, error } = await sb
-      .from("employees")
-      .select("employee_code, full_name, start_date, status")
-      .order("employee_code", { ascending: true });
-
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>📭 ยังไม่มีข้อมูลพนักงานในระบบ</td></tr>";
-      return;
-    }
-
-    const escapeFn = window.pvtSupabase?.escapeHtml || ((s) => s || "-");
-    const dateFn = window.pvtSupabase?.formatThaiDate || ((s) => s || "-");
-
-    tbody.innerHTML = data.map((employee) => `
-      <tr>
-        <td><strong>${escapeFn(employee.employee_code)}</strong></td>
-        <td>${escapeFn(employee.full_name)}</td>
-        <td>${dateFn(employee.start_date)}</td>
-        <td><span class="status-badge" style="color: ${employee.status === 'active' ? '#16a34a' : '#94a3b8'}">● ${employee.status === "active" ? "ใช้งาน" : "ปิดใช้งาน"}</span></td>
-      </tr>
-    `).join("");
-  } catch (error) {
-    console.error("❌ [EMPLOYEES ERROR]:", error);
-    tbody.innerHTML = `<tr><td colspan='4' style='color:red; text-align:center;'>โหลดล้มเหลว: ${error.message}</td></tr>`;
-  }
-}
-
-// 3. ฟังก์ชันดึงรายการคำขออนุมัติลา 
-// 3. ฟังก์ชันดึงรายการคำขออนุมัติลา (เวอร์ชันอัปเกรดเป็นชุดไอคอนทรงกลม Minimal Sphere Icons สวยหรู)
-async function fetchLeaveRequests() {
-  const sb = window.pvtSupabase?.getClient();
-  const tbody = document.getElementById("leaveRequestBody");
-  if (!sb || !tbody) return;
-  
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="8" class="table-loading-luxury">
-        <div class="pvt-loading-dots">🔄 กำลังเรียกคำขอลาพนักงานจากฐานข้อมูล...</div>
-      </td>
-    </tr>
-  `;
-
-  try {
-    // 🌟 เปลี่ยนมาใช้คิวรี่ชุดนี้: ดึงเฉพาะใบลาที่ผ่านการอนุมัติจากบอสทั้ง 2 ด่านแล้ว และส่งต่อมาถึงมือ HR
-    const { data: leaves, error: leaveError } = await sb
       .from("leave_requests")
-      .select("*")
-      .eq("manager_status", "approved")   // 1. หัวหน้างาน (ด่าน 2) ต้องกดอนุมัติแล้ว
-      .eq("director_status", "approved")  // 2. ผู้จัดการฝ่าย (ด่าน 3) ต้องกดอนุมัติแล้ว
-      .eq("status", "pending")            // 3. สถานะหลักยังค้างอยู่ เพื่อรอให้ HR (ด่าน 4) เป็นคนกดจบงาน
+      .select(`
+        *,
+        employees!employee_id ( full_name, employee_code ),
+        leave_types ( leave_name )
+      `)
       .order("created_at", { ascending: false });
 
-    if (leaveError) throw leaveError;
-    if (!leaves || leaves.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; padding: 24px; color: #64748b;'>📭 ยังไม่มีรายการคำขอลาในระบบ</td></tr>";
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #64748b;">📭 ไม่มีคำขออนุมัติลาในระบบขณะนี้</td></tr>`;
+      console.groupEnd();
       return;
     }
 
-    const [{ data: emps }, { data: types }] = await Promise.all([
-      sb.from("employees").select("id, full_name, employee_code"),
-      sb.from("leave_types").select("id, leave_name")
-    ]);
-
-    const escapeFn = window.pvtSupabase?.escapeHtml || ((s) => s || "-");
-    const dateFn = window.pvtSupabase?.formatThaiDate || ((s) => s || "-");
-    const labelFn = window.pvtSupabase?.statusLabel || ((s) => s || s);
-
-    tbody.innerHTML = leaves.map((item) => {
-      const emp = emps?.find(e => e.id === item.employee_id);
-      const leaveType = types?.find(t => t.id === item.leave_type_id);
+    let htmlContent = "";
+    data.forEach((req, index) => {
+      const empName = req.employees ? req.employees.full_name : "ไม่ทราบชื่อ";
+      const empCode = req.employees ? req.employees.employee_code : "-";
+      const leaveType = req.leave_types ? req.leave_types.leave_name : "ไม่ทราบประเภท";
+      const startDate = new Date(req.start_date).toLocaleDateString('th-TH');
+      const endDate = new Date(req.end_date).toLocaleDateString('th-TH');
       
-      const empName = emp?.full_name || "ไม่ระบุชื่อพนักงาน";
-      const leaveTypeName = leaveType?.leave_name || "ทั่วไป";
-      
-      // ตรวจสอบเงื่อนไขการแสดงปุ่มอนุมัติ/ปฏิเสธ (เฉพาะสถานะ pending หรือ รออนุมัติ เท่านั้น)
-      const isPending = item.status === "pending" || item.status === "รออนุมัติ";
-      const days = Number(item.total_days || 0);
+      let statusBadge = "";
+      if (req.status === 'pending') statusBadge = `<span style="background:#fef08a; color:#854d0e; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;">รออนุมัติ</span>`;
+      else if (req.status === 'approved') statusBadge = `<span style="background:#bbf7d0; color:#166534; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;">อนุมัติแล้ว</span>`;
+      else if (req.status === 'rejected') statusBadge = `<span style="background:#fecaca; color:#991b1b; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;">ปฏิเสธ</span>`;
+      else if (req.status === 'approved_by_leaders') statusBadge = `<span style="background:#bfdbfe; color:#1e40af; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;">หัวหน้าอนุมัติแล้ว</span>`;
+      else statusBadge = `<span style="background:#e5e7eb; color:#374151; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;">${req.status}</span>`;
 
-      // 🎯 [UPGRADE] เปลี่ยนปุ่มเป็นชุดไอคอนทรงกลมสไตล์มินิมอล (Minimal Sphere Icons) ตามบรีฟ
-      const actionButtons = isPending ? `
-        <div class="action-icon-wrapper">
-          <button class="sphere-btn action-approve" onclick="updateLeaveStatus('${item.id}', 'approved')" title="อนุมัติคำขอลาและตัดโควตาอัตโนมัติ">
-            <span class="material-symbols-outlined">check</span>
-          </button>
-          
-          <button class="sphere-btn action-reject" onclick="updateLeaveStatus('${item.id}', 'rejected')" title="ปฏิเสธคำขอลาฉบับนี้">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
-      ` : `<span style="color:#94a3b8; font-size:13px;">พิจารณาแล้ว</span>`;
+      let managerInfo = `<br><small style="color:#64748b;">ผจก: ${req.manager_status === 'approved' ? '✅ อนุมัติแล้ว' : '⏳ รออนุมัติ'}</small>`;
 
-      // 👁️ ปุ่มเปิดดูสลิปเอกสารดิจิทัล
-      const slipButton = `
-        <div class="action-icon-wrapper" style="display: flex; justify-content: center;">
-          <button class="luxury-text-btn view-slip-btn" onclick="openLeavePopupModal('${item.id}')" title="เปิดดูรายละเอียดใบลาฉบับเต็ม">
-            <span class="material-symbols-outlined"></span>
-            <span class="btn-text">ดูใบลา</span>
-          </button>
-        </div>
-      `;
-
-      return `
+      htmlContent += `
         <tr>
-          <td><strong>${escapeFn(empName)}</strong></td>
-          <td><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-weight: 500; color: #334155;">${escapeFn(leaveTypeName)}</span></td>
-          <td style="color: #475569;">${dateFn(item.start_date)} - ${dateFn(item.end_date)}</td>
-          <td><strong style="color:#10b981; font-size: 15px;">${days}</strong> วัน</td>
-          <td style="max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #64748b;" title="${escapeFn(item.reason)}">${escapeFn(item.reason)}</td>
-          <td class="text-center"><span class="status ${item.status}">${labelFn(item.status)}</span></td>
-          <td class="text-center">${actionButtons}</td>
-          <td class="text-center">${slipButton}</td>
+          <td>${empCode}</td>
+          <td>
+            <strong>${empName}</strong> ${managerInfo}
+            <br><a href="#" onclick="openLeavePopupModal('${req.id}'); return false;" style="font-size:12px; color:#2563eb; text-decoration:underline;">🔍 ดูใบลาตัวเต็ม</a>
+          </td>
+          <td>${leaveType}</td>
+          <td>${startDate} - ${endDate}</td>
+          <td>${req.total_days} วัน</td>
+          <td>${statusBadge}</td>
+          <td style="white-space: nowrap; text-align: center;">
+             
+             <button onclick="approveLeave('${req.id}')" style="padding:6px 12px; background:#10b981; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+               <span style="margin-right:4px;">✔️</span> อนุมัติ
+             </button>
+             
+             <button onclick="rejectLeave('${req.id}')" style="padding:6px 12px; background:#ef4444; color:white; border:none; border-radius:6px; cursor:pointer; margin-left:4px; font-size:13px; font-weight:600; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+               <span style="margin-right:4px;">✖️</span> ไม่อนุมัติ
+             </button>
+             
+             <button onclick="printLeaveA4('${req.id}')" style="padding:6px 12px; background:#3b82f6; color:white; border:none; border-radius:6px; cursor:pointer; margin-left:4px; font-size:13px; font-weight:600; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+               <span style="margin-right:4px;">🖨️</span> พิมพ์
+             </button>
+
+          </td>
         </tr>
       `;
-    }).join("");
-    
-    console.log("✅ [SUCCESS] โชว์รายการใบลาพร้อมชุดไอคอนมินิมอลเรียบร้อย!");
-  } catch (error) {
-    console.error("❌ [LEAVES REQUESTS ERROR]:", error);
-    tbody.innerHTML = `<tr><td colspan='8' style='color:red; text-align:center; padding: 20px;'>เกิดข้อผิดพลาดในการโหลดคำขอลา: ${error.message || error}</td></tr>`;
+    });
+
+    tbody.innerHTML = htmlContent;
+    console.log("🎉 [SUCCESS] พ่นข้อมูลลงตาราง (แบบปุ่มข้อความ) เรียบร้อย!");
+
+  } catch (err) {
+    console.error("❌ เกิดข้อผิดพลาด:", err);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">❌ เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
+  } finally {
+    console.groupEnd();
   }
 }
 
-// 4. ฟังก์ชันดึงข้อมูลใบลามาแสดงเป็นป๊อปอัปจำลองกระดาษ (Single Page Overlay)
+// ==========================================
+// 🔵 4. ฟังก์ชันเปิดป๊อปอัปใบลาดิจิทัล (เวอร์ชัน Luxury Icons & 4 ลายเซ็นต์) - [แก้ไขบั๊กแล้ว]
+// ==========================================
 async function openLeavePopupModal(leaveId) {
+  console.group(`🔵 [MODAL PROCESS] โหลดป๊อปอัปใบลาดิจิทัล ID: ${leaveId}`);
   const sb = window.pvtSupabase?.getClient();
-  if (!sb) return;
-
-  // สร้างกระดาน Modal ทับหน้าจอถ้ายังไม่มีอยู่ในระบบ HTML
+  
   let modalContainer = document.getElementById("pvtLeaveModal");
   if (!modalContainer) {
     modalContainer = document.createElement("div");
     modalContainer.id = "pvtLeaveModal";
-    modalContainer.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999; font-family:'Sarabun',sans-serif;";
     document.body.appendChild(modalContainer);
   }
   
-  modalContainer.style.display = "flex";
-  modalContainer.innerHTML = `<div style="background:#fff; padding:30px; border-radius:12px; font-size:15px; width:90%; max-width:700px; text-align:center;">⏳ กำลังเรียกเอกสารดิจิทัล...</div>`;
+  // โหลด Google Material Icons และฟอนต์ Sarabun / Kanit
+  const styleBlock = `
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+      .pvt-modal-overlay { 
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); 
+        display: flex; justify-content: center; align-items: center; z-index: 9999; 
+        animation: pvtFadeIn 0.3s ease; font-family: 'Kanit', 'Sarabun', sans-serif; 
+      }
+      .pvt-modal-content { 
+        background: #ffffff; width: 94%; max-width: 840px; border-radius: 20px; 
+        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.3); overflow: hidden; 
+        animation: pvtSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
+      }
+      .pvt-stamp-grid {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+      }
+      .pvt-stamp-box { 
+        text-align: center; padding: 20px 12px; border-radius: 14px; border: 1.5px dashed #cbd5e1; 
+        background: #f8fafc; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      }
+      .pvt-stamp-box .material-symbols-outlined {
+        font-size: 32px; margin-bottom: 8px; transition: transform 0.3s ease;
+      }
+      .pvt-stamp-box.approved { border-color: #10b981; background: #f0fdf4; color: #14532d; }
+      .pvt-stamp-box.approved .material-symbols-outlined { color: #10b981; font-fill: 1; }
+      .pvt-stamp-box.rejected { border-color: #ef4444; background: #fef2f2; color: #742a2a; }
+      .pvt-stamp-box.rejected .material-symbols-outlined { color: #ef4444; }
+      .pvt-stamp-box.pending { border-color: #f59e0b; background: #fffbeb; color: #78350f; }
+      .pvt-stamp-box.pending .material-symbols-outlined { color: #f59e0b; }
+      @keyframes pvtFadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes pvtSlideUp { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    </style>
+  `;
+
+  modalContainer.innerHTML = styleBlock + `
+    <div class="pvt-modal-overlay">
+      <div class="pvt-modal-content">
+        <div style="padding:50px; text-align:center;">
+          <span style="font-size:20px; color:#64748b; font-weight:300;">⏳ กำลังเรียกเอกสารและตรวจสอบสิทธิ์...</span>
+        </div>
+      </div>
+    </div>
+  `;
+  modalContainer.style.display = "block";
 
   try {
     const { data: leave } = await sb.from("leave_requests").select("*").eq("id", leaveId).maybeSingle();
-    if (!leave) { alert("ไม่พบข้อมูลใบลา"); modalContainer.style.display = "none"; return; }
+    if (!leave) throw new Error("ไม่พบข้อมูลใบลาในระบบ");
 
     const [{ data: emp }, { data: leaveType }] = await Promise.all([
       sb.from("employees").select("full_name, employee_code").eq("id", leave.employee_id).maybeSingle(),
       sb.from("leave_types").select("leave_name").eq("id", leave.leave_type_id).maybeSingle()
     ]);
 
-    const formatThaiDate = window.pvtSupabase?.formatThaiDate || ((s) => s || "-");
-    const dateWritten = leave.created_at ? formatThaiDate(leave.created_at.split('T')[0]) : "-";
-    const statusLabels = { pending: "⏳ รออนุมัติ", approved: "✅ อนุมัติแล้ว", rejected: "❌ ปฏิเสธ" };
-    const statusColors = { pending: "#d97706", approved: "#15803d", rejected: "#b91c1c" };
+    const dateWritten = leave.created_at ? new Date(leave.created_at).toLocaleDateString('th-TH', {year:'numeric', month:'long', day:'numeric'}) : "-";
+    const sDate = new Date(leave.start_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'numeric'});
+    const eDate = new Date(leave.end_date).toLocaleDateString('th-TH', {day:'2-digit', month:'short', year:'numeric'});
+    
+    // 1. ตัวแปรจัดการไอคอนและตราประทับ - ผู้จัดการฝ่าย (Manager)
+    const mngStampClass = leave.manager_status === 'approved' ? 'approved' : leave.manager_status === 'rejected' ? 'rejected' : 'pending';
+    const mngStampIcon = leave.manager_status === 'approved' ? 'check_circle' : leave.manager_status === 'rejected' ? 'cancel' : 'pending';
+    const mngStampText = leave.manager_status === 'approved' ? 'อนุมัติแล้ว' : leave.manager_status === 'rejected' ? 'ปฏิเสธคำขอ' : 'รอพิจารณา';
 
-    // พ่นดีไซน์ตารางกระดาษ PVT Plastic (จากรูป IMG_0863.jpeg) ลงในป๊อปอัปกลางหน้าจอ
-    modalContainer.innerHTML = `
-      <div style="background:#ffffff; width:100%; max-width:680px; padding:25px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2); position:relative; animation: fadeIn 0.2s ease-out; color:#1e293b;">
-        
-        <div style="border-bottom:2px solid #f1f5f9; padding-bottom:12px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <h3 style="margin:0; font-size:19px; color:#0f172a; font-weight:700;">ใบคำขออนุมัติลาอิเล็กทรอนิกส์</h3>
-            <img src="/assets/icons/logo-pvt.png" alt="PVT" style="height: 80px; width: auto; vertical-align: middle;"/>
+    // 2. ตัวแปรจัดการไอคอนและตราประทับ - หัวหน้าแผนก (Director/Dept Head)
+    const deptStatus = leave.director_status || 'pending'; 
+    const deptStampClass = deptStatus === 'approved' ? 'approved' : deptStatus === 'rejected' ? 'rejected' : 'pending';
+    const deptStampIcon = deptStatus === 'approved' ? 'verified' : deptStatus === 'rejected' ? 'disabled_by_default' : 'hourglass_empty';
+    const deptStampText = deptStatus === 'approved' ? 'อนุมัติแล้ว' : deptStatus === 'rejected' ? 'ปฏิเสธคำขอ' : 'รอพิจารณา';
+    
+    // 3. ตัวแปรจัดการไอคอนและตราประทับ - ฝ่ายบุคคล (HR Admin)
+    const hrStampClass = leave.status === 'approved' ? 'approved' : leave.status === 'rejected' ? 'rejected' : 'pending';
+    const hrStampIcon = leave.status === 'approved' ? 'assignment_turned_in' : leave.status === 'rejected' ? 'assignment_late' : 'rule';
+    const hrStampText = leave.status === 'approved' ? 'บันทึกสำเร็จ' : leave.status === 'rejected' ? 'ปฏิเสธคำขอ' : 'รอตรวจสอบ';
+
+    modalContainer.innerHTML = styleBlock + `
+      <div class="pvt-modal-overlay">
+        <div class="pvt-modal-content">
+          
+          <div style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #10b981;">
+            <h2 style="margin:0; font-size: 20px; font-weight: 500; color: #ffffff; display: flex; align-items: center; gap: 12px; letter-spacing: 0.5px;">
+              <span class="material-symbols-outlined" style="color:#10b981; font-size:26px;">verified_user</span> 
+              ใบคำขออนุมัติลา (Digital Leave Slip)
+            </h2>
+            
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <button onclick="printLeaveA4('${leaveId}')" style="background: #3b82f6; border: none; color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; display:flex; align-items:center; gap:6px; font-family:'Kanit'; transition:0.2s; font-size: 14px;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+                <span class="material-symbols-outlined" style="font-size:18px;">print</span> พิมพ์ A4
+              </button>
+              
+              <button onclick="document.getElementById('pvtLeaveModal').style.display='none'" style="background: rgba(255,255,255,0.08); border: none; color: #94a3b8; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; display:flex; align-items:center; justify-content:center; transition: 0.2s;" onmouseover="this.style.color='#fff'; this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.color='#94a3b8'; this.style.background='rgba(255,255,255,0.08)'">✕</button>
+            </div>
           </div>
-          <span style="color:${statusColors[leave.status]}; font-weight:700; font-size:15px; background:#f8fafc; padding:4px 12px; border-radius:6px; border:1px solid #e2e8f0;">
-            ${statusLabels[leave.status] || leave.status}
-          </span>
-        </div>
+          
+          <div style="padding: 30px;">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f8fafc; padding: 22px; border-radius: 16px; margin-bottom: 22px; border: 1px solid #e2e8f0;">
+              <div>
+                <p style="margin:0 0 4px 0; color:#64748b; font-size:12px; font-weight:500; letter-spacing:0.3px;">รหัสพนักงาน</p>
+                <strong style="font-size:15px; color:#1e293b;">${emp?.employee_code || "-"}</strong>
+              </div>
+              <div>
+                <p style="margin:0 0 4px 0; color:#64748b; font-size:12px; font-weight:500; letter-spacing:0.3px;">วันที่ยื่นคำขอ</p>
+                <strong style="font-size:14px; color:#1e293b;">${dateWritten}</strong>
+              </div>
+              <div style="grid-column: span 2; border-top: 1px dashed #e2e8f0; padding-top: 12px;">
+                <p style="margin:0 0 4px 0; color:#64748b; font-size:12px; font-weight:500;">ชื่อ - นามสกุลพนักงาน</p>
+                <strong style="font-size:17px; color:#0f172a; font-weight:600;">${emp?.full_name || "-"}</strong>
+              </div>
+              <div style="border-top: 1px dashed #e2e8f0; padding-top: 12px;">
+                <p style="margin:0 0 6px 0; color:#64748b; font-size:12px; font-weight:500;">ประเภทการลา</p>
+                <span style="font-size:13px; color:#2563eb; background:#eff6ff; border: 1px solid #bfdbfe; padding:4px 12px; border-radius:20px; font-weight:500;">${leaveType?.leave_name || "-"}</span>
+              </div>
+              <div style="border-top: 1px dashed #e2e8f0; padding-top: 12px;">
+                <p style="margin:0 0 4px 0; color:#64748b; font-size:12px; font-weight:500;">ระยะเวลาที่ขอลา</p>
+                <strong style="font-size:14px; color:#0f172a;">${sDate} — ${eDate} <span style="color:#ef4444; font-weight:600; margin-left:4px;">(${leave.total_days} วัน)</span></strong>
+              </div>
+            </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; background:#f8fafc; padding:12px; border-radius:6px; margin-bottom:15px; font-size:14px; text-align:left;">
-          <div><span style="color:#64748b;">รหัสพนักงาน:</span> <strong>${emp?.employee_code || "-"}</strong></div>
-          <div><span style="color:#64748b;">วันที่เขียนใบลา:</span> <strong>${dateWritten}</strong></div>
-          <div style="grid-column:span 2;"><span style="color:#64748b;">ชื่อ-นามสกุล:</span> <strong style="font-size:15px; color:#0f172a;">${emp?.full_name || "-"}</strong></div>
-        </div>
+            <div style="margin-bottom: 28px;">
+              <p style="margin:0 0 6px 0; color:#475569; font-size:13px; font-weight:600;">เหตุผลและรายละเอียดความจำเป็น:</p>
+              <div style="background: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px; font-size: 14px; color: #334155; line-height: 1.6; font-family:'Sarabun';">
+                ${leave.reason || "<span style='color:#94a3b8; font-style:italic;'>- ไม่ระบุรายละเอียดความจำเป็นเพิ่มเติม -</span>"}
+              </div>
+            </div>
 
-        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; text-align:left; font-size:14px;">
-          <thead>
-            <tr style="background:#0f172a; color:#fff;">
-              <th style="padding:10px; border-radius:4px 0 0 4px;">ประเภทการลา</th>
-              <th style="padding:10px;">วันเริ่มลา - สิ้นสุด</th>
-              <th style="padding:10px; text-align:center; width:90px; border-radius:0 4px 4px 0;">จำนวนวัน</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border-bottom:1px solid #e2e8f0;">
-              <td style="padding:12px 10px;"><span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:4px; font-weight:600;">${leaveType?.leave_name || "ทั่วไป"}</span></td>
-              <td style="padding:12px 10px; font-weight:500;">${formatThaiDate(leave.start_date)} ถึง ${formatThaiDate(leave.end_date)}</td>
-              <td style="padding:12px 10px; text-align:center; font-size:16px; font-weight:700; color:#2563eb;">${leave.total_days} วัน</td>
-            </tr>
-          </tbody>
-        </table>
+            <p style="margin:0 0 12px 0; color:#475569; font-size:13px; font-weight:600; text-align:center; letter-spacing:0.5px;">
+              🛡️ ตรวจสอบสถานะการลงนามดิจิทัล (Digital Signature Tracking)
+            </p>
+            
+            <div class="pvt-stamp-grid">
+              <div class="pvt-stamp-box approved">
+                <p style="margin:0 0 10px 0; color:#64748b; font-size:11px; font-weight:500;">1. พนักงานผู้ขอลา</p>
+                <span class="material-symbols-outlined">person</span>
+                <strong style="font-size:13px; font-weight:600;">ส่งคำขอแล้ว</strong>
+                <p style="margin:6px 0 0 0; font-size:11px; color:#64748b; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; max-width:100%; font-family:'Sarabun';">${emp?.full_name || "-"}</p>
+              </div>
 
-        <div style="text-align:left; margin-bottom:20px;">
-          <span style="color:#64748b; font-size:13px; display:block; margin-bottom:4px;">สาเหตุการลา:</span>
-          <div style="background:#fff; border:1px dashed #cbd5e1; padding:10px; border-radius:6px; font-size:14px; color:#334155; min-height:40px;">
-            ${leave.reason || "- ไม่ระบุเหตุผลเพิ่มเติม -"}
+              <div class="pvt-stamp-box ${mngStampClass}">
+                <p style="margin:0 0 10px 0; color:#64748b; font-size:11px; font-weight:500;">2. ผู้จัดการฝ่าย</p>
+                <span class="material-symbols-outlined">${mngStampIcon}</span>
+                <strong style="font-size:13px; font-weight:600;">${mngStampText}</strong>
+                <p style="margin:6px 0 0 0; font-size:11px; color:#94a3b8;">ฝ่ายบริหารต้นสังกัด</p>
+              </div>
+
+              <div class="pvt-stamp-box ${deptStampClass}">
+                <p style="margin:0 0 10px 0; color:#64748b; font-size:11px; font-weight:500;">3. หัวหน้าแผนก</p>
+                <span class="material-symbols-outlined">${deptStampIcon}</span>
+                <strong style="font-size:13px; font-weight:600;">${deptStampText}</strong>
+                <p style="margin:6px 0 0 0; font-size:11px; color:#94a3b8;">ผู้บังคับบัญชาสายตรง</p>
+              </div>
+
+              <div class="pvt-stamp-box ${hrStampClass}">
+                <p style="margin:0 0 10px 0; color:#64748b; font-size:11px; font-weight:500;">4. ฝ่ายบุคคล (HR)</p>
+                <span class="material-symbols-outlined">${hrStampIcon}</span>
+                <strong style="font-size:13px; font-weight:600;">${hrStampText}</strong>
+                <p style="margin:6px 0 0 0; font-size:11px; color:#94a3b8;">ผู้บันทึกสิทธิ์โควตา</p>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; border-top:1px solid #e2e8f0; padding-top:15px; font-size:13px;">
-          <div style="border:1px solid #e2e8f0; padding:10px; border-radius:6px; background:#fafafa;">
-            <p style="margin:0 0 8px 0; color:#64748b;">ผู้ลงชื่อคำขอลา</p>
-            <strong style="color:#0284c7; font-size:14px;">${emp?.full_name || "-"}</strong>
-          </div>
-          <div style="border:1px solid #e2e8f0; padding:10px; border-radius:6px; background:#fafafa;">
-            <p style="margin:0 0 8px 0; color:#64748b;">ผูอนุมัติ (ฝ่ายบุคคล)</p>
-            <strong style="color:${leave.status==='approved'?'#16a34a':leave.status==='rejected'?'#dc2626':'#64748b'}">
-              ${leave.status === 'approved' ? '✓ อนุมัติแล้ว' : leave.status === 'rejected' ? '✕ ปฏิเสธ' : '⏳ รอการพิจารณา'}
-            </strong>
-            ${leave.approval_comment ? `<p style="margin:3px 0 0 0; font-size:11px; color:#94a3b8;">(${leave.approval_comment})</p>` : ''}
-          </div>
-        </div>
-
-        <div style="margin-top:20px; text-align:right;">
-          <button onclick="document.getElementById('pvtLeaveModal').style.display='none'" style="background:#64748b; color:#fff; border:none; padding:7px 20px; border-radius:6px; cursor:pointer; font-weight:500; font-size:13px;">✕ ปิดหน้าต่าง</button>
         </div>
       </div>
     `;
-
   } catch (err) {
-    modalContainer.innerHTML = `<div style="color:red; padding:20px;">เกิดข้อผิดพลาด: ${err.message}</div>`;
+    console.error("❌ โหลดป๊อปอัปพัง:", err);
+    modalContainer.innerHTML = `
+      <div class="pvt-modal-overlay">
+        <div class="pvt-modal-content" style="max-width: 420px; padding: 32px; text-align: center;">
+          <span class="material-symbols-outlined" style="font-size: 48px; color:#ef4444; margin-bottom:12px;">error</span>
+          <h3 style="color:#ef4444; margin:0 0 8px 0; font-weight:600;">เกิดข้อผิดพลาดในการเรียกข้อมูล</h3>
+          <p style="color:#64748b; margin-bottom: 24px; font-size:14px;">${err.message}</p>
+          <button onclick="document.getElementById('pvtLeaveModal').style.display='none'" style="background:#1e293b; color:#fff; border:none; padding:10px 24px; border-radius:8px; cursor:pointer; width:100%; font-size:14px; font-weight:500;">ปิดหน้าต่าง</button>
+        </div>
+      </div>`;
+  } finally {
+    // ✅ แก้ไขตรงนี้เรียบร้อยครับ เปลี่ยนจาก catch เป็น finally
+    console.groupEnd();
   }
 }
 
-// 5. ฟังก์ชันส่งคำสั่ง อนุมัติ / ปฏิเสธ ใบลา 
-// 4. ฟังก์ชันส่งคำสั่ง อนุมัติ / ปฏิเสธ ใบลา (เวอร์ชันเคลียร์ทางสะดวก ไม่ติดเงื่อนไขรหัสแอดมินจำลอง)
-// 4. ฟังก์ชันส่งคำสั่ง อนุมัติ / ปฏิเสธ ใบลา (เวอร์ชันแก้ไข RLS และแก้อาการ Array 0 ทันที)
-// 4. ฟังก์ชันส่งคำสั่ง อนุมัติ / ปฏิเสธ ใบลา (เวอร์ชันอัปเกรด: อนุมัติแล้วหักยอดโควตาอัตโนมัติ 100%)
-// 4. ฟังก์ชันส่งคำสั่ง อนุมัติ / ปฏิเสธ ใบลา (เวอร์ชัน Auto-Create โควตาหากไม่พบข้อมูลปีปัจจุบัน)
-// 4. ฟังก์ชันส่งคำสั่ง อนุมัติ / ปฏิเสธ ใบลา (เวอร์ชันแก้บั๊กรหัสซ้ำ - หักยอดโควตาเข้าเป้า 100%)
-async function updateLeaveStatus(id, status) {
+// ==========================================
+// 🟢 5. ฟังก์ชันอนุมัติ / 🔴 ปฏิเสธ (อัปเกรด Premium แบบ SweetAlert2)
+// ==========================================
+async function approveLeave(leaveId) {
+  // 1. เด้งกล่องถามยืนยันแบบสวยงาม
+  const result = await Swal.fire({
+    title: 'ยืนยันการอนุมัติ?',
+    text: "คุณต้องการอนุมัติใบลาของพนักงานท่านนี้ใช่หรือไม่",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#10b981', // สีเขียวพรีเมียม
+    cancelButtonColor: '#64748b', // สีเทา
+    confirmButtonText: '✔️ ยืนยันอนุมัติ',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true
+  });
+
+  // ถ้ายกเลิก ให้ออกจากฟังก์ชัน
+  if (!result.isConfirmed) return;
+
   const sb = window.pvtSupabase?.getClient();
-  if (!sb) return;
-
-  if (!id || id === "undefined" || id === "null") {
-    alert("⚠️ ไม่สามารถทำรายการได้เนื่องจากรหัสใบลา (ID) ไม่ถูกต้อง");
-    return;
-  }
-
-  const comment = status === "rejected" ? prompt("ระบุเหตุผลที่ไม่ยอมรับการอนุมัติใบลาครั้งนี้:") : "อนุมัติตามขั้นตอนฝ่ายบุคคล";
-  if (status === "rejected" && comment === null) return; 
-
   try {
-    console.log(`⏳ [STEP 1] กำลังดึงข้อมูลใบลา ID: ${id}...`);
+    // 🌟 เปลี่ยนคอลัมน์เป็น approved_by_leaders ตามที่พี่ระบุ
+    const { error } = await sb.from('leave_requests').update({ 
+      status: 'approved', 
+      approved_by_leaders: window.adminProfile?.employee_id || null, 
+      approved_at: new Date().toISOString() 
+    }).eq('id', leaveId);
     
-    // 1. ดึงข้อมูลใบลาฉบับนี้พร้อมกับดู leave_code ของประเภทการลานั้นๆ ด้วย
-    const { data: leaveReq, error: fetchErr } = await sb
-      .from("leave_requests")
-      .select(`
-        employee_id, 
-        leave_type_id, 
-        total_days, 
-        status,
-        leave_types ( leave_code, leave_name )
-      `)
-      .eq("id", id)
-      .maybeSingle();
+    if (error) throw error;
+    
+    // 2. เด้งกล่องแจ้งเตือนสำเร็จ!
+    Swal.fire({
+      title: 'อนุมัติสำเร็จ!',
+      text: 'ระบบได้บันทึกการอนุมัติเรียบร้อยแล้ว',
+      icon: 'success',
+      confirmButtonColor: '#10b981'
+    });
+    
+    loadPendingLeavesHR(); 
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+  }
+}
 
-    if (fetchErr || !leaveReq) {
-      alert(`❌ ไม่พบข้อมูลใบลา หรือเกิดข้อผิดพลาด: ${fetchErr?.message}`);
-      return;
-    }
-
-    if (leaveReq.status === "approved" && status === "approved") {
-      alert("⚠️ ใบลาฉบับนี้ได้รับการอนุมัติและหักโควตาไปเรียบร้อยแล้ว");
-      return;
-    }
-
-    const currentYear = new Date().getFullYear() + 543; // ปี พ.ศ. 2569
-    const daysToDeduct = Number(leaveReq.total_days || 0);
-
-    // ========================================================
-    // 🌟 [CORE FIX] ทำการคำนวณและหักยอดโควตาวันลาพนักงาน
-    // ========================================================
-    if (status === "approved" && daysToDeduct > 0) {
-      console.log(`⏳ [STEP 2] ตรวจสอบกลุ่มประเภทการลาเพื่อเตรียมหักยอด...`);
-
-      // ดึงรหัสใบลาที่พนักงานยื่นมา (แปลงเป็นตัวพิมพ์ใหญ่เพื่อป้องกันการสะกดเพี้ยน)
-      const currentCode = String(leaveReq.leave_types?.leave_code || "").toUpperCase();
-      
-      // หา ID สิทธิ์ทั้งหมดที่จัดอยู่ในกลุ่มเดียวกันในตาราง leave_types ของพี่มิก
-      let targetCodes = [];
-      if (currentCode.includes("SICK")) {
-        targetCodes = ["LV_SICK", "SICK"];
-      } else if (currentCode.includes("PERSONAL") || currentCode.includes("BUSINESS")) {
-        targetCodes = ["LV_PERSONAL", "PERSONAL"];
-      } else if (currentCode.includes("VACATION")) {
-        targetCodes = ["VACATION"];
-      } else {
-        targetCodes = [currentCode];
-      }
-
-      // ค้นหาแถวโควตาในตาราง leave_balances ที่ตรงกับพนักงาน ปีปัจจุบัน และอยู่ในกลุ่มประเภทการลานี้
-      const { data: balances, error: balFindErr } = await sb
-        .from("leave_balances")
-        .select(`
-          id, used_days, remaining_days, leave_type_id,
-          leave_types ( leave_code )
-        `)
-        .eq("employee_id", leaveReq.employee_id)
-        .eq("year", currentYear);
-
-      // ค้นหาตัวที่จะโดนหักยอด โดยเช็คจากรหัสที่เข้าพวก
-      const balanceToUpdate = balances?.find(b => targetCodes.includes(String(b.leave_types?.leave_code).toUpperCase()));
-
-      if (balanceToUpdate) {
-        const newUsedDays = Number(balanceToUpdate.used_days || 0) + daysToDeduct;
-        const newRemainingDays = Number(balanceToUpdate.remaining_days || 0) - daysToDeduct;
-
-        console.log(`📉 ทำการตัดยอด: กำลังลดแต้มโควตาลง ${daysToDeduct} วัน...`);
-
-        // สั่ง UPDATE หักยอดลงในตาราง leave_balances จริงๆ
-        await sb.from("leave_balances").update({
-          used_days: newUsedDays,
-          remaining_days: newRemainingDays
-        }).eq("id", balanceToUpdate.id);
-
-        console.log("✅ [SUCCESS] หักโควตาวันลาในฐานข้อมูลสำเร็จ!");
-      } else {
-        console.warn("⚠️ ไม่พบแถวรองรับโควตาของพนักงานคนนี้ในระบบ ยอดคงเหลือบนหน้าจอเลยยังเท่าเดิม");
+async function rejectLeave(leaveId) {
+  // 1. เด้งกล่องให้กรอกเหตุผลแบบสวยงาม
+  const { value: reason, isDismissed } = await Swal.fire({
+    title: 'ปฏิเสธใบลา',
+    input: 'textarea',
+    inputLabel: 'โปรดระบุเหตุผลที่ไม่อนุมัติ:',
+    inputPlaceholder: 'พิมพ์เหตุผลที่นี่ (จำเป็นต้องกรอก)...',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444', // สีแดงพรีเมียม
+    cancelButtonColor: '#64748b', // สีเทา
+    confirmButtonText: '❌ ยืนยันการปฏิเสธ',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true,
+    inputValidator: (value) => {
+      // บังคับให้ต้องพิมพ์เหตุผล ไม่พิมพ์กดผ่านไม่ได้
+      if (!value || value.trim() === '') {
+        return 'กรุณาระบุเหตุผลที่ปฏิเสธด้วยครับ!'
       }
     }
+  });
 
-    // ========================================================
-    // 🌟 [STEP 3] อัปเดตสถานะใบลาหลักในตาราง leave_requests
-    // ========================================================
-    const updates = {
-      status: status,
-      approval_comment: comment,
-      approved_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  // ถ้ายกเลิกหรือปิดกล่อง ให้ออกจากฟังก์ชัน
+  if (isDismissed || !reason) return; 
+
+  const sb = window.pvtSupabase?.getClient();
+  try {
+    // 🌟 เปลี่ยนคอลัมน์เป็น approved_by_leaders ตามที่พี่ระบุ
+    const { error } = await sb.from('leave_requests').update({ 
+      status: 'rejected', 
+      approval_comment: reason.trim(), 
+      approved_by_leaders: window.adminProfile?.employee_id || null, 
+      approved_at: new Date().toISOString() 
+    }).eq('id', leaveId);
+    
+    if (error) throw error;
+    
+    // 2. เด้งกล่องแจ้งเตือนสำเร็จ (การปฏิเสธเสร็จสมบูรณ์)
+    Swal.fire({
+      title: 'ปฏิเสธใบลาแล้ว',
+      text: 'ระบบได้บันทึกการปฏิเสธและส่งเหตุผลเรียบร้อยแล้ว',
+      icon: 'success',
+      confirmButtonColor: '#10b981'
+    });
+    
+    loadPendingLeavesHR();
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+  }
+}
+
+async function rejectLeave(leaveId) {
+  // 1. เด้งกล่องให้กรอกเหตุผลแบบสวยงาม
+  const { value: reason, isDismissed } = await Swal.fire({
+    title: 'ปฏิเสธใบลา',
+    input: 'textarea',
+    inputLabel: 'โปรดระบุเหตุผลที่ไม่อนุมัติ:',
+    inputPlaceholder: 'พิมพ์เหตุผลที่นี่ (จำเป็นต้องกรอก)...',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444', // สีแดงพรีเมียม
+    cancelButtonColor: '#64748b', // สีเทา
+    confirmButtonText: '❌ ยืนยันการปฏิเสธ',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true,
+    inputValidator: (value) => {
+      // บังคับให้ต้องพิมพ์เหตุผล ไม่พิมพ์กดผ่านไม่ได้
+      if (!value || value.trim() === '') {
+        return 'กรุณาระบุเหตุผลที่ปฏิเสธด้วยครับ!'
+      }
+    }
+  });
+
+  // ถ้ายกเลิกหรือปิดกล่อง ให้ออกจากฟังก์ชัน
+  if (isDismissed || !reason) return; 
+
+  const sb = window.pvtSupabase?.getClient();
+  try {
+    const { error } = await sb.from('leave_requests').update({ 
+      status: 'rejected', 
+      approval_comment: reason.trim(), 
+      approved_by: window.adminProfile?.employee_id || null, 
+      approved_at: new Date().toISOString() 
+    }).eq('id', leaveId);
+    
+    if (error) throw error;
+    
+    // 2. เด้งกล่องแจ้งเตือนสำเร็จ (การปฏิเสธเสร็จสมบูรณ์)
+    Swal.fire({
+      title: 'ปฏิเสธใบลาแล้ว',
+      text: 'ระบบได้บันทึกการปฏิเสธและส่งเหตุผลเรียบร้อยแล้ว',
+      icon: 'success',
+      confirmButtonColor: '#10b981'
+    });
+    
+    loadPendingLeavesHR();
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+  }
+}
+
+// ==========================================
+// 🖨️ 6. ฟังก์ชันพิมพ์ใบลาลงกระดาษ A4 (โคลนนิ่งฟอร์มกระดาษ 100% + โลโก้บริษัท)
+// ==========================================
+async function printLeaveA4(leaveId) {
+  const sb = window.pvtSupabase?.getClient();
+  try {
+    const { data: leave } = await sb.from("leave_requests").select("*").eq("id", leaveId).maybeSingle();
+    const { data: emp } = await sb.from("employees").select(`
+        full_name, employee_code, start_date, nickname,
+        departments(department_name), positions(position_name)
+    `).eq("id", leave.employee_id).maybeSingle();
+    const { data: leaveType } = await sb.from("leave_types").select("leave_name").eq("id", leave.leave_type_id).maybeSingle();
+
+    // ฟังก์ชันแปลงวันที่เป็นแบบย่อ (เช่น 18/12/68)
+    const formatShortDate = (dStr) => {
+      if(!dStr) return '';
+      const d = new Date(dStr);
+      return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${(d.getFullYear()+543).toString().slice(-2)}`;
     };
 
-    const { data, error } = await sb.from("leave_requests").update(updates).eq("id", id).select();
+    const dWrite = formatShortDate(leave.created_at);
+    const dStart = formatShortDate(leave.start_date);
+    const dEnd = formatShortDate(leave.end_date);
     
-    if (error || !data || data.length === 0) {
-      alert(`❌ บันทึกสถานะใบลาไม่สำเร็จ: เกิดข้อผิดพลาดฝั่ง Database`);
-      return;
+    const currentYear = new Date().getFullYear() + 543;
+    const startPeriod = `1 ธันวาคม ${currentYear - 1}`;
+    const endPeriod = `30 พฤศจิกายน ${currentYear}`;
+
+    // สร้างตารางว่างเผื่อไว้ให้ครบ 21 บรรทัด (ให้เต็มพอดีหน้า A4)
+    let emptyRows = '';
+    for (let i = 0; i < 21; i++) {
+      emptyRows += `<tr class="row-data"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-left"></td><td></td><td></td><td></td><td></td><td></td></tr>`;
     }
 
-    alert(status === "approved" ? `🎉 อนุมัติใบลาและตัดยอดโควตาพนักงานจำนวน ${daysToDeduct} วัน เรียบร้อย!` : "❌ ปฏิเสธใบลาเรียบร้อยแล้ว");
-    
-    // โหลดข้อมูลทุกอย่างบนหน้าจอใหม่แบบเรียลไทม์ ยอดคงเหลือต้องลดลงทันตาเห็น!
-    await loadStats();
-    await fetchLeaveRequests();
-    await fetchLeaveBalances();
-
-  } catch (error) {
-    console.error("Error updating status:", error);
-    alert(`⚠️ เกิดข้อผิดพลาดทางระบบ: ${error.message || error}`);
-  }
-}
-
-// 6. ฟังก์ชันดึงข้อมูลโควตาวันลาพนักงานทุกคน 
-// ตัวแปรส่วนกลางสำหรับเก็บข้อมูลดิบเพื่อใช้ในการค้นหาแบบเรียลไทม์
-let allBalancesData = []; 
-
-// 6. ฟังก์ชันดึงข้อมูลโควตาวันลาพนักงานทุกคน ทุกเงื่อนไข (เวอร์ชันเรียงคอลัมน์สวยงาม + ระบบค้นหา)
-// 6. ฟังก์ชันดึงข้อมูลโควตาวันลาพนักงานทุกคน ทุกเงื่อนไข (เวอร์ชันกันบั๊กภาษาไทย/ตัวพิมพ์เล็กใหญ่)
-// 6. ฟังก์ชันดึงข้อมูลโควตาวันลาพนักงานทุกคน (เวอร์ชันดึงตรงจากฐานข้อมูล แก้ปัญหาหน้าจอโชว์เลข 6)
-async function fetchLeaveBalances() {
-  const sb = window.pvtSupabase?.getClient();
-  const tbody = document.getElementById("leaveBalanceBody");
-  if (!sb || !tbody) return;
-  
-  tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>⏳ กำลังดึงยอดโควตาจริงจากฐานข้อมูล...</td></tr>";
-
-  try {
-    const currentYear = new Date().getFullYear() + 543; // ปี พ.ศ. 2569
-    
-    // ดึงข้อมูล 3 ตารางหลักมาจับคู่กัน
-    const [
-      { data: balances, error: bErr },
-      { data: emps, error: eErr },
-      { data: types, error: tErr }
-    ] = await Promise.all([
-      sb.from("leave_balances").select("*").eq("year", currentYear),
-      sb.from("employees").select("id, employee_code, full_name").eq("status", "active"),
-      sb.from("leave_types").select("id, leave_name, leave_code")
-    ]);
-
-    if (bErr || eErr || tErr) throw new Error("ดึงข้อมูลจาก Database ล้มเหลว");
-
-    allBalancesData = emps.map((emp) => {
-      // ดึงโควตาทั้งหมดที่เป็นของพนักงานคนนี้
-      const empBalances = balances?.filter(b => b.employee_id === emp.id) || [];
-      
-      // 🌟 [จุดแก้ไขสำคัญ] แมปหาข้อมูลโดยเช็คจากรหัสโค้ดในเบสพี่มิกโดยตรง ครอบคลุมทั้งรหัสเก่าและรหัสใหม่
-      const sickBal = empBalances.find(b => {
-        const t = types?.find(x => x.id === b.leave_type_id);
-        return t && (t.leave_code === "LV_SICK" || t.leave_code === "SICK" || t.leave_name.includes("ป่วย"));
-      });
-
-      const persBal = empBalances.find(b => {
-        const t = types?.find(x => x.id === b.leave_type_id);
-        return t && (t.leave_code === "LV_PERSONAL" || t.leave_code === "PERSONAL" || t.leave_name.includes("กิจ"));
-      });
-
-      const vacBal = empBalances.find(b => {
-        const t = types?.find(x => x.id === b.leave_type_id);
-        return t && (t.leave_code === "VACATION" || t.leave_name.includes("พัก"));
-      });
-
-      // ดึงค่าจริงจากแถวเบส (ถ้าไม่มีแถวในเบสจริงๆ ถึงจะยอมให้ใช้ค่าตั้งต้น 30, 6, 6)
-      return {
-        code: emp.employee_code || "-",
-        name: emp.full_name || "ไม่ระบุชื่อ",
-        year: currentYear,
-        sick: { 
-          remaining: sickBal !== undefined ? Number(sickBal.remaining_days) : 30, 
-          entitlement: sickBal !== undefined ? Number(sickBal.entitlement_days) : 30 
-        },
-        personal: { 
-          remaining: persBal !== undefined ? Number(persBal.remaining_days) : 6, 
-          entitlement: persBal !== undefined ? Number(persBal.entitlement_days) : 6 
-        },
-        vacation: { 
-          remaining: vacBal !== undefined ? Number(vacBal.remaining_days) : 6, 
-          entitlement: vacBal !== undefined ? Number(vacBal.entitlement_days) : 6 
-        }
-      };
-    });
-
-    // ส่งข้อมูลไปวาดลงตารางบนหน้าจอ
-    renderBalanceTable(allBalancesData);
-
-  } catch (error) {
-    console.error("❌ [BALANCES ERROR]:", error);
-    tbody.innerHTML = `<tr><td colspan='6' style='color:red; text-align:center;'>โหลดข้อมูลล้มเหลว: ${error.message}</td></tr>`;
-  }
-}
-
-// ฟังก์ชันสำหรับสั่งวาดตารางโควตา (แยกออกมาเพื่อให้ค้นหาแล้ววาดใหม่ได้ทันที)
-// ฟังก์ชันสำหรับสั่งวาดตารางโควตา (เวอร์ชันล็อกสีและแยกคอลัมน์ถูกต้อง)
-function renderBalanceTable(dataList) {
-  const tbody = document.getElementById("leaveBalanceBody");
-  if (!tbody) return;
-
-  if (dataList.length === 0) {
-    tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:#64748b;'>🔍 ไม่พบข้อมูลพนักงานที่ตรงกับคำค้นหา</td></tr>";
-    return;
-  }
-
-  const escapeFn = window.pvtSupabase?.escapeHtml || ((s) => s || "-");
-
-  tbody.innerHTML = dataList.map((item) => {
-    // ฟังก์ชันช่วยจัดสีตัวเลข: ถ้าเหลือ 0 วันให้เป็นสีแดงเตือน ถ้าเหลือเยอะให้เป็นสีเขียวสบายตา
-    const getSickColor = (rem) => rem <= 0 ? "#dc2626; font-weight:700;" : "#2563eb; font-weight:700;"; // ลาป่วยสีน้ำเงิน/ฟ้า
-    const getPersonalColor = (rem) => rem <= 0 ? "#dc2626; font-weight:700;" : "#b45309; font-weight:700;"; // ลากิจสีส้ม/น้ำตาล
-    const getVacationColor = (rem) => rem <= 0 ? "#dc2626; font-weight:700;" : "#16a34a; font-weight:700;"; // พักร้อนสีเขียว
-
-    return `
-      <tr style="border-bottom: 1px solid #e2e8f0; hover: background-color: #f8fafc;">
-        <td style="padding: 12px 8px;"><strong>${escapeFn(item.code)}</strong></td>
-        <td style="padding: 12px 8px;">${escapeFn(item.name)}</td>
-        <td style="padding: 12px 8px; text-align:center; color: #64748b;">${item.year}</td>
+    const printWindow = window.open('', '_blank');
+    const html = `
+      <!DOCTYPE html>
+      <html lang="th">
+      <head>
+        <meta charset="UTF-8">
+        <title>พิมพ์ใบลา A4 - ${emp?.full_name || 'Unknown'}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          @page { size: A4 portrait; margin: 10mm 12mm; }
+          body { font-family: 'Sarabun', sans-serif; font-size: 11px; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
+          
+          /* Header */
+          .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+          .header-left { width: 140px; font-size: 10px; font-weight: 600; }
+          .header-center { flex: 1; text-align: center; margin-top: 5px; }
+          .company-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+          .form-title { font-size: 14px; font-weight: 700; margin: 4px 0; }
+          .period-text { font-size: 12px; font-weight: 600; }
+          
+          /* Logo Box (ใช้รูปโลโก้บริษัท) */
+          .logo-box { width: 130px; border: 1.5px solid #000; padding: 4px; text-align: center; font-size: 10px; line-height: 1.3; }
+          .logo-img-container { height: 26px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; border-bottom: 1px dashed #000; padding-bottom: 4px; }
+          .logo-img-container img { max-height: 100%; max-width: 100%; object-fit: contain; }
+          
+          /* Employee Info */
+          .emp-info { border: 1.5px solid #000; padding: 6px 10px; margin-bottom: 6px; border-radius: 1px; }
+          .emp-row { display: flex; align-items: center; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
+          .emp-row:last-child { margin-bottom: 0; }
+          .val-box { border-bottom: 1px dotted #000; display: inline-block; padding: 0 8px; font-weight: 400; text-align: center; color: #1e293b; }
+          
+          /* Table */
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 6px; border: 1.5px solid #000; }
+          th, td { border: 1px solid #000; text-align: center; vertical-align: middle; padding: 2px; font-size: 11px; }
+          th { font-weight: 700; background-color: #fff; line-height: 1.2; padding: 4px 2px; }
+          .row-data { height: 28px; }
+          .text-left { text-align: left !important; padding-left: 6px !important; font-size: 12px; }
+          
+          /* Footer */
+          .footer-box { text-align: center; font-size: 12px; font-weight: 700; padding: 6px; border: 1.5px solid #000; background-color: #e5e7eb; margin-bottom: 2px; }
+          .footer-note { text-align: right; font-size: 10px; font-weight: 600; }
+        </style>
+      </head>
+      <body onload="setTimeout(() => { window.print(); }, 800);">
         
-        <td style="padding: 12px 8px; text-align:center; background-color: #f0fdf4;">
-          <span style="color: ${getSickColor(item.sick.remaining)}">${item.sick.remaining}</span> 
-          <span style="color:#94a3b8; font-size:12px;">/ ${item.sick.entitlement} วัน</span>
-        </td>
+        <div class="header-box">
+          <div class="header-left">
+            <div>* ข้อ 4.2</div>
+            <div style="margin-top:2px;">ชื่อ or รหัส พนักงาน</div>
+          </div>
+          <div class="header-center">
+            <div class="company-name">บริษัท พี.วี.ที. แอนด์ พี.พลาส จำกัด</div>
+            <div class="form-title">ใบรายงาน ประจำปี ${currentYear}</div>
+            <div class="period-text">วันที่ ${startPeriod} - ${endPeriod} &nbsp;&nbsp;&nbsp; 1 รวม</div>
+          </div>
+          <div class="logo-box">
+              <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" style="height: 50px; width: 50px;">
+          </div>
+        </div>
+
+        <div class="emp-info">
+          <div class="emp-row">
+            <div style="flex: 2.5;">ชื่อ - สกุล <span class="val-box" style="width: 60%;">${emp?.full_name || ''}</span></div>
+            <div style="flex: 1;">ชื่อเล่น <span class="val-box" style="width: 50%;">${emp?.nickname || ''}</span></div>
+            <div style="flex: 1.5;">ตำแหน่ง <span class="val-box" style="width: 55%;">${emp?.positions?.position_name || ''}</span></div>
+            <div style="flex: 2.2;">ฝ่าย <span class="val-box" style="width: 70%;">${emp?.departments?.department_name || ''}</span></div>
+          </div>
+          <div class="emp-row">
+            <div style="flex: 2.5;">สถานะ &nbsp; 
+              <span style="border:1px solid #000; padding:0 4px; display:inline-block; font-size:10px;">✓</span> พนักงานปกติ &nbsp;&nbsp;
+              <span style="border:1px solid #000; padding:0 4px; display:inline-block; color:#fff; font-size:10px;">✓</span> รับรายวัน
+            </div>
+            <div style="flex: 2;">วันเริ่มงาน <span class="val-box" style="width: 50%;">${emp?.start_date ? formatShortDate(emp.start_date) : ''}</span></div>
+            <div style="flex: 2;">วันที่ผ่านโปร <span class="val-box" style="width: 45%;"></span></div>
+            <div style="flex: 2.2;">เริ่มมีสิทธิ์ <span class="val-box" style="width: 60%;"></span></div>
+          </div>
+          <div class="emp-row" style="margin-top: 4px; font-size: 11px;">
+            <div style="flex: 1;">รท.รับรองสิทธิประกันสังคม : เกษมราษฎร์-รัตนาฯ</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th rowspan="3" style="width: 6%;">ว/ด/ป<br>ที่เขียน</th>
+              <th colspan="2" style="width: 14%;">วันที่ลา</th>
+              <th colspan="3" style="width: 10%;">จำนวน</th>
+              <th rowspan="3" style="width: 7%;">ประเภท<br>การลา</th>
+              <th rowspan="3" style="width: 19%;">สาเหตุการลา</th>
+              <th rowspan="3" style="width: 7%;">หลักฐาน<br>การลา</th>
+              <th rowspan="3" style="width: 9%;">ลงชื่อผู้ลา</th>
+              <th colspan="2" style="width: 14%;">ผู้อนุมัติ</th>
+              <th rowspan="3" style="width: 7%;">ฝ่าย<br>บุคคล</th>
+            </tr>
+            <tr>
+              <th rowspan="2" style="width: 7%;">เริ่มวันที่</th>
+              <th rowspan="2" style="width: 7%;">ถึงวันที่</th>
+              <th rowspan="2" style="width: 4%;">วัน</th>
+              <th colspan="2" style="width: 6%;">ชั่วโมง</th>
+              <th rowspan="2" style="width: 7%;">หน.แผนก</th>
+              <th rowspan="2" style="width: 7%;">ผจก. ฝ่าย</th>
+            </tr>
+            <tr>
+              <th style="width: 3%;">เช้า</th>
+              <th style="width: 3%;">บ่าย</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-data">
+              <td>${dWrite}</td>
+              <td>${dStart}</td>
+              <td>${dEnd}</td>
+              <td style="font-weight: 700;">${leave.total_days}</td>
+              <td></td>
+              <td></td>
+              <td style="font-weight: 600;">${leaveType?.leave_name || '-'}</td>
+              <td class="text-left" style="font-family: 'Sarabun';">${leave.reason || '-'}</td>
+              <td></td>
+              <td style="font-family: cursive; font-size: 14px; color: #1e293b;">${emp?.nickname || ''}</td>
+              <td style="font-family: cursive; font-size: 12px; color: #1e293b;">${leave.director_status==='approved'?'✓ อนุมัติ':''}</td>
+              <td style="font-family: cursive; font-size: 12px; color: #1e293b;">${leave.manager_status==='approved'?'✓ อนุมัติ':''}</td>
+              <td style="font-family: cursive; font-size: 12px; color: #1e293b;">${leave.status==='approved'?'✓ อนุมัติ':''}</td>
+            </tr>
+            ${emptyRows}
+          </tbody>
+        </table>
         
-        <td style="padding: 12px 8px; text-align:center; background-color: #fef8e6;">
-          <span style="color: ${getPersonalColor(item.personal.remaining)}">${item.personal.remaining}</span> 
-          <span style="color:#94a3b8; font-size:12px;">/ ${item.personal.entitlement} วัน</span>
-        </td>
+        <div class="footer-box">
+          ระยะเวลาในการใช้สิทธิการลา เริ่มวันที่ ${startPeriod} - ${endPeriod}
+        </div>
+        <div class="footer-note">
+          โปรดศึกษาหลักเกณฑ์และปฏิบัติตามหลักเกณฑ์ที่กำหนด (ด้านหลัง) >>>>>
+        </div>
         
-        <td style="padding: 12px 8px; text-align:center; background-color: #eff6ff;">
-          <span style="color: ${getVacationColor(item.vacation.remaining)}">${item.vacation.remaining}</span> 
-          <span style="color:#94a3b8; font-size:12px;">/ ${item.vacation.entitlement} วัน</span>
-        </td>
-      </tr>
+      </body>
+      </html>
     `;
-  }).join("");
-}
-
-// ฟังก์ชันตัวกรองคำค้นหา (คำนวณหลังบ้านด้วยความเร็วสูง)
-function handleBalanceSearch(e) {
-  const keyword = e.target.value.toLowerCase().trim();
-  
-  if (!keyword) {
-    renderBalanceTable(allBalancesData); // ถ้าช่องค้นหาว่าง ให้โชว์ทุกคนเหมือนเดิม
-    return;
+    printWindow.document.write(html);
+    printWindow.document.close();
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถสร้างฟอร์ม A4 ได้: ' + err.message, 'error');
   }
-
-  // กรองจากรหัสพนักงานหรือชื่อ-นามสกุล
-  const filtered = allBalancesData.filter(item => 
-    item.code.toLowerCase().includes(keyword) || 
-    item.name.toLowerCase().includes(keyword)
-  );
-
-  renderBalanceTable(filtered);
-}
-
-// 7. ฟังก์ชัน CSV อัปโหลดพนักงานคงเดิมเพื่อขับเคลื่อนระบบนำเข้า
-async function uploadEmployeeCSV() {
-  const fileInput = document.getElementById('csvFileInput');
-  const statusDiv = document.getElementById('uploadStatus');
-  if (!fileInput || !fileInput.files.length) {
-    alert("กรุณาเลือกไฟล์ CSV ก่อนครับ");
-    return;
-  }
-  statusDiv.innerHTML = "⏳ กำลังนำเข้าข้อมูลและผูกโควตาวันลาพักร้อน...";
-  const file = fileInput.files[0];
-  const reader = new FileReader();
-  reader.onload = async function (e) {
-    try {
-      const text = e.target.result;
-      const lines = text.split(/\r?\n/);
-      const sb = window.pvtSupabase?.getClient();
-      if (!sb) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
-      const { data: leaveTypeData } = await sb.from('leave_types').select('id').eq('leave_code', 'VACATION').maybeSingle();
-      const vacationTypeId = leaveTypeData?.id || "40000000-0000-0000-0000-000000000004"; 
-      const currentYear = new Date().getFullYear() + 543;
-      let count = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim(); if (!line) continue;
-        const col = line.split(',').map(c => c.trim().replace(/["']/g, ""));
-        const code = col[1], prefix = col[2]||"", fname = col[3]||"", lname = col[4]||"", positionName = col[5], departmentName = col[6], rawDate = col[7];
-        if (code && fname) {
-          const joinedFullName = `${prefix}${fname} ${lname}`.replace(/\s+/g, ' ').trim();
-          let deptId = null;
-          if (departmentName) {
-            const { data: deptData } = await sb.from('departments').upsert({ department_code: `DEPT_${departmentName}`, department_name: departmentName }, { onConflict: 'department_code' }).select('id').single();
-            deptId = deptData?.id;
-          }
-          let posId = null;
-          if (positionName) {
-            const { data: posData } = await sb.from('positions').select('id').eq('position_name', positionName).maybeSingle();
-            if (posData) posId = posData.id;
-            else { const { data: newPos } = await sb.from('positions').insert({ position_name: positionName, department_id: deptId }).select('id').single(); posId = newPos?.id; }
-          }
-          const { data: empData } = await sb.from('employees').upsert({ employee_code: code.toString(), full_name: joinedFullName, department_id: deptId, position_id: posId, employment_type: 'monthly', status: 'active' }, { onConflict: 'employee_code' }).select();
-          if (empData && empData.length > 0) {
-            await sb.from('leave_balances').upsert({ employee_id: empData[0].id, leave_type_id: vacationTypeId, year: currentYear, entitlement_days: 6, used_days: 0, remaining_days: 6 }, { onConflict: 'employee_id,leave_type_id,year' });
-          }
-          count++;
-        }
-      }
-      statusDiv.innerHTML = `✅ นำเข้าข้อมูลพนักงานและแจกโควตาลาพักร้อนสำเร็จ ${count} คน`;
-      fetchEmployees();
-    } catch (err) { statusDiv.innerHTML = "❌ ระบบนำเข้าผิดพลาด: " + err.message; }
-  };
-  reader.readAsText(file, 'UTF-8');
 }

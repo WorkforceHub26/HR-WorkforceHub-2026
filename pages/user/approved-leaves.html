@@ -7,7 +7,7 @@
   
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/i.css" />
+  <link rel="stylesheet" href="/css/index.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -31,7 +31,7 @@
           <span class="nav-label">รายการรออนุมัติใบลา</span>
         </a>
 
-        <a class="nav-item" href="/pages/approved-leaves.html">
+        <a class="nav-item" href="/pages/user/approved.html">
           <span class="material-symbols-outlined">task_alt</span>
           <span class="nav-label">ใบลาที่อนุมัติแล้ว</span>
         </a>
@@ -50,6 +50,12 @@
           <span class="material-symbols-outlined">gavel</span>
           <span class="nav-label">หลักเกณฑ์การลา</span>
         </a>
+
+          <a class="nav-item active" href="/pages/user/approved-leaves.html">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">รายการรออนุมัติใบลา</span>
+        </a>
+
       </nav>
 
     </aside>
@@ -101,6 +107,7 @@
         </div>
         
         <div style="background: #ffffff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden;">
+          
           <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
             <thead style="background: #f8fafc; border-bottom: 1px solid var(--border);">
               <tr>
@@ -142,6 +149,6 @@
     </div>
   </div>
 
-  <script src="approver.js"></script>
+  <script src="/js/approved-leaves.js"></script>
 </body>
 </html>

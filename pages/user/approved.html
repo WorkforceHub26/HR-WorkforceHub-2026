@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ประวัติใบลาที่อนุมัติแล้ว | PVT HR Hub</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="/css/index.css" />
+  
+  <style>
+    .role-switcher-container { display: flex; background: #e2e8f0; padding: 4px; border-radius: 10px; gap: 4px; }
+    .role-btn { border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; transition: 0.2s; background: transparent; color: #475569; }
+    .role-btn.active { background: #ffffff; color: #0f172a; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .badge-history-approver { background: #bfdbfe; color: #1e40af; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .badge-history-hr { background: #bbf7d0; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="approved.js" defer></script>
+</head>
+
+<body>
+  <div class="app-shell">
+    
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" />
+        <div class="brand-text">
+          <h1>Workforce Hub</h1>
+          <p>HR Management Platform</p>
+        </div>
+      </div>
+      <nav class="side-nav">
+        <a class="nav-item" href="/pages/user/approved-leaves.html">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">รายการรออนุมัติใบลา</span>
+        </a>
+        <a class="nav-item active" href="/pages/user/approved.html">
+          <span class="material-symbols-outlined">task_alt</span>
+          <span class="nav-label">ใบลาที่อนุมัติแล้ว</span>
+        </a>
+        <a class="nav-item" href="/pages/user/employee-directory.html">
+          <span class="material-symbols-outlined">groups</span>
+          <span class="nav-label">รายชื่อพนักงานทั้งหมด</span>
+        </a>
+        <a class="nav-item" href="/pages/user/leave-rules.html">
+          <span class="material-symbols-outlined">gavel</span>
+          <span class="nav-label">หลักเกณฑ์การลา</span>
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="content-header">
+        <div class="header-left">
+          <div class="header-titles">
+            <span class="sub-title">LEAVE HISTORY & ARCHIVE</span>
+            <h2 id="pageMainTitle">ประวัติรายการใบลาที่ผ่านการอนุมัติ</h2>
+          </div>
+        </div>
+        
+        <div class="role-switcher-container">
+          <button id="btnRoleApprover" class="role-btn active" onclick="switchHistoryRole('approver')">
+            👥 มุมมองหัวหน้าแผนก
+          </button>
+          <button id="btnRoleHr" class="role-btn" onclick="switchHistoryRole('hr')">
+            💼 มุมมองฝ่าย HR (ทั้งบริษัท)
+          </button>
+        </div>
+      </header>
+
+      <section class="stats-grid" style="margin-top: 24px;">
+        <div class="stat-card" style="border-left: 4px solid #0fa472;">
+          <div class="stat-icon" style="background: #dcfce7; color: #15803d;">
+            <span class="material-symbols-outlined">assignment_turned_in</span>
+          </div>
+          <span class="stat-label" id="counterLabel">รวมใบลาที่ท่านอนุมัติแล้ว</span>
+          <span class="stat-value" id="countTotalApproved">0 <small>รายการ</small></span>
+        </div>
+      </section>
+
+      <section class="quick-menu-section" style="margin-top: 24px;">
+        <div class="section-title" style="margin-bottom: 16px;">
+          <span class="material-symbols-outlined" style="color:#0fa472">history</span>
+          <div><strong id="tableSubTitle">ตารางแสดงประวัติคำขอลาที่ผ่านการตรวจสอบแล้ว</strong></div>
+        </div>
+        
+        <div style="background: #ffffff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+            <thead style="background: #f8fafc; border-bottom: 1px solid var(--border);">
+              <tr id="tableHeaderRow">
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr>
+                <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-soft);">
+                  กำลังดึงประวัติใบลาในระบบ...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

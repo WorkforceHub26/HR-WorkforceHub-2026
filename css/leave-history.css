@@ -43,12 +43,15 @@ body {
   overflow-x: hidden;
 }
 
-/* 📦 คอนเทนเนอร์หลักคลุมแอป */
-.app {
-  max-width: 800px;
-  margin: 0 auto;
-  opacity: 0;
-  animation: pvt-fade-in-up 0.6s var(--pvt-ease-out) forwards;
+/* เอฟเฟกต์การ์ดคำขอเลื่อนตัวขึ้นมาจากด้านล่างแบบนุ่มนวล */
+.recent-list article, .history-item-card {
+  background: #ffffff;
+  border: 1px solid var(--pvt-border);
+  border-radius: 18px;
+  padding: 22px;
+  position: relative;
+  transition: all 0.3s ease-in-out;
+  animation: pvt-slide-in-card 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
 /* ─── 👑 ส่วนหัวดีไซน์ระดับไฮเอนด์ (User Header) ─── */
@@ -381,48 +384,78 @@ body {
 }
 
 /* ==========================================================================
-   📱 MOBILE & SMARTPHONE RESPONSIVE (⚡ AUTO TARGET ADJUSTMENT)
+   📱 MOBILE & SMARTPHONE RESPONSIVE (ปรับแต่งรองรับมือถือ 100%)
    ========================================================================== */
-@media (max-width: 576px) {
-  body {
-    padding: 16px 12px;
-  }
-  
+@media (max-width: 768px) {
+  /* จัดระเบียบส่วนหัว (Header) ให้อยู่กึ่งกลางและซ้อนกันพอดีจอ */
   .user-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 18px;
-    padding: 20px;
+    text-align: center;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 16px;
   }
   
+  .brand-row {
+    flex-direction: column; /* ให้โลโก้กับชื่อแอปซ้อนกันแนวตั้ง */
+    gap: 12px;
+  }
+
+  /* ปุ่มกลับหน้าหลัก ยืดเต็มจอให้กดง่ายๆ ด้วยนิ้วโป้ง */
   .logout-btn {
-    width: 100%; /* เต็มความกว้างหน้าจอมือถือ กดง่ายสุดๆ */
-    min-height: 50px;
-    font-size: 15px;
+    width: 100%;
+    min-height: 48px;
   }
-  
+
+  /* หัวข้อรายการลา และปุ่มขอลาใหม่ */
   .section-head {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 18px;
+    align-items: stretch;
+    gap: 16px;
   }
   
+  .section-head h2 {
+    text-align: center;
+  }
+
+  .section-head h2::after {
+    left: 50%;
+    transform: translateX(-50%); /* จัดเส้นใต้หัวข้อให้อยู่กึ่งกลาง */
+  }
+
   .section-head button {
-    width: 100%; /* ปุ่มขอลาใหม่ยืดเต็มหน้าจอในมือถือ */
-    min-height: 50px;
+    width: 100%;
     justify-content: center;
-    font-size: 15px;
+    min-height: 48px;
   }
-  
+}
+
+@media (max-width: 480px) {
+  /* ปรับขนาดกล่องประวัติการลาให้พอดีกับหน้าจอมือถือเล็กๆ */
+  body {
+    padding: 12px 8px;
+  }
+
+  .recent-list article, .history-item-card {
+    padding: 16px; 
+  }
+
   .card-top-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
+
+  /* ป้ายสถานะ (รออนุมัติ/อนุมัติ) ให้เต็มความกว้าง */
+  .status {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ปุ่มยกเลิกใบลา (สีแดง) ยืดเต็มจอ */
   .btn-cancel-leave, .cancel-btn {
-    width: 100%; /* ปุ่มยกเลิกคำขอยืดเต็มการ์ด แตะสะดวกผ่านนิ้วโป้ง */
-    min-height: 48px;
-    text-align: center;
+    width: 100%;
+    margin-top: 12px;
+    min-height: 46px;
   }
 }

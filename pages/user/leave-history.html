@@ -20,16 +20,17 @@
           <span>ติดตามสถานะคำขอของคุณ</span>
         </div>
       </div>
-      <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับ</button>
+      <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับหน้าหลัก</button>
     </header>
 
     <section class="recent-card">
       <div class="section-head">
         <h2>รายการทั้งหมด</h2>
-        <button onclick="location.href='/pages/user/leave-user.html'">ขอลาใหม่</button>
+        <button onclick="location.href='/pages/user/leave-user.html'">＋ ขอลาใหม่</button>
       </div>
+      
       <div id="historyList" class="recent-list">
-        <div class="empty-state">กำลังโหลดประวัติ...</div>
+        <div class="empty-state">⏳ กำลังโหลดประวัติการลาของคุณ...</div>
       </div>
     </section>
   </main>
@@ -37,12 +38,6 @@
   <script src="/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/auth-guard.js"></script>
-  <script>
-  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
-  document.addEventListener("DOMContentLoaded", () => {
-     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
-  });
-</script>
   <script src="/js/leave-history.js"></script>
 </body>
 </html>
