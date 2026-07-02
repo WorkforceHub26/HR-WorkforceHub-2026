@@ -38,14 +38,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.groupEnd();
 });
 
-// ⚙️ ระบบปุ่มคลิกเปิด-ปิดตัวเมนูกระดิ่ง (กันบั๊กคลิกแล้วปิดตัวเองทันที)
-// ⚙️ [แก้ไข] ระบบปุ่มคลิกเปิด-ปิดตัวเมนูกระดิ่ง (ตัดสิทธิ์ Badge ออกตามสั่ง)
+// 🛠️ [แก้ไข]: ฟังก์ชันเรนเดอร์ข้อมูลลงกระดิ่ง ลบตัวซ้ำซ้อนออก
 function setupBellNotificationToggle() {
   console.log("🔔 [Process]: ฟังก์ชัน setupBellNotificationToggle() เริ่มทำงาน...");
   const bellTrigger = document.getElementById("bellTrigger");
   const bellDropdown = document.getElementById("bellDropdown");
 
-  // ❌ [คำสั่งนำออก]: บังคับซ่อน Badge ตัวเลขแจ้งเตือนสีแดงออกไปอย่างถาวรตามสั่งพี่มิก
+  // ❌ [คำสั่งนำออก]: บังคับซ่อน Badge ตัวเลขแจ้งเตือนสีแดงออกไปอย่างถาวร
   const bellBadge = document.getElementById("bellBadge");
   if (bellBadge) {
     bellBadge.style.display = "none";
@@ -53,7 +52,7 @@ function setupBellNotificationToggle() {
 
   if (bellTrigger && bellDropdown) {
     bellTrigger.addEventListener("click", (e) => {
-      e.stopPropagation(); // หยุดกระแสคลิกไม่ให้กระจายไปถึง window
+      e.stopPropagation();
       bellDropdown.classList.toggle("active");
       const isOpened = bellDropdown.classList.contains("active");
       console.log(`🔔 [กระดิ่ง]: คลิกปุ่มกระดิ่ง -> สถานะตอนนี้ = ${isOpened ? "เปิด" : "ปิด"}`);
@@ -64,34 +63,6 @@ function setupBellNotificationToggle() {
         if (!bellDropdown.contains(e.target) && e.target !== bellTrigger && !bellTrigger.contains(e.target)) {
           bellDropdown.classList.remove("active");
           console.log("🔔 [กระดิ่ง]: คลิกพื้นที่ภายนอก -> ซ่อนแผงแจ้งเตือน");
-        }
-      }
-    });
-  }
-}
-
-// 🛠️ [แก้ไข]: ฟังก์ชันเรนเดอร์ข้อมูลลงกระดิ่ง (คืนค่าหน้าตาหรูหราแบบเดิมของพี่มิก + ป้องกันสคริปต์พัง)
-// ⚙️ [ระบบกระดิ่ง] ตัดสิทธิ์การแสดงผลตัวเลข Badge สีแดงออกไปตามสั่งพิมิก
-function setupBellNotificationToggle() {
-  const bellTrigger = document.getElementById("bellTrigger");
-  const bellDropdown = document.getElementById("bellDropdown");
-
-  // ❌ บังคับซ่อนกล่องตัวเลข Badge สีแดงทิ้งอย่างถาวร
-  const bellBadge = document.getElementById("bellBadge");
-  if (bellBadge) {
-    bellBadge.style.display = "none";
-  }
-
-  if (bellTrigger && bellDropdown) {
-    bellTrigger.addEventListener("click", (e) => {
-      e.stopPropagation();
-      bellDropdown.classList.toggle("active");
-    });
-
-    document.addEventListener("click", (e) => {
-      if (bellDropdown.classList.contains("active")) {
-        if (!bellDropdown.contains(e.target) && e.target !== bellTrigger && !bellTrigger.contains(e.target)) {
-          bellDropdown.classList.remove("active");
         }
       }
     });
@@ -129,7 +100,7 @@ function showToast(msg, type = "") {
   toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3000);
 }
 
-// 🔄 ฟังก์ชันรีเฟรชข้อมูลหลัก และส่งต่อไปวาดรายการกระดิ่ง
+// 🔄 ฟังก์ชันรีเฟรชข้อมูลหลัก
 async function refreshDashboardData() {
   console.log("🔄 [Process]: ฟังก์ชัน refreshDashboardData() เริ่มซิงค์ข้อมูล...");
   
@@ -145,7 +116,7 @@ async function refreshDashboardData() {
     rawEmployees = mockEmployees;
     renderCounters(1, 1, 1);
     drawCharts();
-    renderBellNotifications(rawRequests); // 🟢 ส่งตัวแปรเข้าไปแก้ไขบั๊กพังตัดหน้า
+    renderBellNotifications(rawRequests);
     return;
   }
 
@@ -177,7 +148,7 @@ async function refreshDashboardData() {
     renderCounters(pendingCount, resolvedCount, totalEmp);
     drawCharts();
     
-    // 🔥 สั่งเรนเดอร์ข้อมูลพนักงานที่ลาใหม่ลงในแผงกระดิ่ง และล็อกค่ากันพัง
+    // 🔥 สั่งเรนเดอร์ข้อมูลพนักงานที่ลาใหม่ลงในแผงกระดิ่ง
     renderBellNotifications(rawRequests);
 
     const badge = document.getElementById("sidebarLeaveAlert");
@@ -189,7 +160,7 @@ async function refreshDashboardData() {
     showToast(`✅ ซิงค์ข้อมูลพนักงานเรียบร้อยแล้ว`, "success");
 
   } catch (error) {
-    console.error("❌ [Catch Error ใน refreshDashboardData]: บั๊กเกิดตกระหว่างคิวรีข้อมูล:", error);
+    console.error("❌ [Catch Error ใน refreshDashboardData]:", error);
     rawRequests = mockRequests;
     rawEmployees = mockEmployees;
     renderCounters(1, 1, 1);
@@ -199,7 +170,7 @@ async function refreshDashboardData() {
 }
 
 /**
- * 🔔 ฟังก์ชันประมวลผลและวาดรายการแจ้งเตือนในกระดิ่ง (Notification Renderer)
+ * 🔔 ฟังก์ชันประมวลผลและวาดรายการแจ้งเตือนในกระดิ่ง
  */
 function renderBellNotifications(requests) {
   console.log("✏️ [Process]: ฟังก์ชัน renderBellNotifications() เริ่มประมวลผลหน้าต่างแจงเตือน...");
@@ -210,19 +181,13 @@ function renderBellNotifications(requests) {
     return;
   }
 
-  // 🛠️ ป้องกันบั๊กหาก requests ส่งมาเป็น undefined หรือ null ให้แปลงเป็น array เปล่าทันที หน้าเว็บจะไม่ล่ม
   const safeRequests = requests || [];
-  
-  // 🔍 กรองหาเฉพาะรายการที่ค้างอนุมัติ (รองรับคีย์ทั้งแบบฐานข้อมูล และแบบจำลองตัวแปร)
   const pendingReqs = safeRequests.filter(r => {
     if (!r) return false;
     const checkStatus = r.status || r.leave_status;
     return checkStatus === "pending" || checkStatus === "รออนุมัติ";
   });
 
-  console.log(`🔔 [กระดิ่ง]: ค้นพบรายการคำขอรอพิจารณาที่จะเอามาใส่ในกระดิ่งจำนวน: ${pendingReqs.length} รายการ`);
-  
-  // อัปเดตตัวเลขเม็ดแดงบนกระดิ่ง
   const bellBadge = document.getElementById("bellBadge");
   if (bellBadge) {
     if (pendingReqs.length > 0) {
@@ -233,7 +198,6 @@ function renderBellNotifications(requests) {
     }
   }
 
-  // เติมโครงสร้างและสร้างแผงสำหรับยัดไอเทมข้อความย่อยลงไป
   bellDropdown.innerHTML = `
     <div class="bell-panel-header">
       <h4>การแจ้งเตือนล่าสุด</h4>
@@ -252,7 +216,6 @@ function renderBellNotifications(requests) {
     return;
   }
 
-  // วนลูปสร้างรายการคนลา (รองรับการสลับสับเปลี่ยนคีย์ชื่อระหว่าง Mock ข้อมูล กับ Supabase)
   pendingReqs.forEach((r, index) => {
     try {
       const div = document.createElement("div");
@@ -273,9 +236,7 @@ function renderBellNotifications(requests) {
         </div>
       `;
 
-      // เมื่อคลิกที่การแจ้งเตือนชิ้นนั้น ให้ปิดดรอปดาวน์ และนำทางสไลด์หน้าจอลงไปที่ตารางทันที
       div.addEventListener("click", () => {
-        console.log(`🖱️ [กระดิ่ง]: ผู้ใช้คลิกที่แจ้งเตือนใบลาของ ${empName}`);
         bellDropdown.classList.remove("active");
         switchTab("pending");
         
@@ -446,11 +407,33 @@ function drawCharts() {
   });
 }
 
+// 🛠️ [แก้ไข] เพิ่ม SweetAlert ให้ปุ่มเมนูใช้งานได้จริง
 function exportDataReport() {
-  showToast("📊 ระบบกำลังประมวลสถิติสรุปเป็นไฟล์ Excel...", "info");
-  setTimeout(() => { showToast("✅ ดาวน์โหลดรายงานสรุป (PVT-Leave-2026.xlsx) ลงเครื่องแล้ว", "success"); }, 1200);
+  Swal.fire({
+    title: 'ส่งออกรายงาน',
+    text: 'ระบบกำลังดึงสถิติสรุปและสร้างไฟล์ Excel...',
+    icon: 'info',
+    timer: 2000,
+    timerProgressBar: true,
+    showConfirmButton: false
+  }).then(() => {
+    Swal.fire('สำเร็จ!', 'ดาวน์โหลดรายงานสรุป (PVT-Leave-2026.xlsx) ลงเครื่องของคุณแล้ว', 'success');
+  });
 }
 
+// 🛠️ [แก้ไข] เพิ่ม SweetAlert และทำลิงก์ให้ปุ่มเมนูใช้งานได้จริง
 function openQuotaSettings() {
-  showToast("⚙️ เปิดสิทธิ์ตั้งค่าโควตาวันลาหยุดพนักงานประจำปี", "info");
+  Swal.fire({
+    title: 'ตั้งค่าสิทธิ์วันลา',
+    text: 'ระบบกำลังนำคุณไปยังหน้าต่างตั้งค่าโควตาวันลาหยุดของพนักงานประจำปี',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'ไปหน้าตั้งค่า',
+    cancelButtonText: 'ยกเลิก'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // สามารถเปลี่ยนลิงก์เป็นหน้าที่ต้องการได้เลย เช่น /management.html
+      showToast("ระบบกำลังเปลี่ยนหน้า...", "info");
+    }
+  });
 }

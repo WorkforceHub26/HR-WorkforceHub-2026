@@ -19,7 +19,7 @@
     
     <aside class="sidebar">
       <div class="brand">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" />
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" onerror="this.style.display='none'" />
         <div class="brand-text">
           <h1>Workforce Hub</h1>
           <p>HR Management Platform</p>
@@ -58,7 +58,6 @@
           <span class="nav-label">รายการรออนุมัติใบลา(หัวหน้า)</span>
         </a>
 
-
         <a class="nav-item" href="/pages/user/employee-directory.html">
           <span class="material-symbols-outlined">groups</span>
           <span class="nav-label">รายชื่อพนักงานทั้งหมด</span>
@@ -74,13 +73,10 @@
           <span class="nav-label">หลักเกณฑ์การลา</span>
         </a>
 
-          <a class="nav-item" href="/pages/user/index-user.html">
-          <span class="material-symbols-outlined">employee</span>
+        <a class="nav-item" href="/pages/user/index-user.html">
+          <span class="material-symbols-outlined">person</span>
           <span class="nav-label">หน้าพนักงาน</span>
         </a>
-
-       
-        
       </nav>
 
       <div class="sidebar-hr-actions" style="padding: 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border);">
@@ -97,7 +93,6 @@
     </aside>
 
     <main class="main-content">
-      
       <header class="content-header" style="position: relative; z-index: 9999;">
         <div class="header-left">
           <button class="btn-toggle-sidebar" id="toggleSidebar">
@@ -111,17 +106,12 @@
         
         <div class="header-right-actions">
           
-          <div class="header-notification-wrapper">
-            <div class="bell-dropdown-panel" id="bellDropdown">
-              <div class="header-notification-wrapper">
-                  <button class="bell-trigger-btn" id="bellTrigger">
-                    <span class="material-symbols-outlined">notifications</span>
-                    <span class="notification-badge" id="bellBadge" style="display: none;">0</span>
-                  </button>
-                  
-                  <div class="bell-dropdown-panel" id="bellDropdown"></div>
-                </div>
-            </div>
+          <div class="header-notification-wrapper" style="position: relative;">
+            <button class="bell-trigger-btn" id="bellTrigger">
+              <span class="material-symbols-outlined">notifications</span>
+              <span class="notification-badge" id="bellBadge" style="display: none;">0</span>
+            </button>
+            <div class="bell-dropdown-panel" id="bellDropdown"></div>
           </div>
 
           <div class="user-badge">
@@ -145,7 +135,7 @@
             <p style="color: rgba(255,255,255,0.85); font-size: 13px; margin-bottom: 24px; max-width: 600px; line-height: 1.6;">ใช้สำหรับนำเข้าข้อมูลพนักงาน อ่านหลักเกณฑ์การลา กรอกใบลาออนไลน์ ติดตามสถานะ และอนุมัติคำขอผ่าน Supabase</p>
             <div class="banner-actions" style="display: flex; gap: 12px;">
               <a href="/pages/user/leave-user.html" class="btn" style="background: #10b981; color: white; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 500;"><span class="material-symbols-outlined" style="font-size: 18px;">add_circle</span> ขออนุญาตลา</a>
-              <a href="#" class="btn btn-secondary" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: white; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 500;"><span class="material-symbols-outlined" style="font-size: 18px; ">lock_open</span> เปิดหน้าฝ่ายบุคคล</a>
+              <a href="/hr.html" class="btn btn-secondary" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: white; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 500;"><span class="material-symbols-outlined" style="font-size: 18px; ">lock_open</span> เปิดหน้าฝ่ายบุคคล</a>
             </div>
           </div>
           <div class="banner-status-card" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; min-width: 220px;">

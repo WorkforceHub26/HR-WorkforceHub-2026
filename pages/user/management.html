@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HR Management | PVT System</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/index.css" />
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <style>
+    .management-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-top: 20px; padding-bottom: 40px; }
+    .manage-card { background: white; border-radius: 16px; padding: 24px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    .manage-card h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 18px; color: var(--primary); border-bottom: 2px solid #f1f5f9; padding-bottom: 12px;}
+    .action-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: left; font-family: inherit; font-size: 14px; margin-bottom: 12px; transition: all 0.2s; font-weight: 500; color: #334155; }
+    .action-btn:hover { background: #e2e8f0; border-color: #cbd5e1; transform: translateY(-1px); }
+    .action-btn.primary { background: var(--primary); color: white; border-color: var(--primary); }
+    .action-btn.primary:hover { background: #1e40af; }
+    .action-btn.danger { background: #fff5f5; color: #e11d48; border-color: #fecdd3; }
+    .action-btn.danger:hover { background: #ffe4e6; }
+    .log-badge { background: #fef3c7; color: #d97706; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: auto; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" onerror="this.style.display='none'" />
+        <div class="brand-text"><span>WORKFORCE</span><strong>HUB</strong></div>
+      </div>
+      <nav class="nav-menu">
+        <a href="/index.html" class="nav-item"><span class="material-symbols-outlined">dashboard</span> แดชบอร์ด</a>
+        <a href="/management.html" class="nav-item active"><span class="material-symbols-outlined">settings</span> จัดการระบบ HR</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 style="font-size: 24px; font-weight: 600; color: #0f172a;">ศูนย์กลางการตั้งค่า (HR Management)</h1>
+          <p style="color: var(--text-soft); font-size: 14px;">จัดการบุคลากร กฎระเบียบ และตรวจสอบประวัติการแก้ไขระบบ</p>
+        </div>
+      </header>
+
+      <div class="management-grid">
+        
+        <div class="manage-card">
+          <h3><span class="material-symbols-outlined">badge</span> 1. ฐานข้อมูลบุคลากร</h3>
+          <button class="action-btn primary" onclick="addNewEmployee()">
+            <span class="material-symbols-outlined">person_add</span> เพิ่มพนักงานใหม่ (รายบุคคล)
+          </button>
+          <button class="action-btn" onclick="editEmployeeData()">
+            <span class="material-symbols-outlined">manage_accounts</span> ค้นหา / แก้ไข / ทำรายการลาออก
+          </button>
+          <button class="action-btn" onclick="manageDepartments()">
+            <span class="material-symbols-outlined">account_tree</span> จัดการฝ่าย / แผนก / ตำแหน่ง
+          </button>
+        </div>
+
+        <div class="manage-card">
+          <h3><span class="material-symbols-outlined">event_available</span> 2. กฎเกณฑ์ & วันหยุด</h3>
+          <button class="action-btn" onclick="editGlobalLeaveRules()">
+            <span class="material-symbols-outlined">rule</span> ตั้งค่าประเภทการลา & สิทธิ์สูงสุด
+          </button>
+          <button class="action-btn" onclick="editIndividualLeaveBalance()">
+            <span class="material-symbols-outlined">tune</span> ปรับปรุงโควตาวันลารายบุคคล (เคสพิเศษ)
+          </button>
+          <button class="action-btn" onclick="manageCompanyHolidays()">
+            <span class="material-symbols-outlined">calendar_month</span> ตั้งค่าปฏิทินวันหยุดประจำปีบริษัท
+          </button>
+        </div>
+
+        <div class="manage-card">
+          <h3><span class="material-symbols-outlined">admin_panel_settings</span> 3. ระบบข้อมูล & ความปลอดภัย</h3>
+          <button class="action-btn" onclick="exportLeaveReport()" style="background: #f0fdf4; border-color: #bbf7d0; color: #166534;">
+            <span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Export to Excel)
+          </button>
+          <button class="action-btn" onclick="viewAuditLogs()">
+            <span class="material-symbols-outlined">history</span> ประวัติการแก้ไขระบบ (Audit Log)
+            <span class="log-badge">ตรวจสอบได้</span>
+          </button>
+          <button class="action-btn danger" onclick="resetYearlyLeave()">
+            <span class="material-symbols-outlined">device_reset</span> ล้างโควตาวันลา (ขึ้นปีงบประมาณใหม่)
+          </button>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/management.js"></script>
+</body>
+</html>
