@@ -1,5 +1,6 @@
 /**
- * profile-user.js — (ฉบับแมตช์ธีม index-user 100%)
+ * profile-user.js — (ฉบับแก้ไข Bug ReferenceError เพื่อความเสถียร 100%)
+ * ✅ แก้ไขการสลับตัวแปรจาก currentProfile เป็น profile ป้องกันหน้าจอค้าง
  */
 
 document.addEventListener("DOMContentLoaded", loadProfile);
@@ -11,35 +12,36 @@ async function loadProfile() {
   try {
     let profile = await window.pvtSupabase?.getCurrentProfile();
     
-    // [DEV MODE FALLBACK] ดักจับกรณีทดสอบเหมือนหน้าหลัก
-    // 🌟 เปลี่ยนท่อนเช็กเซสชันจำลองใน index-user.js ให้บังคับใช้ไอดีจริงที่มีข้อมูลในตาราง leave_balances
-if (!currentProfile || !currentProfile.employee_id) {
-  console.log("🛠️ [DASHBOARD] ไม่พบ Profile ตรง กำลังใช้เซสชันจำลอง...");
-  
-  // 💡 เอาไอดีจริงจากตาราง employees/leave_balances ใน Supabase ของพี่มิกมาใส่ตรงนี้แทนเลข 1 ครับ
-  const myRealUUID = "9a8036a8-3b03-4802-9520-59934fe621e3"; 
+    // ✅ แก้ไขจาก currentProfile เป็น profile เพื่อป้องกัน ReferenceError
+    if (!profile || !profile.employee_id) {
+      console.log("🛠️ [PROFILE] ไม่พบ Profile ตรง กำลังใช้เซสชันจำลอง...");
+      
+      const myRealUUID = "9a8036a8-3b03-4802-9520-59934fe621e3"; 
 
-  let cachedUser = {
-    id: myRealUUID, 
-    employee_code: "EMP-009",
-    full_name: "คุณมิกกี้ (IT Management)",
-    department_name: "Information Technology",
-    position_name: "IT Infrastructure Manager"
-  };
-  sessionStorage.setItem("currentUser", JSON.stringify(cachedUser));
-  
-  currentProfile = {
-    employee_id: cachedUser.id,
-    display_name: cachedUser.full_name,
-    employees: {
-      id: cachedUser.id,
-      employee_code: cachedUser.employee_code,
-      full_name: cachedUser.full_name,
-      department_name: cachedUser.department_name,
-      position_name: cachedUser.position_name
+      let cachedUser = {
+        id: myRealUUID, 
+        employee_code: "EMP-009",
+        full_name: "คุณมิกกี้ (IT Management)",
+        department_name: "Information Technology",
+        position_name: "IT Infrastructure Manager"
+      };
+      sessionStorage.setItem("currentUser", JSON.stringify(cachedUser));
+      
+      profile = {
+        employee_id: cachedUser.id,
+        display_name: cachedUser.full_name,
+        email: "mickey.it@pvt.co.th",
+        role: "employee",
+        employees: {
+          id: cachedUser.id,
+          employee_code: cachedUser.employee_code,
+          full_name: cachedUser.full_name,
+          department_name: cachedUser.department_name,
+          position_name: cachedUser.position_name,
+          start_date: "2025-01-15"
+        }
+      };
     }
-  };
-}
 
     const employee = profile?.employees;
     const deptName = employee?.departments?.department_name || employee?.department_name || "ทั่วไป";
@@ -48,7 +50,6 @@ if (!currentProfile || !currentProfile.employee_id) {
     const escapeFn = window.pvtSupabase?.escapeHtml || ((str) => str || "-");
     const dateFn = window.pvtSupabase?.formatThaiDate || ((dateStr) => dateStr || "-");
 
-    // 🌟 พ่นโครงสร้าง HTML โดยเลียนแบบกล่อง recent-item จากหน้าหลัก
     box.innerHTML = `
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
         <span style="color: #64748b; font-size: 14px;">ชื่อ-นามสกุล</span>
@@ -86,7 +87,7 @@ if (!currentProfile || !currentProfile.employee_id) {
       </article>
     `;
 
-    console.log("✅ [SUCCESS] แปลงดีไซน์หน้าประวัติเข้าธีมหน้าหลักสำเร็จ!");
+    console.log("✅ [SUCCESS] โหลดหน้าประวัติพนักงานเสร็จสมบูรณ์!");
 
   } catch (error) {
     console.error("❌ Error loading profile page:", error);

@@ -1,751 +1,190 @@
 /* ==========================================================================
-   🤍 PVT WORKFORCE HUB - Premium Pure Milk Gray & Luxury Fluid Design System
+   🏢 PVT HR Dashboard — Light & Modern UI (Pure Bright Theme)
    ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* 🟢 PVT Signature Emerald Green - โทนเขียวมรกตลักชัวรี คม ชัด พรีเมียม */
-  --primary: #0fa472;          
-  --primary-dark: #0b845c;
-  --primary-soft: #ebf7f3;     /* สีเขียวมินต์พาสเทลซอฟต์ */
-
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-
-  /* 🥛 PURE MILK GRAY PALETTE - แก้ไขปัญหาสีกลืนกันอย่างเด็ดขาด */
-  --bg: #f3f4f6;               /* สีพื้นหลังเทาน้ำนมนวลพาสเทล ขับให้กล่องสีขาวเด้งเด่น */
-  --card: #ffffff;             /* ตัวการ์ดขาวบริสุทธิ์ 100% แยกชั้นจากพื้นหลังชัดเจน */
-  --text: #0f172a;             /* สีกรมท่าเข้มลึก อ่านง่าย คลาสสิก */
-  --text-soft: #64748b;        /* สีข้อความรองละมุนสายตา */
-  --border: #e2e8f0;           /* เส้นขอบเทาบางเบา */
-
-  /* ☁️ FLUID LAYERING SYSTEM - มิติเลเยอร์เงาซ้อนหลายชั้นและการจัดสัดส่วน */
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-  --shadow-sm: 0 4px 12px -1px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
-  --shadow-md: 0 12px 30px -4px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-  --shadow-lg: 0 20px 40px -8px rgba(15, 23, 42, 0.12);
+  /* โทนสว่าง สะอาดตา */
+  --bg-main: #f4f7fb;       /* สีพื้นหลังภาพรวม (ฟ้าอมเทาอ่อนมาก) */
+  --bg-card: #ffffff;       /* สีกล่อง */
+  --primary: #3b82f6;       /* น้ำเงินสว่าง */
+  --primary-light: #eff6ff;
+  --text-dark: #1e293b;     /* สีตัวหนังสือหลัก */
+  --text-muted: #64748b;    /* สีตัวหนังสือรอง */
+  --border-light: #e2e8f0;  /* สีเส้นขอบ */
   
-  /* ⚡ ORGANIC KINETIC MOTION - อนิเมชั่นสปริงอิงกฎฟิสิกส์และความหน่วงลื่นไหล */
-  --fluid-transition: all 0.45s cubic-bezier(0.25, 1, 0.5, 1);
-  --spring-bounce: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* ==========================================================================
-   🎛️ GLOBAL RESET & BASE RESPONSIVE
-   ========================================================================== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  /* ชุดสี Accent (สำหรับไอคอน) */
+  --blue: #3b82f6;   --bg-blue: #eff6ff;
+  --green: #10b981;  --bg-green: #ecfdf5;
+  --orange: #f97316; --bg-orange: #fff7ed;
+  --purple: #8b5cf6; --bg-purple: #f5f3ff;
+  --red: #ef4444;    --bg-red: #fef2f2;
 }
 
 body {
-  font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
-  background-color: var(--bg);
-  color: var(--text);
-  overflow-x: hidden;
+  font-family: "Kanit", "Noto Sans Thai", sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-dark);
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
-/* App Shell ตัวครอบสัดส่วนพอดีหน้าจอ */
-.app-shell {
-  display: flex;
-  min-height: 100vh;
-}
+/* 🧱 โครงสร้างหลัก */
+.app-shell { display: flex; min-height: 100vh; }
 
-/* ==========================================================================
-   🏰 LUXURY SIDEBAR - เมนูด้านข้างสไลด์สมูท
-   ========================================================================== */
-.sidebar {
-  width: 280px;
-  background: var(--card);
-  border-right: 1px solid var(--border);
+/* ⚡ 1. SIDEBAR (Light Theme) */
+.sidebar-light {
+  width: 90px;
+  background-color: var(--bg-card);
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
   position: fixed;
-  height: 100vh;
+  top: 0; bottom: 0; left: 0;
   z-index: 100;
-  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.02);
+  box-shadow: 4px 0 20px rgba(0,0,0,0.02);
 }
 
-.brand {
-  padding: 28px 24px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border-bottom: 1px solid var(--border);
-}
+.brand-zone { margin-bottom: 32px; }
+.logo-mini { width: 48px; height: auto; object-fit: contain; }
 
-.brand-logo {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(15, 164, 114, 0.15));
-  transition: var(--spring-bounce);
-}
-
-.brand:hover .brand-logo {
-  transform: rotate(-10deg) scale(1.08); /* โลโก้เอียงสปริงเบาๆ ดึงดูดสายตา */
-}
-
-.brand-text h1 { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
-.brand-text p { font-size: 11px; color: var(--text-soft); margin-top: 1px; }
-
-/* กล่องโปรไฟล์ผู้ใช้งานบน Sidebar */
-.sidebar-profile-box {
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #f8fafc;
-  margin: 20px 16px 10px 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  transition: var(--fluid-transition);
-}
-
-.sidebar-profile-box:hover {
-  background: #f1f5f9;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
-
-.profile-avatar {
-  position: relative;
-  width: 42px;
-  height: 42px;
-  background: #e2e8f0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-soft);
-  transition: var(--spring-bounce);
-}
-
-.sidebar-profile-box:hover .profile-avatar {
-  transform: scale(1.05);
-  background: var(--primary-soft);
-  color: var(--primary);
-}
-
-.profile-info-text h4 { font-size: 13.5px; font-weight: 600; color: var(--text); }
-.role-badge { font-size: 11px; color: var(--primary); font-weight: 500; }
-
-/* ระบบปุ่มลิงก์เมนู (Nav Items) */
-.side-nav {
-  padding: 10px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
+.nav-menu {
+  display: flex; flex-direction: column; gap: 16px;
+  width: 100%; align-items: center; flex: 1;
 }
 
 .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  color: var(--text-soft);
-  text-decoration: none;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 400;
-  transition: var(--fluid-transition);
+  width: 68px; height: 68px; border-radius: 16px;
+  color: var(--text-muted); text-decoration: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; transition: all 0.2s ease; background: transparent;
 }
 
-.nav-item span.material-symbols-outlined {
-  font-size: 22px;
-  transition: var(--spring-bounce);
-}
+.nav-item span.material-symbols-outlined { font-size: 26px; }
+.nav-label { font-size: 11px; font-weight: 500; }
 
-/* เอฟเฟกต์ Fluid Slide ขยับสไลด์และยืดตัวตามเมาส์ชี้ */
-.nav-item:hover {
-  background: #f1f5f9;
-  color: var(--text);
-  transform: translateX(8px);
-}
+.nav-item:hover { color: var(--primary); background-color: var(--primary-light); }
+.nav-item.active { color: #ffffff; background-color: var(--primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
 
-.nav-item:hover span.material-symbols-outlined {
-  transform: scale(1.12);
-  color: var(--primary);
-}
+.sidebar-footer { width: 100%; display: flex; justify-content: center; }
 
-.nav-item.active {
-  background: var(--primary-soft);
-  color: var(--primary);
-  font-weight: 600;
-  box-shadow: inset 4px 0 0 var(--primary);
+.btn-logout {
+  width: 52px; height: 52px; background: var(--bg-red); color: var(--red);
+  border: none; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s;
 }
+.btn-logout:hover { background: #fca5a5; color: #fff; }
 
-/* โซนปุ่มจัดการด้านล่าง Sidebar */
-.sidebar-hr-actions {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.hr-action-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  color: var(--text);
-  background: var(--card);
-  border: 1px solid var(--border);
-  transition: var(--fluid-transition);
-}
-
-.hr-action-btn:hover {
-  background: var(--primary-soft);
-  color: var(--primary);
-  border-color: var(--primary);
-  transform: translateY(-2px);
-}
-
-/* ==========================================================================
-   💻 MAIN CONTENT & CONTAINER CONTROL
-   ========================================================================== */
+/* 🌐 2. MAIN CONTENT */
 .main-content {
-  flex: 1;
-  margin-left: 280px; /* เว้นระยะพอดีช่อง Sidebar ไม่ทับกัน */
-  padding: 40px;
-  min-width: 0;
-  animation: fluidFadeIn 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  margin-left: 90px; flex: 1; padding: 32px 40px; display: flex; flex-direction: column; gap: 28px;
 }
 
-.content-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+/* TOPBAR */
+.topbar { display: flex; justify-content: space-between; align-items: center; }
+.topbar-left h1 { font-size: 24px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+.topbar-left p { font-size: 14px; color: var(--text-muted); margin: 0; }
+
+.user-profile {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-card); padding: 8px 16px;
+  border-radius: 99px; border: 1px solid var(--border-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
-
-.header-left { display: flex; align-items: center; gap: 16px; }
-
-.header-titles .sub-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+.user-profile .avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--primary-light); color: var(--primary);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
 }
+.user-profile .info { display: flex; flex-direction: column; }
+.user-profile .info strong { font-size: 14px; color: var(--text-dark); }
+.user-profile .info span { font-size: 12px; color: var(--text-muted); }
 
-.header-titles h2 {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.5px;
-  margin-top: 2px;
-}
-
-/* การจัดการส่วนขวาบน (Notification & User Badge) */
-.header-right-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.header-notification-wrapper { position: relative; }
-
-.bell-trigger-btn {
-  background: var(--card);
-  border: 1px solid var(--border);
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--text-soft);
-  transition: var(--spring-bounce);
-}
-
-.bell-trigger-btn:hover {
-  background: #ffffff;
-  color: var(--text);
-  border-color: #cbd5e1;
-  transform: scale(1.08);
-  box-shadow: var(--shadow-sm);
-}
-
-.user-badge {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--card);
-  padding: 6px 16px 6px 8px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-}
-
-.user-badge .avatar {
-  font-size: 28px;
-  color: var(--primary);
-}
-
-.user-info strong { font-size: 13.5px; font-weight: 600; color: var(--text); }
-.user-info small { font-size: 11px; color: var(--text-soft); }
-
-/* ==========================================================================
-   🎆 LUXURY HERO BANNER - แบนเนอร์พรีเมียมเล่นแสงเงานุ่มลึก
-   ========================================================================== */
-.hero-banner {
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 40%, #0fa472 100%) !important; /* สีกราเดียนท์ลึกหรูหรา */
-  border-radius: var(--radius-lg) !important;
-  box-shadow: 0 12px 36px rgba(15, 164, 114, 0.18) !important;
-  position: relative;
-  overflow: hidden;
-  padding: 32px !important;
-  animation: fluidSlideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* มิติแสงพาสเทลสะท้อนพื้นผิวแบนเนอร์ */
-.hero-banner::before {
-  content: '';
-  position: absolute;
-  top: -60%;
-  right: -10%;
-  width: 450px;
-  height: 450px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 50%;
-  filter: blur(50px);
-}
-
-.banner-main h1 { text-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-
-/* ปุ่มในแบนเนอร์สัมผัสสมูทหยุ่น */
-.banner-actions .btn {
-  transition: var(--spring-bounce);
-}
-
-.banner-actions .btn:hover {
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-}
-
-/* ไฟกะพริบบอกสถานะวิ่งนิ่มละมุน */
-.dot.pulse {
-  animation: organicPulse 2s infinite ease-in-out;
-}
-
-/* ==========================================================================
-   📊 PREMIUM KINETIC CARDS - การ์ดสถิติ 3 ใบ ยกตัวเด้งสปริง
-   ========================================================================== */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
-}
+/* 📊 3. STATS GRID */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
 .stat-card {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-lg) !important;
-  padding: 24px !important;
-  box-shadow: var(--shadow-sm) !important; /* ดันกล่องขาวให้ลอยเด่นฉีกขาดออกจากแบคแกรนด์เทา */
-  display: flex !important;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-  transition: var(--spring-bounce) !important;
-  animation: fluidPopIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  background: var(--bg-card); padding: 24px; border-radius: 20px;
+  display: flex; align-items: center; gap: 20px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); border-left: 6px solid transparent;
 }
+.stat-card.border-blue { border-left-color: var(--blue); }
+.stat-card.border-green { border-left-color: var(--green); }
+.stat-card.border-orange { border-left-color: var(--orange); }
 
-/* แถบสีเอฟเฟกต์ยกตัวลอยสูง+เงาไล่ระดับพรีเมียมเวลาเลื่อนเมาส์ผ่าน */
-.stat-card:hover {
-  transform: translateY(-8px) scale(1.01) !important;
-  box-shadow: var(--shadow-md) !important;
-  border-color: rgba(15, 164, 114, 0.25) !important;
+.icon-box {
+  width: 56px; height: 56px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
 }
+.icon-box span { font-size: 28px; }
+.bg-blue { background: var(--bg-blue); color: var(--blue); }
+.bg-green { background: var(--bg-green); color: var(--green); }
+.bg-orange { background: var(--bg-orange); color: var(--orange); }
+.bg-purple { background: var(--bg-purple); color: var(--purple); }
 
-.stat-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-  transition: var(--spring-bounce);
-}
+.stat-info { display: flex; flex-direction: column; }
+.stat-info .label { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+.stat-info .value { font-size: 32px; font-weight: 700; color: var(--text-dark); line-height: 1.2; }
 
-.stat-card:hover .stat-icon {
-  transform: scale(1.12) rotate(-6deg); /* ไอคอนเอียงรับรู้แรงเหวี่ยงจลน์ */
-}
-
-.stat-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-soft) !important;
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text) !important;
-  letter-spacing: -0.5px;
-}
-
-.stat-value small {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text-soft);
-  margin-left: 4px;
-}
-
-/* ลำดับคิวอนิเมชั่นเด้งหล่นทีละใบ (Staggered Load) */
-.stats-grid .stat-card:nth-child(1) { animation-delay: 0.1s; }
-.stats-grid .stat-card:nth-child(2) { animation-delay: 0.2s; }
-.stats-grid .stat-card:nth-child(3) { animation-delay: 0.3s; }
-
-/* ==========================================================================
-   📈 GRAPH CHART SECTIONS - บล็อกแสดงผลกราฟสถิติรวม
-   ========================================================================== */
-section[style*="grid-template-columns"] {
-  animation: fluidPopIn 0.8s ease-out both;
-  animation-delay: 0.3s;
-}
-
-section div[style*="background: #fff"] {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-sm) !important;
-  padding: 24px !important;
-  transition: var(--fluid-transition);
-}
-
-section div[style*="background: #fff"]:hover {
-  box-shadow: var(--shadow-md) !important;
-}
-
-section div[style*="background: #fff"] h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* ==========================================================================
-   📋 LUXURY DATA TABLE - ตารางรายการคำขอละมุนตา
-   ========================================================================= */
-.quick-menu-section {
-  animation: fluidPopIn 0.8s ease-out both;
-  animation-delay: 0.4s;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  color: var(--text);
-}
-
-/* กล่องครอบผิวตารางนิ่มนวล */
-div[style*="background: #ffffff; border-radius: 16px"] {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-sm) !important;
-  overflow: hidden;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-thead[style*="background: #f8fafc"] {
-  background-color: #f8fafc !important;
-}
-
-table th {
-  padding: 16px 24px;
-  font-weight: 600;
-  color: var(--text-soft);
-  border-bottom: 1px solid var(--border);
-  font-size: 13.5px;
-}
-
-table td {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  transition: var(--fluid-transition);
-}
-
-/* อนิเมชั่นไฟวิ่งแบคกราวด์ตามแถวเมื่อเมาส์ลอยผ่าน (Micro-feedback Row) */
-tbody tr {
-  transition: var(--fluid-transition);
-}
-
-tbody tr:hover td {
-  background-color: #f8fafc;
-  color: var(--primary);
-}
-
-/* ==========================================================================
-   ✨ LUXURY FLUID ANIMATIONS KEYFRAMES
-   ========================================================================== */
-@keyframes fluidFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes fluidSlideDown {
-  from { opacity: 0; transform: translateY(-24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fluidPopIn {
-  from { opacity: 0; transform: scale(0.96) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-@keyframes organicPulse {
-  0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  50% { transform: scale(1.18); opacity: 0.7; box-shadow: 0 0 14px 5px rgba(16, 185, 129, 0.2); }
-}
-
-/* ==========================================================================
-   🔍 PVT WORKFORCE HUB - Employee Tracker (Luxury Fluid Design System)
-   ========================================================================== */
-
-/* ==========================================================================
-   🎛️ TRACKER CONTROL & SEARCH PANEL (ระบบกล่องค้นหาแบบนวลลอย)
-   ========================================================================== */
-.tracker-control-box {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-lg) !important;
-  padding: 28px !important;
-  box-shadow: var(--shadow-sm) !important; /* แยกเลเยอร์กล่องให้เด่นขึ้นจากพื้นหลัง */
-  margin-bottom: 32px;
-  animation: fluidSlideDown 0.6s cubic-bezier(0.25, 1, 0.5, 1) both;
-}
-
-.control-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-soft);
-  margin-bottom: 12px;
-}
-
-.search-flex-row {
-  display: flex;
-  gap: 14px;
-  position: relative;
-}
-
-/* ช่อง Select ค้นหาพนักงานสไตล์นุ่มนวล */
-.tracker-select-input {
-  flex: 1;
-  padding: 14px 18px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: var(--radius-md);
-  font-family: inherit;
-  font-size: 15px;
-  color: var(--text);
-  background-color: #ffffff;
-  outline: none;
-  cursor: pointer;
-  transition: var(--fluid-transition);
-}
-
-.tracker-select-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(15, 164, 114, 0.14); /* แสงเรืองแสงนวลตาเมื่อคลิก */
-  background-color: #ffffff;
-}
-
-/* ปุ่มกดดึงข้อมูลสะท้อนแรงสปริง */
-.btn-tracker-fetch {
-  background: var(--primary);
-  color: #ffffff;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 0 28px;
-  font-family: inherit;
-  font-size: 14.5px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: 0 4px 14px rgba(15, 164, 114, 0.25);
-  transition: var(--spring-bounce);
-}
-
-.btn-tracker-fetch:hover {
-  background: var(--primary-dark);
-  transform: translateY(-3px) scale(1.02); /* เอฟเฟกต์ลอยยกตัวสปริง */
-  box-shadow: 0 8px 24px rgba(15, 164, 114, 0.35);
-}
-
-.btn-tracker-fetch:active {
-  transform: translateY(-1px);
-}
-
-/* ==========================================================================
-   🟩 LEAVE BALANCES GRID - การ์ดโควตาวันลาคงเหลือ 4 ใบ (ยกตัวสมูท)
-   ========================================================================== */
-.tracker-badge-grid {
+/* 🧩 4. MIDDLE GRID (ซ้ายเมนูด่วน 2 คอลัมน์ + ขวากราฟ) */
+.middle-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: 1.2fr 0.8fr;
   gap: 24px;
-  margin-bottom: 32px;
+  align-items: stretch; /* ล็อกความสูง 2 ฝั่งให้เท่ากันเป๊ะ ไม่เหลื่อมกัน */
 }
 
-.tracker-card {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-lg) !important;
-  padding: 24px !important;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm) !important;
-  transition: var(--spring-bounce) !important;
-  animation: fluidPopIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+.panel {
+  background: var(--bg-card); border-radius: 20px;
+  border: 1px solid var(--border-light); padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+  display: flex; flex-direction: column;
 }
+.panel-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.panel-header h2 { font-size: 18px; font-weight: 600; color: var(--text-dark); margin: 0; }
+.text-primary { color: var(--primary); font-size: 24px; }
 
-/* เอฟเฟกต์ยกตัวลอยหนีพื้นหลังและขยายเงาเมื่อเมาส์ชี้การ์ด */
-.tracker-card:hover {
-  transform: translateY(-8px) scale(1.02) !important;
-  box-shadow: var(--shadow-md) !important;
+/* โครงสร้างเมนูด่วน 2 คอลัมน์ */
+.quick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; flex: 1; }
+
+.quick-card {
+  text-decoration: none; background: var(--bg-main);
+  border: 1px solid transparent; border-radius: 16px;
+  padding: 20px; display: flex; align-items: center; gap: 16px;
+  transition: all 0.2s ease;
 }
+.quick-card:hover { background: #ffffff; box-shadow: 0 10px 20px rgba(0,0,0,0.05); transform: translateY(-3px); }
 
-/* เพิ่มเส้นมิติหนาขอบซ้ายแยกตามสถานะวันลา */
-.tracker-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 6px;
-  height: 100%;
+.quick-card.hover-purple:hover { border-color: var(--purple); }
+.quick-card.hover-blue:hover { border-color: var(--blue); }
+.quick-card.hover-green:hover { border-color: var(--green); }
+.quick-card.hover-orange:hover { border-color: var(--orange); }
+
+.icon-circle { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.icon-circle span { font-size: 24px; }
+
+.quick-card .text strong { display: block; font-size: 15px; color: var(--text-dark); margin-bottom: 4px; }
+.quick-card .text p { font-size: 12.5px; color: var(--text-muted); margin: 0; }
+
+.chart-container { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 220px; }
+
+/* 📋 5. TABLE PANEL */
+.table-responsive { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-light); }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+thead { background: var(--bg-main); border-bottom: 1px solid var(--border-light); }
+th { padding: 14px 20px; font-weight: 600; color: var(--text-muted); }
+td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: var(--text-dark); }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #f8fafc; }
+
+/* TOAST แจ้งเตือน */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff;
+  padding: 14px 24px; border-radius: 12px; font-size: 14.5px;
+  transform: translateY(150%); transition: all 0.3s ease; z-index: 9999;
 }
-
-.card-sick::before { background: var(--danger); }
-.card-personal::before { background: var(--warning); }
-.card-vacation::before { background: #3b82f6; }
-.card-total::before { background: var(--primary); }
-
-.tracker-card .card-title {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text-soft) !important;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.tracker-card .card-value {
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--text) !important;
-  letter-spacing: -0.5px;
-}
-
-.tracker-card .card-value small {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text-soft);
-  margin-left: 4px;
-}
-
-/* ลำดับเวลาดีเลย์ให้การ์ดสปริงร่วงหล่นลงมาทีละใบ (Staggered Animation) */
-.tracker-badge-grid .tracker-card:nth-child(1) { animation-delay: 0.1s; }
-.tracker-badge-grid .tracker-card:nth-child(2) { animation-delay: 0.2s; }
-.tracker-badge-grid .tracker-card:nth-child(3) { animation-delay: 0.3s; }
-.tracker-badge-grid .tracker-card:nth-child(4) { animation-delay: 0.4s; }
-
-/* ==========================================================================
-   📋 TRACKER DATA TABLE - ตารางประวัติคำขอลารายบุคคล
-   ========================================================================== */
-.quick-menu-section {
-  background: var(--card) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-lg) !important;
-  padding: 28px !important;
-  box-shadow: var(--shadow-sm) !important;
-  animation: fluidPopIn 0.8s ease-out both;
-  animation-delay: 0.3s;
-}
-
-.tracker-table-wrapper {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  margin-top: 18px;
-}
-
-.tracker-data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 14px;
-}
-
-.tracker-data-table th {
-  background: #f8fafc;
-  padding: 16px 20px;
-  font-weight: 600;
-  color: var(--text-soft);
-  border-bottom: 1px solid var(--border);
-}
-
-.tracker-data-table td {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  transition: var(--fluid-transition);
-}
-
-/* อนิเมชั่นแถวตารางสว่างเรืองแสงเมื่อเมาส์เลื่อนผ่าน */
-.tracker-data-table tbody tr {
-  transition: var(--fluid-transition);
-}
-
-.tracker-data-table tbody tr:hover td {
-  background-color: #f8fafc;
-  color: var(--primary);
-}
-
-.table-empty-state {
-  text-align: center;
-  padding: 48px !important;
-  color: var(--text-soft);
-  font-style: italic;
-  font-weight: 400;
-}
-
-/* ==========================================================================
-   ✨ TRACKER SPECIAL FLUID KEYFRAMES
-   ========================================================================== */
-@keyframes fluidSlideDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fluidPopIn {
-  from { opacity: 0; transform: scale(0.96) translateY(24px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
+.toast.show { transform: translateY(0); }

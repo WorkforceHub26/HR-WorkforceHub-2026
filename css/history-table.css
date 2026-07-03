@@ -1,0 +1,367 @@
+/* ==========================================================================
+   🏢 PVT HR Dashboard — History Table (Light Theme)
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-main: #f8fafc;       
+  --bg-card: #ffffff;       
+  --primary: #2563eb;       
+  --primary-light: #eff6ff;
+  --text-dark: #0f172a;     
+  --text-muted: #64748b;    
+  --border: #e2e8f0;  
+}
+
+body {
+  font-family: "Kanit", sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-dark);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-shell { display: flex; min-height: 100vh; }
+
+/* ⚡ 1. SIDEBAR */
+.sidebar-light {
+  width: 260px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 24px 20px; position: fixed;
+  top: 0; bottom: 0; left: 0; z-index: 100;
+}
+
+.brand-zone { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+.logo-mini { width: 44px; height: auto; }
+.brand-text h1 { font-size: 18px; font-weight: 700; color: var(--text-dark); margin: 0; }
+.brand-text p { font-size: 12px; color: var(--text-muted); margin: 0; }
+
+.side-nav { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 12px;
+  color: var(--text-muted); text-decoration: none;
+  transition: all 0.2s; font-size: 14.5px; font-weight: 500;
+}
+.nav-item span.material-symbols-outlined { font-size: 22px; }
+.nav-item:hover { color: var(--primary); background: var(--primary-light); }
+.nav-item.active { color: #fff; background: var(--primary); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+
+.sidebar-footer { margin-top: auto; }
+.btn-logout {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #fef2f2; color: #ef4444; border: none; padding: 12px;
+  border-radius: 12px; font-family: inherit; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: 0.2s;
+}
+.btn-logout:hover { background: #fca5a5; color: #fff; }
+
+/* 🌐 2. MAIN CONTENT */
+.main-content { margin-left: 260px; flex: 1; padding: 32px 40px; display: flex; flex-direction: column; }
+
+/* HEADER & SEARCH */
+.content-header { 
+  display: flex; justify-content: space-between; align-items: flex-end; 
+  margin-bottom: 24px; 
+}
+.sub-title { font-size: 12px; font-weight: 600; color: var(--primary); letter-spacing: 1px; }
+.header-left h2 { font-size: 24px; font-weight: 700; color: var(--text-dark); margin-top: 4px; }
+
+.search-wrapper { position: relative; width: 380px; }
+.search-icon { position: absolute; top: 50%; left: 16px; transform: translateY(-50%); color: #94a3b8; }
+.search-wrapper input {
+  width: 100%; padding: 12px 16px 12px 48px; border: 1px solid var(--border);
+  border-radius: 99px; font-family: inherit; font-size: 14.5px; color: var(--text-dark);
+  background: #ffffff; outline: none; transition: 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+.search-wrapper input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+/* 📋 3. TABLE SECTION */
+.table-card {
+  background: var(--bg-card); border-radius: 16px;
+  border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+  overflow: hidden;
+}
+
+.table-header { 
+  display: flex; justify-content: space-between; align-items: center; 
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+}
+.title-with-icon { display: flex; align-items: center; gap: 10px; }
+.title-with-icon h3 { font-size: 16px; font-weight: 600; margin: 0; }
+.record-count { font-size: 13px; color: var(--text-muted); background: #f1f5f9; padding: 4px 12px; border-radius: 20px; }
+
+.table-responsive { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.data-table thead { background: #f8fafc; }
+.data-table th { padding: 14px 24px; font-weight: 600; color: var(--text-muted); white-space: nowrap; border-bottom: 1px solid var(--border); }
+.data-table td { padding: 16px 24px; border-bottom: 1px dashed var(--border); color: var(--text-dark); vertical-align: middle; }
+.data-table tbody tr:hover { background: #f8fafc; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+/* BADGES */
+.status-badge {
+  padding: 6px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+  display: inline-block; text-align: center; min-width: 90px;
+}
+.badge-pending { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+.badge-approved { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.badge-rejected { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+/* =========================================
+   🏷️ ตกแต่งป้าย Tag ชื่อแผนก (ป้องกันกรอบแตก)
+   ========================================= */
+.dept-tag {
+  display: inline-block;      /* 🌟 สำคัญสุด: บังคับให้เป็นก้อนเดียวกัน ไม่แตกครึ่ง */
+  padding: 4px 12px;          /* ระยะห่างขอบบน-ล่าง ซ้าย-ขวา */
+  background-color: #f1f5f9;  /* สีพื้นหลังกล่อง */
+  color: #334155;             /* สีตัวอักษร */
+  border-radius: 20px;        /* ความมนของกล่อง (ทรงแคปซูล) */
+  font-size: 13px;            /* ขนาดตัวอักษร */
+  font-weight: 500;
+  white-space: nowrap;        /* 🌟 บังคับให้อยู่บรรทัดเดียวเสมอ ไม่หักบรรทัดลงมา */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* เพิ่มเงาบางๆ ให้ดูมีมิติ */
+}
+
+/* =========================================
+   🌟 เพิ่มสไตล์สำหรับปุ่ม Action และ Modal 
+   ========================================= */
+
+/* ปุ่มดูรายละเอียดในตาราง */
+.btn-view-details {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-view-details:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+.btn-view-details span {
+  font-size: 16px;
+}
+
+/* 🌟 MODAL OVERLAY (พื้นหลังสีดำโปร่งแสง) */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ตัวกล่อง Modal */
+.modal-content {
+  background: #ffffff;
+  width: 90%;
+  max-width: 500px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+  overflow: hidden;
+}
+.modal-overlay.active .modal-content {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: #f8fafc;
+}
+
+.btn-close-modal {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+.btn-close-modal:hover {
+  background: #f1f5f9;
+  color: #ef4444;
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* กล่องย่อยแสดงข้อมูลใน Modal */
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border);
+}
+.detail-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.detail-label {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.detail-value {
+  font-size: 14.5px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+/* =========================================
+   🌟 เพิ่มสไตล์สำหรับ Modal ขนาดใหญ่ และตารางซ้อน 
+   ========================================= */
+
+/* ปรับ Modal ให้กว้างขึ้นเพื่อรองรับตารางใบลา */
+.modal-lg {
+  max-width: 850px !important; /* กว้างจุใจ */
+  width: 95% !important;
+}
+
+/* ตารางประวัติการลาที่อยู่ข้างใน Modal */
+.nested-table-wrapper {
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.nested-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  text-align: left;
+}
+
+.nested-table thead {
+  background: #f1f5f9;
+}
+
+.nested-table th {
+  padding: 10px 16px;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.nested-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--text-dark);
+}
+
+.nested-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.nested-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* ป้ายสถานะสำหรับตารางใบลาซ้อน */
+.mini-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  text-align: center;
+}
+.mini-pending { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+.mini-approved { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.mini-rejected { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* หัวข้อหมวดหมู่ใน Modal */
+.modal-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-top: 24px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 2px solid var(--primary-light);
+  padding-bottom: 8px;
+}
+
+/* =========================================
+   🌟 โควตาและสิทธิการลาคงเหลือ (Quota Cards)
+   ========================================= */
+.quota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.quota-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.quota-card .q-title {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.quota-card .q-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.quota-card .q-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.quota-card.highlight {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+.quota-card.highlight .q-value { color: var(--primary); }
