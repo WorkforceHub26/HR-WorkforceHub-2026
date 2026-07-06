@@ -1,282 +1,274 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - VIBRANT WHITE CREAM LOGIN CSS (ORIGINAL BG & HIGH CONTRAST)
+   🔒 PVT HR LEAVE - login.css (หน้าล็อกอินเข้าสู่ระบบเวอร์ชันแก้ไข)
    ========================================================================== */
 
-* {
-  box-sizing: border-box;
-}
-
-:root {
-  --primary: #059669;          /* 🟢 ปรับเป็นเขียวสดใส มีมิติ ไม่จืด */
-  --primary-dark: #047857;
-  --bg: #eef4ff;               /* 💧 กลับมาใช้สีพื้นหลังเดิมของพี่ */
-  --card: #ffffff;
-  --text: #0f172a;             /* สีตัวอักษรเข้มคมชัด */
-  --muted: #475569;            /* ปรับสีข้อความรองให้เข้มขึ้น ลดความจืด */
-  --border: #cbd5e1;           /* เส้นขอบชัดเจนขึ้น */
-  
-  /* ⏱️ Elastic Motion สำหรับจอมือถือ */
-  --pvt-ease: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
 body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: "Kanit", sans-serif;
-  /* 🌌 ใช้พื้นหลัง Gradient ตัวเดิมของพี่เป๊ะ ๆ */
+  /* 🌌 พื้นหลัง Gradient ฟ้าอมเทา สบายตาแบบกระจายแสงตามสไตล์เดิม */
   background:
     radial-gradient(circle at top left, #bfdbfe 0, transparent 35%),
-    linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-}
-
-.login-page {
-  max-width: 500px;
-  min-height: 100vh;
-  margin: auto;
+    radial-gradient(circle at bottom right, #bfdbfe 0, transparent 35%),
+    var(--bg-main, #f4f7fb);
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  padding: 24px;
-}
-
-/* ================= 1. LOGO AREA (อนิเมชันหย่อนตัวนุ่ม ๆ) ================= */
-.logo-area {
-  text-align: center;
-  margin-bottom: 24px;
-  animation: logoFadeDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-.login-logo {
-  width: 92px; /* กลับมาใช้ขนาดเดิมตามโครงพี่ */
-  height: 92px;
-  object-fit: contain;
-  margin: auto;
-  border-radius: 22px;
-  background: white;
-  padding: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-  transition: var(--pvt-ease);
-}
-
-.login-logo:hover {
-  transform: scale(1.06) rotate(3deg);
-  box-shadow: 0 14px 30px rgba(5, 150, 105, 0.15);
-}
-
-.logo-area h1 {
-  margin: 14px 0 4px;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--text);
-}
-
-.logo-area p {
+  min-height: 100vh;
   margin: 0;
-  color: var(--muted);
-  font-size: 15px;
-  font-weight: 500;
+  padding: 20px;
 }
 
-/* ================= 2. LOGIN CARD (เด่นสะดุดตา) ================= */
+/* ================== กล่องล็อกอินจัดกึ่งกลางหน้าจอ ================== */
+.login-container {
+  width: 100%;
+  max-width: 420px;
+}
+
 .login-card {
-  background: white;
-  border-radius: 28px;
-  padding: 32px 24px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
-  opacity: 0;
-  animation: cardFadeUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s forwards;
+  background: var(--bg-card, #ffffff);
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
 }
 
-.login-card h2 {
-  margin-top: 0;
-  margin-bottom: 24px;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
+/* ================== ส่วนหัวแบรนด์และโลโก้ ================== */
+.brand-area {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.brand-area img { 
+  height: 90px; 
+  width: auto;
+  margin-bottom: 12px; 
+}
+.brand-area h1 { 
+  font-size: 24px; 
+  font-weight: 600; 
+  color: var(--text-dark, #1e293b); 
+  margin: 0 0 6px 0; 
+}
+.brand-area p { 
+  color: var(--text-muted, #64748b); 
+  font-size: 14px; 
+  margin: 0; 
 }
 
+/* ================== ฟอร์มและช่องกรอกข้อมูล ================== */
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
-
 .form-group label {
   display: block;
-  margin-bottom: 8px;
+  font-size: 14px;
   font-weight: 500;
-  font-size: 14px;
-  color: #1e293b;
+  color: var(--text-dark, #1e293b);
+  margin-bottom: 8px;
 }
-
-/* ช่องกรอกเน้นขอบคมชัด ขจัดความจืด */
-.form-group input {
+.input-field {
   width: 100%;
-  height: 52px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 16px;
+  height: 50px;
   padding: 0 16px;
-  font-family: inherit;
-  font-size: 16px;
-  color: var(--text);
-  background-color: #f8fafc; /* พื้นหลังในช่องเข้มขึ้นนิดนึงเพื่อให้กล่องขาวเด้ง */
-  outline: none;
-  transition: all 0.25s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* 🎯 โฟกัสแล้วเรืองแสงเขียวสดชัดเจนมากยิ่งขึ้น */
-.form-group input:focus {
-  border-color: var(--primary);
-  background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.15);
-  transform: translateY(-1px);
-}
-
-.password-wrapper {
-  position: relative;
-}
-
-.eye-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: transparent;
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  font-size: 18px;
-  color: #64748b;
+  border: 1.5px solid var(--border-light, #e2e8f0);
   border-radius: 12px;
-  transition: var(--pvt-ease);
-  -webkit-tap-highlight-color: transparent;
+  font-size: 15px;
+  background: #f8fafc;
+  color: var(--text-dark, #1e293b);
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
 }
-.eye-btn:active {
-  transform: translateY(-50%) scale(0.85);
-  background: #e2e8f0;
-}
-
-/* แถวตัวเลือกความจำ */
-.option-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 18px;
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary, #3b82f6);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px var(--primary-light, #eff6ff);
 }
 
-.remember {
-  font-size: 14px;
-  color: #334155;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.remember input[type="checkbox"] {
-  accent-color: var(--primary);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-.forgot-btn {
-  border: none;
-  background: none;
-  color: #2563eb; /* ปรับเป็นสีน้ำเงินสดสำหรับลิงก์ลืมรหัสผ่าน ให้กดง่ายเห็นชัด */
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: var(--pvt-ease);
-}
-.forgot-btn:active {
-  background: #eff6ff;
-}
-
-.form-status {
-  min-height: 22px;
-  margin: -4px 0 12px;
-  font-size: 14px;
-  transition: var(--pvt-ease);
-}
-.form-status.error { color: #dc2626; font-weight: 600; }
-.form-status.info { color: #2563eb; font-weight: 600; }
-
-/* ================= 3. VIBRANT BUTTONS (ปุ่มสีสด เด้งสปริง) ================= */
-
-/* ปุ่มเข้าสู่ระบบหลัก (เขียวมรกตอิ่มสีสดใส) */
+/* ================== ปุ่มกดเข้าสู่ระบบ (Login Button) ================== */
 .login-btn {
   width: 100%;
-  height: 54px;
-  border: none;
-  border-radius: 16px;
-  background: var(--primary);
-  color: white;
-  font-family: inherit;
+  height: 50px;
+  margin-top: 8px;
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(5, 150, 105, 0.3); /* เพิ่มความเข้มเงาสีเขียว */
-  transition: var(--pvt-ease);
-  -webkit-tap-highlight-color: transparent;
-}
-.login-btn:hover {
-  background: var(--primary-dark);
-}
-.login-btn:active {
-  transform: scale(0.96);
-  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.15);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ปุ่มสแกน QR Code (เน้นเส้นขอบและสีตัวอักษรให้สดใส ไม่จืดกลืน) */
+/* ================== ปุ่มสแกน QR Code ================== */
 .qr-btn {
   width: 100%;
-  height: 54px;
+  height: 50px;
   margin-top: 12px;
-  border: 2px solid var(--primary); /* เส้นหนาขึ้นและใช้สีเขียวสด */
-  border-radius: 16px;
-  background: white;
-  color: var(--primary); /* ตัวหนังสือเขียวสดเข้าชุด */
-  font-family: inherit;
-  font-size: 16px;
+  border: 1.5px solid var(--primary, #3b82f6);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--primary, #3b82f6);
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--pvt-ease);
-  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
 }
 .qr-btn:hover {
-  background-color: rgba(5, 150, 105, 0.04);
+  background: var(--primary-light, #eff6ff);
 }
 .qr-btn:active {
-  transform: scale(0.96);
-  background: rgba(5, 150, 105, 0.1);
+  transform: scale(0.98);
 }
 
+/* ข้อความเวอร์ชันด้านล่าง */
 .footer-text {
-  margin-top: 24px;
   text-align: center;
-  color: #64748b; /* ปรับเลเบอร์เวอร์ชันให้เข้มขึ้นเล็กน้อย */
-  font-size: 13px;
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+  margin-top: 32px;
+  margin-bottom: 0;
+}
+/* ================== กล่องรหัสผ่าน & ปุ่มดูรหัส (ดวงตา) ================== */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.password-wrapper .input-field {
+  padding-right: 48px; /* เว้นที่ฝั่งขวาไม่ให้ตัวหนังสือทับดวงตา */
+}
+.toggle-password {
+  position: absolute;
+  right: 16px;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+.toggle-password:hover {
+  color: var(--primary, #3b82f6);
+}
+
+/* ==========================================================================
+   ✨ PREMIUM MICRO-ANIMATIONS (ลูกเล่นแอนิเมชันแบบเบาเครื่อง)
+   ========================================================================== */
+
+/* 🌟 1. แอนิเมชันตอนเปิดหน้าเว็บ (กล่องล็อกอินค่อยๆ ลอยขึ้นมาแบบนุ่มนวล) */
+@keyframes smoothEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.login-card {
+  /* เรียกใช้แอนิเมชันตอนโหลดกล่อง โค้งมนด้วย cubic-bezier ให้ดูเด้งดึ๋งนิดๆ */
+  animation: smoothEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* 🌟 2. ลูกเล่นดวงตาดูรหัสผ่าน (เด้งดุ๊กดิ๊กตอนกด) */
+.toggle-password {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease !important;
+}
+
+.toggle-password:active {
+  /* เวลากดคลิกค้าง ดวงตาจะหดลงและเอียงนิดนึงให้รู้สึกเหมือนปุ่มจริง */
+  transform: scale(0.7) rotate(-15deg) !important;
+}
+
+/* ==========================================================================
+   🚨 PREMIUM POP-UP STATUS BANNER (กล่องสถานะเด้งดึ๋งอนิเมชัน)
+   ========================================================================== */
+
+.form-status {
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 14px;
   font-weight: 500;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  display: block;
+  text-align: center;
+  /* ใช้ Elastic Motion ตอนเมาส์สั่งโชว์ */
+  transform: translateY(-8px) scale(0.96);
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ================= 4. KEYFRAMES ANIMATION ================= */
-@keyframes logoFadeDown {
-  from { opacity: 0; transform: translateY(-15px); }
-  to { opacity: 1; transform: translateY(0); }
+/* 🌟 เทคนิคขั้นสูง: ถ้ากล่องยังว่างเปล่า ไม่มีสคริปต์พ่นตัวหนังสือ ให้หดตัวซ่อนเนียนๆ */
+.form-status:empty {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  height: 0 !important;
+  overflow: hidden;
 }
 
-@keyframes cardFadeUp {
-  from { opacity: 0; transform: translateY(25px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ⏳ สไตล์ตอนกำลังโหลดตรวจสอบข้อมูล */
+.form-status.info {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+/* ✅ สไตล์ตอนผ่านฉลุย ยินดีต้อนรับ (ให้เอฟเฟกต์ Pop ขยายเด้งเข้าตา) */
+.form-status.success {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  animation: popSuccessAlert 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* ❌ สไตล์ตอนรหัสผ่านผิด/เกิดข้อผิดพลาด (ให้เอฟเฟกต์ สั่นสะเทือนเตือนผู้ใช้) */
+.form-status.error {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fca5a5;
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  animation: shakeErrorAlert 0.4s ease-in-out;
+}
+
+/* 🎬 อนิเมชันเด้งดึ๋งความสำเร็จ */
+@keyframes popSuccessAlert {
+  0% { transform: scale(0.9); }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* 🎬 อนิเมชันสั่นๆ ขวากระแทกซ้าย เวลาเออเร่อ */
+@keyframes shakeErrorAlert {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+/* ปรับแต่ง SweetAlert ให้เข้ากับธีม PVT */
+.swal2-popup {
+  font-family: 'Sarabun', sans-serif !important;
+  border-radius: 24px !important;
+  padding: 2em !important;
+}
+.swal2-title {
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  color: var(--text-dark) !important;
+}
+.swal2-styled.swal2-confirm {
+  border-radius: 12px !important;
+  padding: 10px 30px !important;
+  font-weight: 500 !important;
 }

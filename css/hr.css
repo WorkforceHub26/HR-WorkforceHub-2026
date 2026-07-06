@@ -1,54 +1,40 @@
 /* ==========================================================================
-   🤍 PVT HR Dashboard - White Cream Premium & Luxury Motion Edition
+   🏢 PVT HR Dashboard — hr.css (ไฟล์จัดการ Layout เฉพาะหน้าอนุมัติใบลา)
    ========================================================================== */
-   
 
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+/* 🌟 ดึงไฟล์ส่วนกลางมาใช้งาน (ฟอนต์, สีธีมสว่าง, ปุ่ม) */
+@import url('global.css');
+@import url('theme.css');
+@import url('components.css');
 
-:root {
-  --admin-primary: #10b981;        
-  --admin-primary-hover: #059669;  
-  --admin-bg: #fcfcf9;             
-  --admin-sidebar-bg: #ffffff;     
-  --admin-sidebar-text: #64748b;   
-  --admin-sidebar-active: #10b981; 
-  --admin-card: #ffffff;
-  --admin-border: #f1f3ee;         
-  --admin-text-main: #0f172a;
-  
-  --pvt-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-body {
-  margin: 0;
-  padding: 0;
-}
-
+/* ================== โครงสร้างหลัก (Layout) ================== */
 .app-shell {
   display: flex;
   min-height: 100vh;
-  background-color: var(--admin-bg);
-  /* 🌟 เปลี่ยนเป็น Sarabun (มีหัว) เรียบร้อย ไม่บั๊ก */
-  font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  -webkit-font-smoothing: antialiased;
 }
 
-/* บังคับฟอนต์มีหัวให้กับพวกฟอร์มและปุ่มทั้งหมด ป้องกันตัวหนังสือไร้หัวแฝงตัว */
-/* 🌟 โค้ดที่แก้ไขแล้ว (ละเว้นแท็กที่เป็นไอคอน) */
-button, input, select, textarea, span:not(.material-symbols-outlined), td, th {
-  font-family: 'Sarabun', sans-serif;
+.main-content {
+  flex: 1;
+  padding: 40px 48px;
+  overflow-y: auto;
 }
 
+.main-content h1 {
+  margin-top: 0;
+  margin-bottom: 28px;
+  font-size: 28px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
 
-/* ================== SIDEBAR ================== */
+/* ================== เมนูด้านข้าง (Sidebar) ================== */
 .sidebar {
   width: 280px;
-  background-color: var(--admin-sidebar-bg);
-  color: var(--admin-sidebar-text);
+  background-color: var(--bg-card);
   display: flex;
   flex-direction: column;
   padding: 32px 20px;
-  border-right: 1px solid var(--admin-border);
+  border-right: 1px solid var(--border-light);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
 }
 
@@ -58,7 +44,7 @@ button, input, select, textarea, span:not(.material-symbols-outlined), td, th {
 }
 
 .sidebar .brand h2 {
-  color: var(--admin-text-main);
+  color: var(--text-dark);
   margin: 0;
   font-size: 20px;
   font-weight: 600;
@@ -68,7 +54,7 @@ button, input, select, textarea, span:not(.material-symbols-outlined), td, th {
 .sidebar .brand p {
   margin: 4px 0 0 0;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .side-nav {
@@ -82,32 +68,38 @@ button, input, select, textarea, span:not(.material-symbols-outlined), td, th {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  color: var(--admin-sidebar-text);
+  color: var(--text-muted);
   text-decoration: none;
   border-radius: 12px;
   font-size: 15px;
   font-weight: 400;
-  transition: var(--pvt-transition);
+  transition: var(--pvt-ease);
 }
 
+/* เอฟเฟกต์เมนูเวลาเมาส์ชี้ และเมนูที่กำลังเลือกอยู่ (ดึงสีฟ้ามาจากธีมกลาง) */
 .nav-item:hover {
-  background-color: #f8faf6;
-  color: var(--admin-text-main);
+  background-color: var(--primary-light);
+  color: var(--primary);
   transform: translateX(4px);
 }
 
 .nav-item.active {
-  background-color: #e6f7ed;
-  color: var(--admin-sidebar-active);
+  background-color: var(--primary-light);
+  color: var(--primary);
   font-weight: 500;
 }
 
-/* ปุ่ม Logout */
+.nav-item .material-symbols-outlined {
+  font-size: 22px;
+  color: inherit;
+}
+
+/* ปุ่ม Logout เฉพาะของ Sidebar */
 .btn-logout {
   width: 100%;
   padding: 12px;
-  background: #fef2f2;
-  color: #ef4444;
+  background: var(--bg-red);
+  color: var(--red);
   border: 1px solid #fecaca;
   border-radius: 12px;
   cursor: pointer;
@@ -117,33 +109,19 @@ button, input, select, textarea, span:not(.material-symbols-outlined), td, th {
   gap: 8px;
   font-size: 14px;
   font-weight: 500;
-  transition: var(--pvt-transition);
+  transition: var(--pvt-ease);
 }
 .btn-logout:hover {
-  background: #ef4444;
+  background: var(--red);
   color: #ffffff;
-  border-color: #ef4444;
+  border-color: var(--red);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-/* ================== MAIN CONTENT ================== */
-.main-content {
-  flex: 1;
-  padding: 40px 48px;
-  overflow-y: auto;
-}
-
-.main-content h1 {
-  margin-top: 0;
-  margin-bottom: 28px;
-  font-size: 28px;
-  color: var(--admin-text-main);
-  font-weight: 600;
-}
-
+/* ================== กล่องเนื้อหาและตาราง (Panels & Table) ================== */
 .panel {
-  background-color: var(--admin-card);
-  border: 1px solid var(--admin-border);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 20px;
   padding: 28px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.015);
@@ -154,13 +132,14 @@ button, input, select, textarea, span:not(.material-symbols-outlined), td, th {
   align-items: center;
   justify-content: space-between;
 }
-.panel-head h3 { margin: 0; font-size: 18px; color: #1e293b; }
+.panel-head h3 { margin: 0; font-size: 18px; color: var(--text-dark); }
+.panel-head h3 .material-symbols-outlined { font-size: 20px; }
 
-/* ================== TABLE ================== */
 .table-scroll {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--border-light);
+  margin-top: 20px;
 }
 
 .luxury-admin-table {
@@ -171,7 +150,7 @@ button, input, select, textarea, span:not(.material-symbols-outlined), td, th {
 }
 
 .luxury-admin-table thead tr {
-  background-color: #0f172a;
+  background-color: var(--text-dark);
   color: #ffffff;
   text-align: left;
 }
@@ -183,103 +162,32 @@ button, input, select, textarea, span:not(.material-symbols-outlined), td, th {
 
 .luxury-admin-table td {
   padding: 16px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-muted);
   vertical-align: middle;
 }
 
 .luxury-admin-table tbody tr:hover {
-  background-color: #f8fafc;
+  background-color: var(--bg-main);
 }
 
-/* ปุ่มในตาราง */
+/* ปุ่มรีเฟรชข้อมูล (ปุ่มรองในตาราง) */
 .btn-pvt-light {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
   background-color: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  color: #475569;
+  color: var(--text-muted);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: var(--pvt-transition);
+  transition: var(--pvt-ease);
 }
-.btn-pvt-light:hover { background-color: #f8fafc; border-color: #94a3b8; }
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px 14px;      /* 🌟 ปรับ Padding ความสูงให้สมดุลกับฟอนต์สารบรรณ */
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  line-height: 1.2;       /* 🌟 ดัก line-height ไม่ให้ตัวหนังสือกระโดด */
+.btn-pvt-light:hover { 
+  background-color: var(--bg-main); 
+  border-color: var(--text-muted); 
 }
-.action-btn:active { transform: scale(0.95); }
-
-.btn-approve { background-color: #10b981; }
-.btn-approve:hover { background-color: #059669; }
-
-.btn-reject { background-color: #ef4444; }
-.btn-reject:hover { background-color: #dc2626; }
-
-.btn-print { background-color: #3b82f6; }
-.btn-print:hover { background-color: #2563eb; }
-
-/* 🏷️ ตกแต่งป้าย Tag ชื่อแผนก (ป้องกันกรอบแตกจากไฟล์เดิม) */
-.dept-tag {
-  display: inline-block;
-  padding: 4px 12px;
-  background-color: #f1f5f9;
-  color: #334155;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-/* ==========================================================================
-   🛠️ ชุดซ่อมแซมและคืนชีพฟอนต์ไอคอนสัญลักษณ์ (Material Icons Fix)
-   ========================================================================== */
-
-/* 🌟 บังคับคืนค่าฟอนต์สัญลักษณ์ ไม่ให้โดน Sarabun กลืนหายไป */
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined' !important;
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;              /* ขนาดมาตรฐานสากล */
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
-  vertical-align: middle;       /* จัดกึ่งกลางแกนดิ่งให้อยู่ระดับเดียวกับข้อความ */
-}
-
-/* ตั้งค่าขนาดไอคอนเฉพาะกิจในส่วนต่าง ๆ ให้สวยงามตามดีไซน์ */
-.nav-item .material-symbols-outlined {
-  font-size: 22px;
-  color: inherit;
-}
-
-.panel-head h3 .material-symbols-outlined {
-  font-size: 20px;
-}
-
-.btn-pvt-light .material-symbols-outlined {
-  font-size: 18px;
-}
+.btn-pvt-light .material-symbols-outlined { font-size: 18px; }

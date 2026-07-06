@@ -1,16 +1,14 @@
 /* ==========================================================================
-   🌈 PVT HR Hub — หลักเกณฑ์การลา (Colorful & Boxed UI)
+   🌈 PVT HR Hub — leave-rules.css (หลักเกณฑ์การลา)
    ========================================================================== */
 
-/* ─── 1. CORE & GLOBAL BACKGROUND ─── */
-html, body {
-  background-color: #f1f5f9 !important; /* พื้นหลังเทาอมฟ้า ให้การ์ดสีขาวลอยเด่นขึ้นมา */
-  font-family: "Kanit", "Noto Sans Thai", sans-serif !important;
-  color: #0f172a;
-}
+@import url('global.css');
+@import url('theme.css');
+@import url('components.css');
 
-.rule-box-card, .rule-list-item li {
-  font-family: "Kanit", "Noto Sans Thai", sans-serif !important;
+/* ─── 1. CORE BACKGROUND ─── */
+body {
+  background-color: var(--bg-main); 
 }
 
 @keyframes fadeInUp {
@@ -18,37 +16,30 @@ html, body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── 2. HEADER BACK BUTTON (ปุ่มย้อนกลับ) ─── */
-/* ✨ แก้ไขคลาสให้ตรงกับในระบบ (btn-header-back) */
+/* ─── 2. HEADER BACK BUTTON ─── */
 .btn-header-back {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  background: #ffffff !important;
-  color: #475569 !important;
-  border: 1px solid #cbd5e1 !important;
-  padding: 8px 18px !important;
-  border-radius: 99px !important; /* ทรงแคปซูลมนๆ */
-  font-size: 14.5px !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease-in-out !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
-  outline: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+  padding: 8px 18px;
+  border-radius: 99px; 
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--pvt-ease);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
-
 .btn-header-back:hover {
-  background: #f8fafc !important;
-  border-color: #94a3b8 !important;
-  color: #2563eb !important; /* ชี้แล้วเปลี่ยนเป็นสีฟ้า */
-  transform: translateX(-3px); /* ลูกเล่นขยับถอยหลังนิดๆ */
-  box-shadow: 0 4px 8px rgba(0,0,0,0.08) !important;
+  background: var(--bg-main);
+  border-color: var(--border-light);
+  color: var(--primary); 
+  transform: translateX(-3px); 
 }
-
-.btn-header-back .material-symbols-outlined {
-  font-size: 18px !important;
-}
+.btn-header-back .material-symbols-outlined { font-size: 18px; }
 
 /* ─── 3. LAYOUT STRUCTURE ─── */
 .rules-grid-layout {
@@ -59,167 +50,77 @@ html, body {
 }
 
 /* ==========================================================================
-   🎨 4. COLOR THEME ASSIGNMENT (กำหนดสีสันให้แต่ละช่องอัตโนมัติ)
+   🎨 4. COLOR THEME ASSIGNMENT (รักษาสีสันเดิมของพี่มิกไว้)
    ========================================================================== */
-/* สีฟ้า (Blue) - ลาป่วย */
 .rule-box-card:nth-child(1) { --theme-color: #3b82f6; --theme-bg: #eff6ff; --theme-border: #bfdbfe; --theme-text: #1d4ed8; }
-/* สีเขียว (Emerald) - ลากิจ */
 .rule-box-card:nth-child(2) { --theme-color: #10b981; --theme-bg: #ecfdf5; --theme-border: #a7f3d0; --theme-text: #047857; }
-/* สีส้ม (Amber) - ลาพักร้อน */
 .rule-box-card:nth-child(3) { --theme-color: #f59e0b; --theme-bg: #fffbeb; --theme-border: #fde68a; --theme-text: #b45309; }
-/* สีม่วง (Purple) - ลาคลอด */
 .rule-box-card:nth-child(4) { --theme-color: #8b5cf6; --theme-bg: #f5f3ff; --theme-border: #ddd6fe; --theme-text: #6d28d9; }
-/* สีชมพู (Pink) - ลาสมรส */
 .rule-box-card:nth-child(5) { --theme-color: #ec4899; --theme-bg: #fdf2f8; --theme-border: #fbcfe8; --theme-text: #be185d; }
-/* สีฟ้าอมเขียว (Cyan) - ลาทำหมัน */
 .rule-box-card:nth-child(6) { --theme-color: #06b6d4; --theme-bg: #ecfeff; --theme-border: #a5f3fc; --theme-text: #0f766e; }
-/* สีคราม (Indigo) - ลาเกณฑ์ทหาร */
 .rule-box-card:nth-child(7) { --theme-color: #6366f1; --theme-bg: #eef2ff; --theme-border: #c7d2fe; --theme-text: #4338ca; }
-/* สีเหลืองทอง (Yellow) - ลาอุปสมบท */
 .rule-box-card:nth-child(8) { --theme-color: #eab308; --theme-bg: #fefce8; --theme-border: #fef08a; --theme-text: #a16207; }
-/* สีมินต์ (Teal) - ลาฝึกอบรม */
 .rule-box-card:nth-child(9) { --theme-color: #14b8a6; --theme-bg: #f0fdfa; --theme-border: #99f6e4; --theme-text: #0f766e; }
 
-/* ─── 5. CARD DESIGN (การ์ดจะดึงสีจากตัวแปรด้านบนมาใช้) ─── */
+/* ─── 5. CARD DESIGN ─── */
 .rule-box-card {
-  background: #ffffff !important;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid #e2e8f0;
-  /* เพิ่มแถบสีที่ขอบบนของการ์ด ให้รู้ว่าเป็นสีอะไร */
-  border-top: 6px solid var(--theme-color, #3b82f6); 
-  box-shadow: 0 4px 12px -1px rgba(15, 23, 42, 0.08);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border-light);
+  border-top: 6px solid var(--theme-color, var(--primary)); 
+  box-shadow: 0 4px 12px -1px rgba(0,0,0,0.05);
+  transition: var(--pvt-ease);
   animation: fadeInUp 0.4s ease-out backwards;
   display: flex;
   flex-direction: column;
 }
-
-.rule-box-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--theme-border, #bfdbfe);
-  box-shadow: 0 12px 20px -5px rgba(15, 23, 42, 0.15);
-}
-
-/* แอนิเมชันไล่ลำดับ */
+.rule-box-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); }
 .rule-box-card:nth-child(1) { animation-delay: 0.05s; }
 .rule-box-card:nth-child(2) { animation-delay: 0.1s; }
 .rule-box-card:nth-child(3) { animation-delay: 0.15s; }
-.rule-box-card:nth-child(4) { animation-delay: 0.2s; }
-.rule-box-card:nth-child(5) { animation-delay: 0.25s; }
-.rule-box-card:nth-child(6) { animation-delay: 0.3s; }
 
-/* ─── 6. CARD HEADER (หัวข้อเปลี่ยนสีตามการ์ด) ─── */
+/* ─── 6. CARD HEADER ─── */
 .card-header-tag {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16.5px !important;
-  font-weight: 600 !important;
+  font-size: 16px;
+  font-weight: 600;
   margin-bottom: 16px;
   padding: 10px 14px;
-  background: var(--theme-bg, #f8fafc);      
-  border: 1px solid var(--theme-border, #e2e8f0); 
-  color: var(--theme-text, #1e40af);          
+  background: var(--theme-bg);      
+  border: 1px solid var(--theme-border); 
+  color: var(--theme-text);          
   border-radius: 10px;
 }
+.card-header-tag .material-symbols-outlined { font-size: 20px; }
 
-.card-header-tag .material-symbols-outlined {
-  font-size: 20px !important;
-}
-
-/* ─── 7. LIST ITEMS AS BOXES (กล่องข้อความย่อย) ─── */
-.rule-list-item {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex-grow: 1;
-}
-
+/* ─── 7. LIST ITEMS ─── */
+.rule-list-item { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
 .rule-list-item li {
   position: relative;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid var(--theme-color, #3b82f6); /* ขอบซ้ายเปลี่ยนสีตามการ์ด */
+  background: var(--bg-main);
+  border: 1px solid var(--border-light);
+  border-left: 4px solid var(--theme-color);
   border-radius: 8px;
   padding: 10px 12px 10px 32px;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
-  color: #475569;
-  transition: all 0.2s ease;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  transition: var(--pvt-ease);
 }
+.rule-list-item li:hover { background: var(--bg-card); }
+.rule-list-item li::before { content: "✦"; position: absolute; left: 10px; top: 10px; color: var(--theme-color); font-size: 12px; }
 
-.rule-list-item li:hover {
-  background: #ffffff;
-  border-color: var(--theme-border, #cbd5e1);
-}
+/* ─── 8. CAUTION BOX ─── */
+.rule-list-item li.rule-caution { border-left-color: var(--red); background: var(--bg-red); border-color: #fecaca; color: var(--red); }
+.rule-list-item li.rule-caution::before { content: "⚠️"; color: var(--red); font-size: 14px; left: 8px; top: 9px; }
 
-.rule-list-item li::before {
-  content: "✦";
-  position: absolute;
-  left: 10px;
-  top: 10px;
-  color: var(--theme-color, #3b82f6); 
-  font-size: 12px;
-}
-
-/* ─── 8. CAUTION BOX (ข้อควรระวัง - บังคับสีแดง) ─── */
-.rule-list-item li.rule-caution {
-  border-left-color: #ef4444 !important;
-  background: #fef2f2 !important;
-  border-color: #fecaca !important;
-  color: #991b1b !important;
-}
-
-.rule-list-item li.rule-caution::before {
-  content: "⚠️" !important;
-  color: #ef4444 !important;
-  font-size: 14px !important;
-  left: 8px !important;
-  top: 9px !important;
-}
-
-.caution-box-layout {
-  --theme-color: #ef4444 !important;
-  --theme-bg: #fef2f2 !important;
-  --theme-border: #fca5a5 !important;
-  --theme-text: #b91c1c !important;
-  grid-column: 1 / -1;
-  background: #fff5f5 !important;
-  border: 1px dashed var(--theme-color) !important;
-}
-
-/* ==========================================================================
-   📱 9. MOBILE RESPONSIVE (รองรับจอมือถือพอดีเป๊ะ)
-   ========================================================================== */
+/* ================= MOBILE RESPONSIVE ================= */
 @media screen and (max-width: 768px) {
-  .rules-grid-layout {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-    padding: 16px 12px !important;
-  }
-
-  .rule-box-card {
-    padding: 16px !important;
-  }
-
-  .card-header-tag {
-    font-size: 16px !important;
-    white-space: normal !important;
-    padding: 10px 12px !important;
-  }
-
-  .rule-list-item li {
-    font-size: 14px !important;
-    padding: 10px 12px 10px 30px !important;
-  }
-
-  /* ปรับขนาดปุ่มย้อนกลับบนมือถือ */
-  .btn-header-back {
-    padding: 6px 14px !important;
-    font-size: 13.5px !important;
-  }
+  .rules-grid-layout { grid-template-columns: 1fr; gap: 16px; padding: 16px 12px; }
+  .rule-box-card { padding: 16px; }
+  .card-header-tag { font-size: 15px; white-space: normal; padding: 10px 12px; }
+  .rule-list-item li { font-size: 13.5px; padding: 10px 12px 10px 30px; }
 }

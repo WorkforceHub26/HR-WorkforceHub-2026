@@ -1,190 +1,127 @@
 /* ==========================================================================
-   🏢 PVT HR Dashboard — Light & Modern UI (Pure Bright Theme)
+   🏢 PVT HR DASHBOARD CONTENT — index.css (ดีไซน์เฉพาะสถิติ แผงข้อมูล และตารางหน้าแรก)
    ========================================================================== */
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  /* โทนสว่าง สะอาดตา */
-  --bg-main: #f4f7fb;       /* สีพื้นหลังภาพรวม (ฟ้าอมเทาอ่อนมาก) */
-  --bg-card: #ffffff;       /* สีกล่อง */
-  --primary: #3b82f6;       /* น้ำเงินสว่าง */
-  --primary-light: #eff6ff;
-  --text-dark: #1e293b;     /* สีตัวหนังสือหลัก */
-  --text-muted: #64748b;    /* สีตัวหนังสือรอง */
-  --border-light: #e2e8f0;  /* สีเส้นขอบ */
-  
-  /* ชุดสี Accent (สำหรับไอคอน) */
-  --blue: #3b82f6;   --bg-blue: #eff6ff;
-  --green: #10b981;  --bg-green: #ecfdf5;
-  --orange: #f97316; --bg-orange: #fff7ed;
-  --purple: #8b5cf6; --bg-purple: #f5f3ff;
-  --red: #ef4444;    --bg-red: #fef2f2;
+/* 1. ระบบจัดกลุ่มกล่องสถิติ (Stat Cards Grid - แถวละ 4 ใบตาม HTML) */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
 }
-
-body {
-  font-family: "Kanit", "Noto Sans Thai", sans-serif;
-  background-color: var(--bg-main);
-  color: var(--text-dark);
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* 🧱 โครงสร้างหลัก */
-.app-shell { display: flex; min-height: 100vh; }
-
-/* ⚡ 1. SIDEBAR (Light Theme) */
-.sidebar-light {
-  width: 90px;
-  background-color: var(--bg-card);
-  border-right: 1px solid var(--border-light);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24px 0;
-  position: fixed;
-  top: 0; bottom: 0; left: 0;
-  z-index: 100;
-  box-shadow: 4px 0 20px rgba(0,0,0,0.02);
-}
-
-.brand-zone { margin-bottom: 32px; }
-.logo-mini { width: 48px; height: auto; object-fit: contain; }
-
-.nav-menu {
-  display: flex; flex-direction: column; gap: 16px;
-  width: 100%; align-items: center; flex: 1;
-}
-
-.nav-item {
-  width: 68px; height: 68px; border-radius: 16px;
-  color: var(--text-muted); text-decoration: none;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; transition: all 0.2s ease; background: transparent;
-}
-
-.nav-item span.material-symbols-outlined { font-size: 26px; }
-.nav-label { font-size: 11px; font-weight: 500; }
-
-.nav-item:hover { color: var(--primary); background-color: var(--primary-light); }
-.nav-item.active { color: #ffffff; background-color: var(--primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-
-.sidebar-footer { width: 100%; display: flex; justify-content: center; }
-
-.btn-logout {
-  width: 52px; height: 52px; background: var(--bg-red); color: var(--red);
-  border: none; border-radius: 14px; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.2s;
-}
-.btn-logout:hover { background: #fca5a5; color: #fff; }
-
-/* 🌐 2. MAIN CONTENT */
-.main-content {
-  margin-left: 90px; flex: 1; padding: 32px 40px; display: flex; flex-direction: column; gap: 28px;
-}
-
-/* TOPBAR */
-.topbar { display: flex; justify-content: space-between; align-items: center; }
-.topbar-left h1 { font-size: 24px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
-.topbar-left p { font-size: 14px; color: var(--text-muted); margin: 0; }
-
-.user-profile {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--bg-card); padding: 8px 16px;
-  border-radius: 99px; border: 1px solid var(--border-light);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-}
-.user-profile .avatar {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: var(--primary-light); color: var(--primary);
-  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
-}
-.user-profile .info { display: flex; flex-direction: column; }
-.user-profile .info strong { font-size: 14px; color: var(--text-dark); }
-.user-profile .info span { font-size: 12px; color: var(--text-muted); }
-
-/* 📊 3. STATS GRID */
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
 .stat-card {
-  background: var(--bg-card); padding: 24px; border-radius: 20px;
-  display: flex; align-items: center; gap: 20px;
-  border: 1px solid var(--border-light);
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); border-left: 6px solid transparent;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.015);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.stat-card.border-blue { border-left-color: var(--blue); }
-.stat-card.border-green { border-left-color: var(--green); }
-.stat-card.border-orange { border-left-color: var(--orange); }
-
-.icon-box {
-  width: 56px; height: 56px; border-radius: 16px;
-  display: flex; align-items: center; justify-content: center;
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.03);
 }
-.icon-box span { font-size: 28px; }
-.bg-blue { background: var(--bg-blue); color: var(--blue); }
-.bg-green { background: var(--bg-green); color: var(--green); }
-.bg-orange { background: var(--bg-orange); color: var(--orange); }
-.bg-purple { background: var(--bg-purple); color: var(--purple); }
 
-.stat-info { display: flex; flex-direction: column; }
-.stat-info .label { font-size: 14px; color: var(--text-muted); font-weight: 500; }
-.stat-info .value { font-size: 32px; font-weight: 700; color: var(--text-dark); line-height: 1.2; }
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-icon span {
+  font-size: 28px;
+}
+.stat-info p {
+  font-size: 13.5px;
+  color: var(--text-muted, #64748b);
+  margin: 0 0 6px 0;
+}
+.stat-info h3 {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-dark, #1e293b);
+  line-height: 1;
+  margin: 0;
+}
 
-/* 🧩 4. MIDDLE GRID (ซ้ายเมนูด่วน 2 คอลัมน์ + ขวากราฟ) */
+/* 2. ดีไซน์พาเนลพื้นฐาน (Panel Container) */
+.panel {
+  background: #ffffff;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 16px;
+  padding: 24px;
+}
+.panel-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark, #1e293b);
+  margin: 0;
+}
+
+/* 3. แถวกลาง: จัดสัดส่วน Layout (เมนูด่วน 1 ส่วน : แผงกราฟ 1.5 ส่วน) */
 .middle-grid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 1fr 1.5fr;
   gap: 24px;
-  align-items: stretch; /* ล็อกความสูง 2 ฝั่งให้เท่ากันเป๊ะ ไม่เหลื่อมกัน */
+  margin-bottom: 32px;
 }
 
-.panel {
-  background: var(--bg-card); border-radius: 20px;
-  border: 1px solid var(--border-light); padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
-  display: flex; flex-direction: column;
+/* ส่วนครอบสัดส่วนของตัวกราฟ Chart.js */
+.charts-flex-container {
+  display: flex;
+  gap: 20px;
+  height: 240px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
 }
-.panel-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-.panel-header h2 { font-size: 18px; font-weight: 600; color: var(--text-dark); margin: 0; }
-.text-primary { color: var(--primary); font-size: 24px; }
-
-/* โครงสร้างเมนูด่วน 2 คอลัมน์ */
-.quick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; flex: 1; }
-
-.quick-card {
-  text-decoration: none; background: var(--bg-main);
-  border: 1px solid transparent; border-radius: 16px;
-  padding: 20px; display: flex; align-items: center; gap: 16px;
-  transition: all 0.2s ease;
+.chart-box {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  min-width: 0;
 }
-.quick-card:hover { background: #ffffff; box-shadow: 0 10px 20px rgba(0,0,0,0.05); transform: translateY(-3px); }
 
-.quick-card.hover-purple:hover { border-color: var(--purple); }
-.quick-card.hover-blue:hover { border-color: var(--blue); }
-.quick-card.hover-green:hover { border-color: var(--green); }
-.quick-card.hover-orange:hover { border-color: var(--orange); }
-
-.icon-circle { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.icon-circle span { font-size: 24px; }
-
-.quick-card .text strong { display: block; font-size: 15px; color: var(--text-dark); margin-bottom: 4px; }
-.quick-card .text p { font-size: 12.5px; color: var(--text-muted); margin: 0; }
-
-.chart-container { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 220px; }
-
-/* 📋 5. TABLE PANEL */
-.table-responsive { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-light); }
-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-thead { background: var(--bg-main); border-bottom: 1px solid var(--border-light); }
-th { padding: 14px 20px; font-weight: 600; color: var(--text-muted); }
-td { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; color: var(--text-dark); }
-tr:last-child td { border-bottom: none; }
-tbody tr:hover { background: #f8fafc; }
-
-/* TOAST แจ้งเตือน */
-.toast {
-  position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff;
-  padding: 14px 24px; border-radius: 12px; font-size: 14.5px;
-  transform: translateY(150%); transition: all 0.3s ease; z-index: 9999;
+/* 4. สไตล์ระบบตารางข้อมูล (Responsive Table Design) */
+.table-panel {
+  margin-bottom: 32px;
 }
-.toast.show { transform: translateY(0); }
+.table-responsive {
+  margin-top: 20px;
+  overflow-x: auto;
+  width: 100%;
+}
+.table-responsive table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.table-responsive th {
+  background-color: var(--bg-main, #f4f7fb);
+  color: var(--text-muted, #64748b);
+  padding: 14px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 2px solid var(--border-light, #e2e8f0);
+}
+.table-responsive td {
+  padding: 16px;
+  font-size: 14.5px;
+  color: var(--text-dark, #1e293b);
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+}
+.table-responsive tr:last-child td {
+  border-bottom: none;
+}
+.table-responsive tr:hover td {
+  background-color: rgba(244, 247, 251, 0.5);
+}

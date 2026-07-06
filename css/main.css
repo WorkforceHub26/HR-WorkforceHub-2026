@@ -1,0 +1,216 @@
+/* ==========================================================================
+   🎨 PVT HR APP FRAMEWORK — main.css (ระบบควบคุมเลย์เอาต์หลักและคอมโพเนนต์ร่วม)
+   ========================================================================== */
+
+/* 1. โครงสร้างกรอบแอปพลิเคชันภาพรวม (App Shell) */
+.app-shell {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--bg-main, #f4f7fb);
+  overflow-x: hidden;
+}
+
+/* 2. แถบเมนูด้านข้าง (Sidebar) และระบบ Scoped ล็อกขนาดโลโก้เฉพาะจุด */
+.sidebar-light {
+  width: 260px;
+  min-width: 260px;
+  background: #ffffff;
+  border-right: 1px solid var(--border-light, #e2e8f0);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+/* 🔐 ล็อกสไตล์และขนาดโลโก้จำกัดวงเฉพาะใน Sidebar (หน้าอื่นจะไม่พังตาม) */
+.sidebar-light .brand-zone {
+  display: flex;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+}
+.sidebar-light .brand-zone .logo-mini {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+.sidebar-light .brand-zone .brand-title {
+  font-weight: 700;
+  color: var(--primary, #3b82f6);
+  margin-left: 12px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+/* สไตล์เมนูนำทางด้านข้าง */
+.sidebar-light .nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px 14px;
+}
+.sidebar-light .nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  color: var(--text-muted, #64748b);
+  text-decoration: none;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+.sidebar-light .nav-item:hover {
+  background-color: var(--bg-main, #f4f7fb);
+  color: var(--text-dark, #1e293b);
+}
+.sidebar-light .nav-item.active {
+  background-color: var(--primary-light, #eff6ff);
+  color: var(--primary, #3b82f6);
+}
+.sidebar-light .nav-item .material-symbols-outlined {
+  margin-right: 12px;
+}
+
+/* สถานะย่อเมนูผ่านการ Toggle ของ JavaScript */
+.sidebar-light.collapsed {
+  width: 76px;
+  min-width: 76px;
+}
+.sidebar-light.collapsed .nav-label,
+.sidebar-light.collapsed .brand-title {
+  display: none !important;
+}
+
+/* 3. พื้นที่ฝั่งขวาสำหรับรองรับคอนเทนต์ */
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 40px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 4. สไตล์หัวหน้าเว็บ (Top Header) และโปรไฟล์ */
+.top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+}
+.top-header .header-text h1 {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-dark, #1e293b);
+  margin-bottom: 4px;
+}
+.top-header .header-text p {
+  font-size: 14px;
+  color: var(--text-muted, #64748b);
+}
+.top-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* โปรไฟล์ผู้ใช้ขวาบน */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-light, #e2e8f0);
+}
+.user-profile .avatar-circle {
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary, #3b82f6);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+.user-profile .info {
+  display: flex;
+  flex-direction: column;
+}
+.user-profile .info strong {
+  font-size: 14px;
+  color: var(--text-dark, #1e293b);
+}
+.user-profile .info span {
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+}
+
+/* 5. ปุ่มไอคอนและระบบแจ้งเตือนกระดิ่ง (Notification Bell Window) */
+.btn-bell {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dark, #1e293b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+.btn-bell:hover {
+  background-color: var(--primary-light, #eff6ff);
+}
+.notification-bell {
+  position: relative;
+}
+.badge-red {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+}
+
+/* กล่องแสดงรายการแจ้งเตือนดร็อปดาวน์ */
+.bell-dropdown-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 320px;
+  background: #ffffff;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  display: none; /* ซ่อนไว้รอ JS เติมคลาสคุมเปิด */
+  z-index: 1000;
+}
+.bell-dropdown-panel.show {
+  display: block !important;
+}
+.bell-panel-header {
+  padding: 14px 16px;
+  background: var(--bg-main, #f4f7fb);
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+  border-top-left-radius: 13px;
+  border-top-right-radius: 13px;
+}
+.bell-panel-header h4 { margin: 0; font-size: 14px; color: var(--text-dark); }
+.bell-list-content {
+  max-height: 280px;
+  overflow-y: auto;
+}

@@ -1,0 +1,52 @@
+/* ==========================================================================
+   🧩 COMPONENTS — ปุ่มและสไตล์ส่วนกลาง (Pure Bright Theme)
+   ========================================================================== */
+
+/* 🔘 ปุ่มกดหลัก (สีฟ้าโมเดิร์น) */
+.btn-primary { 
+  background-color: var(--primary); 
+  color: #ffffff; 
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--pvt-ease);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+.btn-primary:hover { 
+  background-color: var(--primary-dark); 
+  transform: translateY(-2px); 
+}
+
+/* 🔘 ปุ่มขอบใส (ปุ่มรอง) */
+.btn-outline { 
+  background-color: transparent; 
+  color: var(--text-muted); 
+  border: 1px solid var(--border-light); 
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--pvt-ease);
+}
+.btn-outline:hover { 
+  background-color: var(--bg-card); 
+  color: var(--text-dark); 
+  border-color: var(--text-muted);
+}
+
+/* 🏷️ ป้ายสถานะสีสันต่างๆ (ดึงจากชุดสี Accent) */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+.badge-blue { background-color: var(--bg-blue); color: var(--blue); }
+.badge-green { background-color: var(--bg-green); color: var(--green); }
+.badge-orange { background-color: var(--bg-orange); color: var(--orange); }
+.badge-red { background-color: var(--bg-red); color: var(--red); }

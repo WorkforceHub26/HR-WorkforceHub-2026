@@ -1,274 +1,89 @@
 /* ==========================================================================
-   🏢 PVT HR Leave — สไตล์ฟอร์มยื่นใบลาแบบ Premium UI
+   📝 PVT HR Leave — leave-user.css (แบบฟอร์มยื่นใบลา)
    ========================================================================== */
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --primary: #2563eb;
-  --primary-light: #eff6ff;
-  --primary-dark: #1d4ed8;
-  --green: #10b981;
-  --green-light: #f0fdf4;
-  --green-dark: #059669;
-  --orange: #f97316;
-  --orange-light: #fff7ed;
-  --bg: #f8fafc;        
-  --card: #ffffff;
-  --text: #0f172a;
-  --muted: #475569;     
-  --border: #cbd5e1;    
-  --ease: all 0.2s ease-in-out;
-}
-
-body {
-  font-family: "Kanit", "Noto Sans Thai", sans-serif !important;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-}
+@import url('global.css');
+@import url('theme.css');
+@import url('components.css');
 
 /* ─── 🛠️ TOPBAR FIXED ─── */
 .topbar {
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
   position: sticky;
   top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
-
-.topbar-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-}
-
 .btn-back {
-  background: none;
-  border: 1px solid var(--border);
-  padding: 8px 14px;
-  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: inherit;
-  font-size: 14.5px;
-  font-weight: 500;
-  color: var(--muted);
-  transition: var(--ease);
+  padding: 8px;
+  margin-left: -8px;
 }
-
-.btn-back:hover {
-  background: var(--bg);
-  color: var(--primary);
-  border-color: var(--primary);
-}
-
-.topbar-divider {
-  margin: 0 16px;
-  color: var(--border);
-  font-weight: 300;
+.topbar h1 {
   font-size: 18px;
-}
-
-.topbar-logo-zone {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.topbar-logo-zone img {
-  height: 32px;
-  width: auto;
-}
-
-.topbar-title {
-  font-size: 16px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--text-dark);
 }
 
-/* ─── INFO CARD ─── */
-.app-container {
-  max-width: 1100px;
-  margin: 24px auto;
-  padding: 0 20px 60px 20px;
+/* ─── 📦 FORM CONTAINER ─── */
+.form-container {
+  padding: 24px 20px 40px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.info-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+.leave-form-card {
+  background: var(--bg-card);
+  border-radius: 20px;
   padding: 24px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 10px -2px rgba(0,0,0,0.03);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
+  border: 1px solid var(--border-light);
 }
 
-.info-card-head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-  border-bottom: 1px dashed var(--border);
-  padding-bottom: 16px;
-}
-
-.user-avatar-zone {
-  background: var(--primary-light);
-  padding: 12px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-title-zone .subtitle {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-
-.user-title-zone h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-/* Grid ของช่องข้อมูลต่างๆ */
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.info-field label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13.5px;
+/* ─── 📝 INPUT FIELDS ─── */
+.form-group { margin-bottom: 20px; }
+.form-group label {
+  display: block;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--text-dark);
   margin-bottom: 8px;
 }
 
-.info-field label span {
-  font-size: 18px;
-  color: var(--primary);
-}
-
-.info-field input {
+.input-ui {
   width: 100%;
-  padding: 10px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 14.5px;
-  color: var(--text);
-  font-family: inherit;
-  font-weight: 500;
-  outline: none;
-}
-
-.balance-field input {
-  color: var(--primary) !important;
-  background: var(--primary-light) !important;
-  border: 1px solid #bfdbfe !important;
-  font-weight: 700 !important;
-}
-
-/* ─── NOTICE BOX ─── */
-.notice-box {
-  background: var(--orange-light);
-  border: 1px solid #fed7aa;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-light);
   border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 24px;
+  font-size: 15px;
+  background: var(--bg-main);
+  color: var(--text-dark);
+  transition: var(--pvt-ease);
 }
-
-/* ─── LEAVE CARDS ─── */
-.leave-cards-container {
-  margin-bottom: 24px;
+.input-ui:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 4px var(--primary-light);
 }
+textarea.input-ui { resize: vertical; min-height: 100px; }
 
-.container-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.container-head h2 {
-  font-size: 17px;
-  font-weight: 600;
-}
-
-/* BUTTONS */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 14.5px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: var(--ease);
-}
-
-.btn-sm {
-  padding: 8px 14px;
-  font-size: 13.5px;
-  border-radius: 6px;
-}
-
-.btn-primary { background: var(--primary); color: #ffffff; box-shadow: 0 4px 6px rgba(37,99,235,0.2); }
-.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
-
-.btn-green { background: var(--green); color: #ffffff; box-shadow: 0 4px 6px rgba(16,185,129,0.2); }
-.btn-green:hover { background: var(--green-dark); transform: translateY(-1px); }
-
-.btn-outline { background: #ffffff; color: var(--muted); border: 1px solid var(--border); }
-.btn-outline:hover { background: var(--bg); color: var(--text); }
-
+/* ─── 🕒 BOTTOM ACTIONS ─── */
 .bottom-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border-light);
   padding-top: 20px;
   margin-top: 24px;
-}
-
-/* TOAST */
-.status-toast {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #1e293b;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  transform: translateY(100px);
-  opacity: 0;
-  transition: all 0.3s ease;
-  z-index: 999;
-}
-.status-toast.show { transform: translateY(0); opacity: 1; }
-
-@media (max-width: 768px) {
-  .topbar-container { gap: 8px; }
-  .topbar-divider { display: none; }
-  .topbar-title { font-size: 14px; }
-  .info-grid { grid-template-columns: 1fr 1fr; }
-  .bottom-actions { flex-direction: column; gap: 12px; }
-  .bottom-actions div { width: 100%; flex-direction: column; }
-  .bottom-actions .btn { width: 100%; }
 }
