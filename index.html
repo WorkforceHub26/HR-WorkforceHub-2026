@@ -17,167 +17,200 @@
 <body>
   <div class="app-shell">
     
-    <aside class="sidebar-light">
-      <div class="brand-zone">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" />
+        <div class="brand-text">
+          <h1>Workforce Hub</h1>
+          <p>HR Management Platform</p>
+        </div>
       </div>
-      
-      <nav class="nav-menu">
-        <a href="/index.html" class="nav-item active" title="หน้าหลัก">
+
+      <div class="sidebar-profile-box">
+        <div class="profile-avatar">
+          <span class="material-symbols-outlined">admin_panel_settings</span>
+          <div class="online-status-dot" style="position: absolute; bottom: 2px; right: 2px; width: 8px; height: 8px; background: var(--primary); border: 1.5px solid #fff; border-radius: 50%;"></div>
+        </div>
+        <div class="profile-info-text">
+          <h4 id="sidebarUserName">HR Admin</h4>
+          <span class="role-badge">HR Super Admin</span>
+        </div>
+      </div>
+
+     <nav class="side-nav">
+        <a class="nav-item active" href="/index.html">
           <span class="material-symbols-outlined">dashboard</span>
-          <span class="nav-label">หน้าหลัก</span>
+          <span class="nav-label">หน้าหลักบอร์ด HR</span>
         </a>
-        <a href="/hr.html" class="nav-item" title="รออนุมัติ">
+
+        <a class="nav-item" href="/hr.html">
           <span class="material-symbols-outlined">fact_check</span>
-          <span class="nav-label">รออนุมัติ</span>
+          <span class="nav-label">รายการรออนุมัติใบลา</span>
         </a>
-        <a href="/pages/user/management.html" class="nav-item" title="พนักงาน">
-          <span class="material-symbols-outlined">manage_accounts</span>
-          <span class="nav-label">พนักงาน</span>
+
+        <a class="nav-item" href="/pages/user/approved.html">
+          <span class="material-symbols-outlined">task_alt</span>
+          <span class="nav-label">ใบลาที่อนุมัติแล้ว(HR)</span>
         </a>
-        <a href="/pages/user/index-user.html" class="nav-item" title="ประเภทลา">
-          <span class="material-symbols-outlined">rule</span>
-          <span class="nav-label">ประเภทลา</span>
+
+        <a class="nav-item" href="/pages/user/approved-leaves.html">
+          <span class="material-symbols-outlined">task_alt</span>
+          <span class="nav-label">รายการรออนุมัติใบลา(หัวหน้า)</span>
         </a>
-        <a href="/pages/user/holidays.html" class="nav-item" title="วันหยุด">
-          <span class="material-symbols-outlined">calendar_today</span>
-          <span class="nav-label">วันหยุด</span>
+
+
+        <a class="nav-item" href="/pages/user/employee-directory.html">
+          <span class="material-symbols-outlined">groups</span>
+          <span class="nav-label">รายชื่อพนักงานทั้งหมด</span>
         </a>
-        <a href="/pages/user/history-table.html" class="nav-item" title="ประวัติ">
-          <span class="material-symbols-outlined">history_edu</span>
-          <span class="nav-label">ประวัติ</span>
+
+        <a class="nav-item" href="/pages/user/employee-tracker.html">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="nav-label">เช็คประวัติ</span>
         </a>
+
+        <a class="nav-item" href="/pages/user/leave-rules.html">
+          <span class="material-symbols-outlined">gavel</span>
+          <span class="nav-label">หลักเกณฑ์การลา</span>
+        </a>
+
+          <a class="nav-item" href="/pages/user/index-user.html">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">หน้าพนักงาน</span>
+        </a>
+
+       
+        
       </nav>
-      
-      <div class="sidebar-footer">
-        <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
-          <span class="material-symbols-outlined">logout</span>
+
+      <div class="sidebar-hr-actions" style="padding: 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border);">
+        <span class="widget-title" style="font-size: 11px; font-weight: 600; color: var(--text-soft); text-transform: uppercase; padding-left: 8px;">เครื่องมือจัดการ HR</span>
+        <button class="hr-action-btn" onclick="exportDataReport()" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: none; border: 1px solid var(--border); border-radius: 12px; font-family: inherit; font-size: 13px; cursor: pointer; text-align: left; width: 100%;">
+          <span class="material-symbols-outlined">download</span>
+          <span class="nav-label">ส่งออกรายงานสรุป</span>
+        </button>
+        <button class="hr-action-btn" onclick="openQuotaSettings()" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: none; border: 1px solid var(--border); border-radius: 12px; font-family: inherit; font-size: 13px; cursor: pointer; text-align: left; width: 100%;">
+          <span class="material-symbols-outlined">manage_accounts</span>
+          <span class="nav-label">ตั้งค่าสิทธิ์วันลา</span>
         </button>
       </div>
     </aside>
 
     <main class="main-content">
-      <header class="topbar">
-        <div class="topbar-left">
-          <h1>ภาพรวมระบบบริหารจัดการใบลา</h1>
-          <p>PVT HR Live Tracking System</p>
+      
+      <header class="content-header" style="position: relative; z-index: 9999;">
+        <div class="header-left">
+          <button class="btn-toggle-sidebar" id="toggleSidebar">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+          <div class="header-titles">
+            <span class="sub-title">MANAGEMENT OVERVIEW</span>
+            <h2>กระดานควบคุมของฝ่ายบุคคล</h2>
+          </div>
         </div>
-        <div class="topbar-right">
-          <div class="user-profile">
-            <div class="avatar">HR</div>
-            <div class="info">
-              <strong>ผู้ดูแลระบบ</strong>
-              <span>PVT Administrator</span>
+        
+        <div class="header-right-actions">
+          
+          <div class="header-notification-wrapper">
+            <div class="bell-dropdown-panel" id="bellDropdown">
+              <div class="header-notification-wrapper">
+                  <button class="bell-trigger-btn" id="bellTrigger">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="notification-badge" id="bellBadge" style="display: none;">0</span>
+                  </button>
+                  
+                  <div class="bell-dropdown-panel" id="bellDropdown"></div>
+                </div>
             </div>
           </div>
+
+          <div class="user-badge">
+            <div class="avatar">
+              <span class="material-symbols-outlined">account_circle</span>
+            </div>
+            <div class="user-info">
+              <strong id="userName">ผู้จัดการระบบ (HR)</strong><br>
+              <small id="userRole">ฝ่ายบริหารจัดการ</small>
+            </div>
+          </div>
+
         </div>
       </header>
 
-      <div class="stats-grid">
-        <div class="stat-card border-blue">
-          <div class="icon-box bg-blue"><span class="material-symbols-outlined">group</span></div>
-          <div class="stat-info">
-            <span class="label">พนักงานทั้งหมด</span>
-            <span class="value" id="statTotalEmployees">0</span>
+      <section class="hero-banner" style="background: linear-gradient(135deg, #5c7cfa 0%, #3b5bdb 100%); color: #ffffff; border-radius: 16px; padding: 32px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(59, 91, 219, 0.15);">
+        <div class="banner-body" style="display: flex; justify-content: space-between; align-items: center; gap: 24px;">
+          <div class="banner-main" style="flex: 1;">
+            <span class="tag" style="background: rgba(255,255,255,0.2); color: #ffffff; font-size: 11px; padding: 4px 12px; border-radius: 99px; font-weight: 600;">WORKFORCE OVERVIEW</span>
+            <h1 style="font-size: 26px; margin-top: 12px; margin-bottom: 8px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">ศูนย์กลางการลาและข้อมูลพนักงาน</h1>
+            <p style="color: rgba(255,255,255,0.85); font-size: 13px; margin-bottom: 24px; max-width: 600px; line-height: 1.6;">ใช้สำหรับนำเข้าข้อมูลพนักงาน อ่านหลักเกณฑ์การลา กรอกใบลาออนไลน์ ติดตามสถานะ และอนุมัติคำขอผ่าน Supabase</p>
+            <div class="banner-actions" style="display: flex; gap: 12px;">
+              <a href="/pages/user/leave-user.html" class="btn" style="background: #10b981; color: white; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 500;"><span class="material-symbols-outlined" style="font-size: 18px;">add_circle</span> ขออนุญาตลา</a>
+              <a href="#" class="btn btn-secondary" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: white; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 500;"><span class="material-symbols-outlined" style="font-size: 18px; ">lock_open</span> เปิดหน้าฝ่ายบุคคล</a>
+            </div>
+          </div>
+          <div class="banner-status-card" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; min-width: 220px;">
+            <span class="status-title" style="color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 500; display: block; margin-bottom: 4px;">สถานะระบบ</span>
+            <h3 style="color: #ffffff; font-size: 22px; margin: 0 0 8px 0; font-weight: 700;">พร้อมใช้งาน</h3>
+            <div class="status-indicator" style="display: flex; align-items: center; gap: 8px;">
+              <div class="dot pulse" style="background: #10b981; width: 8px; height: 8px; border-radius: 50%;"></div>
+              <p style="color: rgba(255,255,255,0.8); font-size: 11px; margin: 0;">เชื่อมต่อ Supabase เมื่อเข้าสู่ระบบ</p>
+            </div>
           </div>
         </div>
-        <div class="stat-card border-green">
-          <div class="icon-box bg-green"><span class="material-symbols-outlined">person</span></div>
-          <div class="stat-info">
-            <span class="label">ลาวันนี้ (คน)</span>
-            <span class="value" id="statTodayLeaves">0</span>
-          </div>
-        </div>
-        <div class="stat-card border-orange">
-          <div class="icon-box bg-orange"><span class="material-symbols-outlined">pending_actions</span></div>
-          <div class="stat-info">
-            <span class="label">รออนุมัติ (ใบ)</span>
-            <span class="value" id="statPendingLeaves">0</span>
-          </div>
-        </div>
-      </div>
+      </section>
 
-      <div class="middle-grid">
-        
-        <section class="panel quick-menu-panel">
-          <div class="panel-header">
-            <span class="material-symbols-outlined text-primary">apps</span>
-            <h2>เมนูจัดการด่วน</h2>
-          </div>
-          <div class="quick-grid">
-            <a href="/hr.html" class="quick-card hover-purple">
-              <div class="icon-circle bg-purple"><span class="material-symbols-outlined">fact_check</span></div>
-              <div class="text">
-                <strong>อนุมัติใบลา</strong>
-                <p>จัดการคำขอลา</p>
-              </div>
-            </a>
-            <a href="/pages/user/management.html" class="quick-card hover-blue">
-              <div class="icon-circle bg-blue"><span class="material-symbols-outlined">manage_accounts</span></div>
-              <div class="text">
-                <strong>ข้อมูลพนักงาน</strong>
-                <p>เพิ่ม/แก้ไข สมาชิก</p>
-              </div>
-            </a>
-            <a href="/pages/user/leave-rules.html" class="quick-card hover-green">
-              <div class="icon-circle bg-green"><span class="material-symbols-outlined">rule</span></div>
-              <div class="text">
-                <strong>เงื่อนไขการลา</strong>
-                <p>ตั้งค่าสิทธิ์วันลา</p>
-              </div>
-            </a>
-            <a href="/pages/admin/holidays.html" class="quick-card hover-orange">
-              <div class="icon-circle bg-orange"><span class="material-symbols-outlined">calendar_today</span></div>
-              <div class="text">
-                <strong>วันหยุดบริษัท</strong>
-                <p>กำหนดปฏิทิน</p>
-              </div>
-            </a>
-          </div>
-        </section>
-
-        <section class="panel chart-panel">
-          <div class="panel-header">
-            <span class="material-symbols-outlined text-primary">pie_chart</span>
-            <h2>สัดส่วนการลาเดือนนี้</h2>
-          </div>
-          <div class="chart-container">
-            <canvas id="chartLeaveTypes"></canvas>
-          </div>
-        </section>
-        
-      </div>
-
-      <section class="panel table-panel">
-        <div class="panel-header">
-          <span class="material-symbols-outlined text-primary">list_alt</span>
-          <h2>รายการคำขอลาล่าสุด (รอพิจารณา)</h2>
+      <section class="stats-grid">
+        <div class="stat-card" style="cursor: pointer;" onclick="switchTab('pending')">
+          <div class="stat-icon" style="background: #fef3c7; color: #d97706;"><span class="material-symbols-outlined">pending_actions</span></div>
+          <span class="stat-label">รายการรออนุมัติ</span>
+          <span class="stat-value" id="countPending">0 <small>รายการ</small></span>
         </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr id="tableHeader">
-                <th>รหัส</th>
-                <th>ชื่อ-สกุล</th>
-                <th>ประเภท</th>
-                <th>วันที่เริ่ม - สิ้นสุด</th>
-                <th>สถานะ</th>
-              </tr>
+        <div class="stat-card" style="cursor: pointer;" onclick="switchTab('approved')">
+          <div class="stat-icon" style="background: #dcfce7; color: #15803d;"><span class="material-symbols-outlined">task_alt</span></div>
+          <span class="stat-label">รายการที่จัดการแล้ว</span>
+          <span class="stat-value" id="countApproved">0 <small>รายการ</small></span>
+        </div>
+        <div class="stat-card" style="cursor: pointer;" onclick="switchTab('employees')">
+          <div class="stat-icon" style="background: #e0f2fe; color: #0369a1;"><span class="material-symbols-outlined">badge</span></div>
+          <span class="stat-label">รายชื่อพนักงานทั้งหมด</span>
+          <span class="stat-value" id="countEmployees">0 <small>คน</small></span>
+        </div>
+      </section>
+
+      <section style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 24px; margin-bottom: 40px; margin-top: 24px;">
+        <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid var(--border);">
+          <h3 style="font-size:15px; margin-bottom:16px;"><span class="material-symbols-outlined">bar_chart</span> ยอดรวมวันลาสะสมแยกตามแผนก</h3>
+          <div style="height: 220px; position: relative;"><canvas id="chartDepartments"></canvas></div>
+        </div>
+        <div style="background: #fff; padding: 24px; border-radius: 16px; border: 1px solid var(--border);">
+          <h3 style="font-size:15px; margin-bottom:16px;"><span class="material-symbols-outlined">pie_chart</span> สัดส่วนประเภทการลา</h3>
+          <div style="height: 220px; position: relative; display: flex; justify-content: center;"><canvas id="chartLeaveTypes"></canvas></div>
+        </div>
+      </section>
+
+      <section class="quick-menu-section" style="margin-bottom: 40px;">
+        <div class="section-title" style="margin-bottom: 16px;">
+          <span class="material-symbols-outlined" id="tableIcon" style="color:var(--primary)">pending_actions</span>
+          <div><strong id="tableTitle">รายการคำขอลาปัจจุบัน (รอพิจารณา)</strong></div>
+        </div>
+        <div style="background: #ffffff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+            <thead style="background: #f8fafc; border-bottom: 1px solid var(--border);">
+              <tr id="tableHeader"></tr>
             </thead>
             <tbody id="tableBody">
-              <tr><td colspan="5" style="text-align: center; padding: 40px; color: #94a3b8;">กำลังประมวลผลข้อมูล...</td></tr>
+              <tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--text-soft);">กำลังประมวลผลระบบแดชบอร์ด...</td></tr>
             </tbody>
           </table>
         </div>
       </section>
-
     </main>
   </div>
-  
-  <div id="statusToast" class="toast"></div>
 
-  <script src="/js/supabase-config.js"></script>
-  <script src="/js/auth-guard.js"></script>
-  <script src="/js/index.js"></script>
+  <div id="statusToast" class="status-toast" style="position: fixed; bottom: 24px; right: 24px; background: #0f172a; color: #fff; padding: 12px 24px; border-radius: 12px; display: none; z-index: 9999;"></div>
+
+  <script src="js/supabase-config.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/index.js"></script>
 </body>
 </html>

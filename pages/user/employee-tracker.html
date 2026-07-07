@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ตรวจสอบข้อมูลพนักงานรายบุคคล | PVT HR Hub</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="/css/index.css" />
+  <link rel="stylesheet" href="/css/employee-tracker.css" />
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+  <div class="app-shell">
+    
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" />
+        <div class="brand-text">
+          <h1>Workforce Hub</h1>
+          <p>HR Management Platform</p>
+        </div>
+      </div>
+       <nav class="side-nav">
+        <a class="nav-item" href="/index.html">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span>หน้าแรก / สถิติรวม</span>
+        </a>
+        <a class="nav-item" href="/pages/user/employee-directory.html">
+          <span class="material-symbols-outlined">badge</span>
+          <span>ทำเนียบพนักงาน</span>
+        </a>
+        <a class="nav-item active" href="/pages/user/employee-tracker.html">
+          <span class="material-symbols-outlined">query_stats</span>
+          <span>ตรวจสอบประวัติรายคน</span>
+        </a>
+        <a class="nav-item" href="/pages/user/leave-dashboard.html">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span>ระบบลางาน & ปฏิทิน</span>
+        </a>
+        <a class="nav-item" href="/pages/admin/leave-approval.html">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span>อนุมัติการลางาน</span>
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      
+      <header class="tracker-header-flex">
+        <div class="header-title">
+          <h2>ตรวจสอบข้อมูลพนักงานรายบุคคล</h2>
+          <p>ค้นหาประวัติ โควตาสิทธิ์ และสถานะใบคำร้องขอลางานแบบเจาะลึก</p>
+        </div>
+        
+        <div class="search-custom-wrapper">
+          <div class="search-custom-box">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" id="inputEmployeeSearch" placeholder="ค้นชื่อ, รหัสพนักงาน, แผนก/ฝ่าย..." autocomplete="off" />
+          </div>
+          
+          <div id="searchSuggestions" class="suggestions-dropdown"></div>
+        </div>
+      </header>
+
+      <section class="tracker-profile-hero" style="margin-top: 24px;">
+        <div class="profile-avatar-large">
+          <span class="material-symbols-outlined">person</span>
+        </div>
+        <div class="profile-main-details">
+          <h1 id="txtProfileName">กรุณาพิมพ์ค้นหารายชื่อพนักงาน</h1>
+          <div class="profile-meta-tags">
+            <span class="meta-tag"><span class="material-symbols-outlined">pin</span> รหัสพนักงาน: <strong id="txtProfileCode">-</strong></span>
+            <span class="meta-tag"><span class="material-symbols-outlined">corporate_fare</span> แผนก: <strong id="txtProfileDept">-</strong></span>
+            <span class="meta-tag"><span class="material-symbols-outlined">work</span> ตำแหน่ง: <strong id="txtProfilePosition">-</strong></span>
+          </div>
+        </div>
+        <div class="profile-status-badge-zone" id="txtProfileStatus">
+          <span style="color:#64748b;">● รอระบุข้อมูล</span>
+        </div>
+      </section>
+
+      <section class="tracker-dashboard-grid tracker-force-row">
+        <div class="tracker-card card-sick">
+          <span class="card-title">สิทธิ์ลาป่วยคงเหลือ</span>
+          <h2 class="card-value" id="sickLeaveBalance">- <small>วัน</small></h2>
+        </div>
+        <div class="tracker-card card-business">
+          <span class="card-title">สิทธิ์ลากิจคงเหลือ</span>
+          <h2 class="card-value" id="personalLeaveBalance">- <small>วัน</small></h2>
+        </div>
+        <div class="tracker-card card-vacation">
+          <span class="card-title">สิทธิ์ลาพักร้อนคงเหลือ</span>
+          <h2 class="card-value" id="vacationBalance">- <small>วัน</small></h2>
+        </div>
+        <div class="tracker-card card-total">
+          <span class="card-title">ยอดรวมใบลาที่อนุมัติแล้ว</span>
+          <h2 class="card-value" id="totalUsedLeaves">- <small>ใบงาน</small></h2>
+        </div>
+      </section>
+
+      <section class="quick-menu-section" style="margin-top: 32px;">
+        <div class="section-title" style="margin-bottom: 16px;">
+          <span class="material-symbols-outlined" style="color:var(--primary)">history</span>
+          <div><strong>ประวัติและสถานะใบลาทั้งหมดของพนักงานท่านนี้</strong></div>
+        </div>
+        <div class="tracker-table-wrapper">
+          <table class="tracker-data-table">
+            <thead>
+              <tr>
+                <th>วันที่ยื่นคำขอ</th>
+                <th>ประเภทการลา</th>
+                <th>ช่วงวันที่หยุด</th>
+                <th>จำนวนวัน</th>
+                <th>เหตุผลการลา</th>
+                <th>สถานะใบลา</th>
+              </tr>
+            </thead>
+            <tbody id="trackerTableBody">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:30px; color:#64748b;">กรุณาค้นหารายชื่อพนักงานด้านบนเพื่อเรียกดูประวัติข้อมูล...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/employee-tracker.js"></script>
+</body>
+</html>
