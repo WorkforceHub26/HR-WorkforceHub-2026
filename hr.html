@@ -3,144 +3,91 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HR MANAGER | PVT HR Leave</title>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <title>กระดานอนุมัติใบลา | PVT HR Manager</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  
   <link rel="stylesheet" href="/css/hr.css" />
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
   <div class="app-shell">
+    
     <aside class="sidebar">
       <div class="brand">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT" style="height: 125px; width: auto; vertical-align: middle;"/>
-        <h2>PVT HR</h2>
-        <p>ระบบจัดการฝ่ายบุคคล</p>
+        <img src="/assets/icons/logo-pvt.png" alt="PVT" style="height: 65px; width: auto; margin-bottom: 12px;"/>
+        <h2>PVT Workforce</h2>
+        <p>HR Management System</p>
       </div>
+      
       <nav class="side-nav">
-        <a class="nav-item" href="#" data-tab="employees">พนักงาน / นำเข้า CSV</a>
-        <a class="nav-item" href="#" data-tab="leaves">อนุมัติใบลา(HR)</a>
-        <a class="nav-item" href="/pages/user/leave-rules.html">หลักเกณฑ์การลา</a>
-        <a class="nav-item" href="#" data-tab="balances">ตรวจสอบโควตาวันลา</a>
+         <a class="nav-item" href="/index.html">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="nav-label">หน้าหลักบอร์ด</span>
+        </a>
+        <a class="nav-item active" href="/hr.html">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">กระดานอนุมัติใบลา</span>
+        </a>
+        <a class="nav-item" href="/pages/user/history-table.html">
+          <span class="material-symbols-outlined">group</span>
+          <span class="nav-label">ฐานข้อมูลพนักงาน</span>
+        </a>
+        <a class="nav-item" href="/pages/user/leave-rules.html">
+          <span class="material-symbols-outlined">menu_book</span>
+          <span class="nav-label">หลักเกณฑ์การลา</span>
+        </a>
       </nav>
       
-      <div class="back-nav" style="margin-top: 20px; padding: 0 16px;">
-        <button type="button" class="btn-back" onclick="history.back(); return false;" style="width: 100%; padding: 10px; background: #64748b; color: white; border: none; border-radius: 8px; cursor: pointer;">
-          ← ย้อนกลับ
+      <div class="logout-wrapper" style="margin-top: auto; padding-top: 20px;">
+        <button onclick="handleLogout()" class="btn-logout">
+          <span class="material-symbols-outlined" style="font-size: 18px;">logout</span> ออกจากระบบ
         </button>
       </div>
     </aside>
 
     <main class="main-content">
-      <section id="dashboard" class="tab-content active">
-        <h1>ภาพรวมระบบวันนี้</h1>
-        <div class="stats-grid">
-          <article class="panel stat-panel">
-            <span>พนักงานทั้งหมด</span>
-            <strong id="statEmployees">-</strong>
-          </article>
-          <article class="panel stat-panel">
-            <span>คำขอรออนุมัติ</span>
-            <strong id="statPending">-</strong>
-          </article>
-          <article class="panel stat-panel">
-            <span>อนุมัติแล้ว</span>
-            <strong id="statApproved">-</strong>
-          </article>
-        </div>
-        <div class="panel">
-          <h3>ลำดับงาน</h3>
-          <p>พนักงานส่งคำขอลา → หัวหน้าแผนกตรวจสอบ → ผู้จัดการฝ่ายอนุมัติ → ฝ่ายบุคคลบันทึกและเก็บประวัติ</p>
-        </div>
-      </section>
+      <header class="content-header" style="margin-bottom: 30px;">
+        <span style="color: var(--admin-primary); font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">LEAVE APPROVALS BOARD</span>
+        <h1 style="margin-top: 4px;">รายการคำขออนุมัติลา (Pending Requests)</h1>
+      </header>
 
-      <section id="employees" class="tab-content" style="display: none;">
-        <h1>จัดการข้อมูลพนักงาน</h1>
-        <div class="upload-box">
-          <h3>นำเข้าไฟล์รายชื่อพนักงาน (.csv)</h3>
-          <p>รองรับคอลัมน์: employee_code, title_name, first_name, last_name, position_name, department_name, start_date</p>
-          <div class="upload-row">
-            <input type="file" id="csvFileInput" accept=".csv" />
-            <button class="btn-primary" onclick="uploadEmployeeCSV()">เริ่มนำเข้าข้อมูล</button>
-          </div>
-          <div id="uploadStatus" class="admin-status"></div>
+      <section class="panel">
+        <div class="panel-head" style="margin-bottom: 20px;">
+          <h3 style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined" style="color: #f59e0b;">hourglass_top</span>
+            รอการพิจารณาจาก HR
+          </h3>
+          <button class="btn-pvt-light" onclick="loadPendingLeavesHR()">
+            <span class="material-symbols-outlined">sync</span> รีเฟรชข้อมูล
+          </button>
         </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <h3>รายชื่อพนักงานในระบบ</h3>
-            <button class="btn-light" onclick="fetchEmployees()">รีเฟรช</button>
-          </div>
-          <div class="table-scroll">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>รหัส</th>
-                  <th>ชื่อ-นามสกุล</th>
-                  <th>วันเริ่มงาน</th>
-                  <th>สถานะ</th>
-                </tr>
-              </thead>
-              <tbody id="employeeTableBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section id="leaves" class="tab-content" style="display: none;">
-        <h1>รายการคำขออนุมัติลา</h1>
-        <div class="panel">
-          <div class="panel-head">
-            <h3>คำขอทั้งหมด</h3>
-            <button class="btn-light" onclick="if(typeof loadPendingLeavesHR === 'function') loadPendingLeavesHR();">รีเฟรช</button>
-          </div>
-          <div class="table-scroll">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>รหัส</th>
-                  <th>พนักงาน</th>
-                  <th>ประเภท</th>
-                  <th>ช่วงวันที่</th>
-                  <th>จำนวน</th>
-                  <th>สถานะ</th>
-                  <th>จัดการ</th>
-                </tr>
-              </thead>
-              <tbody id="leaveRequestsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section id="balances" class="tab-content" style="display: none;">
-        <h1>โควตาวันลาคงเหลือพนักงาน</h1>
-        <div class="panel">
-          <div class="panel-head">
-            <h3>ยอดคงเหลือของปีปัจจุบัน (พ.ศ.)</h3>
-            <button class="btn-light" onclick="fetchLeaveBalances()">รีเฟรชข้อมูล</button>
-          </div>
-          <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
-            <input type="text" id="searchBalanceInput" placeholder="🔍 ค้นหาด้วยชื่อ หรือรหัสพนักงาน..." 
-                   style="padding: 8px 12px; width: 300px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-family: 'Sarabun', sans-serif;">
-          </div>
-          <div class="table-scroll">
-            <table class="admin-table">
-              <thead>
-                <tr style="background: #0f172a; color: white;">
-                  <th style="padding: 10px;">รหัสพนักงาน</th>
-                  <th style="padding: 10px;">ชื่อ-นามสกุล</th>
-                  <th style="padding: 10px; text-align:center;">ปี พ.ศ.</th>
-                  <th style="padding: 10px; text-align:center;">ลาป่วยคงเหลือ</th>
-                  <th style="padding: 10px; text-align:center;">ลากิจคงเหลือ</th>
-                  <th style="padding: 10px; text-align:center;">ลาพักร้อนคงเหลือ</th>
-                </tr>
-              </thead>
-              <tbody id="leaveBalanceBody">
-                <tr><td colspan="6" style="text-align: center;">กำลังโหลดข้อมูลโควตา...</td></tr>
-              </tbody>
-            </table>
-          </div>
+        
+        <div class="table-scroll">
+          <table class="luxury-admin-table">
+            <thead>
+              <tr>
+                <th>รหัสพนักงาน</th>
+                <th>ข้อมูลผู้ลา</th>
+                <th>ประเภทการลา</th>
+                <th>ช่วงวันที่</th>
+                <th style="text-align: center;">จำนวนวัน</th>
+                <th>สถานะปัจจุบัน</th>
+                <th style="text-align: center; width: 280px;">จัดการ (Action)</th>
+              </tr>
+            </thead>
+            <tbody id="leaveRequestsBody">
+              <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                  <span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 12px; color: #cbd5e1;">cloud_sync</span>
+                  กำลังเชื่อมต่อข้อมูลใบลา...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </main>
@@ -150,36 +97,5 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/auth-guard.js"></script>
   <script src="/js/hr.js"></script>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const navItems = document.querySelectorAll('.nav-item[data-tab]');
-      const tabContents = document.querySelectorAll('.tab-content');
-
-      navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-          e.preventDefault();
-          
-          navItems.forEach(nav => nav.classList.remove('active'));
-          tabContents.forEach(tab => {
-            tab.classList.remove('active');
-            tab.style.display = 'none';
-          });
-
-          item.classList.add('active');
-          
-          const targetId = item.getAttribute('data-tab');
-          const targetTab = document.getElementById(targetId);
-          if (targetTab) {
-            targetTab.classList.add('active');
-            targetTab.style.display = 'block';
-            
-            targetTab.style.animation = 'none';
-            setTimeout(() => targetTab.style.animation = 'pvt-slide-up 0.5s ease both', 10);
-          }
-        });
-      });
-    });
-  </script>
 </body>
 </html>

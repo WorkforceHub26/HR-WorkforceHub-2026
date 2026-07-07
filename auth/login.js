@@ -1,16 +1,11 @@
-document.addEventListener("DOMContentLoaded", () => {
+/* ==========================================================================
+   🔒 PVT HR LEAVE - login.js (ฉบับ Pop-up เด้งกลางจอ + ระบบย้ายหน้าดั้งเดิมที่เสถียรที่สุด)
+   ========================================================================== */
 
+document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("username");
   const passwordInput = document.getElementById("password");
-  const statusEl = document.getElementById("loginStatus");
-
-  function setStatus(message, type = "") {
-    if (!statusEl) return;
-    statusEl.textContent = message;
-    statusEl.className = `form-status ${type}`;
-    statusEl.style.opacity = "1";
-  }
 
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -18,133 +13,118 @@ document.addEventListener("DOMContentLoaded", () => {
     const loginInput = usernameInput.value.trim();
     const password = passwordInput.value.trim();
 
+    // 1. เช็คว่ากรอกครบไหม
     if (!loginInput || !password) {
-      setStatus("❌ กรุณากรอกข้อมูลให้ครบ", "error");
+      Swal.fire({
+        icon: 'warning',
+        title: 'ข้อมูลไม่ครบ',
+        text: 'กรุณากรอกรหัสพนักงานและรหัสผ่านให้ครบถ้วน',
+        confirmButtonColor: '#3b82f6'
+      });
       return;
     }
 
     const sb = window.pvtSupabase?.getClient();
     if (!sb) {
-      setStatus("❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้", "error");
+      Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้' });
       return;
     }
 
     try {
-      setStatus("⏳ กำลังตรวจสอบข้อมูล...", "info");
       let result;
-
-      // กรณีเป็นรหัสพนักงาน
+      
+      // 🌟 ใช้โค้ดดึงข้อมูลแบบดั้งเดิมที่เวิร์คและเสถียรที่สุด
       if (/^\d+$/.test(loginInput)) {
-        result = await sb
-          .from("employees")
-          .select(`
-            id,
-            employee_code,
-            full_name,
-            role,
-            status,
-            password,
-            departments ( department_name ),
-            positions ( position_name )
-          `) // ดึงข้อมูลแผนกและตำแหน่งมาพร้อมกัน
-          .eq("employee_code", loginInput);
-
+        result = await sb.from("employees")
+          .select(`id, employee_code, full_name, role, status, password`)
+          .eq("employee_code", loginInput)
+          .single();
       } else {
-        // กรณีเป็นชื่อ
-        result = await sb
-          .from("employees")
-          .select(`
-            id,
-            employee_code,
-            full_name,
-            role,
-            status,
-            password,
-            departments ( department_name ),
-            positions ( position_name )
-          `) // ดึงข้อมูลแผนกและตำแหน่งมาพร้อมกัน
-          .eq("full_name", loginInput);
+        result = await sb.from("employees")
+          .select(`id, employee_code, full_name, role, status, password`)
+          .eq("full_name", loginInput)
+          .single();
       }
 
-      const { data, error } = result;
-      if (error) throw error;
-
-      if (!data || data.length === 0) {
-        throw new Error("ไม่พบข้อมูลพนักงาน");
+      if (result.error || !result.data) {
+        throw new Error("ไม่พบข้อมูลพนักงานนี้ในระบบ");
       }
+      const user = result.data;
+      // 1. ด่านรหัสผ่าน (พี่มิกผ่านด่านนี้แล้ว)
+      const dbPassword = String(user.password).trim();
+      const inputPassword = String(password).trim();
+      
+      console.log("👉 รหัสผ่านตรงกันไหม?:", dbPassword === inputPassword ? "✅ ตรงเป๊ะ!" : "❌ ไม่ตรง");
+      console.log("👉 สถานะบัญชีจาก DB:", user.status);
 
-      if (data.length > 1) {
-        throw new Error("พบชื่อซ้ำ กรุณาเข้าสู่ระบบด้วยรหัสพนักงาน");
-      }
-
-      const user = data[0];
-
-      if (user.status !== "active") {
-        throw new Error("บัญชีถูกปิดใช้งาน");
-      }
-
-      if ((user.password || "").trim() !== password) {
+      if (dbPassword !== inputPassword) {
         throw new Error("รหัสผ่านไม่ถูกต้อง");
       }
 
-      // 💡 เอาโค้ด Supabase Auth ที่มีปัญหาออกแล้ว เพื่อให้พี่ล็อกอินได้ทันทีโดยตรงผ่านตาราง
-      
-      // บันทึกข้อมูลพนักงานพร้อมโครงสร้างแผนกที่ดึงมาลง Session สำหรับไปใช้แสดงผลหน้าอื่น ๆ
-      sessionStorage.setItem("currentUser", JSON.stringify(user));
-
-      if (window.PVTLogger) {
-        window.PVTLogger.info(
-          "LOGIN_SUCCESS",
-          `${user.full_name} เข้าสู่ระบบสำเร็จ`
-        );
+      // 🌟 2. ด่านสถานะบัญชี (แก้บั๊กพิมพ์เล็ก/พิมพ์ใหญ่)
+      const currentStatus = String(user.status || "").trim().toLowerCase();
+      if (currentStatus !== "active") {
+        throw new Error(`บัญชีของคุณถูกระงับ (สถานะในฐานข้อมูลคือ: ${user.status})`);
       }
 
-      setStatus(`✅ ยินดีต้อนรับ ${user.full_name}`, "success");
+      // 🌟 3. บันทึก Session แบบดั้งเดิมเป๊ะๆ (เพื่อให้เข้ากับ auth-guard)
+      sessionStorage.setItem("currentUser", JSON.stringify({
+        id: user.id,
+        employee_code: user.employee_code,
+        full_name: user.full_name,
+        role: user.role
+      }));
 
-      setTimeout(() => {
-        if (user.role === "hr" || user.role === "admin") {
-          if (window.location.origin) {
-            fetch("/index.html", { method: "HEAD" })
-            .then(() => {
-              window.location.href = "/index.html";
-            })
-            .catch(() => {
-              window.location.href = "/";
-            });
-          }
+      // เก็บประวัติ Logger (ถ้ามี)
+      if (window.PVTLogger) {
+        window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ`);
+      }
+
+      // 🌟 4. โค้ดย้ายหน้าเว็บแบบ "ดั้งเดิม" (ช่วยป้องกันหาหน้าเว็บไม่เจอ)
+      if (user.role === "hr" || user.role === "admin") {
+        if (window.location.origin) {
+          fetch("/index.html", { method: "HEAD" })
+          .then(() => {
+            window.location.href = "/index.html"; // ไปหน้า Admin
+          })
+          .catch(() => {
+            window.location.href = "/"; // สลับไป root ถ้าหน้า index แจ้งเตือน
+          });
         } else {
-          window.location.href = "/pages/user/index-user.html";
+          window.location.href = "/index.html";
         }
-      }, 1000);
+      } else {
+        window.location.href = "/pages/user/index-user.html"; // ไปหน้าพนักงาน
+      }
 
     } catch (err) {
-      console.error("[LOGIN ERROR]", err);
-      if (window.PVTLogger) {
-        window.PVTLogger.error("LOGIN_FAILED", err.message);
-      }
-      setStatus(err.message || "เกิดข้อผิดพลาด", "error");
+      // ❌ ถ้าพลาดให้เด้ง Pop-up สวยๆ กลางจอ
+      Swal.fire({
+        icon: 'error',
+        title: 'เข้าสู่ระบบไม่สำเร็จ',
+        text: err.message,
+        confirmButtonColor: '#ef4444',
+        timer: 2500 // หายไปเองใน 2.5 วินาที
+      });
     }
   });
 });
 
-// ฟังก์ชันแสดง/ซ่อนรหัสผ่าน
+/* ==========================================================================
+   👁️ ฟังก์ชันเปิด-ปิด ดวงตาดูรหัสผ่าน
+   ========================================================================== */
 window.togglePassword = function () {
   const input = document.getElementById("password");
-  const eyeBtn = document.querySelector(".eye-btn");
-  if (!input) return;
-
-  if (input.type === "password") {
-    input.type = "text";
-    if (eyeBtn) eyeBtn.textContent = "🙈";
-  } else {
-    input.type = "password";
-    if (eyeBtn) eyeBtn.textContent = "👁";
+  const icon = document.querySelector(".toggle-password");
+  
+  if (input && icon) {
+    if (input.type === "password") {
+      input.type = "text";
+      icon.textContent = "visibility";
+    } else {
+      input.type = "password";
+      icon.textContent = "visibility_off";
+    }
   }
-};
-
-// Logout ใช้ทุกหน้า
-window.logout = function () {
-  sessionStorage.removeItem("currentUser");
-  window.location.href = "/";
 };
 

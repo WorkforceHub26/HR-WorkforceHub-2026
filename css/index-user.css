@@ -1,558 +1,105 @@
 /* ==========================================================================
-   🤍 PVT User Mobile App - White Cream Premium & Elastic Motion Edition
+   🤍 PVT User Mobile App - index-user.css (Layout หน้าแรกพนักงาน)
    ========================================================================== */
 
-* {
-  box-sizing: border-box;
-}
-
-:root {
-  --primary: #10b981;          /* 🟢 อัปเกรดเป็นสีเขียวพรีเมียมนุ่มนวล */
-  --primary-dark: #059669;
-  --bg: #fcfcf9;               /* สีพื้นหลังขาวนวลครีมอ่อน สบายตา */
-  --card: #ffffff;
-  --text: #0f172a;
-  --muted: #64748b;
-  --border: #eef0eb;           /* เส้นขอบนุ่มนวลพิเศษ */
-  
-  /* ⏱️ Spring & Elastic Motion สำหรับจอมือถือ */
-  --pvt-ease: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+/* 🌟 ดึงพลังจากไฟล์ส่วนกลาง */
+@import url('global.css');
+@import url('theme.css');
+@import url('components.css');
 
 body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: "Kanit", "Noto Sans Thai", sans-serif;
+  /* เก็บพื้นหลังไล่สีสวยๆ ของฝั่งมือถือไว้ */
   background:
-    radial-gradient(circle at top left, #e6f7ed 0, transparent 40%),
-    linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
+    radial-gradient(circle at top left, var(--bg-green) 0, transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, var(--bg-main) 100%);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font-family: inherit;
-}
-
-.app {
-  width: 100%;
-  max-width: 520px;
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 24px 16px 40px;
-}
-
-/* ================= 1. USER HEADER ================= */
+/* ================= HEADER & PROFILE ================= */
 .user-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  align-items: flex-start;
+  padding: 24px 24px 16px;
 }
 
 .brand-row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-width: 0;
+  gap: 16px;
 }
-
 .brand-row img {
-  width: 54px;
-  height: 54px;
-  object-fit: contain;
-  border-radius: 16px;
-  background: #ffffff;
-  padding: 6px;
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 20px rgba(142, 153, 125, 0.04);
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
-
-.hello {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-
 .user-header h1 {
-  margin: 2px 0;
+  margin: 0 0 4px 0;
   font-size: 24px;
+  color: var(--text-dark);
   font-weight: 600;
-  letter-spacing: -0.3px;
 }
-
-.user-header span {
-  color: var(--muted);
-  font-size: 13px;
-}
+.user-header p { margin: 0; color: var(--text-muted); font-size: 14px; }
 
 .logout-btn {
-  flex: 0 0 auto;
-  border: 1px solid #fee2e2;
-  border-radius: 12px;
-  padding: 8px 14px;
-  background: #fff5f5;
-  color: #dc2626;
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 13px;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 10px;
+  color: var(--red);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
   transition: var(--pvt-ease);
 }
-.logout-btn:active {
-  transform: scale(0.92);
-  background: #fecdd3;
-}
+.logout-btn:active { transform: scale(0.92); }
 
-/* ================= 2. SUMMARY CARD (WHITE CREAM LUXE) ================= */
+/* ================= SUMMARY CARD ================= */
 .summary-card {
+  background: var(--bg-card);
+  margin: 0 24px 24px;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-around;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
+  border: 1px solid var(--border-light);
+}
+.stat-box { text-align: center; }
+.stat-box h3 { margin: 0; font-size: 28px; color: var(--primary); font-weight: 600; }
+.stat-box p { margin: 4px 0 0; font-size: 13px; color: var(--text-muted); }
+.stat-divider { width: 1px; background: var(--border-light); margin: 0 10px; }
+
+/* ================= QUICK MENU ================= */
+.menu-section { padding: 0 24px 32px; }
+.menu-section h2 { font-size: 18px; color: var(--text-dark); margin-bottom: 16px; }
+
+.menu-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  background: #fdfdfb; /* เปลี่ยนเป็นสีครีมนวลดูหรูหราสะอาดตา */
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 22px;
-  margin-bottom: 20px;
-  color: var(--text);
-  box-shadow: 0 12px 30px rgba(142, 153, 125, 0.05);
+}
+
+.menu-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 20px 16px;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   transition: var(--pvt-ease);
+  -webkit-tap-highlight-color: transparent;
 }
-.summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 35px rgba(142, 153, 125, 0.08);
-}
-
-.summary-card div {
-  display: flex;
-  flex-direction: column;
-}
-
-.summary-card span {
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-/* ตัวเลขสถิติเด่นชัดขึ้น */
-.summary-card strong {
-  display: block;
-  margin-top: 6px;
-  font-size: 38px;
-  line-height: 1;
-  font-weight: 700;
-  color: var(--primary); /* สีเขียวสำหรับโควตาคงเหลือ */
-}
-
-/* ผลักให้สีช่องที่ใช้ไปแล้วดูแยกชัดเจน */
-.summary-card div:last-child strong {
-  color: #334155; 
-}
-
-.summary-card p {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-/* ================= 3. PRIMARY ACTION (BOUNCE BUTTON) ================= */
-.primary-action {
-  background: var(--card);
-  border-radius: 24px;
-  padding: 20px;
-  margin-bottom: 20px;
-  border: 1px solid var(--border);
-  box-shadow: 0 12px 30px rgba(142, 153, 125, 0.04);
-}
-
-.primary-action h2 {
-  margin: 0 0 14px;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.request-leave-btn {
-  width: 100%;
-  border: none;
+.menu-item:active { transform: scale(0.95); }
+.menu-item .icon {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 12px;
   border-radius: 16px;
-  padding: 16px;
-  background: var(--primary);
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: 600;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--pvt-ease);
 }
-.request-leave-btn:active {
-  transform: scale(0.94); /* เอฟเฟกต์ยุบสปริงเวลาใช้นิ้วกด */
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-}
-
-.request-leave-btn span {
-  display: inline-grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  margin-right: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  font-size: 14px;
-}
-
-/* ================= 4. MENU GRID (PREMIUM SOFT ICON) ================= */
-.menu-grid {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.menu-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 16px;
-  background: var(--card);
-  text-align: left;
-  font-family: inherit;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.015);
-  transition: var(--pvt-ease);
-}
-.menu-card:active {
-  transform: scale(0.96); /* สปริงยุบตัวเบาๆ ตอนนิ้วแตะเมนู */
-  background: #fafaf8;
-  border-color: #cbd5e1;
-}
-
-.menu-card strong {
-  display: block;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.menu-card p {
-  margin: 3px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.menu-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-size: 24px;
-  flex-shrink: 0;
-  transition: var(--pvt-ease);
-}
-
-/* สีไอคอนโทนพาสเทลละมุนตา */
-.blue { background: #eff6ff; color: #3b82f6; }
-.green { background: #f0fdf4; color: #10b981; }
-.orange { background: #fff7ed; color: #f97316; }
-.purple { background: #f5f3ff; color: #8b5cf6; }
-
-/* ================= 5. RECENT CARD & STATUS ================= */
-.recent-card {
-  background: var(--card);
-  border-radius: 24px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  box-shadow: 0 12px 30px rgba(142, 153, 125, 0.04);
-}
-
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.section-head h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.section-head button {
-  border: none;
-  background: transparent;
-  color: var(--primary);
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 14px;
-  transition: var(--pvt-ease);
-}
-.section-head button:active {
-  transform: scale(0.9);
-}
-
-.empty-state {
-  padding: 24px;
-  border-radius: 16px;
-  background: #fafaf8;
-  color: var(--muted);
-  text-align: center;
-  font-size: 14px;
-  border: 1px dashed #e2e8f0;
-}
-
-.recent-item {
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
-  transition: var(--pvt-ease);
-}
-.recent-item:last-child {
-  border-bottom: none;
-}
-
-.recent-item strong {
-  display: block;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.recent-item p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-/* สถานะแฮนเมดพรีเมียม */
-.status {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-}
-.status.pending { background: #fef3c7; color: #d97706; }
-.status.approved { background: #dcfce7; color: #15803d; }
-.status.rejected { background: #fee2e2; color: #b91c1c; }
-
-/* ================= 6. FLOATING ACTION BUTTON (FAB) ================= */
-.contact-fab {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  border: none;
-  border-radius: 999px;
-  padding: 14px 20px;
-  background: #0f172a;
-  color: #ffffff;
-  font-family: inherit;
-  font-weight: 500;
-  font-size: 14px;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
-  transition: var(--pvt-ease);
-  z-index: 1000;
-}
-.contact-fab:active {
-  transform: scale(0.9);
-  background: #1e293b;
-}
-
-/* ================= 7. RULES & FLOW PAGES ================= */
-.rules-page {
-  padding-bottom: 40px;
-}
-
-.flow-list {
-  display: grid;
-  gap: 12px;
-}
-
-.flow-list div {
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: #fafaf8;
-  transition: var(--pvt-ease);
-}
-
-.flow-list b {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 14px;
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
-}
-
-.rules-grid {
-  display: grid;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.rule-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 18px;
-  box-shadow: 0 10px 24px rgba(142, 153, 125, 0.03);
-}
-
-.rule-card h2 {
-  margin: 0 0 12px;
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.rule-card ul {
-  margin: 0;
-  padding-left: 20px;
-  color: #475569;
-  line-height: 1.7;
-  font-size: 14px;
-}
-
-.warning-card {
-  border-color: #ffedd5;
-  background: #fffbfe; /* นวลอมส้มจางพิเศษ */
-}
-
-.inline-action,
-.inline-link {
-  display: inline-flex;
-  margin-top: 12px;
-  margin-right: 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 8px 14px;
-  background: #ffffff;
-  color: var(--primary);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: var(--pvt-ease);
-}
-.inline-action:active,
-.inline-link:active {
-  transform: scale(0.93);
-  background: #fafaf8;
-}
-
-.muted-note {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.profile-box {
-  display: grid;
-  gap: 10px;
-}
-
-.profile-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: #fafaf8;
-}
-
-.profile-row span,
-.contact-card p {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.contact-card {
-  display: grid;
-  gap: 8px;
-}
-
-.contact-card strong {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-/* ================= SCREEN SIZE FIXES ================= */
-@media (max-width: 380px) {
-  .user-header h1 {
-    font-size: 21px;
-  }
-
-  .brand-row img {
-    width: 46px;
-    height: 46px;
-  }
-  
-  .summary-card {
-    padding: 16px;
-    gap: 10px;
-  }
-}
-
-/* ==========================================================================
-   🔙 PREMIUM BACK BUTTON (สำหรับหน้าย่อยฝั่งพนักงาน)
-   ========================================================================== */
-
-.back-nav {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px; /* ระยะห่างจากหัวข้อด้านล่าง */
-}
-
-.btn-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 8px 14px;
-  background: #ffffff;
-  color: var(--text);
-  font-family: "Kanit", sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(142, 153, 125, 0.03);
-  cursor: pointer;
-  transition: var(--pvt-ease); /* ใช้แอนิเมชันสมูทตัวเดียวกับหลัก */
-}
-
-/* เอฟเฟกต์ตอนใช้นิ้วแตะปุ่มย้อนกลับ (Elastic Tap) */
-.btn-back:active {
-  transform: scale(0.92);
-  background: #fafaf8;
-  border-color: #cbd5e1;
-}
-
-.back-icon {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--primary); /* ลูกศรสีเขียวพรีเมียมชี้ทาง */
-  transition: var(--pvt-ease);
-}
-
-/* เพิ่มแอนิเมชันลูกศรขยับถอยหลังเบา ๆ ตอนกด */
-.btn-back:active .back-icon {
-  transform: translateX(-4px);
-}
+.menu-item .icon span { font-size: 28px; }
+.menu-item h3 { margin: 0 0 4px; font-size: 15px; color: var(--text-dark); }
+.menu-item p { margin: 0; font-size: 12px; color: var(--text-muted); }

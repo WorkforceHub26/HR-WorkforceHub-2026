@@ -3,6 +3,64 @@
  * 🏢 PVT WORKFORCE HUB - DASHBOARD CORE SYSTEM (ADVANCED DEBUGGED EDITION)
  * ==========================================================================
  */
+/**
+ * 🕵️‍♂️ PVT CSS Loader Guardian (ระบบสายตรวจเช็คสถานะการโหลด CSS)
+ * วางไว้บรรทัดแรกสุดของสคริปต์ เพื่อให้ทำงานก่อนที่ CSS จะโหลดเสร็จสิ้น
+ */
+(function() {
+  console.group("🎨 [CSS Verification Timeline]: เริ่มต้นตรวจสอบสไตล์ชีท...");
+
+  // 1. ตรวจสอบไฟล์ CSS ที่ผูกอยู่กับแท็ก <link> ทั้งหมดในหน้าเว็บ
+  const cssLinks = document.querySelectorAll('link[rel="stylesheet"]');
+  
+  if (cssLinks.length === 0) {
+    console.warn("⚠️ [CSS Warning]: ไม่พบแท็กผูก CSS (<link rel='stylesheet'>) ในหน้า HTML นี้เลย!");
+  }
+
+  cssLinks.forEach((link, index) => {
+    const url = link.getAttribute('href');
+    
+    // ตั้งค่าตัวดักจับกรณี "โหลดสำเร็จ" ✅
+    link.addEventListener('load', () => {
+      console.log(`✅ [CSS Loaded] [ตัวที่ ${index + 1}]: โหลดสำเร็จ -> "${url}"`);
+    });
+
+    // ตั้งค่าตัวดักจับกรณี "โหลดล้มเหลว/ไฟล์หาย/Path ผิด" ❌
+    link.addEventListener('error', (err) => {
+      console.error(`🚨 [CSS CRITICAL ERROR] [ตัวที่ ${index + 1}]: ไม่สามารถโหลดไฟล์นี้ได้! -> "${url}" (กรุณาเช็คว่าพิมพ์ชื่อถูกหรือไฟล์ถูกลบไปแล้วหรือยัง)`);
+    });
+  });
+
+  // 2. ตรวจสอบปัญหา @import ซ่อนรูปแอบพังอยู่ข้างในไฟล์สไตล์ชีท
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      console.group("🔍 [Deep CSS Inspection]: เจาะลึกโครงสร้างภายในไฟล์ CSS...");
+      
+      Array.from(document.styleSheets).forEach((sheet, sheetIdx) => {
+        try {
+          const rules = sheet.cssRules || sheet.rules;
+          const sheetUrl = sheet.href ? sheet.href.split('/').pop() : 'Inline Style';
+          
+          console.log(`📋 ตรวจสอบไฟล์: "${sheetUrl}" (มีคำสั่งสไตล์ทั้งหมด ${rules.length} บรรทัด)`);
+          
+          // ค้นหาว่ามีใครแอบสั่ง @import แล้วระบบหลังบ้านอ่านไม่ได้จนพ่น MIME Type HTML ออกมาไหม
+          Array.from(rules).forEach((rule, ruleIdx) => {
+            if (rule.type === CSSRule.IMPORT_RULE) {
+              console.log(`🔗 พบการใช้ @import ข้างในไฟล์: -> แอบดึงไฟล์ "${rule.href}"`);
+            }
+          });
+        } catch (e) {
+          // หากเบราว์เซอร์บล็อกการเข้าถึงเนื่องจากปัญหา MIME Type หรือข้อจำกัดความปลอดภัย
+          console.error(`❌ [CSS Rule Blocked]: เบราว์เซอร์ปฏิเสธการอ่านเนื้อหาภายในไฟล์เนื่องจากสไตล์ชีทพัง หรือเกิด MIME Type Error! (URL: ${sheet.href})`);
+        }
+      });
+      
+      console.groupEnd();
+      console.groupEnd(); // ปิดกลุ่มการตรวจภายนอก
+    }, 500); // รอให้เบราว์เซอร์ประมวลผลสไตล์แวบหนึ่งหลังหน้าเว็บโหลดเสร็จ
+  });
+})();
+
 
 let sb = null;
 let rawRequests = [];
@@ -279,7 +337,7 @@ function renderBellNotifications(requests) {
         bellDropdown.classList.remove("active");
         switchTab("pending");
         
-        const tableSection = document.querySelector(".quick-menu-section");
+        const tableSection = document.querySelector(".quick-menu-panel");
         if (tableSection) {
           tableSection.scrollIntoView({ behavior: "smooth", block: "start" });
         }
