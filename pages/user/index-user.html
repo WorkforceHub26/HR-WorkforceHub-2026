@@ -25,74 +25,60 @@
       <button type="button" class="logout-btn" onclick="logout(); return false;">
         ออก
       </button>
-      
-
     </header>
 
-    <section class="summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0;">
-      
-      <div class="summary-card" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 12px; text-align: center;">
-        <span class="material-symbols-outlined icon green" style="color: #16a34a;">event_available</span>
-        <p style="margin: 4px 0; font-size: 12px; color: #166534;">วันลาคงเหลือ</p>
-        <h3 id="leaveBalance" style="margin: 4px 0; font-size: 20px; color: #16a34a;">-</h3>
-        <small style="color: #166534; font-size: 11px;">วัน</small>
+    <section class="stat-container">
+      <div class="stat-box">
+        <h3 id="leaveBalance">-</h3>
+        <p>คงเหลือ (วัน)</p>
       </div>
-
-      <div class="summary-card" style="background: #fef2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: 12px; text-align: center;">
-        <span class="material-symbols-outlined icon red" style="color: #dc2626;">history</span>
-        <p style="margin: 4px 0; font-size: 12px; color: #991b1b;">ใช้ไปแล้ว</p>
-        <h3 id="usedBalance" style="margin: 4px 0; font-size: 20px; color: #dc2626;">-</h3>
-        <small style="color: #991b1b; font-size: 11px;">วัน</small>
+      <div class="stat-divider"></div>
+      <div class="stat-box">
+        <h3 id="usedBalance">-</h3>
+        <p>ใช้ไปแล้ว</p>
       </div>
-
-      <div class="summary-card" style="background: #fef9c3; border: 1px solid #fef08a; padding: 12px; border-radius: 12px; text-align: center;">
-        <span class="material-symbols-outlined icon orange" style="color: #d97706;">pending_actions</span>
-        <p style="margin: 4px 0; font-size: 12px; color: #854d0e;">รออนุมัติลา</p>
-        <h3 id="pendingCount" style="margin: 4px 0; font-size: 20px; color: #d97706;">-</h3>
-        <small style="color: #854d0e; font-size: 11px;">รายการ</small>
+      <div class="stat-divider"></div>
+      <div class="stat-box">
+        <h3 id="pendingCount">-</h3>
+        <p>รออนุมัติ</p>
       </div>
-
     </section>
 
-    <section class="primary-action">
-      <h2>ต้องการทำรายการอะไร?</h2>
-      <button class="request-leave-btn" onclick="goToLeaveForm()">
-        <span>+</span> ขออนุญาตลา
-      </button>
-    </section>
+    <section class="menu-section">
+      <h2>เมนูจัดการสำหรับพนักงาน</h2>
+      <div class="menu-grid">
+        <button class="menu-card" onclick="goToLeaveForm()">
+          <div class="menu-icon blue">📝</div>
+          <div>
+            <strong>ขออนุญาตลา</strong>
+            <p>ยื่นใบลาออนไลน์อนุมัติไว</p>
+          </div>
+        </button>
 
-    <section class="menu-grid">
-      <button class="menu-card" onclick="goToLeaveForm()">
-        <div class="menu-icon blue">📝</div>
-        <div>
-          <strong>ขอลา</strong>
-          <p>กรอกใบลาออนไลน์ตามแบบฟอร์มบริษัท</p>
-        </div>
-      </button>
+        <button class="menu-card" onclick="goToRules()">
+          <div class="menu-icon purple">📖</div>
+          <div>
+            <strong>หลักเกณฑ์การลา</strong>
+            <p>เปิดอ่านเงื่อนไขบริษัท</p>
+          </div>
+        </button>
 
-      <button class="menu-card" onclick="goToRules()">
-        <div class="menu-icon purple">📘</div>
-        <div>
-          <strong>หลักเกณฑ์การลา</strong>
-          <p>อ่านเงื่อนไขและขั้นตอนอนุมัติก่อนส่งคำขอ</p>
-        </div>
-      </button>
+        <button class="menu-card" onclick="goToLeaveHistory()">
+          <div class="menu-icon green">⏳</div>
+          <div>
+            <strong>ประวัติการลา</strong>
+            <p>ตรวจสอบสถานะใบลา</p>
+          </div>
+        </button>
 
-      <button class="menu-card" onclick="goToLeaveHistory()">
-        <div class="menu-icon green">📋</div>
-        <div>
-          <strong>ประวัติการลา</strong>
-          <p>ดูสถานะคำขอที่ส่งไปแล้ว</p>
-        </div>
-      </button>
-
-      <button class="menu-card" onclick="goToProfile()">
-        <div class="menu-icon orange">👤</div>
-        <div>
-          <strong>ข้อมูลพนักงาน</strong>
-          <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
-        </div>
-      </button>
+        <button class="menu-card" onclick="goToProfile()">
+          <div class="menu-icon orange">👤</div>
+          <div>
+            <strong>ข้อมูลพนักงาน</strong>
+            <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
+          </div>
+        </button>
+      </div>
     </section>
 
     <section class="recent-card">
@@ -112,19 +98,12 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/auth-guard.js"></script>
   <script>
-  // ตัวอย่างที่ 1: แอบจับทราฟฟิกตอนพนักงานเปิดเข้ามาที่หน้านี้ปุ๊บ ฟ้องพี่มิกทันที!
   document.addEventListener("DOMContentLoaded", () => {
-     logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+     if (typeof logUserAction === "function") {
+       logUserAction("คุณ สมชาย ใจดี", "OPEN_PAGE", "เปิดเข้ามาที่หน้าแบบฟอร์มยื่นใบลา");
+     }
   });
-
-  // ตัวอย่างที่ 2: ผูกไว้กับปุ่มกดเซฟ/ส่งใบลาป่วย
-  async function handleFormSubmit() {
-     // ... โค้ดบันทึกใบลาเดิมของพี่ ...
-     
-     // พอบันทึกเสร็จ ใส่บรรทัดนี้สั่งฟ้องไปที่จอแดชบอร์ดพี่มิก
-     logUserAction("คุณ สมชาย ใจดี", "INSERT", "กดปุ่มส่งใบลาป่วย 3 วัน (ระบุเหตุผล: ลาไปหาหมอตามนัด)");
-  }
-</script>
+  </script>
   <script src="/js/index-user.js"></script>
 </body>
 </html>

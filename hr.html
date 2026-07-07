@@ -5,84 +5,107 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>กระดานอนุมัติใบลา | PVT HR Manager</title>
   
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   
-  <link rel="stylesheet" href="/css/hr.css" />
-  
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/css/index.css" />
+  <link rel="stylesheet" href="/css/hr.css" /> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
   <div class="app-shell">
     
-    <aside class="sidebar">
-      <div class="brand">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT" style="height: 65px; width: auto; margin-bottom: 12px;"/>
-        <h2>PVT Workforce</h2>
-        <p>HR Management System</p>
+    <aside class="sidebar-light">
+      <div class="brand-zone">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
       </div>
       
-      <nav class="side-nav">
-         <a class="nav-item" href="/index.html">
+      <nav class="nav-menu">
+         <a href="/index.html" class="nav-item">
           <span class="material-symbols-outlined">dashboard</span>
-          <span class="nav-label">หน้าหลักบอร์ด</span>
+          <span class="nav-label">หน้าหลัก</span>
         </a>
-        <a class="nav-item active" href="/hr.html">
+        <a href="/hr.html" class="nav-item active">
           <span class="material-symbols-outlined">fact_check</span>
-          <span class="nav-label">กระดานอนุมัติใบลา</span>
+          <span class="nav-label">อนุมัติใบลา</span>
         </a>
-        <a class="nav-item" href="/pages/user/history-table.html">
-          <span class="material-symbols-outlined">group</span>
-          <span class="nav-label">ฐานข้อมูลพนักงาน</span>
+        <a href="/pages/user/management.html" class="nav-item">
+          <span class="material-symbols-outlined">manage_accounts</span>
+          <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
         </a>
-        <a class="nav-item" href="/pages/user/leave-rules.html">
-          <span class="material-symbols-outlined">menu_book</span>
-          <span class="nav-label">หลักเกณฑ์การลา</span>
+        <a href="/pages/user/index-user.html" class="nav-item">
+          <span class="material-symbols-outlined">rule</span>
+          <span class="nav-label">หน้าพนักงาน</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="nav-item">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span class="nav-label">วันหยุด</span>
+        </a>
+        <a href="/pages/user/history-table.html" class="nav-item">
+          <span class="material-symbols-outlined">history_edu</span>
+          <span class="nav-label">ประวัติ</span>
         </a>
       </nav>
       
-      <div class="logout-wrapper" style="margin-top: auto; padding-top: 20px;">
-        <button onclick="handleLogout()" class="btn-logout">
-          <span class="material-symbols-outlined" style="font-size: 18px;">logout</span> ออกจากระบบ
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          ออกจากระบบ
         </button>
       </div>
     </aside>
 
     <main class="main-content">
-      <header class="content-header" style="margin-bottom: 30px;">
-        <span style="color: var(--admin-primary); font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">LEAVE APPROVALS BOARD</span>
-        <h1 style="margin-top: 4px;">รายการคำขออนุมัติลา (Pending Requests)</h1>
+      
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>รายการคำขออนุมัติลา (Pending Requests)</h1>
+          <p>LEAVE APPROVALS BOARD</p>
+        </div>
+        <div class="topbar-right">
+          <div class="user-profile">
+            <div class="avatar">HR</div>
+            <div class="info">
+              <strong>ผู้ดูแลระบบ</strong>
+              <span>PVT Administrator</span>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <section class="panel">
-        <div class="panel-head" style="margin-bottom: 20px;">
-          <h3 style="display: flex; align-items: center; gap: 8px;">
-            <span class="material-symbols-outlined" style="color: #f59e0b;">hourglass_top</span>
-            รอการพิจารณาจาก HR
-          </h3>
-          <button class="btn-pvt-light" onclick="loadPendingLeavesHR()">
-            <span class="material-symbols-outlined">sync</span> รีเฟรชข้อมูล
+      <section class="panel table-panel">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="material-symbols-outlined text-primary">hourglass_top</span>
+            <h2 style="margin: 0;">รอการพิจารณาจาก HR</h2>
+          </div>
+          
+          <button style="background: var(--primary-soft); color: var(--primary); border: 1px solid var(--primary); padding: 8px 16px; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease;" onclick="loadPendingLeavesHR()" onmouseover="this.style.background='var(--primary)'; this.style.color='#fff';" onmouseout="this.style.background='var(--primary-soft)'; this.style.color='var(--primary)';">
+            <span class="material-symbols-outlined" style="font-size: 18px;">sync</span> รีเฟรชข้อมูล
           </button>
         </div>
         
-        <div class="table-scroll">
-          <table class="luxury-admin-table">
-            <thead>
-              <tr>
-                <th>รหัสพนักงาน</th>
-                <th>ข้อมูลผู้ลา</th>
-                <th>ประเภทการลา</th>
-                <th>ช่วงวันที่</th>
-                <th style="text-align: center;">จำนวนวัน</th>
-                <th>สถานะปัจจุบัน</th>
-                <th style="text-align: center; width: 280px;">จัดการ (Action)</th>
-              </tr>
-            </thead>
+        <div class="table-responsive">
+          <table>
+            <thead style="background: #f8fafc; border-bottom: 1px solid var(--border);">
+                <tr>
+                  <th style="padding: 16px;">รหัสพนักงาน</th>
+                  <th style="padding: 16px;">ข้อมูลผู้ลา</th>
+                  <th style="padding: 16px;">ประเภทการลา</th>
+                  <th style="padding: 16px;">วันเวลาที่ลา</th>
+                  <th style="padding: 16px; text-align: center;">จำนวนวัน</th>
+                  
+                  <th style="padding: 16px; text-align: center;">สถานะ หัวหน้า</th>
+                  <th style="padding: 16px; text-align: center;">สถานะ ผู้จัดการ</th>
+                  <th style="padding: 16px; text-align: center;">สถานะ HR</th>
+                  <th style="padding: 16px; text-align: center;">จัดการ (Action)</th>
+                </tr>
+              </thead>
             <tbody id="leaveRequestsBody">
               <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
-                  <span class="material-symbols-outlined" style="font-size: 32px; display: block; margin-bottom: 12px; color: #cbd5e1;">cloud_sync</span>
+                <td colspan="7" style="text-align: center; padding: 60px; color: var(--text-soft);">
+                  <span class="material-symbols-outlined" style="font-size: 40px; display: block; margin-bottom: 16px; color: #cbd5e1; animation: pulse 2s infinite;">cloud_sync</span>
                   กำลังเชื่อมต่อข้อมูลใบลา...
                 </td>
               </tr>
@@ -90,11 +113,13 @@
           </table>
         </div>
       </section>
+
     </main>
   </div>
 
+  <div id="statusToast" class="toast"></div>
+
   <script src="/js/supabase-config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/auth-guard.js"></script>
   <script src="/js/hr.js"></script>
 </body>

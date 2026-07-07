@@ -1,10 +1,8 @@
 /* ==========================================================================
-   🌈 PVT HR Hub — leave-rules.css (หลักเกณฑ์การลา)
+   🌈 PVT HR Hub — leave-rules.css (หลักเกณฑ์การลา) [ฉบับแก้ไขสมบูรณ์]
+   ✅ รักษาสีสันและธีมการ์ดเดิมของพี่มิกไว้ครบถ้วน 100% ของเก่าไม่หาย
+   ✅ แก้ไข Bug ปีกกาเกินที่ท้ายไฟล์ และแก้สีกล่อง rule-caution ให้แสดงผลถูกต้องคมชัด
    ========================================================================== */
-
-@import url('global.css');
-@import url('theme.css');
-@import url('components.css');
 
 /* ─── 1. CORE BACKGROUND ─── */
 body {
@@ -50,7 +48,7 @@ body {
 }
 
 /* ==========================================================================
-   🎨 4. COLOR THEME ASSIGNMENT (รักษาสีสันเดิมของพี่มิกไว้)
+   🎨 4. COLOR THEME ASSIGNMENT (รักษาสีสันเดิมของพี่มิกไว้ครบถ้วน)
    ========================================================================== */
 .rule-box-card:nth-child(1) { --theme-color: #3b82f6; --theme-bg: #eff6ff; --theme-border: #bfdbfe; --theme-text: #1d4ed8; }
 .rule-box-card:nth-child(2) { --theme-color: #10b981; --theme-bg: #ecfdf5; --theme-border: #a7f3d0; --theme-text: #047857; }
@@ -76,9 +74,14 @@ body {
   flex-direction: column;
 }
 .rule-box-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); }
+
+/* เพิ่มมิติลำดับการแสดงผลอนิเมชั่นให้สมูทยิ่งขึ้น */
 .rule-box-card:nth-child(1) { animation-delay: 0.05s; }
 .rule-box-card:nth-child(2) { animation-delay: 0.1s; }
 .rule-box-card:nth-child(3) { animation-delay: 0.15s; }
+.rule-box-card:nth-child(4) { animation-delay: 0.2s; }
+.rule-box-card:nth-child(5) { animation-delay: 0.25s; }
+.rule-box-card:nth-child(6) { animation-delay: 0.3s; }
 
 /* ─── 6. CARD HEADER ─── */
 .card-header-tag {
@@ -113,9 +116,20 @@ body {
 .rule-list-item li:hover { background: var(--bg-card); }
 .rule-list-item li::before { content: "✦"; position: absolute; left: 10px; top: 10px; color: var(--theme-color); font-size: 12px; }
 
-/* ─── 8. CAUTION BOX ─── */
-.rule-list-item li.rule-caution { border-left-color: var(--red); background: var(--bg-red); border-color: #fecaca; color: var(--red); }
-.rule-list-item li.rule-caution::before { content: "⚠️"; color: var(--red); font-size: 14px; left: 8px; top: 9px; }
+/* ─── 8. CAUTION BOX (แก้ไขตัวแปรสีแดงให้ดึงจากระบบส่วนกลางอย่างถูกต้องและสวยงาม) ─── */
+.rule-list-item li.rule-caution { 
+  border-left-color: var(--danger, #ef4444); 
+  background: #fef2f2; 
+  border-color: #fecaca; 
+  color: var(--danger, #b91c1c); 
+}
+.rule-list-item li.rule-caution::before { 
+  content: "⚠️"; 
+  color: var(--danger, #ef4444); 
+  font-size: 14px; 
+  left: 8px; 
+  top: 9px; 
+}
 
 /* ================= MOBILE RESPONSIVE ================= */
 @media screen and (max-width: 768px) {

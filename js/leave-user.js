@@ -383,3 +383,96 @@ document.addEventListener("DOMContentLoaded", async () => {
   await fetchCurrentUserData(); // 2. โหลดข้อมูลผู้ใช้งาน (และสั่งปิดสัญลักษณ์โหลด ⏳)
   addLeaveRow();            // 3. ปล่อยการ์ดคำขอใบแรกเริ่มต้นขึ้นจอบนหน้าเว็บ
 });
+
+// ==========================================================================
+// 🛡️ ระบบล็อกปุ่มและตรวจสอบเงื่อนไขการลาขั้นสูง (Quota & Vacation Rules)
+// ==========================================================================
+function validateLeaveRulesAndQuota() {
+  const saveBtn = document.getElementById("saveLeaveBtn");
+  const leaveTypeSelect = document.getElementById("leaveType");
+  const totalDaysInput = document.getElementById("totalDays");
+
+  if (!leaveTypeSelect || !totalDaysInput) return true;
+
+  const selectedType = leaveTypeSelect.value; // จะได้ค่าเป็น ID หรือ Code เช่น LV_PERSONAL, VACATION
+  const requestedDays = parseFloat(totalDaysInput.value) || 0;
+
+  // คืนค่าปุ่มบันทึกให้กลับมาปกติก่อนตรวจทุกครั้ง
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.style.backgroundColor = "";
+    saveBtn.style.cursor = "pointer";
+    saveBtn.textContent = "💾 บันทึกคำขอลา";
+  }
+
+  if (requestedDays <= 0) return true;
+
+  // ─── เงื่อนไขที่ 1: ตรวจสอบการลาพักร้อนรวดเดียวเกิน 3 วัน ───
+  // (ระบบตรวจสอบจากคำว่า VACATION หรือ พักร้อน)
+  if (selectedType.includes("VACATION") || selectedType.includes("vacation") || selectedType.includes("7e6bea12")) {
+    if (requestedDays > 3) {
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.backgroundColor = "#64748b"; // เปลี่ยนเป็นสีเทาซอฟต์ล็อกไว้
+        saveBtn.style.cursor = "not-allowed";
+        saveBtn.textContent = "🔒 ลาพักร้อนเกิน 3 วันติดต่อกันไม่ได้";
+      }
+
+      Swal.fire({
+        icon: "warning",
+        title: "เงื่อนไขการลาพักร้อนผันผ่อน",
+        html: `ไม่สามารถใช้สิทธิ์ลาพักร้อนทีเดียว <b>${requestedDays} วัน</b> ได้ค่ะ<br><br>
+               <span style="color: #ea580c; font-weight: 600;">💡 แนวทางปฏิบัติ:</span><br>
+               ต้องแบ่งเขียนคำขอแยกเป็น 2 ใบ คือ:<br>
+               1. ใบที่หนึ่ง: <b>ลากิจจำเป็น 3 วัน</b><br>
+               2. ใบที่สอง: <b>ลาพักร้อนผันผ่อน 3 วัน</b><br><br>
+               *ส่งเอกสารแยกกัน 2 ใบ แต่ HR จะพิจารณาอนุมัติรวมให้ในรอบเดียวค่ะ*`,
+        confirmButtonText: "รับทราบและแก้ไขจำนวนวัน",
+        confirmButtonColor: "#ea580c"
+      });
+      return false;
+    }
+  }
+
+  // ─── เงื่อนไขที่ 2: ตรวจสอบโควตาคงเหลือของพนักงาน (ถ้าลาเกินสิทธิ์) ───
+  let remainingQuota = 999;
+  let leaveTypeNameText = "ประเภทการลานนี้";
+
+  // ดึงข้อมูลสิทธิ์คงเหลือจากตัวแปรสิทธิ์ในระบบ (แมปตาม Database จริงของคุณ)
+  if (window.currentLeaveBalance || currentProfile) {
+    const balance = window.currentLeaveBalance;
+    if (selectedType.includes("SICK") || selectedType.includes("sick")) {
+      remainingQuota = balance?.sick_remaining ?? 30;
+      leaveTypeNameText = "ลาป่วย";
+    } else if (selectedType.includes("PERSONAL") || selectedType.includes("personal") || selectedType.includes("41a854f4")) {
+      remainingQuota = balance?.personal_remaining ?? 6;
+      leaveTypeNameText = "ลากิจจำเป็น";
+    } else if (selectedType.includes("VACATION") || selectedType.includes("vacation") || selectedType.includes("7e6bea12")) {
+      remainingQuota = balance?.vacation_remaining ?? 6;
+      leaveTypeNameText = "ลาพักร้อน";
+    }
+  }
+
+  // หากจำนวนวันลาที่กรอก เกินสิทธิ์คงเหลือจริงที่มีอยู่
+  if (requestedDays > remainingQuota) {
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.style.backgroundColor = "#ef4444"; // ปุ่มเปลี่ยนสีแดงเตือนภัย
+      saveBtn.style.cursor = "not-allowed";
+      saveBtn.textContent = "❌ ลาเกินกำหนดโปรดติดต่อ HR";
+    }
+
+    Swal.fire({
+      icon: "error",
+      title: "สิทธิ์วันลาของคุณไม่เพียงพอ",
+      html: `คุณระบุจำนวนวันลา <b>${requestedDays} วัน</b><br>
+             แต่สิทธิ์คงเหลือของ${leaveTypeNameText}คงเหลือเพียง <b>${remainingQuota} วัน</b><br><br>
+             <span style="color: #ef4444; font-weight: bold; font-size: 16px;">🛑 ลาเกินกำหนดโปรดติดต่อ HR</span>`,
+      confirmButtonText: "รับทราบ",
+      confirmButtonColor: "#ef4444"
+    });
+    return false;
+  }
+
+  return true;
+}

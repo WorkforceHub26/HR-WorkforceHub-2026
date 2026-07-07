@@ -7,331 +7,183 @@
   
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  
   <link rel="stylesheet" href="/css/index.css" />
+  <link rel="stylesheet" href="/css/leave-rules.css" />
   
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    /* แอนิเมชันตอนหน้าเว็บโหลดเสร็จ ให้ Element ค่อยๆ ลอยขึ้นมา */
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(24px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    /* สไตล์เพิ่มเติมสำหรับจัดการ Layout แบบไม่มี Sidebar */
+    .rules-page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
     }
 
-    /* กำหนด Layout การ์ดเป็น Grid ที่ตอบสนองหน้าจอทุกขนาด */
-    .rules-grid-layout {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 24px;
-      margin-top: 24px;
-      padding-bottom: 40px;
-    }
-
-    /* ตัวการ์ดหลักเกณฑ์แบบพรีเมียม พร้อม Animation */
-    .rule-box-card {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      position: relative;
-      overflow: hidden;
-      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
-    /* ใส่หน่วงเวลาให้การ์ดแต่ละใบ ค่อยๆ ทยอยลอยขึ้นมาไม่พร้อมกัน */
-    .rule-box-card:nth-child(1) { animation-delay: 0.05s; }
-    .rule-box-card:nth-child(2) { animation-delay: 0.10s; }
-    .rule-box-card:nth-child(3) { animation-delay: 0.15s; }
-    .rule-box-card:nth-child(4) { animation-delay: 0.20s; }
-    .rule-box-card:nth-child(5) { animation-delay: 0.25s; }
-    .rule-box-card:nth-child(6) { animation-delay: 0.30s; }
-    .rule-box-card:nth-child(7) { animation-delay: 0.35s; }
-    .rule-box-card:nth-child(8) { animation-delay: 0.40s; }
-    .rule-box-card:nth-child(9) { animation-delay: 0.45s; }
-    .rule-box-card:nth-child(10) { animation-delay: 0.50s; }
-
-    /* เอฟเฟกต์เมื่อเอาเมาส์ชี้ (Hover Lift & Glow) */
-    .rule-box-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 12px 20px -3px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-      border-color: #cbd5e1;
-    }
-
-    /* แถบหัวเรื่องไอคอนภายในการ์ด */
-    .card-header-tag {
+    .rules-top-bar {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1.5px dashed #f1f5f9;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      gap: 20px;
     }
 
-    .card-header-tag .material-symbols-outlined {
-      font-size: 22px;
+    .rules-title-section h1 {
+      font-size: 28px;
+      color: var(--text, #0f172a);
+      margin: 0 0 4px 0;
+      font-weight: 700;
     }
 
-    /* แยกสีตามสไตล์ประเภทวันลา */
-    .tag-vacation { color: #0284c7; }
-    .tag-sick { color: #ef4444; }
-    .tag-personal { color: #f59e0b; }
-    .tag-maternity { color: #ec4899; }
-    .tag-general { color: #6366f1; }
-    .tag-warning { color: #b91c1c; }
-
-    /* จัดสไตล์รายการหัวข้อรายละเอียด */
-    .rule-list-item {
-      list-style-type: none;
-      padding: 0;
+    .rules-title-section p {
+      color: var(--text-soft, #64748b);
       margin: 0;
-      display: flex;
-      flex-direction: space-y-3;
-      gap: 12px;
-      flex-direction: column;
-    }
-
-    .rule-list-item li {
       font-size: 14px;
-      color: #475569;
-      line-height: 1.6;
-      position: relative;
-      padding-left: 20px;
     }
 
-    /* จุด Bullet custom เป็นวงกลมเล็กสวยๆ */
-    .rule-list-item li::before {
-      content: "";
-      position: absolute;
-      left: 4px;
-      top: 9px;
-      width: 6px;
-      height: 6px;
-      background: #cbd5e1;
-      border-radius: 50%;
-      transition: background 0.3s ease;
-    }
-
-    .rule-box-card:hover .rule-list-item li::before {
-      background: #94a3b8;
-    }
-
-    /* ไฮไลท์สำหรับข้อความแจ้งเตือนสีแดงภายในลิสต์ */
-    .rule-list-item .rule-caution {
-      color: #dc2626;
-      background: #fef2f2;
-      padding: 8px 12px 8px 24px;
-      border-radius: 8px;
-      font-weight: 500;
-    }
-
-    .rule-list-item .rule-caution::before {
-      background: #ef4444;
-      left: 10px;
-      top: 15px;
-    }
-
-    /* กล่องแจ้งเตือนภัย/ข้อควรระวังขนาดใหญ่ด้านล่าง */
-    .caution-box-layout {
+    /* ปรับแต่งตำแหน่ง Caution Box ท้ายตารางให้เต็มความกว้างเพื่อความสวยงาม */
+    .caution-box-fullwidth {
       grid-column: 1 / -1;
-      background: #fff5f5;
-      border: 1px dashed #fca5a5;
-    }
-    
-    .caution-box-layout:hover {
-      border-color: #ef4444;
+      border-top: 6px solid var(--danger, #ef4444) !important;
     }
 
-    /* ปุ่มกดสไตล์ย้อนกลับด้านบน */
-    .btn-header-back {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 500;
-      color: #475569;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-header-back:hover {
-      background: #f1f5f9;
-      color: #0f172a;
-      transform: translateX(-2px);
+    @media screen and (max-width: 768px) {
+      .rules-page-container { padding: 20px 16px; }
+      .rules-top-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
     }
   </style>
 </head>
 
 <body>
-  <div class="app-shell">
+
+  <div class="rules-page-container">
     
-    <aside class="sidebar">
-      <div class="brand">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT" class="brand-logo" />
-        <div class="brand-text">
-          <h1>Workforce Hub</h1>
-          <p>HR Management Platform</p>
-        </div>
-      </div>
-      <nav class="side-nav">
-        <a class="nav-item" href="/index.html"><span class="material-symbols-outlined">dashboard</span><span class="nav-label">หน้าหลักบอร์ด HR</span></a>
-        <a class="nav-item" href="/pages/user/approver.html"><span class="material-symbols-outlined">fact_check</span><span class="nav-label">รายการรออนุมัติใบลา</span></a>
-        <a class="nav-item" href="/pages/user/approved-leaves.html"><span class="material-symbols-outlined">task_alt</span><span class="nav-label">ใบลาที่อนุมัติแล้ว</span></a>
-        <a class="nav-item" href="/pages/user/employee-directory.html"><span class="material-symbols-outlined">groups</span><span class="nav-label">รายชื่อพนักงานทั้งหมด</span></a>
-        <a class="nav-item" href="/pages/user/employee-tracker.html"><span class="material-symbols-outlined">badge_keep_public</span><span class="nav-label">เช็คประวัติ & วันลาคงเหลือ</span></a>
-        <a class="nav-item active" href="#"><span class="material-symbols-outlined">gavel</span><span class="nav-label">หลักเกณฑ์การลา</span></a>
-      </nav>
-    </aside>
-
-    <main class="main-content">
+    <header class="rules-top-bar">
+      <button class="btn-header-back" onclick="window.location.href='/pages/user/index-user.html'">
+        <span class="material-symbols-outlined">arrow_back</span>
+        ย้อนกลับหน้าหลักพนักงาน
+      </button>
       
-      <header class="content-header">
-        <div class="header-left" style="display: flex; align-items: center; gap: 16px;">
-          <button onclick="window.history.back();" class="btn-header-back">
-            <span class="material-symbols-outlined">arrow_back</span> ย้อนกลับ
-          </button>
+      <div class="rules-title-section" style="text-align: right;">
+        <h1>หลักเกณฑ์และเงื่อนไขการลา</h1>
+        <p>สิทธิประโยชน์และข้อกำหนดทางวินัยพนักงาน PVT</p>
+      </div>
+    </header>
 
-          <span style="color: var(--border); font-size: 20px;">|</span>
+    <main class="rules-grid-layout">
 
-          <div class="header-titles">
-            <span class="sub-title">COMPANY REGULATION</span>
-            <h2>หลักเกณฑ์และเงื่อนไขการลาหยุดงาน</h2>
-          </div>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">medical_services</span> 1. การลาป่วย
         </div>
-      </header>
+        <ul class="rule-list-item">
+          <li>ลาได้เท่าที่ป่วยจริง โดยได้รับค่าจ้างตามปกติ <b>ไม่เกิน 30 วันทำงาน/ปี</b></li>
+          <li class="rule-caution">การลาป่วยตั้งแต่ 3 วันทำงานขึ้นไป ต้องนำส่งใบรับรองแพทย์แผนปัจจุบัน</li>
+          <li>กรณีลาป่วยเท็จ จะถูกพิจารณาเป็นความผิดทางวินัยร้ายแรง</li>
+        </ul>
+      </article>
 
-      <section class="rules-grid-layout">
-        
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-vacation">
-            <span class="material-symbols-outlined">nature_people</span> 1. วันหยุดพักผ่อนประจำปี (พักร้อน)
-          </div>
-          <ul class="rule-list-item">
-            <li>ทำงานติดต่อกันครบ 1 ปี มีสิทธิลาพักผ่อนได้ <b>6 วัน/ปี</b> (ปีแรกเฉลี่ยตามสัดส่วน)</li>
-            <li>วันลาที่เหลือในปีนั้น ๆ <b>ไม่สามารถสะสม</b> ไปปีถัดไปได้ บริษัทฯ จะจ่ายเงินคืนตามอัตราค่าจ้างรายวัน</li>
-            <li>การใช้สิทธิ: ครั้งละไม่น้อยกว่า 4 ชั่วโมง ไม่เกิน 3 วันทำงาน และไม่ติดกับวันหยุดประเพณีบริษัทฯ</li>
-            <li>ต้องแจ้งผู้บังคับบัญชาและได้รับอนุมัติล่วงหน้า <b>ไม่น้อยกว่า 3 วัน</b></li>
-            <li class="rule-caution">ห้ามใช้สิทธิลาพักผ่อนหลังยื่นใบลาออกก่อน 15 วัน</li>
-          </ul>
-        </article>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">assignment_ind</span> 2. การลากิจเพื่อธุรกิจอันจำเป็น
+        </div>
+        <ul class="rule-list-item">
+          <li>ได้รับอนุมัติสิทธิลากิจโดยได้รับค่าจ้าง <b>ไม่เกิน 3-4 วันทำงาน/ปี</b></li>
+          <li>ต้องเป็นกิจธุระที่ต้องจัดการด้วยตนเอง และไม่สามารถทำนอกเวลางานได้</li>
+          <li>ต้องส่งใบลาล่วงหน้าอย่างน้อย 1-2 วันทำการ (ยกเว้นกรณีฉุกเฉิน)</li>
+        </ul>
+      </article>
 
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-sick">
-            <span class="material-symbols-outlined">medical_services</span> 2. การลาป่วย
-          </div>
-          <ul class="rule-list-item">
-            <li>ลาป่วยได้เท่าที่ป่วยจริง โดยบริษัทฯ จ่ายค่าจ้างให้ <b>ไม่เกิน 30 วันทำงาน/ปี</b></li>
-            <li>ต้องแจ้งผู้บังคับบัญชาทราบภายใน <b>4 ชั่วโมงแรก</b> ของการทำงาน</li>
-            <li>ลาป่วยตั้งแต่ <b>3 วันทำงานขึ้นไป</b> ต้องนำส่งใบรับรองแพทย์แผนปัจจุบันชั้นหนึ่งหรือของสถานพยาบาลทางราชการ</li>
-            <li>กรณีประสบอันตราย/เจ็บป่วยเนื่องจากการทำงาน ห้ามมิให้ประมวลผลวันลาในหมวดนี้</li>
-          </ul>
-        </article>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">flight_takeoff</span> 3. วันหยุดพักผ่อนประจำปี
+        </div>
+        <ul class="rule-list-item">
+          <li>พนักงานที่ทำงานครบ 1 ปี มีสิทธิลาพักร้อนได้ <b>ไม่น้อยกว่า 6 วันทำการ/ปี</b></li>
+          <li>ต้องส่งล่วงหน้าเพื่อให้หัวหน้างานจัดสรรกำลังพลและอนุมัติก่อนเสมอ</li>
+          <li>โควตาที่ใช้ไม่หมด สามารถสะสมไปใช้ในปีถัดไปได้ตามเงื่อนไขบริษัท</li>
+        </ul>
+      </article>
 
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-personal">
-            <span class="material-symbols-outlined">badge</span> 3. การลากิจจำเป็น
-          </div>
-          <ul class="rule-list-item">
-            <li>พนักงานมีสิทธิลากิจจำเป็นโดยได้รับค่าจ้าง <b>ไม่เกิน 3 วันทำงาน/ปี</b></li>
-            <li>การยื่นใบลา: ต้องยื่นต่อผู้บังคับบัญชาล่วงหน้าอย่างน้อย <b>1 วันทำงาน</b></li>
-            <li>เหตุผลที่อนุญาต: ติดต่อหน่วยงานราชการ, ธุรกรรมทางกฎหมาย, จัดการงานศพครอบครัว หรือกรณีฉุกเฉินร้ายแรง</li>
-          </ul>
-        </article>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">child_care</span> 4. การลาเพื่อการคลอดบุตร
+        </div>
+        <ul class="rule-list-item">
+          <li>พนักงานครรภ์ลาเพื่อคลอดบุตรได้ <b>ไม่เกิน 98 วัน</b> (รวมวันหยุดประจำสัปดาห์)</li>
+          <li>บริษัทจ่ายค่าจ้างให้ตามปกติ 45 วัน และรับเงินอุดหนุนจากประกันสังคมอีก 45 วัน</li>
+          <li>สามารถยื่นขอลาก่อนกำหนดคลอดจริงได้ตามความเหมาะสม</li>
+        </ul>
+      </article>
 
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-maternity">
-            <span class="material-symbols-outlined">child_care</span> 4. การลาเพื่อคลอดบุตร
-          </div>
-          <ul class="rule-list-item">
-            <li>พนักงานครรภ์ลาเพื่อคลอดบุตรได้ครรภ์หนึ่ง <b>ไม่เกิน 98 วัน</b> (รวมวันหยุดที่มีในระหว่างลา)</li>
-            <li>ได้รับค่าจ้างจากบริษัทฯ ในวันลาเท่ากับอัตราค่าจ้างปกติแต่ <b>ไม่เกิน 45 วัน</b></li>
-            <li>วันลาคลอดให้นับรวมถึงวันลาเพื่อตรวจครรภ์ก่อนคลอดบุตรด้วย</li>
-          </ul>
-        </article>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">vaccines</span> 5. การลาเพื่อทำหมัน
+        </div>
+        <ul class="rule-list-item">
+          <li>มีสิทธิลาหยุดได้ตามระยะเวลาที่แพทย์แผนปัจจุบันกำหนด</li>
+          <li>ได้รับค่าจ้างในวันลานั้นเต็มจำนวนตามที่ระบุในใบรับรองแพทย์</li>
+          <li>ต้องแจ้งและส่งใบลาล่วงหน้าพร้อมเอกสารจองนัดหมายแพทย์</li>
+        </ul>
+      </article>
 
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-general">
-            <span class="material-symbols-outlined">vaccines</span> 5. การลาเพื่อทำหมัน
-          </div>
-          <ul class="rule-list-item">
-            <li>พนักงานมีสิทธิลาเพื่อทำหมันและเนื่องจากการทำหมันได้ตามระยะเวลาที่ <b>แพทย์แผนปัจจุบันกำหนด</b></li>
-            <li>ได้รับค่าจ้างในวันลานั้นตามปกติ โดยต้องยื่นใบลาและใบรับรองแพทย์ล่วงหน้า</li>
-          </ul>
-        </article>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">military_tech</span> 6. การลาเพื่อรับราชการทหาร
+        </div>
+        <ul class="rule-list-item">
+          <li>ลาเพื่อเข้ารับการเรียกพล ตรวจสอบ หรือฝึกภาคสนามตามหมายเรียกของทางราชการ</li>
+          <li>ได้รับค่าจ้างตามปกติในระหว่างลา <b>ไม่เกิน 60 วัน/ปี</b></li>
+          <li>ต้องแนบสำเนาหมายเรียกพลประกอบการยื่นใบลาทันทีที่ได้รับเอกสาร</li>
+        </ul>
+      </article>
 
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-general">
-            <span class="material-symbols-outlined">military_tech</span> 6. การลาเพื่อรับราชการทหาร
-          </div>
-          <ul class="rule-list-item">
-            <li>ลาเพื่อรับเรียกพลในการตรวจสอบ ฝึกความพร้อม หรือทดสอบความพรั่งพร้อม ตามกฎหมายทหาร</li>
-            <li>ได้รับค่าจ้างตลอดเวลาที่ลาแต่ <b>ไม่เกิน 60 วัน/ปี</b></li>
-            <li>ต้องยื่นใบลาพร้อมหมายเรียกให้ผู้บังคับบัญชาอนุมัติล่วงหน้า <b>ไม่น้อยกว่า 3 วัน</b> และกลับมาทำงานใน 3 วันหลังพ้นกำหนด</li>
-          </ul>
-        </article>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">heart_broken</span> 7. การลาจัดการพิธีศพครอบครัว
+        </div>
+        <ul class="rule-list-item">
+          <li>กรณีคู่สมรส บุตร บิดา หรือมารดาเสียชีวิต สามารถใช้สิทธิลาได้ตามความเหมาะสม</li>
+          <li>บริษัทมอบสิทธิลาพิเศษโดยได้รับค่าจ้าง (จำนวนวันตามโครงสร้างสวัสดิการบริษัท)</li>
+          <li>ยื่นหลักฐาน เช่น ใบมรณบัตร ย้อนหลังได้ภายใน 7 วันหลังกลับเข้าปฏิบัติงาน</li>
+        </ul>
+      </article>
 
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-personal">
-            <span class="material-symbols-outlined">heart_broken</span> 7. การลาเพื่อฌาปนกิจศพ
-          </div>
-          <ul class="rule-list-item">
-            <li>ใช้สิทธิได้ในกรณี บุตร, คู่สมรส, บิดา, มารดา ของพนักงานประจำเสียชีวิต</li>
-            <li>ลาได้ศพละ <b>ไม่เกิน 7 วันรวมวันหยุด</b></li>
-            <li>พนักงานต้องแจ้งให้ผู้บังคับบัญชาทราบทันที และส่งหลักฐานใบมรณะบัตรในวันแรกที่กลับมาทำงาน</li>
-          </ul>
-        </article>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">temple_buddhist</span> 8. การลาอุปสมบท / พิธีฮัจญ์
+        </div>
+        <ul class="rule-list-item">
+          <li>ได้รับค่าจ้างตามความเป็นจริง <b>ไม่เกิน 15 วัน</b> (ตลอดอายุงานใช้สิทธิได้เพียง 1 ครั้ง)</li>
+          <li>ต้องขออนุมัติล่วงหน้าไม่น้อยกว่า 15 วัน และกลับเข้าทำงานภายใน 3 วันหลังลาสิกขาบท</li>
+        </ul>
+      </article>
 
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-general">
-            <span class="material-symbols-outlined">self_care</span> 8. การลาเพื่ออุปสมบท
-          </div>
-          <ul class="rule-list-item">
-            <li>เฉพาะพนักงานชายที่มี <b>อายุงาน 1 ปีขึ้นไป</b> ลาได้ตามจริง <b>ไม่เกิน 30 วันรวมวันหยุด</b></li>
-            <li>ได้รับค่าจ้างตามความเป็นจริง <b>ไม่เกิน 15 วัน</b> (ตลอดอายุงานใช้สิทธิได้เพียง 1 ครั้ง)</li>
-            <li>ต้องขออนุมัติล่วงหน้าไม่น้อยกว่า 15 วัน และกลับเข้าทำงานภายใน 3 วันหลังลาสิกขาบท</li>
-          </ul>
-        </article>
+      <article class="rule-box-card">
+        <div class="card-header-tag">
+          <span class="material-symbols-outlined">school</span> 9. การลาเพื่อฝึกอบรมพัฒนาความรู้
+        </div>
+        <ul class="rule-list-item">
+          <li>ลาเพื่อประโยชน์ต่อการจ้างงาน/สวัสดิการ หรือเพิ่มทักษะความชำนาญในตำแหน่งหน้าที่</li>
+          <li class="rule-caution">การลาเพื่อการศึกษาต่อของพนักงานเอง ไม่สามารถใช้สิทธิการลาประเภทนี้ได้</li>
+          <li>ต้องแจ้งล่วงหน้าไม่น้อยกว่า 7 วัน และต้องได้รับอนุมัติจากผู้บริหารก่อนทุกครั้ง</li>
+        </ul>
+      </article>
 
-        <article class="rule-box-card">
-          <div class="card-header-tag tag-general">
-            <span class="material-symbols-outlined">school</span> 9. การลาเพื่อฝึกอบรมพัฒนาความรู้
-          </div>
-          <ul class="rule-list-item">
-            <li>ลาเพื่อประโยชน์ต่อการจ้างงาน/สวัสดิการ หรือเพิ่มทักษะความชำนาญในตำแหน่งหน้าที่</li>
-            <li class="rule-caution">การลาเพื่อการศึกษาต่อของพนักงานเอง ไม่สามารถใช้สิทธิการลาประเภทนี้ได้</li>
-            <li>ต้องแจ้งล่วงหน้าไม่น้อยกว่า 7 วัน และต้องได้รับอนุมัติจากผู้บริหารก่อนทุกครั้ง</li>
-          </ul>
-        </article>
-
-        <article class="rule-box-card caution-box-layout">
-          <div class="card-header-tag tag-warning">
-            <span class="material-symbols-outlined">warning</span> ข้อควรระวัง & บทลงโทษทางวินัย
-          </div>
-          <ul class="rule-list-item">
-            <li>พนักงานที่มาสาย <b>3 ครั้งภายในรอบเดือน</b> จะได้รับหนังสือเตือนเป็นลายลักษณ์อักษร</li>
-            <li>การหยุดงานโดยไม่ส่งใบลา หรือใบลาไม่ได้รับการอนุมัติ ถือเป็นการละทิ้งหน้าที่และผิดวินัยร้ายแรง</li>
-          </ul>
-        </article>
-
-      </section>
+      <article class="rule-box-card caution-box-layout caution-box-fullwidth">
+        <div class="card-header-tag" style="background: #fef2f2; color: var(--danger, #ef4444); border-color: #fecaca;">
+          <span class="material-symbols-outlined">warning</span> ข้อควรระวัง & บทลงโทษทางวินัย
+        </div>
+        <ul class="rule-list-item">
+          <li class="rule-caution">พนักงานที่มาสาย <b>3 ครั้งภายในรอบเดือน</b> จะได้รับหนังสือเตือนเป็นลายลักษณ์อักษร</li>
+          <li class="rule-caution">การหยุดงานโดยไม่ส่งใบลา หรือใบลาไม่ได้รับการอนุมัติ ถือเป็นการขาดงานโดยเจตนา</li>
+          <li class="rule-caution">ขาดงานติดต่อกัน <b>3 วันทำงาน</b> โดยไม่มีเหตุอันสมควร บริษัทมีสิทธิ์เลิกจ้างทันทีโดยไม่จ่ายค่าชดเชย</li>
+        </ul>
+      </article>
 
     </main>
   </div>
 
-  <script src="/js/auth-guard.js"></script>
 </body>
 </html>

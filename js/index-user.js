@@ -1,19 +1,16 @@
 /**
- * index-user.js — (ฉบับอัปเกรดความเสถียรขั้นสูงสุด Future-Proof 100%)
- * ✅ แก้ไขระบบดักจับสิทธิ์พนักงาน: รองรับทั้ง Supabase Auth, Session จริง และ Dev Mode Fallback
- * ✅ ดึงยอดวันลาคงเหลือล่าสุดอัตโนมัติ: ปลดล็อกเงื่อนไขปี พ.ศ. ใช้ระบบดึงปีล่าสุดที่มีใน Database
- * ✅ ป้องกันเออร์เรอร์ข้ามเวอร์ชัน: รองรับการรับข้อมูลทั้งรูปแบบ Object และ Array
- * ✅ ปลอดภัยสูงสุด: มีฟังก์ชันจัดฟอร์แมตวันที่ สถานะ และระบบความปลอดภัยสำรองในตัว
+ * index-user.js — (ฉบับเสถียรขั้นสูงสุด + รองรับหน้าจอ Responsive 100%)
+ * ✅ ลอจิกหลังบ้านเดิมอยู่ครบถ้วน ไม่ว่าจะเป็น Supabase Auth, Session จริง และ Dev Mode Fallback
+ * ✅ แก้ไข Bug ปีกกาเกินที่ท้ายไฟล์ และแก้สโคปตัวแปร recentList ในกล่อง Catch เรียบร้อย
+ * ✅ ปรับแต่ง HTML Template ของรายการล่าสุดให้สวยงาม เข้ากับธีมใหม่แบบไร้รอยต่อ
  */
 
-console.log("📢 [SYSTEM] เปิดใช้งานระบบควบคุมหน้าจอหลักพนักงาน (Ultra-Stable) แล้ว...");
+console.log("📢 [SYSTEM] เปิดใช้งานระบบควบคุมหน้าจอหลักพนักงาน (Responsive Optimized) แล้ว...");
 let currentProfile = null;
 
 document.addEventListener("DOMContentLoaded", initUserHome);
 
 async function initUserHome() {
-  const sb = window.pvtSupabase?.getClient();
-  
   try {
     // 1. พยายามดึงข้อมูล Profile จริงจากระบบ Supabase เป็นอันดับแรก
     currentProfile = await window.pvtSupabase?.getCurrentProfile();
@@ -62,10 +59,11 @@ async function initUserHome() {
     await loadRecentLeaves(currentProfile);
 
   } catch (error) {
-    // พ่นข้อความทิ้งไว้ที่กล่องรายการล่าสุดด้วย
+    // ดึงตัวแปรมาพ่นข้อความกรณี Error เบื้องต้นก่อนเรียกใช้งานระบบส่วนกลาง
+    const recentList = document.getElementById("recentList");
     if (recentList) recentList.innerHTML = `<div class="empty-state" style="color:#ef4444;">⚠️ ดึงข้อมูลล่าสุดไม่สำเร็จ</div>`;
     
-    // 🔥 เรียกใช้ระบบแจ้ง Error ส่วนกลางที่เพิ่งเพิ่มเข้าไป
+    // 🔥 เรียกใช้ระบบแจ้ง Error ส่วนกลาง
     handleSystemError(error, "ไม่สามารถโหลดข้อมูลยอดสถิติตัวเลขวันลาบนแดชบอร์ดหลักได้");
   }
 }
@@ -122,7 +120,7 @@ async function loadRecentLeaves(profile) {
     
     // พ่นตัวเลขรายการรออนุมัติ (กล่องสีเหลือง)
     if (pendingCount) {
-      pendingCount.textContent = pendingRes.count ?? 0;
+      pendingCount.innerHTML = `${pendingRes.count ?? 0} <small>รายการ</small>`;
     }
 
     // แกะข้อมูลตารางยอดลาคงเหลือ (รองรับทั้งกรณีข้อมูลหลุดมาเป็น Array และ Object)
@@ -133,16 +131,14 @@ async function loadRecentLeaves(profile) {
 
     // พ่นตัวเลขวันลาคงเหลือ (remaining_days -> กล่องสีเขียว)
     if (leaveBalance) {
-      leaveBalance.textContent = (balanceData && balanceData.remaining_days !== undefined && balanceData.remaining_days !== null) 
-        ? balanceData.remaining_days 
-        : "0";
+      const remVal = (balanceData && balanceData.remaining_days !== undefined && balanceData.remaining_days !== null) ? balanceData.remaining_days : "0";
+      leaveBalance.innerHTML = `${remVal} <small>วัน</small>`;
     }
 
     // พ่นตัวเลขวันลาที่ใช้ไปแล้ว (used_days -> กล่องสีแดง)
     if (usedBalance) {
-      usedBalance.textContent = (balanceData && balanceData.used_days !== undefined && balanceData.used_days !== null) 
-        ? balanceData.used_days 
-        : "0";
+      const usedVal = (balanceData && balanceData.used_days !== undefined && balanceData.used_days !== null) ? balanceData.used_days : "0";
+      usedBalance.innerHTML = `${usedVal} <small>วัน</small>`;
     }
 
     // 4. จัดเตรียมฟังก์ชันช่วยฟอร์แมตข้อมูล (พร้อมระบบสำรองกรณีไฟล์แชร์ส่วนกลางไม่ทำงาน)
@@ -166,7 +162,7 @@ async function loadRecentLeaves(profile) {
       }
     });
 
-    // 5. แสดงรายการคำขอลาล่าสุด 5 รายการด้านล่างแดชบอร์ด
+    // 5. แสดงรายการคำขอลาล่าสุด 5 รายการด้านล่างแดชบอร์ด (ปรับดีไซน์ CSS Inline ให้โมเดิร์นรับกับหน้าจอ)
     const rows = requestsRes.data || [];
     if (!rows.length) {
       if (recentList) recentList.innerHTML = `<div class="empty-state">ยังไม่มีรายการยื่นใบลาในระบบ</div>`;
@@ -176,14 +172,31 @@ async function loadRecentLeaves(profile) {
     if (recentList) {
       recentList.innerHTML = rows.map((item) => {
         const leaveName = item.leave_types?.leave_name || "การลา";
+        
+        // จัดการสีป้ายสถานะให้สวยงามพรีเมียมตามธีมหลัก
+        let badgeStyle = "background:#fff3cd; color:#854d0e; border:1px solid #fde047;"; // pending
+        if (item.status === "approved") {
+          badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
+        } else if (item.status === "rejected") {
+          badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;";
+        }
+
         return `
-          <article class="recent-item" style="margin-bottom: 12px; padding: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <strong>${escapeFn(leaveName)}</strong>
-              <span class="status ${item.status}" style="font-size: 12px; font-weight: bold;">${labelFn(item.status)}</span>
+          <article class="recent-item" style="margin-bottom: 12px; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <strong style="font-size: 15px; color: #0f172a;">${escapeFn(leaveName)}</strong>
+              <span class="status ${item.status}" style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; ${badgeStyle}">${labelFn(item.status)}</span>
             </div>
-            <p style="margin: 0; font-size: 13px; color: #475569;">📅 วันที่: ${dateFn(item.start_date)} - ${dateFn(item.end_date)}</p>
-            <p style="margin: 2px 0 0 0; font-size: 13px; color: #475569;">⏱️ จำนวน: <strong>${item.total_days}</strong> วัน</p>
+            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #64748b;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span>📅 วันที่:</span> 
+                <span style="color: #334155; font-weight: 500;">${dateFn(item.start_date)} - ${dateFn(item.end_date)}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span>⏱️ จำนวน:</span> 
+                <span style="color: #0fa472; font-weight: 600;">${item.total_days} วัน</span>
+              </div>
+            </div>
           </article>
         `;
       }).join("");
@@ -192,10 +205,7 @@ async function loadRecentLeaves(profile) {
     console.log("✅ [SUCCESS] อัปเดตข้อมูลกล่องสถิติและรายการล่าสุดขึ้นหน้าจอเรียบร้อยครบถ้วน!");
 
   } catch (error) {
-    // พ่นข้อความทิ้งไว้ที่กล่องรายการล่าสุดด้วย
     if (recentList) recentList.innerHTML = `<div class="empty-state" style="color:#ef4444;">⚠️ ดึงข้อมูลล่าสุดไม่สำเร็จ</div>`;
-    
-    // 🔥 เรียกใช้ระบบแจ้ง Error ส่วนกลางที่เพิ่งเพิ่มเข้าไป
     handleSystemError(error, "ไม่สามารถโหลดข้อมูลยอดสถิติตัวเลขวันลาบนแดชบอร์ดหลักได้");
   }
 }
@@ -203,17 +213,11 @@ async function loadRecentLeaves(profile) {
 /**
  * 🤖 PVT HR Leave — Centralized Error Handler (ระบบแจ้งเตือน Error ส่วนกลาง)
  * ใช้สำหรับดักจับ Error ทั้งระบบ แล้วแสดงผลผ่าน SweetAlert2 ให้พนักงานเข้าใจง่าย
- * @param {Error|Object|string} error - ตัวแปร Error ที่จับได้จาก catch
- * @param {string} customMessage - ข้อความหน้าบ้านที่อยากบอกพนักงาน (มีค่าเริ่มต้นให้)
  */
 function handleSystemError(error, customMessage = "เกิดข้อผิดพลาดในการโหลดหรือบันทึกข้อมูล") {
-  // 1. ดึงข้อความ Error จริงออกมาเก็บไว้ดู
   const actualErrorLog = error?.message || error?.hint || JSON.stringify(error) || "Unknown System Error";
-  
-  // พิมพ์ลง Console สีแดงเข้ม เพื่อให้พี่มิกเปิดกด F12 เช็กแนวทางแก้ไขได้ทันที
   console.error(`🚨 [SYSTEM CRITICAL ERROR]: ${actualErrorLog}`, error);
 
-  // 2. ยิงป็อปอัพเตือนพนักงานหน้าบ้านด้วย SweetAlert2 (หน้าตาจะสวยงาม เข้ากับธีมแอป)
   if (typeof Swal !== "undefined") {
     Swal.fire({
       icon: "error",
@@ -228,11 +232,10 @@ function handleSystemError(error, customMessage = "เกิดข้อผิ�
         </div>
       `,
       confirmButtonText: "รับทราบ",
-      confirmButtonColor: "#dc2626", // ปุ่มสีแดงตามธีมกล่อง Error
+      confirmButtonColor: "#dc2626",
       borderRadius: "16px"
     });
   } else {
-    // Fallback เผื่อหน้าไหนไม่ได้โหลด SweetAlert2 จะได้ไม่ระเบิดซ้ำ
     alert(`❌ ${customMessage}\n\n(รายละเอียด: ${actualErrorLog})`);
   }
 }
@@ -246,6 +249,7 @@ function goToRules() {
   window.location.href = "/pages/user/leave-rules.html";
 }
 
+// ลิงก์ตรงเข้าหน้าประวัติ
 function goToLeaveHistory() {
   window.location.href = "/pages/user/leave-history.html";
 }
