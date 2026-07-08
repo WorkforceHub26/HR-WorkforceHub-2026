@@ -192,12 +192,68 @@ function onScanFailure(error) {
    📸 ระบบล็อกอินอัจฉริยะผ่าน QR Code Token ปลอดภัยสูง (เพิ่มใน login.js)
    ========================================================================== */
 
-// สมมุติตอนที่เครื่องสแกนกล้องอ่านค่า QR Code สำเร็จแล้วได้ข้อความดิบมา (scannedRawData)
-window.processQrLogin = async function (scannedRawData) {
-  // 1. ขึ้นแจ้งเตือนกำลังตรวจสอบ Token ความปลอดภัยทันที
+/* ==========================================================================
+   📸 ระบบเปิดกล้องสแกน QR Code และ ถอดรหัส Token ความปลอดภัย (แนวทางที่ 2)
+   ========================================================================== */
+
+// 1. ฟังก์ชันหลักเมื่อกดปุ่ม "สแกน QR Code" บนหน้าจอ Login
+window.loginByQr = function () {
+  // สร้างโครงสร้าง Popup สำหรับเปิดกล้องสแกนเนอร์
   Swal.fire({
-    title: '🔒 ตรวจสอบ Token ความปลอดภัย...',
-    html: '<div class="pvt-spinner"></div>',
+    title: '📷 สแกนบัตรพนักงานประจำตัว',
+    html: `
+      <p style="font-size:13px; color:#64748b; margin-bottom:10px;">กรุณาส่อง QR Code บนบัตรพนักงานเข้ากับกล้อง</p>
+      <div id="pvt-reader" style="width: 100%; max-width: 350px; margin: 0 auto; border-radius: 12px; overflow: hidden; border: 2px dashed #0fa472;"></div>
+    `,
+    showCancelButton: true,
+    cancelButtonText: '❌ ปิดหน้าต่างกล้อง',
+    confirmButtonButtonText: false,
+    showConfirmButton: false,
+    willOpen: () => {
+      // ตรวจสอบว่ามีไลบรารีสแกนหรือยัง ถ้าไม่มีให้โหลดด่วนแบบ Dynamic
+      if (typeof Html5QrcodeScanner === 'undefined') {
+        const script = document.createElement('script');
+        script.src = "https://unpkg.com/html5-qrcode";
+        script.onload = () => { startQrScanner(); };
+        document.head.appendChild(script);
+      } else {
+        startQrScanner();
+      }
+    },
+    willClose: () => {
+      // เคลียร์กล้องเมื่อปิด Popup เพื่อไม่ให้เปิดค้างไว้
+      if (window.pvtHtml5QrcodeScanner) {
+        window.pvtHtml5QrcodeScanner.clear().catch(err => console.error(err));
+      }
+    }
+  });
+};
+
+// 2. ฟังก์ชันสั่งสตาร์ทกล้องขึ้นมาจับภาพ QR Code
+function startQrScanner() {
+  window.pvtHtml5QrcodeScanner = new Html5QrcodeScanner("pvt-reader", { 
+    fps: 10, 
+    qrbox: { width: 200, height: 200 } 
+  });
+  
+  // พลักค่าเข้าทำงานเมื่อสแกนเจอข้อความสำเร็จ
+  window.pvtHtml5QrcodeScanner.render((decodedText) => {
+    // สแกนติดปุ๊บ สั่งปิดกล้องทันทีเพื่อป้องการทำงานซ้ำซ้อน
+    window.pvtHtml5QrcodeScanner.clear().then(() => {
+      // ส่งค่าดิบที่สแกนได้ ไปเข้าสู่กระบวนการ Bypass ล็อกอินความปลอดภัยสูง
+      processQrLoginToken(decodedText);
+    }).catch(err => console.error(err));
+  }, (errorMessage) => {
+    // ปล่อยผ่านล็อก Log ตอนกำลังหา QR Code เพื่อไม่ให้รกหน้าจอ
+  });
+}
+
+// 3. 🔒 ฟังก์ชันหัวใจสำคัญ: ถอดรหัส Token และทำสิทธิ์เข้าระบบอัตโนมัติ
+async function processQrLoginToken(scannedRawData) {
+  // แจ้งเตือนจังหวะตรวจสอบ Token ลับ
+  Swal.fire({
+    title: '🔒 ตรวจสอบสิทธิ์ความปลอดภัย...',
+    html: '<div style="margin-top:10px;" class="pvt-spinner">กำลังถอดรหัส Token บัตรพนักงาน...</div>',
     showConfirmButton: false,
     allowOutsideClick: false
   });
@@ -209,19 +265,20 @@ window.processQrLogin = async function (scannedRawData) {
   }
 
   try {
-    // 2. แกะข้อความที่ได้แยกออกจากกันด้วยเครื่องหมาย |
+    // 🧩 แปลงค่า URL Component กลับมาเป็นสตริงปกติ (เช่น จาก %7C กลับมาเป็น | )
     const decodedData = decodeURIComponent(scannedRawData);
-    const dataParts = decodedData.split('|');
     
-    const empCode = dataParts[0]; // จะได้ รหัสพนักงาน เช่น 100001
-    const secureToken = dataParts[1]; // จะได้ตัวยืนยันสิทธิ์ เช่น PVT_SECURE_BYPASS
+    // แกะข้อความแยกออกจากกันด้วยเครื่องหมาย |
+    const dataParts = decodedData.split('|');
+    const empCode = dataParts[0]?.trim();      // ได้ รหัสพนักงาน เช่น "100001"
+    const secureToken = dataParts[1]?.trim();  // ได้รหัสผ่านพิเศษ เช่น "PVT_SECURE_BYPASS"
 
-    // 🚨 ตรวจสอบความปลอดภัยเบื้องต้น: ถ้าไม่มี Token ลับกำกับอยู่ ปฏิเสธการเข้าสู่ระบบทันที
+    // 🚨 Check ขั้นที่ 1: ตรวจว่าพนักงานแอบเขียน QR Code ขึ้นมาเองไหม
     if (secureToken !== 'PVT_SECURE_BYPASS' || !empCode) {
-      throw new Error('QR Code ไม่ถูกต้อง หรือเป็น Token ปลอมที่หมดอายุแล้ว');
+      throw new Error('QR Code ใบนี้ไม่ถูกต้อง หรือไม่ใช่โครงสร้างบัตรที่ออกจากระบบ HR');
     }
 
-    // 3. ยิงตรวจสอบบัญชีกับฐานข้อมูล Supabase ว่าพนักงานคนนี้ยังมีสถานะใช้งานอยู่ไหม
+    // 🔍 Check ขั้นที่ 2: ดึงข้อมูลพนักงานคนนี้ขึ้นมาจากตาราง employees ของ Supabase
     const { data: user, error } = await sb
       .from('employees')
       .select('id, employee_code, full_name, role, status')
@@ -230,10 +287,10 @@ window.processQrLogin = async function (scannedRawData) {
       .single();
 
     if (error || !user) {
-      throw new Error('ไม่พบข้อมูลพนักงานในระบบ หรือสิทธิ์การใช้งานถูกระงับ');
+      throw new Error('ไม่พบข้อมูลพนักงานท่านนี้ในระบบ หรือสถานะบัญชีถูกระงับการใช้งาน');
     }
 
-    // 4. ผ่านสิทธิ์ความปลอดภัย! ทำการจำลอง Session บันทึกลงระบบเหมือนการคีย์รหัสผ่านปกติ
+    // 💾 ขั้นที่ 3: ผ่านสิทธิ์ความปลอดภัย! เขียนข้อมูลลง sessionStorage แกล้งทำเป็นล็อกอินปกติสำเร็จ
     sessionStorage.setItem("currentUser", JSON.stringify({
       id: user.id,
       employee_code: user.employee_code,
@@ -241,31 +298,31 @@ window.processQrLogin = async function (scannedRawData) {
       role: user.role
     }));
 
-    // 5. แสดงผลความสำเร็จแบบพรีเมียม
+    // 🎉 ขั้นที่ 4: แจ้งเตือนยินดีต้อนรับสวยๆ
     Swal.fire({
       icon: 'success',
       title: `ยินดีต้อนรับคุณ ${user.full_name}`,
-      text: 'ถอดรหัสความปลอดภัยและเข้าสู่ระบบสำเร็จ ⚡',
+      text: 'ถอดรหัสบัตรประจำตัว และเข้าสู่ระบบสำเร็จแล้ว ⚡',
       timer: 1500,
       showConfirmButton: false
     });
 
-    // 6. ผลักหน้าจอแยกสิทธิ์ HR-Admin / พนักงานทั่วไป (ดึงมาจาก Logic เดิมของพี่)
+    // 🚀 ขั้นที่ 5: ผลักเปลี่ยนหน้าจอตามสิทธิ์ (ดึง Logic การย้ายหน้าแบบดั้งเดิมของพี่มาใช้)
     setTimeout(() => {
       if (user.role === "hr" || user.role === "admin") {
-        window.location.href = "/index.html";
+        window.location.href = "/index.html"; // ไปแดชบอร์ดหลังบ้าน
       } else {
-        window.location.href = "/pages/user/index-user.html";
+        window.location.href = "/pages/user/index-user.html"; // ไปหน้าผู้ใช้ทั่วไป
       }
     }, 1500);
 
   } catch (err) {
-    console.error("QR Security Login Failed:", err);
+    console.error("QR Login Failed:", err);
     Swal.fire({
       icon: 'error',
-      title: 'ความปลอดภัยปฏิเสธการเชื่อมต่อ',
+      title: 'ความปลอดภัยปฏิเสธการเข้าสู่ระบบ',
       text: err.message,
       confirmButtonColor: '#ef4444'
     });
   }
-};
+}
