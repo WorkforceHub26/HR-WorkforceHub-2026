@@ -525,3 +525,194 @@ function exportDataReport() {
 function openQuotaSettings() {
   showToast("⚙️ เปิดสิทธิ์ตั้งค่าโควตาวันลาหยุดพนักงานประจำปี", "info");
 }
+
+/* ==========================================================================
+   💳 ระบบบริหารจัดการบัตรพนักงานดิจิทัล & QR Code สำหรับ HR
+   ========================================================================== */
+
+/* ==========================================================================
+   💳 ระบบบริหารจัดการบัตรพนักงานดิจิทัล & QR Code (เวอร์ชันแสดง ตำแหน่ง + แผนก)
+   ========================================================================== */
+
+// 🏛️ จังหวะที่ 1: ดึงรายชื่อพนักงานทั้งหมด (รวมแผนก) มาโชว์ในป๊อปอัป
+window.openEmployeeCardManagerPopup = async function () {
+  Swal.fire({
+    title: 'กำลังโหลดบัญชีรายชื่อ...',
+    html: '<div class="pvt-spinner"></div>',
+    showConfirmButton: false,
+    allowOutsideClick: false
+  });
+
+  const sb = window.supabaseClient || window.pvtSupabase?.getClient();
+  if (!sb) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+    return;
+  }
+
+  // เปลี่ยนเฉพาะช่วง try { ... } ใน จังหวะที่ 1 ครับ
+
+  try {
+    // 🟢 แก้ไขตรงคำสั่ง .select() ให้ดึงแบบข้ามตารางเชื่อมความสัมพันธ์
+    const { data: employees, error } = await sb
+      .from('employees')
+      .select(`
+        employee_code, 
+        full_name, 
+        role, 
+        status,
+        departments ( department_name ),
+        positions ( position_name )
+      `)
+      .order('employee_code', { ascending: true });
+
+    if (error) throw error;
+
+    let rowsHtml = "";
+    if (!employees || employees.length === 0) {
+      rowsHtml = `<tr><td colspan="3" style="text-align:center; padding:16px;">ไม่พบข้อมูลพนักงานในระบบ</td></tr>`;
+    } else {
+      employees.forEach(emp => {
+        // 🟢 เปลี่ยนวิธีกดดึงค่าจากตารางที่ Join เข้ามา
+        const empRole = emp.positions?.position_name || emp.role || 'พนักงาน';
+        const empDept = emp.departments?.department_name || 'ไม่ระบุแผนก';
+
+        rowsHtml += `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 8px; font-weight: 600; color: #475569;">${emp.employee_code}</td>
+            <td style="padding: 12px 8px; text-align: left;">
+              <span style="font-weight: 600; color: #1e293b; display:block;">${emp.full_name}</span>
+              <div style="display: flex; gap: 6px; margin-top: 4px;">
+                <small style="color: #0fa472; background: #ebf7f3; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">💼 ${empRole}</small>
+                <small style="color: #3b82f6; background: #eff6ff; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🏢 ${empDept}</small>
+              </div>
+            </td>
+            <td style="padding: 12px 8px; text-align: center;">
+              <button onclick="showIndividualIdCard('${emp.employee_code}', '${emp.full_name}', '${empRole}', '${empDept}')" 
+                style="background: #3b82f6; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s;">
+                <span class="material-symbols-outlined" style="font-size:16px;">visibility</span> ดูบัตร
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+// ... โค้ดสร้าง Swal.fire ด้านล่างคงเดิม ...
+
+    Swal.fire({
+      title: '👥 เลือกพนักงานเพื่อพิมพ์บัตรประจำตัว',
+      width: '650px',
+      html: `
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; margin-top: 10px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+                <th style="padding: 12px 8px; text-align: left; color: #475569;">รหัส</th>
+                <th style="padding: 12px 8px; text-align: left; color: #475569;">ชื่อ-นามสกุล / ตำแหน่ง / แผนก</th>
+                <th style="padding: 12px 8px; text-align: center; color: #475569;">ตัวเลือก</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      `,
+      confirmButtonText: 'ปิดหน้าต่าง',
+      confirmButtonColor: '#64748b'
+    });
+
+  } catch (err) {
+    console.error("Error loading employees for cards:", err);
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงรายชื่อพนักงานได้', 'error');
+  }
+};
+
+// 💳 จังหวะที่ 2: แสดงหน้าตาบัตรพนักงานพรีเมียม (โชว์ทั้งตำแหน่งและแผนก)
+window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${empCode}`;
+
+  Swal.fire({
+    title: '💳 ตัวอย่างบัตรพนักงานดิจิทัล',
+    width: '400px',
+    html: `
+      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 280px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+        
+        <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.03); border-radius: 50%;"></div>
+        
+        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 20px; text-transform: uppercase;">PVT WORKFORCE Hub</div>
+        
+        <div style="width: 76px; height: 76px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 14px auto; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2);">
+          <span class="material-symbols-outlined" style="font-size: 42px; color: #93c5fd;">account_circle</span>
+        </div>
+        
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px;">${empName}</div>
+        
+        <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${empRole}</div>
+        <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 20px;">แผนก: ${empDept}</div>
+        
+        <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; box-shadow: 0 8px 16px rgba(0,0,0,0.2); margin-bottom: 16px;">
+          <img src="${qrUrl}" alt="Employee QR Code" style="width: 140px; height: 140px; display: block;" />
+        </div>
+        
+        <div>
+          <span style="font-size: 11px; color: #94a3b8; display: block; text-transform: uppercase; margin-bottom: 2px;">Employee ID Number</span>
+          <span style="font-size: 16px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 4px 16px; border-radius: 30px; display: inline-block; letter-spacing: 1px; border: 1px solid rgba(255,255,255,0.05);">
+            ${empCode}
+          </span>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    cancelButtonText: '🔙 ย้อนกลับ',
+    confirmButtonText: '🖨️ สั่งพิมพ์บัตร',
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#64748b',
+  }).then((result) => {
+    if (result.dismiss === Swal.DismissReason.cancel) {
+      openEmployeeCardManagerPopup();
+    } else if (result.isConfirmed) {
+      // ส่งต่อไปยังระบบพิมพ์บัตรใบเดี่ยวแบบมีแผนก
+      printSingleCard(empCode, empName, empRole, empDept, qrUrl);
+    }
+  });
+};
+
+// 🖨️ ฟังก์ชันสั่งพิมพ์บัตรประจำตัว (อัปเดตให้รองรับ แผนก)
+function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
+  const printWindow = window.open('', '_blank', 'width=400,height=600');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Print ID Card - ${empCode}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+          body { font-family: 'Sarabun', sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; background:#fff; }
+          .card { background: #0f172a; width: 260px; border-radius: 16px; padding: 24px; color: white; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .company { font-weight: 700; font-size: 12px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 25px; }
+          .name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+          .role { font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px; }
+          .dept { font-size: 12px; color: #94a3b8; font-weight: 400; margin-bottom: 20px; }
+          .qr-box { background: white; padding: 10px; border-radius: 12px; display: inline-block; margin-bottom: 16px; }
+          .id-tag { font-size: 16px; font-weight: 700; background: rgba(255,255,255,0.15); padding: 4px 16px; border-radius: 30px; display: inline-block; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="company">PVT WORKFORCE HUB</div>
+          <div class="name">${empName}</div>
+          <div class="role">ตำแหน่ง: ${empRole}</div>
+          <div class="dept">แผนก: ${empDept}</div>
+          <div class="qr-box"><img src="${qrUrl}" style="width:130px; height:130px; display:block;"/></div>
+          <div><div class="id-tag">${empCode}</div></div>
+        </div>
+        <script>
+          window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 500); }
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  
+  setTimeout(() => { openEmployeeCardManagerPopup(); }, 600);
+}

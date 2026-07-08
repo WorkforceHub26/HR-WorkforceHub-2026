@@ -514,3 +514,47 @@ body {
   from { opacity: 0; transform: scale(0.96) translateY(24px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
+
+/* ==========================================================================
+   🔘 PREMIUM COMPONENT BUTTONS (เพิ่มเข้าสู่ระบบดีไซน์)
+   ========================================================================== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--primary); /* ดึงสีเขียวมรกตหลัก */
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  font-family: inherit; /* ใช้ฟอนต์ Kanit อัตโนมัติ */
+  font-size: 14.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm); /* ขอบโค้งมนตามมาตรฐานระบบ */
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 164, 114, 0.15); /* เงาสะท้อนแสงสีเขียวซอฟต์ */
+  transition: var(--fluid-transition); /* การเคลื่อนไหวแบบ Fluid ลื่นไหล */
+}
+
+/* เอฟเฟกต์ตอนเมาส์ชี้ผ่าน (Hover) */
+.btn-primary:hover {
+  background-color: var(--primary-dark); /* เปลี่ยนเป็นเขียวเข้มมิติพรีเมียม */
+  transform: translateY(-2px); /* ลอยขึ้นเล็กน้อยสไตล์ลักชัวรี */
+  box-shadow: 0 6px 20px rgba(11, 132, 92, 0.25);
+}
+
+/* เอฟเฟกต์ตอนกดปุ่ม (Active) */
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* จัดการไอคอน Material Symbol ภายในปุ่ม */
+.btn-primary span.material-symbols-outlined {
+  font-size: 20px;
+  transition: var(--spring-bounce); /* ไอคอนเด้งสไตล์สปริงตามระบบ */
+}
+
+/* เอฟเฟกต์ไอคอนขยายเล็กน้อยตอนเมาส์ชี้ */
+.btn-primary:hover span.material-symbols-outlined {
+  transform: scale(1.15) rotate(-3deg);
+}
