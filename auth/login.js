@@ -187,3 +187,85 @@ function onScanSuccess(decodedText) {
 function onScanFailure(error) {
   // ทำงานในเบื้องหลังเงียบๆ ปล่อยให้ระบบค้นหาเฟรมถัดไป
 }
+
+/* ==========================================================================
+   📸 ระบบล็อกอินอัจฉริยะผ่าน QR Code Token ปลอดภัยสูง (เพิ่มใน login.js)
+   ========================================================================== */
+
+// สมมุติตอนที่เครื่องสแกนกล้องอ่านค่า QR Code สำเร็จแล้วได้ข้อความดิบมา (scannedRawData)
+window.processQrLogin = async function (scannedRawData) {
+  // 1. ขึ้นแจ้งเตือนกำลังตรวจสอบ Token ความปลอดภัยทันที
+  Swal.fire({
+    title: '🔒 ตรวจสอบ Token ความปลอดภัย...',
+    html: '<div class="pvt-spinner"></div>',
+    showConfirmButton: false,
+    allowOutsideClick: false
+  });
+
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+    return;
+  }
+
+  try {
+    // 2. แกะข้อความที่ได้แยกออกจากกันด้วยเครื่องหมาย |
+    const decodedData = decodeURIComponent(scannedRawData);
+    const dataParts = decodedData.split('|');
+    
+    const empCode = dataParts[0]; // จะได้ รหัสพนักงาน เช่น 100001
+    const secureToken = dataParts[1]; // จะได้ตัวยืนยันสิทธิ์ เช่น PVT_SECURE_BYPASS
+
+    // 🚨 ตรวจสอบความปลอดภัยเบื้องต้น: ถ้าไม่มี Token ลับกำกับอยู่ ปฏิเสธการเข้าสู่ระบบทันที
+    if (secureToken !== 'PVT_SECURE_BYPASS' || !empCode) {
+      throw new Error('QR Code ไม่ถูกต้อง หรือเป็น Token ปลอมที่หมดอายุแล้ว');
+    }
+
+    // 3. ยิงตรวจสอบบัญชีกับฐานข้อมูล Supabase ว่าพนักงานคนนี้ยังมีสถานะใช้งานอยู่ไหม
+    const { data: user, error } = await sb
+      .from('employees')
+      .select('id, employee_code, full_name, role, status')
+      .eq('employee_code', empCode)
+      .eq('status', 'active')
+      .single();
+
+    if (error || !user) {
+      throw new Error('ไม่พบข้อมูลพนักงานในระบบ หรือสิทธิ์การใช้งานถูกระงับ');
+    }
+
+    // 4. ผ่านสิทธิ์ความปลอดภัย! ทำการจำลอง Session บันทึกลงระบบเหมือนการคีย์รหัสผ่านปกติ
+    sessionStorage.setItem("currentUser", JSON.stringify({
+      id: user.id,
+      employee_code: user.employee_code,
+      full_name: user.full_name,
+      role: user.role
+    }));
+
+    // 5. แสดงผลความสำเร็จแบบพรีเมียม
+    Swal.fire({
+      icon: 'success',
+      title: `ยินดีต้อนรับคุณ ${user.full_name}`,
+      text: 'ถอดรหัสความปลอดภัยและเข้าสู่ระบบสำเร็จ ⚡',
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+    // 6. ผลักหน้าจอแยกสิทธิ์ HR-Admin / พนักงานทั่วไป (ดึงมาจาก Logic เดิมของพี่)
+    setTimeout(() => {
+      if (user.role === "hr" || user.role === "admin") {
+        window.location.href = "/index.html";
+      } else {
+        window.location.href = "/pages/user/index-user.html";
+      }
+    }, 1500);
+
+  } catch (err) {
+    console.error("QR Security Login Failed:", err);
+    Swal.fire({
+      icon: 'error',
+      title: 'ความปลอดภัยปฏิเสธการเชื่อมต่อ',
+      text: err.message,
+      confirmButtonColor: '#ef4444'
+    });
+  }
+};

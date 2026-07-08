@@ -629,9 +629,14 @@ window.openEmployeeCardManagerPopup = async function () {
 };
 
 // 💳 จังหวะที่ 2: แสดงหน้าตาบัตรพนักงานพรีเมียม (โชว์ทั้งตำแหน่งและแผนก)
+// 💳 จุดที่ 1: อัปเดตในไฟล์ index.js (หรือไฟล์จัดการฝั่ง HR/แดชบอร์ด)
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${empCode}`;
-
+  
+  // 🔒 ผสมข้อมูลแบบพิเศษ: "รหัสพนักงาน|เครื่องหมายคั่นพิเศษ" 
+  // (ถ้าในตารางมีฟิลด์รหัสผ่านที่เข้ารหัสไว้ หรือ Token สามารถดึงมาสลับใส่ตรงนี้ได้ครับ)
+  const secureData = encodeURIComponent(`${empCode}|PVT_SECURE_BYPASS`);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
+  
   Swal.fire({
     title: '💳 ตัวอย่างบัตรพนักงานดิจิทัล',
     width: '400px',
