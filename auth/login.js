@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - login.js (ฉบับ Pop-up เด้งกลางจอ + ระบบย้ายหน้าดั้งเดิมที่เสถียรที่สุด)
+   🔒 PVT HR LEAVE - login.js (เวอร์ชันสแกน QR Code + ตัดโค้ดที่ไม่ได้ใช้ทิ้ง)
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const loginInput = usernameInput.value.trim();
     const password = passwordInput.value.trim();
 
-    // 1. เช็คว่ากรอกครบไหม
     if (!loginInput || !password) {
       Swal.fire({
         icon: 'warning',
@@ -33,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       let result;
       
-      // 🌟 ใช้โค้ดดึงข้อมูลแบบดั้งเดิมที่เวิร์คและเสถียรที่สุด
+      // ดึงข้อมูลพนักงานจากระบบ
       if (/^\d+$/.test(loginInput)) {
         result = await sb.from("employees")
           .select(`id, employee_code, full_name, role, status, password`)
@@ -49,25 +48,21 @@ document.addEventListener("DOMContentLoaded", () => {
       if (result.error || !result.data) {
         throw new Error("ไม่พบข้อมูลพนักงานนี้ในระบบ");
       }
+      
       const user = result.data;
-      // 1. ด่านรหัสผ่าน (พี่มิกผ่านด่านนี้แล้ว)
       const dbPassword = String(user.password).trim();
       const inputPassword = String(password).trim();
       
-      console.log("👉 รหัสผ่านตรงกันไหม?:", dbPassword === inputPassword ? "✅ ตรงเป๊ะ!" : "❌ ไม่ตรง");
-      console.log("👉 สถานะบัญชีจาก DB:", user.status);
-
       if (dbPassword !== inputPassword) {
         throw new Error("รหัสผ่านไม่ถูกต้อง");
       }
 
-      // 🌟 2. ด่านสถานะบัญชี (แก้บั๊กพิมพ์เล็ก/พิมพ์ใหญ่)
       const currentStatus = String(user.status || "").trim().toLowerCase();
       if (currentStatus !== "active") {
         throw new Error(`บัญชีของคุณถูกระงับ (สถานะในฐานข้อมูลคือ: ${user.status})`);
       }
 
-      // 🌟 3. บันทึก Session แบบดั้งเดิมเป๊ะๆ (เพื่อให้เข้ากับ auth-guard)
+      // บันทึก Session การเข้าสู่ระบบ
       sessionStorage.setItem("currentUser", JSON.stringify({
         id: user.id,
         employee_code: user.employee_code,
@@ -75,36 +70,34 @@ document.addEventListener("DOMContentLoaded", () => {
         role: user.role
       }));
 
-      // เก็บประวัติ Logger (ถ้ามี)
       if (window.PVTLogger) {
         window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ`);
       }
 
-      // 🌟 4. โค้ดย้ายหน้าเว็บแบบ "ดั้งเดิม" (ช่วยป้องกันหาหน้าเว็บไม่เจอ)
+      // ตรวจสอบตำแหน่งเพื่อทำการย้ายหน้าเว็บให้เหมาะสม
       if (user.role === "hr" || user.role === "admin") {
         if (window.location.origin) {
           fetch("/index.html", { method: "HEAD" })
           .then(() => {
-            window.location.href = "/index.html"; // ไปหน้า Admin
+            window.location.href = "/index.html";
           })
           .catch(() => {
-            window.location.href = "/"; // สลับไป root ถ้าหน้า index แจ้งเตือน
+            window.location.href = "/";
           });
         } else {
           window.location.href = "/index.html";
         }
       } else {
-        window.location.href = "/pages/user/index-user.html"; // ไปหน้าพนักงาน
+        window.location.href = "/pages/user/index-user.html";
       }
 
     } catch (err) {
-      // ❌ ถ้าพลาดให้เด้ง Pop-up สวยๆ กลางจอ
       Swal.fire({
         icon: 'error',
         title: 'เข้าสู่ระบบไม่สำเร็จ',
         text: err.message,
         confirmButtonColor: '#ef4444',
-        timer: 2500 // หายไปเองใน 2.5 วินาที
+        timer: 2500
       });
     }
   });
@@ -128,3 +121,69 @@ window.togglePassword = function () {
   }
 };
 
+/* ==========================================================================
+   📷 ฟังก์ชันสแกน QR Code สำหรับเข้าสู่ระบบ (ทำงานร่วมกับ SweetAlert2)
+   ========================================================================== */
+window.loginByQr = function () {
+  if (typeof Html5QrcodeScanner === 'undefined') {
+    Swal.fire('ข้อผิดพลาด', 'ไม่พบระบบสแกน QR Code กรุณารีเฟรชหน้าเว็บหรือตรวจสอบเครือข่าย', 'error');
+    return;
+  }
+
+  Swal.fire({
+    title: '📷 สแกน QR Code พนักงาน',
+    html: `
+      <div style="font-size: 14px; color: var(--text-muted, #64748b); margin-bottom: 12px;">นำคิวอาร์โค้ดประจำตัวพนักงานมาสแกนในกรอบสี่เหลี่ยมด้านล่าง</div>
+      <div id="qr-reader" style="width:100%; min-height: 250px; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #fafafa;"></div>
+    `,
+    showCancelButton: true,
+    cancelButtonText: 'ปิดกล้องถ่ายภาพ',
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    didOpen: () => {
+      // เรียกใช้กล้องสแกน
+      window.html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        false
+      );
+      window.html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    },
+    willClose: () => {
+      // ปิดกล้องทันทีเมื่อมีการปิดหน้าต่าง
+      if (window.html5QrcodeScanner) {
+        window.html5QrcodeScanner.clear().catch(err => console.error("ปิดกล้องล้มเหลว", err));
+      }
+    }
+  });
+};
+
+// เมื่อทำการตรวจจับและสแกนคิวอาร์สำเร็จ
+function onScanSuccess(decodedText) {
+  if (window.html5QrcodeScanner) {
+    window.html5QrcodeScanner.clear();
+  }
+  Swal.close();
+
+  const usernameInput = document.getElementById("username");
+  const passwordInput = document.getElementById("password");
+  
+  if (usernameInput) {
+    usernameInput.value = decodedText.trim(); 
+    Swal.fire({
+      icon: 'success',
+      title: 'ถอดรหัสสำเร็จ!',
+      text: `รหัสพนักงาน: ${decodedText}`,
+      timer: 1500,
+      showConfirmButton: false
+    }).then(() => {
+      if (passwordInput) {
+        passwordInput.focus(); // เด้งไปรอพิมพ์รหัสผ่านทันที
+      }
+    });
+  }
+}
+
+function onScanFailure(error) {
+  // ทำงานในเบื้องหลังเงียบๆ ปล่อยให้ระบบค้นหาเฟรมถัดไป
+}

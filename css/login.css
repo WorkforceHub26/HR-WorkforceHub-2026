@@ -1,9 +1,8 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - login.css (หน้าล็อกอินเข้าสู่ระบบเวอร์ชันแก้ไข)
+   🔒 PVT HR LEAVE - login.css (หน้าล็อกอินเข้าสู่ระบบเวอร์ชันคลีน + รองรับ QR)
    ========================================================================== */
 
 body {
-  /* 🌌 พื้นหลัง Gradient ฟ้าอมเทา สบายตาแบบกระจายแสงตามสไตล์เดิม */
   background:
     radial-gradient(circle at top left, #bfdbfe 0, transparent 35%),
     radial-gradient(circle at bottom right, #bfdbfe 0, transparent 35%),
@@ -29,6 +28,7 @@ body {
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(8px);
+  animation: smoothEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* ================== ส่วนหัวแบรนด์และโลโก้ ================== */
@@ -132,6 +132,7 @@ body {
   margin-top: 32px;
   margin-bottom: 0;
 }
+
 /* ================== กล่องรหัสผ่าน & ปุ่มดูรหัส (ดวงตา) ================== */
 .password-wrapper {
   position: relative;
@@ -139,7 +140,7 @@ body {
   align-items: center;
 }
 .password-wrapper .input-field {
-  padding-right: 48px; /* เว้นที่ฝั่งขวาไม่ให้ตัวหนังสือทับดวงตา */
+  padding-right: 48px;
 }
 .toggle-password {
   position: absolute;
@@ -147,17 +148,18 @@ body {
   color: var(--text-muted, #64748b);
   cursor: pointer;
   user-select: none;
-  transition: all 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease !important;
 }
 .toggle-password:hover {
   color: var(--primary, #3b82f6);
 }
+.toggle-password:active {
+  transform: scale(0.7) rotate(-15deg) !important;
+}
 
 /* ==========================================================================
-   ✨ PREMIUM MICRO-ANIMATIONS (ลูกเล่นแอนิเมชันแบบเบาเครื่อง)
+   ✨ PREMIUM MICRO-ANIMATIONS (ลูกเล่นแอนิเมชันตอนเปิดหน้าเว็บ)
    ========================================================================== */
-
-/* 🌟 1. แอนิเมชันตอนเปิดหน้าเว็บ (กล่องล็อกอินค่อยๆ ลอยขึ้นมาแบบนุ่มนวล) */
 @keyframes smoothEntrance {
   0% {
     opacity: 0;
@@ -169,94 +171,7 @@ body {
   }
 }
 
-.login-card {
-  /* เรียกใช้แอนิเมชันตอนโหลดกล่อง โค้งมนด้วย cubic-bezier ให้ดูเด้งดึ๋งนิดๆ */
-  animation: smoothEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-/* 🌟 2. ลูกเล่นดวงตาดูรหัสผ่าน (เด้งดุ๊กดิ๊กตอนกด) */
-.toggle-password {
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease !important;
-}
-
-.toggle-password:active {
-  /* เวลากดคลิกค้าง ดวงตาจะหดลงและเอียงนิดนึงให้รู้สึกเหมือนปุ่มจริง */
-  transform: scale(0.7) rotate(-15deg) !important;
-}
-
-/* ==========================================================================
-   🚨 PREMIUM POP-UP STATUS BANNER (กล่องสถานะเด้งดึ๋งอนิเมชัน)
-   ========================================================================== */
-
-.form-status {
-  padding: 12px 16px;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 20px;
-  border: 1px solid transparent;
-  box-sizing: border-box;
-  display: block;
-  text-align: center;
-  /* ใช้ Elastic Motion ตอนเมาส์สั่งโชว์ */
-  transform: translateY(-8px) scale(0.96);
-  opacity: 0;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* 🌟 เทคนิคขั้นสูง: ถ้ากล่องยังว่างเปล่า ไม่มีสคริปต์พ่นตัวหนังสือ ให้หดตัวซ่อนเนียนๆ */
-.form-status:empty {
-  padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-  height: 0 !important;
-  overflow: hidden;
-}
-
-/* ⏳ สไตล์ตอนกำลังโหลดตรวจสอบข้อมูล */
-.form-status.info {
-  background-color: #eff6ff;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
-  opacity: 1 !important;
-  transform: translateY(0) scale(1) !important;
-}
-
-/* ✅ สไตล์ตอนผ่านฉลุย ยินดีต้อนรับ (ให้เอฟเฟกต์ Pop ขยายเด้งเข้าตา) */
-.form-status.success {
-  background-color: #ecfdf5;
-  color: #065f46;
-  border-color: #a7f3d0;
-  opacity: 1 !important;
-  transform: translateY(0) scale(1) !important;
-  animation: popSuccessAlert 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-/* ❌ สไตล์ตอนรหัสผ่านผิด/เกิดข้อผิดพลาด (ให้เอฟเฟกต์ สั่นสะเทือนเตือนผู้ใช้) */
-.form-status.error {
-  background-color: #fef2f2;
-  color: #991b1b;
-  border-color: #fca5a5;
-  opacity: 1 !important;
-  transform: translateY(0) scale(1) !important;
-  animation: shakeErrorAlert 0.4s ease-in-out;
-}
-
-/* 🎬 อนิเมชันเด้งดึ๋งความสำเร็จ */
-@keyframes popSuccessAlert {
-  0% { transform: scale(0.9); }
-  60% { transform: scale(1.04); }
-  100% { transform: scale(1); }
-}
-
-/* 🎬 อนิเมชันสั่นๆ ขวากระแทกซ้าย เวลาเออเร่อ */
-@keyframes shakeErrorAlert {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-6px); }
-  40%, 80% { transform: translateX(6px); }
-}
-
-/* ปรับแต่ง SweetAlert ให้เข้ากับธีม PVT */
+/* ปรับแต่งส่วนเสริมของหน้าต่าง SweetAlert ให้เป็นธีมตามระบเดิมของท่าน */
 .swal2-popup {
   font-family: 'Sarabun', sans-serif !important;
   border-radius: 24px !important;

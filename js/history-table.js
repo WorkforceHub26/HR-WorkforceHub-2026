@@ -78,6 +78,7 @@
        ✨ เปิดหน้าต่าง Pop-up ดึงข้อมูลใบลาสะสม (leave_requests) และสิทธิ์คงเหลือ
        ========================================================================== */
     async function openEmployeeLeaveHistoryPopup(empCode, empName) {
+      // โชว์หน้าต่างโหลดข้อมูล
       Swal.fire({
         title: 'กำลังตรวจสอบคลังข้อมูล...',
         html: '<div class="pvt-spinner"></div>',
@@ -85,33 +86,73 @@
         allowOutsideClick: false
       });
 
+      // ดึงตัวแปรฐานข้อมูล (รองรับทั้งแบบเก่าและใหม่ของระบบพี่)
+      const sb = window.supabaseClient || window.pvtSupabase?.getClient();
+      if (!sb) {
+          Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+          return;
+      }
+
       let balance = null;
       let requests = [];
+      let employeeUuid = null;
 
-      // 1. ดึงสิทธิ์คงเหลือจาก leave_balances
+      // ==========================================
+      // 🔍 Step 1: หารหัส UUID ของพนักงานจากตาราง employees
+      // ==========================================
       try {
-        let resBal = await supabaseClient
+        const { data: empData, error: empError } = await sb
+          .from('employees')
+          .select('id')
+          .eq('employee_code', empCode)
+          .single();
+
+        if (empError || !empData) {
+          Swal.fire('ไม่พบข้อมูล', `ไม่พบพนักงานรหัส ${empCode} ในระบบ`, 'warning');
+          return; // หยุดทำงานถ้าหาพนักงานไม่เจอ
+        }
+        
+        employeeUuid = empData.id; // ได้ UUID มาแล้วเอาไปใช้ต่อ!
+
+      } catch (e) {
+        console.error("Error fetching employee:", e);
+        Swal.fire('ข้อผิดพลาด', 'เกิดปัญหาในการค้นหาข้อมูลพนักงาน', 'error');
+        return;
+      }
+
+      // ==========================================
+      // 🔍 Step 2: ดึงสิทธิ์คงเหลือจาก leave_balances (ใช้ UUID ค้นหา)
+      // ==========================================
+      try {
+        let resBal = await sb
           .from('leave_balances')
           .select('*')
-          .or(`employee_code.eq.${empCode},employee_id.eq.${empCode}`)
+          .eq('employee_id', employeeUuid)
           .maybeSingle();
+          
         if (resBal && resBal.data) balance = resBal.data;
       } catch (e) {
         console.warn("⚠️ ไม่พบตาราง leave_balances:", e.message);
       }
 
-      // 2. ดึงตารางใบลาสะสม (leave_requests) รองรับทั้งการเช็คด้วยรหัสและชื่อพนักงานเพื่อความแม่นยำ
+      // ==========================================
+      // 🔍 Step 3: ดึงตารางใบลาสะสม (leave_requests) (ใช้ UUID ค้นหา)
+      // ==========================================
       try {
-        let resReq = await supabaseClient
+        let resReq = await sb
           .from('leave_requests')
-          .select('*')
-          .or(`employee_code.eq.${empCode},employee_id.eq.${empCode},emp_name.ilike.%${empName}%`)
+          .select('*, leave_types(leave_name)') // จอยตารางดึงชื่อประเภทการลามาด้วย
+          .eq('employee_id', employeeUuid)
           .order('created_at', { ascending: false });
+          
         if (resReq && resReq.data) requests = resReq.data;
       } catch (e) {
         console.warn("⚠️ เกิดข้อผิดพลาดในการดึงข้อมูลตาราง leave_requests:", e.message);
       }
 
+      // ==========================================
+      // 🎨 เตรียมข้อมูลและแสดงผล UI ของพี่ (โค้ดเดิม)
+      // ==========================================
       // ตั้งค่าโควตาเริ่มต้นแสดงผลกรณีไม่มีแถวข้อมูลพนักงานคนนี้ในคลังสิทธิ์
       let sRem = balance?.sick_remaining ?? 30, sMax = balance?.sick_max ?? 30;
       let pRem = balance?.personal_remaining ?? 6, pMax = balance?.personal_max ?? 6;
@@ -143,7 +184,8 @@
         historyTableRows = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-soft);">ไม่พบประวัติการยื่นคำขอลาหยุดของพนักงานรายนี้</td></tr>`;
       } else {
         requests.forEach(req => {
-          let reqType = req.leave_name || req.leave_type_name || req.leave_type || 'การลา';
+          // ดึงชื่อการลาให้แม่นยำขึ้นจากที่จอยมา
+          let reqType = req.leave_types?.leave_name || req.leave_name || req.leave_type || 'การลาทั่วไป';
           let reqStatus = req.status || 'pending';
           let reqReason = req.reason || req.detail || '-';
           let rId = req.id || '###';
@@ -195,7 +237,7 @@
         confirmButtonText: 'ปิดหน้าต่างข้อมูล',
         confirmButtonColor: '#0fa472'
       });
-    }
+}
 
     /* ==========================================================================
        🔍 LIVE SEARCH FUNCTION

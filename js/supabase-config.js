@@ -1,5 +1,5 @@
-const PVT_SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
-const PVT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
+window.PVT_SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
+window.PVT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
 console.log("%c[Timeline Step 1]: เริ่มต้นโหลดสคริปต์โครงสร้างหลักแบบอัจฉริยะ (Smart Config)...", "color: #9333ea; font-weight: bold;");
 
