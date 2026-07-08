@@ -255,3 +255,49 @@ body {
   
   .contact-fab { left: 16px; right: 16px; bottom: 16px; width: calc(100% - 32px); text-align: center; }
 }
+
+/* 🌟 สไตล์พิเศษสำหรับปุ่มดูบัตรพนักงาน */
+.btn-premium-card {
+  /* ไล่สีพื้นหลังโทนน้ำเงิน-ฟ้า พรีเมียม */
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  
+  /* เพิ่มเงาเรืองแสงให้ดูมีมิติ */
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4) !important;
+  transition: all 0.3s ease !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ปรับสีไอคอนข้างในให้เข้ากับปุ่ม */
+.btn-premium-card span.material-symbols-outlined {
+  color: #93c5fd !important;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* เอฟเฟกต์ตอนเอาเมาส์ชี้ (Hover) - ขยายตัวและเรืองแสงเพิ่ม */
+.btn-premium-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.6) !important;
+  background: linear-gradient(135deg, #1e40af 0%, #60a5fa 100%) !important;
+}
+
+/* เพิ่มประกายแสง (Shine effect) พาดผ่านปุ่ม */
+.btn-premium-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+  transform: skewX(-25deg);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 200%; }
+  100% { left: 200%; }
+}
