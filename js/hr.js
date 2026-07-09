@@ -198,12 +198,12 @@ async function openLeavePopupModal(leaveId) {
 }
 
 // ==========================================
-// 🟢 4. ฟังก์ชันจัดการสถานะใบลา (อนุมัติ, ปฏิเสธ, ยกเลิก)
+// 🟢 ฟังก์ชันอนุมัติใบลา (พร้อมระบบตัดยอดโควตาวันลาอัตโนมัติ)
 // ==========================================
 async function approveLeave(leaveId) {
   const result = await Swal.fire({
     title: 'ยืนยันการอนุมัติ?',
-    text: "คุณต้องการอนุมัติและบันทึกใบลาของพนักงานท่านนี้ใช่หรือไม่",
+    text: "คุณต้องการอนุมัติและหักโควตาวันลาของพนักงานท่านนี้ใช่หรือไม่?",
     icon: 'question',
     showCancelButton: true,
     confirmButtonColor: '#10b981',
@@ -213,18 +213,66 @@ async function approveLeave(leaveId) {
   });
 
   if (!result.isConfirmed) return;
+  
   const sb = window.pvtSupabase?.getClient();
+  
+  // ⏳ แสดงหน้าต่างโหลดข้อมูล ป้องกันคนกดซ้ำ
+  Swal.fire({
+    title: 'กำลังประมวลผล...',
+    text: 'ระบบกำลังตรวจสอบและตัดยอดวันลา กรุณารอสักครู่',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
   try {
-    // 🎯 แก้ไขจาก approved_by_leaders เป็น approved_by ให้ตรงตาม DB
-    const { error } = await sb.from('leave_requests').update({ 
+    // 1️⃣ ดึงข้อมูลใบลาใบนี้ ว่าพนักงานขอลาประเภทไหน และขอกี่วัน
+    const { data: reqData, error: reqErr } = await sb
+      .from('leave_requests')
+      .select('employee_id, leave_type_id, total_days, start_date')
+      .eq('id', leaveId)
+      .single();
+      
+    if (reqErr) throw new Error("ดึงข้อมูลใบลาไม่สำเร็จ");
+
+    // หาปีของวันที่เริ่มลา
+    const currentYear = new Date(reqData.start_date).getFullYear();
+
+    // 2️⃣ ไปดึงโควตาปัจจุบันของพนักงานในตาราง leave_balances
+    const { data: balData, error: balErr } = await sb
+      .from('leave_balances')
+      .select('id, remaining_days, used_days')
+      .eq('employee_id', reqData.employee_id)
+      .eq('leave_type_id', reqData.leave_type_id)
+      .eq('year', currentYear)
+      .single();
+
+    // ถ้าไม่เจอโควตา ให้ข้ามการตัดยอดไป (เผื่อเป็นเคสลานอกเหนือโควตา)
+    if (!balErr && balData) {
+      // 3️⃣ คำนวณวันลาที่เหลือและที่ใช้ไป
+      const newUsed = (balData.used_days || 0) + reqData.total_days;
+      const newRemaining = (balData.remaining_days || 0) - reqData.total_days;
+
+      // 4️⃣ อัปเดตตาราง leave_balances (หักโควตาจริง)
+      const { error: updateBalErr } = await sb
+        .from('leave_balances')
+        .update({ remaining_days: newRemaining, used_days: newUsed })
+        .eq('id', balData.id);
+
+      if (updateBalErr) throw new Error("เกิดข้อผิดพลาดในการหักโควตาวันลา");
+    }
+
+    // 5️⃣ อัปเดตสถานะใบลาเป็น approved (เสร็จสมบูรณ์)
+    const { error: approveErr } = await sb.from('leave_requests').update({ 
       status: 'approved', 
       approved_by: window.adminProfile?.employee_id || null, 
       approved_at: new Date().toISOString() 
     }).eq('id', leaveId);
     
-    if (error) throw error;
-    Swal.fire('อนุมัติสำเร็จ!', 'ระบบได้บันทึกข้อมูลเรียบร้อย', 'success');
-    loadPendingLeavesHR(); 
+    if (approveErr) throw approveErr;
+    
+    Swal.fire('อนุมัติสำเร็จ!', 'ระบบได้อนุมัติและหักโควตาวันลาเรียบร้อยแล้ว', 'success');
+    loadPendingLeavesHR(); // รีเฟรชตารางใหม่
+    
   } catch (err) {
     Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
   }
@@ -264,34 +312,89 @@ async function rejectLeave(leaveId) {
   }
 }
 
-async function cancelLeave(leaveId) {
+// ==========================================
+// 🔴 ฟังก์ชัน HR กดยกเลิก/ปฏิเสธใบลา (พร้อมระบบ "คืนโควตาวันลา" อัตโนมัติ)
+// ==========================================
+async function cancelLeaveHR(leaveId) {
+  // 1️⃣ เด้งหน้าต่างให้ HR พิมพ์เหตุผลที่ยกเลิก
   const { value: reason } = await Swal.fire({
-    title: 'ยกเลิกใบลา',
-    input: 'textarea',
-    inputLabel: 'โปรดระบุเหตุผลที่ขอยกเลิกใบลาใบนี้:',
-    inputPlaceholder: 'ตัวอย่าง: พนักงานขอยกเลิกเอง, วันลาซ้ำซ้อน, คีย์ข้อมูลผิด...',
-    icon: 'warning',
+    title: 'ยืนยันการยกเลิกใบลา',
+    input: 'text',
+    inputLabel: 'ระบุเหตุผล (เช่น พนักงานมาทำงาน, ขอยกเลิกเอง)',
+    inputPlaceholder: 'พิมพ์เหตุผลที่นี่...',
     showCancelButton: true,
-    confirmButtonColor: '#f59e0b',
-    cancelButtonColor: '#64748b',
-    confirmButtonText: '🚫 ยืนยันการยกเลิก',
-    cancelButtonText: 'ปิด',
-    inputValidator: (value) => { if (!value) return 'กรุณาระบุเหตุผลการยกเลิกด้วยครับ!' }
+    confirmButtonColor: '#ef4444',
+    confirmButtonText: '✔️ ยืนยันยกเลิก',
+    cancelButtonText: 'ปิด'
   });
 
-  if (!reason) return; 
+  if (reason === undefined) return; // ถ้า HR กดปุ่ม "ปิด/Cancel" ให้หยุดทำงาน
+
   const sb = window.pvtSupabase?.getClient();
+
+  // ⏳ แสดงหน้าต่างโหลดข้อมูล
+  Swal.fire({
+    title: 'กำลังประมวลผล...',
+    text: 'ระบบกำลังดำเนินการยกเลิกและคืนสิทธิ์วันลา (ถ้ามี)',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
   try {
-    const { error } = await sb.from('leave_requests').update({ 
-      status: 'cancelled', 
-      approval_comment: `[ยกเลิก] ${reason.trim()}`, 
-      approved_by_leaders: window.adminProfile?.employee_id || null, 
+    // 2️⃣ ดึงข้อมูลใบลาก่อน ว่าสถานะปัจจุบันคืออะไร ขอกี่วัน
+    const { data: reqData, error: reqErr } = await sb
+      .from('leave_requests')
+      .select('employee_id, leave_type_id, total_days, start_date, status')
+      .eq('id', leaveId)
+      .single();
+      
+    if (reqErr) throw new Error("ดึงข้อมูลใบลาไม่สำเร็จ");
+
+    // 3️⃣ ตรวจสอบว่า "เคยอนุมัติ (ตัดยอดไปแล้ว)" หรือไม่? 
+    if (reqData.status === 'approved') {
+      // 🔄 กระบวนการ "คืนโควตาวันลา" (Refund)
+      const currentYear = new Date(reqData.start_date).getFullYear();
+      
+      const { data: balData, error: balErr } = await sb
+        .from('leave_balances')
+        .select('id, remaining_days, used_days')
+        .eq('employee_id', reqData.employee_id)
+        .eq('leave_type_id', reqData.leave_type_id)
+        .eq('year', currentYear)
+        .single();
+
+      if (!balErr && balData) {
+        // คืนวันลา: เอาวันลาคงเหลือมาบวกกลับ และเอาวันที่ใช้ไปมาลบออก
+        const newRemaining = (balData.remaining_days || 0) + reqData.total_days;
+        const newUsed = Math.max(0, (balData.used_days || 0) - reqData.total_days); // ลบแล้วห้ามติดลบ
+
+        // ยิงคำสั่งอัปเดตคืนวันลากลับเข้าฐานข้อมูล
+        const { error: updateBalErr } = await sb
+          .from('leave_balances')
+          .update({ remaining_days: newRemaining, used_days: newUsed })
+          .eq('id', balData.id);
+
+        if (updateBalErr) throw new Error("เกิดข้อผิดพลาดในการคืนโควตาวันลา");
+      }
+    }
+
+    // 4️⃣ อัปเดตสถานะใบลาเป็น rejected พร้อมเซฟหมายเหตุที่ HR พิมพ์
+    const { error: cancelErr } = await sb.from('leave_requests').update({ 
+      status: 'rejected', 
+      approval_comment: reason || 'HR ยกเลิกรายการ (พนักงานมาทำงาน)',
+      approved_by: window.adminProfile?.employee_id || null, 
       approved_at: new Date().toISOString() 
     }).eq('id', leaveId);
     
-    if (error) throw error;
-    Swal.fire('ยกเลิกใบลาสำเร็จ', 'ระบบได้บันทึกสถานะการยกเลิกแล้ว', 'success');
-    loadPendingLeavesHR();
+    if (cancelErr) throw cancelErr;
+    
+    Swal.fire('ยกเลิกสำเร็จ!', 'ระบบได้ทำการยกเลิกและคืนโควตาวันลาให้พนักงานเรียบร้อยแล้ว', 'success');
+    
+    // โหลดตารางใหม่เพื่อแสดงผลล่าสุด
+    if (typeof loadPendingLeavesHR === "function") {
+      loadPendingLeavesHR(); 
+    }
+    
   } catch (err) {
     Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
   }

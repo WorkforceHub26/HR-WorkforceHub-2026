@@ -1,7 +1,7 @@
 /**
  * 🔒 PVT HR - Security Auth Guard (Enterprise Clean Version)
  */
-/*(function () {
+(function () {
   // 1. ดักซ่อนเนื้อหาหน้าเว็บทันที ป้องกันพนักงานเห็นหน้าจอก่อนล็อกอิน (Flicker Effect)
   document.documentElement.style.visibility = 'hidden';
 
@@ -31,4 +31,4 @@
     // 4. ถ้ามีสิทธิ์ถูกต้อง ค่อยเปิดให้มองเห็นหน้าเว็บแบบเนียนๆ
     document.documentElement.style.visibility = 'visible';
   });
-})(); */
+})(); 

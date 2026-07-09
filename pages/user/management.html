@@ -14,7 +14,21 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <style>
-    /* CSS เฉพาะสำหรับจัดวางปุ่มในการตั้งค่า */
+    /* 🌊 CUSTOM TEAL & CYAN GLASSMORPHISM THEME */
+    :root {
+      --primary: #0d9488;         /* สีหลัก: ฟ้าอมเขียว (Teal) */
+      --primary-soft: #f0fdfa;    /* สีฟ้าเขียวพาสเทลซอฟต์ */
+      --primary-dark: #115e59;    /* สีเทลเข้ม */
+      --accent-cyan: #06b6d4;     /* สีฟ้าน้ำทะเล (Cyan) */
+      --bg-gradient: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 50%, #f8fafc 100%);
+    }
+
+    body {
+      background: var(--bg-gradient) !important;
+      min-height: 100vh;
+    }
+
+    /* จัดวาง Layout ภาพรวม */
     .management-grid { 
       display: grid; 
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
@@ -23,45 +37,58 @@
       padding-bottom: 40px; 
     }
     
+    /* 💎 เปลี่ยนการ์ดจัดการให้เป็นกระจกฝ้าเบลอ (Glassmorphism Card) */
     .manage-card { 
-      background: var(--card); 
-      border-radius: 16px; 
-      padding: 24px; 
-      border: 1px solid var(--border); 
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); 
+      background: rgba(255, 255, 255, 0.65); 
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border-radius: 20px; 
+      padding: 26px; 
+      border: 1px solid rgba(255, 255, 255, 0.5); 
+      box-shadow: 0 8px 32px 0 rgba(13, 148, 136, 0.04);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .manage-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px 0 rgba(13, 148, 136, 0.08);
+      border-color: rgba(13, 148, 136, 0.2);
     }
     
+    /* หัวข้อการ์ดโทนฟ้าเขียวเข้ม */
     .manage-card h3 { 
       display: flex; 
       align-items: center; 
-      gap: 8px; 
+      gap: 10px; 
       font-size: 18px; 
-      color: var(--text);
-      margin-bottom: 8px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
+      color: var(--primary-dark);
+      font-weight: 600;
+      margin-bottom: 4px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(13, 148, 136, 0.1);
     }
     
     .manage-card h3 span { color: var(--primary); }
     
+    /* 🌐 ปุ่มกดสไตล์มินิมัลซอฟต์สลับสีฟ้าเขียว */
     .action-btn {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       width: 100%;
-      padding: 12px 16px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(13, 148, 136, 0.15);
+      border-radius: 12px;
+      color: #334155;
       font-family: inherit;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.25s ease;
       text-align: left;
     }
     
@@ -69,27 +96,61 @@
       background: var(--primary-soft);
       border-color: var(--primary);
       color: var(--primary-dark);
-      transform: translateX(4px);
+      transform: translateX(6px);
     }
     
-    .action-btn.danger:hover {
+    /* ปุ่มรายงาน Excel แบบพิเศษเขียวมิ้นต์ */
+    .action-btn.success-zone {
+      background: rgba(240, 253, 250, 0.8) !important;
+      border-color: rgba(20, 184, 166, 0.3) !important;
+      color: #0f766e !important;
+    }
+    .action-btn.success-zone:hover {
+      background: #ccfbf1 !important;
+      border-color: var(--primary) !important;
+      transform: translateX(6px);
+    }
+    
+    /* ปุ่มรีเซ็ตระดับวิกฤต ปรับให้ซอฟต์ลงเป็นโทนฟ้าอมเทาอมแดงนิดๆ ไม่ให้แดงตะโกนกระโดดธีม */
+    .action-btn.danger-zone {
+      background: rgba(254, 242, 242, 0.6);
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+    .action-btn.danger-zone:hover {
       background: #fee2e2;
-      border-color: var(--danger);
-      color: #b91c1c;
+      border-color: #ef4444;
+      color: #991b1b;
+      transform: translateX(6px);
     }
     
     .action-btn span.material-symbols-outlined {
-      font-size: 20px;
+      font-size: 22px;
     }
     
+    /* ป้ายสถานะประวัติการแก้ไขระบบ (Badge) */
     .log-badge {
       margin-left: auto;
       background: #e0f2fe;
       color: #0369a1;
-      padding: 2px 8px;
+      padding: 3px 10px;
       border-radius: 99px;
       font-size: 11px;
       font-weight: 600;
+    }
+
+    /* 💎 แถบเมนูด้านซ้ายทำเป็นกระจกฝ้าเบลออ่อนๆ เพื่อรับกับพื้นหลัง */
+    .sidebar-light {
+      background: rgba(255, 255, 255, 0.45) !important;
+      -webkit-backdrop-filter: blur(15px);
+      backdrop-filter: blur(15px);
+      border-right: 1px solid rgba(255, 255, 255, 0.4) !important;
+    }
+    
+    /* เมื่อเมนูนั้นกำลังถูกเปิดใช้งาน (Active) เปลี่ยนเป็นสีเทลอมฟ้า */
+    .nav-menu .nav-item.active {
+      background: var(--primary) !important;
+      color: #ffffff !important;
     }
   </style>
 </head>
@@ -97,6 +158,7 @@
 <body>
   <div class="app-shell">
     
+    <!-- เมนูด้านข้าง (Sidebar) -->
     <aside class="sidebar-light">
       <div class="brand-zone">
         <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
@@ -107,11 +169,12 @@
           <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
-        <a href="/hr.html" class="nav-item active">
+        <a href="/hr.html" class="nav-item">
           <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">อนุมัติใบลา</span>
         </a>
-        <a href="/pages/user/management.html" class="nav-item">
+        <!-- 🟢 เมนูที่เปิดใช้งานปัจจุบัน (Active) สไตล์สีเทล -->
+        <a href="/pages/user/management.html" class="nav-item active">
           <span class="material-symbols-outlined">manage_accounts</span>
           <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
         </a>
@@ -137,16 +200,17 @@
       </div>
     </aside>
 
+    <!-- พื้นที่เนื้อหาหลักด้านขวา -->
     <main class="main-content">
       
       <header class="topbar">
         <div class="topbar-left">
-          <h1>ระบบจัดการส่วนกลาง (HR Management)</h1>
-          <p>ADMINISTRATION & SETTINGS</p>
+          <h1 style="color: var(--primary-dark); font-weight: 700;">ระบบจัดการส่วนกลาง (HR Management)</h1>
+          <p style="color: var(--primary); letter-spacing: 0.5px;">ADMINISTRATION & SETTINGS</p>
         </div>
         <div class="topbar-right">
           <div class="user-profile">
-            <div class="avatar">HR</div>
+            <div class="avatar" style="background: var(--primary);">HR</div>
             <div class="info">
               <strong>ผู้ดูแลระบบ</strong>
               <span>PVT Administrator</span>
@@ -157,22 +221,24 @@
 
       <div class="management-grid">
         
+        <!-- บล็อกที่ 1 -->
         <div class="manage-card">
           <h3><span class="material-symbols-outlined">group</span> 1. ระบบจัดการบุคลากร</h3>
-          <button class="action-btn" onclick="addEmployee()">
+          <button class="action-btn" onclick="addNewEmployee()">
             <span class="material-symbols-outlined">person_add</span> เพิ่มพนักงานใหม่เข้าสู่ระบบ
           </button>
-          <button class="action-btn" onclick="editEmployee()">
+          <button class="action-btn" onclick="editEmployeeData()">
             <span class="material-symbols-outlined">manage_accounts</span> แก้ไขข้อมูล / ตำแหน่ง / แผนก
           </button>
-          <button class="action-btn danger" onclick="deleteEmployee()">
-            <span class="material-symbols-outlined">person_remove</span> ระงับสิทธิ์ / ลบพนักงาน
+          <button class="action-btn" onclick="manageDepartments()">
+            <span class="material-symbols-outlined">corporate_fare</span> เพิ่มแผนก / ตำแหน่ง ใหม่
           </button>
         </div>
 
+        <!-- บล็อกที่ 2 -->
         <div class="manage-card">
           <h3><span class="material-symbols-outlined">fact_check</span> 2. กฎระเบียบและโควตา</h3>
-          <button class="action-btn" onclick="setLeaveTypes()">
+          <button class="action-btn" onclick="editGlobalLeaveRules()">
             <span class="material-symbols-outlined">rule</span> ตั้งค่าประเภทการลา & สิทธิ์สูงสุด
           </button>
           <button class="action-btn" onclick="editIndividualLeaveBalance()">
@@ -183,16 +249,17 @@
           </button>
         </div>
 
+        <!-- บล็อกที่ 3 -->
         <div class="manage-card">
           <h3><span class="material-symbols-outlined">admin_panel_settings</span> 3. ระบบข้อมูล & ความปลอดภัย</h3>
-          <button class="action-btn" onclick="exportLeaveReport()" style="background: #f0fdf4; border-color: #bbf7d0; color: #166534;">
+          <button class="action-btn success-zone" onclick="exportLeaveReport()">
             <span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Export to Excel)
           </button>
           <button class="action-btn" onclick="viewAuditLogs()">
             <span class="material-symbols-outlined">history</span> ประวัติการแก้ไขระบบ (Audit Log)
             <span class="log-badge">ตรวจสอบได้</span>
           </button>
-          <button class="action-btn danger" onclick="resetYearlyLeave()">
+          <button class="action-btn danger-zone" onclick="resetYearlyLeave()">
             <span class="material-symbols-outlined">device_reset</span> ล้างโควตาวันลา (ขึ้นปีงบประมาณใหม่)
           </button>
         </div>

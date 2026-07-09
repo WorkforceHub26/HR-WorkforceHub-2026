@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ประวัติการลา | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/leave-history.css" />
+  
+  <link rel="stylesheet" href="/css/index-user.css" />
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -26,7 +28,7 @@
     <section class="recent-card">
       <div class="section-head">
         <h2>รายการทั้งหมด</h2>
-        <button onclick="location.href='/pages/user/leave-user.html'">＋ ขอลาใหม่</button>
+        <button onclick="location.href='/pages/user/leave-user.html'" style="background: transparent; border: none; color: var(--primary); font-size: 14px; font-weight: 600; cursor: pointer;">＋ ขอลาใหม่</button>
       </div>
       
       <div id="historyList" class="recent-list">

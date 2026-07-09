@@ -1,213 +1,166 @@
 /**
- * leave-history.js — (ฉบับแก้ไขยกชุด สมบูรณ์ 100%)
- * ✅ ล้างโค้ดที่ทับซ้อนและพังออกทั้งหมด
- * ✅ ดึงประวัติการลา Join ตารางประเภทการลา (leave_types) ถูกต้อง
- * ✅ รองรับการทำงานทั้งแบบดึงผ่าน Profile จริง และ Session ตัวแปรทดสอบ
- * ✅ มีระบบยกเลิกใบลา (Cancel Leave) สำหรับสถานะ pending
+ * leave-history.js — (ฉบับสมบูรณ์ ล้างไอดีจำลอง + ระบบ Log ติดตามบั๊ก 100%)
  */
 
-document.addEventListener("DOMContentLoaded", async () => {
-  // บังคับเซ็ตค่าทดสอบลงเซสชันไว้ก่อน (กันเหนียวกรณีสิทธิ์ระบบยังดึงมาไม่ถึง)
-  try {
-    const cachedUser = JSON.parse(sessionStorage.getItem("currentUser"));
-    if (!cachedUser || !cachedUser.id) {
-      const mockUserForHistory = {
-        id: "9a8036a8-3b03-4802-9520-59934fe621e3", // 💡 เปลี่ยนเป็นรหัส UUID จริงของพี่มิกได้เลยครับ
-        full_name: "คุณมิกกี้ (IT Management)"
-      };
-      sessionStorage.setItem("currentUser", JSON.stringify(mockUserForHistory));
-    }
-  } catch (e) {
-    console.error("เซ็ตเซสชันจำลองไม่สำเร็จ:", e);
-  }
+console.log("📢 [SYSTEM] เริ่มต้นโหลดหน้าประวัติการลา (Leave History)...");
 
-  // เรียกทำงานฟังก์ชันดึงประวัติการลา
+// 🛠️ 1. ระบบดักจับและบังคับอัปเดต CSS (ป้องกันเบราว์เซอร์จำค่าเก่า)
+(function forceLoadNewCSS() {
+  const links = document.getElementsByTagName('link');
+  let found = false;
+  for (let i = 0; i < links.length; i++) {
+    if (links[i].rel === 'stylesheet' && links[i].href.includes('leave-history.css')) {
+      const oldHref = links[i].href.split('?')[0]; 
+      const newHref = `${oldHref}?v=${new Date().getTime()}`; 
+      links[i].href = newHref;
+      console.log(`✅ [DEBUG-CSS] บังคับโหลด CSS ใหม่ที่: ${newHref}`);
+      found = true;
+    }
+  }
+  if (!found) console.warn("⚠️ [DEBUG-CSS] ไม่พบแท็กลิงก์ leave-history.css ใน HTML (กรุณาเช็ก Path ไฟล์ใน HTML อีกครั้ง)");
+})();
+
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("📌 [LIFECYCLE] โครงสร้างหน้าเว็บโหลดเสร็จ กำลังเรียกฟังก์ชัน loadLeaveHistory()");
   await loadLeaveHistory();
 });
 
-// ─── 1. ฟังก์ชันดึงประวัติการลาจาก Supabase ───
+// ─── ฟังก์ชันหลัก: ดึงประวัติการลา ───
 async function loadLeaveHistory() {
-  const tbody = document.getElementById("historyTableBody");
   const listContainer = document.getElementById("historyList");
   
-  // กำหนดตัวแปรสำหรับแสดงผลตัวอักษรกำลังโหลด
-  if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">⏳ กำลังโหลดประวัติการลา...</td></tr>`;
   if (listContainer) listContainer.innerHTML = `<div class="empty-state">⏳ กำลังโหลดประวัติการลา...</div>`;
 
   const sb = window.pvtSupabase?.getClient();
   if (!sb) {
-    const errMsg = "❌ ไม่สามารถเชื่อมต่อระบบฐานข้อมูลได้";
-    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:red;">${errMsg}</td></tr>`;
-    if (listContainer) listContainer.innerHTML = `<div class="empty-state" style="color:red;">${errMsg}</div>`;
+    if (listContainer) listContainer.innerHTML = `<div class="empty-state" style="color:red;">❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (เช็ก supabase-config.js)</div>`;
     return;
   }
 
-  // ค้นหาสิทธิ์ ID พนักงาน (จาก profile จริงในระบบ หรือ ตัวจำลองใน session)
   let employeeId = "";
+
   try {
+    console.log("🔄 [AUTH] กำลังตรวจสอบสิทธิ์ผู้ใช้งาน...");
+    // 1. ดึงข้อมูลจาก Supabase Auth 
     const profile = await window.pvtSupabase?.getCurrentProfile();
-    if (profile?.employee_id) {
-      employeeId = profile.employee_id;
-    } else {
-      const cachedUser = JSON.parse(sessionStorage.getItem("currentUser"));
-      if (cachedUser && cachedUser.id) employeeId = cachedUser.id;
+    employeeId = profile?.employee_id || profile?.id;
+    console.log("👤 [AUTH] ข้อมูลจาก Supabase Profile:", profile);
+
+    // 2. ถ้าไม่ได้ผล ให้ดึงจาก Session Storage (คนที่เพิ่งล็อกอินเข้ามา)
+    if (!employeeId) {
+      const cachedUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+      console.log("📦 [AUTH] ข้อมูลจาก Session Storage:", cachedUser);
+      if (cachedUser) {
+        employeeId = cachedUser.employee_id || cachedUser.id;
+      }
     }
   } catch (e) {
-    console.error("เช็กสิทธิ์พนักงานล้มเหลว:", e);
+    console.error("❌ [AUTH ERROR] เช็กสิทธิ์ล้มเหลว:", e);
   }
 
-  // หากหา ID พนักงานไม่เจอเลย ให้ฟ้องแจ้งเตือน
+  // ถ้าสุดท้ายหาไอดีไม่เจอเลย เตะกลับหรือแจ้งเตือน
   if (!employeeId) {
-    const loginMsg = "กรุณาเข้าสู่ระบบเพื่อดูประวัติการลา";
-    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">${loginMsg}</td></tr>`;
-    if (listContainer) listContainer.innerHTML = `<div class="empty-state">${loginMsg}</div>`;
+    console.warn("🚫 [AUTH] ไม่พบไอดีพนักงาน กรุณาล็อกอินใหม่");
+    if (listContainer) listContainer.innerHTML = `<div class="empty-state">กรุณาเข้าสู่ระบบใหม่อีกครั้งเพื่อดูประวัติการลา</div>`;
     return;
   }
 
-  console.log(`⏳ [FETCHING] กำลังดึงประวัติใบลาของพนักงานไอดี: ${employeeId}`);
+  console.log(`⏳ [FETCHING] กำลังดึงประวัติการลาของไอดีจริง: ${employeeId}`);
 
   try {
-    // ยิง Query ดึงข้อมูลใบลาคู่กับชื่อประเภทลาแบบไร้รอยต่อ
+    // 🔍 วิ่งไปดึงประวัติในตาราง leave_requests
     const { data, error } = await sb
       .from("leave_requests")
       .select(`
-        id,
-        start_date,
-        end_date,
-        total_days,
-        reason,
-        status,
-        approval_comment,
-        created_at,
+        id, start_date, end_date, total_days, reason, status, approval_comment, created_at,
         leave_types ( leave_name )
       `)
       .eq("employee_id", employeeId)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error("❌ [DB ERROR] คำสั่ง SQL ผิดพลาด:", error);
+      throw error;
+    }
 
-    // กรณีไม่มีข้อมูลประวัติการลา
+    console.log(`📋 [DATA] ดึงประวัติสำเร็จ เจอข้อมูลทั้งหมด: ${data ? data.length : 0} รายการ`, data);
+
     if (!data || data.length === 0) {
-      const emptyMsg = "📭 ยังไม่มีรายการยื่นใบลาในระบบ";
-      if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">${emptyMsg}</td></tr>`;
-      if (listContainer) listContainer.innerHTML = `<div class="empty-state">${emptyMsg}</div>`;
+      if (listContainer) listContainer.innerHTML = `<div class="empty-state">📭 ยังไม่มีประวัติการยื่นใบลาในระบบ</div>`;
       return;
     }
 
-    // ล้างกล่องรอรับข้อมูลจริง
-    if (tbody) tbody.innerHTML = "";
-    if (listContainer) listContainer.innerHTML = "";
+    // 🎨 เริ่มวาด UI จากข้อมูลที่ดึงมาได้
+    if (listContainer) listContainer.innerHTML = ""; // ล้างคำว่ากำลังโหลดทิ้ง
 
-    // 🔄 วนลูปพ่นข้อมูลแสดงผล (รองรับโครงสร้างตาราง <table> และแบบการ์ด <article>)
     data.forEach(item => {
-      // จัดการฟอร์แมตวันที่ยื่นคำขอ
-      const writeDate = new Date(item.created_at).toLocaleDateString('th-TH', {
-        year: 'numeric', month: 'short', day: 'numeric'
-      });
-
-      const leaveName = item.leave_types?.leave_name || "ไม่ระบุประเภทการลา";
+      const writeDate = new Date(item.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+      const leaveName = item.leave_types?.leave_name || "ไม่ระบุประเภท";
       const escapedLeaveName = window.pvtSupabase?.escapeHtml ? window.pvtSupabase.escapeHtml(leaveName) : leaveName;
       const escapedReason = window.pvtSupabase?.escapeHtml ? window.pvtSupabase.escapeHtml(item.reason || "-") : (item.reason || "-");
       const statusLabel = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(item.status) : item.status;
 
-      // บล็อกหมายเหตุการปฏิเสธ (ถ้ามี)
       let commentHtml = "";
       if (item.status === "rejected" && item.approval_comment) {
-        const escapedComment = window.pvtSupabase?.escapeHtml ? window.pvtSupabase.escapeHtml(item.approval_comment) : item.approval_comment;
-        commentHtml = `<div class="reject-reason-box" style="margin-top: 8px; padding: 8px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 6px; color: #991b1b; font-size: 13px;">
-                        <strong>⚠️ หมายเหตุจากบุคคล/ผู้อนุมัติ:</strong> ${escapedComment}
+        commentHtml = `<div style="margin-top: 8px; padding: 8px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 6px; color: #991b1b; font-size: 13px;">
+                        <strong>⚠️ หมายเหตุ:</strong> ${item.approval_comment}
                        </div>`;
       }
 
-      // ปุ่มกดยกเลิกใบลา (เฉพาะกรณีสถานะ pending เท่านั้น)
       let cancelBtnHtml = "";
       if (item.status === "pending") {
-        cancelBtnHtml = `<button class="btn btn-sm btn-outline-danger" style="margin-top: 5px; padding: 2px 10px; border-radius: 20px; font-size: 12px; cursor: pointer;" onclick="cancelLeave('${item.id}')">❌ ยกเลิกคำขอ</button>`;
+        cancelBtnHtml = `<button style="margin-top: 10px; background: #fff1f2; border: 1px solid #fda4af; color: #e11d48; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: 600;" onclick="cancelLeave('${item.id}')">❌ ยกเลิกคำขอลา</button>`;
       }
 
-      // 🎨 จัดการปั้นสไตล์สี Badge ตามสถานะจริง
       let statusBadge = "";
-      if (item.status === "pending") {
-        statusBadge = `<span class="badge" style="background-color: #ecc94b; color: #744210; padding: 4px 8px; border-radius: 4px;">⏳ รอตรวจ</span>`;
-      } else if (item.status === "approved") {
-        statusBadge = `<span class="badge" style="background-color: #48bb78; color: #fff; padding: 4px 8px; border-radius: 4px;">✅ อนุมัติแล้ว</span>`;
-      } else if (item.status === "rejected") {
-        statusBadge = `<span class="badge" style="background-color: #f56565; color: #fff; padding: 4px 8px; border-radius: 4px;">❌ ปฏิเสธ</span>`;
-      } else {
-        statusBadge = `<span class="badge" style="background-color: #a0aec0; color: #fff; padding: 4px 8px; border-radius: 4px;">${statusLabel}</span>`;
-      }
+      if (item.status === "pending") statusBadge = `<span style="background-color: #fef08a; color: #854d0e; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid #fde047;">⏳ รอตรวจ</span>`;
+      else if (item.status === "approved") statusBadge = `<span style="background-color: #d1e7dd; color: #0f5132; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid #badbcc;">✅ อนุมัติแล้ว</span>`;
+      else if (item.status === "rejected") statusBadge = `<span style="background-color: #f8d7da; color: #842029; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid #f5c2c7;">❌ ปฏิเสธ</span>`;
+      else statusBadge = `<span style="background-color: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">${statusLabel}</span>`;
 
-      // ── TYPE A: พ่นลงตารางแบบ Table Row (ถ้าหน้านั้นใช้ตาราง) ──
-      if (tbody) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${writeDate}</td>
-          <td style="font-weight:bold; color:#2d3748;">${escapedLeaveName}</td>
-          <td>${item.start_date}</td>
-          <td>${item.end_date}</td>
-          <td class="text-center" style="font-weight:bold;">${item.total_days} วัน</td>
-          <td>
-            <div>${escapedReason}</div>
-            ${commentHtml}
-          </td>
-          <td>
-            <div>${statusBadge}</div>
-            ${cancelBtnHtml}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      }
-
-      // ── TYPE B: พ่นลงกล่องแบบ Card Article (ถ้าหน้านั้นใช้รูปแบบ UI บนมือถือ) ──
-      if (listContainer) {
-        const article = document.createElement("article");
-        article.className = "recent-item";
-        article.style = "margin-bottom: 16px; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;";
-        article.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong>${escapedLeaveName}</strong>
-            <span class="status ${item.status}">${statusBadge}</span>
-          </div>
-          <p style="margin: 4px 0; color: #334155;">📅 วันที่ลา: ${item.start_date} ถึง ${item.end_date}</p>
-          <p style="margin: 4px 0; color: #334155;">⏱️ จำนวน: <strong>${item.total_days}</strong> วัน</p>
-          <p style="margin: 4px 0; color: #64748b; font-size: 13px;">📝 เหตุผล: ${escapedReason}</p>
-          ${commentHtml}
-          <div style="text-align: right;">${cancelBtnHtml}</div>
-        `;
-        listContainer.appendChild(article);
-      }
+      // ปั้นการ์ดประวัติ 1 ชิ้น
+      const article = document.createElement("article");
+      article.style = "margin-bottom: 16px; padding: 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);";
+      article.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <strong style="font-size: 16px; color: #0f172a;">${escapedLeaveName}</strong>
+          ${statusBadge}
+        </div>
+        <div style="font-size: 14px; color: #475569; display: flex; flex-direction: column; gap: 6px;">
+          <div><span style="color: #94a3b8; font-size: 12px;">วันที่ยื่น:</span> ${writeDate}</div>
+          <div><span style="color: #94a3b8; font-size: 12px;">วันที่ลา:</span> <strong>${item.start_date}</strong> ถึง <strong>${item.end_date}</strong></div>
+          <div><span style="color: #94a3b8; font-size: 12px;">จำนวน:</span> <strong style="color: #0ea5e9;">${item.total_days}</strong> วัน</div>
+          <div><span style="color: #94a3b8; font-size: 12px;">เหตุผล:</span> ${escapedReason}</div>
+        </div>
+        ${commentHtml}
+        <div style="text-align: right;">${cancelBtnHtml}</div>
+      `;
+      listContainer.appendChild(article);
     });
 
-    console.log(`✅ [SUCCESS] พ่นประวัติลงหน้าจอสำเร็จเรียบร้อย ทั้งหมด ${data.length} รายการ`);
+    console.log("✅ [SUCCESS] วาด UI ประวัติเสร็จสมบูรณ์!");
 
   } catch (err) {
-    console.error("❌ เกิดข้อผิดพลาดในการดึงข้อมูล:", err);
-    const errText = `เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}`;
-    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:red;">${errText}</td></tr>`;
-    if (listContainer) listContainer.innerHTML = `<div class="empty-state" style="color:red;">${errText}</div>`;
+    console.error("❌ [CRITICAL] โหลดประวัติไม่สำเร็จ:", err);
+    if (listContainer) listContainer.innerHTML = `<div class="empty-state" style="color:red;">❌ เกิดข้อผิดพลาด: ${err.message}</div>`;
   }
 }
 
-// ─── 2. ฟังก์ชันยกเลิกใบลาฝั่งพนักงาน (สำหรับรายการสถานะ pending) ───
+// ─── ฟังก์ชันยกเลิกใบลา (สำหรับรายการสถานะ pending) ───
 async function cancelLeave(id) {
-  if (!confirm("พี่มิกต้องการยกเลิกคำขอลาใบนี้ใช่หรือไม่?")) return;
+  if (!confirm("คุณต้องการ 'ยกเลิก' คำขอลาใบนี้ใช่หรือไม่?")) return;
   
   const sb = window.pvtSupabase?.getClient();
-  if (!sb) { alert("ไม่สามารถเชื่อมต่อฐานข้อมูลเพื่อยกเลิกได้"); return; }
+  if (!sb) { alert("ไม่สามารถเชื่อมต่อฐานข้อมูลได้"); return; }
 
   try {
-    const { error } = await sb
-      .from("leave_requests")
-      .delete()
-      .eq("id", id)
-      .eq("status", "pending"); // ล็อกความปลอดภัยชั้นสอง ดักลบเฉพาะใบลาที่ยังไม่อนุมัติเท่านั้น
-
+    const { error } = await sb.from("leave_requests").delete().eq("id", id).eq("status", "pending"); 
     if (error) throw error;
     
-    alert("🎉 ยกเลิกคำขอลาเรียบร้อยแล้วครับพี่มิก!");
-    await loadLeaveHistory(); // รีโหลดหน้าจอเพื่ออัปเดตตารางใหม่ทันที
+    alert("✅ ยกเลิกคำขอลาสำเร็จเรียบร้อยแล้ว!");
+    await loadLeaveHistory(); // รีเฟรชหน้าจอใหม่
   } catch (error) {
-    console.error("ลบใบลาไม่สำเร็จ:", error);
-    alert(`ไม่สามารถยกเลิกคำขอได้: ${error.message}`);
+    console.error("❌ ลบใบลาไม่สำเร็จ:", error);
+    alert(`เกิดข้อผิดพลาด: ${error.message}`);
   }
 }
