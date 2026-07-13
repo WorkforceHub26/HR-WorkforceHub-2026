@@ -2,9 +2,38 @@
    ✨ PVT HR - leave-history.css (หน้าประวัติการลา)
    ========================================================================== */
 
-@import url('global.css');
-@import url('theme.css');
-@import url('components.css');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #06b6d4;
+  --primary-light: rgba(6, 182, 212, 0.15);
+  --primary-dark: #0891b2;
+  --green: #10b981;
+  --green-light: #f0fdf4;
+  --green-dark: #059669;
+  --red: #ef4444;
+  --bg: #f0fdfa;        
+  --card: rgba(255, 255, 255, 0.55);
+  --text: #0f172a;
+  --muted: #475569;     
+  --border: #cbd5e1;    
+  --input-bg: rgba(255, 255, 255, 0.7);
+  --ease: all 0.2s ease-in-out;
+}
+
+body {
+  font-family: "Kanit", "Noto Sans Thai", sans-serif;
+  background-color: #f0fdfa; 
+  background-image: 
+    radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
+    radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
+    radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
+    radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
 
 body {
   padding: 24px 16px;

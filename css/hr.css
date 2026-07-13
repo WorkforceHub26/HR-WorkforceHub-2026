@@ -2,11 +2,51 @@
    🏢 PVT HR Dashboard — hr.css (ไฟล์จัดการ Layout เฉพาะหน้าอนุมัติใบลา)
    ========================================================================== */
 
-/* 🌟 ดึงไฟล์ส่วนกลางมาใช้งาน (ฟอนต์, สีธีมสว่าง, ปุ่ม) */
-@import url('global.css');
-@import url('theme.css');
-@import url('components.css');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --primary: #06b6d4;
+  --primary-light: rgba(6, 182, 212, 0.15);
+  --primary-dark: #0891b2;
+  --green: #10b981;
+  --green-light: #f0fdf4;
+  --green-dark: #059669;
+  --red: #ef4444;
+  --bg: #f0fdfa;        
+  --card: rgba(255, 255, 255, 0.55);
+  --text: #0f172a;
+  --muted: #475569;     
+  --border: #cbd5e1;    
+  --input-bg: rgba(255, 255, 255, 0.7);
+  --ease: all 0.2s ease-in-out;
+}
+
+body {
+  font-family: "Kanit", "Noto Sans Thai", sans-serif;
+  background-color: #f0fdfa; 
+  background-image: 
+    radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
+    radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
+    radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
+    radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── TOP BAR ─── */
+.topbar {
+  background: var(--card);
+  border-bottom: 2px solid #e2e8f0; 
+  padding: 14px 24px; 
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+}
 /* ================== โครงสร้างหลัก (Layout) ================== */
 .app-shell {
   display: flex;

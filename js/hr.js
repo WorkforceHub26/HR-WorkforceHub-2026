@@ -72,6 +72,22 @@ async function loadPendingLeavesHR() {
       const leaveType = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุ";
       const startDate = new Date(req.start_date).toLocaleDateString('th-TH');
       const endDate = new Date(req.end_date).toLocaleDateString('th-TH');
+      const reason = req.reason || "-";
+      
+      // ==========================================
+      // 🚨 1. ตรวจสอบการ "ลาเกินโควตา" จากตัวแดงที่แอบฝังมาจากหน้าพนักงาน
+      // ==========================================
+      const isOverQuota = reason.includes('🔴 [เกินโควตา]');
+      
+      // ลบข้อความ 🔴 [เกินโควตา] ออกตอนแสดงผลเหตุผล เพื่อความสะอาดตา 
+      // (เราจะเอาไปทำไฮไลท์ตารางแทนให้ดูเป็นมืออาชีพกว่า)
+      const cleanReason = reason.replace('🔴 [เกินโควตา]', '').trim();
+
+      // กำหนดสีพื้นหลังแถว ถ้าเกินโควตา -> สีแดงอ่อน
+      const rowStyle = isOverQuota 
+        ? 'background-color: #fef2f2; border-left: 4px solid #ef4444; border-bottom: 1px solid #fee2e2;' 
+        : 'background-color: transparent; border-bottom: 1px solid #e2e8f0;';
+      // ==========================================
       
       // 🟢 1. Badge สถานะฝั่ง "หัวหน้า"
       let managerBadge = "";
@@ -105,17 +121,20 @@ async function loadPendingLeavesHR() {
         hrBadge = `<span style="background:#e5e7eb; color:#374151; padding:6px 12px; border-radius:12px; font-size:12px; font-weight:600; display:inline-block; min-width:95px;">${req.status}</span>`;
       }
 
-      // ประกอบช่องข้อมูล 9 คอลัมน์ตรงล็อกพอดี
+      // ประกอบช่องข้อมูล 9 คอลัมน์ตรงล็อกพอดี พร้อมแปะ rowStyle ให้สีพื้นหลัง
       htmlContent += `
-        <tr>
+        <tr style="${rowStyle}">
           <td style="padding:16px;"><strong>${empCode}</strong></td>
           <td style="padding:16px;">
             <div style="font-weight: 500; color: #0f172a;">${empName}</div>
             <a href="#" onclick="openLeavePopupModal('${req.id}'); return false;" style="font-size:12px; color:#3b82f6; text-decoration:none; display:inline-block; margin-top:4px;">🔍 ดูรายละเอียดใบลา</a>
           </td>
-          <td style="padding:16px;">${leaveType}</td>
-          <td style="padding:16px; color:#475569;">${startDate} - ${endDate}</td>
-          <td style="text-align: center; font-weight: 600; color: var(--admin-primary); padding:16px;">${req.total_days} วัน</td>
+          <td style="padding:16px;">
+            ${leaveType}
+            ${isOverQuota ? '<br><span style="font-size: 11px; background: #fee2e2; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-top: 4px; display: inline-block;">⚠️ ลาเกินโควตา/หักเงิน (LWOP)</span>' : ''}
+          </td>
+          <td style="padding:16px; color:#475569;">${startDate} - ${endDate}<br><span style="font-size:11px; color:#64748b;">เหตุผล: ${cleanReason}</span></td>
+          <td style="text-align: center; font-weight: 600; padding:16px; ${isOverQuota ? 'color: #ef4444;' : 'color: var(--admin-primary);'}">${req.total_days} วัน</td>
           
           <td style="text-align: center; padding:16px;">${managerBadge}</td>
           <td style="text-align: center; padding:16px;">${directorBadge}</td>

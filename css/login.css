@@ -3,10 +3,12 @@
    ========================================================================== */
 
 body {
-  background:
-    radial-gradient(circle at top left, #bfdbfe 0, transparent 35%),
-    radial-gradient(circle at bottom right, #bfdbfe 0, transparent 35%),
-    var(--bg-main, #f4f7fb);
+  background-color: #f0fdfa; 
+  background-image: 
+    radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
+    radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
+    radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
+    radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
   display: flex;
   align-items: center;
   justify-content: center;

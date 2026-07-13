@@ -58,7 +58,7 @@ async function initUserHome() {
     
     // 3. ถ้าไม่ได้ ID มา ให้ไปค้นหาใน Session Storage แทน
     if (!validId) {
-      console.warn("⚠️ [DASHBOARD] ไม่พบโปรไฟล์หลักจาก Auth, กำลังพยายามกู้คืนจาก Session...");
+      console.log("🔄 [DASHBOARD] ใช้แผนสำรอง: ดึงข้อมูลโปรไฟล์จากแคช (Session)");
       let cachedUser = null;
       try {
         cachedUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
@@ -73,6 +73,7 @@ async function initUserHome() {
           employee_id: cachedUser.id || cachedUser.employee_id,
           employee_code: cachedUser.employee_code,
           full_name: cachedUser.full_name,
+          department_name: cachedUser.department_name, // 💡 แอบเพิ่มบรรทัดนี้ เพื่อให้ชื่อแผนกไม่หาย!
           role: cachedUser.role
         };
         console.log("✅ [RECOVERY] กู้คืนโปรไฟล์จาก Session สำเร็จ:", window.currentProfile);
@@ -99,18 +100,20 @@ async function initUserHome() {
    🖥️ 2. ฟังก์ชันวาดชื่อพนักงาน และแผนก ลงบนแถบด้านบน
    ========================================================================== */
 window.renderUserInfo = function(profile) {
-  console.log("🎨 [RENDER] กำลังวาดข้อมูลพนักงานลงหน้าจอ...");
+  console.log("🎨 [RENDER] กำลังวาดข้อมูลพนักงานลงหน้าจอ...", profile);
   const employee = profile?.employees;
   
   const nameEl = document.getElementById("userName");
   if (nameEl) {
-    nameEl.textContent = employee?.full_name || profile?.display_name || "พนักงานในระบบ";
+    // 💡 แก้ตรงนี้: เพิ่ม profile?.full_name เข้าไปดักจับด้วย
+    nameEl.textContent = employee?.full_name || profile?.full_name || profile?.display_name || "พนักงานในระบบ";
   } else {
     console.warn("⚠️ [RENDER] หา HTML element id='userName' ไม่เจอ");
   }
     
-  const deptName = employee?.departments?.department_name || employee?.department_name || "ทั่วไป";
-  const empCode = employee?.employee_code ? `รหัส: ${employee.employee_code}` : "";
+  // 💡 แก้ตรงนี้: เพิ่มดักจับ department_name จาก profile โดยตรง และรหัสพนักงาน
+  const deptName = employee?.departments?.department_name || employee?.department_name || profile?.department_name || "ทั่วไป";
+  const empCode = employee?.employee_code || profile?.employee_code ? `รหัส: ${employee?.employee_code || profile?.employee_code}` : "";
   
   const deptEl = document.getElementById("userDepartment");
   if (deptEl) {
@@ -140,11 +143,13 @@ window.loadRecentLeaves = async function(profile) {
 
   try {
     console.log(`⏳ [FETCH DATA] กำลังดึงสถิติและโควตาของไอดี: ${employeeId}`);
+    const currentYear = new Date().getFullYear();
 
+    // 🛠️ แก้ไขจุดนี้: ลบ .maybeSingle() ออก และดึงข้อมูลสิทธิ์การลา "ทุกประเภท" ของปีนี้มาพร้อมชื่อประเภทลาเลย
     const [requestsRes, pendingRes, balanceRes] = await Promise.all([
       sb.from("leave_requests").select("id, start_date, end_date, total_days, status, leave_types(leave_name)").eq("employee_id", employeeId).order("created_at", { ascending: false }).limit(50), 
       sb.from("leave_requests").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).eq("status", "pending"),
-      sb.from("leave_balances").select("remaining_days, used_days, year").eq("employee_id", employeeId).order("year", { ascending: false }).maybeSingle()
+      sb.from("leave_balances").select("leave_type_id, remaining_days, used_days, year, leave_types(leave_name)").eq("employee_id", employeeId).eq("year", currentYear)
     ]);
 
     if (requestsRes.error) {
@@ -160,20 +165,32 @@ window.loadRecentLeaves = async function(profile) {
 
     if (pendingCount) pendingCount.innerHTML = `${pendingRes.count ?? 0} <small>รายการ</small>`;
 
-    let balanceData = balanceRes.data;
-    if (Array.isArray(balanceData)) balanceData = balanceData[0];
+    // นำข้อมูลสิทธิ์การลาใส่ตะกร้าส่วนกลางเพื่อเอาไปวาดกล่องช่องๆ
+    const balanceRows = balanceRes.data || [];
+    window.employeeLeaveBalances = balanceRows;
 
-    // 🔒 [GUARD] บันทึกวันลาคงเหลือเก็บไว้ในระบบเพื่อใช้ล็อกปุ่มกด
-    window.remainingDays = (balanceData && balanceData.remaining_days != null) ? Number(balanceData.remaining_days) : 0;
-    console.log(`🔒 [GUARD SYSTEM] บันทึกสิทธิ์วันลาคงเหลือลงหน่วยความจำชั่วคราว: ${window.remainingDays} วัน`);
+    // 🚀 [สั่งทำงาน] วาดกล่องโควตาวันลาแต่ละประเภทแยกเป็นช่องๆ ทันที
+    if (typeof window.renderAllLeaveBalances === 'function') {
+      window.renderAllLeaveBalances();
+    }
+
+    // 🧮 คำนวณยอดวันลารวมทั้งหมด เพื่อเอาไปโชว์ที่กล่องสรุปด้านบนสุดของหน้าจอ
+    let totalRemaining = 0;
+    let totalUsed = 0;
+    balanceRows.forEach(b => {
+      totalRemaining += parseFloat(b.remaining_days) || 0;
+      totalUsed += parseFloat(b.used_days) || 0;
+    });
+
+    window.remainingDays = totalRemaining;
+    console.log(`🔒 [GUARD SYSTEM] บันทึกสิทธิ์วันลารวมคงเหลือ: ${window.remainingDays} วัน`);
 
     if (leaveBalance) {
       leaveBalance.innerHTML = `${window.remainingDays} <small>วัน</small>`;
     }
     
     if (usedBalance) {
-      const usedVal = (balanceData && balanceData.used_days != null) ? balanceData.used_days : "0";
-      usedBalance.innerHTML = `${usedVal} <small>วัน</small>`;
+      usedBalance.innerHTML = `${totalUsed} <small>วัน</small>`;
     }
 
     const escapeFn = window.pvtSupabase?.escapeHtml || ((str) => str ? String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : "");
@@ -228,6 +245,39 @@ window.loadRecentLeaves = async function(profile) {
   }
 };
 
+// ==========================================
+// 🎨 ฟังก์ชันวาดกล่องโควตาวันลาแยกประเภท (วางต่อท้ายไว้ล่างสุดของไฟล์ได้เลยครับ)
+// ==========================================
+window.renderAllLeaveBalances = function() {
+  const container = document.getElementById("leaveBalancesContainer");
+  if (!container) return;
+
+  container.innerHTML = ""; // ล้างข้อความโหลด
+
+  if (!window.employeeLeaveBalances || window.employeeLeaveBalances.length === 0) {
+    container.innerHTML = "<p style='color:var(--muted); font-size:14px; font-style:italic; margin:0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
+    return;
+  }
+
+  window.employeeLeaveBalances.forEach(balance => {
+    const typeName = balance.leave_types?.leave_name || "สิทธิ์การลา";
+    const remaining = parseFloat(balance.remaining_days) || 0;
+
+    let colorClass = ""; 
+    if (typeName.includes("ป่วย")) colorClass = "sick";
+    else if (typeName.includes("กิจ")) colorClass = "personal";
+    else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
+
+    const box = document.createElement("div");
+    box.className = `leave-quota-card ${colorClass}`;
+    
+    box.innerHTML = `
+      <span class="leave-quota-name">${typeName}</span>
+      <div class="leave-quota-days">${remaining}<small>วัน</small></div>
+    `;
+    container.appendChild(box);
+  });
+};
 /* ==========================================================================
    🖥️ 4. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล
    ========================================================================== */
@@ -334,3 +384,4 @@ window.logout = function() {
   sessionStorage.removeItem("currentUser"); 
   window.location.href = "/login.html"; 
 };
+
