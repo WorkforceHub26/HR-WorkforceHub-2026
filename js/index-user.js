@@ -385,3 +385,61 @@ window.logout = function() {
   window.location.href = "/login.html"; 
 };
 
+
+// เรียกใช้งานฟังก์ชันเช็คสิทธิ์หัวหน้างานทันทีที่โหลดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", async () => {
+  // ... โค้ดเดิมของพี่ที่มีอยู่แล้ว ...
+  
+  // เรียกฟังก์ชันตรวจสอบสิทธิ์หัวหน้า
+  await checkApproverPermission();
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // ... โค้ดเดิมของพี่ที่มีอยู่แล้ว ...
+  
+  // เรียกฟังก์ชันตรวจสอบสิทธิ์หัวหน้า
+  await checkApproverPermission();
+});
+
+async function checkApproverPermission() {
+  console.log("🔍 [Debug] 1. กำลังเริ่มตรวจสอบสิทธิ์หัวหน้างาน...");
+  
+  try {
+    const sb = window.pvtSupabase?.getClient();
+    if (!sb) {
+       console.warn("❌ [Debug] 2. ไม่พบการเชื่อมต่อฐานข้อมูล (window.pvtSupabase)");
+       return;
+    }
+
+    const profile = await window.pvtSupabase?.getCurrentProfile();
+    console.log("👤 [Debug] 3. ข้อมูล Profile ที่ดึงมาได้:", profile);
+
+    if (!profile) {
+       console.warn("❌ [Debug] 4. ไม่มีข้อมูล Profile (ยังไม่ได้ล็อกอิน หรือดึงข้อมูลพลาด)");
+       return;
+    }
+
+    // แปลง role ให้เป็นตัวพิมพ์เล็กทั้งหมด เพื่อป้องกันปัญหาพิมพ์เล็ก-พิมพ์ใหญ่ไม่ตรงกัน
+    const userRole = (profile.role || "").toLowerCase();
+    console.log("🏷️ [Debug] 5. Role ของผู้ใช้คนนี้คือ:", userRole);
+
+    const approverRoles = ["leader", "manager", "director", "hr"];
+
+    if (approverRoles.includes(userRole)) {
+      console.log("✅ [Debug] 6. สิทธิ์ผ่าน! กำลังพยายามเปิดปุ่ม...");
+      
+      const switchBtn = document.getElementById("approverModeBtn");
+      if (switchBtn) {
+        switchBtn.style.setProperty("display", "flex", "important");
+        console.log("🎉 [Debug] 7. เปิดปุ่มสำเร็จ!");
+      } else {
+        console.error("❌ [Debug] 8. สิทธิ์ผ่าน แต่หาปุ่ม ID 'approverModeBtn' ใน HTML ไม่เจอ!");
+      }
+    } else {
+      console.log("⛔ [Debug] 9. สิทธิ์ไม่ถึง (Role ไม่ตรงกับเงื่อนไข)");
+    }
+    
+  } catch (err) {
+    console.error("❌ [Debug] เกิดข้อผิดพลาดระหว่างรันโค้ด:", err);
+  }
+}

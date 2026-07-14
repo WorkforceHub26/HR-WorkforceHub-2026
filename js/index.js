@@ -176,11 +176,13 @@ async function refreshDashboardData() {
 
   try {
     console.log("📡 [Supabase]: กำลังยิงข้อมูลคิวรีตาราง leave_requests และ employees...");
-    const [resRequests, resEmployees] = await Promise.all([
-      sb.from("leave_requests").select("*"),
-      sb.from("employees").select("*")
-    ]);
-
+                      const [resRequests, resEmployees] = await Promise.all([
+        // 🟢 ดึงข้อมูลทะลุไปหาชื่อแผนก (departments) ด้วย
+        sb.from("leave_requests").select("*, employees!leave_requests_employee_id_fkey(*, departments(department_name)), leave_types(*)"),
+        
+        // 🟢 ดึงข้อมูลตารางพนักงาน และทะลุไปหาชื่อแผนกเช่นกัน
+        sb.from("employees").select("*, departments(department_name)")
+      ]);
     if (resRequests.error) console.error("❌ Supabase Request Error:", resRequests.error);
     if (resEmployees.error) console.error("❌ Supabase Employees Error:", resEmployees.error);
 
@@ -261,16 +263,20 @@ function renderBellNotifications(requests) {
       div.className = "bell-noti-item";
       div.style.cssText = "padding:12px 16px; border-bottom:1px solid var(--border); display:flex; gap:12px; cursor:pointer;";
       
-      const empName = r.emp_name || r.employee_name || "ไม่ระบุชื่อพนักงาน";
-      const leaveType = r.leave_type_name || "ลาหยุด";
-      const duration = r.total_days || r.leave_duration_days || 0;
+      // 🟢 [จุดที่แก้ไข] ดึงชื่อและประเภทการลาจาก Object ซ้อนทับ (Nested Object) ของ Supabase
+      // ดึงชื่อจากกล่อง employees
+      // ใช้ r (ไม่ใช่ req) และประกาศ duration คืนมาให้ครบ
+      const empName = r.employees?.full_name || r.employees?.first_name || r.emp_name || "-";
+      // 🟢 เปลี่ยนมาใช้ leave_name ให้ตรงกับ Log
+      const leaveTypeName = r.leave_types?.leave_name || r.leave_type_name || "-";
+      const duration = r.total_days || 0;
 
       div.innerHTML = `
         <div class="bell-noti-icon-box" style="color:var(--primary); display:flex; align-items:center;">
           <span class="material-symbols-outlined">pending_actions</span>
         </div>
         <div class="bell-noti-info">
-          <div class="bell-noti-title" style="font-size:13px;"><strong>${empName}</strong> ยื่นคำขอ <strong>${leaveType}</strong></div>
+          <div class="bell-noti-title" style="font-size:13px;"><strong>${empName}</strong> ยื่นคำขอ <strong>${leaveTypeName}</strong></div>
           <div class="bell-noti-meta" style="font-size:11px; color:var(--text-soft); margin-top:2px;">จำนวน ${duration} วัน • รอคุณอนุมัติ</div>
         </div>
       `;
@@ -316,13 +322,28 @@ function switchTab(targetTab) {
     headersHtml = `<th>ชื่อพนักงาน</th><th>ฝ่าย/แผนก</th><th>ประเภทการลา</th><th>วันที่เริ่ม - สิ้นสุด</th><th>สถานะ</th>`;
 
     const filtered = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
-    if (filtered.length === 0) {
+
+      // 🚨 เพิ่ม 2 บรรทัดนี้เข้าไปเพื่อแอบดูข้อมูล!
+      console.log("🕵️‍♂️ [LOG] เจาะดูข้อมูลใบลาทั้งหมด:", rawRequests);
+      if (filtered.length > 0) console.log("🔍 [LOG] เจาะดูใบลาแถวแรก (Pending):", JSON.stringify(filtered[0], null, 2));
+
+      if (filtered.length === 0) {
       bodyHtml = `<tr><td colspan="5" style="padding:35px; text-align:center; color:var(--text-soft);">ไม่มีใบลาค้างพิจารณาในระบบ ✨</td></tr>`;
     } else {
       filtered.forEach(item => {
-        const name = getSafeValue(item, ["emp_name", "employee_name", "name", "full_name"]);
-        const dept = getSafeValue(item, ["department", "division"]);
-        const type = getSafeValue(item, ["leave_type_name", "leave_type"]);
+        // 🟢 [ปรับปรุง] ดักข้อมูลซ้อนกันแบบครอบคลุมลึกสุดใจ
+        const safeEmp = item.employees || {};
+        const safeType = item.leave_types || {};
+        const safeDept = safeEmp.departments || {}; // เผื่อแผนกซ้อนอยู่ข้างใน employees อีกที
+
+        const name = safeEmp.full_name || safeEmp.name || getSafeValue(item, ["emp_name", "employee_name", "name", "full_name"]);
+        
+        // กวาดหาแผนกจากทุกที่ที่เป็นไปได้
+        // 🟢 เปลี่ยนมาใช้ leave_name ตามที่ฐานข้อมูลส่งมา
+        const type = safeType.leave_name || getSafeValue(item, ["leave_type_name", "leave_type"]);
+        
+        // 🟢 ดึงชื่อแผนกจากตาราง departments ที่ทะลุไปดึงมา
+        const dept = safeEmp.departments?.department_name || getSafeValue(item, ["department", "division"]);;
         
         // 📅 นำระบบวันที่ไทยมาใช้เพื่อความพรีเมียม
         const sDate = formatThaiDate(getSafeValue(item, ["start_date", "date"]));
@@ -332,8 +353,8 @@ function switchTab(targetTab) {
         bodyHtml += `
           <tr style="border-bottom:1px solid var(--border);">
             <td style="padding:16px 20px; font-weight:600;">${name}</td>
-            <td style="padding:16px 20px;">${dept}</td>
-            <td style="padding:16px 20px;"><span style="background:#f1f5f9; padding:4px 10px; border-radius:6px;">${type}</span></td>
+            <td style="padding:16px 20px;">${dept || "-"}</td>
+            <td style="padding:16px 20px;"><span style="background:#f1f5f9; padding:4px 10px; border-radius:6px;">${type || "-"}</span></td>
             <td style="padding:16px 20px; font-weight:500; color:var(--primary);">${dateStr}</td>
             <td style="padding:16px 20px;"><span style="background:#fef3c7; color:#d97706; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:600;">รออนุมัติ</span></td>
           </tr>`;
@@ -350,15 +371,21 @@ function switchTab(targetTab) {
       bodyHtml = `<tr><td colspan="5" style="padding:35px; text-align:center; color:var(--text-soft);">ยังไม่มีประวัติการบันทึกผลในระบบ</td></tr>`;
     } else {
       filtered.forEach(item => {
-        const name = getSafeValue(item, ["emp_name", "employee_name", "name"]);
-        const type = getSafeValue(item, ["leave_type_name", "leave_type"]);
+        // 🟢 [ปรับปรุง] เพิ่มระบบสแกนข้อมูลซ้อนให้แท็บ Approved ด้วย
+        const safeEmp = item.employees || {};
+        const safeType = item.leave_types || {};
+
+        const name = safeEmp.full_name || safeEmp.name || getSafeValue(item, ["emp_name", "employee_name", "name"]);
+        const type = safeType.leave_type_name || safeType.name || getSafeValue(item, ["leave_type_name", "leave_type"]);
+        
         const dateStr = formatThaiDate(getSafeValue(item, ["start_date", "date"]));
         const reason = getSafeValue(item, ["reason", "detail"], "-");
         const isApp = item.status === "approved";
+        
         bodyHtml += `
           <tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:16px 20px; font-weight:600;">${name}</td>
-            <td style="padding:16px 20px;">${type}</td>
+            <td style="padding:16px 20px; font-weight:600;">${name || "-"}</td>
+            <td style="padding:16px 20px;">${type || "-"}</td>
             <td style="padding:16px 20px; font-weight:500;">${dateStr}</td>
             <td style="padding:16px 20px;">${reason}</td>
             <td style="padding:16px 20px;"><span style="background:${isApp?'#dcfce7':'#fee2e2'}; color:${isApp?'#15803d':'#b91c1c'}; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:600;">${isApp?'อนุมัติแล้ว':'ปฏิเสธ'}</span></td>
@@ -375,17 +402,23 @@ function switchTab(targetTab) {
       bodyHtml = `<tr><td colspan="5" style="padding:35px; text-align:center; color:var(--text-soft);">ไม่พบทำเนียบพนักงาน</td></tr>`;
     } else {
       rawEmployees.forEach(emp => {
-        const code = getSafeValue(emp, ["emp_code", "id"]);
-        const fname = getSafeValue(emp, ["first_name", "name"], "");
+        // 🟢 [ปรับปรุง] เผื่อว่าชื่อแผนกในตารางพนักงานก็ถูกแยกไปตารางอื่นด้วย
+        const safeDept = emp.departments || {};
+
+        const code = getSafeValue(emp, ["emp_code", "employee_code", "id"]);
+        const fname = getSafeValue(emp, ["first_name", "name", "full_name"], "");
         const lname = getSafeValue(emp, ["last_name"], "");
-        const pos = getSafeValue(emp, ["position", "job_title"]);
-        const dept = getSafeValue(emp, ["department", "dept_name"]);
+        const pos = getSafeValue(emp, ["position", "job_title", "role"]);
+        const dept = safeDept.department_name || safeDept.name || getSafeValue(emp, ["department", "dept_name"]);
+        
+        const fullName = lname ? `${fname} ${lname}` : fname || "-";
+
         bodyHtml += `
           <tr style="border-bottom:1px solid var(--border);">
             <td style="padding:16px 20px; font-weight:700; color:var(--primary); font-family:monospace;">${code}</td>
-            <td style="padding:16px 20px; font-weight:600;">${fname} ${lname}</td>
-            <td style="padding:16px 20px;">${pos}</td>
-            <td style="padding:16px 20px;">${dept}</td>
+            <td style="padding:16px 20px; font-weight:600;">${fullName}</td>
+            <td style="padding:16px 20px;">${pos || "-"}</td>
+            <td style="padding:16px 20px;">${dept || "-"}</td>
             <td style="padding:16px 20px;"><span style="background:#e0f2fe; color:#0369a1; padding:2px 10px; border-radius:8px; font-size:12px;">Active</span></td>
           </tr>`;
       });

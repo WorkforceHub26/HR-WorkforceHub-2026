@@ -420,90 +420,464 @@ async function cancelLeaveHR(leaveId) {
 }
 
 // ==========================================
-// 🖨️ 5. พิมพ์เอกสาร (Print A4)
+// 🖨️ 5. พิมพ์เอกสาร (Print A4 - Corporate Premium Style)
 // ==========================================
 async function printLeaveA4(leaveId) {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
+  // แสดงกล่องโหลดข้อมูลเท่ๆ ระหว่างดึงสิทธิ์และรายละเอียดใบลา
+  Swal.fire({
+    title: 'กำลังจัดทำหน้าเอกสาร...',
+    text: 'โปรดรอมุมมองพิมพ์สักครู่',
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
   try {
+    // ดึงข้อมูลพนักงาน (จอยตารางแผนก และตำแหน่งเพิ่มเติมเพื่อความโปรดักทีฟสูงสุด)
     const { data: leave, error } = await sb
       .from("leave_requests")
       .select(`
         *,
-        employees!employee_id ( full_name, employee_code, nickname, departments(department_name) ),
+        employees!employee_id ( 
+          full_name, 
+          employee_code, 
+          nickname, 
+          departments(department_name),
+          positions(position_name)
+        ),
         leave_types ( leave_name )
       `)
       .eq("id", leaveId)
       .single();
 
     if (error) throw error;
+    Swal.close(); // ปิดป๊อปอัปโหลด
 
     const emp = leave.employees || {};
-    const dWrite = new Date(leave.created_at).toLocaleDateString('th-TH');
-    const dStart = new Date(leave.start_date).toLocaleDateString('th-TH');
-    const dEnd = new Date(leave.end_date).toLocaleDateString('th-TH');
+    const deptName = emp.departments?.department_name || '-';
+    const posName = emp.positions?.position_name || '-';
+    
+    // แปลงรูปแบบวันที่และเวลาให้อ่านง่ายสไตล์ราชการ/บริษัทชั้นนำ
+    const formatFullDate = (dateStr) => {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
+
+    const formatDateTime = (dateStr) => {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) + ' น.';
+    };
+
+    const dWrite = formatDateTime(leave.created_at);
+    const dStart = formatFullDate(leave.start_date);
+    const dEnd = formatFullDate(leave.end_date);
+
+    // กำหนดการแสดตราประทับสถานะ (Digital Approved Stamp)
+    let stampHtml = "";
+    if (leave.status === 'approved') {
+      stampHtml = `
+        <div class="digital-stamp approved-stamp">
+          <div class="stamp-title">APPROVED</div>
+          <div class="stamp-sub">อนุมัติผ่านระบบดิจิทัล</div>
+          <div class="stamp-date">${formatDateTime(leave.approved_at)}</div>
+        </div>
+      `;
+    } else if (leave.status === 'rejected') {
+      stampHtml = `
+        <div class="digital-stamp rejected-stamp">
+          <div class="stamp-title">REJECTED</div>
+          <div class="stamp-sub">ปฏิเสธผ่านระบบ</div>
+          <div class="stamp-date">${formatDateTime(leave.approved_at)}</div>
+        </div>
+      `;
+    } else {
+      stampHtml = `
+        <div class="digital-stamp pending-stamp">
+          <div class="stamp-title">PENDING</div>
+          <div class="stamp-sub">รอผลการพิจารณา</div>
+        </div>
+      `;
+    }
 
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
       <head>
-        <title>พิมพ์ใบลาพนักงาน - ${emp.full_name || ''}</title>
+        <meta charset="utf-8">
+        <title>ใบคำขออนุมัติลาหยุดงาน - ${emp.full_name || ''}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Angsana New', 'Sarabun', sans-serif; padding: 40px; color: #000; line-height: 1.6; }
-          .header { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; }
-          .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 18px; }
-          .info-table td { padding: 8px; vertical-align: top; }
-          table.data-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 16px; }
-          table.data-table th, table.data-table td { border: 1px solid #000; padding: 10px; text-align: center; }
-          .underline { border-bottom: 1px dotted #000; padding-bottom: 2px; }
+          @page {
+            size: A4;
+            margin: 15mm 20mm;
+          }
+          body {
+            font-family: 'Sarabun', sans-serif;
+            color: #1e293b;
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            font-size: 14px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          /* ส่วนหัวเอกสารแบบ Corporate */
+          .document-container {
+            position: relative;
+            width: 100%;
+          }
+          .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+          }
+          .company-logo-section {
+            vertical-align: middle;
+          }
+          .logo-placeholder {
+            display: inline-block;
+            background: #1e3a8a;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            padding: 8px 14px;
+            border-radius: 4px;
+            letter-spacing: 1px;
+            margin-right: 12px;
+          }
+          .company-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+            text-transform: uppercase;
+          }
+          .doc-title-container {
+            text-align: right;
+            vertical-align: middle;
+          }
+          .doc-title-main {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin: 0 0 5px 0;
+          }
+          .doc-title-sub {
+            font-size: 11px;
+            color: #64748b;
+            letter-spacing: 0.5px;
+          }
+
+          /* ตราประทับดิจิทัล */
+          .digital-stamp {
+            position: absolute;
+            top: 70px;
+            right: 0;
+            border: 3px double;
+            border-radius: 8px;
+            padding: 8px 15px;
+            text-align: center;
+            font-weight: bold;
+            transform: rotate(-3deg);
+            opacity: 0.85;
+            width: 160px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          }
+          .approved-stamp {
+            color: #059669;
+            border-color: #059669;
+          }
+          .rejected-stamp {
+            color: #dc2626;
+            border-color: #dc2626;
+          }
+          .pending-stamp {
+            color: #d97706;
+            border-color: #d97706;
+          }
+          .stamp-title {
+            font-size: 18px;
+            letter-spacing: 2px;
+          }
+          .stamp-sub {
+            font-size: 10px;
+            font-weight: normal;
+            margin-top: 2px;
+          }
+          .stamp-date {
+            font-size: 9px;
+            font-weight: normal;
+            color: #64748b;
+          }
+
+          /* ข้อมูลเอกสารทั่วไป */
+          .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 25px;
+          }
+          .meta-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 13.5px;
+          }
+          .meta-table tr:last-child td {
+            border-bottom: none;
+          }
+          .meta-label {
+            color: #64748b;
+            font-weight: 500;
+            width: 20%;
+          }
+          .meta-val {
+            color: #0f172a;
+            font-weight: 600;
+            width: 30%;
+          }
+
+          /* รายละเอียดเนื้อหา */
+          .section-heading {
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            border-bottom: 2px solid #cbd5e1;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+            margin-top: 15px;
+          }
+
+          .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+          }
+          .details-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            text-align: left;
+            padding: 12px;
+            font-size: 13px;
+            border-bottom: 2px solid #cbd5e1;
+          }
+          .details-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            font-size: 13.5px;
+          }
+          
+          /* กล่องลงนาม (Signatures Matrix) */
+          .signature-section {
+            margin-top: 40px;
+            page-break-inside: avoid;
+          }
+          .signature-grid {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .signature-box {
+            width: 25%;
+            border: 1px solid #cbd5e1;
+            padding: 12px;
+            text-align: center;
+            vertical-align: bottom;
+            font-size: 12px;
+            background: #fff;
+          }
+          .signature-title {
+            font-weight: 700;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 8px;
+            margin-bottom: 40px;
+            text-align: center;
+          }
+          .sig-line {
+            border-bottom: 1px dotted #94a3b8;
+            width: 85%;
+            margin: 0 auto 5px auto;
+            min-height: 20px;
+          }
+          .sig-name {
+            font-weight: 500;
+            color: #0f172a;
+            margin-bottom: 2px;
+          }
+          .sig-date {
+            font-size: 11px;
+            color: #64748b;
+          }
+
+          /* ท้ายหน้ากระดาษ */
+          .footer-note {
+            margin-top: 35px;
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: center;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 10px;
+          }
         </style>
       </head>
       <body>
-        <div class="header">ใบขออนุมัติลาหยุดงาน (PVT HR SYSTEM)</div>
-        <table class="info-table">
-          <tr>
-            <td width="50%"><strong>ชื่อ-นามสกุล:</strong> <span class="underline">${emp.full_name || '-'} (${emp.nickname || '-'})</span></td>
-            <td width="50%"><strong>รหัสพนักงาน:</strong> <span class="underline">${emp.employee_code || '-'}</span></td>
-          </tr>
-          <tr>
-            <td><strong>สังกัดแผนก:</strong> <span class="underline">${emp.departments?.department_name || '-'}</span></td>
-            <td><strong>วันที่เขียนใบลา:</strong> <span class="underline">${dWrite}</span></td>
-          </tr>
-        </table>
+        <div class="document-container">
+          
+          <!-- ตราประทับผลการอนุมัติ -->
+          ${stampHtml}
 
-        <table class="data-table">
-          <thead>
+          <!-- Header -->
+          <table class="header-table">
             <tr>
-              <th>ประเภทการลา</th>
-              <th>จากวันที่</th>
-              <th>ถึงวันที่</th>
-              <th>รวมจำนวนวัน</th>
-              <th>เหตุผลความจำเป็น</th>
+              <td class="company-logo-section">
+                <span class="logo-placeholder">PVT</span>
+                <span class="company-title">บริษัท พีวีที เทคโนโลยี (ประเทศไทย) จำกัด</span>
+              </td>
+              <td class="doc-title-container">
+                <div class="doc-title-main">ใบขออนุมัติลาหยุดงาน</div>
+                <div class="doc-title-sub">LEAVE REQUEST FORM / E-LEAVE SYSTEM</div>
+              </td>
             </tr>
-          </thead>
-          <tbody>
+          </table>
+
+          <!-- Section 1: ข้อมูลผู้ขออนุมัติ -->
+          <div class="section-heading">ข้อมูลผู้ยื่นคำขอ (Employee Profile)</div>
+          <table class="meta-table">
             <tr>
-              <td>${leave.leave_types?.leave_name || '-'}</td>
-              <td>${dStart}</td>
-              <td>${dEnd}</td>
-              <td style="font-weight:bold;">${leave.total_days} วัน</td>
-              <td style="text-align:left;">${leave.reason || '-'}</td>
+              <td class="meta-label">รหัสพนักงาน:</td>
+              <td class="meta-val">${emp.employee_code || '-'}</td>
+              <td class="meta-label">ชื่อ - นามสกุล:</td>
+              <td class="meta-val">${emp.full_name || '-'} (${emp.nickname || '-'})</td>
             </tr>
-          </tbody>
-        </table>
-        
-        <div style="margin-top: 60px; display: flex; justify-content: space-between; font-size: 18px;">
-          <div style="text-align: center; width: 40%;">
-            <br>ลงชื่อ..........................................................ผู้ขอลา<br>( ${emp.full_name || '...........................................'} )
+            <tr>
+              <td class="meta-label">สังกัดแผนก / ฝ่าย:</td>
+              <td class="meta-val">${deptName}</td>
+              <td class="meta-label">ตำแหน่งปัจจุบัน:</td>
+              <td class="meta-val">${posName}</td>
+            </tr>
+            <tr>
+              <td class="meta-label">วันที่ส่งขอใบลา:</td>
+              <td class="meta-val" colspan="3">${dWrite}</td>
+            </tr>
+          </table>
+
+          <!-- Section 2: รายละเอียดวันหยุดงาน -->
+          <div class="section-heading">รายละเอียดความประสงค์ขอลาหยุดงาน (Request Details)</div>
+          <table class="details-table">
+            <thead>
+              <tr>
+                <th width="25%">ประเภทการลา</th>
+                <th width="35%">ช่วงเวลาเริ่มต้น - สิ้นสุด</th>
+                <th width="15%" style="text-align: center;">รวมระยะเวลา</th>
+                <th width="25%">เหตุผลความจำเป็น</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600; color: #1e3a8a;">
+                  ${leave.leave_types?.leave_name || '-'}
+                </td>
+                <td>
+                  <strong>วันที่เริ่มลา:</strong> ${dStart}<br>
+                  <strong>ถึงวันที่ลา:</strong> ${dEnd}
+                </td>
+                <td style="text-align: center; font-weight: 700; font-size: 15px; color: #0f172a;">
+                  ${leave.total_days} วัน
+                </td>
+                <td style="font-size:12.5px; color:#475569;">
+                  ${leave.reason || '-'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- ระบบบันทึกผลประกอบการพิจารณาพิเศษ (ถ้ามีเหตุผลปฏิเสธหรือหมายเหตุจาก HR) -->
+          ${leave.approval_comment ? `
+          <div class="section-heading" style="color:#dc2626;">ความคิดเห็น/หมายเหตุประกอบการพิจารณา</div>
+          <div style="background-color: #fff5f5; border: 1px solid #fee2e2; border-radius: 6px; padding: 12px 15px; font-size:13px; color: #991b1b; font-weight:500;">
+             📝 ${leave.approval_comment}
           </div>
-          <div style="text-align: center; width: 40%;">
-            <br>ลงชื่อ..........................................................ผู้อนุมัติ<br>( HR / ผู้บังคับบัญชา )
+          ` : ''}
+
+          <!-- Section 3: แผงลงลายมือชื่อพนักงานและผู้มีอำนาจ (Signatures Matrix) -->
+          <div class="section-heading" style="margin-top: 30px;">การตรวจสอบและพิจารณาอนุมัติ (Workflow Approvals)</div>
+          <table class="signature-grid">
+            <tr>
+              <!-- 1. ช่องลงนามผู้ขอลา -->
+              <td class="signature-box">
+                <div class="signature-title">ผู้ขออนุมัติลา</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">( ${emp.full_name || '...........................................'} )</div>
+                <div class="sig-date">วันที่ยื่น: ${formatFullDate(leave.created_at)}</div>
+              </td>
+              
+              <!-- 2. หัวหน้างานอนุมัติ (Manager) -->
+              <td class="signature-box">
+                <div class="signature-title">ผู้บังคับบัญชาชั้นต้น (หัวหน้า)</div>
+                <div class="sig-line">
+                  ${leave.manager_status === 'approved' ? '<span style="color:#059669; font-weight:bold;">✓ ได้รับอนุมัติผ่านระบบ</span>' : (leave.manager_status === 'rejected' ? '<span style="color:#dc2626; font-weight:bold;">❌ ปฏิเสธการลา</span>' : '')}
+                </div>
+                <div class="sig-name">...................................................</div>
+                <div class="sig-date">สถานะ: ${leave.manager_status === 'approved' ? 'ผ่านอนุมัติแล้ว' : (leave.manager_status === 'rejected' ? 'ปฏิเสธ' : 'รอการพิจารณา')}</div>
+              </td>
+              
+              <!-- 3. ผู้บริหารระดับผู้จัดการ (Director) -->
+              <td class="signature-box">
+                <div class="signature-title">ผู้พิจารณาขั้นสูง (ผู้จัดการ)</div>
+                <div class="sig-line">
+                  ${leave.director_status === 'approved' ? '<span style="color:#059669; font-weight:bold;">✓ ได้รับอนุมัติผ่านระบบ</span>' : (leave.director_status === 'rejected' ? '<span style="color:#dc2626; font-weight:bold;">❌ ปฏิเสธการลา</span>' : '')}
+                </div>
+                <div class="sig-name">...................................................</div>
+                <div class="sig-date">สถานะ: ${leave.director_status === 'approved' ? 'ผ่านอนุมัติแล้ว' : (leave.director_status === 'rejected' ? 'ปฏิเสธ' : 'รอการพิจารณา')}</div>
+              </td>
+              
+              <!-- 4. HR บันทึกเข้าระบบ -->
+              <td class="signature-box">
+                <div class="signature-title">ฝ่ายทรัพยากรบุคคล (HR)</div>
+                <div class="sig-line">
+                  ${leave.status === 'approved' ? '<span style="color:#059669; font-weight:bold;">✓ บันทึกลงระบบสำเร็จ</span>' : (leave.status === 'rejected' ? '<span style="color:#dc2626; font-weight:bold;">❌ ยกเลิก/ปฏิเสธ</span>' : '')}
+                </div>
+                <div class="sig-name">...................................................</div>
+                <div class="sig-date">สถานะ: ${leave.status === 'approved' ? 'บันทึกเรียบร้อย' : 'รอรับผล'}</div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Footer Metadata -->
+          <div class="footer-note">
+            เอกสารฉบับนี้ถูกจัดทำขึ้นด้วยระบบบริหารจัดการทรัพยากรบุคคลอัตโนมัติ PVT HR E-Leave System<br>
+            รหัสร่องรอยตรวจสอบ (Trace ID): ${leaveId} (ข้อมูลเชื่อมโยงฐานข้อมูลหลัก)
           </div>
+
         </div>
 
         <script>
-          window.onload = function() { window.print(); window.close(); }
+          window.onload = function() { 
+            setTimeout(() => {
+              window.print(); 
+              window.close(); 
+            }, 500);
+          }
         </script>
       </body>
       </html>
@@ -511,7 +885,7 @@ async function printLeaveA4(leaveId) {
     printWindow.document.close();
 
   } catch (err) {
-    Swal.fire('ไม่สามารถพิมพ์ได้', err.message, 'error');
+    Swal.fire('ไม่สามารถพิมพ์เอกสารได้', err.message, 'error');
   }
 }
 
