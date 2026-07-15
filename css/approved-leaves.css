@@ -1,0 +1,297 @@
+/* ==========================================================================
+   👑 PVT WORKFORCE HUB - leader-approval.css (หน้าอนุมัติของหัวหน้า - ทรงเดิม)
+   ========================================================================== */
+
+body {
+  background-color: var(--bg-main, #f4f7f9);
+  margin: 0;
+  padding: 0;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  justify-content: center; /* ดันเนื้อหาให้อยู่ตรงกลางจอใหญ่ */
+}
+
+.main-content {
+  flex: 1;
+  max-width: 1440px; /* ควบคุมไม่ให้ตารางยืดกว้างเกินไปบนจอใหญ่ */
+  padding: 32px 48px;
+  overflow-y: auto;
+  background-color: transparent;
+}
+
+/* ================= HEADERS ================= */
+.page-header {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.page-header h2 { 
+  font-size: 26px; 
+  font-weight: 600; 
+  color: var(--text-dark, #0f172a); 
+  margin: 0;
+}
+.page-header p { 
+  color: var(--text-muted, #64748b); 
+  margin: 4px 0 0 0; 
+  font-size: 14px;
+}
+
+/* ─── HEADER BACK BUTTON ─── */
+.btn-header-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg-card, #ffffff);
+  color: var(--text-muted, #64748b);
+  border: 1px solid var(--border-light, #e2e8f0);
+  padding: 8px 18px;
+  border-radius: 99px; 
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  width: fit-content;
+}
+.btn-header-back:hover {
+  background: var(--primary, #1e3a8a);
+  border-color: var(--primary, #1e3a8a);
+  color: #ffffff; 
+  transform: translateX(-4px); 
+  box-shadow: 0 4px 10px rgba(30,58,138,0.2);
+}
+.btn-header-back .material-symbols-outlined { 
+  font-size: 18px; 
+}
+
+/* ================= APPROVAL TABLE & PANEL ================= */
+.approval-panel {
+  background: var(--bg-card, #ffffff);
+  border-radius: 16px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  overflow: hidden;
+  margin-bottom: 30px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.approval-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+  min-width: 850px; 
+}
+
+.approval-table th {
+  background: #f8fafc;
+  padding: 16px 20px;
+  color: var(--text-muted, #475569);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+  white-space: nowrap;
+}
+
+.approval-table td {
+  padding: 16px 20px;
+  color: var(--text-dark, #0f172a);
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+  vertical-align: middle;
+}
+
+.approval-table tr:last-child td {
+  border-bottom: none;
+}
+
+.approval-table tr:hover td {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+.text-center { 
+  text-align: center; 
+}
+
+/* ================= ACTION BUTTONS ================= */
+.action-group { 
+  display: flex; 
+  gap: 8px; 
+  white-space: nowrap; 
+  justify-content: center; 
+}
+.btn-action { 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 6px; 
+  padding: 8px 14px; 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 500; 
+  cursor: pointer; 
+  transition: all 0.2s ease; 
+  border: 1px solid transparent; 
+}
+.btn-approve { background-color: #effaf3; color: #16a34a; }
+.btn-approve:hover { background-color: #16a34a; color: #ffffff; }
+.btn-reject { background-color: #fef2f2; color: #dc2626; }
+.btn-reject:hover { background-color: #dc2626; color: #ffffff; }
+
+/* ================= BADGES STATUS ================= */
+.status-badge { 
+  display: inline-flex; 
+  padding: 4px 10px; 
+  border-radius: 99px; 
+  font-size: 12px; 
+  font-weight: 500; 
+}
+.status-pending { background-color: #fef3c7; color: #d97706; }
+.status-approved { background-color: #dcfce7; color: #15803d; }
+.status-rejected { background-color: #fee2e2; color: #b91c1c; }
+
+/* ================= MODAL ================= */
+.modal-overlay {
+  display: none; 
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  width: 100vw; 
+  height: 100vh; 
+  background: rgba(15,23,42,0.6); 
+  backdrop-filter: blur(4px); 
+  z-index: 999; 
+  align-items: center; 
+  justify-content: center;
+}
+
+.modal-content {
+  background: #fff; 
+  width: 100%; 
+  max-width: 450px; 
+  margin: 16px; 
+  padding: 32px; 
+  border-radius: 16px; 
+  box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+}
+
+.modal-content h3 { margin-top: 0; font-size: 18px; color: #0f172a; }
+.modal-content p { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+
+.form-group label { 
+  display: block; 
+  font-size: 13px; 
+  font-weight: 600; 
+  margin-bottom: 8px; 
+  color: #0f172a; 
+}
+.form-group textarea { 
+  width: 100%; 
+  padding: 12px; 
+  border: 1px solid var(--border-light, #e2e8f0); 
+  border-radius: 8px; 
+  font-family: inherit; 
+  resize: none; 
+  box-sizing: border-box; /* ป้องกันกล่องทะลุขอบ */
+}
+
+.modal-actions {
+  display: flex; 
+  justify-content: flex-end; 
+  gap: 12px;
+  margin-top: 20px;
+}
+.btn-cancel { 
+  background: #f1f5f9; color: #475569; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; 
+}
+.btn-submit { 
+  background: var(--admin-primary, #0fa472); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; 
+}
+
+/* ================= 📱 RESPONSIVE (บังคับทับสไตล์เดิมให้รองรับมือถือ 100%) ================= */
+@media (max-width: 768px) {
+  /* จัดการโครงสร้างหน้าจอไม่ให้โยกซ้ายขวา */
+  .app-shell {
+    display: block !important;
+    width: 100vw !important;
+    overflow-x: hidden !important; 
+  }
+  
+  .main-content {
+    padding: 16px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .page-header h2 { font-size: 20px !important; }
+  .page-header p { font-size: 13px !important; }
+
+  /* ใหปุ่มสลับสิทธิ์ (หัวหน้า/ผู้จัดการ) เรียงแนวตั้งและกดง่ายขึ้น */
+  #pvtRoleTabs {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  #pvtRoleTabs button {
+    width: 100% !important;
+    padding: 12px !important;
+  }
+
+  /* บังคับตารางให้ปัดเลื่อนซ้ายขวาได้ (Scrollable) */
+  .approval-panel {
+    border-radius: 12px !important;
+    margin-bottom: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .table-responsive {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important; /* บังคับสร้าง Block เพื่อให้ Scroll ทำงาน */
+  }
+
+  .approval-table {
+    min-width: 800px !important; /* บังคับขนาดตารางไม่ให้บีบจนพัง */
+  }
+
+  /* บังคับปุ่มพิจารณา / ปุ่มพิมพ์ ในตารางให้เรียงแนวตั้ง */
+  .approval-table td div {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .approval-table td div button {
+    width: 100% !important;
+    padding: 10px !important;
+    font-size: 13px !important;
+  }
+
+  /* บังคับ Modal หน้าต่างอนุมัติให้อยู่ตรงกลางและพอดีจอ */
+  .modal-content {
+    padding: 24px 20px !important;
+    margin: 15px !important;
+    width: 100% !important;
+    max-width: calc(100% - 30px) !important;
+    box-sizing: border-box !important;
+  }
+
+  /* บังคับปุ่ม ยกเลิก / ปฏิเสธ / อนุมัติ ให้เรียงแนวตั้งเต็มจอ */
+  .modal-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .modal-actions button {
+    width: 100% !important;
+    padding: 12px !important;
+    margin: 0 !important;
+  }
+}

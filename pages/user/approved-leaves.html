@@ -8,228 +8,80 @@
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   <link rel="stylesheet" href="/css/index.css" />
+  <link rel="stylesheet" href="/css/approved-leaves.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <style>
-    :root {
-      --sidebar-width: 260px;
-    }
-    
-    /* โครงสร้างหลักแบบยืดหยุ่น */
-    .app-shell {
-      display: flex;
-      min-height: 100vh;
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    /* สไตล์ของ Sidebar ควบคุมไม่ให้แตกขยายล้นตาราง */
-    .sidebar {
-      width: var(--sidebar-width);
-      min-width: var(--sidebar-width);
-      max-width: var(--sidebar-width);
-      background: #ffffff;
-      border-right: 1px solid var(--border, #e2e8f0);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      position: fixed;
-      left: 0;
-      top: 0;
-      z-index: 100;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* พื้นที่แสดงตารางและเนื้อหาขวา */
-    .main-wrapper {
-      flex: 1;
-      margin-left: var(--sidebar-width);
-      min-width: 0; /* ป้องกันเนื้อหาดันตารางทะลุขอบขวา */
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      transition: margin-left 0.3s ease;
-    }
-
-    /* แถบหัวบนมือถือ (เริ่มต้นจะซ่อนไว้บน PC) */
-    .mobile-header {
-      display: none;
-      background: #ffffff;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border, #e2e8f0);
-      align-items: center;
-      gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 90;
-    }
-
-    .menu-toggle-btn {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px;
-      border-radius: 6px;
-    }
-    .menu-toggle-btn:hover {
-      background: #f1f5f9;
-    }
-
-    /* แผ่นบังฉากหลังเวลากดเปิดเมนูบนมือถือ */
-    .sidebar-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(15, 23, 42, 0.4);
-      backdrop-filter: blur(2px);
-      z-index: 95;
-    }
-
-    /* ตารางและส่วนห่อหุ้มรองรับการปัดเลื่อนซ้ายขวาบนโมบาย */
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    /* 🔥 RESPONSIVE BREAKPOINT (หน้าจอเล็กลงหรือมือถือ) */
-    @media (max-width: 1024px) {
-      .sidebar {
-        transform: translateX(-100%); /* ซ่อนออกไปนอกจอด้านซ้าย */
-      }
-      .sidebar.active {
-        transform: translateX(0); /* เด้งกลับมาเมื่อกดปุ่มเมนู */
-      }
-      .main-wrapper {
-        margin-left: 0; /* เนื้อหาชิดซ้ายเต็มจอ */
-        padding: 16px;
-      }
-      .mobile-header {
-        display: flex; /* แสดงหัวข้อบนมือถือ */
-      }
-      .sidebar-overlay.active {
-        display: block;
-      }
-    }
-  </style>
 </head>
 
 <body>
-  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebarMenu(false)"></div>
-
   <div class="app-shell">
-    
-    <aside class="sidebar" id="appSidebar">
-      <div class="brand" style="padding: 15px; border-bottom: 1px solid var(--border, #e2e8f0);">
-        <img src="/assets/icons/logo-pvt.pg" alt="PVT" class="brand-logo" />
-        <div class="brand-text">
-          <h1>Workforce Hub</h1>
-          <p>HR Management Platform</p>
+    <div class="main-content">
+      
+      <!-- ส่วน Header และปุ่มย้อนกลับ -->
+      <div class="page-header">
+        <button class="btn-header-back" onclick="window.location.href='/pages/user/index-user.html'">
+          <span class="material-symbols-outlined">arrow_back</span>
+          ย้อนกลับหน้าหลักพนักงาน
+        </button>
+
+        <div>
+          <h2>พิจารณาคำขออนุมัติลา</h2>
+          <p>รายการคำขอลาของพนักงานที่รอการตรวจสอบและอนุมัติจากหัวหน้างานและผู้จัดการฝ่าย</p>
         </div>
       </div>
-
-       <nav class="side-nav" style="padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 8px;">
-        <a href="#" class="nav-item active" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; text-decoration: none; color: inherit;">
-          <span class="material-symbols-outlined">task</span>
-          <span>พิจารณาใบลา</span>
-        </a>
-
-        <div style="margin-top: auto; padding-top: 16px;">
-          <button onclick="handleLogout()" class="nav-item btn-logout" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; border: none; background: #fee2e2; color: #991b1b; cursor: pointer;">
-            <span class="material-symbols-outlined">logout</span>
-            <span>ออกจากระบบ</span>
-          </button>
-        </div>
-      </nav>
-    </aside>
-
-    <div class="main-wrapper">
-      
-      <header class="mobile-header">
-        <button class="menu-toggle-btn" onclick="toggleSidebarMenu(true)">
-          <span class="material-symbols-outlined">menu</span>
-        </button>
-        <div style="font-weight: 600; color: #0f172a; font-size: 16px;">PVT Workforce Hub</div>
-      </header>
-
-      <header class="main-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-        <div class="header-title">
-          <h2 style="margin: 0; font-size: 24px; font-weight: 600; color: #0f172a;">พิจารณาคำขออนุมัติลา</h2>
-          <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">รายการคำขอลาของพนักงานที่รอการตรวจสอบและอนุมัติจากหัวหน้างานและผู้จัดการฝ่าย</p>
-        </div>
-      </header>
 
       <div id="roleTabsContainer"></div>
 
-      <div class="table-container">
-        <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left;">
-          <thead style="background: #f8fafc; border-bottom: 1px solid var(--border, #e2e8f0);">
-            <tr>
-              <th style="padding: 16px; font-weight: 600; color: #475569;">ข้อมูลผู้ลา</th>
-              <th style="padding: 16px; font-weight: 600; color: #475569;">ประเภทการลา</th>
-              <th style="padding: 16px; font-weight: 600; color: #475569;">วันเวลาที่ลา</th>
-              <th style="padding: 16px; font-weight: 600; color: #475569; text-align: center;">จำนวนวัน</th>
-              <th style="padding: 16px; font-weight: 600; color: #475569;">เหตุผลการลา</th>
-              <th style="padding: 16px; font-weight: 600; color: #475569; text-align: center;">สถานะใบลา</th>
-              <th style="padding: 16px; font-weight: 600; color: #475569; text-align: center;">จัดการ</th>
-            </tr>
-          </thead>
-         <tbody id="leaveTableBody">
-            <tr>
-              <td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">⏳ กำลังโหลดข้อมูลคำขออนุมัติลา...</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- พื้นที่ตารางอนุมัติใบลา (โครงสร้างเดิม) -->
+      <div class="approval-panel">
+        <div class="table-responsive">
+          <table class="approval-table">
+            <thead>
+              <tr>
+                <th>ข้อมูลผู้ลา</th>
+                <th>ประเภทการลา</th>
+                <th>วันเวลาที่ลา</th>
+                <th class="text-center">จำนวนวัน</th>
+                <th>เหตุผลการลา</th>
+                <th class="text-center">สถานะใบลา</th>
+                <th class="text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="leaveTableBody">
+              <tr>
+                <td colspan="7" class="text-center" style="padding: 40px; color: #64748b;">
+                  ⏳ กำลังโหลดข้อมูลคำขออนุมัติลา...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       
     </div>
   </div>
 
-  <div id="actionModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:999; align-items:center; justify-content:center;">
-    <div style="background:#fff; width:100%; max-width:450px; margin: 16px; padding:32px; border-radius:16px; box-shadow:0 24px 48px rgba(0,0,0,0.2);">
-      <h3 id="modalTitle" style="margin-top:0; font-size:18px;">พิจารณาใบลา</h3>
-      <p id="modalEmployeeName" style="color:#64748b; font-size:14px; margin-bottom:20px;">พนักงาน: </p>
+  <!-- Modal สำหรับยืนยันพิจารณาใบลา (ID เดิมเป๊ะๆ) -->
+  <div id="actionModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="modalTitle">พิจารณาใบลา</h3>
+      <p id="modalEmployeeName">พนักงาน: </p>
+      
+      <!-- Hidden Inputs เดิมของพี่ -->
       <input type="hidden" id="targetLeaveId">
       <input type="hidden" id="targetStatus">
       
-      <div style="margin-bottom:20px;">
-        <label for="approvalComment" style="display:block; font-size:13px; font-weight:600; margin-bottom:8px;">ความคิดเห็น / เหตุผลประกอบการพิจารณา:</label>
-        <textarea id="approvalComment" rows="3" style="width:100%; padding:12px; border:1px solid var(--border, #e2e8f0); border-radius:8px; font-family:inherit; resize:none;" placeholder="ระบุเหตุผลอนุมัติตามขั้นตอน หรือสาเหตุที่ไม่นุมัติใบลา..."></textarea>
+      <div class="form-group">
+        <label for="approvalComment">ความคิดเห็น / เหตุผลประกอบการพิจารณา:</label>
+        <textarea id="approvalComment" rows="3" placeholder="ระบุเหตุผลอนุมัติตามขั้นตอน หรือสาเหตุที่ไม่นุมัติใบลา..."></textarea>
       </div>
       
-      <div style="display:flex; justify-content:flex-end; gap:12px;">
-        <button id="btnCancelAction" style="background:#f1f5f9; color:#475569; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:500;">ยกเลิก</button>
-        <button id="btnSubmitAction" style="background:var(--admin-primary, #0fa472); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:500;">ยืนยันบันทึก</button>
+      <div class="modal-actions">
+        <button id="btnCancelAction" class="btn-cancel">ยกเลิก</button>
+        <button id="btnSubmitAction" class="btn-submit">ยืนยันบันทึก</button>
       </div>
     </div>
   </div>
 
-  <script>
-    function toggleSidebarMenu(open) {
-      const sidebar = document.getElementById("appSidebar");
-      const overlay = document.getElementById("sidebarOverlay");
-      if (sidebar && overlay) {
-        if (open) {
-          sidebar.classList.add("active");
-          overlay.classList.add("active");
-        } else {
-          sidebar.classList.remove("active");
-          overlay.classList.remove("active");
-        }
-      }
-    }
-  </script>
-  
   <script type="module" src="/js/supabase-config.js"></script>
   <script src="/js/approved-leaves.js"></script>
 </body>

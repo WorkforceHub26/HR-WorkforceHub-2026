@@ -1,7 +1,3 @@
-/**
- * index-user.js — (ฉบับสมบูรณ์ + ล็อกปุ่มกดลาถ้าว้นลาเหลือ 0 วัน + ระบบ Log ครบถ้วน)
- */
-
 console.log("📢 [SYSTEM] เริ่มต้นโหลดสคริปต์หน้าจอพนักงาน (พร้อมระบบตรวจสอบโควตาวันลาหมด)...");
 
 // 🛠️ 1. สคริปต์พิเศษ: บังคับล้างแคชและดึงไฟล์ CSS ใหม่ล่าสุดเสมอ
@@ -39,7 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-
 /* ==========================================================================
    📥 1. ฟังก์ชันโหลดโฮมเพจ (ดึงข้อมูลพนักงานตอนเข้าหน้าเว็บ)
    ========================================================================== */
@@ -73,7 +68,7 @@ async function initUserHome() {
           employee_id: cachedUser.id || cachedUser.employee_id,
           employee_code: cachedUser.employee_code,
           full_name: cachedUser.full_name,
-          department_name: cachedUser.department_name, // 💡 แอบเพิ่มบรรทัดนี้ เพื่อให้ชื่อแผนกไม่หาย!
+          department_name: cachedUser.department_name, 
           role: cachedUser.role
         };
         console.log("✅ [RECOVERY] กู้คืนโปรไฟล์จาก Session สำเร็จ:", window.currentProfile);
@@ -91,6 +86,9 @@ async function initUserHome() {
       window.loadRecentLeaves(window.currentProfile);
     }
 
+    // ✨ 6. (เพิ่มใหม่) โยนโปรไฟล์ที่กู้คืนสำเร็จแล้ว ไปเช็คสิทธิ์ปุ่มหัวหน้างาน
+    checkApproverPermission(window.currentProfile);
+
   } catch (err) {
     console.error("🚨 [SAFE GUARD ERROR] ดักจับข้อผิดพลาดหน้าโฮม:", err);
   }
@@ -105,13 +103,11 @@ window.renderUserInfo = function(profile) {
   
   const nameEl = document.getElementById("userName");
   if (nameEl) {
-    // 💡 แก้ตรงนี้: เพิ่ม profile?.full_name เข้าไปดักจับด้วย
     nameEl.textContent = employee?.full_name || profile?.full_name || profile?.display_name || "พนักงานในระบบ";
   } else {
     console.warn("⚠️ [RENDER] หา HTML element id='userName' ไม่เจอ");
   }
     
-  // 💡 แก้ตรงนี้: เพิ่มดักจับ department_name จาก profile โดยตรง และรหัสพนักงาน
   const deptName = employee?.departments?.department_name || employee?.department_name || profile?.department_name || "ทั่วไป";
   const empCode = employee?.employee_code || profile?.employee_code ? `รหัส: ${employee?.employee_code || profile?.employee_code}` : "";
   
@@ -145,36 +141,21 @@ window.loadRecentLeaves = async function(profile) {
     console.log(`⏳ [FETCH DATA] กำลังดึงสถิติและโควตาของไอดี: ${employeeId}`);
     const currentYear = new Date().getFullYear();
 
-    // 🛠️ แก้ไขจุดนี้: ลบ .maybeSingle() ออก และดึงข้อมูลสิทธิ์การลา "ทุกประเภท" ของปีนี้มาพร้อมชื่อประเภทลาเลย
     const [requestsRes, pendingRes, balanceRes] = await Promise.all([
       sb.from("leave_requests").select("id, start_date, end_date, total_days, status, leave_types(leave_name)").eq("employee_id", employeeId).order("created_at", { ascending: false }).limit(50), 
       sb.from("leave_requests").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).eq("status", "pending"),
       sb.from("leave_balances").select("leave_type_id, remaining_days, used_days, year, leave_types(leave_name)").eq("employee_id", employeeId).eq("year", currentYear)
     ]);
 
-    if (requestsRes.error) {
-      console.error("❌ [DB ERROR] ดึงประวัติลาล้มเหลว:", requestsRes.error);
-      throw requestsRes.error;
-    }
+    if (requestsRes.error) throw requestsRes.error;
     
-    if (balanceRes.error) {
-      console.warn("⚠️ [DB WARNING] ดึงข้อมูลโควตาล้มเหลว (อาจไม่มีข้อมูลในตาราง):", balanceRes.error);
-    } else {
-      console.log("📊 [DATA] ข้อมูลโควตาวันลาที่ได้จาก DB:", balanceRes.data);
-    }
-
-    if (pendingCount) pendingCount.innerHTML = `${pendingRes.count ?? 0} <small>รายการ</small>`;
-
-    // นำข้อมูลสิทธิ์การลาใส่ตะกร้าส่วนกลางเพื่อเอาไปวาดกล่องช่องๆ
     const balanceRows = balanceRes.data || [];
     window.employeeLeaveBalances = balanceRows;
 
-    // 🚀 [สั่งทำงาน] วาดกล่องโควตาวันลาแต่ละประเภทแยกเป็นช่องๆ ทันที
     if (typeof window.renderAllLeaveBalances === 'function') {
       window.renderAllLeaveBalances();
     }
 
-    // 🧮 คำนวณยอดวันลารวมทั้งหมด เพื่อเอาไปโชว์ที่กล่องสรุปด้านบนสุดของหน้าจอ
     let totalRemaining = 0;
     let totalUsed = 0;
     balanceRows.forEach(b => {
@@ -183,15 +164,10 @@ window.loadRecentLeaves = async function(profile) {
     });
 
     window.remainingDays = totalRemaining;
-    console.log(`🔒 [GUARD SYSTEM] บันทึกสิทธิ์วันลารวมคงเหลือ: ${window.remainingDays} วัน`);
 
-    if (leaveBalance) {
-      leaveBalance.innerHTML = `${window.remainingDays} <small>วัน</small>`;
-    }
-    
-    if (usedBalance) {
-      usedBalance.innerHTML = `${totalUsed} <small>วัน</small>`;
-    }
+    if (leaveBalance) leaveBalance.innerHTML = `${window.remainingDays} <small>วัน</small>`;
+    if (usedBalance) usedBalance.innerHTML = `${totalUsed} <small>วัน</small>`;
+    if (pendingCount) pendingCount.innerHTML = `${pendingRes.count ?? 0} <small>รายการ</small>`;
 
     const escapeFn = window.pvtSupabase?.escapeHtml || ((str) => str ? String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : "");
     const labelFn = window.pvtSupabase?.statusLabel || ((status) => ({ pending: "รออนุมัติ", approved: "อนุมัติแล้ว", rejected: "ปฏิเสธ" }[status] || status));
@@ -201,8 +177,6 @@ window.loadRecentLeaves = async function(profile) {
     });
 
     const rows = requestsRes.data || [];
-    console.log(`📋 [DATA] ดึงประวัติการลาสำเร็จ จำนวน ${rows.length} รายการ`);
-
     if (!rows.length) {
       if (recentList) recentList.innerHTML = `<div class="empty-state">ยังไม่มีรายการยื่นใบลาในระบบ</div>`;
       return;
@@ -236,13 +210,31 @@ window.loadRecentLeaves = async function(profile) {
       }).join(""); 
       recentList.innerHTML = `<div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">${listHtml}</div>`;
     }
-
-    console.log("✅ [SUCCESS] วาด UI กล่องตัวเลขและประวัติเสร็จสมบูรณ์!");
-
   } catch (error) {
     if (recentList) recentList.innerHTML = `<div class="empty-state" style="color:#ef4444;">⚠️ ดึงข้อมูลล่าสุดไม่สำเร็จ</div>`;
-    window.handleSystemError(error, "ไม่สามารถโหลดข้อมูลยอดสถิติตัวเลขวันลาได้");
   }
+};
+
+window.renderAllLeaveBalances = function() {
+  const container = document.getElementById("leaveBalancesContainer");
+  if (!container) return;
+  container.innerHTML = ""; 
+  if (!window.employeeLeaveBalances || window.employeeLeaveBalances.length === 0) {
+    container.innerHTML = "<p style='color:var(--muted); font-size:14px; font-style:italic; margin:0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
+    return;
+  }
+  window.employeeLeaveBalances.forEach(balance => {
+    const typeName = balance.leave_types?.leave_name || "สิทธิ์การลา";
+    const remaining = parseFloat(balance.remaining_days) || 0;
+    let colorClass = ""; 
+    if (typeName.includes("ป่วย")) colorClass = "sick";
+    else if (typeName.includes("กิจ")) colorClass = "personal";
+    else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
+    const box = document.createElement("div");
+    box.className = `leave-quota-card ${colorClass}`;
+    box.innerHTML = `<span class="leave-quota-name">${typeName}</span><div class="leave-quota-days">${remaining}<small>วัน</small></div>`;
+    container.appendChild(box);
+  });
 };
 
 // ==========================================
@@ -278,100 +270,54 @@ window.renderAllLeaveBalances = function() {
     container.appendChild(box);
   });
 };
+
+
 /* ==========================================================================
    🖥️ 4. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล
    ========================================================================== */
 window.viewMyDigitalCard = function() {
-  console.log("💳 [CARD] กำลังเปิดป๊อปอัปบัตรพนักงาน...");
   const sessionUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
   const profile = window.currentProfile || {};
   const employee = profile.employees || profile;
-  
   const currentCode = sessionUser?.employee_code || employee?.employee_code;
   
-  if (!currentCode) {
-    Swal.fire({ icon: 'warning', title: 'ไม่พบข้อมูลเซสชัน', text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง' });
-    return;
-  }
+  if (!currentCode) return;
 
-  try {
-    const fullName = employee?.full_name || profile?.display_name || sessionUser?.full_name || "พนักงานในระบบ";
-    const myDept = employee?.departments?.department_name || employee?.department_name || sessionUser?.department_name || "ทั่วไป";
-    const myRole = employee?.positions?.position_name || employee?.position_name || sessionUser?.position_name || profile?.role || "พนักงาน";
+  const fullName = employee?.full_name || profile?.display_name || sessionUser?.full_name || "พนักงานในระบบ";
+  const myDept = employee?.departments?.department_name || employee?.department_name || sessionUser?.department_name || "ทั่วไป";
+  const myRole = employee?.positions?.position_name || employee?.position_name || sessionUser?.position_name || profile?.role || "พนักงาน";
+  const secureData = encodeURIComponent(`${currentCode}|PVT_SECURE_BYPASS`);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
 
-    const secureData = encodeURIComponent(`${currentCode}|PVT_SECURE_BYPASS`);
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
-
-    Swal.fire({
-      title: '💳 บัตรประจำตัวพนักงานดิจิทัล', width: '380px',
-      html: `
-        <div id="pvt-employee-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 280px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; font-family: 'Sarabun', sans-serif;">
-          <div style="font-weight: 700; font-size: 13px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 20px; text-transform: uppercase;">PVT WORKFORCE HUB</div>
-          <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">${fullName}</div>
-          <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${myRole}</div>
-          <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 20px;">แผนก: ${myDept}</div>
-          <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px;">
-            <img src="${qrUrl}" alt="QR" style="width: 140px; height: 140px; display: block;" />
-          </div>
-          <div><span style="font-size: 15px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 4px 16px; border-radius: 30px;">${currentCode}</span></div>
+  Swal.fire({
+    title: '💳 บัตรประจำตัวพนักงานดิจิทัล', width: '380px',
+    html: `
+      <div id="pvt-employee-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 280px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; font-family: 'Sarabun', sans-serif;">
+        <div style="font-weight: 700; font-size: 13px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 20px; text-transform: uppercase;">PVT WORKFORCE HUB</div>
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">${fullName}</div>
+        <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${myRole}</div>
+        <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 20px;">แผนก: ${myDept}</div>
+        <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px;">
+          <img src="${qrUrl}" alt="QR" style="width: 140px; height: 140px; display: block;" />
         </div>
-      `,
-      confirmButtonText: '✅ ปิดหน้าต่างบัตร', confirmButtonColor: '#0fa472'
-    });
-  } catch (err) {
-    console.error("❌ [CARD ERROR]:", err);
-    Swal.fire({ icon: 'error', title: 'ไม่สามารถเปิดบัตรได้', text: err.message });
-  }
+        <div><span style="font-size: 15px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 4px 16px; border-radius: 30px;">${currentCode}</span></div>
+      </div>
+    `,
+    confirmButtonText: '✅ ปิดหน้าต่างบัตร', confirmButtonColor: '#0fa472'
+  });
 };
 
 /* ==========================================================================
-   🚨 5. ฟังก์ชันแจ้งเตือน Error
-   ========================================================================== 
-  const actualErrorLog = error?.message || error?.hint || JSON.stringify(error) || "Unknown System Error";
-  console.error(`🚨 [CRITICAL ERROR]: ${customMessage} ->`, error);
-
-  if (typeof Swal !== "undefined") {
-    Swal.fire({
-      icon: "error", title: "ระบบขัดข้องชั่วคราว",
-      html: `
-        <div style="text-align: left; font-family: 'Kanit', sans-serif;">
-          <p style="margin-bottom: 8px; color: #334155;"><b>รายละเอียด:</b> ${customMessage}</p>
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; font-size: 12px; color: #ef4444; overflow-x: auto; max-height: 100px;">
-            Code: ${actualErrorLog}
-          </div>
-        </div>
-      `,
-      confirmButtonText: "รับทราบ", confirmButtonColor: "#dc2626", borderRadius: "16px"
-    });
-  } else { alert(`❌ ${customMessage}\n(${actualErrorLog})`); }
-};*/
-
-/* ==========================================================================
-   🔗 6. โซนผูกปุ่มกดเข้ากับหน้าเว็บ (Routing + มีตัวบล็อกวันลาหมด)
+   🔗 6. โซนผูกปุ่มกดเข้ากับหน้าเว็บ
    ========================================================================== */
-window.goToLeaveForm = function() { 
-  console.log(`🔍 [ACTION] ผู้ใช้กดปุ่ม 'ยื่นใบลา' -> ตรวจสอบวันลาคงเหลือล่าสุด: ${window.remainingDays} วัน`);
-  
-  // 🚫 เงื่อนไขบล็อก: ถ้าวันลาคงเหลือ น้อยกว่าหรือเท่ากับ 0 วัน ห้ามกดเด็ดขาด!
-  /*if (window.remainingDays <= 0) {
-    console.warn("🚫 [BLOCKED] บล็อกการเปลี่ยนหน้าสำเร็จ: วันลาคงเหลือไม่เพียงพอ");
-    
-    if (typeof Swal !== "undefined") {
-      Swal.fire({
-        icon: 'error',
-        title: 'สิทธิ์วันลาหมดแล้ว 🚫',
-        text: 'คุณไม่สามารถยื่นแบบฟอร์มการลาได้ เนื่องจากสิทธิ์วันลาคงเหลือของคุณคือ 0 วัน กรุณาติดต่อฝ่ายบุคคล (HR)',
-        confirmButtonText: 'รับทราบ',
-        confirmButtonColor: '#ef4444'
-      });
-    } else {
-      alert("🚫 สิทธิ์วันลาของคุณหมดแล้ว (0 วัน) ไม่สามารถยื่นใบลาได้ครับ");
-    }
-    return; // 🛑 หยุดการทำงานตรงนี้ ไม่ยอมให้ลิงก์ไปหน้ากรอกใบลา
-  }*/
-
-  // ✅ ถวันลาเหลือมากกว่า 0 วัน ยอมให้ไปหน้าแบบฟอร์มได้ตามปกติ
-  window.location.href = "/pages/user/leave-user.html"; 
+window.goToLeaveForm = function() { window.location.href = "/pages/user/leave-user.html"; };
+window.goToRules = function() { window.location.href = "/pages/user/leave-rules.html"; };
+window.goToLeaveHistory = function() { window.location.href = "/pages/user/leave-history.html"; };
+window.goToProfile = function() { window.location.href = "/pages/user/profile-user.html"; };
+window.goToContactHR = function() { window.location.href = "/pages/user/contact-hr.html"; };
+window.logout = function() { 
+  sessionStorage.removeItem("currentUser"); 
+  window.location.href = "/login.html"; 
 };
 
 window.goToRules = function() { window.location.href = "/pages/user/leave-rules.html"; };
@@ -401,45 +347,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   await checkApproverPermission();
 });
 
-async function checkApproverPermission() {
-  console.log("🔍 [Debug] 1. กำลังเริ่มตรวจสอบสิทธิ์หัวหน้างาน...");
-  
+/* ==========================================================================
+   🕵️‍♂️ 7. ฟังก์ชันตรวจสอบสิทธิ์และแสดงปุ่มสลับโหมดหัวหน้างาน
+   ========================================================================== */
+function checkApproverPermission(profileData) {
+  console.log("🔍 [Debug] กำลังตรวจสอบสิทธิ์จาก Profile ที่ส่งมา:", profileData);
   try {
-    const sb = window.pvtSupabase?.getClient();
-    if (!sb) {
-       console.warn("❌ [Debug] 2. ไม่พบการเชื่อมต่อฐานข้อมูล (window.pvtSupabase)");
-       return;
+    if (!profileData) {
+      console.warn("❌ [Debug] ไม่มีข้อมูล Profile ให้ตรวจสอบสิทธิ์");
+      return;
     }
 
-    const profile = await window.pvtSupabase?.getCurrentProfile();
-    console.log("👤 [Debug] 3. ข้อมูล Profile ที่ดึงมาได้:", profile);
-
-    if (!profile) {
-       console.warn("❌ [Debug] 4. ไม่มีข้อมูล Profile (ยังไม่ได้ล็อกอิน หรือดึงข้อมูลพลาด)");
-       return;
-    }
-
-    // แปลง role ให้เป็นตัวพิมพ์เล็กทั้งหมด เพื่อป้องกันปัญหาพิมพ์เล็ก-พิมพ์ใหญ่ไม่ตรงกัน
-    const userRole = (profile.role || "").toLowerCase();
-    console.log("🏷️ [Debug] 5. Role ของผู้ใช้คนนี้คือ:", userRole);
-
+    const userRole = (profileData.role || "").toLowerCase();
     const approverRoles = ["leader", "manager", "director", "hr"];
 
     if (approverRoles.includes(userRole)) {
-      console.log("✅ [Debug] 6. สิทธิ์ผ่าน! กำลังพยายามเปิดปุ่ม...");
-      
+      console.log("✅ [Debug] สิทธิ์ผ่าน! แสดงปุ่มหัวหน้างาน");
       const switchBtn = document.getElementById("approverModeBtn");
       if (switchBtn) {
         switchBtn.style.setProperty("display", "flex", "important");
-        console.log("🎉 [Debug] 7. เปิดปุ่มสำเร็จ!");
-      } else {
-        console.error("❌ [Debug] 8. สิทธิ์ผ่าน แต่หาปุ่ม ID 'approverModeBtn' ใน HTML ไม่เจอ!");
       }
     } else {
-      console.log("⛔ [Debug] 9. สิทธิ์ไม่ถึง (Role ไม่ตรงกับเงื่อนไข)");
+      console.log("⛔ [Debug] สิทธิ์ไม่ถึง ไม่แสดงปุ่ม");
     }
-    
   } catch (err) {
-    console.error("❌ [Debug] เกิดข้อผิดพลาดระหว่างรันโค้ด:", err);
+    console.error("❌ [Debug] เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์หัวหน้างาน:", err);
   }
 }
