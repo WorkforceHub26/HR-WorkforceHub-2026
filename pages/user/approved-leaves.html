@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบอนุมัติใบลาสำหรับหัวหน้า | PVT HR Hub</title>
   
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/index.css" />
+  <link rel="stylesheet" href="/css/home.css" />
   <link rel="stylesheet" href="/css/approved-leaves.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- 🚀 ฝัง CSS มือถือตรงนี้เพื่อแก้ปัญหา Cache ดื้อ และบังคับทำงาน 100% -->
+  <!-- 🚀 ฝัง CSS มือถือตรงนี้เพื่อทำ Card View (ไม่ต้องเลื่อนซ้ายขวา) -->
 </head>
 
 <body>
@@ -31,7 +34,7 @@
 
       <div id="roleTabsContainer"></div>
 
-      <!-- พื้นที่ตารางอนุมัติใบลา (โครงสร้างเดิม) -->
+      <!-- พื้นที่ตารางอนุมัติใบลา -->
       <div class="approval-panel">
         <div class="table-responsive">
           <table class="approval-table">
@@ -60,13 +63,12 @@
     </div>
   </div>
 
-  <!-- Modal สำหรับยืนยันพิจารณาใบลา (ID เดิมเป๊ะๆ) -->
+  <!-- Modal สำหรับยืนยันพิจารณาใบลา -->
   <div id="actionModal" class="modal-overlay">
     <div class="modal-content">
       <h3 id="modalTitle">พิจารณาใบลา</h3>
       <p id="modalEmployeeName">พนักงาน: </p>
       
-      <!-- Hidden Inputs เดิมของพี่ -->
       <input type="hidden" id="targetLeaveId">
       <input type="hidden" id="targetStatus">
       
@@ -84,5 +86,6 @@
 
   <script type="module" src="/js/supabase-config.js"></script>
   <script src="/js/approved-leaves.js"></script>
+  <script src="/js/auth-guard.js"></script>
 </body>
 </html>

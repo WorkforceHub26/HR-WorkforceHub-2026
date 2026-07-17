@@ -4,30 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DevOps Enterprise System Control Console</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- 🌟 Material Symbols สำหรับไอคอนคอนโซล -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
   <link rel="stylesheet" href="./css/admin.css">
 </head>
 <body>
 
+<div class="bg-grid"></div>
+
 <div class="dashboard-wrapper">
   
+  <!-- 🛰️ ส่วนหัวระบบการควบคุมหลัก (Main Telemetry Header) -->
   <header class="main-header">
     <div class="header-logo">
       <span class="pulse-indicator"></span>
-      <h1>CORE BASE AUDIT TRAIL SYSTEM v4.0</h1>
+      <h1>CORE BASE AUDIT TRAIL <span class="version-tag">v4.0</span></h1>
     </div>
     <div class="header-meta">
-      <button class="action-btn btn-refresh" onclick="executeTelemetryCycle()">🔄 Force Re-Ping</button>
-      <div class="meta-badge">PROJECT: <span style="color:#38bdf8;">pgogmhqjdchakcytsomx</span></div>
-      <div class="meta-badge" id="lastRefreshTime">REFRESH: -</div>
+      <div class="meta-badge project-badge">
+        <span class="material-symbols-outlined icon-sm">deployed_code</span>
+        PROJECT: <span class="highlight">pgogmhqjdchakcytsomx</span>
+      </div>
+      <div class="meta-badge" id="lastRefreshTime">
+        <span class="material-symbols-outlined icon-sm">schedule</span>
+        REFRESH: -
+      </div>
+      <button class="action-btn btn-refresh" onclick="loadTableData()">
+        <span class="material-symbols-outlined">sync</span> Force Re-Ping
+      </button>
     </div>
   </header>
 
+  <!-- 📊 แผงรายงานสถานะเซิร์ฟเวอร์ (DevOps Metrics Grid) -->
   <section class="metrics-grid">
     <div class="metric-card">
       <div class="metric-header">
-        <span class="metric-title">📡 ENGINE PING & LATENCY</span>
-        <span class="metric-icon">⚡</span>
+        <span class="metric-title">ENGINE PING & LATENCY</span>
+        <span class="material-symbols-outlined metric-icon text-info">network_ping</span>
       </div>
       <div id="pingStatus" class="metric-value loading">⏳ ANALYZING...</div>
       <div class="metric-footer" id="pingDetails">กำลังตรวจสอบสัญญาณ...</div>
@@ -35,8 +49,8 @@
 
     <div class="metric-card">
       <div class="metric-header">
-        <span class="metric-title">💾 TOTAL DATABASE QUANTITY</span>
-        <span class="metric-icon">📊</span>
+        <span class="metric-title">TOTAL DATABASE QUANTITY</span>
+        <span class="material-symbols-outlined metric-icon text-success">database</span>
       </div>
       <div id="dbSizeStatus" class="metric-value loading">⏳ FETCHING...</div>
       <div class="metric-footer" id="dbSizeDetails">นับจำนวนแถวสะสมรวมทุกตารางหลัก</div>
@@ -44,59 +58,174 @@
 
     <div class="metric-card">
       <div class="metric-header">
-        <span class="metric-title">🔑 SECURITY RLS STATUS</span>
-        <span class="metric-icon">🔒</span>
+        <span class="metric-title">SECURITY RLS STATUS</span>
+        <span class="material-symbols-outlined metric-icon text-warn">security</span>
       </div>
       <div id="rlsStatus" class="metric-value loading">⏳ CHECKING...</div>
-      <div class="metric-footer" id="rlsDetails">วิเคราะห์สิทธิ์ RLS</div>
+      <div class="metric-footer" id="rlsDetails">วิเคราะห์สิทธิ์ RLS (Row Level Security)</div>
     </div>
 
     <div class="metric-card">
       <div class="metric-header">
-        <span class="metric-title">📡 REALTIME STREAMING</span>
-        <span class="metric-icon">🟢</span>
+        <span class="metric-title">REALTIME STREAMING</span>
+        <span class="material-symbols-outlined metric-icon text-success">sensors</span>
       </div>
       <div id="realtimeStatus" class="metric-value text-warn">CONNECTING</div>
       <div class="metric-footer">สถานะท่อ WebSocket ดักจับคนกดปุ่ม</div>
     </div>
   </section>
 
-  <section class="data-layout-grid" style="grid-template-columns: 1fr;">
+  <!-- 🗄️ ศูนย์กลางจัดการฐานข้อมูล (Database Explorer & Management Dashboard) -->
+  <section class="data-management-section" style="margin-bottom: 24px;">
     <div class="data-box">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3>👥 Live User Audit Logs Stream (ใครทำอะไร หน้าไหน แก้ไขอะไร รู้หมด!)</h3>
-        <span style="font-size: 12px; color: #10b981; font-family: 'JetBrains Mono', monospace;">● REALTIME FEED ACTIVE</span>
+      
+      <!-- ส่วนหัวกล่องควบคุมข้อมูลหลัก -->
+      <div class="box-header" style="margin-bottom: 16px; border-bottom: 1px solid #27272a; padding-bottom: 14px;">
+        <div class="box-title">
+          <span class="material-symbols-outlined text-warn">database</span>
+          <h3>จัดการฐานข้อมูล (Database Explorer Grid)</h3>
+        </div>
       </div>
-      <table class="telemetry-table">
-        <thead>
-          <tr>
-            <th style="width: 12%;">เวลา (Time)</th>
-            <th style="width: 18%;">ชื่อผู้ใช้งาน (User)</th>
-            <th style="width: 15%;">หน้าเว็บ (Page URL)</th>
-            <th style="width: 15%;">คำสั่ง/ปุ่มกด (Action)</th>
-            <th style="width: 40%;">รายละเอียดเชิงลึกการแก้ไข (Description)</th>
-          </tr>
-        </thead>
-        <tbody id="auditLogsTableBody">
-          <tr><td colspan="5" style="text-align:center; color:#64748b;">⏳ ระบบกำลังรอพนักงานกดปุ่มใช้งาน หรือกำลังดึงข้อมูลประวัติล่าสุด...</td></tr>
-        </tbody>
-      </table>
+      
+      <!-- 🔍 แถบเครื่องมือจัดการฐานข้อมูลระดับสูง (Unified Advanced Controls) -->
+      <div class="controls-wrapper" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+        
+        <!-- 1. ดร็อปดาวน์เลือกตารางข้อมูลหลัก -->
+        <select id="manageTableSelect" onchange="loadTableData()" style="padding: 10px; background: #18181b; color: #fff; border: 1px solid #3f3f46; border-radius: 8px; min-width: 220px; outline: none;">
+          <option value="employees">1. ข้อมูลพนักงาน (Employees)</option>
+          <option value="leave_types">2. ประเภทการลา (Leave Types)</option>
+          <option value="leave_balances">3. วันลาคงเหลือ (Leave Balances)</option>
+          <option value="leave_requests">4. ประวัติการลา (Leave Requests)</option>
+        </select>
+
+        <!-- 2. แถบค้นหาแบบเรียลไทม์ -->
+        <div style="position: relative; flex: 2; min-width: 220px;">
+          <span class="material-symbols-outlined" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #a1a1aa; font-size: 20px;">search</span>
+          <input type="text" id="searchInput" onkeyup="filterAndRenderCards()" placeholder="ค้นหาด่วนแบบ Real-time (ชื่อ, ID, รหัส หรือข้อความ...)" style="width: 100%; padding: 10px 10px 10px 40px; background: #18181b; color: #fff; border: 1px solid #3f3f46; border-radius: 8px; outline: none;">
+        </div>
+
+        <!-- 3. ระบบคัดกรองสถานะแบบเร่งด่วน -->
+        <select id="quickFilterSelect" onchange="filterAndRenderCards()" style="padding: 10px; background: #18181b; color: #fff; border: 1px solid #3f3f46; border-radius: 8px; min-width: 160px; outline: none;">
+          <option value="all">กรองสถานะ: ทั้งหมด</option>
+          <option value="active-approved">ใช้งานอยู่ / อนุมัติแล้ว</option>
+          <option value="pending">รอการตรวจสอบ (Pending)</option>
+          <option value="inactive-rejected">ยกเลิก / ปฏิเสธ</option>
+        </select>
+
+        <!-- 4. ชุดปุ่มปฏิบัติการ (Action Buttons) -->
+        <button class="action-btn" onclick="openInsertModal()" style="background: #22c55e; color: #000; border: none; font-weight: 600; padding: 10px 16px; border-radius: 8px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">add_circle</span> เพิ่มข้อมูลใหม่
+        </button>
+        
+        <button class="action-btn btn-outline" onclick="exportToCSV()" style="padding: 10px 16px; border-radius: 8px; display: flex; align-items: center; gap: 6px; cursor: pointer; background: transparent; border: 1px solid #3f3f46; color: #fff;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">download</span> Export CSV
+        </button>
+      </div>
+
+      <!-- 📊 แถบแสดงสถานะจำนวนและเครื่องมือจัดการล็อตใหญ่ (Bulk Action Toolbar) -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; background: #141416; padding: 12px 16px; border-radius: 8px; border: 1px solid #27272a;">
+        <div id="recordCounter" style="color: #a1a1aa; font-size: 13px; font-family: monospace;">กำลังคำนวณข้อมูล...</div>
+        
+        <div id="bulkActionBar" style="display: none; gap: 12px; align-items: center;">
+          <span id="bulkSelectCount" style="color: #38bdf8; font-size: 13px; font-weight: 600;">เลือกอยู่ 0 รายการ</span>
+          <button class="action-btn" style="padding: 6px 12px; font-size: 12px; background: #ef4444; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;" onclick="deleteSelectedRecords()">
+            ลบรายการทั้งหมดที่เลือกไว้
+          </button>
+        </div>
+      </div>
+
+      <!-- 🎴 พื้นที่สำหรับเรนเดอร์ Card Grid Layout (ทดแทนตารางเดิม) -->
+      <div class="table-container" style="border: none; background: transparent; padding: 0;">
+        <!-- โครงสร้างหัวตารางเดิม ถูกซ่อนเพื่อใช้งานอ้างอิงของระบบเบื้องหลัง -->
+        <table id="managementTable" style="display: none;"><thead id="managementTableHead"><tr><th></th></tr></table>
+        
+        <!-- กล่องหลักสำหรับบรรจุตัวการ์ดข้อมูล -->
+        <div id="managementTableBody">
+          <!-- การ์ดจะถูกสร้างด้วยระบบ JS เรียงกันอย่างเป็นระเบียบตรงนี้ -->
+        </div>
+      </div>
+
+      <!-- 📄 แผงควบคุมหน้าข้อมูล (Pagination Controls Panel) -->
+     <!-- แผงควบคุมหน้าเพจ (Pagination Controls) -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid #27272a;">
+        <span id="recordCounter" style="color: #94a3b8; font-size: 13px;">กำลังโหลด...</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button id="btnPrevPage" class="action-btn btn-outline" onclick="changePage(-1)" style="padding: 6px 12px;">◀ ถอยกลับ</button>
+          <span id="pageInfo" style="color: #fff; font-size: 13px; font-weight: 600;">หน้า 1 / 1</span>
+          <button id="btnNextPage" class="action-btn btn-outline" onclick="changePage(1)" style="padding: 6px 12px;">ถัดไป ▶</button>
+        </div>
+      </div>
+
     </div>
   </section>
 
-  <section class="advanced-console-wrapper">
+  <!-- 🌊 ส่วนตรวจสอบข้อมูลสตรีมมิ่งสด (Live User Audit Logs Feed) -->
+  <section class="data-layout-grid">
+    <div class="data-box">
+      <div class="box-header">
+        <div class="box-title">
+          <span class="material-symbols-outlined text-info">stream</span>
+          <h3>Live User Audit Logs Stream</h3>
+        </div>
+        <div class="status-indicator">
+          <span class="dot-flashing"></span> REALTIME FEED ACTIVE
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table class="telemetry-table">
+          <thead>
+            <tr>
+              <th style="width: 12%;">เวลา (Time)</th>
+              <th style="width: 18%;">ชื่อผู้ใช้งาน (User)</th>
+              <th style="width: 15%;">หน้าเว็บ (Page URL)</th>
+              <th style="width: 15%;">คำสั่ง (Action)</th>
+              <th style="width: 40%;">รายละเอียดการแก้ไข (Description)</th>
+            </tr>
+          </thead>
+          <tbody id="auditLogsTableBody">
+            <tr>
+              <td colspan="5" class="table-empty">
+                <span class="material-symbols-outlined" style="font-size: 32px; margin-bottom: 8px; display: block;">hourglass_empty</span>
+                กำลังรอพนักงานทำรายการ หรือกำลังดึงข้อมูลล่าสุด...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 💻 ส่วนแสดงผลคอนโซลข้อบกพร่องระบบ (DevOps Engine Logger Console) -->
+  <section class="advanced-console-wrapper" style="margin-top: 24px;">
+    <div class="console-mac-header">
+      <div class="mac-dots"><span></span><span></span><span></span></div>
+      <div class="mac-title">bash - SYSTEM_LOGGER - 80x24</div>
+    </div>
+    
     <div class="console-action-bar">
       <div class="console-title">
-        <span class="console-flash-icon">👾</span>
-        <h2>SYSTEM DEVOPS ENGINE LOGGER</h2>
+        <span class="material-symbols-outlined text-error console-flash-icon">terminal</span>
+        <h2>DEVOPS ENGINE LOGGER</h2>
       </div>
-      <div class="console-search-box">
-        <input type="text" id="logSearchInput" placeholder="🔍 ค้นหาคำใน Log..." oninput="handleLogSearch()">
-      </div>
-      <div class="console-buttons">
-        <button class="action-btn btn-copy" onclick="copyConsoleLog()">📋 Copy Logs</button>
-        <button class="action-btn btn-download" onclick="downloadLogs()">📥 Download Log File</button>
-        <button class="action-btn" onclick="clearConsoleLog()">Clear</button>
+      
+      <div class="console-tools">
+        <div class="console-search-box">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="logSearchInput" placeholder="ค้นหาคำใน Log..." oninput="handleLogSearch()">
+        </div>
+        
+        <div class="console-buttons">
+          <button class="action-btn btn-outline" onclick="copyConsoleLog()">
+            <span class="material-symbols-outlined icon-sm">content_copy</span> Copy
+          </button>
+          <button class="action-btn btn-outline" onclick="downloadLogs()">
+            <span class="material-symbols-outlined icon-sm">download</span> Download
+          </button>
+          <button class="action-btn btn-danger" onclick="clearConsoleLog()">
+            <span class="material-symbols-outlined icon-sm">delete</span> Clear
+          </button>
+        </div>
       </div>
     </div>
     <div id="debugLogContainer" class="console-terminal-screen"></div>
@@ -104,6 +233,28 @@
 
 </div>
 
+<!-- 🪟 กล่องลอยหน้าต่างป๊อปอัปสำหรับสร้างฟอร์มเพิ่ม/แก้ไขข้อมูล (Dynamic Modal) -->
+<div id="dataModal" class="modal-overlay" style="display: none; z-index: 9999;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">หน้าต่างจัดการข้อมูล</h3>
+      <button class="close-btn" onclick="closeDataModal()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- ฟอร์มสร้างอิสระจะถูกป้อนเข้าโดยอัตโนมัติจากไฟล์ JS -->
+    </div>
+    <div class="modal-footer">
+      <!-- ปุ่มคำสั่งจะเปลี่ยนรูปแบบตามลักษณะการเปิด (เพิ่มข้อมูลใหม่ หรือ แก้ไขเรคคอร์ด) -->
+    </div>
+  </div>
+</div>
+
+<!-- 🍞 ท่อสำหรับสร้างกล่องลอยแจ้งเตือนด่วนบนขอบจอ (Toast Containers Stack) -->
+<div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 10px;"></div>
+
+<!-- ⚙️ แผงเรียกสคริปต์ Supabase และไฟล์ปฏิบัติการของระบบ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./js/admin.js"></script>
 </body>

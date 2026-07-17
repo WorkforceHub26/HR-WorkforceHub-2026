@@ -57,7 +57,7 @@
 }
 
 body {
-  font-family: "Kanit", "Noto Sans Thai", sans-serif;
+  font-family: "Sarabun", sans-serif;
   background-color: #f0fdfa; 
   background-image: 
     radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
@@ -438,3 +438,29 @@ body {
   color: var(--muted, #475569);
   font-weight: 500;
 }
+
+/* ─── 2. HEADER BACK BUTTON ─── */
+.btn-header-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg-card, #ffffff);
+  color: var(--text-muted, #64748b);
+  border: 1px solid var(--border-light, #e2e8f0);
+  padding: 8px 18px;
+  border-radius: 99px; 
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.btn-header-back:hover {
+  background: var(--primary, #1e3a8a);
+  border-color: var(--primary, #1e3a8a);
+  color: #ffffff; 
+  transform: translateX(-4px); 
+  box-shadow: 0 4px 10px rgba(30,58,138,0.2);
+}
+.btn-header-back .material-symbols-outlined { font-size: 18px; }

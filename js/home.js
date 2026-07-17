@@ -545,7 +545,7 @@ function handleLogout() {
     setTimeout(() => {
       // ล้างข้อมูล Session หากใช้งานจริง
       sessionStorage.clear();
-      window.location.href = "/login.html"; // เปลี่ยนเป็นหน้าล็อกอิน
+      window.location.href = "/index.html"; // เปลี่ยนเป็นหน้าล็อกอิน
     }, 1000);
   }
 }
@@ -662,7 +662,7 @@ window.openEmployeeCardManagerPopup = async function () {
 };
 
 // 💳 จังหวะที่ 2: แสดงหน้าตาบัตรพนักงานพรีเมียม (โชว์ทั้งตำแหน่งและแผนก)
-// 💳 จุดที่ 1: อัปเดตในไฟล์ index.js (หรือไฟล์จัดการฝั่ง HR/แดชบอร์ด)
+// 💳 จุดที่ 1: อัปเดตในไฟล์ home.js (หรือไฟล์จัดการฝั่ง HR/แดชบอร์ด)
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
   
   // 🔒 ผสมข้อมูลแบบพิเศษ: "รหัสพนักงาน|เครื่องหมายคั่นพิเศษ" 

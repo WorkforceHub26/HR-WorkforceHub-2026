@@ -13,22 +13,36 @@
     const isAuthPage = 
       path.includes("login") || 
       path === "/" || 
-      path.endsWith("index.html");
+      path.endsWith("home.html");
 
-    // 3. ถ้าไม่มี User และไม่ใช่หน้าล็อกอิน -> ดีดออกทันที
+    // 3. ถ้าไม่มี User และไม่ใช่หน้าล็อกอิน -> ดีดออกและทำพื้นหลังเบลอ
     if (!currentUser && !isAuthPage) {
-  Swal.fire({
-    icon: 'warning',
-    title: 'Access Denied',
-    text: 'กรุณาเข้าสู่ระบบก่อนใช้งาน',
-    confirmButtonColor: '#3085d6',
-    confirmButtonText: 'ตกลง'
-  }).then(() => {
-    window.location.href = "/login.html";
-  });
-}
+      
+      // ปลดการซ่อนหน้าเว็บ เพื่อให้เห็นพื้นหลัง
+      document.documentElement.style.visibility = 'visible';
+      
+      // ค้นหาโครงสร้างหลักของเพจ (.app-shell) แล้วสั่งเบลอ
+      const appShell = document.querySelector('.app-shell');
+      if (appShell) {
+        appShell.style.filter = 'blur(12px)'; // ปรับตัวเลขความเบลอได้ (ยิ่งมากยิ่งเบลอ)
+        appShell.style.pointerEvents = 'none'; // ป้องกันการคลิกเนื้อหาด้านหลัง
+      }
 
-    // 4. ถ้ามีสิทธิ์ถูกต้อง ค่อยเปิดให้มองเห็นหน้าเว็บแบบเนียนๆ
-    document.documentElement.style.visibility = 'visible';
+      Swal.fire({
+        icon: 'warning',
+        title: 'Access Denied',
+        text: 'กรุณาเข้าสู่ระบบก่อนใช้งาน',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'ตกลง',
+        allowOutsideClick: false, // บังคับให้คลิกปุ่มตกลงเท่านั้น
+        backdrop: `rgba(0,0,0,0.5)` // เพิ่มความมืดทับความเบลอให้ป๊อปอัปเด่นขึ้น
+      }).then(() => {
+        window.location.href = "/index.html";
+      });
+      
+    } else {
+      // 4. ถ้ามีสิทธิ์ถูกต้อง ค่อยเปิดให้มองเห็นหน้าเว็บแบบปกติและคมชัด
+      document.documentElement.style.visibility = 'visible';
+    }
   });
-})(); 
+})();

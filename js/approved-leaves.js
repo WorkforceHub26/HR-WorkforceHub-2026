@@ -199,14 +199,14 @@ async function fetchLeaveRequestsData() {
 }
 
 /**
- * 🎨 5. ฟังก์ชันวาดตารางรายการใบลาลงบนหน้าจอ HTML
+ * 🎨 5. ฟังก์ชันวาดตารางรายการใบลาลงบนหน้าจอ HTML (อัปเดตให้ตรงกับ HTML 7 คอลัมน์)
  */
 function renderTable(requests) {
   const tableBody = document.getElementById("leaveTableBody");
   if (!tableBody) return;
 
   if (requests.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:40px; color:#64748b; font-weight:500;">ไม่มีรายการคำขอลาค้างพิจารณาในระบบสิทธิ์นี้</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:#64748b; font-weight:500;">ไม่มีรายการคำขอลาค้างพิจารณาในระบบสิทธิ์นี้</td></tr>`;
     return;
   }
 
@@ -237,18 +237,22 @@ function renderTable(requests) {
 
     const tr = document.createElement("tr");
     tr.style.borderBottom = "1px solid var(--border)";
+    
+    // ปรับโครงสร้างใหม่ให้เป็น 7 <td> พอดีกับหัวตาราง
     tr.innerHTML = `
-      <td style="padding:16px; font-weight:600; color:#475569;">${empCode}</td>
-      <td style="padding:16px; font-weight:500; color:#0f172a;">${empName}</td>
+      <td style="padding:16px;">
+        <div style="font-weight:600; color:#0f172a;">${empName}</div>
+        <div style="font-size:12px; color:#64748b;">รหัส: ${empCode}</div>
+      </td>
       <td style="padding:16px;"><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:13px; font-weight:500;">${leaveName}</span></td>
-      <td style="padding:16px; color:#475569;">${leavePeriod}</td>
-      <td style="padding:16px; font-weight:600; color:#0fa472;">${req.total_days || 0} วัน</td>
-      <td style="padding:16px; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${reasonText}">${reasonText}</td>
-      <td style="padding:16px;">${statusBadge}</td>
+      <td style="padding:16px; color:#475569; font-size:13px;">${leavePeriod}</td>
+      <td style="padding:16px; font-weight:600; color:#0fa472; text-align:center;">${req.total_days || 0} วัน</td>
+      <td style="padding:16px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${reasonText}">${reasonText}</td>
+      <td style="padding:16px; text-align:center;">${statusBadge}</td>
       <td style="padding:16px; text-align:center;">
-        <div style="display:flex; gap:6px; justify-content:center;">
-          <button style="background:#0fa472; color:white; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;" onclick="processApproval('${req.id}', '${req.status}')">พิจารณา</button>
-          <button style="background:#f1f5f9; color:#475569; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;" onclick="printLeaveA4('${req.id}')">พิมพ์ A4</button>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:center;">
+          <button style="width:100%; background:#0fa472; color:white; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;" onclick="processApproval('${req.id}', '${req.status}')">พิจารณา</button>
+          <button style="width:100%; background:#f1f5f9; color:#475569; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;" onclick="printLeaveA4('${req.id}')">พิมพ์ A4</button>
         </div>
       </td>
     `;

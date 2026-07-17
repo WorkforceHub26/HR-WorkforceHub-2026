@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - login.js (เวอร์ชันสแกน QR Code + ตัดโค้ดที่ไม่ได้ใช้ทิ้ง)
+   🔒 PVT HR LEAVE - index.js (เวอร์ชันสแกน QR Code + ตัดโค้ดที่ไม่ได้ใช้ทิ้ง)
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -77,15 +77,15 @@ document.addEventListener("DOMContentLoaded", () => {
       // ตรวจสอบตำแหน่งเพื่อทำการย้ายหน้าเว็บให้เหมาะสม
       if (user.role === "hr" || user.role === "admin") {
         if (window.location.origin) {
-          fetch("/index.html", { method: "HEAD" })
+          fetch("/home.html", { method: "HEAD" })
           .then(() => {
-            window.location.href = "/index.html";
+            window.location.href = "/home.html";
           })
           .catch(() => {
             window.location.href = "/";
           });
         } else {
-          window.location.href = "/index.html";
+          window.location.href = "/home.html";
         }
       } else {
         window.location.href = "/pages/user/index-user.html";
@@ -294,11 +294,11 @@ async function executeSecureQrLogin(scannedData) {
     setTimeout(() => {
       if (user.role === "hr" || user.role === "admin") {
         if (window.location.origin) {
-          fetch("/index.html", { method: "HEAD" })
-          .then(() => { window.location.href = "/index.html"; })
+          fetch("/home.html", { method: "HEAD" })
+          .then(() => { window.location.href = "/home.html"; })
           .catch(() => { window.location.href = "/"; });
         } else {
-          window.location.href = "/index.html";
+          window.location.href = "/home.html";
         }
       } else {
         window.location.href = "/pages/user/index-user.html";
@@ -315,3 +315,4 @@ async function executeSecureQrLogin(scannedData) {
     });
   }
 }
+

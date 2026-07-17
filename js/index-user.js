@@ -51,7 +51,7 @@ async function initUserHome() {
     // 2. ตรวจสอบว่าได้ ID พนักงานมาหรือไม่
     const validId = window.currentProfile?.employee_id || window.currentProfile?.id;
     
-    // 3. ถ้าไม่ได้ ID มา ให้ไปค้นหาใน Session Storage แทน
+    // 3. ถ้าไม่ได้ ID มา ให้ไปค้นหาใน Session Storage แทน (แผนสำรอง)
     if (!validId) {
       console.log("🔄 [DASHBOARD] ใช้แผนสำรอง: ดึงข้อมูลโปรไฟล์จากแคช (Session)");
       let cachedUser = null;
@@ -62,18 +62,24 @@ async function initUserHome() {
         console.error("❌ [ERROR] อ่านค่า sessionStorage ล้มเหลว:", e);
       }
 
-      if (cachedUser && (cachedUser.id || cachedUser.employee_id)) {
+      if (cachedUser) {
+        // 🔥 [ปรับปรุงใหม่] ดักจับโครงสร้างข้อมูล เผื่อกรณีมีวัตถุซ้อนข้างใน
+        const empData = cachedUser.employees || cachedUser;
+        const deptData = empData.departments || cachedUser.departments || cachedUser;
+
         window.currentProfile = {
-          id: cachedUser.id,
-          employee_id: cachedUser.id || cachedUser.employee_id,
-          employee_code: cachedUser.employee_code,
-          full_name: cachedUser.full_name,
-          department_name: cachedUser.department_name, 
-          role: cachedUser.role
+          id: cachedUser.id || empData.id,
+          employee_id: cachedUser.employee_id || cachedUser.id || empData.id,
+          employee_code: empData.employee_code || cachedUser.employee_code,
+          full_name: empData.full_name || cachedUser.full_name || cachedUser.display_name,
+          department_name: deptData.department_name || empData.department_name || cachedUser.department_name, 
+          role: cachedUser.role || empData.role,
+          avatar_url: empData.avatar_url || cachedUser.avatar_url,
+          employees: empData // จำลองโครงสร้างยัดไส้เผื่อฟังก์ชันอื่นเรียกซ้ำ
         };
         console.log("✅ [RECOVERY] กู้คืนโปรไฟล์จาก Session สำเร็จ:", window.currentProfile);
       } else {
-        console.error("❌ [CRITICAL] ไม่พบข้อมูลทั้งใน Auth และ Session! (พนักงานอาจจะยังไม่ได้ล็อกอิน)");
+        console.error("❌ [CRITICAL] ไม่พบข้อมูลทั้งใน Auth และ Session!");
       }
     }
 
@@ -86,36 +92,53 @@ async function initUserHome() {
       window.loadRecentLeaves(window.currentProfile);
     }
 
-    // ✨ 6. (เพิ่มใหม่) โยนโปรไฟล์ที่กู้คืนสำเร็จแล้ว ไปเช็คสิทธิ์ปุ่มหัวหน้างาน
+    // 6. โยนโปรไฟล์ไปเช็คสิทธิ์ปุ่มหัวหน้างาน
     checkApproverPermission(window.currentProfile);
 
   } catch (err) {
     console.error("🚨 [SAFE GUARD ERROR] ดักจับข้อผิดพลาดหน้าโฮม:", err);
   }
 }
-
 /* ==========================================================================
    🖥️ 2. ฟังก์ชันวาดชื่อพนักงาน และแผนก ลงบนแถบด้านบน
    ========================================================================== */
 window.renderUserInfo = function(profile) {
   console.log("🎨 [RENDER] กำลังวาดข้อมูลพนักงานลงหน้าจอ...", profile);
-  const employee = profile?.employees;
+  if (!profile) return;
+
+  // 🔥 [ปรับปรุงใหม่] ถ้าระบบส่งแบบครอบมา หรือแบบแบนมา ให้เกลี่ยมาใช้ตัวแปรเดียวกันได้หมด
+  const employee = profile?.employees || profile;
   
+  // 1. จัดการชื่อ
   const nameEl = document.getElementById("userName");
   if (nameEl) {
     nameEl.textContent = employee?.full_name || profile?.full_name || profile?.display_name || "พนักงานในระบบ";
-  } else {
-    console.warn("⚠️ [RENDER] หา HTML element id='userName' ไม่เจอ");
   }
     
+  // 2. จัดการแผนกและรหัสพนักงาน
   const deptName = employee?.departments?.department_name || employee?.department_name || profile?.department_name || "ทั่วไป";
-  const empCode = employee?.employee_code || profile?.employee_code ? `รหัส: ${employee?.employee_code || profile?.employee_code}` : "";
+  const codeVal = employee?.employee_code || profile?.employee_code;
+  const empCode = codeVal ? `รหัส: ${codeVal}` : "";
   
   const deptEl = document.getElementById("userDepartment");
   if (deptEl) {
     deptEl.textContent = `${deptName} ${empCode}`;
-  } else {
-    console.warn("⚠️ [RENDER] หา HTML element id='userDepartment' ไม่เจอ");
+  }
+
+  // ✨ 3. จัดการรูปโปรไฟล์พนักงาน
+  const avatarEl = document.getElementById("userAvatar");
+  if (avatarEl) {
+    // ดักจับทุกชื่อคอลัมน์ที่เป็นไปได้
+    let avatarUrl = profile?.avatar_url || profile?.employees?.avatar_url || profile?.image_url || profile?.picture;
+    
+    // 💡 [TEST PROOF] ถ้าในระบบไม่มีรูปพนักงาน ให้ลองใส่ลิงก์รูปจริงตรงนี้เพื่อดูว่ามันเปลี่ยนไหม
+    if (!avatarUrl || avatarUrl.trim() === "") {
+      // สามารถเปลี่ยนลิงก์ข้างล่างนี้เป็นรูปทดสอบ หรือรูปในเครื่องของคุณได้เลย เช่น "/assets/img/my-test-profile.jpg"
+      avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop"; 
+    }
+    
+    avatarEl.src = avatarUrl; 
+    console.log("📸 [AVATAR EFFECTIVE] สั่งเปลี่ยน Src ของรูปภาพสำเร็จเป็น:", avatarUrl);
   }
 };
 
@@ -317,7 +340,7 @@ window.goToProfile = function() { window.location.href = "/pages/user/profile-us
 window.goToContactHR = function() { window.location.href = "/pages/user/contact-hr.html"; };
 window.logout = function() { 
   sessionStorage.removeItem("currentUser"); 
-  window.location.href = "/login.html"; 
+  window.location.href = "/index.html"; 
 };
 
 window.goToRules = function() { window.location.href = "/pages/user/leave-rules.html"; };
@@ -328,24 +351,11 @@ window.goToContactHR = function() { window.location.href = "/pages/user/contact-
 window.logout = function() { 
   console.log("👋 [LOGOUT] กำลังออกจากระบบและล้าง Session...");
   sessionStorage.removeItem("currentUser"); 
-  window.location.href = "/login.html"; 
+  window.location.href = "/index.html"; 
 };
 
 
-// เรียกใช้งานฟังก์ชันเช็คสิทธิ์หัวหน้างานทันทีที่โหลดหน้าเว็บ
-document.addEventListener("DOMContentLoaded", async () => {
-  // ... โค้ดเดิมของพี่ที่มีอยู่แล้ว ...
-  
-  // เรียกฟังก์ชันตรวจสอบสิทธิ์หัวหน้า
-  await checkApproverPermission();
-});
 
-document.addEventListener("DOMContentLoaded", async () => {
-  // ... โค้ดเดิมของพี่ที่มีอยู่แล้ว ...
-  
-  // เรียกฟังก์ชันตรวจสอบสิทธิ์หัวหน้า
-  await checkApproverPermission();
-});
 
 /* ==========================================================================
    🕵️‍♂️ 7. ฟังก์ชันตรวจสอบสิทธิ์และแสดงปุ่มสลับโหมดหัวหน้างาน
@@ -374,3 +384,4 @@ function checkApproverPermission(profileData) {
     console.error("❌ [Debug] เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์หัวหน้างาน:", err);
   }
 }
+

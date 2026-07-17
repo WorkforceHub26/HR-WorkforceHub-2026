@@ -22,7 +22,7 @@
 }
 
 body {
-  font-family: "Kanit", "Noto Sans Thai", sans-serif;
+  font-family: "Sarabun", sans-serif;
   background-color: #f0fdfa; 
   background-image: 
     radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
@@ -583,4 +583,33 @@ body {
 @keyframes pvt-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+/* ==========================================================================
+   📱 แก้ไขแถบบน (Top Bar) ให้กะทัดรัดสำหรับหน้าจอมือถือ
+   ========================================================================== */
+@media screen and (max-width: 768px) {
+  /* 1. ลดความหนาของแถบบน */
+  .topbar { padding: 10px 12px !important; }
+  
+  .topbar-container { 
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+  
+  /* 2. ย่อปุ่มย้อนกลับ และซ่อนโลโก้บริษัทที่เกะกะในปุ่มออก */
+  .btn-back { padding: 6px 12px !important; font-size: 13px !important; }
+  .btn-back img { display: none !important; } 
+  .btn-back span:nth-child(2) { display: none !important; } /* ซ่อนเส้นคั่น | */
+
+  /* 3. ย่อขนาดตัวหนังสือตรงกลาง และซ่อนคำบรรยายยาวๆ */
+  .topbar-center { text-align: center !important; flex: 1 !important; }
+  .topbar-title { font-size: 16px !important; }
+  .topbar-subtitle { display: none !important; } 
+
+  /* 4. ย่อปุ่มหลักเกณฑ์ และซ่อนปุ่มพิมพ์ทิ้งไปเลย */
+  .topbar-actions { display: flex !important; gap: 8px !important; }
+  .topbar-actions .btn { padding: 6px 10px !important; font-size: 13px !important; height: auto !important; }
+  .topbar-actions button:last-child { display: none !important; } /* ซ่อนปุ่ม 🖨️ พิมพ์ */
 }

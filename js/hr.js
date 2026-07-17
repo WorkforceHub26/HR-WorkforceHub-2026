@@ -56,6 +56,7 @@ async function loadPendingLeavesHR() {
         employees!employee_id ( full_name, employee_code, nickname, start_date, departments(department_name), positions(position_name) ),
         leave_types ( leave_name )
       `)
+      .eq("status", "pending") /* ✨ เติมบรรทัดนี้เข้ามาครับ */
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -160,13 +161,9 @@ async function loadPendingLeavesHR() {
 // ฟังก์ชันปุ่มยกเลิก
 async function cancelLeaveHR(leaveId) {
   await rejectLeave(leaveId);
+  
 }
 
-// 🆕 ฟังก์ชันรองรับเมื่อกดปุ่ม "🚫 ยกเลิก" (กรณีต้องการปัดตกใบลาผ่านบอร์ด HR)
-async function cancelLeaveHR(leaveId) {
-  // วิ่งไปใช้ Logic กล่องถามเหตุผลปฏิเสธร่วมกับปุ่มปฏิเสธได้ทันที
-  await rejectLeave(leaveId);
-}
 
 // ==========================================
 // 🔵 3. ฟังก์ชันเปิดป๊อปอัปใบลาดิจิทัล
@@ -894,5 +891,5 @@ async function printLeaveA4(leaveId) {
 // ==========================================
 function handleLogout() {
   sessionStorage.removeItem("currentUser");
-  window.location.href = "/login.html"; 
+  window.location.href = "/index.html"; 
 }
