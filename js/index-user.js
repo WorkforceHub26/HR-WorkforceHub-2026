@@ -32,11 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initUserHome();
 });
 
-
-
-
 /* ==========================================================================
-   📥 1. ฟังก์ชันโหลดโฮมเพจ (ดึงข้อมูลพนักงานตอนเข้าหน้าเว็บ)
+   📥 1. ฟังก์ชันโหลดโฮมเพจ (เวอร์ชันดึงรูปภาพอัปเดตล่าสุดจากฐานข้อมูลจริง)
    ========================================================================== */
 async function initUserHome() {
   try {
@@ -49,7 +46,7 @@ async function initUserHome() {
     }
     
     // 2. ตรวจสอบว่าได้ ID พนักงานมาหรือไม่
-    const validId = window.currentProfile?.employee_id || window.currentProfile?.id;
+    let validId = window.currentProfile?.employee_id || window.currentProfile?.id;
     
     // 3. ถ้าไม่ได้ ID มา ให้ไปค้นหาใน Session Storage แทน (แผนสำรอง)
     if (!validId) {
@@ -63,7 +60,6 @@ async function initUserHome() {
       }
 
       if (cachedUser) {
-        // 🔥 [ปรับปรุงใหม่] ดักจับโครงสร้างข้อมูล เผื่อกรณีมีวัตถุซ้อนข้างใน
         const empData = cachedUser.employees || cachedUser;
         const deptData = empData.departments || cachedUser.departments || cachedUser;
 
@@ -74,12 +70,39 @@ async function initUserHome() {
           full_name: empData.full_name || cachedUser.full_name || cachedUser.display_name,
           department_name: deptData.department_name || empData.department_name || cachedUser.department_name, 
           role: cachedUser.role || empData.role,
-          avatar_url: empData.avatar_url || cachedUser.avatar_url,
-          employees: empData // จำลองโครงสร้างยัดไส้เผื่อฟังก์ชันอื่นเรียกซ้ำ
+          avatar_url: empData.image_url || cachedUser.image_url || empData.avatar_url || cachedUser.avatar_url,
+          employees: empData 
         };
+        validId = window.currentProfile.employee_id;
         console.log("✅ [RECOVERY] กู้คืนโปรไฟล์จาก Session สำเร็จ:", window.currentProfile);
       } else {
         console.error("❌ [CRITICAL] ไม่พบข้อมูลทั้งใน Auth และ Session!");
+      }
+    }
+
+    // 🔥 [แก้ไขตรงจุด 100%] วิ่งไปค้นหาผ่านคอลัมน์ id ด้วย UUID ตรงๆ และดึง image_url
+    const sb = window.pvtSupabase?.getClient();
+    if (sb && validId) {
+      try {
+        console.log(`🤖 [FETCH IMAGE] กำลังดึงข้อมูลภาพจาก employees.image_url โดยใช้ id: ${validId}`);
+        
+        const { data: freshEmp, error } = await sb
+          .from("employees")
+          .select("image_url")
+          .eq("id", validId)
+          .single();
+        
+        if (!error && freshEmp && freshEmp.image_url) {
+          window.currentProfile.avatar_url = freshEmp.image_url;
+          if (window.currentProfile.employees) {
+            window.currentProfile.employees.avatar_url = freshEmp.image_url;
+          }
+          console.log("🔄 [FRESH IMAGE] ดึงรูปจากคอลัมน์ image_url สำเร็จ:", freshEmp.image_url);
+        } else if (error) {
+          console.warn("⚠️ ค้นหาไม่สำเร็จ หรือไม่มีข้อมูลในคอลัมน์ image_url:", error.message);
+        }
+      } catch (e) {
+        console.warn("⚠️ ระบบขัดข้องระหว่างดึงข้อมูลรูปภาพจาก DB:", e);
       }
     }
 
@@ -99,14 +122,14 @@ async function initUserHome() {
     console.error("🚨 [SAFE GUARD ERROR] ดักจับข้อผิดพลาดหน้าโฮม:", err);
   }
 }
+
 /* ==========================================================================
-   🖥️ 2. ฟังก์ชันวาดชื่อพนักงาน และแผนก ลงบนแถบด้านบน
+   🖥️ 2. ฟังก์ชันวาดชื่อพนักงาน และประกอบโครงสร้างรูปภาพจริงลงหน้าจอ
    ========================================================================== */
 window.renderUserInfo = function(profile) {
   console.log("🎨 [RENDER] กำลังวาดข้อมูลพนักงานลงหน้าจอ...", profile);
   if (!profile) return;
 
-  // 🔥 [ปรับปรุงใหม่] ถ้าระบบส่งแบบครอบมา หรือแบบแบนมา ให้เกลี่ยมาใช้ตัวแปรเดียวกันได้หมด
   const employee = profile?.employees || profile;
   
   // 1. จัดการชื่อ
@@ -125,20 +148,30 @@ window.renderUserInfo = function(profile) {
     deptEl.textContent = `${deptName} ${empCode}`;
   }
 
-  // ✨ 3. จัดการรูปโปรไฟล์พนักงาน
+  // ✨ 3. จัดการรูปโปรไฟล์พนักงาน (เวอร์ชันเปิดรูปภาพจริง 100%)
   const avatarEl = document.getElementById("userAvatar");
   if (avatarEl) {
-    // ดักจับทุกชื่อคอลัมน์ที่เป็นไปได้
     let avatarUrl = profile?.avatar_url || profile?.employees?.avatar_url || profile?.image_url || profile?.picture;
     
-    // 💡 [TEST PROOF] ถ้าในระบบไม่มีรูปพนักงาน ให้ลองใส่ลิงก์รูปจริงตรงนี้เพื่อดูว่ามันเปลี่ยนไหม
-    if (!avatarUrl || avatarUrl.trim() === "") {
-      // สามารถเปลี่ยนลิงก์ข้างล่างนี้เป็นรูปทดสอบ หรือรูปในเครื่องของคุณได้เลย เช่น "/assets/img/my-test-profile.jpg"
-      avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop"; 
+    if (avatarUrl && avatarUrl.trim() !== "") {
+      
+      // 🛠️ เคสที่ 1: ถ้าฐานข้อมูลเก็บเป็นก้อนพาร์ทสั้น (เช่น avatars/3512_xxx.jpg) ให้ต่อ URL เต็มให้ทันที
+      if (!avatarUrl.startsWith("http")) {
+        avatarUrl = `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${avatarUrl}`;
+      }
+      
+      // 🛠️ เคสที่ 2: ดักจับ URL สกัด Error 400! ถ้าลิงก์ขาดคำว่า /public/ ให้แทรกเข้าไปตรงกลางโครงสร้างเซิร์ฟเวอร์
+      if (avatarUrl.includes("storage/v1/object/") && !avatarUrl.includes("storage/v1/object/public/")) {
+        avatarUrl = avatarUrl.replace("storage/v1/object/", "storage/v1/object/public/");
+      }
+      
+      avatarEl.src = avatarUrl; 
+      console.log("📸 [AVATAR EFFECTIVE] แสดงผลรูปภาพจริงสำเร็จที่ URL:", avatarUrl);
+    } else {
+      // แผนสำรองกรณีที่ไม่มีรูปภาพของพนักงานอยู่ในสารบบเลย
+      avatarEl.src = "/assets/img/default-avatar.jpg"; 
+      console.log("📸 [AVATAR] ไม่พบข้อมูลรูปภาพ ใช้ภาพโปรไฟล์เริ่มต้นในเครื่อง");
     }
-    
-    avatarEl.src = avatarUrl; 
-    console.log("📸 [AVATAR EFFECTIVE] สั่งเปลี่ยน Src ของรูปภาพสำเร็จเป็น:", avatarUrl);
   }
 };
 
@@ -238,36 +271,14 @@ window.loadRecentLeaves = async function(profile) {
   }
 };
 
+/* ==========================================================================
+   🎨 4. ฟังก์ชันวาดกล่องโควตาวันลาแยกประเภท
+   ========================================================================== */
 window.renderAllLeaveBalances = function() {
   const container = document.getElementById("leaveBalancesContainer");
   if (!container) return;
+
   container.innerHTML = ""; 
-  if (!window.employeeLeaveBalances || window.employeeLeaveBalances.length === 0) {
-    container.innerHTML = "<p style='color:var(--muted); font-size:14px; font-style:italic; margin:0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
-    return;
-  }
-  window.employeeLeaveBalances.forEach(balance => {
-    const typeName = balance.leave_types?.leave_name || "สิทธิ์การลา";
-    const remaining = parseFloat(balance.remaining_days) || 0;
-    let colorClass = ""; 
-    if (typeName.includes("ป่วย")) colorClass = "sick";
-    else if (typeName.includes("กิจ")) colorClass = "personal";
-    else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
-    const box = document.createElement("div");
-    box.className = `leave-quota-card ${colorClass}`;
-    box.innerHTML = `<span class="leave-quota-name">${typeName}</span><div class="leave-quota-days">${remaining}<small>วัน</small></div>`;
-    container.appendChild(box);
-  });
-};
-
-// ==========================================
-// 🎨 ฟังก์ชันวาดกล่องโควตาวันลาแยกประเภท (วางต่อท้ายไว้ล่างสุดของไฟล์ได้เลยครับ)
-// ==========================================
-window.renderAllLeaveBalances = function() {
-  const container = document.getElementById("leaveBalancesContainer");
-  if (!container) return;
-
-  container.innerHTML = ""; // ล้างข้อความโหลด
 
   if (!window.employeeLeaveBalances || window.employeeLeaveBalances.length === 0) {
     container.innerHTML = "<p style='color:var(--muted); font-size:14px; font-style:italic; margin:0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
@@ -294,9 +305,8 @@ window.renderAllLeaveBalances = function() {
   });
 };
 
-
 /* ==========================================================================
-   🖥️ 4. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล
+   🖥️ 5. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล
    ========================================================================== */
 window.viewMyDigitalCard = function() {
   const sessionUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
@@ -338,24 +348,12 @@ window.goToRules = function() { window.location.href = "/pages/user/leave-rules.
 window.goToLeaveHistory = function() { window.location.href = "/pages/user/leave-history.html"; };
 window.goToProfile = function() { window.location.href = "/pages/user/profile-user.html"; };
 window.goToContactHR = function() { window.location.href = "/pages/user/contact-hr.html"; };
-window.logout = function() { 
-  sessionStorage.removeItem("currentUser"); 
-  window.location.href = "/index.html"; 
-};
-
-window.goToRules = function() { window.location.href = "/pages/user/leave-rules.html"; };
-window.goToLeaveHistory = function() { window.location.href = "/pages/user/leave-history.html"; };
-window.goToProfile = function() { window.location.href = "/pages/user/profile-user.html"; };
-window.goToContactHR = function() { window.location.href = "/pages/user/contact-hr.html"; };
 
 window.logout = function() { 
   console.log("👋 [LOGOUT] กำลังออกจากระบบและล้าง Session...");
   sessionStorage.removeItem("currentUser"); 
   window.location.href = "/index.html"; 
 };
-
-
-
 
 /* ==========================================================================
    🕵️‍♂️ 7. ฟังก์ชันตรวจสอบสิทธิ์และแสดงปุ่มสลับโหมดหัวหน้างาน
@@ -384,4 +382,3 @@ function checkApproverPermission(profileData) {
     console.error("❌ [Debug] เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์หัวหน้างาน:", err);
   }
 }
-

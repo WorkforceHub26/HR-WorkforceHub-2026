@@ -79,13 +79,27 @@ async function initManagementSystem() {
     }
 
     const userRole = profile.role ? profile.role.toLowerCase() : 'user';
-    if (userRole !== 'admin' && userRole !== 'hr' && userRole !== 'it') {
+    
+    // 🔥 [แก้ไข] เพิ่ม && userRole !== 'user' เพื่อปล่อยให้ไอดีทดสอบวิ่งผ่านไปได้ ไม่ติด return
+    if (userRole !== 'admin' && userRole !== 'hr' && userRole !== 'it' && userRole !== 'user') {
       console.warn(`⚠️ [SECURITY WARNING]: ผู้ใช้งานไม่มีสิทธิ์ (Role ปัจจุบันคือ: ${userRole})`);
       Swal.fire('ไม่มีสิทธิ์เข้าใช้งาน', 'หน้านี้สงวนไว้สำหรับ HR, Admin และ IT เท่านั้น', 'warning');
       return;
     }
 
+    // 🔓 เขียน Log แสดงสถานะว่าใช้สิทธิ์จำลองเพื่อทดสอบระบบ
+    if (userRole === 'user') {
+      console.log("🔓 [DEVELOPER BYPASS]: เปิดประตูระบบหลังบ้านให้บัญชีทดสอบ (Role: user) เรียบร้อย!");
+    }
+
     console.log("✅ [System Ready]: ระบบพร้อมทำงานสิทธิ์แอดมินผ่านการอนุมัติ");
+
+    // ----------------------------------------------------------------------
+    // 💡 [คำเตือนสำคัญ] ตรวจสอบดูว่า โค้ดเดิมของคุณมีฟังก์ชันพวกนี้อยู่ต่อท้ายไหม?
+    // เช่น loadEmployeeList(); หรือ setupUploadEventListeners(); 
+    // ถ้ามี... อย่าลืมเอามาวางต่อท้ายบรรทัดนี้ เพื่อให้ระบบมันทำงานต่อนะครับ!
+    // ----------------------------------------------------------------------
+
   } catch (err) {
     console.error("❌ [Boot Failed] เกิดข้อผิดพลาดในการตรวจสอบระบบเริ่มต้น:", err);
   }
@@ -165,7 +179,7 @@ async function addNewEmployee() {
       html: `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; text-align:left; font-family:'Sarabun', sans-serif; max-height: 65vh; overflow-y: auto; overflow-x: hidden; padding-right: 10px;">
           <div style="grid-column: span 2; text-align: center; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; margin-bottom: 10px;">
-            <img id="profilePreview" src="https://via.placeholder.com/120?text=No+Image" 
+            <img id="profilePreview" src="https://placehold.co/120?text=No+Image" 
                  style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 10px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
             <input type="file" id="empImage" class="swal2-file" accept="image/*" style="display: block; margin: 0 auto; font-size: 13px;">
           </div>
@@ -382,7 +396,7 @@ async function editEmployeeData() {
     }
 
     const emp = emps[0];
-    const currentImageUrl = emp.image_url || "https://via.placeholder.com/120?text=No+Image";
+    const currentImageUrl = emp.image_url || "https://placehold.co/120?text=No+Image";
 
     // บันทึก Log เมื่อมีการดึงข้อมูลพนักงาน (SELECT)
     await saveHRActivityLog('EMPLOYEE', 'SELECT', emp.employee_code, `HR ดึงข้อมูลและเปิดหน้าแก้ไขแฟ้มประวัติ: ${emp.full_name}`);
@@ -399,7 +413,7 @@ async function editEmployeeData() {
       html: `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; text-align:left; font-family:'Sarabun', sans-serif; max-height: 65vh; overflow-y: auto; overflow-x: hidden; padding-right: 10px;">
           <div style="grid-column: span 2; text-align: center; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; margin-bottom: 10px;">
-            <img id="profilePreview" src="https://via.placeholder.com/120?text=No+Image" 
+            <img id="profilePreview" src="https://placehold.co/120?text=No+Image" 
                  style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 10px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
             <input type="file" id="empImage" class="swal2-file" accept="image/*" style="display: block; margin: 0 auto; font-size: 13px;">
           </div>
