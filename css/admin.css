@@ -533,3 +533,147 @@ body {
   .console-action-bar { flex-direction: column; align-items: flex-start; }
   .console-tools { width: 100%; justify-content: space-between; }
 }
+
+/* ปุ่ม Hazard สไตล์เขตก่อสร้าง/นิวเคลียร์ */
+.btn-hazard-pulse {
+    background: linear-gradient(45deg, #4a0000, #990000);
+    color: #fff;
+    border: 3px solid #ff3333;
+    padding: 12px 24px;
+    font-family: 'Fira Code', monospace;
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 4px;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ลายเฉียงสลับสีแบบ Hazard zone ตรงขอบ */
+.btn-hazard-pulse::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 5px;
+    background: repeating-linear-gradient(-45deg, #ffcc00, #ffcc00 10px, #000 10px, #000 20px);
+}
+
+/* เอฟเฟกต์เตือนภัยเต้นตุบ ๆ */
+.btn-hazard-pulse:hover {
+    background: linear-gradient(45deg, #800000, #ff0000);
+    box-shadow: 0 0 25px rgba(255, 0, 0, 0.8);
+    text-shadow: 0 0 5px #fff;
+    animation: pulse-danger 0.6s infinite alternate;
+}
+
+@keyframes pulse-danger {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.03); }
+}
+
+/* หน้าต่าง Modal เตือนระดับวิกฤต */
+.neon-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.neon-modal-content.warning-border {
+    background: #0f0505;
+    border: 2px solid #ff3333;
+    box-shadow: 0 0 40px rgba(255, 51, 51, 0.3);
+    width: 480px;
+    padding: 25px;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.modal-header-danger {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #ff3333;
+    border-bottom: 1px dashed #ff3333;
+    padding-bottom: 15px;
+}
+
+.blinking {
+    animation: blink 0.8s infinite steps(2);
+}
+@keyframes blink { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+/* การซ่อน/แสดงสเต็ปการยืนยัน */
+.verification-step {
+    display: none;
+    padding: 20px 0;
+}
+.verification-step.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+.text-alert { color: #ff6666; line-height: 1.5; }
+
+/* ปุ่มกดยืนยันแต่ละขั้น */
+.btn-confirm-step {
+    width: 100%;
+    background: #222;
+    border: 1px solid #ff3333;
+    color: #ff3333;
+    padding: 10px;
+    margin-top: 15px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+.btn-confirm-step:hover { background: #ff3333; color: #000; }
+
+/* กล่องรหัสที่ต้องพิมพ์ตาม */
+.code-verify-box {
+    background: #1a0000;
+    border: 1px inset #ff3333;
+    padding: 8px;
+    text-align: center;
+    font-family: monospace;
+    color: #ffcc00;
+    font-size: 16px;
+    letter-spacing: 2px;
+    margin: 10px 0;
+}
+
+#txt-final-verify {
+    width: 100%;
+    padding: 10px;
+    background: #000;
+    border: 1px solid #555;
+    color: #fff;
+    text-align: center;
+    font-size: 16px;
+}
+
+.btn-confirm-step.terminal-execute {
+    background: #ff0000;
+    color: #fff;
+    font-size: 15px;
+    border: 2px solid #ffcc00;
+}
+
+.btn-cancel-action {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    text-decoration: underline;
+}
+.btn-cancel-action:hover { color: #fff; }

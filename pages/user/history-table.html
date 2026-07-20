@@ -107,29 +107,161 @@
     .btn-check-history:hover { background: var(--primary); color: white; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(15, 164, 114, 0.15); }
 
     /* ─── STYLE ELEMENTS INSIDE POPUP ─── */
-    .popup-quota-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
-    .popup-quota-box { border-radius: 14px; padding: 12px 8px; text-align: center; border: 1px solid transparent; box-shadow: 0 2px 4px rgba(0,0,0,0.01); }
+    /* ─── STYLE ELEMENTS INSIDE POPUP (อัปเดตเพื่อรองรับการลาทุกประเภท) ─── */
+   /* ─── STYLE ELEMENTS INSIDE POPUP (เวอร์ชัน Full Option 8-9 ประเภทวันลา) ─── */
+    .popup-quota-container { 
+      display: grid; 
+      /* ใช้ auto-fit เพื่อให้ระบบคำนวณและตัดแถวใหม่อัตโนมัติ รองรับกล่องจำนวนมากได้สบายๆ */
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); 
+      gap: 12px; 
+      margin: 16px 0; 
+    }
+    .popup-quota-box { 
+      border-radius: 14px; 
+      padding: 14px 8px; 
+      text-align: center; 
+      border: 1px solid transparent; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    
+    /* 🎨 คุมโทนสีพื้นหลังกล่อง (สไตล์นุ่มนวล คลีนตา) */
     .popup-quota-box.sick { background: #fff5f5; border-color: #ffe3e3; }
     .popup-quota-box.personal { background: #fffaf0; border-color: #fef08a; }
     .popup-quota-box.vacation { background: #f0fdf4; border-color: #bbf7d0; }
+    .popup-quota-box.maternity { background: #fdf2f8; border-color: #fbcfe8; }
+    .popup-quota-box.sterilization { background: #f5f3ff; border-color: #ddd6fe; }
+    .popup-quota-box.military { background: #f0f9ff; border-color: #bae6fd; }
+    .popup-quota-box.training { background: #ecfeff; border-color: #a5f3fc; }
+    .popup-quota-box.religious { background: #fff7ed; border-color: #ffedd5; }
+    .popup-quota-box.other { background: #f1f5f9; border-color: #cbd5e1; }
     
-    .popup-quota-box h3 { font-size: 22px; font-weight: 700; margin: 2px 0; }
+    /* 🎨 คุมโทนสีไอคอน Material Symbols */
+    .quota-icon { font-size: 26px; margin-bottom: 4px; }
+    .popup-quota-box.sick .quota-icon { color: #e11d48; }
+    .popup-quota-box.personal .quota-icon { color: #d97706; }
+    .popup-quota-box.vacation .quota-icon { color: #16a34a; }
+    .popup-quota-box.maternity .quota-icon { color: #db2777; }
+    .popup-quota-box.sterilization .quota-icon { color: #7c3aed; }
+    .popup-quota-box.military .quota-icon { color: #0284c7; }
+    .popup-quota-box.training .quota-icon { color: #0891b2; }
+    .popup-quota-box.religious .quota-icon { color: #ea580c; }
+    .popup-quota-box.other .quota-icon { color: #475569; }
+
+    /* 🎨 คุมโทนสีของตัวเลขอักษร */
+    .popup-quota-box h3 { font-size: 22px; font-weight: 700; margin: 2px 0; line-height: 1; }
     .popup-quota-box.sick h3 { color: #e11d48; }
     .popup-quota-box.personal h3 { color: #d97706; }
     .popup-quota-box.vacation h3 { color: #16a34a; }
-    .popup-quota-box p { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+    .popup-quota-box.maternity h3 { color: #db2777; }
+    .popup-quota-box.sterilization h3 { color: #7c3aed; }
+    .popup-quota-box.military h3 { color: #0284c7; }
+    .popup-quota-box.training h3 { color: #0891b2; }
+    .popup-quota-box.religious h3 { color: #ea580c; }
+    .popup-quota-box.other h3 { color: #475569; }
+    .popup-quota-box p { font-size: 11.5px; color: var(--text-soft); font-weight: 500; }
 
-    .swal-leave-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; text-align: left; }
-    .swal-leave-table th { background: #f1f5f9; padding: 10px; color: #475569; font-weight: 600; border: 1px solid #e2e8f0; }
-    .swal-leave-table td { padding: 10px; border: 1px solid #e2e8f0; color: #334155; vertical-align: middle; }
+    /* ==========================================================================
+       ✨ Custom Style: กล่องคู่มือลอยฝั่ง "ขวาล่าง" ดีไซน์เข้ากับธีมเขียว PVT HR Hub
+       ========================================================================= */
+    .instructions-container {
+      position: fixed !important;
+      bottom: 25px !important;   /* ยึดมุมขวาล่างของหน้าจอ */
+      right: 25px !important;
+      top: auto !important;
+      left: auto !important;
+      z-index: 99999 !important; /* อยู่เหนือทุกเลเยอร์ตาราง */
+      font-family: 'Kanit', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    /* ปุ่มกดแคปซูลมินิมอล ใช้โทนสีเขียวหลักของหน้าจอ */
+    .instructions-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid rgba(15, 164, 114, 0.2);
+      padding: 10px 18px;
+      border-radius: 30px;
+      color: var(--primary);
+      font-size: 14px;
+      font-family: 'Kanit', sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(15, 164, 114, 0.1);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .instructions-toggle-btn:hover {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      box-shadow: 0 6px 20px rgba(15, 164, 114, 0.18);
+      transform: translateY(-2px);
+    }
+
+    .instructions-toggle-btn .icon-main { font-size: 20px; }
+    .instructions-toggle-btn .icon-arrow { font-size: 20px; margin-left: 2px; }
+
+    /* หน้าต่างเนื้อหา: สไลด์เปิดขึ้นด้านบน (Slide Up) */
+    .instructions-content {
+      position: absolute;
+      bottom: 54px;   /* ดันให้อยู่เหนือปุ่มกด */
+      top: auto;
+      right: 0;
+      width: 340px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08);
+      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    /* สถานะเมื่อคลิกเปิดใช้งาน */
+    .instructions-content.active {
+      max-height: 450px;
+      opacity: 1;
+      padding: 20px;
+      border: 1px solid var(--border);
+      pointer-events: auto;
+      margin-bottom: 8px;
+    }
+
+    .instructions-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: left;
+    }
+
+    .instructions-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13.5px;
+      color: var(--text-soft);
+      line-height: 1.6;
+    }
+
+    .instructions-list .icon-bullet {
+      font-size: 18px;
+      color: var(--primary);
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
     
-    .status-badge { padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 500; display: inline-block; }
-    .status-badge.approved { background: #d1fae5; color: #065f46; }
-    .status-badge.pending { background: #fef3c7; color: #92400e; }
-    .status-badge.rejected { background: #fce7f3; color: #9d174d; }
-
-    .pvt-spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 28px; height: 28px; animation: spin 1s linear infinite; margin: 20px auto; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -181,9 +313,34 @@
     </div>
 
   </div>
+
+    <div class="instructions-container">
+    <button type="button" class="instructions-toggle-btn" onclick="toggleInstructions()">
+      <span class="material-symbols-outlined icon-main">help</span>
+      <span>คู่มือการใช้งานหน้านี้</span>
+      <span class="material-symbols-outlined icon-arrow" id="instructionArrow">expand_less</span>
+    </button>
+    
+    <div id="instructionsContent" class="instructions-content">
+      <ul class="instructions-list">
+        <li>
+          <span class="material-symbols-outlined icon-bullet">search</span>
+          <div><strong>ค้นหาพนักงานรวดเร็ว:</strong> สามารถใช้ช่องค้นหาด้านบนพิมพ์ ชื่อ, รหัส, แผนก หรือตำแหน่งเพื่อกรองข้อมูลในตารางแบบ Real-time ได้ทันที</div>
+        </li>
+        <li>
+          <span class="material-symbols-outlined icon-bullet">analytics</span>
+          <div><strong>เช็คประวัติเชิงลึก:</strong> คลิกปุ่ม "เช็คประวัติ" เพื่อเปิดหน้าต่างดูสิทธิ์วันลาคงเหลือประจำปี และตรวจสอบตารางใบลาสะสมทั้งหมดของพนักงานรายบุคคล</div>
+        </li>
+        <li>
+          <span class="material-symbols-outlined icon-bullet">image</span>
+          <div><strong>ระบบจัดการรูปโปรไฟล์:</strong> ลิงก์รูปภาพจะถูกตรวจสอบและแปลงปลายทางอัตโนมัติ เพื่อป้องกันปัญหาภาพแตกหรือไม่แสดงผลบนหน้าเว็บ</div>
+        </li>
+      </ul>
+    </div>
+  </div>
  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
      <script src="/js/supabase-config.js"></script>
-    <script src="/js/pvt-logger.js"></script>
+    
     <script src="/js/history-table.js"></script>
     <script src="/js/auth-guard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

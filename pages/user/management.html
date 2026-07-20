@@ -149,6 +149,102 @@
       background: var(--primary) !important;
       color: #ffffff !important;
     }
+    /* ==========================================================================
+       ✨ Custom Style: เพิ่มกล่องคู่มือลอยฝั่ง "ขวาล่าง" สำหรับหน้าแดชบอร์ด (เปิดขึ้นบน)
+       ========================================================================= */
+    .instructions-container {
+      position: fixed !important;
+      bottom: 25px !important;   /* ยึดไว้มุมขวาล่าง */
+      right: 25px !important;
+      top: auto !important;
+      left: auto !important;
+      z-index: 99999 !important; /* ดันให้อยู่บนสุดเหนือทุกเลเยอร์ */
+      font-family: 'Sarabun', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    /* ปุ่มกดสไตล์แคปซูลมินิมอล มีเงาละมุนคุมโทน Teal */
+    .instructions-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid rgba(13, 148, 136, 0.2);
+      padding: 10px 18px;
+      border-radius: 30px;
+      color: #0f766e;
+      font-size: 13.5px;
+      font-family: 'Sarabun', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(13, 148, 136, 0.1);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .instructions-toggle-btn:hover {
+      background: #f0fdfa;
+      border-color: #0d9488;
+      box-shadow: 0 6px 20px rgba(13, 148, 136, 0.18);
+      transform: translateY(-2px);
+    }
+
+    .instructions-toggle-btn .icon-main { font-size: 19px; }
+    .instructions-toggle-btn .icon-arrow { font-size: 19px; margin-left: 2px; }
+
+    /* หน้าต่างเนื้อหาคู่มือ: สไลด์คลี่เด้ง "ขึ้นด้านบน" */
+    .instructions-content {
+      position: absolute;
+      bottom: 54px;   /* ดันเนื้อหาให้อยู่เหนือปุ่มกด */
+      top: auto;
+      right: 0;
+      width: 330px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08); /* ปรับทิศทางเงาขึ้นบน */
+      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    /* สถานะเมื่อกดเปิดใช้งานคู่มือ */
+    .instructions-content.active {
+      max-height: 450px;
+      opacity: 1;
+      padding: 18px;
+      border: 1px solid #e2e8f0;
+      pointer-events: auto;
+      margin-bottom: 8px;
+    }
+
+    .instructions-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: left;
+    }
+
+    .instructions-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .instructions-list .icon-bullet {
+      font-size: 18px;
+      color: #0d9488;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 
@@ -264,6 +360,33 @@
       </div>
 
     </main>
+    <div id="statusToast" class="toast"></div>
+
+  <!-- 👑 ✅ ปุ่มคู่มือแนะนำการใช้งานสไตล์ Dashboard (วางไว้ล่างสุดก่อนปิด body) -->
+  <div class="instructions-container">
+    <button type="button" class="instructions-toggle-btn" onclick="toggleInstructions()">
+      <span class="material-symbols-outlined icon-main">help</span>
+      <span>คู่มือจัดการระบบ HR</span>
+      <span class="material-symbols-outlined icon-arrow" id="instructionArrow">expand_less</span>
+    </button>
+    
+    <div id="instructionsContent" class="instructions-content">
+      <ul class="instructions-list">
+        <li>
+          <span class="material-symbols-outlined icon-bullet">person_add</span>
+          <div><strong>ระบบจัดการบุคลากร:</strong> กรอกข้อมูลที่มีเครื่องหมาย * คือบังคับใส่ข้อมูล ช่องที่ไม่มีเครื่องหมายสามารถเว้นว่างไว้ได้  สามารถอัปโหลดรูปโปรไฟล์พนักงานขึ้นระบบคลาวด์ได้ทันที</div>
+        </li>
+        <li>
+          <span class="material-symbols-outlined icon-bullet">rule</span>
+          <div><strong>กฎและโควตาวันลา:</strong> การแก้ไขโควตากลางจะมีผลบังคับใช้กับพนักงานทุกคน ส่วนเคสพิเศษให้ใช้ปุ่มปรับปรุงรายบุคคล</div>
+        </li>
+        <li>
+          <span class="material-symbols-outlined icon-bullet">gavel</span>
+          <div><strong>ระบบความปลอดภัย:</strong> ทุกการเพิ่ม, ลบ หรือแก้ไขข้อมูล จะมีปุ่มยืนยันอีก1รอบและ ระบบจะบันทึกประวัติการกระทำของฝ่ายบุคคลลงฐานข้อมูลอย่างละเอียด</div>
+        </li>
+      </ul>
+    </div>
+  </div>
   </div>
 
   <div id="statusToast" class="toast"></div>

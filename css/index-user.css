@@ -464,3 +464,123 @@ body {
   box-shadow: 0 4px 10px rgba(30,58,138,0.2);
 }
 .btn-header-back .material-symbols-outlined { font-size: 18px; }
+
+/* --- โครงสร้างปุ่มอธิบายการใช้งาน (User Guide) --- */
+.user-guide-wrapper {
+  position: fixed;
+  bottom: 85px; /* ดันให้อยู่เหนือปุ่ม ติดต่อ HR บนหน้าจอ Desktop */
+  right: 24px;
+  z-index: 998;
+  font-family: "Sarabun", sans-serif;
+}
+
+/* ตัวกล่องป๊อปอัพสไตล์ Glassmorphism */
+.guide-card-popup {
+  display: none;
+  width: 320px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  margin-bottom: 12px;
+  overflow: hidden;
+  animation: pvtGuideSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.guide-card-header {
+  background: linear-gradient(135deg, var(--primary, #06b6d4), var(--primary-dark, #0891b2));
+  color: white;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.guide-close-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.guide-close-btn:hover { opacity: 1; }
+
+.guide-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.guide-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dark, #1e293b);
+  border-bottom: 1px dashed rgba(6, 182, 212, 0.15);
+  padding-bottom: 10px;
+}
+
+.guide-item strong {
+  color: var(--primary-dark, #0891b2);
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.guide-emoji {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* ตัวปุ่มกดเปิดทรงกลม */
+.guide-fab-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--primary-dark, #0891b2);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  float: right;
+  transition: all 0.2s ease;
+}
+.guide-fab-btn:hover {
+  transform: scale(1.05);
+  background: #ffffff;
+  border-color: var(--primary, #06b6d4);
+  box-shadow: 0 6px 16px rgba(6, 182, 212, 0.25);
+}
+.guide-fab-btn .material-symbols-outlined { font-size: 22px; transition: transform 0.25s ease; }
+
+/* 📱 Responsive ปรับตำแหน่งหลบบนหน้าจอมือถือ */
+@media (max-width: 600px) {
+  .user-guide-wrapper {
+    bottom: 74px; /* ขยับขึ้นมาหลบเหนือบาร์ "ติดต่อ HR" บนมือถือแบบพอดีเป๊ะ */
+    right: 16px;
+  }
+  .guide-card-popup {
+    width: calc(100vw - 32px); /* กางความกว้างเกือบเต็มหน้าจอให้ส่องง่ายบนมือถือ */
+  }
+}
+
+@keyframes pvtGuideSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

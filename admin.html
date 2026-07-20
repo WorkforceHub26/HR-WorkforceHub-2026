@@ -251,6 +251,56 @@
   </div>
 </div>
 
+<!-- ปุ่มสั่งการระบบอันตราย -->
+<div class="danger-zone-container">
+    <button id="btn-destructive-reset" class="btn-hazard-pulse" onclick="openResetModal()">
+        <span class="material-symbols-outlined">biohazard</span>
+        CRITICAL: RESET ALL TEST QUOTAS
+    </button>
+</div>
+
+<!-- Modal ยืนยันสิทธิ์ 3 ชั้น (Triple Lock Verification) -->
+<div id="crypto-reset-modal" class="neon-modal-overlay">
+    <div class="neon-modal-content warning-border">
+        <div class="modal-header-danger">
+            <span class="material-symbols-outlined font-large blinking">warning</span>
+            <h3>DESTRUCTIVE ACTION DETECTED</h3>
+        </div>
+        
+        <div class="modal-body">
+            <!-- สเต็ปที่ 1: คำเตือนเบื้องต้น -->
+            <div id="step-1-content" class="verification-step active">
+                <p class="text-alert">⚠️ <strong>คำเตือน:</strong> คุณกำลังจะทำการรีเซ็ตโควต้าการลาของพนักงาน<strong>ทั้งหมด</strong>ในระบบ (ยกเว้นวันลาประจำปี/Annual Leave จะไม่ถูกตัด)</p>
+                <p>การกระทำนี้มีผลกับทุกตารางข้อมูลในระบบทดสอบทันที ยืนยันขั้นแรกเพื่อดำเนินการต่อ</p>
+                <button class="btn-confirm-step" onclick="nextVerificationStep(1)">[ LOCK 01/03 ] ยืนยันสิทธิ์ขั้นต้น</button>
+            </div>
+
+            <!-- สเต็ปที่ 2: เช็คความเข้าใจ -->
+            <div id="step-2-content" class="verification-step">
+                <p class="text-alert">🔥 <strong>การยืนยันขั้นที่ 2:</strong> ระบบกำลังเตรียม Pipeline สำหรับยิงคำสั่ง UPDATE ไปยัง Supabase ในโหมด Force Reset</p>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="chk-understand">
+                    <span class="checkmark"></span>
+                    ฉันเข้าใจดีว่าข้อมูลโควต้าทดสอบจะถูกล้างค่าใหม่ทั้งหมด และไม่สามารถ Undo ได้
+                </label>
+                <button class="btn-confirm-step danger" onclick="nextVerificationStep(2)">[ LOCK 02/03 ] ยอมรับความเสี่ยง</button>
+            </div>
+
+            <!-- สเต็ปที่ 3: พิมพ์รหัสยืนยัน (ป้องกันการสแปมคลิก) -->
+            <div id="step-3-content" class="verification-step">
+                <p class="text-alert">💀 <strong>ขั้นตอนสุดท้าย:</strong> พิมพ์ข้อความด้านล่างด้วยอักษรตัวพิมพ์ใหญ่ทั้งหมดเพื่อปลดล็อกสลักนิรภัย</p>
+                <div class="code-verify-box">RESET-TEST-QUOTA-NOW</div>
+                <input type="text" id="txt-final-verify" placeholder="พิมพ์ข้อความยืนยันที่นี่..." autocomplete="off">
+                <button class="btn-confirm-step terminal-execute" onclick="executeFinalReset()">💥 [ LOCK 03/03 ] EXECUTE DESTRUCTIVE RESET</button>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel-action" onclick="closeResetModal()">ยกเลิกคำสั่ง (Abort)</button>
+        </div>
+    </div>
+</div>
+
 <!-- 🍞 ท่อสำหรับสร้างกล่องลอยแจ้งเตือนด่วนบนขอบจอ (Toast Containers Stack) -->
 <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 10px;"></div>
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ประวัติการลา - PVT HR System</title>
+  
+  <!-- Google Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  
+  <!-- 🎨 เรียกใช้ไฟล์สไตล์ที่แยกออกไป -->
+  <link rel="stylesheet" href="leave-history.css">
+</head>
+<body>
+
+  <!-- 👑 ส่วนหัวโปรไฟล์พนักงาน -->
+  <header class="user-header">
+    <div class="brand-row">
+      <img src="https://api.dicebear.com/7.x/open-peeps/svg?seed=pvt" alt="Avatar" id="user-avatar">
+      <div>
+        <div class="hello">ข้อมูลผู้ใช้งานระบบ</div>
+        <h1 id="emp-name">กำลังโหลดข้อมูล...</h1>
+        <span id="emp-detail">กำลังดึงข้อมูลตำแหน่งงาน...</span>
+      </div>
+    </div>
+    <button class="btn-back-home" onclick="location.href='leave-user.html'">
+      <span class="material-symbols-outlined" style="font-size: 18px;">home</span> กลับหน้ายื่นใบลา
+    </button>
+  </header>
+
+  <!-- 🏛 shrink 🏛️ ตารางประวัติการลา Luxury Data Table -->
+  <main class="panel">
+    <div class="panel-header">
+      <span class="material-symbols-outlined" style="color: var(--primary);">history</span>
+      <h2>ประวัติการลาขออนุมัติ</h2>
+    </div>
+    
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>ประเภทการลา</th>
+            <th>วันที่เริ่มต้น - สิ้นสุด</th>
+            <th>จำนวนวัน</th>
+            <th>เหตุผลการลา</th>
+            <th>สถานะอนุมัติ</th>
+          </tr>
+        </thead>
+        <tbody id="table-data-rows">
+          <tr>
+            <td colspan="5" class="empty-state">กำลังดึงข้อมูลจากฐานข้อมูลจริง...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- ⚡ เรียกใช้ไฟล์ระบบดึงข้อมูลเชื่อม API จริง -->
+  <script src="leave-history.js"></script>
+</body>
+</html>

@@ -27,7 +27,7 @@
         
         <form id="loginForm">
           <div class="form-group">
-            <label for="username">รหัสพนักงาน</label>
+            <label for="username">รหัสพนักงาน/ชื่อ-นามสกุล</label>
             <input type="text" id="username" class="input-field" placeholder="รหัสพนักงาน หรือ ชื่อ-นามสกุล" autocomplete="username" required/>
           </div>
           
@@ -42,20 +42,45 @@
 
           <button type="submit" class="login-btn">เข้าสู่ระบบ</button>
           
-            <button type="button" class="qr-btn" onclick="loginByQr()">
-              <span class="material-symbols-outlined">qr_code_scanner</span>
-              สแกนคิวอาร์โค้ด
-            </button>
+            <!-- คัดลอกส่วนนี้ไปแทนที่ฟอร์มด้านล่างปุ่ม QR Code ได้เลยครับ -->
+          <button type="button" class="qr-btn" onclick="loginByQr()">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+            สแกนคิวอาร์โค้ด
+          </button>
         </form>
-        
-        <p class="footer-text">Version 1.1.0</p>
       </main>
+
+       
+    <div class="instructions-container">
+      <button type="button" class="instructions-toggle-btn" onclick="toggleInstructions()">
+        <span class="material-symbols-outlined icon-main">help</span>
+        <span>คู่มือแนะนำการใช้งาน</span>
+        <span class="material-symbols-outlined icon-arrow" id="instructionArrow">expand_more</span>
+      </button>
+      
+      <div id="instructionsContent" class="instructions-content">
+        <ul class="instructions-list">
+          <li>
+            <span class="material-symbols-outlined icon-bullet">badge</span>
+            <div><strong>การพิมพ์ล็อกอิน:</strong> กรอกรหัสพนักงาน, ชื่อ-นามสกุล  ในช่องเดียวได้เลย เช่น นาย สมคิด มีภูมิ ระบบจะค้นหาให้อัตโนมัติ</div>
+          </li>
+          <li>
+            <span class="material-symbols-outlined icon-bullet">qr_code</span>
+            <div><strong>การสแกนผ่านบัตร:</strong> กดปุ่มสแกน QR Code นำบัตรพนักงานมาส่องหน้ากล้องเพื่อเข้าสู่ระบบทันที</div>
+          </li>
+          <li>
+            <span class="material-symbols-outlined icon-bullet">account_circle</span>
+            <div><strong>สำหรับหัวหน้าแผนก:</strong> ระบบจะพาไปหน้าตรวจเช็ควันลาตัวเองก่อน สามารถกดสลับไปเมนูอนุมัติใบลาได้ที่ปุ่มสีเงินบนชื่อ</div>
+          </li>
+        </ul>
+      </div>
     </div>
 
+
+    <!-- ส่วนโหลดสคริปต์ต่างๆ อยู่ล่างสุดเหมือนเดิม -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    
     <script src="/js/supabase-config.js"></script>
-    <script src="/js/pvt-logger.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/auth/index.js?v=999"></script>
   </body>

@@ -668,3 +668,34 @@ window.updateLeaveBalanceDisplay = function(selectedTypeId) {
   }
 };
 
+/* ==========================================================================
+   🔮 ระบบควบคุมหน้าต่างคู่มืออธิบายการกรอกฟอร์มใบลา (Form Leave Guide)
+   ========================================================================== */
+function toggleFormLeaveGuide() {
+  const card = document.getElementById("form-leave-guide-card");
+  const icon = document.getElementById("form-leave-guide-icon");
+  const btn = document.getElementById("form-leave-guide-fab");
+  
+  if (!card) return;
+
+  const isHidden = card.style.display === "none" || card.style.display === "";
+
+  if (isHidden) {
+    card.style.display = "block";
+    if (icon) icon.innerText = "close"; // เปลี่ยนไอคอนเป็นรูปกากบาท X
+    if (btn) {
+      btn.style.background = "#ef4444"; // เปลี่ยนสีปุ่มเป็นสีแดงเมื่อเปิดใช้งานอยู่
+      btn.style.color = "#ffffff";
+      btn.style.borderColor = "#fecaca";
+    }
+  } else {
+    card.style.display = "none";
+    if (icon) icon.innerText = "help"; // เปลี่ยนกลับเป็นไอคอนเครื่องหมายคำถาม ?
+    if (btn) {
+      btn.style.background = "rgba(255, 255, 255, 0.9)";
+      btn.style.color = "#0891b2";
+      btn.style.borderColor = "rgba(6, 182, 212, 0.4)";
+    }
+  }
+}
+

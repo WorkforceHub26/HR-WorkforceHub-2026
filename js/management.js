@@ -1146,3 +1146,22 @@ async function exportLeaveReport() {
     Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดาวน์โหลดข้อมูลรายงานได้', 'error');
   }
 }
+
+// ==========================================================================
+// 📘 ฟังก์ชันเสริม: ควบคุมการเปิด/ปิดกล่องคู่มือแนะนำการใช้งานประจำหน้าแดชบอร์ด
+// ==========================================================================
+function toggleInstructions() {
+  const content = document.getElementById("instructionsContent");
+  const arrow = document.getElementById("instructionArrow");
+  
+  if (content && arrow) {
+    content.classList.toggle("active");
+    
+    // เนื่องจากกล่องเปิดขึ้นด้านบน: เปิดอยู่ = ลูกศรชี้ลง (expand_more), ปิดอยู่ = ลูกศรชี้ขึ้น (expand_less)
+    if (content.classList.contains("active")) {
+      arrow.textContent = "expand_more";
+    } else {
+      arrow.textContent = "expand_less";
+    }
+  }
+}

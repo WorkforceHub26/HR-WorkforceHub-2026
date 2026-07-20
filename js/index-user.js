@@ -382,3 +382,32 @@ function checkApproverPermission(profileData) {
     console.error("❌ [Debug] เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์หัวหน้างาน:", err);
   }
 }
+
+/* ==========================================================================
+   🔮 8. USER INTERACTION GUIDE CONTROLLER (ระบบควบคุมคู่มือผู้ใช้งานพนักงาน)
+   ========================================================================== */
+function toggleUserGuide() {
+  const card = document.getElementById("user-guide-card");
+  const icon = document.getElementById("user-guide-icon");
+  const btn = document.getElementById("user-guide-fab");
+  
+  if (!card || !icon || !btn) return;
+
+  const isHidden = card.style.display === "none" || card.style.display === "";
+
+  if (isHidden) {
+    card.style.display = "block";
+    icon.innerText = "close";
+    icon.style.transform = "rotate(90deg)";
+    btn.style.background = "#ef4444"; // เปลี่ยนเป็นสีแดงชั่วคราวเพื่อให้รู้ว่ากดปิดได้
+    btn.style.color = "#ffffff";
+    btn.style.borderColor = "#fecaca";
+  } else {
+    card.style.display = "none";
+    icon.innerText = "help";
+    icon.style.transform = "rotate(0deg)";
+    btn.style.background = "rgba(255, 255, 255, 0.8)";
+    btn.style.color = "var(--primary-dark, #0891b2)";
+    btn.style.borderColor = "rgba(6, 182, 212, 0.3)";
+  }
+}

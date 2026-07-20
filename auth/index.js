@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - index.js (เวอร์ชันสแกน QR Code + ตัดโค้ดที่ไม่ได้ใช้ทิ้ง)
+   🔒 PVT HR LEAVE - index.js (เวอร์ชันปรับปรุง: ทุกคนไปหน้า User ก่อนเพื่อเช็คตัวเอง)
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
       Swal.fire({
         icon: 'warning',
         title: 'ข้อมูลไม่ครบ',
-        text: 'กรุณากรอกรหัสพนักงานและรหัสผ่านให้ครบถ้วน',
+        text: 'กรุณากรอกข้อมูลผู้ใช้งานและรหัสผ่านให้ครบถ้วน',
         confirmButtonColor: '#3b82f6'
       });
       return;
@@ -31,22 +31,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       let result;
+      let baseQuery = sb.from("employees").select(`id, employee_code, full_name, role, status, password`);
       
-      // ดึงข้อมูลพนักงานจากระบบ
-      if (/^\d+$/.test(loginInput)) {
-        result = await sb.from("employees")
-          .select(`id, employee_code, full_name, role, status, password`)
-          .eq("employee_code", loginInput)
-          .single();
+      // 🧠 ระบบอัจฉริยะ Smart Detect คัดกรองประเภทข้อมูลนำเข้า
+      if (loginInput.includes("@")) {
+        result = await baseQuery.eq("email", loginInput).single();
+      } else if (/^\d+$/.test(loginInput)) {
+        result = await baseQuery.or(`employee_code.eq."${loginInput}",phone.eq."${loginInput}"`).single();
       } else {
-        result = await sb.from("employees")
-          .select(`id, employee_code, full_name, role, status, password`)
-          .eq("full_name", loginInput)
-          .single();
+        result = await baseQuery.eq("full_name", loginInput).single();
       }
 
       if (result.error || !result.data) {
-        throw new Error("ไม่พบข้อมูลพนักงานนี้ในระบบ");
+        throw new Error("ไม่พบข้อมูลพนักงานในระบบ (โปรดตรวจสอบ รหัส/ชื่อ/อีเมล/เบอร์โทร อีกครั้ง)");
       }
       
       const user = result.data;
@@ -74,20 +71,17 @@ document.addEventListener("DOMContentLoaded", () => {
         window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ`);
       }
 
-      // ตรวจสอบตำแหน่งเพื่อทำการย้ายหน้าเว็บให้เหมาะสม
+      // 🚀 [ปรับเส้นทางตามเงื่อนไขใหม่] HR/Admin ไปหลังบ้าน / พนักงานและหัวหน้าทุกระดับ ไปหน้าเช็คตัวเองก่อน
       if (user.role === "hr" || user.role === "admin") {
         if (window.location.origin) {
           fetch("/home.html", { method: "HEAD" })
-          .then(() => {
-            window.location.href = "/home.html";
-          })
-          .catch(() => {
-            window.location.href = "/";
-          });
+          .then(() => { window.location.href = "/home.html"; })
+          .catch(() => { window.location.href = "/"; });
         } else {
           window.location.href = "/home.html";
         }
       } else {
+        // 🧑‍💼 หัวหน้าแผนก, ผู้จัดการ, พนักงานทั่วไป วิ่งมาตรวจเช็คตัวเองที่หน้านี้ก่อนทั้งหมด
         window.location.href = "/pages/user/index-user.html";
       }
 
@@ -122,7 +116,7 @@ window.togglePassword = function () {
 };
 
 /* ==========================================================================
-   📷 ฟังก์ชันสแกน QR Code สำหรับเข้าสู่ระบบ (ทำงานร่วมกับ SweetAlert2)
+   📸 ระบบเปิดกล้องสแกน QR Code และล็อกอินอัตโนมัติ
    ========================================================================== */
 window.loginByQr = function () {
   if (typeof Html5QrcodeScanner === 'undefined') {
@@ -130,70 +124,6 @@ window.loginByQr = function () {
     return;
   }
 
-  Swal.fire({
-    title: '📷 สแกน QR Code พนักงาน',
-    html: `
-      <div style="font-size: 14px; color: var(--text-muted, #64748b); margin-bottom: 12px;">นำคิวอาร์โค้ดประจำตัวพนักงานมาสแกนในกรอบสี่เหลี่ยมด้านล่าง</div>
-      <div id="qr-reader" style="width:100%; min-height: 250px; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #fafafa;"></div>
-    `,
-    showCancelButton: true,
-    cancelButtonText: 'ปิดกล้องถ่ายภาพ',
-    showConfirmButton: false,
-    allowOutsideClick: false,
-    didOpen: () => {
-      // เรียกใช้กล้องสแกน
-      window.html5QrcodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        false
-      );
-      window.html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-    },
-    willClose: () => {
-      // ปิดกล้องทันทีเมื่อมีการปิดหน้าต่าง
-      if (window.html5QrcodeScanner) {
-        window.html5QrcodeScanner.clear().catch(err => console.error("ปิดกล้องล้มเหลว", err));
-      }
-    }
-  });
-};
-
-// เมื่อทำการตรวจจับและสแกนคิวอาร์สำเร็จ
-function onScanSuccess(decodedText) {
-  if (window.html5QrcodeScanner) {
-    window.html5QrcodeScanner.clear();
-  }
-  Swal.close();
-
-  const usernameInput = document.getElementById("username");
-  const passwordInput = document.getElementById("password");
-  
-  if (usernameInput) {
-    usernameInput.value = decodedText.trim(); 
-    Swal.fire({
-      icon: 'success',
-      title: 'ถอดรหัสสำเร็จ!',
-      text: `รหัสพนักงาน: ${decodedText}`,
-      timer: 1500,
-      showConfirmButton: false
-    }).then(() => {
-      if (passwordInput) {
-        passwordInput.focus(); // เด้งไปรอพิมพ์รหัสผ่านทันที
-      }
-    });
-  }
-}
-
-function onScanFailure(error) {
-  // ทำงานในเบื้องหลังเงียบๆ ปล่อยให้ระบบค้นหาเฟรมถัดไป
-}
-
-/* ==========================================================================
-   📸 ระบบเปิดกล้องสแกน QR Code และล็อกอินอัตโนมัติ (อิงตามเซสชันเดิมของระบบ)
-   ========================================================================== */
-
-window.loginByQr = function () {
-  // เปิดหน้าต่าง Pop-up กล้องสแกนเนอร์ผ่าน SweetAlert2
   Swal.fire({
     title: '📷 สแกนบัตรประจำตัวพนักงาน',
     html: `
@@ -203,8 +133,8 @@ window.loginByQr = function () {
     showCancelButton: true,
     cancelButtonText: '❌ ปิดหน้ากล้อง',
     showConfirmButton: false,
+    allowOutsideClick: false,
     willOpen: () => {
-      // สตาร์ทกล้องสแกนแบบ High-Performance
       setTimeout(() => {
         try {
           window.pvtHtml5QrcodeScanner = new Html5QrcodeScanner("pvt-reader", { 
@@ -213,12 +143,10 @@ window.loginByQr = function () {
           });
           
           window.pvtHtml5QrcodeScanner.render((decodedText) => {
-            // สแกนเจอปุ๊บ เคลียร์สิทธิ์กล้องทันทีเพื่อความปลอดภัย
             window.pvtHtml5QrcodeScanner.clear().then(() => {
-              // ส่งค่าเข้าโรงงานตรวจสอบรหัสความปลอดภัย
               executeSecureQrLogin(decodedText);
             }).catch(e => console.error(e));
-          }, (err) => { /* ค้นหาเฟรมถัดไป */ });
+          }, (err) => {});
           
         } catch(e) {
           console.error("สแกนเนอร์ทำงานขัดข้อง:", e);
@@ -233,9 +161,8 @@ window.loginByQr = function () {
   });
 };
 
-// 🔒 ฟังก์ชันประมวลผลการเข้าสู่ระบบแบบข้ามขั้นตอนรหัสผ่านผ่าน Token ลับ
+// 🔒 ฟังก์ชันประมวลผลการเข้าสู่ระบบผ่านคิวอาร์โค้ด
 async function executeSecureQrLogin(scannedData) {
-  // โชว์แจ้งเตือนกำลังโหลดตรวจสอบสิทธิ์ความปลอดภัย
   Swal.fire({
     title: '🔒 กำลังถอดรหัสความปลอดภัย...',
     html: '<div style="margin-top:10px;" class="pvt-spinner">ระบบกำลังเชื่อมต่อข้อมูลพนักงาน...</div>',
@@ -250,18 +177,15 @@ async function executeSecureQrLogin(scannedData) {
   }
 
   try {
-    // ถอดรหัสข้อความ %7C กลับมาเป็นเครื่องหมาย |
     const decodedStr = decodeURIComponent(scannedData);
     const fragments = decodedStr.split('|');
     const empCode = fragments[0]?.trim();
     const tokenSecret = fragments[1]?.trim();
 
-    // 1. ดักการสร้างคิวอาร์โค้ดปลอมมาหลอกระบบ
     if (tokenSecret !== 'PVT_SECURE_BYPASS' || !empCode) {
       throw new Error('QR Code ไม่ถูกต้อง หรือไม่ใช่บัตรที่ออกโดยฝ่าย HR');
     }
 
-    // 2. ดึงข้อมูลพนักงานจากฐานข้อมูล Supabase ตรวจดูสถานะ active
     const { data: user, error } = await sb
       .from('employees')
       .select('id, employee_code, full_name, role, status')
@@ -273,7 +197,6 @@ async function executeSecureQrLogin(scannedData) {
       throw new Error('ไม่พบข้อมูลพนักงานท่านนี้ หรือบัญชีถูกระงับสิทธิ์');
     }
 
-    // 3. 💾 ถอดรหัสผ่านฉลุย! ยัดลง sessionStorage ลอกโมเดลล็อกอินหลักของพี่มาเลย
     sessionStorage.setItem("currentUser", JSON.stringify({
       id: user.id,
       employee_code: user.employee_code,
@@ -281,7 +204,6 @@ async function executeSecureQrLogin(scannedData) {
       role: user.role
     }));
 
-    // 4. ขึ้นแจ้งเตือนล็อกอินผ่านฉลุยสำเร็จ
     Swal.fire({
       icon: 'success',
       title: `ยินดีต้อนรับคุณ ${user.full_name}`,
@@ -290,7 +212,7 @@ async function executeSecureQrLogin(scannedData) {
       showConfirmButton: false
     });
 
-    // 5. 🚀 ย้ายหน้าตาม "ระบบดั้งเดิมที่เสถียรที่สุด" ของพี่แบบเป๊ะๆ 100%
+    // 🚀 ย้ายเส้นทางระบบสแกน QR ให้ล้อไปกับระบบพิมพ์มือด้านบนเป๊ะๆ
     setTimeout(() => {
       if (user.role === "hr" || user.role === "admin") {
         if (window.location.origin) {
@@ -301,6 +223,7 @@ async function executeSecureQrLogin(scannedData) {
           window.location.href = "/home.html";
         }
       } else {
+        // หัวหน้าก็ส่งมาหน้าตรวจเช็คตัวเองก่อนเช่นกันครับพี่
         window.location.href = "/pages/user/index-user.html";
       }
     }, 1500);
@@ -316,3 +239,22 @@ async function executeSecureQrLogin(scannedData) {
   }
 }
 
+/* ==========================================================================
+   📘 ฟังก์ชันเปิด-ปิด กล่องอธิบายการใช้งาน (Smooth Toggle)
+   ========================================================================== */
+window.toggleInstructions = function () {
+  const content = document.getElementById("instructionsContent");
+  const arrow = document.getElementById("instructionArrow");
+  
+  if (content && arrow) {
+    // ใช้คลาส "active" ในการสั่งเปิด-ปิดเอฟเฟกต์ CSS
+    content.classList.toggle("active");
+    
+    // เปลี่ยนสัญลักษณ์ลูกศรหมุนขึ้นหรือลงตามการใช้งาน
+    if (content.classList.contains("active")) {
+      arrow.textContent = "expand_less";
+    } else {
+      arrow.textContent = "expand_more";
+    }
+  }
+};

@@ -29,7 +29,7 @@ function getAvatarUrl(imageUrl) {
     }
     return url;
   }
-  return "/assets/img/default-avatar.jpg"; // คืนค่ารูป Default หากไม่มีข้อมูล
+  return "/assets/img/default-avatar.jpg";
 }
 
 /* ==========================================================================
@@ -68,7 +68,6 @@ async function fetchAllEmployees() {
       const eSS = emp.hospital || '-'; 
       const eStart = emp.start_date || '-';
       
-      // เรียกใช้งานเครื่องมือแปลง URL รูปภาพ
       const avatarUrl = getAvatarUrl(emp.image_url);
 
       html += `
@@ -102,7 +101,7 @@ async function fetchAllEmployees() {
 }
 
 /* ==========================================================================
-   ✨ เปิดหน้าต่าง Pop-up ดึงข้อมูลใบลาสะสม และสิทธิ์คงเหลือ
+   ✨ เปิดหน้าต่าง Pop-up ดึงข้อมูลใบลาสะสม และสิทธิ์คงเหลือ (เวอร์ชันยกเครื่องใหม่)
    ========================================================================== */
 async function openEmployeeLeaveHistoryPopup(empCode, empName) {
   Swal.fire({
@@ -112,7 +111,6 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
     allowOutsideClick: false
   });
 
-  // ใช้ supabaseClient ตัวกลางของระบบที่เช็คจาก DOMContentLoaded แล้ว
   const sb = supabaseClient || window.supabaseClient || window.pvtSupabase?.getClient();
   if (!sb) {
       Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
@@ -175,26 +173,71 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
   // แปลง URL รูปภาพสำหรับโชว์บนหัวข้อ Pop-up
   const popAvatarUrl = getAvatarUrl(dbImageUrl);
 
-  // ตั้งค่าโควตาเริ่มต้นแสดงผล
+  // ตั้งค่าโควตาเริ่มต้นแสดงผล (รองรับโครงสร้างตารางสวัสดิการ 8 ข้อหลักเต็มรูปแบบ + 1 ลาอื่นๆ)
   let sRem = balance?.sick_remaining ?? 30, sMax = balance?.sick_max ?? 30;
   let pRem = balance?.personal_remaining ?? 6, pMax = balance?.personal_max ?? 6;
   let vRem = balance?.vacation_remaining ?? 6, vMax = balance?.vacation_max ?? 6;
+  let mRem = balance?.maternity_remaining ?? 90, mMax = balance?.maternity_max ?? 90;
+  let stRem = balance?.sterilization_remaining ?? 0, stMax = balance?.sterilization_max ?? 0;
+  let miRem = balance?.military_remaining ?? 60, miMax = balance?.military_max ?? 60;
+  let tRem = balance?.training_remaining ?? 30, tMax = balance?.training_max ?? 30; 
+  let rRem = balance?.religious_remaining ?? 0, rMax = balance?.religious_max ?? 0;   
+  let oRem = balance?.other_remaining ?? 0, oMax = balance?.other_max ?? 0;
 
   let quotaHtml = `
     <div class="popup-quota-container">
       <div class="popup-quota-box sick">
-        <p>🤒 ลาป่วยคงเหลือ</p>
+        <span class="material-symbols-outlined quota-icon">sick</span>
+        <p>ลาป่วยคงเหลือ</p>
         <h3>${sRem}/${sMax}</h3>
         <p>วัน</p>
       </div>
       <div class="popup-quota-box personal">
-        <p>💼 ลากิจคงเหลือ</p>
+        <span class="material-symbols-outlined quota-icon">business_center</span>
+        <p>ลากิจคงเหลือ</p>
         <h3>${pRem}/${pMax}</h3>
         <p>วัน</p>
       </div>
       <div class="popup-quota-box vacation">
-        <p>🏖️ พักร้อนคงเหลือ</p>
+        <span class="material-symbols-outlined quota-icon">beach_access</span>
+        <p>พักร้อนคงเหลือ</p>
         <h3>${vRem}/${vMax}</h3>
+        <p>วัน</p>
+      </div>
+      <div class="popup-quota-box maternity">
+        <span class="material-symbols-outlined quota-icon">pregnant_woman</span>
+        <p>ลาคลอดคงเหลือ</p>
+        <h3>${mRem}/${mMax}</h3>
+        <p>วัน</p>
+      </div>
+      <div class="popup-quota-box sterilization">
+        <span class="material-symbols-outlined quota-icon">content_cut</span>
+        <p>ลาทำหมันคงเหลือ</p>
+        <h3>${stRem}/${stMax}</h3>
+        <p>วัน</p>
+      </div>
+      <div class="popup-quota-box military">
+        <span class="material-symbols-outlined quota-icon">military_tech</span>
+        <p>ลาเกณฑ์ทหารคงเหลือ</p>
+        <h3>${miRem}/${miMax}</h3>
+        <p>วัน</p>
+      </div>
+      <div class="popup-quota-box training">
+        <span class="material-symbols-outlined quota-icon">school</span>
+        <p>ลาฝึกอบรมคงเหลือ</p>
+        <h3>${tRem}/${tMax}</h3>
+        <p>วัน</p>
+      </div>
+      <div class="popup-quota-box religious">
+        <span class="material-symbols-outlined quota-icon">church</span>
+        <p>ลาพิธีกรรมคงเหลือ</p>
+        <h3>${rRem}/${rMax}</h3>
+        <p>วัน</p>
+      </div>
+      <div class="popup-quota-box other">
+        <span class="material-symbols-outlined quota-icon">more_horiz</span>
+        <p>ลาอื่นๆ คงเหลือ</p>
+        <h3>${oRem}/${oMax}</h3>
         <p>วัน</p>
       </div>
     </div>
@@ -202,7 +245,7 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
 
   let historyTableRows = "";
   if (requests.length === 0) {
-    historyTableRows = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-soft);">ไม่พบประวัติการยื่นคำขอลาหยุดของพนักงานรายนี้</td></tr>`;
+    historyTableRows = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-soft);">ไม่พบประวัติการยื่นคำขอลาหยุดของพนักงานรายนี้</td></tr>`;
   } else {
     requests.forEach(req => {
       let reqType = req.leave_types?.leave_name || req.leave_name || req.leave_type || 'การลาทั่วไป';
@@ -218,16 +261,16 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
           <td><b>#${rId.toString().substring(0, 5)}</b></td>
           <td><span style="font-weight:600; color:var(--primary);">${reqType}</span></td>
           <td>${req.start_date || '-'} ถึง ${req.end_date || '-'}<br><small style="color:var(--text-soft);">(${req.total_days || req.days || '0'} วัน)</small></td>
-          <td style="font-size:12px; color:var(--text-soft); max-width:180px; white-space:normal;">${reqReason}</td>
-          <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
+          <td style="font-size:13.5px; color:#475569; white-space:normal; word-break:break-word;">${reqReason}</td>
+          <td style="text-align: center;"><span class="status-badge ${badgeClass}">${statusText}</span></td>
         </tr>
       `;
     });
   }
 
-  // ยิงกล่องข้อมูลออกหน้าจอ (ปิดฟังก์ชันได้สมบูรณ์และเปิดอ่าน HTML หัวข้อครบถ้วน)
+  // ยิงกล่องข้อมูลออกหน้าจอ (เวอร์ชันปรับปรุงขยายตารางกว้างเต็มตา 1050px อ่านง่ายระดับ Premium)
   Swal.fire({
-    width: '780px',
+    width: '1050px',
     html: `
       <div style="display: flex; align-items: center; gap: 14px; text-align: left; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 16px;">
         <img src="${popAvatarUrl}" 
@@ -241,20 +284,20 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
 
       <div style="text-align: left;">
         <div style="border-bottom: 2px dashed #e2e8f0; padding-bottom: 12px; margin-bottom: 12px;">
-          <span style="font-size:13.5px; color:var(--text-soft); font-weight:600; display:block; margin-top:8px; margin-bottom: 6px;">📊 ยอดสิทธิ์วันลาคงเหลือประจำปีปัจจุบัน:</span>
+          <span style="font-size:14px; color:var(--text-soft); font-weight:600; display:block; margin-top:8px; margin-bottom: 6px;">📊 ยอดสิทธิ์วันลาคงเหลือประจำปีปัจจุบัน:</span>
           ${quotaHtml}
         </div>
         
-        <span style="font-size:13.5px; color:var(--text-soft); font-weight:600; display:block; margin-top:16px; margin-bottom:8px;">📜 ประวัติรายการเอกสารใบลาสะสมทั้งหมดในตาราง (${requests.length} รายการ):</span>
-        <div style="max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: #fafafa;">
+        <span style="font-size:14px; color:var(--text-soft); font-weight:600; display:block; margin-top:16px; margin-bottom:8px;">📜 ประวัติรายการเอกสารใบลาสะสมทั้งหมดในตาราง (${requests.length} รายการ):</span>
+        <div style="max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: #ffffff;">
           <table class="swal-leave-table">
             <thead>
               <tr>
-                <th>เลขใบลา</th>
-                <th>ประเภทการลา</th>
-                <th>วันที่ลา (จำนวน)</th>
-                <th>เหตุผลความจำเป็น</th>
-                <th>สถานะ</th>
+                <th style="width: 110px;">เลขใบลา</th>
+                <th style="width: 160px;">ประเภทการลา</th>
+                <th style="width: 240px;">วันที่ลา (จำนวนวัน)</th>
+                <th>เหตุผลความจำเป็นและความเห็นเพิ่มเติม</th>
+                <th style="width: 130px; text-align: center;">สถานะ</th>
               </tr>
             </thead>
             <tbody>
@@ -267,7 +310,7 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
     confirmButtonText: 'ปิดหน้าต่างข้อมูล',
     confirmButtonColor: '#0fa472'
   });
-} //  ปิดปีกกาฟังก์ชันประวัติใบลาอย่างสมบูรณ์
+}
 
 /* ==========================================================================
    🔍 LIVE SEARCH FUNCTION
@@ -281,5 +324,23 @@ function filterEmployeeTable() {
     if (rows[i].cells.length < 5) continue; 
     const totalRowText = rows[i].textContent.toLowerCase();
     rows[i].style.display = totalRowText.includes(searchVal) ? "" : "none";
+  }
+}
+
+/* ==========================================================================
+   📘 ฟังก์ชันเสริม: ควบคุมการเปิด/ปิดกล่องคู่มือแนะนำการใช้งานประจำหน้าทำเนียบพนักงาน
+   ========================================================================== */
+function toggleInstructions() {
+  const content = document.getElementById("instructionsContent");
+  const arrow = document.getElementById("instructionArrow");
+  
+  if (content && arrow) {
+    content.classList.toggle("active");
+    
+    if (content.classList.contains("active")) {
+      arrow.textContent = "expand_more";
+    } else {
+      arrow.textContent = "expand_less";
+    }
   }
 }

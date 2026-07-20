@@ -751,3 +751,29 @@ function handleLogout() {
   sessionStorage.removeItem("currentUser");
   window.location.href = "/index.html"; 
 }
+
+/* ==========================================================================
+   💡 7. FLOATING INSTRUCTION GUIDE CONTROLLER (ระบบควบคุมปุ่มคู่มือลอย)
+   ========================================================================== */
+
+function toggleFloatingGuide() {
+  const card = document.getElementById("floating-guide-card");
+  const icon = document.getElementById("pvt-fab-icon");
+  const btn = document.getElementById("pvt-fab-btn");
+  
+  if (!card || !icon || !btn) return;
+
+  const isHidden = card.style.display === "none" || card.style.display === "";
+
+  if (isHidden) {
+    card.style.display = "block";
+    icon.innerText = "close";
+    icon.style.transform = "rotate(90deg)";
+    btn.style.background = "#ef4444"; // เปลี่ยนสีปุ่มเป็นสีแดงชั่วคราวตอนที่เปิดคู่มือค้างไว้
+  } else {
+    card.style.display = "none";
+    icon.innerText = "help";
+    icon.style.transform = "rotate(0deg)";
+    btn.style.background = "#1e3a8a";
+  }
+}

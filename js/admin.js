@@ -689,3 +689,85 @@ function closeDataModal() {
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(loadTableData, 1000); 
 });
+
+let currentStep = 1;
+
+// เปิด Modal ระบบยืนยันสิทธิ์
+function openResetModal() {
+    currentStep = 1;
+    document.getElementById('crypto-reset-modal').style.display = 'flex';
+    resetModalState();
+}
+
+// ปิด Modal / ยกเลิกคำสั่ง
+function closeResetModal() {
+    document.getElementById('crypto-reset-modal').style.display = 'none';
+    console.warn("⚠️ [SYSTEM LOG]: รีเซ็ตโควต้าถูกยกเลิกโดยผู้ดูแลระบบ (Abort Command)");
+}
+
+// รีเซ็ตสถานะภายในฟอร์มให้เริ่มใหม่หมด
+function resetModalState() {
+    document.querySelectorAll('.verification-step').forEach(el => el.classList.remove('active'));
+    document.getElementById('step-1-content').classList.add('active');
+    document.getElementById('chk-understand').checked = false;
+    document.getElementById('txt-final-verify').value = '';
+}
+
+// ฟังก์ชันคุมการขยับไปสเต็ปถัดไป
+function nextVerificationStep(step) {
+    if (step === 1) {
+        // ย้ายไปสเต็ป 2
+        document.getElementById('step-1-content').classList.remove('active');
+        document.getElementById('step-2-content').classList.add('active');
+    } else if (step === 2) {
+        // ตรวจสอบก่อนว่าติ๊กถูกยอมรับความเสี่ยงหรือยัง
+        const isChecked = document.getElementById('chk-understand').checked;
+        if (!isChecked) {
+            alert("❌ กรุณาติ๊กเลือกช่องยอมรับความเสี่ยงเพื่อดำเนินการต่อ!");
+            return;
+        }
+        // ย้ายไปสเต็ป 3
+        document.getElementById('step-2-content').classList.remove('active');
+        document.getElementById('step-3-content').classList.add('active');
+    }
+}
+
+// ขั้นสุดท้าย: ตรวจสอบคำพิมพ์และสั่งรีเซ็ตผ่าน Supabase
+async function executeFinalReset() {
+    const inputVerify = document.getElementById('txt-final-verify').value.trim();
+    
+    // ตรวจสอบ String ป้องกันการกดมั่ว
+    if (inputVerify !== 'RESET-TEST-QUOTA-NOW') {
+        alert("❌ รหัสยืนยันไม่ถูกต้อง! กรุณาพิมพ์ 'RESET-TEST-QUOTA-NOW' เป็นตัวพิมพ์ใหญ่ทั้งหมด");
+        return;
+    }
+
+    try {
+        console.log("🚀 [DEVOPS PIPELINE]: กำลังเริ่มกระบวนการล้างโควต้า...");
+        
+        // ตัวอย่างการยิงคำสั่งไปอัปเดตตารางผ่าน Supabase RPC (หรือจะใช้คำสั่ง .update() ตรง ๆ ก็ได้)
+        // หมายเหตุ: ตรงนี้จะไม่ไปยุ่งกับฟิลด์วันลาประจำปี (เช่น annual_leave)
+        const { data, error } = await supabase
+            .from('user_leave_quotas') 
+            .update({ 
+                sick_leave_used: 0,
+                personal_leave_used: 0,
+                other_test_leave_used: 0
+                // สังเกตว่าจะไม่ทำการอัปเดตฟิลด์ annual_leave หรือโควต้าประจำปี
+            })
+            .neq('id', 0); // หลอกอัปเดตทุกแถวที่ id ไม่เท่ากับ 0 (ยิงกระจายทั้งตาราง)
+
+        if (error) throw error;
+
+        // แจ้งเตือนความสำเร็จแบบ Cyberpunk Alert
+        alert("💥 SUCCESS: ระบบได้รีเซ็ตโควต้าทดสอบของพนักงานทั้งหมดเสร็จสิ้นเรียบร้อยแล้ว!");
+        closeResetModal();
+        
+        // สั่งให้โหลดหน้าจอหรือ Component ดึงข้อมูลใหม่
+        if (typeof loadDashboardData === "function") loadDashboardData();
+
+    } catch (err) {
+        console.error("🚨 Critical Error executing reset:", err.message);
+        alert("🚨 เกิดข้อผิดพลาดของระบบ: " + err.message);
+    }
+}

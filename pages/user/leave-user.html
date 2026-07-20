@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ใบลาออนไลน์ | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- ใส่ลิงก์นี้เพื่อเรียกใช้งานฟอนต์ไอคอนของ Google -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="stylesheet" href="/css/leave-user.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -27,10 +29,12 @@
         <span class="topbar-subtitle">บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด · ปี 2569</span>
       </div>
       
-      <div class="topbar-actions">
-        <button class="btn btn-ghost" onclick="location.href='/pages/user/leave-rules.html'">📘 หลักเกณฑ์</button>
-        <button class="btn btn-ghost" onclick="window.print()">🖨️ พิมพ์</button>
-      </div>
+              <!-- แทนที่ปุ่มพิมพ์เดิมในหมวด .topbar-actions -->
+        <div class="topbar-actions">
+          <button class="btn btn-ghost" onclick="location.href='/pages/user/leave-rules.html'">📘 หลักเกณฑ์</button>
+          
+          
+        </div>
 
     </div>
   </nav>
@@ -96,6 +100,58 @@
     </div>
 
   </div>
+
+ <!-- ==========================================
+     🔮 ปุ่มคู่มืออธิบายวิธีกรอกฟอร์มใบลา (Form Leave Guide - Glassmorphism)
+     ========================================== -->
+<div class="form-guide-wrapper">
+  
+  <!-- กล่องป๊อปอัพอธิบายวิธีกรอกข้อมูลในฟอร์ม -->
+  <div id="form-leave-guide-card" class="form-guide-popup" style="display: none;">
+    <div class="form-guide-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined">menu_book</span>
+        <span>วิธีกรอกแบบฟอร์มใบลา</span>
+      </div>
+      <button onclick="toggleFormLeaveGuide()" class="form-guide-close-btn">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    
+    <div class="form-guide-body">
+      <div class="form-guide-item">
+        <span class="form-guide-emoji">📅</span>
+        <div><strong>เลือกกรอบเวลา:</strong> คลิกเลือก <span style="color:#0891b2">เริ่มวันที่ลา</span> และ <span style="color:#0891b2">ถึงวันที่ลา</span> ระบบจะล็อก "วันที่เขียนคำขอ" เป็นวันปัจจุบันให้อัตโนมัติ</div>
+      </div>
+      
+      <div class="form-guide-item">
+        <span class="form-guide-emoji">⏱️</span>
+        <div><strong>กรณีลาครึ่งวัน / รายชั่วโมง:</strong> ให้กรอกจำนวนชั่วโมงในช่อง <span style="color:#0891b2">ช่วงเช้า</span> หรือ <span style="color:#0891b2">ช่วงบ่าย</span> (ใส่ได้ 0-4 ชั่วโมง) หากลาเต็มวันให้ปล่อยเป็น 0 ไว้ครับ</div>
+      </div>
+      
+      <div class="form-guide-item">
+        <span class="form-guide-emoji">🧮</span>
+        <div><strong>สรุปรวมจำนวนวัน:</strong> ช่องนี้เป็นระบบ Auto-Calculate ตัวเลขจะคำนวณและแสดงผลรวมวันลาให้อัตโนมัติหลังจากกรอกเวลาเสร็จ</div>
+      </div>
+      
+      <div class="form-guide-item">
+        <span class="form-guide-emoji">📁</span>
+        <div><strong>แนบหลักฐานรูปภาพ:</strong> หากเป็น <span style="color:#e11d48">ลาป่วยเกิน 2 วันขึ้นไป</span> หรือลากิจจำเป็น ให้กดปุ่มเพื่ออัปโหลดรูปใบรับรองแพทย์หรือเอกสารประกอบ</div>
+      </div>
+      
+      <div class="form-guide-item" style="border: none; padding-bottom: 0;">
+        <span class="form-guide-emoji">⏳</span>
+        <div><strong>สายงานอนุมัติ (ด้านล่าง):</strong> เมื่อกดส่งคำขอ สถานะจะขึ้น <span style="color:#64748b">"รอพิจารณา"</span> ซึ่งใบลาจะวิ่งไปตามลำดับขั้น: หัวหน้าฝ่าย ➡️ ผู้จัดการ ➡️ ฝ่ายบุคคล ตามลำดับ</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ปุ่มกลมสำหรับกดเรียกดูคู่มือ (FAB) -->
+  <button id="form-leave-guide-fab" onclick="toggleFormLeaveGuide()" class="form-fab-btn">
+    <span id="form-leave-guide-icon" class="material-symbols-outlined">help</span>
+    <span class="form-fab-text">แนะนำการกรอกฟอร์ม</span>
+  </button>
+</div>
 
   <div id="statusToast" class="status-toast"></div>
 

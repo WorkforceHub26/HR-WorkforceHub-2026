@@ -116,6 +116,59 @@
     <button class="contact-fab" onclick="goToContactHR()">ติดต่อ HR</button>
   </main>
 
+  <!-- ==========================================
+     🔮 ปุ่มคู่มืออธิบายการใช้งานแบบซ่อนได้ (User Guide Floating Glassmorphism)
+     ========================================== -->
+<div class="user-guide-wrapper">
+  
+  <!-- กล่องการ์ดอธิบายเมนู (เปิด/ปิด แบบกระจกเบลอ) -->
+  <div id="user-guide-card" class="guide-card-popup">
+    <!-- หัวข้อคู่มือ -->
+    <div class="guide-card-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="font-size: 20px;">info</span>
+        <span>คำแนะนำการใช้งานเมนู</span>
+      </div>
+      <button onclick="toggleUserGuide()" class="guide-close-btn">
+        <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+      </button>
+    </div>
+    
+    <!-- เนื้อหาคำอธิบายแต่ละปุ่มภายในหน้าพนักงาน -->
+    <div class="guide-card-body">
+      <div class="guide-item">
+        <span class="guide-emoji">📝</span>
+        <div><strong>ขออนุญาตลา:</strong> กรอกฟอร์มยื่นใบลาออนไลน์ ระบบคำนวณวันหยุดและส่งอนุมัติทันที</div>
+      </div>
+      
+      <div class="guide-item">
+        <span class="guide-emoji">📖</span>
+        <div><strong>หลักเกณฑ์การลา:</strong> ตรวจสอบเงื่อนไข ข้อบังคับ และกฎการแนบใบรับรองแพทย์ของบริษัท</div>
+      </div>
+      
+      <div class="guide-item">
+        <span class="guide-emoji">⏳</span>
+        <div><strong>ประวัติการลา:</strong> เช็กสถานะใบลาปัจจุบัน (รออนุมัติ/ผ่าน/ปฏิเสธ) และเรียกดูใบลาเก่า</div>
+      </div>
+      
+      <div class="guide-item">
+        <span class="guide-emoji">👤</span>
+        <div><strong>ข้อมูลพนักงาน:</strong> ตรวจสอบประวัติส่วนตัว วันเริ่มงาน อายุงานสะสมในระบบ</div>
+      </div>
+      
+      <div class="guide-item" style="border: none; padding-bottom: 0;">
+        <span class="guide-emoji">🪪</span>
+        <div><strong>ดูบัตรพนักงาน:</strong> เปิดบัตรประจำตัวดิจิทัลพร้อม QR Code ประจำตัวเพื่อใช้ยืนยันตน</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ปุ่มกดทรงกลม (Floating Action Button) -->
+  <button id="user-guide-fab" onclick="toggleUserGuide()" class="guide-fab-btn">
+    <span id="user-guide-icon" class="material-symbols-outlined">help</span>
+  </button>
+</div>
+
   <script src="/js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/auth-guard.js"></script>
