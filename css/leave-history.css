@@ -1,12 +1,6 @@
 /* ==========================================================================
-   🤍 PVT WORKFORCE HUB - leave-history.css (Luxury Separate Edition)
+   🤍 PVT WORKFORCE HUB - leave-history.css (Luxury Responsive Cards)
    ========================================================================== */
-
-*, *::before, *::after { 
-  box-sizing: border-box; 
-  margin: 0; 
-  padding: 0; 
-}
 
 :root {
   --primary: #0fa472;          
@@ -15,108 +9,337 @@
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --bg: #f3f4f6;               
-  --card: #ffffff;             
   --text: #0f172a;             
   --text-soft: #64748b;        
   --border: #e2e8f0;           
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-  --shadow-sm: 0 4px 12px -1px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
-  --shadow-md: 0 12px 30px -4px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-  --fluid-transition: all 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 4px 14px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 12px 30px -4px rgba(15, 23, 42, 0.08);
+  --shadow-glow: 0 8px 25px rgba(15, 164, 114, 0.2);
+  --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* 🌀 ANIMATED BACKGROUND SYSTEM */
 body {
   font-family: "Sarabun", sans-serif;
-  background-color: var(--bg);
+  background-color: #f0fdfa; 
+  background-image: 
+    radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
+    radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
+    radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
+    radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
+  background-size: 150% 150%;
+  animation: bgGradientMove 12s ease infinite alternate;
+  background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
   padding: 32px 40px;
   -webkit-font-smoothing: antialiased;
 }
 
+/* 👑 GLASS HEADER WITH POP-IN ANIMATION */
 .user-header {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: 24px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   margin-bottom: 24px;
-  transition: var(--fluid-transition);
+  animation: slideDownFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: var(--transition-smooth);
 }
 
-.brand-row { display: flex; align-items: center; gap: 16px; }
+.user-header:hover {
+  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+}
+
+.brand-row { display: flex; align-items: center; gap: 18px; }
+
 .brand-row img {
-  height: 56px;
-  width: 56px;
+  height: 60px;
+  width: 60px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--primary-soft);
+  border: 3px solid #ffffff;
+  box-shadow: var(--shadow-glow);
+  transition: var(--transition-spring);
 }
 
 .hello { 
   font-size: 12px; font-weight: 700; color: var(--primary); 
-  text-transform: uppercase; margin-bottom: 2px; 
+  text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.8px;
 }
 
 .user-header h1 { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.2; }
-.user-header span { font-size: 13px; color: var(--text-soft); }
+.user-header span { font-size: 13.5px; color: var(--text-soft); }
 
+/* 🏛️ MAIN PANEL CONTAINERS & ANIMATIONS */
 .panel {
-  background: var(--card);
-  padding: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 28px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-md);
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
 }
 
-.panel-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-.panel-header h2 { font-size: 18px; font-weight: 700; color: var(--text); }
+.panel-header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.panel-header h2 { font-size: 19px; font-weight: 700; color: var(--text); }
+.text-primary { color: var(--primary); font-size: 26px; }
 
+/* 📋 DESKTOP LUXURY TABLE STYLES */
 .table-responsive {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
   width: 100%;
-  background: #ffffff;
 }
 
-.table-responsive table { width: 100%; border-collapse: collapse; text-align: left; }
+.table-responsive table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  text-align: left; 
+}
+
 .table-responsive th {
   background: #f8fafc;
-  padding: 16px 20px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 18px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
   color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   border-bottom: 2px solid var(--border);
 }
 
 .table-responsive td {
-  padding: 16px 20px;
+  padding: 18px 20px;
   font-size: 14.5px;
   color: var(--text);
   border-bottom: 1px solid var(--border);
-  transition: var(--fluid-transition);
+  transition: var(--transition-smooth);
 }
 
-.table-responsive tbody tr:hover td { background: #f8fafc; color: var(--primary); }
+.table-responsive tbody tr {
+  transition: var(--transition-smooth);
+}
 
-.status-badge { padding: 4px 10px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; display: inline-block; }
-.status-badge.pending { background-color: #fffbeb; color: var(--warning); border: 1px solid #fde68a; }
-.status-badge.approved { background-color: var(--primary-soft); color: var(--primary-dark); border: 1px solid #a7f3d0; }
-.status-badge.rejected { background-color: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+.table-responsive tbody tr:hover td { 
+  background: #f0fdf8; 
+  color: var(--primary-dark); 
+}
 
+/* 🏷️ STATUS BADGES */
+.status-badge { 
+  padding: 6px 14px; 
+  border-radius: 30px; 
+  font-size: 12.5px; 
+  font-weight: 700; 
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition-smooth);
+}
+
+.status-badge.pending { 
+  background-color: #fffbeb; 
+  color: #d97706; 
+  border: 1px solid #fde68a;
+  animation: pulseWarning 2s infinite alternate;
+}
+
+.status-badge.approved { background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.status-badge.rejected { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* 🔘 BUTTONS */
 .btn-back-home {
-  background: rgba(248, 250, 252, 0.8); border: 1px solid var(--border); padding: 10px 20px;
-  border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; font-size: 14px;
-  font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; transition: var(--fluid-transition);
+  background: #ffffff; 
+  border: 1px solid var(--border); 
+  padding: 10px 20px;
+  border-radius: var(--radius-sm); 
+  cursor: pointer; 
+  font-family: inherit; 
+  font-size: 14px;
+  font-weight: 600; 
+  color: var(--text); 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  transition: var(--transition-spring);
+  box-shadow: var(--shadow-sm);
 }
 
-.btn-back-home:hover { background: var(--card); border-color: var(--primary); transform: translateX(-2px); }
-.empty-state { text-align: center; padding: 48px !important; color: var(--text-soft); }
-.error-state { text-align: center; padding: 48px !important; color: var(--danger); font-weight: 600; }
+.btn-back-home:hover { 
+  background: var(--primary); 
+  color: #ffffff;
+  border-color: var(--primary); 
+  transform: translateY(-2px); 
+  box-shadow: var(--shadow-glow);
+}
+
+.empty-state { text-align: center; padding: 56px !important; color: var(--text-soft); font-style: italic; }
+.error-state { text-align: center; padding: 56px !important; color: var(--danger); font-weight: 600; }
+
+/* ==========================================================================
+   📱 MOBILE CARD VIEW TRANSFORMATION (รองรับมือถือแบบการ์ดลอย 100%)
+   ========================================================================== */
+@media (max-width: 768px) {
+  body {
+    padding: 16px 12px;
+  }
+
+  .user-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .btn-back-home {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .panel {
+    padding: 16px 12px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .panel-header {
+    background: #ffffff;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* 🚫 ซ่อนหัวตารางเดิม */
+  .table-responsive table thead {
+    display: none;
+  }
+
+  /* 🃏 เปลี่ยนตารางเป็นคอนเทนเนอร์การ์ด */
+  .table-responsive table, 
+  .table-responsive tbody, 
+  .table-responsive tr {
+    display: block;
+    width: 100%;
+  }
+
+  /* 💳 สไตล์ตัวการ์ดแต่ละใบ */
+  .table-responsive tbody tr {
+    background: #ffffff;
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.06);
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition-spring);
+  }
+
+  .table-responsive tbody tr:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 14px 28px -4px rgba(15, 23, 42, 0.12);
+  }
+
+  /* แถบสีด้านซ้ายการ์ดเพิ่มมิติ */
+  .table-responsive tbody tr::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: var(--primary);
+  }
+
+  /* 📄 จัดระเบียบข้อมูลภายในแถวการ์ด */
+  .table-responsive td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed #f1f5f9;
+    font-size: 14px;
+    text-align: right;
+  }
+
+  .table-responsive td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-top: 6px;
+  }
+
+  /* 🏷️ แสดงชื่อหัวข้อ (Label) ทางด้านซ้ายอัตโนมัติ */
+  .table-responsive td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-soft);
+    font-size: 13px;
+    text-align: left;
+    padding-right: 12px;
+  }
+
+  /* ตกแต่งส่วนประเภทการลาให้เป็นหัวข้อการ์ดเด่นๆ */
+  .table-responsive td[data-label="ประเภทการลา"] {
+    border-bottom: 2px solid var(--primary-soft);
+    padding-top: 0;
+    padding-bottom: 12px;
+    margin-bottom: 4px;
+  }
+
+  .leave-type-title {
+    font-size: 16px;
+    color: var(--primary-dark);
+  }
+
+  .td-reason {
+    color: var(--text-soft);
+    max-width: 60%;
+    word-break: break-word;
+  }
+
+  /* ยกเว้นกรณีไม่มีข้อมูล (Empty state) ให้แสดงกึ่งกลางปกติ */
+  .table-responsive td.empty-state,
+  .table-responsive td.error-state {
+    display: block;
+    text-align: center;
+    border: none;
+    padding: 32px 16px !important;
+  }
+
+  .table-responsive td.empty-state::before,
+  .table-responsive td.error-state::before {
+    content: none;
+  }
+}
+
+/* ✨ KEYFRAMES */
+@keyframes bgGradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseWarning {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); }
+  100% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+}

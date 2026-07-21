@@ -1,196 +1,235 @@
 /**
  * ==========================================================================
- * 🏢 PVT WORKFORCE HUB - LEADER APPROVAL ENGINE (DEPARTMENT LOCK VERSION)
+ * 🏢 PVT WORKFORCE HUB - LEADER APPROVAL ENGINE (FIXED ACCESS & PERMISSIONS)
  * ==========================================================================
  */
 
 let _pvtDebugSbInstance = null;
 let rawRequests = [];
 let currentRoleState = "manager"; // 'manager' = หัวหน้าแผนก (ด่าน 1), 'director' = ผู้จัดการฝ่าย (ด่าน 2)
-let managerDepartmentId = null;   // 🔑 เพิ่มตัวแปรสำหรับเก็บ ID แผนกของหัวหน้างานที่ Login อยู่
+let managerDepartmentId = null;   // ID แผนกของหัวหน้างานที่ Login
 
-// บังคับให้ระบบโหลดโครงสร้างหน้าเว็บ (HTML DOM) ให้เสร็จสมบูรณ์ 100% ก่อนเริ่มรันสคริปต์
 document.addEventListener("DOMContentLoaded", async () => {
-  console.group("🚀 [PVT INIT] เริ่มต้นโหลดระบบพิจารณาอนุมัติใบลา");
-  
-  // 1. ตรวจสอบและเปิดท่อเชื่อมต่อ Supabase
-  const isConnected = initializeSupabaseWithDebug();
-  
-  if (!isConnected) {
-    console.error("❌ [PVT INIT] ปิดการทำงาน: เชื่อมต่อ Supabase ไม่สำเร็จ!");
+  console.group("🏢 [LEADER ENGINE] เริ่มต้นโหลดหน้าระบบหัวหน้างาน");
+
+  // 1. 🔌 ต้องเชื่อมต่อ Supabase เป็นอันดับแรกเสมอ
+  initializeSupabaseWithDebug();
+
+  // 2. 👤 ดึงข้อมูลโปรไฟล์ (รองรับทั้งจาก Supabase และ Session Storage เป็นแผนสำรอง)
+  let profile = null;
+  if (window.pvtSupabase && typeof window.pvtSupabase.getCurrentProfile === "function") {
+    profile = await window.pvtSupabase.getCurrentProfile();
+  }
+
+  let currentUser = null;
+  try {
+    const savedSession = sessionStorage.getItem("currentUser");
+    if (savedSession) currentUser = JSON.parse(savedSession);
+  } catch (ex) {
+    console.error("⚠️ อ่าน Session ล้มเหลว:", ex);
+  }
+
+  // รวมข้อมูลเพื่อเช็ก Role จากทุกช่องทาง
+  const empData = profile?.employees || currentUser?.employees || currentUser || {};
+  const userRole = String(profile?.role || currentUser?.role || empData?.role || "").toLowerCase();
+  const positionName = String(empData?.positions?.position_name || empData?.position_name || currentUser?.position_name || "").toLowerCase();
+
+  const allowedRoles = ["leader", "manager", "director", "hr", "admin"];
+  const isAllowed = allowedRoles.includes(userRole) || 
+                    positionName.includes("ผู้จัดการ") || 
+                    positionName.includes("หัวหน้า") || 
+                    positionName.includes("ผู้อำนวยการ");
+
+  console.log(`🔍 [PERMIT CHECK] Role: "${userRole}", Position: "${positionName}", IsAllowed: ${isAllowed}`);
+
+  // 🛑 3. ถ้าสิทธิ์ไม่ใช่หัวหน้า/ผู้จัดการ ให้เด้งกลับหน้าพนักงาน
+  if (!isAllowed) {
+    alert("⛔ คุณไม่มีสิทธิ์เข้าถึงหน้าระบบหัวหน้างาน");
+    window.location.href = "/pages/user/index-user.html";
     console.groupEnd();
-    updateUiWithError("ไม่สามารถเชื่อมต่อฐานข้อมูลหลักได้");
     return;
   }
 
-  // 🆕 [ระบบตรวจสอบและแยกสิทธิ์อัตโนมัติเมื่อผู้ใช้งาน Login เข้ามา]
-  try {
-    const savedSession = sessionStorage.getItem("currentUser");
-    if (savedSession) {
-      const currentUser = JSON.parse(savedSession);
-      const role = (currentUser.role || "").toLowerCase();
-      const position = (currentUser.position_name || "").toLowerCase();
-      
-      // ตรวจสอบคำว่า 'ผู้จัดการฝ่าย' หรือ 'ผู้อำนวยการ' หรือสิทธิ์ระดับบริหาร
-      if (role === "director" || role === "admin" || position.includes("ผู้จัดการฝ่าย") || position.includes("ผู้อำนวยการ")) {
-        currentRoleState = "director";
-        console.log("👮 [Auto Detect] ตรวจพบสิทธิ์: ระดับผู้จัดการฝ่าย/ผู้บริหาร (ปรับเป็นด่านที่ 2 อัตโนมัติ)");
-      } else {
-        currentRoleState = "manager";
-        console.log("🧑‍💼 [Auto Detect] ตรวจพบสิทธิ์: ระดับหัวหน้าแผนก (ปรับเป็นด่านที่ 1 อัตโนมัติ)");
-      }
+  // 4. กำหนด Role State (ด่าน 1 หรือ ด่าน 2)
+  if (userRole === "director" || userRole === "admin" || positionName.includes("ผู้จัดการฝ่าย") || positionName.includes("ผู้อำนวยการ")) {
+    currentRoleState = "director";
+  } else {
+    currentRoleState = "manager";
+  }
 
-      // 🏢 [จุดเชื่อมโยงสำคัญ] ดึงข้อมูลรหัสแผนก (department_id) ของหัวหน้างานที่กำลังใช้งานระบบอยู่จริง
-      const { data: leaderProfile, error: profileErr } = await _pvtDebugSbInstance
+  // 5. ค้นหา department_id ของหัวหน้าเพื่อใช้กรองใบลาในแผนก
+  const targetEmpId = profile?.employee_id || profile?.id || currentUser?.employee_id || currentUser?.id;
+  
+  if (_pvtDebugSbInstance && targetEmpId) {
+    try {
+      const { data: leaderProfile } = await _pvtDebugSbInstance
         .from("employees")
         .select("department_id")
-        .eq("id", currentUser.id)
-        .single();
+        .eq("id", targetEmpId)
+        .maybeSingle();
 
-      if (!profileErr && leaderProfile) {
+      if (leaderProfile?.department_id) {
         managerDepartmentId = leaderProfile.department_id;
-        console.log("🎯 [Department Locked] ยืนยันรหัสแผนกของหัวหน้างานนี้คือ:", managerDepartmentId);
+      } else {
+        managerDepartmentId = empData?.department_id || currentUser?.department_id || null;
       }
+    } catch (ex) {
+      console.warn("⚠️ ค้นหา department_id ขัดข้อง ใช้ค่าจาก Session แทน:", ex);
+      managerDepartmentId = empData?.department_id || currentUser?.department_id || null;
     }
-  } catch (ex) {
-    console.error("⚠️ ไม่สามารถตรวจสอบประวัติการ Login (Session) ได้:", ex);
+  } else {
+    managerDepartmentId = empData?.department_id || currentUser?.department_id || null;
   }
 
-  // 2. สร้างแท็บสลับสิทธิ์ผู้ใช้งานอัตโนมัติ (เนื่องจากมีการถอด Sidebar ออกไป)
+  // 6. สร้าง แท็บ UI และดึงรายการใบลามาแสดง
   injectRoleTabs();
+  updateTabUiStyles();
+  await fetchLeaveRequestsData();
 
-  // 🆕 [ซิงค์ไฮไลท์สีปุ่มแท็บและหัวตารางให้ตรงกับสิทธิ์ที่ตรวจเจออัตโนมัติ]
-  const btnManager = document.getElementById('btnRoleManager');
-  const btnDirector = document.getElementById('btnRoleDirector');
-  if (btnManager && btnDirector) {
-    if (currentRoleState === 'manager') {
-      btnManager.style.background = 'var(--primary, #0fa472)';
-      btnManager.style.color = 'white';
-      btnDirector.style.background = '#ffffff';
-      btnDirector.style.color = 'var(--text-soft, #64748b)';
-    } else {
-      btnDirector.style.background = 'var(--primary, #0fa472)';
-      btnDirector.style.color = 'white';
-      btnManager.style.background = '#ffffff';
-      btnManager.style.color = 'var(--text-soft, #64748b)';
-    }
-  }
-
-  const titleEl = document.getElementById("tableTitle") || document.querySelector(".section-title strong");
-  if (titleEl) {
-    titleEl.textContent = currentRoleState === "manager" 
-      ? "ตารางพิจารณาคำขอลา (ด่านที่ 1: หัวหน้าแผนกตรวจสอบ)" 
-      : "ตารางพิจารณาคำขอลา (ด่านที่ 2: ผู้จัดการฝ่ายอนุมัติสมบูรณ์)";
-  }
-
-  // 3. ดึงข้อมูลมาแสดงผล (หน่วงเวลาเล็กน้อยเพื่อให้ HTML Render ตัวเองเสร็จชัวร์ๆ)
-  setTimeout(async () => {
-    console.log("📥 [PVT INIT] เริ่มส่งคำสั่งคิวรีข้อมูลใบลาจาก Database...");
-    await fetchLeaveRequestsData();
-    console.groupEnd();
-  }, 100);
+  console.groupEnd();
 });
 
-/**
- * 🔌 1. ฟังก์ชันเชื่อมต่อฐานข้อมูล Supabase Client
- */
+/** 🔌 เชื่อมต่อ Supabase */
 function initializeSupabaseWithDebug() {
+  if (_pvtDebugSbInstance) return true;
+
   const CONF_SUPABASE_URL = window.SUPABASE_URL || "https://pgogmhqjdchakcytsomx.supabase.co"; 
   const CONF_SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
-  if (window.supabaseClient && typeof window.supabaseClient.from === "function") {
-    _pvtDebugSbInstance = window.supabaseClient;
-    return true;
-  }
   if (window.pvtSupabase && typeof window.pvtSupabase.getClient === "function") {
     _pvtDebugSbInstance = window.pvtSupabase.getClient();
+    return true;
+  }
+  if (window.supabaseClient && typeof window.supabaseClient.from === "function") {
+    _pvtDebugSbInstance = window.supabaseClient;
     return true;
   }
   if (typeof window.supabase !== "undefined") {
     try {
       _pvtDebugSbInstance = window.supabase.createClient(CONF_SUPABASE_URL, CONF_SUPABASE_ANON_KEY);
-      if (_pvtDebugSbInstance && typeof _pvtDebugSbInstance.from === "function") return true;
+      if (_pvtDebugSbInstance) return true;
     } catch (err) {
-      console.error("❌ สั่ง createClient อัตโนมัติล้มเหลว:", err);
+      console.error("❌ สร้าง client ล้มเหลว:", err);
     }
   }
   return false;
 }
 
-/**
- * 🎫 2. ฟังก์ชันฉีดแท็บสลับสิทธิ์การอนุมัติ (Manager / Director) เข้าสู่หน้าจอโดยตรง
- */
+/** 🎫 ฉีดแท็บสลับบทบาท (พร้อมซ่อนแท็บผู้จัดการ หากสิทธิ์ไม่ถึง) */
 function injectRoleTabs() {
   const statsGrid = document.querySelector('.stats-grid');
   if (statsGrid && !document.getElementById('pvtRoleTabs')) {
     const tabContainer = document.createElement('div');
     tabContainer.id = 'pvtRoleTabs';
-    tabContainer.style.cssText = 'display: flex; gap: 10px; margin-top: 24px; margin-bottom: 8px; flex-wrap: wrap;';
-    tabContainer.innerHTML = `
-      <button id="btnRoleManager" style="padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: var(--primary, #0fa472); color: white; font-family: inherit; font-weight: 600; cursor: pointer; transition: all 0.2s;" onclick="switchRole('manager')">ด่านที่ 1: หัวหน้าแผนก (รอตรวจ)</button>
-      <button id="btnRoleDirector" style="padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border); background: #ffffff; color: var(--text-soft, #64748b); font-family: inherit; font-weight: 600; cursor: pointer; transition: all 0.2s;" onclick="switchRole('director')">ด่านที่ 2: ผู้จัดการฝ่าย (อนุมัติ)</button>
+    tabContainer.style.cssText = 'display: flex; gap: 10px; margin-top: 16px; margin-bottom: 8px; flex-wrap: wrap;';
+
+    // 🔍 ตรวจสอบสิทธิ์ผู้ใช้งานปัจจุบัน
+    const savedSession = sessionStorage.getItem("currentUser");
+    const currentUser = savedSession ? JSON.parse(savedSession) : {};
+    const userRole = String(currentUser.role || window.currentProfile?.role || "").toLowerCase();
+    const positionName = String(currentUser.position_name || "").toLowerCase();
+
+    // กำหนดว่าใครบ้างที่จะเห็นแท็บ "ด่านที่ 2: ผู้จัดการฝ่าย"
+    const canAccessDirectorTab = userRole === "director" || 
+                                 userRole === "admin" || 
+                                 userRole === "hr" || 
+                                 positionName.includes("ผู้จัดการฝ่าย") || 
+                                 positionName.includes("ผู้อำนวยการ");
+
+    let tabsHtml = `
+      <button id="btnRoleManager" style="padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border-light); background: var(--primary); color: white; font-family: inherit; font-weight: 600; cursor: pointer; transition: all 0.2s;" onclick="switchRole('manager')">
+        ด่านที่ 1: หัวหน้าแผนก (รอตรวจ)
+      </button>
     `;
+
+    // แสดงปุ่มด่านที่ 2 เฉพาะผู้ที่มีสิทธิ์เท่านั้น
+    if (canAccessDirectorTab) {
+      tabsHtml += `
+        <button id="btnRoleDirector" style="padding: 10px 20px; border-radius: 10px; border: 1px solid var(--border-light); background: #ffffff; color: var(--text-muted); font-family: inherit; font-weight: 600; cursor: pointer; transition: all 0.2s;" onclick="switchRole('director')">
+          ด่านที่ 2: ผู้จัดการฝ่าย (อนุมัติ)
+        </button>
+      `;
+    }
+
+    tabContainer.innerHTML = tabsHtml;
     statsGrid.parentNode.insertBefore(tabContainer, statsGrid);
   }
 }
 
-/**
- * 🔄 3. ฟังก์ชันสลับบทบาทการตรวจสอบ และเปลี่ยนสีปุ่มไฮไลท์แท็บ
- */
+/** 🔄 สลับบทบาท (พร้อมระบบ Guard เช็กสิทธิ์ก่อนเปลี่ยนด่าน) */
 async function switchRole(role) {
-  console.group(`🔄 [ROLE SWITCH] สลับสิทธิ์เป็น -> "${role}"`);
-  currentRoleState = role;
-  
-  // อัปเดตสไตล์สีปุ่มแท็บ
-  const btnManager = document.getElementById('btnRoleManager');
-  const btnDirector = document.getElementById('btnRoleDirector');
-  if (btnManager && btnDirector) {
-    if (role === 'manager') {
-      btnManager.style.background = 'var(--primary, #0fa472)';
-      btnManager.style.color = 'white';
-      btnDirector.style.background = '#ffffff';
-      btnDirector.style.color = 'var(--text-soft, #64748b)';
-    } else {
-      btnDirector.style.background = 'var(--primary, #0fa472)';
-      btnDirector.style.color = 'white';
-      btnManager.style.background = '#ffffff';
-      btnManager.style.color = 'var(--text-soft, #64748b)';
+  // 🔍 ตรวจสอบสิทธิ์ก่อนยอมให้สลับไปด่านที่ 2
+  if (role === "director") {
+    const savedSession = sessionStorage.getItem("currentUser");
+    const currentUser = savedSession ? JSON.parse(savedSession) : {};
+    const userRole = String(currentUser.role || window.currentProfile?.role || "").toLowerCase();
+    const positionName = String(currentUser.position_name || "").toLowerCase();
+
+    const canAccessDirector = userRole === "director" || 
+                              userRole === "admin" || 
+                              userRole === "hr" || 
+                              positionName.includes("ผู้จัดการฝ่าย") || 
+                              positionName.includes("ผู้อำนวยการ");
+
+    if (!canAccessDirector) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'สิทธิ์ไม่ถูกต้อง',
+          text: 'เฉพาะผู้จัดการฝ่ายหรือผู้อำนวยการเท่านั้น ที่สามารถเข้าถึงด่านอนุมัตินี้ได้'
+        });
+      } else {
+        alert("⛔ เฉพาะผู้จัดการฝ่ายหรือผู้อำนวยการเท่านั้น ที่สามารถเข้าถึงด่านอนุมัตินี้ได้");
+      }
+      return; // 🛑 บล็อกไม่ให้สลับด่าน
     }
   }
 
-  // อัปเดตข้อความหัวตาราง (ดักจับผ่านโครงสร้าง Element ของตัวแทนคลาส)
-  const titleEl = document.getElementById("tableTitle") || document.querySelector(".section-title strong");
-  if (titleEl) {
-    titleEl.textContent = role === "manager" 
-      ? "ตารางพิจารณาคำขอลา (ด่านที่ 1: หัวหน้าแผนกตรวจสอบ)" 
-      : "ตารางพิจารณาคำขอลา (ด่านที่ 2: ผู้จัดการฝ่ายอนุมัติสมบูรณ์)";
-  }
-
+  currentRoleState = role;
+  updateTabUiStyles();
   await fetchLeaveRequestsData();
-  console.groupEnd();
 }
 
-/**
- * 📥 4. ฟังก์ชันดึงข้อมูลใบลาค้างพิจารณา (เวอร์ชันแก้ไข Error 400 คลีนสมบูรณ์)
- */
+function updateTabUiStyles() {
+  const btnManager = document.getElementById('btnRoleManager');
+  const btnDirector = document.getElementById('btnRoleDirector');
+  if (btnManager && btnDirector) {
+    if (currentRoleState === 'manager') {
+      btnManager.style.background = 'var(--primary)';
+      btnManager.style.color = 'white';
+      btnDirector.style.background = '#ffffff';
+      btnDirector.style.color = 'var(--text-muted)';
+    } else {
+      btnDirector.style.background = 'var(--primary)';
+      btnDirector.style.color = 'white';
+      btnManager.style.background = '#ffffff';
+      btnManager.style.color = 'var(--text-muted)';
+    }
+  }
+
+  const titleEl = document.getElementById("tableTitle");
+  if (titleEl) {
+    titleEl.textContent = currentRoleState === "manager" 
+      ? "รายการคำขอลาของพนักงานในแผนก (ด่านที่ 1: หัวหน้าแผนกตรวจสอบ)" 
+      : "รายการคำขอลาของพนักงานทั้งฝ่าย (ด่านที่ 2: ผู้จัดการฝ่ายอนุมัติสมบูรณ์)";
+  }
+}
+
+/** 📥 ดึงข้อมูลใบลา */
 async function fetchLeaveRequestsData() {
-  if (!_pvtDebugSbInstance) return;
+  if (!initializeSupabaseWithDebug()) {
+    updateUiWithError("ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้");
+    return;
+  }
 
   try {
-    // 💡 ลบคอมเมนต์ภาษาไทยออกทั้งหมด เพื่อไม่ให้หลุดเข้าไปใน URL ของ API Supabase
     let query = _pvtDebugSbInstance
       .from("leave_requests")
       .select(`
         *,
         employees!employee_id (
-          id,
-          full_name,
-          employee_code,
-          start_date,
-          nickname,
-          department_id,
-          departments ( department_name ),
-          positions ( position_name )
+          id, full_name, employee_code, start_date, nickname, department_id,
+          departments ( department_name ), positions ( position_name )
         ),
         leave_types ( leave_name )
       `);
@@ -205,13 +244,10 @@ async function fetchLeaveRequestsData() {
     if (error) throw error;
 
     let finalFilteredData = leaves || [];
-
-    // 🔒 ระบบล็อกคัดกรองเฉพาะพนักงานในแผนกเดียวกับหัวหน้างาน (สำหรับด่านที่ 1)
     if (currentRoleState === "manager" && managerDepartmentId) {
       finalFilteredData = finalFilteredData.filter(
         req => req.employees?.department_id === managerDepartmentId
       );
-      console.log(`🎯 [Engine Filtered] คัดกรองเหลือเฉพาะพนักงานในแผนกของคุณจำนวน: ${finalFilteredData.length} รายการ`);
     }
 
     rawRequests = finalFilteredData;
@@ -219,19 +255,18 @@ async function fetchLeaveRequestsData() {
     updateCounterCards(rawRequests);
 
   } catch (err) {
-    console.error("💥 ระบบดึงข้อมูลขัดข้อง:", err);
-    updateUiWithError("เกิดข้อผิดพลาดในการดึงข้อมูลใบลาจากระบบฐานข้อมูล");
+    console.error("💥 ดึงข้อมูลขัดข้อง:", err);
+    updateUiWithError("เกิดข้อผิดพลาดในการดึงข้อมูลใบลาจากระบบ");
   }
 }
-/**
- * 🎨 5. ฟังก์ชันวาดตารางรายการใบลาลงบนหน้าจอ HTML (อัปเดตให้ตรงกับ HTML 7 คอลัมน์)
- */
+
+/** 🎨 วาดตารางข้อมูล */
 function renderTable(requests) {
   const tableBody = document.getElementById("leaveTableBody");
   if (!tableBody) return;
 
   if (requests.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:#64748b; font-weight:500;">ไม่มีรายการคำขอลาค้างพิจารณาในระบบสิทธิ์นี้</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:40px; color:var(--text-muted);">ไม่มีรายการคำขอลาค้างพิจารณาในระบบขณะนี้</td></tr>`;
     return;
   }
 
@@ -245,38 +280,35 @@ function renderTable(requests) {
     const reasonText = req.reason || "-";
     
     const formatDate = (dateStr) => {
-      if(!dateStr) return "-";
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' });
+      if (!dateStr) return "-";
+      return new Date(dateStr).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' });
     };
     const leavePeriod = `${formatDate(req.start_date)} - ${formatDate(req.end_date)}`;
     
     let statusBadge = "";
     if (req.status === 'pending') {
-      statusBadge = `<span style="background:#fef3c7; color:#d97706; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:500;">รอหัวหน้าตรวจ</span>`;
+      statusBadge = `<span class="status-badge status-pending">รอหัวหน้าตรวจ</span>`;
     } else if (req.status === 'approved_by_leaders') {
-      statusBadge = `<span style="background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:500;">หัวหน้าผ่านแล้ว</span>`;
+      statusBadge = `<span class="status-badge status-approved">หัวหน้าผ่านแล้ว</span>`;
     } else {
-      statusBadge = `<span style="background:#e5e7eb; color:#374151; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:500;">${req.status}</span>`;
+      statusBadge = `<span class="status-badge">${req.status}</span>`;
     }
 
     const tr = document.createElement("tr");
-    tr.style.borderBottom = "1px solid var(--border)";
-    
     tr.innerHTML = `
-      <td style="padding:16px;">
-        <div style="font-weight:600; color:#0f172a;">${empName}</div>
-        <div style="font-size:12px; color:#64748b;">รหัส: ${empCode}</div>
+      <td>
+        <div style="font-weight:600; color:var(--text-dark);">${empName}</div>
+        <div style="font-size:12px; color:var(--text-muted);">รหัส: ${empCode}</div>
       </td>
-      <td style="padding:16px;"><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:13px; font-weight:500;">${leaveName}</span></td>
-      <td style="padding:16px; color:#475569; font-size:13px;">${leavePeriod}</td>
-      <td style="padding:16px; font-weight:600; color:#0fa472; text-align:center;">${req.total_days || 0} วัน</td>
-      <td style="padding:16px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${reasonText}">${reasonText}</td>
-      <td style="padding:16px; text-align:center;">${statusBadge}</td>
-      <td style="padding:16px; text-align:center;">
-        <div style="display:flex; flex-direction:column; gap:6px; align-items:center;">
-          <button style="width:100%; background:#0fa472; color:white; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;" onclick="processApproval('${req.id}', '${req.status}')">พิจารณา</button>
-          <button style="width:100%; background:#f1f5f9; color:#475569; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;" onclick="printLeaveA4('${req.id}')">พิมพ์ A4</button>
+      <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:13px; font-weight:500;">${leaveName}</span></td>
+      <td style="color:var(--text-muted); font-size:13px;">${leavePeriod}</td>
+      <td style="font-weight:600; color:var(--primary); text-align:center;">${req.total_days || 0} วัน</td>
+      <td style="max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${reasonText}">${reasonText}</td>
+      <td style="text-align:center;">${statusBadge}</td>
+      <td style="text-align:center;">
+        <div style="display:flex; gap:6px; justify-content:center;">
+          <button style="background:var(--primary); color:white; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;" onclick="processApproval('${req.id}', '${req.status}')">พิจารณา</button>
+          <button style="background:#f1f5f9; color:var(--text-muted); border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;" onclick="printLeaveA4('${req.id}')">พิมพ์ A4</button>
         </div>
       </td>
     `;
@@ -284,9 +316,7 @@ function renderTable(requests) {
   });
 }
 
-/**
- * 🔢 6. ฟังก์ชันอัปเดตตัวเลขการ์ดสถิติ
- */
+/** 🔢 อัปเดตการ์ดสถิติ */
 function updateCounterCards(allRequests) {
   const pendingEl = document.getElementById("countPending");
   const approvedEl = document.getElementById("countApproved");
@@ -301,19 +331,12 @@ function updateCounterCards(allRequests) {
   if (rejectedEl) rejectedEl.innerHTML = `${rejectedCount} <small>รายการ</small>`;
 }
 
-/**
- * ⚠️ 7. ฟังก์ชันแสดงข้อความ Error บนตารางกรณีระบบขัดข้อง
- */
-function updateUiWithError(message) {
+function updateUiWithError(msg) {
   const tableBody = document.getElementById("leaveTableBody");
-  if (tableBody) {
-    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:20px; font-weight:bold;">❌ ${message}</td></tr>`;
-  }
+  if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:#ef4444; padding:20px; font-weight:bold;">❌ ${msg}</td></tr>`;
 }
 
-/**
- * 🛠️ 8. ฟังก์ชันเปิดหน้าต่างจัดการคำขอลา
- */
+/** 🛠️ เปิด Modal พิจารณาใบลา */
 function processApproval(id, currentStatus) {
   const selectedLeave = rawRequests.find(r => r.id === id);
   if (!selectedLeave) return;
@@ -328,18 +351,16 @@ function processApproval(id, currentStatus) {
   const isManager = currentStatus === 'pending';
   const roleTitle = isManager ? 'หัวหน้าแผนก (ด่านที่ 1)' : 'ผู้จัดการฝ่าย (ด่านที่ 2)';
 
-  // ส่งข้อมูลพนักงานขึ้น Modal แสดงผล
   if (modalTitle) modalTitle.textContent = `พิจารณาอนุมัติใบลาโดย: ${roleTitle}`;
   if (modalEmpName) modalEmpName.textContent = `พนักงาน: ${selectedLeave.employees?.full_name || '-'} (${selectedLeave.leave_types?.leave_name})`;
-  if (commentInput) commentInput.value = ""; // เคลียร์ข้อความเก่าออกก่อน
+  if (commentInput) commentInput.value = "";
 
-  const footerLayout = modal.querySelector('.modal-actions') || modal.querySelector('div[style*="justify-content:flex-end"]');
-  
+  const footerLayout = modal.querySelector('.modal-actions');
   if (footerLayout) {
     footerLayout.innerHTML = `
-      <button id="btnCancelAction" class="btn-cancel" style="background:#f1f5f9; color:#475569; border:none; padding:10px 18px; border-radius:8px; cursor:pointer; font-family:inherit; font-weight:500;">ยกเลิก</button>
-      <button id="btnRejectAction" style="background:#ef4444; color:#fff; border:none; padding:10px 18px; border-radius:8px; cursor:pointer; font-family:inherit; font-weight:600;">✕ ปฏิเสธการลา</button>
-      <button id="btnApproveAction" style="background:#0fa472; color:#fff; border:none; padding:10px 18px; border-radius:8px; cursor:pointer; font-family:inherit; font-weight:600;">✓ อนุมัติใบลา</button>
+      <button id="btnCancelAction" style="background:#f1f5f9; color:var(--text-muted); border:none; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:500;">ยกเลิก</button>
+      <button id="btnRejectAction" style="background:#ef4444; color:#fff; border:none; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:600;">✕ ปฏิเสธการลา</button>
+      <button id="btnApproveAction" style="background:var(--primary); color:#fff; border:none; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:600;">✓ อนุมัติใบลา</button>
     `;
 
     document.getElementById("btnCancelAction").onclick = () => { modal.style.display = "none"; };
@@ -350,36 +371,17 @@ function processApproval(id, currentStatus) {
   modal.style.display = "flex";
 }
 
-/**
- * 💾 9. ฟังก์ชันยิงอัปเดตสถานะใบลาลงสู่ Supabase Database
- */
+/** 💾 บันทึกผลอนุมัติ */
 async function executeStatusUpdate(id, currentStatus, action) {
-  if (!_pvtDebugSbInstance) return;
+  if (!initializeSupabaseWithDebug()) return;
 
   const isManager = currentStatus === 'pending';
-  const commentText = document.getElementById("approvalComment")?.value.trim() || "";
+  let finalStatus = action === 'approve' ? (isManager ? 'approved_by_leaders' : 'approved') : 'rejected';
   
-  let finalStatus = null;
-  let updatePayload = {};
+  let updatePayload = { status: finalStatus };
+  if (isManager) updatePayload.manager_status = action === 'approve' ? 'approved' : 'rejected';
+  else updatePayload.director_status = action === 'approve' ? 'approved' : 'rejected';
 
-  if (action === 'approve') {
-    finalStatus = isManager ? 'approved_by_leaders' : 'approved';
-    if (isManager) {
-      updatePayload.manager_status = 'approved';
-    } else {
-      updatePayload.director_status = 'approved';
-    }
-  } else {
-    finalStatus = 'rejected';
-    if (isManager) {
-      updatePayload.manager_status = 'rejected';
-    } else {
-      updatePayload.director_status = 'rejected';
-    }
-  }
-
-  updatePayload.status = finalStatus;
-  
   try {
     const { error } = await _pvtDebugSbInstance
       .from("leave_requests")
@@ -389,271 +391,67 @@ async function executeStatusUpdate(id, currentStatus, action) {
     if (error) throw error;
 
     document.getElementById("actionModal").style.display = "none";
-    alert('🎉 บันทึกผลการพิจารณาใบลาเรียบร้อยแล้ว!');
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', text: 'อัปเดตสถานะเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+    } else {
+      alert('🎉 บันทึกผลเรียบร้อยแล้ว!');
+    }
     await fetchLeaveRequestsData();
 
   } catch (err) {
-    console.error("💥 ไม่สามารถอัปเดตสถานะได้:", err);
-    alert('เกิดข้อผิดพลาด: ไม่สามารถบันทึกการเปลี่ยนสิทธิ์ใบลาใบนี้ได้');
+    console.error("💥 อัปเดตล้มเหลว:", err);
+    alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
   }
 }
 
-/**
- * 🖨️ 10. ฟังก์ชันพิมพ์สลิปเอกสารลงกระดาษขนาด A4
- */
+/** 🖨️ พิมพ์เอกสาร A4 */
 async function printLeaveA4(leaveId) {
-  const sb = _pvtDebugSbInstance; 
-  if (!sb) {
-    alert("ไม่สามารถเชื่อมต่อฐานข้อมูลเพื่อพิมพ์เอกสารได้");
-    return;
-  }
-
-  if (typeof Swal !== 'undefined') {
-    Swal.fire({
-      title: 'กำลังจัดทำหน้าเอกสาร...',
-      text: 'โปรดรอมุมมองพิมพ์สักครู่',
-      showConfirmButton: false,
-      allowOutsideClick: false,
-      didOpen: () => { Swal.showLoading(); }
-    });
-  }
+  if (!initializeSupabaseWithDebug()) return;
 
   try {
-    const { data: leave, error } = await sb
+    const { data: leave, error } = await _pvtDebugSbInstance
       .from("leave_requests")
       .select(`
         *,
-        employees!employee_id ( 
-          full_name, 
-          employee_code, 
-          nickname, 
-          departments(department_name),
-          positions(position_name)
-        ),
+        employees!employee_id ( full_name, employee_code, nickname, departments(department_name), positions(position_name) ),
         leave_types ( leave_name )
       `)
       .eq("id", leaveId)
       .single();
 
     if (error) throw error;
-    if (typeof Swal !== 'undefined') Swal.close();
 
     const emp = leave.employees || {};
-    const deptName = emp.departments?.department_name || '-';
-    const posName = emp.positions?.position_name || '-';
-    
-    const formatFullDate = (dateStr) => {
-      if (!dateStr) return '-';
-      return new Date(dateStr).toLocaleDateString('th-TH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    };
-
-    const formatDateTime = (dateStr) => {
-      if (!dateStr) return '-';
-      return new Date(dateStr).toLocaleDateString('th-TH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }) + ' น.';
-    };
-
-    const dWrite = formatDateTime(leave.created_at);
-    const dStart = formatFullDate(leave.start_date);
-    const dEnd = formatFullDate(leave.end_date);
-
-    let stampHtml = "";
-    if (leave.status === 'approved') {
-      stampHtml = `
-        <div class="digital-stamp approved-stamp">
-          <div class="stamp-title">APPROVED</div>
-          <div class="stamp-sub">อนุมัติผ่านระบบดิจิทัล</div>
-          <div class="stamp-date">${formatDateTime(leave.approved_at)}</div>
-        </div>
-      `;
-    } else if (leave.status === 'rejected') {
-      stampHtml = `
-        <div class="digital-stamp rejected-stamp">
-          <div class="stamp-title">REJECTED</div>
-          <div class="stamp-sub">ปฏิเสธผ่านระบบ</div>
-          <div class="stamp-date">${formatDateTime(leave.approved_at)}</div>
-        </div>
-      `;
-    } else {
-      stampHtml = `
-        <div class="digital-stamp pending-stamp">
-          <div class="stamp-title">PENDING</div>
-          <div class="stamp-sub">รอผลการพิจารณา</div>
-        </div>
-      `;
-    }
-
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(`
+    const printWin = window.open("", "_blank");
+    printWin.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <meta charset="utf-8">
-        <title>ใบคำขออนุมัติลาหยุดงาน - ${emp.full_name || ''}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <title>ใบขออนุมัติลาหยุด - ${emp.full_name || ''}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
         <style>
           @page { size: A4; margin: 15mm 20mm; }
-          body {
-            font-family: 'Sarabun', sans-serif;
-            color: #1e293b;
-            background-color: #fff;
-            margin: 0; padding: 0;
-            line-height: 1.5;
-            font-size: 14px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          .document-container { position: relative; width: 100%; }
-          .header-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
-          .logo-placeholder { display: inline-block; background: #1e3a8a; color: white; font-weight: bold; font-size: 18px; padding: 8px 14px; border-radius: 4px; letter-spacing: 1px; margin-right: 12px; }
-          .company-title { font-size: 14px; font-weight: 700; color: #0f172a; text-transform: uppercase; }
-          .doc-title-container { text-align: right; vertical-align: middle; }
-          .doc-title-main { font-size: 20px; font-weight: 700; color: #1e3a8a; margin: 0 0 5px 0; }
-          .doc-title-sub { font-size: 11px; color: #64748b; letter-spacing: 0.5px; }
-          .digital-stamp { position: absolute; top: 70px; right: 0; border: 3px double; border-radius: 8px; padding: 8px 15px; text-align: center; font-weight: bold; transform: rotate(-3deg); opacity: 0.85; width: 160px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-          .approved-stamp { color: #059669; border-color: #059669; }
-          .rejected-stamp { color: #dc2626; border-color: #dc2626; }
-          .pending-stamp { color: #d97706; border-color: #d97706; }
-          .stamp-title { font-size: 18px; letter-spacing: 2px; }
-          .stamp-sub { font-size: 10px; font-weight: normal; margin-top: 2px; }
-          .stamp-date { font-size: 9px; font-weight: normal; color: #64748b; }
-          .meta-table { width: 100%; border-collapse: collapse; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 25px; }
-          .meta-table td { padding: 10px 15px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px; }
-          .meta-table tr:last-child td { border-bottom: none; }
-          .meta-label { color: #64748b; font-weight: 500; width: 20%; }
-          .meta-val { color: #0f172a; font-weight: 600; width: 30%; }
-          .section-heading { font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 12px; margin-top: 15px; }
-          .details-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
-          .details-table th { background-color: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 12px; font-size: 13px; border-bottom: 2px solid #cbd5e1; }
-          .details-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 13.5px; }
-          .signature-grid { width: 100%; border-collapse: collapse; }
-          .signature-box { width: 25%; border: 1px solid #cbd5e1; padding: 12px; text-align: center; vertical-align: bottom; font-size: 12px; background: #fff; }
-          .signature-title { font-weight: 700; color: #334155; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 40px; text-align: center; }
-          .sig-line { border-bottom: 1px dotted #94a3b8; width: 85%; margin: 0 auto 5px auto; min-height: 20px; }
-          .sig-name { font-weight: 500; color: #0f172a; margin-bottom: 2px; }
-          .sig-date { font-size: 11px; color: #64748b; }
-          .footer-note { margin-top: 35px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px; }
+          body { font-family: 'Sarabun', sans-serif; padding: 20px; line-height: 1.6; }
+          h2 { color: #0fa472; border-bottom: 2px solid #0fa472; padding-bottom: 8px; }
+          .info-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          .info-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
         </style>
       </head>
       <body>
-        <div class="document-container">
-          ${stampHtml}
-          <table class="header-table">
-            <tr>
-              <td>
-                <span class="logo-placeholder">PVT</span>
-                <span class="company-title">บริษัท พีวีที เทคโนโลยี (ประเทศไทย) จำกัด</span>
-              </td>
-              <td class="doc-title-container">
-                <div class="doc-title-main">ใบขออนุมัติลาหยุดงาน</div>
-                <div class="doc-title-sub">LEAVE REQUEST FORM / E-LEAVE SYSTEM</div>
-              </td>
-            </tr>
-          </table>
-
-          <div class="section-heading">ข้อมูลผู้ยื่นคำขอ (Employee Profile)</div>
-          <table class="meta-table">
-            <tr>
-              <td class="meta-label">รหัสพนักงาน:</td>
-              <td class="meta-val">${emp.employee_code || '-'}</td>
-              <td class="meta-label">ชื่อ - นามสกุล:</td>
-              <td class="meta-val">${emp.full_name || '-'} (${emp.nickname || '-'})</td>
-            </tr>
-            <tr>
-              <td class="meta-label">สังกัดแผนก / ฝ่าย:</td>
-              <td class="meta-val">${deptName}</td>
-              <td class="meta-label">ตำแหน่งปัจจุบัน:</td>
-              <td class="meta-val">${posName}</td>
-            </tr>
-            <tr>
-              <td class="meta-label">วันที่ส่งขอใบลา:</td>
-              <td class="meta-val" colspan="3">${dWrite}</td>
-            </tr>
-          </table>
-
-          <div class="section-heading">รายละเอียดความประสงค์ขอลาหยุดงาน (Request Details)</div>
-          <table class="details-table">
-            <thead>
-              <tr>
-                <th width="25%">ประเภทการลา</th>
-                <th width="35%">ช่วงเวลาเริ่มต้น - สิ้นสุด</th>
-                <th width="15%" style="text-align: center;">รวมระยะเวลา</th>
-                <th width="25%">เหตุผลความจำเป็น</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="font-weight: 600; color: #1e3a8a;">${leave.leave_types?.leave_name || '-'}</td>
-                <td><strong>วันที่เริ่มลา:</strong> ${dStart}<br><strong>ถึงวันที่ลา:</strong> ${dEnd}</td>
-                <td style="text-align: center; font-weight: 700; font-size: 15px; color: #0f172a;">${leave.total_days} วัน</td>
-                <td style="font-size:12.5px; color:#475569;">${leave.reason || '-'}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="section-heading" style="margin-top: 30px;">การตรวจสอบและพิจารณาอนุมัติ (Workflow Approvals)</div>
-          <table class="signature-grid">
-            <tr>
-              <td class="signature-box">
-                <div class="signature-title">ผู้ขออนุมัติลา</div>
-                <div class="sig-line"></div>
-                <div class="sig-name">( ${emp.full_name || '...........................................'} )</div>
-                <div class="sig-date">วันที่ยื่น: ${formatFullDate(leave.created_at)}</div>
-              </td>
-              <td class="signature-box">
-                <div class="signature-title">ผู้บังคับบัญชาชั้นต้น (หัวหน้า)</div>
-                <div class="sig-line">
-                  ${leave.manager_status === 'approved' ? '<span style="color:#059669; font-weight:bold;">✓ ได้รับอนุมัติผ่านระบบ</span>' : (leave.manager_status === 'rejected' ? '<span style="color:#dc2626; font-weight:bold;">❌ ปฏิเสธการลา</span>' : '')}
-                </div>
-                <div class="sig-name">...................................................</div>
-                <div class="sig-date">สถานะ: ${leave.manager_status === 'approved' ? 'ผ่านอนุมัติแล้ว' : (leave.manager_status === 'rejected' ? 'ปฏิเสธ' : 'รอการพิจารณา')}</div>
-              </td>
-              <td class="signature-box">
-                <div class="signature-title">ผู้พิจารณาขั้นสูง (ผู้จัดการ)</div>
-                <div class="sig-line">
-                  ${leave.director_status === 'approved' ? '<span style="color:#059669; font-weight:bold;">✓ ได้รับอนุมัติผ่านระบบ</span>' : (leave.director_status === 'rejected' ? '<span style="color:#dc2626; font-weight:bold;">❌ ปฏิเสธการลา</span>' : '')}
-                </div>
-                <div class="sig-name">...................................................</div>
-                <div class="sig-date">สถานะ: ${leave.director_status === 'approved' ? 'ผ่านอนุมัติแล้ว' : (leave.director_status === 'rejected' ? 'ปฏิเสธ' : 'รอการพิจารณา')}</div>
-              </td>
-              <td class="signature-box">
-                <div class="signature-title">ฝ่ายทรัพยากรบุคคล (HR)</div>
-                <div class="sig-line">
-                  ${leave.status === 'approved' ? '<span style="color:#059669; font-weight:bold;">✓ บันทึกลงระบบสำเร็จ</span>' : (leave.status === 'rejected' ? '<span style="color:#dc2626; font-weight:bold;">❌ ยกเลิก/ปฏิเสธ</span>' : '')}
-                </div>
-                <div class="sig-name">...................................................</div>
-                <div class="sig-date">สถานะ: ${leave.status === 'approved' ? 'บันทึกเรียบร้อย' : 'รอรับผล'}</div>
-              </td>
-            </tr>
-          </table>
-
-          <div class="footer-note">
-            เอกสารฉบับนี้ถูกจัดทำขึ้นด้วยระบบบริหารจัดการทรัพยากรบุคคลอัตโนมัติ PVT HR E-Leave System<br>
-            รหัสร่องรอยตรวจสอบ (Trace ID): ${leaveId}
-          </div>
-        </div>
-        <script>
-          window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 500); }
-        </script>
+        <h2>ใบขออนุมัติลาหยุดงาน (E-Leave System)</h2>
+        <table class="info-table">
+          <tr><td><strong>รหัสพนักงาน:</strong> ${emp.employee_code || '-'}</td><td><strong>ชื่อ-นามสกุล:</strong> ${emp.full_name || '-'}</td></tr>
+          <tr><td><strong>แผนก:</strong> ${emp.departments?.department_name || '-'}</td><td><strong>ตำแหน่ง:</strong> ${emp.positions?.position_name || '-'}</td></tr>
+          <tr><td><strong>ประเภทการลา:</strong> ${leave.leave_types?.leave_name || '-'}</td><td><strong>จำนวน:</strong> ${leave.total_days} วัน</td></tr>
+          <tr><td colspan="2"><strong>เหตุผล:</strong> ${leave.reason || '-'}</td></tr>
+          <tr><td colspan="2"><strong>สถานะปัจจุบัน:</strong> ${leave.status}</td></tr>
+        </table>
+        <script>window.onload = function() { window.print(); window.close(); }</script>
       </body>
       </html>
     `);
-    printWindow.document.close();
-
+    printWin.document.close();
   } catch (err) {
-    if (typeof Swal !== 'undefined') {
-      Swal.fire('ไม่สามารถพิมพ์เอกสารได้', err.message, 'error');
-    } else {
-      alert('เกิดข้อผิดพลาดในการพิมพ์: ' + err.message);
-    }
+    alert('ไม่สามารถพิมพ์เอกสารได้: ' + err.message);
   }
 }

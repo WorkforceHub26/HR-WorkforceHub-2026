@@ -5,34 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบอนุมัติใบลาสำหรับหัวหน้า | PVT HR Hub</title>
   
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/home.css" />
-  <link rel="stylesheet" href="/css/approved-leaves.css" />
+  <!-- Google Fonts & Material Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+ 
+  <!-- Supabase Client & SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <!-- 🚀 ฝัง CSS มือถือตรงนี้เพื่อแก้ปัญหา Cache ดื้อ และบังคับทำงาน 100% -->
-  <!-- 🚀 ฝัง CSS มือถือตรงนี้เพื่อทำ Card View (ไม่ต้องเลื่อนซ้ายขวา) -->
+  <!-- 🎨 เรียกใช้ไฟล์ CSS ที่อัปเดตแล้ว -->
+  <link rel="stylesheet" href="/css/approved-leaves.css">
 </head>
-
 <body>
+
   <div class="app-shell">
-    <div class="main-content">
+    <main class="main-content">
      
-      <!-- ส่วน Header และปุ่มย้อนกลับ -->
-      <div class="page-header">
-       <button class="btn-header-back" onclick="history.back()">⬅️ ย้อนกลับ</button>
+      <!-- 👑 Header & ปุ่มย้อนกลับ -->
+      <header class="page-header">
+        <button class="btn-header-back" onclick="history.back()">
+          <span class="material-symbols-outlined">arrow_back</span> ย้อนกลับ
+        </button>
 
-        <div>
+        <div class="header-title">
           <h2>พิจารณาคำขออนุมัติลา</h2>
-          <p>รายการคำขอลาของพนักงานที่รอการตรวจสอบและอนุมัติจากหัวหน้างานและผู้จัดการฝ่าย</p>
+          <p id="tableTitle">รายการคำขอลาของพนักงานที่รอการตรวจสอบและอนุมัติจากหัวหน้างานและผู้จัดการฝ่าย</p>
         </div>
-      </div>
+      </header>
 
-      <div id="roleTabsContainer"></div>
+      <!-- 📊 การ์ดสถิติสรุปจำนวนใบลา -->
+      <section class="stats-grid">
+        <div class="stat-card pending">
+          <div class="stat-label">รอพิจารณา</div>
+          <div class="stat-value" id="countPending">0 <small>รายการ</small></div>
+        </div>
+        <div class="stat-card approved">
+          <div class="stat-label">อนุมัติแล้ว</div>
+          <div class="stat-value" id="countApproved">0 <small>รายการ</small></div>
+        </div>
+        <div class="stat-card rejected">
+          <div class="stat-label">ปฏิเสธแล้ว</div>
+          <div class="stat-value" id="countRejected">0 <small>รายการ</small></div>
+        </div>
+      </section>
 
-      <!-- พื้นที่ตารางอนุมัติใบลา -->
-      <div class="approval-panel">
+      <!-- 🏛️ ตาราง / Card View อนุมัติใบลา -->
+      <section class="approval-panel">
         <div class="table-responsive">
           <table class="approval-table">
             <thead>
@@ -48,41 +66,39 @@
             </thead>
             <tbody id="leaveTableBody">
               <tr>
-                <td colspan="7" class="text-center" style="padding: 40px; color: #64748b;">
+                <td colspan="7" class="text-center empty-state">
                   ⏳ กำลังโหลดข้อมูลคำขออนุมัติลา...
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
       
-    </div>
+    </main>
   </div>
 
-  <!-- Modal สำหรับยืนยันพิจารณาใบลา -->
+  <!-- 🪟 Modal สำหรับยืนยันพิจารณาใบลา -->
   <div id="actionModal" class="modal-overlay">
     <div class="modal-content">
       <h3 id="modalTitle">พิจารณาใบลา</h3>
-      <p id="modalEmployeeName">พนักงาน: </p>
-      
-      <input type="hidden" id="targetLeaveId">
-      <input type="hidden" id="targetStatus">
+      <p id="modalEmployeeName" class="modal-subtitle">พนักงาน: -</p>
       
       <div class="form-group">
         <label for="approvalComment">ความคิดเห็น / เหตุผลประกอบการพิจารณา:</label>
-        <textarea id="approvalComment" rows="3" placeholder="ระบุเหตุผลอนุมัติตามขั้นตอน หรือสาเหตุที่ไม่นุมัติใบลา..."></textarea>
+        <textarea id="approvalComment" rows="3" placeholder="ระบุเหตุผลอนุมัติตามขั้นตอน หรือสาเหตุที่ไม่อนุมัติใบลา..."></textarea>
       </div>
       
       <div class="modal-actions">
-        <button id="btnCancelAction" class="btn-cancel">ยกเลิก</button>
-        <button id="btnSubmitAction" class="btn-submit">ยืนยันบันทึก</button>
+        <!-- JS จะสร้างปุ่ม Dynamic มาวางที่นี่ -->
       </div>
     </div>
   </div>
 
-  <script type="module" src="/js/supabase-config.js"></script>
+  <!-- ⚡ สคริปต์การทำงาน -->
+   <script src="/js/supabase-config.js"></script>
   <script src="/js/approved-leaves.js"></script>
-  <script src="/js/auth-guard.js"></script>
+    
+  
 </body>
 </html>

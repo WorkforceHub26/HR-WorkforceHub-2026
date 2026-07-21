@@ -9,8 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
   
-  <!-- 🎨 เรียกใช้ไฟล์สไตล์ที่แยกออกไป -->
-  <link rel="stylesheet" href="leave-history.css">
+  <!-- 🎨 เรียกใช้เฉพาะไฟล์ leave-history.css ที่มีอยู่จริง -->
+  <link rel="stylesheet" href="/css/leave-history.css">
 </head>
 <body>
 
@@ -24,15 +24,15 @@
         <span id="emp-detail">กำลังดึงข้อมูลตำแหน่งงาน...</span>
       </div>
     </div>
-    <button class="btn-back-home" onclick="location.href='leave-user.html'">
-      <span class="material-symbols-outlined" style="font-size: 18px;">home</span> กลับหน้ายื่นใบลา
+    <button class="btn-back-home" onclick="location.href='/pages/user/index-user.html'">
+      <span class="material-symbols-outlined" style="font-size: 18px;">home</span> กลับหน้าหลัก
     </button>
   </header>
 
-  <!-- 🏛 shrink 🏛️ ตารางประวัติการลา Luxury Data Table -->
+  <!-- 🏛️ ตารางประวัติการลา Luxury Data Table -->
   <main class="panel">
     <div class="panel-header">
-      <span class="material-symbols-outlined" style="color: var(--primary);">history</span>
+      <span class="material-symbols-outlined text-primary">history</span>
       <h2>ประวัติการลาขออนุมัติ</h2>
     </div>
     
@@ -56,7 +56,11 @@
     </div>
   </main>
 
-  <!-- ⚡ เรียกใช้ไฟล์ระบบดึงข้อมูลเชื่อม API จริง -->
-  <script src="leave-history.js"></script>
+  <!-- ⚡ CDN Supabase (ต้องใส่ไว้ก่อน supabase-config.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabase-config.js"></script>
+
+  <!-- 📜 เรียกสคริปต์ประวัติการลาแบบ Absolute Path -->
+  <script src="/js/leave-history.js"></script>
 </body>
 </html>

@@ -6,20 +6,20 @@
   <title>Workforce Hub | PVT HR Dashboard</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-
-  <!-- ชุดไอคอน Material Symbols (เหมือนเดิม) -->
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  
   <link rel="stylesheet" href="/css/home.css" />
+  <link rel="stylesheet" href="/css/leave-user.css" />
   
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <link rel="stylesheet" href="/css/leave-user.css">
 </head>
 
 <body>
   <div class="app-shell">
     
+    <!-- 📌 SIDEBAR ด้านซ้าย (Fixed) -->
     <aside class="sidebar-light">
       <div class="brand-zone">
         <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
@@ -50,23 +50,26 @@
           <span class="material-symbols-outlined">history_edu</span>
           <span class="nav-label">ประวัติ</span>
         </a>
-                <!-- ปุ่มเปิดระบบจัดการบัตรพนักงาน -->
-        <button type="button" onclick="openEmployeeCardManagerPopup()" class="btn-primary" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; font-weight: 600;">
+
+        <!-- ปุ่มเปิดระบบจัดการบัตรพนักงาน ใน Sidebar -->
+        <a href="#" onclick="openEmployeeCardManagerPopup(); return false;" class="nav-item btn-card-nav" title="ระบบบัตรพนักงาน">
           <span class="material-symbols-outlined">badge</span>
-          ระบบบัตรพนักงาน & QR
-        </button>
+          <span class="nav-label">ระบบบัตรพนักงาน & QR</span>
+        </a>
       </nav>
       
       <div class="sidebar-footer">
         <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
           <span class="material-symbols-outlined">logout</span>
-          ออกจากระบบ
+          <span>ออกจากระบบ</span>
         </button>
       </div>
     </aside>
 
+    <!-- 💻 MAIN CONTENT ส่วนเนื้อหาหลัก -->
     <main class="main-content">
       
+      <!-- TOPBAR -->
       <header class="topbar">
         <div class="topbar-left">
           <h1>ภาพรวมระบบบริหารจัดการใบลา</h1>
@@ -81,7 +84,10 @@
             </div>
           </div>
         </div>
-      </header> <div class="stats-grid">
+      </header>
+
+      <!-- 📊 KPI STATS CARDS -->
+      <div class="stats-grid">
         <div class="stat-card border-blue">
           <div class="icon-box bg-blue"><span class="material-symbols-outlined">group</span></div>
           <div class="stat-info">
@@ -99,14 +105,15 @@
         <div class="stat-card border-orange">
           <div class="icon-box bg-orange"><span class="material-symbols-outlined">pending_actions</span></div>
           <div class="stat-info">
-            <span class="label">อนุมัติใบลา</span>
+            <span class="label">อนุมัติใบลา (รอพิจารณา)</span>
             <span class="value" id="statPendingLeaves">0</span>
           </div>
         </div>
       </div>
 
+      <!-- 📌 ROW 1: เมนูด่วน + กราฟสัดส่วนประเภทการลา -->
       <div class="middle-grid">
-        
+        <!-- เมนูด่วน -->
         <section class="panel quick-menu-panel">
           <div class="panel-header">
             <span class="material-symbols-outlined text-primary">apps</span>
@@ -141,27 +148,85 @@
                 <p>กำหนดปฏิทิน</p>
               </div>
             </a>
-                        <!-- ปุ่มเปิดระบบจัดการบัตรพนักงาน -->
-            <button type="button" onclick="openEmployeeCardManagerPopup()" class="btn-primary" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; font-weight: 600;">
-              <span class="material-symbols-outlined">badge</span>
-              ระบบบัตรพนักงาน & QR
+            <button type="button" onclick="openEmployeeCardManagerPopup()" class="quick-card hover-card-qr" style="border:none; cursor:pointer; text-align:left; width:100%;">
+              <div class="icon-circle bg-teal"><span class="material-symbols-outlined">badge</span></div>
+              <div class="text">
+                <strong>บัตรพนักงาน & QR</strong>
+                <p>เปิดระบบจัดการบัตร</p>
+              </div>
             </button>
           </div>
         </section>
 
-        <section class="panel chart-panel">
-          <div class="panel-header">
-            <span class="material-symbols-outlined text-primary">pie_chart</span>
-            <h2>สัดส่วนการลาเดือนนี้</h2>
+        <!-- 📊 Card สัดส่วนประเภทการลาแบบ Dynamic ( JS วาด % และ Progress Bar อัตโนมัติ ) -->
+       <div class="leave-analytics-card">
+            <div class="panel-header">
+              <span class="material-symbols-outlined text-primary">pie_chart</span>
+              <h2>สัดส่วนประเภทการลา <span id="leaveTypeTotalHeader" style="font-weight: normal; color: var(--text-soft);">(รวม 0 รายการ)</span></h2>
+            </div>
+            
+            <div class="card-body">
+              <!-- ฝั่งซ้าย: กราฟวงกลม -->
+              <div class="chart-box">
+                <canvas id="chartLeaveTypes"></canvas>
+                <div class="chart-center-text">
+                  <span class="total-num" id="leaveTypeTotalCenter">0</span>
+                  <span class="total-label">รายการ</span>
+                </div>
+              </div>
+              
+              <!-- ฝั่งขวา: รายการเปอร์เซ็นต์ Progress Bar -->
+              <div id="leaveDetailsList" class="details-list">
+                <!-- ข้อความแสดงตอนเริ่มต้น -->
+                <div style="color:var(--text-soft); font-size:13px;">กำลังโหลดข้อมูลสัดส่วนการลา...</div>
+              </div>
+            </div>
           </div>
-          <div class="chart-container">
-            <canvas id="chartLeaveTypes"></canvas>
-          </div>
-        </section>
-        
       </div>
 
-      <section class="panel table-panel">
+      <!-- 📌 ROW 2: กราฟแท่งวันลาแยกแผนก + ตาราง Top Leave Takers -->
+      <div class="middle-grid">
+        <!-- กราฟที่ 2: สถิติจำนวนวันลาแยกตามแผนก -->
+        <section class="panel chart-panel">
+          <div class="panel-header">
+            <span class="material-symbols-outlined text-primary">bar_chart</span>
+            <h2>สถิติจำนวนวันลาแยกตามแผนก (วัน)</h2>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartDepartments"></canvas>
+          </div>
+        </section>
+
+        <!-- ตารางอันดับพนักงานที่ใช้สิทธิ์ลาสูงสุด -->
+        <section class="panel table-panel">
+          <div class="panel-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="material-symbols-outlined text-primary" style="color: #f59e0b;">emoji_events</span>
+              <h2>อันดับพนักงานที่ลาเยอะที่สุด</h2>
+            </div>
+            <span style="font-size: 11px; color: var(--text-soft); font-weight: 500;">คำนวณจากอนุมัติแล้ว</span>
+          </div>
+          <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 60px; text-align: center;">อันดับ</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>แผนก / สังกัด</th>
+                  <th style="text-align: center;">ครั้ง</th>
+                  <th style="text-align: right;">วันลา</th>
+                </tr>
+              </thead>
+              <tbody id="topLeaveEmployeesTable">
+                <tr><td colspan="5" style="text-align: center; padding: 24px; color: #94a3b8;">กำลังคำนวณอันดับ...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- 📌 ROW 3: ตารางรายการคำขอลาล่าสุด (รอพิจารณา) ล่างสุด -->
+      <section class="panel table-panel" style="margin-bottom: 40px;">
         <div class="panel-header">
           <span class="material-symbols-outlined text-primary">list_alt</span>
           <h2>รายการคำขอลาล่าสุด (รอพิจารณา)</h2>
@@ -187,8 +252,10 @@
     </main>
   </div>
   
+  <!-- Toast Notification -->
   <div id="statusToast" class="toast"></div>
 
+  <!-- Scripts -->
   <script src="/js/supabase-config.js"></script>
   <script src="/js/auth-guard.js"></script>
   <script src="/js/home.js"></script>
