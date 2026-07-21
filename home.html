@@ -24,6 +24,8 @@
       <div class="brand-zone">
         <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
       </div>
+
+      
       
       <nav class="nav-menu">
         <a href="/home.html" class="nav-item active" title="หน้าหลัก">
@@ -57,6 +59,8 @@
           <span class="nav-label">ระบบบัตรพนักงาน & QR</span>
         </a>
       </nav>
+
+
       
       <div class="sidebar-footer">
         <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
@@ -65,7 +69,7 @@
         </button>
       </div>
     </aside>
-
+      
     <!-- 💻 MAIN CONTENT ส่วนเนื้อหาหลัก -->
     <main class="main-content">
       
@@ -76,6 +80,36 @@
           <p>PVT HR Live Tracking System</p>
         </div>
         <div class="topbar-right">
+
+                                <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA) -->
+              <div class="notif-wrapper">
+                <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน">
+                  <span class="material-symbols-outlined">notifications</span>
+                  <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
+                </button>
+
+                <div class="notif-dropdown" id="notifDropdown">
+                  <div class="notif-header">
+                    <div class="notif-title">
+                      <strong>การแจ้งเตือน</strong>
+                      <span class="notif-count-pill" id="notifUnreadCount">0 รายการใหม่</span>
+                    </div>
+                    <button type="button" class="btn-mark-read" onclick="markAllNotificationsAsRead()">อ่านทั้งหมด</button>
+                  </div>
+
+                  <!-- Container สำหรับแสดงรายการจริงจาก Supabase -->
+                  <div class="notif-body" id="notifListContainer">
+                    <div style="padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
+                      ⌛ กำลังโหลดการแจ้งเตือน...
+                    </div>
+                  </div>
+
+                  <div class="notif-footer">
+                    <a href="#" onclick="openAllNotificationsModal(); return false;">ดูการแจ้งเตือนทั้งหมด</a>
+                  </div>
+                </div>
+              </div>
+
           <div class="user-profile">
             <div class="avatar">HR</div>
             <div class="info">
@@ -84,8 +118,8 @@
             </div>
           </div>
         </div>
-      </header>
 
+      </header>
       <!-- 📊 KPI STATS CARDS -->
       <div class="stats-grid">
         <div class="stat-card border-blue">

@@ -604,6 +604,16 @@ async function editEmployeeData() {
 
         const { error: updErr } = await supabase.from('employees').update(result.value).eq('id', emp.id);
         if (updErr) throw updErr;
+
+                if (!error) {
+            // 2. 🟢 สั่งส่งแจ้งเตือนทันที!
+            await sendNotification(
+              'เพิ่มพนักงานใหม่', 
+              'เพิ่มพนักงาน คุณสมหญิง ใจดี เข้าสู่ระบบแล้ว', 
+              'employee', 
+              '/pages/user/history-table.html.html'
+            );
+          }
         
         await saveHRActivityLog('EMPLOYEE', 'UPDATE', emp.employee_code, `HR แก้ไขข้อมูลรายละเอียดของพนักงาน: ${result.value.full_name}`);
         Swal.fire('สำเร็จ!', 'อัปเดตข้อมูลพนักงานในระบบเรียบร้อยแล้ว', 'success');

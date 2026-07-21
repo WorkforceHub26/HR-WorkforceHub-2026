@@ -450,6 +450,19 @@ async function saveLeave() {
   // 5. ส่งข้อมูลขึ้นฐานข้อมูล
   try {
     const { data, error } = await sb.from("leave_requests").insert(payload).select();
+
+
+      if (!error) {
+      // 2. 🟢 สั่งส่งแจ้งเตือนทันที!
+      await sendNotification(
+        'คำขอลาป่วยใหม่', 
+        'สมชาย เข็มกลัด ยื่นคำขอลาป่วย 1 วัน', 
+        'leave', 
+        '/pagesleave-requests.html'
+      );
+
+      alert('ยื่นใบลาสำเร็จ!');
+    }
     
     // 🔴 [จุดสำคัญ] ดักจับ Error จาก Database (เช่น กรณีลาซ้ำซ้อน)
     if (error) {
@@ -481,7 +494,11 @@ async function saveLeave() {
       timer: 2000,
       showConfirmButton: false,
       background: 'rgba(255, 255, 255, 0.95)'
+
+      
     }).then(() => {
+
+      
       // รีเฟรชหน้าเว็บหลังบันทึกสำเร็จ (ใช้ reload() จะชัวร์กว่าและสมูทกว่าครับ)
       window.location.href = "/pages/user/index-user.html";
     });

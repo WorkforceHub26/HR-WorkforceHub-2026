@@ -538,23 +538,35 @@ function setupTableSearch() {
 }
 
 /* ==========================================================================
-   7. 🔔 BELL NOTIFICATION PANEL
+   🔔 RENDER BELL NOTIFICATIONS (FIX: SORT BY LATEST & SLICE)
    ========================================================================== */
 function renderBellNotifications(requests) {
   const bellDropdown = document.getElementById("bellDropdown");
   if (!bellDropdown) return;
 
   const safeRequests = requests || [];
-  const pendingReqs = safeRequests.filter(r => {
+
+  // 1. กรองเฉพาะรายการที่รออนุมัติ
+  let pendingReqs = safeRequests.filter(r => {
     if (!r) return false;
     const checkStatus = r.status || r.leave_status;
     return checkStatus === "pending" || checkStatus === "รออนุมัติ";
   });
 
+  // ⚡ 2. [เพิ่มจุดนี้] เรียงลำดับจาก "ใหม่ล่าสุด -> เก่าสุด" (Descending Order)
+  pendingReqs.sort((a, b) => {
+    const dateA = new Date(a.created_at || a.created_date || a.start_date || a.id || 0);
+    const dateB = new Date(b.created_at || b.created_date || b.start_date || b.id || 0);
+    return dateB - dateA; // วันที่ล่าสุดจะขึ้นก่อนเสมอ
+  });
+
+  // ⚡ 3. [เพิ่มจุดนี้] ตัดเอาเฉพาะ 5 รายการล่าสุดมาแสดงใน Dropdown
+  const latestReqs = pendingReqs.slice(0, 5);
+
   const bellBadge = document.getElementById("bellBadge");
   if (bellBadge) {
     if (pendingReqs.length > 0) {
-      bellBadge.textContent = pendingReqs.length;
+      bellBadge.textContent = pendingReqs.length; // จำนวนค้างอนุมัติทั้งหมด
       bellBadge.style.display = "flex";
     } else {
       bellBadge.style.display = "none";
@@ -574,12 +586,13 @@ function renderBellNotifications(requests) {
   const bellNotiBody = document.getElementById("bellNotiBody");
   if (!bellNotiBody) return;
 
-  if (pendingReqs.length === 0) {
+  if (latestReqs.length === 0) {
     bellNotiBody.innerHTML = `<div class="bell-empty-state" style="padding:24px; text-align:center; color:var(--text-soft); font-size:13px; font-style:italic;">ไม่มีรายการคำขอค้างพิจารณา</div>`;
     return;
   }
 
-  pendingReqs.forEach((r) => {
+  // วนลูปเฉพาะ 5 รายการล่าสุด (latestReqs)
+  latestReqs.forEach((r) => {
     const div = document.createElement("div");
     div.className = "bell-noti-item";
     div.style.cssText = "padding:12px 16px; border-bottom:1px solid var(--border); display:flex; gap:12px; cursor:pointer;";
@@ -875,3 +888,236 @@ window.handleLogout = function() {
     }, 1000);
   }
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  const bellBtn = document.getElementById("notifBellBtn");
+  const dropdown = document.getElementById("notifDropdown");
+
+  if (!bellBtn || !dropdown) return;
+
+  // 1. สลับ เปิด/ปิด Dropdown เมื่อกดปุ่มกระดิ่ง
+  bellBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle("show");
+  });
+
+  // 2. ปิด Dropdown อัตโนมัติเมื่อคลิกที่อื่นบนหน้าจอ
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+      dropdown.classList.remove("show");
+    }
+  });
+});
+
+/* ==========================================================================
+   🛠️ HELPER FUNCTIONS (เชื่อมต่อกับฟังก์ชันแจ้งเตือนของคุณ)
+   ========================================================================== */
+
+// กดเพื่อทำเครื่องหมายอ่านแล้วทั้งหมด
+function markAllNotificationsAsRead() {
+  const unreadItems = document.querySelectorAll(".notif-item.unread");
+  unreadItems.forEach(item => {
+    item.classList.remove("unread");
+    const dot = item.querySelector(".unread-dot");
+    if (dot) dot.remove();
+  });
+
+  // อัปเดต UI Badge
+  const badge = document.getElementById("notifBadge");
+  const unreadPill = document.getElementById("notifUnreadCount");
+  
+  if (badge) badge.style.display = "none";
+  if (unreadPill) unreadPill.textContent = "0 รายการใหม่";
+
+  // TODO: เรียกใช้ฟังก์ชัน Backend ของคุณตรงนี้ เช่น
+  // await api.markAllRead();
+}
+
+// เมื่อกดคลิกที่รายการแจ้งเตือนแต่ละอัน
+function handleNotifClick(notifId, redirectUrl) {
+  console.log("Notification Clicked ID:", notifId);
+  
+  // TODO: ส่งค่าไปอัปเดตสถานะใน Backend ของคุณว่าอ่านรายการนี้แล้ว
+  // await api.markAsRead(notifId);
+
+  if (redirectUrl) {
+    window.location.href = redirectUrl;
+  }
+}
+
+/* ==========================================================================
+   🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE
+   ========================================================================== */
+
+// 1. ฟังก์ชันแปลงเวลาเป็นภาษาไทยแบบสัมพัทธ์ (เช่น "5 นาทีที่แล้ว")
+function formatTimeAgo(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+
+  if (diffInSeconds < 60) return 'เมื่อสักครู่นี้';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} นาทีที่แล้ว`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ชั่วโมงที่แล้ว`;
+  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} วันที่แล้ว`;
+  return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+}
+
+// 2. แปลง Icon และ สี ตามประเภทแจ้งเตือน (Type)
+function getNotifTheme(type) {
+  switch (type) {
+    case 'leave':
+      return { icon: 'event_note', bgClass: 'bg-orange' };
+    case 'payroll':
+      return { icon: 'payments', bgClass: 'bg-green' };
+    case 'employee':
+      return { icon: 'badge', bgClass: 'bg-blue' };
+    default:
+      return { icon: 'notifications', bgClass: 'bg-purple' };
+  }
+}
+
+// 3. ฟังก์ชันดึงข้อมูลการแจ้งเตือนจาก Supabase
+async function fetchRealNotifications() {
+  const client = window.sb || window.pvtSupabase?.getClient();
+  const container = document.getElementById('notifListContainer');
+  const badge = document.getElementById('notifBadge');
+  const unreadCountPill = document.getElementById('notifUnreadCount');
+
+  if (!client || !container) return;
+
+  try {
+    // Query ข้อมูลจาก Supabase ดึง 15 รายการล่าสุด
+    const { data: notifications, error } = await client
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(15);
+
+    if (error) throw error;
+
+    if (!notifications || notifications.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 13px;">
+          🔕 ไม่มีรายการแจ้งเตือนในขณะนี้
+        </div>`;
+      if (badge) badge.style.display = 'none';
+      if (unreadCountPill) unreadCountPill.textContent = '0 รายการใหม่';
+      return;
+    }
+
+    // นับจำนวนรายการที่ยังไม่ได้อ่าน
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+
+    // อัปเดต Badge ตัวเลข
+    if (badge) {
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    if (unreadCountPill) {
+      unreadCountPill.textContent = `${unreadCount} รายการใหม่`;
+    }
+
+    // สร้าง HTML จากข้อมูลจริง
+    let html = '';
+    notifications.forEach(item => {
+      const theme = getNotifTheme(item.type);
+      const isUnreadClass = item.is_read ? '' : 'unread';
+      const timeText = formatTimeAgo(item.created_at);
+
+      html += `
+        <div class="notif-item ${isUnreadClass}" onclick="handleNotifClick(${item.id}, '${item.link}')">
+          <div class="notif-icon ${theme.bgClass}">
+            <span class="material-symbols-outlined">${theme.icon}</span>
+          </div>
+          <div class="notif-content">
+            <p class="notif-text"><strong>${item.title}</strong> ${item.message}</p>
+            <span class="notif-time">${timeText}</span>
+          </div>
+          ${!item.is_read ? '<span class="unread-dot"></span>' : ''}
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+
+  } catch (err) {
+    console.error('Error loading notifications:', err);
+    container.innerHTML = `
+      <div style="padding: 16px; text-align: center; color: var(--danger); font-size: 13px;">
+        ❌ ไม่สามารถโหลดการแจ้งเตือนได้
+      </div>`;
+  }
+}
+
+// 4. คลิกอ่านรายการเดียวแล้วอัปเดตลง Database
+async function handleNotifClick(notifId, redirectUrl) {
+  const client = window.sb || window.pvtSupabase?.getClient();
+  if (client && notifId) {
+    await client
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notifId);
+  }
+
+  if (redirectUrl && redirectUrl !== '#') {
+    window.location.href = redirectUrl;
+  } else {
+    fetchRealNotifications(); // โหลดข้อมูลใหม่เพื่ออัปเดต UI
+  }
+}
+
+// 5. คลิกอ่านทั้งหมด (Mark All as Read) ลง Database
+async function markAllNotificationsAsRead() {
+  const client = window.sb || window.pvtSupabase?.getClient();
+  if (!client) return;
+
+  try {
+    const { error } = await client
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('is_read', false);
+
+    if (error) throw error;
+    fetchRealNotifications(); // รีโหลดข้อมูล UI
+  } catch (err) {
+    console.error('Error marking all as read:', err);
+  }
+}
+
+// 6. ตั้งค่า Event Listeners และ Realtime Sync เมื่อโหลดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", () => {
+  const bellBtn = document.getElementById("notifBellBtn");
+  const dropdown = document.getElementById("notifDropdown");
+
+  if (bellBtn && dropdown) {
+    bellBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle("show");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+        dropdown.classList.remove("show");
+      }
+    });
+  }
+
+  // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้าเว็บ
+  fetchRealNotifications();
+
+  // ⚡ ระบบ Realtime Listeners (ถ้ามีการ INSERT ข้อมูลใหม่จะโหลด UI ใหม่ทันที)
+  const client = window.sb || window.pvtSupabase?.getClient();
+  if (client) {
+    client
+      .channel('realtime_notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+        fetchRealNotifications();
+      })
+      .subscribe();
+  }
+});
