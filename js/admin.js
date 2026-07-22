@@ -771,3 +771,93 @@ async function executeFinalReset() {
         alert("🚨 เกิดข้อผิดพลาดของระบบ: " + err.message);
     }
 }
+
+// ฟังก์ชันบันทึก Log การเข้าชมหน้าเว็บ
+async function logUserVisit(customAction = 'PAGE_VISIT', customDetails = '') {
+    try {
+        const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
+        if (!supabase) return;
+
+        // ดึงข้อมูล User ที่ล็อกอินอยู่ (ถ้ามี)
+        const { data: { user } } = await supabase.auth.getUser();
+        let userName = 'ผู้ใช้งานทั่วไป (Guest)';
+
+        if (user) {
+            // ดึงชื่อจาก profiles หรือใช้อีเมล
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('display_name, username')
+                .eq('id', user.id)
+                .single();
+            
+            userName = profile?.display_name || profile?.username || user.email || 'Logged-in User';
+        }
+
+        // ส่งข้อมูลเข้าตาราง audit_logs
+        await supabase.from('audit_logs').insert([{
+            user_id: user ? user.id : null,
+            user_name: userName,
+            page_url: window.location.pathname,
+            action: customAction,
+            details: customDetails || `เข้าชมหน้า ${document.title}`,
+            user_agent: navigator.userAgent
+        }]);
+
+    } catch (err) {
+        console.error("Logging Error:", err);
+    }
+}
+
+// สั่งให้ทำงานทันทีเมื่อโหลดหน้าเว็บสำเร็จ
+document.addEventListener("DOMContentLoaded", () => {
+    logUserVisit();
+});
+
+// ฟังก์ชันดักจับการเข้าเว็บของสมาชิกแบบ Realtime สำหรับ Admin
+function initAdminRealtimeLogger() {
+    const supabase = window.pvtSupabase.getClient();
+
+    supabase
+        .channel('admin-live-logs')
+        .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'audit_logs' },
+            (payload) => {
+                const newLog = payload.new;
+
+                // 1. แสดง Toast แจ้งเตือนมุมขวาบนหน้าจอ Admin
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: '🔔 ผู้ใช้งานเข้าสู่ระบบ/เปิดหน้าเว็บ',
+                        html: `<b>${newLog.user_name}</b> กำลังเปิดหน้า: <code>${newLog.page_url}</code>`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true
+                    });
+                }
+
+                // 2. ถ้ามีตาราง Live Log อยู่ในหน้าจอ สามารถสั่ง Render บรรทัดใหม่เพิ่มเข้าไปทันทีได้
+                const logTableBody = document.getElementById('auditLogsTableBody');
+                if (logTableBody) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(newLog.created_at).toLocaleTimeString('th-TH')}</td>
+                        <td>${newLog.user_name}</td>
+                        <td>${newLog.page_url}</td>
+                        <td><span class="badge">${newLog.action}</span></td>
+                        <td>${newLog.details}</td>
+                    `;
+                    logTableBody.insertBefore(row, logTableBody.firstChild);
+                }
+            }
+        )
+        .subscribe();
+}
+
+// เรียกใช้งานฟังก์ชันนี้เมื่อ Admin เข้าหน้า Dashboard
+document.addEventListener("DOMContentLoaded", () => {
+    initAdminRealtimeLogger();
+});

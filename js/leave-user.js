@@ -185,6 +185,37 @@ window.renderAllLeaveBalances = function() {
     container.appendChild(box);
   });
 };
+
+
+// =========================================
+// 🎯 ระบบอัปเดตยอดวันลาอัตโนมัติเมื่อพนักงานเลือกประเภทใน Dropdown (เวอร์ชันแก้บั๊ก)
+// ==========================================
+function updateLeaveBalanceDisplay(leaveTypeId) {
+  if (!leaveTypeId) return;
+
+  // ดึงข้อมูลโควตาคงเหลือจากส่วนกลาง
+  const balances = window.employeeLeaveBalances || [];
+  
+  // แปลงค่าเป็น String เพื่อป้องกัน Bug ชนิดข้อมูลไม่ตรงกัน (String vs Number)
+  const matchedBalance = balances.find(b => String(b.leave_type_id) === String(leaveTypeId));
+  const remainingDays = matchedBalance ? parseFloat(matchedBalance.remaining_days) : 0;
+
+  console.log(`ℹ️ [LEAVE BALANCE] เลือกประเภทวันลา ID: ${leaveTypeId} | สิทธิ์คงเหลือ: ${remainingDays} วัน`);
+
+  // แจ้งเตือนพนักงานเบื้องต้นหากสิทธิ์การลาประเภทที่เลือกหมดแล้ว
+  if (remainingDays <= 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'แจ้งเตือนโควตาวันลา',
+      html: `คุณไม่มีสิทธิ์วันลาคงเหลือสำหรับประเภทนี้แล้ว<br><span style="color:#ef4444; font-size:13px;">(หากยื่นคำขอ ระบบจะมาร์คสถานะ [เกินโควตา] ส่งให้ HR พิจารณา)</span>`,
+      confirmButtonColor: '#f59e0b',
+      confirmButtonText: 'รับทราบ'
+    });
+  }
+}
+
+
+
 // ==========================================================================
 // 🚀 3. ฟังก์ชันเพิ่มกล่องรายการลาใหม่ 
 // ==========================================================================
@@ -349,6 +380,33 @@ function handleFileChange(input, labelId) {
     label.innerText = '📁 เลือกรูปภาพหลักฐาน';
     label.style.borderColor = 'var(--border)';
     label.style.color = 'var(--muted)';
+  }
+}
+
+// ==========================================
+// 🎯 ระบบอัปเดตยอดวันลาอัตโนมัติเมื่อพนักงานเลือกประเภทใน Dropdown (เวอร์ชันแก้บั๊ก)
+// ==========================================
+function updateLeaveBalanceDisplay(leaveTypeId) {
+  if (!leaveTypeId) return;
+
+  // ดึงข้อมูลโควตาคงเหลือจากส่วนกลาง
+  const balances = window.employeeLeaveBalances || [];
+  
+  // แปลงค่าเป็น String เพื่อป้องกัน Bug ชนิดข้อมูลไม่ตรงกัน (String vs Number)
+  const matchedBalance = balances.find(b => String(b.leave_type_id) === String(leaveTypeId));
+  const remainingDays = matchedBalance ? parseFloat(matchedBalance.remaining_days) : 0;
+
+  console.log(`ℹ️ [LEAVE BALANCE] เลือกประเภทวันลา ID: ${leaveTypeId} | สิทธิ์คงเหลือ: ${remainingDays} วัน`);
+
+  // แจ้งเตือนพนักงานเบื้องต้นหากสิทธิ์การลาประเภทที่เลือกหมดแล้ว
+  if (remainingDays <= 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'แจ้งเตือนโควตาวันลา',
+      html: `คุณไม่มีสิทธิ์วันลาคงเหลือสำหรับประเภทนี้แล้ว<br><span style="color:#ef4444; font-size:13px;">(หากยื่นคำขอ ระบบจะมาร์คสถานะ [เกินโควตา] ส่งให้ HR พิจารณา)</span>`,
+      confirmButtonColor: '#f59e0b',
+      confirmButtonText: 'รับทราบ'
+    });
   }
 }
 
@@ -716,3 +774,43 @@ function toggleFormLeaveGuide() {
   }
 }
 
+// ฟังก์ชันบันทึก Log การเข้าชมหน้าเว็บ
+async function logUserVisit(customAction = 'PAGE_VISIT', customDetails = '') {
+    try {
+        const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
+        if (!supabase) return;
+
+        // ดึงข้อมูล User ที่ล็อกอินอยู่ (ถ้ามี)
+        const { data: { user } } = await supabase.auth.getUser();
+        let userName = 'ผู้ใช้งานทั่วไป (Guest)';
+
+        if (user) {
+            // ดึงชื่อจาก profiles หรือใช้อีเมล
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('display_name, username')
+                .eq('id', user.id)
+                .single();
+            
+            userName = profile?.display_name || profile?.username || user.email || 'Logged-in User';
+        }
+
+        // ส่งข้อมูลเข้าตาราง audit_logs
+        await supabase.from('audit_logs').insert([{
+            user_id: user ? user.id : null,
+            user_name: userName,
+            page_url: window.location.pathname,
+            action: customAction,
+            details: customDetails || `เข้าชมหน้า ${document.title}`,
+            user_agent: navigator.userAgent
+        }]);
+
+    } catch (err) {
+        console.error("Logging Error:", err);
+    }
+}
+
+// สั่งให้ทำงานทันทีเมื่อโหลดหน้าเว็บสำเร็จ
+document.addEventListener("DOMContentLoaded", () => {
+    logUserVisit();
+});

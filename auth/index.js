@@ -1,11 +1,14 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - index.js (เวอร์ชันปรับปรุง: ทุกคนไปหน้า User ก่อนเพื่อเช็คตัวเอง)
+   🔒 PVT HR LEAVE - auth/index.js (เวอร์ชันปรับปรุงระบบเตือนความเสี่ยงรหัสผ่าน)
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("username");
   const passwordInput = document.getElementById("password");
+
+  // บันทึก Log เมื่อเข้าหน้าเว็บ
+  logUserVisit();
 
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -31,35 +34,101 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       let result;
-      let baseQuery = sb.from("employees").select(`id, employee_code, full_name, role, status, password`);
-      
-      // 🧠 ระบบอัจฉริยะ Smart Detect คัดกรองประเภทข้อมูลนำเข้า
+      let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password");
+
+      // 🧠 Smart Detect คัดกรองประเภทข้อมูลนำเข้า (อีเมล / เบอร์โทร-รหัสพนักงาน / ชื่อ-สกุล)
       if (loginInput.includes("@")) {
-        result = await baseQuery.eq("email", loginInput).single();
+        result = await baseQuery.eq("email", loginInput).maybeSingle();
       } else if (/^\d+$/.test(loginInput)) {
-        result = await baseQuery.or(`employee_code.eq."${loginInput}",phone.eq."${loginInput}"`).single();
+        result = await baseQuery.or(`employee_code.eq."${loginInput}",phone.eq."${loginInput}"`).maybeSingle();
       } else {
-        result = await baseQuery.eq("full_name", loginInput).single();
+        result = await baseQuery.eq("full_name", loginInput).maybeSingle();
       }
 
       if (result.error || !result.data) {
         throw new Error("ไม่พบข้อมูลพนักงานในระบบ (โปรดตรวจสอบ รหัส/ชื่อ/อีเมล/เบอร์โทร อีกครั้ง)");
       }
-      
+
       const user = result.data;
-      const dbPassword = String(user.password).trim();
-      const inputPassword = String(password).trim();
-      
-      if (dbPassword !== inputPassword) {
+
+      // 1. ตรวจสอบรหัสผ่าน
+      if (String(user.password || "").trim() !== String(password).trim()) {
         throw new Error("รหัสผ่านไม่ถูกต้อง");
       }
 
-      const currentStatus = String(user.status || "").trim().toLowerCase();
-      if (currentStatus !== "active") {
+      // 2. ตรวจสอบสถานะบัญชี
+      if (String(user.status || "").trim().toLowerCase() !== "active") {
         throw new Error(`บัญชีของคุณถูกระงับ (สถานะในฐานข้อมูลคือ: ${user.status})`);
       }
 
-      // บันทึก Session การเข้าสู่ระบบ
+      // =========================================================================
+      // 🚨 ตรวจสอบว่าพนักงานยังใช้ "รหัสพนักงาน" เป็นรหัสผ่านอยู่หรือไม่
+      // =========================================================================
+      const isUsingDefaultPassword = (String(user.password).trim() === String(user.employee_code).trim());
+
+      if (isUsingDefaultPassword) {
+        const riskChoice = await Swal.fire({
+          icon: 'warning',
+          title: '⚠️ แจ้งเตือนความปลอดภัยบัญชี',
+          html: `
+            <div style="text-align: left; font-size: 13.5px; color: #475569; line-height: 1.6; padding: 4px 8px;">
+              ระบบพบว่าคุณกำลังใช้ <b>รหัสพนักงาน (${user.employee_code})</b> เป็นรหัสผ่านล็อกอินเข้าใช้งาน<br><br>
+              <span style="color: #ef4444; font-weight: 600;">🚨 ความเสี่ยงด้านความปลอดภัย:</span><br>
+              ผู้อื่นที่ทราบรหัสพนักงานของคุณ อาจแอบสวมรอยเข้าสู่ระบบเพื่อยื่นใบลา หรือเข้าถึงข้อมูลส่วนตัวแทนท่านได้<br><br>
+              <i>หากท่านประสงค์จะใช้รหัสผ่านนี้ต่อ กรุณากดยืนยันเพื่อรับทราบความเสี่ยง</i>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonText: 'ยอมรับความเสี่ยง & เข้าใช้งาน',
+          cancelButtonText: 'เปลี่ยนรหัสผ่านทันที',
+          confirmButtonColor: '#3b82f6', // สีฟ้า
+          cancelButtonColor: '#10b981',  // สีเขียว
+          allowOutsideClick: false
+        });
+
+        // กรณีเลือก "เปลี่ยนรหัสผ่านทันที"
+        if (riskChoice.dismiss === Swal.DismissReason.cancel) {
+          if (typeof openChangePasswordModal === "function") {
+            openChangePasswordModal(user);
+          } else {
+            // Prompt ให้กรอกรหัสผ่านใหม่ได้ทันที
+            const { value: newPassword } = await Swal.fire({
+              title: 'ตั้งรหัสผ่านใหม่',
+              input: 'password',
+              inputLabel: 'กรอกรหัสผ่านใหม่ที่ต้องการใช้งาน',
+              inputPlaceholder: 'อย่างน้อย 6 ตัวอักษร',
+              showCancelButton: true,
+              confirmButtonText: 'บันทึกรหัสผ่าน',
+              cancelButtonText: 'ยกเลิก',
+              inputValidator: (value) => {
+                if (!value || value.length < 6) {
+                  return 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร!';
+                }
+                if (value.trim() === String(user.employee_code).trim()) {
+                  return 'รหัสผ่านใหม่ต้องไม่ตรงกับรหัสพนักงาน!';
+                }
+              }
+            });
+
+            if (newPassword) {
+              const { error } = await sb
+                .from('employees')
+                .update({ password: newPassword.trim() })
+                .eq('id', user.id);
+
+              if (!error) {
+                await Swal.fire('สำเร็จ!', 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว กรุณาล็อกอินใหม่อีกครั้ง', 'success');
+              } else {
+                await Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเปลี่ยนรหัสผ่านได้: ' + error.message, 'error');
+              }
+            }
+          }
+          return; // หยุดกระบวนการล็อกอินชั่วคราว เพื่อให้เข้าด้วยรหัสผ่านใหม่
+        }
+      }
+      // =========================================================================
+
+      // 3. บันทึก Session
       sessionStorage.setItem("currentUser", JSON.stringify({
         id: user.id,
         employee_code: user.employee_code,
@@ -68,22 +137,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }));
 
       if (window.PVTLogger) {
-        window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ`);
+        window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ ${isUsingDefaultPassword ? '(ยอมรับความเสี่ยงรหัสผ่านเริ่มต้น)' : ''}`);
       }
 
-      // 🚀 [ปรับเส้นทางตามเงื่อนไขใหม่] HR/Admin ไปหลังบ้าน / พนักงานและหัวหน้าทุกระดับ ไปหน้าเช็คตัวเองก่อน
-      if (user.role === "hr" || user.role === "admin") {
-        if (window.location.origin) {
-          fetch("/home.html", { method: "HEAD" })
-          .then(() => { window.location.href = "/home.html"; })
-          .catch(() => { window.location.href = "/"; });
-        } else {
-          window.location.href = "/home.html";
-        }
-      } else {
-        // 🧑‍💼 หัวหน้าแผนก, ผู้จัดการ, พนักงานทั่วไป วิ่งมาตรวจเช็คตัวเองที่หน้านี้ก่อนทั้งหมด
-        window.location.href = "/pages/user/index-user.html";
-      }
+      // 🚀 เส้นทางเปลี่ยนหน้าตาม Role
+      redirectToDashboard(user.role);
 
     } catch (err) {
       Swal.fire({
@@ -97,30 +155,35 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// ฟังก์ชันสำหรับย้ายหน้าตาม Role
+function redirectToDashboard(role) {
+  if (role === "hr" || role === "admin") {
+    window.location.href = "/home.html";
+  } else {
+    window.location.href = "/pages/user/index-user.html";
+  }
+}
+
 /* ==========================================================================
    👁️ ฟังก์ชันเปิด-ปิด ดวงตาดูรหัสผ่าน
    ========================================================================== */
 window.togglePassword = function () {
   const input = document.getElementById("password");
   const icon = document.querySelector(".toggle-password");
-  
+
   if (input && icon) {
-    if (input.type === "password") {
-      input.type = "text";
-      icon.textContent = "visibility";
-    } else {
-      input.type = "password";
-      icon.textContent = "visibility_off";
-    }
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    icon.textContent = isPassword ? "visibility" : "visibility_off";
   }
 };
 
 /* ==========================================================================
-   📸 ระบบเปิดกล้องสแกน QR Code และล็อกอินอัตโนมัติ
+   📸 ระบบสแกน QR Code ล็อกอิน
    ========================================================================== */
 window.loginByQr = function () {
   if (typeof Html5QrcodeScanner === 'undefined') {
-    Swal.fire('ข้อผิดพลาด', 'ไม่พบระบบสแกน QR Code กรุณารีเฟรชหน้าเว็บหรือตรวจสอบเครือข่าย', 'error');
+    Swal.fire('ข้อผิดพลาด', 'ไม่พบระบบสแกน QR Code กรุณารีเฟรชหน้าเว็บอีกครั้ง', 'error');
     return;
   }
 
@@ -141,13 +204,13 @@ window.loginByQr = function () {
             fps: 15, 
             qrbox: { width: 180, height: 180 } 
           });
-          
+
           window.pvtHtml5QrcodeScanner.render((decodedText) => {
             window.pvtHtml5QrcodeScanner.clear().then(() => {
               executeSecureQrLogin(decodedText);
-            }).catch(e => console.error(e));
-          }, (err) => {});
-          
+            }).catch(console.error);
+          }, () => {});
+
         } catch(e) {
           console.error("สแกนเนอร์ทำงานขัดข้อง:", e);
         }
@@ -155,16 +218,15 @@ window.loginByQr = function () {
     },
     willClose: () => {
       if (window.pvtHtml5QrcodeScanner) {
-        window.pvtHtml5QrcodeScanner.clear().catch(e => console.error(e));
+        window.pvtHtml5QrcodeScanner.clear().catch(console.error);
       }
     }
   });
 };
 
-// 🔒 ฟังก์ชันประมวลผลการเข้าสู่ระบบผ่านคิวอาร์โค้ด
 async function executeSecureQrLogin(scannedData) {
   Swal.fire({
-    title: '🔒 กำลังถอดรหัสความปลอดภัย...',
+    title: '🔒 กำลังตรวจสอบข้อมูล...',
     html: '<div style="margin-top:10px;" class="pvt-spinner">ระบบกำลังเชื่อมต่อข้อมูลพนักงาน...</div>',
     showConfirmButton: false,
     allowOutsideClick: false
@@ -191,7 +253,7 @@ async function executeSecureQrLogin(scannedData) {
       .select('id, employee_code, full_name, role, status')
       .eq('employee_code', empCode)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
 
     if (error || !user) {
       throw new Error('ไม่พบข้อมูลพนักงานท่านนี้ หรือบัญชีถูกระงับสิทธิ์');
@@ -207,29 +269,17 @@ async function executeSecureQrLogin(scannedData) {
     Swal.fire({
       icon: 'success',
       title: `ยินดีต้อนรับคุณ ${user.full_name}`,
-      text: 'ถอดรหัสเข้าสู่ระบบสำเร็จผ่านการสแกนบัตร ⚡',
+      text: 'เข้าสู่ระบบสำเร็จผ่านการสแกนบัตร ⚡',
       timer: 1500,
       showConfirmButton: false
     });
 
-    // 🚀 ย้ายเส้นทางระบบสแกน QR ให้ล้อไปกับระบบพิมพ์มือด้านบนเป๊ะๆ
     setTimeout(() => {
-      if (user.role === "hr" || user.role === "admin") {
-        if (window.location.origin) {
-          fetch("/home.html", { method: "HEAD" })
-          .then(() => { window.location.href = "/home.html"; })
-          .catch(() => { window.location.href = "/"; });
-        } else {
-          window.location.href = "/home.html";
-        }
-      } else {
-        // หัวหน้าก็ส่งมาหน้าตรวจเช็คตัวเองก่อนเช่นกันครับพี่
-        window.location.href = "/pages/user/index-user.html";
-      }
+      redirectToDashboard(user.role);
     }, 1500);
 
   } catch (err) {
-    console.error("QR Auth Interface Failure:", err);
+    console.error("QR Auth Error:", err);
     Swal.fire({
       icon: 'error',
       title: 'เข้าสู่ระบบไม่สำเร็จ',
@@ -240,21 +290,38 @@ async function executeSecureQrLogin(scannedData) {
 }
 
 /* ==========================================================================
-   📘 ฟังก์ชันเปิด-ปิด กล่องอธิบายการใช้งาน (Smooth Toggle)
+   📘 ฟังก์ชันเปิด-ปิด กล่องคู่มือ
    ========================================================================== */
 window.toggleInstructions = function () {
   const content = document.getElementById("instructionsContent");
   const arrow = document.getElementById("instructionArrow");
-  
+
   if (content && arrow) {
-    // ใช้คลาส "active" ในการสั่งเปิด-ปิดเอฟเฟกต์ CSS
     content.classList.toggle("active");
-    
-    // เปลี่ยนสัญลักษณ์ลูกศรหมุนขึ้นหรือลงตามการใช้งาน
-    if (content.classList.contains("active")) {
-      arrow.textContent = "expand_less";
-    } else {
-      arrow.textContent = "expand_more";
-    }
+    arrow.textContent = content.classList.contains("active") ? "expand_less" : "expand_more";
   }
 };
+
+/* ==========================================================================
+   📊 Audit Logging
+   ========================================================================== */
+async function logUserVisit(customAction = 'PAGE_VISIT', customDetails = '') {
+  try {
+    const supabase = window.pvtSupabase?.getClient();
+    if (!supabase) return;
+
+    const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+    
+    await supabase.from('audit_logs').insert([{
+      user_id: currentUser ? currentUser.id : null,
+      user_name: currentUser ? currentUser.full_name : 'ผู้ใช้งานทั่วไป (Guest)',
+      page_url: window.location.pathname,
+      action: customAction,
+      details: customDetails || `เข้าชมหน้า ${document.title}`,
+      user_agent: navigator.userAgent
+    }]);
+
+  } catch (err) {
+    console.error("Logging Error:", err);
+  }
+}
