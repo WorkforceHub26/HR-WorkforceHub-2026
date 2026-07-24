@@ -37,8 +37,14 @@ function getAvatarUrl(imageUrl) {
    ========================================================================== */
 async function fetchAllEmployees() {
   const tbody = document.getElementById("employeeTableBody");
+  if (!tbody) return;
+
   try {
-    let { data: employees, error } = await supabaseClient
+    // 1. เรียกใช้งาน client จาก pvtSupabase หรือ window.supabaseClient
+    const client = window.pvtSupabase ? window.pvtSupabase.getClient() : supabaseClient;
+
+    // 2. ดึงข้อมูลจาก Supabase
+    let { data: employees, error } = await client
       .from('employees')
       .select(`
         id,
@@ -59,7 +65,9 @@ async function fetchAllEmployees() {
       return;
     }
 
-    let html = "";
+    // 3. สร้าง HTML โดยใช้ DOM / Data attributes เพื่อความปลอดภัย
+    tbody.innerHTML = ""; // ล้างข้อมูลเดิม
+
     employees.forEach(emp => {
       const eId = emp.employee_code || '-';
       const eName = emp.full_name || '-';
@@ -68,40 +76,50 @@ async function fetchAllEmployees() {
       const eSS = emp.hospital || '-'; 
       const eStart = emp.start_date || '-';
       
-      const avatarUrl = getAvatarUrl(emp.image_url);
+      const avatarUrl = typeof getAvatarUrl === 'function' ? getAvatarUrl(emp.image_url) : (emp.image_url || '/assets/img/default-avatar.jpg');
 
-      html += `
-        <tr>
-          <td style="text-align: center; vertical-align: middle;">
-            <img src="${avatarUrl}" 
-                 alt="${eName}" 
-                 style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid #e2e8f0; display: block; margin: 0 auto;"
-                 onerror="this.src='/assets/img/default-avatar.jpg';">
-          </td>
-          <td><b>${eId}</b></td>
-          <td><span style="font-weight: 500; color: #1e293b;">${eName}</span></td>
-          <td>${eRole}</td>
-          <td>${eDept}</td>
-          <td style="color:var(--text-soft);">${eSS}</td>
-          <td>${eStart}</td>
-          <td style="text-align: center;">
-            <button class="btn-check-history" onclick="openEmployeeLeaveHistoryPopup('${eId}', '${eName}')">
-              <span class="material-symbols-outlined" style="font-size: 18px;">analytics</span> เช็คประวัติ
-            </button>
-          </td>
-        </tr>
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td style="text-align: center; vertical-align: middle;">
+          <img src="${avatarUrl}" 
+               alt="${eName}" 
+               style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid #e2e8f0; display: block; margin: 0 auto;"
+               onerror="this.src='/assets/img/default-avatar.jpg';">
+        </td>
+        <td><b>${eId}</b></td>
+        <td><span style="font-weight: 500; color: #1e293b;">${eName}</span></td>
+        <td>${eRole}</td>
+        <td>${eDept}</td>
+        <td style="color:var(--text-soft);">${eSS}</td>
+        <td>${eStart}</td>
+        <td style="text-align: center;">
+          <button class="btn-check-history">
+            <span class="material-symbols-outlined" style="font-size: 18px;">analytics</span> เช็คประวัติ
+          </button>
+        </td>
       `;
+
+      // ผูก Event Listener แทน inline onclick เพื่อความปลอดภัย
+      const btn = tr.querySelector(".btn-check-history");
+      btn.addEventListener("click", () => {
+        if (typeof openEmployeeLeaveHistoryPopup === "function") {
+          openEmployeeLeaveHistoryPopup(eId, eName);
+        }
+      });
+
+      tbody.appendChild(tr);
     });
-    tbody.innerHTML = html;
 
   } catch (err) {
     console.error("Error loading employee directory:", err);
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--danger);">⚠️ เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</td></tr>`;
   }
 }
-
 /* ==========================================================================
    ✨ เปิดหน้าต่าง Pop-up ดึงข้อมูลใบลาสะสม และสิทธิ์คงเหลือ (เวอร์ชันยกเครื่องใหม่)
+   ========================================================================== */
+/* ==========================================================================
+   ✨ เปิดหน้าต่าง Pop-up ดึงข้อมูลประวัติพนักงานแบบละเอียด + ข้อมูลติดต่อ + เลขธนาคาร + วันเริ่มงาน + ใบลา
    ========================================================================== */
 async function openEmployeeLeaveHistoryPopup(empCode, empName) {
   Swal.fire({
@@ -120,23 +138,39 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
   let balance = null;
   let requests = [];
   let employeeUuid = null;
-  let dbImageUrl = null;
+  let empData = null;
 
-  // 🔍 Step 1: หารหัส UUID และรูปภาพของพนักงาน
+  // 🔍 Step 1: ดึงข้อมูลพนักงานแบบละเอียดทุก Field (รวมเบอร์โทร, Line ID, ธนาคาร, วันเริ่มงาน)
   try {
-    const { data: empData, error: empError } = await sb
+    const { data, error: empError } = await sb
       .from('employees')
-      .select('id, image_url')
+      .select(`
+        id,
+        employee_code,
+        full_name,
+        nickname,
+        phone,
+        email,
+        line_id,
+        bank_name,
+        bank_account,
+        start_date,
+        hospital,
+        employment_type,
+        image_url,
+        departments ( department_name ),
+        positions ( position_name )
+      `)
       .eq('employee_code', empCode)
       .single();
 
-    if (empError || !empData) {
+    if (empError || !data) {
       Swal.fire('ไม่พบข้อมูล', `ไม่พบพนักงานรหัส ${empCode} ในระบบ`, 'warning');
       return;
     }
     
+    empData = data;
     employeeUuid = empData.id;
-    dbImageUrl = empData.image_url;
 
   } catch (e) {
     console.error("Error fetching employee:", e);
@@ -157,6 +191,8 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
     console.warn("⚠️ ไม่พบตาราง leave_balances:", e.message);
   }
 
+  
+
   // 🔍 Step 3: ดึงตารางใบลาสะสม (leave_requests)
   try {
     const { data: reqData } = await sb
@@ -171,9 +207,17 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
   }
 
   // แปลง URL รูปภาพสำหรับโชว์บนหัวข้อ Pop-up
-  const popAvatarUrl = getAvatarUrl(dbImageUrl);
+  const popAvatarUrl = getAvatarUrl(empData.image_url);
 
-  // ตั้งค่าโควตาเริ่มต้นแสดงผล (รองรับโครงสร้างตารางสวัสดิการ 8 ข้อหลักเต็มรูปแบบ + 1 ลาอื่นๆ)
+  // แปลงประเภทการจ้างงาน
+  const empTypeMap = {
+    'monthly': 'พนักงานรายเดือน',
+    'daily': 'พนักงานรายวัน',
+    'contract': 'พนักงานสัญญาจ้าง'
+  };
+  const empTypeText = empTypeMap[empData.employment_type] || empData.employment_type || 'พนักงานรายเดือน';
+
+  // ตั้งค่าโควตาเริ่มต้นแสดงผล (รองรับโครงสร้างตารางสวัสดิการ 8 ข้อหลัก + 1 ลาอื่นๆ)
   let sRem = balance?.sick_remaining ?? 30, sMax = balance?.sick_max ?? 30;
   let pRem = balance?.personal_remaining ?? 6, pMax = balance?.personal_max ?? 6;
   let vRem = balance?.vacation_remaining ?? 6, vMax = balance?.vacation_max ?? 6;
@@ -268,28 +312,65 @@ async function openEmployeeLeaveHistoryPopup(empCode, empName) {
     });
   }
 
-  // ยิงกล่องข้อมูลออกหน้าจอ (เวอร์ชันปรับปรุงขยายตารางกว้างเต็มตา 1050px อ่านง่ายระดับ Premium)
+  // 🪪 การ์ดแสดงข้อมูลส่วนตัว ข้อมูลติดต่อ และเลขที่บัญชีธนาคาร
+  const profileDetailsHtml = `
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+      <div style="font-size: 14.5px; font-weight: 700; color: #0f172a; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <span class="material-symbols-outlined" style="color: #0fa472; font-size: 20px;">badge</span> ข้อมูลส่วนตัว & ข้อมูลการติดต่อ
+      </div>
+      
+      <!-- ข้อมูลการทำงาน -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 16px; font-size: 13.5px;">
+        <div><strong style="color: #64748b;">ชื่อเล่น:</strong> ${empData.nickname || '-'}</div>
+        <div><strong style="color: #64748b;">ตำแหน่ง:</strong> ${empData.positions?.position_name || '-'}</div>
+        <div><strong style="color: #64748b;">แผนก/ฝ่าย:</strong> ${empData.departments?.department_name || '-'}</div>
+        <div><strong style="color: #64748b;">ประเภทพนักงาน:</strong> ${empTypeText}</div>
+        <div><strong style="color: #64748b;">📅 วันเริ่มงาน:</strong> ${empData.start_date || '-'}</div>
+        <div><strong style="color: #64748b;">🏥 รพ. ประกันสังคม:</strong> ${empData.hospital || '-'}</div>
+      </div>
+
+      <!-- ข้อมูลติดต่อ -->
+      <div style="border-top: 1px dashed #cbd5e1; margin-top: 12px; padding-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 16px; font-size: 13.5px;">
+        <div><strong style="color: #64748b;">📱 เบอร์โทรศัพท์:</strong> ${empData.phone || '-'}</div>
+        <div><strong style="color: #64748b;">✉️ อีเมล:</strong> ${empData.email || '-'}</div>
+        <div><strong style="color: #64748b;">💬 ID Line:</strong> ${empData.line_id || '-'}</div>
+      </div>
+
+      <!-- ข้อมูลธนาคาร -->
+      <div style="border-top: 1px dashed #cbd5e1; margin-top: 12px; padding-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 16px; font-size: 13.5px;">
+        <div><strong style="color: #64748b;">🏦 ธนาคาร:</strong> ${empData.bank_name || '-'}</div>
+        <div><strong style="color: #64748b;">💳 เลขที่บัญชี:</strong> <span style="font-weight:700; color:#0f172a; font-family: monospace; font-size: 14.5px;">${empData.bank_account || '-'}</span></div>
+      </div>
+    </div>
+  `;
+
+  // 🚀 แสดง Pop-up (SweetAlert2)
   Swal.fire({
     width: '1050px',
     html: `
       <div style="display: flex; align-items: center; gap: 14px; text-align: left; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 16px;">
         <img src="${popAvatarUrl}" 
-             style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid #0fa472; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" 
+             style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid #0fa472; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" 
              onerror="this.src='/assets/img/default-avatar.jpg';">
         <div>
-          <div style="font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1.2;">ตรวจสอบประวัติพนักงาน: ${empName}</div>
+          <div style="font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1.2;">รายละเอียดประวัติพนักงาน: ${empData.full_name || empName}</div>
           <div style="font-size: 13.5px; font-weight: 500; color: #64748b; margin-top: 3px;">รหัสประจำตัวพนักงาน: ${empCode}</div>
         </div>
       </div>
 
       <div style="text-align: left;">
+        <!-- กล่องข้อมูลส่วนตัว + ข้อมูลติดต่อ + เลขบัญชี -->
+        ${profileDetailsHtml}
+
+        <!-- สิทธิ์วันลาคงเหลือ -->
         <div style="border-bottom: 2px dashed #e2e8f0; padding-bottom: 12px; margin-bottom: 12px;">
           <span style="font-size:14px; color:var(--text-soft); font-weight:600; display:block; margin-top:8px; margin-bottom: 6px;">📊 ยอดสิทธิ์วันลาคงเหลือประจำปีปัจจุบัน:</span>
           ${quotaHtml}
         </div>
         
+        <!-- ตารางประวัติใบลา -->
         <span style="font-size:14px; color:var(--text-soft); font-weight:600; display:block; margin-top:16px; margin-bottom:8px;">📜 ประวัติรายการเอกสารใบลาสะสมทั้งหมดในตาราง (${requests.length} รายการ):</span>
-        <div style="max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: #ffffff;">
+        <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: #ffffff;">
           <table class="swal-leave-table">
             <thead>
               <tr>
@@ -344,44 +425,3 @@ function toggleInstructions() {
     }
   }
 }
-
-// ฟังก์ชันบันทึก Log การเข้าชมหน้าเว็บ
-async function logUserVisit(customAction = 'PAGE_VISIT', customDetails = '') {
-    try {
-        const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
-        if (!supabase) return;
-
-        // ดึงข้อมูล User ที่ล็อกอินอยู่ (ถ้ามี)
-        const { data: { user } } = await supabase.auth.getUser();
-        let userName = 'ผู้ใช้งานทั่วไป (Guest)';
-
-        if (user) {
-            // ดึงชื่อจาก profiles หรือใช้อีเมล
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('display_name, username')
-                .eq('id', user.id)
-                .single();
-            
-            userName = profile?.display_name || profile?.username || user.email || 'Logged-in User';
-        }
-
-        // ส่งข้อมูลเข้าตาราง audit_logs
-        await supabase.from('audit_logs').insert([{
-            user_id: user ? user.id : null,
-            user_name: userName,
-            page_url: window.location.pathname,
-            action: customAction,
-            details: customDetails || `เข้าชมหน้า ${document.title}`,
-            user_agent: navigator.userAgent
-        }]);
-
-    } catch (err) {
-        console.error("Logging Error:", err);
-    }
-}
-
-// สั่งให้ทำงานทันทีเมื่อโหลดหน้าเว็บสำเร็จ
-document.addEventListener("DOMContentLoaded", () => {
-    logUserVisit();
-});

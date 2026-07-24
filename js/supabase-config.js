@@ -1,55 +1,75 @@
-window.PVT_SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
-window.PVT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
+// ============================================================================
+// 🧠 PVT SUPABASE - CORE CONFIG & ENGINE
+// ============================================================================
+
+const PVT_SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
+const PVT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
+
+// ส่งออกตัวแปรไปที่ window เพื่อความปลอดภัย
+window.PVT_SUPABASE_URL = PVT_SUPABASE_URL;
+window.PVT_SUPABASE_ANON_KEY = PVT_SUPABASE_ANON_KEY;
 
 console.log("%c[Timeline Step 1]: เริ่มต้นโหลดสคริปต์โครงสร้างหลักแบบอัจฉริยะ (Smart Config)...", "color: #9333ea; font-weight: bold;");
 
-try {
-  // สั่งสร้าง Client ประทับตราลงสู่เบราว์เซอร์
-  window.supabaseClient = supabase.createClient(PVT_SUPABASE_URL, PVT_SUPABASE_ANON_KEY);
-  console.log("%c[Timeline Step 2]: ท่อเชื่อมโยงฐานข้อมูลหลักถูกสร้างสำเร็จ! ✅", "color: #2563eb; font-weight: bold;");
-} catch (err) {
-  console.error("❌ เกิดข้อผิดพลาดในจังหวะสร้าง Client ต้นทาง:", err.message);
-}
-
 // ============================================================================
-// 🧠 PVT SUPABASE - CORE ENGINE (ระบบปฏิบัติการหลัก)
+// 🧠 PVT SUPABASE ENGINE MODULE
 // ============================================================================
 window.pvtSupabase = (() => {
-  let client = window.supabaseClient;
+  let internalClient = null;
 
   function getClient() {
-    if (client) return client;
-    if (!window.supabase) {
-      console.warn("❌ Supabase library is not loaded.");
+    if (internalClient) return internalClient;
+    if (window.supabaseClient) {
+      internalClient = window.supabaseClient;
+      return internalClient;
+    }
+    
+    if (typeof window.supabase === "undefined" || !window.supabase.createClient) {
+      console.warn("⚠️ Supabase JS SDK ยังไม่ได้โหลดเข้าสู่หน้าเว็บ");
       return null;
     }
-    client = window.supabase.createClient(PVT_SUPABASE_URL, PVT_SUPABASE_ANON_KEY);
-    return client;
+
+    try {
+      internalClient = window.supabase.createClient(PVT_SUPABASE_URL, PVT_SUPABASE_ANON_KEY);
+      window.supabaseClient = internalClient;
+      console.log("%c[Timeline Step 2]: ท่อเชื่อมโยงฐานข้อมูลหลักถูกสร้างสำเร็จ! ✅", "color: #2563eb; font-weight: bold;");
+      return internalClient;
+    } catch (err) {
+      console.error("❌ เกิดข้อผิดพลาดในการสร้าง Supabase Client:", err.message);
+      return null;
+    }
   }
 
   async function getSession() {
     const sb = getClient();
     if (!sb) return null;
-    const { data } = await sb.auth.getSession();
-    return data.session || null;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      return data.session || null;
+    } catch (err) {
+      console.error("❌ ไม่สามารถดึงข้อมูล Session ได้:", err.message);
+      return null;
+    }
   }
 
-  // 🌟 [SMART FEATURE 1] ดึงโปรไฟล์แบบทะลุปรุโปร่ง (รวมข้อมูลพนักงาน แผนก ตำแหน่ง และโควตาวันลา)
+  // 🌟 [SMART FEATURE 1] ดึงโปรไฟล์พนักงานแบบปลอดภัย
   async function getCurrentProfile() {
     const sb = getClient();
+    if (!sb) return null;
+    
     const session = await getSession();
-    if (!sb || !session) return null;
+    if (!session || !session.user) return null;
 
     try {
       const { data, error } = await sb
         .from("profiles")
         .select(`
           id, employee_id, email, username, display_name, role, status,
-          employees!employee_id (
+          employees (
             id, employee_code, full_name, start_date, status,
             departments ( department_name ),
-            positions ( position_name ),
-            leave_balances ( leave_type_id, entitlement_days, used_days, remaining_days, year )
+            positions ( position_name )
           )
         `)
         .eq("id", session.user.id)
@@ -58,12 +78,12 @@ window.pvtSupabase = (() => {
       if (error) throw error;
       return data;
     } catch (err) {
-      logDebugError("getCurrentProfile", err.message, { userId: session.user.id });
+      await logDebugError("getCurrentProfile", err.message, { userId: session?.user?.id });
       return null;
     }
   }
 
-  // 🌟 [SMART FEATURE 2] ระบบสอดแนม (Activity Log) - เก็บประวัติการใช้งาน
+  // 🌟 [SMART FEATURE 2] ระบบ Activity Log
   async function logUserAction(userName, actionType, description) {
     const sb = getClient();
     if (!sb) return;
@@ -77,11 +97,11 @@ window.pvtSupabase = (() => {
       });
       console.log(`📝 [LOG RECORDED]: ${actionType} -> ${description}`);
     } catch (err) {
-      console.error("❌ บันทึก Log กิจกรรมไม่สำเร็จ:", err);
+      console.warn("⚠️ บันทึก Activity Log ไม่สำเร็จ:", err.message || err);
     }
   }
 
-  // 🌟 [SMART FEATURE 3] ระบบจับบั๊กอัตโนมัติ (Auto Debug Logger)
+  // 🌟 [SMART FEATURE 3] ระบบ Auto Debug Logger
   async function logDebugError(functionName, errorMessage, contextData = {}) {
     const sb = getClient();
     if (!sb) return;
@@ -91,26 +111,30 @@ window.pvtSupabase = (() => {
         error_message: String(errorMessage),
         context_data: contextData
       });
-      console.warn(`🚨 [SYSTEM WARNING] บันทึก Error จากฟังก์ชัน '${functionName}' ลงฐานข้อมูลแล้ว!`);
+      console.warn(`🚨 [SYSTEM WARNING] บันทึก Error จากฟังก์ชัน '${functionName}' เรียบร้อยแล้ว`);
     } catch (err) {
       // เงียบไว้เพื่อไม่ให้เกิด Infinite Loop
     }
   }
 
-  // 🌟 [SMART FEATURE 4] ฟังก์ชันตรวจสอบว่าวันที่เลือกเป็น "วันหยุดบริษัท" หรือไม่
+  // 🌟 [SMART FEATURE 4] ฟังก์ชันตรวจสอบวันหยุดบริษัท
   async function checkIsCompanyHoliday(dateString) {
     const sb = getClient();
     if (!sb || !dateString) return false;
     try {
-      const { data } = await sb.from("company_holidays").select("holiday_name").eq("holiday_date", dateString).maybeSingle();
-      return data ? data.holiday_name : false; // ถอยชื่อวันหยุดกลับไปให้ ถ้าไม่ใช่จะคืนค่า false
+      const { data } = await sb
+        .from("company_holidays")
+        .select("holiday_name")
+        .eq("holiday_date", dateString)
+        .maybeSingle();
+      return data ? data.holiday_name : false;
     } catch (err) {
       return false;
     }
   }
 
   // ==========================================
-  // UTILITIES (ตัวช่วยแปลงข้อมูลต่างๆ)
+  // UTILITIES (ตัวช่วยแปลงข้อมูล)
   // ==========================================
   function toISODate(input) {
     if (!input) return null;
@@ -148,11 +172,11 @@ window.pvtSupabase = (() => {
 
   function escapeHtml(value) {
     return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   return {
@@ -168,8 +192,11 @@ window.pvtSupabase = (() => {
   };
 })();
 
-// 🎯 Expose ฟังก์ชัน logUserAction ออกมาเป็น Global เผื่อให้หน้า HTML ตัวเก่าเรียกใช้ได้โดยไม่ Error
-window.logUserAction = window.pvtSupabase.logUserAction;
-window.logDebugError = window.pvtSupabase.logDebugError;
+// Initialize client ทันทีถ้า SDK พร้อม
+window.pvtSupabase.getClient();
+
+// Expose ฟังก์ชันให้ Global Scope สำหรับโค้ดรุ่นเก่า
+window.logUserAction = (...args) => window.pvtSupabase.logUserAction(...args);
+window.logDebugError = (...args) => window.pvtSupabase.logDebugError(...args);
 
 console.log("✅ [Supabase Config] อัปเกรดระบบอัจฉริยะเสร็จสมบูรณ์ พร้อมใช้งาน! 🚀");

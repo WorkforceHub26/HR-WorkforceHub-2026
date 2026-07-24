@@ -197,16 +197,24 @@ window.loadRecentLeaves = async function(profile) {
     console.log(`⏳ [FETCH DATA] กำลังดึงสถิติและโควตาของไอดี: ${employeeId}`);
     const currentYear = new Date().getFullYear();
 
-    const [requestsRes, pendingRes, balanceRes] = await Promise.all([
-      sb.from("leave_requests").select("id, start_date, end_date, total_days, status, leave_types(leave_name)").eq("employee_id", employeeId).order("created_at", { ascending: false }).limit(50), 
-      sb.from("leave_requests").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).eq("status", "pending"),
-      sb.from("leave_balances").select("leave_type_id, remaining_days, used_days, year, leave_types(leave_name)").eq("employee_id", employeeId).eq("year", currentYear)
-    ]);
+      // 📍 ค้นหาท่อนนี้ใน index-user.js
+  const [requestsRes, pendingRes, balanceRes] = await Promise.all([
+    sb.from("leave_requests").select("id, start_date, end_date, total_days, status, leave_types(leave_name)").eq("employee_id", employeeId).order("created_at", { ascending: false }).limit(50), 
+    sb.from("leave_requests").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).eq("status", "pending"),
+    sb.from("leave_balances").select("leave_type_id, remaining_days, used_days, year, leave_types(leave_name)").eq("employee_id", employeeId).eq("year", currentYear)
+  ]);
 
-    if (requestsRes.error) throw requestsRes.error;
-    
-    const balanceRows = balanceRes.data || [];
-    window.employeeLeaveBalances = balanceRows;
+  // 🛠️ เพิ่มการตรวจสอบ balanceRes.error ตรงนี้
+  if (balanceRes.error) {
+    console.error("❌ [BALANCE ERROR] ดึงโควตาวันลาไม่สำเร็จ:", balanceRes.error.message);
+  } else {
+    console.log("✅ [BALANCE DATA] ดึงโควตาวันลาสำเร็จ:", balanceRes.data);
+  }
+
+  if (requestsRes.error) throw requestsRes.error;
+
+  const balanceRows = balanceRes.data || [];
+  window.employeeLeaveBalances = balanceRows; 
 
     if (typeof window.renderAllLeaveBalances === 'function') {
       window.renderAllLeaveBalances();

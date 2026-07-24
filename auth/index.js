@@ -7,8 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const usernameInput = document.getElementById("username");
   const passwordInput = document.getElementById("password");
 
-  // บันทึก Log เมื่อเข้าหน้าเว็บ
-  logUserVisit();
+
 
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -302,26 +301,3 @@ window.toggleInstructions = function () {
   }
 };
 
-/* ==========================================================================
-   📊 Audit Logging
-   ========================================================================== */
-async function logUserVisit(customAction = 'PAGE_VISIT', customDetails = '') {
-  try {
-    const supabase = window.pvtSupabase?.getClient();
-    if (!supabase) return;
-
-    const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-    
-    await supabase.from('audit_logs').insert([{
-      user_id: currentUser ? currentUser.id : null,
-      user_name: currentUser ? currentUser.full_name : 'ผู้ใช้งานทั่วไป (Guest)',
-      page_url: window.location.pathname,
-      action: customAction,
-      details: customDetails || `เข้าชมหน้า ${document.title}`,
-      user_agent: navigator.userAgent
-    }]);
-
-  } catch (err) {
-    console.error("Logging Error:", err);
-  }
-}

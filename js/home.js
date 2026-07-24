@@ -645,16 +645,20 @@ window.openEmployeeCardManagerPopup = async function () {
   }
 
   try {
-    const { data: employees, error } = await client
-      .from('employees')
-      .select(`
-        employee_code, 
-        full_name, 
-        role, 
-        status,
-        departments ( department_name ),
-        positions ( position_name )
-      `)
+            const { data: employees, error } = await supabase
+          .from('employees')
+          .select(`
+            id,
+            employee_code,
+            full_name,
+            leave_balances (
+              id,
+              leave_type_id,
+              quota,
+              remaining_days,
+              leave_types ( leave_name, yearly_quota )
+            )
+          `)
       .order('employee_code', { ascending: true });
 
     if (error) throw error;
@@ -1122,43 +1126,3 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// ฟังก์ชันบันทึก Log การเข้าชมหน้าเว็บ
-async function logUserVisit(customAction = 'PAGE_VISIT', customDetails = '') {
-    try {
-        const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
-        if (!supabase) return;
-
-        // ดึงข้อมูล User ที่ล็อกอินอยู่ (ถ้ามี)
-        const { data: { user } } = await supabase.auth.getUser();
-        let userName = 'ผู้ใช้งานทั่วไป (Guest)';
-
-        if (user) {
-            // ดึงชื่อจาก profiles หรือใช้อีเมล
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('display_name, username')
-                .eq('id', user.id)
-                .single();
-            
-            userName = profile?.display_name || profile?.username || user.email || 'Logged-in User';
-        }
-
-        // ส่งข้อมูลเข้าตาราง audit_logs
-        await supabase.from('audit_logs').insert([{
-            user_id: user ? user.id : null,
-            user_name: userName,
-            page_url: window.location.pathname,
-            action: customAction,
-            details: customDetails || `เข้าชมหน้า ${document.title}`,
-            user_agent: navigator.userAgent
-        }]);
-
-    } catch (err) {
-        console.error("Logging Error:", err);
-    }
-}
-
-// สั่งให้ทำงานทันทีเมื่อโหลดหน้าเว็บสำเร็จ
-document.addEventListener("DOMContentLoaded", () => {
-    logUserVisit();
-});
