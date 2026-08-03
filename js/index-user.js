@@ -342,7 +342,7 @@ window.renderAllLeaveBalances = function() {
 };
 
 /* ==========================================================================
-   🖥️ 5. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล
+   🖥️ 5. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล (อัปเดตระบบ Auto-Login สแกนเด้งเข้าเว็บ)
    ========================================================================== */
 window.viewMyDigitalCard = function() {
   const sessionUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
@@ -355,7 +355,12 @@ window.viewMyDigitalCard = function() {
   const fullName = employee?.full_name || profile?.display_name || sessionUser?.full_name || "พนักงานในระบบ";
   const myDept = employee?.departments?.department_name || employee?.department_name || sessionUser?.department_name || "ทั่วไป";
   const myRole = employee?.positions?.position_name || employee?.position_name || sessionUser?.position_name || profile?.role || "พนักงาน";
-  const secureData = encodeURIComponent(`${currentCode}|PVT_SECURE_BYPASS`);
+
+  // 🚀 [จุดแก้สำคัญ]: เปลี่ยน QR Code ให้เป็น ลิงก์ URL Auto-Login
+  const baseUrl = window.location.origin;
+  const targetUrl = `${baseUrl}/?auto_login=${currentCode}&token=PVT_SECURE_BYPASS`; 
+  
+  const secureData = encodeURIComponent(targetUrl);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
 
   Swal.fire({
