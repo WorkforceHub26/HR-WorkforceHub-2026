@@ -643,8 +643,9 @@ window.openEmployeeCardManagerPopup = async function () {
 };
 
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
-  // 🚀 ลิงก์สำหรับ Auto-Login เมื่อสแกนด้วยกล้องมือถือ
-  const targetUrl = `https://5851d9ff.dev-workforcehub-2026.pages.dev/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`; 
+  // 🚀 ดึง URL ปัจจุบันของเว็บ แล้วสร้างเป็นลิงก์ Auto Login
+  const baseUrl = window.location.origin;
+  const targetUrl = `${baseUrl}/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`; 
   
   const secureData = encodeURIComponent(targetUrl);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
