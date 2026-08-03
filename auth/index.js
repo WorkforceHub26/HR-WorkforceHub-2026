@@ -193,48 +193,126 @@ window.togglePassword = function () {
 /* ==========================================================================
    📸 ระบบสแกน QR Code ล็อกอิน
    ========================================================================== */
-window.loginByQr = function () {
-  if (typeof Html5QrcodeScanner === 'undefined') {
-    Swal.fire('ข้อผิดพลาด', 'ไม่พบระบบสแกน QR Code กรุณารีเฟรชหน้าเว็บอีกครั้ง', 'error');
-    return;
-  }
+function loginByQr() {
+  let html5QrCode = null;
 
   Swal.fire({
-    title: '📷 สแกนบัตรประจำตัวพนักงาน',
+    title: '📱 สแกน QR Code เข้าสู่ระบบ',
     html: `
-      <p style="font-size:13px; color:#64748b; margin-bottom:12px;">กรุณาส่อง QR Code บนบัตรพนักงานเข้าหาหน้ากล้อง</p>
-      <div id="pvt-reader" style="width: 100%; max-width: 320px; margin: 0 auto; border-radius: 12px; overflow: hidden; border: 2px dashed var(--primary, #0fa472);"></div>
+      <!-- เมนูสลับโหมด -->
+      <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 15px;">
+        <button id="btn-tab-cam" type="button" class="swal2-styled" style="background:#2563eb; margin:0; padding:8px 16px; border-radius:8px; font-size:14px; transition:0.2s;">
+          📷 เปิดกล้อง
+        </button>
+        <button id="btn-tab-file" type="button" class="swal2-styled" style="background:#4b5563; margin:0; padding:8px 16px; border-radius:8px; font-size:14px; transition:0.2s;">
+          🖼️ เลือกรูปภาพ
+        </button>
+      </div>
+
+      <!-- โหมดที่ 1: หน้าจอแสดงกล้อง -->
+      <div id="qr-cam-box" style="width: 100%; max-width: 320px; height: 260px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #111827; position: relative;">
+        <div id="qr-reader" style="width:100%; height:100%;"></div>
+      </div>
+
+      <!-- โหมดที่ 2: หน้าต่างอัปโหลดรูปภาพ -->
+      <div id="qr-file-box" style="display:none; width: 100%; max-width: 320px; margin: 0 auto; padding: 25px 15px; border: 2px dashed #9ca3af; border-radius: 12px; background: #f9fafb; text-align: center;">
+        <div style="font-size: 32px; margin-bottom: 8px;">📁</div>
+        <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 13px;">เลือกรูปภาพ QR Code จากคลังภาพในเครื่องของคุณ</p>
+        <input type="file" id="qr-file-input" accept="image/*" style="display:none;" />
+        <button type="button" onclick="document.getElementById('qr-file-input').click()" class="swal2-styled" style="background:#059669; color:#fff; margin:0; padding:8px 18px; border-radius:8px;">
+          อัปโหลดรูปภาพ
+        </button>
+      </div>
     `,
-    showCancelButton: true,
-    cancelButtonText: '❌ ปิดหน้ากล้อง',
     showConfirmButton: false,
-    allowOutsideClick: false,
-    willOpen: () => {
-      setTimeout(() => {
+    showCloseButton: true,
+    didOpen: () => {
+      html5QrCode = new Html5Qrcode("qr-reader");
+      let isCamRunning = false;
+
+      const btnCam = document.getElementById('btn-tab-cam');
+      const btnFile = document.getElementById('btn-tab-file');
+      const camBox = document.getElementById('qr-cam-box');
+      const fileBox = document.getElementById('qr-file-box');
+
+      // ฟังก์ชันเริ่มเปิดกล้อง
+      const startCamera = async () => {
         try {
-          window.pvtHtml5QrcodeScanner = new Html5QrcodeScanner("pvt-reader", { 
-            fps: 15, 
-            qrbox: { width: 180, height: 180 } 
-          });
-
-          window.pvtHtml5QrcodeScanner.render((decodedText) => {
-            window.pvtHtml5QrcodeScanner.clear().then(() => {
-              executeSecureQrLogin(decodedText);
-            }).catch(console.error);
-          }, () => {});
-
-        } catch(e) {
-          console.error("สแกนเนอร์ทำงานขัดข้อง:", e);
+          await html5QrCode.start(
+            { facingMode: "environment" }, // ใช้กล้องหลัง
+            { fps: 10, qrbox: { width: 200, height: 200 } },
+            (decodedText) => {
+              // เมื่อสแกนเจอ QR Code
+              stopCamera().then(() => {
+                Swal.close();
+                executeSecureQrLogin(decodedText);
+              });
+            },
+            () => {} // ละเว้น Error เล็กน้อยขณะกำลังหา QR Code
+          );
+          isCamRunning = true;
+        } catch (err) {
+          console.error("Camera access error:", err);
         }
-      }, 300);
+      };
+
+      // ฟังก์ชันปิดกล้องอย่างปลอดภัย
+      const stopCamera = async () => {
+        if (isCamRunning) {
+          await html5QrCode.stop();
+          isCamRunning = false;
+        }
+      };
+
+      // เปิดกล้องเป็นค่าเริ่มต้นเมื่อ Modal เด้งขึ้นมา
+      startCamera();
+
+      // สลับไปหน้าใช้กล้อง
+      btnCam.addEventListener('click', async () => {
+        btnCam.style.background = '#2563eb';
+        btnFile.style.background = '#4b5563';
+        fileBox.style.display = 'none';
+        camBox.style.display = 'block';
+        if (!isCamRunning) await startCamera();
+      });
+
+      // สลับไปหน้าอัปโหลดรูปภาพ
+      btnFile.addEventListener('click', async () => {
+        btnFile.style.background = '#2563eb';
+        btnCam.style.background = '#4b5563';
+        camBox.style.display = 'none';
+        fileBox.style.display = 'block';
+        await stopCamera();
+      });
+
+      // จัดการเมื่อผู้ใช้เลือกไฟล์รูปภาพ
+      const fileInput = document.getElementById('qr-file-input');
+      fileInput.addEventListener('change', async (e) => {
+        if (e.target.files.length === 0) return;
+        const imageFile = e.target.files[0];
+
+        try {
+          const decodedText = await html5QrCode.scanFile(imageFile, true);
+          Swal.close();
+          executeSecureQrLogin(decodedText);
+        } catch (err) {
+          Swal.fire({
+            icon: 'error',
+            title: 'อ่าน QR Code ไม่สำเร็จ',
+            text: 'ไม่พบ QR Code ในรูปภาพนี้ กรุณาลองใชักล้องสแกนหรือเปลี่ยนรูปใหม่',
+            confirmButtonColor: '#ef4444'
+          });
+        }
+      });
     },
     willClose: () => {
-      if (window.pvtHtml5QrcodeScanner) {
-        window.pvtHtml5QrcodeScanner.clear().catch(console.error);
+      // คืนค่าและปิดไฟกล้องทันทีเมื่อผู้ใช้ปิด Modal
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(err => console.error(err));
       }
     }
   });
-};
+}
 
 async function executeSecureQrLogin(scannedData) {
   Swal.fire({
