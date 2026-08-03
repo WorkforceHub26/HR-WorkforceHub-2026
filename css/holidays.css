@@ -9,7 +9,7 @@
    ========================================================================== */
 .holiday-hero-banner {
   background: linear-gradient(135deg, #0fa472 0%, #0b845c 50%, #064e3b 100%);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg, 16px);
   padding: 28px 32px;
   color: #ffffff;
   margin-bottom: 28px;
@@ -75,7 +75,7 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(12px);
   padding: 16px 28px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 12px);
   text-align: center;
   min-width: 140px;
   z-index: 2;
@@ -132,16 +132,16 @@
   padding: 10px 14px 10px 40px;
   font-size: 14px;
   font-family: inherit;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
   background: #f8fafc;
-  color: var(--text);
-  transition: var(--fluid-transition);
+  color: var(--text, #0f172a);
+  transition: all 0.2s;
 }
 
 .search-box input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--primary, #0fa472);
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(15, 164, 114, 0.15);
 }
@@ -151,7 +151,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-soft);
+  color: var(--text-soft, #64748b);
   font-size: 20px;
   pointer-events: none;
 }
@@ -159,13 +159,14 @@
 .select-group select {
   min-width: 160px;
   height: 42px;
-  padding: 8px 36px 8px 12px;
+  padding: 8px 12px;
   font-family: inherit;
   font-size: 13.5px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
   background-color: #ffffff;
-  color: var(--text);
+  color: var(--text, #0f172a);
+  outline: none;
 }
 
 .controls-right {
@@ -178,8 +179,8 @@
   display: flex;
   background: #f1f5f9;
   padding: 3px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border, #e2e8f0);
 }
 
 .btn-view {
@@ -187,23 +188,23 @@
   border: none;
   padding: 6px 10px;
   border-radius: 6px;
-  color: var(--text-soft);
+  color: var(--text-soft, #64748b);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--fluid-transition);
+  transition: all 0.2s;
 }
 
 .btn-view.active {
   background: #ffffff;
-  color: var(--primary);
-  box-shadow: var(--shadow-sm);
+  color: var(--primary, #0fa472);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   font-weight: 600;
 }
 
 /* ==========================================================================
-   📅 GRID VIEW CARDS
+   📅 GRID VIEW CARDS & ACTIONS
    ========================================================================== */
 .holiday-card-grid {
   display: grid;
@@ -213,21 +214,21 @@
 }
 
 .holiday-card {
-  background: var(--card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  background: var(--card, #ffffff);
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   padding: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: var(--spring-bounce);
+  transition: all 0.25s ease;
 }
 
 .holiday-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--primary-light);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  border-color: rgba(15, 164, 114, 0.4);
 }
 
 .holiday-card.past-holiday {
@@ -235,10 +236,17 @@
   background: #f8fafc;
 }
 
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
 .date-badge-box {
-  background: var(--primary-soft);
+  background: rgba(15, 164, 114, 0.1);
   border: 1px solid rgba(15, 164, 114, 0.2);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 12px);
   padding: 8px 14px;
   text-align: center;
   min-width: 68px;
@@ -247,7 +255,7 @@
 .date-badge-day {
   font-size: 22px;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--primary, #0fa472);
   line-height: 1;
   display: block;
 }
@@ -255,34 +263,488 @@
 .date-badge-month {
   font-size: 11px;
   font-weight: 700;
-  color: var(--primary-dark);
+  color: #064e3b;
   text-transform: uppercase;
   margin-top: 2px;
   display: block;
 }
 
+.tag-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
 .tag-badge.official { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
 .tag-badge.company { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
 .tag-badge.substitution { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+
+.card-body-content h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 6px 0 2px 0;
+}
+
+.day-name {
+  font-size: 13px;
+  color: #0fa472;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.description-text {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.card-footer-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.days-left-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.card-action-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-icon-action {
+  background: #f1f5f9;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-icon-action:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.btn-icon-action.delete:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.btn-icon-action span {
+  font-size: 16px;
+}
+
+/* ==========================================================================
+   📋 TABLE BUTTON ACTIONS
+   ========================================================================== */
+.table-action-btns {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-table-edit, .btn-table-delete {
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-table-edit { background: #eff6ff; color: #2563eb; }
+.btn-table-edit:hover { background: #2563eb; color: #fff; }
+
+.btn-table-delete { background: #fef2f2; color: #ef4444; }
+.btn-table-delete:hover { background: #ef4444; color: #fff; }
 
 /* ==========================================================================
    🪟 MODAL DESIGN
    ========================================================================== */
 .holiday-modal-overlay {
   position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(15, 23, 42, 0.5);
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
-  z-index: 1000;
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .holiday-modal-card {
   background: #ffffff;
-  width: 100%; max-width: 520px;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
-  overflow: hidden;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 16px;
+  padding: 24px 28px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  animation: modalFadeIn 0.25s ease-out;
 }
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.btn-close-x {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.btn-close-x:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.icon-calendar-header {
+  width: 42px;
+  height: 42px;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #0f172a;
+  background-color: #fff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.modal-divider {
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  margin: 20px 0 16px 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancel:hover { background: #e2e8f0; }
+
+.btn-save-holiday {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-save-holiday:hover { background: #1d4ed8; }
+
+/* 📌 1. ปรับแต่งปุ่มย้อนกลับ */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 10px 0;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-family: 'Kanit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateX(-3px); /* เคลื่อนไปทางซ้ายเล็กน้อย */
+}
+
+.btn-back .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* 📌 2. เคลียร์ระยะ Margin ฝั่งซ้ายที่เคยเว้นไว้ให้ Sidebar */
+body, .app, .app-container, .main-content {
+  margin-left: 0 !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   🛠️ FIX LAYOUT & SPACING ADJUSTMENTS
+   ========================================================================== */
+.app-shell {
+  display: block !important;
+  min-height: 100vh;
+}
+
+.main-content {
+  margin: 0 auto !important;
+  padding: 24px 20px !important;
+  max-width: 1200px !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px !important;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-left .title-wrap h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.topbar-left .title-wrap p {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 2px 0 0 0;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+  background-color: #f8fafc;
+  color: #0fa472;
+  border-color: #0fa472;
+  transform: translateX(-3px);
+}
+
+/* ==========================================================================
+   🎯 FIX FULL WIDTH (แก้ปัญหาพื้นที่ว่างฝั่งขวา ให้ขยายเต็มหน้าจอพอดีเป๊ะ)
+   ========================================================================== */
+
+html, body {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden;
+}
+
+/* 1. เคลียร์โครงสร้าง Grid/Flex ของ Sidebar เดิมออก */
+.app-shell {
+  display: block !important;
+  width: 100% !important;
+  min-height: 100vh;
+  box-sizing: border-box !important;
+}
+
+/* 2. ปรับให้เนื้อหาหลักยืดเต็ม 100% ของความกว้างหน้าจอ */
+.main-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 24px 32px !important; /* เว้นขอบรอบทิศทางกำลังสวย */
+  box-sizing: border-box !important;
+}
+
+/* 3. ปรับ Topbar ให้กระจายเต็มพื้นที่ */
+.topbar {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+/* 4. ให้การ์ดวันหยุดขยายจำนวนคอลัมน์อัตโนมัติตามความกว้างจอ */
+.holiday-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+  gap: 20px !important;
+  width: 100% !important;
+}
+
+html, body {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow-x: hidden !important;
+    }
+
+    /* 2. ล้าง Layout Grid คอลัมน์เดิมของ Sidebar ใน home.css */
+    .app-shell, 
+    .app, 
+    .app-container, 
+    .layout-wrapper {
+      display: block !important;
+      grid-template-columns: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    /* 3. บังคับส่วนเนื้อหาหลักขยายเต็มความกว้างหน้าจอ 100% */
+    main, 
+    .main-content {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 24px 32px !important; /* ระยะเว้นขอบรอบๆ */
+      box-sizing: border-box !important;
+    }
+
+    /* 4. ขยายกล่ององค์ประกอบทุกส่วนเต็มความกว้าง */
+    .topbar,
+    .stats-grid,
+    .holiday-hero-banner,
+    .holiday-controls-panel,
+    .holiday-card-grid,
+    .table-panel {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    /* 5. จัดระเบียบการ์ดวันหยุดให้เรียงเต็มแถวอัตโนมัติตามขนาดจอ */
+    .holiday-card-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+      gap: 20px !important;
+    }

@@ -270,7 +270,7 @@ function addLeaveRow() {
       </div>
       <div class="input-group">
         <label>สาเหตุ / เหตุผลการลา</label>
-        <input type="text" placeholder="ระบุเหตุผลความจำเป็น..." name="reason">
+        <input type="text" placeholder="ระบุเหตุผลความจำเป็น..." name="reason" required>
       </div>
       <div class="input-group">
         <label>แนบหลักฐานรูปภาพ</label>
@@ -328,6 +328,9 @@ function addLeaveRow() {
 // ==========================================================================
 // 🧮 4. ฟังก์ชันคำนวณจำนวนวันลาอัตโนมัติรายกล่อง
 // ==========================================================================
+// ==========================================================================
+// 🧮 4. ฟังก์ชันคำนวณจำนวนวันลาอัตโนมัติรายกล่อง (เวอร์ชันข้ามเสาร์-อาทิตย์)
+// ==========================================================================
 function calculateLeaveDays(element) {
   const boxItem = element.closest('.leave-box-item');
   if (!boxItem) return;
@@ -351,15 +354,29 @@ function calculateLeaveDays(element) {
     return;
   }
 
-  const diffTime = Math.abs(end - start);
-  let totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  // 📍 ส่วนที่เพิ่มเข้ามา: ลูปนับเฉพาะวันทำงาน (ข้ามเสาร์-อาทิตย์)
+  let totalWorkDays = 0;
+  let currentDate = new Date(start);
+
+  while (currentDate <= end) {
+    const dayOfWeek = currentDate.getDay();
+    // 0 = วันอาทิตย์, 6 = วันเสาร์
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      totalWorkDays++;
+    }
+    // เลื่อนไปวันถัดไป
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  let totalDays = totalWorkDays;
 
   // จัดการเศษชั่วโมง
   const extraDays = (hrMorning + hrAfternoon) / 8;
   if (startDateInput === endDateInput && (hrMorning > 0 || hrAfternoon > 0)) {
     totalDays = extraDays;
-  } else {
-    totalDays = totalDays - (hrMorning > 0 || hrAfternoon > 0 ? totalDays : 0) + extraDays;
+  } else if (hrMorning > 0 || hrAfternoon > 0) {
+    // กรณีลาหลายวันแต่มีระบุชั่วโมง ให้หักวันเต็มออก 1 วัน แล้วบวกเศษชั่วโมงเข้าไปแทน
+    totalDays = (totalDays > 0 ? totalDays - 1 : 0) + extraDays;
   }
 
   resultInput.value = totalDays % 1 === 0 ? totalDays : totalDays.toFixed(1);
@@ -438,6 +455,7 @@ async function saveLeave() {
 
   const payload = [];
   let hasError = false;
+  let hasWarning = false;
 
   // 3. วนลูปเช็คข้อมูลแต่ละกล่องใบลา
   for (let index = 0; index < cards.length; index++) {
@@ -463,15 +481,46 @@ async function saveLeave() {
     }
 
     // ==========================================
-    // 🎯 ระบบแอบเช็คโควตาแบบเงียบๆ (มาร์คตัวแดงให้ HR)
+    // 🛡️ 1. เช็คเงื่อนไขพิเศษ: ห้ามลาพักร้อน/พักผ่อนเกิน 3 วัน
+    // ==========================================
+    // ค้นหาชื่อประเภทการลาจากตัวแปร leaveTypes (ที่ถูกดึงมาจาก DB ตอนโหลดหน้า)
+    const leaveTypeObj = leaveTypes.find(t => String(t.id) === String(leaveTypeId));
+    const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : "";
+
+    // ถ้าชื่อการลามีคำว่า "พักผ่อน" หรือ "พักร้อน" และระบุเกิน 3 วัน
+    if (leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน") || leaveName.toLowerCase().includes("vacation")) {
+        if (totalDays > 3) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'เงื่อนไขการลาพักผ่อนประจำปี',
+                html: `ไม่สามารถลาพักผ่อนรวดเดียวเกิน <b>3 วัน</b> ได้ค่ะ<br><br>
+                       <span style="color: #ea580c; font-weight: 600;">💡 แนวทางปฏิบัติ:</span><br>
+                       หากต้องการลาหลายวันต่อเนื่อง ต้องแบ่งเพิ่มรายการลาแยกกัน เช่น:<br>
+                       - รายการที่ 1: <b>ลากิจ 3 วัน</b><br>
+                       - รายการที่ 2: <b>ลาพักผ่อน 3 วัน</b>`,
+                confirmButtonColor: '#ea580c'
+            });
+            hasError = true; // บล็อกไว้ไม่ให้บันทึก
+            break; 
+        }
+    }
+    // ==========================================
+
+    // ==========================================
+    // 🎯 2. ระบบเช็คโควตา (ยอมให้ติดลบได้ แต่ขึ้นเตือน)
     // ==========================================
     if (window.employeeLeaveBalances) {
-        const matchedBalance = window.employeeLeaveBalances.find(b => b.leave_type_id == leaveTypeId);
+        const matchedBalance = window.employeeLeaveBalances.find(b => String(b.leave_type_id) === String(leaveTypeId));
         const remainingDays = matchedBalance ? parseFloat(matchedBalance.remaining_days) : 0;
 
-        if (totalDays > remainingDays || remainingDays <= 0) {
-        console.log(`⚠️ รายการที่ ${index + 1} ลาเกินโควตา (มาร์คให้ HR แล้ว)`);
-        reason = `🔴 [เกินโควตา] ${reason}`;
+        if (totalDays > remainingDays) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ยื่นลาเกินโควตา',
+                text: `รายการที่ ${index + 1} คุณเหลือสิทธิอีกเพียง ${remainingDays} วัน ระบบจะส่งคำขอนี้ให้ HR พิจารณาเป็นกรณีพิเศษ`,
+                confirmButtonColor: '#f59e0b'
+            });
+            hasWarning = true; 
         }
     }
     // ==========================================
@@ -496,6 +545,7 @@ async function saveLeave() {
     });
   }
 
+  // ถ้าเจอ Error (เช่น ลาพักร้อนเกิน 3 วัน หรือข้อมูลไม่ครบ) ให้หยุดทำงาน
   if (hasError) return;
 
   // 4. ล็อคปุ่ม ป้องกันการกดเบิ้ล
@@ -509,76 +559,68 @@ async function saveLeave() {
   try {
     const { data, error } = await sb.from("leave_requests").insert(payload).select();
 
-
-      if (!error) {
-      // 2. 🟢 สั่งส่งแจ้งเตือนทันที!
-      await sendNotification(
-        'คำขอลาป่วยใหม่', 
-        'สมชาย เข็มกลัด ยื่นคำขอลาป่วย 1 วัน', 
-        'leave', 
-        '/pagesleave-requests.html'
-      );
-
-      alert('ยื่นใบลาสำเร็จ!');
-    }
-    
-    // 🔴 [จุดสำคัญ] ดักจับ Error จาก Database (เช่น กรณีลาซ้ำซ้อน)
     if (error) {
-        console.error("❌ บันทึกผิดพลาด:", error);
-        
-        // เด้งป๊อปอัปแจ้งเตือนสาเหตุที่ลาไม่ได้
-        Swal.fire({
-            icon: 'warning',
-            title: 'ไม่สามารถยื่นใบลาได้',
-            text: error.message || "เกิดข้อผิดพลาดบางอย่าง กรุณาตรวจสอบข้อมูล",
-            confirmButtonColor: '#f59e0b',
-            background: 'rgba(255, 255, 255, 0.95)' // เพิ่มความโปร่งแสงนิดๆ ให้ดูหรู
-        });
-
-        // คืนค่าปุ่มให้กลับมากดใหม่ได้
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = "💾 บันทึกคำขอลา";
-        }
-        return; 
+      console.error("❌ บันทึกผิดพลาด:", error);
+      Swal.fire({
+        icon: 'warning',
+        title: 'ไม่สามารถยื่นใบลาได้',
+        text: error.message || "เกิดข้อผิดพลาดบางอย่าง กรุณาตรวจสอบข้อมูล",
+        confirmButtonColor: '#f59e0b',
+        background: 'rgba(255, 255, 255, 0.95)'
+      });
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = "💾 บันทึกคำขอลา";
+      }
+      return; 
     }
 
-    // 🟢 กรณีสำเร็จ: โชว์ป๊อปอัปหรูหราทีเดียวจบ
-    Swal.fire({
-      title: 'ส่งคำขอลาสำเร็จ!',
-      text: 'ระบบได้ส่งใบลาของคุณไปให้ผู้อนุมัติพิจารณาแล้ว',
-      icon: 'success',
-      confirmButtonColor: '#0f766e', // สีเขียวหัวเป็ดตามธีมเว็บพี่
-      timer: 2000,
-      showConfirmButton: false,
-      background: 'rgba(255, 255, 255, 0.95)'
+    if (typeof sendNotification === 'function') {
+      try {
+        const empName = currentProfile.first_name || currentProfile.name || currentProfile.email || 'พนักงาน';
+        await sendNotification(
+          'คำขอลาใหม่', 
+          `${empName} ได้ยื่นคำขอลาใหม่จำนวน ${payload.length} รายการ`, 
+          'leave', 
+          '/pages/leave-requests.html'
+        );
+      } catch (notifErr) {
+        console.warn("⚠️ ไม่สามารถส่งแจ้งเตือนได้:", notifErr);
+      }
+    }
 
-      
-    }).then(() => {
-
-      
-      // รีเฟรชหน้าเว็บหลังบันทึกสำเร็จ (ใช้ reload() จะชัวร์กว่าและสมูทกว่าครับ)
-      window.location.href = "/pages/user/index-user.html";
-    });
+    if (hasWarning) {
+        setTimeout(() => {
+            window.location.href = "/pages/user/index-user.html";
+        }, 3000);
+    } else {
+        Swal.fire({
+          title: 'ส่งคำขอลาสำเร็จ!',
+          text: 'ระบบได้ส่งใบลาของคุณไปให้ผู้อนุมัติพิจารณาแล้ว',
+          icon: 'success',
+          confirmButtonColor: '#0f766e',
+          timer: 2000,
+          showConfirmButton: false,
+          background: 'rgba(255, 255, 255, 0.95)'
+        }).then(() => {
+          window.location.href = "/pages/user/index-user.html";
+        });
+    }
 
   } catch (err) {
-    // 🔴 ดักจับ Error กรณีอินเทอร์เน็ตหลุดหรือโค้ดพัง
     console.error("❌ System Error:", err);
     Swal.fire({
-        icon: 'error',
-        title: 'ระบบขัดข้อง',
-        text: err.message || "เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง",
-        confirmButtonColor: '#ef4444'
+      icon: 'error',
+      title: 'ระบบขัดข้อง',
+      text: err.message || "เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง",
+      confirmButtonColor: '#ef4444'
     });
-    
-    // คืนค่าปุ่ม
     if (saveBtn) {
       saveBtn.disabled = false;
       saveBtn.innerHTML = "💾 บันทึกคำขอลา";
     }
   }
 }
-
 // ฟังก์ชันแสดง Toast แจ้งเตือนสถานะ
 let toastTimer = null;
 function showToast(msg, type = "") {

@@ -9,7 +9,7 @@ let holidaysData = [];
 let currentView = 'grid';
 let currentUserProfile = null;
 
-// ข้อมูลวันหยุดประจำปี 2026 (สำรองในกรณี DB ยังไม่ได้สร้างตาราง)
+// ข้อมูลวันหยุดประจำปี 2026 (สำรองในกรณี DB ยังไม่ได้สร้างตาราง หรือโหลดไม่สำเร็จ)
 const defaultHolidays2026 = [
   { id: 'def-1', holiday_date: '2026-01-01', holiday_name: 'วันขึ้นปีใหม่', holiday_type: 'official', description: 'วันหยุดต้อนรับปีใหม่ พ.ศ. 2569' },
   { id: 'def-2', holiday_date: '2026-03-03', holiday_name: 'วันมาฆบูชา', holiday_type: 'official', description: 'วันสำคัญทางศาสนาพุทธ' },
@@ -41,7 +41,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await fetchHolidays();
 });
 
-// ดึงข้อมูลโปรไฟล์ผู้ใช้
+
+// ดึงข้อมูลโปรไฟล์ผู้ใช้ และตั้งค่าการแสดงผล UI ตามสิทธิ์ (Role)
 async function loadUserProfile() {
   try {
     const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
@@ -52,16 +53,27 @@ async function loadUserProfile() {
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (profile) {
         currentUserProfile = profile;
-        document.getElementById('userName').innerText = profile.display_name || profile.username || 'เจ้าหน้าที่';
-        document.getElementById('userRole').innerText = profile.role ? profile.role.toUpperCase() : 'PVT USER';
-        document.getElementById('userAvatar').innerText = (profile.display_name || 'HR').substring(0, 2).toUpperCase();
-
+        
+        const elName = document.getElementById('userName');
+        const elRole = document.getElementById('userRole');
+        const elAvatar = document.getElementById('userAvatar');
         const btnAdd = document.getElementById('btnAddHoliday');
-        if (['admin', 'hr', 'manager'].includes(profile.role)) {
-          if (btnAdd) btnAdd.style.display = 'inline-flex';
-        } else {
-          if (btnAdd) btnAdd.style.display = 'none';
+
+        if (elName) elName.innerText = profile.display_name || profile.username || 'เจ้าหน้าที่';
+        if (elRole) elRole.innerText = profile.role ? profile.role.toUpperCase() : 'PVT USER';
+        if (elAvatar) elAvatar.innerText = (profile.display_name || 'HR').substring(0, 2).toUpperCase();
+
+        const isPowerUser = ['admin', 'hr'].includes(profile.role ? profile.role.toLowerCase() : '');
+
+        // 1. ควบคุมปุ่มเพิ่มวันหยุด
+        if (btnAdd) {
+          btnAdd.style.display = isPowerUser ? 'inline-flex' : 'none';
         }
+
+        // 2. ควบคุมการแสดงผล Sidebar เมนูสำหรับ HR / Admin เท่านั้น
+        document.querySelectorAll('.hr-only').forEach(el => {
+          el.style.display = isPowerUser ? 'flex' : 'none';
+        });
       }
     }
   } catch (err) {
@@ -69,10 +81,10 @@ async function loadUserProfile() {
   }
 }
 
-// โหลดข้อมูลวันหยุดจาก Supabase หรือ Fallback
+// โหลดข้อมูลวันหยุดจาก Supabase
 async function fetchHolidays() {
   const yearSelect = document.getElementById('yearSelect');
-  currentYear = parseInt(yearSelect ? yearSelect.value : 2026);
+  currentYear = yearSelect ? parseInt(yearSelect.value) : 2026;
 
   try {
     const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
@@ -105,14 +117,18 @@ async function fetchHolidays() {
     updateStatsAndHero();
     filterHolidays();
   } catch (err) {
-    console.error('Error:', err);
-    holidaysData = [...defaultHolidays2026];
+    console.error('Error fetching holidays:', err);
+    holidaysData = defaultHolidays2026.map((item, idx) => ({
+      ...item,
+      id: `def-${currentYear}-${idx}`,
+      holiday_date: item.holiday_date.replace('2026', currentYear.toString())
+    }));
     updateStatsAndHero();
     filterHolidays();
   }
 }
 
-// อัปเดตการ์ดสรุป สถิติ และแบนเนอร์นับถอยหลัง
+// อัปเดตการ์ดสรุป สถิติ
 function updateStatsAndHero() {
   const total = holidaysData.length;
   const today = new Date();
@@ -120,8 +136,10 @@ function updateStatsAndHero() {
 
   let upcomingList = holidaysData.filter(h => new Date(h.holiday_date) >= today);
 
-  document.getElementById('statTotalHolidays').innerText = `${total} วัน`;
-  document.getElementById('statRemainingHolidays').innerText = `${upcomingList.length} วัน`;
+  const elStatTotal = document.getElementById('statTotalHolidays');
+  const elStatRemaining = document.getElementById('statRemainingHolidays');
+  if (elStatTotal) elStatTotal.innerText = `${total} วัน`;
+  if (elStatRemaining) elStatRemaining.innerText = `${upcomingList.length} วัน`;
 
   const nextHoliday = upcomingList.length > 0 ? upcomingList[0] : null;
 
@@ -129,19 +147,27 @@ function updateStatsAndHero() {
     const hDate = new Date(nextHoliday.holiday_date);
     const diffDays = Math.ceil((hDate - today) / (1000 * 60 * 60 * 24));
 
-    document.getElementById('statNextHolidayName').innerText = nextHoliday.holiday_name;
-    document.getElementById('statNextHolidayDate').innerText = formatThaiDateShort(nextHoliday.holiday_date);
+    const elNextName = document.getElementById('statNextHolidayName');
+    const elNextDate = document.getElementById('statNextHolidayDate');
+    const elHeroTitle = document.getElementById('heroHolidayTitle');
+    const elHeroDetails = document.getElementById('heroHolidayDateDetails');
+    const elHeroCountdown = document.getElementById('heroCountdownDays');
 
-    document.getElementById('heroHolidayTitle').innerText = nextHoliday.holiday_name;
-    document.getElementById('heroHolidayDateDetails').innerText = `${formatThaiDateFull(nextHoliday.holiday_date)} (${nextHoliday.description || 'วันหยุดตามปฏิทิน'})`;
-    document.getElementById('heroCountdownDays').innerText = diffDays === 0 ? 'วันนี้' : diffDays;
+    if (elNextName) elNextName.innerText = nextHoliday.holiday_name;
+    if (elNextDate) elNextDate.innerText = formatThaiDateShort(nextHoliday.holiday_date);
+    if (elHeroTitle) elHeroTitle.innerText = nextHoliday.holiday_name;
+    if (elHeroDetails) elHeroDetails.innerText = `${formatThaiDateFull(nextHoliday.holiday_date)} (${nextHoliday.description || 'วันหยุดตามปฏิทิน'})`;
+    if (elHeroCountdown) elHeroCountdown.innerText = diffDays === 0 ? 'วันนี้' : diffDays;
   }
 }
 
 // ระบบกรองและค้นหา
 function filterHolidays() {
-  const searchTxt = document.getElementById('holidaySearchInput').value.toLowerCase().trim();
-  const category = document.getElementById('categorySelect').value;
+  const searchInput = document.getElementById('holidaySearchInput');
+  const categorySelect = document.getElementById('categorySelect');
+
+  const searchTxt = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  const category = categorySelect ? categorySelect.value : 'all';
 
   const filtered = holidaysData.filter(h => {
     const matchCategory = category === 'all' || h.holiday_type === category;
@@ -160,6 +186,8 @@ function filterHolidays() {
 
 function renderGrid(list) {
   const container = document.getElementById('holidayGridContainer');
+  if (!container) return;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -168,7 +196,7 @@ function renderGrid(list) {
     return;
   }
 
-  const isPowerUser = currentUserProfile && ['admin', 'hr'].includes(currentUserProfile.role);
+    const isPowerUser = currentUserProfile ? ['admin', 'hr'].includes(currentUserProfile.role ? currentUserProfile.role.toLowerCase() : '') : false;
 
   container.innerHTML = list.map(item => {
     const hDate = new Date(item.holiday_date);
@@ -185,8 +213,12 @@ function renderGrid(list) {
 
     const actionBtns = isPowerUser ? `
       <div class="card-action-btns">
-        <button class="btn-icon-action" onclick="openEditHolidayModal('${item.id}')"><span class="material-symbols-outlined">edit</span></button>
-        <button class="btn-icon-action delete" onclick="deleteHoliday('${item.id}')"><span class="material-symbols-outlined">delete</span></button>
+        <button type="button" class="btn-icon-action" onclick="openEditHolidayModal('${item.id}')" title="แก้ไข">
+          <span class="material-symbols-outlined">edit</span>
+        </button>
+        <button type="button" class="btn-icon-action delete" onclick="deleteHoliday('${item.id}')" title="ลบ">
+          <span class="material-symbols-outlined">delete</span>
+        </button>
       </div>` : '';
 
     return `
@@ -215,6 +247,8 @@ function renderGrid(list) {
 
 function renderTable(list) {
   const tbody = document.getElementById('holidayTableBody');
+  if (!tbody) return;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -223,12 +257,14 @@ function renderTable(list) {
     return;
   }
 
-  const isPowerUser = currentUserProfile && ['admin', 'hr'].includes(currentUserProfile.role);
+    const isPowerUser = currentUserProfile ? ['admin', 'hr'].includes(currentUserProfile.role ? currentUserProfile.role.toLowerCase() : '') : false;
 
   tbody.innerHTML = list.map((item, index) => {
     const hDate = new Date(item.holiday_date);
     const dayName = THAI_DAYS[hDate.getDay()];
     const isPast = hDate < today;
+
+    let tagText = item.holiday_type === 'company' ? 'วันหยุดบริษัท' : (item.holiday_type === 'substitution' ? 'หยุดชดเชย' : 'นักขัตฤกษ์');
 
     return `
       <tr style="${isPast ? 'opacity: 0.6; background: #f8fafc;' : ''}">
@@ -236,11 +272,16 @@ function renderTable(list) {
         <td><strong>${formatThaiDateShort(item.holiday_date)}</strong></td>
         <td>วัน${dayName}</td>
         <td><strong>${item.holiday_name}</strong></td>
-        <td>${item.holiday_type}</td>
+        <td>${tagText}</td>
         <td>${isPast ? 'ผ่านมาแล้ว' : 'กำลังจะถึง'}</td>
         <td>${item.description || '-'}</td>
         <td style="text-align: center;">
-          ${isPowerUser ? `<button onclick="openEditHolidayModal('${item.id}')">แก้ไข</button>` : '-'}
+          ${isPowerUser ? `
+            <div class="table-action-btns">
+              <button type="button" class="btn-table-edit" onclick="openEditHolidayModal('${item.id}')">แก้ไข</button>
+              <button type="button" class="btn-table-delete" onclick="deleteHoliday('${item.id}')">ลบ</button>
+            </div>
+          ` : '-'}
         </td>
       </tr>`;
   }).join('');
@@ -249,66 +290,150 @@ function renderTable(list) {
 // สลับมุมมอง (Card Grid / Table)
 function switchView(view) {
   currentView = view;
-  document.getElementById('btnViewGrid').classList.toggle('active', view === 'grid');
-  document.getElementById('btnViewTable').classList.toggle('active', view === 'table');
-  document.getElementById('holidayGridContainer').style.display = view === 'grid' ? 'grid' : 'none';
-  document.getElementById('holidayTableContainer').style.display = view === 'table' ? 'block' : 'none';
+  const btnGrid = document.getElementById('btnViewGrid');
+  const btnTable = document.getElementById('btnViewTable');
+  const gridContainer = document.getElementById('holidayGridContainer');
+  const tableContainer = document.getElementById('holidayTableContainer');
+
+  if (btnGrid) btnGrid.classList.toggle('active', view === 'grid');
+  if (btnTable) btnTable.classList.toggle('active', view === 'table');
+  if (gridContainer) gridContainer.style.display = view === 'grid' ? 'grid' : 'none';
+  if (tableContainer) tableContainer.style.display = view === 'table' ? 'block' : 'none';
+
   filterHolidays();
 }
 
 function changeYear() { fetchHolidays(); }
 
-// Modal Control Functions
+// ❌ ของเดิม
+// function openHolidayModal() { ... }
+
+// ✅ แก้เป็น (เช็กสิทธิ์ก่อนเปิด Modal ทุกครั้ง)
 function openHolidayModal() {
-  document.getElementById('modalTitleText').innerText = 'เพิ่มวันหยุดใหม่';
-  document.getElementById('holidayId').value = '';
-  document.getElementById('holidayName').value = '';
-  document.getElementById('holidayDate').value = `${currentYear}-01-01`;
-  document.getElementById('holidayModalOverlay').style.display = 'flex';
+  const role = currentUserProfile?.role ? currentUserProfile.role.toLowerCase() : '';
+  const isPowerUser = ['admin', 'hr'].includes(role);
+
+  if (!isPowerUser) {
+    Swal.fire({
+      icon: 'error',
+      title: 'ไม่มีสิทธิ์เข้าถึง',
+      text: 'เฉพาะ HR และ Admin เท่านั้นที่สามารถเพิ่มวันหยุดได้'
+    });
+    return;
+  }
+
+  const overlay = document.getElementById('holidayModalOverlay');
+  const form = document.getElementById('holidayForm');
+  const titleText = document.getElementById('modalTitleText');
+  const holidayIdInput = document.getElementById('holidayId');
+
+  if (form) form.reset();
+  if (holidayIdInput) holidayIdInput.value = '';
+  if (titleText) titleText.innerText = 'เพิ่มวันหยุดใหม่';
+  if (overlay) overlay.style.display = 'flex';
 }
 
+// เปิด Modal สำหรับแก้ไขรายการเดิม
 function openEditHolidayModal(id) {
-  const item = holidaysData.find(h => h.id == id);
+  const item = holidaysData.find(h => h.id.toString() === id.toString());
   if (!item) return;
 
-  document.getElementById('modalTitleText').innerText = 'แก้ไขข้อมูลวันหยุด';
+  const overlay = document.getElementById('holidayModalOverlay');
+  const titleText = document.getElementById('modalTitleText');
+  
   document.getElementById('holidayId').value = item.id;
-  document.getElementById('holidayName').value = item.holiday_name;
   document.getElementById('holidayDate').value = item.holiday_date;
+  document.getElementById('holidayName').value = item.holiday_name;
   document.getElementById('holidayCategory').value = item.holiday_type || 'official';
   document.getElementById('holidayDescription').value = item.description || '';
-  document.getElementById('holidayModalOverlay').style.display = 'flex';
+
+  if (titleText) titleText.innerText = 'แก้ไขข้อมูลวันหยุด';
+  if (overlay) overlay.style.display = 'flex';
 }
 
+// ปิด Modal
 function closeHolidayModal() {
-  document.getElementById('holidayModalOverlay').style.display = 'none';
+  const overlay = document.getElementById('holidayModalOverlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
-// บันทึกวันหยุด
+// บันทึกข้อมูล (เพิ่มใหม่ หรือ อัปเดต)
 async function handleSaveHoliday(event) {
   event.preventDefault();
+
   const id = document.getElementById('holidayId').value;
-  const payload = {
-    holiday_name: document.getElementById('holidayName').value.trim(),
-    holiday_date: document.getElementById('holidayDate').value,
-    holiday_type: document.getElementById('holidayCategory').value,
-    description: document.getElementById('holidayDescription').value.trim()
-  };
+  const holidayDate = document.getElementById('holidayDate').value;
+  const holidayName = document.getElementById('holidayName').value.trim();
+  const holidayType = document.getElementById('holidayCategory').value;
+  const description = document.getElementById('holidayDescription').value.trim();
+
+  const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
 
   try {
-    const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
     if (supabase) {
       if (id && !id.startsWith('def-')) {
-        await supabase.from('holidays').update(payload).eq('id', id);
+        // อัปเดตข้อมูลเดิมใน Supabase
+        const { error } = await supabase
+          .from('holidays')
+          .update({
+            holiday_name: holidayName,
+            holiday_date: holidayDate,
+            holiday_type: holidayType,
+            description: description
+          })
+          .eq('id', id);
+
+        if (error) throw error;
       } else {
-        await supabase.from('holidays').insert([payload]);
+        // เพิ่มข้อมูลใหม่ใน Supabase
+        const { error } = await supabase
+          .from('holidays')
+          .insert([
+            {
+              holiday_name: holidayName,
+              holiday_date: holidayDate,
+              holiday_type: holidayType,
+              description: description
+            }
+          ]);
+
+        if (error) throw error;
+      }
+    } else {
+      // โหมด Offline / Local Fallback
+      if (id) {
+        const index = holidaysData.findIndex(h => h.id === id);
+        if (index !== -1) {
+          holidaysData[index] = { ...holidaysData[index], holiday_name: holidayName, holiday_date: holidayDate, holiday_type: holidayType, description: description };
+        }
+      } else {
+        holidaysData.push({
+          id: `local-${Date.now()}`,
+          holiday_name: holidayName,
+          holiday_date: holidayDate,
+          holiday_type: holidayType,
+          description: description
+        });
       }
     }
-    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', timer: 1500, showConfirmButton: false });
+
+    Swal.fire({
+      icon: 'success',
+      title: 'บันทึกสำเร็จ!',
+      text: id ? 'แก้ไขข้อมูลวันหยุดเรียบร้อยแล้ว' : 'เพิ่มข้อมูลวันหยุดเรียบร้อยแล้ว',
+      timer: 1500,
+      showConfirmButton: false
+    });
+
     closeHolidayModal();
     await fetchHolidays();
   } catch (err) {
-    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message });
+    console.error('Error saving holiday:', err);
+    Swal.fire({
+      icon: 'error',
+      title: 'บันทึกไม่สำเร็จ',
+      text: err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล'
+    });
   }
 }
 
@@ -316,18 +441,29 @@ async function handleSaveHoliday(event) {
 async function deleteHoliday(id) {
   const res = await Swal.fire({
     title: 'ยืนยันการลบ?',
+    text: 'คุณต้องการลบรายการวันหยุดนี้ใช่หรือไม่',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#ef4444',
-    confirmButtonText: 'ลบรายการ'
+    confirmButtonText: 'ลบรายการ',
+    cancelButtonText: 'ยกเลิก'
   });
 
   if (res.isConfirmed) {
-    const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
-    if (supabase && !id.startsWith('def-')) {
-      await supabase.from('holidays').delete().eq('id', id);
+    try {
+      const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
+      if (supabase && !id.startsWith('def-') && !id.startsWith('local-')) {
+        const { error } = await supabase.from('holidays').delete().eq('id', id);
+        if (error) throw error;
+      } else {
+        holidaysData = holidaysData.filter(h => h.id !== id);
+      }
+
+      Swal.fire({ icon: 'success', title: 'ลบข้อมูลเรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
+      await fetchHolidays();
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message });
     }
-    await fetchHolidays();
   }
 }
 
@@ -348,26 +484,63 @@ function initNotificationBell() {
   const notifBtn = document.getElementById('notifBellBtn');
   const notifDropdown = document.getElementById('notifDropdown');
   if (notifBtn && notifDropdown) {
-    notifBtn.addEventListener('click', (e) => { e.stopPropagation(); notifDropdown.classList.toggle('show'); });
+    notifBtn.addEventListener('click', (e) => { 
+      e.stopPropagation(); 
+      notifDropdown.classList.toggle('show'); 
+    });
     document.addEventListener('click', (e) => {
-      if (!notifDropdown.contains(e.target) && !notifBtn.contains(e.target)) notifDropdown.classList.remove('show');
+      if (!notifDropdown.contains(e.target) && !notifBtn.contains(e.target)) {
+        notifDropdown.classList.remove('show');
+      }
     });
   }
 }
 
-function handleLogout() {
+window.handleLogout = function() {
   Swal.fire({
-    title: 'ออกจากระบบ?',
-    icon: 'question',
+    title: 'ยืนยันการออกจากระบบ',
+    text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+    icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    confirmButtonText: 'ออกจากระบบ'
-  }).then(async (res) => {
-    if (res.isConfirmed) {
-      if (window.pvtSupabase && window.pvtSupabase.getClient()) {
-        await window.pvtSupabase.getClient().auth.signOut();
-      }
-      window.location.href = '/index.html';
+    confirmButtonColor: '#ef4444', // สีแดงสำหรับปุ่มออกจากระบบ
+    cancelButtonColor: '#64748b',  // สีเทาสีสレートสำหรับปุ่มยกเลิก
+    confirmButtonText: 'ออกจากระบบ',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true, // สลับให้ปุ่มยกเลิกอยู่ซ้าย ปุ่มยืนยันอยู่ขวา
+    focusCancel: true,
+    customClass: {
+      popup: 'pvt-logout-swal-popup',
+      title: 'pvt-logout-swal-title',
+      confirmButton: 'pvt-logout-confirm-btn',
+      cancelButton: 'pvt-logout-cancel-btn'
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // แสดงสถานะกำลังออกจากระบบ
+      Swal.fire({
+        title: 'กำลังออกจากระบบ...',
+        text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
+        icon: 'success',
+        showConfirmButton: false,
+        timer: 1200,
+        timerProgressBar: true
+      });
+
+      setTimeout(() => {
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = "/index.html";
+      }, 1200);
     }
   });
+};
+
+function smartGoBack(defaultUrl = '/pages/user/index-user.html') {
+  // ตรวจสอบว่ามาจากหน้าอื่นภายในเว็บไซต์เดียวกันหรือไม่
+  if (document.referrer && document.referrer.includes(window.location.host)) {
+    history.back();
+  } else {
+    // ถ้าไม่มีประวัติการกดมาจากหน้าอื่น ให้กลับไปหน้าหลักที่ตั้งไว้
+    window.location.href = defaultUrl;
+  }
 }

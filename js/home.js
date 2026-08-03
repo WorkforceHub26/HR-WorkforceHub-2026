@@ -1,6 +1,6 @@
 /**
  * ==========================================================================
- * 🏢 PVT WORKFORCE HUB - DASHBOARD CORE SYSTEM (ENHANCED CHARTS & METRICS)
+ * 🏢 PVT WORKFORCE HUB - DASHBOARD CORE SYSTEM (FIXED & ENHANCED)
  * ==========================================================================
  */
 
@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     switchTab(currentTabState);
     setupTableSearch();
+    fetchRealNotifications();
 
   } catch (criticalError) {
     console.error("🚨 [CRITICAL ERROR] เกิดข้อผิดพลาดใน Process หลัก:", criticalError);
@@ -104,26 +105,21 @@ function setupSidebarToggle() {
 }
 
 function setupBellNotificationToggle() {
-  const bellTrigger = document.getElementById("bellTrigger");
-  const bellDropdown = document.getElementById("bellDropdown");
-  const bellBadge = document.getElementById("bellBadge");
-  
-  if (bellBadge) bellBadge.style.display = "none";
+  const bellBtn = document.getElementById("notifBellBtn");
+  const dropdown = document.getElementById("notifDropdown");
 
-  if (bellTrigger && bellDropdown) {
-    bellTrigger.addEventListener("click", (e) => {
-      e.stopPropagation();
-      bellDropdown.classList.toggle("active");
-    });
+  if (!bellBtn || !dropdown) return;
 
-    document.addEventListener("click", (e) => {
-      if (bellDropdown.classList.contains("active")) {
-        if (!bellDropdown.contains(e.target) && e.target !== bellTrigger && !bellTrigger.contains(e.target)) {
-          bellDropdown.classList.remove("active");
-        }
-      }
-    });
-  }
+  bellBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle("show");
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+      dropdown.classList.remove("show");
+    }
+  });
 }
 
 /* ==========================================================================
@@ -144,7 +140,6 @@ window.refreshDashboardData = async function() {
     rawEmployees = mockEmployees;
     renderCounters(1, 1, 1);
     drawCharts();
-    renderBellNotifications(rawRequests);
     return;
   }
 
@@ -167,7 +162,6 @@ window.refreshDashboardData = async function() {
 
     const pendingCount = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ")).length;
     
-    // คำนวณยอดลาวันนี้
     const todayStr = new Date().toISOString().split('T')[0];
     const todayLeavesCount = rawRequests.filter(r => {
       const isApproved = (r.status === "approved" || r.status === "อนุมัติ");
@@ -179,8 +173,6 @@ window.refreshDashboardData = async function() {
 
     renderCounters(pendingCount, todayLeavesCount, totalEmp);
     drawCharts();
-    renderBellNotifications(rawRequests);
-
     showToast(`✅ ซิงค์ข้อมูลระบบเรียบร้อยแล้ว`, "success");
 
   } catch (error) {
@@ -189,16 +181,12 @@ window.refreshDashboardData = async function() {
     rawEmployees = mockEmployees;
     renderCounters(1, 1, 1);
     drawCharts();
-    renderBellNotifications(rawRequests);
   }
 };
 
 /* ==========================================================================
-   5. 📊 CHARTS & TOP LEAVE TAKERS (CHART.JS INTEGRATION)
+   5. 📊 CHARTS & TOP LEAVE TAKERS
    ========================================================================== */
-// ==========================================
-// 📊 ฟังก์ชันวาดกราฟสัดส่วนการลา (ฉบับแก้ไข Layout & Text Overlap)
-// ==========================================
 function drawCharts() {
   if (typeof Chart === "undefined") return;
 
@@ -208,7 +196,6 @@ function drawCharts() {
   const approvedRequests = rawRequests.filter(r => r && (r.status === "approved" || r.status === "อนุมัติ"));
   const activeDataset = approvedRequests.length > 0 ? approvedRequests : rawRequests;
 
-  // 🍩 1. Donut Chart: สัดส่วนประเภทการลา
   if (canvasType) {
     const typeSummary = {};
     let totalCount = 0;
@@ -220,7 +207,6 @@ function drawCharts() {
       totalCount++;
     });
 
-    // 1️⃣ อัปเดตตัวเลขรวมบนหัวข้อการ์ด และตรงกลางกราฟ
     const headerTotalEl = document.getElementById("leaveTypeTotalHeader");
     if (headerTotalEl) headerTotalEl.textContent = `(รวม ${totalCount} รายการ)`;
 
@@ -249,10 +235,7 @@ function drawCharts() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          // 2️⃣ ปิด Legend ใน Canvas เพื่อป้องกันข้อความซ้อนและตัวอักษรโดนตัด
-          legend: {
-            display: false
-          },
+          legend: { display: false },
           tooltip: {
             enabled: typeValues.length > 0,
             callbacks: {
@@ -264,15 +247,13 @@ function drawCharts() {
             }
           }
         },
-        cutout: '72%' // ขยายช่องว่างตรงกลางป้องกันตัวเลขเกยขอบ
+        cutout: '72%'
       }
     });
 
-    // 3️⃣ แสดงรายการสัดส่วนพร้อม Progress Bar ด้านขวา (แทนที่ข้อความ "กำลังโหลด...")
     renderLeaveBreakdownList(typeSummary, totalCount, colorPalette);
   }
 
-  // 📊 2. Bar Chart: วันลาแยกตามแผนก
   if (canvasDept) {
     const deptSummary = {};
 
@@ -331,13 +312,9 @@ function drawCharts() {
     });
   }
 
-  // 🏆 3. ประมวลผลตารางพนักงานลาเยอะที่สุด
   renderTopLeaveEmployees(activeDataset);
 }
 
-// ==========================================
-// 📝 ฟังก์ชันสร้าง Progress Bar สัดส่วนการลาด้านขวา
-// ==========================================
 function renderLeaveBreakdownList(typeSummary, totalCount, colors) {
   const detailsList = document.getElementById("leaveDetailsList") || document.querySelector(".details-list");
   if (!detailsList) return;
@@ -515,10 +492,6 @@ function renderCounters(pending, todayLeaves, employees) {
   setEl("statPendingLeaves", pending);
   setEl("statTodayLeaves", todayLeaves);
   setEl("statTotalEmployees", employees);
-  
-  setEl("countPending", pending);
-  setEl("countApproved", todayLeaves);
-  setEl("countEmployees", employees);
 }
 
 function setupTableSearch() {
@@ -538,92 +511,7 @@ function setupTableSearch() {
 }
 
 /* ==========================================================================
-   🔔 RENDER BELL NOTIFICATIONS (FIX: SORT BY LATEST & SLICE)
-   ========================================================================== */
-function renderBellNotifications(requests) {
-  const bellDropdown = document.getElementById("bellDropdown");
-  if (!bellDropdown) return;
-
-  const safeRequests = requests || [];
-
-  // 1. กรองเฉพาะรายการที่รออนุมัติ
-  let pendingReqs = safeRequests.filter(r => {
-    if (!r) return false;
-    const checkStatus = r.status || r.leave_status;
-    return checkStatus === "pending" || checkStatus === "รออนุมัติ";
-  });
-
-  // ⚡ 2. [เพิ่มจุดนี้] เรียงลำดับจาก "ใหม่ล่าสุด -> เก่าสุด" (Descending Order)
-  pendingReqs.sort((a, b) => {
-    const dateA = new Date(a.created_at || a.created_date || a.start_date || a.id || 0);
-    const dateB = new Date(b.created_at || b.created_date || b.start_date || b.id || 0);
-    return dateB - dateA; // วันที่ล่าสุดจะขึ้นก่อนเสมอ
-  });
-
-  // ⚡ 3. [เพิ่มจุดนี้] ตัดเอาเฉพาะ 5 รายการล่าสุดมาแสดงใน Dropdown
-  const latestReqs = pendingReqs.slice(0, 5);
-
-  const bellBadge = document.getElementById("bellBadge");
-  if (bellBadge) {
-    if (pendingReqs.length > 0) {
-      bellBadge.textContent = pendingReqs.length; // จำนวนค้างอนุมัติทั้งหมด
-      bellBadge.style.display = "flex";
-    } else {
-      bellBadge.style.display = "none";
-    }
-  }
-
-  bellDropdown.innerHTML = `
-    <div class="bell-panel-header" style="padding:16px; border-bottom:1px solid var(--border);">
-      <h4 style="font-size:15px; font-weight:700;">การแจ้งเตือนล่าสุด</h4>
-      <span class="panel-subtitle" style="font-size:12px; color:var(--text-soft); display:block; margin-top:2px;">
-        มีคำขอลาใหม่ทั้งหมด ${pendingReqs.length} รายการ
-      </span>
-    </div>
-    <div class="bell-panel-body" id="bellNotiBody"></div>
-  `;
-
-  const bellNotiBody = document.getElementById("bellNotiBody");
-  if (!bellNotiBody) return;
-
-  if (latestReqs.length === 0) {
-    bellNotiBody.innerHTML = `<div class="bell-empty-state" style="padding:24px; text-align:center; color:var(--text-soft); font-size:13px; font-style:italic;">ไม่มีรายการคำขอค้างพิจารณา</div>`;
-    return;
-  }
-
-  // วนลูปเฉพาะ 5 รายการล่าสุด (latestReqs)
-  latestReqs.forEach((r) => {
-    const div = document.createElement("div");
-    div.className = "bell-noti-item";
-    div.style.cssText = "padding:12px 16px; border-bottom:1px solid var(--border); display:flex; gap:12px; cursor:pointer;";
-    
-    const empName = r.employees?.full_name || r.employees?.first_name || r.emp_name || "-";
-    const leaveTypeName = r.leave_types?.leave_name || r.leave_type_name || "-";
-    const duration = r.total_days || 1;
-
-    div.innerHTML = `
-      <div class="bell-noti-icon-box" style="color:var(--primary); display:flex; align-items:center;">
-        <span class="material-symbols-outlined">pending_actions</span>
-      </div>
-      <div class="bell-noti-info">
-        <div class="bell-noti-title" style="font-size:13px;"><strong>${empName}</strong> ยื่นคำขอ <strong>${leaveTypeName}</strong></div>
-        <div class="bell-noti-meta" style="font-size:11px; color:var(--text-soft); margin-top:2px;">จำนวน ${duration} วัน • รอคุณอนุมัติ</div>
-      </div>
-    `;
-
-    div.addEventListener("click", () => {
-      bellDropdown.classList.remove("active");
-      switchTab("pending");
-      const tableSection = document.querySelector(".table-panel") || document.querySelector(".quick-menu-panel");
-      if (tableSection) tableSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    bellNotiBody.appendChild(div);
-  });
-}
-
-/* ==========================================================================
-   8. 💳 DIGITAL EMPLOYEE CARD & QR CODE MANAGER (WITH LIVE SEARCH)
+   7. 💳 DIGITAL EMPLOYEE CARD MANAGER (BUG FIX APPLIED HERE)
    ========================================================================== */
 window.openEmployeeCardManagerPopup = async function () {
   if (typeof Swal === "undefined") {
@@ -645,20 +533,16 @@ window.openEmployeeCardManagerPopup = async function () {
   }
 
   try {
-            const { data: employees, error } = await supabase
-          .from('employees')
-          .select(`
-            id,
-            employee_code,
-            full_name,
-            leave_balances (
-              id,
-              leave_type_id,
-              quota,
-              remaining_days,
-              leave_types ( leave_name, yearly_quota )
-            )
-          `)
+    // 🛠️ FIX: เปลี่ยนจาก supabase.from() เป็น client.from()
+    const { data: employees, error } = await client
+      .from('employees')
+      .select(`
+        id,
+        employee_code,
+        full_name,
+        departments ( department_name ),
+        positions ( position_name )
+      `)
       .order('employee_code', { ascending: true });
 
     if (error) throw error;
@@ -668,10 +552,9 @@ window.openEmployeeCardManagerPopup = async function () {
       rowsHtml = `<tr><td colspan="3" style="text-align:center; padding:16px; color:#64748b;">ไม่พบข้อมูลพนักงานในระบบ</td></tr>`;
     } else {
       employees.forEach(emp => {
-        const empRole = emp.positions?.position_name || emp.role || 'พนักงาน';
+        const empRole = emp.positions?.position_name || 'พนักงาน';
         const empDept = emp.departments?.department_name || 'ไม่ระบุแผนก';
 
-        // ป้องกัน Error จากเครื่องหมาย ' ในชื่อ
         const safeName = (emp.full_name || '').replace(/'/g, "\\'");
         const safeRole = empRole.replace(/'/g, "\\'");
         const safeDept = empDept.replace(/'/g, "\\'");
@@ -701,14 +584,10 @@ window.openEmployeeCardManagerPopup = async function () {
       title: '👥 เลือกพนักงานเพื่อพิมพ์บัตรประจำตัว',
       width: '680px',
       html: `
-        <!-- 🔍 ช่องกรอกข้อมูลสำหรับค้นหา -->
         <div style="margin-bottom: 12px; text-align: left;">
           <input type="text" id="cardSearchInput" placeholder="🔍 พิมพ์รหัสพนักงาน, ชื่อ-สกุล, ตำแหน่ง หรือ แผนก เพื่อค้นหา..." 
-            style="width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; box-sizing: border-box; font-family: inherit; transition: all 0.2s;"
-            onfocus="this.style.borderColor='#0fa472'; this.style.boxShadow='0 0 0 3px rgba(15,164,114,0.15)'" 
-            onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'" />
+            style="width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; box-sizing: border-box; font-family: inherit;" />
         </div>
-
         <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
@@ -718,12 +597,8 @@ window.openEmployeeCardManagerPopup = async function () {
                 <th style="padding: 12px 8px; text-align: center; color: #475569; width: 100px;">ตัวเลือก</th>
               </tr>
             </thead>
-            <tbody id="employeeCardTableBody">
-              ${rowsHtml}
-            </tbody>
+            <tbody id="employeeCardTableBody">${rowsHtml}</tbody>
           </table>
-          
-          <!-- ข้อความกรณีค้นหาไม่พบ -->
           <div id="noMatchCardMessage" style="display: none; padding: 24px; text-align: center; color: #64748b; font-size: 14px;">
             ❌ ไม่พบข้อมูลพนักงานที่ตรงกับคำค้นหา
           </div>
@@ -732,15 +607,12 @@ window.openEmployeeCardManagerPopup = async function () {
       confirmButtonText: 'ปิดหน้าต่าง',
       confirmButtonColor: '#64748b',
       didOpen: () => {
-        // ⚡ ระบบ Real-time Search Event Listener
         const searchInput = document.getElementById("cardSearchInput");
         const tableBody = document.getElementById("employeeCardTableBody");
         const noMatchMsg = document.getElementById("noMatchCardMessage");
 
         if (searchInput && tableBody) {
-          // โฟกัสไปที่ช่องค้นหาอัตโนมัติเมื่อเปิด Popup
           searchInput.focus();
-
           searchInput.addEventListener("input", (e) => {
             const keyword = e.target.value.trim().toLowerCase();
             const rows = tableBody.querySelectorAll(".emp-card-row");
@@ -756,7 +628,6 @@ window.openEmployeeCardManagerPopup = async function () {
               }
             });
 
-            // แสดงข้อความเตือนถ้าค้นหาไม่พบรายการใดๆ
             if (noMatchMsg) {
               noMatchMsg.style.display = (visibleCount === 0 && rows.length > 0) ? "block" : "none";
             }
@@ -772,33 +643,31 @@ window.openEmployeeCardManagerPopup = async function () {
 };
 
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
-  const secureData = encodeURIComponent(`${empCode}|PVT_SECURE_BYPASS`);
+  // 🛠️ FIX: เปลี่ยนข้อมูลใน QR Code ให้เป็น URL เว็บไซต์ของคุณ
+  // อย่าลืมเปลี่ยน "https://your-website.com/profile" เป็นหน้าเว็บที่คุณต้องการให้เปิดไป
+  const targetUrl = `https://your-website.com/profile?id=${empCode}&token=PVT_SECURE_BYPASS`; 
+  
+  const secureData = encodeURIComponent(targetUrl);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
   
   Swal.fire({
     title: '💳 ตัวอย่างบัตรพนักงานดิจิทัล',
     width: '400px',
     html: `
-      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 280px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden;">
-        
-        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 20px; text-transform: uppercase;">PVT WORKFORCE HUB</div>
-        
+      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 280px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 20px;">PVT WORKFORCE HUB</div>
         <div style="width: 76px; height: 76px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 14px auto; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2);">
           <span class="material-symbols-outlined" style="font-size: 42px; color: #93c5fd;">account_circle</span>
         </div>
-        
-        <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px;">${empName}</div>
-        
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">${empName}</div>
         <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${empRole}</div>
         <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 20px;">แผนก: ${empDept}</div>
-        
-        <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; box-shadow: 0 8px 16px rgba(0,0,0,0.2); margin-bottom: 16px;">
+        <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px;">
           <img src="${qrUrl}" alt="Employee QR Code" style="width: 140px; height: 140px; display: block;" />
         </div>
-        
         <div>
-          <span style="font-size: 11px; color: #94a3b8; display: block; text-transform: uppercase; margin-bottom: 2px;">Employee ID Number</span>
-          <span style="font-size: 16px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 4px 16px; border-radius: 30px; display: inline-block; letter-spacing: 1px; border: 1px solid rgba(255,255,255,0.05);">
+          <span style="font-size: 11px; color: #94a3b8; display: block; text-transform: uppercase;">Employee ID</span>
+          <span style="font-size: 16px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 4px 16px; border-radius: 30px; display: inline-block;">
             ${empCode}
           </span>
         </div>
@@ -819,141 +688,219 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
 };
 
 function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
-  const printWindow = window.open('', '_blank', 'width=400,height=600');
+  const printWindow = window.open('', '_blank', 'width=450,height=650');
+  
   printWindow.document.write(`
+    <!DOCTYPE html>
     <html>
       <head>
         <title>Print ID Card - ${empCode}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Sarabun', sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; background:#fff; }
-          .card { background: #0f172a; width: 260px; border-radius: 16px; padding: 24px; color: white; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .company { font-weight: 700; font-size: 12px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 25px; }
-          .name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-          .role { font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px; }
-          .dept { font-size: 12px; color: #94a3b8; font-weight: 400; margin-bottom: 20px; }
-          .qr-box { background: white; padding: 10px; border-radius: 12px; display: inline-block; margin-bottom: 16px; }
-          .id-tag { font-size: 16px; font-weight: 700; background: rgba(255,255,255,0.15); padding: 4px 16px; border-radius: 30px; display: inline-block; }
+          @page {
+            size: auto;
+            margin: 0mm;
+          }
+          * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          body { 
+            font-family: 'Sarabun', sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            background: #f1f5f9; 
+          }
+          
+          /* ขนาดสัดส่วนมาตรฐานบัตร CR80 (54mm x 85.6mm) */
+          .card { 
+            position: relative;
+            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); 
+            width: 250px; 
+            height: 390px;
+            border-radius: 16px; 
+            padding: 20px 16px; 
+            color: white; 
+            text-align: center; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            overflow: hidden;
+          }
+
+          /* ตกแต่งแถบสีเรืองแสงด้านบนการ์ด */
+          .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1);
+          }
+
+          /* ช่องจำลองรูเจาะสายคล้องบัตร */
+          .lanyard-hole {
+            width: 32px;
+            height: 6px;
+            background: #020617;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+          }
+
+          .company { 
+            font-weight: 700; 
+            font-size: 11px; 
+            letter-spacing: 2px; 
+            color: #38bdf8; 
+            text-transform: uppercase;
+            margin-bottom: 8px;
+          }
+
+          .profile-section {
+            margin-bottom: 4px;
+            width: 100%;
+          }
+
+          .name { 
+            font-size: 16px; 
+            font-weight: 700; 
+            color: #f8fafc;
+            margin-bottom: 6px;
+            line-height: 1.2;
+            word-break: break-word;
+          }
+
+          /* Badges สรุปตำแหน่งและแผนก */
+          .badge-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .role-badge { 
+            font-size: 11px; 
+            color: #38bdf8; 
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+          }
+
+          .dept-text { 
+            font-size: 11px; 
+            color: #94a3b8; 
+            font-weight: 400; 
+          }
+
+          /* กรอบแสดง QR Code */
+          .qr-box { 
+            background: #ffffff; 
+            padding: 8px; 
+            border-radius: 12px; 
+            display: inline-block; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            border: 2px solid #38bdf8;
+          }
+
+          .qr-box img {
+            width: 115px;
+            height: 115px;
+            display: block;
+          }
+
+          /* รหัสพนักงานส่วนท้าย */
+          .footer-section {
+            width: 100%;
+          }
+
+          .id-tag { 
+            font-size: 14px; 
+            font-weight: 700; 
+            letter-spacing: 1.5px;
+            color: #f8fafc;
+            background: rgba(255, 255, 255, 0.08); 
+            padding: 5px 16px; 
+            border-radius: 20px; 
+            display: inline-block; 
+            border: 1px solid rgba(255,255,255,0.15);
+            font-family: monospace, 'Sarabun';
+          }
+
+          /* ซ่อนพื้นหลังกว้างๆ ตอนสั่งพิมพ์จริง */
+          @media print {
+            body { background: transparent; }
+            .card { box-shadow: none; }
+          }
         </style>
       </head>
       <body>
         <div class="card">
+          <div class="lanyard-hole"></div>
           <div class="company">PVT WORKFORCE HUB</div>
-          <div class="name">${empName}</div>
-          <div class="role">ตำแหน่ง: ${empRole}</div>
-          <div class="dept">แผนก: ${empDept}</div>
-          <div class="qr-box"><img src="${qrUrl}" style="width:130px; height:130px; display:block;"/></div>
-          <div><div class="id-tag">${empCode}</div></div>
+          
+          <div class="profile-section">
+            <div class="name">${empName}</div>
+            <div class="badge-container">
+              <span class="role-badge">${empRole}</span>
+              <span class="dept-text">แผนก: ${empDept}</span>
+            </div>
+          </div>
+
+          <div class="qr-box">
+            <img id="qrImage" src="${qrUrl}" alt="QR Code" />
+          </div>
+
+          <div class="footer-section">
+            <div class="id-tag">${empCode}</div>
+          </div>
         </div>
+
         <script>
-          window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 500); }
+          // ฟังก์ชันสั่งพิมพ์เมื่อโหลดรูป QR Code และฟอนต์เสร็จเรียบร้อย
+          function doPrint() {
+            setTimeout(function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }, 300);
+          }
+
+          const img = document.getElementById('qrImage');
+          if (img.complete) {
+            doPrint();
+          } else {
+            img.onload = doPrint;
+            img.onerror = doPrint; // ป้องกันค้างถ้าโหลดรูปไม่ขึ้น
+          }
         </script>
       </body>
     </html>
   `);
+
   printWindow.document.close();
-  setTimeout(() => { openEmployeeCardManagerPopup(); }, 600);
-}
 
-/* ==========================================================================
-   9. 🛠️ UTILITY & HELPERS
-   ========================================================================== */
-function getSafeValue(item, possibleKeys, defaultValue = "-") {
-  if (!item) return defaultValue;
-  for (let key of possibleKeys) {
-    if (item[key] !== undefined && item[key] !== null) return item[key];
-  }
-  return defaultValue;
-}
-
-function formatThaiDate(dateStr) {
-  if (!dateStr || dateStr === "-") return "-";
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-  const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
-}
-
-function showToast(msg, type = "success") {
-  const el = document.getElementById("statusToast");
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `toast status-toast show ${type}`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3000);
-}
-
-window.handleLogout = function() {
-  if (confirm("คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?")) {
-    showToast("กำลังออกจากระบบ...", "info");
-    setTimeout(() => {
-      sessionStorage.clear();
-      window.location.href = "/index.html";
-    }, 1000);
-  }
-};
-
-document.addEventListener("DOMContentLoaded", () => {
-  const bellBtn = document.getElementById("notifBellBtn");
-  const dropdown = document.getElementById("notifDropdown");
-
-  if (!bellBtn || !dropdown) return;
-
-  // 1. สลับ เปิด/ปิด Dropdown เมื่อกดปุ่มกระดิ่ง
-  bellBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    dropdown.classList.toggle("show");
-  });
-
-  // 2. ปิด Dropdown อัตโนมัติเมื่อคลิกที่อื่นบนหน้าจอ
-  document.addEventListener("click", (e) => {
-    if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
-      dropdown.classList.remove("show");
+  // เรียกเปิด Popup จัดการบัตรกลับขึ้นมาหลังจากเปิดหน้าพิมพ์แล้ว
+  setTimeout(() => { 
+    if (typeof openEmployeeCardManagerPopup === 'function') {
+      openEmployeeCardManagerPopup(); 
     }
-  });
-});
-
-/* ==========================================================================
-   🛠️ HELPER FUNCTIONS (เชื่อมต่อกับฟังก์ชันแจ้งเตือนของคุณ)
-   ========================================================================== */
-
-// กดเพื่อทำเครื่องหมายอ่านแล้วทั้งหมด
-function markAllNotificationsAsRead() {
-  const unreadItems = document.querySelectorAll(".notif-item.unread");
-  unreadItems.forEach(item => {
-    item.classList.remove("unread");
-    const dot = item.querySelector(".unread-dot");
-    if (dot) dot.remove();
-  });
-
-  // อัปเดต UI Badge
-  const badge = document.getElementById("notifBadge");
-  const unreadPill = document.getElementById("notifUnreadCount");
-  
-  if (badge) badge.style.display = "none";
-  if (unreadPill) unreadPill.textContent = "0 รายการใหม่";
-
-  // TODO: เรียกใช้ฟังก์ชัน Backend ของคุณตรงนี้ เช่น
-  // await api.markAllRead();
-}
-
-// เมื่อกดคลิกที่รายการแจ้งเตือนแต่ละอัน
-function handleNotifClick(notifId, redirectUrl) {
-  console.log("Notification Clicked ID:", notifId);
-  
-  // TODO: ส่งค่าไปอัปเดตสถานะใน Backend ของคุณว่าอ่านรายการนี้แล้ว
-  // await api.markAsRead(notifId);
-
-  if (redirectUrl) {
-    window.location.href = redirectUrl;
-  }
+  }, 600);
 }
 
 /* ==========================================================================
-   🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE
+   8. 🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE
    ========================================================================== */
-
-// 1. ฟังก์ชันแปลงเวลาเป็นภาษาไทยแบบสัมพัทธ์ (เช่น "5 นาทีที่แล้ว")
 function formatTimeAgo(dateString) {
   const date = new Date(dateString);
   const now = new Date();
@@ -966,7 +913,6 @@ function formatTimeAgo(dateString) {
   return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
 }
 
-// 2. แปลง Icon และ สี ตามประเภทแจ้งเตือน (Type)
 function getNotifTheme(type) {
   switch (type) {
     case 'leave':
@@ -980,9 +926,8 @@ function getNotifTheme(type) {
   }
 }
 
-// 3. ฟังก์ชันดึงข้อมูลการแจ้งเตือนจาก Supabase
 async function fetchRealNotifications() {
-  const client = window.sb || window.pvtSupabase?.getClient();
+  const client = sb || window.pvtSupabase?.getClient();
   const container = document.getElementById('notifListContainer');
   const badge = document.getElementById('notifBadge');
   const unreadCountPill = document.getElementById('notifUnreadCount');
@@ -990,7 +935,6 @@ async function fetchRealNotifications() {
   if (!client || !container) return;
 
   try {
-    // Query ข้อมูลจาก Supabase ดึง 15 รายการล่าสุด
     const { data: notifications, error } = await client
       .from('notifications')
       .select('*')
@@ -1009,10 +953,8 @@ async function fetchRealNotifications() {
       return;
     }
 
-    // นับจำนวนรายการที่ยังไม่ได้อ่าน
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    // อัปเดต Badge ตัวเลข
     if (badge) {
       if (unreadCount > 0) {
         badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
@@ -1026,7 +968,6 @@ async function fetchRealNotifications() {
       unreadCountPill.textContent = `${unreadCount} รายการใหม่`;
     }
 
-    // สร้าง HTML จากข้อมูลจริง
     let html = '';
     notifications.forEach(item => {
       const theme = getNotifTheme(item.type);
@@ -1058,71 +999,122 @@ async function fetchRealNotifications() {
   }
 }
 
-// 4. คลิกอ่านรายการเดียวแล้วอัปเดตลง Database
 async function handleNotifClick(notifId, redirectUrl) {
-  const client = window.sb || window.pvtSupabase?.getClient();
+  const client = sb || window.pvtSupabase?.getClient();
   if (client && notifId) {
-    await client
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', notifId);
+    await client.from('notifications').update({ is_read: true }).eq('id', notifId);
   }
 
   if (redirectUrl && redirectUrl !== '#') {
     window.location.href = redirectUrl;
   } else {
-    fetchRealNotifications(); // โหลดข้อมูลใหม่เพื่ออัปเดต UI
+    fetchRealNotifications();
   }
 }
 
-// 5. คลิกอ่านทั้งหมด (Mark All as Read) ลง Database
 async function markAllNotificationsAsRead() {
-  const client = window.sb || window.pvtSupabase?.getClient();
+  const client = sb || window.pvtSupabase?.getClient();
   if (!client) return;
 
   try {
-    const { error } = await client
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('is_read', false);
-
+    const { error } = await client.from('notifications').update({ is_read: true }).eq('is_read', false);
     if (error) throw error;
-    fetchRealNotifications(); // รีโหลดข้อมูล UI
+    fetchRealNotifications();
   } catch (err) {
     console.error('Error marking all as read:', err);
   }
 }
 
-// 6. ตั้งค่า Event Listeners และ Realtime Sync เมื่อโหลดหน้าเว็บ
-document.addEventListener("DOMContentLoaded", () => {
-  const bellBtn = document.getElementById("notifBellBtn");
-  const dropdown = document.getElementById("notifDropdown");
+/* ==========================================================================
+   9. 🛠️ UTILITY & HELPERS
+   ========================================================================== */
+function getSafeValue(item, possibleKeys, defaultValue = "-") {
+  if (!item) return defaultValue;
+  for (let key of possibleKeys) {
+    if (item[key] !== undefined && item[key] !== null) return item[key];
+  }
+  return defaultValue;
+}
 
-  if (bellBtn && dropdown) {
-    bellBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      dropdown.classList.toggle("show");
-    });
+function formatThaiDate(dateStr) {
+  if (!dateStr || dateStr === "-") return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
 
-    document.addEventListener("click", (e) => {
-      if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
-        dropdown.classList.remove("show");
-      }
-    });
+function showToast(msg, type = "success") {
+  const el = document.getElementById("statusToast");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `toast status-toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3000);
+}
+
+window.handleLogout = function() {
+  Swal.fire({
+    title: 'ยืนยันการออกจากระบบ',
+    text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444', // สีแดงสำหรับปุ่มออกจากระบบ
+    cancelButtonColor: '#64748b',  // สีเทาสีสレートสำหรับปุ่มยกเลิก
+    confirmButtonText: 'ออกจากระบบ',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true, // สลับให้ปุ่มยกเลิกอยู่ซ้าย ปุ่มยืนยันอยู่ขวา
+    focusCancel: true,
+    customClass: {
+      popup: 'pvt-logout-swal-popup',
+      title: 'pvt-logout-swal-title',
+      confirmButton: 'pvt-logout-confirm-btn',
+      cancelButton: 'pvt-logout-cancel-btn'
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // แสดงสถานะกำลังออกจากระบบ
+      Swal.fire({
+        title: 'กำลังออกจากระบบ...',
+        text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
+        icon: 'success',
+        showConfirmButton: false,
+        timer: 1200,
+        timerProgressBar: true
+      });
+
+      setTimeout(() => {
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = "/index.html";
+      }, 1200);
+    }
+  });
+};
+
+async function handleSaveHoliday(event) {
+  event.preventDefault();
+  
+  const holidayDate = document.getElementById('holidayDate')?.value;
+  const holidayName = document.getElementById('holidayName')?.value;
+  const holidayType = document.getElementById('holidayType')?.value;
+
+  const client = sb || window.pvtSupabase?.getClient();
+  if (!client) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+    return;
   }
 
-  // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้าเว็บ
-  fetchRealNotifications();
+  try {
+    const { error } = await client.from('holidays').insert([
+      { holiday_date: holidayDate, holiday_name: holidayName, type: holidayType }
+    ]);
 
-  // ⚡ ระบบ Realtime Listeners (ถ้ามีการ INSERT ข้อมูลใหม่จะโหลด UI ใหม่ทันที)
-  const client = window.sb || window.pvtSupabase?.getClient();
-  if (client) {
-    client
-      .channel('realtime_notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
-        fetchRealNotifications();
-      })
-      .subscribe();
+    if (error) throw error;
+
+    Swal.fire('สำเร็จ!', 'เพิ่มวันหยุดเรียบร้อยแล้ว', 'success');
+    closeHolidayModal();
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด!', err.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
   }
-});
-
+}

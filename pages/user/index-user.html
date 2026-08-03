@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="stylesheet" href="/css/index-user.css?v=999" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   
 
   
@@ -61,7 +61,7 @@
       
     
 
-    <section class="menu-section">
+<section class="menu-section">
       <h2>เมนูจัดการสำหรับพนักงาน</h2>
       <div class="menu-grid">
         <button class="menu-card" onclick="goToLeaveForm()">
@@ -95,11 +95,22 @@
             <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
           </div>
         </button>
-                  <!-- ปุ่มกดดูบัตรประจำตัวพนักงานดิจิทัล -->
-          <button class="menu-card btn-premium-card" onclick="viewMyDigitalCard()" style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-direction: row; padding: 16px;">
+
+        <!-- 📌 แก้ไขปุ่มวันหยุดตรงนี้ -->
+        <button class="menu-card" onclick="window.location.href='/pages/user/holidays.html'">
+          <div class="menu-icon red">📅</div>
+          <div>
+            <strong>วันหยุด</strong>
+            <p>ตรวจสอบวันหยุดประจำปี</p>
+          </div>
+        </button>
+
+        <!-- ปุ่มกดดูบัตรประจำตัวพนักงานดิจิทัล -->
+        <button class="menu-card btn-premium-card" onclick="viewMyDigitalCard()" style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-direction: row; padding: 16px;">
           <span style="font-size: 22px;">🪪</span> 
           <strong style="color: white; margin: 0;">ดูบัตรพนักงาน</strong>
         </button>
+        
       </div>
     </section>
 
@@ -169,8 +180,11 @@
   </button>
 </div>
 
-  <script src="/js/supabase-config.js"></script>
-    <script src="/js/auth-guard.js"></script>
-    <script src="/js/index-user.js"></script>
+  <!-- 📌 ย้ายชุดสคริปต์ทั้งหมดมาเรียงลำดับไว้ท้าย <body> -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/js/auth-guard.js"></script>
+<script src="/js/index-user.js"></script>
 </body>
 </html>

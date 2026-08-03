@@ -1,146 +1,105 @@
-// ============================================================================
-// 🧠 PVT SUPABASE - CORE CONFIG & ENGINE
-// ============================================================================
-
 const PVT_SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
 const PVT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
-// ส่งออกตัวแปรไปที่ window เพื่อความปลอดภัย
 window.PVT_SUPABASE_URL = PVT_SUPABASE_URL;
 window.PVT_SUPABASE_ANON_KEY = PVT_SUPABASE_ANON_KEY;
 
-console.log("%c[Timeline Step 1]: เริ่มต้นโหลดสคริปต์โครงสร้างหลักแบบอัจฉริยะ (Smart Config)...", "color: #9333ea; font-weight: bold;");
-
-// ============================================================================
-// 🧠 PVT SUPABASE ENGINE MODULE
-// ============================================================================
 window.pvtSupabase = (() => {
-  let internalClient = null;
+  let client = null;
 
   function getClient() {
-    if (internalClient) return internalClient;
+    if (client) return client;
     if (window.supabaseClient) {
-      internalClient = window.supabaseClient;
-      return internalClient;
+      client = window.supabaseClient;
+      return client;
     }
-    
-    if (typeof window.supabase === "undefined" || !window.supabase.createClient) {
-      console.warn("⚠️ Supabase JS SDK ยังไม่ได้โหลดเข้าสู่หน้าเว็บ");
+    if (!window.supabase?.createClient) {
+      console.warn("Supabase SDK is not loaded.");
       return null;
     }
-
-    try {
-      internalClient = window.supabase.createClient(PVT_SUPABASE_URL, PVT_SUPABASE_ANON_KEY);
-      window.supabaseClient = internalClient;
-      console.log("%c[Timeline Step 2]: ท่อเชื่อมโยงฐานข้อมูลหลักถูกสร้างสำเร็จ! ✅", "color: #2563eb; font-weight: bold;");
-      return internalClient;
-    } catch (err) {
-      console.error("❌ เกิดข้อผิดพลาดในการสร้าง Supabase Client:", err.message);
-      return null;
-    }
+    client = window.supabase.createClient(PVT_SUPABASE_URL, PVT_SUPABASE_ANON_KEY);
+    window.supabaseClient = client;
+    return client;
   }
 
   async function getSession() {
     const sb = getClient();
-    if (!sb) return null;
+    if (!sb?.auth) return null;
+    const { data } = await sb.auth.getSession();
+    return data?.session || null;
+  }
+
+  function getCachedUser() {
     try {
-      const { data, error } = await sb.auth.getSession();
-      if (error) throw error;
-      return data.session || null;
-    } catch (err) {
-      console.error("❌ ไม่สามารถดึงข้อมูล Session ได้:", err.message);
+      return JSON.parse(sessionStorage.getItem("currentUser") || "null");
+    } catch {
       return null;
     }
   }
 
-  // 🌟 [SMART FEATURE 1] ดึงโปรไฟล์พนักงานแบบปลอดภัย
   async function getCurrentProfile() {
     const sb = getClient();
     if (!sb) return null;
-    
-    const session = await getSession();
-    if (!session || !session.user) return null;
 
-    try {
-      const { data, error } = await sb
-        .from("profiles")
+    const cached = getCachedUser();
+    if (cached?.id || cached?.employee_code) {
+      const query = sb
+        .from("employees")
         .select(`
-          id, employee_id, email, username, display_name, role, status,
-          employees (
-            id, employee_code, full_name, start_date, status,
-            departments ( department_name ),
-            positions ( position_name )
-          )
-        `)
-        .eq("id", session.user.id)
-        .maybeSingle();
+          id, employee_code, full_name, nickname, phone, email, hospital,
+          bank_account, line_id, image_url, start_date, status, role,
+          employment_type, department_id, position_id,
+          departments(department_name),
+          positions(position_name)
+        `);
 
-      if (error) throw error;
-      return data;
-    } catch (err) {
-      await logDebugError("getCurrentProfile", err.message, { userId: session?.user?.id });
-      return null;
+      const { data: employee } = cached.id
+        ? await query.eq("id", cached.id).maybeSingle()
+        : await query.eq("employee_code", cached.employee_code).maybeSingle();
+
+      const emp = employee || cached;
+      return {
+        id: cached.auth_id || cached.profile_id || emp.id,
+        employee_id: emp.id,
+        employee_code: emp.employee_code,
+        display_name: emp.full_name,
+        role: emp.role || cached.role || "employee",
+        status: emp.status || "active",
+        employees: emp,
+      };
     }
+
+    const session = await getSession();
+    if (!session?.user) return null;
+
+    const { data: profile, error } = await sb
+      .from("profiles")
+      .select("id, employee_id, email, username, display_name, role, status")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    if (error || !profile) return null;
+    if (!profile.employee_id) return profile;
+
+    const { data: employee } = await sb
+      .from("employees")
+      .select(`
+        id, employee_code, full_name, nickname, phone, email, hospital,
+        bank_account, line_id, image_url, start_date, status, role,
+        employment_type, department_id, position_id,
+        departments(department_name),
+        positions(position_name)
+      `)
+      .eq("id", profile.employee_id)
+      .maybeSingle();
+
+    return { ...profile, employees: employee };
   }
 
-  // 🌟 [SMART FEATURE 2] ระบบ Activity Log
-  async function logUserAction(userName, actionType, description) {
-    const sb = getClient();
-    if (!sb) return;
-    try {
-      await sb.from("user_activity_logs").insert({
-        user_name: userName || "Unknown User",
-        page_url: window.location.pathname,
-        action_type: actionType,
-        description: description,
-        ip_address: "Client-Side"
-      });
-      console.log(`📝 [LOG RECORDED]: ${actionType} -> ${description}`);
-    } catch (err) {
-      console.warn("⚠️ บันทึก Activity Log ไม่สำเร็จ:", err.message || err);
-    }
-  }
-
-  // 🌟 [SMART FEATURE 3] ระบบ Auto Debug Logger
-  async function logDebugError(functionName, errorMessage, contextData = {}) {
-    const sb = getClient();
-    if (!sb) return;
-    try {
-      await sb.from("pvt_debug_logs").insert({
-        function_name: functionName,
-        error_message: String(errorMessage),
-        context_data: contextData
-      });
-      console.warn(`🚨 [SYSTEM WARNING] บันทึก Error จากฟังก์ชัน '${functionName}' เรียบร้อยแล้ว`);
-    } catch (err) {
-      // เงียบไว้เพื่อไม่ให้เกิด Infinite Loop
-    }
-  }
-
-  // 🌟 [SMART FEATURE 4] ฟังก์ชันตรวจสอบวันหยุดบริษัท
-  async function checkIsCompanyHoliday(dateString) {
-    const sb = getClient();
-    if (!sb || !dateString) return false;
-    try {
-      const { data } = await sb
-        .from("company_holidays")
-        .select("holiday_name")
-        .eq("holiday_date", dateString)
-        .maybeSingle();
-      return data ? data.holiday_name : false;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  // ==========================================
-  // UTILITIES (ตัวช่วยแปลงข้อมูล)
-  // ==========================================
   function toISODate(input) {
     if (!input) return null;
     const value = String(input).trim();
     if (!value) return null;
-
     if (value.includes("/")) {
       const [rawDay, rawMonth, rawYear] = value.split("/");
       if (!rawDay || !rawMonth || !rawYear) return null;
@@ -148,7 +107,6 @@ window.pvtSupabase = (() => {
       if (year > 2400) year -= 543;
       return `${year}-${rawMonth.padStart(2, "0")}-${rawDay.padStart(2, "0")}`;
     }
-
     if (value.includes("-")) {
       const parts = value.split("-");
       if (parts.length !== 3) return value;
@@ -172,31 +130,56 @@ window.pvtSupabase = (() => {
 
   function escapeHtml(value) {
     return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function statusLabel(status) {
+    return {
+      pending: "รออนุมัติ",
+      approved: "อนุมัติแล้ว",
+      rejected: "ไม่อนุมัติ",
+      cancelled: "ยกเลิก",
+    }[status] || status || "-";
+  }
+
+  function getAvatarUrl(imageUrl) {
+    if (!imageUrl) return "/assets/img/default-avatar.jpg";
+    let url = String(imageUrl).trim();
+    if (!url) return "/assets/img/default-avatar.jpg";
+    if (!url.startsWith("http")) {
+      url = `${PVT_SUPABASE_URL}/storage/v1/object/public/employee-images/${url}`;
+    }
+    return url.replace("storage/v1/object/", "storage/v1/object/public/");
+  }
+
+  function downloadBlob(filename, content, mimeType = "text/plain;charset=utf-8") {
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 
   return {
     getClient,
     getSession,
+    getCachedUser,
     getCurrentProfile,
-    logUserAction,
-    logDebugError,
-    checkIsCompanyHoliday,
     toISODate,
     formatThaiDate,
-    escapeHtml
+    escapeHtml,
+    statusLabel,
+    getAvatarUrl,
+    downloadBlob,
   };
 })();
 
-// Initialize client ทันทีถ้า SDK พร้อม
 window.pvtSupabase.getClient();
-
-// Expose ฟังก์ชันให้ Global Scope สำหรับโค้ดรุ่นเก่า
-window.logUserAction = (...args) => window.pvtSupabase.logUserAction(...args);
-window.logDebugError = (...args) => window.pvtSupabase.logDebugError(...args);
-
-console.log("✅ [Supabase Config] อัปเกรดระบบอัจฉริยะเสร็จสมบูรณ์ พร้อมใช้งาน! 🚀");

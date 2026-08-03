@@ -1387,3 +1387,42 @@ async function publishSpecialDay(holidayId) {
         alert("ส่งข้อมูลไปหน้าแสดงผลของพนักงานเรียบร้อยแล้ว!");
     }
 }
+
+window.handleLogout = function() {
+  Swal.fire({
+    title: 'ยืนยันการออกจากระบบ',
+    text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444', // สีแดงสำหรับปุ่มออกจากระบบ
+    cancelButtonColor: '#64748b',  // สีเทาสีสレートสำหรับปุ่มยกเลิก
+    confirmButtonText: 'ออกจากระบบ',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true, // สลับให้ปุ่มยกเลิกอยู่ซ้าย ปุ่มยืนยันอยู่ขวา
+    focusCancel: true,
+    customClass: {
+      popup: 'pvt-logout-swal-popup',
+      title: 'pvt-logout-swal-title',
+      confirmButton: 'pvt-logout-confirm-btn',
+      cancelButton: 'pvt-logout-cancel-btn'
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // แสดงสถานะกำลังออกจากระบบ
+      Swal.fire({
+        title: 'กำลังออกจากระบบ...',
+        text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
+        icon: 'success',
+        showConfirmButton: false,
+        timer: 1200,
+        timerProgressBar: true
+      });
+
+      setTimeout(() => {
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = "/index.html";
+      }, 1200);
+    }
+  });
+};

@@ -197,24 +197,24 @@ window.loadRecentLeaves = async function(profile) {
     console.log(`⏳ [FETCH DATA] กำลังดึงสถิติและโควตาของไอดี: ${employeeId}`);
     const currentYear = new Date().getFullYear();
 
-      // 📍 ค้นหาท่อนนี้ใน index-user.js
-  const [requestsRes, pendingRes, balanceRes] = await Promise.all([
-    sb.from("leave_requests").select("id, start_date, end_date, total_days, status, leave_types(leave_name)").eq("employee_id", employeeId).order("created_at", { ascending: false }).limit(50), 
-    sb.from("leave_requests").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).eq("status", "pending"),
-    sb.from("leave_balances").select("leave_type_id, remaining_days, used_days, year, leave_types(leave_name)").eq("employee_id", employeeId).eq("year", currentYear)
-  ]);
+    // 📍 1. [แก้ไขแล้ว] เพิ่ม approval_comment เข้าไปใน .select()
+    const [requestsRes, pendingRes, balanceRes] = await Promise.all([
+      sb.from("leave_requests").select("id, start_date, end_date, total_days, status, approval_comment, leave_types(leave_name)").eq("employee_id", employeeId).order("created_at", { ascending: false }).limit(50), 
+      sb.from("leave_requests").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).eq("status", "pending"),
+      sb.from("leave_balances").select("leave_type_id, remaining_days, used_days, year, leave_types(leave_name)").eq("employee_id", employeeId).eq("year", currentYear)
+    ]);
 
-  // 🛠️ เพิ่มการตรวจสอบ balanceRes.error ตรงนี้
-  if (balanceRes.error) {
-    console.error("❌ [BALANCE ERROR] ดึงโควตาวันลาไม่สำเร็จ:", balanceRes.error.message);
-  } else {
-    console.log("✅ [BALANCE DATA] ดึงโควตาวันลาสำเร็จ:", balanceRes.data);
-  }
+    // 🛠️ เพิ่มการตรวจสอบ balanceRes.error ตรงนี้
+    if (balanceRes.error) {
+      console.error("❌ [BALANCE ERROR] ดึงโควตาวันลาไม่สำเร็จ:", balanceRes.error.message);
+    } else {
+      console.log("✅ [BALANCE DATA] ดึงโควตาวันลาสำเร็จ:", balanceRes.data);
+    }
 
-  if (requestsRes.error) throw requestsRes.error;
+    if (requestsRes.error) throw requestsRes.error;
 
-  const balanceRows = balanceRes.data || [];
-  window.employeeLeaveBalances = balanceRows; 
+    const balanceRows = balanceRes.data || [];
+    window.employeeLeaveBalances = balanceRows; 
 
     if (typeof window.renderAllLeaveBalances === 'function') {
       window.renderAllLeaveBalances();
@@ -249,15 +249,29 @@ window.loadRecentLeaves = async function(profile) {
     if (recentList) {
       const listHtml = rows.map((item) => {
         const leaveName = item.leave_types?.leave_name || "การลา";
+        
+        // 📍 2. [แก้ไขแล้ว] ตรวจสอบสถานะและคอมเมนต์เพื่อแยก "ไม่อนุมัติ" กับ "ยกเลิก"
+        let displayStatus = labelFn(item.status);
         let badgeStyle = "background:#fff3cd; color:#854d0e; border:1px solid #fde047;"; 
-        if (item.status === "approved") badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
-        else if (item.status === "rejected") badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;";
+        
+        if (item.status === "approved") {
+          badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
+        } else if (item.status === "rejected") {
+          const comment = item.approval_comment || "";
+          if (comment.includes("ยกเลิก")) {
+            displayStatus = "ยกเลิก";
+            badgeStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"; // สีเทา
+          } else {
+            displayStatus = "ไม่อนุมัติ";
+            badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;"; // สีแดง
+          }
+        }
 
         return `
           <article class="recent-item" style="margin-bottom: 12px; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <strong style="font-size: 15px; color: #0f172a;">${escapeFn(leaveName)}</strong>
-              <span class="status ${item.status}" style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; ${badgeStyle}">${labelFn(item.status)}</span>
+              <span class="status ${item.status}" style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; ${badgeStyle}">${displayStatus}</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #64748b;">
               <div style="display: flex; align-items: center; gap: 6px;">
@@ -288,26 +302,40 @@ window.renderAllLeaveBalances = function() {
 
   container.innerHTML = ""; 
 
-  if (!window.employeeLeaveBalances || window.employeeLeaveBalances.length === 0) {
+  // 1. ตรวจสอบว่าตัวแปรมีข้อมูลอยู่จริงและเป็น Array หรือไม่
+  if (!window.employeeLeaveBalances || !Array.isArray(window.employeeLeaveBalances) || window.employeeLeaveBalances.length === 0) {
     container.innerHTML = "<p style='color:var(--muted); font-size:14px; font-style:italic; margin:0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
     return;
   }
 
   window.employeeLeaveBalances.forEach(balance => {
-    const typeName = balance.leave_types?.leave_name || "สิทธิ์การลา";
-    const remaining = parseFloat(balance.remaining_days) || 0;
+    // 2. ดึงชื่อประเภทการลา (รองรับทั้ง Object, Array และ Flat Field)
+    let typeName = "สิทธิ์การลา";
+    if (Array.isArray(balance.leave_types) && balance.leave_types.length > 0) {
+      typeName = balance.leave_types[0].leave_name || typeName;
+    } else if (balance.leave_types && typeof balance.leave_types === 'object') {
+      typeName = balance.leave_types.leave_name || typeName;
+    } else if (balance.leave_name) {
+      typeName = balance.leave_name;
+    }
 
+    // 3. ดึงจำนวนวันคงเหลือ (รองรับกรณีใช้ชื่อ field ต่างกัน)
+    const rawRemaining = balance.remaining_days ?? balance.remaining ?? balance.quota_remaining ?? 0;
+    const remaining = parseFloat(rawRemaining) || 0;
+
+    // 4. แยกคลาสสีตามประเภทวันลา
     let colorClass = ""; 
     if (typeName.includes("ป่วย")) colorClass = "sick";
     else if (typeName.includes("กิจ")) colorClass = "personal";
     else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
 
+    // 5. สร้างการ์ดแสดงผล
     const box = document.createElement("div");
-    box.className = `leave-quota-card ${colorClass}`;
+    box.className = `leave-quota-card ${colorClass}`.trim();
     
     box.innerHTML = `
       <span class="leave-quota-name">${typeName}</span>
-      <div class="leave-quota-days">${remaining}<small>วัน</small></div>
+      <div class="leave-quota-days">${remaining} <small>วัน</small></div>
     `;
     container.appendChild(box);
   });
@@ -417,5 +445,48 @@ function toggleUserGuide() {
     btn.style.background = "rgba(255, 255, 255, 0.8)";
     btn.style.color = "var(--primary-dark, #0891b2)";
     btn.style.borderColor = "rgba(6, 182, 212, 0.3)";
+  }
+}
+
+
+// ฟังก์ชันเปิด Modal
+function openHolidayModal() {
+  const modal = document.getElementById('holidayModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+// ฟังก์ชันปิด Modal
+function closeHolidayModal() {
+  const modal = document.getElementById('holidayModal');
+  if (modal) {
+    modal.style.display = 'none';
+    document.getElementById('holidayForm')?.reset(); // ล้างค่าฟอร์มเมื่อปิด
+  }
+}
+
+// ฟังก์ชันบันทึกข้อมูลวันหยุด
+async function handleSaveHoliday(event) {
+  event.preventDefault();
+  
+  const holidayDate = document.getElementById('holidayDate').value;
+  const holidayName = document.getElementById('holidayName').value;
+  const holidayType = document.getElementById('holidayType').value;
+
+  try {
+    // ตัวอย่างการส่งข้อมูลไปยัง Supabase
+    const { data, error } = await pvtSupabase.getClient()
+      .from('holidays')
+      .insert([
+        { holiday_date: holidayDate, holiday_name: holidayName, type: holidayType }
+      ]);
+
+    if (error) throw error;
+
+    Swal.fire('สำเร็จ!', 'เพิ่มวันหยุดเรียบร้อยแล้ว', 'success');
+    closeHolidayModal();
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด!', err.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
   }
 }

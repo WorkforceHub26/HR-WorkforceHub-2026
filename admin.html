@@ -96,6 +96,7 @@
           <option value="leave_types">2. ประเภทการลา (Leave Types)</option>
           <option value="leave_balances">3. วันลาคงเหลือ (Leave Balances)</option>
           <option value="leave_requests">4. ประวัติการลา (Leave Requests)</option>
+          <option value="pvt_system_logs">5. log error</option>
         </select>
 
         <!-- 2. แถบค้นหาแบบเรียลไทม์ -->
@@ -270,7 +271,9 @@
 <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 10px;"></div>
 
 <!-- ⚙️ แผงเรียกสคริปต์ Supabase และไฟล์ปฏิบัติการของระบบ -->
+<!-- ⚙️ แผงเรียกสคริปต์ Supabase และไฟล์ปฏิบัติการของระบบ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script> <!-- 👈 เพิ่มบรรทัดนี้เข้ามา -->
 <script src="./js/admin.js"></script>
 </body>
 </html>

@@ -17,15 +17,29 @@ window.onerror = function (message, source, lineno, colno, error) {
 const SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
-const sbTelemetryClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ฟังก์ชันดึง Supabase Client ที่ปลอดภัย ป้องกัน ReferenceError และการสร้าง Instance ซ้ำ
+function getSupabaseClient() {
+  if (window.pvtSupabase?.getClient) {
+    return window.pvtSupabase.getClient();
+  }
+  if (window.supabase?.createClient) {
+    return window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false }
+    });
+  }
+  return null;
+}
+
+const sbTelemetryClient = getSupabaseClient();
 let globalSystemLogs = [];
 let searchTerm = "";
 
 function pushLog(message, level = "info") {
   const container = document.getElementById("debugLogContainer");
-  if (!container) return;
   const timestamp = new Date().toLocaleTimeString();
   globalSystemLogs.push({ timestamp, message, level });
+  
+  if (!container) return;
   
   if (searchTerm === "" || message.toLowerCase().includes(searchTerm.toLowerCase())) {
     let cssClass = level === "error" ? "log-error" : level === "success" ? "log-success" : level === "warn" ? "log-warn" : "log-info";
@@ -37,20 +51,20 @@ function pushLog(message, level = "info") {
 // ===================================================================
 // 🟢 3. REALTIME AUDIT LOGS ENGINE
 // ===================================================================
-document.addEventListener("DOMContentLoaded", () => {
-  pushLog("กำลังเริ่มต้นเชื่อมต่อสารบบเซิร์ฟเวอร์หลังบ้าน...", "info");
-  executeTelemetryCycle();
-  setupRealtimeAuditStream();
-  setInterval(executeTelemetryCycle, 30000); 
-});
-
 function setupRealtimeAuditStream() {
   pushLog("กำลังเปิดโครงข่ายท่อ WebSocket เชื่อมตรงตารางประวัติพฤติกรรม...", "info");
-  const channel = sbTelemetryClient
+  const client = getSupabaseClient();
+  if (!client) {
+    pushLog("⚠️ ไม่สามารถเริ่มต้น Realtime Audit Stream: ไม่พบ Supabase Client", "warn");
+    return;
+  }
+
+  client
     .channel('public:user_activity_logs')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_activity_logs' }, (payload) => {
-      pushLog(`🚨 มีกิจกรรมใหม่จากผู้ใช้: ${payload.new.user_name} -> ${payload.new.description}`, "success");
-      insertRowToAuditTable(payload.new, true); 
+      const newLog = payload.new || {};
+      pushLog(`🚨 มีกิจกรรมใหม่จากผู้ใช้: ${newLog.user_name || 'Guest'} -> ${newLog.description || '-'}`, "success");
+      insertRowToAuditTable(newLog, true); 
     })
     .subscribe((status) => {
       const rtEl = document.getElementById("realtimeStatus");
@@ -66,7 +80,10 @@ function setupRealtimeAuditStream() {
 
 async function fetchInitialAuditLogs() {
   try {
-    const { data, error } = await sbTelemetryClient.from("user_activity_logs").select("*").order("created_at", { ascending: false }).limit(15);
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const { data, error } = await client.from("user_activity_logs").select("*").order("created_at", { ascending: false }).limit(15);
     if (error) throw error;
     const tbody = document.getElementById("auditLogsTableBody");
     if (!tbody) return;
@@ -85,18 +102,25 @@ async function fetchInitialAuditLogs() {
 function insertRowToAuditTable(log, isNewArrival = false) {
   const tbody = document.getElementById("auditLogsTableBody");
   if (!tbody) return;
-  const timeStr = new Date(log.created_at).toLocaleTimeString();
+  
+  const timeStr = log.created_at ? new Date(log.created_at).toLocaleTimeString() : new Date().toLocaleTimeString();
   let actionBadgeColor = "#4b5563"; 
-  if (log.action_type === "INSERT") actionBadgeColor = "#16a34a"; 
+  if (log.action_type === "INSERT" || log.action_type === "VISIT") actionBadgeColor = "#16a34a"; 
   if (log.action_type === "UPDATE") actionBadgeColor = "#ca8a04"; 
   if (log.action_type === "DELETE") actionBadgeColor = "#dc2626"; 
+  
+  const userName = log.user_name || 'Guest/Admin';
+  const pageUrl = log.page_url || '-';
+  const actionType = log.action_type || 'INFO';
+  const description = log.description || '-';
+
   const rowHtml = `
     <tr style="${isNewArrival ? 'background: #064e3b; transition: background 1s ease;' : ''}">
       <td style="font-family: 'JetBrains Mono', monospace; color: #9ca3af;">${timeStr}</td>
-      <td><strong>👤 ${log.user_name}</strong></td>
-      <td><span class="table-code" style="color: #a7f3d0; background:#1f2937;">${log.page_url}</span></td>
-      <td><span style="background: ${actionBadgeColor}; color:#fff; padding: 2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${log.action_type}</span></td>
-      <td style="color: #e5e7eb;">${log.description}</td>
+      <td><strong>👤 ${userName}</strong></td>
+      <td><span class="table-code" style="color: #a7f3d0; background:#1f2937;">${pageUrl}</span></td>
+      <td><span style="background: ${actionBadgeColor}; color:#fff; padding: 2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${actionType}</span></td>
+      <td style="color: #e5e7eb;">${description}</td>
     </tr>
   `;
   if (isNewArrival) {
@@ -117,8 +141,12 @@ async function executeTelemetryCycle() {
   const startTime = Date.now();
   const refreshTimeEl = document.getElementById("lastRefreshTime");
   if (refreshTimeEl) refreshTimeEl.innerText = `REFRESH: ${new Date().toLocaleTimeString()}`;
+  
   try {
-    const { error: pErr } = await sbTelemetryClient.from("leave_types").select("id").limit(1);
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const { error: pErr } = await client.from("leave_types").select("id").limit(1);
     const latency = Date.now() - startTime;
     const pingEl = document.getElementById("pingStatus");
     if (pErr) {
@@ -126,20 +154,21 @@ async function executeTelemetryCycle() {
     } else {
       if(pingEl) { pingEl.className = "metric-value text-success"; pingEl.innerText = `${latency} ms`; }
     }
-    const tablesToScan = ["employees", "leave_types", "leave_balances", "leave_requests", "user_activity_logs"];
+    
+    const tablesToScan = ["employees", "leave_types", "leave_balances", "leave_requests", "user_activity_logs", "pvt_system_logs"];
     let combinedTotalRows = 0;
     for (const tableName of tablesToScan) {
-      const { count } = await sbTelemetryClient.from(tableName).select("*", { count: "exact", head: true });
+      const { count } = await client.from(tableName).select("*", { count: "exact", head: true });
       combinedTotalRows += (count || 0);
     }
     const dbSizeEl = document.getElementById("dbSizeStatus");
     if (dbSizeEl) dbSizeEl.innerText = `${combinedTotalRows} ROWS`;
 
     const rlsEl = document.getElementById("rlsStatus");
-    const { error: rlsErr } = await sbTelemetryClient.from("leave_balances").select("id").limit(1);
+    const { error: rlsErr } = await client.from("leave_balances").select("id").limit(1);
     if (rlsEl) {
-      rlsEl.className = rlsErr && rlsErr.message.includes("policy") ? "metric-value text-error" : "metric-value text-success";
-      rlsEl.innerText = rlsErr && rlsErr.message.includes("policy") ? "SECURE 🔐" : "OPEN 🔓";
+      rlsEl.className = rlsErr && rlsErr.message?.includes("policy") ? "metric-value text-error" : "metric-value text-success";
+      rlsEl.innerText = rlsErr && rlsErr.message?.includes("policy") ? "SECURE 🔐" : "OPEN 🔓";
     }
   } catch (err) {
     pushLog(`ลูปสแกนระบบหลักมีอาการรวน: ${err.message}`, "error");
@@ -154,18 +183,25 @@ function handleLogSearch() {
   container.innerHTML = "";
   globalSystemLogs.forEach(log => {
     if (searchTerm === "" || log.message.toLowerCase().includes(searchTerm.toLowerCase())) {
-      let cssClass = log.level === "error" ? "log-error" : log.level === "success" ? "log-success" : "log-info";
+      let cssClass = log.level === "error" ? "log-error" : log.level === "success" ? "log-success" : log.level === "warn" ? "log-warn" : "log-info";
       container.innerHTML += `<span class="log-row ${cssClass}">[${log.timestamp}] [${log.level.toUpperCase()}]: ${log.message}</span>`;
     }
   });
 }
-function clearConsoleLog() { globalSystemLogs = []; document.getElementById("debugLogContainer").innerHTML = ""; }
+
+function clearConsoleLog() { 
+  globalSystemLogs = []; 
+  const container = document.getElementById("debugLogContainer");
+  if (container) container.innerHTML = ""; 
+}
 
 // ===================================================================
 // 🛠️ 5. ADVANCED ENTERPRISE TOOLS
 // ===================================================================
 function filterAuditLogs() {
-  const filterValue = document.getElementById("actionFilter").value;
+  const filterEl = document.getElementById("actionFilter");
+  if (!filterEl) return;
+  const filterValue = filterEl.value;
   const tableBody = document.getElementById("auditLogsTableBody");
   if (!tableBody) return;
   const rows = tableBody.querySelectorAll("tr");
@@ -203,6 +239,15 @@ function exportLogsToCSV() {
   pushLog(`📥 Export CSV สำเร็จ`, "success");
 }
 
+// สร้าง Alias ให้เรียกใช้ได้สอดคล้องกับ HTML
+function exportToCSV() {
+  exportLogsToCSV();
+}
+
+function deleteSelectedRecords() {
+  alert("⚠️ ฟังก์ชันลบแบบกลุ่มยังอยู่ในระหว่างการพัฒนา");
+}
+
 // ===================================================================
 // ➕ ระบบเพิ่มข้อมูลพนักงาน (ปรับเพิ่มรหัสผ่าน & โปรไฟล์วางทับ)
 // ===================================================================
@@ -223,18 +268,25 @@ async function openInsertModal() {
   modal.classList.add("active");
 
   let html = '';
+  const client = getSupabaseClient();
+
   if (table === "employees") {
     modalTitle.innerHTML = `<span class="material-symbols-outlined text-success" style="vertical-align: middle;">person_add</span> เพิ่มข้อมูลพนักงานใหม่`;
     try {
-      const { data: depts, error: dErr } = await sbTelemetryClient.from('departments').select('id, department_name');
-      const { data: positions, error: pErr } = await sbTelemetryClient.from('positions').select('id, position_name');
-      if (dErr || pErr) throw new Error(dErr?.message || pErr?.message);
+      let depts = [], positions = [];
+      if (client) {
+        const { data: dData, error: dErr } = await client.from('departments').select('id, department_name');
+        const { data: pData, error: pErr } = await client.from('positions').select('id, position_name');
+        if (dErr || pErr) throw new Error(dErr?.message || pErr?.message);
+        depts = dData || [];
+        positions = pData || [];
+      }
 
       let deptOptions = `<option value="">-- เลือกฝ่าย/แผนก * --</option>`;
-      depts?.forEach(d => { deptOptions += `<option value="${d.id}">${d.department_name}</option>`; });
+      depts.forEach(d => { deptOptions += `<option value="${d.id}">${d.department_name}</option>`; });
 
       let posOptions = `<option value="">-- เลือกตำแหน่งงาน * --</option>`;
-      positions?.forEach(p => { posOptions += `<option value="${p.id}">${p.position_name}</option>`; });
+      positions.forEach(p => { posOptions += `<option value="${p.id}">${p.position_name}</option>`; });
 
       html = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -348,18 +400,21 @@ async function openInsertModal() {
 
 async function saveDynamicInsert(table) {
   let insertData = {};
+  const client = getSupabaseClient();
+  if (!client) return alert("❌ ไม่พบการเชื่อมต่อ Supabase Client");
+
   try {
     if (table === "employees") {
-      const empCode = document.getElementById("add_field_employee_code").value.trim();
-      const role = document.getElementById("add_field_role").value;
-      const prefix = document.getElementById("add_field_prefix").value;
-      const nameInput = document.getElementById("add_field_full_name").value.trim();
-      const deptId = document.getElementById("add_field_department_id").value;
-      const posId = document.getElementById("add_field_position_id").value;
-      const empType = document.getElementById("add_field_employment_type").value;
-      const startDate = document.getElementById("add_field_start_date").value;
+      const empCode = document.getElementById("add_field_employee_code")?.value.trim();
+      const role = document.getElementById("add_field_role")?.value;
+      const prefix = document.getElementById("add_field_prefix")?.value;
+      const nameInput = document.getElementById("add_field_full_name")?.value.trim();
+      const deptId = document.getElementById("add_field_department_id")?.value;
+      const posId = document.getElementById("add_field_position_id")?.value;
+      const empType = document.getElementById("add_field_employment_type")?.value;
+      const startDate = document.getElementById("add_field_start_date")?.value;
       
-      const pwdInput = document.getElementById("add_field_password").value.trim();
+      const pwdInput = document.getElementById("add_field_password")?.value.trim();
       const profileUrl = document.getElementById("add_field_profile_url")?.value.trim() || null;
       
       if (!nameInput || !empCode || !startDate || !deptId || !posId || !empType) {
@@ -369,25 +424,26 @@ async function saveDynamicInsert(table) {
       insertData = {
         employee_code: parseInt(empCode),
         full_name: `${prefix}${nameInput}`,
-        nickname: document.getElementById("add_field_nickname").value.trim() || null,
-        phone: document.getElementById("add_field_phone").value.trim() || null,
+        nickname: document.getElementById("add_field_nickname")?.value.trim() || null,
+        phone: document.getElementById("add_field_phone")?.value.trim() || null,
         department_id: deptId || null,
         position_id: posId || null,
         employment_type: empType,
         start_date: startDate || null,
         status: "active",
-        password: pwdInput || empCode, // ใช้รหัสผ่านที่กรอก หรือถ่าว่างให้ใช้รหัสพนักงาน
+        password: pwdInput || empCode, 
         role: role,
         profile_image_url: profileUrl
       };
     } else if (table === "leave_types") {
       insertData = { 
-        leave_name: document.getElementById("add_field_leave_name").value.trim(), 
-        default_days: parseInt(document.getElementById("add_field_default_days").value) || 0 
+        leave_name: document.getElementById("add_field_leave_name")?.value.trim(), 
+        default_days: parseInt(document.getElementById("add_field_default_days")?.value) || 0 
       };
     }
+
     pushLog(`⏳ กำลังทำการเพิ่มข้อมูลใหม่...`, "warn");
-    const { error } = await sbTelemetryClient.from(table).insert([insertData]);
+    const { error } = await client.from(table).insert([insertData]);
     if (error) throw error;
 
     pushLog(`✅ บันทึกข้อมูลเรียบร้อยแล้ว!`, "success");
@@ -412,10 +468,12 @@ function toggleKillSwitch() {
     document.body.style.border = "none";
   }
 }
+
 function copyConsoleLog() {
   const logsText = globalSystemLogs.map(l => `[${l.timestamp}] [${l.level.toUpperCase()}]: ${l.message}`).join("\n");
   navigator.clipboard.writeText(logsText).then(() => alert("📋 คัดลอก System Logs เรียบร้อยแล้ว!"));
 }
+
 function downloadLogs() {
   if (globalSystemLogs.length === 0) return alert("ไม่มี Logs ให้ดาวน์โหลด!");
   const logsText = globalSystemLogs.map(l => `[${l.timestamp}] [${l.level.toUpperCase()}]: ${l.message}`).join("\n");
@@ -428,38 +486,44 @@ function downloadLogs() {
 }
 
 // ===================================================================
-// 🗄️ 7. DATABASE EXPLORER (ระบบจัดการ อ่าน/กรอง/แก้ไข/ลบ)
+// 🗄️ 6. DATABASE EXPLORER (ระบบจัดการ อ่าน/กรอง/แก้ไข/ลบ)
 // ===================================================================
 var currentTableData = []; 
 let currentPage = 1;       
 const itemsPerPage = 10;   
 
 async function loadTableData() {
-  const table = document.getElementById("manageTableSelect").value;
+  const tableSelect = document.getElementById("manageTableSelect");
+  if (!tableSelect) return;
+  
+  const table = tableSelect.value;
   const tbody = document.getElementById("managementTableBody");
   const thead = document.getElementById("managementTableHead");
-  tbody.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 30px; color:#94a3b8;">⏳ กำลังดึงข้อมูล...</div>';
+  if (tbody) tbody.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 30px; color:#94a3b8;">⏳ กำลังดึงข้อมูล...</div>';
   
   try {
+    const client = getSupabaseClient();
+    if (!client) throw new Error("ไม่พบ Supabase Client");
+
     let querySelect = '*';
     if (table === 'employees') querySelect = '*, departments(department_name), positions(position_name)';
     else if (table === 'leave_requests' || table === 'leave_balances') querySelect = '*, employees(full_name), leave_types(leave_name)';
 
-    // ✨ ไฮไลต์: เปลี่ยน order เป็น ascending: false เพื่อให้ข้อมูลล่าสุดแสดงขึ้นเป็นรายการแรกเสมอ!
-    const { data, error } = await sbTelemetryClient.from(table).select(querySelect).order('id', { ascending: false });
+    const { data, error } = await client.from(table).select(querySelect).order('id', { ascending: false });
     if (error) throw error;
     
-    currentTableData = data; 
+    currentTableData = data || []; 
     currentPage = 1; 
     if (thead) thead.innerHTML = '';
     filterAndRenderCards();
   } catch (err) {
-    tbody.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; color: #ef4444;">เกิดข้อผิดพลาด: ${err.message}</div>`;
+    if (tbody) tbody.innerHTML = `<div style="grid-column: 1 / -1; text-align:center; color: #ef4444;">เกิดข้อผิดพลาด: ${err.message}</div>`;
   }
 }
 
 function filterAndRenderCards() {
   const tbody = document.getElementById("managementTableBody");
+  if (!tbody) return;
   const keyword = document.getElementById("searchInput")?.value.toLowerCase() || "";
   
   if (!currentTableData || currentTableData.length === 0) {
@@ -467,6 +531,7 @@ function filterAndRenderCards() {
     updatePaginationUI(0);
     return;
   }
+  
   let filteredData = currentTableData.filter(row => Object.values(row).some(val => val !== null && typeof val !== 'object' && String(val).toLowerCase().includes(keyword)));
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
@@ -479,7 +544,8 @@ function filterAndRenderCards() {
   updatePaginationUI(totalItems, startIndex, endIndex, totalPages);
   if (paginatedData.length === 0) return tbody.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 30px;">🔍 ไม่พบข้อมูล</div>';
 
-  const table = document.getElementById("manageTableSelect").value;
+  const tableSelect = document.getElementById("manageTableSelect");
+  const table = tableSelect ? tableSelect.value : "";
   let bodyHTML = '';
   paginatedData.forEach((row) => {
     const globalIndex = currentTableData.findIndex(r => r.id === row.id);
@@ -509,27 +575,30 @@ function updatePaginationUI(totalItems, startIndex = 0, endIndex = 0, totalPages
   if (document.getElementById("btnPrevPage")) document.getElementById("btnPrevPage").disabled = (currentPage === 1);
   if (document.getElementById("btnNextPage")) document.getElementById("btnNextPage").disabled = (currentPage === totalPages);
 }
+
 function changePage(direction) { currentPage += direction; filterAndRenderCards(); }
 function searchTableData() { currentPage = 1; filterAndRenderCards(); }
 
 async function deleteRecord(table, index) {
   const rowData = currentTableData[index];
-  if (!confirm(`⚠️ ยืนยันการลบข้อมูล ID: ${rowData.id} ?`)) return;
+  if (!rowData || !confirm(`⚠️ ยืนยันการลบข้อมูล ID: ${rowData.id} ?`)) return;
   try {
-    const { error } = await sbTelemetryClient.from(table).delete().eq('id', rowData.id);
+    const client = getSupabaseClient();
+    if (!client) throw new Error("ไม่พบ Supabase Client");
+    const { error } = await client.from(table).delete().eq('id', rowData.id);
     if (error) throw error;
     alert(`✅ ลบสำเร็จ!`);
     loadTableData(); 
   } catch (err) { alert(`❌ ไม่สามารถลบได้: ${err.message}`); }
 }
 
-// ✨ ไฮไลต์: ปรับหน้า Edit พนักงานให้สวยงามเหมือนหน้า Add Employee แบบวางทับแทนกล่องข้อความทื่อๆ
 async function openDynamicEditModal(table, index) {
   const rowData = currentTableData[index];
+  if (!rowData) return;
   const modalBody = document.getElementById("modalBody");
   const modalTitle = document.getElementById("modalTitle");
   const modal = document.getElementById("dataModal");
-  if(!modal) return;
+  if(!modal || !modalBody || !modalTitle) return;
 
   modalTitle.innerHTML = `<span class="material-symbols-outlined text-warn">edit_square</span> แก้ไขข้อมูล (ID: ${String(rowData.id).substring(0,8)}...)`;
   
@@ -538,13 +607,19 @@ async function openDynamicEditModal(table, index) {
     modal.style.display = "flex";
     modal.classList.add("active");
 
-    const { data: depts } = await sbTelemetryClient.from('departments').select('id, department_name');
-    const { data: positions } = await sbTelemetryClient.from('positions').select('id, position_name');
+    const client = getSupabaseClient();
+    let depts = [], positions = [];
+    if (client) {
+      const { data: dData } = await client.from('departments').select('id, department_name');
+      const { data: pData } = await client.from('positions').select('id, position_name');
+      depts = dData || [];
+      positions = pData || [];
+    }
 
     let deptOptions = `<option value="">-- เลือกฝ่าย/แผนก --</option>`;
-    depts?.forEach(d => { deptOptions += `<option value="${d.id}" ${d.id === rowData.department_id ? 'selected' : ''}>${d.department_name}</option>`; });
+    depts.forEach(d => { deptOptions += `<option value="${d.id}" ${d.id === rowData.department_id ? 'selected' : ''}>${d.department_name}</option>`; });
     let posOptions = `<option value="">-- เลือกตำแหน่งงาน --</option>`;
-    positions?.forEach(p => { posOptions += `<option value="${p.id}" ${p.id === rowData.position_id ? 'selected' : ''}>${p.position_name}</option>`; });
+    positions.forEach(p => { posOptions += `<option value="${p.id}" ${p.id === rowData.position_id ? 'selected' : ''}>${p.position_name}</option>`; });
 
     let fName = rowData.full_name || "";
     let prefix = "นาย";
@@ -607,7 +682,6 @@ async function openDynamicEditModal(table, index) {
       </div>
     `;
   } else {
-    // 💡 ฟอร์มแก้ไขอัตโนมัติ สำหรับตารางอื่นๆ ที่ไม่ใช่พนักงาน
     let html = '';
     for (const key in rowData) {
       if (typeof rowData[key] === 'object' && rowData[key] !== null) continue;
@@ -624,12 +698,14 @@ async function openDynamicEditModal(table, index) {
   }
   
   const footer = document.querySelector(".modal-footer");
-  footer.innerHTML = `
-    <button class="action-btn btn-outline" style="padding:8px 16px; cursor:pointer;" onclick="closeDataModal()">ยกเลิก</button>
-    <button class="action-btn" style="padding:8px 16px; background: var(--color-warn, #fbbf24); color: #000; border: none; font-weight:bold; cursor:pointer;" onclick="saveDynamicEdit('${table}', ${index})">
-      <span class="material-symbols-outlined icon-sm">save</span> บันทึกการแก้ไข
-    </button>
-  `;
+  if (footer) {
+    footer.innerHTML = `
+      <button class="action-btn btn-outline" style="padding:8px 16px; cursor:pointer;" onclick="closeDataModal()">ยกเลิก</button>
+      <button class="action-btn" style="padding:8px 16px; background: var(--color-warn, #fbbf24); color: #000; border: none; font-weight:bold; cursor:pointer;" onclick="saveDynamicEdit('${table}', ${index})">
+        <span class="material-symbols-outlined icon-sm">save</span> บันทึกการแก้ไข
+      </button>
+    `;
+  }
   
   modal.style.display = "flex";
   setTimeout(() => modal.classList.add("active"), 10);
@@ -637,17 +713,18 @@ async function openDynamicEditModal(table, index) {
 
 async function saveDynamicEdit(table, index) {
   const oldData = currentTableData[index];
+  if (!oldData) return;
   const updatePayload = {};
   
   if (table === "employees" && document.getElementById("edit_field_full_name")) {
-    const prefix = document.getElementById("edit_field_prefix").value;
-    const fName = document.getElementById("edit_field_full_name").value.trim();
+    const prefix = document.getElementById("edit_field_prefix")?.value || "";
+    const fName = document.getElementById("edit_field_full_name")?.value.trim() || "";
     updatePayload.full_name = `${prefix}${fName}`;
-    updatePayload.role = document.getElementById("edit_field_role").value;
-    updatePayload.department_id = document.getElementById("edit_field_department_id").value || null;
-    updatePayload.position_id = document.getElementById("edit_field_position_id").value || null;
+    updatePayload.role = document.getElementById("edit_field_role")?.value;
+    updatePayload.department_id = document.getElementById("edit_field_department_id")?.value || null;
+    updatePayload.position_id = document.getElementById("edit_field_position_id")?.value || null;
     
-    const newPass = document.getElementById("edit_field_password").value.trim();
+    const newPass = document.getElementById("edit_field_password")?.value.trim();
     if (newPass) updatePayload.password = newPass;
 
     const newProfile = document.getElementById("edit_field_profile_url")?.value.trim();
@@ -668,7 +745,10 @@ async function saveDynamicEdit(table, index) {
   }
 
   try {
-    const { error } = await sbTelemetryClient.from(table).update(updatePayload).eq('id', oldData.id);
+    const client = getSupabaseClient();
+    if (!client) throw new Error("ไม่พบ Supabase Client");
+
+    const { error } = await client.from(table).update(updatePayload).eq('id', oldData.id);
     if (error) throw error;
     alert(`✅ อัปเดตข้อมูลเรียบร้อย!`);
     closeDataModal();
@@ -680,184 +760,182 @@ async function saveDynamicEdit(table, index) {
 
 function closeDataModal() {
   const modal = document.getElementById("dataModal");
-  if(modal) {
+  if (modal) {
     modal.classList.remove("active");
     setTimeout(() => modal.style.display = "none", 200);
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(loadTableData, 1000); 
-});
-
+// ===================================================================
+// 🔐 7. SYSTEM RESET & VERIFICATION SYSTEM
+// ===================================================================
 let currentStep = 1;
 
-// เปิด Modal ระบบยืนยันสิทธิ์
 function openResetModal() {
-    currentStep = 1;
-    document.getElementById('crypto-reset-modal').style.display = 'flex';
-    resetModalState();
+  currentStep = 1;
+  const modal = document.getElementById('crypto-reset-modal');
+  if (modal) modal.style.display = 'flex';
+  resetModalState();
 }
 
-// ปิด Modal / ยกเลิกคำสั่ง
 function closeResetModal() {
-    document.getElementById('crypto-reset-modal').style.display = 'none';
-    console.warn("⚠️ [SYSTEM LOG]: รีเซ็ตโควต้าถูกยกเลิกโดยผู้ดูแลระบบ (Abort Command)");
+  const modal = document.getElementById('crypto-reset-modal');
+  if (modal) modal.style.display = 'none';
+  console.warn("⚠️ [SYSTEM LOG]: รีเซ็ตโควต้าถูกยกเลิกโดยผู้ดูแลระบบ (Abort Command)");
 }
 
-// รีเซ็ตสถานะภายในฟอร์มให้เริ่มใหม่หมด
 function resetModalState() {
-    document.querySelectorAll('.verification-step').forEach(el => el.classList.remove('active'));
-    document.getElementById('step-1-content').classList.add('active');
-    document.getElementById('chk-understand').checked = false;
-    document.getElementById('txt-final-verify').value = '';
+  document.querySelectorAll('.verification-step').forEach(el => el.classList.remove('active'));
+  const step1 = document.getElementById('step-1-content');
+  if (step1) step1.classList.add('active');
+  const chk = document.getElementById('chk-understand');
+  if (chk) chk.checked = false;
+  const txt = document.getElementById('txt-final-verify');
+  if (txt) txt.value = '';
 }
 
-// ฟังก์ชันคุมการขยับไปสเต็ปถัดไป
 function nextVerificationStep(step) {
-    if (step === 1) {
-        // ย้ายไปสเต็ป 2
-        document.getElementById('step-1-content').classList.remove('active');
-        document.getElementById('step-2-content').classList.add('active');
-    } else if (step === 2) {
-        // ตรวจสอบก่อนว่าติ๊กถูกยอมรับความเสี่ยงหรือยัง
-        const isChecked = document.getElementById('chk-understand').checked;
-        if (!isChecked) {
-            alert("❌ กรุณาติ๊กเลือกช่องยอมรับความเสี่ยงเพื่อดำเนินการต่อ!");
-            return;
-        }
-        // ย้ายไปสเต็ป 3
-        document.getElementById('step-2-content').classList.remove('active');
-        document.getElementById('step-3-content').classList.add('active');
+  if (step === 1) {
+    document.getElementById('step-1-content')?.classList.remove('active');
+    document.getElementById('step-2-content')?.classList.add('active');
+  } else if (step === 2) {
+    const chk = document.getElementById('chk-understand');
+    if (!chk || !chk.checked) {
+      alert("❌ กรุณาติ๊กเลือกช่องยอมรับความเสี่ยงเพื่อดำเนินการต่อ!");
+      return;
     }
+    document.getElementById('step-2-content')?.classList.remove('active');
+    document.getElementById('step-3-content')?.classList.add('active');
+  }
 }
 
-// ขั้นสุดท้าย: ตรวจสอบคำพิมพ์และสั่งรีเซ็ตผ่าน Supabase
 async function executeFinalReset() {
-    const inputVerify = document.getElementById('txt-final-verify').value.trim();
+  const txtInput = document.getElementById('txt-final-verify');
+  const inputVerify = txtInput ? txtInput.value.trim() : '';
+  
+  if (inputVerify !== 'RESET-TEST-QUOTA-NOW') {
+    alert("❌ รหัสยืนยันไม่ถูกต้อง! กรุณาพิมพ์ 'RESET-TEST-QUOTA-NOW' เป็นตัวพิมพ์ใหญ่ทั้งหมด");
+    return;
+  }
+
+  try {
+    console.log("🚀 [DEVOPS PIPELINE]: กำลังเริ่มกระบวนการล้างโควต้า...");
     
-    // ตรวจสอบ String ป้องกันการกดมั่ว
-    if (inputVerify !== 'RESET-TEST-QUOTA-NOW') {
-        alert("❌ รหัสยืนยันไม่ถูกต้อง! กรุณาพิมพ์ 'RESET-TEST-QUOTA-NOW' เป็นตัวพิมพ์ใหญ่ทั้งหมด");
-        return;
-    }
+    const client = getSupabaseClient();
+    if (!client) throw new Error("ไม่พบ Supabase Client");
 
-    try {
-        console.log("🚀 [DEVOPS PIPELINE]: กำลังเริ่มกระบวนการล้างโควต้า...");
-        
-        // ตัวอย่างการยิงคำสั่งไปอัปเดตตารางผ่าน Supabase RPC (หรือจะใช้คำสั่ง .update() ตรง ๆ ก็ได้)
-        // หมายเหตุ: ตรงนี้จะไม่ไปยุ่งกับฟิลด์วันลาประจำปี (เช่น annual_leave)
-        const { data, error } = await supabase
-            .from('user_leave_quotas') 
-            .update({ 
-                sick_leave_used: 0,
-                personal_leave_used: 0,
-                other_test_leave_used: 0
-                // สังเกตว่าจะไม่ทำการอัปเดตฟิลด์ annual_leave หรือโควต้าประจำปี
-            })
-            .neq('id', 0); // หลอกอัปเดตทุกแถวที่ id ไม่เท่ากับ 0 (ยิงกระจายทั้งตาราง)
+    const { data, error } = await client
+      .from('user_leave_quotas') 
+      .update({ 
+        sick_leave_used: 0,
+        personal_leave_used: 0,
+        other_test_leave_used: 0
+      })
+      .neq('id', 0); 
 
-        if (error) throw error;
+    if (error) throw error;
 
-        // แจ้งเตือนความสำเร็จแบบ Cyberpunk Alert
-        alert("💥 SUCCESS: ระบบได้รีเซ็ตโควต้าทดสอบของพนักงานทั้งหมดเสร็จสิ้นเรียบร้อยแล้ว!");
-        closeResetModal();
-        
-        // สั่งให้โหลดหน้าจอหรือ Component ดึงข้อมูลใหม่
-        if (typeof loadDashboardData === "function") loadDashboardData();
+    alert("💥 SUCCESS: ระบบได้รีเซ็ตโควต้าทดสอบของพนักงานทั้งหมดเสร็จสิ้นเรียบร้อยแล้ว!");
+    closeResetModal();
+    
+    if (typeof loadDashboardData === "function") loadDashboardData();
 
-    } catch (err) {
-        console.error("🚨 Critical Error executing reset:", err.message);
-        alert("🚨 เกิดข้อผิดพลาดของระบบ: " + err.message);
-    }
+  } catch (err) {
+    console.error("🚨 Critical Error executing reset:", err.message);
+    alert("🚨 เกิดข้อผิดพลาดของระบบ: " + err.message);
+  }
 }
 
-// ฟังก์ชันบันทึก Log การเข้าชมหน้าเว็บ
-async function logUserVisit(customAction = 'PAGE_VISIT', customDetails = '') {
-    try {
-        const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
-        if (!supabase) return;
+// ===================================================================
+// 📌 8. USER VISIT & REALTIME LOGGER (ส่วนที่แก้ไขหลัก)
+// ===================================================================
+async function logUserVisit() {
+  try {
+    const client = getSupabaseClient();
+    if (!client) return;
 
-        // ดึงข้อมูล User ที่ล็อกอินอยู่ (ถ้ามี)
-        const { data: { user } } = await supabase.auth.getUser();
-        let userName = 'ผู้ใช้งานทั่วไป (Guest)';
+    let userName = "Guest/Admin";
+    if (window.pvtSupabase?.getCurrentProfile) {
+      const profile = await window.pvtSupabase.getCurrentProfile();
+      if (profile) {
+        userName = profile.display_name || profile.full_name || profile.email || "Admin User";
+      }
+    }
 
-        if (user) {
-            // ดึงชื่อจาก profiles หรือใช้อีเมล
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('display_name, username')
-                .eq('id', user.id)
-                .single();
-            
-            userName = profile?.display_name || profile?.username || user.email || 'Logged-in User';
+    await client.from("user_activity_logs").insert([
+      {
+        user_name: userName,
+        page_url: window.location.pathname || "admin.html",
+        action_type: "VISIT",
+        description: "เข้าสู่หน้าจอ Admin Control Console"
+      }
+    ]);
+    pushLog(`บันทึกการเข้าชมหน้าเว็บของผู้ใช้ (${userName}) เรียบร้อย`, "info");
+  } catch (err) {
+    console.warn("⚠️ ไม่สามารถบันทึกประวัติการเข้าชมได้:", err.message);
+  }
+}
+
+function initAdminRealtimeLogger() {
+  const client = getSupabaseClient();
+  if (!client) {
+    console.warn("⚠️ ไม่พบ Supabase Client สำหรับ Realtime Logger");
+    return;
+  }
+
+  client
+    .channel('admin-live-logs')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'user_activity_logs' },
+      (payload) => {
+        const newLog = payload.new || {};
+
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: '🔔 ผู้ใช้งานเข้าสู่ระบบ/เปิดหน้าเว็บ',
+            html: `<b>${newLog.user_name || 'User'}</b> กำลังเปิดหน้า: <code>${newLog.page_url || ''}</code>`,
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true
+          });
         }
 
-        // ส่งข้อมูลเข้าตาราง audit_logs
-        await supabase.from('audit_logs').insert([{
-            user_id: user ? user.id : null,
-            user_name: userName,
-            page_url: window.location.pathname,
-            action: customAction,
-            details: customDetails || `เข้าชมหน้า ${document.title}`,
-            user_agent: navigator.userAgent
-        }]);
-
-    } catch (err) {
-        console.error("Logging Error:", err);
-    }
+        const logTableBody = document.getElementById('auditLogsTableBody');
+        if (logTableBody) {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${newLog.created_at ? new Date(newLog.created_at).toLocaleTimeString('th-TH') : new Date().toLocaleTimeString('th-TH')}</td>
+            <td>👤 ${newLog.user_name || '-'}</td>
+            <td><span class="table-code">${newLog.page_url || '-'}</span></td>
+            <td><span class="badge">${newLog.action_type || 'VISIT'}</span></td>
+            <td>${newLog.description || '-'}</td>
+          `;
+          logTableBody.insertBefore(row, logTableBody.firstChild);
+        }
+      }
+    )
+    .subscribe();
 }
 
-// สั่งให้ทำงานทันทีเมื่อโหลดหน้าเว็บสำเร็จ
+// ===================================================================
+// 🚀 9. MASTER INITIALIZER (รวมเหตุการณ์ DOMReady ทั้งหมดให้เสถียร)
+// ===================================================================
 document.addEventListener("DOMContentLoaded", () => {
-    logUserVisit();
-});
+  pushLog("กำลังเริ่มต้นเชื่อมต่อสารบบเซิร์ฟเวอร์หลังบ้าน...", "info");
+  
+  // 1. ตรวจสอบสถานะ Server และ WebSocket
+  executeTelemetryCycle();
+  setupRealtimeAuditStream();
+  initAdminRealtimeLogger();
+  
+  // 2. บันทึกและดึงข้อมูลพื้นฐาน
+  logUserVisit();
+  setTimeout(loadTableData, 500); 
 
-// ฟังก์ชันดักจับการเข้าเว็บของสมาชิกแบบ Realtime สำหรับ Admin
-function initAdminRealtimeLogger() {
-    const supabase = window.pvtSupabase.getClient();
-
-    supabase
-        .channel('admin-live-logs')
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'audit_logs' },
-            (payload) => {
-                const newLog = payload.new;
-
-                // 1. แสดง Toast แจ้งเตือนมุมขวาบนหน้าจอ Admin
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'info',
-                        title: '🔔 ผู้ใช้งานเข้าสู่ระบบ/เปิดหน้าเว็บ',
-                        html: `<b>${newLog.user_name}</b> กำลังเปิดหน้า: <code>${newLog.page_url}</code>`,
-                        showConfirmButton: false,
-                        timer: 5000,
-                        timerProgressBar: true
-                    });
-                }
-
-                // 2. ถ้ามีตาราง Live Log อยู่ในหน้าจอ สามารถสั่ง Render บรรทัดใหม่เพิ่มเข้าไปทันทีได้
-                const logTableBody = document.getElementById('auditLogsTableBody');
-                if (logTableBody) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${new Date(newLog.created_at).toLocaleTimeString('th-TH')}</td>
-                        <td>${newLog.user_name}</td>
-                        <td>${newLog.page_url}</td>
-                        <td><span class="badge">${newLog.action}</span></td>
-                        <td>${newLog.details}</td>
-                    `;
-                    logTableBody.insertBefore(row, logTableBody.firstChild);
-                }
-            }
-        )
-        .subscribe();
-}
-
-// เรียกใช้งานฟังก์ชันนี้เมื่อ Admin เข้าหน้า Dashboard
-document.addEventListener("DOMContentLoaded", () => {
-    initAdminRealtimeLogger();
+  // 3. ลูปทำงานเบื้องหลังอัตโนมัติ
+  setInterval(executeTelemetryCycle, 30000); 
 });

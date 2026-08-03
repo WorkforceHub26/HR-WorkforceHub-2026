@@ -193,7 +193,7 @@ async function loadPendingLeavesHR() {
           </td>
           <td style="padding:16px; vertical-align: middle;">
             ${leaveType}
-            ${isOverQuota ? '<br><span style="font-size: 11px; background: #fee2e2; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-top: 4px; display: inline-block;">⚠️ ลาเกินโควตา/หักเงิน (LWOP)</span>' : ''}
+            ${isOverQuota ? '<br><span style="font-size: 11px; background: #fee2e2; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-top: 4px; display: inline-block;">⚠️ ลาเกินโควตา</span>' : ''}
           </td>
           <td style="padding:16px; color:#475569; vertical-align: middle;">${startDate} - ${endDate}<br><span style="font-size:11px; color:#64748b;">เหตุผล: ${cleanReason}</span></td>
           <td style="text-align: center; font-weight: 600; padding:16px; vertical-align: middle; ${isOverQuota ? 'color: #ef4444;' : 'color: var(--admin-primary);'}">${req.total_days} วัน</td>
@@ -334,9 +334,11 @@ async function rejectLeave(leaveId) {
   }
 }
 
-// 🔴 ฟังก์ชัน HR สั่งยกเลิกใบลาทีหลัง (พร้อมระบบ Refund คืนยอดโควตาวันลากลับเข้าบัญชีอัตโนมัติ)
+// 🔴 ฟังก์ชัน HR สั่งยกเลิกใบลา (ตรวจสอบผลลัพธ์จาก DB จริง)
 async function cancelLeaveHR(leaveId) {
-  const { value: reason } = await Swal.fire({
+  console.log("🚀 [DEBUG] เริ่มต้นกระบวนการยกเลิกใบลา ID:", leaveId);
+
+  const result = await Swal.fire({
     title: 'ยืนยันการยกเลิกใบลา',
     input: 'text',
     inputLabel: 'ระบุเหตุผล (เช่น พนักงานมาทำงาน, ขอยกเลิกเอง)',
@@ -344,69 +346,82 @@ async function cancelLeaveHR(leaveId) {
     showCancelButton: true,
     confirmButtonColor: '#ef4444',
     confirmButtonText: '✔️ ยืนยันยกเลิก',
-    cancelButtonText: 'ปิด'
+    cancelButtonText: 'ปิด',
+    allowOutsideClick: false
   });
 
-  if (reason === undefined) return; 
+  if (!result.isConfirmed) return;
+
+  const reason = result.value && result.value.trim() !== "" 
+    ? result.value.trim() 
+    : 'HR ยกเลิกรายการ (พนักงานมาทำงาน)';
 
   const sb = window.pvtSupabase?.getClient();
+  if (!sb) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่พบการเชื่อมต่อฐานข้อมูล Supabase', 'error');
+    return;
+  }
 
   Swal.fire({
     title: 'กำลังประมวลผล...',
-    text: 'ระบบกำลังดำเนินการยกเลิกและคืนสิทธิ์วันลา (ถ้ามี)',
+    text: 'กำลังบันทึกข้อมูลลงฐานข้อมูล...',
     allowOutsideClick: false,
-    didOpen: () => { Swal.showLoading(); }
+    didOpen: () => Swal.showLoading()
   });
 
   try {
-    const { data: reqData, error: reqErr } = await sb
+    // 1. จัดชุดข้อมูลอัปเดต (เว้น approved_by ไว้เป็น undefined/null เพื่อป้องกัน Foreign Key Error)
+    const updatePayload = {
+      status: 'rejected', 
+      approval_comment: `[ยกเลิกโดย HR] ${reason}`,
+      approved_at: new Date().toISOString()
+    };
+
+    console.log("📤 กำหนดส่ง Payload:", updatePayload);
+
+    // 2. สั่ง Update และต้องใส่ .select() เพื่อเอาแถวที่แก้ไขได้กลับมาตรวจ
+    const { data, error } = await sb
       .from('leave_requests')
-      .select('employee_id, leave_type_id, total_days, start_date, status')
+      .update(updatePayload)
       .eq('id', leaveId)
-      .single();
-      
-    if (reqErr) throw new Error("ดึงข้อมูลใบลาไม่สำเร็จ");
+      .select();
 
-    if (reqData.status === 'approved') {
-      const currentYear = new Date(reqData.start_date).getFullYear();
-      
-      const { data: balData, error: balErr } = await sb
-        .from('leave_balances')
-        .select('id, remaining_days, used_days')
-        .eq('employee_id', reqData.employee_id)
-        .eq('leave_type_id', reqData.leave_type_id)
-        .eq('year', currentYear)
-        .single();
-
-      if (!balErr && balData) {
-        const newRemaining = (balData.remaining_days || 0) + reqData.total_days;
-        const newUsed = Math.max(0, (balData.used_days || 0) - reqData.total_days);
-
-        const { error: updateBalErr } = await sb
-          .from('leave_balances')
-          .update({ remaining_days: newRemaining, used_days: newUsed })
-          .eq('id', balData.id);
-
-        if (updateBalErr) throw new Error("เกิดข้อผิดพลาดในการคืนโควตาวันลา");
-      }
+    if (error) {
+      console.error("❌ Supabase Error:", error);
+      throw new Error(`เกิดข้อผิดพลาดจาก DB: ${error.message}`);
     }
 
-    const { error: cancelErr } = await sb.from('leave_requests').update({ 
-      status: 'rejected', 
-      approval_comment: reason || 'HR ยกเลิกรายการ (พนักงานมาทำงาน)',
-      approved_by: window.adminProfile?.employee_id || null, 
-      approved_at: new Date().toISOString() 
-    }).eq('id', leaveId);
-    
-    if (cancelErr) throw cancelErr;
-    
-    Swal.fire('ยกเลิกสำเร็จ!', 'ระบบได้ทำการยกเลิกและคืนโควตาวันลาให้พนักงานเรียบร้อยแล้ว', 'success');
-    loadPendingLeavesHR(); 
-    
+    // 3. ตรวจสอบว่ามีแถวถูกอัปเดตจริงหรือไม่ (แก้ปัญหา RLS Silent Fail)
+    if (!data || data.length === 0) {
+      console.warn("⚠️ ไม่พบแถวที่ถูกแก้ไข (ติดสิทธิ์ RLS หรือหา ID ไม่เจอ)");
+      throw new Error("ไม่สามารถอัปเดตได้! เนื่องจากติดสิทธิ์ Row Level Security (RLS) ใน Supabase หรือหา ID รายการนี้ไม่เจอ");
+    }
+
+    console.log("✅ อัปเดตสำเร็จในฐานข้อมูล:", data[0]);
+
+    await Swal.fire('ยกเลิกสำเร็จ!', 'ระบบได้ทำการยกเลิกรายการเรียบร้อยแล้ว', 'success');
+
+    // 4. รีโหลดตาราง
+    if (typeof loadPendingLeavesHR === "function") {
+      await loadPendingLeavesHR();
+    } else if (typeof fetchLeaveRequests === "function") {
+      await fetchLeaveRequests();
+    } else {
+      location.reload(); // Fallback รีโหลดหน้าหากหาฟังก์ชันดึงข้อมูลไม่เจอ
+    }
+
   } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    console.error("❌ cancelLeaveHR Failed:", err);
+    Swal.fire({
+      icon: 'error',
+      title: 'ไม่สามารถยกเลิกได้',
+      text: err.message
+    });
   }
 }
+
+// 🟢 ผูกฟังก์ชันเข้ากับ window
+window.cancelLeaveHR = cancelLeaveHR;
 
 /* ==========================================================================
    🔵 4. DIGITAL MODAL VIEW (หน้าต่างเปิดส่องดูข้อมูลใบลาอิเล็กทรอนิกส์)
@@ -747,10 +762,44 @@ async function printLeaveA4(leaveId) {
    🚪 6. SECURITY MANAGEMENT (ระบบล็อกเอาต์และจัดเก็บเซสชัน)
    ========================================================================== */
 
-function handleLogout() {
-  sessionStorage.removeItem("currentUser");
-  window.location.href = "/index.html"; 
-}
+window.handleLogout = function() {
+  Swal.fire({
+    title: 'ยืนยันการออกจากระบบ',
+    text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444', // สีแดงสำหรับปุ่มออกจากระบบ
+    cancelButtonColor: '#64748b',  // สีเทาสีสレートสำหรับปุ่มยกเลิก
+    confirmButtonText: 'ออกจากระบบ',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true, // สลับให้ปุ่มยกเลิกอยู่ซ้าย ปุ่มยืนยันอยู่ขวา
+    focusCancel: true,
+    customClass: {
+      popup: 'pvt-logout-swal-popup',
+      title: 'pvt-logout-swal-title',
+      confirmButton: 'pvt-logout-confirm-btn',
+      cancelButton: 'pvt-logout-cancel-btn'
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // แสดงสถานะกำลังออกจากระบบ
+      Swal.fire({
+        title: 'กำลังออกจากระบบ...',
+        text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
+        icon: 'success',
+        showConfirmButton: false,
+        timer: 1200,
+        timerProgressBar: true
+      });
+
+      setTimeout(() => {
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = "/index.html";
+      }, 1200);
+    }
+  });
+};
 
 /* ==========================================================================
    💡 7. FLOATING INSTRUCTION GUIDE CONTROLLER (ระบบควบคุมปุ่มคู่มือลอย)

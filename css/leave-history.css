@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🤍 PVT WORKFORCE HUB - leave-history.css (Luxury Responsive Cards)
+   🤍 PVT WORKFORCE HUB - leave-history.css (Luxury Responsive & Glassmorphism)
    ========================================================================== */
 
 :root {
@@ -37,6 +37,7 @@ body {
   color: var(--text);
   min-height: 100vh;
   padding: 32px 40px;
+  margin: 0;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -59,14 +60,13 @@ body {
 
 .user-header:hover {
   box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.1);
-  transform: translateY(-2px);
 }
 
 .brand-row { display: flex; align-items: center; gap: 18px; }
 
 .brand-row img {
-  height: 60px;
-  width: 60px;
+  height: 64px;
+  width: 64px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid #ffffff;
@@ -75,91 +75,20 @@ body {
 }
 
 .hello { 
-  font-size: 12px; font-weight: 700; color: var(--primary); 
+  font-size: 13px; font-weight: 700; color: var(--primary); 
   text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.8px;
 }
 
-.user-header h1 { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.2; }
-.user-header span { font-size: 13.5px; color: var(--text-soft); }
+.user-header h1 { font-size: 24px; font-weight: 700; color: var(--text); margin: 0 0 4px 0; line-height: 1.2; }
+.user-header span { font-size: 14px; color: var(--text-soft); }
 
-/* 🏛️ MAIN PANEL CONTAINERS & ANIMATIONS */
-.panel {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding: 28px;
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: var(--shadow-md);
-  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
-}
-
-.panel-header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
-.panel-header h2 { font-size: 19px; font-weight: 700; color: var(--text); }
-.text-primary { color: var(--primary); font-size: 26px; }
-
-/* 📋 DESKTOP LUXURY TABLE STYLES */
-.table-responsive {
-  width: 100%;
-}
-
-.table-responsive table { 
-  width: 100%; 
-  border-collapse: collapse; 
-  text-align: left; 
-}
-
-.table-responsive th {
-  background: #f8fafc;
-  padding: 18px 20px;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--border);
-}
-
-.table-responsive td {
-  padding: 18px 20px;
-  font-size: 14.5px;
-  color: var(--text);
-  border-bottom: 1px solid var(--border);
-  transition: var(--transition-smooth);
-}
-
-.table-responsive tbody tr {
-  transition: var(--transition-smooth);
-}
-
-.table-responsive tbody tr:hover td { 
-  background: #f0fdf8; 
-  color: var(--primary-dark); 
-}
-
-/* 🏷️ STATUS BADGES */
-.status-badge { 
-  padding: 6px 14px; 
-  border-radius: 30px; 
-  font-size: 12.5px; 
-  font-weight: 700; 
-  display: inline-flex;
+/* 🔘 HEADER ACTIONS & BUTTONS */
+.history-actions {
+  display: flex;
+  gap: 12px;
   align-items: center;
-  gap: 6px;
-  transition: var(--transition-smooth);
 }
 
-.status-badge.pending { 
-  background-color: #fffbeb; 
-  color: #d97706; 
-  border: 1px solid #fde68a;
-  animation: pulseWarning 2s infinite alternate;
-}
-
-.status-badge.approved { background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
-.status-badge.rejected { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-
-/* 🔘 BUTTONS */
 .btn-back-home {
   background: #ffffff; 
   border: 1px solid var(--border); 
@@ -178,34 +107,152 @@ body {
 }
 
 .btn-back-home:hover { 
-  background: var(--primary); 
-  color: #ffffff;
-  border-color: var(--primary); 
+  background: #f8fafc;
   transform: translateY(-2px); 
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow-md);
 }
+
+.primary-action {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.primary-action:hover {
+  background: var(--primary-dark);
+  color: #ffffff;
+}
+
+/* 🏛️ MAIN PANEL CONTAINERS */
+.panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-md);
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.panel-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.panel-header h2 { font-size: 20px; font-weight: 700; color: var(--text); margin: 0; }
+.text-primary { color: var(--primary); font-size: 28px; }
+
+/* 📊 SUMMARY CARDS (เพิ่มใหม่ จัด Layout ให้สวยงาม) */
+.history-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.history-summary article {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-spring);
+}
+
+.history-summary article:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-soft);
+}
+
+.history-summary article span {
+  font-size: 14px;
+  color: var(--text-soft);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.history-summary article strong {
+  font-size: 28px;
+  color: var(--primary-dark);
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* 📋 DESKTOP LUXURY TABLE STYLES */
+.table-responsive { width: 100%; overflow-x: auto; }
+.table-responsive table { width: 100%; border-collapse: collapse; text-align: left; }
+
+.table-responsive th {
+  background: #f8fafc;
+  padding: 16px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.table-responsive td {
+  padding: 18px 20px;
+  font-size: 15px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  transition: var(--transition-smooth);
+}
+
+.table-responsive tbody tr { transition: var(--transition-smooth); }
+.table-responsive tbody tr:hover td { background: #f0fdf8; color: var(--primary-dark); }
+
+/* 🏷️ STATUS BADGES */
+.status-badge { 
+  padding: 6px 14px; 
+  border-radius: 30px; 
+  font-size: 13px; 
+  font-weight: 700; 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+}
+
+.status-badge.pending { background-color: #fffbeb; color: #d97706; border: 1px solid #fde68a; animation: pulseWarning 2s infinite alternate; }
+.status-badge.approved { background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.status-badge.rejected { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.status-badge.cancelled { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; } /* สำหรับสถานะยกเลิก */
 
 .empty-state { text-align: center; padding: 56px !important; color: var(--text-soft); font-style: italic; }
 .error-state { text-align: center; padding: 56px !important; color: var(--danger); font-weight: 600; }
 
 /* ==========================================================================
-   📱 MOBILE CARD VIEW TRANSFORMATION (รองรับมือถือแบบการ์ดลอย 100%)
+   📱 MOBILE CARD VIEW TRANSFORMATION
    ========================================================================== */
 @media (max-width: 768px) {
-  body {
-    padding: 16px 12px;
-  }
+  body { padding: 16px 12px; }
 
   .user-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 20px;
     padding: 20px;
+  }
+
+  .history-actions {
+    width: 100%;
+    flex-direction: column;
   }
 
   .btn-back-home {
     width: 100%;
     justify-content: center;
+  }
+
+  .history-summary {
+    grid-template-columns: repeat(2, 1fr); /* แบ่งเป็น 2 คอลัมน์ในมือถือ */
+    gap: 12px;
   }
 
   .panel {
@@ -222,20 +269,12 @@ body {
     box-shadow: var(--shadow-sm);
   }
 
-  /* 🚫 ซ่อนหัวตารางเดิม */
-  .table-responsive table thead {
-    display: none;
-  }
-
-  /* 🃏 เปลี่ยนตารางเป็นคอนเทนเนอร์การ์ด */
+  /* แปลงตารางเป็นการ์ด */
+  .table-responsive table thead { display: none; }
   .table-responsive table, 
   .table-responsive tbody, 
-  .table-responsive tr {
-    display: block;
-    width: 100%;
-  }
+  .table-responsive tr { display: block; width: 100%; }
 
-  /* 💳 สไตล์ตัวการ์ดแต่ละใบ */
   .table-responsive tbody tr {
     background: #ffffff;
     border-radius: var(--radius-md);
@@ -245,15 +284,8 @@ body {
     box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.06);
     position: relative;
     overflow: hidden;
-    transition: var(--transition-spring);
   }
 
-  .table-responsive tbody tr:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 14px 28px -4px rgba(15, 23, 42, 0.12);
-  }
-
-  /* แถบสีด้านซ้ายการ์ดเพิ่มมิติ */
   .table-responsive tbody tr::before {
     content: "";
     position: absolute;
@@ -264,7 +296,6 @@ body {
     background: var(--primary);
   }
 
-  /* 📄 จัดระเบียบข้อมูลภายในแถวการ์ด */
   .table-responsive td {
     display: flex;
     justify-content: space-between;
@@ -275,13 +306,8 @@ body {
     text-align: right;
   }
 
-  .table-responsive td:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-    margin-top: 6px;
-  }
+  .table-responsive td:last-child { border-bottom: none; padding-bottom: 0; margin-top: 6px; }
 
-  /* 🏷️ แสดงชื่อหัวข้อ (Label) ทางด้านซ้ายอัตโนมัติ */
   .table-responsive td::before {
     content: attr(data-label);
     font-weight: 700;
@@ -291,7 +317,6 @@ body {
     padding-right: 12px;
   }
 
-  /* ตกแต่งส่วนประเภทการลาให้เป็นหัวข้อการ์ดเด่นๆ */
   .table-responsive td[data-label="ประเภทการลา"] {
     border-bottom: 2px solid var(--primary-soft);
     padding-top: 0;
@@ -299,18 +324,9 @@ body {
     margin-bottom: 4px;
   }
 
-  .leave-type-title {
-    font-size: 16px;
-    color: var(--primary-dark);
-  }
-
-  .td-reason {
-    color: var(--text-soft);
-    max-width: 60%;
-    word-break: break-word;
-  }
-
-  /* ยกเว้นกรณีไม่มีข้อมูล (Empty state) ให้แสดงกึ่งกลางปกติ */
+  .leave-type-title { font-size: 16px; color: var(--primary-dark); }
+  .td-reason { color: var(--text-soft); max-width: 60%; word-break: break-word; text-align: right; }
+  
   .table-responsive td.empty-state,
   .table-responsive td.error-state {
     display: block;
@@ -320,26 +336,11 @@ body {
   }
 
   .table-responsive td.empty-state::before,
-  .table-responsive td.error-state::before {
-    content: none;
-  }
+  .table-responsive td.error-state::before { content: none; }
 }
 
 /* ✨ KEYFRAMES */
-@keyframes bgGradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@keyframes slideDownFade {
-  from { opacity: 0; transform: translateY(-24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes pulseWarning {
-  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); }
-  100% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
-}
+@keyframes bgGradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes slideDownFade { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulseWarning { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); } 100% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); } }
