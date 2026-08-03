@@ -252,9 +252,22 @@ async function executeSecureQrLogin(scannedData) {
 
   try {
     const decodedStr = decodeURIComponent(scannedData);
-    const fragments = decodedStr.split('|');
-    const empCode = fragments[0]?.trim();
-    const tokenSecret = fragments[1]?.trim();
+    let empCode = '';
+    let tokenSecret = '';
+
+    // 💡 Smart Detect: ตรวจสอบว่าเป็นรูปแบบ URL หรือรูปแบบ EMP|TOKEN
+    if (decodedStr.includes('auto_login=') && decodedStr.includes('token=')) {
+      // ดึงค่า parameters ออกมาจากข้อความ URL ที่กล้องสแกนได้
+      const searchStr = decodedStr.includes('?') ? decodedStr.split('?')[1] : decodedStr;
+      const urlParams = new URLSearchParams(searchStr);
+      empCode = urlParams.get('auto_login')?.trim();
+      tokenSecret = urlParams.get('token')?.trim();
+    } else {
+      // รูปแบบดั้งเดิมแบบแยกด้วย pipe (|)
+      const fragments = decodedStr.split('|');
+      empCode = fragments[0]?.trim();
+      tokenSecret = fragments[1]?.trim();
+    }
 
     if (tokenSecret !== 'PVT_SECURE_BYPASS' || !empCode) {
       throw new Error('QR Code ไม่ถูกต้อง หรือไม่ใช่บัตรที่ออกโดยฝ่าย HR');
