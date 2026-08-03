@@ -10,10 +10,7 @@
   
   <link rel="stylesheet" href="/css/home.css" />
  
-  
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </head>
 
 <body>
@@ -25,8 +22,6 @@
         <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
       </div>
 
-      
-      
       <nav class="nav-menu">
         <a href="/home.html" class="nav-item active" title="หน้าหลัก">
           <span class="material-symbols-outlined">dashboard</span>
@@ -60,8 +55,6 @@
         </a>
       </nav>
 
-
-      
       <div class="sidebar-footer">
         <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
           <span class="material-symbols-outlined">logout</span>
@@ -81,34 +74,34 @@
         </div>
         <div class="topbar-right">
 
-                                <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA) -->
-              <div class="notif-wrapper">
-                <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน">
-                  <span class="material-symbols-outlined">notifications</span>
-                  <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
-                </button>
+          <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA) -->
+          <div class="notif-wrapper">
+            <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน">
+              <span class="material-symbols-outlined">notifications</span>
+              <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
+            </button>
 
-                <div class="notif-dropdown" id="notifDropdown">
-                  <div class="notif-header">
-                    <div class="notif-title">
-                      <strong>การแจ้งเตือน</strong>
-                      <span class="notif-count-pill" id="notifUnreadCount">0 รายการใหม่</span>
-                    </div>
-                    <button type="button" class="btn-mark-read" onclick="markAllNotificationsAsRead()">อ่านทั้งหมด</button>
-                  </div>
+            <div class="notif-dropdown" id="notifDropdown">
+              <div class="notif-header">
+                <div class="notif-title">
+                  <strong>การแจ้งเตือน</strong>
+                  <span class="notif-count-pill" id="notifUnreadCount">0 รายการใหม่</span>
+                </div>
+                <button type="button" class="btn-mark-read" onclick="markAllNotificationsAsRead()">อ่านทั้งหมด</button>
+              </div>
 
-                  <!-- Container สำหรับแสดงรายการจริงจาก Supabase -->
-                  <div class="notif-body" id="notifListContainer">
-                    <div style="padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
-                      ⌛ กำลังโหลดการแจ้งเตือน...
-                    </div>
-                  </div>
-
-                  <div class="notif-footer">
-                    <a href="#" onclick="openAllNotificationsModal(); return false;">ดูการแจ้งเตือนทั้งหมด</a>
-                  </div>
+              <!-- Container สำหรับแสดงรายการจริงจาก Supabase -->
+              <div class="notif-body" id="notifListContainer">
+                <div style="padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
+                  ⌛ กำลังโหลดการแจ้งเตือน...
                 </div>
               </div>
+
+              <div class="notif-footer">
+                <a href="#" onclick="return false;">ดูการแจ้งเตือนทั้งหมด</a>
+              </div>
+            </div>
+          </div>
 
           <div class="user-profile">
             <div class="avatar">HR</div>
@@ -118,8 +111,8 @@
             </div>
           </div>
         </div>
-
       </header>
+
       <!-- 📊 KPI STATS CARDS -->
       <div class="stats-grid">
         <div class="stat-card border-blue">
@@ -192,35 +185,31 @@
           </div>
         </section>
 
-        <!-- 📊 Card สัดส่วนประเภทการลาแบบ Dynamic ( JS วาด % และ Progress Bar อัตโนมัติ ) -->
-       <div class="leave-analytics-card">
-            <div class="panel-header">
-              <span class="material-symbols-outlined text-primary">pie_chart</span>
-              <h2>สัดส่วนประเภทการลา <span id="leaveTypeTotalHeader" style="font-weight: normal; color: var(--text-soft);">(รวม 0 รายการ)</span></h2>
+        <!-- 📊 Card สัดส่วนประเภทการลา -->
+        <div class="leave-analytics-card">
+          <div class="panel-header">
+            <span class="material-symbols-outlined text-primary">pie_chart</span>
+            <h2>สัดส่วนประเภทการลา <span id="leaveTypeTotalHeader" style="font-weight: normal; color: var(--text-soft);">(รวม 0 รายการ)</span></h2>
+          </div>
+          
+          <div class="card-body">
+            <div class="chart-box">
+              <canvas id="chartLeaveTypes"></canvas>
+              <div class="chart-center-text">
+                <span class="total-num" id="leaveTypeTotalCenter">0</span>
+                <span class="total-label">รายการ</span>
+              </div>
             </div>
             
-            <div class="card-body">
-              <!-- ฝั่งซ้าย: กราฟวงกลม -->
-              <div class="chart-box">
-                <canvas id="chartLeaveTypes"></canvas>
-                <div class="chart-center-text">
-                  <span class="total-num" id="leaveTypeTotalCenter">0</span>
-                  <span class="total-label">รายการ</span>
-                </div>
-              </div>
-              
-              <!-- ฝั่งขวา: รายการเปอร์เซ็นต์ Progress Bar -->
-              <div id="leaveDetailsList" class="details-list">
-                <!-- ข้อความแสดงตอนเริ่มต้น -->
-                <div style="color:var(--text-soft); font-size:13px;">กำลังโหลดข้อมูลสัดส่วนการลา...</div>
-              </div>
+            <div id="leaveDetailsList" class="details-list">
+              <div style="color:var(--text-soft); font-size:13px;">กำลังโหลดข้อมูลสัดส่วนการลา...</div>
             </div>
           </div>
+        </div>
       </div>
 
       <!-- 📌 ROW 2: กราฟแท่งวันลาแยกแผนก + ตาราง Top Leave Takers -->
       <div class="middle-grid">
-        <!-- กราฟที่ 2: สถิติจำนวนวันลาแยกตามแผนก -->
         <section class="panel chart-panel">
           <div class="panel-header">
             <span class="material-symbols-outlined text-primary">bar_chart</span>
@@ -231,7 +220,6 @@
           </div>
         </section>
 
-        <!-- ตารางอันดับพนักงานที่ใช้สิทธิ์ลาสูงสุด -->
         <section class="panel table-panel">
           <div class="panel-header" style="justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -259,11 +247,11 @@
         </section>
       </div>
 
-      <!-- 📌 ROW 3: ตารางรายการคำขอลาล่าสุด (รอพิจารณา) ล่างสุด -->
+      <!-- 📌 ROW 3: ตารางรายการคำขอลาล่าสุด -->
       <section class="panel table-panel" style="margin-bottom: 40px;">
         <div class="panel-header">
           <span class="material-symbols-outlined text-primary">list_alt</span>
-          <h2>รายการคำขอลาล่าสุด (รอพิจารณา)</h2>
+          <h2 id="tableTitle">รายการคำขอลาล่าสุด (รอพิจารณา)</h2>
         </div>
         <div class="table-responsive">
           <table>
@@ -290,7 +278,12 @@
   <div id="statusToast" class="toast"></div>
 
   <!-- Scripts -->
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/js/supabase-config.js"></script>
+    
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/auth-guard.js"></script>
   <script src="/js/home.js"></script>
 </body>

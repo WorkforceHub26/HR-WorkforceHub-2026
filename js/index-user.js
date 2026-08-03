@@ -342,7 +342,7 @@ window.renderAllLeaveBalances = function() {
 };
 
 /* ==========================================================================
-   🖥️ 5. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล (อัปเดตระบบ Auto-Login สแกนเด้งเข้าเว็บ)
+   🖥️ 5. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล (เพิ่มปุ่มดาวน์โหลดบัตรเป็นรูปภาพ)
    ========================================================================== */
 window.viewMyDigitalCard = function() {
   const sessionUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
@@ -356,7 +356,7 @@ window.viewMyDigitalCard = function() {
   const myDept = employee?.departments?.department_name || employee?.department_name || sessionUser?.department_name || "ทั่วไป";
   const myRole = employee?.positions?.position_name || employee?.position_name || sessionUser?.position_name || profile?.role || "พนักงาน";
 
-  // 🚀 [จุดแก้สำคัญ]: เปลี่ยน QR Code ให้เป็น ลิงก์ URL Auto-Login
+  // 🚀 ลิงก์ URL Auto-Login
   const baseUrl = window.location.origin;
   const targetUrl = `${baseUrl}/?auto_login=${currentCode}&token=PVT_SECURE_BYPASS`; 
   
@@ -364,7 +364,8 @@ window.viewMyDigitalCard = function() {
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
 
   Swal.fire({
-    title: '💳 บัตรประจำตัวพนักงานดิจิทัล', width: '380px',
+    title: '💳 บัตรประจำตัวพนักงานดิจิทัล', 
+    width: '380px',
     html: `
       <div id="pvt-employee-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 280px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; font-family: 'Sarabun', sans-serif;">
         <div style="font-weight: 700; font-size: 13px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 20px; text-transform: uppercase;">PVT WORKFORCE HUB</div>
@@ -372,14 +373,82 @@ window.viewMyDigitalCard = function() {
         <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${myRole}</div>
         <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 20px;">แผนก: ${myDept}</div>
         <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px;">
-          <img src="${qrUrl}" alt="QR" style="width: 140px; height: 140px; display: block;" />
+          <img id="cardQrImage" src="${qrUrl}" alt="QR" style="width: 140px; height: 140px; display: block;" crossorigin="anonymous" />
         </div>
         <div><span style="font-size: 15px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 4px 16px; border-radius: 30px;">${currentCode}</span></div>
       </div>
     `,
-    confirmButtonText: '✅ ปิดหน้าต่างบัตร', confirmButtonColor: '#0fa472'
+    showCancelButton: true,
+    cancelButtonText: '📥 ดาวน์โหลดบัตร',
+    cancelButtonColor: '#2563eb',
+    confirmButtonText: '✅ ปิด', 
+    confirmButtonColor: '#64748b',
+    reverseButtons: true
+  }).then((result) => {
+    // พอกดปุ่มดาวน์โหลดบัตร
+    if (result.dismiss === Swal.DismissReason.cancel) {
+      downloadEmployeeCard(currentCode, fullName);
+    }
   });
 };
+
+/* ==========================================================================
+   🛠️ ฟังก์ชันเสริม: จับภาพบัตรพนักงาน แล้วแปลงเป็นไฟล์รูปภาพดาวน์โหลดลงเครื่อง
+   ========================================================================== */
+async function downloadEmployeeCard(empCode, empName) {
+  // 1. โหลดสคริปต์ html2canvas อัตโนมัติ (กรณีที่หน้าเว็บยังไม่มี)
+  if (typeof html2canvas === "undefined") {
+    await new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
+  }
+
+  const cardElement = document.getElementById("pvt-employee-id-card");
+  if (!cardElement) return;
+
+  // 2. แสดงป็อปอัปกำลังโหลด
+  Swal.fire({
+    title: '⏳ กำลังบันทึกรูปภาพ...',
+    text: 'กรุณารอสักครู่ระบบกำลังสร้างรูปภาพบัตร',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
+  try {
+    // 3. แปลงองค์ประกอบ HTML เป็นภาพ Canvas ความละเอียดคมชัดสูง (Scale 3x)
+    const canvas = await html2canvas(cardElement, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: null
+    });
+
+    // 4. สั่งดาวน์โหลดเป็นไฟล์ .png
+    const image = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = image;
+    link.download = `Employee_Card_${empCode}.png`;
+    link.click();
+
+    // 5. แจ้งเตือนเมื่อดาวน์โหลดสำเร็จ
+    Swal.fire({
+      icon: 'success',
+      title: '🎉 ดาวน์โหลดสำเร็จ!',
+      text: 'บันทึกรูปภาพบัตรพนักงานลงเครื่องเรียบร้อยแล้ว',
+      confirmButtonColor: '#0fa472'
+    });
+  } catch (err) {
+    console.error("❌ เกิดข้อผิดพลาดในการดาวน์โหลดบัตร:", err);
+    Swal.fire({
+      icon: 'error',
+      title: 'ดาวน์โหลดไม่สำเร็จ',
+      text: 'เกิดข้อผิดพลาดในการสร้างรูปภาพ กรุณาลองใหม่อีกครั้ง',
+      confirmButtonColor: '#ef4444'
+    });
+  }
+}
 
 /* ==========================================================================
    🔗 6. โซนผูกปุ่มกดเข้ากับหน้าเว็บ

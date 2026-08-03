@@ -1,47 +1,13 @@
 /**
  * ==========================================================================
- * 🏢 PVT WORKFORCE HUB - DASHBOARD CORE SYSTEM (FIXED & ENHANCED)
+ * 🏢 PVT WORKFORCE HUB - DASHBOARD CORE SYSTEM (BATCH CARD PRINT ENHANCED)
  * ==========================================================================
  */
 
 /* ==========================================================================
    1. 🎨 CSS INSPECTION GUARDIAN
    ========================================================================== */
-(function () {
-  console.group("🎨 [CSS Verification Timeline]: เริ่มต้นตรวจสอบสไตล์ชีท...");
 
-  const cssLinks = document.querySelectorAll('link[rel="stylesheet"]');
-  if (cssLinks.length === 0) {
-    console.warn("⚠️ [CSS Warning]: ไม่พบแท็กผูก CSS (<link rel='stylesheet'>) ในหน้า HTML นี้เลย!");
-  }
-
-  cssLinks.forEach((link, index) => {
-    const url = link.getAttribute('href');
-    link.addEventListener('load', () => {
-      console.log(`✅ [CSS Loaded] [ตัวที่ ${index + 1}]: โหลดสำเร็จ -> "${url}"`);
-    });
-    link.addEventListener('error', () => {
-      console.error(`🚨 [CSS CRITICAL ERROR] [ตัวที่ ${index + 1}]: ไม่สามารถโหลดไฟล์นี้ได้! -> "${url}"`);
-    });
-  });
-
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      console.group("🔍 [Deep CSS Inspection]: เจาะลึกโครงสร้างภายในไฟล์ CSS...");
-      Array.from(document.styleSheets).forEach((sheet) => {
-        try {
-          const rules = sheet.cssRules || sheet.rules;
-          const sheetUrl = sheet.href ? sheet.href.split('/').pop() : 'Inline Style';
-          console.log(`📋 ตรวจสอบไฟล์: "${sheetUrl}" (มีคำสั่งสไตล์ทั้งหมด ${rules.length} บรรทัด)`);
-        } catch (e) {
-          console.error(`❌ [CSS Rule Blocked]: เบราว์เซอร์ปฏิเสธการอ่านเนื้อหา (URL: ${sheet.href})`);
-        }
-      });
-      console.groupEnd();
-      console.groupEnd();
-    }, 500);
-  });
-})();
 
 /* ==========================================================================
    2. ⚙️ GLOBAL STATE VARIABLES
@@ -511,8 +477,10 @@ function setupTableSearch() {
 }
 
 /* ==========================================================================
-   7. 💳 DIGITAL EMPLOYEE CARD MANAGER (BUG FIX APPLIED HERE)
+   7. 💳 DIGITAL EMPLOYEE CARD MANAGER & BATCH PRINT SYSTEM
    ========================================================================== */
+
+// 7.1 ฟังก์ชันเปิด Popup เลือกพนักงานเพื่อดู/พิมพ์บัตร (รองรับ Batch Print)
 window.openEmployeeCardManagerPopup = async function () {
   if (typeof Swal === "undefined") {
     alert("⚠️ ไม่พบลายบรารี SweetAlert2");
@@ -533,7 +501,6 @@ window.openEmployeeCardManagerPopup = async function () {
   }
 
   try {
-    // 🛠️ FIX: เปลี่ยนจาก supabase.from() เป็น client.from()
     const { data: employees, error } = await client
       .from('employees')
       .select(`
@@ -549,7 +516,7 @@ window.openEmployeeCardManagerPopup = async function () {
 
     let rowsHtml = "";
     if (!employees || employees.length === 0) {
-      rowsHtml = `<tr><td colspan="3" style="text-align:center; padding:16px; color:#64748b;">ไม่พบข้อมูลพนักงานในระบบ</td></tr>`;
+      rowsHtml = `<tr><td colspan="4" style="text-align:center; padding:16px; color:#64748b;">ไม่พบข้อมูลพนักงานในระบบ</td></tr>`;
     } else {
       employees.forEach(emp => {
         const empRole = emp.positions?.position_name || 'พนักงาน';
@@ -561,6 +528,15 @@ window.openEmployeeCardManagerPopup = async function () {
 
         rowsHtml += `
           <tr class="emp-card-row" style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 8px; text-align: center; width: 40px;">
+              <input type="checkbox" class="emp-card-checkbox" 
+                     data-code="${emp.employee_code}" 
+                     data-name="${safeName}" 
+                     data-role="${safeRole}" 
+                     data-dept="${safeDept}"
+                     onchange="updateCardSelectionCount()"
+                     style="cursor: pointer; width: 16px; height: 16px;" />
+            </td>
             <td style="padding: 12px 8px; font-weight: 600; color: #475569;">${emp.employee_code}</td>
             <td style="padding: 12px 8px; text-align: left;">
               <span style="font-weight: 600; color: #1e293b; display:block;">${emp.full_name}</span>
@@ -571,8 +547,8 @@ window.openEmployeeCardManagerPopup = async function () {
             </td>
             <td style="padding: 12px 8px; text-align: center;">
               <button onclick="showIndividualIdCard('${emp.employee_code}', '${safeName}', '${safeRole}', '${safeDept}')" 
-                style="background: #3b82f6; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;">
-                <span class="material-symbols-outlined" style="font-size:16px;">visibility</span> ดูบัตร
+                style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                <span class="material-symbols-outlined" style="font-size:16px;">visibility</span> ดู
               </button>
             </td>
           </tr>
@@ -582,19 +558,27 @@ window.openEmployeeCardManagerPopup = async function () {
 
     Swal.fire({
       title: '👥 เลือกพนักงานเพื่อพิมพ์บัตรประจำตัว',
-      width: '680px',
+      width: '740px',
       html: `
-        <div style="margin-bottom: 12px; text-align: left;">
-          <input type="text" id="cardSearchInput" placeholder="🔍 พิมพ์รหัสพนักงาน, ชื่อ-สกุล, ตำแหน่ง หรือ แผนก เพื่อค้นหา..." 
-            style="width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; box-sizing: border-box; font-family: inherit;" />
+        <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; justify-content: space-between;">
+          <input type="text" id="cardSearchInput" placeholder="🔍 ค้นหารหัส, ชื่อ-สกุล, ตำแหน่ง..." 
+            style="flex: 1; padding: 10px 14px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-family: inherit;" />
+          <button id="btnPrintSelectedCards" onclick="handlePrintSelectedCardsFromPopup()" disabled
+            style="background: #10b981; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: not-allowed; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; opacity: 0.5; transition: all 0.2s;">
+            <span class="material-symbols-outlined" style="font-size:18px;">print</span> 
+            พิมพ์ที่เลือก (<span id="selectedCardCount">0</span>)
+          </button>
         </div>
         <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
               <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+                <th style="padding: 12px 8px; text-align: center; width: 40px;">
+                  <input type="checkbox" id="selectAllCardsCheckbox" onchange="toggleSelectAllCards(this)" style="cursor: pointer; width: 16px; height: 16px;" />
+                </th>
                 <th style="padding: 12px 8px; text-align: left; color: #475569; width: 90px;">รหัส</th>
                 <th style="padding: 12px 8px; text-align: left; color: #475569;">ชื่อ-นามสกุล / ตำแหน่ง / แผนก</th>
-                <th style="padding: 12px 8px; text-align: center; color: #475569; width: 100px;">ตัวเลือก</th>
+                <th style="padding: 12px 8px; text-align: center; color: #475569; width: 80px;">ตัวเลือก</th>
               </tr>
             </thead>
             <tbody id="employeeCardTableBody">${rowsHtml}</tbody>
@@ -642,8 +626,55 @@ window.openEmployeeCardManagerPopup = async function () {
   }
 };
 
+// 7.2 ฟังก์ชัน Helper สำหรับจัดการการเลือก Checkbox พนักงานใน Popup
+window.toggleSelectAllCards = function (masterCb) {
+  const checkboxes = document.querySelectorAll('.emp-card-checkbox');
+  checkboxes.forEach(cb => {
+    const row = cb.closest('tr');
+    if (row && row.style.display !== 'none') {
+      cb.checked = masterCb.checked;
+    }
+  });
+  updateCardSelectionCount();
+};
+
+window.updateCardSelectionCount = function () {
+  const checkedBoxes = document.querySelectorAll('.emp-card-checkbox:checked');
+  const countEl = document.getElementById('selectedCardCount');
+  const btnPrint = document.getElementById('btnPrintSelectedCards');
+
+  const count = checkedBoxes.length;
+  if (countEl) countEl.textContent = count;
+
+  if (btnPrint) {
+    if (count > 0) {
+      btnPrint.disabled = false;
+      btnPrint.style.opacity = '1';
+      btnPrint.style.cursor = 'pointer';
+    } else {
+      btnPrint.disabled = true;
+      btnPrint.style.opacity = '0.5';
+      btnPrint.style.cursor = 'not-allowed';
+    }
+  }
+};
+
+window.handlePrintSelectedCardsFromPopup = function () {
+  const checkedBoxes = document.querySelectorAll('.emp-card-checkbox:checked');
+  if (checkedBoxes.length === 0) return;
+
+  const selectedEmployees = Array.from(checkedBoxes).map(cb => ({
+    empCode: cb.dataset.code,
+    empName: cb.dataset.name,
+    empRole: cb.dataset.role,
+    empDept: cb.dataset.dept
+  }));
+
+  printMultipleCards(selectedEmployees);
+};
+
+// 7.3 ฟังก์ชันแสดงพรีวิวบัตรใบเดียว (Single Card Modal)
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
-  // 🚀 ดึง URL ปัจจุบันของเว็บ แล้วสร้างเป็นลิงก์ Auto Login
   const baseUrl = window.location.origin;
   const targetUrl = `${baseUrl}/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`; 
   
@@ -687,6 +718,7 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
   });
 };
 
+// 7.4 ฟังก์ชันพิมพ์บัตรแบบใบเดียว (Single Print Window)
 function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
   const printWindow = window.open('', '_blank', 'width=450,height=650');
   
@@ -697,159 +729,35 @@ function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
         <title>Print ID Card - ${empCode}</title>
         <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          @page {
-            size: auto;
-            margin: 0mm;
-          }
-          * {
-            box-sizing: border-box;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          body { 
-            font-family: 'Sarabun', sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            background: #f1f5f9; 
-          }
-          
-          /* ขนาดสัดส่วนมาตรฐานบัตร CR80 (54mm x 85.6mm) */
+          @page { size: auto; margin: 0mm; }
+          * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { font-family: 'Sarabun', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f1f5f9; }
           .card { 
-            position: relative;
-            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); 
-            width: 250px; 
-            height: 390px;
-            border-radius: 16px; 
-            padding: 20px 16px; 
-            color: white; 
-            text-align: center; 
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            overflow: hidden;
+            position: relative; background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); 
+            width: 250px; height: 390px; border-radius: 16px; padding: 20px 16px; color: white; 
+            text-align: center; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column;
+            justify-content: space-between; align-items: center; overflow: hidden;
           }
-
-          /* ตกแต่งแถบสีเรืองแสงด้านบนการ์ด */
-          .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1);
-          }
-
-          /* ช่องจำลองรูเจาะสายคล้องบัตร */
-          .lanyard-hole {
-            width: 32px;
-            height: 6px;
-            background: #020617;
-            border-radius: 10px;
-            margin-bottom: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-          }
-
-          .company { 
-            font-weight: 700; 
-            font-size: 11px; 
-            letter-spacing: 2px; 
-            color: #38bdf8; 
-            text-transform: uppercase;
-            margin-bottom: 8px;
-          }
-
-          .profile-section {
-            margin-bottom: 4px;
-            width: 100%;
-          }
-
-          .name { 
-            font-size: 16px; 
-            font-weight: 700; 
-            color: #f8fafc;
-            margin-bottom: 6px;
-            line-height: 1.2;
-            word-break: break-word;
-          }
-
-          /* Badges สรุปตำแหน่งและแผนก */
-          .badge-container {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            align-items: center;
-            justify-content: center;
-          }
-
-          .role-badge { 
-            font-size: 11px; 
-            color: #38bdf8; 
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.25);
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-weight: 500;
-          }
-
-          .dept-text { 
-            font-size: 11px; 
-            color: #94a3b8; 
-            font-weight: 400; 
-          }
-
-          /* กรอบแสดง QR Code */
-          .qr-box { 
-            background: #ffffff; 
-            padding: 8px; 
-            border-radius: 12px; 
-            display: inline-block; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            border: 2px solid #38bdf8;
-          }
-
-          .qr-box img {
-            width: 115px;
-            height: 115px;
-            display: block;
-          }
-
-          /* รหัสพนักงานส่วนท้าย */
-          .footer-section {
-            width: 100%;
-          }
-
-          .id-tag { 
-            font-size: 14px; 
-            font-weight: 700; 
-            letter-spacing: 1.5px;
-            color: #f8fafc;
-            background: rgba(255, 255, 255, 0.08); 
-            padding: 5px 16px; 
-            border-radius: 20px; 
-            display: inline-block; 
-            border: 1px solid rgba(255,255,255,0.15);
-            font-family: monospace, 'Sarabun';
-          }
-
-          /* ซ่อนพื้นหลังกว้างๆ ตอนสั่งพิมพ์จริง */
-          @media print {
-            body { background: transparent; }
-            .card { box-shadow: none; }
-          }
+          .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1); }
+          .lanyard-hole { width: 32px; height: 6px; background: #020617; border-radius: 10px; margin-bottom: 8px; border: 1px solid rgba(255, 255, 255, 0.15); }
+          .company { font-weight: 700; font-size: 11px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px; }
+          .profile-section { margin-bottom: 4px; width: 100%; }
+          .name { font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; line-height: 1.2; word-break: break-word; }
+          .badge-container { display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; }
+          .role-badge { font-size: 11px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 10px; border-radius: 12px; font-weight: 500; }
+          .dept-text { font-size: 11px; color: #94a3b8; font-weight: 400; }
+          .qr-box { background: #ffffff; padding: 8px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.25); border: 2px solid #38bdf8; }
+          .qr-box img { width: 115px; height: 115px; display: block; }
+          .footer-section { width: 100%; }
+          .id-tag { font-size: 14px; font-weight: 700; letter-spacing: 1.5px; color: #f8fafc; background: rgba(255, 255, 255, 0.08); padding: 5px 16px; border-radius: 20px; display: inline-block; border: 1px solid rgba(255,255,255,0.15); font-family: monospace, 'Sarabun'; }
+          @media print { body { background: transparent; } .card { box-shadow: none; } }
         </style>
       </head>
       <body>
         <div class="card">
           <div class="lanyard-hole"></div>
           <div class="company">PVT WORKFORCE HUB</div>
-          
           <div class="profile-section">
             <div class="name">${empName}</div>
             <div class="badge-container">
@@ -857,32 +765,18 @@ function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
               <span class="dept-text">แผนก: ${empDept}</span>
             </div>
           </div>
-
-          <div class="qr-box">
-            <img id="qrImage" src="${qrUrl}" alt="QR Code" />
-          </div>
-
-          <div class="footer-section">
-            <div class="id-tag">${empCode}</div>
-          </div>
+          <div class="qr-box"><img id="qrImage" src="${qrUrl}" alt="QR Code" /></div>
+          <div class="footer-section"><div class="id-tag">${empCode}</div></div>
         </div>
-
         <script>
-          // ฟังก์ชันสั่งพิมพ์เมื่อโหลดรูป QR Code และฟอนต์เสร็จเรียบร้อย
           function doPrint() {
             setTimeout(function() {
               window.print();
               setTimeout(function() { window.close(); }, 500);
             }, 300);
           }
-
           const img = document.getElementById('qrImage');
-          if (img.complete) {
-            doPrint();
-          } else {
-            img.onload = doPrint;
-            img.onerror = doPrint; // ป้องกันค้างถ้าโหลดรูปไม่ขึ้น
-          }
+          if (img.complete) { doPrint(); } else { img.onload = doPrint; img.onerror = doPrint; }
         </script>
       </body>
     </html>
@@ -890,13 +784,136 @@ function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
 
   printWindow.document.close();
 
-  // เรียกเปิด Popup จัดการบัตรกลับขึ้นมาหลังจากเปิดหน้าพิมพ์แล้ว
   setTimeout(() => { 
     if (typeof openEmployeeCardManagerPopup === 'function') {
       openEmployeeCardManagerPopup(); 
     }
   }, 600);
 }
+
+// 7.5 ฟังก์ชันพิมพ์บัตรพนักงานทีละหลายๆ ใบ ลงกระดาษ A4 (Batch Print)
+window.printMultipleCards = function(employeeList) {
+  if (!employeeList || !Array.isArray(employeeList) || employeeList.length === 0) {
+    Swal.fire('⚠️ ไม่พบข้อมูล', 'กรุณาเลือกพนักงานที่ต้องการพิมพ์บัตรอย่างน้อย 1 คน', 'warning');
+    return;
+  }
+
+  const printWindow = window.open('', '_blank', 'width=900,height=800');
+  const baseUrl = window.location.origin;
+
+  const cardsHtml = employeeList.map((emp) => {
+    const empCode = emp.empCode || emp.employee_code || '';
+    const empName = emp.empName || emp.full_name || 'พนักงาน';
+    const empRole = emp.empRole || emp.position_name || 'พนักงาน';
+    const empDept = emp.empDept || emp.department_name || 'ทั่วไป';
+
+    const targetUrl = `${baseUrl}/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`;
+    const secureData = encodeURIComponent(targetUrl);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
+
+    return `
+      <div class="card">
+        <div class="lanyard-hole"></div>
+        <div class="company">PVT WORKFORCE HUB</div>
+        
+        <div class="profile-section">
+          <div class="name">${empName}</div>
+          <div class="badge-container">
+            <span class="role-badge">${empRole}</span>
+            <span class="dept-text">แผนก: ${empDept}</span>
+          </div>
+        </div>
+
+        <div class="qr-box">
+          <img class="qr-img" src="${qrUrl}" alt="QR Code" />
+        </div>
+
+        <div class="footer-section">
+          <div class="id-tag">${empCode}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Print Batch ID Cards (${employeeList.length} รายการ)</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          @page { size: A4 portrait; margin: 10mm; }
+          * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 10px; background: #f1f5f9; }
+          .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px 20px;
+            justify-items: center;
+            align-items: center;
+          }
+          .card { 
+            position: relative; background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); 
+            width: 230px; height: 360px; border-radius: 14px; padding: 16px 12px; 
+            color: white; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            overflow: hidden; page-break-inside: avoid; break-inside: avoid;
+          }
+          .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1); }
+          .lanyard-hole { width: 30px; height: 5px; background: #020617; border-radius: 10px; margin-bottom: 4px; border: 1px solid rgba(255, 255, 255, 0.15); }
+          .company { font-weight: 700; font-size: 10px; letter-spacing: 1.5px; color: #38bdf8; text-transform: uppercase; margin-bottom: 4px; }
+          .profile-section { width: 100%; }
+          .name { font-size: 14px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; line-height: 1.2; word-break: break-word; }
+          .badge-container { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+          .role-badge { font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+          .dept-text { font-size: 10px; color: #94a3b8; }
+          .qr-box { background: #ffffff; padding: 6px; border-radius: 10px; display: inline-block; border: 2px solid #38bdf8; }
+          .qr-box img { width: 100px; height: 100px; display: block; }
+          .footer-section { width: 100%; }
+          .id-tag { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: #f8fafc; background: rgba(255, 255, 255, 0.08); padding: 3px 12px; border-radius: 16px; display: inline-block; border: 1px solid rgba(255,255,255,0.15); font-family: monospace, 'Sarabun'; }
+          @media print { body { background: transparent; padding: 0; } .cards-grid { gap: 8mm 6mm; } }
+        </style>
+      </head>
+      <body>
+        <div class="cards-grid">
+          ${cardsHtml}
+        </div>
+        <script>
+          window.onload = function() {
+            const images = document.querySelectorAll('.qr-img');
+            let loadedCount = 0;
+            const totalImages = images.length;
+
+            function checkAllLoaded() {
+              loadedCount++;
+              if (loadedCount >= totalImages) {
+                setTimeout(function() {
+                  window.print();
+                  setTimeout(function() { window.close(); }, 500);
+                }, 400);
+              }
+            }
+
+            if (totalImages === 0) {
+              window.print();
+            } else {
+              images.forEach(img => {
+                if (img.complete) {
+                  checkAllLoaded();
+                } else {
+                  img.onload = checkAllLoaded;
+                  img.onerror = checkAllLoaded;
+                }
+              });
+            }
+          };
+        </script>
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+};
 
 /* ==========================================================================
    8. 🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE
@@ -1059,21 +1076,14 @@ window.handleLogout = function() {
     text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#ef4444', // สีแดงสำหรับปุ่มออกจากระบบ
-    cancelButtonColor: '#64748b',  // สีเทาสีสレートสำหรับปุ่มยกเลิก
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
     confirmButtonText: 'ออกจากระบบ',
     cancelButtonText: 'ยกเลิก',
-    reverseButtons: true, // สลับให้ปุ่มยกเลิกอยู่ซ้าย ปุ่มยืนยันอยู่ขวา
-    focusCancel: true,
-    customClass: {
-      popup: 'pvt-logout-swal-popup',
-      title: 'pvt-logout-swal-title',
-      confirmButton: 'pvt-logout-confirm-btn',
-      cancelButton: 'pvt-logout-cancel-btn'
-    }
+    reverseButtons: true,
+    focusCancel: true
   }).then((result) => {
     if (result.isConfirmed) {
-      // แสดงสถานะกำลังออกจากระบบ
       Swal.fire({
         title: 'กำลังออกจากระบบ...',
         text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
@@ -1091,30 +1101,3 @@ window.handleLogout = function() {
     }
   });
 };
-
-async function handleSaveHoliday(event) {
-  event.preventDefault();
-  
-  const holidayDate = document.getElementById('holidayDate')?.value;
-  const holidayName = document.getElementById('holidayName')?.value;
-  const holidayType = document.getElementById('holidayType')?.value;
-
-  const client = sb || window.pvtSupabase?.getClient();
-  if (!client) {
-    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
-    return;
-  }
-
-  try {
-    const { error } = await client.from('holidays').insert([
-      { holiday_date: holidayDate, holiday_name: holidayName, type: holidayType }
-    ]);
-
-    if (error) throw error;
-
-    Swal.fire('สำเร็จ!', 'เพิ่มวันหยุดเรียบร้อยแล้ว', 'success');
-    closeHolidayModal();
-  } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด!', err.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
-  }
-}
