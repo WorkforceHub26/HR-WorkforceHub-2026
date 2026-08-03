@@ -2,10 +2,23 @@
    🔒 PVT HR LEAVE - auth/index.js (เวอร์ชันปรับปรุงระบบเตือนความเสี่ยงรหัสผ่าน)
    ========================================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("username");
   const passwordInput = document.getElementById("password");
+
+  // =========================================================================
+  // ⚡ [ระบบ AUTO-LOGIN]: ตรวจสอบว่าเปิดเว็บมาจาก QR Code หรือไม่
+  // =========================================================================
+  const urlParams = new URLSearchParams(window.location.search);
+  const autoEmpCode = urlParams.get("auto_login");
+  const autoToken = urlParams.get("token");
+
+  if (autoEmpCode && autoToken) {
+    // ส่งข้อมูลเข้าระบบตรวจสอบเพื่อทำการ Auto Login ทันที
+    executeSecureQrLogin(`${autoEmpCode}|${autoToken}`);
+    return;
+  }
 
 
 

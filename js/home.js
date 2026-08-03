@@ -643,9 +643,8 @@ window.openEmployeeCardManagerPopup = async function () {
 };
 
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
-  // 🛠️ FIX: เปลี่ยนข้อมูลใน QR Code ให้เป็น URL เว็บไซต์ของคุณ
-  // อย่าลืมเปลี่ยน "https://your-website.com/profile" เป็นหน้าเว็บที่คุณต้องการให้เปิดไป
-  const targetUrl = `https://your-website.com/profile?id=${empCode}&token=PVT_SECURE_BYPASS`; 
+  // 🚀 ลิงก์สำหรับ Auto-Login เมื่อสแกนด้วยกล้องมือถือ
+  const targetUrl = `https://5851d9ff.dev-workforcehub-2026.pages.dev/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`; 
   
   const secureData = encodeURIComponent(targetUrl);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
