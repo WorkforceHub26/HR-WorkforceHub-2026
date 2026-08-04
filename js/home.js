@@ -153,20 +153,25 @@ window.refreshDashboardData = async function() {
 /* ==========================================================================
    5. 📊 CHARTS & TOP LEAVE TAKERS
    ========================================================================== */
+/* ==========================================================================
+   5. 📊 CHARTS & TOP LEAVE TAKERS (FIXED STATUS FILTER)
+   ========================================================================== */
 function drawCharts() {
   if (typeof Chart === "undefined") return;
 
   const canvasType = document.getElementById("chartLeaveTypes");
   const canvasDept = document.getElementById("chartDepartments");
 
+  // 🟢 กรองเฉพาะรายการที่ "อนุมัติแล้ว" เท่านั้น (ตัด 'rejected', 'cancelled', 'รออนุมัติ' ออก)
   const approvedRequests = rawRequests.filter(r => r && (r.status === "approved" || r.status === "อนุมัติ"));
-  const activeDataset = approvedRequests.length > 0 ? approvedRequests : rawRequests;
 
+  // --- 1. กราฟสัดส่วนประเภทการลา ---
   if (canvasType) {
     const typeSummary = {};
     let totalCount = 0;
 
-    rawRequests.forEach(r => {
+    // ใช้ approvedRequests คำนวณ เพื่อไม่ให้นับรายการที่ยกเลิก/ปฏิเสธ
+    approvedRequests.forEach(r => {
       if (!r) return;
       const typeName = r.leave_types?.leave_name || r.leave_type_name || "อื่น ๆ";
       typeSummary[typeName] = (typeSummary[typeName] || 0) + 1;
@@ -220,10 +225,11 @@ function drawCharts() {
     renderLeaveBreakdownList(typeSummary, totalCount, colorPalette);
   }
 
+  // --- 2. กราฟสถิติจำนวนวันลาแยกตามแผนก ---
   if (canvasDept) {
     const deptSummary = {};
 
-    activeDataset.forEach(r => {
+    approvedRequests.forEach(r => {
       const deptName = r.employees?.departments?.department_name || r.department || "ไม่ระบุแผนก";
       const days = parseFloat(r.total_days || r.days || 1);
       deptSummary[deptName] = (deptSummary[deptName] || 0) + days;
@@ -278,7 +284,8 @@ function drawCharts() {
     });
   }
 
-  renderTopLeaveEmployees(activeDataset);
+  // --- 3. อันดับพนักงานที่ลาเยอะที่สุด ---
+  renderTopLeaveEmployees(approvedRequests);
 }
 
 function renderLeaveBreakdownList(typeSummary, totalCount, colors) {
@@ -943,24 +950,53 @@ function getNotifTheme(type) {
   }
 }
 
+/* ==========================================================================
+   8. 🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE (UPDATED)
+   ========================================================================== */
 async function fetchRealNotifications() {
   const client = sb || window.pvtSupabase?.getClient();
   const container = document.getElementById('notifListContainer');
   const badge = document.getElementById('notifBadge');
   const unreadCountPill = document.getElementById('notifUnreadCount');
 
-  if (!client || !container) return;
+  if (!container) return;
 
   try {
-    const { data: notifications, error } = await client
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(15);
+    let dbNotifications = [];
 
-    if (error) throw error;
+    // 1. ดึงข้อมูลการแจ้งเตือนจากตาราง notifications (ถ้ามี DB)
+    if (client) {
+      const { data, error } = await client
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-    if (!notifications || notifications.length === 0) {
+      if (!error && data) {
+        dbNotifications = data;
+      }
+    }
+
+    // 2. [เพิ่มใหม่] แปลงรายการใบลาค้างอนุมัติ (rawRequests) เป็นรายการแจ้งเตือนส้ม
+    const pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
+    const pendingNotifications = pendingLeaves.map(item => {
+      const empName = item.employees?.full_name || item.emp_name || 'พนักงาน';
+      const leaveType = item.leave_types?.leave_name || item.leave_type_name || 'ใบลา';
+      return {
+        id: `pending-${item.id}`,
+        title: `คำขอลาใหม่: ${empName}`,
+        message: `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) รอการพิจารณา`,
+        type: 'leave',
+        is_read: false,
+        created_at: item.created_at || new Date().toISOString(),
+        link: '/hr.html' // กดแล้วพาไปหน้าอนุมัติใบลา
+      };
+    });
+
+    // 3. รวมการแจ้งเตือนจากทั้งสองส่วนเข้าด้วยกัน
+    const allNotifications = [...pendingNotifications, ...dbNotifications];
+
+    if (allNotifications.length === 0) {
       container.innerHTML = `
         <div style="padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 13px;">
           🔕 ไม่มีรายการแจ้งเตือนในขณะนี้
@@ -970,8 +1006,9 @@ async function fetchRealNotifications() {
       return;
     }
 
-    const unreadCount = notifications.filter(n => !n.is_read).length;
+    const unreadCount = allNotifications.filter(n => !n.is_read).length;
 
+    // อัปเดตตัวเลข Badge บนไอคอนกระดิ่ง
     if (badge) {
       if (unreadCount > 0) {
         badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
@@ -985,14 +1022,15 @@ async function fetchRealNotifications() {
       unreadCountPill.textContent = `${unreadCount} รายการใหม่`;
     }
 
+    // สร้าง HTML แสดงผลใน Dropdown
     let html = '';
-    notifications.forEach(item => {
+    allNotifications.forEach(item => {
       const theme = getNotifTheme(item.type);
       const isUnreadClass = item.is_read ? '' : 'unread';
       const timeText = formatTimeAgo(item.created_at);
 
       html += `
-        <div class="notif-item ${isUnreadClass}" onclick="handleNotifClick(${item.id}, '${item.link}')">
+        <div class="notif-item ${isUnreadClass}" onclick="handleNotifClick('${item.id}', '${item.link}')">
           <div class="notif-icon ${theme.bgClass}">
             <span class="material-symbols-outlined">${theme.icon}</span>
           </div>

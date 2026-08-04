@@ -271,9 +271,13 @@
 <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 10px;"></div>
 
 <!-- ⚙️ แผงเรียกสคริปต์ Supabase และไฟล์ปฏิบัติการของระบบ -->
-<!-- ⚙️ แผงเรียกสคริปต์ Supabase และไฟล์ปฏิบัติการของระบบ -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- 2. ดึง Supabase และ Config -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./js/supabase-config.js"></script> <!-- 👈 เพิ่มบรรทัดนี้เข้ามา -->
-<script src="./js/admin.js"></script>
+<script src="/js/supabase-config.js"></script>
+
+<!-- 3. ดึง admin.js ไว้ล่างสุด -->
+<script src="/js/admin.js"></script>
 </body>
 </html>

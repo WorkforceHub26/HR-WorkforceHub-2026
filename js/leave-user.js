@@ -106,11 +106,12 @@ async function fetchCurrentUserData() {
       console.error("❌ หาฟังก์ชัน renderAllLeaveBalances ไม่เจอ!");
     }
 
-    // 1.4 จัดเตรียมข้อมูลแสดงผลส่วนตัว
+// 1.4 จัดเตรียมข้อมูลแสดงผลส่วนตัว
     const realUser = {
       id: empData.id,
       employee_code: empData.employee_code || "-",
       full_name: empData.full_name || "-",
+      role: empData.role || empData.position_name || "employee", // 👈 เพิ่มบรรทัดนี้เข้ามาครับ!
       department_name: empData.departments?.department_name || empData.department_id || "ไม่ได้ระบุแผนก", 
       position_name: empData.positions?.position_name || empData.position_id || "ไม่ได้ระบุตำแหน่ง",
       start_date: empData.start_date || "-"
@@ -160,14 +161,42 @@ window.renderAllLeaveBalances = function() {
 
   container.innerHTML = ""; // ล้างข้อความโหลดออก
 
-  if (!window.employeeLeaveBalances || window.employeeLeaveBalances.length === 0) {
+  const leaveBalances = window.employeeLeaveBalances || [];
+  const systemLeaveTypes = window.systemLeaveTypes || [];
+
+  // กรณีไม่มีข้อมูลประเภทการลาและยอดวันลาเลย
+  if (leaveBalances.length === 0 && systemLeaveTypes.length === 0) {
     container.innerHTML = "<p style='color:#ef4444; font-size:14px; margin: 0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
     return;
   }
 
-  window.employeeLeaveBalances.forEach(balance => {
-    const typeName = balance.leave_types?.leave_name || "สิทธิ์การลา";
-    const remaining = parseFloat(balance.remaining_days) || 0;
+  // 🎯 1. ตั้งต้นรายการที่จะแสดงผลโดยใช้ systemLeaveTypes เป็นหลัก
+  let displayItems = [];
+
+  if (systemLeaveTypes.length > 0) {
+    displayItems = systemLeaveTypes.map(type => {
+      // ค้นหายอดวันลาคงเหลือที่ leave_type_id ตรงกัน
+      const matchedBal = leaveBalances.find(b => String(b.leave_type_id) === String(type.id));
+      
+      return {
+        typeName: type.leave_name || "สิทธิ์การลา",
+        remaining: matchedBal ? (parseFloat(matchedBal.remaining_days) || 0) : 0
+      };
+    });
+  } else {
+    // Fallback กรณีไม่ได้ดึง systemLeaveTypes มา ให้ดึงจาก leaveBalances โดยตรง
+    displayItems = leaveBalances.map(balance => {
+      return {
+        typeName: balance.leave_types?.leave_name || "สิทธิ์การลา",
+        remaining: parseFloat(balance.remaining_days) || 0
+      };
+    });
+  }
+
+  // 🎯 2. วนลูปวาดกล่องแสดงผลสิทธิ์วันลา
+  displayItems.forEach(item => {
+    const typeName = item.typeName;
+    const remaining = item.remaining;
 
     // เลือกคลาสสีตามประเภทวันลา
     let colorClass = ""; 
@@ -175,9 +204,9 @@ window.renderAllLeaveBalances = function() {
     else if (typeName.includes("กิจ")) colorClass = "personal";
     else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
 
-    // สร้างกล่องโค้ดที่สะอาดสะอ้าน
+    // สร้างกล่ององค์ประกอบ HTML
     const box = document.createElement("div");
-    box.className = `leave-quota-box ${colorClass}`; // ยิงคลาสที่เราเขียนไว้ใน CSS ไปใช้งาน
+    box.className = `leave-quota-box ${colorClass}`;
     box.innerHTML = `
       <div class="leave-quota-name">${typeName}</div>
       <div class="leave-quota-days">${remaining} <span class="unit">วัน</span></div>
@@ -428,36 +457,124 @@ function updateLeaveBalanceDisplay(leaveTypeId) {
 }
 
 
+// ==========================================
+// 🔔 1. ฟังก์ชันส่งการแจ้งเตือน (Notification Helper)
+// ==========================================
+async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/leave-requests.html') {
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) {
+    console.warn("⚠️ ไม่พบ Supabase Client ไม่สามารถส่งแจ้งเตือนได้");
+    return;
+  }
+
+  try {
+    // บันทึกข้อมูลการแจ้งเตือนลงตาราง `notifications` ในฐานข้อมูล
+    const { error } = await sb.from("notifications").insert([{
+      title: title,
+      message: message,
+      type: type,
+      target_url: targetUrl,
+      created_at: new Date().toISOString(),
+      is_read: false
+    }]);
+
+    if (error) {
+      console.warn("⚠️ บันทึกแจ้งเตือนลง DB ไม่สำเร็จ:", error.message);
+    } else {
+      console.log("✅ [NOTIFICATION] ส่งการแจ้งเตือนเรียบร้อยแล้ว");
+    }
+  } catch (err) {
+    console.error("❌ Notification Error:", err);
+  }
+}
+
+// ==========================================
+// 💾 2. ฟังก์ชันบันทึกคำขอใบลา (Save Leave)
+// ==========================================
 async function saveLeave() {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) {
-    Swal.fire({ icon: 'error', title: 'การเชื่อมต่อขัดข้อง', text: 'ไม่พบการเชื่อมต่อฐานข้อมูล กรุณาลองใหม่อีกครั้ง', confirmButtonColor: '#ef4444' });
+    Swal.fire({ 
+      icon: 'error', 
+      title: 'การเชื่อมต่อขัดข้อง', 
+      text: 'ไม่พบการเชื่อมต่อฐานข้อมูล กรุณาลองใหม่อีกครั้ง', 
+      confirmButtonColor: '#ef4444' 
+    });
     return;
   }
 
   // 1. ตรวจสอบโปรไฟล์พนักงาน
   if (!currentProfile) {
     const savedUser = sessionStorage.getItem("currentUser");
-    if (savedUser) currentProfile = JSON.parse(savedUser);
+    if (savedUser) {
+      try { currentProfile = JSON.parse(savedUser); } catch(e){}
+    }
   }
 
   if (!currentProfile) {
-    Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูลผู้ใช้งาน', text: 'กรุณารีเฟรชหน้าเว็บ หรือเข้าสู่ระบบใหม่อีกครั้ง', confirmButtonColor: '#ef4444' });
+    Swal.fire({ 
+      icon: 'error', 
+      title: 'ไม่พบข้อมูลผู้ใช้งาน', 
+      text: 'กรุณารีเฟรชหน้าเว็บ หรือเข้าสู่ระบบใหม่อีกครั้ง', 
+      confirmButtonColor: '#ef4444' 
+    });
     return;
   }
 
   // 2. ตรวจสอบฟอร์มใบลา
   const cards = document.querySelectorAll("#leaveCardsList .leave-box-item");
   if (cards.length === 0) {
-    Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', text: 'กรุณาเพิ่มรายการลาอย่างน้อย 1 รายการครับ', confirmButtonColor: '#f59e0b' });
+    Swal.fire({ 
+      icon: 'warning', 
+      title: 'ข้อมูลไม่ครบถ้วน', 
+      text: 'กรุณาเพิ่มรายการลาอย่างน้อย 1 รายการครับ', 
+      confirmButtonColor: '#f59e0b' 
+    });
     return;
+  }
+
+  // 🎯 3. ดึงและตรวจสอบ Role ของผู้ยื่นใบลาจากทุกช่องทางที่เป็นไปได้
+  const rawRole = currentProfile.role || 
+                  currentProfile.position_name || 
+                  sessionStorage.getItem("userRole") || 
+                  "";
+  
+  const userRole = String(rawRole).toLowerCase().trim();
+  console.log("🔍 [DEBUG ROLE] ตรวจพบตำแหน่ง/สิทธิ์ของผู้ยื่น:", rawRole, "->", userRole);
+
+  let defaultManagerStatus = "pending";
+  let defaultDirectorStatus = "pending";
+
+  // ⚡ เช็กเงื่อนไขการอนุมัติอัตโนมัติ (Auto-approve)
+  if (
+    userRole.includes("leader") || 
+    userRole.includes("supervisor") || 
+    userRole.includes("head") || 
+    userRole.includes("หัวหน้า")
+  ) {
+    // หัวหน้ายื่นลา -> อนุมัติด่าน Manager/Leader ให้อัตโนมัติ
+    defaultManagerStatus = "approved";
+    console.log("⚡ [AUTO APPROVED] ระดับหัวหน้างาน -> กำหนด manager_status = 'approved'");
+  } else if (
+    userRole.includes("manager") || 
+    userRole.includes("director") || 
+    userRole.includes("ผู้จัดการ") || 
+    userRole.includes("บริหาร") ||
+    userRole.includes("admin")
+  ) {
+    // ผู้จัดการ/ผู้บริหารยื่นลา -> อนุมัติทั้งด่าน Manager และ Director ให้อัตโนมัติ
+    defaultManagerStatus = "approved";
+    defaultDirectorStatus = "approved";
+    console.log("⚡ [AUTO APPROVED] ระดับผู้จัดการ/ผู้บริหาร -> กำหนด manager_status & director_status = 'approved'");
+  } else {
+    console.log("ℹ️ [REGULAR USER] พนักงานทั่วไป -> ต้องผ่านการอนุมัติตามขั้นตอนปกติ (pending)");
   }
 
   const payload = [];
   let hasError = false;
   let hasWarning = false;
 
-  // 3. วนลูปเช็คข้อมูลแต่ละกล่องใบลา
+  // 4. วนลูปเช็คข้อมูลแต่ละกล่องใบลา
   for (let index = 0; index < cards.length; index++) {
     const card = cards[index];
 
@@ -467,95 +584,121 @@ async function saveLeave() {
     let reason = card.querySelector('input[name="reason"]')?.value || ""; 
     const hoursMorning = parseFloat(card.querySelector('input[name="hours_morning"]')?.value) || 0;
     const hoursAfternoon = parseFloat(card.querySelector('input[name="hours_afternoon"]')?.value) || 0;
+    const fileInput = card.querySelector('input[type="file"]');
     
     let totalDays = parseFloat(card.querySelector('input[name="leave_days"]')?.value);
     if (isNaN(totalDays) || totalDays <= 0) {
       totalDays = 1; 
     }
 
-    // แจ้งเตือนถ้าระบุข้อมูลไม่ครบ
+    // 🔴 [เงื่อนไขที่ 1] ตรวจสอบการกรอกวันที่และประเภทการลา
     if (!leaveTypeId || !startDate || !endDate) {
-      Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่สมบูรณ์', text: `กรุณากรอกข้อมูลให้ครบในรายการที่ ${index + 1}`, confirmButtonColor: '#f59e0b' });
+      Swal.fire({ 
+        icon: 'warning', 
+        title: 'ข้อมูลไม่สมบูรณ์', 
+        text: `กรุณากรอกวันที่และประเภทการลาให้ครบในรายการที่ ${index + 1}`, 
+        confirmButtonColor: '#f59e0b' 
+      });
       hasError = true;
       break; 
     }
 
-    // ==========================================
-    // 🛡️ 1. เช็คเงื่อนไขพิเศษ: ห้ามลาพักร้อน/พักผ่อนเกิน 3 วัน
-    // ==========================================
-    // ค้นหาชื่อประเภทการลาจากตัวแปร leaveTypes (ที่ถูกดึงมาจาก DB ตอนโหลดหน้า)
-    const leaveTypeObj = leaveTypes.find(t => String(t.id) === String(leaveTypeId));
+    // 🔴 [เงื่อนไขที่ 2] บังคับระบุเหตุผลการลาทุกกรณี
+    if (!reason.trim()) {
+      Swal.fire({ 
+        icon: 'warning', 
+        title: 'กรุณาระบุเหตุผล', 
+        text: `กรุณากรอก "สาเหตุ / เหตุผลการลา" ในรายการที่ ${index + 1}`, 
+        confirmButtonColor: '#f59e0b' 
+      });
+      hasError = true;
+      break;
+    }
+
+    // ดึงชื่อประเภทการลามาตรวจสอบเงื่อนไขพิเศษ
+    const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(leaveTypeId));
     const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : "";
 
-    // ถ้าชื่อการลามีคำว่า "พักผ่อน" หรือ "พักร้อน" และระบุเกิน 3 วัน
+    // 🔴 [เงื่อนไขที่ 3] ตรวจสอบการลาป่วยตั้งแต่ 3 วันขึ้นไป ต้องแนบรูปภาพหลักฐาน
+    const isSickLeave = leaveName.includes("ป่วย") || leaveName.toLowerCase().includes("sick");
+    if (isSickLeave && totalDays >= 3) {
+      const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+      if (!hasFile) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ต้องแนบใบรับรองแพทย์',
+          html: `รายการที่ ${index + 1} เป็นการลาป่วยตั้งแต่ 3 วันขึ้นไป (จำนวน ${totalDays} วัน)<br><span style="color: #ef4444; font-weight: 500;">ต้องแนบรูปภาพใบรับรองแพทย์ตามที่กฎหมายกำหนดครับ</span>`,
+          confirmButtonColor: '#ea580c'
+        });
+        hasError = true;
+        break;
+      }
+    }
+
+    // 🛡️ [เงื่อนไขที่ 4] ห้ามลาพักร้อน/พักผ่อนเกิน 3 วัน
     if (leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน") || leaveName.toLowerCase().includes("vacation")) {
-        if (totalDays > 3) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'เงื่อนไขการลาพักผ่อนประจำปี',
-                html: `ไม่สามารถลาพักผ่อนรวดเดียวเกิน <b>3 วัน</b> ได้ค่ะ<br><br>
-                       <span style="color: #ea580c; font-weight: 600;">💡 แนวทางปฏิบัติ:</span><br>
-                       หากต้องการลาหลายวันต่อเนื่อง ต้องแบ่งเพิ่มรายการลาแยกกัน เช่น:<br>
-                       - รายการที่ 1: <b>ลากิจ 3 วัน</b><br>
-                       - รายการที่ 2: <b>ลาพักผ่อน 3 วัน</b>`,
-                confirmButtonColor: '#ea580c'
-            });
-            hasError = true; // บล็อกไว้ไม่ให้บันทึก
-            break; 
-        }
+      if (totalDays > 3) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'เงื่อนไขการลาพักผ่อนประจำปี',
+          html: `ไม่สามารถลาพักร้อนรวดเดียวเกิน <b>3 วัน</b> ได้ค่ะ<br><br>
+                 <span style="color: #ea580c; font-weight: 600;">💡 แนวทางปฏิบัติ:</span><br>
+                 หากต้องการลาหลายวันต่อเนื่อง ต้องแบ่งเพิ่มรายการลาแยกกัน`,
+          confirmButtonColor: '#ea580c'
+        });
+        hasError = true;
+        break; 
+      }
     }
-    // ==========================================
 
-    // ==========================================
-    // 🎯 2. ระบบเช็คโควตา (ยอมให้ติดลบได้ แต่ขึ้นเตือน)
-    // ==========================================
+    // 🎯 [เงื่อนไขที่ 5] ตรวจสอบโควตาคงเหลือ
     if (window.employeeLeaveBalances) {
-        const matchedBalance = window.employeeLeaveBalances.find(b => String(b.leave_type_id) === String(leaveTypeId));
-        const remainingDays = matchedBalance ? parseFloat(matchedBalance.remaining_days) : 0;
+      const matchedBalance = window.employeeLeaveBalances.find(b => String(b.leave_type_id) === String(leaveTypeId));
+      const remainingDays = matchedBalance ? parseFloat(matchedBalance.remaining_days) : 0;
 
-        if (totalDays > remainingDays) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'ยื่นลาเกินโควตา',
-                text: `รายการที่ ${index + 1} คุณเหลือสิทธิอีกเพียง ${remainingDays} วัน ระบบจะส่งคำขอนี้ให้ HR พิจารณาเป็นกรณีพิเศษ`,
-                confirmButtonColor: '#f59e0b'
-            });
-            hasWarning = true; 
-        }
+      if (totalDays > remainingDays) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ยื่นลาเกินโควตา',
+          text: `รายการที่ ${index + 1} คุณเหลือสิทธิอีกเพียง ${remainingDays} วัน ระบบจะส่งคำขอนี้ให้ HR พิจารณาเป็นกรณีพิเศษ`,
+          confirmButtonColor: '#f59e0b'
+        });
+        hasWarning = true; 
+      }
     }
-    // ==========================================
 
     const totalHours = hoursMorning + hoursAfternoon;
     const startPeriod = hoursMorning > 0 ? "half_day" : "full_day";
     const endPeriod = hoursAfternoon > 0 ? "half_day" : "full_day";
 
+    // 🎯 บันทึกลง Payload พร้อมสถานะที่ผ่านการอนุมัติอัตโนมัติตาม Role
     payload.push({
       employee_id:     currentProfile.id || currentProfile.employee_id, 
       leave_type_id:   leaveTypeId,
       start_date:      startDate,
       end_date:        endDate,
       total_days:      totalDays,
-      reason:          reason,  
+      reason:          reason.trim(),  
       status:          "pending",          
-      manager_status:  "pending",          
-      director_status: "pending",          
+      manager_status:  defaultManagerStatus,   // 👈 ปรับอัตโนมัติ
+      director_status: defaultDirectorStatus,  // 👈 ปรับอัตโนมัติ
       leave_hours:     totalHours,
       start_period:    startPeriod,
       end_period:      endPeriod
     });
   }
 
-  // ถ้าเจอ Error (เช่น ลาพักร้อนเกิน 3 วัน หรือข้อมูลไม่ครบ) ให้หยุดทำงาน
+  // หากพบข้อผิดพลาด ให้หยุดทำงานทันที
   if (hasError) return;
 
-  // 4. ล็อคปุ่ม ป้องกันการกดเบิ้ล
+  // 5. ล็อคปุ่มป้องกันการกดซ้ำ
   const saveBtn = document.getElementById("btnSaveLeave");
   if (saveBtn) {
     saveBtn.disabled = true;
     saveBtn.innerHTML = "⏳ <span style='opacity:0.8;'>กำลังส่งคำขอ...</span>";
   }
 
-  // 5. ส่งข้อมูลขึ้นฐานข้อมูล
+  // 6. บันทึกข้อมูลขึ้น Supabase
   try {
     const { data, error } = await sb.from("leave_requests").insert(payload).select();
 
@@ -565,8 +708,7 @@ async function saveLeave() {
         icon: 'warning',
         title: 'ไม่สามารถยื่นใบลาได้',
         text: error.message || "เกิดข้อผิดพลาดบางอย่าง กรุณาตรวจสอบข้อมูล",
-        confirmButtonColor: '#f59e0b',
-        background: 'rgba(255, 255, 255, 0.95)'
+        confirmButtonColor: '#f59e0b'
       });
       if (saveBtn) {
         saveBtn.disabled = false;
@@ -575,36 +717,31 @@ async function saveLeave() {
       return; 
     }
 
-    if (typeof sendNotification === 'function') {
-      try {
-        const empName = currentProfile.first_name || currentProfile.name || currentProfile.email || 'พนักงาน';
-        await sendNotification(
-          'คำขอลาใหม่', 
-          `${empName} ได้ยื่นคำขอลาใหม่จำนวน ${payload.length} รายการ`, 
-          'leave', 
-          '/pages/leave-requests.html'
-        );
-      } catch (notifErr) {
-        console.warn("⚠️ ไม่สามารถส่งแจ้งเตือนได้:", notifErr);
-      }
-    }
+    // 🔔 สั่งส่งการแจ้งเตือน
+    const empName = currentProfile.full_name || currentProfile.first_name || 'พนักงาน';
+    await sendNotification(
+      'คำขอลาใหม่', 
+      `${empName} ได้ยื่นคำขอลาใหม่จำนวน ${payload.length} รายการ`, 
+      'leave', 
+      '/pages/leave-requests.html'
+    );
 
+    // 7. แจ้งเตือนสถานะสำเร็จ
     if (hasWarning) {
-        setTimeout(() => {
-            window.location.href = "/pages/user/index-user.html";
-        }, 3000);
+      setTimeout(() => {
+        window.location.href = "/pages/user/index-user.html";
+      }, 3000);
     } else {
-        Swal.fire({
-          title: 'ส่งคำขอลาสำเร็จ!',
-          text: 'ระบบได้ส่งใบลาของคุณไปให้ผู้อนุมัติพิจารณาแล้ว',
-          icon: 'success',
-          confirmButtonColor: '#0f766e',
-          timer: 2000,
-          showConfirmButton: false,
-          background: 'rgba(255, 255, 255, 0.95)'
-        }).then(() => {
-          window.location.href = "/pages/user/index-user.html";
-        });
+      Swal.fire({
+        title: 'ส่งคำขอลาสำเร็จ!',
+        text: 'ระบบได้ส่งใบลาของคุณไปให้ผู้อนุมัติพิจารณาเรียบร้อยแล้ว',
+        icon: 'success',
+        confirmButtonColor: '#0f766e',
+        timer: 2000,
+        showConfirmButton: false
+      }).then(() => {
+        window.location.href = "/pages/user/index-user.html";
+      });
     }
 
   } catch (err) {

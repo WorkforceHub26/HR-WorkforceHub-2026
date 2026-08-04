@@ -1,106 +1,127 @@
 /* ==========================================================================
-   🏢 PVT HR Dashboard — hr.css (ไฟล์จัดการ Layout เฉพาะหน้าอนุมัติใบลา)
+   🏢 PVT WORKFORCE HUB - SYSTEM DESIGN SYSTEM & STYLESHEET
    ========================================================================== */
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+/* --------------------------------------------------------------------------
+   1. CORE VARIABLES & THEME SETUP
+   -------------------------------------------------------------------------- */
 :root {
-  --primary: #06b6d4;
-  --primary-light: rgba(6, 182, 212, 0.15);
-  --primary-dark: #0891b2;
-  --green: #10b981;
-  --green-light: #f0fdf4;
-  --green-dark: #059669;
-  --red: #ef4444;
-  --bg: #f0fdfa;        
-  --card: rgba(255, 255, 255, 0.55);
-  --text: #0f172a;
-  --muted: #475569;     
-  --border: #cbd5e1;    
-  --input-bg: rgba(255, 255, 255, 0.7);
-  --ease: all 0.2s ease-in-out;
+  /* Color Palette - Modern Corporate Tech */
+  --primary: #1e3a8a;          /* Deep Navy Blue */
+  --primary-hover: #1d4ed8;    /* Bright Royal Blue */
+  --primary-light: #eff6ff;    /* Very Soft Tint Blue */
+  --accent: #0fa472;           /* Vibrant Emerald Green */
+  --accent-hover: #059669;
+
+  /* Status Colors */
+  --pending-color: #d97706;    /* Warm Amber */
+  --pending-bg: #fffbebfb;
+  --pending-border: #fef3c7;
+
+  --approved-color: #059669;   /* Soft Forest Green */
+  --approved-bg: #ecfdf5;
+  --approved-border: #a7f3d0;
+
+  --rejected-color: #dc2626;   /* Pure Red */
+  --rejected-bg: #fef2f2;
+  --rejected-border: #fecaca;
+
+  --cancelled-color: #475569;  /* Muted Slate */
+  --cancelled-bg: #f8fafc;
+  --cancelled-border: #e2e8f0;
+
+  /* Base & Surface Neutral Colors */
+  --bg-main: #f1f5f9;          /* Subtle Light Gray Slate */
+  --bg-surface: #ffffff;
+  --text-dark: #0f172a;        /* High Contrast Dark Blue-Gray */
+  --text-main: #334155;        /* Standard Text */
+  --text-muted: #64748b;       /* Secondary Text */
+  --border: #e2e8f0;           /* Soft Divider Gray */
+  --border-light: #f1f5f9;
+
+  /* Shadows & Elevation */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Radius & Transitions */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --------------------------------------------------------------------------
+   2. GLOBAL RESET & BASE STYLES
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  font-family: "Sarabun", sans-serif;
-  background-color: #f0fdfa; 
-  background-image: 
-    radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
-    radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
-    radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
-  background-attachment: fixed;
-  color: var(--text);
-  min-height: 100vh;
+  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.6;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── TOP BAR ─── */
-.topbar {
-  background: var(--card);
-  border-bottom: 2px solid #e2e8f0; 
-  padding: 14px 24px; 
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+/* Material Symbols Icon Tweaks */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  user-select: none;
 }
-/* ================== โครงสร้างหลัก (Layout) ================== */
+
+/* --------------------------------------------------------------------------
+   3. APP LAYOUT & APP SHELL
+   -------------------------------------------------------------------------- */
 .app-shell {
   display: flex;
   min-height: 100vh;
+  width: 100%;
 }
 
-.main-content {
+/* Sidebar Styles */
+.sidebar-light {
+  width: 260px;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  transition: var(--transition-fast);
+}
+
+.brand-zone {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.logo-mini {
+  max-height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.nav-menu {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   flex: 1;
-  padding: 40px 48px;
-  overflow-y: auto;
-}
-
-.main-content h1 {
-  margin-top: 0;
-  margin-bottom: 28px;
-  font-size: 28px;
-  color: var(--text-dark);
-  font-weight: 600;
-}
-
-/* ================== เมนูด้านข้าง (Sidebar) ================== */
-.sidebar {
-  width: 280px;
-  background-color: var(--bg-card);
-  display: flex;
-  flex-direction: column;
-  padding: 32px 20px;
-  border-right: 1px solid var(--border-light);
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
-}
-
-.sidebar .brand {
-  margin-bottom: 40px;
-  padding-left: 8px;
-}
-
-.sidebar .brand h2 {
-  color: var(--text-dark);
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-}
-
-.sidebar .brand p {
-  margin: 4px 0 0 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.side-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .nav-item {
@@ -110,124 +131,560 @@ body {
   padding: 12px 16px;
   color: var(--text-muted);
   text-decoration: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 400;
-  transition: var(--pvt-ease);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
 }
 
-/* เอฟเฟกต์เมนูเวลาเมาส์ชี้ และเมนูที่กำลังเลือกอยู่ (ดึงสีฟ้ามาจากธีมกลาง) */
 .nav-item:hover {
-  background-color: var(--primary-light);
+  background: var(--primary-light);
   color: var(--primary);
-  transform: translateX(4px);
 }
 
 .nav-item.active {
-  background-color: var(--primary-light);
-  color: var(--primary);
-  font-weight: 500;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.25);
 }
 
-.nav-item .material-symbols-outlined {
-  font-size: 22px;
-  color: inherit;
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border-light);
 }
 
-/* ปุ่ม Logout เฉพาะของ Sidebar */
 .btn-logout {
   width: 100%;
-  padding: 12px;
-  background: var(--bg-red);
-  color: var(--red);
-  border: 1px solid #fecaca;
-  border-radius: 12px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: var(--pvt-ease);
+  padding: 10px;
+  background: #fef2f2;
+  color: var(--rejected-color);
+  border: 1px solid #fee2e2;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
+
 .btn-logout:hover {
-  background: var(--red);
+  background: var(--rejected-color);
   color: #ffffff;
-  border-color: var(--red);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-/* ================== กล่องเนื้อหาและตาราง (Panels & Table) ================== */
-.panel {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 20px;
-  padding: 28px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.015);
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  margin-left: 260px; /* Offset for Fixed Sidebar */
+  padding: 32px;
+  max-width: 1400px;
+  width: calc(100% - 260px);
 }
 
-.panel-head {
+/* Adjust Main Content if no Sidebar (Full Width Template) */
+.app-shell > .main-content:only-child {
+  margin-left: 0;
+  width: 100%;
+  padding: 32px 48px;
+}
+
+/* --------------------------------------------------------------------------
+   4. HEADER & TOPBAR STYLING
+   -------------------------------------------------------------------------- */
+.page-header, .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-.panel-head h3 { margin: 0; font-size: 18px; color: var(--text-dark); }
-.panel-head h3 .material-symbols-outlined { font-size: 20px; }
-
-.table-scroll {
-  overflow-x: auto;
-  border-radius: 12px;
-  border: 1px solid var(--border-light);
-  margin-top: 20px;
+  margin-bottom: 24px;
+  gap: 16px;
 }
 
-.luxury-admin-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 14px;
+.btn-header-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
 }
 
-.luxury-admin-table thead tr {
-  background-color: var(--text-dark);
-  color: #ffffff;
-  text-align: left;
+.btn-header-back:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateX(-2px);
 }
 
-.luxury-admin-table th {
-  padding: 14px 16px;
+.header-title h2, .topbar-left h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.3px;
+}
+
+.header-title p, .topbar-left p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-surface);
+  padding: 6px 14px 6px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.user-profile .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.user-profile .info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-profile .info strong {
+  font-size: 13px;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+
+.user-profile .info span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   5. STATS CARDS GRID
+   -------------------------------------------------------------------------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-fast);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+}
+
+.stat-card.pending::before { background-color: var(--pending-color); }
+.stat-card.approved::before { background-color: var(--approved-color); }
+.stat-card.rejected::before { background-color: var(--rejected-color); }
+
+.stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-top: 8px;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stat-value small {
+  font-size: 13px;
   font-weight: 500;
+  color: var(--text-muted);
 }
 
-.luxury-admin-table td {
+/* --------------------------------------------------------------------------
+   6. TAB NAVIGATION CONTAINER
+   -------------------------------------------------------------------------- */
+.leave-tab-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--text-dark);
+}
+
+.tab-btn.active {
+  background: var(--bg-surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-count-badge {
+  background: var(--primary);
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.tab-count-badge.secondary {
+  background: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   7. TABLE & PANEL STYLING
+   -------------------------------------------------------------------------- */
+.panel, .approval-panel {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.table-responsive, .table-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.approval-table, table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.approval-table th, table th {
+  background-color: #f8fafc;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.approval-table td, table td {
   padding: 16px;
   border-bottom: 1px solid var(--border-light);
-  color: var(--text-muted);
+  color: var(--text-main);
   vertical-align: middle;
 }
 
-.luxury-admin-table tbody tr:hover {
-  background-color: var(--bg-main);
+.approval-table tbody tr, table tbody tr {
+  transition: var(--transition-fast);
 }
 
-/* ปุ่มรีเฟรชข้อมูล (ปุ่มรองในตาราง) */
-.btn-pvt-light {
-  display: flex;
+.approval-table tbody tr:hover, table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.approval-table tbody tr:last-child td, table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Utility Class Inside Tables */
+.text-center { text-align: center !important; }
+.empty-state {
+  padding: 48px !important;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+/* --------------------------------------------------------------------------
+   8. BADGES & BUTTONS STYLING
+   -------------------------------------------------------------------------- */
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.status-pending {
+  background-color: var(--pending-bg);
+  color: var(--pending-color);
+  border: 1px solid var(--pending-border);
+}
+
+.status-approved {
+  background-color: var(--approved-bg);
+  color: var(--approved-color);
+  border: 1px solid var(--approved-border);
+}
+
+.status-rejected {
+  background-color: var(--rejected-bg);
+  color: var(--rejected-color);
+  border: 1px solid var(--rejected-border);
+}
+
+/* Button UI Components */
+.btn-pvt-refresh {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  background-color: #ffffff;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-family: inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: var(--pvt-ease);
+  transition: var(--transition-fast);
 }
-.btn-pvt-light:hover { 
-  background-color: var(--bg-main); 
-  border-color: var(--text-muted); 
+
+.btn-pvt-refresh:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
 }
-.btn-pvt-light .material-symbols-outlined { font-size: 18px; }
+
+/* --------------------------------------------------------------------------
+   9. MODAL & OVERLAY STYLING
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.5); /* Backdrop Blur Effect */
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  background: var(--bg-surface);
+  width: 100%;
+  max-width: 520px;
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-modal);
+  border: 1px solid var(--border-light);
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-content h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text-dark);
+  background-color: #f8fafc;
+  resize: vertical;
+  transition: var(--transition-fast);
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+/* --------------------------------------------------------------------------
+   10. FLOATING FAB & GUIDE CARD
+   -------------------------------------------------------------------------- */
+#pvt-fab-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+#pvt-fab-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 20px rgba(30, 58, 138, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   11. ANIMATIONS & RESPONSIVE DESIGN
+   -------------------------------------------------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Mobile & Tablet Responsiveness */
+@media (max-width: 1024px) {
+  .sidebar-light {
+    transform: translateX(-100%); /* Hide Sidebar on smaller screens */
+  }
+
+  .main-content, .app-shell > .main-content:only-child {
+    margin-left: 0;
+    width: 100%;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr; /* Stack Cards */
+  }
+
+  .page-header, .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .leave-tab-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .modal-content {
+    padding: 20px;
+    margin: 16px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    width: 100%;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}

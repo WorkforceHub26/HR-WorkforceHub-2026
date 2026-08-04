@@ -784,6 +784,8 @@ function closeResetModal() {
   console.warn("⚠️ [SYSTEM LOG]: รีเซ็ตโควต้าถูกยกเลิกโดยผู้ดูแลระบบ (Abort Command)");
 }
 
+
+
 function resetModalState() {
   document.querySelectorAll('.verification-step').forEach(el => el.classList.remove('active'));
   const step1 = document.getElementById('step-1-content');
@@ -809,43 +811,117 @@ function nextVerificationStep(step) {
   }
 }
 
-async function executeFinalReset() {
-  const txtInput = document.getElementById('txt-final-verify');
-  const inputVerify = txtInput ? txtInput.value.trim() : '';
+// 💡 ฟังก์ชันปิด Modal ทุกตัวในหน้าเพื่อแก้ปัญหา Pop-up ซ้อน
+function closeAllResetModals() {
+  const modalIds = ["destructiveModal", "step2Modal", "finalConfirmModal", "resetModal"];
+  modalIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
   
-  if (inputVerify !== 'RESET-TEST-QUOTA-NOW') {
-    alert("❌ รหัสยืนยันไม่ถูกต้อง! กรุณาพิมพ์ 'RESET-TEST-QUOTA-NOW' เป็นตัวพิมพ์ใหญ่ทั้งหมด");
+  // ลบ class หรือ style ที่อาจค้างบังหน้าจอ
+  document.body.classList.remove("modal-open");
+}
+
+// 🚀 ฟังก์ชันรีเซ็ตระบบใบลาทั้งหมด (ทั้งประวัติใบลา และ โควตาวันลา)
+async function executeFinalReset() {
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) {
+    if (typeof Swal !== "undefined") {
+      Swal.fire("ข้อผิดพลาด", "ไม่พบการเชื่อมต่อ Supabase", "error");
+    } else {
+      alert("ไม่พบการเชื่อมต่อ Supabase");
+    }
     return;
   }
 
+  // 1. ปิด Modal ที่เปิดค้างไว้ทันทีเพื่อไม่ให้บัง SweetAlert
+  closeAllResetModals();
+
+  // 2. แสดงสถานะกำลังทำงาน
+  if (typeof Swal !== "undefined") {
+    Swal.fire({
+      title: "🔥 กำลังล้างระบบใบลาทั้งหมด...",
+      text: "ระบบกำลังลบประวัติการลาและคืนค่าโควตาวันลา กรุณารอซักครู่",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+  }
+
   try {
-    console.log("🚀 [DEVOPS PIPELINE]: กำลังเริ่มกระบวนการล้างโควต้า...");
+    // ------------------------------------------------------------------
+    // STEP 1: ลบรายการใบลาทั้งหมดในตาราง `leave_requests`
+    // ------------------------------------------------------------------
+    console.log("🧹 กำลังลบประวัติใบลาใน leave_requests...");
+    const { error: deleteReqError } = await sb
+      .from("leave_requests")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000"); // เงื่อนไขลบทุกแถวที่มีในระบบ
+
+    if (deleteReqError) {
+      console.error("❌ เกิดข้อผิดพลาดขณะลบ leave_requests:", deleteReqError);
+      throw new Error(`ไม่สามารถลบประวัติใบลาได้: ${deleteReqError.message}`);
+    }
+
+    // ------------------------------------------------------------------
+    // STEP 2: รีเซ็ตโควตาวันลาในตาราง `leave_balances`
+    // ------------------------------------------------------------------
+    console.log("🔄 กำลังรีเซ็ตโควตาใน leave_balances...");
     
-    const client = getSupabaseClient();
-    if (!client) throw new Error("ไม่พบ Supabase Client");
+    // ดึงโควตาวันลาทั้งหมดเพื่อเอาสิทธิ์ตั้งต้น (entitlement_days)
+    const { data: balances, error: fetchBalError } = await sb
+      .from("leave_balances")
+      .select("id, entitlement_days");
 
-    const { data, error } = await client
-      .from('user_leave_quotas') 
-      .update({ 
-        sick_leave_used: 0,
-        personal_leave_used: 0,
-        other_test_leave_used: 0
-      })
-      .neq('id', 0); 
+    if (fetchBalError) throw fetchBalError;
 
-    if (error) throw error;
+    // อัปเดต used_days = 0 และ remaining_days = entitlement_days
+    if (balances && balances.length > 0) {
+      for (const item of balances) {
+        const { error: updateError } = await sb
+          .from("leave_balances")
+          .update({
+            used_days: 0,
+            remaining_days: item.entitlement_days || 0
+          })
+          .eq("id", item.id);
 
-    alert("💥 SUCCESS: ระบบได้รีเซ็ตโควต้าทดสอบของพนักงานทั้งหมดเสร็จสิ้นเรียบร้อยแล้ว!");
-    closeResetModal();
-    
-    if (typeof loadDashboardData === "function") loadDashboardData();
+        if (updateError) throw updateError;
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // STEP 3: แจ้งเตือนเมื่อทำงานเสร็จสมบูรณ์
+    // ------------------------------------------------------------------
+    console.log("✅ ล้างระบบสำเร็จเรียบร้อย!");
+
+    if (typeof Swal !== "undefined") {
+      await Swal.fire({
+        icon: "success",
+        title: "ล้างระบบสำเร็จ!",
+        text: "ลบประวัติการลาทั้งหมด และรีเซ็ตโควตาวันลาพนักงานทุกคนเรียบร้อยแล้ว",
+        confirmButtonText: "ตกลง"
+      });
+    } else {
+      alert("ล้างระบบสำเร็จ! ลบประวัติการลาและรีเซ็ตโควตาเรียบร้อยแล้ว");
+    }
+
+    // รีโหลดหน้าเว็บเพื่อให้ตารางอัปเดตข้อมูลใหม่
+    location.reload();
 
   } catch (err) {
-    console.error("🚨 Critical Error executing reset:", err.message);
-    alert("🚨 เกิดข้อผิดพลาดของระบบ: " + err.message);
+    console.error("🚨 Critical Error executing reset:", err);
+    if (typeof Swal !== "undefined") {
+      Swal.fire({
+        icon: "error",
+        title: "เกิดข้อผิดพลาดในการรีเซ็ต",
+        text: err.message
+      });
+    } else {
+      alert(`เกิดข้อผิดพลาด: ${err.message}`);
+    }
   }
 }
-
 // ===================================================================
 // 📌 8. USER VISIT & REALTIME LOGGER (ส่วนที่แก้ไขหลัก)
 // ===================================================================
