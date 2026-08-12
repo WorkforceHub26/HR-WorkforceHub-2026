@@ -3,261 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HR Management | PVT System</title>
+  <title>ระบบจัดการ HR & ประวัติพนักงาน | PVT System</title>
   
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
   
+  <!-- Style Sheets -->
   <link rel="stylesheet" href="/css/home.css" />
+  <link rel="stylesheet" href="/css/management.css" />
+
+  <!-- External Libraries -->
   
-
-  
-  <style>
-    /* 🌊 CUSTOM TEAL & CYAN GLASSMORPHISM THEME */
-    :root {
-      --primary: #0d9488;         /* สีหลัก: ฟ้าอมเขียว (Teal) */
-      --primary-soft: #f0fdfa;    /* สีฟ้าเขียวพาสเทลซอฟต์ */
-      --primary-dark: #115e59;    /* สีเทลเข้ม */
-      --accent-cyan: #06b6d4;     /* สีฟ้าน้ำทะเล (Cyan) */
-      --bg-gradient: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 50%, #f8fafc 100%);
-    }
-
-    
-
-    /* จัดวาง Layout ภาพรวม */
-    .management-grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
-      gap: 24px; 
-      margin-top: 20px; 
-      padding-bottom: 40px; 
-    }
-    
-    /* 💎 เปลี่ยนการ์ดจัดการให้เป็นกระจกฝ้าเบลอ (Glassmorphism Card) */
-    .manage-card { 
-      background: rgba(255, 255, 255, 0.65); 
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-      border-radius: 20px; 
-      padding: 26px; 
-      border: 1px solid rgba(255, 255, 255, 0.5); 
-      box-shadow: 0 8px 32px 0 rgba(13, 148, 136, 0.04);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      transition: all 0.3s ease;
-    }
-
-    .manage-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px 0 rgba(13, 148, 136, 0.08);
-      border-color: rgba(13, 148, 136, 0.2);
-    }
-    
-    /* หัวข้อการ์ดโทนฟ้าเขียวเข้ม */
-    .manage-card h3 { 
-      display: flex; 
-      align-items: center; 
-      gap: 10px; 
-      font-size: 18px; 
-      color: var(--primary-dark);
-      font-weight: 600;
-      margin-bottom: 4px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid rgba(13, 148, 136, 0.1);
-    }
-    
-    .manage-card h3 span { color: var(--primary); }
-    
-    /* 🌐 ปุ่มกดสไตล์มินิมัลซอฟต์สลับสีฟ้าเขียว */
-    .action-btn {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-      padding: 14px 18px;
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(13, 148, 136, 0.15);
-      border-radius: 12px;
-      color: #334155;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      text-align: left;
-    }
-    
-    .action-btn:hover {
-      background: var(--primary-soft);
-      border-color: var(--primary);
-      color: var(--primary-dark);
-      transform: translateX(6px);
-    }
-    
-    /* ปุ่มรายงาน Excel แบบพิเศษเขียวมิ้นต์ */
-    .action-btn.success-zone {
-      background: rgba(240, 253, 250, 0.8) !important;
-      border-color: rgba(20, 184, 166, 0.3) !important;
-      color: #0f766e !important;
-    }
-    .action-btn.success-zone:hover {
-      background: #ccfbf1 !important;
-      border-color: var(--primary) !important;
-      transform: translateX(6px);
-    }
-    
-    /* ปุ่มรีเซ็ตระดับวิกฤต ปรับให้ซอฟต์ลงเป็นโทนฟ้าอมเทาอมแดงนิดๆ ไม่ให้แดงตะโกนกระโดดธีม */
-    .action-btn.danger-zone {
-      background: rgba(254, 242, 242, 0.6);
-      border-color: #fca5a5;
-      color: #991b1b;
-    }
-    .action-btn.danger-zone:hover {
-      background: #fee2e2;
-      border-color: #ef4444;
-      color: #991b1b;
-      transform: translateX(6px);
-    }
-    
-    .action-btn span.material-symbols-outlined {
-      font-size: 22px;
-    }
-    
-    /* ป้ายสถานะประวัติการแก้ไขระบบ (Badge) */
-    .log-badge {
-      margin-left: auto;
-      background: #e0f2fe;
-      color: #0369a1;
-      padding: 3px 10px;
-      border-radius: 99px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    /* 💎 แถบเมนูด้านซ้ายทำเป็นกระจกฝ้าเบลออ่อนๆ เพื่อรับกับพื้นหลัง */
-    .sidebar-light {
-      background: rgba(255, 255, 255, 0.45) !important;
-      -webkit-backdrop-filter: blur(15px);
-      backdrop-filter: blur(15px);
-      border-right: 1px solid rgba(255, 255, 255, 0.4) !important;
-    }
-    
-    /* เมื่อเมนูนั้นกำลังถูกเปิดใช้งาน (Active) เปลี่ยนเป็นสีเทลอมฟ้า */
-    .nav-menu .nav-item.active {
-      background: var(--primary) !important;
-      color: #ffffff !important;
-    }
-    /* ==========================================================================
-       ✨ Custom Style: เพิ่มกล่องคู่มือลอยฝั่ง "ขวาล่าง" สำหรับหน้าแดชบอร์ด (เปิดขึ้นบน)
-       ========================================================================= */
-    .instructions-container {
-      position: fixed !important;
-      bottom: 25px !important;   /* ยึดไว้มุมขวาล่าง */
-      right: 25px !important;
-      top: auto !important;
-      left: auto !important;
-      z-index: 99999 !important; /* ดันให้อยู่บนสุดเหนือทุกเลเยอร์ */
-      font-family: 'Sarabun', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-
-    /* ปุ่มกดสไตล์แคปซูลมินิมอล มีเงาละมุนคุมโทน Teal */
-    .instructions-toggle-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #ffffff;
-      border: 1px solid rgba(13, 148, 136, 0.2);
-      padding: 10px 18px;
-      border-radius: 30px;
-      color: #0f766e;
-      font-size: 13.5px;
-      font-family: 'Sarabun', sans-serif;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(13, 148, 136, 0.1);
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .instructions-toggle-btn:hover {
-      background: #f0fdfa;
-      border-color: #0d9488;
-      box-shadow: 0 6px 20px rgba(13, 148, 136, 0.18);
-      transform: translateY(-2px);
-    }
-
-    .instructions-toggle-btn .icon-main { font-size: 19px; }
-    .instructions-toggle-btn .icon-arrow { font-size: 19px; margin-left: 2px; }
-
-    /* หน้าต่างเนื้อหาคู่มือ: สไลด์คลี่เด้ง "ขึ้นด้านบน" */
-    .instructions-content {
-      position: absolute;
-      bottom: 54px;   /* ดันเนื้อหาให้อยู่เหนือปุ่มกด */
-      top: auto;
-      right: 0;
-      width: 330px;
-      max-height: 0;
-      overflow: hidden;
-      opacity: 0;
-      background-color: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.08); /* ปรับทิศทางเงาขึ้นบน */
-      transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
-      pointer-events: none;
-    }
-
-    /* สถานะเมื่อกดเปิดใช้งานคู่มือ */
-    .instructions-content.active {
-      max-height: 450px;
-      opacity: 1;
-      padding: 18px;
-      border: 1px solid #e2e8f0;
-      pointer-events: auto;
-      margin-bottom: 8px;
-    }
-
-    .instructions-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      text-align: left;
-    }
-
-    .instructions-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-size: 13px;
-      color: #475569;
-      line-height: 1.6;
-    }
-
-    .instructions-list .icon-bullet {
-      font-size: 18px;
-      color: #0d9488;
-      margin-top: 2px;
-      flex-shrink: 0;
-    }
-  </style>
 </head>
 
 <body>
   <div class="app-shell">
     
-    <!-- เมนูด้านข้าง (Sidebar) -->
+    <!-- เมนูด้านข้าง (Sidebar Navigation) -->
     <aside class="sidebar-light">
       <div class="brand-zone">
         <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
       </div>
       
       <nav class="nav-menu">
-         <a href="/home.html" class="nav-item">
+        <a href="/home.html" class="nav-item">
           <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
@@ -265,10 +35,9 @@
           <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">อนุมัติใบลา</span>
         </a>
-        <!-- 🟢 เมนูที่เปิดใช้งานปัจจุบัน (Active) สไตล์สีเทล -->
         <a href="/pages/user/management.html" class="nav-item active">
           <span class="material-symbols-outlined">manage_accounts</span>
-          <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
+          <span class="nav-label">จัดการและประวัติ HR</span>
         </a>
         <a href="/pages/user/index-user.html" class="nav-item">
           <span class="material-symbols-outlined">rule</span>
@@ -278,13 +47,9 @@
           <span class="material-symbols-outlined">calendar_today</span>
           <span class="nav-label">วันหยุด</span>
         </a>
-        <a href="/pages/user/history-table.html" class="nav-item">
-          <span class="material-symbols-outlined">history_edu</span>
-          <span class="nav-label">ประวัติ</span>
-        </a>
       </nav>
       
-        <div class="sidebar-footer">
+      <div class="sidebar-footer">
         <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
           <span class="material-symbols-outlined">logout</span>
           <span>ออกจากระบบ</span>
@@ -292,108 +57,176 @@
       </div>
     </aside>
 
-    <!-- พื้นที่เนื้อหาหลักด้านขวา -->
+    <!-- พื้นที่เนื้อหาหลัก ด้านขวา -->
     <main class="main-content">
       
+      <!-- Topbar Header -->
       <header class="topbar">
         <div class="topbar-left">
-          <h1 style="color: var(--primary-dark); font-weight: 700;">ระบบจัดการส่วนกลาง (HR Management)</h1>
-          <p style="color: var(--primary); letter-spacing: 0.5px;">ADMINISTRATION & SETTINGS</p>
+          <h1 class="page-title">ระบบจัดการส่วนกลาง & ประวัติพนักงาน</h1>
+          <p class="page-subtitle">HR MANAGEMENT & LEAVE HISTORY DASHBOARD</p>
         </div>
         <div class="topbar-right">
+          <button class="action-btn" onclick="refreshDashboard()">
+            <span class="material-symbols-outlined">refresh</span>
+            <span>ดึงข้อมูลล่าสุด</span>
+          </button>
+          <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()">
+            <span class="material-symbols-outlined">download</span>
+            <span>Excel ประวัติลา</span>
+          </button>
           <div class="user-profile">
-            <div class="avatar" style="background: var(--primary);">HR</div>
-            <div class="info">
-              <strong>ผู้ดูแลระบบ</strong>
-              <span>PVT Administrator</span>
-            </div>
+            <div class="avatar avatar-badge">HR</div>
           </div>
         </div>
       </header>
 
+      <!-- SECTION 1: เมนูการจัดการส่วนกลาง (Management Actions) -->
+      <div class="section-title">
+        <span class="material-symbols-outlined">admin_panel_settings</span>
+        <span>เมนูบริหารจัดการ HR</span>
+      </div>
       <div class="management-grid">
-        
-        <!-- บล็อกที่ 1 -->
         <div class="manage-card">
-          <h3><span class="material-symbols-outlined">group</span> 1. ระบบจัดการบุคลากร</h3>
-          <button class="action-btn" onclick="addNewEmployee()">
-            <span class="material-symbols-outlined">person_add</span> เพิ่มพนักงานใหม่เข้าสู่ระบบ
-          </button>
-          <button class="action-btn" onclick="editEmployeeData()">
-            <span class="material-symbols-outlined">manage_accounts</span> แก้ไขข้อมูล / ตำแหน่ง / แผนก
-          </button>
-          <button class="action-btn" onclick="manageDepartments()">
-            <span class="material-symbols-outlined">corporate_fare</span> เพิ่มแผนก / ตำแหน่ง ใหม่
-          </button>
+          <h3><span class="material-symbols-outlined">group</span> 1. จัดการบุคลากร</h3>
+          <div class="card-btn-group">
+            <button class="action-btn" onclick="addNewEmployee()"><span class="material-symbols-outlined">person_add</span> เพิ่มพนักงานใหม่</button>
+            <button class="action-btn" onclick="editEmployeeData()"><span class="material-symbols-outlined">manage_accounts</span> แก้ไขข้อมูล/ตำแหน่ง</button>
+            <button class="action-btn" onclick="manageDepartments()"><span class="material-symbols-outlined">corporate_fare</span> จัดการแผนก/ตำแหน่ง</button>
+          </div>
         </div>
 
-        <!-- บล็อกที่ 2 -->
         <div class="manage-card">
-          <h3><span class="material-symbols-outlined">fact_check</span> 2. กฎระเบียบและโควตา</h3>
-          <button class="action-btn" onclick="editGlobalLeaveRules()">
-            <span class="material-symbols-outlined">rule</span> ตั้งค่าประเภทการลา & สิทธิ์สูงสุด
-          </button>
-          <button class="action-btn" onclick="editIndividualLeaveBalance()">
-            <span class="material-symbols-outlined">tune</span> ปรับปรุงโควตาวันลารายบุคคล (เคสพิเศษ)
-          </button>
-          <button class="action-btn" onclick="manageCompanyHolidays()">
-            <span class="material-symbols-outlined">calendar_month</span> ตั้งค่าปฏิทินวันหยุดประจำปีบริษัท
-          </button>
+          <h3><span class="material-symbols-outlined">fact_check</span> 2. กฎระเบียบ & โควตา</h3>
+          <div class="card-btn-group">
+            <button class="action-btn" onclick="editGlobalLeaveRules()"><span class="material-symbols-outlined">rule</span> ตั้งค่าโควตากลาง</button>
+            <button class="action-btn" onclick="editIndividualLeaveBalance()"><span class="material-symbols-outlined">tune</span> ปรับโควตารายบุคคล</button>
+            <button class="action-btn" onclick="manageCompanyHolidays()"><span class="material-symbols-outlined">calendar_month</span> ปฏิทินวันหยุด</button>
+          </div>
         </div>
 
-        <!-- บล็อกที่ 3 -->
         <div class="manage-card">
-          <h3><span class="material-symbols-outlined">admin_panel_settings</span> 3. ระบบข้อมูล & ความปลอดภัย</h3>
-          <button class="action-btn success-zone" onclick="exportLeaveReport()">
-            <span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Export to Excel)
-          </button>
-          <button class="action-btn" onclick="viewAuditLogs()">
-            <span class="material-symbols-outlined">history</span> ประวัติการแก้ไขระบบ (Audit Log)
-            <span class="log-badge">ตรวจสอบได้</span>
-          </button>
-          <button class="action-btn danger-zone" onclick="resetYearlyLeave()">
-            <span class="material-symbols-outlined">device_reset</span> ล้างโควตาวันลา (ขึ้นปีงบประมาณใหม่)
-          </button>
+          <h3><span class="material-symbols-outlined">shield</span> 3. รายงาน & ความปลอดภัย</h3>
+          <div class="card-btn-group">
+            <button class="action-btn" onclick="submitBulkLeave()"><span class="material-symbols-outlined">group</span> บันทึกใบลาหลายคน</button>
+            <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()"><span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Excel)</button>
+            <button class="action-btn" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
+            <button class="action-btn danger-zone" onclick="resetYearlyLeave()"><span class="material-symbols-outlined">device_reset</span> ล้างโควตาประจำปี</button>
+          </div>
         </div>
-
       </div>
 
-    </main>
-    <div id="statusToast" class="toast"></div>
+      <!-- SECTION 2: การ์ดสรุปสถิติ (Stat Cards) -->
+      <div class="section-title">
+        <span class="material-symbols-outlined">analytics</span>
+        <span>สรุปภาพรวมสถิติการลา</span>
+      </div>
+      <section class="summary-grid">
+        <article class="panel stat-card">
+          <span class="stat-label">พนักงานทั้งหมด</span>
+          <strong id="statEmployees" class="stat-val">0</strong>
+        </article>
+        <article class="panel stat-card">
+          <span class="stat-label">รายการลาทั้งหมด</span>
+          <strong id="statLeaves" class="stat-val">0</strong>
+        </article>
+        <article class="panel stat-card">
+          <span class="stat-label">รออนุมัติ</span>
+          <strong id="statPending" class="stat-val warning">0</strong>
+        </article>
+        <article class="panel stat-card">
+          <span class="stat-label">วันลารวม</span>
+          <strong id="statDays" class="stat-val primary">0</strong>
+        </article>
+      </section>
 
-  <!-- 👑 ✅ ปุ่มคู่มือแนะนำการใช้งานสไตล์ Dashboard (วางไว้ล่างสุดก่อนปิด body) -->
-  <div class="instructions-container">
-    <button type="button" class="instructions-toggle-btn" onclick="toggleInstructions()">
-      <span class="material-symbols-outlined icon-main">help</span>
-      <span>คู่มือจัดการระบบ HR</span>
-      <span class="material-symbols-outlined icon-arrow" id="instructionArrow">expand_less</span>
-    </button>
-    
-    <div id="instructionsContent" class="instructions-content">
-      <ul class="instructions-list">
-        <li>
-          <span class="material-symbols-outlined icon-bullet">person_add</span>
-          <div><strong>ระบบจัดการบุคลากร:</strong> กรอกข้อมูลที่มีเครื่องหมาย * คือบังคับใส่ข้อมูล ช่องที่ไม่มีเครื่องหมายสามารถเว้นว่างไว้ได้  สามารถอัปโหลดรูปโปรไฟล์พนักงานขึ้นระบบคลาวด์ได้ทันที</div>
-        </li>
-        <li>
-          <span class="material-symbols-outlined icon-bullet">rule</span>
-          <div><strong>กฎและโควตาวันลา:</strong> การแก้ไขโควตากลางจะมีผลบังคับใช้กับพนักงานทุกคน ส่วนเคสพิเศษให้ใช้ปุ่มปรับปรุงรายบุคคล</div>
-        </li>
-        <li>
-          <span class="material-symbols-outlined icon-bullet">gavel</span>
-          <div><strong>ระบบความปลอดภัย:</strong> ทุกการเพิ่ม, ลบ หรือแก้ไขข้อมูล จะมีปุ่มยืนยันอีก1รอบและ ระบบจะบันทึกประวัติการกระทำของฝ่ายบุคคลลงฐานข้อมูลอย่างละเอียด</div>
-        </li>
-      </ul>
+      <!-- SECTION 3: กราฟวิเคราะห์ (Charts) -->
+      <section class="chart-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>สรุปแยกตามประเภทการลา</h2>
+            <span id="typeChartNote" class="status active">พร้อมใช้งาน</span>
+          </div>
+          <div id="typeChart" class="bars"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <h2>สถานะคำขอลา</h2>
+          </div>
+          <div id="statusChart" class="bars"></div>
+        </article>
+      </section>
+
+      <!-- SECTION 4: ตารางข้อมูลพนักงาน & ประวัติการลา -->
+      <div class="section-title">
+        <span class="material-symbols-outlined">badge</span>
+        <span>ทำเนียบพนักงานและประวัติการลา</span>
+      </div>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>รายชื่อพนักงาน</h2>
+          <span id="loadStatus" class="status pending">กำลังโหลด</span>
+        </div>
+        
+        <div class="filter-panel">
+          <div class="search-box">
+            <span class="material-symbols-outlined icon-search">search</span>
+            <input id="empSearchInput" class="search-input" type="search" placeholder="ค้นหาชื่อ รหัส แผนก หรือตำแหน่ง..." oninput="renderEmployeeTable()" />
+          </div>
+          <select id="deptFilter" class="select-input" onchange="renderEmployeeTable()">
+            <option value="">ทุกแผนก</option>
+          </select>
+        </div>
+        
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">รูป</th>
+                <th style="width: 100px;">รหัส</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>ตำแหน่ง</th>
+                <th>แผนก</th>
+                <th style="width: 110px;">วันเริ่มงาน</th>
+                <th style="width: 90px;">สถานะ</th>
+                <th style="width: 110px; text-align: center;">รายละเอียด</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody">
+              <tr><td colspan="8" class="empty">กำลังโหลดข้อมูล...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal แสดงรายละเอียดพนักงานรายบุคคล -->
+  <div id="employeeModal" class="modal" onclick="closeEmployeeModal(event)">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modalTitle">รายละเอียดพนักงาน</h2>
+        <div class="modal-header-actions">
+          <button id="modalDownloadBtn" class="btn-light btn-sm">
+            <span class="material-symbols-outlined">download</span> ดาวน์โหลด Excel
+          </button>
+          <button class="btn-close" onclick="closeEmployeeModal()">&times;</button>
+        </div>
+      </div>
+      <div id="modalBody" class="modal-body">
+        <!-- ไดนามิกเนื้อหาแสดงจาก JavaScript -->
+      </div>
     </div>
   </div>
-  </div>
 
-  <div id="statusToast" class="toast"></div>
-
-  <script src="/js/supabase-config.js"></script>
+  <!-- JavaScript Application -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="/js/auth-guard.js"></script>
-  <script src="/js/management.js"></script> 
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+  
+  <!-- โหลด Config ก่อน -->
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/management.js"></script>
 </body>
 </html>

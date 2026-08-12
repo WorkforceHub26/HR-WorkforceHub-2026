@@ -416,6 +416,7 @@ body {
   border: 1px solid var(--border);
 }
 
+/* 🛠️ จุดแก้ที่ 1: บังคับ layout แบบ fixed เพื่อคุมความกว้างไม่ให้ล้น */
 .approval-table, table {
   width: 100%;
   border-collapse: collapse;

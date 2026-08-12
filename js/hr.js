@@ -46,6 +46,21 @@ async function initSystemAndPermissions() {
       return;
     }
 
+    // 👤 [เพิ่มใหม่] แสดงชื่อ ตำแหน่ง และรูปโปรไฟล์ผู้ใช้งานบน Topbar
+    const userNameEl = document.getElementById("userNameHeader");
+    const userPositionEl = document.getElementById("userPositionHeader");
+    const userAvatarEl = document.getElementById("userAvatarHeader");
+
+    if (userNameEl) {
+      userNameEl.textContent = empData?.full_name || currentUserProfile?.full_name || "ผู้ใช้งาน";
+    }
+    if (userPositionEl) {
+      userPositionEl.textContent = empData?.positions?.position_name || empData?.position_name || "ไม่ระบุตำแหน่ง";
+    }
+    if (userAvatarEl) {
+      userAvatarEl.src = getAvatarUrl(empData?.image_url || currentUserProfile?.image_url);
+    }
+
     // 🎨 ปรับ Layout และซ่อน/แสดง Sidebar & ปุ่มย้อนกลับ
     applyRoleBasedUI();
 
@@ -57,9 +72,8 @@ async function initSystemAndPermissions() {
   }
 }
 
-/** 🎨 1. ปรับการแสดงผล Layout ตามสิทธิ์ (แก้ไขการหา Sidebar ให้แม่นยำขึ้น) */
+/** 🎨 1. ปรับการแสดงผล Layout ตามสิทธิ์ */
 function applyRoleBasedUI() {
-  // ค้นหา Sidebar จากทั้ง ID และ Class เพื่อป้องกันการหาไม่เจอ
   const sidebar = document.getElementById("mainSidebar") || document.getElementById("sidebar") || document.querySelector(".sidebar") || document.querySelector("aside");
   const mainContent = document.getElementById("mainContent") || document.querySelector(".main-content") || document.querySelector("main");
   const btnBack = document.getElementById("btnHeaderBack") || document.querySelector(".btn-back");
@@ -82,13 +96,25 @@ function applyRoleBasedUI() {
     // 🔙 แสดงปุ่มย้อนกลับ
     if (btnBack) btnBack.style.display = "inline-flex";
 
-    if (roleBadge) roleBadge.textContent = currentRole === "manager" ? "ผู้จัดการอนุมัติ (L2)" : "หัวหน้างานอนุมัติ (L1)";
+    // 🏷️ อัปเดตข้อความสิทธิ์และสี Badge
+    if (roleBadge) {
+      if (currentRole === "manager") {
+        roleBadge.textContent = "ผู้จัดการอนุมัติ (L2)";
+        roleBadge.className = "status-badge status-pending";
+      } else {
+        roleBadge.textContent = "หัวหน้างานอนุมัติ (L1)";
+        roleBadge.className = "status-badge status-pending";
+      }
+    }
 
   } else {
     // 👑 สิทธิ์ HR/Admin แสดง Sidebar ตามปกติ
     if (sidebar) sidebar.style.display = "flex";
     if (btnBack) btnBack.style.display = "none";
-    if (roleBadge) roleBadge.textContent = "PVT HR Administrator";
+    if (roleBadge) {
+      roleBadge.textContent = "PVT HR Administrator";
+      roleBadge.className = "status-badge status-approved";
+    }
   }
 }
 
@@ -253,17 +279,17 @@ async function loadPendingLeavesHR() {
         // 4.2 ไม่ใช่ใบลาของตัวเอง
         const isNotSelf = currentEmpId ? String(reqEmpId) !== String(currentEmpId) : true;
 
-        // 👑 4.3 เช็กสิทธิ์ 2 ระดับตามจริง
+        // 👑 4.3 เช็กสิทธิ์ 2 ระดับตามจริง (แก้ไขแยก Manager ออกจาก Leader)
         let isSubordinate = false;
         
-        if (userRole === "leader" || userRole === "manager") {
-          // หัวหน้าแผนก -> เห็นเฉพาะ พนักงานทั่วไป (user)
+        if (userRole === "leader") {
+          // 🔹 หัวหน้างาน (L1): เห็นเฉพาะพนักงานทั่วไป (user)
           isSubordinate = (reqEmpRole === "user");
-        } else if (userRole === "director") {
-          // ผู้จัดการฝ่าย -> เห็น หัวหน้าแผนก (manager/leader) และ พนักงานทั่วไป (user)
-          isSubordinate = (reqEmpRole === "user" || reqEmpRole === "manager" || reqEmpRole === "leader");
-        }
 
+        } else if (userRole === "manager" || userRole === "director") {
+          // 🔹 ผู้จัดการฝ่าย / ผู้อำนวยการ (L2): เห็นทั้ง พนักงานทั่วไป (user) และ หัวหน้างาน (leader/manager)
+          isSubordinate = (reqEmpRole === "user" || reqEmpRole === "leader" || reqEmpRole === "manager");
+        }
         const pass = isSameDept && isNotSelf && isSubordinate;
 
         console.log(`  ${pass ? "✅ [ผ่าน]" : "🚫 [ถูกกรองออก]"} [รายการที่ ${index + 1}] ${reqEmp.full_name} (Role: ${reqEmpRole})`, {

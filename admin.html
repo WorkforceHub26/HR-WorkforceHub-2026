@@ -232,7 +232,70 @@
             <span class="material-symbols-outlined font-large blinking">warning</span>
             <h3>DESTRUCTIVE ACTION DETECTED</h3>
         </div>
-        
+
+        <div class="bulk-leave-grid">
+  
+  <!-- 👈 ฝั่งซ้าย: แผงเลือกพนักงาน -->
+  <div class="emp-selection-section">
+    <!-- แถบสรุปยอด & ปุ่ม Select All -->
+    <div class="selection-counter-bar">
+      <span>เลือกแล้ว: <strong id="selectedEmpCount" class="count-badge">0 คน</strong></span>
+      <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <input type="checkbox" id="selectAllEmp" class="custom-checkbox" onchange="toggleSelectAllEmployees(this)">
+        <b>เลือกทั้งหมด</b>
+      </label>
+    </div>
+
+    <!-- ช่องค้นหาพนักงาน -->
+    <input type="text" 
+           id="searchEmpInput" 
+           class="bulk-form-control" 
+           placeholder="🔍 ค้นหาชื่อ, รหัส หรือแผนก..." 
+           oninput="filterEmployeeList()" 
+           style="margin-bottom: 10px;">
+
+    <!-- ตารางรายชื่อพนักงานให้ติ๊กเลือก -->
+    <div class="emp-select-container">
+      <table class="emp-select-table">
+        <thead>
+          <tr>
+            <th style="width: 40px; text-align: center;">เลือก</th>
+            <th>ชื่อ-นามสกุล</th>
+            <th>แผนก</th>
+          </tr>
+        </thead>
+        <tbody id="bulkEmpListTable">
+          <!-- รายชื่อพนักงานจะถูกสร้างด้วย JavaScript ตรงนี้ -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 👉 ฝั่งขวา: ฟอร์มกรอกรายละเอียดวันลา -->
+  <div class="leave-form-section">
+    <div class="bulk-form-group">
+      <label>ประเภทการลา</label>
+      <select id="bulkLeaveType" class="bulk-form-control">
+        <option value="">-- เลือกประเภทการลา --</option>
+        <!-- ดึง option จากระบบ -->
+      </select>
+    </div>
+    <div class="bulk-form-group">
+      <label>วันที่เริ่มลา</label>
+      <input type="date" id="bulkStartDate" class="bulk-form-control">
+    </div>
+    <div class="bulk-form-group">
+      <label>วันที่สิ้นสุด</label>
+      <input type="date" id="bulkEndDate" class="bulk-form-control">
+    </div>
+    <div class="bulk-form-group">
+      <label>เหตุผลการลา</label>
+      <textarea id="bulkReason" class="bulk-form-control" rows="3" placeholder="ระบุเหตุผล..."></textarea>
+    </div>
+  </div>
+
+</div>
+
         <div class="modal-body">
             <!-- สเต็ปที่ 1: คำเตือนเบื้องต้น -->
             <div id="step-1-content" class="verification-step active">

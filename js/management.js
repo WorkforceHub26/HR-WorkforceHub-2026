@@ -1,142 +1,1151 @@
 /**
  * ==========================================================================
- * 🏢 PVT WORKFORCE HUB - ADVANCED MANAGEMENT SYSTEM LOGIC
- * [ADMIN/HR DASHBOARD FULLY CONNECTED EDITION - 2026]
+ * 🏢 PVT WORKFORCE HUB - INTEGRATED HR MANAGEMENT & DASHBOARD SYSTEM
+ * [FULL INTEGRATED, BUG-FIXED EDITION - 2026]
  * ==========================================================================
  */
 
-// เคลียร์และเริ่มต้นระบบเมื่อโหลดหน้าเว็บ
+// ==========================================
+// 0. CONFIGURATION & REAL CREDENTIALS
+// ==========================================
+const SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
+
+window.PVT_SUPABASE_URL = SUPABASE_URL;
+window.PVT_SUPABASE_ANON_KEY = SUPABASE_KEY;
+
+function showAppError(title, message) {
+  console.error(`❌ [${title}]:`, message);
+  if (window.Swal) {
+    Swal.fire({
+      icon: 'error',
+      title: title || 'เกิดข้อผิดพลาด',
+      text: String(message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุในการทำงานของระบบ'),
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#ef4444'
+    });
+  } else {
+    alert(`❌ ${title}\n${message}`);
+  }
+}
+
+// ==========================================
+// 1. PVT SUPABASE MODULE DEFINITION
+// ==========================================
+window.pvtSupabase = (() => {
+  let client = null;
+
+  function getClient() {
+    if (client) return client;
+    if (window.supabaseClient) {
+      client = window.supabaseClient;
+      return client;
+    }
+    if (typeof supabase === 'undefined' || !supabase?.createClient) {
+      console.warn("⚠️ Supabase SDK ยังไม่ได้โหลดบนหน้าเว็บ");
+      return null;
+    }
+    try {
+      client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true },
+        global: { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } }
+      });
+      window.supabaseClient = client;
+      return client;
+    } catch (err) {
+      showAppError("ข้อผิดพลาดการเชื่อมต่อ Supabase", err.message);
+      return null;
+    }
+  }
+
+  async function getSession() {
+    const sb = getClient();
+    if (!sb?.auth) return null;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      return data?.session || null;
+    } catch (err) {
+      console.error("Get Session Error:", err);
+      return null;
+    }
+  }
+
+  function getCachedUser() {
+    try {
+      return JSON.parse(sessionStorage.getItem("currentUser") || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  async function getCurrentProfile() {
+    const sb = getClient();
+    if (!sb) return null;
+
+    try {
+      const cached = getCachedUser();
+      if (cached?.id || cached?.employee_code) {
+        const query = sb
+          .from("employees")
+          .select(`
+            id, employee_code, full_name, nickname, phone, email, hospital,
+            bank_account, line_id, image_url, start_date, status, role,
+            employment_type, department_id, position_id,
+            departments(department_name),
+            positions(position_name)
+          `);
+
+        const { data: employee, error } = cached.id
+          ? await query.eq("id", cached.id).maybeSingle()
+          : await query.eq("employee_code", cached.employee_code).maybeSingle();
+
+        if (error) console.warn("Fetch cached employee error:", error);
+
+        const emp = employee || cached;
+        return {
+          id: cached.auth_id || cached.profile_id || emp.id,
+          employee_id: emp.id,
+          employee_code: emp.employee_code,
+          display_name: emp.full_name,
+          role: emp.role || cached.role || "user",
+          status: emp.status || "active",
+          employees: emp,
+        };
+      }
+
+      const session = await getSession();
+      if (!session?.user) return null;
+
+      const { data: profile, error } = await sb
+        .from("profiles")
+        .select("id, employee_id, email, username, display_name, role, status")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (error || !profile) return null;
+      if (!profile.employee_id) return profile;
+
+      const { data: employee } = await sb
+        .from("employees")
+        .select(`
+          id, employee_code, full_name, nickname, phone, email, hospital,
+          bank_account, line_id, image_url, start_date, status, role,
+          employment_type, department_id, position_id,
+          departments(department_name),
+          positions(position_name)
+        `)
+        .eq("id", profile.employee_id)
+        .maybeSingle();
+
+      return { ...profile, employees: employee };
+    } catch (err) {
+      console.error("getCurrentProfile Exception:", err);
+      return null;
+    }
+  }
+
+  function toISODate(input) {
+    if (!input) return null;
+    const value = String(input).trim();
+    if (!value) return null;
+    if (value.includes("/")) {
+      const [rawDay, rawMonth, rawYear] = value.split("/");
+      if (!rawDay || !rawMonth || !rawYear) return null;
+      let year = Number(rawYear);
+      if (year > 2400) year -= 543;
+      return `${year}-${rawMonth.padStart(2, "0")}-${rawDay.padStart(2, "0")}`;
+    }
+    if (value.includes("-")) {
+      const parts = value.split("-");
+      if (parts.length !== 3) return value;
+      let year = Number(parts[0]);
+      if (year > 2400) year -= 543;
+      return `${year}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+    }
+    return null;
+  }
+
+  function formatThaiDate(dateValue) {
+    if (!dateValue) return "-";
+    const date = new Date(`${dateValue}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return dateValue;
+    return new Intl.DateTimeFormat("th-TH", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(date);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function statusLabel(status) {
+    return {
+      pending: "รออนุมัติ",
+      approved: "อนุมัติแล้ว",
+      rejected: "ไม่อนุมัติ",
+      cancelled: "ยกเลิก",
+    }[status] || status || "-";
+  }
+
+  function getAvatarUrl(imageUrl) {
+    if (!imageUrl) return "/assets/img/default-avatar.jpg";
+    let url = String(imageUrl).trim();
+    if (!url) return "/assets/img/default-avatar.jpg";
+    if (!url.startsWith("http")) {
+      url = `${SUPABASE_URL}/storage/v1/object/public/employee-images/${url}`;
+    }
+    return url.replace("storage/v1/object/", "storage/v1/object/public/");
+  }
+
+  function downloadBlob(filename, content, mimeType = "text/plain;charset=utf-8") {
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  return {
+    getClient,
+    getSession,
+    getCachedUser,
+    getCurrentProfile,
+    toISODate,
+    formatThaiDate,
+    escapeHtml,
+    statusLabel,
+    getAvatarUrl,
+    downloadBlob,
+  };
+})();
+
+window.pvtSupabase.getClient();
+
+// ==========================================
+// 2. GLOBAL STATE & INITIALIZATION
+// ==========================================
+let employees = [];
+let leaveRequests = [];
+let leaveBalances = [];
+let leaveTypes = [];
+
 document.addEventListener("DOMContentLoaded", async () => {
   console.clear();
-  console.group("🚀 [SYSTEM BOOT] เริ่มต้นโหลดระบบจัดการ HR (HR Management Panel)");
+  console.group("🚀 [SYSTEM BOOT] เริ่มต้นโหลดระบบจัดการ HR และ Dashboard");
   console.time("⏱️ เวลาที่ใช้ในการ Boot ระบบทั้งหมด");
-  
-  await initManagementSystem();
-  
+
+  const authSuccess = await initManagementSystem();
+
+  if (authSuccess || document.getElementById("employeeTableBody")) {
+    await refreshDashboard();
+  }
+
   console.timeEnd("⏱️ เวลาที่ใช้ในการ Boot ระบบทั้งหมด");
   console.groupEnd();
 });
 
-// ฟังก์ชันดึง Supabase Client ป้องกันระบบเออร์เรอร์
-function getSupabase() {
-  let sb = window.pvtSupabase?.getClient();
-  
-  if (!sb && window.supabase) {
-    if (window.pvtFallbackClient) {
-      return window.pvtFallbackClient;
-    }
-    
-    console.warn("⚠️ [DATABASE WARNING] ไม่พบ window.pvtSupabase กำลังสลับไปใช้ระบบต่อตรง (Fallback)");
-    
-    const PVT_SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
-    const PVT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
-    
-    if (PVT_SUPABASE_URL.includes("your-project-url")) {
-      console.error("❌ [CONFIG ERROR] กรุณากรอกรหัส PVT_SUPABASE_URL และ PVT_SUPABASE_ANON_KEY ในไฟล์ management.js");
-      return null;
-    }
-    
-    window.pvtFallbackClient = window.supabase.createClient(PVT_SUPABASE_URL, PVT_SUPABASE_ANON_KEY);
-    return window.pvtFallbackClient;
+function handleLogout() {
+  if (window.Swal) {
+    Swal.fire({
+      title: 'ยืนยันการออกจากระบบ?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'ออกจากระบบ',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#ef4444'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        sessionStorage.clear();
+        localStorage.clear();
+        window.location.href = '/index.html';
+      }
+    });
+  } else {
+    sessionStorage.clear();
+    localStorage.clear();
+    window.location.href = '/index.html';
   }
-
-  if (!sb) {
-    console.error("❌ [DATABASE ERROR] ไม่พบ window.pvtSupabase หรือ client ไม่พร้อมใช้งาน");
-    Swal.fire("ระบบฐานข้อมูลไม่พร้อม", "ไม่สามารถสร้าง Client เชื่อมต่อฐานข้อมูลได้ กรุณาตรวจเช็กคีย์เชื่อมต่อ", "error");
-    return null;
-  }
-  return sb;
 }
 
-// ตรวจสอบระบบเริ่มต้น
+// ==========================================
+// 3. SUPABASE CONNECTOR & AUDIT LOGS
+// ==========================================
+function getSupabase() {
+  const client = window.pvtSupabase?.getClient();
+  if (client && typeof client.from === 'function') {
+    return client;
+  }
+  if (window.supabaseClient && typeof window.supabaseClient.from === 'function') {
+    return window.supabaseClient;
+  }
+  return null;
+}
+
+function escapeHtml(str) {
+  if (window.pvtSupabase?.escapeHtml) {
+    return window.pvtSupabase.escapeHtml(str);
+  }
+  return String(str ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function getLeaveType(typeId) {
+  return leaveTypes.find(t => String(t.id) === String(typeId)) || null;
+}
+
 async function initManagementSystem() {
-  console.log("🔍 [Step 1]: ตรวจสอบการเชื่อมต่อฐานข้อมูลและตัวตนผู้ใช้งาน...");
   const supabase = getSupabase();
-  if (!supabase) return;
+  if (!supabase) {
+    showAppError("ไม่พบการเชื่อมต่อ", "ไม่สามารถเริ่มทำงานระบบได้เนื่องจากไม่ได้เชื่อมต่อ Supabase");
+    return false;
+  }
 
   try {
-    let profile = await window.pvtSupabase?.getCurrentProfile();
-    
+    let profile = await window.pvtSupabase?.getCurrentProfile?.();
+
     if (!profile) {
       const savedUser = sessionStorage.getItem("currentUser");
       if (savedUser) {
-        profile = JSON.parse(savedUser);
-        console.log("📦 [Session Restored]: กู้คืนข้อมูลสำเร็จจาก Session");
+        try { profile = JSON.parse(savedUser); } catch {}
       }
     }
 
     if (!profile) {
-      console.error("🚫 [AUTH ERROR]: ไม่พบข้อมูลการล็อกอิน!");
-      Swal.fire({
-        icon: 'error',
-        title: 'เซสชันหมดอายุหรือยังไม่ได้ล็อกอิน',
-        text: 'กรุณาเข้าสู่ระบบผ่านหน้าล็อกอินก่อนเข้าใช้งาน',
-        confirmButtonText: 'ไปหน้าเข้าสู่ระบบ'
-      }).then(() => {
-        window.location.href = '/index.html';
-      });
-      return; 
+      if (window.Swal) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'เซสชันหมดอายุหรือยังไม่ได้ล็อกอิน',
+          text: 'กรุณาเข้าสู่ระบบผ่านหน้าล็อกอินก่อนเข้าใช้งาน',
+          confirmButtonText: 'ไปหน้าเข้าสู่ระบบ'
+        });
+      } else {
+        alert('เซสชันหมดอายุหรือยังไม่ได้ล็อกอิน กรุณาเข้าสู่ระบบก่อน');
+      }
+      window.location.href = '/index.html';
+      return false;
     }
 
     const userRole = profile.role ? profile.role.toLowerCase() : 'user';
-    
-    // 🔥 [แก้ไข] เพิ่ม && userRole !== 'user' เพื่อปล่อยให้ไอดีทดสอบวิ่งผ่านไปได้ ไม่ติด return
     if (userRole !== 'admin' && userRole !== 'hr' && userRole !== 'it' && userRole !== 'user') {
-      console.warn(`⚠️ [SECURITY WARNING]: ผู้ใช้งานไม่มีสิทธิ์ (Role ปัจจุบันคือ: ${userRole})`);
-      Swal.fire('ไม่มีสิทธิ์เข้าใช้งาน', 'หน้านี้สงวนไว้สำหรับ HR, Admin และ IT เท่านั้น', 'warning');
-      return;
+      showAppError("ไม่มีสิทธิ์เข้าใช้งาน", "หน้านี้สงวนไว้สำหรับ HR, Admin และ IT เท่านั้น");
+      return false;
     }
 
-    // 🔓 เขียน Log แสดงสถานะว่าใช้สิทธิ์จำลองเพื่อทดสอบระบบ
-    if (userRole === 'user') {
-      console.log("🔓 [DEVELOPER BYPASS]: เปิดประตูระบบหลังบ้านให้บัญชีทดสอบ (Role: user) เรียบร้อย!");
-    }
-
-    console.log("✅ [System Ready]: ระบบพร้อมทำงานสิทธิ์แอดมินผ่านการอนุมัติ");
-
-    // ----------------------------------------------------------------------
-    // 💡 [คำเตือนสำคัญ] ตรวจสอบดูว่า โค้ดเดิมของคุณมีฟังก์ชันพวกนี้อยู่ต่อท้ายไหม?
-    // เช่น loadEmployeeList(); หรือ setupUploadEventListeners(); 
-    // ถ้ามี... อย่าลืมเอามาวางต่อท้ายบรรทัดนี้ เพื่อให้ระบบมันทำงานต่อนะครับ!
-    // ----------------------------------------------------------------------
-
+    return true;
   } catch (err) {
-    console.error("❌ [Boot Failed] เกิดข้อผิดพลาดในการตรวจสอบระบบเริ่มต้น:", err);
+    showAppError("เกิดข้อผิดพลาดในการตรวจสอบระบบเริ่มต้น", err.message);
+    return false;
   }
 }
 
-// ฟังก์ชันกลาง: สำหรับเขียน Log การกระทำของ HR ลงฐานข้อมูล
-async function saveHRActivityLog(category, type, target, description, before = null, after = null) {
+async function saveHRActivityLog(moduleName, actionType, targetId, detailText) {
   const supabase = getSupabase();
-  if (!supabase) return;
+  if (!supabase || typeof supabase.from !== 'function') return;
 
   try {
-    const profile = await window.pvtSupabase?.getCurrentProfile();
-    const actorId = profile?.employee_id || null;
-    const actorName = profile?.display_name || "HR Admin System";
+    const { error } = await supabase
+      .from('hr_activity_logs')
+      .insert([
+        {
+          module: moduleName,
+          action: actionType,
+          target_id: String(targetId || ''),
+          details: detailText,
+          created_at: new Date().toISOString()
+        }
+      ]);
 
-    const logData = {
-      actor_id: actorId,
-      actor_name: actorName,
-      action_category: category,
-      action_type: type, // INSERT, UPDATE, DELETE, SELECT
-      target_identifier: target,
-      description: description,
-      payload_before: before,
-      payload_after: after
-    };
-
-    await supabase.from('hr_admin_management_logs').insert([logData]);
+    if (error) {
+      console.warn("⚠️ Save Log Warning:", error.message);
+    }
   } catch (err) {
-    console.error("❌ [Audit Log Failed]:", err);
+    console.warn("⚠️ Log Exception:", err.message);
   }
 }
 
-// ==========================================================================
-// หมวดที่ 1: จัดการข้อมูลพนักงานและโครงสร้างองค์กร (Admin Form Level)
-// ==========================================================================
+async function viewAuditLogs() {
+  const supabase = getSupabase();
+  if (!supabase) {
+    showAppError("ข้อผิดพลาด", "ไม่สามารถเชื่อมต่อฐานข้อมูลเพื่อดึงประวัติได้");
+    return;
+  }
 
-// ฟังก์ชันช่วยจัดการการอัปโหลดไฟล์ภาพเข้า Supabase Storage
+  try {
+    if (window.Swal) {
+      Swal.fire({ title: 'กำลังโหลดประวัติการปรับปรุงระบบ...', didOpen: () => Swal.showLoading() });
+    }
+
+    const { data: logs, error } = await supabase
+      .from('hr_activity_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+
+    let logTableHTML = `
+      <div style="max-height: 400px; overflow-y: auto; font-family:'Sarabun', sans-serif; text-align:left; font-size:12px;">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
+              <th style="padding:6px; border:1px solid #cbd5e1;">เวลา</th>
+              <th style="padding:6px; border:1px solid #cbd5e1;">โมดูล</th>
+              <th style="padding:6px; border:1px solid #cbd5e1;">การกระทำ</th>
+              <th style="padding:6px; border:1px solid #cbd5e1;">รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    if (!logs || logs.length === 0) {
+      logTableHTML += `<tr><td colspan="4" style="text-align:center; padding:15px; color:#64748b;">ไม่พบประวัติการแก้ไขระบบ</td></tr>`;
+    } else {
+      logs.forEach(l => {
+        const timeStr = new Date(l.created_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+        logTableHTML += `
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:6px; border:1px solid #cbd5e1; white-space:nowrap;">${timeStr}</td>
+            <td style="padding:6px; border:1px solid #cbd5e1;"><b>${escapeHtml(l.module || 'System')}</b></td>
+            <td style="padding:6px; border:1px solid #cbd5e1;"><span style="background:#e2e8f0; padding:2px 4px; border-radius:4px;">${escapeHtml(l.action || '-')}</span></td>
+            <td style="padding:6px; border:1px solid #cbd5e1;">${escapeHtml(l.details || '-')}</td>
+          </tr>
+        `;
+      });
+    }
+
+    logTableHTML += `</tbody></table></div>`;
+
+    if (window.Swal) {
+      Swal.fire({
+        title: '📜 ประวัติการแก้ไขระบบ (Audit Logs)',
+        html: logTableHTML,
+        width: 'min(92vw, 750px)',
+        confirmButtonText: 'ปิดหน้าต่าง',
+        confirmButtonColor: '#0d9488'
+      });
+    }
+
+  } catch (err) {
+    showAppError("ไม่สามารถดึงประวัติ Audit Log ได้", err.message);
+  }
+}
+
+async function resetYearlyLeave() {
+  const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
+  const currentYear = new Date().getFullYear();
+  const nextYear = currentYear + 1;
+
+  const confirm = await Swal.fire({
+    title: '🚨 เตือนความปลอดภัย: ล้างโควตาประจำปี',
+    html: `คุณกำลังจะทำการรีเซ็ตและสร้างโควตาวันลาสำหรับปี <b>${nextYear}</b><br><span style="color:#ef4444; font-size:12px;">การดำเนินการนี้จะมีผลกับพนักงานทุกคนในระบบ!</span>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยันการตั้งค่าโควตาปีใหม่',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#ef4444'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    Swal.fire({ title: 'กำลังประมวลผลโควตาปีใหม่...', didOpen: () => Swal.showLoading() });
+
+    if (!employees.length) await fetchEmployees();
+    if (!leaveTypes.length) await fetchLeaveTypes();
+
+    let newBalances = [];
+    employees.forEach(emp => {
+      leaveTypes.forEach(t => {
+        newBalances.push({
+          employee_id: emp.id,
+          leave_type_id: t.id,
+          year: nextYear,
+          entitlement_days: t.yearly_quota || 0,
+          used_days: 0,
+          remaining_days: t.yearly_quota || 0
+        });
+      });
+    });
+
+    const { error } = await supabase.from('leave_balances').upsert(newBalances, { onConflict: 'employee_id,leave_type_id,year' });
+    if (error) throw error;
+
+    await saveHRActivityLog('LEAVE_QUOTA', 'RESET', `Year ${nextYear}`, `ล้างและรีเซ็ตโควตาวันลาเข้าสู่ปี ${nextYear}`);
+    Swal.fire('สำเร็จ!', `สร้างและปรับปรุงโควตาวันลาประจำปี ${nextYear} เรียบร้อยแล้ว`, 'success');
+    await refreshDashboard();
+
+  } catch (err) {
+    showAppError("ไม่สามารถล้างโควตาได้", err.message);
+  }
+}
+
+// ==========================================
+// 4. DASHBOARD MAIN CONTROLLER & FETCHING
+// ==========================================
+async function refreshDashboard() {
+  const status = document.getElementById("loadStatus");
+  if (status) {
+    status.textContent = "กำลังโหลด";
+    status.className = "status pending";
+  }
+
+  try {
+    await Promise.all([
+      fetchEmployees(),
+      fetchLeaveTypes(),
+      fetchLeaveBalances(),
+      fetchLeaveRequests(),
+    ]);
+
+    fillDepartmentFilter();
+    renderSummary();
+    renderEmployeeTable();
+
+    if (status) {
+      status.textContent = "โหลดสำเร็จ";
+      status.className = "status active";
+    }
+  } catch (error) {
+    console.error("Dashboard Loading Error:", error);
+    showAppError("เกิดข้อผิดพลาดในการโหลดแดชบอร์ด", error.message);
+    if (status) {
+      status.textContent = "เกิด error";
+      status.className = "status rejected";
+    }
+    const tableBody = document.getElementById("employeeTableBody");
+    if (tableBody) {
+      tableBody.innerHTML = `<tr><td colspan="8" class="empty">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(error.message)}</td></tr>`;
+    }
+  }
+}
+
+async function fetchAllPaginated(tableName, selectQuery, orderColumn, ascending = true) {
+  const sb = getSupabase();
+  if (!sb) return [];
+
+  let allData = [];
+  let page = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await sb
+      .from(tableName)
+      .select(selectQuery)
+      .order(orderColumn, { ascending })
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error) throw error;
+    if (data && data.length > 0) {
+      allData = allData.concat(data);
+      if (data.length < pageSize) hasMore = false;
+      else page++;
+    } else {
+      hasMore = false;
+    }
+  }
+  return allData;
+}
+
+async function fetchEmployees() {
+  try {
+    const query = `
+      id, employee_code, full_name, nickname, phone, email, hospital,
+      bank_account, line_id, image_url, start_date, status, role,
+      employment_type, department_id, position_id, departments(department_name), positions(position_name)
+    `;
+    employees = await fetchAllPaginated("employees", query, "employee_code", true);
+  } catch (err) {
+    showAppError("ดึงข้อมูลพนักงานล้มเหลว", err.message);
+  }
+}
+
+async function fetchLeaveRequests() {
+  try {
+    const query = `
+      id, employee_id, leave_type_id, start_date, end_date, total_days, reason,
+      attachment_url, status, approved_at, approval_comment, start_period, end_period,
+      leave_hours, note, manager_status, director_status, is_over_quota, created_at
+    `;
+    leaveRequests = await fetchAllPaginated("leave_requests", query, "created_at", false);
+  } catch (err) {
+    showAppError("ดึงคำขอการลาล้มเหลว", err.message);
+  }
+}
+
+async function fetchLeaveTypes() {
+  const sb = getSupabase();
+  if (!sb) return;
+
+  try {
+    const { data, error } = await sb
+      .from("leave_types")
+      .select("id, leave_code, leave_name, yearly_quota, require_advance_days, max_days_per_request, paid_leave")
+      .order("leave_name", { ascending: true });
+
+    if (error) throw error;
+    leaveTypes = data || [];
+  } catch (err) {
+    showAppError("ดึงประเภทวันลาล้มเหลว", err.message);
+  }
+}
+
+async function fetchLeaveBalances() {
+  const sb = getSupabase();
+  if (!sb) return;
+
+  try {
+    const year = new Date().getFullYear();
+    const { data, error } = await sb
+      .from("leave_balances")
+      .select("id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days")
+      .eq("year", year);
+
+    if (error) throw error;
+    leaveBalances = data || [];
+  } catch (err) {
+    console.warn("leave_balances unavailable", err);
+    leaveBalances = [];
+  }
+}
+
+// ==========================================
+// 5. UI RENDERERS & FILTERS
+// ==========================================
+function fillDepartmentFilter() {
+  const select = document.getElementById("deptFilter");
+  if (!select) return;
+
+  const current = select.value;
+  const departments = [...new Set(employees.map((emp) => emp.departments?.department_name).filter(Boolean))].sort();
+
+  select.innerHTML = `<option value="">ทุกแผนก</option>` + 
+    departments.map((dept) => `<option value="${escapeHtml(dept)}">${escapeHtml(dept)}</option>`).join("");
+
+  select.value = departments.includes(current) ? current : "";
+}
+
+function renderSummary() {
+  const approvedRequests = leaveRequests.filter((item) => String(item.status).toLowerCase() === "approved");
+  const totalApprovedDays = approvedRequests.reduce((sum, item) => sum + Number(item.total_days || 0), 0);
+
+  setText("statEmployees", employees.length);
+  setText("statLeaves", leaveRequests.length);
+  setText("statPending", leaveRequests.filter((item) => String(item.status).toLowerCase() === "pending").length);
+  setText("statDays", totalApprovedDays.toFixed(1).replace(/\.0$/, ""));
+
+  renderBarChart("typeChart", groupByLeaveType());
+  renderBarChart("statusChart", groupByStatus(), true);
+}
+
+function groupByLeaveType() {
+  const map = new Map();
+  leaveRequests.forEach((request) => {
+    if (String(request.status).toLowerCase() === "approved") {
+      const type = getLeaveType(request.leave_type_id)?.leave_name || "ไม่ระบุประเภท";
+      map.set(type, (map.get(type) || 0) + Number(request.total_days || 0));
+    }
+  });
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function groupByStatus() {
+  const map = new Map();
+  leaveRequests.forEach((request) => {
+    const label = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(request.status) : (request.status || "-");
+    map.set(label, (map.get(label) || 0) + 1);
+  });
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function renderBarChart(targetId, rows, countMode = false) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  if (!rows.length) {
+    target.innerHTML = `<div class="empty">ยังไม่มีข้อมูลสำหรับแสดงกราฟ</div>`;
+    return;
+  }
+
+  const max = Math.max(...rows.map(([, value]) => value), 1);
+  target.innerHTML = rows.map(([label, value]) => {
+    const pct = Math.max(4, Math.round((value / max) * 100));
+    const display = countMode ? `${value} รายการ` : `${Number(value).toFixed(1).replace(/\.0$/, "")} วัน`;
+    return `
+      <div class="bar-row">
+        <strong>${escapeHtml(label)}</strong>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <span>${display}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderEmployeeTable() {
+  const tbody = document.getElementById("employeeTableBody");
+  if (!tbody) return;
+
+  const search = document.getElementById("empSearchInput")?.value.trim().toLowerCase() || "";
+  const dept = document.getElementById("deptFilter")?.value || "";
+
+  const filtered = employees.filter((emp) => {
+    const department = emp.departments?.department_name || "";
+    const haystack = [
+      emp.employee_code,
+      emp.full_name,
+      emp.positions?.position_name,
+      department,
+      emp.hospital,
+    ].join(" ").toLowerCase();
+
+    return (!search || haystack.includes(search)) && (!dept || department === dept);
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">ไม่พบพนักงานตามเงื่อนไข</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((emp) => `
+    <tr>
+      <td><img class="avatar" src="${window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : ''}" onerror="this.src='/assets/img/default-avatar.jpg'" alt=""></td>
+      <td><strong>${escapeHtml(emp.employee_code || "-")}</strong></td>
+      <td>${escapeHtml(emp.full_name || "-")}</td>
+      <td>${escapeHtml(emp.positions?.position_name || "-")}</td>
+      <td>${escapeHtml(emp.departments?.department_name || "-")}</td>
+      <td>${window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : emp.start_date}</td>
+      <td><span class="status ${emp.status || "active"}">${emp.status === "inactive" || emp.status === "resigned" ? "ลาออก" : "ใช้งาน"}</span></td>
+      <td style="text-align: center; white-space: nowrap;">
+        <button class="btn-light btn-sm" onclick="openEmployeeDetail('${emp.id}')" title="ดูรายละเอียด / แก้ไขข้อมูล">
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">analytics</span> ดูรายละเอียด
+        </button>
+        <button class="btn-light btn-sm danger-zone" 
+                onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
+                style="margin-left: 4px; padding: 0.4rem 0.6rem; background: #fff1f2; color: #e11d48; border-color: #fecdd3;" 
+                title="ลบพนักงานถาวร">
+          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span>
+        </button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+// ==========================================
+// 6. EMPLOYEE DETAIL MODAL & EXPORT
+// ==========================================
+function formatEmploymentType(typeStr) {
+  if (!typeStr || typeStr === "-" || typeStr === "null") return "ไม่ระบุ";
+  const str = String(typeStr).toLowerCase().trim();
+
+  if (str.includes("full") || str.includes("ประจำ")) return "พนักงานประจำ (Full-time)";
+  if (str.includes("part") || str.includes("พาร์ทไทม์")) return "พนักงานพาร์ทไทม์ (Part-time)";
+  if (str.includes("contract") || str.includes("สัญญาจ้าง")) return "พนักงานสัญญาจ้าง (Contract)";
+  if (str.includes("intern") || str.includes("ฝึกงาน")) return "นักศึกษาฝึกงาน (Intern)";
+
+  return typeStr;
+}
+
+function exportIndividualLeaveExcel(employeeId) {
+  const emp = employees.find((item) => String(item.id) === String(employeeId));
+  if (!emp) {
+    showAppError("ไม่พบข้อมูล", "ไม่พบข้อมูลพนักงานสำหรับส่งออก Excel");
+    return;
+  }
+
+  const requests = leaveRequests.filter((item) => String(item.employee_id) === String(employeeId));
+  let csvContent = "\uFEFF"; // UTF-8 BOM
+  csvContent += `รหัสพนักงาน,ชื่อ-นามสกุล,แผนก,ประเภทการลา,วันที่เริ่มต้น,วันที่สิ้นสุด,จำนวนวัน,เหตุผล,สถานะ\n`;
+
+  requests.forEach((r) => {
+    const type = getLeaveType(r.leave_type_id)?.leave_name || "ไม่ระบุ";
+    const status = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(r.status) : r.status;
+    csvContent += `"${emp.employee_code || ''}","${emp.full_name || ''}","${emp.departments?.department_name || ''}","${type}","${r.start_date || ''}","${r.end_date || ''}","${r.total_days || 0}","${(r.reason || r.note || '').replace(/"/g, '""')}","${status}"\n`;
+  });
+
+  const filename = `ประวัติการลา_${emp.employee_code}_${emp.full_name}.csv`;
+  window.pvtSupabase.downloadBlob(filename, csvContent, "text/csv;charset=utf-8;");
+}
+
+function openEmployeeDetail(employeeId, isEditMode = false) {
+  const emp = employees.find((item) => String(item.id) === String(employeeId));
+  if (!emp) return;
+
+  const requests = leaveRequests.filter((item) => String(item.employee_id) === String(employeeId));
+  const balances = leaveBalances.filter((item) => String(item.employee_id) === String(employeeId));
+  const modal = document.getElementById("employeeModal");
+  const title = document.getElementById("modalTitle");
+  const body = document.getElementById("modalBody");
+
+  const modalDownloadBtn = document.getElementById("modalDownloadBtn");
+  if (modalDownloadBtn) {
+    modalDownloadBtn.onclick = () => exportIndividualLeaveExcel(employeeId);
+  }
+
+  if (!isEditMode) {
+    if (title) {
+      title.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>${escapeHtml(emp.employee_code || "-")} · ${escapeHtml(emp.full_name || "-")}</span>
+          <button class="btn-light btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" title="แก้ไขข้อมูลพนักงาน" style="padding: 4px 10px; font-size:12px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">edit</span> กดแก้ไขข้อมูล
+          </button>
+        </div>
+      `;
+    }
+
+    if (body) {
+      body.innerHTML = `
+        <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px;">
+          ${detail("ตำแหน่ง", emp.positions?.position_name || "-")}
+          ${detail("แผนก", emp.departments?.department_name || "-")}
+          ${detail("วันเริ่มงาน", window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : emp.start_date)}
+          ${detail("เบอร์โทร", emp.phone || "-")}
+          ${detail("อีเมล", emp.email || "-")}
+          ${detail("Line ID", emp.line_id || "-")}
+          ${detail("โรงพยาบาล", emp.hospital || "-")}
+          ${detail("บัญชีธนาคาร", emp.bank_account || "-")}
+          ${detail("ประเภทพนักงาน", formatEmploymentType(emp.employment_type))}
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="font-size:14px;">📊 สิทธิวันลาคงเหลือประจำปี</strong>
+            <button class="btn-light btn-sm" onclick="editIndividualLeaveBalance('${escapeHtml(emp.employee_code)}')" style="font-size:12px;">
+              ⚙️ ปรับสิทธิ์พิเศษ
+            </button>
+          </div>
+          ${renderBalanceCards(balances)}
+        </div>
+
+        <div>
+          <strong style="font-size:14px; display:block; margin-bottom:8px;">📋 ประวัติการลาทั้งหมด</strong>
+          <div style="max-height:250px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
+            <table style="width:100%; font-size:13px; text-align:left; border-collapse:collapse;">
+              <thead style="background:#f8fafc; sticky:top;">
+                <tr>
+                  <th style="padding:8px;">ประเภท</th>
+                  <th style="padding:8px;">วันที่</th>
+                  <th style="padding:8px;">จำนวน</th>
+                  <th style="padding:8px;">เหตุผล</th>
+                  <th style="padding:8px;">สถานะ</th>
+                  <th style="padding:8px; text-align:center;">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${requests.length ? requests.map(renderLeaveRow).join("") : '<tr><td colspan="6" class="empty">ไม่มีประวัติการลา</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+  } else {
+    if (title) {
+      title.innerHTML = `<span>✏️ แก้ไขข้อมูลพนักงาน: ${escapeHtml(emp.full_name || "-")}</span>`;
+    }
+
+    const supabase = getSupabase();
+    Promise.all([
+      supabase ? supabase.from('departments').select('id, department_name') : Promise.resolve({ data: [] }),
+      supabase ? supabase.from('positions').select('id, position_name') : Promise.resolve({ data: [] })
+    ]).then(([{ data: depts }, { data: roles }]) => {
+      const deptOptions = depts?.map(d => `<option value="${d.id}" ${String(d.id) === String(emp.department_id) ? 'selected' : ''}>${escapeHtml(d.department_name)}</option>`).join('') || '';
+      const roleOptions = roles?.map(r => `<option value="${r.id}" ${String(r.id) === String(emp.position_id) ? 'selected' : ''}>${escapeHtml(r.position_name)}</option>`).join('') || '';
+
+      if (body) {
+        body.innerHTML = `
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; text-align:left; font-family:'Sarabun', sans-serif;">
+            <div style="grid-column: 1 / -1; text-align: center; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px dashed #cbd5e1;">
+              <img id="inlineEditPreview" src="${window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : 'https://placehold.co/100?text=No+Image'}" 
+                   style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 8px; background: #fff;">
+              <input type="file" id="inline-edit-img" class="select-input" accept="image/*" style="display: block; margin: 0 auto; font-size: 12px;" onchange="if(this.files[0]) document.getElementById('inlineEditPreview').src = URL.createObjectURL(this.files[0]);">
+            </div>
+
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">รหัสพนักงาน *</label>
+              <input id="inline-edit-code" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.employee_code || '')}">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">คำนำหน้า</label>
+              <select id="inline-edit-title" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
+                <option value="" ${!emp.title ? 'selected' : ''}>เลือกคำนำหน้า...</option>
+                <option value="นาย" ${emp.title === 'นาย' ? 'selected' : ''}>นาย</option>
+                <option value="นาง" ${emp.title === 'นาง' ? 'selected' : ''}>นาง</option>
+                <option value="นางสาว" ${emp.title === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">ชื่อ-นามสกุลจริง *</label>
+              <input id="inline-edit-fullName" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.full_name || '')}">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">ชื่อเล่น</label>
+              <input id="inline-edit-nickname" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.nickname || '')}">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">เบอร์โทรศัพท์</label>
+              <input id="inline-edit-phone" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.phone || '')}">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">Line ID</label>
+              <input id="inline-edit-lineId" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.line_id || '')}">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">อีเมลองค์กร</label>
+              <input id="inline-edit-email" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.email || '')}">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">เลขบัญชีธนาคาร</label>
+              <input id="inline-edit-bankAccount" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.bank_account || '')}">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">🏥 โรงพยาบาลประกันสังคม</label>
+              <input id="inline-edit-hospital" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.hospital || '')}">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">สังกัดฝ่าย / แผนก *</label>
+              <select id="inline-edit-dept" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
+                ${deptOptions}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">ตำแหน่งงาน *</label>
+              <select id="inline-edit-role" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
+                ${roleOptions}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">ประเภทพนักงาน *</label>
+              <select id="inline-edit-type" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
+                <option value="พนักงานประจำ (Full-time)" ${emp.employment_type?.includes('Full') || emp.employment_type?.includes('ประจำ') ? 'selected' : ''}>พนักงานประจำ (Full-time)</option>
+                <option value="พนักงานพาร์ทไทม์ (Part-time)" ${emp.employment_type?.includes('Part') || emp.employment_type?.includes('พาร์ท') ? 'selected' : ''}>พนักงานพาร์ทไทม์ (Part-time)</option>
+                <option value="พนักงานสัญญาจ้าง (Contract)" ${emp.employment_type?.includes('Contract') || emp.employment_type?.includes('สัญญา') ? 'selected' : ''}>พนักงานสัญญาจ้าง (Contract)</option>
+                <option value="นักศึกษาฝึกงาน (Intern)" ${emp.employment_type?.includes('Intern') || emp.employment_type?.includes('ฝึกงาน') ? 'selected' : ''}>นักศึกษาฝึกงาน (Intern)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">วันที่เริ่มงาน</label>
+              <input type="date" id="inline-edit-startDate" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${emp.start_date || ''}">
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px; padding-top:12px; border-top:1px solid #e2e8f0;">
+            <button class="action-btn" onclick="openEmployeeDetail('${emp.id}', false)">ยกเลิก</button>
+            <button class="action-btn success-zone" onclick="saveEmployeeInlineEdit('${emp.id}')">💾 บันทึกการแก้ไข</button>
+          </div>
+        `;
+      }
+    });
+  }
+
+  if (modal) modal.classList.add("open");
+}
+
+async function saveEmployeeInlineEdit(employeeId) {
+  const emp = employees.find(e => String(e.id) === String(employeeId));
+  if (!emp) return;
+
+  const code = document.getElementById('inline-edit-code')?.value.trim();
+  const name = document.getElementById('inline-edit-fullName')?.value.trim();
+  const dept = document.getElementById('inline-edit-dept')?.value;
+  const role = document.getElementById('inline-edit-role')?.value;
+  const empType = document.getElementById('inline-edit-type')?.value;
+
+  if (!code || !name || !dept || !role || !empType) {
+    showAppError("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลช่องที่มีเครื่องหมาย * ให้ครบถ้วน");
+    return;
+  }
+
+  const updateData = {
+    employee_code: code,
+    full_name: name,
+    title: document.getElementById('inline-edit-title')?.value || null,
+    nickname: document.getElementById('inline-edit-nickname')?.value.trim() || null,
+    phone: document.getElementById('inline-edit-phone')?.value.trim() || null,
+    line_id: document.getElementById('inline-edit-lineId')?.value.trim() || null,
+    email: document.getElementById('inline-edit-email')?.value.trim() || null,
+    department_id: dept,
+    position_id: role,
+    bank_account: document.getElementById('inline-edit-bankAccount')?.value.trim() || null,
+    start_date: document.getElementById('inline-edit-startDate')?.value || null,
+    hospital: document.getElementById('inline-edit-hospital')?.value.trim() || null,
+    employment_type: empType,
+  };
+
+  const fileInput = document.getElementById('inline-edit-img');
+  if (fileInput && fileInput.files[0]) {
+    const uploadedUrl = await uploadEmployeeImage(getSupabase(), code, fileInput.files[0]);
+    if (uploadedUrl) updateData.image_url = uploadedUrl;
+  }
+
+  try {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('employees').update(updateData).eq('id', emp.id);
+    if (error) throw error;
+
+    await saveHRActivityLog('EMPLOYEE', 'UPDATE', code, `แก้ไขข้อมูลพนักงาน: ${name}`);
+    if (window.Swal) {
+      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'อัปเดตข้อมูลพนักงานเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+    }
+    await refreshDashboard();
+    openEmployeeDetail(emp.id, false);
+  } catch (err) {
+    showAppError("ไม่สามารถบันทึกข้อมูลได้", err.message);
+  }
+}
+
+function closeEmployeeModal(event) {
+  if (event && event.target.id !== "employeeModal") return;
+  document.getElementById("employeeModal")?.classList.remove("open");
+}
+
+function detail(label, value) {
+  return `<div class="detail-item" style="background:#f8fafc; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0;">
+    <span style="font-size:12px; color:#64748b; display:block; margin-bottom:2px;">${escapeHtml(label)}</span>
+    <strong style="font-size:14px; color:#1e293b;">${escapeHtml(value)}</strong>
+  </div>`;
+}
+
+function renderBalanceCards(rows) {
+  if (!rows.length) return `<div class="empty">ยังไม่มีข้อมูลโควตาวันลาในระบบ</div>`;
+  return `<div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">${rows.map((row) => {
+    const typeObj = getLeaveType(row.leave_type_id);
+    const type = typeObj?.leave_name || "สิทธิการลา";
+
+    const entitlement = Number(row.entitlement_days ?? typeObj?.yearly_quota ?? 0);
+    const used = Number(row.used_days ?? 0);
+    const remaining = row.remaining_days !== undefined ? Number(row.remaining_days) : (entitlement - used);
+
+    return `
+      <div style="background:#f0fdfa; border:1px solid #ccfbf1; padding:10px 14px; border-radius:10px;">
+        <span style="font-size:12px; color:#0d9488; font-weight:600; display:block; margin-bottom:4px;">${escapeHtml(type)}</span>
+        <div style="font-size:18px; font-weight:700; color:#0f766e;">
+          ${remaining} <span style="font-size:12px; font-weight:normal; color:#475569;">/ ${entitlement} วัน (ใช้ไป ${used})</span>
+        </div>
+      </div>
+    `;
+  }).join("")}</div>`;
+}
+
+function renderLeaveRow(request) {
+  const type = getLeaveType(request.leave_type_id)?.leave_name || "ไม่ระบุ";
+  const startDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.start_date) : request.start_date;
+  const endDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.end_date) : request.end_date;
+  const statusLabel = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(request.status) : request.status;
+
+  return `
+    <tr>
+      <td>${escapeHtml(type)}</td>
+      <td>${startDate} - ${endDate}</td>
+      <td><strong style="color:#0f766e;">${request.total_days || 0}</strong> วัน</td>
+      <td>${escapeHtml(request.reason || request.note || "-")}</td>
+      <td><span class="status ${request.status || "pending"}">${statusLabel}</span></td>
+      <td style="text-align: center;">
+        <button class="btn-light btn-sm" title="แก้ไขจำนวนวัน/ข้อมูลคำขอ" onclick="editSingleLeaveRequest('${request.id}')">
+          <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+        </button>
+      </td>
+    </tr>
+  `;
+}
+
+async function editSingleLeaveRequest(requestId) {
+  const req = leaveRequests.find(r => String(r.id) === String(requestId));
+  if (!req) return;
+
+  const supabase = getSupabase();
+  const typeObj = getLeaveType(req.leave_type_id);
+
+  if (!window.Swal) return;
+
+  const { value: formValues } = await Swal.fire({
+    title: '📝 ปรับแก้ไขจำนวนวันลา / คำขอ',
+    width: 'min(90vw, 500px)',
+    html: `
+      <div style="text-align:left; font-family:'Sarabun', sans-serif; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:#f1f5f9; padding:10px; border-radius:6px; font-size:13px;">
+          <b>ประเภท:</b> ${escapeHtml(typeObj?.leave_name || 'ไม่ระบุ')}<br>
+          <b>วันที่:</b> ${escapeHtml(req.start_date)} ถึง ${escapeHtml(req.end_date)}
+        </div>
+        <div>
+          <label style="font-size:13px; font-weight:600;">จำนวนวันลา (ปรับเพิ่ม/ลดได้ยืดหยุ่น) *</label>
+          <div style="display:flex; gap:6px; align-items:center; margin-top:4px;">
+            <button type="button" class="action-btn" onclick="let el=document.getElementById('edit-days'); el.value = Math.max(0.5, (parseFloat(el.value)||1)-0.5);" style="width:40px; padding:0; height:40px;">-</button>
+            <input type="number" id="edit-days" class="swal2-input" step="0.5" min="0.5" value="${req.total_days || 1}" style="margin:0; text-align:center; height:40px; flex:1;">
+            <button type="button" class="action-btn" onclick="let el=document.getElementById('edit-days'); el.value = (parseFloat(el.value)||0)+0.5;" style="width:40px; padding:0; height:40px;">+</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:13px; font-weight:600;">เหตุผลการลา / หมายเหตุ HR</label>
+          <textarea id="edit-reason" class="swal2-textarea" style="margin:4px 0 0 0; width:100%; height:70px; font-size:13px;">${escapeHtml(req.reason || req.note || '')}</textarea>
+        </div>
+        <div>
+          <label style="font-size:13px; font-weight:600;">สถานะคำขอ</label>
+          <select id="edit-status" class="swal2-select" style="margin:4px 0 0 0; width:100%; height:40px;">
+            <option value="approved" ${req.status === 'approved' ? 'selected' : ''}>อนุมัติ (Approved)</option>
+            <option value="pending" ${req.status === 'pending' ? 'selected' : ''}>รออนุมัติ (Pending)</option>
+            <option value="rejected" ${req.status === 'rejected' ? 'selected' : ''}>ไม่อนุมัติ (Rejected)</option>
+            <option value="cancelled" ${req.status === 'cancelled' ? 'selected' : ''}>ยกเลิก (Cancelled)</option>
+          </select>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '💾 บันทึกการแก้ไข',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0d9488',
+    preConfirm: () => {
+      const days = parseFloat(document.getElementById('edit-days').value) || 0;
+      const reason = document.getElementById('edit-reason').value.trim();
+      const status = document.getElementById('edit-status').value;
+      if (days <= 0) {
+        Swal.showValidationMessage('❌ จำนวนวันลาต้องมากกว่า 0 วัน');
+        return false;
+      }
+      return { total_days: days, reason: reason, status: status };
+    }
+  });
+
+  if (formValues) {
+    Swal.fire({ title: 'กำลังปรับปรุงข้อมูลคำขอ...', didOpen: () => Swal.showLoading() });
+    const { error } = await supabase.from('leave_requests').update(formValues).eq('id', req.id);
+    if (error) {
+      showAppError('ปรับปรุงข้อมูลคำขอล้มเหลว', error.message);
+    } else {
+      await saveHRActivityLog('LEAVE_REQUEST', 'UPDATE', `คำขอID:${req.id}`, `HR ปรับแก้จำนวนวันลาเป็น ${formValues.total_days} วัน สถานะ: ${formValues.status}`);
+      Swal.fire('สำเร็จ', 'ปรับแก้ไขวันลาเรียบร้อยแล้ว', 'success');
+      await refreshDashboard();
+      openEmployeeDetail(req.employee_id);
+    }
+  }
+}
+
+// ==========================================
+// 7. ADMIN HR MANAGEMENT (EMPLOYEES & DEPTS)
+// ==========================================
 async function uploadEmployeeImage(supabase, employeeCode, fileObject) {
   if (!fileObject) return null;
   try {
@@ -144,7 +1153,7 @@ async function uploadEmployeeImage(supabase, employeeCode, fileObject) {
     const fileName = `${employeeCode}_${Date.now()}.${fileExt}`;
     const filePath = `avatars/${fileName}`;
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('employee-images')
       .upload(filePath, fileObject, { cacheControl: '3600', upsert: true });
 
@@ -156,45 +1165,44 @@ async function uploadEmployeeImage(supabase, employeeCode, fileObject) {
 
     return publicUrlData.publicUrl;
   } catch (err) {
-    console.error("❌ Storage Upload Error:", err);
+    showAppError("อัปโหลดรูปภาพไม่สำเร็จ", err.message);
     return null;
   }
 }
 
-// 🟢 ฟังก์ชันเพิ่มพนักงานใหม่พร้อมพรีวิวภาพ + อัปโหลดขึ้นคลาวด์
 async function addNewEmployee() {
   const supabase = getSupabase();
-  if (!supabase) return;
-  
+  if (!supabase || !window.Swal) return;
+
   try {
     const { data: depts } = await supabase.from('departments').select('id, department_name');
-    let deptOptions = depts?.map(d => `<option value="${d.id}">${d.department_name}</option>`).join('') || '';
+    let deptOptions = depts?.map(d => `<option value="${d.id}">${escapeHtml(d.department_name)}</option>`).join('') || '';
 
     const { data: roles } = await supabase.from('positions').select('id, position_name');
-    let roleOptions = roles?.map(r => `<option value="${r.id}">${r.position_name}</option>`).join('') || '';
+    let roleOptions = roles?.map(r => `<option value="${r.id}">${escapeHtml(r.position_name)}</option>`).join('') || '';
 
     const { value: formValues } = await Swal.fire({
       title: '➕ เพิ่มพนักงานใหม่เข้าสู่ระบบ',
-      width: '850px',
+      width: 'min(92vw, 800px)',
       html: `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; text-align:left; font-family:'Sarabun', sans-serif; max-height: 65vh; overflow-y: auto; overflow-x: hidden; padding-right: 10px;">
-          <div style="grid-column: span 2; text-align: center; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; margin-bottom: 10px;">
-            <img id="profilePreview" src="https://placehold.co/120?text=No+Image" 
-                 style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 10px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <input type="file" id="empImage" class="swal2-file" accept="image/*" style="display: block; margin: 0 auto; font-size: 13px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; text-align:left; font-family:'Sarabun', sans-serif; max-height: 65vh; overflow-y: auto; padding-right: 6px;">
+          <div style="grid-column: 1 / -1; text-align: center; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px dashed #cbd5e1;">
+            <img id="profilePreview" src="https://placehold.co/100?text=No+Image" 
+                 style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 8px; background: #fff;">
+            <input type="file" id="empImage" class="swal2-file" accept="image/*" style="display: block; margin: 0 auto; font-size: 12px;">
           </div>
 
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">รหัสพนักงาน *</label>
-            <input id="swal-empCode" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="เช่น 19001">
+            <label style="font-size:13px; font-weight:600;">รหัสพนักงาน *</label>
+            <input id="swal-empCode" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เช่น 19001">
           </div>
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">รหัสผ่านเข้าใช้งาน *</label>
-            <input type="text" id="swal-password" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="รหัสผ่านเข้าสู่ระบบ">
+            <label style="font-size:13px; font-weight:600;">รหัสผ่านเข้าใช้งาน *</label>
+            <input type="text" id="swal-password" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="รหัสผ่านเข้าสู่ระบบ">
           </div>
-          <div class="form-group">
-            <label for="title" style="font-size:14px; font-weight:600; color:#1e293b;">คำนำหน้าชื่อ</label>
-            <select id="title" name="title" class="swal2-select" style="margin:4px 0 0; width:100%; height:42px;" required>
+          <div>
+            <label style="font-size:13px; font-weight:600;">คำนำหน้าชื่อ</label>
+            <select id="title" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>เลือกคำนำหน้า...</option>
               <option value="นาย">นาย</option>
               <option value="นาง">นาง</option>
@@ -202,54 +1210,54 @@ async function addNewEmployee() {
             </select>
           </div>
           <div style="grid-column: span 2;">
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">ชื่อ-นามสกุลจริง *</label>
-            <input id="swal-fullName" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="นาย / นางสาว ...">
+            <label style="font-size:13px; font-weight:600;">ชื่อ-นามสกุลจริง *</label>
+            <input id="swal-fullName" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="นาย / นางสาว ...">
           </div>
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">ชื่อเล่น</label>
-            <input id="swal-nickname" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="ชื่อเล่น">
+            <label style="font-size:13px; font-weight:600;">ชื่อเล่น</label>
+            <input id="swal-nickname" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="ชื่อเล่น">
           </div>
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">เบอร์โทรศัพท์</label>
-            <input id="swal-phone" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="08X-XXX-XXXX">
+            <label style="font-size:13px; font-weight:600;">เบอร์โทรศัพท์</label>
+            <input id="swal-phone" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="08X-XXX-XXXX">
           </div>
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">ไอดีไลน์ (Line ID)</label>
-            <input id="swal-lineId" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="Line ID">
+            <label style="font-size:13px; font-weight:600;">ไอดีไลน์ (Line ID)</label>
+            <input id="swal-lineId" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="Line ID">
           </div>
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">อีเมลองค์กร</label>
-            <input type="email" id="swal-email" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="email@company.com">
+            <label style="font-size:13px; font-weight:600;">อีเมลองค์กร</label>
+            <input type="email" id="swal-email" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="email@company.com">
           </div>
 
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">เลขบัญชีธนาคาร</label>
-            <input id="swal-bankAccount" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="เลขบัญชี 10 หลัก">
+            <label style="font-size:13px; font-weight:600;">เลขบัญชีธนาคาร</label>
+            <input id="swal-bankAccount" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เลขบัญชี 10 หลัก">
           </div>
 
-          <div style="grid-column: span 2; background:#f0fdfa; padding:8px 12px; border-radius:8px; border:1px solid #ccfbf1; display:flex; flex-direction:column; justify-content:center;">
-            <label style="font-size:13px; font-weight:600; color:#0f766e;">🏥 โรงพยาบาลประกันสังคม</label>
-            <input id="swal-hospital" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:32px; border-color:#99f6e4; font-size:13px;" placeholder="เช่น รพ.เปาโล">
-          </div>
-          
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">สังกัดฝ่าย / แผนก *</label>
-            <select id="swal-dept" class="swal2-select" style="margin:4px 0 0; width:100%; height:42px; display:flex;">
+            <label style="font-size:13px; font-weight:600;">🏥 โรงพยาบาลประกันสังคม</label>
+            <input id="swal-hospital" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เช่น รพ.เปาโล">
+          </div>
+
+          <div>
+            <label style="font-size:13px; font-weight:600;">สังกัดฝ่าย / แผนก *</label>
+            <select id="swal-dept" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>-- เลือกแผนก --</option>
               ${deptOptions}
             </select>
           </div>
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">ตำแหน่งงาน *</label>
-            <select id="swal-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:42px; display:flex;">
+            <label style="font-size:13px; font-weight:600;">ตำแหน่งงาน *</label>
+            <select id="swal-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>-- เลือกตำแหน่ง --</option>
               ${roleOptions}
             </select>
           </div>
 
-          <div class="form-group">
-            <label for="employee_type" style="font-size:14px; font-weight:600; color:#1e293b;">ประเภทพนักงาน *</label>
-            <select id="employee_type" name="employee_type" class="swal2-select" style="margin:4px 0 0; width:100%; height:42px;" required>
+          <div>
+            <label style="font-size:13px; font-weight:600;">ประเภทพนักงาน *</label>
+            <select id="employee_type" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>เลือกประเภทพนักงาน...</option>
               <option value="พนักงานประจำ (Full-time)">พนักงานประจำ (Full-time)</option>
               <option value="พนักงานพาร์ทไทม์ (Part-time)">พนักงานพาร์ทไทม์ (Part-time)</option>
@@ -259,8 +1267,8 @@ async function addNewEmployee() {
           </div>
 
           <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">วันที่เริ่มงาน</label>
-            <input type="date" id="swal-startDate" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;">
+            <label style="font-size:13px; font-weight:600;">วันที่เริ่มงาน</label>
+            <input type="date" id="swal-startDate" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;">
           </div>
         </div>
       `,
@@ -287,12 +1295,12 @@ async function addNewEmployee() {
         const role = document.getElementById('swal-role').value;
         const employee_type = document.getElementById('employee_type').value;
         const imageFile = document.getElementById('empImage').files[0];
-        
+
         if (!code || !password || !name || !dept || !role || !employee_type) {
           Swal.showValidationMessage('⚠️ กรุณากรอกข้อมูลช่องที่มีเครื่องหมาย * ให้ครบถ้วน');
           return false;
         }
-        
+
         return {
           employee_code: code,
           password: password,
@@ -306,375 +1314,142 @@ async function addNewEmployee() {
           position_id: role,
           bank_account: document.getElementById('swal-bankAccount').value.trim() || null,
           start_date: document.getElementById('swal-startDate').value || null,
-          hospital: document.getElementById('swal-hospital').value.trim() || null, // ✅ แก้ไขให้ตรงกับตารางจริง (hospital)
-          employment_type: employee_type, // ✅ เพิ่มตัวนี้เพื่อให้เซฟเข้าคอลัมน์ employment_type ใน DB จริง
+          hospital: document.getElementById('swal-hospital').value.trim() || null,
+          employment_type: employee_type,
           status: 'active',
           role: 'user',
           imageFile: imageFile
-        }
+        };
       }
     });
 
     if (formValues) {
       const confirm1 = await Swal.fire({
-        title: '❓ ยืนยันข้อมูลพนักงานใหม่ (รอบที่ 1/2)',
-        html: `ต้องการบันทึกรหัสพนักงาน <b>${formValues.employee_code}</b><br>คุณ <b>${formValues.full_name}</b> ใช่หรือไม่?`,
+        title: '❓ ยืนยันข้อมูลพนักงานใหม่',
+        html: `ต้องการบันทึกรหัสพนักงาน <b>${escapeHtml(formValues.employee_code)}</b><br>คุณ <b>${escapeHtml(formValues.full_name)}</b> ใช่หรือไม่?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'ยืนยันข้อมูล',
+        confirmButtonText: '💾 บันทึกข้อมูล',
         cancelButtonText: 'แก้ไขข้อมูล',
         confirmButtonColor: '#0d9488'
       });
 
       if (!confirm1.isConfirmed) return;
 
-      const confirm2 = await Swal.fire({
-        title: '🚨 ยืนยันขั้นเด็ดขาด (รอบที่ 2/2)',
-        text: 'ระบบจะจัดทำตารางบัญชีและผูกสิทธิ์ของพนักงานเข้าสู่ศูนย์ข้อมูลกลางทันที ยืนยันหรือไม่?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: '💾 อัปโหลดข้อมูลและบันทึก',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#115e59'
-      });
+      Swal.fire({ title: 'กำลังบันทึกข้อมูลพนักงาน...', didOpen: () => Swal.showLoading() });
 
-      if (confirm2.isConfirmed) {
-        Swal.fire({ title: 'กำลังอัปเดตรูปภาพและคัดลอกลงฐานข้อมูล...', didOpen: () => Swal.showLoading() });
-        
-        if (formValues.imageFile) {
-          const uploadedUrl = await uploadEmployeeImage(supabase, formValues.employee_code, formValues.imageFile);
-          if (uploadedUrl) formValues.image_url = uploadedUrl;
-        }
-        
-        delete formValues.imageFile;
-
-        const { error } = await supabase.from('employees').insert([formValues]);
-        if (error) throw error;
-        
-        await saveHRActivityLog('EMPLOYEE', 'INSERT', formValues.employee_code, `เพิ่มพนักงานใหม่ผ่านหน้าแอดมิน/HR: ${formValues.full_name}`);
-        Swal.fire('สำเร็จ!', 'เพิ่มประวัติพนักงานเข้าฐานข้อมูลส่วนกลางเรียบร้อยแล้ว', 'success');
+      if (formValues.imageFile) {
+        const uploadedUrl = await uploadEmployeeImage(supabase, formValues.employee_code, formValues.imageFile);
+        if (uploadedUrl) formValues.image_url = uploadedUrl;
       }
+
+      delete formValues.imageFile;
+
+      const { error } = await supabase.from('employees').insert([formValues]);
+      if (error) throw error;
+
+      await saveHRActivityLog('EMPLOYEE', 'INSERT', formValues.employee_code, `เพิ่มพนักงานใหม่: ${formValues.full_name}`);
+      Swal.fire('สำเร็จ!', 'เพิ่มประวัติพนักงานเข้าสู่ระบบเรียบร้อยแล้ว', 'success');
+      refreshDashboard();
     }
   } catch (err) {
-    console.error("Error Add Employee:", err);
-    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้: ' + err.message, 'error');
+    showAppError("ไม่สามารถบันทึกข้อมูลพนักงานได้", err.message);
   }
 }
 
-// 🟡 ฟังก์ชันค้นหาและแก้ไขข้อมูลพนักงาน 
-async function editEmployeeData() {
-  const supabase = getSupabase();
-  if (!supabase) return;
-
-  try {
-    const { value: searchKey } = await Swal.fire({
-      title: '🔍 ค้นหาและจัดการแฟ้มบุคคล',
-      input: 'text',
-      inputLabel: 'ระบุรหัสพนักงาน หรือชื่อ-นามสกุล ที่ต้องการแก้ไข',
-      inputPlaceholder: 'เช่น 19001 หรือ สมชาย...',
-      showCancelButton: true,
-      confirmButtonText: 'ดึงข้อมูล',
-      confirmButtonColor: '#0d9488',
-      inputValidator: (value) => { if (!value) return '❌ กรุณาระบุคำค้นหา' }
-    });
-
-    if (!searchKey) return;
-    
-    Swal.fire({ title: 'กำลังดึงฐานข้อมูล...', didOpen: () => Swal.showLoading() });
-
-    const { data: emps, error: searchErr } = await supabase
-      .from('employees')
-      .select('*')
-      .or(`employee_code.eq.${searchKey.trim()},full_name.ilike.%${searchKey.trim()}%`)
-      .limit(1);
-
-    if (searchErr) throw searchErr;
-
-    if (!emps || emps.length === 0) {
-      Swal.fire('ไม่พบพนักงาน', `รหัสหรือชื่อ "${searchKey}" ไม่มีในระบบ`, 'warning');
+async function editEmployeeData(presetSearchKey = null) {
+  if (presetSearchKey) {
+    const emp = employees.find(e => e.employee_code === presetSearchKey || e.id === presetSearchKey);
+    if (emp) {
+      openEmployeeDetail(emp.id, true);
       return;
     }
+  }
 
-    const emp = emps[0];
-    const currentImageUrl = emp.image_url || "https://placehold.co/120?text=No+Image";
+  if (!window.Swal) return;
 
-    // บันทึก Log เมื่อมีการดึงข้อมูลพนักงาน (SELECT)
-    await saveHRActivityLog('EMPLOYEE', 'SELECT', emp.employee_code, `HR ดึงข้อมูลและเปิดหน้าแก้ไขแฟ้มประวัติ: ${emp.full_name}`);
+  const { value: inputKey } = await Swal.fire({
+    title: '🔍 ค้นหาและจัดการแฟ้มบุคคล',
+    input: 'text',
+    inputLabel: 'ระบุรหัสพนักงาน หรือชื่อ-นามสกุล ที่ต้องการแก้ไข',
+    inputPlaceholder: 'เช่น 19001 หรือ สมชาย...',
+    showCancelButton: true,
+    confirmButtonText: 'ดึงข้อมูล',
+    confirmButtonColor: '#0d9488',
+    inputValidator: (value) => { if (!value) return '❌ กรุณาระบุคำค้นหา'; }
+  });
 
-    const { data: depts } = await supabase.from('departments').select('id, department_name');
-    let deptOptions = depts?.map(d => `<option value="${d.id}">${d.department_name}</option>`).join('') || '';
+  if (!inputKey) return;
 
-    const { data: roles } = await supabase.from('positions').select('id, position_name');
-    let roleOptions = roles?.map(r => `<option value="${r.id}">${r.position_name}</option>`).join('') || '';
+  const emp = employees.find(e =>
+    e.employee_code?.toLowerCase() === inputKey.trim().toLowerCase() ||
+    e.full_name?.toLowerCase().includes(inputKey.trim().toLowerCase())
+  );
 
-    const result = await Swal.fire({
-      title: '📝 แก้ไขและอัปเดตแฟ้มประวัติ',
-      width: '850px',
-      html: `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; text-align:left; font-family:'Sarabun', sans-serif; max-height: 65vh; overflow-y: auto; overflow-x: hidden; padding-right: 10px;">
-          <div style="grid-column: span 2; text-align: center; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; margin-bottom: 10px;">
-            <img id="profilePreview" src="https://placehold.co/120?text=No+Image" 
-                 style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 10px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <input type="file" id="empImage" class="swal2-file" accept="image/*" style="display: block; margin: 0 auto; font-size: 13px;">
-          </div>
-
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">รหัสพนักงาน *</label>
-            <input id="swal-empCode" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="เช่น 19001">
-          </div>
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">รหัสผ่านเข้าใช้งาน *</label>
-            <input type="text" id="swal-password" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="รหัสผ่านเข้าสู่ระบบ">
-          </div>
-          <div class="form-group">
-            <label for="title" style="font-size:14px; font-weight:600; color:#1e293b;">คำนำหน้าชื่อ</label>
-            <select id="title" name="title" class="swal2-select" style="margin:4px 0 0; width:100%; height:42px;" required>
-              <option value="" disabled selected>เลือกคำนำหน้า...</option>
-              <option value="นาย">นาย</option>
-              <option value="นาง">นาง</option>
-              <option value="นางสาว">นางสาว</option>
-            </select>
-          </div>
-          <div style="grid-column: span 2;">
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">ชื่อ-นามสกุลจริง *</label>
-            <input id="swal-fullName" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="นาย / นางสาว ...">
-          </div>
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">ชื่อเล่น</label>
-            <input id="swal-nickname" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="ชื่อเล่น">
-          </div>
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">เบอร์โทรศัพท์</label>
-            <input id="swal-phone" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="08X-XXX-XXXX">
-          </div>
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">ไอดีไลน์ (Line ID)</label>
-            <input id="swal-lineId" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="Line ID">
-          </div>
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">อีเมลองค์กร</label>
-            <input type="email" id="swal-email" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="email@company.com">
-          </div>
-
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">เลขบัญชีธนาคาร</label>
-            <input id="swal-bankAccount" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;" placeholder="เลขบัญชี 10 หลัก">
-          </div>
-
-          <div style="grid-column: span 2; background:#f0fdfa; padding:8px 12px; border-radius:8px; border:1px solid #ccfbf1; display:flex; flex-direction:column; justify-content:center;">
-            <label style="font-size:13px; font-weight:600; color:#0f766e;">🏥 โรงพยาบาลประกันสังคม</label>
-            <input id="swal-hospital" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:32px; border-color:#99f6e4; font-size:13px;" placeholder="เช่น รพ.เปาโล">
-          </div>
-          
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">สังกัดฝ่าย / แผนก *</label>
-            <select id="swal-dept" class="swal2-select" style="margin:4px 0 0; width:100%; height:42px; display:flex;">
-              <option value="" disabled selected>-- เลือกแผนก --</option>
-              ${deptOptions}
-            </select>
-          </div>
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">ตำแหน่งงาน *</label>
-            <select id="swal-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:42px; display:flex;">
-              <option value="" disabled selected>-- เลือกตำแหน่ง --</option>
-              ${roleOptions}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="employment_type" style="font-size:14px; font-weight:600; color:#1e293b;">ประเภทพนักงาน</label>
-            <select id="employment_type" name="employment_type" class="swal2-select" style="margin:4px 0 0; width:100%; height:42px;" required>
-              <option value="" disabled selected>เลือกประเภทพนักงาน...</option>
-              <option value="พนักงานประจำ (Full-time)">พนักงานประจำ (Full-time)</option>
-              <option value="พนักงานพาร์ทไทม์ (Part-time)">พนักงานพาร์ทไทม์ (Part-time)</option>
-              <option value="พนักงานสัญญาจ้าง (Contract)">พนักงานสัญญาจ้าง (Contract)</option>
-              <option value="นักศึกษาฝึกงาน (Intern)">นักศึกษาฝึกงาน (Intern)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style="font-size:14px; font-weight:600; color:#1e293b;">วันที่เริ่มงาน</label>
-            <input type="date" id="swal-startDate" class="swal2-input" style="margin:4px 0 0; width:100%; height:42px;">
-          </div>
-        </div>
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      showDenyButton: true, 
-      confirmButtonText: '💾 บันทึกการแก้ไข',
-      denyButtonText: '🚨 แจ้งสถานะลาออก',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#0d9488',
-      denyButtonColor: '#ef4444',
-      didOpen: (popup) => {
-        const empImageInput = popup.querySelector('#empImage');
-        const profilePreviewImg = popup.querySelector('#profilePreview');
-        
-        if (profilePreviewImg) profilePreviewImg.src = currentImageUrl;
-        
-        if (empImageInput && profilePreviewImg) {
-          empImageInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) profilePreviewImg.src = URL.createObjectURL(file);
-          });
-        }
-
-        const setValueSafe = (id, val) => {
-            const el = popup.querySelector(`#${id}`);
-            if (el) el.value = val || '';
-        };
-
-        setValueSafe('swal-empCode', emp.employee_code);
-        setValueSafe('swal-password', emp.password);
-        setValueSafe('title', emp.title); 
-        setValueSafe('swal-fullName', emp.full_name);
-        setValueSafe('swal-nickname', emp.nickname);
-        setValueSafe('swal-phone', emp.phone);
-        setValueSafe('swal-lineId', emp.line_id);
-        setValueSafe('swal-email', emp.email);
-        setValueSafe('swal-bankAccount', emp.bank_account);
-        setValueSafe('swal-hospital', emp.hospital); // ✅ แก้เป็น emp.hospital ตามโครงสร้างตารางจริง
-        setValueSafe('swal-dept', emp.department_id); 
-        setValueSafe('swal-role', emp.position_id);   
-        setValueSafe('employment_type', emp.employment_type); // ✅ แก้เป็น emp.employment_type ตามตารางจริง
-        setValueSafe('swal-startDate', emp.start_date);
-      },
-      preConfirm: () => {
-        const code = document.getElementById('swal-empCode').value.trim();
-        const password = document.getElementById('swal-password').value.trim();
-        const name = document.getElementById('swal-fullName').value.trim();
-        const dept = document.getElementById('swal-dept').value;
-        const role = document.getElementById('swal-role').value;
-        const imageFile = document.getElementById('empImage').files[0];
-        
-        if (!code || !password || !name || !dept || !role) {
-          Swal.showValidationMessage('⚠️ กรุณากรอกข้อมูลช่องที่มีเครื่องหมาย * ให้ครบถ้วน');
-          return false;
-        }
-        
-        return {
-          employee_code: code,
-          password: password,
-          full_name: name,
-          nickname: document.getElementById('swal-nickname').value.trim() || null,
-          phone: document.getElementById('swal-phone').value.trim() || null,
-          line_id: document.getElementById('swal-lineId').value.trim() || null,
-          email: document.getElementById('swal-email').value.trim() || null,
-          department_id: dept,
-          position_id: role,
-          bank_account: document.getElementById('swal-bankAccount').value.trim() || null,
-          start_date: document.getElementById('swal-startDate').value || null,
-          hospital: document.getElementById('swal-hospital').value.trim() || null, // ✅ แก้เป็น hospital เพื่อส่งเข้า DB
-          employment_type: document.getElementById('employment_type').value || null, // ✅ แก้เป็น employment_type เพื่อส่งเข้า DB
-          imageFile: imageFile
-        };
-      }
-    });
-
-    if (result.isConfirmed && result.value) {
-      const editConfirm1 = await Swal.fire({
-        title: '❓ ยืนยันการอัปเดตข้อมูล (รอบที่ 1/2)',
-        html: `คุณแน่ใจที่จะเปลี่ยนแปลงประวัติของคุณ <b>${emp.full_name}</b> ใช่หรือไม่?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'ข้อมูลถูกต้อง',
-        cancelButtonText: 'ตรวจสอบอีกครั้ง'
-      });
-
-      if (!editConfirm1.isConfirmed) return;
-
-      const editConfirm2 = await Swal.fire({
-        title: '🚨 ข้อมูลจะถูกเขียนทับเด็ดขาด (รอบที่ 2/2)',
-        text: 'การอัปเดตจะมีผลต่อโครงสร้างสิทธิ์และการล็อกอินของบุคลากรรายนี้ทันที ยืนยันบันทึกข้อมูลหรือไม่?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: '💾 อัปเดตข้อมูลระบบ',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#115e59'
-      });
-
-      if (editConfirm2.isConfirmed) {
-        Swal.fire({ title: 'กำลังประมวลผลการบันทึกภาพและประวัติ...', didOpen: () => Swal.showLoading() });
-        
-        if (result.value.imageFile) {
-          const uploadedUrl = await uploadEmployeeImage(supabase, result.value.employee_code, result.value.imageFile);
-          if (uploadedUrl) result.value.image_url = uploadedUrl;
-        }
-        delete result.value.imageFile; 
-
-        const { error: updErr } = await supabase.from('employees').update(result.value).eq('id', emp.id);
-        if (updErr) throw updErr;
-
-                if (!error) {
-            // 2. 🟢 สั่งส่งแจ้งเตือนทันที!
-            await sendNotification(
-              'เพิ่มพนักงานใหม่', 
-              'เพิ่มพนักงาน คุณสมหญิง ใจดี เข้าสู่ระบบแล้ว', 
-              'employee', 
-              '/pages/user/history-table.html.html'
-            );
-          }
-        
-        await saveHRActivityLog('EMPLOYEE', 'UPDATE', emp.employee_code, `HR แก้ไขข้อมูลรายละเอียดของพนักงาน: ${result.value.full_name}`);
-        Swal.fire('สำเร็จ!', 'อัปเดตข้อมูลพนักงานในระบบเรียบร้อยแล้ว', 'success');
-      }
-
-    } else if (result.isDenied) {
-      const { value: resignDate } = await Swal.fire({
-        title: 'กำหนดวันสิ้นสุดสภาพพนักงาน',
-        input: 'date',
-        inputLabel: 'เลือกวันลาออกที่มีผลบังคับใช้ในระบบ',
-        inputValue: new Date().toISOString().split('T')[0],
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        confirmButtonText: 'บันทึกสถานะลาออก >'
-      });
-
-      if (resignDate) {
-        const resignConfirm1 = await Swal.fire({
-          title: '⚠️ ยืนยันการคัดชื่อออก (รอบที่ 1/2)',
-          html: `คุณต้องการปรับสภาพพนักงานคุณ <b>${emp.full_name}</b> เป็น <b style="color:#ef4444;">"ลาออก"</b> ณ วันที่ <b>${resignDate}</b> ใช่หรือไม่?`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'ยืนยันวันลาออก'
-        });
-
-        if (!resignConfirm1.isConfirmed) return;
-
-        const resignConfirm2 = await Swal.fire({
-          title: '🚨 ตัดสิทธิ์การเข้าถึงทั้งหมด (รอบที่ 2/2)',
-          text: 'เมื่อยืนยันแล้ว บัญชีนี้จะไม่สามารถล็อกอินเข้าสู่ระบบและระบบจะระงับโควตาวันลาทั้งหมดถาวร ยืนยันปิดบัญชีหรือไม่?',
-          icon: 'error',
-          showCancelButton: true,
-          confirmButtonText: '💥 ระงับสิทธิ์และบันทึกข้อมูลลาออก',
-          cancelButtonColor: '#64748b',
-          confirmButtonColor: '#b91c1c'
-        });
-
-        if (resignConfirm2.isConfirmed) {
-          Swal.fire({ title: 'กำลังปรับโครงสร้างประวัติพนักงาน...', didOpen: () => Swal.showLoading() });
-          const { error: resErr } = await supabase.from('employees').update({ status: 'resigned', resign_date: resignDate }).eq('id', emp.id);
-          if (resErr) throw resErr;
-          
-          await saveHRActivityLog('EMPLOYEE', 'UPDATE', emp.employee_code, `HR ตั้งสถานะลาออกพนักงาน มีผลบังคับใช้: ${resignDate}`);
-          Swal.fire('สำเร็จ!', 'บันทึกสถานะลาออกจากระบบเสร็จสิ้น', 'success');
-        }
-      }
-    }
-  } catch (err) {
-    console.error("❌ Error Edit Employee:", err);
-    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถปรับปรุงข้อมูลได้: ' + err.message, 'error');
+  if (emp) {
+    openEmployeeDetail(emp.id, true);
+  } else {
+    Swal.fire('ไม่พบพนักงาน', `ไม่พบข้อมูลพนักงานที่ค้นหา: ${escapeHtml(inputKey)}`, 'warning');
   }
 }
-// 📂 ฟังก์ชันจัดการเพิ่มแผนกและตำแหน่งงานใหม่
+
+async function deleteEmployee(id, empCode, fullName) {
+  const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
+  const confirm = await Swal.fire({
+    title: '🚨 ลบพนักงานถาวร?',
+    html: `คุณกำลังจะลบพนักงาน <b>${escapeHtml(empCode)} - ${escapeHtml(fullName)}</b> ถาวร<br><span style="color:#ef4444; font-size:12px;">การลบนี้ไม่สามารถยกเลิกได้!</span>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ลบถาวร',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#ef4444'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    Swal.fire({ title: 'กำลังลบข้อมูล...', didOpen: () => Swal.showLoading() });
+    const { error } = await supabase.from('employees').delete().eq('id', id);
+    if (error) throw error;
+
+    await saveHRActivityLog('EMPLOYEE', 'DELETE', empCode, `ลบพนักงาน: ${fullName}`);
+    Swal.fire('สำเร็จ!', 'ลบข้อมูลพนักงานเรียบร้อยแล้ว', 'success');
+    refreshDashboard();
+  } catch (err) {
+    showAppError("ไม่สามารถลบข้อมูลพนักงานได้", err.message);
+  }
+}
+
+function generateDeptCode(deptName) {
+  if (!deptName) return "DEPT";
+  const cleanName = deptName.replace(/^(ฝ่าย|แผนก|ศูนย์|กลุ่มงาน)\s*/g, '').trim().toLowerCase();
+  const mapping = [
+    { keywords: ['ขนส่ง', 'จัดส่ง', 'โลจิสติกส์'], code: 'DL' },
+    { keywords: ['คลัง', 'สโตร์'], code: 'WH' },
+    { keywords: ['ไอที', 'เทคโนโลยี', 'it'], code: 'IT' },
+    { keywords: ['บุคคล', 'เอชอาร์', 'hr'], code: 'HR' },
+    { keywords: ['บัญชี', 'การเงิน'], code: 'ACC' },
+    { keywords: ['ตลาด', 'การตลาด'], code: 'MKT' },
+    { keywords: ['ขาย'], code: 'SL' },
+    { keywords: ['ผลิต'], code: 'PROD' }
+  ];
+
+  for (const item of mapping) {
+    if (item.keywords.some(kw => cleanName.includes(kw))) return item.code;
+  }
+  return `D-${cleanName.substring(0, 3).toUpperCase()}`;
+}
+
 async function manageDepartments() {
   const supabase = getSupabase();
-  if (!supabase) return;
+  if (!supabase || !window.Swal) return;
 
   try {
     const result = await Swal.fire({
       title: '🏢 จัดการฝ่ายและตำแหน่งงาน',
-      text: 'เลือกประเภทโครงสร้างองค์กรที่คุณต้องการเพิ่มลงระบบส่วนกลาง',
+      text: 'เลือกประเภทโครงสร้างองค์กรที่คุณต้องการเพิ่ม',
       icon: 'question',
       showCancelButton: true,
       showDenyButton: true,
@@ -690,29 +1465,32 @@ async function manageDepartments() {
         title: 'เพิ่มแผนกใหม่เข้าสู่องค์กร',
         input: 'text',
         inputLabel: 'ระบุชื่อฝ่าย/แผนกงาน',
-        inputPlaceholder: 'เช่น ฝ่ายนวัตกรรม, ฝ่ายปฏิบัติการเทคนิค',
+        inputPlaceholder: 'เช่น ฝ่ายขนส่ง, ฝ่ายนวัตกรรม...',
         showCancelButton: true,
         confirmButtonText: 'บันทึกข้อมูล',
-        inputValidator: (value) => { if (!value) return '❌ จำเป็นต้องใส่ชื่อแผนกงาน!' }
+        inputValidator: (value) => { if (!value) return '❌ จำเป็นต้องใส่ชื่อแผนกงาน!'; }
       });
 
       if (deptName) {
+        const cleanDeptName = deptName.trim();
+        const deptCode = generateDeptCode(cleanDeptName);
         Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
-        const { error } = await supabase.from('departments').insert([{ department_name: deptName.trim() }]);
+        const { error } = await supabase.from('departments').insert([{ department_name: cleanDeptName, department_code: deptCode }]);
         if (error) throw error;
-        await saveHRActivityLog('DEPARTMENT', 'INSERT', deptName.trim(), `เพิ่มแผนกงานใหม่: ${deptName.trim()}`);
-        Swal.fire('สำเร็จ!', `บันทึกแผนก "${deptName.trim()}" เข้าสู่บริษัทแล้ว`, 'success');
+        await saveHRActivityLog('DEPARTMENT', 'INSERT', cleanDeptName, `เพิ่มแผนกงานใหม่: ${cleanDeptName}`);
+        Swal.fire('สำเร็จ!', `บันทึกแผนก "${escapeHtml(cleanDeptName)}" เรียบร้อยแล้ว`, 'success');
+        refreshDashboard();
       }
     } else if (result.isDenied) {
       const { value: posName } = await Swal.fire({
-        title: 'เพิ่มตำแหน่งงานใหม่เข้าสู่ระบบ',
+        title: 'เพิ่มตำแหน่งงานใหม่',
         input: 'text',
-        inputLabel: 'ระบุชื่อตำแหน่งงานภาษาไทยหรืออังกฤษ',
-        inputPlaceholder: 'เช่น Senior Fullstack Developer',
+        inputLabel: 'ระบุชื่อตำแหน่งงาน',
+        inputPlaceholder: 'เช่น Senior Developer...',
         showCancelButton: true,
         confirmButtonText: 'บันทึกข้อมูล',
         confirmButtonColor: '#3b82f6',
-        inputValidator: (value) => { if (!value) return '❌ จำเป็นต้องใส่ชื่อตำแหน่งงาน!' }
+        inputValidator: (value) => { if (!value) return '❌ จำเป็นต้องใส่ชื่อตำแหน่งงาน!'; }
       });
 
       if (posName) {
@@ -720,21 +1498,21 @@ async function manageDepartments() {
         const { error } = await supabase.from('positions').insert([{ position_name: posName.trim() }]);
         if (error) throw error;
         await saveHRActivityLog('POSITION', 'INSERT', posName.trim(), `เพิ่มตำแหน่งงานใหม่: ${posName.trim()}`);
-        Swal.fire('สำเร็จ!', `บันทึกตำแหน่ง "${posName.trim()}" สำเร็จ`, 'success');
+        Swal.fire('สำเร็จ!', `บันทึกตำแหน่ง "${escapeHtml(posName.trim())}" สำเร็จ`, 'success');
+        refreshDashboard();
       }
     }
   } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    showAppError("เกิดข้อผิดพลาดในการจัดการโครงสร้างองค์กร", err.message);
   }
 }
 
-// ==========================================================================
-// หมวดที่ 2: ตั้งค่ากฎระเบียบและโควตาวันลา
-// ==========================================================================
-
+// ==========================================
+// 8. LEAVE RULES & FLEXIBLE BALANCES MANAGEMENT
+// ==========================================
 async function editGlobalLeaveRules() {
   const supabase = getSupabase();
-  if (!supabase) return;
+  if (!supabase || !window.Swal) return;
 
   try {
     Swal.fire({ title: 'กำลังโหลดประเภทวันลา...', didOpen: () => Swal.showLoading() });
@@ -743,54 +1521,58 @@ async function editGlobalLeaveRules() {
     Swal.close();
 
     let tableHTML = `
-      <div style="font-family:'Sarabun', sans-serif; text-align:left; margin-bottom:15px;">
-        <button id="btn-add-leavetype" class="swal2-confirm swal2-styled" style="background-color:#059669; margin:0 0 15px 0; padding: 8px 16px; font-size:14px; border-radius:6px;">
-          ➕ เพิ่มกฎเกณฑ์/ประเภทการลาใหม่
+      <div style="font-family:'Sarabun', sans-serif; text-align:left; margin-bottom:12px;">
+        <button id="btn-add-leavetype" class="action-btn success-zone" style="font-size:13px; padding:6px 12px; width:auto;">
+          ➕ เพิ่มประเภทการลาใหม่
         </button>
       </div>
       <div style="max-height: 350px; overflow-y: auto; font-family:'Sarabun', sans-serif;">
         <table style="width:100%; text-align:left; font-size:13px; border-collapse:collapse;">
           <thead>
             <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
-              <th style="padding:10px; border:1px solid #cbd5e1;">ประเภทการลา (โค้ดดัชนี)</th>
-              <th style="padding:10px; border:1px solid #cbd5e1; width:110px; text-align:center;">โควตากลาง (วัน/ปี)</th>
-              <th style="padding:10px; border:1px solid #cbd5e1; width:60px; text-align:center;">คำสั่งลบ</th>
+              <th style="padding:8px; border:1px solid #cbd5e1;">ประเภทการลา</th>
+              <th style="padding:8px; border:1px solid #cbd5e1; width:160px; text-align:center;">โควตากลาง (วัน/ปี)</th>
+              <th style="padding:8px; border:1px solid #cbd5e1; width:60px; text-align:center;">ลบ</th>
             </tr>
           </thead>
           <tbody>
     `;
-    
+
     rules.forEach(r => {
       tableHTML += `
         <tr style="border-bottom:1px solid #e2e8f0;">
-          <td style="padding:10px; border:1px solid #cbd5e1;">
-            <b style="color:#1e293b; font-size:14px;">${r.leave_name}</b> <br>
-            <span style="color:#64748b; font-size:11px;">Code: ${r.leave_code}</span>
+          <td style="padding:8px; border:1px solid #cbd5e1;">
+            <b style="color:#1e293b; font-size:13px;">${escapeHtml(r.leave_name)}</b><br>
+            <span style="color:#64748b; font-size:11px;">Code: ${escapeHtml(r.leave_code)}</span>
           </td>
-          <td style="padding:10px; border:1px solid #cbd5e1; text-align:center;">
-            <input type="number" id="quota-${r.id}" class="swal2-input" style="width:80px; height:35px; margin:0; text-align:center; padding:0;" value="${r.yearly_quota}">
+          <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
+            <div style="display:flex; gap:4px; align-items:center; justify-content:center;">
+              <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('quota-${r.id}'); el.value=Math.max(0, (parseFloat(el.value)||0)-1);" style="padding:2px 8px;">-</button>
+              <input type="number" id="quota-${r.id}" class="swal2-input" style="width:60px; height:32px; margin:0; text-align:center; padding:0; font-size:13px;" value="${r.yearly_quota}">
+              <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('quota-${r.id}'); el.value=(parseFloat(el.value)||0)+1;" style="padding:2px 8px;">+</button>
+            </div>
           </td>
-          <td style="padding:10px; border:1px solid #cbd5e1; text-align:center;">
-            <button class="btn-delete-leave" data-id="${r.id}" data-name="${r.leave_name}" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:11px;">
-              ❌ ลบ
+          <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
+            <button class="btn-delete-leave" data-id="${r.id}" data-name="${escapeHtml(r.leave_name)}" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">
+              ❌
             </button>
           </td>
         </tr>
       `;
     });
-    
+
     tableHTML += `</tbody></table></div>`;
 
     const { value: updatedRules } = await Swal.fire({
       title: '⚙️ ตั้งค่าเกณฑ์วันลาภาพรวมบริษัท',
       html: tableHTML,
-      width: '800px',
+      width: 'min(92vw, 700px)',
       showCancelButton: true,
-      confirmButtonText: '💾 บันทึกแก้ไขโควตาทั้งหมด',
+      confirmButtonText: '💾 บันทึกโควตาทั้งหมด',
       cancelButtonText: 'ปิด',
       confirmButtonColor: '#0d9488',
       didOpen: (popup) => {
-        popup.querySelector('#btn-add-leavetype').addEventListener('click', () => {
+        popup.querySelector('#btn-add-leavetype')?.addEventListener('click', () => {
           Swal.close();
           actionAddNewLeaveType();
         });
@@ -814,50 +1596,56 @@ async function editGlobalLeaveRules() {
     });
 
     if (updatedRules) {
-      Swal.fire({ title: 'กำลังปรับเกณฑ์โควตากลางบริษัท...', didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังปรับเกณฑ์โควตากลาง...', didOpen: () => Swal.showLoading() });
       for (const item of updatedRules) {
         if (item.new_quota !== item.old_quota) {
-          await supabase.from('leave_types').update({ yearly_quota: item.new_quota }).eq('id', item.id);
+          const { error: updErr } = await supabase.from('leave_types').update({ yearly_quota: item.new_quota }).eq('id', item.id);
+          if (updErr) throw updErr;
           await saveHRActivityLog('LEAVE_QUOTA', 'UPDATE', item.name, `ปรับโควตาจาก ${item.old_quota} เป็น ${item.new_quota} วัน`);
         }
       }
-      Swal.fire('สำเร็จ', 'อัปเดตโควตากลางบริษัทเสร็จสิ้น', 'success').then(() => editGlobalLeaveRules());
+      Swal.fire('สำเร็จ', 'อัปเดตโควตากลางบริษัทเสร็จสิ้น', 'success');
+      refreshDashboard();
     }
   } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    showAppError("ไม่สามารถปรับเกณฑ์วันลาได้", err.message);
   }
 }
 
 async function actionAddNewLeaveType() {
   const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
   const { value: formValues } = await Swal.fire({
-    title: '➕ เพิ่มสิทธิ์ประเภทวันลาใหม่',
+    title: '➕ เพิ่มประเภทวันลาใหม่',
+    width: 'min(90vw, 450px)',
     html: `
-      <div style="display:flex; flex-direction:column; gap:12px; text-align:left; font-family:'Sarabun', sans-serif;">
+      <div style="display:flex; flex-direction:column; gap:10px; text-align:left; font-family:'Sarabun', sans-serif;">
         <div>
-          <label style="font-size:13px; font-weight:600;">ชื่อภาษาไทยประเภทการลา *</label>
-          <input id="new-leave-name" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:42px;" placeholder="เช่น ลาพักร้อนกรณีพิเศษ">
+          <label style="font-size:13px; font-weight:600;">ชื่อประเภทการลา *</label>
+          <input id="new-leave-name" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;" placeholder="เช่น ลาพักร้อนกรณีพิเศษ">
         </div>
         <div>
-          <label style="font-size:13px; font-weight:600;">รหัสย่อสากลอังกฤษ (ตัวพิมพ์ใหญ่เท่านั้น) *</label>
-          <input id="new-leave-code" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:42px;" placeholder="เช่น SPECIAL_VACATION">
+          <label style="font-size:13px; font-weight:600;">รหัสย่อสากล (พิมพ์ใหญ่) *</label>
+          <input id="new-leave-code" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;" placeholder="เช่น SPECIAL_VACATION">
         </div>
         <div>
-          <label style="font-size:13px; font-weight:600;">สิทธิ์วันลาจำกัดสูงสุดต่อปีปฏิทิน *</label>
-          <input type="number" id="new-leave-quota" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:42px;" value="0">
+          <label style="font-size:13px; font-weight:600;">สิทธิ์วันลาจำกัดต่อปี *</label>
+          <input type="number" id="new-leave-quota" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;" value="6">
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'บันทึกเข้าสู่ระบบฐานข้อมูลกลาง',
+    confirmButtonText: 'บันทึกข้อมูล',
     cancelButtonText: 'ย้อนกลับ',
+    confirmButtonColor: '#0d9488',
     preConfirm: () => {
       const name = document.getElementById('new-leave-name').value.trim();
       const code = document.getElementById('new-leave-code').value.trim().toUpperCase();
       const quota = parseFloat(document.getElementById('new-leave-quota').value) || 0;
-      
+
       if (!name || !code) {
-        Swal.showValidationMessage('⚠️ กรุณากรอกชื่อและรหัสย่อภาษาอังกฤษให้ถูกต้องครบถ้วน');
+        Swal.showValidationMessage('⚠️ กรุณากรอกชื่อและรหัสย่อให้ครบถ้วน');
         return false;
       }
       return { leave_name: name, leave_code: code, yearly_quota: quota, status: 'active' };
@@ -866,10 +1654,11 @@ async function actionAddNewLeaveType() {
 
   if (!formValues) { editGlobalLeaveRules(); return; }
 
-  Swal.fire({ title: 'กำลังเปิดใช้งานเกณฑ์ลาใหม่...', didOpen: () => Swal.showLoading() });
+  Swal.fire({ title: 'กำลังเพิ่มประเภทวันลา...', didOpen: () => Swal.showLoading() });
   const { error } = await supabase.from('leave_types').insert([formValues]);
   if (error) {
-    Swal.fire('ล้มเหลว', error.message, 'error').then(() => actionAddNewLeaveType());
+    showAppError('ไม่สามารถเพิ่มประเภทวันลาได้', error.message);
+    editGlobalLeaveRules();
   } else {
     await saveHRActivityLog('LEAVE_QUOTA', 'CREATE', formValues.leave_name, `เพิ่มประเภทการลาใหม่: ${formValues.leave_name}`);
     Swal.fire('สำเร็จ!', 'บันทึกข้อกำหนดวันลาชุดใหม่แล้ว', 'success').then(() => editGlobalLeaveRules());
@@ -878,12 +1667,14 @@ async function actionAddNewLeaveType() {
 
 async function actionDeleteLeaveType(id, name) {
   const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
   const confirm = await Swal.fire({
     title: '⚠️ ยืนยันปิดสถานะระบบการลานี้?',
-    html: `คุณต้องการระงับประเภทการลาชื่อ "${name}" หรือไม่? ข้อมูลเก่าจะไม่สูญหายแต่พนักงานใหม่จะไม่สามารถใช้รหัสนี้ได้`,
+    html: `คุณต้องการระงับประเภทการลาชื่อ "<b>${escapeHtml(name)}</b>" หรือไม่?`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonText: 'ระงับการใช้งานทันที',
+    confirmButtonText: 'ระงับการใช้งาน',
     confirmButtonColor: '#ef4444'
   });
 
@@ -891,182 +1682,245 @@ async function actionDeleteLeaveType(id, name) {
 
   const { error } = await supabase.from('leave_types').update({ status: 'inactive' }).eq('id', id);
   if (error) {
-    Swal.fire('ข้อผิดพลาด', error.message, 'error').then(() => editGlobalLeaveRules());
+    showAppError('ไม่สามารถระงับประเภทวันลาได้', error.message);
+    editGlobalLeaveRules();
   } else {
-    await saveHRActivityLog('LEAVE_QUOTA', 'DELETE', name, `HR ปิดการใช้งานรหัสเกณฑ์วันลา: ${name}`);
-    Swal.fire('ลบเสร็จสิ้น', 'อัปเดตสถานะเกณฑ์วันลาเรียบร้อย', 'success').then(() => editGlobalLeaveRules());
+    await saveHRActivityLog('LEAVE_QUOTA', 'DELETE', name, `ปิดการใช้งานรหัสเกณฑ์วันลา: ${name}`);
+    Swal.fire('ลบเสร็จสิ้น', 'อัปเดตสถานะเรียบร้อย', 'success').then(() => editGlobalLeaveRules());
   }
 }
 
-async function editIndividualLeaveBalance() {
+async function editIndividualLeaveBalance(presetEmpCode = null) {
   const supabase = getSupabase();
-  if (!supabase) return;
+  if (!supabase || !window.Swal) return;
 
   try {
-    const { value: empCode } = await Swal.fire({
-      title: '🛠️ ปรับโควตาพิเศษรายบุคคล',
-      input: 'text',
-      inputLabel: 'กรอกรหัสพนักงานที่ต้องการปรับยอดสิทธิ์',
-      inputPlaceholder: 'เช่น 19001',
-      showCancelButton: true,
-      inputValidator: (value) => { if (!value) return '❌ กรุณาระบุรหัสพนักงาน' }
-    });
+    let empCode = presetEmpCode;
+
+    if (!empCode) {
+      const { value: inputCode } = await Swal.fire({
+        title: '🛠️ ปรับโควตาพิเศษรายบุคคล',
+        input: 'text',
+        inputLabel: 'กรอกรหัสพนักงานที่ต้องการปรับยอดสิทธิ์',
+        inputPlaceholder: 'เช่น 19001',
+        showCancelButton: true,
+        confirmButtonColor: '#0d9488',
+        inputValidator: (value) => { if (!value) return '❌ กรุณาระบุรหัสพนักงาน'; }
+      });
+      empCode = inputCode;
+    }
 
     if (!empCode) return;
 
     Swal.fire({ title: 'กำลังค้นหาข้อมูลพนักงาน...', didOpen: () => Swal.showLoading() });
 
-    const { data: emp } = await supabase.from('employees').select('id, full_name, employee_code').eq('employee_code', empCode.trim()).maybeSingle();
+    const { data: emp, error: empErr } = await supabase.from('employees').select('id, full_name, employee_code').eq('employee_code', empCode.trim()).maybeSingle();
+    if (empErr) throw empErr;
+
     if (!emp) {
       Swal.fire('ไม่พบรหัสพนักงาน', 'ไม่มีรหัสบุคลากรนี้ในทำเนียบบริษัท', 'warning');
       return;
     }
-    
-    await saveHRActivityLog('LEAVE_QUOTA', 'SELECT', emp.employee_code, `HR ตรวจสอบสิทธิ์วันลารายบุคคล: ${emp.full_name}`);
 
     const currentYear = new Date().getFullYear();
-    const { data: balances, error } = await supabase
+    let { data: balances, error } = await supabase
       .from('leave_balances')
-      .select('id, entitlement_days, remaining_days, leave_types(leave_name)')
+      .select('id, entitlement_days, used_days, remaining_days, leave_type_id, leave_types(leave_name)')
       .eq('employee_id', emp.id)
       .eq('year', currentYear);
 
     if (error) throw error;
+
     if (!balances || balances.length === 0) {
-      Swal.fire('ไม่พบคลังวันลา', 'พนักงานรายนี้ยังไม่ถูกตั้งค่ายอดสิทธิ์ในรอบปีปัจจุบัน', 'warning');
-      return;
+      const newBalances = leaveTypes.map(t => ({
+        employee_id: emp.id,
+        leave_type_id: t.id,
+        year: currentYear,
+        entitlement_days: t.yearly_quota || 0,
+        used_days: 0,
+        remaining_days: t.yearly_quota || 0
+      }));
+      const { data: inserted, error: insErr } = await supabase.from('leave_balances').insert(newBalances).select('id, entitlement_days, used_days, remaining_days, leave_type_id, leave_types(leave_name)');
+      if (insErr) throw insErr;
+      if (inserted) balances = inserted;
     }
 
-    let formHTML = `<div style="text-align:left; font-size:13px; max-height:280px; overflow-y:auto; font-family:'Sarabun';">`;
+    let formHTML = `<div style="text-align:left; font-size:13px; max-height:360px; overflow-y:auto; font-family:'Sarabun', sans-serif;">`;
     balances.forEach(b => {
+      const typeName = b.leave_types?.leave_name || getLeaveType(b.leave_type_id)?.leave_name || 'ทั่วไป';
+      const ent = Number(b.entitlement_days ?? 0);
+      const used = Number(b.used_days ?? 0);
+      const rem = Number(b.remaining_days ?? (ent - used));
+
       formHTML += `
-        <div style="margin-bottom:10px; padding:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;">
-          <div style="font-weight:bold; color:#0f766e; margin-bottom:4px;">${b.leave_types?.leave_name || 'ทั่วไป'}</div>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <span>สิทธิ์รวม:</span>
-            <input type="number" id="entit-${b.id}" class="swal2-input" style="width:65px; height:28px; margin:0; font-size:12px; text-align:center;" value="${b.entitlement_days}">
-            <span>เหลือใช้จริง:</span>
-            <input type="number" id="remain-${b.id}" class="swal2-input" style="width:65px; height:28px; margin:0; font-size:12px; text-align:center;" value="${b.remaining_days}">
+        <div style="margin-bottom:12px; padding:10px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px;">
+          <div style="font-weight:700; color:#0f766e; font-size:14px; margin-bottom:6px;">${escapeHtml(typeName)}</div>
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; align-items:center;">
+
+            <div>
+              <span style="font-size:11px; color:#64748b; display:block;">สิทธิ์รวม (วัน)</span>
+              <div style="display:flex; gap:2px; margin-top:2px;">
+                <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('entit-${b.id}'); el.value=Math.max(0, (parseFloat(el.value)||0)-0.5); window.calcRem('${b.id}');" style="padding:2px 6px;">-</button>
+                <input type="number" id="entit-${b.id}" class="swal2-input" step="0.5" style="width:100%; height:32px; margin:0; font-size:12px; text-align:center; padding:0;" value="${ent}" oninput="window.calcRem('${b.id}')">
+                <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('entit-${b.id}'); el.value=(parseFloat(el.value)||0)+0.5; window.calcRem('${b.id}');" style="padding:2px 6px;">+</button>
+              </div>
+            </div>
+
+            <div>
+              <span style="font-size:11px; color:#64748b; display:block;">ใช้ไปแล้ว (วัน)</span>
+              <div style="display:flex; gap:2px; margin-top:2px;">
+                <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('used-${b.id}'); el.value=Math.max(0, (parseFloat(el.value)||0)-0.5); window.calcRem('${b.id}');" style="padding:2px 6px;">-</button>
+                <input type="number" id="used-${b.id}" class="swal2-input" step="0.5" style="width:100%; height:32px; margin:0; font-size:12px; text-align:center; padding:0;" value="${used}" oninput="window.calcRem('${b.id}')">
+                <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('used-${b.id}'); el.value=(parseFloat(el.value)||0)+0.5; window.calcRem('${b.id}');" style="padding:2px 6px;">+</button>
+              </div>
+            </div>
+
+            <div>
+              <span style="font-size:11px; color:#0d9488; font-weight:600; display:block;">คงเหลือ (วัน)</span>
+              <input type="number" id="remain-${b.id}" class="swal2-input" step="0.5" style="width:100%; height:32px; margin:2px 0 0 0; font-size:12px; text-align:center; font-weight:700; color:#0f766e; background:#e6fffa;" value="${rem}">
+            </div>
+
           </div>
         </div>`;
     });
     formHTML += `</div>`;
 
+    window.calcRem = (bId) => {
+      const entVal = parseFloat(document.getElementById(`entit-${bId}`)?.value) || 0;
+      const usedVal = parseFloat(document.getElementById(`used-${bId}`)?.value) || 0;
+      const remainInput = document.getElementById(`remain-${bId}`);
+      if (remainInput) {
+        remainInput.value = Math.max(0, entVal - usedVal);
+      }
+    };
+
     const { value: updatedBalances } = await Swal.fire({
-      title: `แก้ไขโควตา: ${emp.full_name}`,
+      title: `🛠️ ปรับโควตา: ${escapeHtml(emp.full_name)}`,
       html: formHTML,
-      width: '450px',
+      width: 'min(92vw, 550px)',
       showCancelButton: true,
-      confirmButtonText: '💾 อัปเดตยอดประวัติ',
+      confirmButtonText: '💾 อัปเดตยอดโควตา',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#0d9488',
       preConfirm: () => {
         const listBalances = [];
         balances.forEach(b => {
           const newEntit = parseFloat(document.getElementById(`entit-${b.id}`).value) || 0;
+          const newUsed = parseFloat(document.getElementById(`used-${b.id}`).value) || 0;
           const newRemain = parseFloat(document.getElementById(`remain-${b.id}`).value) || 0;
-          listBalances.push({ id: b.id, old_entit: b.entitlement_days, old_remain: b.remaining_days, new_entit: newEntit, new_remain: newRemain });
+          listBalances.push({ 
+            id: b.id, 
+            old_entit: b.entitlement_days, 
+            old_used: b.used_days,
+            old_remain: b.remaining_days, 
+            new_entit: newEntit, 
+            new_used: newUsed,
+            new_remain: newRemain 
+          });
         });
         return listBalances;
       }
     });
 
     if (updatedBalances) {
-      Swal.fire({ title: 'กำลังบันทึกข้อมูลปรับยอด...', didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังปรับปรุงยอดโควตา...', didOpen: () => Swal.showLoading() });
       for (const b of updatedBalances) {
-        if (b.new_entit !== b.old_entit || b.new_remain !== b.old_remain) {
-          await supabase.from('leave_balances').update({ entitlement_days: b.new_entit, remaining_days: b.new_remain }).eq('id', b.id);
+        if (b.new_entit !== b.old_entit || b.new_used !== b.old_used || b.new_remain !== b.old_remain) {
+          const { error: updErr } = await supabase.from('leave_balances').update({ 
+            entitlement_days: b.new_entit, 
+            used_days: b.new_used,
+            remaining_days: b.new_remain 
+          }).eq('id', b.id);
+          if (updErr) throw updErr;
         }
       }
-      await saveHRActivityLog('LEAVE_QUOTA', 'UPDATE', `รหัสพนักงาน: ${emp.employee_code}`, `ปรับสิทธิ์ใบลาเคสพิเศษรายบุคคลให้คุณ ${emp.full_name}`);
-      Swal.fire('สำเร็จ', 'ดำเนินการปรับยอดสิทธิ์รายบุคคลเรียบร้อย', 'success');
+      await saveHRActivityLog('LEAVE_QUOTA', 'UPDATE', emp.employee_code, `ปรับสิทธิ์ใบลาให้คุณ ${emp.full_name}`);
+      Swal.fire('สำเร็จ', 'ดำเนินการปรับยอดสิทธิ์เรียบร้อยแล้ว', 'success');
+      await refreshDashboard();
+      if (document.getElementById("employeeModal")?.classList.contains("open")) {
+        openEmployeeDetail(emp.id);
+      }
     }
   } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    showAppError("ไม่สามารถปรับโควตารายบุคคลได้", err.message);
   }
 }
 
-// ==========================================================================
-// 📅 ฟังก์ชันจัดการวันหยุดบริษัท (เพิ่ม / ลบ / แก้ไข)
-// ==========================================================================
+// ==========================================
+// 9. COMPANY HOLIDAYS MANAGEMENT (FULL & FIXED)
+// ==========================================
 async function manageCompanyHolidays() {
   const supabase = getSupabase();
-  if (!supabase) return;
+  if (!supabase || !window.Swal) return;
 
   try {
-    Swal.fire({ title: 'กำลังเปิดปฏิทินบริษัท...', didOpen: () => Swal.showLoading() });
-    
-    // ดึงข้อมูลวันหยุดทั้งหมด
-    const { data: holidays, error } = await supabase.from('company_holidays').select('*').order('holiday_date', { ascending: true });
-    if (error) throw error;
-    Swal.close();
+    Swal.fire({ title: 'กำลังโหลดปฏิทินวันหยุด...', didOpen: () => Swal.showLoading() });
 
-    // สร้างตารางแสดงวันหยุด
-    let listHTML = `
-      <div style="text-align:left; font-size:13px; margin-bottom:15px; font-family:'Sarabun';">
-        <button id="btn-add-holiday" class="swal2-confirm swal2-styled" style="background-color:#059669; padding: 8px 16px; font-size:14px; border-radius:6px; margin:0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-          ➕ เพิ่มวันหยุดบริษัทใหม่
-        </button>
+    const currentYear = new Date().getFullYear();
+    const { data: holidays, error } = await supabase
+      .from('company_holidays')
+      .select('*')
+      .gte('holiday_date', `${currentYear}-01-01`)
+      .lte('holiday_date', `${currentYear}-12-31`)
+      .order('holiday_date', { ascending: true });
+
+    if (error && error.code !== 'PGRST116') throw error;
+
+    let holidayRows = (holidays || []).map((h, index) => `
+      <tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">${index + 1}</td>
+        <td style="padding:8px; border:1px solid #cbd5e1; white-space:nowrap;">
+          ${window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(h.holiday_date) : h.holiday_date}
+        </td>
+        <td style="padding:8px; border:1px solid #cbd5e1;"><b>${escapeHtml(h.holiday_name)}</b></td>
+        <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
+          <button class="btn-delete-holiday" data-id="${h.id}" data-name="${escapeHtml(h.holiday_name)}" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">
+            ❌ ลบ
+          </button>
+        </td>
+      </tr>
+    `).join('');
+
+    if (!holidayRows) {
+      holidayRows = `<tr><td colspan="4" style="text-align:center; padding:12px; color:#64748b;">ยังไม่มีวันหยุดบริษัทถูกตั้งค่าในปี ${currentYear}</td></tr>`;
+    }
+
+    const htmlContent = `
+      <div style="font-family:'Sarabun', sans-serif; text-align:left;">
+        <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:13px; color:#64748b;">รายการวันหยุดประจำปี ${currentYear}</span>
+          <button id="btn-add-holiday" class="action-btn success-zone" style="font-size:12px; padding:6px 12px;">➕ เพิ่มวันหยุดใหม่</button>
+        </div>
+        <div style="max-height: 320px; overflow-y: auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+              <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
+                <th style="padding:8px; border:1px solid #cbd5e1; width:40px; text-align:center;">ลำดับ</th>
+                <th style="padding:8px; border:1px solid #cbd5e1; width:120px;">วันที่</th>
+                <th style="padding:8px; border:1px solid #cbd5e1;">ชื่อวันหยุด</th>
+                <th style="padding:8px; border:1px solid #cbd5e1; width:60px; text-align:center;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${holidayRows}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div style="text-align:left; font-size:13px; max-height:350px; overflow-y:auto; font-family:'Sarabun';">
-        <table style="width:100%; border-collapse:collapse;">
-          <thead>
-            <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
-              <th style="padding:10px; border:1px solid #cbd5e1; width:30%;">วันที่</th>
-              <th style="padding:10px; border:1px solid #cbd5e1; width:45%;">ชื่อวันหยุด</th>
-              <th style="padding:10px; border:1px solid #cbd5e1; text-align:center; width:25%;">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody>
     `;
 
-    if (!holidays || holidays.length === 0) {
-      listHTML += `<tr><td colspan="3" style="text-align:center; padding:20px; color:#64748b;">ปฏิทินว่างเปล่า ยังไม่มีวันหยุดกำหนดไว้</td></tr>`;
-    } else {
-      holidays.forEach(h => {
-        // แปลงรูปแบบวันที่ให้สวยงาม
-        const dateObj = new Date(h.holiday_date);
-        const formattedDate = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-
-        listHTML += `
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:10px; border:1px solid #cbd5e1;"><b>${formattedDate}</b></td>
-            <td style="padding:10px; border:1px solid #cbd5e1;">${h.holiday_name}</td>
-            <td style="padding:10px; border:1px solid #cbd5e1; text-align:center;">
-              <button class="btn-edit-holiday" data-id="${h.id}" data-date="${h.holiday_date}" data-name="${h.holiday_name}" style="background:#3b82f6; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:4px;">✏️ แก้ไข</button>
-              <button class="btn-delete-holiday" data-id="${h.id}" data-name="${h.holiday_name}" style="background:#ef4444; color:white; border:none; padding:5px 8px; border-radius:4px; cursor:pointer; font-size:12px;">❌ ลบ</button>
-            </td>
-          </tr>
-        `;
-      });
-    }
-    listHTML += `</tbody></table></div>`;
-
-    // แสดง Modal หลัก
-    await Swal.fire({
-      title: '📅 ทำเนียบวันหยุดประจำปีบริษัท',
-      html: listHTML,
-      width: '750px',
+    Swal.fire({
+      title: '📅 ปฏิทินวันหยุดบริษัท',
+      html: htmlContent,
+      width: 'min(92vw, 650px)',
       showConfirmButton: false,
       showCancelButton: true,
-      cancelButtonText: 'ปิดหน้าต่างปฏิทิน',
+      cancelButtonText: 'ปิดหน้าต่าง',
       didOpen: (popup) => {
-        // Event ปุ่มเพิ่มวันหยุด
-        popup.querySelector('#btn-add-holiday').addEventListener('click', () => {
+        popup.querySelector('#btn-add-holiday')?.addEventListener('click', () => {
           Swal.close();
           actionAddNewHoliday();
         });
-        
-        // Event ปุ่มแก้ไข
-        popup.querySelectorAll('.btn-edit-holiday').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-id');
-            const date = btn.getAttribute('data-date');
-            const name = btn.getAttribute('data-name');
-            Swal.close();
-            actionEditHoliday(id, date, name);
-          });
-        });
-        
-        // Event ปุ่มลบ
         popup.querySelectorAll('.btn-delete-holiday').forEach(btn => {
           btn.addEventListener('click', () => {
             const id = btn.getAttribute('data-id');
@@ -1079,350 +1933,79 @@ async function manageCompanyHolidays() {
     });
 
   } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    showAppError("ไม่สามารถดึงข้อมูลวันหยุดบริษัทได้", err.message);
   }
 }
 
-// 🟢 ฟังก์ชันย่อย: เพิ่มวันหยุดใหม่
 async function actionAddNewHoliday() {
   const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
   const { value: formValues } = await Swal.fire({
     title: '➕ เพิ่มวันหยุดบริษัทใหม่',
+    width: 'min(90vw, 450px)',
     html: `
-      <div style="text-align:left; font-family:'Sarabun';">
-        <label style="font-size:14px; font-weight:600;">วันที่หยุด *</label>
-        <input type="date" id="new-holiday-date" class="swal2-input" style="height:42px; margin:4px 0 15px 0; width:100%;">
-        <label style="font-size:14px; font-weight:600;">ชื่อวันหยุด (คำอธิบาย) *</label>
-        <input type="text" id="new-holiday-name" class="swal2-input" placeholder="เช่น วันหยุดชดเชยวันสงกรานต์" style="height:42px; margin:4px 0 0 0; width:100%;">
+      <div style="display:flex; flex-direction:column; gap:10px; text-align:left; font-family:'Sarabun', sans-serif;">
+        <div>
+          <label style="font-size:13px; font-weight:600;">วันที่หยุด *</label>
+          <input type="date" id="new-holiday-date" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;">
+        </div>
+        <div>
+          <label style="font-size:13px; font-weight:600;">ชื่อวันหยุด / รายละเอียด *</label>
+          <input type="text" id="new-holiday-name" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;" placeholder="เช่น วันขึ้นปีใหม่, วันสงกรานต์">
+        </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: '💾 บันทึกวันหยุด',
+    confirmButtonText: 'บันทึกข้อมูล',
     cancelButtonText: 'ย้อนกลับ',
     confirmButtonColor: '#0d9488',
     preConfirm: () => {
-      const hDate = document.getElementById('new-holiday-date').value;
-      const hName = document.getElementById('new-holiday-name').value.trim();
-      if (!hDate || !hName) {
-        Swal.showValidationMessage('❌ จำเป็นต้องเลือกทั้งวันที่และระบุชื่อวันหยุด');
+      const date = document.getElementById('new-holiday-date').value;
+      const name = document.getElementById('new-holiday-name').value.trim();
+      if (!date || !name) {
+        Swal.showValidationMessage('⚠️ กรุณาระบุวันที่และชื่อวันหยุดให้ครบถ้วน');
         return false;
       }
-      return { holiday_date: hDate, holiday_name: hName };
+      return { holiday_date: date, holiday_name: name };
     }
   });
 
-  if (formValues) {
-    Swal.fire({ title: 'กำลังผูกวันหยุดเข้าตารางงาน...', didOpen: () => Swal.showLoading() });
-    const { error: insErr } = await supabase.from('company_holidays').insert([formValues]);
-    
-    if (insErr) {
-      Swal.fire('ข้อผิดพลาด', insErr.message, 'error').then(() => manageCompanyHolidays());
-    } else {
-      await saveHRActivityLog('HOLIDAY', 'INSERT', formValues.holiday_date, `เพิ่มวันหยุดประจำปีบริษัท: ${formValues.holiday_name}`);
-      Swal.fire('สำเร็จ', 'บันทึกวันหยุดลงระบบปฏิทินกลางแล้ว', 'success').then(() => manageCompanyHolidays());
-    }
-  } else {
-    // ถ้ายกเลิก ให้กลับไปหน้าตาราง
+  if (!formValues) { manageCompanyHolidays(); return; }
+
+  Swal.fire({ title: 'กำลังเพิ่มวันหยุด...', didOpen: () => Swal.showLoading() });
+  const { error } = await supabase.from('company_holidays').insert([formValues]);
+  if (error) {
+    showAppError('ไม่สามารถบันทึกวันหยุดได้', error.message);
     manageCompanyHolidays();
+  } else {
+    await saveHRActivityLog('HOLIDAY', 'CREATE', formValues.holiday_name, `เพิ่มวันหยุดบริษัท: ${formValues.holiday_name} (${formValues.holiday_date})`);
+    Swal.fire('สำเร็จ!', 'บันทึกวันหยุดเรียบร้อยแล้ว', 'success').then(() => manageCompanyHolidays());
   }
 }
 
-// 🟡 ฟังก์ชันย่อย: แก้ไขวันหยุดเดิม
-async function actionEditHoliday(id, oldDate, oldName) {
-  const supabase = getSupabase();
-  const { value: formValues } = await Swal.fire({
-    title: '📝 แก้ไขข้อมูลวันหยุด',
-    html: `
-      <div style="text-align:left; font-family:'Sarabun';">
-        <label style="font-size:14px; font-weight:600;">วันที่หยุด *</label>
-        <input type="date" id="edit-holiday-date" class="swal2-input" value="${oldDate}" style="height:42px; margin:4px 0 15px 0; width:100%;">
-        <label style="font-size:14px; font-weight:600;">ชื่อวันหยุด (คำอธิบาย) *</label>
-        <input type="text" id="edit-holiday-name" class="swal2-input" value="${oldName}" style="height:42px; margin:4px 0 0 0; width:100%;">
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: '💾 บันทึกการแก้ไข',
-    cancelButtonText: 'ย้อนกลับ',
-    confirmButtonColor: '#3b82f6',
-    preConfirm: () => {
-      const hDate = document.getElementById('edit-holiday-date').value;
-      const hName = document.getElementById('edit-holiday-name').value.trim();
-      if (!hDate || !hName) {
-        Swal.showValidationMessage('❌ จำเป็นต้องเลือกทั้งวันที่และระบุชื่อวันหยุด');
-        return false;
-      }
-      return { holiday_date: hDate, holiday_name: hName };
-    }
-  });
-
-  if (formValues) {
-    Swal.fire({ title: 'กำลังอัปเดตข้อมูล...', didOpen: () => Swal.showLoading() });
-    const { error: updErr } = await supabase.from('company_holidays').update(formValues).eq('id', id);
-    
-    if (updErr) {
-      Swal.fire('ข้อผิดพลาด', updErr.message, 'error').then(() => manageCompanyHolidays());
-    } else {
-      await saveHRActivityLog('HOLIDAY', 'UPDATE', formValues.holiday_date, `แก้ไขวันหยุด: ${oldName} เป็น ${formValues.holiday_name}`);
-      Swal.fire('สำเร็จ', 'อัปเดตข้อมูลวันหยุดเรียบร้อยแล้ว', 'success').then(() => manageCompanyHolidays());
-    }
-  } else {
-    manageCompanyHolidays();
-  }
-}
-
-// 🔴 ฟังก์ชันย่อย: ลบวันหยุด
 async function actionDeleteHoliday(id, name) {
   const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
   const confirm = await Swal.fire({
     title: '⚠️ ยืนยันการลบวันหยุด?',
-    html: `คุณต้องการลบวันหยุด <b>"${name}"</b> ออกจากปฏิทินบริษัทใช่หรือไม่?`,
+    html: `คุณต้องการลบวันหยุด "<b>${escapeHtml(name)}</b>" ใช่หรือไม่?`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonText: '🗑️ ยืนยันการลบ',
-    confirmButtonColor: '#ef4444',
-    cancelButtonText: 'ยกเลิก'
-  });
-
-  if (confirm.isConfirmed) {
-    Swal.fire({ title: 'กำลังลบวันหยุด...', didOpen: () => Swal.showLoading() });
-    const { error } = await supabase.from('company_holidays').delete().eq('id', id);
-    
-    if (error) {
-      Swal.fire('ข้อผิดพลาด', error.message, 'error').then(() => manageCompanyHolidays());
-    } else {
-      await saveHRActivityLog('HOLIDAY', 'DELETE', name, `ลบวันหยุดบริษัท: ${name}`);
-      Swal.fire('ลบสำเร็จ', 'นำวันหยุดออกจากระบบเรียบร้อย', 'success').then(() => manageCompanyHolidays());
-    }
-  } else {
-    manageCompanyHolidays();
-  }
-}
-// ==========================================================================
-// หมวดที่ 3: ความปลอดภัย รายงาน และ Audit Log
-// ==========================================================================
-
-async function viewAuditLogs() {
-  const supabase = getSupabase();
-  if (!supabase) return;
-
-  try {
-    Swal.fire({ title: 'กำลังอ่านบันทึกประวัติความปลอดภัย...', didOpen: () => Swal.showLoading() });
-    const { data: logs, error } = await supabase.from('hr_admin_management_logs').select('*').order('created_at', { ascending: false }).limit(50);
-    if (error) throw error;
-    
-    // บันทึก Log การขอดู Audit Log เพื่อความโปร่งใส
-    await saveHRActivityLog('SYSTEM_AUDIT', 'SELECT', 'System Logs', 'HR เปิดดูบันทึกประวัติความปลอดภัยของระบบ');
-    Swal.close();
-
-    let logsHTML = `<div style="text-align:left; font-size:13px; max-height:500px; overflow-y:auto; font-family:'Sarabun';">`;
-    if (!logs || logs.length === 0) {
-      logsHTML += `<div style="text-align:center; padding:20px; color:#64748b;">ระบบบันทึกประวัติความปลอดภัยยังว่างเปล่า</div>`;
-    } else {
-      logs.forEach(l => {
-        const d = new Date(l.created_at).toLocaleString('th-TH');
-        const badgeColor = l.action_type === 'INSERT' ? '#16a34a' : l.action_type === 'DELETE' ? '#dc2626' : l.action_type === 'SELECT' ? '#ca8a04' : '#2563eb';
-        logsHTML += `
-          <div style="padding: 10px; border-bottom: 1px solid #e2e8f0; margin-bottom: 6px; background:#f8fafc; border-radius:6px;">
-            <div style="display:flex; justify-content:between; font-weight:bold;">
-              <span style="color: ${badgeColor};">[${l.action_type}] ${l.action_category}</span>
-              <span style="color: #64748b; font-size:11px; margin-left:auto;">${d}</span>
-            </div>
-            <div style="margin-top:2px;"><b>ผู้จัดการ:</b> ${l.actor_name} | <b>เป้าหมาย:</b> ${l.target_identifier}</div>
-            <div style="color:#475569; margin-top:2px; font-style:italic; border-left:2px solid #cbd5e1; padding-left:6px;">${l.description}</div>
-          </div>`;
-      });
-    }
-    logsHTML += `</div>`;
-
-    Swal.fire({
-      title: 'บันทึกประวัติความปลอดภัยระบบควบคุม (Audit Log)',
-      html: logsHTML,
-      width: '850px',
-      showCancelButton: true,
-      showConfirmButton: false,
-      cancelButtonText: 'ปิดบันทึกตรวจสอบ'
-    });
-  } catch (err) {
-    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดชุดข้อมูลบันทึกความปลอดภัยได้', 'error');
-  }
-}
-
-async function resetYearlyLeave() {
-  const supabase = getSupabase();
-  if (!supabase) return;
-
-  try {
-    const nextYear = new Date().getFullYear() + 1;
-    const { isConfirmed } = await Swal.fire({
-      title: `<span style="color: #dc2626; font-size: 24px; font-weight: bold;">🚨 สั่งคำนวณและรีเซ็ตสิทธิ์วันลาประจำปีใหม่</span>`,
-      html: `
-        <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 12px; margin-bottom: 12px; text-align: left; border-radius: 6px; font-family:'Sarabun';">
-          <strong style="color: #991b1b; display: block;">⚠️ คำแจ้งเตือนวิกฤตระบบสารสนเทศ</strong>
-          <span style="color: #b91c1c; font-size: 13.5px; font-weight:bold;">
-            คำสั่งนี้จะรันการประมวลผลเซิร์ฟเวอร์หลังบ้าน (RPC) เพื่อเปิดบัญชีจัดสรรยอดสิทธิ์วันลาของปีงบประมาณถัดไป ค.ศ. ${nextYear} ให้พนักงานทุกคนทันที
-          </span>
-        </div>
-        <p style="font-size:14px; font-family:'Sarabun';">คุณแน่ใจที่จะล้างสิทธิ์เดิมและก้าวเข้าสู่ปีปฏิทินงบประมาณการลาใหม่ ค.ศ. ${nextYear} หรือไม่?</p>
-      `,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      confirmButtonText: '⚠️ ยืนยันรันระบบตัดสิทธิ์ปีงบประมาณใหม่',
-      cancelButtonText: 'ยกเลิกคำสั่งรัน'
-    });
-
-    if (isConfirmed) {
-      Swal.fire({ title: 'ระบบกลางกำลังรันชุดคำสั่งคำนวณสิทธิ์ประจำปีขนาดใหญ่...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      const { data, error } = await supabase.rpc('sp_initialize_new_year_balances', { target_year: nextYear });
-      if (error) throw error;
-      await saveHRActivityLog('LEAVE_QUOTA', 'DELETE', `ปีบัญชี: ${nextYear}`, `สั่งเคลียร์ยอดและรันระบบคำนวณตั้งต้นชุดสิทธิ์วันลาปีปฏิทินใหม่เอี่ยม`, null, { result: data });
-      Swal.fire('ดำเนินการรีเซ็ตสิทธิ์สำเร็จ', `เปิดระบบลงทะเบียนสิทธิ์ลาของรอบปี ค.ศ. ${nextYear} ให้บุคลากรเรียบร้อย`, 'success');
-    }
-  } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาดขั้นวิกฤต', err.message, 'error');
-  }
-}
-
-async function exportLeaveReport() {
-  const supabase = getSupabase();
-  if (!supabase) return;
-
-  try {
-    Swal.fire({ title: 'กำลังดึงรายงานคำขอลาจากระบบกลาง...', didOpen: () => Swal.showLoading() });
-    
-    // บันทึก Log เมื่อ HR ขอ Export รายงาน (ดึงข้อมูล)
-    await saveHRActivityLog('REPORT_EXPORT', 'SELECT', 'Leave Report', `HR สั่งดาวน์โหลดรายงานการลาดิบ (CSV) ออกจากระบบ`);
-
-    const { data: requests, error } = await supabase.from('leave_requests').select('start_date, end_date, total_days, reason, status, employees(employee_code, full_name)');
-    if (error) throw error;
-    Swal.close();
-
-    let csvContent = "\uFEFF"; 
-    csvContent += "รหัสพนักงาน,ชื่อ-นามสกุล,วันที่เริ่มลา,วันที่สิ้นสุด,จำนวนวันลา,เหตุผลการลา,สถานะคำขอ\n";
-
-    requests.forEach(r => {
-      csvContent += `"${r.employees?.employee_code || '-'}","${r.employees?.full_name || '-'}","${r.start_date}","${r.end_date}","${r.total_days}","${r.reason || '-'}","${r.status}"\n`;
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `รายงานสารสนเทศใบลา_PVT_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดาวน์โหลดข้อมูลรายงานได้', 'error');
-  }
-}
-
-// ==========================================================================
-// 📘 ฟังก์ชันเสริม: ควบคุมการเปิด/ปิดกล่องคู่มือแนะนำการใช้งานประจำหน้าแดชบอร์ด
-// ==========================================================================
-function toggleInstructions() {
-  const content = document.getElementById("instructionsContent");
-  const arrow = document.getElementById("instructionArrow");
-  
-  if (content && arrow) {
-    content.classList.toggle("active");
-    
-    // เนื่องจากกล่องเปิดขึ้นด้านบน: เปิดอยู่ = ลูกศรชี้ลง (expand_more), ปิดอยู่ = ลูกศรชี้ขึ้น (expand_less)
-    if (content.classList.contains("active")) {
-      arrow.textContent = "expand_more";
-    } else {
-      arrow.textContent = "expand_less";
-    }
-  }
-}
-
-async function saveSpecialDayDraft(eventName, eventDate, isHoliday, note) {
-    const supabase = window.pvtSupabase.getClient();
-    
-    const { data, error } = await supabase
-        .from('special_holidays')
-        .insert([
-            {
-                event_name: eventName,
-                event_date: eventDate,
-                is_holiday: isHoliday, // true หรือ false
-                status: 'draft',       // ยังไม่ส่งไปหน้าพนักงาน
-                note: note
-            }
-        ]);
-
-    if (error) {
-        console.error("Error saving draft:", error);
-    } else {
-        alert("บันทึกร่างวันพิเศษเรียบร้อยแล้ว (เฉพาะ HR/ผู้บริหาร)");
-    }
-}
-
-async function loadSpecialDaysForHR() {
-    const supabase = window.pvtSupabase.getClient();
-    
-    const { data, error } = await supabase
-        .from('special_holidays')
-        .select('*')
-        .order('event_date', { ascending: true });
-
-    if (error) {
-        console.error("Error fetching data:", error);
-        return;
-    }
-
-    // นำ data ไปสร้างตาราง/การ์ดแสดงผลให้ HR และผู้บริหารร่วมกันเคาะตัดสินใจ
-    console.log("รายการวันพิเศษทั้งหมดสำหรับ HR:", data);
-}
-
-async function publishSpecialDay(holidayId) {
-    const supabase = window.pvtSupabase.getClient();
-
-    const { data, error } = await supabase
-        .from('special_holidays')
-        .update({ status: 'published' })
-        .eq('id', holidayId);
-
-    if (!error) {
-        alert("ส่งข้อมูลไปหน้าแสดงผลของพนักงานเรียบร้อยแล้ว!");
-    }
-}
-
-window.handleLogout = function() {
-  Swal.fire({
-    title: 'ยืนยันการออกจากระบบ',
-    text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444', // สีแดงสำหรับปุ่มออกจากระบบ
-    cancelButtonColor: '#64748b',  // สีเทาสีสレートสำหรับปุ่มยกเลิก
-    confirmButtonText: 'ออกจากระบบ',
+    confirmButtonText: 'ลบข้อมูล',
     cancelButtonText: 'ยกเลิก',
-    reverseButtons: true, // สลับให้ปุ่มยกเลิกอยู่ซ้าย ปุ่มยืนยันอยู่ขวา
-    focusCancel: true,
-    customClass: {
-      popup: 'pvt-logout-swal-popup',
-      title: 'pvt-logout-swal-title',
-      confirmButton: 'pvt-logout-confirm-btn',
-      cancelButton: 'pvt-logout-cancel-btn'
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      // แสดงสถานะกำลังออกจากระบบ
-      Swal.fire({
-        title: 'กำลังออกจากระบบ...',
-        text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
-        icon: 'success',
-        showConfirmButton: false,
-        timer: 1200,
-        timerProgressBar: true
-      });
-
-      setTimeout(() => {
-        sessionStorage.clear();
-        localStorage.clear();
-        window.location.href = "/index.html";
-      }, 1200);
-    }
+    confirmButtonColor: '#ef4444'
   });
-};
+
+  if (!confirm.isConfirmed) { manageCompanyHolidays(); return; }
+
+  const { error } = await supabase.from('company_holidays').delete().eq('id', id);
+  if (error) {
+    showAppError('ไม่สามารถลบวันหยุดได้', error.message);
+    manageCompanyHolidays();
+  } else {
+    await saveHRActivityLog('HOLIDAY', 'DELETE', name, `ลบวันหยุดบริษัท: ${name}`);
+    Swal.fire('ลบเสร็จสิ้น', 'ลบวันหยุดเรียบร้อยแล้ว', 'success').then(() => manageCompanyHolidays());
+  }
+}
