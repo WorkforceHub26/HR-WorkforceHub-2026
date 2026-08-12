@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   
   <link rel="stylesheet" href="/css/home.css" />
+  
  
 
 </head>
@@ -23,15 +24,15 @@
       </div>
 
       <nav class="nav-menu">
-        <a href="/home.html" class="nav-item active" title="หน้าหลัก">
+        <a href="/pages/hr/home.html" class="nav-item active" title="หน้าหลัก">
           <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
-        <a href="/hr.html" class="nav-item" title="อนุมัติใบลา">
+        <a href="/pages/hr/hr.html" class="nav-item" title="อนุมัติใบลา">
           <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">อนุมัติใบลา</span>
         </a>
-        <a href="/pages/user/management.html" class="nav-item" title="พนักงาน">
+        <a href="/pages/hr/management.html" class="nav-item" title="พนักงาน">
           <span class="material-symbols-outlined">manage_accounts</span>
           <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
         </a>
@@ -42,10 +43,6 @@
         <a href="/pages/user/holidays.html" class="nav-item" title="วันหยุด">
           <span class="material-symbols-outlined">calendar_today</span>
           <span class="nav-label">วันหยุด</span>
-        </a>
-        <a href="/pages/user/history-table.html" class="nav-item" title="ประวัติ">
-          <span class="material-symbols-outlined">history_edu</span>
-          <span class="nav-label">ประวัติ</span>
         </a>
 
         <!-- ปุ่มเปิดระบบจัดการบัตรพนักงาน ใน Sidebar -->
@@ -109,8 +106,8 @@
               </div>
 
               <div class="notif-footer">
-                <a href="#" onclick="return false;">ดูการแจ้งเตือนทั้งหมด</a>
-              </div>
+                  <a href="#" onclick="openAllNotificationsModal(); return false;">ดูการแจ้งเตือนทั้งหมด</a>
+                </div>
                </div>
              </div>
           </div>
@@ -151,14 +148,14 @@
             <h2>เมนูจัดการด่วน</h2>
           </div>
           <div class="quick-grid">
-            <a href="/hr.html" class="quick-card hover-purple">
+            <a href="/pages/hr/hr.html" class="quick-card hover-purple">
               <div class="icon-circle bg-purple"><span class="material-symbols-outlined">fact_check</span></div>
               <div class="text">
                 <strong>อนุมัติใบลา</strong>
                 <p>จัดการคำขอลา</p>
               </div>
             </a>
-            <a href="/pages/user/management.html" class="quick-card hover-blue">
+            <a href="/pages/hr/management.html" class="quick-card hover-blue">
               <div class="icon-circle bg-blue"><span class="material-symbols-outlined">manage_accounts</span></div>
               <div class="text">
                 <strong>ข้อมูลพนักงาน</strong>
@@ -282,14 +279,16 @@
   <div id="statusToast" class="toast"></div>
 
   <!-- Scripts -->
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/js/supabase-config.js"></script>
-    
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="/js/chart-analytics.js"></script>
-  <script src="/js/notification.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="/js/auth-guard.js"></script>
-  <script src="/js/home.js"></script>
+<!-- 1. External Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- 2. Your JS Files (ใช้ ../../ เพื่อถอยออกจาก pages/hr/ ไปหาโฟลเดอร์ js นอกสุด) -->
+<script src="../../js/supabase-config.js"></script>
+<script src="../../js/auth-guard.js"></script>
+<script src="../../js/chart-analytics.js"></script>
+<script src="../../js/notification.js"></script>
+<script src="../../js/home.js"></script>
 </body>
 </html>

@@ -1,0 +1,22 @@
+/* 🌫️ บังคับใช้ฟอนต์ Sarabun และสไตล์กระจกเบลอ SweetAlert ทุกหน้า */
+body {
+  font-family: 'Sarabun', sans-serif !important;
+}
+
+/* ฉากหลังเบลอสำหรับ SweetAlert2 */
+.swal2-container {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* กล่องป๊อปอัปสไตล์ Glassmorphism */
+.pvt-guard-popup {
+  border-radius: 24px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+  font-family: 'Sarabun', sans-serif !important;
+}

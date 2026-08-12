@@ -53,10 +53,10 @@ async function initUserHome() {
       console.log("🔄 [DASHBOARD] ใช้แผนสำรอง: ดึงข้อมูลโปรไฟล์จากแคช (Session)");
       let cachedUser = null;
       try {
-        cachedUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+        cachedUser = JSON.parse(localStorage.getItem("currentUser") || "null");
         console.log("📦 [SESSION] ข้อมูลที่เจอใน Session Storage:", cachedUser);
       } catch (e) {
-        console.error("❌ [ERROR] อ่านค่า sessionStorage ล้มเหลว:", e);
+        console.error("❌ [ERROR] อ่านค่า localStorage ล้มเหลว:", e);
       }
 
       if (cachedUser) {
@@ -253,19 +253,21 @@ window.loadRecentLeaves = async function(profile) {
         // 📍 2. [แก้ไขแล้ว] ตรวจสอบสถานะและคอมเมนต์เพื่อแยก "ไม่อนุมัติ" กับ "ยกเลิก"
         let displayStatus = labelFn(item.status);
         let badgeStyle = "background:#fff3cd; color:#854d0e; border:1px solid #fde047;"; 
-        
-        if (item.status === "approved") {
-          badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
-        } else if (item.status === "rejected") {
-          const comment = item.approval_comment || "";
-          if (comment.includes("ยกเลิก")) {
-            displayStatus = "ยกเลิก";
-            badgeStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"; // สีเทา
-          } else {
+                
+          // ปรับเงื่อนไขการแสดงผล Status Badge หน้าแรก
+          if (item.status === "approved") {
+            displayStatus = "อนุมัติ";
+            badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
+          } else if (item.status === "cancelled" || item.status === "cancelled_by_user" || item.cancel_status === "approved") {
+            displayStatus = "ยกเลิกโดยคำร้อง";
+            badgeStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;";
+          } else if (item.status === "cancel_pending" || item.status === "cancel_requested" || item.cancel_status === "pending") {
+            displayStatus = "รอ HR อนุมัติยกเลิก";
+            badgeStyle = "background:#ffedd5; color:#c2410c; border:1px solid #fed7aa;";
+          } else if (item.status === "rejected") {
             displayStatus = "ไม่อนุมัติ";
-            badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;"; // สีแดง
+            badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;";
           }
-        }
 
         return `
           <article class="recent-item" style="margin-bottom: 12px; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
@@ -345,7 +347,7 @@ window.renderAllLeaveBalances = function() {
    🖥️ 5. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล (เพิ่มปุ่มดาวน์โหลดบัตรเป็นรูปภาพ)
    ========================================================================== */
 window.viewMyDigitalCard = function() {
-  const sessionUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+  const sessionUser = JSON.parse(localStorage.getItem("currentUser") || "null");
   const profile = window.currentProfile || {};
   const employee = profile.employees || profile;
   const currentCode = sessionUser?.employee_code || employee?.employee_code;
@@ -461,8 +463,8 @@ window.goToContactHR = function() { window.location.href = "/pages/user/contact-
 
 window.logout = function() { 
   console.log("👋 [LOGOUT] กำลังออกจากระบบและล้าง Session...");
-  sessionStorage.removeItem("currentUser"); 
-  window.location.href = "/index.html"; 
+  localStorage.removeItem("currentUser"); 
+  window.location.href = "/pages/index.html"; 
 };
 
 /* ==========================================================================
@@ -564,3 +566,310 @@ async function handleSaveHoliday(event) {
     Swal.fire('เกิดข้อผิดพลาด!', err.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
   }
 }
+
+/* ==========================================================================
+   🔔 ระบบแจ้งเตือน & ติดตามสถานะใบลา (ฝั่งพนักงาน)
+   ========================================================================== */
+
+/** 1. ตรวจสอบสิทธิ์ผู้ใช้ และเปิดใช้งานปุ่มแจ้งเตือน */
+function checkApproverPermission(profileData) {
+  try {
+    if (!profileData) return;
+
+    const userRole = (profileData.role || "").toLowerCase();
+    const approverRoles = ["leader", "manager", "director", "hr"];
+    const isApprover = approverRoles.includes(userRole);
+
+    const notifBtn = document.getElementById("notificationBtn");
+    if (notifBtn) {
+      notifBtn.style.setProperty("display", "inline-flex", "important");
+    }
+
+    const switchBtn = document.getElementById("approverModeBtn");
+    if (switchBtn) {
+      switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
+    }
+
+    if (isApprover) {
+      fetchPendingApprovalsCount();
+    } else {
+      fetchEmployeeLeaveStatusCount(profileData);
+    }
+  } catch (err) {
+    console.error("❌ เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์:", err);
+  }
+}
+
+/** 2. ดึงจำนวนรายการที่อยู่ระหว่างดำเนินการ */
+async function fetchEmployeeLeaveStatusCount(profile) {
+  const sb = window.pvtSupabase?.getClient();
+  const empId = profile?.employee_id || profile?.id;
+  if (!sb || !empId) return;
+
+  try {
+    const { count, error } = await sb
+      .from("leave_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("employee_id", empId)
+      .in("status", ["pending", "approved", "rejected", "cancel_pending", "cancelled", "cancel_requested"]);
+
+    if (!error) {
+      const badge = document.getElementById("notifBadge");
+      if (badge) {
+        badge.innerText = count || 0;
+        badge.style.display = count > 0 ? "flex" : "none";
+      }
+    }
+  } catch (e) {
+    console.warn("⚠️ ไม่สามารถดึงจำนวนการแจ้งเตือนพนักงานได้:", e);
+  }
+}
+
+/** 3. เปิด Modal ติดตามสถานะใบลา */
+async function openEmployeeStatusTrackerModal() {
+  const sb = window.pvtSupabase?.getClient();
+  const empId = window.currentProfile?.employee_id || window.currentProfile?.id;
+
+  if (!sb || !empId) return;
+
+  Swal.fire({
+    title: '⏳ กำลังโหลดสถานะ...',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    const { data: requests, error } = await sb
+      .from("leave_requests")
+      .select("*, leave_types(leave_name)")
+      .eq("employee_id", empId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (error || !requests || requests.length === 0) {
+      Swal.fire({
+        title: '🔔 ติดตามสถานะใบลา',
+        text: 'คุณยังไม่มีรายการยื่นใบลาในระบบ',
+        icon: 'info',
+        confirmButtonColor: '#06b6d4'
+      });
+      return;
+    }
+
+    const dateFn = window.pvtSupabase?.formatThaiDate || ((d) => d);
+
+    const cardsHtml = requests.map((item) => {
+      const leaveName = item.leave_types?.leave_name || "ใบลา";
+      const days = item.total_days || 1;
+
+      // 🟢 1. กำหนดป้ายสถานะรวม (Overall Badge)
+      let overallBadge = `<span style="background:#fef3c7; color:#b45309; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">⏳ อยู่ระหว่างพิจารณา</span>`;
+      
+      if (item.status === "approved") {
+        overallBadge = `<span style="background:#d1e7dd; color:#0f5132; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">✅ อนุมัติเรียบร้อย</span>`;
+      } else if (item.status === "rejected") {
+        overallBadge = `<span style="background:#f8d7da; color:#842029; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">❌ ไม่อนุมัติ</span>`;
+      } else if (item.status === "cancel_pending" || item.status === "cancel_requested" || item.cancel_status === "pending") {
+        overallBadge = `<span style="background:#ffedd5; color:#c2410c; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">⏳ รอ HR อนุมัติยกเลิก</span>`;
+      } else if (item.status === "cancelled" || item.status === "cancelled_by_user" || item.cancel_status === "approved") {
+        overallBadge = `<span style="background:#e2e8f0; color:#475569; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">🚫 ยกเลิกโดยคำร้อง</span>`;
+      }
+
+      // 🟢 2. Timeline การอนุมัติปกติ
+      const leaderStep = renderStepStatus(item.leader_status || (item.status === 'pending' ? 'pending' : 'approved'));
+      const managerStep = renderStepStatus(item.manager_status || (item.status === 'approved' ? 'approved' : 'pending'));
+      const hrStep = renderStepStatus(item.hr_status || (item.status === 'approved' ? 'approved' : 'pending'));
+
+      // 🟢 3. ตรวจสอบการยกเลิก
+      const isCancellationFlow = item.status === "cancel_pending" || item.status === "cancel_requested" || item.status === "cancelled" || item.cancel_status;
+      const hrCancelStep = renderCancelStepStatus(item.cancel_status || (item.status === 'cancelled' ? 'approved' : 'pending'));
+
+      return `
+        <div style="background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(226, 232, 240, 0.8); border-radius: 16px; padding: 16px; margin-bottom: 12px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="font-size: 15px; color: #0f172a;">📝 ${leaveName} (${days} วัน)</strong>
+            ${overallBadge}
+          </div>
+          
+          <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+            <span>📅 ${dateFn(item.start_date)} - ${dateFn(item.end_date)}</span>
+          </div>
+
+          <!-- Timeline ลาปกติ -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center;">
+            <div style="border-right: 1px solid #e2e8f0; padding-right: 4px;">
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">1. หัวหน้าแผนก</div>
+              ${leaderStep}
+            </div>
+            <div style="border-right: 1px solid #e2e8f0; padding-right: 4px;">
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">2. ผู้จัดการ</div>
+              ${managerStep}
+            </div>
+            <div>
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">3. HR อนุมัติ</div>
+              ${hrStep}
+            </div>
+          </div>
+
+          <!-- แถบแสดงเฉพาะเมื่อมีการขอยกเลิก -->
+          ${isCancellationFlow ? `
+            <div style="margin-top: 8px; background: #fff7ed; padding: 8px 12px; border-radius: 10px; border: 1px solid #ffedd5; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; color: #c2410c; font-weight: 600;">🔄 คำร้องขอยกเลิก (HR อนุมัติ):</span>
+              ${hrCancelStep}
+            </div>
+          ` : ''}
+
+          ${item.cancel_reason ? `
+            <div style="margin-top: 8px; font-size: 11px; color: #9a3412; background: #fff7ed; border: 1px solid #ffedd5; padding: 6px 10px; border-radius: 6px;">
+              <b>เหตุผลที่ขอยกเลิก:</b> ${item.cancel_reason}
+            </div>
+          ` : ''}
+
+          ${item.approval_comment ? `
+            <div style="margin-top: 8px; font-size: 11px; color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 6px;">
+              <b>💬 หมายเหตุผู้อนุมัติ:</b> ${item.approval_comment}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join("");
+
+    Swal.fire({
+      title: '🔔 ติดตามสถานะการอนุมัติ',
+      html: `<div style="max-height: 420px; overflow-y: auto; padding-right: 4px; font-family:'Sarabun', sans-serif;">${cardsHtml}</div>`,
+      width: '480px',
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#06b6d4',
+      customClass: { popup: 'pvt-glass-card' }
+    });
+
+  } catch (err) {
+    console.error("❌ ดึงข้อมูลติดตามสถานะล้มเหลว:", err);
+    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลสถานะได้', 'error');
+  }
+}
+
+/** 4. ฟังก์ชันคลิกปุ่มแจ้งเตือน */
+function openNotificationModal() {
+  const userRole = (window.currentProfile?.role || "").toLowerCase();
+  const approverRoles = ["leader", "manager", "director", "hr"];
+
+  if (approverRoles.includes(userRole)) {
+    openApproverNotificationModal();
+  } else {
+    openEmployeeStatusTrackerModal();
+  }
+}
+
+/** 5. แปลงสถานะขั้นตอนการลาปกติ */
+function renderStepStatus(status) {
+  if (status === 'approved' || status === 'pass') {
+    return `<span style="color:#10b981; font-weight:700; font-size:11px;">✅ อนุมัติ</span>`;
+  } else if (status === 'rejected' || status === 'fail') {
+    return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ไม่ผ่าน</span>`;
+  } else {
+    return `<span style="color:#d97706; font-weight:600; font-size:11px;">⏳ รอพิจารณา</span>`;
+  }
+}
+
+/** 6. แปลงสถานะขั้นตอนการยกเลิก */
+function renderCancelStepStatus(cancelStatus) {
+  if (cancelStatus === 'approved' || cancelStatus === 'cancelled') {
+    return `<span style="color:#475569; font-weight:700; font-size:11px;">🚫 ยกเลิกสำเร็จ</span>`;
+  } else if (cancelStatus === 'rejected') {
+    return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ปฏิเสธการยกเลิก</span>`;
+  } else {
+    return `<span style="color:#ea580c; font-weight:600; font-size:11px;">⏳ รอ HR อนุมัติยกเลิก</span>`;
+  }
+}
+
+/** 7. Modal แจ้งเตือนฝั่ง HR / หัวหน้างาน */
+function openApproverNotificationModal() {
+  const pendingCount = document.getElementById("notifBadge")?.innerText || "0";
+
+  Swal.fire({
+    title: '🔔 รายการแจ้งเตือนการอนุมัติ',
+    html: `
+      <div style="font-family:'Sarabun', sans-serif; text-align:center; padding: 10px 0;">
+        <p style="font-size:16px; color:#1e293b; margin-bottom:12px;">
+          มีใบลาที่รอการอนุมัติอยู่ทั้งหมด <b style="color:#eab308; font-size:20px;">${pendingCount}</b> รายการ
+        </p>
+        <p style="font-size:13px; color:#64748b;">
+          คลิกปุ่มด้านล่างเพื่อไปยังหน้าระบบอนุมัติใบลา
+        </p>
+      </div>
+    `,
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonText: '🔎 ไปยังระบบอนุมัติ',
+    cancelButtonText: 'ปิด',
+    confirmButtonColor: '#3b82f6',
+    cancelButtonColor: '#64748b'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      window.location.href = '/pages/hr/hr.html';
+    }
+  });
+}
+
+/* ==========================================================================
+   🔄 9. ฟังก์ชันรีเฟรชดึงข้อมูลหน้าพนักงานใหม่ทันที (Re-fetch Data)
+   ========================================================================== */
+window.refreshUserData = async function() {
+  const refreshIcons = document.querySelectorAll('.material-symbols-outlined');
+  
+  // 1. หมุนไอคอนหมุนโหลด (Animation)
+  refreshIcons.forEach(icon => {
+    if (icon.innerText === 'refresh') {
+      icon.style.transition = 'transform 0.5s ease';
+      icon.style.transform = 'rotate(360deg)';
+    }
+  });
+
+  // 2. แสดง Toast แจ้งเตือนกำลังโหลด
+  const toastLoading = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timerProgressBar: true
+  });
+  
+  toastLoading.fire({
+    icon: 'info',
+    title: '⏳ กำลังอัปเดตข้อมูลล่าสุด...'
+  });
+
+  try {
+    // 3. สั่งรันฟังก์ชันดึงข้อมูลโปรไฟล์ วันลา และประวัติใหม่
+    await initUserHome();
+
+    // 4. แสดง Toast แจ้งเตือนเมื่อสำเร็จ
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: '✅ อัปเดตข้อมูลล่าสุดเรียบร้อย',
+      showConfirmButton: false,
+      timer: 2000
+    });
+  } catch (err) {
+    console.error("❌ เกิดข้อผิดพลาดในการรีเฟรชข้อมูล:", err);
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'error',
+      title: 'ไม่สามารถอัปเดตข้อมูลได้',
+      showConfirmButton: false,
+      timer: 2000
+    });
+  } finally {
+    // ล้างค่า rotation ให้กดซ้ำได้
+    setTimeout(() => {
+      refreshIcons.forEach(icon => {
+        if (icon.innerText === 'refresh') {
+          icon.style.transform = 'rotate(0deg)';
+        }
+      });
+    }, 500);
+  }
+};

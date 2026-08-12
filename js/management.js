@@ -9,7 +9,7 @@
 // 0. CONFIGURATION & REAL CREDENTIALS
 // ==========================================
 const SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRsomxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
 window.PVT_SUPABASE_URL = SUPABASE_URL;
 window.PVT_SUPABASE_ANON_KEY = SUPABASE_KEY;
@@ -73,7 +73,7 @@ window.pvtSupabase = (() => {
 
   function getCachedUser() {
     try {
-      return JSON.parse(sessionStorage.getItem("currentUser") || "null");
+      return JSON.parse(localStorage.getItem("currentUser") || "null");
     } catch {
       return null;
     }
@@ -158,17 +158,18 @@ window.pvtSupabase = (() => {
     }
     if (value.includes("-")) {
       const parts = value.split("-");
-      if (parts.length !== 3) return value;
+      if (parts.length < 3) return value;
       let year = Number(parts[0]);
       if (year > 2400) year -= 543;
-      return `${year}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+      return `${year}-${parts[1].padStart(2, "0")}-${parts[2].substring(0, 2).padStart(2, "0")}`;
     }
     return null;
   }
 
   function formatThaiDate(dateValue) {
     if (!dateValue) return "-";
-    const date = new Date(`${dateValue}T00:00:00`);
+    const cleanDateStr = String(dateValue).trim().split("T")[0];
+    const date = new Date(`${cleanDateStr}T00:00:00`);
     if (Number.isNaN(date.getTime())) return dateValue;
     return new Intl.DateTimeFormat("th-TH", {
       day: "2-digit",
@@ -267,15 +268,15 @@ function handleLogout() {
       confirmButtonColor: '#ef4444'
     }).then((result) => {
       if (result.isConfirmed) {
-        sessionStorage.clear();
         localStorage.clear();
-        window.location.href = '/index.html';
+        localStorage.clear();
+        window.location.href = '/pages/index.html';
       }
     });
   } else {
-    sessionStorage.clear();
     localStorage.clear();
-    window.location.href = '/index.html';
+    localStorage.clear();
+    window.location.href = '/pages/index.html';
   }
 }
 
@@ -325,7 +326,7 @@ async function initManagementSystem() {
     let profile = await window.pvtSupabase?.getCurrentProfile?.();
 
     if (!profile) {
-      const savedUser = sessionStorage.getItem("currentUser");
+      const savedUser = localStorage.getItem("currentUser");
       if (savedUser) {
         try { profile = JSON.parse(savedUser); } catch {}
       }
@@ -342,7 +343,7 @@ async function initManagementSystem() {
       } else {
         alert('เซสชันหมดอายุหรือยังไม่ได้ล็อกอิน กรุณาเข้าสู่ระบบก่อน');
       }
-      window.location.href = '/index.html';
+      window.location.href = '/pages/index.html';
       return false;
     }
 
@@ -736,7 +737,7 @@ function renderEmployeeTable() {
       <td>${escapeHtml(emp.full_name || "-")}</td>
       <td>${escapeHtml(emp.positions?.position_name || "-")}</td>
       <td>${escapeHtml(emp.departments?.department_name || "-")}</td>
-      <td>${window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : emp.start_date}</td>
+      <td>${window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-")}</td>
       <td><span class="status ${emp.status || "active"}">${emp.status === "inactive" || emp.status === "resigned" ? "ลาออก" : "ใช้งาน"}</span></td>
       <td style="text-align: center; white-space: nowrap;">
         <button class="btn-light btn-sm" onclick="openEmployeeDetail('${emp.id}')" title="ดูรายละเอียด / แก้ไขข้อมูล">
@@ -782,7 +783,8 @@ function exportIndividualLeaveExcel(employeeId) {
   requests.forEach((r) => {
     const type = getLeaveType(r.leave_type_id)?.leave_name || "ไม่ระบุ";
     const status = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(r.status) : r.status;
-    csvContent += `"${emp.employee_code || ''}","${emp.full_name || ''}","${emp.departments?.department_name || ''}","${type}","${r.start_date || ''}","${r.end_date || ''}","${r.total_days || 0}","${(r.reason || r.note || '').replace(/"/g, '""')}","${status}"\n`;
+    const cleanReason = (r.reason || r.note || '').replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
+    csvContent += `"${emp.employee_code || ''}","${emp.full_name || ''}","${emp.departments?.department_name || ''}","${type}","${r.start_date || ''}","${r.end_date || ''}","${r.total_days || 0}","${cleanReason}","${status}"\n`;
   });
 
   const filename = `ประวัติการลา_${emp.employee_code}_${emp.full_name}.csv`;
@@ -821,7 +823,7 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
         <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px;">
           ${detail("ตำแหน่ง", emp.positions?.position_name || "-")}
           ${detail("แผนก", emp.departments?.department_name || "-")}
-          ${detail("วันเริ่มงาน", window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : emp.start_date)}
+          ${detail("วันเริ่มงาน", window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-"))}
           ${detail("เบอร์โทร", emp.phone || "-")}
           ${detail("อีเมล", emp.email || "-")}
           ${detail("Line ID", emp.line_id || "-")}
@@ -1052,8 +1054,8 @@ function renderBalanceCards(rows) {
 
 function renderLeaveRow(request) {
   const type = getLeaveType(request.leave_type_id)?.leave_name || "ไม่ระบุ";
-  const startDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.start_date) : request.start_date;
-  const endDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.end_date) : request.end_date;
+  const startDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.start_date) : (request.start_date || "-");
+  const endDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.end_date) : (request.end_date || "-");
   const statusLabel = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(request.status) : request.status;
 
   return `
@@ -1399,7 +1401,7 @@ async function deleteEmployee(id, empCode, fullName) {
 
   const confirm = await Swal.fire({
     title: '🚨 ลบพนักงานถาวร?',
-    html: `คุณกำลังจะลบพนักงาน <b>${escapeHtml(empCode)} - ${escapeHtml(fullName)}</b> ถาวร<br><span style="color:#ef4444; font-size:12px;">การลบนี้ไม่สามารถยกเลิกได้!</span>`,
+    html: `คุณกำลังจะลบพนักงาน <b>${escapeHtml(empCode)} - ${escapeHtml(fullName)}</b> ถาวร<br><span style="color:#ef4444; font-size:12px;">การลบนี้จะลบสิทธิ์วันลาและประวัติการลาทั้งหมดของพนักงานคนนี้ด้วย!</span>`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: 'ลบถาวร',
@@ -1411,6 +1413,19 @@ async function deleteEmployee(id, empCode, fullName) {
 
   try {
     Swal.fire({ title: 'กำลังลบข้อมูล...', didOpen: () => Swal.showLoading() });
+
+    // 1. ลบโควตาวันลาใน leave_balances
+    const { error: balErr } = await supabase.from('leave_balances').delete().eq('employee_id', id);
+    if (balErr) throw balErr;
+
+    // 2. ลบประวัติคำขอลาใน leave_requests
+    const { error: reqErr } = await supabase.from('leave_requests').delete().eq('employee_id', id);
+    if (reqErr) throw reqErr;
+
+    // 3. ปลดอ้างอิงจากตาราง profiles (ถ้ามี)
+    await supabase.from('profiles').update({ employee_id: null }).eq('employee_id', id);
+
+    // 4. ลบพนักงานออกจากตาราง employees
     const { error } = await supabase.from('employees').delete().eq('id', id);
     if (error) throw error;
 
@@ -1857,8 +1872,9 @@ async function manageCompanyHolidays() {
     Swal.fire({ title: 'กำลังโหลดปฏิทินวันหยุด...', didOpen: () => Swal.showLoading() });
 
     const currentYear = new Date().getFullYear();
+    // 🔹 เปลี่ยนชื่อตารางตรงนี้ (เช่น 'holidays' หรือ 'holidays_rows')
     const { data: holidays, error } = await supabase
-      .from('company_holidays')
+      .from('holidays')
       .select('*')
       .gte('holiday_date', `${currentYear}-01-01`)
       .lte('holiday_date', `${currentYear}-12-31`)
@@ -1924,6 +1940,7 @@ async function manageCompanyHolidays() {
         popup.querySelectorAll('.btn-delete-holiday').forEach(btn => {
           btn.addEventListener('click', () => {
             const id = btn.getAttribute('data-id');
+            // 🔹 แก้บั๊ก: แก้จาก 'holiday_name' เป็น 'data-name'
             const name = btn.getAttribute('data-name');
             Swal.close();
             actionDeleteHoliday(id, name);
@@ -1974,7 +1991,9 @@ async function actionAddNewHoliday() {
   if (!formValues) { manageCompanyHolidays(); return; }
 
   Swal.fire({ title: 'กำลังเพิ่มวันหยุด...', didOpen: () => Swal.showLoading() });
-  const { error } = await supabase.from('company_holidays').insert([formValues]);
+  
+  // 🔹 เปลี่ยนชื่อตารางตรงนี้
+  const { error } = await supabase.from('holidays').insert([formValues]);
   if (error) {
     showAppError('ไม่สามารถบันทึกวันหยุดได้', error.message);
     manageCompanyHolidays();
@@ -2000,7 +2019,8 @@ async function actionDeleteHoliday(id, name) {
 
   if (!confirm.isConfirmed) { manageCompanyHolidays(); return; }
 
-  const { error } = await supabase.from('company_holidays').delete().eq('id', id);
+  // 🔹 เปลี่ยนชื่อตารางตรงนี้
+  const { error } = await supabase.from('holidays').delete().eq('id', id);
   if (error) {
     showAppError('ไม่สามารถลบวันหยุดได้', error.message);
     manageCompanyHolidays();
@@ -2008,4 +2028,31 @@ async function actionDeleteHoliday(id, name) {
     await saveHRActivityLog('HOLIDAY', 'DELETE', name, `ลบวันหยุดบริษัท: ${name}`);
     Swal.fire('ลบเสร็จสิ้น', 'ลบวันหยุดเรียบร้อยแล้ว', 'success').then(() => manageCompanyHolidays());
   }
+}
+
+
+
+function exportAllLeaveHistoryExcel() {
+  if (!leaveRequests || !leaveRequests.length) {
+    showAppError("ไม่พบข้อมูล", "ยังไม่มีประวัติการลาในระบบสำหรับส่งออก");
+    return;
+  }
+
+  let csvContent = "\uFEFF"; // UTF-8 BOM รองรับภาษาไทยใน Excel
+  csvContent += "รหัสพนักงาน,ชื่อ-นามสกุล,แผนก,ประเภทการลา,วันที่เริ่มต้น,วันที่สิ้นสุด,จำนวนวัน,เหตุผล,สถานะ,วันที่ยื่น\n";
+
+  leaveRequests.forEach((r) => {
+    const emp = employees.find((e) => String(e.id) === String(r.employee_id));
+    const type = getLeaveType(r.leave_type_id)?.leave_name || "ไม่ระบุ";
+    const status = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(r.status) : r.status;
+    const empCode = emp?.employee_code || "";
+    const empName = emp?.full_name || "";
+    const dept = emp?.departments?.department_name || "";
+    const cleanReason = (r.reason || r.note || "").replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
+
+    csvContent += `"${empCode}","${empName}","${dept}","${type}","${r.start_date || ""}","${r.end_date || ""}","${r.total_days || 0}","${cleanReason}","${status}","${r.created_at || ""}"\n`;
+  });
+
+  const filename = `ประวัติการลาทั้งหมด_${new Date().toISOString().slice(0, 10)}.csv`;
+  window.pvtSupabase.downloadBlob(filename, csvContent, "text/csv;charset=utf-8;");
 }

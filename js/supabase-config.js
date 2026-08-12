@@ -31,7 +31,7 @@ window.pvtSupabase = (() => {
 
   function getCachedUser() {
     try {
-      return JSON.parse(sessionStorage.getItem("currentUser") || "null");
+      return JSON.parse(localStorage.getItem("currentUser") || "null");
     } catch {
       return null;
     }

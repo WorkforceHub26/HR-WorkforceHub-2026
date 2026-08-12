@@ -12,7 +12,7 @@
   <!-- Style Sheets -->
   <link rel="stylesheet" href="/css/home.css" />
   <link rel="stylesheet" href="/css/management.css" />
-
+  
   <!-- External Libraries -->
   
 </head>
@@ -27,23 +27,23 @@
       </div>
       
       <nav class="nav-menu">
-        <a href="/home.html" class="nav-item">
+        <a href="/pages/hr/home.html" class="nav-item" title="หน้าหลัก">
           <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
-        <a href="/hr.html" class="nav-item">
+        <a href="/pages/hr/hr.html" class="nav-item " title="อนุมัติใบลา">
           <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">อนุมัติใบลา</span>
         </a>
-        <a href="/pages/user/management.html" class="nav-item active">
+        <a href="/pages/hr/management.html" class="nav-item active" title="พนักงาน">
           <span class="material-symbols-outlined">manage_accounts</span>
-          <span class="nav-label">จัดการและประวัติ HR</span>
+          <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
         </a>
-        <a href="/pages/user/index-user.html" class="nav-item">
-          <span class="material-symbols-outlined">rule</span>
+        <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
+          <span class="material-symbols-outlined">person</span>
           <span class="nav-label">หน้าพนักงาน</span>
         </a>
-        <a href="/pages/user/holidays.html" class="nav-item">
+        <a href="/pages/user/holidays.html" class="nav-item" title="วันหยุด">
           <span class="material-symbols-outlined">calendar_today</span>
           <span class="nav-label">วันหยุด</span>
         </a>
@@ -108,7 +108,6 @@
         <div class="manage-card">
           <h3><span class="material-symbols-outlined">shield</span> 3. รายงาน & ความปลอดภัย</h3>
           <div class="card-btn-group">
-            <button class="action-btn" onclick="submitBulkLeave()"><span class="material-symbols-outlined">group</span> บันทึกใบลาหลายคน</button>
             <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()"><span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Excel)</button>
             <button class="action-btn" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
             <button class="action-btn danger-zone" onclick="resetYearlyLeave()"><span class="material-symbols-outlined">device_reset</span> ล้างโควตาประจำปี</button>
@@ -227,6 +226,8 @@
   
   <!-- โหลด Config ก่อน -->
   <script src="/js/supabase-config.js"></script>
+  <script src="/js/auth-guard.js"></script>
+  <script src="/js/notification.js"></script>
   <script src="/js/management.js"></script>
 </body>
 </html>

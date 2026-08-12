@@ -941,7 +941,7 @@ async function logUserVisit() {
     await client.from("user_activity_logs").insert([
       {
         user_name: userName,
-        page_url: window.location.pathname || "admin.html",
+        page_url: window.location.pathname || "/pages/admin/admin.html",
         action_type: "VISIT",
         description: "เข้าสู่หน้าจอ Admin Control Console"
       }

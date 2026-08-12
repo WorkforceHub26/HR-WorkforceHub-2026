@@ -140,14 +140,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       // =========================================================================
 
-      // 3. บันทึก Session
-      sessionStorage.setItem("currentUser", JSON.stringify({
-        id: user.id,
-        employee_code: user.employee_code,
-        full_name: user.full_name,
-        role: user.role
-      }));
-
+                // 3. บันทึก Session
+          localStorage.setItem("currentUser", JSON.stringify({
+            id: user.id,
+            employee_code: user.employee_code,
+            full_name: user.full_name,
+            role: user.role
+          }));
       if (window.PVTLogger) {
         window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ ${isUsingDefaultPassword ? '(ยอมรับความเสี่ยงรหัสผ่านเริ่มต้น)' : ''}`);
       }
@@ -170,7 +169,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 // ฟังก์ชันสำหรับย้ายหน้าตาม Role
 function redirectToDashboard(role) {
   if (role === "hr" || role === "admin") {
-    window.location.href = "/home.html";
+    window.location.href = "/pages/hr/home.html";
   } else {
     window.location.href = "/pages/user/index-user.html";
   }
@@ -362,12 +361,12 @@ async function executeSecureQrLogin(scannedData) {
       throw new Error('ไม่พบข้อมูลพนักงานท่านนี้ หรือบัญชีถูกระงับสิทธิ์');
     }
 
-    sessionStorage.setItem("currentUser", JSON.stringify({
-      id: user.id,
-      employee_code: user.employee_code,
-      full_name: user.full_name,
-      role: user.role
-    }));
+        localStorage.setItem("currentUser", JSON.stringify({
+          id: user.id,
+          employee_code: user.employee_code,
+          full_name: user.full_name,
+          role: user.role
+        }));
 
     Swal.fire({
       icon: 'success',

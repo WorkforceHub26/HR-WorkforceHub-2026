@@ -37,7 +37,7 @@ async function loadProfile() {
       ];
 
       for (const key of possibleKeys) {
-        const raw = sessionStorage.getItem(key) || localStorage.getItem(key);
+        const raw = localStorage.getItem(key) || localStorage.getItem(key);
         if (raw) {
           try {
             const parsed = JSON.parse(raw);
@@ -58,7 +58,7 @@ async function loadProfile() {
           <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
           <h3 style="font-size: 16px; color: #1e293b; margin-bottom: 8px; font-weight: 600;">ยังไม่ได้เข้าสู่ระบบ</h3>
           <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">กรุณาเข้าสู่ระบบใหม่อีกครั้ง</p>
-          <a href="/index.html" style="display: inline-block; padding: 10px 20px; background: #10b981; color: #ffffff; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500;">
+          <a href="/pages/index.html" style="display: inline-block; padding: 10px 20px; background: #10b981; color: #ffffff; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500;">
             กลับหน้าเข้าสู่ระบบ
           </a>
         </div>`;

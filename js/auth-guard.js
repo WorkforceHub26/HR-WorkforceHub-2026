@@ -1,48 +1,193 @@
 /**
- * 🔒 PVT HR - Security Auth Guard (Enterprise Clean Version)
+ * 🔒 PVT HR - Security Auth Guard (Full Auto-Style Enterprise Edition)
+ * Features: Anti-Flicker, Safe Storage Handling, Auto CSS Injection, Smart Navigation Guard
  */
 (function () {
-  // 1. ดักซ่อนเนื้อหาหน้าเว็บทันที ป้องกันพนักงานเห็นหน้าจอก่อนล็อกอิน (Flicker Effect)
-  document.documentElement.style.visibility = 'hidden';
+  const docEl = document.documentElement;
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const currentUser = JSON.parse(sessionStorage.getItem("currentUser"));
-    const path = window.location.pathname;
+  // 1. ซ่อน DOM ทันทีตั้งแต่เริ่มโหลดเพื่อป้องกันภาพวูบ (Anti-Flicker)
+  docEl.style.visibility = 'hidden';
 
-    // 2. เช็คว่าเป็นหน้าสำหรับให้ล็อกอินหรือไม่ (Whitelist Pages)
-    const isAuthPage = 
-      path.includes("login") || 
-      path === "/" || 
-      path.endsWith("home.html");
+  /**
+   * 🎨 ฉีด CSS สไตล์กระจกเบลอ (Glassmorphism) เข้าไปใน <head> อัตโนมัติ
+   */
+  function injectGuardStyles() {
+    if (document.getElementById('pvt-guard-auto-style')) return;
 
-    // 3. ถ้าไม่มี User และไม่ใช่หน้าล็อกอิน -> ดีดออกและทำพื้นหลังเบลอ
-    if (!currentUser && !isAuthPage) {
-      
-      // ปลดการซ่อนหน้าเว็บ เพื่อให้เห็นพื้นหลัง
-      document.documentElement.style.visibility = 'visible';
-      
-      // ค้นหาโครงสร้างหลักของเพจ (.app-shell) แล้วสั่งเบลอ
-      const appShell = document.querySelector('.app-shell');
-      if (appShell) {
-        appShell.style.filter = 'blur(12px)'; // ปรับตัวเลขความเบลอได้ (ยิ่งมากยิ่งเบลอ)
-        appShell.style.pointerEvents = 'none'; // ป้องกันการคลิกเนื้อหาด้านหลัง
+    const style = document.createElement('style');
+    style.id = 'pvt-guard-auto-style';
+    style.innerHTML = `
+      /* 🌫️ ฉากหลังเบลอของ SweetAlert2 */
+      .swal2-container {
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        background-color: rgba(15, 23, 42, 0.5) !important;
       }
 
-      Swal.fire({
-        icon: 'warning',
-        title: 'Access Denied',
-        text: 'กรุณาเข้าสู่ระบบก่อนใช้งาน',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'ตกลง',
-        allowOutsideClick: false, // บังคับให้คลิกปุ่มตกลงเท่านั้น
-        backdrop: `rgba(0,0,0,0.5)` // เพิ่มความมืดทับความเบลอให้ป๊อปอัปเด่นขึ้น
-      }).then(() => {
-        window.location.href = "/index.html";
-      });
-      
-    } else {
-      // 4. ถ้ามีสิทธิ์ถูกต้อง ค่อยเปิดให้มองเห็นหน้าเว็บแบบปกติและคมชัด
-      document.documentElement.style.visibility = 'visible';
+      /* 💎 กล่องป๊อปอัปสไตล์กระจกเบลอ Glassmorphism */
+      .pvt-guard-popup {
+        border-radius: 24px !important;
+        background: rgba(255, 255, 255, 0.88) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+        padding: 24px !important;
+        font-family: 'Sarabun', sans-serif !important;
+      }
+
+      /* 🎨 ตกแต่งปุ่มตกลง */
+      .pvt-guard-popup .swal2-confirm {
+        border-radius: 12px !important;
+        padding: 12px 24px !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4) !important;
+      }
+
+      /* 🔒 บังคับเบลอเนื้อหาทั้งหมดด้านหลัง */
+      body > *:not(.swal2-container) {
+        filter: blur(16px) brightness(0.85) !important;
+        pointer-events: none !important;
+        user-select: none !important;
+        transition: filter 0.3s ease !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  /**
+   * 🛠️ Helper: อ่านและตรวจสอบความถูกต้องของ Session อย่างปลอดภัย
+   */
+  function getValidSession() {
+    try {
+      const rawData = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+      if (!rawData) return null;
+
+      const parsed = JSON.parse(rawData);
+      if (typeof parsed !== 'object' || parsed === null) return null;
+
+      if (parsed.expireAt && Date.now() > parsed.expireAt) {
+        console.warn("🔒 [Auth Guard]: เซสชันหมดอายุแล้ว");
+        clearAllSession();
+        return null;
+      }
+
+      return parsed;
+    } catch (e) {
+      console.error("🔒 [Auth Guard]: ข้อมูล Session เสียหาย ล้างค่าเพื่อความปลอดภัย", e);
+      clearAllSession();
+      return null;
     }
-  });
+  }
+
+  /**
+   * 🛠️ Helper: ล้างค่า Session ทั้งหมด
+   */
+  function clearAllSession() {
+    localStorage.removeItem("currentUser");
+    sessionStorage.removeItem("currentUser");
+  }
+
+  /**
+   * 🛠️ Helper: ตรวจสอบว่าเป็นหน้า Public (ไม่ต้องล็อกอิน) หรือไม่
+   */
+  function isPublicPage() {
+    const path = window.location.pathname.toLowerCase();
+    const publicPages = ['/index.html', '/login.html', '/pages/index.html', '/pages/login.html'];
+    return publicPages.some(page => path.endsWith(page)) || path === '/' || path === '';
+  }
+
+  // 2. ตรวจสอบสิทธิ์การเข้าใช้งาน
+  const currentUser = getValidSession();
+  const isPublic = isPublicPage();
+
+  if (!currentUser && !isPublic) {
+    // --- กรณีไม่มีสิทธิ์เข้าถึง ---
+    const showAccessDeniedUI = () => {
+      injectGuardStyles(); // ฉีด CSS สไตล์กระจกเบลอก่อนแสดงผล
+      docEl.style.visibility = 'visible';
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          title: '<span style="color: #0f172a; font-size: 20px; font-weight: 700;">⛔ ปฏิเสธการเข้าถึง</span>',
+          html: `
+            <div style="font-family: 'Sarabun', sans-serif; text-align: center; color: #475569; padding: 10px 0;">
+              <p style="font-size: 15px; margin-bottom: 6px; font-weight: 600; color: #1e293b;">กรุณาเข้าสู่ระบบก่อนใช้งานระบบ</p>
+              <p style="font-size: 13px; color: #64748b; margin: 0;">คุณไม่มีสิทธิ์เข้าถึงหน้านี้ หรือเซสชันการใช้งานของคุณหมดอายุ</p>
+            </div>
+          `,
+          icon: 'error',
+          iconColor: '#ef4444',
+          confirmButtonText: '🔑 ไปหน้าเข้าสู่ระบบ',
+          confirmButtonColor: '#06b6d4',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          allowEnterKey: true,
+          customClass: { popup: 'pvt-guard-popup' }
+        }).then(() => {
+          window.location.href = "/pages/index.html";
+        });
+      } else {
+        alert("⛔ กรุณาเข้าสู่ระบบก่อนใช้งานระบบ");
+        window.location.href = "/pages/index.html";
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener("DOMContentLoaded", showAccessDeniedUI);
+    } else {
+      showAccessDeniedUI();
+    }
+
+  } else {
+    // --- กรณีสิทธิ์ถูกต้อง หรือเป็นหน้า Public ---
+    docEl.style.visibility = 'visible';
+  }
 })();
+
+/**
+ * 🧭 Smart Navigation Guard
+ * ดักจับเฉพาะการย้ายหน้าจริง ป้องกันการเตือนมั่วซั่วเมื่อคลิกปุ่ม UI / Anchor / Tab
+ */
+document.addEventListener("click", function (e) {
+  const link = e.target.closest("a, button[data-nav-guard]");
+  if (!link) return;
+
+  const targetUrl = link.href || link.getAttribute("data-href");
+  if (!targetUrl) return;
+
+  // ❌ เงื่อนไขข้อยกเว้นที่จะไม่งัดป๊อปอัปเตือน
+  const isSamePageAnchor = targetUrl.includes("#") || targetUrl.startsWith("javascript:");
+  const isNewTab = link.target === "_blank";
+  const isSamePath = link.pathname === window.location.pathname && link.search === window.location.search;
+
+  if (isSamePageAnchor || isNewTab || isSamePath) return;
+
+  //  จะทำงานเมื่อมี Attribute `data-confirm-nav` หรือฟอร์มถูกแก้ไขค้างไว้ (.form-dirty)
+  if (link.hasAttribute("data-confirm-nav") || document.body.classList.contains("form-dirty")) {
+    e.preventDefault();
+
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        title: '🔒 ยืนยันการออกจากหน้านี้?',
+        text: 'ข้อมูลที่คุณกำลังทำอยู่อาจยังไม่ได้ถูกบันทึก ต้องการออกจากหน้านี้หรือไม่?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'ออกจากหน้านี้',
+        cancelButtonText: 'ทำงานต่อในหน้านี้',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        customClass: { popup: 'pvt-guard-popup' }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = targetUrl;
+        }
+      });
+    } else {
+      if (confirm("คุณกำลังจะออกจากหน้านี้ ต้องการดำเนินการต่อหรือไม่?")) {
+        window.location.href = targetUrl;
+      }
+    }
+  }
+});

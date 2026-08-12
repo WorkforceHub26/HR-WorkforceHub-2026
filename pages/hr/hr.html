@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบพิจารณาอนุมัติใบลา | PVT HR Hub</title>
+  
+<!-- 1. Preconnect สำหรับ Google Fonts (ช่วยให้ฟอนต์โหลดไวขึ้น) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- 2. Google Fonts & Icons (ชุดที่คุณส่งมา) -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/css/hr.css" /> 
+  
+  <!-- Libraries -->
+
+</head>
+
+<body>
+  <div class="app-shell" id="appShell">
+    
+    <!-- 📌 SIDEBAR ด้านซ้าย -->
+    <aside class="sidebar-light" id="mainSidebar">
+      <div class="brand-zone">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
+      </div>
+
+      <nav class="nav-menu">
+        <a href="/pages/hr/home.html" class="nav-item" title="หน้าหลัก">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/hr.html" class="nav-item active" title="อนุมัติใบลา">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">อนุมัติใบลา</span>
+        </a>
+        <a href="/pages/hr/management.html" class="nav-item" title="พนักงาน">
+          <span class="material-symbols-outlined">manage_accounts</span>
+          <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
+        </a>
+        <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">หน้าพนักงาน</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="nav-item" title="วันหยุด">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span class="nav-label">วันหยุด</span>
+        </a>
+
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- 💻 MAIN CONTENT CONTAINER -->
+    <main class="main-content" id="mainContent">
+      
+      <!-- Topbar / Header Glass Card -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="btnHeaderBack" class="btn-header-back" onclick="history.back()">
+            <span class="material-symbols-outlined">arrow_back</span> ย้อนกลับ
+          </button>
+
+          <div>
+            <h1 id="pageMainTitle">ระบบอนุมัติและจัดการใบลา</h1>
+            <p id="pageSubTitle">LEAVE APPROVALS & CANCELLATION MANAGEMENT</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="user-profile">
+            <img id="userAvatarHeader" src="/assets/img/default-avatar.jpg" alt="Profile" onerror="this.src='/assets/img/default-avatar.jpg';" />
+            <div class="info">
+              <strong id="userNameHeader">กำลังโหลด...</strong>
+              <span id="userPositionHeader">-</span>
+            </div>
+            <span id="userRoleBadge" class="status-badge status-approved">
+              ตรวจสอบสิทธิ์...
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <!-- 📊 STATS SUMMARY CARDS -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-info">
+            <span class="stat-label">รอพิจารณาอนุมัติ</span>
+            <div class="stat-value" id="statPendingCount">0 <small>รายการ</small></div>
+          </div>
+          <div class="stat-icon icon-pending">
+            <span class="material-symbols-outlined">hourglass_top</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-info">
+            <span class="stat-label">คำร้องขอยกเลิก</span>
+            <div class="stat-value" id="statCancelCount">0 <small>รายการ</small></div>
+          </div>
+          <div class="stat-icon icon-cancel">
+            <span class="material-symbols-outlined">published_with_changes</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-info">
+            <span class="stat-label">อนุมัติแล้ว</span>
+            <div class="stat-value" id="statApprovedCount">0 <small>รายการ</small></div>
+          </div>
+          <div class="stat-icon icon-approved">
+            <span class="material-symbols-outlined">check_circle</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-info">
+            <span class="stat-label">ประวัติรวมทั้งหมด</span>
+            <div class="stat-value" id="statTotalCount">0 <small>รายการ</small></div>
+          </div>
+          <div class="stat-icon icon-total">
+            <span class="material-symbols-outlined">folder_open</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 🟢 TAB NAVIGATOR (FILTER CHIPS) -->
+      <div class="leave-tab-container">
+        <button class="tab-btn active" onclick="switchLeaveTab('pending', this)">
+          <span class="material-symbols-outlined">hourglass_top</span>
+          ⏳ ใบลารออนุมัติ
+          <span id="pendingCountBadge" class="tab-count-badge">0</span>
+        </button>
+
+        <button class="tab-btn warning-tab" onclick="switchLeaveTab('cancellation', this)">
+          <span class="material-symbols-outlined">published_with_changes</span>
+          🚫 คำร้องขอยกเลิก
+          <span id="cancelCountBadge" class="tab-count-badge">0</span>
+        </button>
+
+        <button class="tab-btn" onclick="switchLeaveTab('history', this)">
+          <span class="material-symbols-outlined">history</span>
+          📜 ประวัติรายการทั้งหมด
+          <span id="historyCountBadge" class="tab-count-badge">0</span>
+        </button>
+      </div>
+
+      <!-- PANEL ตารางข้อมูล -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="material-symbols-outlined" id="sectionHeaderIcon">hourglass_top</span>
+            <h2 id="sectionHeaderTitle">คำขออนุมัติลาค้างพิจารณา</h2>
+          </div>
+          
+          <button class="btn-pvt-refresh" onclick="loadPendingLeavesHR()">
+            <span class="material-symbols-outlined">sync</span> รีเฟรชข้อมูล
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="approval-table">
+            <thead>
+              <tr>
+                <th class="text-center">โปรไฟล์</th>
+                <th>รหัสพนักงาน</th>
+                <th>ข้อมูลผู้ลา</th>
+                <th>ประเภทการลา</th>
+                <th class="text-center">วันเวลาที่ลา</th>
+                <th>หมายเหตุ / เหตุผล</th>
+                <th class="text-center">จำนวนวัน</th>
+                <th class="text-center">สถานะ หัวหน้า</th>
+                <th class="text-center">สถานะ ผู้จัดการ</th>
+                <th class="text-center">สถานะ HR</th>
+                <th class="text-center">จัดการ (Action)</th>
+              </tr>
+            </thead>
+            <tbody id="leaveRequestsBody">
+              <tr>
+                <td colspan="11" class="empty-state">
+                  ⏳ กำลังโหลดข้อมูล...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/auth-guard.js"></script>
+  <script src="/js/notification.js"></script>
+  <script src="/js/hr.js"></script>
+</body>
+</html>

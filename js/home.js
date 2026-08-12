@@ -923,8 +923,27 @@ window.printMultipleCards = function(employeeList) {
 };
 
 /* ==========================================================================
-   8. 🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE
+   8. 🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE (FIXED & LOCAL STORAGE SYNC)
    ========================================================================== */
+
+// Helper: ดึงและบันทึกรายชื่อ ID การแจ้งเตือนที่กดอ่านแล้วลง LocalStorage
+function getReadNotifIds() {
+  try {
+    return JSON.parse(localStorage.getItem('pvt_read_notifs') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function addReadNotifId(id) {
+  const readIds = getReadNotifIds();
+  const strId = String(id);
+  if (!readIds.includes(strId)) {
+    readIds.push(strId);
+    localStorage.setItem('pvt_read_notifs', JSON.stringify(readIds));
+  }
+}
+
 function formatTimeAgo(dateString) {
   const date = new Date(dateString);
   const now = new Date();
@@ -950,9 +969,6 @@ function getNotifTheme(type) {
   }
 }
 
-/* ==========================================================================
-   8. 🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE (UPDATED)
-   ========================================================================== */
 async function fetchRealNotifications() {
   const client = sb || window.pvtSupabase?.getClient();
   const container = document.getElementById('notifListContainer');
@@ -964,7 +980,7 @@ async function fetchRealNotifications() {
   try {
     let dbNotifications = [];
 
-    // 1. ดึงข้อมูลการแจ้งเตือนจากตาราง notifications (ถ้ามี DB)
+    // 1. ดึงข้อมูลการแจ้งเตือนจากตาราง notifications ใน Supabase
     if (client) {
       const { data, error } = await client
         .from('notifications')
@@ -977,24 +993,34 @@ async function fetchRealNotifications() {
       }
     }
 
-    // 2. [เพิ่มใหม่] แปลงรายการใบลาค้างอนุมัติ (rawRequests) เป็นรายการแจ้งเตือนส้ม
+    const readNotifIds = getReadNotifIds();
+
+    // 2. แปลงรายการใบลาค้างอนุมัติ (rawRequests) เป็นรายการแจ้งเตือน
     const pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
     const pendingNotifications = pendingLeaves.map(item => {
       const empName = item.employees?.full_name || item.emp_name || 'พนักงาน';
       const leaveType = item.leave_types?.leave_name || item.leave_type_name || 'ใบลา';
+      const notifId = `pending-${item.id}`;
+
       return {
-        id: `pending-${item.id}`,
+        id: notifId,
         title: `คำขอลาใหม่: ${empName}`,
         message: `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) รอการพิจารณา`,
         type: 'leave',
-        is_read: false,
+        is_read: readNotifIds.includes(notifId),
         created_at: item.created_at || new Date().toISOString(),
-        link: '/hr.html' // กดแล้วพาไปหน้าอนุมัติใบลา
+        link: '/pages/hr/hr.html'
       };
     });
 
     // 3. รวมการแจ้งเตือนจากทั้งสองส่วนเข้าด้วยกัน
-    const allNotifications = [...pendingNotifications, ...dbNotifications];
+    const allNotifications = [
+      ...pendingNotifications, 
+      ...dbNotifications.map(n => ({
+        ...n,
+        is_read: n.is_read || readNotifIds.includes(String(n.id))
+      }))
+    ];
 
     if (allNotifications.length === 0) {
       container.innerHTML = `
@@ -1030,7 +1056,7 @@ async function fetchRealNotifications() {
       const timeText = formatTimeAgo(item.created_at);
 
       html += `
-        <div class="notif-item ${isUnreadClass}" onclick="handleNotifClick('${item.id}', '${item.link}')">
+        <div class="notif-item ${isUnreadClass}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer;">
           <div class="notif-icon ${theme.bgClass}">
             <span class="material-symbols-outlined">${theme.icon}</span>
           </div>
@@ -1048,19 +1074,28 @@ async function fetchRealNotifications() {
   } catch (err) {
     console.error('Error loading notifications:', err);
     container.innerHTML = `
-      <div style="padding: 16px; text-align: center; color: var(--danger); font-size: 13px;">
+      <div style="padding: 16px; text-align: center; color: #ef4444; font-size: 13px;">
         ❌ ไม่สามารถโหลดการแจ้งเตือนได้
       </div>`;
   }
 }
 
 async function handleNotifClick(notifId, redirectUrl) {
+  // 1. บันทึก ID ลง LocalStorage ทันที
+  addReadNotifId(notifId);
+
+  // 2. ถ้าเป็น ID จากตาราง Supabase ให้ส่งไปอัปเดตที่ DB ด้วย
   const client = sb || window.pvtSupabase?.getClient();
-  if (client && notifId) {
-    await client.from('notifications').update({ is_read: true }).eq('id', notifId);
+  if (client && notifId && !String(notifId).startsWith('pending-')) {
+    try {
+      await client.from('notifications').update({ is_read: true }).eq('id', notifId);
+    } catch (e) {
+      console.warn('DB update failed:', e);
+    }
   }
 
-  if (redirectUrl && redirectUrl !== '#') {
+  // 3. ย้ายหน้า หรือ อัปเดต UI ทันที
+  if (redirectUrl && redirectUrl !== '#' && redirectUrl !== 'undefined') {
     window.location.href = redirectUrl;
   } else {
     fetchRealNotifications();
@@ -1069,15 +1104,26 @@ async function handleNotifClick(notifId, redirectUrl) {
 
 async function markAllNotificationsAsRead() {
   const client = sb || window.pvtSupabase?.getClient();
-  if (!client) return;
 
-  try {
-    const { error } = await client.from('notifications').update({ is_read: true }).eq('is_read', false);
-    if (error) throw error;
-    fetchRealNotifications();
-  } catch (err) {
-    console.error('Error marking all as read:', err);
+  // 1. มาร์กรายการใบลารออนุมัติทั้งหมดเป็นอ่านแล้ว
+  const pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
+  pendingLeaves.forEach(item => addReadNotifId(`pending-${item.id}`));
+
+  // 2. มาร์กรายการใน Supabase เป็นอ่านแล้ว
+  if (client) {
+    try {
+      const { data } = await client.from('notifications').select('id').eq('is_read', false);
+      if (data) {
+        data.forEach(n => addReadNotifId(n.id));
+      }
+      await client.from('notifications').update({ is_read: true }).eq('is_read', false);
+    } catch (err) {
+      console.warn('Supabase mark all error:', err);
+    }
   }
+
+  // 3. รีเฟรชการแสดงผลกระดิ่งทันที
+  fetchRealNotifications();
 }
 
 /* ==========================================================================
@@ -1132,10 +1178,112 @@ window.handleLogout = function() {
       });
 
       setTimeout(() => {
-        sessionStorage.clear();
         localStorage.clear();
-        window.location.href = "/index.html";
+        localStorage.clear();
+        window.location.href = "/pages/index.html";
       }, 1200);
     }
   });
+};
+
+// ฟังก์ชันเปิด Pop-up แสดงการแจ้งเตือนทั้งหมด
+window.openAllNotificationsModal = async function() {
+  if (typeof Swal === "undefined") {
+    alert("⚠️ ไม่พบลายบรารี SweetAlert2");
+    return;
+  }
+
+  Swal.fire({
+    title: 'กำลังโหลดการแจ้งเตือน...',
+    html: '<div style="padding:20px; font-size:14px; color:#0fa472;">⌛ กรุณารอสักครู่...</div>',
+    showConfirmButton: false,
+    allowOutsideClick: false
+  });
+
+  try {
+    const client = sb || window.pvtSupabase?.getClient();
+    let dbNotifications = [];
+
+    if (client) {
+      const { data } = await client
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) dbNotifications = data;
+    }
+
+    const readNotifIds = getReadNotifIds();
+
+    // รวมคำขอลาค้างอนุมัติ
+    const pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
+    const pendingNotifications = pendingLeaves.map(item => {
+      const empName = item.employees?.full_name || item.emp_name || 'พนักงาน';
+      const leaveType = item.leave_types?.leave_name || item.leave_type_name || 'ใบลา';
+      const notifId = `pending-${item.id}`;
+
+      return {
+        id: notifId,
+        title: `คำขอลาใหม่: ${empName}`,
+        message: `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) รอการพิจารณา`,
+        type: 'leave',
+        is_read: readNotifIds.includes(notifId),
+        created_at: item.created_at || new Date().toISOString(),
+        link: '/pages/hr/pages/hr/hr.html'
+      };
+    });
+
+    const allNotifications = [
+      ...pendingNotifications, 
+      ...dbNotifications.map(n => ({
+        ...n,
+        is_read: n.is_read || readNotifIds.includes(String(n.id))
+      }))
+    ];
+
+    let listHtml = '';
+    if (allNotifications.length === 0) {
+      listHtml = `<div style="padding: 24px; text-align: center; color: #64748b; font-size: 14px;">🔕 ไม่มีรายการแจ้งเตือนในขณะนี้</div>`;
+    } else {
+      allNotifications.forEach(item => {
+        const theme = getNotifTheme(item.type);
+        const timeText = formatTimeAgo(item.created_at);
+        const bgStyle = item.is_read 
+          ? 'background: #ffffff; border: 1px solid #e2e8f0;' 
+          : 'background: #f0fdfa; border: 1px solid #a7f3d0; border-left: 4px solid #0fa472;';
+
+        listHtml += `
+          <div onclick="Swal.close(); handleNotifClick('${item.id}', '${item.link}');" 
+               style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 10px; margin-bottom: 8px; ${bgStyle} cursor: pointer; text-align: left; transition: all 0.2s;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <span class="material-symbols-outlined" style="font-size: 20px; color: #0fa472;">${theme.icon}</span>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 13.5px; color: #0f172a; line-height: 1.4;">
+                <strong style="color: #0f172a;">${item.title}</strong> ${item.message}
+              </div>
+              <span style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">${timeText}</span>
+            </div>
+            ${!item.is_read ? '<span style="width: 8px; height: 8px; background: #0fa472; border-radius: 50%; margin-top: 6px;"></span>' : ''}
+          </div>
+        `;
+      });
+    }
+
+    Swal.fire({
+      title: '🔔 การแจ้งเตือนทั้งหมด',
+      width: '540px',
+      html: `
+        <div style="max-height: 420px; overflow-y: auto; padding-right: 4px; margin-top: 10px;">
+          ${listHtml}
+        </div>
+      `,
+      showConfirmButton: true,
+      confirmButtonText: 'ปิดหน้าต่าง',
+      confirmButtonColor: '#64748b'
+    });
+
+  } catch (err) {
+    console.error("Error opening notifications modal:", err);
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถโหลดรายการแจ้งเตือนทั้งหมดได้', 'error');
+  }
 };

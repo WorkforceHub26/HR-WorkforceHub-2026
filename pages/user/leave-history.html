@@ -4,67 +4,107 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ประวัติการลา | PVT HR Leave</title>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
   <link rel="stylesheet" href="/css/leave-history.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- 🟢 SweetAlert2 สำหรับ Pop-up ยืนยันการยกเลิก -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
+  <!-- 👑 Glass Header -->
   <header class="user-header">
     <div class="brand-row">
       <img src="/assets/icons/logo-pvt.png" alt="PVT" id="user-avatar" />
       <div>
-        <div class="hello">PVT HR Leave</div>
-        <h1 id="emp-name">ประวัติการลา</h1>
+        <div class="hello">PVT WORKFORCE HUB</div>
+        <h1 id="emp-name">ประวัติการลาของฉัน</h1>
         <span id="emp-detail">กำลังโหลดข้อมูลพนักงาน...</span>
       </div>
     </div>
     <div class="history-actions">
       <button class="btn-back-home" onclick="history.back()">
-        <span class="material-symbols-outlined">home</span> กลับหน้าหลัก
-      </button>
-      <button class="btn-back-home primary-action" onclick="exportMyLeaveHistoryExcel()">
-        <span class="material-symbols-outlined">download</span> Export Excel
+        <span class="material-symbols-outlined">arrow_back</span> ย้อนกลับ
       </button>
     </div>
   </header>
 
   <main class="panel">
-    <div class="panel-header">
-      <span class="material-symbols-outlined text-primary">history</span>
-      <h2>รายการใบลาของฉัน</h2>
-    </div>
-
+    <!-- 📊 Summary Stats Container -->
     <div class="history-summary">
-      <article><span>ทั้งหมด</span><strong id="sumAll">0</strong></article>
-      <article><span>รออนุมัติ</span><strong id="sumPending">0</strong></article>
-      <article><span>อนุมัติแล้ว</span><strong id="sumApproved">0</strong></article>
-      <article><span>วันลารวม</span><strong id="sumDays">0</strong></article>
+      <article class="summary-card active" onclick="filterLeaveHistory('all', this)">
+        <div class="summary-icon icon-all"><span class="material-symbols-outlined">format_list_bulleted</span></div>
+        <div class="summary-info">
+          <span>ทั้งหมด</span>
+          <strong id="sumAll">0</strong>
+        </div>
+      </article>
+      <article class="summary-card" onclick="filterLeaveHistory('pending', this)">
+        <div class="summary-icon icon-pending"><span class="material-symbols-outlined">hourglass_top</span></div>
+        <div class="summary-info">
+          <span>รออนุมัติ</span>
+          <strong id="sumPending">0</strong>
+        </div>
+      </article>
+      <article class="summary-card" onclick="filterLeaveHistory('approved', this)">
+        <div class="summary-icon icon-approved"><span class="material-symbols-outlined">check_circle</span></div>
+        <div class="summary-info">
+          <span>อนุมัติแล้ว</span>
+          <strong id="sumApproved">0</strong>
+        </div>
+      </article>
+      <article class="summary-card" onclick="filterLeaveHistory('cancel_requested', this)">
+        <div class="summary-icon icon-cancel-req"><span class="material-symbols-outlined">published_with_changes</span></div>
+        <div class="summary-info">
+          <span>รอ HR ยกเลิก</span>
+          <strong id="sumCancelReq">0</strong>
+        </div>
+      </article>
+      <article class="summary-card" onclick="filterLeaveHistory('days', this)">
+        <div class="summary-icon icon-days"><span class="material-symbols-outlined">calendar_today</span></div>
+        <div class="summary-info">
+          <span>วันลารวมที่ใช้</span>
+          <strong id="sumDays">0</strong>
+        </div>
+      </article>
     </div>
 
+    <!-- 🏷️ Filter Chips Bar -->
+    <div class="filter-bar">
+      <div class="filter-title">
+        <span class="material-symbols-outlined">filter_list</span>
+        <span>กรองรายการ:</span>
+      </div>
+      <div class="filter-chips">
+        <button class="chip active" onclick="filterLeaveHistory('all', this)">ทั้งหมด</button>
+        <button class="chip" onclick="filterLeaveHistory('pending', this)">⏳ รออนุมัติ</button>
+        <button class="chip" onclick="filterLeaveHistory('approved', this)">✅ อนุมัติแล้ว</button>
+        <button class="chip" onclick="filterLeaveHistory('cancel_requested', this)">🔄 รอ HR ยกเลิก</button>
+        <button class="chip" onclick="filterLeaveHistory('rejected_cancelled', this)">❌ ไม่อนุมัติ / ยกเลิกแล้ว</button>
+      </div>
+    </div>
+
+    <!-- 📋 Table List -->
     <div class="table-responsive">
       <table>
         <thead>
           <tr>
             <th>ประเภทการลา</th>
             <th>ช่วงวันที่</th>
-            <th>จำนวน</th>
-            <th>เหตุผล</th>
+            <th>จำนวนวัน</th>
+            <th>เหตุผลการลา</th>
             <th>สถานะ</th>
+            <th style="text-align: center;">จัดการคำขอ</th>
           </tr>
         </thead>
         <tbody id="table-data-rows">
-          <tr><td colspan="5" class="empty-state">กำลังโหลดประวัติการลา...</td></tr>
+          <tr><td colspan="6" class="empty-state">กำลังโหลดประวัติการลา...</td></tr>
         </tbody>
       </table>
     </div>
   </main>
 
   <script src="/js/supabase-config.js"></script>
-  <!-- แทนที่หรือเพิ่มต่อจาก Supabase CDN ใน <head> -->
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/js/auth-guard.js"></script>
   <script src="/js/leave-history.js"></script>
 </body>
