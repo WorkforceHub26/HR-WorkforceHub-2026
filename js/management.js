@@ -196,15 +196,22 @@ window.pvtSupabase = (() => {
     }[status] || status || "-";
   }
 
-  function getAvatarUrl(imageUrl) {
-    if (!imageUrl) return "/assets/img/default-avatar.jpg";
-    let url = String(imageUrl).trim();
-    if (!url) return "/assets/img/default-avatar.jpg";
-    if (!url.startsWith("http")) {
-      url = `${SUPABASE_URL}/storage/v1/object/public/employee-images/${url}`;
-    }
+function getAvatarUrl(imageUrl) {
+  if (!imageUrl || imageUrl === "null" || imageUrl === "undefined") {
+    return "/assets/img/default-avatar.jpg";
+  }
+  
+  let url = String(imageUrl).trim();
+  if (!url) return "/assets/img/default-avatar.jpg";
+
+  // หากเป็น URL สมบูรณ์จากภายนอกหรือ Supabase CDN
+  if (url.startsWith("http://") || url.startsWith("https://")) {
     return url.replace("storage/v1/object/", "storage/v1/object/public/");
   }
+
+  // หากเป็นแค่ชื่อไฟล์ที่เก็บใน Storage
+  return `${SUPABASE_URL}/storage/v1/object/public/employee-images/${url}`;
+}
 
   function downloadBlob(filename, content, mimeType = "text/plain;charset=utf-8") {
     const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
@@ -732,7 +739,13 @@ function renderEmployeeTable() {
 
   tbody.innerHTML = filtered.map((emp) => `
     <tr>
-      <td><img class="avatar" src="${window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : ''}" onerror="this.src='/assets/img/default-avatar.jpg'" alt=""></td>
+
+      <td>
+        <img class="table-avatar" 
+            src="${window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : '/assets/img/default-avatar.jpg'}" 
+            onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(emp.full_name || 'PVT')}&background=0d9488&color=fff';" 
+            alt="${escapeHtml(emp.full_name || '')}" />
+      </td>
       <td><strong>${escapeHtml(emp.employee_code || "-")}</strong></td>
       <td>${escapeHtml(emp.full_name || "-")}</td>
       <td>${escapeHtml(emp.positions?.position_name || "-")}</td>
@@ -2032,27 +2045,248 @@ async function actionDeleteHoliday(id, name) {
 
 
 
-function exportAllLeaveHistoryExcel() {
+// ==========================================
+// EXCEL EXPORT ENGINE (EXCELJS INTEGRATION)
+// ==========================================
+async function exportAllLeaveHistoryExcel() {
   if (!leaveRequests || !leaveRequests.length) {
     showAppError("ไม่พบข้อมูล", "ยังไม่มีประวัติการลาในระบบสำหรับส่งออก");
     return;
   }
 
-  let csvContent = "\uFEFF"; // UTF-8 BOM รองรับภาษาไทยใน Excel
-  csvContent += "รหัสพนักงาน,ชื่อ-นามสกุล,แผนก,ประเภทการลา,วันที่เริ่มต้น,วันที่สิ้นสุด,จำนวนวัน,เหตุผล,สถานะ,วันที่ยื่น\n";
+  if (typeof ExcelJS === "undefined") {
+    showAppError("ไลบรารีไม่พร้อมใช้งาน", "ยังไม่ได้โหลด ExcelJS กรุณารีเฟรชหน้าเว็บ");
+    return;
+  }
 
-  leaveRequests.forEach((r) => {
-    const emp = employees.find((e) => String(e.id) === String(r.employee_id));
-    const type = getLeaveType(r.leave_type_id)?.leave_name || "ไม่ระบุ";
-    const status = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(r.status) : r.status;
-    const empCode = emp?.employee_code || "";
-    const empName = emp?.full_name || "";
-    const dept = emp?.departments?.department_name || "";
-    const cleanReason = (r.reason || r.note || "").replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
-
-    csvContent += `"${empCode}","${empName}","${dept}","${type}","${r.start_date || ""}","${r.end_date || ""}","${r.total_days || 0}","${cleanReason}","${status}","${r.created_at || ""}"\n`;
+  // 1. ให้ผู้ใช้เลือกรูปแบบรายงานที่ต้องการ
+  const { value: exportType } = await Swal.fire({
+    title: '📊 ส่งออกรายงานการลา Excel',
+    text: 'กรุณาเลือกรูปแบบรายงานที่คุณต้องการดาวน์โหลด',
+    icon: 'question',
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonText: '📈 สรุปภาพรวม (Executive Summary)',
+    denyButtonText: '📄 ข้อมูลดิบทั้งหมด (Raw Data)',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0d9488',
+    denyButtonColor: '#3b82f6',
+    width: 'min(92vw, 550px)'
   });
 
-  const filename = `ประวัติการลาทั้งหมด_${new Date().toISOString().slice(0, 10)}.csv`;
-  window.pvtSupabase.downloadBlob(filename, csvContent, "text/csv;charset=utf-8;");
+  if (exportType === undefined) return; // กดยกเลิก
+
+  Swal.fire({
+    title: 'กำลังสร้างไฟล์ Excel...',
+    text: 'ระบบกำลังประมวลผลข้อมูลและจัดรูปแบบรายงาน',
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "PVT Workforce Hub";
+    workbook.created = new Date();
+
+    const isSummaryMode = exportType === true; // กดเลือก Executive Summary
+
+    // -------------------------------------------------------------
+    // SHEET 1: สรุปภาพรวม (กรณีเลือก Executive Summary)
+    // -------------------------------------------------------------
+    if (isSummaryMode) {
+      const summarySheet = workbook.addWorksheet("สรุปภาพรวม (Summary)");
+      summarySheet.views = [{ showGridLines: true }];
+
+      // หัวข้อรายงาน
+      summarySheet.mergeCells("A1:E1");
+      const titleCell = summarySheet.getCell("A1");
+      titleCell.value = "🏢 รายงานสรุปภาพรวมการลาพนักงาน (Executive Leave Dashboard)";
+      titleCell.font = { name: "Sarabun", size: 16, bold: true, color: { argb: "FF0F766E" } };
+      titleCell.alignment = { vertical: "middle", horizontal: "left" };
+
+      summarySheet.getCell("A2").value = `วันที่ดึงรายงาน: ${new Date().toLocaleDateString("th-TH")} | สังกัด: ทุกแผนก`;
+      summarySheet.getCell("A2").font = { name: "Sarabun", size: 10, italic: true, color: { argb: "FF64748B" } };
+
+      // KPI Cards (กล่องสรุปตัวเลข)
+      const approvedList = leaveRequests.filter(r => String(r.status).toLowerCase() === "approved");
+      const totalDays = approvedList.reduce((sum, r) => sum + Number(r.total_days || 0), 0);
+      const pendingCount = leaveRequests.filter(r => String(r.status).toLowerCase() === "pending").length;
+
+      summarySheet.getRow(4).values = ["สถิติลารวมทั้งหมด", "อนุมัติแล้ว (วัน)", "รออนุมัติ (รายการ)", "พนักงานทั้งหมด"];
+      summarySheet.getRow(5).values = [leaveRequests.length, totalDays, pendingCount, employees.length];
+
+      // จัดสไตล์ KPI Cards
+      const kpiHeaderRow = summarySheet.getRow(4);
+      const kpiValueRow = summarySheet.getRow(5);
+      
+      for (let col = 1; col <= 4; col++) {
+        const hCell = kpiHeaderRow.getCell(col);
+        const vCell = kpiValueRow.getCell(col);
+
+        hCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+        hCell.font = { bold: true, size: 10, color: { argb: "FF475569" } };
+        hCell.alignment = { horizontal: "center", vertical: "middle" };
+
+        vCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0FDFA" } };
+        vCell.font = { bold: true, size: 14, color: { argb: "FF0D9488" } };
+        vCell.alignment = { horizontal: "center", vertical: "middle" };
+
+        hCell.border = { top: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+        vCell.border = { bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
+      }
+
+      // ตารางตารางสรุปแยกตามประเภทการลา
+      summarySheet.getCell("A7").value = "📊 สรุปจำนวนวันลาแยกตามประเภท (เฉพาะที่อนุมัติ)";
+      summarySheet.getCell("A7").font = { bold: true, size: 12, color: { argb: "FF1E293B" } };
+
+      const typeSummaryHeader = summarySheet.getRow(8);
+      typeSummaryHeader.values = ["ประเภทการลา", "จำนวนรายการ", "รวมจำนวนวันลา"];
+      typeSummaryHeader.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      typeSummaryHeader.eachCell((cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0D9488" } };
+        cell.alignment = { horizontal: "center" };
+      });
+
+      // ดึงสถิติแยกตามประเภท
+      const typeMap = new Map();
+      approvedList.forEach(r => {
+        const typeName = getLeaveType(r.leave_type_id)?.leave_name || "อื่นๆ";
+        const current = typeMap.get(typeName) || { count: 0, days: 0 };
+        typeMap.set(typeName, { count: current.count + 1, days: current.days + Number(r.total_days || 0) });
+      });
+
+      let currentRowIdx = 9;
+      typeMap.forEach((val, typeName) => {
+        const row = summarySheet.getRow(currentRowIdx);
+        row.values = [typeName, val.count, val.days];
+        row.getCell(1).alignment = { horizontal: "left" };
+        row.getCell(2).alignment = { horizontal: "center" };
+        row.getCell(3).alignment = { horizontal: "right" };
+        row.eachCell(cell => {
+          cell.border = { top: {style:'thin', color:{argb:'FFE2E8F0'}}, bottom: {style:'thin', color:{argb:'FFE2E8F0'}}, left: {style:'thin', color:{argb:'FFE2E8F0'}}, right: {style:'thin', color:{argb:'FFE2E8F0'}} };
+        });
+        currentRowIdx++;
+      });
+    }
+
+    // -------------------------------------------------------------
+    // SHEET 2: ข้อมูลดิบ (RAW DATA LEAVE HISTORY)
+    // -------------------------------------------------------------
+    const rawSheet = workbook.addWorksheet("ประวัติการลาทั้งหมด (Data)");
+    rawSheet.views = [{ showGridLines: true }];
+
+    // กำหนดโครงสร้างคอลัมน์
+    rawSheet.columns = [
+      { header: "รหัสพนักงาน", key: "emp_code", width: 14 },
+      { header: "ชื่อ-นามสกุล", key: "emp_name", width: 22 },
+      { header: "แผนก/ฝ่าย", key: "dept", width: 18 },
+      { header: "ตำแหน่ง", key: "position", width: 20 },
+      { header: "ประเภทการลา", key: "leave_type", width: 18 },
+      { header: "วันที่เริ่มต้น", key: "start_date", width: 14 },
+      { header: "วันที่สิ้นสุด", key: "end_date", width: 14 },
+      { header: "จำนวนวัน", key: "total_days", width: 12 },
+      { header: "เหตุผลการลา", key: "reason", width: 30 },
+      { header: "สถานะคำขอ", key: "status", width: 14 },
+      { header: "วันที่ยื่นคำขอ", key: "created_at", width: 18 }
+    ];
+
+    // ตกแต่ง Header ของตารางข้อมูลดิบ
+    const headerRow = rawSheet.getRow(1);
+    headerRow.height = 26;
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0D9488" } };
+      cell.font = { name: "Sarabun", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = { top: { style: "medium" }, bottom: { style: "medium" } };
+    });
+
+    // วนลูปเพิ่ม Row ข้อมูล
+    leaveRequests.forEach((r, idx) => {
+      const emp = employees.find((e) => String(e.id) === String(r.employee_id));
+      const leaveType = getLeaveType(r.leave_type_id)?.leave_name || "ไม่ระบุ";
+      const statusText = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(r.status) : (r.status || "-");
+      
+      const createdDateFormatted = r.created_at ? new Date(r.created_at).toLocaleString("th-TH") : "-";
+
+      const addedRow = rawSheet.addRow({
+        emp_code: emp?.employee_code || "-",
+        emp_name: emp?.full_name || "-",
+        dept: emp?.departments?.department_name || "-",
+        position: emp?.positions?.position_name || "-",
+        leave_type: leaveType,
+        start_date: window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(r.start_date) : r.start_date,
+        end_date: window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(r.end_date) : r.end_date,
+        total_days: Number(r.total_days || 0),
+        reason: (r.reason || r.note || "-").trim(),
+        status: statusText,
+        created_at: createdDateFormatted
+      });
+
+      addedRow.height = 20;
+
+      // สลับสีบรรทัด (Zebra Striping) + สไตล์ตัวอักษร
+      const isEven = idx % 2 === 0;
+      addedRow.eachCell((cell, colNumber) => {
+        cell.font = { name: "Sarabun", size: 10 };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFE2E8F0" } },
+          bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+          left: { style: "thin", color: { argb: "FFE2E8F0" } },
+          right: { style: "thin", color: { argb: "FFE2E8F0" } }
+        };
+
+        if (isEven) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
+        }
+
+        // จัด Alignment รายคอลัมน์
+        if ([1, 6, 7, 10, 11].includes(colNumber)) cell.alignment = { horizontal: "center", vertical: "middle" };
+        else if (colNumber === 8) cell.alignment = { horizontal: "right", vertical: "middle" };
+        else cell.alignment = { horizontal: "left", vertical: "middle" };
+
+        // ใส่สีแยกตามสถานะ
+        if (colNumber === 10) {
+          if (r.status === "approved") cell.font = { bold: true, color: { argb: "FF15803D" } };
+          else if (r.status === "pending") cell.font = { bold: true, color: { argb: "FFA16207" } };
+          else if (r.status === "rejected") cell.font = { bold: true, color: { argb: "FFBE123C" } };
+        }
+      });
+    });
+
+    // ปรับ Auto-Width ของคอลัมน์ใน Sheet ข้อมูลดิบเพิ่มเติม
+    rawSheet.columns.forEach((column) => {
+      let maxLen = column.header ? column.header.length : 12;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const len = cell.value ? String(cell.value).length : 0;
+        if (len > maxLen) maxLen = len;
+      });
+      column.width = Math.min(Math.max(maxLen + 4, 12), 40);
+    });
+
+    // -------------------------------------------------------------
+    // GENERATE FILE & DOWNLOAD
+    // -------------------------------------------------------------
+    const buffer = await workbook.xlsx.writeBuffer();
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = isSummaryMode 
+      ? `รายงานสรุปภาพรวมการลา_PVT_${dateStr}.xlsx` 
+      : `ประวัติการลาดิบ_PVT_${dateStr}.xlsx`;
+
+    window.pvtSupabase.downloadBlob(
+      fileName, 
+      buffer, 
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    Swal.fire({
+      icon: "success",
+      title: "ดาวน์โหลดสำเร็จ!",
+      text: `ส่งออกไฟล์ ${fileName} เรียบร้อยแล้ว`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+
+  } catch (err) {
+    console.error("Excel Export Error:", err);
+    showAppError("ไม่สามารถสร้างไฟล์ Excel ได้", err.message);
+  }
 }
