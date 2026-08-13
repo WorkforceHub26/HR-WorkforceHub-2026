@@ -396,3 +396,74 @@ window.toggleInstructions = function () {
   }
 };
 
+/**
+ * ฟังก์ชันเปิด Modal เปลี่ยนรหัสผ่านผ่าน SweetAlert2 และซิงค์ข้อมูลกับ Supabase Auth
+ */
+async function openChangePasswordModal(user) {
+  const { value: formValues } = await Swal.fire({
+    title: 'เปลี่ยนรหัสผ่านเพื่อความปลอดภัย',
+    html: `
+      <p class="text-sm text-gray-600 mb-4">เนื่องจากรหัสผ่านปัจจุบันเป็นรหัสผ่านเริ่มต้น กรุณากำหนดรหัสผ่านใหม่ก่อนเข้าใช้งาน</p>
+      <div class="text-left space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่านใหม่</label>
+          <input id="swal-new-password" type="password" class="swal2-input w-full m-0" placeholder="อย่างน้อย 6 ตัวอักษร">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ยืนยันรหัสผ่านใหม่</label>
+          <input id="swal-confirm-password" type="password" class="swal2-input w-full m-0" placeholder="กรอกรหัสผ่านซ้ำอีกครั้ง">
+        </div>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึกรหัสผ่านใหม่',
+    cancelButtonText: 'ข้ามไปก่อน',
+    confirmButtonColor: '#2563eb',
+    preConfirm: () => {
+      const newPassword = document.getElementById('swal-new-password').value;
+      const confirmPassword = document.getElementById('swal-confirm-password').value;
+
+      if (!newPassword || !confirmPassword) {
+        Swal.showValidationMessage('กรุณากรอกรหัสผ่านให้ครบถ้วน');
+        return false;
+      }
+      if (newPassword.length < 6) {
+        Swal.showValidationMessage('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+        return false;
+      }
+      if (newPassword !== confirmPassword) {
+        Swal.showValidationMessage('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+        return false;
+      }
+      return { newPassword };
+    }
+  });
+
+  if (formValues) {
+    try {
+      Swal.showLoading();
+      
+      // อัปเดตรหัสผ่านไปยัง Supabase Auth
+      const { error } = await pvtSupabase.auth.updateUser({
+        password: formValues.newPassword
+      });
+
+      if (error) throw error;
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'เปลี่ยนรหัสผ่านเรียบร้อย',
+        text: 'ระบบทำการอัปเดตรหัสผ่านใหม่ของท่านแล้ว',
+        confirmButtonColor: '#2563eb'
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: err.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้ กรุณาลองใหม่อีกครั้ง',
+        confirmButtonColor: '#ef4444'
+      });
+    }
+  }
+}
