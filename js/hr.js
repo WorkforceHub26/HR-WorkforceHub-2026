@@ -7,7 +7,7 @@ let currentUserProfile = null;
 let allLeaveRequests = []; 
 let currentLeaveTab = "pending"; // 'pending' | 'cancellation' | 'history'
 
-// ⚡ [1. IMMEDIATE CHECK]: เช็กสิทธิ์ทันทีตั้งแต่นาทีแรกที่โหลด JS (ไม่รอ DOMDOMContentLoaded)
+// ⚡ [1. IMMEDIATE CHECK]: เช็กสิทธิ์ทันทีตั้งแต่นาทีแรกที่โหลด JS
 (function checkRoleImmediately() {
   try {
     const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
@@ -23,10 +23,9 @@ let currentLeaveTab = "pending"; // 'pending' | 'cancellation' | 'history'
       fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า")
     );
 
-    // ⛔ ถ้าไม่มีสิทธิ์ บังคับซ่อนหน้าเว็บทันทีตั้งแต่ตอนนี้ เพื่อไม่ให้auth-guardสั่งโชว์หน้าเว็บ
     if (!isAllowedRole) {
       document.documentElement.style.visibility = 'hidden';
-      window.__PVT_ACCESS_DENIED__ = true; // ทำเครื่องหมายไว้ว่าไม่มีสิทธิ์
+      window.__PVT_ACCESS_DENIED__ = true;
     }
   } catch (e) {
     console.error("🔒 Auth Check Error:", e);
@@ -34,7 +33,6 @@ let currentLeaveTab = "pending"; // 'pending' | 'cancellation' | 'history'
 })();
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // ⛔ ถ้าโดนบล็อกสิทธิ์ไว้ตั้งแต่ขั้นตอน Immediate Check ให้เด้ง Swal ทันที
   if (window.__PVT_ACCESS_DENIED__) {
     if (typeof Swal !== 'undefined') {
       await Swal.fire({
@@ -46,12 +44,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
         `,
         icon: 'error',
-        iconColor: '#ef4444',
         confirmButtonText: '🏠 กลับหน้าหลักพนักงาน',
         confirmButtonColor: '#06b6d4',
         allowOutsideClick: false,
-        allowEscapeKey: false,
-        customClass: { popup: 'pvt-guard-popup' }
+        allowEscapeKey: false
       });
     } else {
       alert("⛔ คุณไม่มีสิทธิ์เข้าถึงหน้าระบบอนุมัติใบลา");
@@ -89,7 +85,6 @@ async function initSystemAndPermissions() {
       currentRole = "leader";
     }
 
-    // เปิดให้แสดงหน้าเว็บเมื่อสิทธิ์ถูกต้องแน่นอนแล้ว
     document.documentElement.style.visibility = 'visible';
 
     const userNameEl = document.getElementById("userNameHeader");
@@ -152,24 +147,16 @@ function getAvatarUrl(imageUrl) {
   return "/assets/img/default-avatar.jpg";
 }
 
-function formatStatusThai(status) {
-  if (!status) return '<span class="status-badge status-pending">รออนุมัติ</span>';
+function getAttachmentUrl(reqData) {
+  if (!reqData) return null;
+  let url = reqData.attachment_url || reqData.file_url || reqData.attachment || reqData.medical_certificate || null;
+  if (!url || String(url).trim() === '' || url === 'null' || url === 'undefined') return null;
   
-  const s = String(status).trim().toLowerCase();
-  switch (s) {
-    case 'approved': case 'อนุมัติแล้ว': case 'อนุมัติ':
-      return '<span class="status-badge status-approved">อนุมัติแล้ว</span>';
-    case 'pending': case 'รออนุมัติ': case 'wait':
-      return '<span class="status-badge status-pending">รออนุมัติ</span>';
-    case 'rejected': case 'ไม่อนุมัติ':
-      return '<span class="status-badge status-rejected">ไม่อนุมัติ</span>';
-    case 'cancel_requested': case 'cancel_pending': case 'ขอยกเลิก': case 'รออนุมัติยกเลิก':
-      return '<span class="status-badge status-cancel-req">รอ HR อนุมัติยกเลิก</span>';
-    case 'cancelled': case 'cancelled_by_user': case 'ยกเลิกแล้ว': case 'ยกเลิก':
-      return '<span class="status-badge status-cancelled">ยกเลิกเรียบร้อย</span>';
-    default:
-      return `<span class="status-badge">${status}</span>`;
+  url = String(url).trim();
+  if (!url.startsWith('http') && !url.startsWith('data:')) {
+    url = `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/leave-attachments/${url}`;
   }
+  return url;
 }
 
 function isPendingStatus(status) {
@@ -216,7 +203,6 @@ async function calculateActualLeaveDays(startDateStr, endDateStr) {
 
     while (start <= end) {
       const dayOfWeek = start.getDay();
-
       const y = start.getFullYear();
       const m = String(start.getMonth() + 1).padStart(2, '0');
       const d = String(start.getDate()).padStart(2, '0');
@@ -228,12 +214,10 @@ async function calculateActualLeaveDays(startDateStr, endDateStr) {
       if (!isSunday && !isSpecialHoliday) {
         totalDays++;
       }
-
       start.setDate(start.getDate() + 1);
     }
 
     return totalDays;
-
   } catch (err) {
     console.error("💥 คำนวณวันลาผิดพลาด:", err);
     return 0;
@@ -241,16 +225,54 @@ async function calculateActualLeaveDays(startDateStr, endDateStr) {
 }
 
 async function getEffectiveLeaveDays(reqData) {
-  if (reqData.actual_days && Number(reqData.actual_days) > 0) {
-    return Number(reqData.actual_days);
-  }
-  
+  if (reqData.actual_days && Number(reqData.actual_days) > 0) return Number(reqData.actual_days);
   if (reqData.start_date && reqData.end_date) {
     const calc = await calculateActualLeaveDays(reqData.start_date, reqData.end_date);
     if (calc > 0) return calc;
   }
-
   return Number(reqData.total_days || 0);
+}
+
+function formatThaiDate(dateStr, showTime = false) {
+  if (!dateStr) return "-";
+  try {
+    const cleanStr = String(dateStr).replace("Z", "");
+    const dateObj = new Date(cleanStr);
+    if (isNaN(dateObj.getTime())) return dateStr;
+
+    const thaiMonths = [
+      "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
+
+    const day = dateObj.getDate();
+    const month = thaiMonths[dateObj.getMonth()];
+    const year = dateObj.getFullYear() + 543;
+
+    let result = `${day} ${month} ${year}`;
+    if (showTime) {
+      const hours = String(dateObj.getHours()).padStart(2, "0");
+      const mins = String(dateObj.getMinutes()).padStart(2, "0");
+      result += ` เวลา ${hours}:${mins} น.`;
+    }
+    return result;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+function getStatusBadgeHTML(status) {
+  const st = (status || 'pending').toLowerCase();
+  if (st === 'approved' || st === 'อนุมัติแล้ว') {
+    return `<span class="status-badge status-approved"><span class="material-symbols-outlined">check_circle</span> อนุมัติแล้ว</span>`;
+  }
+  if (st === 'rejected' || st === 'ไม่อนุมัติ') {
+    return `<span class="status-badge status-rejected"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</span>`;
+  }
+  if (st === 'cancelled' || st === 'ยกเลิก') {
+    return `<span class="status-badge status-cancelled"><span class="material-symbols-outlined">block</span> ยกเลิกแล้ว</span>`;
+  }
+  return `<span class="status-badge status-pending"><span class="material-symbols-outlined">schedule</span> รอพิจารณา</span>`;
 }
 
 /* ==========================================================================
@@ -260,7 +282,7 @@ async function getEffectiveLeaveDays(reqData) {
 async function loadPendingLeavesHR() {
   const tbody = document.getElementById("leaveRequestsBody");
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">⏳ กำลังโหลดคลังข้อมูลคำขอ...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state">⏳ กำลังโหลดคลังข้อมูลคำขอ...</td></tr>`;
   }
 
   const sb = window.pvtSupabase?.getClient();
@@ -305,7 +327,7 @@ async function loadPendingLeavesHR() {
     let rawData = data || [];
 
     const userRole = (currentRole || '').toLowerCase();
-    if (userRole === "leader" || userRole === "manager" || userRole === "director") {
+    if (userRole === "leader" || userRole === "manager") {
       rawData = rawData.filter((req) => {
         const reqEmp = req.employees;
         if (!reqEmp) return false;
@@ -325,7 +347,7 @@ async function loadPendingLeavesHR() {
         if (userRole === "leader") {
           isSubordinate = (reqEmpRole === "user");
         } else {
-          isSubordinate = (reqEmpRole === "user" || reqEmpRole === "leader" || reqEmpRole === "manager");
+          isSubordinate = (reqEmpRole === "user" || reqEmpRole === "leader");
         }
 
         return isSameDept && isNotSelf && isSubordinate;
@@ -339,7 +361,7 @@ async function loadPendingLeavesHR() {
   } catch (err) {
     console.error("💥 เกิดข้อผิดพลาด:", err);
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="11" class="empty-state" style="color: var(--danger);">❌ เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12" class="empty-state" style="color: var(--danger);">❌ เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
     }
   }
 }
@@ -388,14 +410,63 @@ window.switchLeaveTab = function(tabName, btnEl) {
 };
 
 /* ==========================================================================
-   🖼️ 3. RENDER TABLE DATA
+   🔒 SEQUENTIAL APPROVAL GUARD (UPDATED FOR FLEXIBLE WORKFLOW)
+   ========================================================================== */
+
+function canApproveStep(req, role) {
+  // ดึงข้อมูลผู้ใช้งานปัจจุบันที่กำลังกดปุ่ม
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const empData = currentUserProfile?.employees || sessionUser?.employees || sessionUser || {};
+  const currentEmpId = empData?.id || empData?.employee_id || currentUserProfile?.employee_id;
+
+  // 🛑 1. ป้องกันการกดอนุมัติใบลาของตัวเอง (Self-Approval Guard)
+  if (currentEmpId && String(req.employee_id) === String(currentEmpId)) {
+    Swal.fire({
+      title: 'ไม่สามารถทำรายการได้',
+      text: 'คุณไม่สามารถกดอนุมัติใบลาของตนเองได้ กรุณาให้ผู้จัดการฝ่าย หรือ Admin/Director เป็นผู้อนุมัติ',
+      icon: 'warning',
+      confirmButtonColor: '#06b6d4'
+    });
+    return false;
+  }
+
+  // ดึง Role ของ "ผู้ยื่นขอลา"
+  const applicantRole = String(req.employees?.role || '').toLowerCase();
+  const isApplicantHeadOrHr = ['leader', 'manager', 'director', 'hr', 'admin'].includes(applicantRole);
+
+  // 🔵 2. กรณีผู้จัดการ (L2) กำลังพิจารณา
+  if (role === 'manager') {
+    // ถ้าพนักงานทั่วไปยื่น ต้องผ่าน L1 ก่อน แต่ถ้าผู้ยื่นเป็นระดับ Leader ขึ้นไป ให้ข้าม L1 ได้เลย
+    if (!isApplicantHeadOrHr && req.manager_status !== 'approved') {
+      Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "หัวหน้าแผนก (L1)" พิจารณาอนุมัติก่อน', 'warning');
+      return false;
+    }
+  }
+
+  // 🟢 3. กรณีฝ่าย HR / Admin (L3) กำลังพิจารณา
+  if (role === 'hr' || role === 'admin') {
+    // HR หรือ Admin สามารถกดอนุมัติปิดจบได้ทันที ในกรณี:
+    // - ผู้จัดการ (L2) อนุมัติแล้ว
+    // - หรือผู้ยื่นเป็นระดับ หัวหน้า/ผู้จัดการ/HR (ไม่มี L1/L2 เหนือกว่า)
+    // - หรือกรณีแผนกนั้นไม่มีผู้จัดการ (HR สามารถ Override อนุมัติตรงได้เลย)
+    return true; 
+  }
+
+  return true;
+}
+
+/* ==========================================================================
+   🖼️ 4. RENDER TABLE DATA
    ========================================================================== */
 
 function renderLeaveTable() {
   const tbody = document.getElementById("leaveRequestsBody");
+  const stepFilter = document.getElementById("filterStepSelect")?.value || "all";
   if (!tbody) return;
 
   let filteredRequests = [];
+
   if (currentLeaveTab === "pending") {
     filteredRequests = allLeaveRequests.filter(r => isPendingStatus(r.status));
   } else if (currentLeaveTab === "cancellation") {
@@ -404,12 +475,23 @@ function renderLeaveTable() {
     filteredRequests = allLeaveRequests.filter(r => !isPendingStatus(r.status) && !isCancelRequestStatus(r.status));
   }
 
-  if (filteredRequests.length === 0) {
-    let emptyMsg = "✨ ไม่มีคำขออนุมัติลาค้างในระบบ";
-    if (currentLeaveTab === "cancellation") emptyMsg = "🎉 ไม่มีคำร้องขอยกเลิกใบลาค้างพิจารณา";
-    if (currentLeaveTab === "history") emptyMsg = "📜 ยังไม่มีประวัติรายการพิจารณาใบลา";
+  if (stepFilter !== "all") {
+    filteredRequests = filteredRequests.filter(req => {
+      const mStatus = req.manager_status || 'pending';
+      const dStatus = req.director_status || 'pending';
+      const hrStatus = req.status || 'pending';
 
-    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">${emptyMsg}</td></tr>`;
+      if (stepFilter === "pending_manager") return mStatus === 'pending';
+      if (stepFilter === "pending_director") return mStatus === 'approved' && dStatus === 'pending';
+      if (stepFilter === "pending_hr") return mStatus === 'approved' && dStatus === 'approved' && hrStatus === 'pending';
+      if (stepFilter === "fully_approved") return hrStatus === 'approved';
+      if (stepFilter === "rejected") return mStatus === 'rejected' || dStatus === 'rejected' || hrStatus === 'rejected';
+      return true;
+    });
+  }
+
+  if (filteredRequests.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state">ไม่พบรายการใบลาตามเงื่อนไขที่เลือก</td></tr>`;
     return;
   }
 
@@ -418,55 +500,55 @@ function renderLeaveTable() {
     const empName = req.employees ? req.employees.full_name : "ไม่ทราบชื่อ";
     const empCode = req.employees ? req.employees.employee_code : "-";
     const leaveType = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุ";
-    const startDate = req.start_date ? new Date(req.start_date).toLocaleDateString("th-TH") : "-";
-    const endDate = req.end_date ? new Date(req.end_date).toLocaleDateString("th-TH") : "-";
+    const startDate = formatThaiDate(req.start_date);
+    const endDate = formatThaiDate(req.end_date);
     const avatarUrl = getAvatarUrl(req.employees?.image_url);
-
     const displayDays = req.actual_days || req.days_requested || req.total_days || 0;
-
-    let noteContent = req.reason || "-";
-    if (req.approval_comment && req.approval_comment.trim() !== "") {
-      noteContent += `<br><small style="color: var(--danger); font-weight: 500;">(${req.approval_comment})</small>`;
-    }
+    const attachmentUrl = getAttachmentUrl(req);
 
     let actionButtons = "";
-    if (currentLeaveTab === "pending") {
+
+    if (currentLeaveTab === "cancellation") {
       actionButtons = `
         <div class="action-btn-group">
-          <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ">✔️ อนุมัติ</button>
-          <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ไม่อนุมัติ">✖️ ปฏิเสธ</button>
-          <button class="btn-act btn-act-cancel" onclick="cancelLeaveHR('${req.id}')" title="ยกเลิก">🚫 ยกเลิก</button>
-          <button class="btn-act btn-act-print" onclick="printLeaveA4('${req.id}')" title="พิมพ์">🖨️ พิมพ์</button>
+          <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')"><span class="material-symbols-outlined">visibility</span></button>
+          <button class="btn-act btn-act-approve" onclick="approveCancellation('${req.id}')"><span class="material-symbols-outlined">check_circle</span> อนุมัติยกเลิก</button>
+          <button class="btn-act btn-act-reject" onclick="rejectCancellation('${req.id}')"><span class="material-symbols-outlined">cancel</span> ปฏิเสธ</button>
         </div>
       `;
-    } else if (currentLeaveTab === "cancellation") {
+    } else if (currentLeaveTab === "history") {
       actionButtons = `
         <div class="action-btn-group">
-          <button class="btn-act btn-act-approve" onclick="approveCancellation('${req.id}')" title="อนุมัติยกเลิกและคืนโควตา">✔️ อนุมัติยกเลิก</button>
-          <button class="btn-act btn-act-reject" onclick="rejectCancellation('${req.id}')" title="ปฏิเสธคำร้อง">✖️ ปฏิเสธยกเลิก</button>
+          <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')"><span class="material-symbols-outlined">visibility</span> รายละเอียด</button>
+          ${req.status === 'approved' ? `
+            <button class="btn-act btn-act-cancel" onclick="forceCancelLeave('${req.id}')"><span class="material-symbols-outlined">block</span> ยกเลิกใบลา</button>
+          ` : ''}
         </div>
       `;
     } else {
       actionButtons = `
-        <button class="btn-act btn-act-print" style="width:100%;" onclick="printLeaveA4('${req.id}')">🖨️ พิมพ์เอกสาร</button>
+        <div class="action-btn-group">
+          <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span></button>
+          <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
+          <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
+        </div>
       `;
     }
 
     htmlContent += `
       <tr>
-        <td class="text-center">
-          <img src="${avatarUrl}" class="avatar-cell" onerror="this.src='/assets/img/default-avatar.jpg';">
-        </td>
+        <td class="text-center"><img src="${avatarUrl}" class="avatar-cell" onerror="this.src='/assets/img/default-avatar.jpg';"></td>
         <td><strong>${empCode}</strong></td>
         <td><strong>${empName}</strong></td>
         <td><span style="color: var(--primary); font-weight: 600;">${leaveType}</span></td>
-        <td class="text-center" style="white-space:nowrap;">${startDate} - ${endDate}</td>
-        <td>${noteContent}</td>
+        <td class="text-center" style="white-space:nowrap; font-size: 12px;">${startDate}<br>ถึง ${endDate}</td>
+        <td>${req.reason || "-"}</td>
+        <td class="text-center">${renderAttachmentCell(attachmentUrl, req.id)}</td>
         <td class="text-center"><strong>${displayDays} วัน</strong></td>
-        <td class="text-center">${formatStatusThai(req.manager_status)}</td>
-        <td class="text-center">${formatStatusThai(req.director_status)}</td>
-        <td class="text-center">${formatStatusThai(req.status)}</td>
-        <td class="text-center" style="white-space:nowrap;">${actionButtons}</td>
+        <td class="text-center">${getStatusBadgeHTML(req.manager_status)}</td>
+        <td class="text-center">${getStatusBadgeHTML(req.director_status)}</td>
+        <td class="text-center">${getStatusBadgeHTML(req.status)}</td>
+        <td class="text-center">${actionButtons}</td>
       </tr>
     `;
   });
@@ -475,20 +557,195 @@ function renderLeaveTable() {
 }
 
 /* ==========================================================================
-   🔵 4. LEAVE WORKFLOW ACTIONS
+   🖼️ ATTACHMENT CELL & LIGHTBOX PREVIEW
+   ========================================================================== */
+
+function renderAttachmentCell(rawUrl, rowId) {
+  if (!rawUrl) {
+    return `
+      <span class="status-badge status-cancelled" style="font-size: 11px;">
+        <span class="material-symbols-outlined" style="font-size:13px;">no_photography</span> ไม่มี
+      </span>`;
+  }
+
+  const cleanUrl = String(rawUrl).trim();
+  const isImage = /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(cleanUrl) || cleanUrl.startsWith('data:image/');
+
+  if (isImage) {
+    return `
+      <button type="button" class="btn-act btn-act-preview" onclick="openImageLightbox('${cleanUrl}', 'หลักฐานการลา #${rowId}')" title="ดูรูปภาพ">
+        <span class="material-symbols-outlined">image</span> ดูรูป
+      </button>`;
+  }
+
+  return `
+    <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="btn-act btn-act-print" style="text-decoration:none;">
+      <span class="material-symbols-outlined">description</span> เปิดไฟล์
+    </a>`;
+}
+
+function openImageLightbox(imgUrl, titleText = 'หลักฐานการลา') {
+  const existingModal = document.getElementById('imageLightboxModal');
+  if (existingModal) existingModal.remove();
+
+  const modalHtml = `
+    <div id="imageLightboxModal" class="pvt-modal-overlay active" onclick="closeImageLightbox(event)" style="z-index: 99999;">
+      <div class="pvt-modal-card" style="max-width: 800px; width: 90%; text-align: center;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3><span class="material-symbols-outlined">image</span> ${titleText}</h3>
+          <button class="modal-close-btn" onclick="closeImageLightbox()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <img src="${imgUrl}" alt="หลักฐานขยาย" style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 12px; box-shadow: var(--shadow-md);" />
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  document.addEventListener('keydown', handleEscKey);
+}
+
+function closeImageLightbox(e) {
+  const modal = document.getElementById('imageLightboxModal');
+  if (modal) modal.remove();
+  document.removeEventListener('keydown', handleEscKey);
+}
+
+function handleEscKey(e) {
+  if (e.key === 'Escape') closeImageLightbox();
+}
+
+/* ==========================================================================
+   👁️ 5. MODAL PREVIEW & LEAVE DETAILS
+   ========================================================================== */
+
+function previewLeaveModal(leaveId) {
+  const req = allLeaveRequests.find(r => r.id === leaveId);
+  if (!req) return;
+
+  const modal = document.getElementById("leavePreviewModal");
+  const modalBody = document.getElementById("leavePreviewModalBody");
+  const btnPrint = document.getElementById("btnModalPrint");
+
+  if (!modal || !modalBody) return;
+
+  const emp = req.employees || {};
+  const avatarUrl = getAvatarUrl(emp.image_url);
+  const displayDays = req.actual_days || req.days_requested || req.total_days || 0;
+  const leaveName = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุประเภทการลา";
+  const attachUrl = getAttachmentUrl(req);
+  const isImage = attachUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachUrl.split('?')[0]);
+
+  modalBody.innerHTML = `
+    <div class="preview-user-card">
+      <img src="${avatarUrl}" class="preview-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
+      <div class="preview-user-info">
+        <h4>${emp.full_name || 'ไม่ระบุชื่อ'} ${emp.nickname ? `(${emp.nickname})` : ''}</h4>
+        <p>รหัสพนักงาน: <strong>${emp.employee_code || '-'}</strong> | แผนก: ${emp.departments?.department_name || '-'} | ตำแหน่ง: ${emp.positions?.position_name || '-'}</p>
+      </div>
+    </div>
+
+    <div class="preview-grid">
+      <div class="preview-item">
+        <label>ประเภทการลา</label>
+        <div style="color: var(--primary); font-weight:700;">${leaveName}</div>
+      </div>
+      <div class="preview-item">
+        <label>จำนวนวันลาทั้งหมด</label>
+        <div>${displayDays} วัน</div>
+      </div>
+      <div class="preview-item">
+        <label>ตั้งแต่วันที่</label>
+        <div>${formatThaiDate(req.start_date)}</div>
+      </div>
+      <div class="preview-item">
+        <label>ถึงวันที่</label>
+        <div>${formatThaiDate(req.end_date)}</div>
+      </div>
+    </div>
+
+    <div class="preview-item" style="margin-bottom: 16px;">
+      <label>เหตุผล / หมายเหตุประกอบการลา</label>
+      <div style="font-weight: 400; line-height: 1.5; color: var(--text);">${req.reason || 'ไม่ได้ระบุเหตุผล'}</div>
+    </div>
+
+    <div style="margin-bottom: 16px;">
+      <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); display: block; margin-bottom: 6px;">สถานะการอนุมัติตามลำดับขั้น</label>
+      <div class="workflow-steps">
+        <div class="step-card">
+          <span class="role-title">1. หัวหน้าแผนก (L1)</span>
+          ${getStatusBadgeHTML(req.manager_status)}
+        </div>
+        <div class="step-card">
+          <span class="role-title">2. ผู้จัดการฝ่าย (L2)</span>
+          ${getStatusBadgeHTML(req.director_status)}
+        </div>
+        <div class="step-card">
+          <span class="role-title">3. ฝ่าย HR (L3)</span>
+          ${getStatusBadgeHTML(req.status)}
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); display: block; margin-bottom: 6px;">หลักฐานแนบประกอบการลา</label>
+      ${attachUrl ? `
+        <div class="preview-attachment-box">
+          ${isImage ? `
+            <img src="${attachUrl}" class="preview-attachment-img" alt="หลักฐานการลา" onclick="openImageLightbox('${attachUrl}', 'รายการ #${req.id}')">
+            <p style="font-size:11px; color:var(--text-soft); margin-top:6px;">(คลิกรูปเพื่อดูขนาดเต็ม)</p>
+          ` : `
+            <a href="${attachUrl}" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+              <span class="material-symbols-outlined">attach_file</span> เปิดดูเอกสารแนบ
+            </a>
+          `}
+        </div>
+      ` : `
+        <div class="preview-attachment-none">ไม่มีหลักฐานแนบ</div>
+      `}
+    </div>
+  `;
+
+  if (btnPrint) {
+    btnPrint.onclick = () => {
+      closePreviewModal();
+      printLeaveA4(req.id);
+    };
+  }
+
+  modal.classList.add("active");
+}
+
+function closePreviewModal() {
+  const modal = document.getElementById("leavePreviewModal");
+  if (modal) modal.classList.remove("active");
+}
+
+/* ==========================================================================
+   🔵 6. WORKFLOW ACTIONS (APPROVE / REJECT / CANCEL)
    ========================================================================== */
 
 async function approveLeave(leaveId) {
+  const reqData = allLeaveRequests.find(r => r.id === leaveId);
+  if (!reqData) return;
+
+  if (!canApproveStep(reqData, currentRole)) return;
+
+  const roleTitle = currentRole === 'leader' 
+    ? 'หัวหน้างาน (L1)' 
+    : currentRole === 'manager' 
+    ? 'ผู้จัดการฝ่าย (L2)' 
+    : 'ฝ่ายบุคคล HR (L3)';
+
   const result = await Swal.fire({
     title: 'ยืนยันอนุมัติใบลา?',
-    text: currentRole === 'leader' 
-      ? 'คุณกำลังอนุมัติในฐานะหัวหน้างาน (L1) เพื่อส่งต่อให้ผู้จัดการพิจารณา' 
-      : 'ระบบจะบันทึกสถานะการอนุมัติและหักโควตาวันลาของพนักงาน',
+    text: `คุณกำลังอนุมัติในฐานะ ${roleTitle}`,
     icon: 'question',
     showCancelButton: true,
     confirmButtonColor: '#10b981',
     cancelButtonColor: '#64748b',
-    confirmButtonText: '✔️ อนุมัติ',
+    confirmButtonText: '✔️ ยืนยันอนุมัติ',
     cancelButtonText: 'ยกเลิก'
   });
 
@@ -500,46 +757,36 @@ async function approveLeave(leaveId) {
   Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
   try {
-    const { data: reqData, error: fetchErr } = await sb
-      .from('leave_requests')
-      .select('*')
-      .eq('id', leaveId)
-      .single();
-
-    if (fetchErr || !reqData) throw new Error("ไม่พบข้อมูลคำขออนุมัติลา");
-
-    const isAlreadyApproved = (reqData.status === 'approved');
     let updateFields = {};
 
     if (currentRole === 'leader') {
       updateFields.manager_status = 'approved';
-    } else {
-      updateFields.manager_status = 'approved';
+    } else if (currentRole === 'manager') {
       updateFields.director_status = 'approved';
+    } else {
+      // HR (L3)
       updateFields.status = 'approved';
       updateFields.approved_at = new Date().toISOString();
 
-      if (!isAlreadyApproved) {
-        const leaveDays = await getEffectiveLeaveDays(reqData);
-        const currentYear = getADYear(reqData.start_date);
+      const leaveDays = await getEffectiveLeaveDays(reqData);
+      const currentYear = getADYear(reqData.start_date);
 
-        const { data: balData } = await sb
+      const { data: balData } = await sb
+        .from('leave_balances')
+        .select('id, remaining_days, used_days')
+        .eq('employee_id', reqData.employee_id)
+        .eq('leave_type_id', reqData.leave_type_id)
+        .eq('year', currentYear)
+        .maybeSingle();
+
+      if (balData) {
+        const newUsed = (balData.used_days || 0) + leaveDays;
+        const newRemaining = Math.max(0, (balData.remaining_days || 0) - leaveDays);
+
+        await sb
           .from('leave_balances')
-          .select('id, remaining_days, used_days')
-          .eq('employee_id', reqData.employee_id)
-          .eq('leave_type_id', reqData.leave_type_id)
-          .eq('year', currentYear)
-          .maybeSingle();
-
-        if (balData) {
-          const newUsed = (balData.used_days || 0) + leaveDays;
-          const newRemaining = Math.max(0, (balData.remaining_days || 0) - leaveDays);
-
-          await sb
-            .from('leave_balances')
-            .update({ remaining_days: newRemaining, used_days: newUsed })
-            .eq('id', balData.id);
-        }
+          .update({ remaining_days: newRemaining, used_days: newUsed })
+          .eq('id', balData.id);
       }
     }
 
@@ -550,7 +797,7 @@ async function approveLeave(leaveId) {
 
     if (updateErr) throw updateErr;
 
-    await Swal.fire('อนุมัติสำเร็จ!', 'รายการใบลานี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'success');
+    await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
     loadPendingLeavesHR();
 
   } catch (err) {
@@ -585,7 +832,7 @@ async function rejectLeave(leaveId) {
 
     if (currentRole === 'leader') {
       updateFields.manager_status = 'rejected';
-    } else {
+    } else if (currentRole === 'manager') {
       updateFields.director_status = 'rejected';
     }
 
@@ -604,18 +851,21 @@ async function rejectLeave(leaveId) {
   }
 }
 
-async function cancelLeaveHR(leaveId) {
+async function forceCancelLeave(leaveId) {
   const { value: reason } = await Swal.fire({
-    title: 'ยืนยันยกเลิกใบลาโดย HR',
-    input: 'textarea',
-    inputLabel: 'ระบุเหตุผลในการยกเลิกรายการนี้:',
-    inputPlaceholder: 'พิมพ์เหตุผล...',
+    title: 'ยืนยันการยกเลิกใบลาย้อนหลัง?',
+    text: 'การยกเลิกจะทำการ คืนจำนวนวันลา กลับเข้าสู่ระบบของพนักงาน',
     icon: 'warning',
+    input: 'textarea',
+    inputPlaceholder: 'ระบุเหตุผลการยกเลิกใบลา...',
     showCancelButton: true,
-    confirmButtonColor: '#f59e0b',
-    confirmButtonText: '🚫 ยกเลิกใบลา',
-    cancelButtonText: 'ปิด',
-    inputValidator: (v) => !v && 'โปรดระบุเหตุผลด้วยครับ'
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'ยืนยันยกเลิกใบลา',
+    cancelButtonText: 'ยกเลิก',
+    inputValidator: (value) => {
+      if (!value) return 'กรุณาระบุเหตุผลในการยกเลิกใบลา!';
+    }
   });
 
   if (!reason) return;
@@ -623,6 +873,8 @@ async function cancelLeaveHR(leaveId) {
   if (!sb) return;
 
   try {
+    Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
     const { data: reqData } = await sb
       .from('leave_requests')
       .select('*')
@@ -649,22 +901,23 @@ async function cancelLeaveHR(leaveId) {
       }
     }
 
-    await sb.from('leave_requests').update({
-      status: 'cancelled',
-      approval_comment: `[ยกเลิกโดย HR] ${reason.trim()}`
-    }).eq('id', leaveId);
+    const { error } = await sb
+      .from('leave_requests')
+      .update({ 
+        status: 'cancelled',
+        approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason}`
+      })
+      .eq('id', leaveId);
 
-    await Swal.fire('ยกเลิกใบลาแล้ว', 'ทำรายการยกเลิกเรียบร้อย', 'success');
+    if (error) throw error;
+
+    await Swal.fire('สำเร็จ!', 'ทำการยกเลิกใบลาและคืนวันลาเรียบร้อยแล้ว', 'success');
     loadPendingLeavesHR();
-
   } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    console.error('Error cancelling leave:', err);
+    Swal.fire('เกิดข้อผิดพลาด!', err.message || 'ไม่สามารถยกเลิกใบลาได้', 'error');
   }
 }
-
-/* ==========================================================================
-   🔵 5. CANCELLATION WORKFLOW HANDLERS
-   ========================================================================== */
 
 async function approveCancellation(leaveId) {
   const result = await Swal.fire({
@@ -777,7 +1030,7 @@ async function rejectCancellation(leaveId) {
 }
 
 /* ==========================================================================
-   🖨️ 6. PRINT LEAVE DOCUMENT (A4 PRINT VIEW)
+   🖨️ 7. PRINT LEAVE A4 DOCUMENT
    ========================================================================== */
 
 async function printLeaveA4(leaveId) {
@@ -785,11 +1038,19 @@ async function printLeaveA4(leaveId) {
   if (!sb) return;
 
   try {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        title: 'กำลังเตรียมเอกสารใบลา...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+    }
+
     const { data: req, error } = await sb
       .from('leave_requests')
       .select(`
         *,
-        employees!employee_id ( full_name, employee_code, departments(department_name), positions(position_name) ),
+        employees!employee_id ( full_name, employee_code, nickname, departments(department_name), positions(position_name) ),
         leave_types ( leave_name )
       `)
       .eq('id', leaveId)
@@ -799,89 +1060,165 @@ async function printLeaveA4(leaveId) {
 
     const emp = req.employees || {};
     const printDays = req.actual_days || req.days_requested || req.total_days || 0;
+    const leaveName = req.leave_types?.leave_name || 'ไม่ระบุประเภทการลา';
+    const deptName = emp.departments?.department_name || '-';
+    const posName = emp.positions?.position_name || '-';
+
+    const attachUrl = getAttachmentUrl(req);
+    const isImageAttachment = attachUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachUrl.split('?')[0]);
 
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      if (typeof Swal !== 'undefined') Swal.close();
+      alert("กรุณาอนุญาตให้เปิด Pop-up ในเบราว์เซอร์เพื่อพิมพ์เอกสาร");
+      return;
+    }
+
+    const docTitle = `ใบลา_${emp.employee_code || ''}_${emp.full_name || 'พนักงาน'}`;
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html lang="th">
       <head>
         <meta charset="UTF-8">
-        <title>ใบขออนุมัติลา - ${emp.full_name || 'พนักงาน'}</title>
+        <title>${docTitle}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 40px; color: #000; }
-          .a4-page { width: 210mm; min-height: 297mm; margin: auto; padding: 20mm; background: #fff; box-sizing: border-box; }
-          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 30px; }
-          .header h2 { margin: 0; font-size: 22px; }
-          .header p { margin: 5px 0 0 0; font-size: 14px; color: #555; }
-          .info-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          .info-table td { padding: 10px; font-size: 15px; border-bottom: 1px solid #ddd; }
-          .info-table td.title { font-weight: bold; width: 25%; background: #f9f9f9; }
-          .signatures { display: flex; justify-content: space-between; margin-top: 60px; }
-          .sig-box { text-align: center; width: 30%; }
-          .sig-line { border-bottom: 1px solid #000; height: 50px; margin-bottom: 8px; }
-          @media print { .a4-page { padding: 0; } }
+          @page { size: A4 portrait; margin: 12mm; }
+          * { box-sizing: border-box; }
+          body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; background: #ffffff; color: #0f172a; }
+          .page { width: 210mm; min-height: 297mm; padding: 18mm 20mm; margin: 0 auto; background: #ffffff; position: relative; }
+          .doc-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0fa472; padding-bottom: 12px; margin-bottom: 20px; }
+          .company-name { font-size: 18px; font-weight: 700; color: #0fa472; }
+          .company-sub { font-size: 11px; color: #64748b; }
+          .doc-meta { text-align: right; font-size: 12px; color: #475569; }
+          .form-title-box { text-align: center; margin: 16px 0 24px 0; background: #f0fdf4; border: 1px dashed #86efac; padding: 10px; border-radius: 8px; }
+          .form-title-box h1 { margin: 0; font-size: 20px; font-weight: 700; color: #166534; }
+          .section-label { font-size: 14px; font-weight: 700; color: #0fa472; margin-bottom: 8px; border-left: 4px solid #0fa472; padding-left: 8px; }
+          .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          .info-table td { padding: 8px 12px; font-size: 13.5px; border: 1px solid #e2e8f0; }
+          .info-table td.label { width: 22%; background: #f8fafc; font-weight: 600; color: #334155; }
+          .reason-box { background: #fafafa; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; font-size: 13.5px; min-height: 60px; margin-bottom: 20px; line-height: 1.5; }
+          .signature-section { margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center; }
+          .sig-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px 8px 10px 8px; }
+          .sig-line { border-bottom: 1px dashed #64748b; height: 45px; margin: 0 10px 10px 10px; }
+          .doc-footer { position: absolute; bottom: 12mm; left: 20mm; right: 20mm; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 8px; }
         </style>
       </head>
       <body>
-        <div class="a4-page">
-          <div class="header">
-            <h2>เอกสารใบขออนุมัติลาหยุดงาน</h2>
-            <p>PVT WORKFORCE MANAGEMENT SYSTEM</p>
+        <div class="page">
+          <div class="doc-header">
+            <div>
+              <div class="company-name">PVT WORKFORCE MANAGEMENT</div>
+              <div class="company-sub">บริษัท พีวีที คอร์ปอเรชั่น จำกัด (สำนักงานใหญ่)</div>
+            </div>
+            <div class="doc-meta">
+              เลขที่เอกสาร: <strong>LV-${String(req.id).substring(0, 8).toUpperCase()}</strong><br>
+              วันที่พิมพ์: ${formatThaiDate(new Date().toISOString(), true)}
+            </div>
           </div>
 
+          <div class="form-title-box">
+            <h1>ใบขออนุมัติลาหยุดงาน (LEAVE REQUEST FORM)</h1>
+          </div>
+
+          <div class="section-label">ข้อมูลผู้ยื่นคำขอลา</div>
           <table class="info-table">
-            <tr><td class="title">รหัสพนักงาน:</td><td>${emp.employee_code || '-'}</td></tr>
-            <tr><td class="title">ชื่อ-นามสกุล:</td><td>${emp.full_name || '-'}</td></tr>
-            <tr><td class="title">แผนก/ตำแหน่ง:</td><td>${emp.departments?.department_name || '-'} / ${emp.positions?.position_name || '-'}</td></tr>
-            <tr><td class="title">ประเภทการลา:</td><td>${req.leave_types?.leave_name || '-'}</td></tr>
-            <tr><td class="title">วันที่ลา:</td><td>${new Date(req.start_date).toLocaleDateString('th-TH')} ถึง ${new Date(req.end_date).toLocaleDateString('th-TH')} (${printDays} วัน)</td></tr>
-            <tr><td class="title">เหตุผลการลา:</td><td>${req.reason || '-'}</td></tr>
-            <tr><td class="title">สถานะการอนุมัติ:</td><td>${req.status.toUpperCase()}</td></tr>
-            <tr><td class="title">หมายเหตุผู้พิจารณา:</td><td>${req.approval_comment || '-'}</td></tr>
+            <tr>
+              <td class="label">รหัสพนักงาน</td>
+              <td><strong>${emp.employee_code || '-'}</strong></td>
+              <td class="label">ชื่อ-นามสกุล</td>
+              <td><strong>${emp.full_name || '-'} ${emp.nickname ? `(${emp.nickname})` : ''}</strong></td>
+            </tr>
+            <tr>
+              <td class="label">แผนก / สังกัด</td>
+              <td>${deptName}</td>
+              <td class="label">ตำแหน่งงาน</td>
+              <td>${posName}</td>
+            </tr>
           </table>
 
-          <div class="signatures">
-            <div class="sig-box">
+          <div class="section-label">รายละเอียดการขอลา</div>
+          <table class="info-table">
+            <tr>
+              <td class="label">ประเภทการลา</td>
+              <td><strong style="color: #0fa472;">${leaveName}</strong></td>
+              <td class="label">จำนวนวันลาทั้งสิ้น</td>
+              <td><strong>${printDays} วัน</strong></td>
+            </tr>
+            <tr>
+              <td class="label">ตั้งแต่วันที่</td>
+              <td>${formatThaiDate(req.start_date)}</td>
+              <td class="label">ถึงวันที่</td>
+              <td>${formatThaiDate(req.end_date)}</td>
+            </tr>
+          </table>
+
+          <div class="section-label">เหตุผลประกอบการลา</div>
+          <div class="reason-box">
+            ${req.reason || 'ไม่ได้ระบุเหตุผล'}
+            ${req.approval_comment ? `<br><small style="color: #dc2626;">* หมายเหตุผู้พิจารณา: ${req.approval_comment}</small>` : ''}
+          </div>
+
+          <div class="signature-section">
+            <div class="sig-card">
               <div class="sig-line"></div>
-              <div>( ${emp.full_name || 'ผู้ขอลา'} )</div>
-              <div>ผู้ยื่นคำขอ</div>
+              <div>( ${emp.full_name || 'ผู้ยื่นคำขอ'} )</div>
+              <div style="font-size:11px; color:#64748b;">พนักงานผู้ขอลา</div>
             </div>
-            <div class="sig-box">
+            <div class="sig-card">
               <div class="sig-line"></div>
-              <div>( .................................... )</div>
-              <div>หัวหน้างาน / ผู้จัดการ</div>
+              <div>( ................................................... )</div>
+              <div style="font-size:11px; color:#64748b;">หัวหน้างาน / ผู้จัดการ</div>
             </div>
-            <div class="sig-box">
+            <div class="sig-card">
               <div class="sig-line"></div>
-              <div>( .................................... )</div>
-              <div>ฝ่ายทรัพยากรบุคคล (HR)</div>
+              <div>( ................................................... )</div>
+              <div style="font-size:11px; color:#64748b;">ฝ่ายทรัพยากรบุคคล (HR)</div>
             </div>
           </div>
+
+          <div class="doc-footer">
+            เอกสารนี้สร้างขึ้นโดยอัตโนมัติจากระบบ PVT HR Hub &bull; Ref: ${req.id}
+          </div>
         </div>
+
         <script>
-          window.onload = function() { window.print(); };
+          window.onload = function() {
+            if (typeof Swal !== 'undefined') Swal.close();
+            window.print();
+          };
         </script>
       </body>
       </html>
     `);
+
     printWindow.document.close();
+    if (typeof Swal !== 'undefined') Swal.close();
 
   } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    console.error("💥 Print Error:", err);
+    if (typeof Swal !== 'undefined') {
+      Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถสร้างเอกสารสำหรับพิมพ์ได้', 'error');
+    }
   }
 }
 
 /* ==========================================================================
-   🚪 7. GLOBAL EXPORTS & LOGOUT
+   🚪 8. GLOBAL EXPORTS & LOGOUT
    ========================================================================== */
 
 window.approveLeave = approveLeave;
 window.rejectLeave = rejectLeave;
-window.cancelLeaveHR = cancelLeaveHR;
+window.forceCancelLeave = forceCancelLeave;
 window.approveCancellation = approveCancellation;
 window.rejectCancellation = rejectCancellation;
 window.printLeaveA4 = printLeaveA4;
 window.loadPendingLeavesHR = loadPendingLeavesHR;
+window.previewLeaveModal = previewLeaveModal;
+window.closePreviewModal = closePreviewModal;
+window.openImageLightbox = openImageLightbox;
+window.closeImageLightbox = closeImageLightbox;
 
 window.handleLogout = function() {
   Swal.fire({

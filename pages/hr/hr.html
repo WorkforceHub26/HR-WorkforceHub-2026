@@ -5,19 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ระบบพิจารณาอนุมัติใบลา | PVT HR Hub</title>
   
-<!-- 1. Preconnect สำหรับ Google Fonts (ช่วยให้ฟอนต์โหลดไวขึ้น) -->
+  <!-- Preconnect สำหรับ Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- 2. Google Fonts & Icons (ชุดที่คุณส่งมา) -->
+  <!-- Google Fonts & Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/css/hr.css" /> 
-  
-  <!-- Libraries -->
-
 </head>
 
 <body>
@@ -50,7 +47,6 @@
           <span class="material-symbols-outlined">calendar_today</span>
           <span class="nav-label">วันหยุด</span>
         </a>
-
       </nav>
 
       <div class="sidebar-footer">
@@ -162,10 +158,24 @@
             <span class="material-symbols-outlined" id="sectionHeaderIcon">hourglass_top</span>
             <h2 id="sectionHeaderTitle">คำขออนุมัติลาค้างพิจารณา</h2>
           </div>
-          
-          <button class="btn-pvt-refresh" onclick="loadPendingLeavesHR()">
-            <span class="material-symbols-outlined">sync</span> รีเฟรชข้อมูล
-          </button>
+
+          <!-- 🔍 แถบเครื่องมือการกรองข้อมูล และ ปุ่มรีเฟรช -->
+          <div class="panel-header-controls">
+            <div class="filter-group">
+              <label for="filterStepSelect">สถานะตามลำดับขั้น:</label>
+              <select id="filterStepSelect" class="form-select" onchange="renderLeaveTable()">
+                <option value="all">-- แสดงทั้งหมด --</option>
+                <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
+                <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
+                <option value="pending_hr">3. ผู้จัดการผ่านแล้ว / รอ HR อนุมัติขั้นสุดท้าย (L3)</option>
+                <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
+                <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
+              </select>
+            </div>
+            <button class="btn-pvt-refresh" onclick="loadPendingLeavesHR()">
+              <span class="material-symbols-outlined">sync</span> รีเฟรชข้อมูล
+            </button>
+          </div>
         </div>
 
         <div class="table-container">
@@ -176,28 +186,48 @@
                 <th>รหัสพนักงาน</th>
                 <th>ข้อมูลผู้ลา</th>
                 <th>ประเภทการลา</th>
-                <th class="text-center">วันเวลาที่ลา</th>
-                <th>หมายเหตุ / เหตุผล</th>
+                <th class="text-center">ช่วงวันที่ลา</th>
+                <th>เหตุผล / หมายเหตุ</th>
+                <th class="text-center">หลักฐาน</th>
                 <th class="text-center">จำนวนวัน</th>
-                <th class="text-center">สถานะ หัวหน้า</th>
-                <th class="text-center">สถานะ ผู้จัดการ</th>
-                <th class="text-center">สถานะ HR</th>
-                <th class="text-center">จัดการ (Action)</th>
+                <th class="text-center">สถานะ หัวหน้า (L1)</th>
+                <th class="text-center">สถานะ ผู้จัดการ (L2)</th>
+                <th class="text-center">สถานะ HR (L3)</th>
+                <th class="text-center">การจัดการ</th>
               </tr>
             </thead>
             <tbody id="leaveRequestsBody">
               <tr>
-                <td colspan="11" class="empty-state">
-                  ⏳ กำลังโหลดข้อมูล...
+                <td colspan="12" class="empty-state">
+                  กำลังโหลดข้อมูล...
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
-
     </main>
   </div>
+
+  <!-- 👁️ LEAVE PREVIEW MODAL -->
+  <div class="pvt-modal-overlay" id="leavePreviewModal">
+    <div class="pvt-modal-card">
+      <div class="modal-header">
+        <h3><span class="material-symbols-outlined">description</span> ตรวจสอบรายละเอียดใบขออนุมัติลา</h3>
+        <button class="modal-close-btn" onclick="closePreviewModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="leavePreviewModalBody">
+        <!-- Content dynamic insertion -->
+      </div>
+      <div class="modal-footer" id="leavePreviewModalFooter">
+        <button class="btn-act btn-act-print" id="btnModalPrint">
+          <span class="material-symbols-outlined">print</span> พิมพ์ใบลา A4
+        </button>
+        <button class="tab-btn" onclick="closePreviewModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/supabase-config.js"></script>

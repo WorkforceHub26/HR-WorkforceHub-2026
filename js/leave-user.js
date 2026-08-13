@@ -430,7 +430,7 @@ function addLeaveRow() {
 }
 
 // ==========================================================================
-// 🧮 7. ฟังก์ชันคำนวณจำนวนวันลาอัตโนมัติ (หักวันอาทิตย์ วันเสาร์ และวันหยุดบริษัท)
+// 🧮 7. ฟังก์ชันคำนวณจำนวนวันลาอัตโนมัติ (นับวันเสาร์เป็นวันทำงาน)
 // ==========================================================================
 function calculateLeaveDays(element) {
   const boxItem = element.closest('.leave-box-item');
@@ -455,7 +455,7 @@ function calculateLeaveDays(element) {
     return;
   }
 
-  // 📍 นับเฉพาะวันทำงาน (ข้ามเสาร์-อาทิตย์ และวันหยุดบริษัท)
+  // 📍 นับเฉพาะวันทำงาน (หักเฉพาะวันอาทิตย์ และวันหยุดบริษัท | นับวันเสาร์เป็นวันทำงานปกติ)
   let totalWorkDays = 0;
   let currentDate = new Date(start);
 
@@ -464,11 +464,10 @@ function calculateLeaveDays(element) {
     const dateFormatted = currentDate.toISOString().split('T')[0];
 
     const isSunday = (dayOfWeek === 0);
-    const isSaturday = (dayOfWeek === 6);
     const isCompanyHoliday = cachedHolidays.includes(dateFormatted);
 
-    // คำนวณเฉพาะวันที่ไม่อยู่ในวันหยุด
-    if (!isSunday && !isSaturday && !isCompanyHoliday) {
+    // ✅ เช็กเฉพาะวันอาทิตย์และวันหยุดประจำปี (วันเสาร์จะถูกนับเป็น 1 วันทำงานปกติ)
+    if (!isSunday && !isCompanyHoliday) {
       totalWorkDays++;
     }
 
@@ -531,6 +530,45 @@ async function sendNotification(title, message, type = 'leave', targetUrl = '/pa
 
 // ==========================================
 // 💾 10. ฟังก์ชันบันทึกคำขอใบลา (leave_requests)
+// ==========================================
+
+// ==========================================
+// 📤 ฟังก์ชันอัปโหลดไฟล์หลักฐานขึ้น Supabase Storage
+// ==========================================
+async function uploadAttachment(file, employeeId) {
+  if (!file) return null;
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) return null;
+
+  try {
+    // ตั้งชื่อไฟล์ป้องกันการซ้ำ: employeeId/timestamp_random.ext
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${employeeId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+    // อัปโหลดเข้า Bucket 'leave-attachments'
+    const { data, error } = await sb.storage
+      .from('leave-attachments')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+    if (error) {
+      console.error("❌ อัปโหลดรูปภาพหลักฐานไม่สำเร็จ:", error.message);
+      throw error;
+    }
+
+    // ดึง Public URL ของรูปมาใช้งาน
+    const { data: publicUrlData } = sb.storage
+      .from('leave-attachments')
+      .getPublicUrl(fileName);
+
+    return publicUrlData?.publicUrl || null;
+  } catch (err) {
+    console.error("❌ Upload Attachment Error:", err);
+    throw err;
+  }
+}
+
+// ==========================================
+// 💾 ฟังก์ชันบันทึกคำขอลา (saveLeave)
 // ==========================================
 async function saveLeave() {
   const sb = window.pvtSupabase?.getClient();
@@ -614,6 +652,7 @@ async function saveLeave() {
     const hoursMorning = parseFloat(card.querySelector('input[name="hours_morning"]')?.value) || 0;
     const hoursAfternoon = parseFloat(card.querySelector('input[name="hours_afternoon"]')?.value) || 0;
     const fileInput = card.querySelector('input[type="file"]');
+    const file = fileInput && fileInput.files && fileInput.files[0];
     
     let totalDays = parseFloat(card.querySelector('input[name="leave_days"]')?.value);
     if (isNaN(totalDays)) totalDays = 0;
@@ -668,8 +707,7 @@ async function saveLeave() {
     // 🔴 [เงื่อนไขที่ 5] ลาป่วยตั้งแต่ 3 วันขึ้นไป ต้องแนบรูป
     const isSickLeave = leaveName.includes("ป่วย") || leaveName.toLowerCase().includes("sick");
     if (isSickLeave && totalDays >= 3) {
-      const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
-      if (!hasFile) {
+      if (!file) {
         Swal.fire({
           icon: 'warning',
           title: 'ต้องแนบใบรับรองแพทย์',
@@ -713,6 +751,24 @@ async function saveLeave() {
       }
     }
 
+    // 📤 อัปโหลดไฟล์หลักฐาน (ถ้ามีการเลือกไฟล์)
+    let attachmentUrl = null;
+    if (file) {
+      try {
+        const empId = currentProfile.id || currentProfile.employee_id;
+        attachmentUrl = await uploadAttachment(file, empId);
+      } catch (uploadErr) {
+        Swal.fire({
+          icon: 'error',
+          title: 'อัปโหลดหลักฐานไม่สำเร็จ',
+          text: `ไม่สามารถอัปโหลดรูปภาพของรายการที่ ${index + 1} ได้ กรุณาลองใหม่อีกครั้ง`,
+          confirmButtonColor: '#ef4444'
+        });
+        hasError = true;
+        break;
+      }
+    }
+
     const totalHours = hoursMorning + hoursAfternoon;
     const startPeriod = hoursMorning > 0 ? "half_day" : "full_day";
     const endPeriod = hoursAfternoon > 0 ? "half_day" : "full_day";
@@ -723,7 +779,8 @@ async function saveLeave() {
       start_date:      startDate,
       end_date:        endDate,
       total_days:      totalDays,
-      reason:          reason.trim(),  
+      reason:          reason.trim(),
+      attachment_url:  attachmentUrl, // ✅ เซฟ URL รูปหลักฐานลง DB
       status:          "pending",          
       manager_status:  defaultManagerStatus,
       director_status: defaultDirectorStatus,
@@ -793,7 +850,6 @@ async function saveLeave() {
     }
   }
 }
-
 // ==========================================
 // 🔮 11. เมนูคู่มือและการทำงานเริ่มต้น (Initialization)
 // ==========================================
