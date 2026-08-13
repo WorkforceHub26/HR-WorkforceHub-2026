@@ -382,7 +382,16 @@ async function executeSecureQrLogin(scannedData) {
     });
   }
 }
-
+// แก้ไขส่วนที่เซ็ตค่าลง localStorage หลังจากตรวจสอบรหัสผ่านผ่านแล้ว
+function saveUserSession(userData, expireInHours = 8) {
+    const expireAt = new Date().getTime() + (expireInHours * 60 * 60 * 1000);
+    const sessionPayload = {
+        ...userData,
+        expireAt: expireAt
+    };
+    
+    localStorage.setItem('currentUser', JSON.stringify(sessionPayload));
+}
 /* ==========================================================================
    📘 ฟังก์ชันเปิด-ปิด กล่องคู่มือ
    ========================================================================== */
