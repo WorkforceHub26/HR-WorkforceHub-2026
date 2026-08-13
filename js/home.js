@@ -501,7 +501,6 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
     return;
   }
 
-  // แสดง Loading เฉพาะตอนดึงข้อมูลครั้งแรก
   if (!cachedEmployeeList || forceRefresh) {
     Swal.fire({
       title: 'กำลังโหลดบัญชีรายชื่อ...',
@@ -537,7 +536,6 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
     }
   }
 
-  // สร้าง HTML Rows ปลอดภัยด้วย data attributes
   let rowsHtml = "";
   if (cachedEmployeeList.length === 0) {
     rowsHtml = `<tr><td colspan="4" style="text-align:center; padding:16px; color:#64748b;">ไม่พบข้อมูลพนักงานในระบบ</td></tr>`;
@@ -620,14 +618,12 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
       const tableBody = document.getElementById("employeeCardTableBody");
       const noMatchMsg = document.getElementById("noMatchCardMessage");
 
-      // Bind Checkbox Listener เพื่ออัปเดตตัวเลข
       tableBody.addEventListener('change', (e) => {
         if (e.target.classList.contains('emp-card-checkbox')) {
           updateCardSelectionCount();
         }
       });
 
-      // Bind Event Delegation สำหรับปุ่ม "ดู" (ปลอดภัยต่อชื่อทุกรูปแบบ)
       tableBody.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-view-card');
         if (btn) {
@@ -636,7 +632,6 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
         }
       });
 
-      // ค้นหาพนักงาน
       if (searchInput && tableBody) {
         searchInput.focus();
         searchInput.addEventListener("input", (e) => {
@@ -713,7 +708,7 @@ window.handlePrintSelectedCardsFromPopup = function () {
 // 🟢 7.3 ฟังก์ชันแสดงพรีวิวบัตรใบเดียว (Single Card Modal)
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
   const baseUrl = window.location.origin;
-  const targetUrl = `${baseUrl}/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`; 
+  const targetUrl = `${baseUrl}/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`;
   
   const secureData = encodeURIComponent(targetUrl);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
@@ -759,7 +754,7 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
 window.printSingleCard = function (empCode, empName, empRole, empDept, qrUrl) {
   const printWindow = window.open('', '_blank', 'width=450,height=650');
   
-  if (!printWindow) {
+  if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
     alert('⚠️ เบราว์เซอร์ระงับการเปิด Pop-up! กรุณากด "อนุญาตให้เปิด Pop-up" ที่แถบ URL ด้านบน');
     return;
   }
@@ -845,7 +840,8 @@ window.printMultipleCards = function (selectedList) {
   const baseUrl = window.location.origin;
 
   let cardsHtml = selectedList.map(item => {
-    const targetUrl = `${baseUrl}/?auto_login=${item.empCode}&token=PVT_SECURE_BYPASS`;
+    const empCode = item.empCode || item.employee_code || '';
+    const targetUrl = `${baseUrl}/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(targetUrl)}`;
 
     return `
@@ -860,7 +856,7 @@ window.printMultipleCards = function (selectedList) {
           </div>
         </div>
         <div class="qr-box"><img class="batch-qr-img" src="${qrUrl}" alt="QR Code" /></div>
-        <div class="footer-section"><div class="id-tag">${item.empCode}</div></div>
+        <div class="footer-section"><div class="id-tag">${empCode}</div></div>
       </div>
     `;
   }).join('');
@@ -1465,7 +1461,7 @@ window.openAllNotificationsModal = async function() {
         type: 'leave',
         is_read: readNotifIds.includes(notifId),
         created_at: item.created_at || new Date().toISOString(),
-        link: '/pages/hr/pages/hr/hr.html'
+        link: '/pages/hr/hr.html'
       };
     });
 

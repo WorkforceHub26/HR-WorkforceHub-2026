@@ -234,20 +234,18 @@ function loginByQr() {
       const camBox = document.getElementById('qr-cam-box');
       const fileBox = document.getElementById('qr-file-box');
 
-      // ฟังก์ชันเริ่มเปิดกล้อง
       const startCamera = async () => {
         try {
           await html5QrCode.start(
-            { facingMode: "environment" }, // ใช้กล้องหลัง
+            { facingMode: "environment" },
             { fps: 10, qrbox: { width: 200, height: 200 } },
             (decodedText) => {
-              // เมื่อสแกนเจอ QR Code
               stopCamera().then(() => {
                 Swal.close();
                 executeSecureQrLogin(decodedText);
               });
             },
-            () => {} // ละเว้น Error เล็กน้อยขณะกำลังหา QR Code
+            () => {}
           );
           isCamRunning = true;
         } catch (err) {
@@ -255,7 +253,6 @@ function loginByQr() {
         }
       };
 
-      // ฟังก์ชันปิดกล้องอย่างปลอดภัย
       const stopCamera = async () => {
         if (isCamRunning) {
           await html5QrCode.stop();
@@ -263,10 +260,8 @@ function loginByQr() {
         }
       };
 
-      // เปิดกล้องเป็นค่าเริ่มต้นเมื่อ Modal เด้งขึ้นมา
       startCamera();
 
-      // สลับไปหน้าใช้กล้อง
       btnCam.addEventListener('click', async () => {
         btnCam.style.background = '#2563eb';
         btnFile.style.background = '#4b5563';
@@ -275,7 +270,6 @@ function loginByQr() {
         if (!isCamRunning) await startCamera();
       });
 
-      // สลับไปหน้าอัปโหลดรูปภาพ
       btnFile.addEventListener('click', async () => {
         btnFile.style.background = '#2563eb';
         btnCam.style.background = '#4b5563';
@@ -284,7 +278,6 @@ function loginByQr() {
         await stopCamera();
       });
 
-      // จัดการเมื่อผู้ใช้เลือกไฟล์รูปภาพ
       const fileInput = document.getElementById('qr-file-input');
       fileInput.addEventListener('change', async (e) => {
         if (e.target.files.length === 0) return;
@@ -305,7 +298,6 @@ function loginByQr() {
       });
     },
     willClose: () => {
-      // คืนค่าและปิดไฟกล้องทันทีเมื่อผู้ใช้ปิด Modal
       if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().catch(err => console.error(err));
       }
@@ -332,15 +324,12 @@ async function executeSecureQrLogin(scannedData) {
     let empCode = '';
     let tokenSecret = '';
 
-    // 💡 Smart Detect: ตรวจสอบว่าเป็นรูปแบบ URL หรือรูปแบบ EMP|TOKEN
     if (decodedStr.includes('auto_login=') && decodedStr.includes('token=')) {
-      // ดึงค่า parameters ออกมาจากข้อความ URL ที่กล้องสแกนได้
       const searchStr = decodedStr.includes('?') ? decodedStr.split('?')[1] : decodedStr;
       const urlParams = new URLSearchParams(searchStr);
       empCode = urlParams.get('auto_login')?.trim();
       tokenSecret = urlParams.get('token')?.trim();
     } else {
-      // รูปแบบดั้งเดิมแบบแยกด้วย pipe (|)
       const fragments = decodedStr.split('|');
       empCode = fragments[0]?.trim();
       tokenSecret = fragments[1]?.trim();
@@ -354,19 +343,22 @@ async function executeSecureQrLogin(scannedData) {
       .from('employees')
       .select('id, employee_code, full_name, role, status')
       .eq('employee_code', empCode)
-      .eq('status', 'active')
       .maybeSingle();
 
     if (error || !user) {
-      throw new Error('ไม่พบข้อมูลพนักงานท่านนี้ หรือบัญชีถูกระงับสิทธิ์');
+      throw new Error('ไม่พบข้อมูลพนักงานท่านนี้ในระบบ');
     }
 
-        localStorage.setItem("currentUser", JSON.stringify({
-          id: user.id,
-          employee_code: user.employee_code,
-          full_name: user.full_name,
-          role: user.role
-        }));
+    if (String(user.status || "").trim().toLowerCase() !== "active") {
+      throw new Error(`บัญชีของคุณถูกระงับสิทธิ์ (สถานะในระบบ: ${user.status})`);
+    }
+
+    localStorage.setItem("currentUser", JSON.stringify({
+      id: user.id,
+      employee_code: user.employee_code,
+      full_name: user.full_name,
+      role: user.role
+    }));
 
     Swal.fire({
       icon: 'success',
