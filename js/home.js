@@ -484,17 +484,58 @@ function setupTableSearch() {
 }
 
 /* ==========================================================================
-   7. 💳 DIGITAL EMPLOYEE CARD MANAGER & BATCH PRINT SYSTEM
+   7. 💳 DIGITAL EMPLOYEE CARD MANAGER & BATCH PRINT SYSTEM (FUTURE-PROOFED)
    ========================================================================== */
 
-/* ==========================================================================
-   ระบบจัดการและพิมพ์บัตรพนักงานดิจิทัล (COMPLETE & FIXED SUITE)
-   ========================================================================== */
+// 🟢 7.0 CONFIG & HELPER CENTRAL FOR QR CODE & ROUTING
+const PVT_CARD_CONFIG = {
+  // หากพัฒนาบน localhost จะสลับไปใช้ Domain จริงให้อัตโนมัติ เพื่อให้โทรศัพท์สแกนได้
+  PRODUCTION_DOMAIN: "https://dev-workforcehub-2026.pages.dev",
+  // ระบุไฟล์ปลายทางให้ชัดเจนเพื่อป้องกันปัญหา Blank Page (หน้าขาว)
+  ENTRY_PAGE_PATH: "/index.html", 
+  QR_SIZE: "180x180"
+};
 
-// ตัวแปร Cache เก็บรายชื่อพนักงาน ไม่ต้องโหลดจาก Supabase ซ้ำทุกครั้งที่กดเปิด/ย้อนกลับ
+/**
+ * ดึง Base URL ของระบบอย่างปลอดภัย
+ */
+function getSystemBaseUrl() {
+  const currentOrigin = window.location.origin;
+  if (!currentOrigin || currentOrigin.includes("localhost") || currentOrigin.includes("127.0.0.1") || currentOrigin.includes("file://")) {
+    return PVT_CARD_CONFIG.PRODUCTION_DOMAIN;
+  }
+  return currentOrigin;
+}
+
+/**
+ * ฟังก์ชันกลางสำหรับสร้าง URL ปลายทาง และ URL รูปภาพ QR Code
+ */
+function generateEmployeeQrUrl(empCode) {
+  if (!empCode) return "";
+  
+  const cleanCode = String(empCode).trim();
+  const baseUrl = getSystemBaseUrl();
+  
+  try {
+    // รวม Base Domain และ Path เข้าด้วยกันอย่างถูกต้อง
+    const targetUrl = new URL(PVT_CARD_CONFIG.ENTRY_PAGE_PATH, baseUrl);
+    targetUrl.searchParams.set("auto_login", cleanCode);
+    targetUrl.searchParams.set("token", "PVT_SECURE_BYPASS");
+
+    const encodedTarget = encodeURIComponent(targetUrl.toString());
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${PVT_CARD_CONFIG.QR_SIZE}&data=${encodedTarget}`;
+  } catch (err) {
+    console.error("❌ Error generating QR URL:", err);
+    // Fallback URL กรณีโครงสร้าง URL มีปัญหา
+    const fallbackTarget = `${baseUrl}${PVT_CARD_CONFIG.ENTRY_PAGE_PATH}?auto_login=${encodeURIComponent(cleanCode)}&token=PVT_SECURE_BYPASS`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${PVT_CARD_CONFIG.QR_SIZE}&data=${encodeURIComponent(fallbackTarget)}`;
+  }
+}
+
+// ตัวแปร Cache เก็บรายชื่อพนักงาน
 let cachedEmployeeList = null;
 
-// 🟢 7.1 ฟังก์ชันเปิด Popup เลือกพนักงาน (รองรับ Batch Print & Safe Escaping)
+// 🟢 7.1 ฟังก์ชันเปิด Popup เลือกพนักงาน (Batch Print & Card Selection)
 window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
   if (typeof Swal === "undefined") {
     alert("⚠️ ไม่พบลายบรารี SweetAlert2");
@@ -658,7 +699,7 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
   });
 };
 
-// 🟢 7.2 ฟังก์ชัน Helper สำหรับเลือก Checkbox และอัปเดตสถานะปุ่ม
+// 🟢 7.2 ฟังก์ชัน Helper เลือก Checkbox
 window.toggleSelectAllCards = function (masterCb) {
   const checkboxes = document.querySelectorAll('.emp-card-checkbox');
   checkboxes.forEach(cb => {
@@ -707,11 +748,8 @@ window.handlePrintSelectedCardsFromPopup = function () {
 
 // 🟢 7.3 ฟังก์ชันแสดงพรีวิวบัตรใบเดียว (Single Card Modal)
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
-  const baseUrl = window.location.origin;
-  const targetUrl = `${baseUrl}/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`;
-  
-  const secureData = encodeURIComponent(targetUrl);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${secureData}`;
+  // เรียกใช้ Centralized QR URL Generator
+  const qrUrl = generateEmployeeQrUrl(empCode);
   
   Swal.fire({
     title: '💳 ตัวอย่างบัตรพนักงานดิจิทัล',
@@ -726,12 +764,13 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
         <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtmlText(empRole)}</div>
         <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 20px;">แผนก: ${escapeHtmlText(empDept)}</div>
         <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px;">
-          <img src="${qrUrl}" alt="Employee QR Code" style="width: 140px; height: 140px; display: block;" />
+          <img src="${qrUrl}" alt="Employee QR Code" style="width: 140px; height: 140px; display: block;" 
+               onerror="this.onerror=null; this.src='https://via.placeholder.com/140?text=QR+Error';" />
         </div>
         <div>
           <span style="font-size: 11px; color: #94a3b8; display: block; text-transform: uppercase;">Employee ID</span>
           <span style="font-size: 16px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 4px 16px; border-radius: 30px; display: inline-block;">
-            ${empCode}
+            ${escapeHtmlText(empCode)}
           </span>
         </div>
       </div>
@@ -751,8 +790,6 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
 };
 
 // 🟢 7.4 ฟังก์ชันพิมพ์บัตรแบบใบเดียว (Single Print)
-// รองรับการส่งค่าทั้งแบบแยก Parameters และแบบผ่าน Object รวม
-// 🟢 ฟังก์ชันพิมพ์บัตรพนักงานเดี่ยว (รองรับ QR Code และ Parameter ทุกรูปแบบ)
 window.printSingleCard = function (empCode, empName, position, department, pictureUrl) {
   let employee = {};
   
@@ -762,8 +799,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       name: empCode.name || empCode.empName || empCode.full_name || '-',
       position: empCode.position || empCode.empRole || '-',
       department: empCode.department || empCode.empDept || '-',
-      picture_url: empCode.picture_url || empCode.avatar_url || '',
-      qr_url: empCode.qr_url || ''
+      qr_url: empCode.qr_url || generateEmployeeQrUrl(empCode.employee_code || empCode.empCode)
     };
   } else {
     employee = {
@@ -771,16 +807,8 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       name: empName || '-',
       position: position || '-',
       department: department || '-',
-      picture_url: (pictureUrl && !pictureUrl.includes('qrserver.com')) ? pictureUrl : '',
-      qr_url: (pictureUrl && pictureUrl.includes('qrserver.com')) ? pictureUrl : ''
+      qr_url: (pictureUrl && pictureUrl.includes('qrserver.com')) ? pictureUrl : generateEmployeeQrUrl(empCode)
     };
-  }
-
-  // หากไม่มี URL ของ QR Code ส่งมา ให้สร้างจาก API อัตโนมัติ
-  if (!employee.qr_url && employee.code) {
-    const baseUrl = window.location.origin;
-    const targetUrl = `${baseUrl}/?auto_login=${employee.code}&token=PVT_SECURE_BYPASS`;
-    employee.qr_url = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(targetUrl)}`;
   }
 
   const printWindow = window.open('', '_blank', 'width=500,height=600');
@@ -839,13 +867,21 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       </div>
       <script>
         const img = document.getElementById('singleQrImg');
+        let printed = false;
         function triggerPrint() {
+          if (printed) return;
+          printed = true;
           setTimeout(() => {
             window.print();
             setTimeout(() => { window.close(); }, 500);
           }, 300);
         }
-        if (img.complete) { triggerPrint(); } else { img.onload = triggerPrint; img.onerror = triggerPrint; }
+        
+        if (img.complete) { triggerPrint(); } 
+        else { img.onload = triggerPrint; img.onerror = triggerPrint; }
+        
+        // Timeout สำรอง กันหน้าพิมพ์ค้าง
+        setTimeout(triggerPrint, 1500);
       </script>
     </body>
     </html>
@@ -856,20 +892,12 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
   printWindow.document.close();
 };
 
-window.printMultipleCards = function (employeesList = []) {
-    if (!Array.isArray(employeesList) || employeesList.length === 0) {
-        alert("กรุณาเลือกพนักงานที่ต้องการพิมพ์บัตร");
-        return;
-    }
-    
-    // โค้ดประมวลผลการพิมพ์บัตรหลายใบ
-    console.log("Printing multiple cards:", employeesList);
-    // ... (คงส่วนแสดงผล Modal/Print UI เดิมของฟังก์ชันไว้)
-};
-
 // 🟢 7.5 ฟังก์ชันพิมพ์บัตรแบบชุดหลายใบ (Batch Print Multiple Cards)
-window.printMultipleCards = function (selectedList) {
-  if (!selectedList || selectedList.length === 0) return;
+window.printMultipleCards = function (selectedList = []) {
+  if (!Array.isArray(selectedList) || selectedList.length === 0) {
+    alert("⚠️ กรุณาเลือกพนักงานที่ต้องการพิมพ์บัตร");
+    return;
+  }
 
   const printWindow = window.open('', '_blank', 'width=900,height=800');
   if (!printWindow) {
@@ -877,12 +905,9 @@ window.printMultipleCards = function (selectedList) {
     return;
   }
 
-  const baseUrl = window.location.origin;
-
   let cardsHtml = selectedList.map(item => {
     const empCode = item.empCode || item.employee_code || '';
-    const targetUrl = `${baseUrl}/?auto_login=${empCode}&token=PVT_SECURE_BYPASS`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(targetUrl)}`;
+    const qrUrl = generateEmployeeQrUrl(empCode);
 
     return `
       <div class="card">
@@ -896,7 +921,7 @@ window.printMultipleCards = function (selectedList) {
           </div>
         </div>
         <div class="qr-box"><img class="batch-qr-img" src="${qrUrl}" alt="QR Code" /></div>
-        <div class="footer-section"><div class="id-tag">${empCode}</div></div>
+        <div class="footer-section"><div class="id-tag">${escapeHtmlText(empCode)}</div></div>
       </div>
     `;
   }).join('');
@@ -939,18 +964,35 @@ window.printMultipleCards = function (selectedList) {
         <script>
           const images = document.querySelectorAll('.batch-qr-img');
           let loadedCount = 0;
+          let printed = false;
+
+          function triggerPrint() {
+            if (printed) return;
+            printed = true;
+            setTimeout(() => {
+              window.print();
+              setTimeout(() => { window.close(); }, 500);
+            }, 400);
+          }
+
           function checkAllLoaded() {
             loadedCount++;
             if (loadedCount >= images.length) {
-              setTimeout(() => {
-                window.print();
-                setTimeout(() => { window.close(); }, 500);
-              }, 400);
+              triggerPrint();
             }
           }
-          images.forEach(img => {
-            if (img.complete) { checkAllLoaded(); } else { img.onload = checkAllLoaded; img.onerror = checkAllLoaded; }
-          });
+
+          if (images.length === 0) {
+            triggerPrint();
+          } else {
+            images.forEach(img => {
+              if (img.complete) { checkAllLoaded(); } 
+              else { img.onload = checkAllLoaded; img.onerror = checkAllLoaded; }
+            });
+          }
+
+          // Timeout สำรองสูงสุด 2.5 วินาที สำหรับ Batch หลายใบ
+          setTimeout(triggerPrint, 2500);
         </script>
       </body>
     </html>
@@ -963,7 +1005,7 @@ window.printMultipleCards = function (selectedList) {
   setTimeout(() => { openEmployeeCardManagerPopup(); }, 800);
 };
 
-// 🛠️ Helper Functions สำหรับ Escape ข้อความ ป้องกันข้อความที่มีเครื่องหมายอัญประกาศทำโค้ดพัง
+// 🛠️ Helper Functions สำหรับ Escape ข้อความ ป้องกัน XSS และ Syntax Error
 function escapeHtmlText(str) {
   return String(str || '')
     .replace(/&/g, '&amp;')
@@ -979,11 +1021,6 @@ function escapeHtmlAttribute(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
-/**
- * 2. ฟังก์ชันพิมพ์บัตรพนักงานเดี่ยว ( printSingleCard )
- * รวบรวมฟังก์ชันที่ซ้ำซ้อนให้เหลือเพียงฟังก์ชันเดียว
- */
 
 /* ==========================================================================
    8. 🔔 REAL NOTIFICATION SYSTEM WITH SUPABASE (FIXED & LOCAL STORAGE SYNC)
