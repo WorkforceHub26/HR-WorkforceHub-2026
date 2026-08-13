@@ -725,14 +725,23 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
   });
 };
 
-// 7.4 ฟังก์ชันพิมพ์บัตรแบบใบเดียว (Single Print Window)
+// 7.4 ฟังก์ชันพิมพ์บัตรแบบใบเดียว (Single Print Window - Fixed Version)
 function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
+  // 1. สั่งเปิด Window ทันทีที่กดปุ่ม (ห้ามใส่ async/await ก่อนหน้าบรรทัดนี้)
   const printWindow = window.open('', '_blank', 'width=450,height=650');
-  
-  printWindow.document.write(`
+
+  // 🛡️ ป้องกันกรณีเบราว์เซอร์บล็อก Pop-up
+  if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
+    alert('⚠️ ไม่สามารถเปิดหน้าพิมพ์ได้!\nกรุณากด "อนุญาตให้เปิด Pop-up" (Allow Pop-ups) สำหรับเว็บนี้ที่แถบ URL ด้านบน');
+    return;
+  }
+
+  // 2. โครงสร้าง HTML สำหรับพิมพ์
+  const htmlContent = `
     <!DOCTYPE html>
-    <html>
+    <html lang="th">
       <head>
+        <meta charset="UTF-8">
         <title>Print ID Card - ${empCode}</title>
         <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
@@ -766,14 +775,14 @@ function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
           <div class="lanyard-hole"></div>
           <div class="company">PVT WORKFORCE HUB</div>
           <div class="profile-section">
-            <div class="name">${empName}</div>
+            <div class="name">${empName || 'ไม่ระบุชื่อ'}</div>
             <div class="badge-container">
-              <span class="role-badge">${empRole}</span>
-              <span class="dept-text">แผนก: ${empDept}</span>
+              <span class="role-badge">${empRole || 'พนักงาน'}</span>
+              <span class="dept-text">แผนก: ${empDept || '-'}</span>
             </div>
           </div>
           <div class="qr-box"><img id="qrImage" src="${qrUrl}" alt="QR Code" /></div>
-          <div class="footer-section"><div class="id-tag">${empCode}</div></div>
+          <div class="footer-section"><div class="id-tag">${empCode || '00000'}</div></div>
         </div>
         <script>
           function doPrint() {
@@ -783,19 +792,28 @@ function printSingleCard(empCode, empName, empRole, empDept, qrUrl) {
             }, 300);
           }
           const img = document.getElementById('qrImage');
-          if (img.complete) { doPrint(); } else { img.onload = doPrint; img.onerror = doPrint; }
+          if (img.complete) { 
+            doPrint(); 
+          } else { 
+            img.onload = doPrint; 
+            img.onerror = doPrint; 
+          }
         </script>
       </body>
     </html>
-  `);
+  `;
 
+  // 3. เขียนข้อมูลลงใน Window อย่างปลอดภัย
+  printWindow.document.open();
+  printWindow.document.write(htmlContent);
   printWindow.document.close();
 
+  // 4. สั่ง Re-open Modal หรือ Popup เดิมกลับมาอย่างปลอดภัย
   setTimeout(() => { 
     if (typeof openEmployeeCardManagerPopup === 'function') {
       openEmployeeCardManagerPopup(); 
     }
-  }, 600);
+  }, 1000);
 }
 
 // 7.5 ฟังก์ชันพิมพ์บัตรพนักงานทีละหลายๆ ใบ ลงกระดาษ A4 (Batch Print)
