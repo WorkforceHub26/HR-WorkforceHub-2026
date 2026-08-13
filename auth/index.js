@@ -452,18 +452,21 @@ async function openChangePasswordModal(user) {
   if (formValues) {
     try {
       Swal.showLoading();
-      
-      // อัปเดตรหัสผ่านไปยัง Supabase Auth
-      const { error } = await pvtSupabase.auth.updateUser({
-        password: formValues.newPassword
-      });
+      const sb = window.pvtSupabase?.getClient() || window.supabaseClient || window.supabase;
+      if (!sb) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+
+      // อัปเดตรหัสผ่านลงตาราง employees โดยตรง
+      const { error } = await sb
+        .from('employees')
+        .update({ password: formValues.newPassword.trim() })
+        .eq('id', user.id);
 
       if (error) throw error;
 
       await Swal.fire({
         icon: 'success',
         title: 'เปลี่ยนรหัสผ่านเรียบร้อย',
-        text: 'ระบบทำการอัปเดตรหัสผ่านใหม่ของท่านแล้ว',
+        text: 'ระบบทำการอัปเดตรหัสผ่านใหม่เรียบร้อยแล้ว',
         confirmButtonColor: '#2563eb'
       });
     } catch (err) {
