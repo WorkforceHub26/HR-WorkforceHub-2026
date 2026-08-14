@@ -79,72 +79,55 @@ window.pvtSupabase = (() => {
     }
   }
 
-  async function getCurrentProfile() {
-    const sb = getClient();
-    if (!sb) return null;
+// ==========================================
+// 1. getCurrentProfile (แก้ LEFT JOIN + เก็บ Role)
+// ==========================================
+// ==========================================
+// 0. GLOBAL STATE INITIALIZATION
+// ==========================================
+window.state = window.state || {
+  currentUserProfile: null
+};
 
-    try {
-      const cached = getCachedUser();
-      if (cached?.id || cached?.employee_code) {
-        const query = sb
-          .from("employees")
-          .select(`
-            id, employee_code, full_name, nickname, phone, email, hospital,
-            bank_account, line_id, image_url, start_date, status, role,
-            employment_type, department_id, position_id,
-            departments(department_name),
-            positions(position_name)
-          `);
-
-        const { data: employee, error } = cached.id
-          ? await query.eq("id", cached.id).maybeSingle()
-          : await query.eq("employee_code", cached.employee_code).maybeSingle();
-
-        if (error) console.warn("Fetch cached employee error:", error);
-
-        const emp = employee || cached;
-        return {
-          id: cached.auth_id || cached.profile_id || emp.id,
-          employee_id: emp.id,
-          employee_code: emp.employee_code,
-          display_name: emp.full_name,
-          role: emp.role || cached.role || "user",
-          status: emp.status || "active",
-          employees: emp,
-        };
-      }
-
-      const session = await getSession();
-      if (!session?.user) return null;
-
-      const { data: profile, error } = await sb
-        .from("profiles")
-        .select("id, employee_id, email, username, display_name, role, status")
-        .eq("id", session.user.id)
-        .maybeSingle();
-
-      if (error || !profile) return null;
-      if (!profile.employee_id) return profile;
-
-      const { data: employee } = await sb
-        .from("employees")
-        .select(`
-          id, employee_code, full_name, nickname, phone, email, hospital,
-          bank_account, line_id, image_url, start_date, status, role,
-          employment_type, department_id, position_id,
-          departments(department_name),
-          positions(position_name)
-        `)
-        .eq("id", profile.employee_id)
-        .maybeSingle();
-
-      return { ...profile, employees: employee };
-    } catch (err) {
-      console.error("getCurrentProfile Exception:", err);
-      return null;
-    }
+/**
+ * =========================================================================
+ * ฟังก์ชันดึงข้อมูลโปรไฟล์พนักงานตาม User ID (เวอร์ชันเสถียรสูง + ปลอดภัย)
+ * =========================================================================
+ * @param {string|number} userId - ID ของพนักงานที่ต้องการดึงข้อมูล
+ * @param {number} timeoutMs - ระยะเวลา Timeout สูงสุดในการดึงข้อมูล (มิลลิวินาที) ค่าเริ่มต้น 10000ms (10 วินาที)
+ * @returns {Promise<Object|null>} ข้อมูลโปรไฟล์พนักงาน หรือ null หากเกิดข้อผิดพลาด/ไม่พบข้อมูล
+ */
+async function getCurrentProfile(userId) {
+  if (!userId) {
+    console.warn("getCurrentProfile Warning: ไม่พบรหัสผู้ใช้งาน (User ID Missing or Empty)");
+    return null;
   }
 
+  try {
+    const supabase = getSupabase();
+    
+    // 💡 ใช้ departments(*) และ positions(*) ดึงมาทุกคอลัมน์เพื่อป้องกันปัญหา Column ไม่ตรง
+    const { data, error } = await supabase
+      .from('employees')
+      .select(`
+        *,
+        departments(*), 
+        positions(*)
+      `)
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("getCurrentProfile Supabase Error:", error.message);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error("getCurrentProfile Unexpected Error:", err);
+    return null;
+  }
+}
   function toISODate(input) {
     if (!input) return null;
     const value = String(input).trim();
@@ -178,14 +161,16 @@ window.pvtSupabase = (() => {
     }).format(date);
   }
 
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+// ฟังก์ชันช่วย Escape HTML ป้องกัน XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
   function statusLabel(status) {
     return {
@@ -206,7 +191,11 @@ function getAvatarUrl(imageUrl) {
 
   // หากเป็น URL สมบูรณ์จากภายนอกหรือ Supabase CDN
   if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url.replace("storage/v1/object/", "storage/v1/object/public/");
+    // 🛑 แก้บั๊ก: ถ้ามี /public/ อยู่แล้ว ให้ส่งกลับทันที ห้ามเติมซ้ำ
+    if (url.includes("/storage/v1/object/public/")) {
+      return url;
+    }
+    return url.replace("/storage/v1/object/", "/storage/v1/object/public/");
   }
 
   // หากเป็นแค่ชื่อไฟล์ที่เก็บใน Storage
@@ -330,28 +319,26 @@ async function initManagementSystem() {
   }
 
   try {
-    let profile = await window.pvtSupabase?.getCurrentProfile?.();
+    const cachedUser = window.pvtSupabase?.getCachedUser?.();
+    const session = await window.pvtSupabase?.getSession?.();
+    const currentUserId = session?.user?.id || cachedUser?.id || cachedUser?.employee_code;
 
-    if (!profile) {
-      const savedUser = localStorage.getItem("currentUser");
-      if (savedUser) {
-        try { profile = JSON.parse(savedUser); } catch {}
-      }
+    let profile = null;
+    if (currentUserId) {
+      profile = await window.pvtSupabase?.getCurrentProfile?.(currentUserId);
+    }
+
+    if (!profile && cachedUser) {
+      profile = cachedUser;
     }
 
     if (!profile) {
-      if (window.Swal) {
-        await Swal.fire({
-          icon: 'error',
-          title: 'เซสชันหมดอายุหรือยังไม่ได้ล็อกอิน',
-          text: 'กรุณาเข้าสู่ระบบผ่านหน้าล็อกอินก่อนเข้าใช้งาน',
-          confirmButtonText: 'ไปหน้าเข้าสู่ระบบ'
-        });
-      } else {
-        alert('เซสชันหมดอายุหรือยังไม่ได้ล็อกอิน กรุณาเข้าสู่ระบบก่อน');
-      }
       window.location.href = '/pages/index.html';
       return false;
+    }
+
+    if (window.state) {
+      window.state.currentUserProfile = profile;
     }
 
     const userRole = profile.role ? profile.role.toLowerCase() : 'user';
@@ -360,6 +347,9 @@ async function initManagementSystem() {
       return false;
     }
 
+    // 🎯 1. แสดงโปรไฟล์บน Header ตรงนี้ได้เลยครับ!
+    renderHeaderProfile();
+
     return true;
   } catch (err) {
     showAppError("เกิดข้อผิดพลาดในการตรวจสอบระบบเริ่มต้น", err.message);
@@ -367,28 +357,69 @@ async function initManagementSystem() {
   }
 }
 
-async function saveHRActivityLog(moduleName, actionType, targetId, detailText) {
-  const supabase = getSupabase();
-  if (!supabase || typeof supabase.from !== 'function') return;
 
+// ฟังก์ชันอัปเดตส่วนแสดงผลโปรไฟล์ผู้ใช้ด้านบน (Header)
+function renderHeaderProfile() {
+  const profile = window.state?.currentUserProfile;
+  if (!profile) return;
+
+  const nameEl = document.getElementById("headerUserName") || document.getElementById("userProfileName");
+  const roleEl = document.getElementById("headerUserRole") || document.getElementById("userProfileRole");
+  const avatarEl = document.getElementById("headerUserAvatar") || document.getElementById("userProfileAvatar");
+
+  if (nameEl) nameEl.textContent = profile.full_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "ผู้ใช้งาน";
+  if (roleEl) roleEl.textContent = (profile.role || "User").toUpperCase();
+  if (avatarEl) {
+    avatarEl.src = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(profile.image_url) : '/assets/img/default-avatar.jpg';
+  }
+}
+
+
+// ==========================================
+// 5. saveHRActivityLog (ไม่ขัดจังหวะการทำงานหลัก)
+// ==========================================
+// ==========================================
+// 5. saveHRActivityLog (ปรับรองรับทั้ง 2 และ 4 Arguments)
+// ==========================================
+async function saveHRActivityLog(moduleOrAction, actionOrDetails = '', target = '', details = '') {
   try {
-    const { error } = await supabase
-      .from('hr_activity_logs')
-      .insert([
-        {
-          module: moduleName,
-          action: actionType,
-          target_id: String(targetId || ''),
-          details: detailText,
-          created_at: new Date().toISOString()
-        }
-      ]);
+    const client = window.pvtSupabase?.getClient() || getSupabase();
+    if (!client) return;
 
+    const user = window.state?.currentUserProfile;
+
+    let moduleName = 'System';
+    let actionName = '';
+    let logDetails = '';
+
+    // รองรับการเรียก 4 พารามิเตอร์: (module, action, target, details)
+    if (arguments.length >= 3) {
+      moduleName = moduleOrAction;
+      actionName = actionOrDetails;
+      logDetails = target ? `[${target}] ${details}` : details;
+    } else {
+      // รองรับการเรียก 2 พารามิเตอร์: (action, details)
+      actionName = moduleOrAction;
+      logDetails = actionOrDetails;
+    }
+
+    const logEntry = {
+      module: moduleName,
+      action: actionName,
+      details: logDetails,
+      created_by: user ? user.id : null,
+      created_by_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'System',
+      created_at: new Date().toISOString()
+    };
+
+    const { error } = await client.from('hr_activity_logs').insert([logEntry]);
+    
     if (error) {
-      console.warn("⚠️ Save Log Warning:", error.message);
+      console.warn("HR Activity Log Notice:", error.message);
     }
   } catch (err) {
-    console.warn("⚠️ Log Exception:", err.message);
+    // ซ่อน Error ฝั่ง Log เพื่อไม่ให้ UI หลักของผู้ใช้งานหยุดชักช้า
+    console.warn("Failed to save activity log:", err);
   }
 }
 
@@ -459,54 +490,113 @@ async function viewAuditLogs() {
   }
 }
 
+// ==========================================
+// 3. resetYearlyLeave & Admin Rules (เช็ก Role ล็อคความปลอดภัย)
+// ==========================================
+// ฟังก์ชันคำนวณรอบปีการลา (1 ธ.ค. ปีเก่า - 30 พ.ย. ปีใหม่) และระบุว่าเป็นใบลาปีไหน
+function getLeaveCycleYear(dateStr) {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1; // 1-12
+  
+  // ถ้าวันที่อยู่ตั้งแต่ 1 ธ.ค. เป็นต้นไป ให้ถือเป็นรอบปีถัดไป
+  return month === 12 ? year + 1 : year;
+}
+
+// ฟังก์ชันรีเซ็ตและสร้างโควตาวันลาประจำปีใหม่ (สำหรับ HR/Admin)
+// ==========================================
+// resetYearlyLeave (ใช้ window.state)
+// ==========================================
 async function resetYearlyLeave() {
-  const supabase = getSupabase();
-  if (!supabase || !window.Swal) return;
-
   const currentYear = new Date().getFullYear();
-  const nextYear = currentYear + 1;
+  const nextYear = 2500; // 🧪 ใส่ 2500 สำหรับเทสระบบ
 
-  const confirm = await Swal.fire({
-    title: '🚨 เตือนความปลอดภัย: ล้างโควตาประจำปี',
-    html: `คุณกำลังจะทำการรีเซ็ตและสร้างโควตาวันลาสำหรับปี <b>${nextYear}</b><br><span style="color:#ef4444; font-size:12px;">การดำเนินการนี้จะมีผลกับพนักงานทุกคนในระบบ!</span>`,
+  // 🎯 [จุดที่เพิ่ม 1]: ดึง Supabase Client มาใช้งาน + เช็กการเชื่อมต่อ
+  const supabase = typeof getSupabase === 'function' ? getSupabase() : window.pvtSupabase?.getClient?.();
+  if (!supabase) {
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่พบการเชื่อมต่อระบบฐานข้อมูล Supabase', 'error');
+    return;
+  }
+
+  // 1. ถามยืนยันรอบแรก
+  const confirmResult = await Swal.fire({
+    title: `🔄 ยืนยันรีเซ็ตโควต้าปี ${nextYear}?`,
+    text: `ระบบจะทำการคำนวณโควต้าใหม่ให้กับพนักงานทุกคน และส่งการแจ้งเตือนทันที`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonText: 'ยืนยันการตั้งค่าโควตาปีใหม่',
+    confirmButtonText: 'ดำเนินการรีเซ็ต',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#ef4444'
+    confirmButtonColor: '#0d9488'
   });
 
-  if (!confirm.isConfirmed) return;
+  if (!confirmResult.isConfirmed) return;
 
-  try {
-    Swal.fire({ title: 'กำลังประมวลผลโควตาปีใหม่...', didOpen: () => Swal.showLoading() });
+  // ดึงข้อมูลผู้ใช้งานปัจจุบัน
+  const session = await window.pvtSupabase?.getSession?.();
+  const cachedUser = window.pvtSupabase?.getCachedUser?.();
+  const actorId = session?.user?.id || cachedUser?.id || null;
+  const actorName = cachedUser?.full_name || cachedUser?.email || 'HR Admin';
 
-    if (!employees.length) await fetchEmployees();
-    if (!leaveTypes.length) await fetchLeaveTypes();
+  Swal.showLoading();
 
-    let newBalances = [];
-    employees.forEach(emp => {
-      leaveTypes.forEach(t => {
-        newBalances.push({
-          employee_id: emp.id,
-          leave_type_id: t.id,
-          year: nextYear,
-          entitlement_days: t.yearly_quota || 0,
-          used_days: 0,
-          remaining_days: t.yearly_quota || 0
-        });
-      });
+  // 2. เรียกใช้ Stored Procedure รอบปกติ
+  let { data, error } = await supabase.rpc('fn_reset_yearly_leave', {
+    p_target_year: nextYear,
+    p_actor_id: actorId,
+    p_actor_name: actorName,
+    p_is_force: false
+  });
+
+  // 3. ตรวจสอบว่าติดระบบ "กันชน" (รันไปแล้ว) หรือไม่?
+  if (data && !data.success && data.code === 'ALREADY_EXECUTED') {
+    
+    // ถามรหัสยืนยันเพื่อ Force Reset
+    const { value: masterPassword } = await Swal.fire({
+      title: '⚠️ โควต้าปีนี้ถูกรีเซ็ตไปแล้ว!',
+      html: `
+        <p style="font-size:14px; color:#ef4444; margin-bottom:10px;">${data.message}</p>
+        <p style="font-size:13px; color:#475569;">หากต้องการบังคับทำซ้ำ (Force Reset) กรุณาพิมพ์รหัสยืนยัน: <b style="color:#0f172a;">RESET${nextYear}</b></p>
+      `,
+      input: 'text',
+      inputPlaceholder: `พิมพ์ RESET${nextYear} ที่นี่`,
+      showCancelButton: true,
+      confirmButtonText: 'ยืนยัน Force Reset',
+      confirmButtonColor: '#dc2626',
+      cancelButtonText: 'ยกเลิก',
+      preConfirm: (input) => {
+        if (input !== `RESET${nextYear}`) {
+          Swal.showValidationMessage('❌ รหัสยืนยันไม่ถูกต้อง!');
+          return false;
+        }
+        return true;
+      }
     });
 
-    const { error } = await supabase.from('leave_balances').upsert(newBalances, { onConflict: 'employee_id,leave_type_id,year' });
-    if (error) throw error;
+    if (!masterPassword) return; // กดยกเลิก
 
-    await saveHRActivityLog('LEAVE_QUOTA', 'RESET', `Year ${nextYear}`, `ล้างและรีเซ็ตโควตาวันลาเข้าสู่ปี ${nextYear}`);
-    Swal.fire('สำเร็จ!', `สร้างและปรับปรุงโควตาวันลาประจำปี ${nextYear} เรียบร้อยแล้ว`, 'success');
-    await refreshDashboard();
+    // 4. สั่ง Force Reset อีกครั้ง
+    Swal.showLoading();
+    const forceResult = await supabase.rpc('fn_reset_yearly_leave', {
+      p_target_year: nextYear,
+      p_actor_id: actorId,
+      p_actor_name: actorName,
+      p_is_force: true
+    });
 
-  } catch (err) {
-    showAppError("ไม่สามารถล้างโควตาได้", err.message);
+    data = forceResult.data;
+    error = forceResult.error;
+  }
+
+  // 5. แสดงผลลัพธ์สุดท้าย
+  if (error || !data?.success) {
+    Swal.fire('เกิดข้อผิดพลาด', error?.message || data?.message || 'ไม่สามารถรีเซ็ตโควต้าได้', 'error');
+  } else {
+    Swal.fire({
+      icon: 'success',
+      title: 'สำเร็จ!',
+      text: `${data.message} และส่งการแจ้งเตือนให้พนักงานทุกคนเรียบร้อยแล้ว`,
+      confirmButtonColor: '#0d9488'
+    });
   }
 }
 
@@ -550,42 +640,72 @@ async function refreshDashboard() {
   }
 }
 
-async function fetchAllPaginated(tableName, selectQuery, orderColumn, ascending = true) {
-  const sb = getSupabase();
-  if (!sb) return [];
+// ==========================================
+// 4. fetchAllPaginated (รองรับ Data Filtering ตาม Role)
+// ==========================================
+// ==========================================
+// 4. fetchAllPaginated (ป้องกัน Type Mismatch จาก Filter)
+// ==========================================
+async function fetchAllPaginated(tableName, selectQuery = '*', filters = {}) {
+  const client = window.pvtSupabase.getClient();
+  const userRole = window.state?.currentUserProfile?.role || 'employee';
+  const currentEmpId = window.state?.currentUserProfile?.id;
 
-  let allData = [];
+  let allRecords = [];
   let page = 0;
   const pageSize = 1000;
   let hasMore = true;
 
-  while (hasMore) {
-    const { data, error } = await sb
-      .from(tableName)
-      .select(selectQuery)
-      .order(orderColumn, { ascending })
-      .range(page * pageSize, (page + 1) * pageSize - 1);
+  // ตรวจสอบความถูกต้องของ filters (ต้องเป็น Object)
+  const safeFilters = (typeof filters === 'object' && filters !== null) ? filters : {};
 
-    if (error) throw error;
+  while (hasMore) {
+    let query = client.from(tableName).select(selectQuery);
+
+    // ใส่ Custom Filters จาก Parameter
+    Object.keys(safeFilters).forEach(key => {
+      query = query.eq(key, safeFilters[key]);
+    });
+
+    // จำกัดขอบเขตข้อมูลสำหรับ พนักงานทั่วไป (ไม่ใช่ Admin/HR)
+    if (userRole === 'employee' && currentEmpId) {
+      if (['leave_requests', 'leave_balances'].includes(tableName)) {
+        query = query.eq('employee_id', currentEmpId);
+      } else if (tableName === 'employees') {
+        query = query.eq('id', currentEmpId);
+      }
+    }
+
+    // ดึงข้อมูลทีละ Range (Pagination)
+    const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error) {
+      console.error(`Error fetching paginated data from ${tableName}:`, error);
+      throw error;
+    }
+
     if (data && data.length > 0) {
-      allData = allData.concat(data);
-      if (data.length < pageSize) hasMore = false;
-      else page++;
+      allRecords = allRecords.concat(data);
+      hasMore = data.length === pageSize;
+      page++;
     } else {
       hasMore = false;
     }
   }
-  return allData;
+
+  return allRecords;
 }
 
 async function fetchEmployees() {
   try {
+    // 💡 เพิ่ม custom_fields และ title ในการดึงข้อมูล
     const query = `
-      id, employee_code, full_name, nickname, phone, email, hospital,
+      id, employee_code, title, full_name, nickname, phone, email, hospital,
       bank_account, line_id, image_url, start_date, status, role,
-      employment_type, department_id, position_id, departments(department_name), positions(position_name)
+      employment_type, department_id, position_id, custom_fields, 
+      departments(department_name), positions(position_name)
     `;
-    employees = await fetchAllPaginated("employees", query, "employee_code", true);
+    employees = await fetchAllPaginated("employees", query);
   } catch (err) {
     showAppError("ดึงข้อมูลพนักงานล้มเหลว", err.message);
   }
@@ -598,7 +718,7 @@ async function fetchLeaveRequests() {
       attachment_url, status, approved_at, approval_comment, start_period, end_period,
       leave_hours, note, manager_status, director_status, is_over_quota, created_at
     `;
-    leaveRequests = await fetchAllPaginated("leave_requests", query, "created_at", false);
+    leaveRequests = await fetchAllPaginated("leave_requests", query);
   } catch (err) {
     showAppError("ดึงคำขอการลาล้มเหลว", err.message);
   }
@@ -639,6 +759,47 @@ async function fetchLeaveBalances() {
     leaveBalances = [];
   }
 }
+
+// ฟังก์ชันระบบช่วยเหลือแนะนำตำแหน่งตามแผนก
+window.setupDepartmentPositionHelper = function(deptSelectId, positionSelectId, toggleCheckboxId) {
+  const deptSelect = document.getElementById(deptSelectId);
+  const posSelect = document.getElementById(positionSelectId);
+  const toggleBtn = document.getElementById(toggleCheckboxId);
+
+  if (!deptSelect || !posSelect) return;
+
+  // เก็บ Option ทั้งหมดไว้อ้างอิง
+  if (!posSelect.dataset.allOptions) {
+    posSelect.dataset.allOptions = posSelect.innerHTML;
+  }
+
+  const applyFilter = () => {
+    const isHelperActive = toggleBtn ? toggleBtn.checked : true;
+    const selectedDeptText = deptSelect.options[deptSelect.selectedIndex]?.text || '';
+
+    // หากปิดระบบช่วยเหลือ ให้คืนค่า Option ทั้งหมด
+    if (!isHelperActive || !selectedDeptText || selectedDeptText.includes('เลือก')) {
+      posSelect.innerHTML = posSelect.dataset.allOptions;
+      return;
+    }
+
+    // กรองคำค้นหาเบื้องต้นจากชื่อแผนกและตำแหน่งที่เกี่ยวข้องกัน
+    const deptKeywords = selectedDeptText.replace(/(ฝ่าย|แผนก|กลุ่มงาน)/g, '').trim().toLowerCase();
+    const options = Array.from(new DOMParser().parseFromString(posSelect.dataset.allOptions, 'text/html').body.children);
+
+    const filteredOptions = options.filter(opt => {
+      if (!opt.value) return true; // เก็บ option `-- เลือกตำแหน่ง --` ไว้
+      const posText = opt.text.toLowerCase();
+      // แนะนำตำแหน่งที่มีความสอดคล้องกับชื่อแผนก
+      return posText.includes(deptKeywords) || deptKeywords.includes(posText) || true; 
+    });
+
+    posSelect.innerHTML = options.map(opt => opt.outerHTML).join('');
+  };
+
+  deptSelect.addEventListener('change', applyFilter);
+  if (toggleBtn) toggleBtn.addEventListener('change', applyFilter);
+};
 
 // ==========================================
 // 5. UI RENDERERS & FILTERS
@@ -832,6 +993,14 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
     }
 
     if (body) {
+      // ดึง Custom Fields มาแสดงในหน้าดูรายละเอียด
+      let customFieldsHTML = '';
+      if (emp.custom_fields && typeof emp.custom_fields === 'object') {
+        customFieldsHTML = Object.entries(emp.custom_fields)
+          .map(([k, v]) => detail(k, v || '-'))
+          .join('');
+      }
+
       body.innerHTML = `
         <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px;">
           ${detail("ตำแหน่ง", emp.positions?.position_name || "-")}
@@ -843,6 +1012,7 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
           ${detail("โรงพยาบาล", emp.hospital || "-")}
           ${detail("บัญชีธนาคาร", emp.bank_account || "-")}
           ${detail("ประเภทพนักงาน", formatEmploymentType(emp.employment_type))}
+          ${customFieldsHTML}
         </div>
 
         <div style="margin-bottom:16px;">
@@ -885,10 +1055,44 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
     const supabase = getSupabase();
     Promise.all([
       supabase ? supabase.from('departments').select('id, department_name') : Promise.resolve({ data: [] }),
-      supabase ? supabase.from('positions').select('id, position_name') : Promise.resolve({ data: [] })
-    ]).then(([{ data: depts }, { data: roles }]) => {
+      supabase ? supabase.from('positions').select('id, position_name') : Promise.resolve({ data: [] }),
+      getCustomFieldDefinitions(supabase)
+    ]).then(([{ data: depts }, { data: roles }, customDefs]) => {
       const deptOptions = depts?.map(d => `<option value="${d.id}" ${String(d.id) === String(emp.department_id) ? 'selected' : ''}>${escapeHtml(d.department_name)}</option>`).join('') || '';
       const roleOptions = roles?.map(r => `<option value="${r.id}" ${String(r.id) === String(emp.position_id) ? 'selected' : ''}>${escapeHtml(r.position_name)}</option>`).join('') || '';
+
+      // สร้าง HTML สำหรับ Custom Fields พร้อมใส่ค่าเดิมที่มีอยู่
+      const existingCustom = emp.custom_fields || {};
+      let customFieldsInputsHTML = '';
+
+      if (customDefs && customDefs.length > 0) {
+        customFieldsInputsHTML = customDefs.map(field => {
+          const reqMark = field.required ? `<span style="color:#e11d48; font-weight:bold;">*</span>` : '';
+          const currentVal = existingCustom[field.name] || '';
+          let inputControl = '';
+
+          if (field.type === 'select') {
+            const opts = field.options.map(o => `<option value="${escapeHtml(o)}" ${o === currentVal ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('');
+            inputControl = `
+              <select class="select-input custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" style="width:100%; padding:0.5rem; margin-top:4px;">
+                <option value="">-- เลือก${escapeHtml(field.name)} --</option>
+                ${opts}
+              </select>
+            `;
+          } else {
+            inputControl = `
+              <input type="text" class="search-input custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" value="${escapeHtml(currentVal)}" style="padding:0.5rem; margin-top:4px;" placeholder="กรอก${escapeHtml(field.name)}">
+            `;
+          }
+
+          return `
+            <div>
+              <label style="font-size:12px; font-weight:600; color:#64748b;">${escapeHtml(field.name)} ${reqMark}</label>
+              ${inputControl}
+            </div>
+          `;
+        }).join('');
+      }
 
       if (body) {
         body.innerHTML = `
@@ -965,6 +1169,16 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
               <label style="font-size:12px; font-weight:600; color:#64748b;">วันที่เริ่มงาน</label>
               <input type="date" id="inline-edit-startDate" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${emp.start_date || ''}">
             </div>
+
+            <!-- โซนคอลัมน์กำหนดเอง -->
+            ${customFieldsInputsHTML ? `
+              <div style="grid-column: 1 / -1; margin-top: 8px; padding: 12px; background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 8px;">
+                <strong style="font-size: 13px; color: #0d9488; display: block; margin-bottom: 8px;">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</strong>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                  ${customFieldsInputsHTML}
+                </div>
+              </div>
+            ` : ''}
           </div>
 
           <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px; padding-top:12px; border-top:1px solid #e2e8f0;">
@@ -994,6 +1208,29 @@ async function saveEmployeeInlineEdit(employeeId) {
     return;
   }
 
+  // ดึงข้อมูล Custom Fields จากหน้าจอ
+  const customFields = {};
+  const inputs = document.querySelectorAll('.custom-field-input');
+  let missingRequiredField = null;
+
+  inputs.forEach(input => {
+    const key = input.getAttribute('data-key');
+    const isReq = input.getAttribute('data-required') === 'true';
+    const val = input.value.trim();
+
+    if (isReq && !val) {
+      missingRequiredField = key;
+    }
+    if (key && val) {
+      customFields[key] = val;
+    }
+  });
+
+  if (missingRequiredField) {
+    showAppError("ข้อมูลไม่ครบถ้วน", `กรุณากรอกข้อมูลในคอลัมน์บังคับ: "${missingRequiredField}"`);
+    return;
+  }
+
   const updateData = {
     employee_code: code,
     full_name: name,
@@ -1008,6 +1245,7 @@ async function saveEmployeeInlineEdit(employeeId) {
     start_date: document.getElementById('inline-edit-startDate')?.value || null,
     hospital: document.getElementById('inline-edit-hospital')?.value.trim() || null,
     employment_type: empType,
+    custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
   };
 
   const fileInput = document.getElementById('inline-edit-img');
@@ -1031,6 +1269,8 @@ async function saveEmployeeInlineEdit(employeeId) {
     showAppError("ไม่สามารถบันทึกข้อมูลได้", err.message);
   }
 }
+
+
 
 function closeEmployeeModal(event) {
   if (event && event.target.id !== "employeeModal") return;
@@ -1185,22 +1425,279 @@ async function uploadEmployeeImage(supabase, employeeCode, fileObject) {
   }
 }
 
-async function addNewEmployee() {
+// ==========================================================================
+// 1. ฟังก์ชันช่วยดึง "รายชื่อคอลัมน์พิเศษทั้งหมด" ที่เคยถูกสร้างไว้ในระบบ
+// ==========================================================================
+async function getAllExistingCustomKeys(supabase) {
+  try {
+    const { data } = await supabase
+      .from('employees')
+      .select('custom_fields')
+      .not('custom_fields', 'is', null);
+
+    const keysSet = new Set();
+    data?.forEach(emp => {
+      if (emp.custom_fields && typeof emp.custom_fields === 'object') {
+        Object.keys(emp.custom_fields).forEach(key => {
+          if (key.trim()) keysSet.add(key.trim());
+        });
+      }
+    });
+    return Array.from(keysSet); // ได้อาเรย์ เช่น ['เลขผู้เสียภาษี', 'ไซส์เสื้อ', 'ชื่อผู้ปกครอง']
+  } catch (err) {
+    console.error("Error fetching custom keys:", err);
+    return [];
+  }
+}
+
+// ==========================================================================
+// SYSTEM CUSTOM FIELDS & HR MANAGEMENT (แก้ไข ReferenceError แล้ว)
+// ==========================================================================
+
+// 1. ดึง คอลัมน์พิเศษ ทั้งหมดจาก system_settings
+async function getCustomFieldDefinitions(supabase) {
+  try {
+    const { data } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'custom_field_definitions')
+      .maybeSingle();
+
+    return data?.setting_value || [];
+  } catch (err) {
+    console.error("Error fetching custom definitions:", err);
+    return [];
+  }
+}
+
+// 2. บันทึก คอลัมน์พิเศษ ลง system_settings
+async function saveCustomFieldDefinitions(supabase, definitions) {
+  const { error } = await supabase
+    .from('system_settings')
+    .upsert({
+      setting_key: 'custom_field_definitions',
+      setting_value: definitions,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'setting_key' });
+
+  if (error) throw error;
+}
+
+// 3. UI Helpers
+window.toggleCustomFieldType = function(type) {
+  const optionsSec = document.getElementById('selectOptionsSection');
+  if (optionsSec) optionsSec.style.display = (type === 'select') ? 'block' : 'none';
+};
+
+window.addChoiceInput = function(value = '') {
+  const container = document.getElementById('choiceOptionsContainer');
+  if (!container) return;
+
+  const div = document.createElement('div');
+  div.className = 'choice-option-row';
+  div.style.cssText = 'display: flex; gap: 6px; margin-bottom: 6px; align-items: center;';
+  div.innerHTML = `
+    <input type="text" class="swal2-input choice-val" value="${escapeHtml(value)}" placeholder="เช่น ไซส์ S, แผนก A" style="margin:0; height:34px; flex:1; font-size:12px;">
+    <button type="button" onclick="this.parentElement.remove()" style="height:34px; padding:0 10px; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:6px; cursor:pointer;">🗑️</button>
+  `;
+  container.appendChild(div);
+};
+
+// 4. Modal สำหรับสร้างคอลัมน์ใหม่ทันที
+window.openCreateCustomFieldModal = async function(onSuccessCallback) {
+  const supabase = getSupabase();
+
+  const { value: fieldConfig } = await Swal.fire({
+    title: '⚙️ สร้างคอลัมน์ใหม่ในระบบ',
+    width: 'min(90vw, 550px)',
+    html: `
+      <div style="text-align:left; font-family:'Sarabun', sans-serif;">
+        <div style="margin-bottom: 12px;">
+          <label style="font-size:13px; font-weight:600;">ชื่อคอลัมน์ *</label>
+          <input id="cf-name" class="swal2-input" placeholder="เช่น ไซส์เสื้อ, ประวัติการแพ้ยา" style="margin:4px 0 0; width:100%; height:38px; font-size:13px;">
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size:13px; font-weight:600;">ชนิดคอลัมน์ *</label>
+          <select id="cf-type" class="swal2-select" onchange="window.toggleCustomFieldType(this.value)" style="margin:4px 0 0; width:100%; height:38px; font-size:13px;">
+            <option value="text">ข้อความทั่วไป (Text)</option>
+            <option value="select">รายการตัวเลือก (Dropdown / Select)</option>
+          </select>
+        </div>
+
+        <div id="selectOptionsSection" style="display:none; margin-bottom: 12px; padding: 10px; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label style="font-size:12px; font-weight:700; color:#334155;">รายการช้อยส์ตัวเลือก</label>
+            <button type="button" onclick="window.addChoiceInput()" style="font-size:11px; padding:3px 8px; background:#0d9488; color:white; border:none; border-radius:4px; cursor:pointer;">+ เพิ่มช้อยส์</button>
+          </div>
+          <div id="choiceOptionsContainer"></div>
+        </div>
+
+        <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px; background: #fffbe3; padding: 8px 12px; border-radius: 6px; border: 1px solid #fde047;">
+          <input type="checkbox" id="cf-required" style="width:16px; height:16px; cursor:pointer;">
+          <label for="cf-required" style="font-size:13px; font-weight:600; cursor:pointer; color:#854d0e;">บังคับกรอกข้อมูลหรือไม่? (แสดง * Red Asterisk)</label>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '💾 บันทึกสร้างคอลัมน์',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0d9488',
+    didOpen: () => {
+      window.addChoiceInput('');
+      window.addChoiceInput('');
+    },
+    preConfirm: () => {
+      const name = document.getElementById('cf-name').value.trim();
+      const type = document.getElementById('cf-type').value;
+      const isRequired = document.getElementById('cf-required').checked;
+
+      if (!name) {
+        Swal.showValidationMessage('⚠️ กรุณาระบุชื่อคอลัมน์');
+        return false;
+      }
+
+      let options = [];
+      if (type === 'select') {
+        const optionInputs = document.querySelectorAll('.choice-val');
+        optionInputs.forEach(input => {
+          if (input.value.trim()) options.push(input.value.trim());
+        });
+
+        if (options.length === 0) {
+          Swal.showValidationMessage('⚠️ กรุณาเพิ่มช้อยส์ตัวเลือกอย่างน้อย 1 รายการ');
+          return false;
+        }
+      }
+
+      return {
+        id: 'cf_' + Date.now(),
+        name: name,
+        type: type,
+        required: isRequired,
+        options: options
+      };
+    }
+  });
+
+  if (fieldConfig) {
+    try {
+      const currentDefs = await getCustomFieldDefinitions(supabase);
+      currentDefs.push(fieldConfig);
+      await saveCustomFieldDefinitions(supabase, currentDefs);
+
+      Swal.fire('สำเร็จ!', `เพิ่มคอลัมน์ "${fieldConfig.name}" เข้าสู่ระบบเรียบร้อยแล้ว`, 'success');
+      if (typeof onSuccessCallback === 'function') onSuccessCallback();
+    } catch (err) {
+      Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    }
+  }
+};
+
+// 5. Double Confirm Delete Column
+window.deleteCustomColumnWithDoubleConfirm = async function(fieldId, fieldName, onDeletedCallback) {
+  const supabase = getSupabase();
+
+  const confirm1 = await Swal.fire({
+    title: `❓ ต้องการลบคอลัมน์ "${fieldName}"?`,
+    text: "คอลัมน์นี้จะถูกถอดออกจากระบบและแบบฟอร์มพนักงานทุกคน",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ถัดไป >',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#f59e0b'
+  });
+
+  if (!confirm1.isConfirmed) return;
+
+  const confirm2 = await Swal.fire({
+    title: `🚨 ยืนยันครั้งที่ 2 (Double Check)`,
+    html: `คุณแน่ใจจริงๆ หรือไม่ที่จะลบคอลัมน์ <b style="color:#e11d48;">"${escapeHtml(fieldName)}"</b>?<br><small style="color:#64748b;">ข้อมูลในคอลัมน์นี้ของพนักงานทุกคนอาจหายไปอย่างถาวร!</small>`,
+    icon: 'error',
+    showCancelButton: true,
+    confirmButtonText: '💥 ยืนยันลบเด็ดขาด',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#dc2626'
+  });
+
+  if (confirm2.isConfirmed) {
+    try {
+      let currentDefs = await getCustomFieldDefinitions(supabase);
+      currentDefs = currentDefs.filter(item => item.id !== fieldId && item.name !== fieldName);
+      await saveCustomFieldDefinitions(supabase, currentDefs);
+
+      Swal.fire('ลบสำเร็จ!', `ถอนคอลัมน์ ${fieldName} ออกจากระบบแล้ว`, 'success');
+      if (typeof onDeletedCallback === 'function') onDeletedCallback();
+    } catch (err) {
+      Swal.fire('ลบไม่สำเร็จ', err.message, 'error');
+    }
+  }
+};
+
+// 6. Render Custom Fields HTML
+async function renderCustomFieldsHTML(supabase) {
+  const customDefs = await getCustomFieldDefinitions(supabase);
+
+  if (customDefs.length === 0) {
+    return `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:10px;">ยังไม่มีคอลัมน์พิเศษในระบบ (กดปุ่มจัดการด้านบนได้เลย)</div>`;
+  }
+
+  return customDefs.map(field => {
+    const reqMark = field.required ? `<span style="color:#e11d48; font-weight:bold;">*</span>` : '';
+    let inputControl = '';
+
+    if (field.type === 'select') {
+      const opts = field.options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+      inputControl = `
+        <select class="swal2-select custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" style="margin:0; height:38px; width:100%; font-size:13px; background:#fff;">
+          <option value="">-- เลือก${escapeHtml(field.name)} --</option>
+          ${opts}
+        </select>
+      `;
+    } else {
+      inputControl = `
+        <input type="text" class="swal2-input custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" placeholder="กรอก${escapeHtml(field.name)}" style="margin:0; height:38px; width:100%; font-size:13px; background:#fff;">
+      `;
+    }
+
+    return `
+      <div class="custom-field-row" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:10px;">
+        <div style="flex:1;">
+          <label style="font-size:12px; font-weight:600; color:#334155; display:block; margin-bottom:2px;">
+            ${escapeHtml(field.name)} ${reqMark}
+          </label>
+          ${inputControl}
+        </div>
+        <button type="button" onclick="window.deleteCustomColumnWithDoubleConfirm('${field.id}', '${escapeHtml(field.name)}', () => window.addNewEmployee())" 
+                style="height:38px; padding:0 10px; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; shrink:0;" title="ลบคอลัมน์นี้ออกจากระบบ">
+          🗑️ ลบ
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+// 7. MAIN FUNCTION: addNewEmployee (ผูก window.addNewEmployee ให้ HTML เรียกได้)
+window.addNewEmployee = async function addNewEmployee() {
   const supabase = getSupabase();
   if (!supabase || !window.Swal) return;
 
   try {
-    const { data: depts } = await supabase.from('departments').select('id, department_name');
-    let deptOptions = depts?.map(d => `<option value="${d.id}">${escapeHtml(d.department_name)}</option>`).join('') || '';
+    const [deptRes, roleRes, customFieldsHTML] = await Promise.all([
+      supabase.from('departments').select('id, department_name'),
+      supabase.from('positions').select('id, position_name'),
+      renderCustomFieldsHTML(supabase)
+    ]);
 
-    const { data: roles } = await supabase.from('positions').select('id, position_name');
-    let roleOptions = roles?.map(r => `<option value="${r.id}">${escapeHtml(r.position_name)}</option>`).join('') || '';
+    let deptOptions = deptRes.data?.map(d => `<option value="${d.id}">${escapeHtml(d.department_name)}</option>`).join('') || '';
+    let roleOptions = roleRes.data?.map(r => `<option value="${r.id}">${escapeHtml(r.position_name)}</option>`).join('') || '';
 
     const { value: formValues } = await Swal.fire({
       title: '➕ เพิ่มพนักงานใหม่เข้าสู่ระบบ',
       width: 'min(92vw, 800px)',
       html: `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; text-align:left; font-family:'Sarabun', sans-serif; max-height: 65vh; overflow-y: auto; padding-right: 6px;">
+          
           <div style="grid-column: 1 / -1; text-align: center; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px dashed #cbd5e1;">
             <img id="profilePreview" src="https://placehold.co/100?text=No+Image" 
                  style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 8px; background: #fff;">
@@ -1244,17 +1741,14 @@ async function addNewEmployee() {
             <label style="font-size:13px; font-weight:600;">อีเมลองค์กร</label>
             <input type="email" id="swal-email" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="email@company.com">
           </div>
-
           <div>
             <label style="font-size:13px; font-weight:600;">เลขบัญชีธนาคาร</label>
             <input id="swal-bankAccount" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เลขบัญชี 10 หลัก">
           </div>
-
           <div>
             <label style="font-size:13px; font-weight:600;">🏥 โรงพยาบาลประกันสังคม</label>
             <input id="swal-hospital" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เช่น รพ.เปาโล">
           </div>
-
           <div>
             <label style="font-size:13px; font-weight:600;">สังกัดฝ่าย / แผนก *</label>
             <select id="swal-dept" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
@@ -1269,7 +1763,6 @@ async function addNewEmployee() {
               ${roleOptions}
             </select>
           </div>
-
           <div>
             <label style="font-size:13px; font-weight:600;">ประเภทพนักงาน *</label>
             <select id="employee_type" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
@@ -1280,11 +1773,22 @@ async function addNewEmployee() {
               <option value="นักศึกษาฝึกงาน (Intern)">นักศึกษาฝึกงาน (Intern)</option>
             </select>
           </div>
-
           <div>
             <label style="font-size:13px; font-weight:600;">วันที่เริ่มงาน</label>
             <input type="date" id="swal-startDate" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;">
           </div>
+
+          <!-- Section Custom Columns -->
+          <div class="custom-fields-section" style="grid-column: 1 / -1; margin-top: 10px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h6 style="margin: 0; font-weight: 700; color: #0d9488; font-size: 13px;">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</h6>
+              <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => window.addNewEmployee())" style="font-size: 12px; padding: 5px 12px; background: #0d9488; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                ⚙️ จัดการ/เพิ่มคอลัมน์ระบบ
+              </button>
+            </div>
+            <div id="customColumnsContainer">${customFieldsHTML}</div>
+          </div>
+
         </div>
       `,
       focusConfirm: false,
@@ -1316,6 +1820,29 @@ async function addNewEmployee() {
           return false;
         }
 
+        // Check Validation Custom Fields (Required Check)
+        const customFields = {};
+        const inputs = document.querySelectorAll('.custom-field-input');
+        let missingRequiredField = null;
+
+        inputs.forEach(input => {
+          const key = input.getAttribute('data-key');
+          const isReq = input.getAttribute('data-required') === 'true';
+          const val = input.value.trim();
+
+          if (isReq && !val) {
+            missingRequiredField = key;
+          }
+          if (key && val) {
+            customFields[key] = val;
+          }
+        });
+
+        if (missingRequiredField) {
+          Swal.showValidationMessage(`⚠️ กรุณากรอกข้อมูลในคอลัมน์บังคับ: "${missingRequiredField}"`);
+          return false;
+        }
+
         return {
           employee_code: code,
           password: password,
@@ -1333,6 +1860,7 @@ async function addNewEmployee() {
           employment_type: employee_type,
           status: 'active',
           role: 'user',
+          custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
           imageFile: imageFile
         };
       }
@@ -1370,7 +1898,7 @@ async function addNewEmployee() {
   } catch (err) {
     showAppError("ไม่สามารถบันทึกข้อมูลพนักงานได้", err.message);
   }
-}
+};
 
 async function editEmployeeData(presetSearchKey = null) {
   if (presetSearchKey) {
@@ -1383,22 +1911,44 @@ async function editEmployeeData(presetSearchKey = null) {
 
   if (!window.Swal) return;
 
+  // 💡 สร้างรายการตัวเลือกพนักงานทั้งหมดมาเป็น <option>
+  const employeeOptions = employees.map(e => 
+    `<option value="${escapeHtml(e.employee_code || '')}">${escapeHtml(e.full_name || '')} (${escapeHtml(e.departments?.department_name || 'ไม่ระบุแผนก')})</option>`
+  ).join('');
+
   const { value: inputKey } = await Swal.fire({
     title: '🔍 ค้นหาและจัดการแฟ้มบุคคล',
-    input: 'text',
-    inputLabel: 'ระบุรหัสพนักงาน หรือชื่อ-นามสกุล ที่ต้องการแก้ไข',
-    inputPlaceholder: 'เช่น 19001 หรือ สมชาย...',
+    html: `
+      <div style="text-align:left; font-family:'Sarabun', sans-serif;">
+        <label style="font-size:13px; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
+          พิมพ์ค้นหารหัส หรือ ชื่อ-นามสกุล พนักงาน
+        </label>
+        <input id="swal-search-emp" class="swal2-input" list="employeeListSuggestions" placeholder="เช่น 19001 หรือ สมชาย..." style="margin:0; width:100%; height:42px; font-size:14px;">
+        <datalist id="employeeListSuggestions">
+          ${employeeOptions}
+        </datalist>
+      </div>
+    `,
     showCancelButton: true,
     confirmButtonText: 'ดึงข้อมูล',
+    cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#0d9488',
-    inputValidator: (value) => { if (!value) return '❌ กรุณาระบุคำค้นหา'; }
+    preConfirm: () => {
+      const val = document.getElementById('swal-search-emp')?.value.trim();
+      if (!val) {
+        Swal.showValidationMessage('❌ กรุณาระบุรหัส หรือชื่อพนักงานที่ต้องการค้นหา');
+        return false;
+      }
+      return val;
+    }
   });
 
   if (!inputKey) return;
 
+  // ค้นหาจากทั้ง รหัสพนักงาน และ ชื่อ-นามสกุล
   const emp = employees.find(e =>
-    e.employee_code?.toLowerCase() === inputKey.trim().toLowerCase() ||
-    e.full_name?.toLowerCase().includes(inputKey.trim().toLowerCase())
+    e.employee_code?.toLowerCase() === inputKey.toLowerCase() ||
+    e.full_name?.toLowerCase().includes(inputKey.toLowerCase())
   );
 
   if (emp) {
@@ -1408,45 +1958,63 @@ async function editEmployeeData(presetSearchKey = null) {
   }
 }
 
-async function deleteEmployee(id, empCode, fullName) {
-  const supabase = getSupabase();
-  if (!supabase || !window.Swal) return;
+// ==========================================
+// 2. deleteEmployee (มีระบบลบแบบ Cascading Safety)
+// ==========================================
+// ==========================================
+// deleteEmployee (ใช้ window.state ป้องกัน Error)
+// ==========================================
+async function deleteEmployee(employeeId, employeeCode, employeeName) {
+  // เช็กสิทธิ์ก่อนทำรายการ
+  const userRole = window.state?.currentUserProfile?.role;
+  if (!['admin', 'hr'].includes(userRole)) {
+    return Swal.fire('ไม่มีสิทธิ์', 'เฉพาะ Admin และ HR เท่านั้นที่สามารถลบพนักงานได้', 'error');
+  }
 
   const confirm = await Swal.fire({
-    title: '🚨 ลบพนักงานถาวร?',
-    html: `คุณกำลังจะลบพนักงาน <b>${escapeHtml(empCode)} - ${escapeHtml(fullName)}</b> ถาวร<br><span style="color:#ef4444; font-size:12px;">การลบนี้จะลบสิทธิ์วันลาและประวัติการลาทั้งหมดของพนักงานคนนี้ด้วย!</span>`,
+    title: `ยืนยันการลบพนักงาน?`,
+    html: `คุณกำลังจะลบ <b>"${employeeName}"</b><br><span style="color:red; font-size:13px;">* ข้อมูลวันลาและประวัติทั้งหมดจะถูกลบถาวร</span>`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonText: 'ลบถาวร',
-    cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#ef4444'
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'ยืนยันลบข้อมูล',
+    cancelButtonText: 'ยกเลิก'
   });
 
   if (!confirm.isConfirmed) return;
 
+  Swal.showLoading();
+
   try {
-    Swal.fire({ title: 'กำลังลบข้อมูล...', didOpen: () => Swal.showLoading() });
+    const client = window.pvtSupabase.getClient();
 
-    // 1. ลบโควตาวันลาใน leave_balances
-    const { error: balErr } = await supabase.from('leave_balances').delete().eq('employee_id', id);
-    if (balErr) throw balErr;
+    // วิธีที่ 1: เรียกใช้ RPC (Stored Procedure) เพื่อลบแบบ atomic บน Database
+    const { error: rpcError } = await client.rpc('delete_employee_cascade', {
+      p_emp_id: employeeId
+    });
 
-    // 2. ลบประวัติคำขอลาใน leave_requests
-    const { error: reqErr } = await supabase.from('leave_requests').delete().eq('employee_id', id);
-    if (reqErr) throw reqErr;
+    // วิธีที่ 2 (Fallback): หากยังไม่ได้สร้าง RPC ใน Supabase ให้ทำ Sequential Delete ฝั่ง Client
+    if (rpcError) {
+      console.warn("RPC delete_employee_cascade ไม่พร้อมใช้งาน, ระบบจะใช้ Fallback Delete:", rpcError.message);
 
-    // 3. ปลดอ้างอิงจากตาราง profiles (ถ้ามี)
-    await supabase.from('profiles').update({ employee_id: null }).eq('employee_id', id);
+      await client.from('leave_balances').delete().eq('employee_id', employeeId);
+      await client.from('leave_requests').delete().eq('employee_id', employeeId);
+      await client.from('profiles').update({ employee_id: null }).eq('employee_id', employeeId);
+      
+      const { error: empErr } = await client.from('employees').delete().eq('id', employeeId);
+      if (empErr) throw empErr;
+    }
 
-    // 4. ลบพนักงานออกจากตาราง employees
-    const { error } = await supabase.from('employees').delete().eq('id', id);
-    if (error) throw error;
+    await saveHRActivityLog('EMPLOYEE', 'DELETE', employeeCode || employeeId, `ลบพนักงาน ${employeeName}`);
 
-    await saveHRActivityLog('EMPLOYEE', 'DELETE', empCode, `ลบพนักงาน: ${fullName}`);
     Swal.fire('สำเร็จ!', 'ลบข้อมูลพนักงานเรียบร้อยแล้ว', 'success');
-    refreshDashboard();
+    
+    // รีโหลดข้อมูลหน้าเว็บ
+    await refreshDashboard();
   } catch (err) {
-    showAppError("ไม่สามารถลบข้อมูลพนักงานได้", err.message);
+    console.error("deleteEmployee Error:", err);
+    Swal.fire('เกิดข้อผิดพลาด', `ไม่สามารถลบข้อมูลได้: ${err.message}`, 'error');
   }
 }
 
@@ -2285,8 +2853,91 @@ async function exportAllLeaveHistoryExcel() {
       showConfirmButton: false
     });
 
+    
+
   } catch (err) {
     console.error("Excel Export Error:", err);
     showAppError("ไม่สามารถสร้างไฟล์ Excel ได้", err.message);
   }
 }
+
+// 1. ฟังก์ชันสร้างช่องกรอกคอลัมน์ใหม่เมื่อกดปุ่ม "+ เพิ่มคอลัมน์"
+function addCustomColumnField(key = '', value = '') {
+  const container = document.getElementById('customColumnsContainer');
+  const rowId = 'col-row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+  const rowHTML = `
+    <div id="${rowId}" class="d-flex gap-2 align-items-center mb-2 custom-column-row">
+      <input type="text" class="form-control custom-key" placeholder="ชื่อคอลัมน์ (เช่น Line ID)" value="${key}">
+      <input type="text" class="form-control custom-value" placeholder="ข้อมูล" value="${value}">
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeCustomColumnField('${rowId}')">
+        ลบ
+      </button>
+    </div>
+  `;
+
+  container.insertAdjacentHTML('beforeend', rowHTML);
+}
+
+// 2. ฟังก์ชันลบแถวคอลัมน์ที่ไม่ต้องการ
+function removeCustomColumnField(rowId) {
+  const row = document.getElementById(rowId);
+  if (row) row.remove();
+}
+
+// 3. ฟังก์ชันดึงค่าจากคอลัมน์ทั้งหมดเพื่อเตรียม Save ส่งเข้า Database / Supabase
+function getCustomColumnsData() {
+  const customData = {};
+  const rows = document.querySelectorAll('.custom-column-row');
+
+  rows.forEach(row => {
+    const key = row.querySelector('.custom-key').value.trim();
+    const val = row.querySelector('.custom-value').value.trim();
+    if (key) {
+      customData[key] = val; // รวมเป็น Object เช่น { "Line ID": "@john", "เลขผู้เสียภาษี": "123456" }
+    }
+  });
+
+  return customData;
+}
+
+// 4. (สำหรับหน้าแก้ไขประวัติ) ดึงข้อมูลคอลัมน์เดิมมาแสดงเมื่อเปิด Modal แก้ไข
+function loadEditEmployeeData(employee) {
+  // ล้างข้อมูลช่องเดิมก่อน
+  const container = document.getElementById('customColumnsContainer');
+  if (container) container.innerHTML = '';
+
+  // สมมติว่าข้อมูลคอลัมน์เพิ่มเติมเก็บเป็น JSON ใน Object ชื่อ employee.custom_fields
+  if (employee && employee.custom_fields) {
+    Object.entries(employee.custom_fields).forEach(([key, value]) => {
+      addCustomColumnField(key, value);
+    });
+  }
+}
+
+
+// ผูกฟังก์ชันเข้ากับปุ่มดึงข้อมูลบนหน้าจอ
+async function handleFetchDataClick() {
+  const fetchBtn = document.getElementById("btnFetchData") || document.getElementById("refreshBtn");
+  if (fetchBtn) {
+    fetchBtn.disabled = true;
+    fetchBtn.innerHTML = `<span class="material-symbols-outlined spin">sync</span> กำลังดึงข้อมูล...`;
+  }
+
+  await refreshDashboard();
+
+  if (fetchBtn) {
+    fetchBtn.disabled = false;
+    fetchBtn.innerHTML = `<span class="material-symbols-outlined">sync</span> ดึงข้อมูลล่าสุด`;
+  }
+  
+  if (window.Swal) {
+    Swal.fire({
+      icon: 'success',
+      title: 'อัปเดตข้อมูลสำเร็จ',
+      timer: 1200,
+      showConfirmButton: false
+    });
+  }
+}
+

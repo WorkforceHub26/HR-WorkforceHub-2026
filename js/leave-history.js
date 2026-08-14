@@ -258,3 +258,34 @@ function setText(id, value) {
 function escapeHtml(value) {
   return window.pvtSupabase?.escapeHtml ? window.pvtSupabase.escapeHtml(value) : String(value ?? "");
 }
+
+// ฟังก์ชันบันทึกข้อมูลพนักงานแบบ Inline พร้อมรองรับฟิลด์เพิ่มเติม (FB / IG / เบอร์สำรอง)[cite: 24]
+async function saveEmployeeInlineEdit(employeeId) {
+  const emp = employees.find(e => String(e.id) === String(employeeId)); //[cite: 24]
+  if (!emp) return; //[cite: 24]
+
+  const code = document.getElementById('inline-edit-code')?.value.trim(); //[cite: 24]
+  const name = document.getElementById('inline-edit-fullName')?.value.trim(); //[cite: 24]
+
+  const updateData = {
+    employee_code: code, //[cite: 24]
+    full_name: name, //[cite: 24]
+    phone: document.getElementById('inline-edit-phone')?.value.trim() || null, //[cite: 24]
+    secondary_phone: document.getElementById('inline-edit-secPhone')?.value.trim() || null, // ฟิลด์เบอร์สำรอง
+    facebook: document.getElementById('inline-edit-facebook')?.value.trim() || null,       // ฟิลด์ Facebook
+    instagram: document.getElementById('inline-edit-instagram')?.value.trim() || null,     // ฟิลด์ IG
+    line_id: document.getElementById('inline-edit-lineId')?.value.trim() || null, //[cite: 24]
+    email: document.getElementById('inline-edit-email')?.value.trim() || null, //[cite: 24]
+  };
+
+  try {
+    const supabase = getSupabase(); //[cite: 24]
+    const { error } = await supabase.from('employees').update(updateData).eq('id', emp.id); //[cite: 24]
+    if (error) throw error; //[cite: 24]
+
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'อัปเดตข้อมูลพนักงานเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false }); //[cite: 24]
+    await refreshDashboard(); //[cite: 24]
+  } catch (err) {
+    showAppError("ไม่สามารถบันทึกข้อมูลได้", err.message); //[cite: 24]
+  }
+}

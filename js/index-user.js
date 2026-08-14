@@ -873,3 +873,21 @@ window.refreshUserData = async function() {
     }, 500);
   }
 };
+
+// ฟังก์ชันเช็กแจ้งเตือน Pop-up เมื่อพนักงานเข้าสู่ระบบ
+function checkUserNotifications() {
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1; // 12 คือ ธันวาคม
+  const currentDate = today.getDate();
+
+  // 1. ตรวจสอบการแจ้งเตือนสิทธิ์ใหม่ประจำปี (1 ธันวาคม)
+  if (currentMonth === 12 && currentDate === 1) {
+    Swal.fire({
+      icon: 'info',
+      title: '🎉 สิทธิ์วันลาประจำปีใหม่ได้รับการปรับปรุงแล้ว!',
+      text: 'ระบบได้ทำการรีเซ็ตและปรับปรุงโควตาวันลาประจำรอบปีใหม่ (1 ธ.ค. - 30 พ.ย.) เรียบร้อยแล้ว',
+      confirmButtonText: 'รับทราบ',
+      confirmButtonColor: '#0d9488'
+    });
+  }
+}

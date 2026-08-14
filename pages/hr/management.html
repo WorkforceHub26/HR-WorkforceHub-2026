@@ -11,10 +11,7 @@
   
   <!-- Style Sheets -->
   <link rel="stylesheet" href="/css/home.css" />
-  <link rel="stylesheet" href="./css/management.css">
-  
-  <!-- External Libraries -->
-  
+  <link rel="stylesheet" href="/css/management.css">
 </head>
 
 <body>
@@ -31,7 +28,7 @@
           <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
-        <a href="/pages/hr/hr.html" class="nav-item " title="อนุมัติใบลา">
+        <a href="/pages/hr/hr.html" class="nav-item" title="อนุมัติใบลา">
           <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">อนุมัติใบลา</span>
         </a>
@@ -67,8 +64,8 @@
           <p class="page-subtitle">HR MANAGEMENT & LEAVE HISTORY DASHBOARD</p>
         </div>
         <div class="topbar-right">
-          <button class="action-btn" onclick="refreshDashboard()">
-            <span class="material-symbols-outlined">refresh</span>
+          <button class="action-btn" onclick="handleFetchDataClick()">
+            <span class="material-symbols-outlined">sync</span>
             <span>ดึงข้อมูลล่าสุด</span>
           </button>
           <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()">
@@ -167,16 +164,31 @@
           <span id="loadStatus" class="status pending">กำลังโหลด</span>
         </div>
         
-        <div class="filter-panel">
-          <div class="search-box">
-            <span class="material-symbols-outlined icon-search">search</span>
-            <input id="empSearchInput" class="search-input" type="search" placeholder="ค้นหาชื่อ รหัส แผนก หรือตำแหน่ง..." oninput="renderEmployeeTable()" />
-          </div>
-          <select id="deptFilter" class="select-input" onchange="renderEmployeeTable()">
-            <option value="">ทุกแผนก</option>
-          </select>
-        </div>
-        
+            <div class="filter-panel">
+              <!-- ช่องค้นหา -->
+                  <div class="custom-search-container">
+                    <!-- ช่องพิมพ์ค้นหา -->
+                    <div class="search-box">
+                      <span class="material-symbols-outlined icon-search">search</span>
+                      <input 
+                        type="text" 
+                        id="empSearchInput" 
+                        class="search-input" 
+                        placeholder="ค้นหาชื่อ, รหัสพนักงาน หรือแผนก..."
+                        autocomplete="off"
+                      />
+                    </div>
+
+                    <!-- กล่องแสดงรายการที่จะเด้งออกมา (คลีน นุ่มตา ไม่ดำแน่นอน) -->
+                    <div id="customDropdown" class="custom-dropdown-list hidden"></div>
+                  </div>
+
+              <!-- ตัวกรองแผนก -->
+              <select id="deptFilter" class="select-input" onchange="renderEmployeeTable()">
+                <option value="">ทุกแผนก</option>
+              </select>
+            </div>
+
         <div class="table-wrap">
           <table class="data-table">
             <thead>
@@ -219,12 +231,11 @@
     </div>
   </div>
 
-  <!-- JavaScript Application -->
+  <!-- External Libraries & Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   
-  <!-- โหลด Config ก่อน -->
   <script src="/js/supabase-config.js"></script>
   <script src="/js/auth-guard.js"></script>
   <script src="/js/notification.js"></script>

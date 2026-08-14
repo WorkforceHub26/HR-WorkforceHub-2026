@@ -175,6 +175,45 @@ function redirectToDashboard(role) {
   }
 }
 
+/**
+ * =========================================================================
+ * 2. ฟังก์ชันตรวจสอบความถูกต้องของ Session และล้างข้อมูลขยะหมดอายุอัตโนมัติ
+ * =========================================================================
+ * @returns {boolean} returns true หาก Session ยังใช้งานได้ปกติ, false หากหมดอายุหรือไม่มี Session
+ */
+function isSessionValid() {
+  const rawSession = localStorage.getItem("currentUser");
+
+  if (!rawSession) {
+    return false;
+  }
+
+  try {
+    const sessionData = JSON.parse(rawSession);
+
+    // 1. ตรวจสอบโครงสร้างข้อมูลที่จำเป็น
+    if (!sessionData || typeof sessionData !== "object" || !sessionData.id || !sessionData.role) {
+      console.warn("isSessionValid Warning: โครงสร้าง Session ไม่ถูกต้อง ทำการล้างข้อมูล");
+      localStorage.removeItem("currentUser");
+      return false;
+    }
+
+    // 2. ตรวจสอบเวลาหมดอายุ (expireAt)
+    const currentTime = new Date().getTime();
+    if (sessionData.expireAt && currentTime > sessionData.expireAt) {
+      console.warn("isSessionValid Warning: Session หมดอายุแล้ว ทำการล้างข้อมูล");
+      localStorage.removeItem("currentUser");
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("isSessionValid Error: ไม่สามารถอ่าน Session จาก localStorage ได้", err);
+    localStorage.removeItem("currentUser");
+    return false;
+  }
+}
+
 /* ==========================================================================
    👁️ ฟังก์ชันเปิด-ปิด ดวงตาดูรหัสผ่าน
    ========================================================================== */
@@ -383,14 +422,44 @@ async function executeSecureQrLogin(scannedData) {
   }
 }
 // แก้ไขส่วนที่เซ็ตค่าลง localStorage หลังจากตรวจสอบรหัสผ่านผ่านแล้ว
+/**
+ * =========================================================================
+ * 1. ฟังก์ชันจัดการ Session ผู้ใช้งานพร้อมระบบกำหนดเวลาหมดอายุ (Session Expiry)
+ * =========================================================================
+ * @param {Object} userData - ข้อมูลพนักงานที่ผ่านการยืนยันตัวตนแล้ว
+ * @param {number} expireInHours - อายุของ Session (ชั่วโมง) ค่าเริ่มต้นคือ 8 ชั่วโมง
+ * @returns {boolean} สถานะการบันทึกข้อมูล
+ */
 function saveUserSession(userData, expireInHours = 8) {
-    const expireAt = new Date().getTime() + (expireInHours * 60 * 60 * 1000);
-    const sessionPayload = {
-        ...userData,
-        expireAt: expireAt
-    };
-    
-    localStorage.setItem('currentUser', JSON.stringify(sessionPayload));
+  if (!userData || typeof userData !== "object") {
+    console.error("saveUserSession Error: ข้อมูลผู้ใช้งานไม่ถูกต้อง");
+    return false;
+  }
+
+  // 🔒 Security Clean-up: ลบฟิลด์รหัสผ่านออกอย่างเด็ดขาดเพื่อป้องกันข้อมูลรั่วไหล
+  const cleanUser = { ...userData };
+  delete cleanUser.password;
+
+  const currentTime = new Date().getTime();
+  const expireAt = currentTime + (expireInHours * 60 * 60 * 1000);
+
+  const sessionPayload = {
+    id: cleanUser.id || "",
+    employee_code: cleanUser.employee_code || "",
+    full_name: cleanUser.full_name || "",
+    role: cleanUser.role || "user",
+    status: cleanUser.status || "active",
+    createdAt: currentTime,
+    expireAt: expireAt
+  };
+
+  try {
+    localStorage.setItem("currentUser", JSON.stringify(sessionPayload));
+    return true;
+  } catch (err) {
+    console.error("saveUserSession Error: ไม่สามารถบันทึกลง localStorage ได้", err);
+    return false;
+  }
 }
 /* ==========================================================================
    📘 ฟังก์ชันเปิด-ปิด กล่องคู่มือ

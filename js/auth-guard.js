@@ -1,15 +1,28 @@
 /**
- * 🔒 PVT HR - Security Auth Guard (Full Auto-Style Enterprise Edition)
- * Features: Anti-Flicker, Safe Storage Handling, Auto CSS Injection, Smart Navigation Guard
+ * 🔒 PVT HR - Security Auth Guard (Enterprise Edition with Safety Fallback)
+ * Features: Anti-Flicker, Auto Safety Restore, Glassmorphism UI, Navigation Guard
  */
 (function () {
   const docEl = document.documentElement;
 
-  // 1. ซ่อน DOM ทันทีตั้งแต่เริ่มโหลดเพื่อป้องกันภาพวูบ (Anti-Flicker)
+  // 1. ซ่อน DOM ทันทีเพื่อป้องกันภาพวูบ (Anti-Flicker)
   docEl.style.visibility = 'hidden';
 
+  // 🛡️ Safety Fallback: รับประกันว่าหน้าจอจะถูกแสดงผลเสมอภายใน 1.5 วินาที แม้เกิด JS Error
+  const safetyTimer = setTimeout(() => {
+    if (docEl.style.visibility === 'hidden') {
+      docEl.style.visibility = 'visible';
+      console.warn("⚠️ [Auth Guard]: Safety fallback triggered - restored visibility.");
+    }
+  }, 1500);
+
+  function revealPage() {
+    clearTimeout(safetyTimer);
+    docEl.style.visibility = 'visible';
+  }
+
   /**
-   * 🎨 ฉีด CSS สไตล์กระจกเบลอ (Glassmorphism) เข้าไปใน <head> อัตโนมัติ
+   * 🎨 ฉีด CSS สไตล์กระจกเบลอ (Glassmorphism) เข้าไปใน <head>
    */
   function injectGuardStyles() {
     if (document.getElementById('pvt-guard-auto-style')) return;
@@ -17,14 +30,11 @@
     const style = document.createElement('style');
     style.id = 'pvt-guard-auto-style';
     style.innerHTML = `
-      /* 🌫️ ฉากหลังเบลอของ SweetAlert2 */
       .swal2-container {
         backdrop-filter: blur(12px) !important;
         -webkit-backdrop-filter: blur(12px) !important;
         background-color: rgba(15, 23, 42, 0.5) !important;
       }
-
-      /* 💎 กล่องป๊อปอัปสไตล์กระจกเบลอ Glassmorphism */
       .pvt-guard-popup {
         border-radius: 24px !important;
         background: rgba(255, 255, 255, 0.88) !important;
@@ -35,8 +45,6 @@
         padding: 24px !important;
         font-family: 'Sarabun', sans-serif !important;
       }
-
-      /* 🎨 ตกแต่งปุ่มตกลง */
       .pvt-guard-popup .swal2-confirm {
         border-radius: 12px !important;
         padding: 12px 24px !important;
@@ -44,8 +52,6 @@
         font-weight: 600 !important;
         box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4) !important;
       }
-
-      /* 🔒 บังคับเบลอเนื้อหาทั้งหมดด้านหลัง */
       body > *:not(.swal2-container) {
         filter: blur(16px) brightness(0.85) !important;
         pointer-events: none !important;
@@ -56,9 +62,6 @@
     document.head.appendChild(style);
   }
 
-  /**
-   * 🛠️ Helper: อ่านและตรวจสอบความถูกต้องของ Session อย่างปลอดภัย
-   */
   function getValidSession() {
     try {
       const rawData = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
@@ -72,7 +75,6 @@
         clearAllSession();
         return null;
       }
-
       return parsed;
     } catch (e) {
       console.error("🔒 [Auth Guard]: ข้อมูล Session เสียหาย ล้างค่าเพื่อความปลอดภัย", e);
@@ -81,17 +83,11 @@
     }
   }
 
-  /**
-   * 🛠️ Helper: ล้างค่า Session ทั้งหมด
-   */
   function clearAllSession() {
     localStorage.removeItem("currentUser");
     sessionStorage.removeItem("currentUser");
   }
 
-  /**
-   * 🛠️ Helper: ตรวจสอบว่าเป็นหน้า Public (ไม่ต้องล็อกอิน) หรือไม่
-   */
   function isPublicPage() {
     const path = window.location.pathname.toLowerCase();
     const publicPages = ['/index.html', '/login.html', '/pages/index.html', '/pages/login.html'];
@@ -103,10 +99,9 @@
   const isPublic = isPublicPage();
 
   if (!currentUser && !isPublic) {
-    // --- กรณีไม่มีสิทธิ์เข้าถึง ---
     const showAccessDeniedUI = () => {
-      injectGuardStyles(); // ฉีด CSS สไตล์กระจกเบลอก่อนแสดงผล
-      docEl.style.visibility = 'visible';
+      injectGuardStyles();
+      revealPage();
 
       if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -123,7 +118,6 @@
           confirmButtonColor: '#06b6d4',
           allowOutsideClick: false,
           allowEscapeKey: false,
-          allowEnterKey: true,
           customClass: { popup: 'pvt-guard-popup' }
         }).then(() => {
           window.location.href = "/pages/index.html";
@@ -139,17 +133,12 @@
     } else {
       showAccessDeniedUI();
     }
-
   } else {
-    // --- กรณีสิทธิ์ถูกต้อง หรือเป็นหน้า Public ---
-    docEl.style.visibility = 'visible';
+    revealPage();
   }
 })();
 
-/**
- * 🧭 Smart Navigation Guard
- * ดักจับเฉพาะการย้ายหน้าจริง ป้องกันการเตือนมั่วซั่วเมื่อคลิกปุ่ม UI / Anchor / Tab
- */
+// 🧭 Smart Navigation Guard
 document.addEventListener("click", function (e) {
   const link = e.target.closest("a, button[data-nav-guard]");
   if (!link) return;
@@ -157,14 +146,12 @@ document.addEventListener("click", function (e) {
   const targetUrl = link.href || link.getAttribute("data-href");
   if (!targetUrl) return;
 
-  // ❌ เงื่อนไขข้อยกเว้นที่จะไม่งัดป๊อปอัปเตือน
   const isSamePageAnchor = targetUrl.includes("#") || targetUrl.startsWith("javascript:");
   const isNewTab = link.target === "_blank";
   const isSamePath = link.pathname === window.location.pathname && link.search === window.location.search;
 
   if (isSamePageAnchor || isNewTab || isSamePath) return;
 
-  //  จะทำงานเมื่อมี Attribute `data-confirm-nav` หรือฟอร์มถูกแก้ไขค้างไว้ (.form-dirty)
   if (link.hasAttribute("data-confirm-nav") || document.body.classList.contains("form-dirty")) {
     e.preventDefault();
 
