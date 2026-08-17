@@ -59,72 +59,74 @@
 
     
       
-        <div class="leave-section">
-    <!-- หัวข้อใหญ่คมชัดตามที่พี่ต้องการ -->
-     
-    <h2>📊 สิทธิ์วันลาคงเหลือ</h2>
+            <div class="leave-section">
+        <!-- หัวข้อ + Dropdown เลือกปี -->
+        <div class="leave-header-row">
+          <h2>📊 สิทธิ์วันลาคงเหลือ</h2>
+          <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
+            <!-- JS จะสร้าง option ปีให้อัตโนมัติ -->
+          </select>
+        </div>
 
-    
-    
-    <div id="leaveBalancesContainer" class="leave-grid">
-        <span style="color: var(--muted); font-size: 14px; font-style: italic;">⏳ กำลังโหลดข้อมูลสิทธิ์วันลา...</span>
-    </div>
-       </div>
+        <div id="leaveBalancesContainer" class="leave-grid">
+          <span class="loading-text">⏳ กำลังโหลดข้อมูลสิทธิ์วันลา...</span>
+        </div>
+      </div>
       
     
 
-<section class="menu-section">
-      <h2>เมนูจัดการสำหรับพนักงาน</h2>
-      <div class="menu-grid">
-        <button class="menu-card" onclick="goToLeaveForm()">
-          <div class="menu-icon blue">📝</div>
-          <div>
-            <strong>ขออนุญาตลา</strong>
-            <p>ยื่นใบลาออนไลน์อนุมัติไว</p>
-          </div>
-        </button>
+            <section class="menu-section">
+            <h2>เมนูจัดการสำหรับพนักงาน</h2>
+            <div class="menu-grid">
+              <button class="menu-card" onclick="goToLeaveForm()">
+                <div class="menu-icon blue">📝</div>
+                <div>
+                  <strong>ขออนุญาตลา</strong>
+                  <p>ยื่นใบลาออนไลน์อนุมัติไว</p>
+                </div>
+              </button>
 
-        <button class="menu-card" onclick="goToRules()">
-          <div class="menu-icon purple">📖</div>
-          <div>
-            <strong>หลักเกณฑ์การลา</strong>
-            <p>เปิดอ่านเงื่อนไขบริษัท</p>
-          </div>
-        </button>
+              <button class="menu-card" onclick="goToRules()">
+                <div class="menu-icon purple">📖</div>
+                <div>
+                  <strong>หลักเกณฑ์การลา</strong>
+                  <p>เปิดอ่านเงื่อนไขบริษัท</p>
+                </div>
+              </button>
 
-        <button class="menu-card" onclick="goToLeaveHistory()">
-          <div class="menu-icon green">⏳</div>
-          <div>
-            <strong>ประวัติการลา</strong>
-            <p>ตรวจสอบสถานะใบลา</p>
-          </div>
-        </button>
+              <button class="menu-card" onclick="goToLeaveHistory()">
+                <div class="menu-icon green">⏳</div>
+                <div>
+                  <strong>ประวัติการลา</strong>
+                  <p>ตรวจสอบสถานะใบลา</p>
+                </div>
+              </button>
 
-        <button class="menu-card" onclick="goToProfile()">
-          <div class="menu-icon orange">👤</div>
-          <div>
-            <strong>ข้อมูลพนักงาน</strong>
-            <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
-          </div>
-        </button>
+              <button class="menu-card" onclick="goToProfile()">
+                <div class="menu-icon orange">👤</div>
+                <div>
+                  <strong>ข้อมูลพนักงาน</strong>
+                  <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
+                </div>
+              </button>
 
-        <!-- 📌 แก้ไขปุ่มวันหยุดตรงนี้ -->
-        <button class="menu-card" onclick="window.location.href='/pages/user/holidays.html'">
-          <div class="menu-icon red">📅</div>
-          <div>
-            <strong>วันหยุด</strong>
-            <p>ตรวจสอบวันหยุดประจำปี</p>
-          </div>
-        </button>
+              <!-- 📌 แก้ไขปุ่มวันหยุดตรงนี้ -->
+              <button class="menu-card" onclick="window.location.href='/pages/user/holidays.html'">
+                <div class="menu-icon red">📅</div>
+                <div>
+                  <strong>วันหยุด</strong>
+                  <p>ตรวจสอบวันหยุดประจำปี</p>
+                </div>
+              </button>
 
-        <!-- ปุ่มกดดูบัตรประจำตัวพนักงานดิจิทัล -->
-        <button class="menu-card btn-premium-card" onclick="viewMyDigitalCard()" style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-direction: row; padding: 16px;">
-          <span style="font-size: 22px;">🪪</span> 
-          <strong style="color: white; margin: 0;">ดูบัตรพนักงาน</strong>
-        </button>
-        
-      </div>
-    </section>
+              <!-- ปุ่มกดดูบัตรประจำตัวพนักงานดิจิทัล -->
+              <button class="menu-card btn-premium-card" onclick="viewMyDigitalCard()" style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-direction: row; padding: 16px;">
+                <span style="font-size: 22px;">🪪</span> 
+                <strong style="color: white; margin: 0;">ดูบัตรพนักงาน</strong>
+              </button>
+              
+            </div>
+          </section>
 
     <section class="recent-card">
       <div class="section-head">

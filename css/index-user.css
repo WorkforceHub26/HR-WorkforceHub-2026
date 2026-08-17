@@ -684,3 +684,164 @@ body {
     padding-bottom: 140px !important;
   }
 }
+
+
+
+
+
+
+/* ================= 📊 LEAVE HEADER & YEAR SELECT ================= */
+.leave-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed rgba(6, 182, 212, 0.3);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+/* ปรับ h2 ใน header row ไม่ให้ติดเส้นซ้ำ */
+.leave-header-row h2 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+
+
+
+/* สไตล์เพิ่มเติมสำหรับการ์ดโควตา (Progress Bar & Pending) */
+.quota-pending-tag {
+  font-size: 12px;
+  color: var(--warning);
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+}
+
+.quota-progress-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 99px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.quota-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.quota-info-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ================= 📊 FIX YEAR SELECT (FORCE RESET) ================= */
+select.year-select {
+  /* ล้างสไตล์ดั้งเดิมของ Windows/OS ทิ้งทั้งหมด */
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  
+  /* ลบขอบดำดั้งเดิมออก */
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.15) !important;
+  
+  /* ใช้สีขาวทึบแทนโปร่งแสงเพื่อป้องกันขอบดำซ้อน */
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%230891b2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 10px auto !important;
+
+  /* ข้อความและขนาด */
+  color: var(--primary-dark, #0891b2) !important;
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  
+  /* ล็อกความสูงไม่ให้ขอบแลบ */
+  height: 34px !important;
+  line-height: 34px !important;
+  padding: 0 28px 0 12px !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+}
+
+select.year-select:hover,
+select.year-select:focus {
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25) !important;
+}
+
+select.year-select option {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+}
+
+
+/* ================= 🛠️ OVERRIDE GLOBAL SELECT COLLISION ================= */
+.custom-select-box {
+  position: relative;
+  display: inline-block;
+  width: auto !important; /* ตัดปัญหา width: 100% จากไฟล์ CSS ที่ 2 */
+}
+
+/* ล้างสไตล์ Global ของ select จากไฟล์ที่ 2 ด้วย Selector ที่จำเพาะกว่า */
+.custom-select-box select#yearFilter {
+  all: unset !important; /* ตัดสไตล์สืบทอดดั้งเดิมทั้งหมด */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+
+  /* กำหนดสไตล์ใหม่ทั้งหมด */
+  background-color: #ffffff !important;
+  background-image: none !important; /* ลบลูกศร SVG สีเทาจากไฟล์ที่ 2 ออก */
+  color: var(--primary-dark, #0891b2) !important;
+  font-family: inherit !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  
+  padding: 0 32px 0 14px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  border: 1px solid rgba(6, 182, 212, 0.4) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.12) !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.custom-select-box select#yearFilter:hover,
+.custom-select-box select#yearFilter:focus {
+  border-color: var(--primary, #06b6d4) !important;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25) !important;
+}
+
+/* จัดวางตำแหน่งไอคอนลูกศร Custom */
+.custom-select-box .custom-arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+/* สีของรายการตัวเลือกภายใน Dropdown */
+.custom-select-box select#yearFilter option {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  font-weight: 500 !important;
+}

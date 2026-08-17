@@ -891,3 +891,78 @@ function checkUserNotifications() {
     });
   }
 }
+
+let currentSelectedYear = new Date().getFullYear();
+
+// Initialize: สร้าง ตัวเลือกปี (ปีนี้ + ปีหน้า) และโหลดข้อมูล
+function initQuotaSystem() {
+  const yearSelect = document.getElementById('yearFilter');
+  const now = new Date().getFullYear();
+  
+  yearSelect.innerHTML = `
+    <option value="${now}">ปี ${now + 543} (ปัจจุบัน)</option>
+    <option value="${now + 1}">ปี ${now + 1 + 543} (ล่วงหน้า)</option>
+  `;
+  
+  loadQuotaData(currentSelectedYear);
+}
+
+async function handleYearChange(year) {
+  currentSelectedYear = parseInt(year);
+  await loadQuotaData(currentSelectedYear);
+}
+
+async function loadQuotaData(targetYear) {
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+
+  // คิวรีโควตาแยกตามปีที่เลือก
+  const { data: quotas, error } = await supabase
+    .from('leave_balances')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('year', targetYear);
+
+  if (error) {
+    console.error('Error fetching quotas:', error);
+    return;
+  }
+
+  renderQuotaCards(quotas || []);
+}
+
+function renderQuotaCards(quotas) {
+  const container = document.getElementById('leaveBalancesContainer');
+  
+  if (!quotas || quotas.length === 0) {
+    container.innerHTML = `<span class="empty-state">ไม่พบข้อมูลสิทธิ์วันลาสำหรับปีนี้</span>`;
+    return;
+  }
+
+  container.innerHTML = quotas.map(item => {
+    const total = item.total_days || 0;
+    const used = item.used_days || 0;
+    const pending = item.pending_days || 0;
+    const remaining = total - used;
+    const usedPercent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+
+    return `
+      <div class="leave-quota-card vacation">
+        <span class="leave-quota-name">${item.leave_type_name}</span>
+        <div class="leave-quota-days">
+          ${remaining} <small>/ ${total} วัน</small>
+        </div>
+
+        ${pending > 0 ? `<span class="quota-pending-tag">⏳ รออนุมัติ ${pending} วัน</span>` : ''}
+
+        <!-- Progress Bar -->
+        <div class="quota-progress-bg">
+          <div class="quota-progress-fill" style="width: ${usedPercent}%"></div>
+        </div>
+        <div class="quota-info-footer">
+          <span>ใช้ไป ${used} วัน</span>
+          <span>${Math.round(usedPercent)}%</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}

@@ -1107,10 +1107,10 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
               <label style="font-size:12px; font-weight:600; color:#64748b;">รหัสพนักงาน *</label>
               <input id="inline-edit-code" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.employee_code || '')}">
             </div>
-            <div>
+              <div>
               <label style="font-size:12px; font-weight:600; color:#64748b;">คำนำหน้า</label>
               <select id="inline-edit-title" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
-                <option value="" ${!emp.title ? 'selected' : ''}>เลือกคำนำหน้า...</option>
+                <option value="" ${!emp.title ? 'selected' : ''}>-- ไม่ระบุ --</option>
                 <option value="นาย" ${emp.title === 'นาย' ? 'selected' : ''}>นาย</option>
                 <option value="นาง" ${emp.title === 'นาง' ? 'selected' : ''}>นาง</option>
                 <option value="นางสาว" ${emp.title === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
