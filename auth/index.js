@@ -1,6 +1,14 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - auth/index.js (เวอร์ชันปรับปรุงระบบเตือนความเสี่ยงรหัสผ่าน)
+   🔒 PVT HR LEAVE - auth/index.js (เวอร์ชันปรับปรุงแก้ไข Supabase SDK Client)
    ========================================================================== */
+
+// 🟢 Helper สำหรับดึง Supabase Client จาก SDK v3.0 Ultra
+function getSbClient() {
+  return window.pvtSupabase?.client 
+      || window.PVTSDK?.client 
+      || window.supabaseClient 
+      || window.supabase;
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   const loginForm = document.getElementById("loginForm");
@@ -15,12 +23,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const autoToken = urlParams.get("token");
 
   if (autoEmpCode && autoToken) {
-    // ส่งข้อมูลเข้าระบบตรวจสอบเพื่อทำการ Auto Login ทันที
     executeSecureQrLogin(`${autoEmpCode}|${autoToken}`);
     return;
   }
-
-
 
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -38,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const sb = window.pvtSupabase?.getClient();
+    const sb = getSbClient();
     if (!sb) {
       Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้' });
       return;
@@ -93,17 +98,15 @@ document.addEventListener("DOMContentLoaded", async () => {
           showCancelButton: true,
           confirmButtonText: 'ยอมรับความเสี่ยง & เข้าใช้งาน',
           cancelButtonText: 'เปลี่ยนรหัสผ่านทันที',
-          confirmButtonColor: '#3b82f6', // สีฟ้า
-          cancelButtonColor: '#10b981',  // สีเขียว
+          confirmButtonColor: '#3b82f6',
+          cancelButtonColor: '#10b981',
           allowOutsideClick: false
         });
 
-        // กรณีเลือก "เปลี่ยนรหัสผ่านทันที"
         if (riskChoice.dismiss === Swal.DismissReason.cancel) {
           if (typeof openChangePasswordModal === "function") {
             openChangePasswordModal(user);
           } else {
-            // Prompt ให้กรอกรหัสผ่านใหม่ได้ทันที
             const { value: newPassword } = await Swal.fire({
               title: 'ตั้งรหัสผ่านใหม่',
               input: 'password',
@@ -135,23 +138,17 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
             }
           }
-          return; // หยุดกระบวนการล็อกอินชั่วคราว เพื่อให้เข้าด้วยรหัสผ่านใหม่
+          return;
         }
       }
-      // =========================================================================
 
-                // 3. บันทึก Session
-          localStorage.setItem("currentUser", JSON.stringify({
-            id: user.id,
-            employee_code: user.employee_code,
-            full_name: user.full_name,
-            role: user.role
-          }));
+      // 3. บันทึก Session พร้อมกำหนดเวลาหมดอายุ
+      saveUserSession(user);
+
       if (window.PVTLogger) {
         window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ ${isUsingDefaultPassword ? '(ยอมรับความเสี่ยงรหัสผ่านเริ่มต้น)' : ''}`);
       }
 
-      // 🚀 เส้นทางเปลี่ยนหน้าตาม Role
       redirectToDashboard(user.role);
 
     } catch (err) {
@@ -166,7 +163,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-// ฟังก์ชันสำหรับย้ายหน้าตาม Role
 function redirectToDashboard(role) {
   if (role === "hr" || role === "admin") {
     window.location.href = "/pages/hr/home.html";
@@ -175,12 +171,6 @@ function redirectToDashboard(role) {
   }
 }
 
-/**
- * =========================================================================
- * 2. ฟังก์ชันตรวจสอบความถูกต้องของ Session และล้างข้อมูลขยะหมดอายุอัตโนมัติ
- * =========================================================================
- * @returns {boolean} returns true หาก Session ยังใช้งานได้ปกติ, false หากหมดอายุหรือไม่มี Session
- */
 function isSessionValid() {
   const rawSession = localStorage.getItem("currentUser");
 
@@ -191,14 +181,12 @@ function isSessionValid() {
   try {
     const sessionData = JSON.parse(rawSession);
 
-    // 1. ตรวจสอบโครงสร้างข้อมูลที่จำเป็น
     if (!sessionData || typeof sessionData !== "object" || !sessionData.id || !sessionData.role) {
       console.warn("isSessionValid Warning: โครงสร้าง Session ไม่ถูกต้อง ทำการล้างข้อมูล");
       localStorage.removeItem("currentUser");
       return false;
     }
 
-    // 2. ตรวจสอบเวลาหมดอายุ (expireAt)
     const currentTime = new Date().getTime();
     if (sessionData.expireAt && currentTime > sessionData.expireAt) {
       console.warn("isSessionValid Warning: Session หมดอายุแล้ว ทำการล้างข้อมูล");
@@ -214,9 +202,6 @@ function isSessionValid() {
   }
 }
 
-/* ==========================================================================
-   👁️ ฟังก์ชันเปิด-ปิด ดวงตาดูรหัสผ่าน
-   ========================================================================== */
 window.togglePassword = function () {
   const input = document.getElementById("password");
   const icon = document.querySelector(".toggle-password");
@@ -228,16 +213,12 @@ window.togglePassword = function () {
   }
 };
 
-/* ==========================================================================
-   📸 ระบบสแกน QR Code ล็อกอิน
-   ========================================================================== */
 function loginByQr() {
   let html5QrCode = null;
 
   Swal.fire({
     title: '📱 สแกน QR Code เข้าสู่ระบบ',
     html: `
-      <!-- เมนูสลับโหมด -->
       <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 15px;">
         <button id="btn-tab-cam" type="button" class="swal2-styled" style="background:#2563eb; margin:0; padding:8px 16px; border-radius:8px; font-size:14px; transition:0.2s;">
           📷 เปิดกล้อง
@@ -247,12 +228,10 @@ function loginByQr() {
         </button>
       </div>
 
-      <!-- โหมดที่ 1: หน้าจอแสดงกล้อง -->
       <div id="qr-cam-box" style="width: 100%; max-width: 320px; height: 260px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #111827; position: relative;">
         <div id="qr-reader" style="width:100%; height:100%;"></div>
       </div>
 
-      <!-- โหมดที่ 2: หน้าต่างอัปโหลดรูปภาพ -->
       <div id="qr-file-box" style="display:none; width: 100%; max-width: 320px; margin: 0 auto; padding: 25px 15px; border: 2px dashed #9ca3af; border-radius: 12px; background: #f9fafb; text-align: center;">
         <div style="font-size: 32px; margin-bottom: 8px;">📁</div>
         <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 13px;">เลือกรูปภาพ QR Code จากคลังภาพในเครื่องของคุณ</p>
@@ -352,7 +331,7 @@ async function executeSecureQrLogin(scannedData) {
     allowOutsideClick: false
   });
 
-  const sb = window.pvtSupabase?.getClient();
+  const sb = getSbClient();
   if (!sb) {
     Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
     return;
@@ -392,12 +371,7 @@ async function executeSecureQrLogin(scannedData) {
       throw new Error(`บัญชีของคุณถูกระงับสิทธิ์ (สถานะในระบบ: ${user.status})`);
     }
 
-    localStorage.setItem("currentUser", JSON.stringify({
-      id: user.id,
-      employee_code: user.employee_code,
-      full_name: user.full_name,
-      role: user.role
-    }));
+    saveUserSession(user);
 
     Swal.fire({
       icon: 'success',
@@ -421,22 +395,13 @@ async function executeSecureQrLogin(scannedData) {
     });
   }
 }
-// แก้ไขส่วนที่เซ็ตค่าลง localStorage หลังจากตรวจสอบรหัสผ่านผ่านแล้ว
-/**
- * =========================================================================
- * 1. ฟังก์ชันจัดการ Session ผู้ใช้งานพร้อมระบบกำหนดเวลาหมดอายุ (Session Expiry)
- * =========================================================================
- * @param {Object} userData - ข้อมูลพนักงานที่ผ่านการยืนยันตัวตนแล้ว
- * @param {number} expireInHours - อายุของ Session (ชั่วโมง) ค่าเริ่มต้นคือ 8 ชั่วโมง
- * @returns {boolean} สถานะการบันทึกข้อมูล
- */
+
 function saveUserSession(userData, expireInHours = 8) {
   if (!userData || typeof userData !== "object") {
     console.error("saveUserSession Error: ข้อมูลผู้ใช้งานไม่ถูกต้อง");
     return false;
   }
 
-  // 🔒 Security Clean-up: ลบฟิลด์รหัสผ่านออกอย่างเด็ดขาดเพื่อป้องกันข้อมูลรั่วไหล
   const cleanUser = { ...userData };
   delete cleanUser.password;
 
@@ -461,9 +426,7 @@ function saveUserSession(userData, expireInHours = 8) {
     return false;
   }
 }
-/* ==========================================================================
-   📘 ฟังก์ชันเปิด-ปิด กล่องคู่มือ
-   ========================================================================== */
+
 window.toggleInstructions = function () {
   const content = document.getElementById("instructionsContent");
   const arrow = document.getElementById("instructionArrow");
@@ -474,9 +437,6 @@ window.toggleInstructions = function () {
   }
 };
 
-/**
- * ฟังก์ชันเปิด Modal เปลี่ยนรหัสผ่านผ่าน SweetAlert2 และซิงค์ข้อมูลกับ Supabase Auth
- */
 async function openChangePasswordModal(user) {
   const { value: formValues } = await Swal.fire({
     title: 'เปลี่ยนรหัสผ่านเพื่อความปลอดภัย',
@@ -521,10 +481,9 @@ async function openChangePasswordModal(user) {
   if (formValues) {
     try {
       Swal.showLoading();
-      const sb = window.pvtSupabase?.getClient() || window.supabaseClient || window.supabase;
+      const sb = getSbClient();
       if (!sb) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
 
-      // อัปเดตรหัสผ่านลงตาราง employees โดยตรง
       const { error } = await sb
         .from('employees')
         .update({ password: formValues.newPassword.trim() })

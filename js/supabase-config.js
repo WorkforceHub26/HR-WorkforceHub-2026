@@ -572,39 +572,44 @@ async getProfile(forceRefresh = false) {
     }
   }
 
-  // ==========================================================================
-  // 10. SDK INITIALIZER & BOOTSTRAP
-  // ==========================================================================
-  class PVTHRSdk {
-    constructor() {
-      this.client = null;
-      this.cache = new CacheEngine();
-      this.network = new NetworkEngine();
-      this.utils = new UtilsEngine();
-      this.offline = new OfflineEngine();
+// ==========================================================================
+// 10. SDK INITIALIZER & BOOTSTRAP
+// ==========================================================================
+class PVTHRSdk {
+  constructor() {
+    this.client = null;
+    this.cache = new CacheEngine();
+    this.network = new NetworkEngine();
+    this.utils = new UtilsEngine();
+    this.offline = new OfflineEngine();
 
-      this._initClient();
+    this._initClient();
 
-      this.auth = new AuthEngine(this.client, this.cache);
-      this.hr = new HREngine(this.client, this.cache, this.network);
-      this.leave = new LeaveEngine(this.client, this.cache);
-      this.storage = new StorageEngine(this.client);
-      this.realtime = new RealtimeEngine(this.client);
+    this.auth = new AuthEngine(this.client, this.cache);
+    this.hr = new HREngine(this.client, this.cache, this.network);
+    this.leave = new LeaveEngine(this.client, this.cache);
+    this.storage = new StorageEngine(this.client);
+    this.realtime = new RealtimeEngine(this.client);
+  }
+
+  // ✅ เพิ่มฟังก์ชันนี้เพื่อดึง Supabase Client โดยตรง
+  getClient() {
+    return this.client;
+  }
+
+  _initClient() {
+    if (window.supabaseClient) {
+      this.client = window.supabaseClient;
+      return;
     }
-
-    _initClient() {
-      if (window.supabaseClient) {
-        this.client = window.supabaseClient;
-        return;
-      }
-      if (global.supabase?.createClient) {
-        this.client = global.supabase.createClient(CONFIG.URL, CONFIG.ANON_KEY);
-        window.supabaseClient = this.client;
-      } else {
-        console.error("[SDK Error] Supabase JS Client is not loaded on window.");
-      }
+    if (global.supabase?.createClient) {
+      this.client = global.supabase.createClient(CONFIG.URL, CONFIG.ANON_KEY);
+      window.supabaseClient = this.client;
+    } else {
+      console.error("[SDK Error] Supabase JS Client is not loaded on window.");
     }
   }
+}
 
   // Export Global Instance
   global.PVTSDK = new PVTHRSdk();

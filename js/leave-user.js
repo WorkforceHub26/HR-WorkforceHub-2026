@@ -1,11 +1,13 @@
 /**
- * leave-user.js — ใบลาออนไลน์ PVT HR (เวอร์ชันแก้ไขระบบเช็กวันหยุดและจัดโครงสร้างสมบูรณ์)
+ * leave-user.js — ใบลาออนไลน์ PVT HR (เวอร์ชันรองรับ Auto-Split ลาข้ามรอบปี 1 ธ.ค.)
  * ✅ ป้องกันการเลือก/ยื่นลาในวันอาทิตย์และวันหยุดบริษัท
  * ✅ หักวันหยุดประจำปีและวันเสาร์-อาทิตย์ออกจากจำนวนวันลาอัตโนมัติ
+ * ✅ ระบบตรวจจับและแสดง Real-time UI Preview เมื่อเลือกวันลาข้ามรอบปี (30 พ.ย. / 1 ธ.ค.)
+ * ✅ ระบบ Auto-Split แยกคำขอเป็น 2 ฉบับอัตโนมัติ ผูกด้วย split_group_id
  * ✅ คงชื่อตาราง Supabase เดิมครบถ้วน 100% (leave_types, employees, leave_balances, holidays, notifications, leave_requests)
  */
 
-console.log("📢 [SYSTEM] เปิดใช้งานระบบติดตามข้อมูลใบลาเวอร์ชันเสถียรแล้ว...");
+console.log("📢 [SYSTEM] เปิดใช้งานระบบติดตามข้อมูลใบลาเวอร์ชันเสถียร (รองรับ Auto-Split ข้ามรอบปี) แล้ว...");
 
 // ==========================================
 // 📦 GLOBAL VARIABLES
@@ -20,10 +22,34 @@ window.employeeLeaveBalances = [];
 window.systemLeaveTypes = [];
 
 // ==========================================
+// 🛠️ HELPER FUNCTIONS (ระบบคำนวณวันลาและตัดรอบปี)
+// ==========================================
+
+// คำนวณวันทำงานจริงในช่วงวันที่กำหนด (ไม่นับวันอาทิตย์และวันหยุดบริษัท)
+function countWorkDaysInRange(startDate, endDate) {
+  let totalWorkDays = 0;
+  let currentDate = new Date(startDate);
+  const end = new Date(endDate);
+
+  while (currentDate <= end) {
+    const dayOfWeek = currentDate.getDay(); // 0 = วันอาทิตย์
+    const dateFormatted = currentDate.toISOString().split('T')[0];
+
+    const isSunday = (dayOfWeek === 0);
+    const isCompanyHoliday = cachedHolidays.includes(dateFormatted);
+
+    if (!isSunday && !isCompanyHoliday) {
+      totalWorkDays++;
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  return totalWorkDays;
+}
+
+// ==========================================
 // 🗓️ 1. ระบบดึงและจัดการวันหยุดบริษัท (holidays)
 // ==========================================
 
-// ดึงรายการวันหยุดทั้งหมดของปีปัจจุบันจากตาราง holidays
 async function loadCompanyHolidays() {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return [];
@@ -33,8 +59,8 @@ async function loadCompanyHolidays() {
     const { data: holidays, error } = await sb
       .from('holidays')
       .select('holiday_date')
-      .gte('holiday_date', `${currentYear}-01-01`)
-      .lte('holiday_date', `${currentYear}-12-31`);
+      .gte('holiday_date', `${currentYear - 1}-01-01`)
+      .lte('holiday_date', `${currentYear + 1}-12-31`);
 
     if (error) {
       console.warn('⚠️ ไม่สามารถดึงวันหยุดบริษัทได้:', error.message);
@@ -42,7 +68,7 @@ async function loadCompanyHolidays() {
     }
 
     cachedHolidays = (holidays || []).map(h => h.holiday_date);
-    console.log(`✅ [HOLIDAYS SUCCESS] โหลดวันหยุดบริษัทสำเร็จ ${cachedHolidays.length} รายการ:`, cachedHolidays);
+    console.log(`✅ [HOLIDAYS SUCCESS] โหลดวันหยุดบริษัทสำเร็จ ${cachedHolidays.length} รายการ`);
     return cachedHolidays;
   } catch (err) {
     console.error('❌ ดึงวันหยุดล้มเหลว:', err);
@@ -50,13 +76,11 @@ async function loadCompanyHolidays() {
   }
 }
 
-// ฟังก์ชันตรวจสอบความถูกต้องของวันที่เลือกลา
 async function validateLeaveDate(selectedDateStr) {
   if (!selectedDateStr) return true;
 
   const selectedDate = new Date(selectedDateStr);
   
-  // 1. เช็กว่าเป็นวันอาทิตย์หรือไม่ (0 = วันอาทิตย์)
   if (selectedDate.getDay() === 0) {
     await Swal.fire({
       icon: 'warning',
@@ -67,7 +91,6 @@ async function validateLeaveDate(selectedDateStr) {
     return false;
   }
 
-  // 2. เช็กว่าตรงกับวันหยุดบริษัทหรือไม่
   if (cachedHolidays.length === 0) {
     await loadCompanyHolidays();
   }
@@ -85,17 +108,15 @@ async function validateLeaveDate(selectedDateStr) {
   return true;
 }
 
-// ฟังก์ชันจัดการ Event เมื่อผู้ใช้เปลี่ยนวันที่ในช่อง Input
 async function handleDateChange(inputElement) {
   const selectedDateStr = inputElement.value;
   if (!selectedDateStr) return;
 
   const isValid = await validateLeaveDate(selectedDateStr);
   if (!isValid) {
-    inputElement.value = ""; // ล้างค่าออกหากเลือกวันอาทิตย์หรือวันหยุด
+    inputElement.value = ""; 
   }
   
-  // คำนวณวันลาใหม่เสมอ
   calculateLeaveDays(inputElement);
 }
 
@@ -104,30 +125,19 @@ async function handleDateChange(inputElement) {
 // ==========================================
 async function loadLeaveTypes() {
   const sb = window.pvtSupabase?.getClient();
-  if (!sb) {
-    console.error("❌ [CONFIG ERROR] ไม่พบ Supabase Client");
-    return;
-  }
+  if (!sb) return;
 
-  console.log("⏳ [FETCHING] กำลังดึงประเภทการลาจากตาราง leave_types...");
   try {
-    const { data, error, status } = await sb
+    const { data, error } = await sb
       .from("leave_types")
       .select("id, leave_name")
       .eq("status", "active")
       .order("created_at", { ascending: true });
 
     if (error) throw error;
-
-    if (!data || data.length === 0) {
-      console.warn("⚠️ [WARN] ไม่พบข้อมูลประเภทการลา ใช้ค่าสำรอง");
-      leaveTypes = [];
-    } else {
-      leaveTypes = data;
-      console.log(`✅ [LEAVE TYPES SUCCESS] พบข้อมูลทั้งหมด ${leaveTypes.length} รายการ:`, leaveTypes);
-    }
+    leaveTypes = data || [];
   } catch (err) {
-    console.error("❌ [CRITICAL] ระบบล้มเหลวในการดึงข้อมูลประเภทการลา:", err.message);
+    console.error("❌ [CRITICAL] ดึงประเภทการลาล้มเหลว:", err.message);
   }
 }
 
@@ -135,8 +145,6 @@ async function loadLeaveTypes() {
 // 👤 3. ฟังก์ชันดึงข้อมูลพนักงานและยอดวันลา (employees, leave_balances)
 // ==========================================
 async function fetchCurrentUserData() {
-  console.log("🌊 [SYSTEM] กำลังดึงข้อมูลพนักงานและยอดวันลา...");
-  
   try {
     const supabase = window.pvtSupabase?.getClient();
     if (!supabase) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้");
@@ -153,7 +161,6 @@ async function fetchCurrentUserData() {
       return; 
     }
 
-    // 3.1 ดึงข้อมูล Profile พนักงานจากตาราง employees
     const { data: empData, error: empError } = await supabase
       .from('employees')
       .select(`*, departments ( department_name ), positions ( position_name )`)
@@ -162,15 +169,13 @@ async function fetchCurrentUserData() {
 
     if (empError) throw empError;
 
-    // 3.2 ดึงยอดวันลาคงเหลือปีปัจจุบันจากตาราง leave_balances
     const currentYear = new Date().getFullYear();
     const { data: leaveData } = await supabase
       .from('leave_balances')
-      .select('leave_type_id, remaining_days') 
+      .select('leave_type_id, remaining_days, year') 
       .eq('employee_id', currentUserId)
-      .eq('year', currentYear);
+      .gte('year', currentYear);
 
-    // 3.3 ดึงชื่อประเภทการลาทั้งหมดจากตาราง leave_types
     const { data: typeData } = await supabase
       .from('leave_types')
       .select('id, leave_name');
@@ -195,7 +200,6 @@ async function fetchCurrentUserData() {
     currentProfile = realUser;
     localStorage.setItem("currentUser", JSON.stringify(realUser));
 
-    // ตกแต่ง Input บนหน้าเว็บ
     const setTealInputStyle = (elementId, value) => {
       const el = document.getElementById(elementId);
       if (el) {
@@ -221,8 +225,6 @@ async function fetchCurrentUserData() {
 
   } catch (error) {
     console.error("❌ ERROR ดึงข้อมูล:", error);
-    const container = document.getElementById("leaveBalancesContainer");
-    if(container) container.innerHTML = `<p style="color:red; font-size:14px; margin:0;">เกิดข้อผิดพลาดในการโหลดข้อมูลวันลา</p>`;
   }
 }
 
@@ -237,30 +239,20 @@ window.renderAllLeaveBalances = function() {
 
   const leaveBalances = window.employeeLeaveBalances || [];
   const systemLeaveTypes = window.systemLeaveTypes || [];
+  const currentYear = new Date().getFullYear();
 
   if (leaveBalances.length === 0 && systemLeaveTypes.length === 0) {
     container.innerHTML = "<p style='color:#ef4444; font-size:14px; margin: 0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
     return;
   }
 
-  let displayItems = [];
-
-  if (systemLeaveTypes.length > 0) {
-    displayItems = systemLeaveTypes.map(type => {
-      const matchedBal = leaveBalances.find(b => String(b.leave_type_id) === String(type.id));
-      return {
-        typeName: type.leave_name || "สิทธิ์การลา",
-        remaining: matchedBal ? (parseFloat(matchedBal.remaining_days) || 0) : 0
-      };
-    });
-  } else {
-    displayItems = leaveBalances.map(balance => {
-      return {
-        typeName: balance.leave_types?.leave_name || "สิทธิ์การลา",
-        remaining: parseFloat(balance.remaining_days) || 0
-      };
-    });
-  }
+  let displayItems = systemLeaveTypes.map(type => {
+    const matchedBal = leaveBalances.find(b => String(b.leave_type_id) === String(type.id) && b.year === currentYear);
+    return {
+      typeName: type.leave_name || "สิทธิ์การลา",
+      remaining: matchedBal ? (parseFloat(matchedBal.remaining_days) || 0) : 0
+    };
+  });
 
   displayItems.forEach(item => {
     const typeName = item.typeName;
@@ -285,13 +277,10 @@ window.renderAllLeaveBalances = function() {
 // 🎯 5. อัปเดตยอดคงเหลือเมื่อเลือกประเภทวันลา
 // ==========================================
 window.updateLeaveBalanceDisplay = function(selectedTypeId) {
-  console.log("🔍 [DEBUG] เลือกประเภทการลา ID:", selectedTypeId);
-
   const balances = window.employeeLeaveBalances || [];
-  const matchedBalance = balances.find(b => String(b.leave_type_id) === String(selectedTypeId));
+  const currentYear = new Date().getFullYear();
+  const matchedBalance = balances.find(b => String(b.leave_type_id) === String(selectedTypeId) && b.year === currentYear);
   const remainingDays = matchedBalance ? parseFloat(matchedBalance.remaining_days) : 0;
-
-  console.log(`ℹ️ [LEAVE BALANCE] สิทธิ์คงเหลือ: ${remainingDays} วัน`);
 
   const balanceInput = document.getElementById("leaveBalance");
   if (balanceInput) {
@@ -385,6 +374,8 @@ function addLeaveRow() {
       </div>
     </div>
 
+    <div class="split-preview-container" style="display:none; margin-top:15px;"></div>
+
     <div class="row-divider">หมวดหมู่ที่ 4: สถานะผลการพิจารณาและอนุมัติ</div>
     <div class="grid-row-3">
       <div class="input-group">
@@ -408,7 +399,6 @@ function addLeaveRow() {
 
   container.appendChild(boxItem);
 
-  // ดึงประเภทการลาใส่ Dropdown
   const selectEl = boxItem.querySelector('select[name="leave_type_id"]');
   if (selectEl) {
     if (leaveTypes && leaveTypes.length > 0) {
@@ -430,7 +420,7 @@ function addLeaveRow() {
 }
 
 // ==========================================================================
-// 🧮 7. ฟังก์ชันคำนวณจำนวนวันลาอัตโนมัติ (นับวันเสาร์เป็นวันทำงาน)
+// 🧮 7. ฟังก์ชันคำนวณจำนวนวันลา + ระบบ UI Preview แยกข้ามรอบปี (30 พ.ย. / 1 ธ.ค.)
 // ==========================================================================
 function calculateLeaveDays(element) {
   const boxItem = element.closest('.leave-box-item');
@@ -441,9 +431,11 @@ function calculateLeaveDays(element) {
   const hrMorning = parseFloat(boxItem.querySelector('input[name="hours_morning"]').value) || 0;
   const hrAfternoon = parseFloat(boxItem.querySelector('input[name="hours_afternoon"]').value) || 0;
   const resultInput = boxItem.querySelector('input[name="leave_days"]');
+  const previewContainer = boxItem.querySelector('.split-preview-container');
 
   if (!startDateInput || !endDateInput) {
     resultInput.value = 0;
+    if (previewContainer) previewContainer.style.display = 'none';
     return;
   }
 
@@ -452,39 +444,60 @@ function calculateLeaveDays(element) {
   
   if (end < start) {
     resultInput.value = 0;
+    if (previewContainer) previewContainer.style.display = 'none';
     return;
   }
 
-  // 📍 นับเฉพาะวันทำงาน (หักเฉพาะวันอาทิตย์ และวันหยุดบริษัท | นับวันเสาร์เป็นวันทำงานปกติ)
-  let totalWorkDays = 0;
-  let currentDate = new Date(start);
+  const startYear = start.getFullYear();
+  const cutoffDateStr = `${startYear}-11-30`;
+  const cutoffDate = new Date(cutoffDateStr);
 
-  while (currentDate <= end) {
-    const dayOfWeek = currentDate.getDay(); // 0 = วันอาทิตย์, 6 = วันเสาร์
-    const dateFormatted = currentDate.toISOString().split('T')[0];
+  // 🔄 ตรวจสอบการยื่นลาข้ามรอบปี (30 พฤศจิกายน และ 1 ธันวาคม)
+  const isCrossCycle = (start <= cutoffDate && end > cutoffDate);
 
-    const isSunday = (dayOfWeek === 0);
-    const isCompanyHoliday = cachedHolidays.includes(dateFormatted);
+  if (isCrossCycle) {
+    const chunk1EndStr = `${startYear}-11-30`;
+    const chunk2StartStr = `${startYear}-12-01`;
 
-    // ✅ เช็กเฉพาะวันอาทิตย์และวันหยุดประจำปี (วันเสาร์จะถูกนับเป็น 1 วันทำงานปกติ)
-    if (!isSunday && !isCompanyHoliday) {
-      totalWorkDays++;
+    let days1 = countWorkDaysInRange(startDateInput, chunk1EndStr);
+    let days2 = countWorkDaysInRange(chunk2StartStr, endDateInput);
+
+    if (hrMorning > 0) days1 = Math.max(0, days1 - 1) + (hrMorning / 8);
+    if (hrAfternoon > 0) days2 = Math.max(0, days2 - 1) + (hrAfternoon / 8);
+
+    const totalDays = days1 + days2;
+    resultInput.value = totalDays % 1 === 0 ? totalDays : totalDays.toFixed(1);
+
+    if (previewContainer) {
+      previewContainer.style.display = 'block';
+      previewContainer.innerHTML = `
+        <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:12px; color:#166534; font-size:13.5px; line-height:1.6;">
+          <div style="font-weight:700; font-size:14px; margin-bottom:4px; color:#15803d; display:flex; align-items:center; gap:6px;">
+            <span>ℹ️</span> ระบบตรวจพบการลางานข้ามรอบปี (ตัดรอบ 1 ธ.ค.)
+          </div>
+          <div>รายการนี้จะถูกแยกบันทึกเป็น <b>2 คำขอ</b> ให้อัตโนมัติ:</div>
+          <ul style="margin:6px 0 0 18px; padding:0;">
+            <li><b>ใบที่ 1 (รอบปี ${startYear}):</b> ${startDateInput} ถึง ${chunk1EndStr} (ใช้ <b>${days1}</b> วัน)</li>
+            <li><b>ใบที่ 2 (รอบปี ${startYear + 1}):</b> ${chunk2StartStr} ถึง ${endDateInput} (ใช้ <b>${days2}</b> วัน)</li>
+          </ul>
+        </div>
+      `;
+    }
+  } else {
+    if (previewContainer) previewContainer.style.display = 'none';
+
+    let totalWorkDays = countWorkDaysInRange(startDateInput, endDateInput);
+    let totalDays = totalWorkDays;
+
+    const extraDays = (hrMorning + hrAfternoon) / 8;
+    if (startDateInput === endDateInput && (hrMorning > 0 || hrAfternoon > 0)) {
+      totalDays = extraDays;
+    } else if (hrMorning > 0 || hrAfternoon > 0) {
+      totalDays = (totalDays > 0 ? totalDays - 1 : 0) + extraDays;
     }
 
-    currentDate.setDate(currentDate.getDate() + 1);
+    resultInput.value = totalDays % 1 === 0 ? totalDays : totalDays.toFixed(1);
   }
-
-  let totalDays = totalWorkDays;
-
-  // จัดการเศษชั่วโมง
-  const extraDays = (hrMorning + hrAfternoon) / 8;
-  if (startDateInput === endDateInput && (hrMorning > 0 || hrAfternoon > 0)) {
-    totalDays = extraDays;
-  } else if (hrMorning > 0 || hrAfternoon > 0) {
-    totalDays = (totalDays > 0 ? totalDays - 1 : 0) + extraDays;
-  }
-
-  resultInput.value = totalDays % 1 === 0 ? totalDays : totalDays.toFixed(1);
 }
 
 // ==========================================
@@ -529,10 +542,6 @@ async function sendNotification(title, message, type = 'leave', targetUrl = '/pa
 }
 
 // ==========================================
-// 💾 10. ฟังก์ชันบันทึกคำขอใบลา (leave_requests)
-// ==========================================
-
-// ==========================================
 // 📤 ฟังก์ชันอัปโหลดไฟล์หลักฐานขึ้น Supabase Storage
 // ==========================================
 async function uploadAttachment(file, employeeId) {
@@ -541,21 +550,15 @@ async function uploadAttachment(file, employeeId) {
   if (!sb) return null;
 
   try {
-    // ตั้งชื่อไฟล์ป้องกันการซ้ำ: employeeId/timestamp_random.ext
     const fileExt = file.name.split('.').pop();
     const fileName = `${employeeId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
 
-    // อัปโหลดเข้า Bucket 'leave-attachments'
     const { data, error } = await sb.storage
       .from('leave-attachments')
       .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
-    if (error) {
-      console.error("❌ อัปโหลดรูปภาพหลักฐานไม่สำเร็จ:", error.message);
-      throw error;
-    }
+    if (error) throw error;
 
-    // ดึง Public URL ของรูปมาใช้งาน
     const { data: publicUrlData } = sb.storage
       .from('leave-attachments')
       .getPublicUrl(fileName);
@@ -568,7 +571,7 @@ async function uploadAttachment(file, employeeId) {
 }
 
 // ==========================================
-// 💾 ฟังก์ชันบันทึกคำขอลา (saveLeave)
+// 💾 10. ฟังก์ชันบันทึกคำขอใบลา (saveLeave + Auto-Split)
 // ==========================================
 async function saveLeave() {
   const sb = window.pvtSupabase?.getClient();
@@ -610,37 +613,21 @@ async function saveLeave() {
     return;
   }
 
-  const rawRole = currentProfile.role || 
-                  currentProfile.position_name || 
-                  localStorage.getItem("userRole") || 
-                  "";
-  
+  const rawRole = currentProfile.role || currentProfile.position_name || localStorage.getItem("userRole") || "";
   const userRole = String(rawRole).toLowerCase().trim();
 
   let defaultManagerStatus = "pending";
   let defaultDirectorStatus = "pending";
 
-  if (
-    userRole.includes("leader") || 
-    userRole.includes("supervisor") || 
-    userRole.includes("head") || 
-    userRole.includes("หัวหน้า")
-  ) {
+  if (userRole.includes("leader") || userRole.includes("supervisor") || userRole.includes("head") || userRole.includes("หัวหน้า")) {
     defaultManagerStatus = "approved";
-  } else if (
-    userRole.includes("manager") || 
-    userRole.includes("director") || 
-    userRole.includes("ผู้จัดการ") || 
-    userRole.includes("บริหาร") ||
-    userRole.includes("admin")
-  ) {
+  } else if (userRole.includes("manager") || userRole.includes("director") || userRole.includes("ผู้จัดการ") || userRole.includes("บริหาร") || userRole.includes("admin")) {
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
   }
 
   const payload = [];
   let hasError = false;
-  let hasWarning = false;
 
   for (let index = 0; index < cards.length; index++) {
     const card = cards[index];
@@ -657,137 +644,123 @@ async function saveLeave() {
     let totalDays = parseFloat(card.querySelector('input[name="leave_days"]')?.value);
     if (isNaN(totalDays)) totalDays = 0;
 
-    // 🔴 [เงื่อนไขที่ 1] ตรวจสอบการกรอกวันที่
     if (!leaveTypeId || !startDate || !endDate) {
-      Swal.fire({ 
-        icon: 'warning', 
-        title: 'ข้อมูลไม่สมบูรณ์', 
-        text: `กรุณากรอกวันที่และประเภทการลาให้ครบในรายการที่ ${index + 1}`, 
-        confirmButtonColor: '#f59e0b' 
-      });
-      hasError = true;
-      break; 
+      Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่สมบูรณ์', text: `กรุณากรอกวันที่และประเภทการลาให้ครบในรายการที่ ${index + 1}`, confirmButtonColor: '#f59e0b' });
+      hasError = true; break; 
     }
 
-    // 🔴 [เงื่อนไขที่ 2] ตรวจสอบวันอาทิตย์และวันหยุดอีกครั้งก่อนเซฟ
     const isStartValid = await validateLeaveDate(startDate);
     const isEndValid = await validateLeaveDate(endDate);
-    if (!isStartValid || !isEndValid) {
-      hasError = true;
-      break;
-    }
+    if (!isStartValid || !isEndValid) { hasError = true; break; }
 
-    // 🔴 [เงื่อนไขที่ 3] ตรวจสอบว่าจำนวนวันลาต้องมากกว่า 0
     if (totalDays <= 0) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'จำนวนวันลาไม่ถูกต้อง',
-        text: `รายการที่ ${index + 1} วันที่เลือกตรงกับวันหยุดทั้งหมด ทำให้ไม่มีวันลาจริง`,
-        confirmButtonColor: '#f59e0b'
-      });
-      hasError = true;
-      break;
+      Swal.fire({ icon: 'warning', title: 'จำนวนวันลาไม่ถูกต้อง', text: `รายการที่ ${index + 1} วันที่เลือกตรงกับวันหยุดทั้งหมด`, confirmButtonColor: '#f59e0b' });
+      hasError = true; break;
     }
 
-    // 🔴 [เงื่อนไขที่ 4] บังคับระบุเหตุผลการลา
     if (!reason.trim()) {
-      Swal.fire({ 
-        icon: 'warning', 
-        title: 'กรุณาระบุเหตุผล', 
-        text: `กรุณากรอก "สาเหตุ / เหตุผลการลา" ในรายการที่ ${index + 1}`, 
-        confirmButtonColor: '#f59e0b' 
-      });
-      hasError = true;
-      break;
+      Swal.fire({ icon: 'warning', title: 'กรุณาระบุเหตุผล', text: `กรุณากรอก "สาเหตุ / เหตุผลการลา" ในรายการที่ ${index + 1}`, confirmButtonColor: '#f59e0b' });
+      hasError = true; break;
     }
 
     const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(leaveTypeId));
     const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : "";
 
-    // 🔴 [เงื่อนไขที่ 5] ลาป่วยตั้งแต่ 3 วันขึ้นไป ต้องแนบรูป
     const isSickLeave = leaveName.includes("ป่วย") || leaveName.toLowerCase().includes("sick");
-    if (isSickLeave && totalDays >= 3) {
-      if (!file) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ต้องแนบใบรับรองแพทย์',
-          html: `รายการที่ ${index + 1} เป็นการลาป่วยตั้งแต่ 3 วันขึ้นไป (จำนวน ${totalDays} วัน)<br><span style="color: #ef4444; font-weight: 500;">ต้องแนบรูปภาพใบรับรองแพทย์ตามที่กฎหมายกำหนดครับ</span>`,
-          confirmButtonColor: '#ea580c'
-        });
-        hasError = true;
-        break;
-      }
+    if (isSickLeave && totalDays >= 3 && !file) {
+      Swal.fire({ icon: 'warning', title: 'ต้องแนบใบรับรองแพทย์', html: `รายการที่ ${index + 1} เป็นการลาป่วยตั้งแต่ 3 วันขึ้นไป ต้องแนบรูปภาพใบรับรองแพทย์`, confirmButtonColor: '#ea580c' });
+      hasError = true; break;
     }
 
-    // 🛡️ [เงื่อนไขที่ 6] ลาพักร้อนเกิน 3 วัน
-    if (leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน") || leaveName.toLowerCase().includes("vacation")) {
-      if (totalDays > 3) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'เงื่อนไขการลาพักผ่อนประจำปี',
-          html: `ไม่สามารถลาพักร้อนรวดเดียวเกิน <b>3 วัน</b> ได้ค่ะ<br><br>
-                 <span style="color: #ea580c; font-weight: 600;">💡 แนวทางปฏิบัติ:</span><br>
-                 หากต้องการลาหลายวันต่อเนื่อง ต้องแบ่งเพิ่มรายการลาแยกกัน`,
-          confirmButtonColor: '#ea580c'
-        });
-        hasError = true;
-        break; 
-      }
-    }
-
-    // 🎯 [เงื่อนไขที่ 7] ตรวจสอบโควตาคงเหลือ
-    if (window.employeeLeaveBalances) {
-      const matchedBalance = window.employeeLeaveBalances.find(b => String(b.leave_type_id) === String(leaveTypeId));
-      const remainingDays = matchedBalance ? parseFloat(matchedBalance.remaining_days) : 0;
-
-      if (totalDays > remainingDays) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ยื่นลาเกินโควตา',
-          text: `รายการที่ ${index + 1} คุณเหลือสิทธิอีกเพียง ${remainingDays} วัน ระบบจะส่งคำขอนี้ให้ HR พิจารณาเป็นกรณีพิเศษ`,
-          confirmButtonColor: '#f59e0b'
-        });
-        hasWarning = true; 
-      }
-    }
-
-    // 📤 อัปโหลดไฟล์หลักฐาน (ถ้ามีการเลือกไฟล์)
     let attachmentUrl = null;
     if (file) {
       try {
         const empId = currentProfile.id || currentProfile.employee_id;
         attachmentUrl = await uploadAttachment(file, empId);
       } catch (uploadErr) {
-        Swal.fire({
-          icon: 'error',
-          title: 'อัปโหลดหลักฐานไม่สำเร็จ',
-          text: `ไม่สามารถอัปโหลดรูปภาพของรายการที่ ${index + 1} ได้ กรุณาลองใหม่อีกครั้ง`,
-          confirmButtonColor: '#ef4444'
-        });
-        hasError = true;
-        break;
+        Swal.fire({ icon: 'error', title: 'อัปโหลดหลักฐานไม่สำเร็จ', text: `ไม่สามารถอัปโหลดรูปภาพของรายการที่ ${index + 1} ได้`, confirmButtonColor: '#ef4444' });
+        hasError = true; break;
       }
     }
 
-    const totalHours = hoursMorning + hoursAfternoon;
-    const startPeriod = hoursMorning > 0 ? "half_day" : "full_day";
-    const endPeriod = hoursAfternoon > 0 ? "half_day" : "full_day";
+    // ✂️ ตรวจจับเพื่อทำการ Auto-Split ลาข้ามรอบปี (1 ธ.ค.)
+    const startObj = new Date(startDate);
+    const endObj = new Date(endDate);
+    const startYear = startObj.getFullYear();
+    const cutoffDate = new Date(`${startYear}-11-30`);
 
-    payload.push({
-      employee_id:     currentProfile.id || currentProfile.employee_id, 
-      leave_type_id:   leaveTypeId,
-      start_date:      startDate,
-      end_date:        endDate,
-      total_days:      totalDays,
-      reason:          reason.trim(),
-      attachment_url:  attachmentUrl, // ✅ เซฟ URL รูปหลักฐานลง DB
-      status:          "pending",          
-      manager_status:  defaultManagerStatus,
-      director_status: defaultDirectorStatus,
-      leave_hours:     totalHours,
-      start_period:    startPeriod,
-      end_period:      endPeriod
-    });
+    if (startObj <= cutoffDate && endObj > cutoffDate) {
+      // 🔗 สร้าง Group ID สำหรับผูกใบลากลุ่มเดียวกัน (ข้อ 1)
+      const splitGroupId = 'GRP_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+      const chunk1End = `${startYear}-11-30`;
+      const chunk2Start = `${startYear}-12-01`;
+
+      let days1 = countWorkDaysInRange(startDate, chunk1End);
+      let days2 = countWorkDaysInRange(chunk2Start, endDate);
+
+      if (hoursMorning > 0) days1 = Math.max(0, days1 - 1) + (hoursMorning / 8);
+      if (hoursAfternoon > 0) days2 = Math.max(0, days2 - 1) + (hoursAfternoon / 8);
+
+      // 1️⃣ ฉบับที่ 1 (รอบปีปัจจุบัน)
+      payload.push({
+        employee_id:     currentProfile.id || currentProfile.employee_id, 
+        leave_type_id:   leaveTypeId,
+        start_date:      startDate,
+        end_date:        chunk1End,
+        total_days:      days1,
+        reason:          `${reason.trim()} (ส่วนที่ 1: ตัดรอบปี ${startYear})`,
+        attachment_url:  attachmentUrl,
+        status:          "pending",          
+        manager_status:  defaultManagerStatus,
+        director_status: defaultDirectorStatus,
+        leave_hours:     hoursMorning,
+        start_period:    hoursMorning > 0 ? "half_day" : "full_day",
+        end_period:      "full_day",
+        split_group_id:  splitGroupId
+      });
+
+      // 2️⃣ ฉบับที่ 2 (รอบปีใหม่)
+      payload.push({
+        employee_id:     currentProfile.id || currentProfile.employee_id, 
+        leave_type_id:   leaveTypeId,
+        start_date:      chunk2Start,
+        end_date:        endDate,
+        total_days:      days2,
+        reason:          `${reason.trim()} (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})`,
+        attachment_url:  attachmentUrl,
+        status:          "pending",          
+        manager_status:  defaultManagerStatus,
+        director_status: defaultDirectorStatus,
+        leave_hours:     hoursAfternoon,
+        start_period:    "full_day",
+        end_period:      hoursAfternoon > 0 ? "half_day" : "full_day",
+        split_group_id:  splitGroupId
+      });
+
+    } else {
+      // คำขอปกติ ไม่ได้ลาข้ามรอบปี
+      const totalHours = hoursMorning + hoursAfternoon;
+      const startPeriod = hoursMorning > 0 ? "half_day" : "full_day";
+      const endPeriod = hoursAfternoon > 0 ? "half_day" : "full_day";
+
+      payload.push({
+        employee_id:     currentProfile.id || currentProfile.employee_id, 
+        leave_type_id:   leaveTypeId,
+        start_date:      startDate,
+        end_date:        endDate,
+        total_days:      totalDays,
+        reason:          reason.trim(),
+        attachment_url:  attachmentUrl,
+        status:          "pending",          
+        manager_status:  defaultManagerStatus,
+        director_status: defaultDirectorStatus,
+        leave_hours:     totalHours,
+        start_period:    startPeriod,
+        end_period:      endPeriod,
+        split_group_id:  null
+      });
+    }
   }
 
   if (hasError) return;
@@ -799,7 +772,6 @@ async function saveLeave() {
   }
 
   try {
-    // บันทึกลงตาราง leave_requests
     const { data, error } = await sb.from("leave_requests").insert(payload).select();
 
     if (error) {
@@ -820,14 +792,14 @@ async function saveLeave() {
     const empName = currentProfile.full_name || 'พนักงาน';
     await sendNotification(
       'คำขอลาใหม่', 
-      `${empName} ได้ยื่นคำขอลาใหม่จำนวน ${payload.length} รายการ`, 
+      `${empName} ได้ยื่นคำขอลาใหม่จำนวน ${payload.length} รายการ (รวมรายการ Auto-Split)`, 
       'leave', 
       '/pages/hr/pages/hr/hr.html'
     );
 
     Swal.fire({
       title: 'ส่งคำขอลาสำเร็จ!',
-      text: 'ระบบได้ส่งใบลาของคุณไปให้ผู้อนุมัติพิจารณาเรียบร้อยแล้ว',
+      text: 'ระบบได้ทำการบันทึกและแยกคำขอลาตามรอบปีเรียบร้อยแล้ว',
       icon: 'success',
       confirmButtonColor: '#0f766e',
       timer: 2000,
@@ -850,6 +822,7 @@ async function saveLeave() {
     }
   }
 }
+
 // ==========================================
 // 🔮 11. เมนูคู่มือและการทำงานเริ่มต้น (Initialization)
 // ==========================================
@@ -882,8 +855,8 @@ function toggleFormLeaveGuide() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadCompanyHolidays(); // 1. โหลดตารางวันหยุดประจำปี (holidays)
-  await loadLeaveTypes();      // 2. โหลดประเภทการลา (leave_types)
-  await fetchCurrentUserData(); // 3. โหลดข้อมูลพนักงานและยอดคงเหลือ
-  addLeaveRow();               // 4. เพิ่มการ์ดใบแรกตั้งต้น
+  await loadCompanyHolidays(); 
+  await loadLeaveTypes();      
+  await fetchCurrentUserData(); 
+  addLeaveRow();               
 });
