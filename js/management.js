@@ -11,8 +11,10 @@
 const SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRsomxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
+
 window.PVT_SUPABASE_URL = SUPABASE_URL;
 window.PVT_SUPABASE_ANON_KEY = SUPABASE_KEY;
+const supabaseClient = PVTSDK.getClient();
 
 function showAppError(title, message) {
   console.error(`❌ [${title}]:`, message);
@@ -392,34 +394,99 @@ async function saveHRActivityLog(moduleOrAction, actionOrDetails = '', target = 
     let actionName = '';
     let logDetails = '';
 
-    // รองรับการเรียก 4 พารามิเตอร์: (module, action, target, details)
     if (arguments.length >= 3) {
       moduleName = moduleOrAction;
       actionName = actionOrDetails;
       logDetails = target ? `[${target}] ${details}` : details;
     } else {
-      // รองรับการเรียก 2 พารามิเตอร์: (action, details)
       actionName = moduleOrAction;
       logDetails = actionOrDetails;
     }
 
     const logEntry = {
-      module: moduleName,
-      action: actionName,
-      details: logDetails,
-      created_by: user ? user.id : null,
-      created_by_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'System',
+      actor_id: user ? user.id : null,
+      actor_name: user ? (user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim()) : 'System',
+      action_category: moduleName,
+      action_type: actionName,
+      target_identifier: target || '-',
+      description: logDetails,
       created_at: new Date().toISOString()
     };
 
-    const { error } = await client.from('hr_activity_logs').insert([logEntry]);
+    const { error } = await client.from('hr_admin_management_logs').insert([logEntry]);
     
     if (error) {
       console.warn("HR Activity Log Notice:", error.message);
     }
   } catch (err) {
-    // ซ่อน Error ฝั่ง Log เพื่อไม่ให้ UI หลักของผู้ใช้งานหยุดชักช้า
     console.warn("Failed to save activity log:", err);
+  }
+}
+
+async function viewAuditLogs() {
+  const supabase = getSupabase();
+  if (!supabase) {
+    showAppError("ข้อผิดพลาด", "ไม่สามารถเชื่อมต่อฐานข้อมูลเพื่อดึงประวัติได้");
+    return;
+  }
+
+  try {
+    if (window.Swal) {
+      Swal.fire({ title: 'กำลังโหลดประวัติการปรับปรุงระบบ...', didOpen: () => Swal.showLoading() });
+    }
+
+    const { data: logs, error } = await supabase
+      .from('hr_admin_management_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+
+    let logTableHTML = `
+      <div class="table-container">
+        <table class="audit-log-table">
+          <thead>
+            <tr>
+              <th>เวลา</th>
+              <th>โมดูล</th>
+              <th>การกระทำ</th>
+              <th>รายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    if (!logs || logs.length === 0) {
+      logTableHTML += `<tr><td colspan="4" class="text-center">ไม่พบประวัติการแก้ไขระบบ</td></tr>`;
+    } else {
+      logs.forEach(l => {
+        const timeStr = new Date(l.created_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+        logTableHTML += `
+          <tr>
+            <td>${timeStr}</td>
+            <td><b>${escapeHtml(l.action_category || 'System')}</b></td>
+            <td><span class="badge">${escapeHtml(l.action_type || '-')}</span></td>
+            <td>${escapeHtml(l.description || '-')}</td>
+          </tr>
+        `;
+      });
+    }
+
+    logTableHTML += `</tbody></table></div>`;
+
+    if (window.Swal) {
+      Swal.fire({
+        title: '📜 ประวัติการแก้ไขระบบ (Audit Logs)',
+        html: logTableHTML,
+        width: 'min(92vw, 750px)',
+        confirmButtonText: 'ปิดหน้าต่าง',
+        confirmButtonColor: '#0d9488'
+      });
+    }
+
+  } catch (err) {
+    showAppError("ไม่สามารถดึงประวัติ Audit Log ได้", err.message);
   }
 }
 
@@ -507,99 +574,89 @@ function getLeaveCycleYear(dateStr) {
 // ==========================================
 // resetYearlyLeave (ใช้ window.state)
 // ==========================================
-async function resetYearlyLeave() {
+
+async function resetYearlyLeave(isForce = false) {
+  if (!window.Swal) return;
+
   const currentYear = new Date().getFullYear();
-  const nextYear = 2500; // 🧪 ใส่ 2500 สำหรับเทสระบบ
+  const nextYear = currentYear + 1; // ปี 2027
 
-  // 🎯 [จุดที่เพิ่ม 1]: ดึง Supabase Client มาใช้งาน + เช็กการเชื่อมต่อ
-  const supabase = typeof getSupabase === 'function' ? getSupabase() : window.pvtSupabase?.getClient?.();
-  if (!supabase) {
-    Swal.fire('เกิดข้อผิดพลาด', 'ไม่พบการเชื่อมต่อระบบฐานข้อมูล Supabase', 'error');
-    return;
-  }
+  // แสดง Popup UI เลือกปีและยืนยันการเจนโควตา
+  const { value: formValues } = await Swal.fire({
+    title: '📅 เจนโควตาวันลาประจำปีล่วงหน้า',
+    width: 'min(90vw, 480px)',
+    html: `
+      <div style="text-align:left; font-family:'Sarabun', sans-serif;">
+        <div style="margin-bottom: 14px;">
+          <label style="font-size:13px; font-weight:600; color:#334155;">เลือกรอบปีที่ต้องการคำนวณสิทธิ (ค.ศ.) *</label>
+          <select id="swal-target-year" class="swal2-select" style="width:100%; margin-top:6px; height:40px; font-size:14px; border-radius:10px;">
+            <option value="${nextYear}" selected>ปี ${nextYear} (เจนล่วงหน้าสำหรับปีหน้า)</option>
+            <option value="${currentYear}">ปี ${currentYear} (ปีปัจจุบัน)</option>
+            <option value="${nextYear + 1}">ปี ${nextYear + 1}</option>
+          </select>
+        </div>
 
-  // 1. ถามยืนยันรอบแรก
-  const confirmResult = await Swal.fire({
-    title: `🔄 ยืนยันรีเซ็ตโควต้าปี ${nextYear}?`,
-    text: `ระบบจะทำการคำนวณโควต้าใหม่ให้กับพนักงานทุกคน และส่งการแจ้งเตือนทันที`,
-    icon: 'warning',
+        <div style="display:flex; align-items:center; gap:8px; background:#fff1f2; padding:12px; border-radius:10px; border:1px solid #fecdd3;">
+          <input type="checkbox" id="swal-force-reset" ${isForce ? 'checked' : ''} style="width:18px; height:18px; accent-color:#e11d48; cursor:pointer;">
+          <label for="swal-force-reset" style="font-size:12px; font-weight:600; color:#be123c; cursor:pointer;">
+            เขียนทับข้อมูลเดิม (Force Overwrite) <br>
+            <span style="font-weight:400; color:#9f1239;">(ติ๊กช่องนี้หากเคยเจนปี 2027 ไปแล้วและต้องการรีเซ็ตใหม่)</span>
+          </label>
+        </div>
+      </div>
+    `,
     showCancelButton: true,
-    confirmButtonText: 'ดำเนินการรีเซ็ต',
+    confirmButtonText: '🚀 เริ่มเจนโควตาวันลา',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488'
+    confirmButtonColor: '#0d9488',
+    cancelButtonColor: '#64748b',
+    preConfirm: () => {
+      const year = parseInt(document.getElementById('swal-target-year').value, 10);
+      const force = document.getElementById('swal-force-reset').checked;
+      return { year, force };
+    }
   });
 
-  if (!confirmResult.isConfirmed) return;
+  if (!formValues) return;
 
-  // ดึงข้อมูลผู้ใช้งานปัจจุบัน
-  const session = await window.pvtSupabase?.getSession?.();
-  const cachedUser = window.pvtSupabase?.getCachedUser?.();
-  const actorId = session?.user?.id || cachedUser?.id || null;
-  const actorName = cachedUser?.full_name || cachedUser?.email || 'HR Admin';
-
-  Swal.showLoading();
-
-  // 2. เรียกใช้ Stored Procedure รอบปกติ
-  let { data, error } = await supabase.rpc('fn_reset_yearly_leave', {
-    p_target_year: nextYear,
-    p_actor_id: actorId,
-    p_actor_name: actorName,
-    p_is_force: false
-  });
-
-  // 3. ตรวจสอบว่าติดระบบ "กันชน" (รันไปแล้ว) หรือไม่?
-  if (data && !data.success && data.code === 'ALREADY_EXECUTED') {
-    
-    // ถามรหัสยืนยันเพื่อ Force Reset
-    const { value: masterPassword } = await Swal.fire({
-      title: '⚠️ โควต้าปีนี้ถูกรีเซ็ตไปแล้ว!',
-      html: `
-        <p style="font-size:14px; color:#ef4444; margin-bottom:10px;">${data.message}</p>
-        <p style="font-size:13px; color:#475569;">หากต้องการบังคับทำซ้ำ (Force Reset) กรุณาพิมพ์รหัสยืนยัน: <b style="color:#0f172a;">RESET${nextYear}</b></p>
-      `,
-      input: 'text',
-      inputPlaceholder: `พิมพ์ RESET${nextYear} ที่นี่`,
-      showCancelButton: true,
-      confirmButtonText: 'ยืนยัน Force Reset',
-      confirmButtonColor: '#dc2626',
-      cancelButtonText: 'ยกเลิก',
-      preConfirm: (input) => {
-        if (input !== `RESET${nextYear}`) {
-          Swal.showValidationMessage('❌ รหัสยืนยันไม่ถูกต้อง!');
-          return false;
-        }
-        return true;
-      }
+  try {
+    Swal.fire({ 
+      title: `กำลังสร้างโควตาวันลาปี ${formValues.year}...`, 
+      text: 'กรุณารอสักครู่ ระบบกำลังประมวลผลให้พนักงานทุกคน',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading() 
     });
 
-    if (!masterPassword) return; // กดยกเลิก
+    const actorName = window.state?.currentUserProfile?.full_name || 'HR Admin'; 
+    const actorId = window.state?.currentUserProfile?.id || null; 
 
-    // 4. สั่ง Force Reset อีกครั้ง
-    Swal.showLoading();
-    const forceResult = await supabase.rpc('fn_reset_yearly_leave', {
-      p_target_year: nextYear,
+    // ยิง RPC ไปยัง Supabase พร้อมระบุปีที่เลือก
+    const { data, error } = await supabaseClient.rpc('fn_reset_yearly_leave', {
+      p_target_year: formValues.year,
       p_actor_id: actorId,
       p_actor_name: actorName,
-      p_is_force: true
+      p_is_force: Boolean(formValues.force)
     });
 
-    data = forceResult.data;
-    error = forceResult.error;
-  }
+    if (error) throw error;
 
-  // 5. แสดงผลลัพธ์สุดท้าย
-  if (error || !data?.success) {
-    Swal.fire('เกิดข้อผิดพลาด', error?.message || data?.message || 'ไม่สามารถรีเซ็ตโควต้าได้', 'error');
-  } else {
+    await saveHRActivityLog('LEAVE_SYSTEM', 'RESET_QUOTA', `ปี ${formValues.year}`, `สร้างโควตาวันลาประจำปี ${formValues.year}`);
+
     Swal.fire({
       icon: 'success',
-      title: 'สำเร็จ!',
-      text: `${data.message} และส่งการแจ้งเตือนให้พนักงานทุกคนเรียบร้อยแล้ว`,
+      title: 'สร้างโควตาวันลาสำเร็จ!',
+      text: data?.message || `สร้างสิทธิวันลาปี ${formValues.year} ให้พนักงานเรียบร้อยแล้ว`,
       confirmButtonColor: '#0d9488'
     });
+
+    // ดึงข้อมูลปีที่เพิ่งเจนมาแสดงผลบน Dashboard ทันที
+    await fetchLeaveBalances(formValues.year);
+    if (typeof renderSummary === 'function') renderSummary();
+
+  } catch (err) {
+    showAppError('เกิดข้อผิดพลาดในการเจนโควตา', err.message);
   }
 }
-
 // ==========================================
 // 4. DASHBOARD MAIN CONTROLLER & FETCHING
 // ==========================================
@@ -741,12 +798,14 @@ async function fetchLeaveTypes() {
   }
 }
 
-async function fetchLeaveBalances() {
+async function fetchLeaveBalances(selectedYear = null) {
   const sb = getSupabase();
   if (!sb) return;
 
   try {
-    const year = new Date().getFullYear();
+    // ถ้าไม่ระบุปี ให้ใช้ปี 2027 เป็นหลักกรณีสลับไปดูปีหน้า หรือใช้ปีปัจจุบัน
+    const year = selectedYear || 2027; 
+
     const { data, error } = await sb
       .from("leave_balances")
       .select("id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days")
@@ -965,6 +1024,7 @@ function exportIndividualLeaveExcel(employeeId) {
   window.pvtSupabase.downloadBlob(filename, csvContent, "text/csv;charset=utf-8;");
 }
 
+// ปรับปรุงฟอร์มเปิดดู/แก้ไขพนักงานแบบย่อ (ตัด Line, Email, Phone ออก)
 function openEmployeeDetail(employeeId, isEditMode = false) {
   const emp = employees.find((item) => String(item.id) === String(employeeId));
   if (!emp) return;
@@ -975,221 +1035,44 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
   const title = document.getElementById("modalTitle");
   const body = document.getElementById("modalBody");
 
-  const modalDownloadBtn = document.getElementById("modalDownloadBtn");
-  if (modalDownloadBtn) {
-    modalDownloadBtn.onclick = () => exportIndividualLeaveExcel(employeeId);
-  }
-
   if (!isEditMode) {
-    if (title) {
-      title.innerHTML = `
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span>${escapeHtml(emp.employee_code || "-")} · ${escapeHtml(emp.full_name || "-")}</span>
-          <button class="btn-light btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" title="แก้ไขข้อมูลพนักงาน" style="padding: 4px 10px; font-size:12px;">
-            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">edit</span> กดแก้ไขข้อมูล
-          </button>
-        </div>
-      `;
-    }
-
+    if (title) title.innerHTML = `<span>${escapeHtml(emp.employee_code || "-")} · ${escapeHtml(emp.full_name || "-")}</span>`;
     if (body) {
-      // ดึง Custom Fields มาแสดงในหน้าดูรายละเอียด
-      let customFieldsHTML = '';
-      if (emp.custom_fields && typeof emp.custom_fields === 'object') {
-        customFieldsHTML = Object.entries(emp.custom_fields)
-          .map(([k, v]) => detail(k, v || '-'))
-          .join('');
-      }
-
       body.innerHTML = `
         <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px;">
           ${detail("ตำแหน่ง", emp.positions?.position_name || "-")}
           ${detail("แผนก", emp.departments?.department_name || "-")}
           ${detail("วันเริ่มงาน", window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-"))}
-          ${detail("เบอร์โทร", emp.phone || "-")}
-          ${detail("อีเมล", emp.email || "-")}
-          ${detail("Line ID", emp.line_id || "-")}
           ${detail("โรงพยาบาล", emp.hospital || "-")}
           ${detail("บัญชีธนาคาร", emp.bank_account || "-")}
           ${detail("ประเภทพนักงาน", formatEmploymentType(emp.employment_type))}
-          ${customFieldsHTML}
         </div>
-
         <div style="margin-bottom:16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <strong style="font-size:14px;">📊 สิทธิวันลาคงเหลือประจำปี</strong>
-            <button class="btn-light btn-sm" onclick="editIndividualLeaveBalance('${escapeHtml(emp.employee_code)}')" style="font-size:12px;">
-              ⚙️ ปรับสิทธิ์พิเศษ
-            </button>
-          </div>
+          <strong style="font-size:14px; display:block; margin-bottom:8px;">📊 สิทธิวันลาคงเหลือประจำปี</strong>
           ${renderBalanceCards(balances)}
         </div>
-
         <div>
           <strong style="font-size:14px; display:block; margin-bottom:8px;">📋 ประวัติการลาทั้งหมด</strong>
           <div style="max-height:250px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
             <table style="width:100%; font-size:13px; text-align:left; border-collapse:collapse;">
-              <thead style="background:#f8fafc; sticky:top;">
+              <thead style="background:#f8fafc;">
                 <tr>
                   <th style="padding:8px;">ประเภท</th>
                   <th style="padding:8px;">วันที่</th>
                   <th style="padding:8px;">จำนวน</th>
                   <th style="padding:8px;">เหตุผล</th>
                   <th style="padding:8px;">สถานะ</th>
-                  <th style="padding:8px; text-align:center;">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
-                ${requests.length ? requests.map(renderLeaveRow).join("") : '<tr><td colspan="6" class="empty">ไม่มีประวัติการลา</td></tr>'}
+                ${requests.length ? requests.map(renderLeaveRow).join("") : '<tr><td colspan="5" class="empty">ไม่มีประวัติการลา</td></tr>'}
               </tbody>
             </table>
           </div>
         </div>
       `;
     }
-  } else {
-    if (title) {
-      title.innerHTML = `<span>✏️ แก้ไขข้อมูลพนักงาน: ${escapeHtml(emp.full_name || "-")}</span>`;
-    }
-
-    const supabase = getSupabase();
-    Promise.all([
-      supabase ? supabase.from('departments').select('id, department_name') : Promise.resolve({ data: [] }),
-      supabase ? supabase.from('positions').select('id, position_name') : Promise.resolve({ data: [] }),
-      getCustomFieldDefinitions(supabase)
-    ]).then(([{ data: depts }, { data: roles }, customDefs]) => {
-      const deptOptions = depts?.map(d => `<option value="${d.id}" ${String(d.id) === String(emp.department_id) ? 'selected' : ''}>${escapeHtml(d.department_name)}</option>`).join('') || '';
-      const roleOptions = roles?.map(r => `<option value="${r.id}" ${String(r.id) === String(emp.position_id) ? 'selected' : ''}>${escapeHtml(r.position_name)}</option>`).join('') || '';
-
-      // สร้าง HTML สำหรับ Custom Fields พร้อมใส่ค่าเดิมที่มีอยู่
-      const existingCustom = emp.custom_fields || {};
-      let customFieldsInputsHTML = '';
-
-      if (customDefs && customDefs.length > 0) {
-        customFieldsInputsHTML = customDefs.map(field => {
-          const reqMark = field.required ? `<span style="color:#e11d48; font-weight:bold;">*</span>` : '';
-          const currentVal = existingCustom[field.name] || '';
-          let inputControl = '';
-
-          if (field.type === 'select') {
-            const opts = field.options.map(o => `<option value="${escapeHtml(o)}" ${o === currentVal ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('');
-            inputControl = `
-              <select class="select-input custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" style="width:100%; padding:0.5rem; margin-top:4px;">
-                <option value="">-- เลือก${escapeHtml(field.name)} --</option>
-                ${opts}
-              </select>
-            `;
-          } else {
-            inputControl = `
-              <input type="text" class="search-input custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" value="${escapeHtml(currentVal)}" style="padding:0.5rem; margin-top:4px;" placeholder="กรอก${escapeHtml(field.name)}">
-            `;
-          }
-
-          return `
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">${escapeHtml(field.name)} ${reqMark}</label>
-              ${inputControl}
-            </div>
-          `;
-        }).join('');
-      }
-
-      if (body) {
-        body.innerHTML = `
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; text-align:left; font-family:'Sarabun', sans-serif;">
-            <div style="grid-column: 1 / -1; text-align: center; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px dashed #cbd5e1;">
-              <img id="inlineEditPreview" src="${window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : 'https://placehold.co/100?text=No+Image'}" 
-                   style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 8px; background: #fff;">
-              <input type="file" id="inline-edit-img" class="select-input" accept="image/*" style="display: block; margin: 0 auto; font-size: 12px;" onchange="if(this.files[0]) document.getElementById('inlineEditPreview').src = URL.createObjectURL(this.files[0]);">
-            </div>
-
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">รหัสพนักงาน *</label>
-              <input id="inline-edit-code" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.employee_code || '')}">
-            </div>
-              <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">คำนำหน้า</label>
-              <select id="inline-edit-title" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
-                <option value="" ${!emp.title ? 'selected' : ''}>-- ไม่ระบุ --</option>
-                <option value="นาย" ${emp.title === 'นาย' ? 'selected' : ''}>นาย</option>
-                <option value="นาง" ${emp.title === 'นาง' ? 'selected' : ''}>นาง</option>
-                <option value="นางสาว" ${emp.title === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">ชื่อ-นามสกุลจริง *</label>
-              <input id="inline-edit-fullName" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.full_name || '')}">
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">ชื่อเล่น</label>
-              <input id="inline-edit-nickname" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.nickname || '')}">
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">เบอร์โทรศัพท์</label>
-              <input id="inline-edit-phone" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.phone || '')}">
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">Line ID</label>
-              <input id="inline-edit-lineId" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.line_id || '')}">
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">อีเมลองค์กร</label>
-              <input id="inline-edit-email" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.email || '')}">
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">เลขบัญชีธนาคาร</label>
-              <input id="inline-edit-bankAccount" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.bank_account || '')}">
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">🏥 โรงพยาบาลประกันสังคม</label>
-              <input id="inline-edit-hospital" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${escapeHtml(emp.hospital || '')}">
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">สังกัดฝ่าย / แผนก *</label>
-              <select id="inline-edit-dept" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
-                ${deptOptions}
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">ตำแหน่งงาน *</label>
-              <select id="inline-edit-role" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
-                ${roleOptions}
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">ประเภทพนักงาน *</label>
-              <select id="inline-edit-type" class="select-input" style="width:100%; padding:0.5rem; margin-top:4px;">
-                <option value="พนักงานประจำ (Full-time)" ${emp.employment_type?.includes('Full') || emp.employment_type?.includes('ประจำ') ? 'selected' : ''}>พนักงานประจำ (Full-time)</option>
-                <option value="พนักงานพาร์ทไทม์ (Part-time)" ${emp.employment_type?.includes('Part') || emp.employment_type?.includes('พาร์ท') ? 'selected' : ''}>พนักงานพาร์ทไทม์ (Part-time)</option>
-                <option value="พนักงานสัญญาจ้าง (Contract)" ${emp.employment_type?.includes('Contract') || emp.employment_type?.includes('สัญญา') ? 'selected' : ''}>พนักงานสัญญาจ้าง (Contract)</option>
-                <option value="นักศึกษาฝึกงาน (Intern)" ${emp.employment_type?.includes('Intern') || emp.employment_type?.includes('ฝึกงาน') ? 'selected' : ''}>นักศึกษาฝึกงาน (Intern)</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:12px; font-weight:600; color:#64748b;">วันที่เริ่มงาน</label>
-              <input type="date" id="inline-edit-startDate" class="search-input" style="padding:0.5rem; margin-top:4px;" value="${emp.start_date || ''}">
-            </div>
-
-            <!-- โซนคอลัมน์กำหนดเอง -->
-            ${customFieldsInputsHTML ? `
-              <div style="grid-column: 1 / -1; margin-top: 8px; padding: 12px; background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 8px;">
-                <strong style="font-size: 13px; color: #0d9488; display: block; margin-bottom: 8px;">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</strong>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                  ${customFieldsInputsHTML}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px; padding-top:12px; border-top:1px solid #e2e8f0;">
-            <button class="action-btn" onclick="openEmployeeDetail('${emp.id}', false)">ยกเลิก</button>
-            <button class="action-btn success-zone" onclick="saveEmployeeInlineEdit('${emp.id}')">💾 บันทึกการแก้ไข</button>
-          </div>
-        `;
-      }
-    });
   }
-
   if (modal) modal.classList.add("open");
 }
 
@@ -2112,152 +1995,124 @@ async function editGlobalLeaveRules() {
 
   try {
     Swal.fire({ title: 'กำลังโหลดประเภทวันลา...', didOpen: () => Swal.showLoading() });
-    const { data: rules, error } = await supabase.from('leave_types').select('*').eq('status', 'active').order('created_at', { ascending: true });
+    const { data: rules, error } = await supabase.from('leave_types').select('*').order('created_at', { ascending: true });
     if (error) throw error;
     Swal.close();
 
-    let tableHTML = `
-      <div style="font-family:'Sarabun', sans-serif; text-align:left; margin-bottom:12px;">
-        <button id="btn-add-leavetype" class="action-btn success-zone" style="font-size:13px; padding:6px 12px; width:auto;">
-          ➕ เพิ่มประเภทการลาใหม่
-        </button>
-      </div>
-      <div style="max-height: 350px; overflow-y: auto; font-family:'Sarabun', sans-serif;">
-        <table style="width:100%; text-align:left; font-size:13px; border-collapse:collapse;">
-          <thead>
-            <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
-              <th style="padding:8px; border:1px solid #cbd5e1;">ประเภทการลา</th>
-              <th style="padding:8px; border:1px solid #cbd5e1; width:160px; text-align:center;">โควตากลาง (วัน/ปี)</th>
-              <th style="padding:8px; border:1px solid #cbd5e1; width:60px; text-align:center;">ลบ</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
+    let tableRowsHTML = rules.map(r => `
+      <tr style="border-bottom:1px solid #e2e8f0;" id="rule-row-${r.id}">
+        <td style="padding:8px; border:1px solid #cbd5e1;">
+          <input type="text" id="rule-name-${r.id}" class="swal2-input" value="${escapeHtml(r.leave_name)}" style="margin:0; height:36px; font-size:13px; width:100%;">
+          <small style="color:#64748b; font-size:10px;">รหัส: ${escapeHtml(r.leave_code)}</small>
+        </td>
+        <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
+          <input type="number" id="rule-quota-${r.id}" class="swal2-input" value="${r.yearly_quota || 0}" step="0.5" min="0" style="margin:0; height:36px; font-size:13px; text-align:center; width:80px;">
+        </td>
+        <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
+          <button type="button" onclick="saveSingleLeaveRule('${r.id}')" style="padding:4px 8px; background:#0d9488; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px;">💾 บันทึก</button>
+        </td>
+      </tr>
+    `).join('');
 
-    rules.forEach(r => {
-      tableHTML += `
-        <tr style="border-bottom:1px solid #e2e8f0;">
-          <td style="padding:8px; border:1px solid #cbd5e1;">
-            <b style="color:#1e293b; font-size:13px;">${escapeHtml(r.leave_name)}</b><br>
-            <span style="color:#64748b; font-size:11px;">Code: ${escapeHtml(r.leave_code)}</span>
-          </td>
-          <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
-            <div style="display:flex; gap:4px; align-items:center; justify-content:center;">
-              <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('quota-${r.id}'); el.value=Math.max(0, (parseFloat(el.value)||0)-1);" style="padding:2px 8px;">-</button>
-              <input type="number" id="quota-${r.id}" class="swal2-input" style="width:60px; height:32px; margin:0; text-align:center; padding:0; font-size:13px;" value="${r.yearly_quota}">
-              <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('quota-${r.id}'); el.value=(parseFloat(el.value)||0)+1;" style="padding:2px 8px;">+</button>
-            </div>
-          </td>
-          <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
-            <button class="btn-delete-leave" data-id="${r.id}" data-name="${escapeHtml(r.leave_name)}" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">
-              ❌
-            </button>
-          </td>
-        </tr>
-      `;
-    });
-
-    tableHTML += `</tbody></table></div>`;
-
-    const { value: updatedRules } = await Swal.fire({
-      title: '⚙️ ตั้งค่าเกณฑ์วันลาภาพรวมบริษัท',
-      html: tableHTML,
-      width: 'min(92vw, 700px)',
+    await Swal.fire({
+      title: '⚙️ ตั้งค่าโควตากลาง & แก้ไขชื่อประเภทวันลา',
+      width: 'min(92vw, 650px)',
+      html: `
+        <div style="font-family:'Sarabun', sans-serif; text-align:left; margin-bottom:12px;">
+          <button type="button" onclick="addNewLeaveTypeModal()" class="action-btn success-zone" style="font-size:12px; padding:6px 12px;">
+            ➕ เพิ่มประเภทการลาใหม่
+          </button>
+        </div>
+        <div style="max-height: 350px; overflow-y: auto; font-family:'Sarabun', sans-serif;">
+          <table style="width:100%; text-align:left; font-size:13px; border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
+                <th style="padding:8px; border:1px solid #cbd5e1;">ชื่อประเภทการลา</th>
+                <th style="padding:8px; border:1px solid #cbd5e1; width:100px; text-align:center;">โควตา (วัน/ปี)</th>
+                <th style="padding:8px; border:1px solid #cbd5e1; width:80px; text-align:center;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRowsHTML}
+            </tbody>
+          </table>
+        </div>
+      `,
+      showConfirmButton: false,
       showCancelButton: true,
-      confirmButtonText: '💾 บันทึกโควตาทั้งหมด',
-      cancelButtonText: 'ปิด',
-      confirmButtonColor: '#0d9488',
-      didOpen: (popup) => {
-        popup.querySelector('#btn-add-leavetype')?.addEventListener('click', () => {
-          Swal.close();
-          actionAddNewLeaveType();
-        });
-        popup.querySelectorAll('.btn-delete-leave').forEach(button => {
-          button.addEventListener('click', () => {
-            const leaveId = button.getAttribute('data-id');
-            const leaveName = button.getAttribute('data-name');
-            Swal.close();
-            actionDeleteLeaveType(leaveId, leaveName);
-          });
-        });
-      },
-      preConfirm: () => {
-        const listResults = [];
-        rules.forEach(r => {
-          const inputVal = parseFloat(document.getElementById(`quota-${r.id}`).value) || 0;
-          listResults.push({ id: r.id, old_quota: r.yearly_quota, new_quota: inputVal, name: r.leave_name });
-        });
-        return listResults;
-      }
+      cancelButtonText: 'ปิดหน้าต่าง'
     });
 
-    if (updatedRules) {
-      Swal.fire({ title: 'กำลังปรับเกณฑ์โควตากลาง...', didOpen: () => Swal.showLoading() });
-      for (const item of updatedRules) {
-        if (item.new_quota !== item.old_quota) {
-          const { error: updErr } = await supabase.from('leave_types').update({ yearly_quota: item.new_quota }).eq('id', item.id);
-          if (updErr) throw updErr;
-          await saveHRActivityLog('LEAVE_QUOTA', 'UPDATE', item.name, `ปรับโควตาจาก ${item.old_quota} เป็น ${item.new_quota} วัน`);
-        }
-      }
-      Swal.fire('สำเร็จ', 'อัปเดตโควตากลางบริษัทเสร็จสิ้น', 'success');
-      refreshDashboard();
-    }
   } catch (err) {
-    showAppError("ไม่สามารถปรับเกณฑ์วันลาได้", err.message);
+    showAppError("ไม่สามารถดึงข้อมูลโควตากลางได้", err.message);
   }
 }
 
-async function actionAddNewLeaveType() {
+// ฟังก์ชันบันทึกชื่อและโควตา
+async function saveSingleLeaveRule(ruleId) {
   const supabase = getSupabase();
-  if (!supabase || !window.Swal) return;
+  const newName = document.getElementById(`rule-name-${ruleId}`)?.value.trim();
+  const newQuota = parseFloat(document.getElementById(`rule-quota-${ruleId}`)?.value) || 0;
 
+  if (!newName) {
+    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุชื่อประเภทการลา', 'warning');
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('leave_types')
+      .update({ leave_name: newName, yearly_quota: newQuota })
+      .eq('id', ruleId);
+
+    if (error) throw error;
+
+    await saveHRActivityLog('LEAVE_RULE', 'UPDATE', newName, `ปรับแก้ไขชื่อประเภทวันลาเป็น "${newName}" และโควตาเป็น ${newQuota} วัน`);
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: `อัปเดตข้อมูล "${newName}" เรียบร้อยแล้ว`, timer: 1500, showConfirmButton: false });
+    refreshDashboard();
+  } catch (err) {
+    showAppError("บันทึกโควตากลางไม่สำเร็จ", err.message);
+  }
+}
+
+// ฟังก์ชันเพิ่มประเภทการลาใหม่
+async function addNewLeaveTypeModal() {
+  const supabase = getSupabase();
   const { value: formValues } = await Swal.fire({
-    title: '➕ เพิ่มประเภทวันลาใหม่',
-    width: 'min(90vw, 450px)',
+    title: '➕ เพิ่มประเภทการลาใหม่',
     html: `
-      <div style="display:flex; flex-direction:column; gap:10px; text-align:left; font-family:'Sarabun', sans-serif;">
-        <div>
-          <label style="font-size:13px; font-weight:600;">ชื่อประเภทการลา *</label>
-          <input id="new-leave-name" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;" placeholder="เช่น ลาพักร้อนกรณีพิเศษ">
-        </div>
-        <div>
-          <label style="font-size:13px; font-weight:600;">รหัสย่อสากล (พิมพ์ใหญ่) *</label>
-          <input id="new-leave-code" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;" placeholder="เช่น SPECIAL_VACATION">
-        </div>
-        <div>
-          <label style="font-size:13px; font-weight:600;">สิทธิ์วันลาจำกัดต่อปี *</label>
-          <input type="number" id="new-leave-quota" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;" value="6">
-        </div>
+      <div style="text-align:left; font-family:'Sarabun', sans-serif;">
+        <label style="font-size:12px; font-weight:600;">รหัสการลา (Code) *</label>
+        <input id="new-lt-code" class="swal2-input" placeholder="เช่น VAC, SICK" style="margin:4px 0 10px; height:38px; font-size:13px; width:100%;">
+        <label style="font-size:12px; font-weight:600;">ชื่อประเภทการลา *</label>
+        <input id="new-lt-name" class="swal2-input" placeholder="เช่น ลาพักร้อนประจำปี" style="margin:4px 0 10px; height:38px; font-size:13px; width:100%;">
+        <label style="font-size:12px; font-weight:600;">โควตากลาง (วัน/ปี)</label>
+        <input type="number" id="new-lt-quota" class="swal2-input" value="6" step="0.5" style="margin:4px 0 0; height:38px; font-size:13px; width:100%;">
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'บันทึกข้อมูล',
-    cancelButtonText: 'ย้อนกลับ',
-    confirmButtonColor: '#0d9488',
+    confirmButtonText: 'บันทึกประเภทใหม่',
+    cancelButtonText: 'ยกเลิก',
     preConfirm: () => {
-      const name = document.getElementById('new-leave-name').value.trim();
-      const code = document.getElementById('new-leave-code').value.trim().toUpperCase();
-      const quota = parseFloat(document.getElementById('new-leave-quota').value) || 0;
-
-      if (!name || !code) {
-        Swal.showValidationMessage('⚠️ กรุณากรอกชื่อและรหัสย่อให้ครบถ้วน');
+      const code = document.getElementById('new-lt-code').value.trim();
+      const name = document.getElementById('new-lt-name').value.trim();
+      const quota = parseFloat(document.getElementById('new-lt-quota').value) || 0;
+      if (!code || !name) {
+        Swal.showValidationMessage('กรุณากรอกรหัสและชื่อประเภทวันลาให้ครบถ้วน');
         return false;
       }
-      return { leave_name: name, leave_code: code, yearly_quota: quota, status: 'active' };
+      return { leave_code: code, leave_name: name, yearly_quota: quota };
     }
   });
 
-  if (!formValues) { editGlobalLeaveRules(); return; }
-
-  Swal.fire({ title: 'กำลังเพิ่มประเภทวันลา...', didOpen: () => Swal.showLoading() });
-  const { error } = await supabase.from('leave_types').insert([formValues]);
-  if (error) {
-    showAppError('ไม่สามารถเพิ่มประเภทวันลาได้', error.message);
-    editGlobalLeaveRules();
-  } else {
-    await saveHRActivityLog('LEAVE_QUOTA', 'CREATE', formValues.leave_name, `เพิ่มประเภทการลาใหม่: ${formValues.leave_name}`);
-    Swal.fire('สำเร็จ!', 'บันทึกข้อกำหนดวันลาชุดใหม่แล้ว', 'success').then(() => editGlobalLeaveRules());
+  if (formValues) {
+    const { error } = await supabase.from('leave_types').insert([formValues]);
+    if (error) {
+      showAppError('ไม่สามารถเพิ่มประเภทการลาได้', error.message);
+    } else {
+      Swal.fire('สำเร็จ', 'เพิ่มประเภทวันลาเรียบร้อยแล้ว', 'success');
+      editGlobalLeaveRules();
+    }
   }
 }
 
@@ -2445,172 +2300,137 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
 // ==========================================
 // 9. COMPANY HOLIDAYS MANAGEMENT (FULL & FIXED)
 // ==========================================
+// ==========================================
+// 1. HOLIDAYS MANAGEMENT (ใช้ CSS Class เดียวกับระบบ)
+// ==========================================
 async function manageCompanyHolidays() {
   const supabase = getSupabase();
   if (!supabase || !window.Swal) return;
 
   try {
     Swal.fire({ title: 'กำลังโหลดปฏิทินวันหยุด...', didOpen: () => Swal.showLoading() });
-
-    const currentYear = new Date().getFullYear();
-    // 🔹 เปลี่ยนชื่อตารางตรงนี้ (เช่น 'holidays' หรือ 'holidays_rows')
     const { data: holidays, error } = await supabase
       .from('holidays')
       .select('*')
-      .gte('holiday_date', `${currentYear}-01-01`)
-      .lte('holiday_date', `${currentYear}-12-31`)
       .order('holiday_date', { ascending: true });
 
-    if (error && error.code !== 'PGRST116') throw error;
+    if (error) throw error;
+    Swal.close();
 
-    let holidayRows = (holidays || []).map((h, index) => `
-      <tr style="border-bottom:1px solid #e2e8f0;">
-        <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">${index + 1}</td>
-        <td style="padding:8px; border:1px solid #cbd5e1; white-space:nowrap;">
-          ${window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(h.holiday_date) : h.holiday_date}
-        </td>
-        <td style="padding:8px; border:1px solid #cbd5e1;"><b>${escapeHtml(h.holiday_name)}</b></td>
-        <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
-          <button class="btn-delete-holiday" data-id="${h.id}" data-name="${escapeHtml(h.holiday_name)}" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">
-            ❌ ลบ
-          </button>
-        </td>
+    let holidayRowsHTML = holidays && holidays.length > 0 ? holidays.map(h => `
+      <tr>
+        <td>${window.pvtSupabase?.formatThaiDate(h.holiday_date)}</td>
+        <td><b>${escapeHtml(h.holiday_name)}</b></td>
+        <td><span class="status active">${escapeHtml(h.category || 'วันหยุดบริษัท')}</span></td>
+        <td>${escapeHtml(h.description || '-')}</td>
       </tr>
-    `).join('');
+    `).join('') : `<tr><td colspan="4" class="empty">ไม่พบข้อมูลวันหยุด</td></tr>`;
 
-    if (!holidayRows) {
-      holidayRows = `<tr><td colspan="4" style="text-align:center; padding:12px; color:#64748b;">ยังไม่มีวันหยุดบริษัทถูกตั้งค่าในปี ${currentYear}</td></tr>`;
-    }
-
-    const htmlContent = `
-      <div style="font-family:'Sarabun', sans-serif; text-align:left;">
-        <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:13px; color:#64748b;">รายการวันหยุดประจำปี ${currentYear}</span>
-          <button id="btn-add-holiday" class="action-btn success-zone" style="font-size:12px; padding:6px 12px;">➕ เพิ่มวันหยุดใหม่</button>
-        </div>
-        <div style="max-height: 320px; overflow-y: auto;">
-          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+    Swal.fire({
+      title: '📅 จัดการวันหยุดบริษัท',
+      html: `
+        <div class="table-wrap">
+          <table class="data-table">
             <thead>
-              <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
-                <th style="padding:8px; border:1px solid #cbd5e1; width:40px; text-align:center;">ลำดับ</th>
-                <th style="padding:8px; border:1px solid #cbd5e1; width:120px;">วันที่</th>
-                <th style="padding:8px; border:1px solid #cbd5e1;">ชื่อวันหยุด</th>
-                <th style="padding:8px; border:1px solid #cbd5e1; width:60px; text-align:center;">จัดการ</th>
+              <tr>
+                <th>วันที่</th>
+                <th>ชื่อวันหยุด</th>
+                <th>ประเภท</th>
+                <th>รายละเอียด</th>
               </tr>
             </thead>
             <tbody>
-              ${holidayRows}
+              ${holidayRowsHTML}
             </tbody>
           </table>
         </div>
-      </div>
-    `;
-
-    Swal.fire({
-      title: '📅 ปฏิทินวันหยุดบริษัท',
-      html: htmlContent,
-      width: 'min(92vw, 650px)',
-      showConfirmButton: false,
-      showCancelButton: true,
-      cancelButtonText: 'ปิดหน้าต่าง',
-      didOpen: (popup) => {
-        popup.querySelector('#btn-add-holiday')?.addEventListener('click', () => {
-          Swal.close();
-          actionAddNewHoliday();
-        });
-        popup.querySelectorAll('.btn-delete-holiday').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-id');
-            // 🔹 แก้บั๊ก: แก้จาก 'holiday_name' เป็น 'data-name'
-            const name = btn.getAttribute('data-name');
-            Swal.close();
-            actionDeleteHoliday(id, name);
-          });
-        });
-      }
+      `,
+      width: 'min(92vw, 720px)',
+      confirmButtonText: 'ปิดหน้าต่าง',
+      confirmButtonColor: '#0d9488'
     });
-
   } catch (err) {
-    showAppError("ไม่สามารถดึงข้อมูลวันหยุดบริษัทได้", err.message);
+    showAppError("ไม่สามารถดึงข้อมูลวันหยุดได้", err.message);
   }
 }
 
-async function actionAddNewHoliday() {
+// ฟังก์ชันเพิ่มวันหยุดใหม่พร้อมประเภทและรายละเอียด
+async function addNewHolidayModal() {
   const supabase = getSupabase();
-  if (!supabase || !window.Swal) return;
-
   const { value: formValues } = await Swal.fire({
     title: '➕ เพิ่มวันหยุดบริษัทใหม่',
-    width: 'min(90vw, 450px)',
     html: `
-      <div style="display:flex; flex-direction:column; gap:10px; text-align:left; font-family:'Sarabun', sans-serif;">
+      <div style="text-align:left; font-family:'Sarabun', sans-serif; display:flex; flex-direction:column; gap:10px;">
         <div>
-          <label style="font-size:13px; font-weight:600;">วันที่หยุด *</label>
-          <input type="date" id="new-holiday-date" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;">
+          <label style="font-size:12px; font-weight:600;">วันที่หยุด *</label>
+          <input type="date" id="hol-date" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px;">
         </div>
         <div>
-          <label style="font-size:13px; font-weight:600;">ชื่อวันหยุด / รายละเอียด *</label>
-          <input type="text" id="new-holiday-name" class="swal2-input" style="margin:4px 0 0 0; width:100%; height:38px;" placeholder="เช่น วันขึ้นปีใหม่, วันสงกรานต์">
+          <label style="font-size:12px; font-weight:600;">ชื่อวันหยุด *</label>
+          <input id="hol-name" class="swal2-input" placeholder="เช่น วันขึ้นปีใหม่" style="margin:4px 0 0; width:100%; height:38px; font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600;">ประเภทวันหยุด *</label>
+          <select id="hol-category" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px;">
+            <option value="วันขึ้นปีใหม่">วันขึ้นปีใหม่</option>
+            <option value="วันสำคัญทางศาสนา/วันสำคัญ">วันสำคัญทางศาสนา หรือ วันสำคัญ</option>
+            <option value="วันหยุดนักขัตฤกษ์">วันหยุดนักขัตฤกษ์</option>
+            <option value="วันหยุดชดเชย">วันหยุดชดเชย</option>
+            <option value="วันหยุดบริษัท">วันหยุดบริษัท</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600;">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label>
+          <textarea id="hol-desc" class="swal2-textarea" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)..." style="margin:4px 0 0; width:100%; height:60px; font-size:12px;"></textarea>
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'บันทึกข้อมูล',
-    cancelButtonText: 'ย้อนกลับ',
-    confirmButtonColor: '#0d9488',
+    confirmButtonText: 'บันทึกวันหยุด',
+    cancelButtonText: 'ยกเลิก',
     preConfirm: () => {
-      const date = document.getElementById('new-holiday-date').value;
-      const name = document.getElementById('new-holiday-name').value.trim();
+      const date = document.getElementById('hol-date').value;
+      const name = document.getElementById('hol-name').value.trim();
+      const category = document.getElementById('hol-category').value;
+      const desc = document.getElementById('hol-desc').value.trim();
+
       if (!date || !name) {
-        Swal.showValidationMessage('⚠️ กรุณาระบุวันที่และชื่อวันหยุดให้ครบถ้วน');
+        Swal.showValidationMessage('กรุณาระบุวันที่และชื่อวันหยุด');
         return false;
       }
-      return { holiday_date: date, holiday_name: name };
+      return { holiday_date: date, holiday_name: name, category: category, description: desc || null };
     }
   });
 
-  if (!formValues) { manageCompanyHolidays(); return; }
-
-  Swal.fire({ title: 'กำลังเพิ่มวันหยุด...', didOpen: () => Swal.showLoading() });
-  
-  // 🔹 เปลี่ยนชื่อตารางตรงนี้
-  const { error } = await supabase.from('holidays').insert([formValues]);
-  if (error) {
-    showAppError('ไม่สามารถบันทึกวันหยุดได้', error.message);
-    manageCompanyHolidays();
-  } else {
-    await saveHRActivityLog('HOLIDAY', 'CREATE', formValues.holiday_name, `เพิ่มวันหยุดบริษัท: ${formValues.holiday_name} (${formValues.holiday_date})`);
-    Swal.fire('สำเร็จ!', 'บันทึกวันหยุดเรียบร้อยแล้ว', 'success').then(() => manageCompanyHolidays());
+  if (formValues) {
+    const { error } = await supabase.from('company_holidays').insert([formValues]);
+    if (error) {
+      showAppError('ไม่สามารถเพิ่มวันหยุดได้', error.message);
+    } else {
+      Swal.fire('สำเร็จ', 'บันทึกวันหยุดเรียบร้อยแล้ว', 'success');
+      manageCompanyHolidays();
+    }
   }
 }
 
-async function actionDeleteHoliday(id, name) {
+async function deleteHoliday(holidayId) {
   const supabase = getSupabase();
-  if (!supabase || !window.Swal) return;
-
   const confirm = await Swal.fire({
-    title: '⚠️ ยืนยันการลบวันหยุด?',
-    html: `คุณต้องการลบวันหยุด "<b>${escapeHtml(name)}</b>" ใช่หรือไม่?`,
+    title: 'ยืนยันลบวันหยุด?',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: 'ลบข้อมูล',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#ef4444'
+    confirmButtonColor: '#dc2626'
   });
 
-  if (!confirm.isConfirmed) { manageCompanyHolidays(); return; }
-
-  // 🔹 เปลี่ยนชื่อตารางตรงนี้
-  const { error } = await supabase.from('holidays').delete().eq('id', id);
-  if (error) {
-    showAppError('ไม่สามารถลบวันหยุดได้', error.message);
-    manageCompanyHolidays();
-  } else {
-    await saveHRActivityLog('HOLIDAY', 'DELETE', name, `ลบวันหยุดบริษัท: ${name}`);
-    Swal.fire('ลบเสร็จสิ้น', 'ลบวันหยุดเรียบร้อยแล้ว', 'success').then(() => manageCompanyHolidays());
+  if (confirm.isConfirmed) {
+    const { error } = await supabase.from('company_holidays').delete().eq('id', holidayId);
+    if (!error) {
+      manageCompanyHolidays();
+    }
   }
 }
-
 
 
 // ==========================================

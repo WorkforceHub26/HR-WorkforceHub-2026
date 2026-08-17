@@ -759,3 +759,120 @@ body, html {
   color: #be123c;
 }
 
+/* ==========================================
+   CSS OVERRIDE FIX
+   ========================================== */
+
+/* 1. จัดโครงสร้าง Layout หลักไม่ให้ดันจอทะลุ */
+.app-shell {
+  display: flex !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  position: relative;
+}
+
+.sidebar-light {
+  width: 260px !important;
+  min-width: 260px !important;
+  height: 100vh !important;
+  position: relative !important; /* เปลี่ยนจาก fixed เป็น relative เพื่อให้อยู่ใน Flex flow */
+  flex-shrink: 0 !important;
+  z-index: 100;
+  background: #ffffff;
+  border-right: 1px solid var(--border, #e2e8f0);
+}
+
+.main-content {
+  flex: 1 !important;
+  margin-left: 0 !important; /* ยกเลิก margin-left เพื่อไม่ให้ดันเนื้อหาหลุดจอ */
+  width: calc(100% - 260px) !important;
+  height: 100vh !important;
+  overflow-y: auto !important;
+  padding: 1.75rem 2.25rem;
+  box-sizing: border-box;
+}
+
+/* 2. แก้ไขการซ่อน Modal ป้องกันการคลิกติด */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden; /* เพิ่มเพื่อไม่ให้บังองค์ประกอบอื่นขณะปิด */
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.modal.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* 3. แก้ไข ตารางและ Sticky Header ให้แสดงผลถูกต้อง */
+.table-wrap, .table-responsive {
+  width: 100%;
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: separate !important; /* ต้องใช้ separate เพื่อให้ sticky header ทำงาน */
+  border-spacing: 0;
+}
+
+.data-table th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10;
+  background-color: #f8fafc !important;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.table-container {
+  width: 100%;
+  max-height: 350px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  margin-top: 10px;
+}
+
+.holidays-table, .audit-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.holidays-table th, .audit-log-table th {
+  background-color: #f8fafc;
+  padding: 0.85rem 1rem;
+  color: var(--text-muted, #64748b);
+  border-bottom: 2px solid var(--border-color, #e2e8f0);
+}
+
+.holidays-table td, .audit-log-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-subtle, #f1f5f9);
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 600;
+}

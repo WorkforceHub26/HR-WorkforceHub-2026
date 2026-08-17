@@ -107,9 +107,9 @@
           <div class="card-btn-group">
             <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()"><span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Excel)</button>
             <button class="action-btn" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
-            <button class="action-btn danger-zone" onclick="resetYearlyLeave()"><span class="material-symbols-outlined">device_reset</span> ล้างโควตาประจำปี</button>
+            <button class="action-btn" onclick="resetYearlyLeave()"><span class="material-symbols-outlined">published_with_changes</span> สร้าง/จัดการโควตาประจำปี</button>
           </div>
-        </div>
+      </div>
       </div>
 
       <!-- SECTION 2: การ์ดสรุปสถิติ (Stat Cards) -->
@@ -153,62 +153,61 @@
         </article>
       </section>
 
-      <!-- SECTION 4: ตารางข้อมูลพนักงาน & ประวัติการลา -->
-      <div class="section-title">
-        <span class="material-symbols-outlined">badge</span>
-        <span>ทำเนียบพนักงานและประวัติการลา</span>
-      </div>
-      <section class="panel">
-        <div class="panel-head">
-          <h2>รายชื่อพนักงาน</h2>
-          <span id="loadStatus" class="status pending">กำลังโหลด</span>
+        <!-- SECTION 4: ตารางข้อมูลพนักงาน & ประวัติการลา -->
+        <div class="section-title">
+          <span class="material-symbols-outlined">badge</span>
+          <span>ทำเนียบพนักงานและประวัติการลา</span>
         </div>
-        
-            <div class="filter-panel">
-              <!-- ช่องค้นหา -->
-                  <div class="custom-search-container">
-                    <!-- ช่องพิมพ์ค้นหา -->
-                    <div class="search-box">
-                      <span class="material-symbols-outlined icon-search">search</span>
-                      <input 
-                        type="text" 
-                        id="empSearchInput" 
-                        class="search-input" 
-                        placeholder="ค้นหาชื่อ, รหัสพนักงาน หรือแผนก..."
-                        autocomplete="off"
-                      />
-                    </div>
-
-                    <!-- กล่องแสดงรายการที่จะเด้งออกมา (คลีน นุ่มตา ไม่ดำแน่นอน) -->
-                    <div id="customDropdown" class="custom-dropdown-list hidden"></div>
-                  </div>
-
-              <!-- ตัวกรองแผนก -->
-              <select id="deptFilter" class="select-input" onchange="renderEmployeeTable()">
-                <option value="">ทุกแผนก</option>
-              </select>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>รายชื่อพนักงาน</h2>
+            <span id="loadStatus" class="status pending">กำลังโหลด</span>
+          </div>
+          
+          <div class="filter-panel" style="display: flex; gap: 12px; width: 100%; margin-bottom: 16px;">
+            <!-- ช่องค้นหาขยายเต็มพื้นที่ (Flex: 1) และเพิ่ม oninput -->
+            <div class="custom-search-container" style="flex: 1; width: 100%;">
+              <div class="search-box" style="display: flex; align-items: center; width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 12px;">
+                <span class="material-symbols-outlined icon-search" style="color: #64748b; margin-right: 8px;">search</span>
+                <input 
+                  type="text" 
+                  id="empSearchInput" 
+                  class="search-input" 
+                  placeholder="ค้นหาชื่อ-นามสกุล, รหัสพนักงาน หรือตำแหน่ง..."
+                  oninput="renderEmployeeTable()"
+                  autocomplete="off"
+                  style="width: 100%; border: none; outline: none; padding: 8px 0; font-size: 14px;"
+                />
+              </div>
+              <div id="customDropdown" class="custom-dropdown-list hidden"></div>
             </div>
 
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th style="width: 50px;">รูป</th>
-                <th style="width: 100px;">รหัส</th>
-                <th>ชื่อ-นามสกุล</th>
-                <th>ตำแหน่ง</th>
-                <th>แผนก</th>
-                <th style="width: 110px;">วันเริ่มงาน</th>
-                <th style="width: 90px;">สถานะ</th>
-                <th style="width: 110px; text-align: center;">รายละเอียด</th>
-              </tr>
-            </thead>
-            <tbody id="employeeTableBody">
-              <tr><td colspan="8" class="empty">กำลังโหลดข้อมูล...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+            <!-- ตัวกรองแผนก -->
+            <select id="deptFilter" class="select-input" onchange="renderEmployeeTable()" style="min-width: 180px; height: 42px;">
+              <option value="">ทุกแผนก</option>
+            </select>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">รูป</th>
+                  <th style="width: 100px;">รหัส</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>ตำแหน่ง</th>
+                  <th>แผนก</th>
+                  <th style="width: 110px;">วันเริ่มงาน</th>
+                  <th style="width: 90px;">สถานะ</th>
+                  <th style="width: 110px; text-align: center;">รายละเอียด</th>
+                </tr>
+              </thead>
+              <tbody id="employeeTableBody">
+                <tr><td colspan="8" class="empty">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
     </main>
   </div>
@@ -232,6 +231,7 @@
   </div>
 
   <!-- External Libraries & Scripts -->
+   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>

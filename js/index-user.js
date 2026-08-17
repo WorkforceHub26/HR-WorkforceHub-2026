@@ -30,6 +30,7 @@ if (typeof window.remainingDays === 'undefined') {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("📌 [LIFECYCLE] โครงสร้าง HTML โหลดเสร็จแล้ว กำลังเรียกฟังก์ชัน initUserHome()");
   initUserHome();
+  initQuotaSystem(); // 👈 เพิ่มบรรทัดนี้เพื่อสร้างรายการปีตอนโหลดหน้าเว็บ
 });
 
 /* ==========================================================================
@@ -892,11 +893,11 @@ function checkUserNotifications() {
   }
 }
 
-let currentSelectedYear = new Date().getFullYear();
-
-// Initialize: สร้าง ตัวเลือกปี (ปีนี้ + ปีหน้า) และโหลดข้อมูล
+// 🟢 1. สร้างรายการปีใน Dropdown และเริ่มโหลดข้อมูล
 function initQuotaSystem() {
   const yearSelect = document.getElementById('yearFilter');
+  if (!yearSelect) return;
+
   const now = new Date().getFullYear();
   
   yearSelect.innerHTML = `
@@ -904,57 +905,76 @@ function initQuotaSystem() {
     <option value="${now + 1}">ปี ${now + 1 + 543} (ล่วงหน้า)</option>
   `;
   
-  loadQuotaData(currentSelectedYear);
+  // ใช้ตัวแปร currentSelectedYear ที่ประกาศไว้ส่วนบนของไฟล์ได้ทันที
+  loadQuotaData(typeof currentSelectedYear !== 'undefined' ? currentSelectedYear : now);
 }
 
+// 🟢 2. ฟังก์ชันทำงานเมื่อมีการเปลี่ยนปีที่เลือก
 async function handleYearChange(year) {
-  currentSelectedYear = parseInt(year);
+  currentSelectedYear = parseInt(year, 10); // กำหนดค่าใหม่โดยไม่ต้องใช้คำว่า let ด้านหน้า
   await loadQuotaData(currentSelectedYear);
 }
 
+// 🟢 3. ดึงข้อมูลโควตาวันลาจาก Supabase ตามปีที่เลือก
 async function loadQuotaData(targetYear) {
-  const userId = (await supabase.auth.getUser()).data.user?.id;
+  const sb = window.pvtSupabase?.getClient();
+  const employeeId = window.currentProfile?.employee_id || window.currentProfile?.id;
 
-  // คิวรีโควตาแยกตามปีที่เลือก
-  const { data: quotas, error } = await supabase
-    .from('leave_balances')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('year', targetYear);
-
-  if (error) {
-    console.error('Error fetching quotas:', error);
+  if (!sb || !employeeId) {
+    console.warn("⚠️ [QUOTA] ไม่พบ Supabase Client หรือ Employee ID");
     return;
   }
 
-  renderQuotaCards(quotas || []);
+  try {
+    const { data: quotas, error } = await sb
+      .from('leave_balances')
+      .select('*, leave_types(leave_name)')
+      .eq('employee_id', employeeId)
+      .eq('year', targetYear);
+
+    if (error) {
+      console.error('❌ ดึงข้อมูลโควตาล้มเหลว:', error.message);
+      return;
+    }
+
+    renderQuotaCards(quotas || []);
+  } catch (err) {
+    console.error('❌ เกิดข้อผิดพลาดใน loadQuotaData:', err);
+  }
 }
 
+// 🟢 4. วาดการ์ดโควตาวันลาลงหน้าจอ
 function renderQuotaCards(quotas) {
   const container = document.getElementById('leaveBalancesContainer');
+  if (!container) return;
   
   if (!quotas || quotas.length === 0) {
-    container.innerHTML = `<span class="empty-state">ไม่พบข้อมูลสิทธิ์วันลาสำหรับปีนี้</span>`;
+    container.innerHTML = `<span class="empty-state" style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 20px 0;">ไม่พบข้อมูลสิทธิ์วันลาสำหรับปีนี้</span>`;
     return;
   }
 
   container.innerHTML = quotas.map(item => {
-    const total = item.total_days || 0;
-    const used = item.used_days || 0;
-    const pending = item.pending_days || 0;
-    const remaining = total - used;
+    const typeName = item.leave_types?.leave_name || item.leave_type_name || "สิทธิ์การลา";
+    const total = parseFloat(item.total_days) || parseFloat(item.quota_days) || 0;
+    const used = parseFloat(item.used_days) || 0;
+    const pending = parseFloat(item.pending_days) || 0;
+    const remaining = parseFloat(item.remaining_days) ?? (total - used);
     const usedPercent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
 
+    let colorClass = "";
+    if (typeName.includes("ป่วย")) colorClass = "sick";
+    else if (typeName.includes("กิจ")) colorClass = "personal";
+    else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
+
     return `
-      <div class="leave-quota-card vacation">
-        <span class="leave-quota-name">${item.leave_type_name}</span>
+      <div class="leave-quota-card ${colorClass}">
+        <span class="leave-quota-name">${typeName}</span>
         <div class="leave-quota-days">
           ${remaining} <small>/ ${total} วัน</small>
         </div>
 
         ${pending > 0 ? `<span class="quota-pending-tag">⏳ รออนุมัติ ${pending} วัน</span>` : ''}
 
-        <!-- Progress Bar -->
         <div class="quota-progress-bg">
           <div class="quota-progress-fill" style="width: ${usedPercent}%"></div>
         </div>
