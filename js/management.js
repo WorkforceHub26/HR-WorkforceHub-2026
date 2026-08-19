@@ -106,10 +106,10 @@ async function getCurrentProfile(userId) {
   }
 
   try {
-    const supabase = getSupabase();
+    const sb = getClient();
+    if (!sb) return null;
     
-    // 💡 ใช้ departments(*) และ positions(*) ดึงมาทุกคอลัมน์เพื่อป้องกันปัญหา Column ไม่ตรง
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('employees')
       .select(`
         *,
@@ -268,14 +268,12 @@ function handleLogout() {
     }).then((result) => {
       if (result.isConfirmed) {
         localStorage.clear();
-        localStorage.clear();
-        window.location.href = '/pages/index.html';
+        window.location.href = 'index.html';
       }
     });
   } else {
     localStorage.clear();
-    localStorage.clear();
-    window.location.href = '/pages/index.html';
+    window.location.href = 'index.html';
   }
 }
 
@@ -336,7 +334,7 @@ async function initManagementSystem() {
     }
 
     if (!profile) {
-      window.location.href = '/pages/index.html';
+      window.location.href = 'index.html';
       return false;
     }
 
@@ -445,73 +443,6 @@ async function viewAuditLogs() {
     if (error) throw error;
 
     let logTableHTML = `
-      <div class="table-container">
-        <table class="audit-log-table">
-          <thead>
-            <tr>
-              <th>เวลา</th>
-              <th>โมดูล</th>
-              <th>การกระทำ</th>
-              <th>รายละเอียด</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    if (!logs || logs.length === 0) {
-      logTableHTML += `<tr><td colspan="4" class="text-center">ไม่พบประวัติการแก้ไขระบบ</td></tr>`;
-    } else {
-      logs.forEach(l => {
-        const timeStr = new Date(l.created_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
-        logTableHTML += `
-          <tr>
-            <td>${timeStr}</td>
-            <td><b>${escapeHtml(l.action_category || 'System')}</b></td>
-            <td><span class="badge">${escapeHtml(l.action_type || '-')}</span></td>
-            <td>${escapeHtml(l.description || '-')}</td>
-          </tr>
-        `;
-      });
-    }
-
-    logTableHTML += `</tbody></table></div>`;
-
-    if (window.Swal) {
-      Swal.fire({
-        title: '📜 ประวัติการแก้ไขระบบ (Audit Logs)',
-        html: logTableHTML,
-        width: 'min(92vw, 750px)',
-        confirmButtonText: 'ปิดหน้าต่าง',
-        confirmButtonColor: '#0d9488'
-      });
-    }
-
-  } catch (err) {
-    showAppError("ไม่สามารถดึงประวัติ Audit Log ได้", err.message);
-  }
-}
-
-async function viewAuditLogs() {
-  const supabase = getSupabase();
-  if (!supabase) {
-    showAppError("ข้อผิดพลาด", "ไม่สามารถเชื่อมต่อฐานข้อมูลเพื่อดึงประวัติได้");
-    return;
-  }
-
-  try {
-    if (window.Swal) {
-      Swal.fire({ title: 'กำลังโหลดประวัติการปรับปรุงระบบ...', didOpen: () => Swal.showLoading() });
-    }
-
-    const { data: logs, error } = await supabase
-      .from('hr_activity_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) throw error;
-
-    let logTableHTML = `
       <div style="max-height: 400px; overflow-y: auto; font-family:'Sarabun', sans-serif; text-align:left; font-size:12px;">
         <table style="width:100%; border-collapse:collapse;">
           <thead>
@@ -533,9 +464,9 @@ async function viewAuditLogs() {
         logTableHTML += `
           <tr style="border-bottom:1px solid #e2e8f0;">
             <td style="padding:6px; border:1px solid #cbd5e1; white-space:nowrap;">${timeStr}</td>
-            <td style="padding:6px; border:1px solid #cbd5e1;"><b>${escapeHtml(l.module || 'System')}</b></td>
-            <td style="padding:6px; border:1px solid #cbd5e1;"><span style="background:#e2e8f0; padding:2px 4px; border-radius:4px;">${escapeHtml(l.action || '-')}</span></td>
-            <td style="padding:6px; border:1px solid #cbd5e1;">${escapeHtml(l.details || '-')}</td>
+            <td style="padding:6px; border:1px solid #cbd5e1;"><b>${escapeHtml(l.action_category || 'System')}</b></td>
+            <td style="padding:6px; border:1px solid #cbd5e1;"><span style="background:#e2e8f0; padding:2px 4px; border-radius:4px;">${escapeHtml(l.action_type || '-')}</span></td>
+            <td style="padding:6px; border:1px solid #cbd5e1;">${escapeHtml(l.description || '-')}</td>
           </tr>
         `;
       });
@@ -2431,69 +2362,62 @@ async function openAddHolidayModal() {
     html: `
       <div style="text-align: left; display: flex; flex-direction: column; gap: 12px; font-family: 'Sarabun', sans-serif;">
         <div>
-          <label style="font-size: 13px; font-weight: 600; color: #334155;">วันที่วันหยุด <span style="color:red">*</span></label>
-          <input type="date" id="swal-holiday-date" class="swal2-input" style="width: 100%; margin: 4px 0 0 0; font-size: 14px;">
+          <label style="font-size: 13px; font-weight: 600;">ชื่อวันหยุด *</label>
+          <input id="swal-holiday-name" class="swal2-input" placeholder="เช่น วันขึ้นปีใหม่" style="margin: 4px 0 0; width: 100%; height: 38px;">
         </div>
         <div>
-          <label style="font-size: 13px; font-weight: 600; color: #334155;">ชื่อวันหยุด <span style="color:red">*</span></label>
-          <input type="text" id="swal-holiday-name" class="swal2-input" placeholder="เช่น วันสงกรานต์" style="width: 100%; margin: 4px 0 0 0; font-size: 14px;">
+          <label style="font-size: 13px; font-weight: 600;">วันที่ *</label>
+          <input type="date" id="swal-holiday-date" class="swal2-input" style="margin: 4px 0 0; width: 100%; height: 38px;">
         </div>
         <div>
-          <label style="font-size: 13px; font-weight: 600; color: #334155;">ประเภทวันหยุด</label>
-          <select id="swal-holiday-type" class="swal2-select" style="width: 100%; margin: 4px 0 0 0; height: 42px; border-radius: 8px; font-size: 14px;">
+          <label style="font-size: 13px; font-weight: 600;">ประเภทวันหยุด *</label>
+          <select id="swal-holiday-type" class="swal2-select" style="margin: 4px 0 0; width: 100%; height: 38px;">
             <option value="public_holiday">วันหยุดนักขัตฤกษ์</option>
             <option value="company_holiday">วันหยุดพิเศษบริษัท</option>
             <option value="tradition_holiday">วันหยุดตามประเพณี</option>
           </select>
         </div>
         <div>
-          <label style="font-size: 13px; font-weight: 600; color: #334155;">รายละเอียดเพิ่มเติม</label>
-          <textarea id="swal-holiday-desc" class="swal2-textarea" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)" style="width: 100%; margin: 4px 0 0 0; height: 70px; font-size: 14px;"></textarea>
+          <label style="font-size: 13px; font-weight: 600;">รายละเอียดเพิ่มเติม</label>
+          <textarea id="swal-holiday-desc" class="swal2-textarea" placeholder="รายละเอียดวันหยุด..." style="margin: 4px 0 0; width: 100%; height: 60px; font-size: 13px;"></textarea>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-          <input type="checkbox" id="swal-holiday-paid" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
-          <label for="swal-holiday-paid" style="font-size: 13px; font-weight: 500; cursor: pointer;">เป็นวันหยุดที่ได้รับค่าจ้าง (Paid Holiday)</label>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="swal-holiday-paid" checked style="width: 16px; height: 16px; cursor: pointer;">
+          <label for="swal-holiday-paid" style="font-size: 13px; font-weight: 600; cursor: pointer;">ได้รับค่าจ้าง (Paid Leave)</label>
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'บันทึกวันหยุด',
+    confirmButtonText: '💾 บันทึกวันหยุด',
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#0d9488',
-    focusConfirm: false,
     preConfirm: () => {
-      const date = document.getElementById('swal-holiday-date').value;
       const name = document.getElementById('swal-holiday-name').value.trim();
+      const date = document.getElementById('swal-holiday-date').value;
       const type = document.getElementById('swal-holiday-type').value;
       const desc = document.getElementById('swal-holiday-desc').value.trim();
       const isPaid = document.getElementById('swal-holiday-paid').checked;
 
-      if (!date || !name) {
-        Swal.showValidationMessage('กรุณากรอกวันที่และชื่อวันหยุดให้ครบถ้วน');
+      if (!name || !date) {
+        Swal.showValidationMessage('⚠️ กรุณากรอกชื่อวันหยุดและเลือกวันที่ให้ครบถ้วน');
         return false;
       }
-      return {
-        holiday_date: date,
-        holiday_name: name,
-        holiday_type: type,
-        description: desc,
-        is_paid: isPaid
-      };
+      return { holiday_name: name, holiday_date: date, holiday_type: type, description: desc, is_paid: isPaid };
     }
   });
 
   if (formValues) {
-    const sb = getSupabase();
-    const { error } = await sb.from('holidays').insert([formValues]);
+    try {
+      const supabase = getSupabase();
+      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', didOpen: () => Swal.showLoading() });
+      const { error } = await supabase.from('holidays').insert([formValues]);
+      if (error) throw error;
 
-    if (error) {
-      showAppError('เพิ่มวันหยุดไม่สำเร็จ', error.message);
-    } else {
-      if (typeof saveHRActivityLog === 'function') {
-        saveHRActivityLog('วันหยุดบริษัท', 'เพิ่มวันหยุด', formValues.holiday_name, `วันที่ ${formValues.holiday_date}`); //
-      }
-      Swal.fire({ icon: 'success', title: 'เพิ่มวันหยุดเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
-      openHolidayManagerModal(); // รีโหลด Popup ตารางหลัก
+      await saveHRActivityLog('HOLIDAY', 'INSERT', formValues.holiday_name, `เพิ่มวันหยุดบริษัท: ${formValues.holiday_name} (${formValues.holiday_date})`);
+      Swal.fire('สำเร็จ!', 'บันทึกวันหยุดเรียบร้อยแล้ว', 'success');
+      openHolidayManagerModal();
+    } catch (err) {
+      showAppError('ไม่สามารถเพิ่มวันหยุดได้', err.message);
     }
   }
 }

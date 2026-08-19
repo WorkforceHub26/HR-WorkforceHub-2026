@@ -465,7 +465,7 @@ window.goToContactHR = function() { window.location.href = "/pages/user/contact-
 window.logout = function() { 
   console.log("👋 [LOGOUT] กำลังออกจากระบบและล้าง Session...");
   localStorage.removeItem("currentUser"); 
-  window.location.href = "/pages/index.html"; 
+  window.location.href = "index.html"; 
 };
 
 /* ==========================================================================

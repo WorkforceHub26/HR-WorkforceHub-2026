@@ -156,23 +156,40 @@ window.refreshDashboardData = async function() {
 /* ==========================================================================
    5. 📊 CHARTS & TOP LEAVE TAKERS (FIXED STATUS FILTER)
    ========================================================================== */
+// ประกาศตัวแปร Global สำหรับเก็บ Chart Instance (ป้องกัน ReferenceError)
+if (typeof window.chartTypeInstance === "undefined") window.chartTypeInstance = null;
+if (typeof window.chartDeptInstance === "undefined") window.chartDeptInstance = null;
+
 function drawCharts() {
-  if (typeof Chart === "undefined") return;
+  // 1. ตรวจสอบว่ามีไลบรารี Chart.js หรือไม่
+  if (typeof Chart === "undefined") {
+    console.warn("⚠️ Chart.js library not loaded");
+    return;
+  }
+
+  // 2. ป้องกัน TypeError กรณี rawRequests ยังไม่ถูกประกาศ หรือส่งมาเป็น null/undefined
+  const safeRequests = Array.isArray(typeof rawRequests !== "undefined" ? rawRequests : null)
+    ? rawRequests
+    : [];
 
   const canvasType = document.getElementById("chartLeaveTypes");
   const canvasDept = document.getElementById("chartDepartments");
 
-  // 🟢 กรองเฉพาะรายการที่ "อนุมัติแล้ว" เท่านั้น (ตัด 'rejected', 'cancelled', 'รออนุมัติ' ออก)
-  const approvedRequests = rawRequests.filter(r => r && (r.status === "approved" || r.status === "อนุมัติ"));
+  // 🟢 กรองเฉพาะรายการที่ "อนุมัติแล้ว" (รองรับทั้งภาษาไทยและภาษาอังกฤษ)
+  const approvedRequests = safeRequests.filter(r => {
+    if (!r || !r.status) return false;
+    const st = String(r.status).trim().toLowerCase();
+    return st === "approved" || st === "อนุมัติ";
+  });
+
+  const hasData = approvedRequests.length > 0;
 
   // --- 1. กราฟสัดส่วนประเภทการลา ---
   if (canvasType) {
     const typeSummary = {};
     let totalCount = 0;
 
-    // ใช้ approvedRequests คำนวณ เพื่อไม่ให้นับรายการที่ยกเลิก/ปฏิเสธ
     approvedRequests.forEach(r => {
-      if (!r) return;
       const typeName = r.leave_types?.leave_name || r.leave_type_name || "อื่น ๆ";
       typeSummary[typeName] = (typeSummary[typeName] || 0) + 1;
       totalCount++;
@@ -187,16 +204,22 @@ function drawCharts() {
     const typeLabels = Object.keys(typeSummary);
     const typeValues = Object.values(typeSummary);
     const colorPalette = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
+    const bgColors = typeLabels.map((_, i) => colorPalette[i % colorPalette.length]);
 
-    if (chartTypeInstance) chartTypeInstance.destroy();
+    // เคลียร์กราฟเก่า
+    if (window.chartTypeInstance) {
+      window.chartTypeInstance.destroy();
+      window.chartTypeInstance = null;
+    }
 
-    chartTypeInstance = new Chart(canvasType.getContext("2d"), {
+    // วาดกราฟใหม่
+    window.chartTypeInstance = new Chart(canvasType.getContext("2d"), {
       type: 'doughnut',
       data: {
-        labels: typeLabels.length ? typeLabels : ["ไม่มีข้อมูล"],
+        labels: hasData ? typeLabels : ["ไม่มีข้อมูล"],
         datasets: [{
-          data: typeValues.length ? typeValues : [1],
-          backgroundColor: typeValues.length ? colorPalette.slice(0, typeLabels.length) : ['#e2e8f0'],
+          data: hasData ? typeValues : [1],
+          backgroundColor: hasData ? bgColors : ['#e2e8f0'],
           borderWidth: 2,
           borderColor: '#ffffff',
           hoverOffset: 4
@@ -208,7 +231,7 @@ function drawCharts() {
         plugins: {
           legend: { display: false },
           tooltip: {
-            enabled: typeValues.length > 0,
+            enabled: hasData,
             callbacks: {
               label: function(context) {
                 const val = context.raw || 0;
@@ -222,7 +245,9 @@ function drawCharts() {
       }
     });
 
-    renderLeaveBreakdownList(typeSummary, totalCount, colorPalette);
+    if (typeof renderLeaveBreakdownList === "function") {
+      renderLeaveBreakdownList(typeSummary, totalCount, colorPalette);
+    }
   }
 
   // --- 2. กราฟสถิติจำนวนวันลาแยกตามแผนก ---
@@ -230,16 +255,29 @@ function drawCharts() {
     const deptSummary = {};
 
     approvedRequests.forEach(r => {
-      const deptName = r.employees?.departments?.department_name || r.department || "ไม่ระบุแผนก";
-      const days = parseFloat(r.total_days || r.days || 1);
+      // ดึงชื่อแผนกโดยรองรับทั้ง Object และ Array จาก Supabase Relation
+      const deptObj = r.employees?.departments;
+      const deptName = (Array.isArray(deptObj) ? deptObj[0]?.department_name : deptObj?.department_name)
+        || r.department
+        || "ไม่ระบุแผนก";
+
+      const rawDays = r.total_days ?? r.days ?? 1;
+      const days = parseFloat(rawDays) || 0;
+
       deptSummary[deptName] = (deptSummary[deptName] || 0) + days;
     });
 
-    const deptLabels = Object.keys(deptSummary).length ? Object.keys(deptSummary) : ["ไม่มีข้อมูล"];
-    const deptValues = Object.keys(deptSummary).length ? Object.values(deptSummary) : [0];
+    const deptLabels = hasData ? Object.keys(deptSummary) : ["ไม่มีข้อมูล"];
+    const deptValues = hasData ? Object.values(deptSummary) : [0];
 
-    if (chartDeptInstance) chartDeptInstance.destroy();
-    chartDeptInstance = new Chart(canvasDept.getContext("2d"), {
+    // เคลียร์กราฟเก่า
+    if (window.chartDeptInstance) {
+      window.chartDeptInstance.destroy();
+      window.chartDeptInstance = null;
+    }
+
+    // วาดกราฟใหม่
+    window.chartDeptInstance = new Chart(canvasDept.getContext("2d"), {
       type: 'bar',
       data: {
         labels: deptLabels,
@@ -258,6 +296,7 @@ function drawCharts() {
         plugins: {
           legend: { display: false },
           tooltip: {
+            enabled: hasData,
             callbacks: {
               label: function(context) {
                 return ` รวมวันลา: ${context.raw} วัน`;
@@ -285,7 +324,9 @@ function drawCharts() {
   }
 
   // --- 3. อันดับพนักงานที่ลาเยอะที่สุด ---
-  renderTopLeaveEmployees(approvedRequests);
+  if (typeof renderTopLeaveEmployees === "function") {
+    renderTopLeaveEmployees(approvedRequests);
+  }
 }
 
 function renderLeaveBreakdownList(typeSummary, totalCount, colors) {
@@ -492,7 +533,7 @@ const PVT_CARD_CONFIG = {
   // หากพัฒนาบน localhost จะสลับไปใช้ Domain จริงให้อัตโนมัติ เพื่อให้โทรศัพท์สแกนได้
   PRODUCTION_DOMAIN: "https://dev-workforcehub-2026.pages.dev",
   // ระบุไฟล์ปลายทางให้ชัดเจนเพื่อป้องกันปัญหา Blank Page (หน้าขาว)
-  ENTRY_PAGE_PATH: "/pages/index.html", 
+  ENTRY_PAGE_PATH: "index.html", 
   QR_SIZE: "180x180"
 };
 
@@ -1280,7 +1321,7 @@ window.handleLogout = function() {
       setTimeout(() => {
         localStorage.clear();
         localStorage.clear();
-        window.location.href = "/pages/index.html";
+        window.location.href = "/index.html";
       }, 1200);
     }
   });

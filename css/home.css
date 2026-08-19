@@ -902,6 +902,7 @@ input[type="file"]:hover {
   width: 360px;
   background: var(--card);
   border: 1px solid var(--border);
+  max-width: calc(100vw - 32px);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   z-index: 1000;
