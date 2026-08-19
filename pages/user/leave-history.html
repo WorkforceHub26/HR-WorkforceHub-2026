@@ -6,28 +6,33 @@
   <title>ประวัติการลา | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="/css/leave-history.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- 🟢 SweetAlert2 สำหรับ Pop-up ยืนยันการยกเลิก -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-  <!-- 👑 Glass Header -->
-  <header class="user-header">
-    <div class="brand-row">
-      <img src="/assets/icons/logo-pvt.png" alt="PVT" id="user-avatar" />
-      <div>
-        <div class="hello">PVT WORKFORCE HUB</div>
-        <h1 id="emp-name">ประวัติการลาของฉัน</h1>
-        <span id="emp-detail">กำลังโหลดข้อมูลพนักงาน...</span>
-      </div>
-    </div>
-    <div class="history-actions">
-      <button class="btn-back-home" onclick="history.back()">
-        <span class="material-symbols-outlined">arrow_back</span> ย้อนกลับ
-      </button>
-    </div>
-  </header>
+      <!-- 👑 Glass Header -->
+        <header class="user-header">
+          <div class="brand-row">
+            <!-- รูปโปรไฟล์พนักงาน (กำหนด fallback รูปเริ่มต้นไว้) -->
+            <img src="/assets/img/default-avatar.jpg" alt="PVT Avatar" id="user-avatar" class="avatar-img" />
+            <div>
+              <div class="hello">PVT WORKFORCE HUB</div>
+              <h1 class="page-title">ประวัติการลาของฉัน</h1>
+              <div class="emp-meta">
+                <strong id="emp-name">กำลังโหลดชื่อ...</strong>
+                <span id="emp-detail">กำลังโหลดข้อมูลพนักงาน...</span>
+              </div>
+            </div>
+          </div>
+          <div class="history-actions">
+            <button class="btn-back-home" onclick="history.back()">
+              <span class="material-symbols-outlined">arrow_back</span> ย้อนกลับ
+            </button>
+          </div>
+        </header>
 
   <main class="panel">
     <!-- 📊 Summary Stats Container -->

@@ -174,14 +174,15 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
-  function statusLabel(status) {
-    return {
-      pending: "รออนุมัติ",
-      approved: "อนุมัติแล้ว",
-      rejected: "ไม่อนุมัติ",
-      cancelled: "ยกเลิก",
-    }[status] || status || "-";
-  }
+function statusLabel(status) {
+  return {
+    pending: "รออนุมัติ",
+    approved: "อนุมัติแล้ว",
+    rejected: "ไม่อนุมัติ",
+    cancelled: "ยกเลิกแล้ว",
+    cancel_requested: "รออนุมัติยกเลิก", // 👈 เพิ่มบรรทัดนี้
+  }[status] || status || "-";
+}
 
 function getAvatarUrl(imageUrl) {
   if (!imageUrl || imageUrl === "null" || imageUrl === "undefined") {
@@ -2297,141 +2298,356 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
   }
 }
 
-// ==========================================
-// 9. COMPANY HOLIDAYS MANAGEMENT (FULL & FIXED)
-// ==========================================
-// ==========================================
-// 1. HOLIDAYS MANAGEMENT (ใช้ CSS Class เดียวกับระบบ)
-// ==========================================
-async function manageCompanyHolidays() {
-  const supabase = getSupabase();
-  if (!supabase || !window.Swal) return;
+// =========================================================================
+// 📅 หมวดหมู่ระบบจัดการวันหยุดบริษัท (COMPANY HOLIDAYS MANAGEMENT MODULE)
+// =========================================================================
+
+// ตัวแปรเก็บแคชรายการวันหยุด
+let companyHolidaysCache = [];
+
+/**
+ * 1. ดึงข้อมูลวันหยุดจาก Supabase
+ */
+async function fetchCompanyHolidaysData() {
+  const sb = getSupabase(); // เรียกใช้ฟังก์ชันเชื่อมต่อ Supabase ในระบบ
+  if (!sb) return [];
 
   try {
-    Swal.fire({ title: 'กำลังโหลดปฏิทินวันหยุด...', didOpen: () => Swal.showLoading() });
-    const { data: holidays, error } = await supabase
+    const { data, error } = await sb
       .from('holidays')
       .select('*')
       .order('holiday_date', { ascending: true });
 
     if (error) throw error;
-    Swal.close();
-
-    let holidayRowsHTML = holidays && holidays.length > 0 ? holidays.map(h => `
-      <tr>
-        <td>${window.pvtSupabase?.formatThaiDate(h.holiday_date)}</td>
-        <td><b>${escapeHtml(h.holiday_name)}</b></td>
-        <td><span class="status active">${escapeHtml(h.category || 'วันหยุดบริษัท')}</span></td>
-        <td>${escapeHtml(h.description || '-')}</td>
-      </tr>
-    `).join('') : `<tr><td colspan="4" class="empty">ไม่พบข้อมูลวันหยุด</td></tr>`;
-
-    Swal.fire({
-      title: '📅 จัดการวันหยุดบริษัท',
-      html: `
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>วันที่</th>
-                <th>ชื่อวันหยุด</th>
-                <th>ประเภท</th>
-                <th>รายละเอียด</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${holidayRowsHTML}
-            </tbody>
-          </table>
-        </div>
-      `,
-      width: 'min(92vw, 720px)',
-      confirmButtonText: 'ปิดหน้าต่าง',
-      confirmButtonColor: '#0d9488'
-    });
+    companyHolidaysCache = data || [];
+    return companyHolidaysCache;
   } catch (err) {
-    showAppError("ไม่สามารถดึงข้อมูลวันหยุดได้", err.message);
+    console.error("Fetch Company Holidays Error:", err);
+    showAppError("โหลดข้อมูลวันหยุดไม่สำเร็จ", err.message); //
+    return [];
   }
 }
 
-// ฟังก์ชันเพิ่มวันหยุดใหม่พร้อมประเภทและรายละเอียด
-async function addNewHolidayModal() {
-  const supabase = getSupabase();
-  const { value: formValues } = await Swal.fire({
-    title: '➕ เพิ่มวันหยุดบริษัทใหม่',
+/**
+ * 2. ฟังก์ชันหลัก: เปิดหน้าต่าง (Modal) จัดการวันหยุดทั้งหมด
+ * (สร้าง UI ตาราง และปุ่มต่าง ๆ ไดนามิกจาก JS โดยไม่ต้องเขียน HTML รอตารางไว้)
+ */
+async function openHolidayManagerModal() {
+  if (!window.Swal) return;
+
+  Swal.fire({
+    title: '⏳ กำลังโหลดข้อมูลวันหยุด...',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  const holidays = await fetchCompanyHolidaysData();
+
+  const typeMap = {
+    public_holiday: { label: 'วันหยุดนักขัตฤกษ์', style: 'background:#ccfbf1; color:#0f766e;' },
+    company_holiday: { label: 'วันหยุดพิเศษบริษัท', style: 'background:#e0e7ff; color:#3730a3;' },
+    tradition_holiday: { label: 'วันหยุดตามประเพณี', style: 'background:#fef3c7; color:#92400e;' }
+  };
+
+  const rowsHtml = holidays.length === 0
+    ? `<tr><td colspan="5" style="text-align:center; padding: 24px; color: #94a3b8;">ไม่พบรายการวันหยุดบริษัท</td></tr>`
+    : holidays.map(h => {
+        const typeInfo = typeMap[h.holiday_type] || { label: h.holiday_type || 'วันหยุดทั่วไป', style: 'background:#f1f5f9; color:#475569;' };
+        const formattedDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(h.holiday_date) : h.holiday_date; //
+
+        return `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 10px; font-weight: 600; color: #334155; white-space: nowrap;">${formattedDate}</td>
+            <td style="padding: 10px; text-align: left;">
+              <div style="font-weight: 600; color: #0f172a;">${escapeHtml(h.holiday_name)}</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">${escapeHtml(h.description || '-')}</div>
+            </td>
+            <td style="padding: 10px;">
+              <span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; ${typeInfo.style}">
+                ${typeInfo.label}
+              </span>
+            </td>
+            <td style="padding: 10px; text-align: center; white-space: nowrap;">
+              <span style="padding: 3px 8px; border-radius: 4px; font-size: 11px; background: ${h.is_paid !== false ? '#dcfce7' : '#f1f5f9'}; color: ${h.is_paid !== false ? '#15803d' : '#64748b'}; font-weight: 600;">
+                ${h.is_paid !== false ? 'ได้รับค่าจ้าง' : 'ไม่ได้รับค่าจ้าง'}
+              </span>
+            </td>
+            <td style="padding: 10px; text-align: center; white-space: nowrap;">
+              <button onclick="openEditHolidayModal(${h.id})" style="background:#f8fafc; color:#0284c7; border:1px solid #bae6fd; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px; margin-right:4px;">
+                ✏️ แก้ไข
+              </button>
+                <button onclick="deleteHoliday('${h.id}')" style="background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px;">
+                  🗑️ ลบ
+                </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+  Swal.fire({
+    title: '📅 จัดการวันหยุดบริษัท',
+    width: 'min(94vw, 850px)',
     html: `
-      <div style="text-align:left; font-family:'Sarabun', sans-serif; display:flex; flex-direction:column; gap:10px;">
+      <div style="font-family: 'Sarabun', sans-serif;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <span style="font-size: 13px; color: #64748b;">รายการวันหยุดทั้งหมดประจำปี</span>
+          <button onclick="openAddHolidayModal()" style="display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: #0d9488; color: #fff; border: none; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer;">
+            ➕ เพิ่มวันหยุดใหม่
+          </button>
+        </div>
+
+        <div style="max-height: 420px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+            <thead style="position: sticky; top: 0; background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+              <tr>
+                <th style="padding: 10px;">วันที่</th>
+                <th style="padding: 10px;">ชื่อวันหยุด & รายละเอียด</th>
+                <th style="padding: 10px;">ประเภท</th>
+                <th style="padding: 10px; text-align: center;">สิทธิ์ค่าจ้าง</th>
+                <th style="padding: 10px; text-align: center;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `,
+    showConfirmButton: false,
+    showCloseButton: true
+  });
+}
+
+/**
+ * 3. เปิด Modal สำหรับ "เพิ่มวันหยุดใหม่"
+ */
+async function openAddHolidayModal() {
+  if (!window.Swal) return;
+
+  const { value: formValues } = await Swal.fire({
+    title: '➕ เพิ่มวันหยุดบริษัท',
+    width: 'min(92vw, 480px)',
+    html: `
+      <div style="text-align: left; display: flex; flex-direction: column; gap: 12px; font-family: 'Sarabun', sans-serif;">
         <div>
-          <label style="font-size:12px; font-weight:600;">วันที่หยุด *</label>
-          <input type="date" id="hol-date" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px;">
+          <label style="font-size: 13px; font-weight: 600; color: #334155;">วันที่วันหยุด <span style="color:red">*</span></label>
+          <input type="date" id="swal-holiday-date" class="swal2-input" style="width: 100%; margin: 4px 0 0 0; font-size: 14px;">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:600;">ชื่อวันหยุด *</label>
-          <input id="hol-name" class="swal2-input" placeholder="เช่น วันขึ้นปีใหม่" style="margin:4px 0 0; width:100%; height:38px; font-size:13px;">
+          <label style="font-size: 13px; font-weight: 600; color: #334155;">ชื่อวันหยุด <span style="color:red">*</span></label>
+          <input type="text" id="swal-holiday-name" class="swal2-input" placeholder="เช่น วันสงกรานต์" style="width: 100%; margin: 4px 0 0 0; font-size: 14px;">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:600;">ประเภทวันหยุด *</label>
-          <select id="hol-category" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px;">
-            <option value="วันขึ้นปีใหม่">วันขึ้นปีใหม่</option>
-            <option value="วันสำคัญทางศาสนา/วันสำคัญ">วันสำคัญทางศาสนา หรือ วันสำคัญ</option>
-            <option value="วันหยุดนักขัตฤกษ์">วันหยุดนักขัตฤกษ์</option>
-            <option value="วันหยุดชดเชย">วันหยุดชดเชย</option>
-            <option value="วันหยุดบริษัท">วันหยุดบริษัท</option>
+          <label style="font-size: 13px; font-weight: 600; color: #334155;">ประเภทวันหยุด</label>
+          <select id="swal-holiday-type" class="swal2-select" style="width: 100%; margin: 4px 0 0 0; height: 42px; border-radius: 8px; font-size: 14px;">
+            <option value="public_holiday">วันหยุดนักขัตฤกษ์</option>
+            <option value="company_holiday">วันหยุดพิเศษบริษัท</option>
+            <option value="tradition_holiday">วันหยุดตามประเพณี</option>
           </select>
         </div>
         <div>
-          <label style="font-size:12px; font-weight:600;">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label>
-          <textarea id="hol-desc" class="swal2-textarea" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)..." style="margin:4px 0 0; width:100%; height:60px; font-size:12px;"></textarea>
+          <label style="font-size: 13px; font-weight: 600; color: #334155;">รายละเอียดเพิ่มเติม</label>
+          <textarea id="swal-holiday-desc" class="swal2-textarea" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)" style="width: 100%; margin: 4px 0 0 0; height: 70px; font-size: 14px;"></textarea>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+          <input type="checkbox" id="swal-holiday-paid" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
+          <label for="swal-holiday-paid" style="font-size: 13px; font-weight: 500; cursor: pointer;">เป็นวันหยุดที่ได้รับค่าจ้าง (Paid Holiday)</label>
         </div>
       </div>
     `,
     showCancelButton: true,
     confirmButtonText: 'บันทึกวันหยุด',
     cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0d9488',
+    focusConfirm: false,
     preConfirm: () => {
-      const date = document.getElementById('hol-date').value;
-      const name = document.getElementById('hol-name').value.trim();
-      const category = document.getElementById('hol-category').value;
-      const desc = document.getElementById('hol-desc').value.trim();
+      const date = document.getElementById('swal-holiday-date').value;
+      const name = document.getElementById('swal-holiday-name').value.trim();
+      const type = document.getElementById('swal-holiday-type').value;
+      const desc = document.getElementById('swal-holiday-desc').value.trim();
+      const isPaid = document.getElementById('swal-holiday-paid').checked;
 
       if (!date || !name) {
-        Swal.showValidationMessage('กรุณาระบุวันที่และชื่อวันหยุด');
+        Swal.showValidationMessage('กรุณากรอกวันที่และชื่อวันหยุดให้ครบถ้วน');
         return false;
       }
-      return { holiday_date: date, holiday_name: name, category: category, description: desc || null };
+      return {
+        holiday_date: date,
+        holiday_name: name,
+        holiday_type: type,
+        description: desc,
+        is_paid: isPaid
+      };
     }
   });
 
   if (formValues) {
-    const { error } = await supabase.from('company_holidays').insert([formValues]);
+    const sb = getSupabase();
+    const { error } = await sb.from('holidays').insert([formValues]);
+
     if (error) {
-      showAppError('ไม่สามารถเพิ่มวันหยุดได้', error.message);
+      showAppError('เพิ่มวันหยุดไม่สำเร็จ', error.message);
     } else {
-      Swal.fire('สำเร็จ', 'บันทึกวันหยุดเรียบร้อยแล้ว', 'success');
-      manageCompanyHolidays();
+      if (typeof saveHRActivityLog === 'function') {
+        saveHRActivityLog('วันหยุดบริษัท', 'เพิ่มวันหยุด', formValues.holiday_name, `วันที่ ${formValues.holiday_date}`); //
+      }
+      Swal.fire({ icon: 'success', title: 'เพิ่มวันหยุดเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+      openHolidayManagerModal(); // รีโหลด Popup ตารางหลัก
     }
   }
 }
 
-async function deleteHoliday(holidayId) {
-  const supabase = getSupabase();
-  const confirm = await Swal.fire({
-    title: 'ยืนยันลบวันหยุด?',
-    icon: 'warning',
+/**
+ * 4. เปิด Modal สำหรับ "แก้ไขวันหยุด" (แก้ไข ชื่อ, รายละเอียด, ประเภท, วันที่, สิทธิ์ค่าจ้าง)
+ */
+async function openEditHolidayModal(holidayId) {
+  const holiday = companyHolidaysCache.find(h => String(h.id) === String(holidayId));
+  if (!holiday) {
+    showAppError("ไม่พบข้อมูล", "ไม่พบข้อมูลวันหยุดที่ต้องการแก้ไข");
+    return;
+  }
+
+  const { value: formValues } = await Swal.fire({
+    title: '✏️ แก้ไขวันหยุดบริษัท',
+    width: 'min(92vw, 480px)',
+    html: `
+      <div style="text-align: left; display: flex; flex-direction: column; gap: 12px; font-family: 'Sarabun', sans-serif;">
+        <div>
+          <label style="font-size: 13px; font-weight: 600; color: #334155;">วันที่วันหยุด <span style="color:red">*</span></label>
+          <input type="date" id="swal-edit-holiday-date" class="swal2-input" value="${holiday.holiday_date}" style="width: 100%; margin: 4px 0 0 0; font-size: 14px;">
+        </div>
+        <div>
+          <label style="font-size: 13px; font-weight: 600; color: #334155;">ชื่อวันหยุด <span style="color:red">*</span></label>
+          <input type="text" id="swal-edit-holiday-name" class="swal2-input" value="${escapeHtml(holiday.holiday_name || '')}" placeholder="เช่น วันสงกรานต์" style="width: 100%; margin: 4px 0 0 0; font-size: 14px;">
+        </div>
+        <div>
+          <label style="font-size: 13px; font-weight: 600; color: #334155;">ประเภทวันหยุด</label>
+          <select id="swal-edit-holiday-type" class="swal2-select" style="width: 100%; margin: 4px 0 0 0; height: 42px; border-radius: 8px; font-size: 14px;">
+            <option value="public_holiday" ${holiday.holiday_type === 'public_holiday' ? 'selected' : ''}>วันหยุดนักขัตฤกษ์</option>
+            <option value="company_holiday" ${holiday.holiday_type === 'company_holiday' ? 'selected' : ''}>วันหยุดพิเศษบริษัท</option>
+            <option value="tradition_holiday" ${holiday.holiday_type === 'tradition_holiday' ? 'selected' : ''}>วันหยุดตามประเพณี</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 13px; font-weight: 600; color: #334155;">รายละเอียดเพิ่มเติม</label>
+          <textarea id="swal-edit-holiday-desc" class="swal2-textarea" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)" style="width: 100%; margin: 4px 0 0 0; height: 70px; font-size: 14px;">${escapeHtml(holiday.description || '')}</textarea>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+          <input type="checkbox" id="swal-edit-holiday-paid" ${holiday.is_paid !== false ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
+          <label for="swal-edit-holiday-paid" style="font-size: 13px; font-weight: 500; cursor: pointer;">เป็นวันหยุดที่ได้รับค่าจ้าง (Paid Holiday)</label>
+        </div>
+      </div>
+    `,
     showCancelButton: true,
-    confirmButtonText: 'ลบข้อมูล',
+    confirmButtonText: 'บันทึกการแก้ไข',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#dc2626'
+    confirmButtonColor: '#0d9488',
+    focusConfirm: false,
+    preConfirm: () => {
+      const date = document.getElementById('swal-edit-holiday-date').value;
+      const name = document.getElementById('swal-edit-holiday-name').value.trim();
+      const type = document.getElementById('swal-edit-holiday-type').value;
+      const desc = document.getElementById('swal-edit-holiday-desc').value.trim();
+      const isPaid = document.getElementById('swal-edit-holiday-paid').checked;
+
+      if (!date || !name) {
+        Swal.showValidationMessage('กรุณากรอกวันที่และชื่อวันหยุดให้ครบถ้วน');
+        return false;
+      }
+      return {
+        holiday_date: date,
+        holiday_name: name,
+        holiday_type: type,
+        description: desc,
+        is_paid: isPaid
+      };
+    }
   });
 
-  if (confirm.isConfirmed) {
-    const { error } = await supabase.from('company_holidays').delete().eq('id', holidayId);
-    if (!error) {
-      manageCompanyHolidays();
+  if (formValues) {
+    const sb = getSupabase();
+    const { error } = await sb
+      .from('holidays')
+      .update(formValues)
+      .eq('id', holidayId);
+
+    if (error) {
+      showAppError('แก้ไขวันหยุดไม่สำเร็จ', error.message);
+    } else {
+      if (typeof saveHRActivityLog === 'function') {
+        saveHRActivityLog('วันหยุดบริษัท', 'แก้ไขวันหยุด', formValues.holiday_name, `อัปเดต ID: ${holidayId}`); //
+      }
+      Swal.fire({ icon: 'success', title: 'อัปเดตข้อมูลวันหยุดเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+      openHolidayManagerModal(); // รีโหลด Popup ตารางหลัก
     }
   }
 }
 
+/**
+ * 5. ฟังก์ชันลบรายการวันหยุด
+ */
+// =========================================================================
+// 🗑️ ฟังก์ชันลบวันหยุด (รองรับทั้งการคลิก Inline และป้องกัน Quote Error)
+// =========================================================================
+
+/**
+ * ฟังก์ชันลบรายการวันหยุด
+ * @param {number|string} holidayId - ID ของวันหยุดที่ต้องการลบ
+ */
+async function deleteHoliday(holidayId) {
+  // 1. ค้นหาข้อมูลวันหยุดจาก Cache ด้วย ID เพื่อเลี่ยงปัญหาการส่ง String ชื่อผ่าน HTML onclick
+  const holiday = (companyHolidaysCache || []).find(h => String(h.id) === String(holidayId));
+  const holidayName = holiday ? (holiday.holiday_name || holiday.name || 'รายการนี้') : 'รายการนี้';
+
+  if (!window.Swal) return;
+
+  // 2. แสดง Popup ยืนยันการลบ
+  const result = await Swal.fire({
+    title: 'ยืนยันลบวันหยุด?',
+    text: `คุณต้องการลบ "${holidayName}" ออกจากระบบใช่หรือไม่`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'ยืนยันลบ',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const sb = getSupabase();
+      // ลบข้อมูลออกจากตาราง holidays ใน Supabase
+      const { error } = await sb.from('holidays').delete().eq('id', holidayId);
+
+      if (error) throw error;
+
+      // บันทึก Log การลบ
+      if (typeof saveHRActivityLog === 'function') {
+        saveHRActivityLog('วันหยุดบริษัท', 'ลบวันหยุด', holidayName, `ลบข้อมูล ID: ${holidayId}`);
+      }
+
+      await Swal.fire({ 
+        icon: 'success', 
+        title: 'ลบรายการสำเร็จ', 
+        timer: 1500, 
+        showConfirmButton: false 
+      });
+
+      // รีโหลด Modal ตารางวันหยุดใหม่
+      if (typeof openHolidayManagerModal === 'function') {
+        openHolidayManagerModal();
+      }
+    } catch (err) {
+      console.error("Delete Holiday Error:", err);
+      showAppError('ลบวันหยุดไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล');
+    }
+  }
+}
+
+// ⚠️ สำคัญมาก: ผูกฟังก์ชันเข้ากับ window เพื่อให้ onclick ใน HTML เรียกใช้งานได้เสมอ
+window.deleteHoliday = deleteHoliday;
 
 // ==========================================
 // EXCEL EXPORT ENGINE (EXCELJS INTEGRATION)

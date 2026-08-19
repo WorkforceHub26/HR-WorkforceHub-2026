@@ -6,47 +6,200 @@ let currentFilter = 'all';
 document.addEventListener("DOMContentLoaded", initLeaveHistory);
 
 async function initLeaveHistory() {
-  myProfile = await window.pvtSupabase?.getCurrentProfile();
-  renderProfileHeader();
-  await loadMyLeaveHistory();
+  try {
+    // 1. โหลดข้อมูลโปรไฟล์ตามรูปแบบเดียวกับ index-user.js
+    myProfile = await fetchUserProfileFromSchema();
+    
+    // 2. แสดงข้อมูลส่วนหัวพนักงาน (อัปเดตชื่อ แผนก และรูปโปรไฟล์)
+    renderProfileHeader();
+
+    // 3. ดึงประวัติการลา
+    await loadMyLeaveHistory();
+  } catch (err) {
+    console.error("❌ Init Error:", err);
+  }
 }
 
+// 🔍 ฟังก์ชันดึงข้อมูลโปรไฟล์ถอดแบบโครงสร้างจาก index-user.js
+async function fetchUserProfileFromSchema() {
+  let profile = null;
+
+  // 1. ดึงข้อมูลจาก Supabase Auth ผ่าน SDK
+  if (window.pvtSupabase && typeof window.pvtSupabase.getCurrentProfile === "function") {
+    try {
+      profile = await window.pvtSupabase.getCurrentProfile();
+    } catch (e) {
+      console.warn("⚠️ [PROFILE] getCurrentProfile Error:", e);
+    }
+  }
+
+  // 2. แผนสำรอง: ดึงข้อมูลจาก LocalStorage/Session หากดึง Auth ไม่สำเร็จ
+  let validId = profile?.employee_id || profile?.id;
+  if (!validId) {
+    let cachedUser = null;
+    try {
+      cachedUser = JSON.parse(localStorage.getItem("currentUser") || localStorage.getItem("userProfile") || "null");
+    } catch (e) {
+      console.error("❌ Parse LocalStorage Error:", e);
+    }
+
+    if (cachedUser) {
+      const empData = cachedUser.employees || cachedUser;
+      const deptData = empData.departments || cachedUser.departments || cachedUser;
+
+      profile = {
+        id: cachedUser.id || empData.id,
+        employee_id: cachedUser.employee_id || cachedUser.id || empData.id,
+        employee_code: empData.employee_code || cachedUser.employee_code,
+        full_name: empData.full_name || cachedUser.full_name || cachedUser.display_name,
+        department_name: deptData.department_name || empData.department_name || cachedUser.department_name, 
+        role: cachedUser.role || empData.role,
+        image_url: empData.image_url || cachedUser.image_url || empData.avatar_url || cachedUser.avatar_url,
+        employees: empData 
+      };
+      validId = profile.employee_id;
+    }
+  }
+
+  // 3. ดึงรูปภาพสดล่าสุดจากคอลัมน์ image_url ของตาราง employees โดยใช้ ID ตรงๆ
+  const sb = window.pvtSupabase?.getClient();
+  if (sb && validId) {
+    try {
+      const { data: freshEmp, error } = await sb
+        .from("employees")
+        .select("image_url")
+        .eq("id", validId)
+        .single();
+      
+      if (!error && freshEmp && freshEmp.image_url) {
+        if (!profile) profile = {};
+        profile.image_url = freshEmp.image_url;
+        if (profile.employees) {
+          profile.employees.image_url = freshEmp.image_url;
+        }
+      }
+    } catch (e) {
+      console.warn("⚠️ ระบบขัดข้องระหว่างดึงข้อมูลรูปภาพจาก DB:", e);
+    }
+  }
+
+  return normalizeProfileData(profile);
+}
+
+// 🛠️ Helper Function: จัดโครงสร้างข้อมูล (Normalize) ให้มาตรฐานเดียวกับ index-user.js
+function normalizeProfileData(raw) {
+  if (!raw) return null;
+
+  const emp = raw.employees || (raw.employee_code ? raw : {});
+  const realEmployeeId = raw.employee_id || raw.employees?.id || raw.id;
+
+  return {
+    id: raw.id || realEmployeeId,
+    employee_id: realEmployeeId,
+    display_name: raw.display_name || emp.full_name || raw.full_name || "พนักงาน",
+    employees: {
+      id: realEmployeeId,
+      employee_code: emp.employee_code || raw.employee_code || "-",
+      full_name: emp.full_name || raw.full_name || raw.display_name || "พนักงาน",
+      image_url: emp.image_url || raw.image_url || raw.avatar_url || null,
+      department_name: emp.departments?.department_name || emp.department_name || raw.department_name || "ทั่วไป"
+    }
+  };
+}
+
+// 🎨 วาดข้อมูลลงส่วนหัว (ถอด Logic จัดการ URL รูปภาพจาก index-user.js)
 function renderProfileHeader() {
-  const employee = myProfile?.employees || {};
-  document.getElementById("emp-name").textContent = employee.full_name || myProfile?.display_name || "พนักงาน";
-  document.getElementById("emp-detail").textContent =
-    `รหัส ${employee.employee_code || "-"} · ${employee.departments?.department_name || "ไม่ระบุแผนก"}`;
-  const avatar = document.getElementById("user-avatar");
-  if (avatar && window.pvtSupabase?.getAvatarUrl) {
-    avatar.src = window.pvtSupabase.getAvatarUrl(employee.image_url);
+  const nameEl = document.getElementById("emp-name");
+  const detailEl = document.getElementById("emp-detail");
+  const avatarEl = document.getElementById("user-avatar");
+
+  if (!myProfile) {
+    if (nameEl) nameEl.textContent = "พนักงาน (กรุณาล็อกอิน)";
+    if (detailEl) detailEl.textContent = "ไม่พบข้อมูลโปรไฟล์";
+    if (avatarEl) avatarEl.src = "/assets/img/default-avatar.jpg";
+    return;
+  }
+
+  const emp = myProfile.employees || myProfile;
+
+  // 1. แสดงชื่อ
+  const fullName = emp.full_name || myProfile.display_name || "พนักงานในระบบ";
+  if (nameEl) nameEl.textContent = fullName;
+
+  // 2. แสดงแผนกและรหัสพนักงาน
+  const deptName = emp.department_name || "ทั่วไป";
+  const codeVal = emp.employee_code;
+  const empCode = codeVal && codeVal !== "-" ? `รหัส: ${codeVal}` : "";
+  if (detailEl) detailEl.textContent = `${deptName} ${empCode}`.trim();
+
+  // 3. แสดงรูปโปรไฟล์ (Logic เดียวกับ index-user.js)
+  if (avatarEl) {
+    let avatarUrl = emp.image_url || myProfile.image_url || myProfile.avatar_url;
+    
+    if (avatarUrl && avatarUrl.trim() !== "") {
+      // เคสที่ 1: กรณีเป็น Path สั้น ให้ต่อ Domain เต็ม
+      if (!avatarUrl.startsWith("http")) {
+        avatarUrl = `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${avatarUrl}`;
+      }
+      
+      // เคสที่ 2: ป้องกัน Error 400 แทรก /public/ หากขาดหายไป
+      if (avatarUrl.includes("storage/v1/object/") && !avatarUrl.includes("storage/v1/object/public/")) {
+        avatarUrl = avatarUrl.replace("storage/v1/object/", "storage/v1/object/public/");
+      }
+      
+      avatarEl.src = avatarUrl;
+    } else {
+      avatarEl.src = "/assets/img/default-avatar.jpg";
+    }
   }
 }
 
 async function loadMyLeaveHistory() {
   const tableBody = document.getElementById("table-data-rows");
-  const employeeId = myProfile?.employee_id || myProfile?.employees?.id;
+  if (!tableBody) return;
+
+  const empId = myProfile?.employee_id || myProfile?.id || localStorage.getItem("currentUserId");
   const sb = window.pvtSupabase?.getClient();
 
-  if (!sb || !employeeId) {
+  if (!sb || !empId) {
     tableBody.innerHTML = `<tr><td colspan="6" class="empty-state">กรุณาเข้าสู่ระบบเพื่อดูประวัติการลา</td></tr>`;
     return;
   }
 
   try {
-    const { data, error } = await sb
+    let { data, error } = await sb
       .from("leave_requests")
       .select("id, leave_type_id, start_date, end_date, total_days, reason, status, approval_comment, cancel_reason, created_at, leave_types(leave_name)")
-      .eq("employee_id", employeeId)
+      .eq("employee_id", empId)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.warn("⚠️ Foreign Key Join Fail, fallback to manual join:", error.message);
+      const res = await sb
+        .from("leave_requests")
+        .select("id, leave_type_id, start_date, end_date, total_days, reason, status, approval_comment, cancel_reason, created_at")
+        .eq("employee_id", empId)
+        .order("created_at", { ascending: false });
+
+      if (res.error) throw res.error;
+      data = res.data || [];
+
+      const { data: typeList } = await sb.from("leave_types").select("id, leave_name");
+      const typeMap = new Map((typeList || []).map(t => [String(t.id), t.leave_name]));
+
+      data = data.map(item => ({
+        ...item,
+        leave_types: { leave_name: typeMap.get(String(item.leave_type_id)) || "ไม่ระบุ" }
+      }));
+    }
+
     myLeaveRows = data || [];
     filteredLeaveRows = [...myLeaveRows];
     
     renderSummary();
     renderRows();
   } catch (error) {
-    console.error("❌ โหลดข้อมูลล้มเหลว:", error);
+    console.error("❌ โหลดประวัติการลาล้มเหลว:", error);
     tableBody.innerHTML = `<tr><td colspan="6" class="error-state">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(error.message)}</td></tr>`;
   }
 }
@@ -65,6 +218,7 @@ function renderSummary() {
 
 function renderRows() {
   const tableBody = document.getElementById("table-data-rows");
+  if (!tableBody) return;
   
   if (!filteredLeaveRows.length) {
     tableBody.innerHTML = `<tr><td colspan="6" class="empty-state">ไม่พบรายการใบลาตามเงื่อนไขที่เลือก</td></tr>`;
@@ -76,10 +230,15 @@ function renderRows() {
     let statusClass = item.status || "pending";
     let actionBtnHtml = `<span class="action-disabled">-</span>`;
 
-    // 🔄 จัดการสถานะและปุ่มกดตาม Hybrid Workflow
+    let leaveTypeName = "ไม่ระบุ";
+    if (Array.isArray(item.leave_types) && item.leave_types.length > 0) {
+      leaveTypeName = item.leave_types[0].leave_name;
+    } else if (item.leave_types?.leave_name) {
+      leaveTypeName = item.leave_types.leave_name;
+    }
+
     if (item.status === "pending") {
       displayStatus = "รออนุมัติ";
-      // กรณีลารออนุมัติ -> ยกเลิกได้ทันที
       actionBtnHtml = `
         <button class="btn-cancel-direct" onclick="directCancelLeave('${item.id}')" title="ยกเลิกคำขอนี้ทันที">
           <span class="material-symbols-outlined">close</span> ยกเลิกคำขอ
@@ -87,7 +246,6 @@ function renderRows() {
     } 
     else if (item.status === "approved") {
       displayStatus = "อนุมัติแล้ว";
-      // กรณีอนุมัติแล้ว -> ส่งคำร้องขอยกเลิกไปให้ HR
       actionBtnHtml = `
         <button class="btn-request-cancel" onclick="requestCancelApprovedLeave('${item.id}')" title="ส่งคำร้องขอยกเลิกใบลาให้ HR">
           <span class="material-symbols-outlined">assignment_return</span> ขอยกเลิกใบลา
@@ -113,12 +271,12 @@ function renderRows() {
       }
     }
 
-    const startDateStr = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(item.start_date) : item.start_date;
-    const endDateStr = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(item.end_date) : item.end_date;
+    const startDateStr = window.pvtSupabase?.utils?.formatThaiDate ? window.pvtSupabase.utils.formatThaiDate(item.start_date) : item.start_date;
+    const endDateStr = window.pvtSupabase?.utils?.formatThaiDate ? window.pvtSupabase.utils.formatThaiDate(item.end_date) : item.end_date;
 
     return `
       <tr>
-        <td data-label="ประเภทการลา"><strong class="leave-type-title">${escapeHtml(item.leave_types?.leave_name || "ไม่ระบุ")}</strong></td>
+        <td data-label="ประเภทการลา"><strong class="leave-type-title">${escapeHtml(leaveTypeName)}</strong></td>
         <td data-label="ช่วงวันที่">${startDateStr} - ${endDateStr}</td>
         <td data-label="จำนวนวัน"><span class="day-count-badge">${item.total_days || 0}</span> วัน</td>
         <td data-label="เหตุผล" class="td-reason">${escapeHtml(item.reason || "-")}</td>
@@ -129,7 +287,6 @@ function renderRows() {
   }).join("");
 }
 
-// 🔴 1. ยกเลิกทันที (สำหรับใบลาที่ "รออนุมัติ")
 async function directCancelLeave(requestId) {
   if (!requestId) return;
 
@@ -141,8 +298,7 @@ async function directCancelLeave(requestId) {
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#64748b',
     confirmButtonText: 'ใช่, ยกเลิกเลย',
-    cancelButtonText: 'ย้อนกลับ',
-    customClass: { popup: 'swal2-rounded-popup' }
+    cancelButtonText: 'ย้อนกลับ'
   });
 
   if (result.isConfirmed) {
@@ -162,7 +318,6 @@ async function directCancelLeave(requestId) {
 
       await Swal.fire({ icon: 'success', title: 'ยกเลิกเรียบร้อย!', timer: 1500, showConfirmButton: false });
       await loadMyLeaveHistory();
-
     } catch (err) {
       console.error("❌ เกิดข้อผิดพลาดในการยกเลิก:", err);
       Swal.fire({ icon: 'error', title: 'ยกเลิกไม่สำเร็จ', text: err.message, confirmButtonColor: '#ef4444' });
@@ -170,7 +325,6 @@ async function directCancelLeave(requestId) {
   }
 }
 
-// 🔄 2. ส่งคำร้องขอยกเลิกไปหา HR (สำหรับใบลาที่ "อนุมัติแล้ว")
 async function requestCancelApprovedLeave(requestId) {
   if (!requestId) return;
 
@@ -179,17 +333,13 @@ async function requestCancelApprovedLeave(requestId) {
     text: 'ใบลานี้ได้รับการอนุมัติแล้ว การยกเลิกต้องรอให้ HR ตรวจสอบและอนุมัติคืนโควต้าวันลา',
     input: 'textarea',
     inputPlaceholder: 'กรุณาระบุเหตุผลในการขอยกเลิกใบลา...',
-    inputAttributes: { 'aria-label': 'ระบุเหตุผลในการขอยกเลิกใบลา' },
     showCancelButton: true,
     confirmButtonColor: '#f59e0b',
     cancelButtonColor: '#64748b',
     confirmButtonText: 'ส่งคำร้องหา HR',
     cancelButtonText: 'ยกเลิก',
-    customClass: { popup: 'swal2-rounded-popup' },
     inputValidator: (value) => {
-      if (!value || !value.trim()) {
-        return 'โปรดระบุเหตุผลการขอยกเลิกใบลา!';
-      }
+      if (!value || !value.trim()) return 'โปรดระบุเหตุผลการขอยกเลิกใบลา!';
     }
   });
 
@@ -208,15 +358,8 @@ async function requestCancelApprovedLeave(requestId) {
 
       if (error) throw error;
 
-      await Swal.fire({ 
-        icon: 'success', 
-        title: 'ส่งคำร้องสำเร็จ!', 
-        text: 'ส่งคำร้องขอยกเลิกให้ HR เรียบร้อยแล้ว โปรดรอ HR ดำเนินการ', 
-        confirmButtonColor: '#0fa472' 
-      });
-      
+      await Swal.fire({ icon: 'success', title: 'ส่งคำร้องสำเร็จ!', text: 'ส่งคำร้องขอยกเลิกให้ HR เรียบร้อยแล้ว', confirmButtonColor: '#0fa472' });
       await loadMyLeaveHistory();
-
     } catch (err) {
       console.error("❌ เกิดข้อผิดพลาดในการส่งคำร้อง:", err);
       Swal.fire({ icon: 'error', title: 'ส่งคำร้องไม่สำเร็จ', text: err.message, confirmButtonColor: '#ef4444' });
@@ -224,7 +367,6 @@ async function requestCancelApprovedLeave(requestId) {
   }
 }
 
-// 🎯 ฟังก์ชันกรองประวัติการลา
 function filterLeaveHistory(type, element) {
   currentFilter = type;
 
@@ -256,36 +398,5 @@ function setText(id, value) {
 }
 
 function escapeHtml(value) {
-  return window.pvtSupabase?.escapeHtml ? window.pvtSupabase.escapeHtml(value) : String(value ?? "");
-}
-
-// ฟังก์ชันบันทึกข้อมูลพนักงานแบบ Inline พร้อมรองรับฟิลด์เพิ่มเติม (FB / IG / เบอร์สำรอง)[cite: 24]
-async function saveEmployeeInlineEdit(employeeId) {
-  const emp = employees.find(e => String(e.id) === String(employeeId)); //[cite: 24]
-  if (!emp) return; //[cite: 24]
-
-  const code = document.getElementById('inline-edit-code')?.value.trim(); //[cite: 24]
-  const name = document.getElementById('inline-edit-fullName')?.value.trim(); //[cite: 24]
-
-  const updateData = {
-    employee_code: code, //[cite: 24]
-    full_name: name, //[cite: 24]
-    phone: document.getElementById('inline-edit-phone')?.value.trim() || null, //[cite: 24]
-    secondary_phone: document.getElementById('inline-edit-secPhone')?.value.trim() || null, // ฟิลด์เบอร์สำรอง
-    facebook: document.getElementById('inline-edit-facebook')?.value.trim() || null,       // ฟิลด์ Facebook
-    instagram: document.getElementById('inline-edit-instagram')?.value.trim() || null,     // ฟิลด์ IG
-    line_id: document.getElementById('inline-edit-lineId')?.value.trim() || null, //[cite: 24]
-    email: document.getElementById('inline-edit-email')?.value.trim() || null, //[cite: 24]
-  };
-
-  try {
-    const supabase = getSupabase(); //[cite: 24]
-    const { error } = await supabase.from('employees').update(updateData).eq('id', emp.id); //[cite: 24]
-    if (error) throw error; //[cite: 24]
-
-    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'อัปเดตข้อมูลพนักงานเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false }); //[cite: 24]
-    await refreshDashboard(); //[cite: 24]
-  } catch (err) {
-    showAppError("ไม่สามารถบันทึกข้อมูลได้", err.message); //[cite: 24]
-  }
+  return window.pvtSupabase?.utils?.escapeHtml ? window.pvtSupabase.utils.escapeHtml(value) : String(value ?? "");
 }

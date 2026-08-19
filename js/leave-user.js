@@ -379,7 +379,8 @@ function addLeaveRow() {
     <div class="grid-row-3">
       <div class="input-group">
         <label>วันที่เขียนคำขอ</label>
-        <input type="date" name="write_date" value="${new Date().toISOString().split('T')[0]}">
+        <!-- 🔒 ล็อควันที่เขียนคำขอเป็นวันปัจจุบัน ห้ามแก้ไข -->
+        <input type="date" name="write_date" value="${new Date().toISOString().split('T')[0]}" readonly tabindex="-1" class="readonly-highlight" style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed; pointer-events: none;">
       </div>
       <div class="input-group">
         <label>เริ่มวันที่ลา</label>

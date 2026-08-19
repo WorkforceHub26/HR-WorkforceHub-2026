@@ -98,7 +98,7 @@
           <div class="card-btn-group">
             <button class="action-btn" onclick="editGlobalLeaveRules()"><span class="material-symbols-outlined">rule</span> ตั้งค่าโควตากลาง</button>
             <button class="action-btn" onclick="editIndividualLeaveBalance()"><span class="material-symbols-outlined">tune</span> ปรับโควตารายบุคคล</button>
-            <button class="action-btn" onclick="manageCompanyHolidays()"><span class="material-symbols-outlined">calendar_month</span> ปฏิทินวันหยุด</button>
+            <button class="action-btn" onclick="openHolidayManagerModal()"><span class="material-symbols-outlined">calendar_month</span> ปฏิทินวันหยุด</button>
           </div>
         </div>
 
@@ -232,13 +232,19 @@
 
   <!-- External Libraries & Scripts -->
    
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   
-  <script src="/js/supabase-config.js"></script>
-  <script src="/js/auth-guard.js"></script>
-  <script src="/js/notification.js"></script>
-  <script src="/js/management.js"></script>
+  <script>
+    console.log("🔍 [CHECK 1] โหลด CDN External Libraries สำเร็จแล้ว");
+  </script>
+
+  <script src="/js/supabase-config.js" onload="console.log('✅ โหลด supabase-config.js สำเร็จ')" onerror="console.error('❌ โหลด supabase-config.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/auth-guard.js" onload="console.log('✅ โหลด auth-guard.js สำเร็จ')" onerror="console.error('❌ โหลด auth-guard.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/notification.js" onload="console.log('✅ โหลด notification.js สำเร็จ')" onerror="console.error('❌ โหลด notification.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/management.js" onload="console.log('✅ โหลด management.js สำเร็จ')" onerror="console.error('❌ โหลด management.js ล้มเหลว (404 Not Found)')"></script>
+</body>
+</html>
 </body>
 </html>
