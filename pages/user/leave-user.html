@@ -6,6 +6,7 @@
   <title>ใบลาออนไลน์ | PVT HR Leave</title>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <!-- ใส่ลิงก์นี้เพื่อเรียกใช้งานฟอนต์ไอคอนของ Google -->
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="stylesheet" href="/css/leave-user.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -48,41 +49,56 @@
     </div>
 
     <div class="info-card">
+      
       <div class="info-card-head">
         <h2>👤 ข้อมูลผู้ขออนุมัติลา <span class="badge-autofill">ระบบดึงข้อมูลอัตโนมัติ</span></h2>
         <span id="loadingBadge" style="font-size:12px; color:#1d4ed8; background:#dbeafe; padding:4px 12px; border-radius:99px; font-weight:500;">⏳ กำลังโหลด...</span>
       </div>
 
       <div class="info-grid">
+
         <div class="info-field">
           <label>รหัสพนักงาน</label>
           <input type="text" id="employeeCode" readonly placeholder="กำลังโหลด...">
         </div>
+
         <div class="info-field">
           <label>ชื่อ-นามสกุล พนักงาน</label>
           <input type="text" id="employeeName" readonly placeholder="กำลังโหลดข้อมูลพนักงาน...">
         </div>
+
         <div class="info-field">
           <label>ตำแหน่ง</label>
           <input type="text" id="employeePosition" readonly>
         </div>
+
         <div class="info-field">
           <label>แผนก / ฝ่าย</label>
           <input type="text" id="employeeDepartment" readonly>
         </div>
+
         <div class="info-field">
           <label>วันเริ่มงาน</label>
           <input type="text" id="employeeStartDate" readonly>
         </div>
-        <div class="info-field balance-field">
-          <label>สิทธิ์คงเหลือ (วัน)</label>
-          <input type="text" id="leaveBalance" class="form-control" readonly>
+
+        <div class="input-group">
+          <label>สิทธิคงเหลือ</label>
+          <input type="text" id="leaveBalance" readonly value="กรุณาเลือกประเภทการลาก่อน" style="color: #94a3b8; font-size: 14px; font-weight: 400; background: #f8fafc; border: 1px solid #cbd5e1;">
         </div>
+
+                <!-- <!-- เปลี่ยนสิทธิกรุณาแจ้งHR -->
+        <div class="input-group">
+          <label>สิทธิประกันสังคม <small style="color:#e11d48; font-weight:normal;">(เปลี่ยนสิทธิกรุณาแจ้ง HR)</small></label>
+          <input type="text" id="employeeSocialSecurity" readonly class="readonly-highlight" placeholder="กำลังโหลดข้อมูล..." style="color:#0f766e; font-weight:500;">
+        </div>
+
       </div>
+
     </div>
 
     <div class="notice-box no-print">
-      ⚠️ <strong>ตรวจสอบก่อนบันทึก:</strong> ลาพักผ่อนล่วงหน้าอย่างน้อย 3 วัน · ลากิจแจ้งล่วงหน้า 1 วัน · ลาป่วยแจ้งภายใน 4 ชั่วโมงแรก พร้อมใบรับรองแพทย์
+      ⚠️ <strong>ตรวจสอบก่อนบันทึก:</strong> ลาพักผ่อนล่วงหน้าอย่างน้อย 3 วัน · ลากิจแจ้งล่วงหน้า 1 วัน · ลาป่วยแจ้งภายใน 4 ชั่วโมงแรก พร้อมใบรับรองแพทย์  · และมาส่งใบรับรองแพทย์ให้ HR หลังจากกลับมาทำงานหากไม่ส่งใบรับรองแพทย์จะถือว่าลาไม่ถูกต้อง
     </div>
 
     <div class="leave-cards-container">
@@ -159,6 +175,9 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/notification.js"></script>
   <script src="/js/auth-guard.js"></script>
+  <!-- วางไว้ก่อนหน้า <script src="leave-user.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
   <script src="/js/leave-user.js"></script>
 </body>
 </html>

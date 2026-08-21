@@ -90,7 +90,7 @@
 
   function isPublicPage() {
     const path = window.location.pathname.toLowerCase();
-    const publicPages = ['/index.html', '/login.html', 'index.html', '/pages/login.html'];
+    const publicPages = ['/index.html', '/login.html', '/index.html', '/pages/login.html'];
     return publicPages.some(page => path.endsWith(page)) || path === '/' || path === '';
   }
 
@@ -120,11 +120,11 @@
           allowEscapeKey: false,
           customClass: { popup: 'pvt-guard-popup' }
         }).then(() => {
-          window.location.href = "index.html";
+          window.location.href = "/index.html";
         });
       } else {
         alert("⛔ กรุณาเข้าสู่ระบบก่อนใช้งานระบบ");
-        window.location.href = "index.html";
+        window.location.href = "/index.html";
       }
     };
 

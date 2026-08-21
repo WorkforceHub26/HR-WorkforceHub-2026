@@ -1,8 +1,15 @@
 /* ==========================================================================
-   🏢 PVT HR Leave — ใบลาออนไลน์ (Premium Spacious Card / Grid View)
+   🏢 PVT HR Leave — ใบลาออนไลน์ (Cross-Platform Fully Responsive CSS)
    ========================================================================== */
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ─── 1. BASE RESET & CROSS-BROWSER NORMALIZATION ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent; /* ป้องกันแถบสีเทาขณะแตะบน Android/iOS */
+  -webkit-text-size-adjust: 100%;            /* ป้องกัน Safari/Chrome ปรับขนาดตัวอักษรอัตโนมัติ */
+}
 
 :root {
   --primary: #06b6d4;
@@ -13,17 +20,26 @@
   --green-dark: #059669;
   --red: #ef4444;
   --bg: #f0fdfa;        
-  --card: rgba(255, 255, 255, 0.55);
+  --card: rgba(255, 255, 255, 0.85);
+  --card-solid: #ffffff;
   --text: #0f172a;
   --muted: #475569;     
   --border: #cbd5e1;    
-  --input-bg: rgba(255, 255, 255, 0.7);
-  --ease: all 0.2s ease-in-out;
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --ease: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --sidebar-width: 260px;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh; /* รองรับ Dynamic Viewport Height บนมือถือ */
+  overflow-x: hidden; /* ป้องกันหน้าจอเลื่อนแนวนอนขยะ */
 }
 
 body {
-  font-family: "Sarabun", sans-serif;
-  background-color: #f0fdfa; 
+  font-family: "Sarabun", "Kanit", "Noto Sans Thai", -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg); 
   background-image: 
     radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
     radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
@@ -31,15 +47,18 @@ body {
     radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
   background-attachment: fixed;
   color: var(--text);
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── TOP BAR ─── */
+/* ─── 2. TOPBAR (รองรับ iOS Safe Area Notch) ─── */
 .topbar {
   background: var(--card);
   border-bottom: 2px solid #e2e8f0; 
   padding: 14px 24px; 
+  padding-top: max(14px, env(safe-area-inset-top));
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
   position: sticky;
   top: 0;
   z-index: 100;
@@ -47,6 +66,12 @@ body {
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
 }
+
+/* Fallback สำหรับเบราว์เซอร์เก่าที่ไม่รองรับ backdrop-filter */
+@supports not (backdrop-filter: blur(16px)) {
+  .topbar { background: var(--card-solid); }
+}
+
 .topbar-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -54,27 +79,37 @@ body {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  gap: 12px;
 }
+
 .btn-back {
   border: 2px solid var(--border);
   border-radius: 10px;
   padding: 8px 18px; 
-  background: var(--card);
+  background: #ffffff;
   color: var(--text);
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
   transition: var(--ease);
+  touch-action: manipulation;
 }
 .btn-back:hover { background: #f1f5f9; border-color: var(--primary); color: var(--primary); }
-.topbar-center { text-align: center; }
-.topbar-title { font-size: 22px; font-weight: 700; color: var(--text); display: block; }
+
+.topbar-center { text-align: center; flex: 1; }
+.topbar-title { font-size: 20px; font-weight: 700; color: var(--text); display: block; }
 .topbar-subtitle { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; }
 
-/* ─── LAYOUT ─── */
-.page { padding: 32px 24px 120px; max-width: 1400px; margin: 0 auto; }
+/* ─── 3. LAYOUT & RESPONSIVE GRID SYSTEM ─── */
+.page { 
+  padding: 32px 24px 120px; 
+  max-width: 1400px; 
+  margin: 0 auto;
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+}
 
-/* ─── EMPLOYEE INFO CARD ─── */
+/* EMPLOYEE INFO CARD */
 .info-card {
   background: var(--card);
   border: 1px solid #e2e8f0;
@@ -82,6 +117,8 @@ body {
   padding: 28px;
   margin-bottom: 32px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .info-card-head {
   display: flex;
@@ -90,40 +127,59 @@ body {
   margin-bottom: 24px;
   border-bottom: 2px solid #f1f5f9;
   padding-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 .info-card-head h2 { font-size: 18px; font-weight: 700; color: #1e293b; }
 .badge-autofill { font-size: 12px; font-weight: 600; background: var(--primary-light); color: var(--primary); padding: 4px 14px; border-radius: 99px; border: 1.5px solid #bfdbfe; }
-.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
+
+.info-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+  gap: 20px; 
+}
 .info-field { display: flex; flex-direction: column; gap: 8px; }
 .info-field label { font-size: 13px; font-weight: 700; color: var(--muted); }
-.info-field input { height: 50px; border: 2px solid var(--border); border-radius: 10px; padding: 0 16px; font-family: inherit; font-size: 15px; background: #f8fafc; outline: none; }
-.balance-field input { color: var(--green-dark); font-weight: 700; background: var(--green-light); border-color: #a7f3d0; }
 
-.notice-box { background: var(--primary-light); border: 2px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 32px; font-size: 14px; color: #1e40af; line-height: 1.5; }
+.notice-box { 
+  background: var(--primary-light); 
+  border: 2px solid #bfdbfe; 
+  border-radius: 12px; 
+  padding: 16px 20px; 
+  margin-bottom: 32px; 
+  font-size: 14px; 
+  color: #1e40af; 
+  line-height: 1.5; 
+}
 
-/* ─── 📦 LEAVE CARDS CONTAINER (ระบบกล่องเหลี่ยมใหญ่แบ่งสัดส่วน) ─── */
+/* ─── 4. LEAVE CARDS (กล่องรายการลา) ─── */
 .leave-cards-container { margin-bottom: 32px; }
-.container-head { padding: 16px 0; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+.container-head { 
+  padding: 16px 0; 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  margin-bottom: 16px; 
+  border-bottom: 2px solid #e2e8f0; 
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .container-head h2 { font-size: 20px; font-weight: 700; color: #1e293b; }
 
-/* บล็อกกล่องเหลี่ยมใหญ่เด่นชัดเจนอ่านง่าย */
 .leave-box-item {
   background: #ffffff;
   border: 2px solid #cbd5e1;
   border-radius: 20px;
-  padding: 32px;
-  margin-bottom: 32px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  padding: 28px;
+  margin-bottom: 28px;
   box-shadow: 0 10px 25px rgba(15, 23, 42, 0.02);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   transition: var(--ease);
 }
 .leave-box-item:hover { border-color: var(--primary); box-shadow: 0 12px 35px rgba(37, 99, 235, 0.07); }
 
-/* เส้นแบ่งหมวดหมู่ย่อยในกล่อง */
 .row-divider {
   font-size: 13px;
   font-weight: 700;
@@ -133,7 +189,7 @@ body {
   text-transform: uppercase;
 }
 
-/* 📐 ระบบบังคับจัด 3 คอลัมน์ให้อยู่แถวเดียวกันสมมาตรสวยงามพอดี */
+/* ระบบ Grid 3 คอลัมน์ที่ยืดหยุ่นตามหน้าจอ */
 .grid-row-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -144,25 +200,46 @@ body {
 .input-group { display: flex; flex-direction: column; gap: 8px; }
 .input-group label { font-size: 13.5px; font-weight: 700; color: var(--text); }
 
-.input-group input, .input-group select {
+/* ─── 5. INPUTS, SELECTS & TOUCH TARGETS (ป้องกัน Zoom บน iOS/Android) ─── */
+.input-group input, 
+.input-group select, 
+.info-field input {
   width: 100%;
-  height: 50px; 
+  height: 48px; 
   border: 2px solid var(--border);
   border-radius: 10px;
-  padding: 10px 16px;
+  padding: 10px 14px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 15px; /* ป้องกัน iOS/Android Chrome ย่อขยายเอง */
   color: var(--text);
   background: var(--input-bg);
   outline: none;
   transition: var(--ease);
+  -webkit-appearance: none; /* ล้างสไตล์ดั้งเดิมของ Safari/Android */
+  appearance: none;
 }
-.input-group input:focus, .input-group select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-.readonly-highlight { background: #f1f5f9 !important; color: #475569 !important; font-weight: 700; }
 
-/* ปุ่มสถานะผู้อนุมัติแบบพรีเมียม */
+.input-group select {
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23475569' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+}
+
+.input-group input:focus, .input-group select:focus { 
+  border-color: var(--primary); 
+  background: #ffffff; 
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); 
+}
+
+.readonly-highlight { 
+  background: #f1f5f9 !important; 
+  color: #475569 !important; 
+  font-weight: 700; 
+}
+
 .badge-status {
-  height: 50px;
+  height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -174,7 +251,7 @@ body {
   color: #475569;
 }
 
-/* กล่องอัปโหลดรูปภาพ */
+/* FILE UPLOAD */
 .custom-file-upload { display: block; width: 100%; }
 .custom-file-upload input[type="file"] { display: none !important; }
 .file-upload-label {
@@ -182,7 +259,7 @@ body {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 50px;
+  height: 48px;
   border: 2px dashed #cbd5e1;
   border-radius: 10px;
   background: #f8fafc;
@@ -191,10 +268,10 @@ body {
   font-size: 14px;
   cursor: pointer;
   transition: var(--ease);
+  touch-action: manipulation;
 }
 .file-upload-label:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 
-/* ส่วนท้ายกล่องเหลี่ยมสำหรับปุ่มลบ */
 .box-item-footer {
   display: flex;
   justify-content: flex-end;
@@ -203,9 +280,25 @@ body {
   margin-top: 8px;
 }
 
-/* ─── BUTTONS ─── */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; border-radius: 10px; padding: 12px 26px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: var(--ease); }
+/* ─── 6. BUTTONS ─── */
+.btn { 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 8px; 
+  border: none; 
+  border-radius: 10px; 
+  padding: 12px 24px; 
+  font-family: inherit; 
+  font-size: 15px; 
+  font-weight: 700; 
+  cursor: pointer; 
+  transition: var(--ease); 
+  touch-action: manipulation;
+  min-height: 48px;
+}
 .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.btn:active { transform: translateY(0); }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); }
 .btn-green { background: var(--green); color: #fff; }
@@ -214,432 +307,56 @@ body {
 .btn-ghost:hover { background: #f1f5f9; }
 .btn-danger { background: #fee2e2; color: #b91c1c; border: 2px solid #fecaca; }
 .btn-danger:hover { background: #fecaca; }
-.btn-sm { padding: 8px 18px; font-size: 14px; border-radius: 8px; }
+.btn-sm { padding: 8px 16px; font-size: 14px; min-height: 40px; border-radius: 8px; }
 
-.bottom-actions { background: var(--card); border: 2px solid #e2e8f0; border-radius: 16px; padding: 20px 24px; display: flex; gap: 16px; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
-.status-toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 14px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; opacity: 0; z-index: 9999; }
-
-/* ==========================================================================
-   🖨️ PERFECT PRINT ENGINE (กระชับฟอร์มกล่องให้เป็นเอกสารคมชัด จบหน้าเดียว)
-   ========================================================================== */
-
-@media print {
-  @page { size: A4 portrait; margin: 8mm 10mm; }
-  body, html { background: #ffffff !important; color: #000000 !important; max-height: 100vh; overflow: hidden !important; font-size: 11px !important; }
-  .page { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
-  .topbar, .bottom-actions, .notice-box, .no-print, .container-head button, .row-divider, .custom-file-upload { display: none !important; } 
-
-  .print-header { display: flex !important; flex-direction: column; align-items: center; margin-bottom: 12px !important; border-bottom: 2px solid #000; padding-bottom: 6px; } 
-  .print-header h1 { font-size: 15px !important; font-weight: 700; }
-  .print-header h2 { font-size: 12px !important; }
-
-  .info-card { border: 1px solid #000 !important; border-radius: 8px !important; padding: 12px !important; margin-bottom: 12px !important; box-shadow: none !important; }
-  .info-card-head h2 { font-size: 12px !important; }
-  .badge-autofill { display: none !important; } 
-  .info-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px 12px !important; }
-  .info-field input { height: 28px !important; border: 1px solid #000 !important; border-radius: 4px !important; padding: 0 6px !important; background: transparent !important; }
-
-  /* ปรับการ์ดกล่องเหลี่ยมให้บางลง เส้นคมชัดแบบฟอร์มเอกสารตอนสั่งพิมพ์ */
-  .leave-box-item { border: 1px solid #000 !important; border-radius: 8px !important; padding: 16px !important; box-shadow: none !important; gap: 12px !important; page-break-inside: avoid; }
-  .grid-row-3 { gap: 12px !important; }
-  .input-group label { font-size: 11px !important; }
-  .input-group input, .input-group select { height: 28px !important; border: 1px solid #000 !important; border-radius: 4px !important; padding: 0 6px !important; background: transparent !important; }
-  .badge-status { height: 28px !important; border: 1px solid #000 !important; background: transparent !important; font-size: 11px !important; }
-}
-.print-header { display: none; }
-
-/* ==========================================================================
-   📱 MOBILE RESPONSIVE ENGINE (ปรับย่อลงหน้าจอโทรศัพท์)
-   ========================================================================== */
-
-@media screen and (max-width: 768px) {
-  .page { padding: 16px 12px 100px !important; }
-  .info-grid, .grid-row-3 { grid-template-columns: 1fr !important; gap: 14px; }
-  .leave-box-item { padding: 20px 16px !important; }
-  .bottom-actions { flex-direction: column; width: 100%; }
-  .bottom-actions .btn { width: 100% !important; height: 48px; }
+/* BOTTOM STICKY BAR */
+.bottom-actions { 
+  background: var(--card); 
+  border: 2px solid #e2e8f0; 
+  border-radius: 16px; 
+  padding: 16px 24px; 
+  display: flex; 
+  gap: 16px; 
+  align-items: center; 
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02); 
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-/* ==========================================================================
-   🎨 NEW SLIDEBAR STYLE 
-   ========================================================================== */
-:root {
-  --sidebar-width: 260px;
-  --sidebar-bg: #ffffff;
-  --sidebar-border: #e2e8f0;
+/* ─── 7. FLATPICKR CUSTOM STYLING ─── */
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  text-decoration: line-through;
+  opacity: 0.7;
+  cursor: not-allowed !important;
 }
 
-/* ตัวโครงสร้างแถบข้าง */
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--sidebar-width);
-  height: 100vh;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.7);
-  border-right: 1px solid var(--sidebar-border);
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 100;
-}
-
-/* คลาสพิเศษเมื่อสั่งย่อ/ซ่อนสไลด์ไปทางซ้าย */
-.sidebar.collapsed {
-  transform: translateX(-100%);
-}
-
-/* ส่วนหัวของ Sidebar */
-.sidebar-brand {
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid var(--sidebar-border);
-}
-.sidebar-logo {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
-}
-.brand-info h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-}
-.brand-info small {
-  font-size: 11px;
-  color: #64748b;
-}
-
-/* ลิสต์รายการเมนู */
-.sidebar-menu {
-  flex: 1;
-  padding: 16px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  color: #475569;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-.menu-item:hover {
-  background: #f1f5f9;
-  color: #1e293b;
-}
-.menu-item.active {
-  background: #e2fbf0; /* สีเขียวมิ้นต์อ่อนตามดีไซน์เดิมของพี่ */
-  color: #059669;
-  font-weight: 600;
-}
-.menu-icon {
-  font-size: 18px;
-}
-
-/* ส่วนท้ายปุ่มออก */
-.sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid var(--sidebar-border);
-}
-.btn-logout {
-  width: 100%;
-  padding: 10px;
-  background: #fff5f5;
-  color: #e11d48;
-  border: 1px solid #fee2e2;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-.btn-logout:hover {
-  background: #fee2e2;
-}
-
-/* 💻 พื้นที่เนื้อหาหลัก (จะขยับขยายตามขนาด Sidebar) */
-.main-content {
-  margin-left: var(--sidebar-width);
-  padding: 24px;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.main-content.expanded {
-  margin-left: 0;
-}
-
-/* ☰ ปุ่มเปิด/ปิดแฮมเบอร์เกอร์ */
-.toggle-sidebar-btn {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 110;
-  background: #ffffff;
-  border: 1px solid var(--sidebar-border);
-  border-radius: 6px;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-/* 📱 หน้าจอมือถือ (ให้ Sidebar ซ่อนตัวถาวรก่อนจนกว่าจะกดปุ่ม) */
-@media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  .sidebar.active {
-    transform: translateX(0);
-  }
-  .main-content {
-    margin-left: 0 !important;
-    padding-top: 70px;
-  }
-}
-
-/* ==========================================================================
-   ✨ LUXURY SIDEBAR UPGRADE FEATURES (ชุดตกแต่งกล่องโปรไฟล์ & แถบสิทธิ์วันลา)
-   ========================================================================== */
-
-/* กล่องโปรไฟล์ผู้ใช้งานในแถบข้าง */
-.sidebar-profile-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  margin: 16px;
-  background: var(--bg);
-  border-radius: 14px;
-  border: 1px solid rgba(15, 23, 42, 0.02);
-  transition: var(--ease);
-  overflow: hidden;
-}
-
-.profile-avatar {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  background: #ffffff;
-  color: var(--primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(31, 38, 135, 0.04);
-}
-
-.profile-avatar .material-symbols-outlined {
-  font-size: 26px;
-}
-
-.online-status-dot {
-  position: absolute;
-  bottom: 1px;
-  right: 1px;
-  width: 9px;
-  height: 9px;
-  background-color: #10b981;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  animation: pulseBall 2s infinite;
-}
-
-.profile-info-text h4 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.role-badge {
-  font-size: 10px;
-  background: var(--primary-light);
-  color: var(--primary-dark);
-  padding: 1px 8px;
-  border-radius: 99px;
-  font-weight: 600;
-  display: inline-block;
-  margin-top: 2px;
-}
-
-/* ตัวแจ้งเตือนสีแดงข้างๆ เมนู */
-.nav-badge-count {
-  position: absolute;
-  right: 16px;
-  background-color: var(--danger);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 99px;
-  animation: badgePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-/* แถบมินิวิเคราะห์สิทธิ์วันลาคงเหลือ (Mini Leave Widget) */
-.sidebar-widget-balance {
-  padding: 16px;
-  margin: 16px;
-  background: linear-gradient(135deg, #ffffff 0%, var(--bg) 100%);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  transition: var(--ease);
-  overflow: hidden;
-}
-
-.sidebar-widget-balance .widget-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.sidebar-widget-balance .widget-title strong {
-  color: var(--primary-dark);
-  font-weight: 700;
-}
-
-.progress-bar-bg {
-  width: 100%;
-  height: 6px;
-  background-color: #e2e8f0;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
-  border-radius: 99px;
-  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.widget-hint {
-  font-size: 9px;
-  color: #a0aec0;
-  margin-top: 6px;
-}
-
-/* 🎯 รองรับสถานะเมื่อ Sidebar โดนกด "หดแถบข้าง (Collapsed State)" */
-.sidebar.collapsed .sidebar-profile-box {
-  margin: 16px 8px;
-  padding: 8px;
-  justify-content: center;
-}
-.sidebar.collapsed .profile-info-text,
-.sidebar.collapsed .sidebar-widget-balance,
-.sidebar.collapsed .nav-badge-count {
-  display: none !important;
-}
-
-@keyframes badgePop {
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-/* ==========================================================================
-   ✨ BUTTON LOADING ANIMATION
-   ========================================================================= */
-.btn.loading {
-  position: relative;
-  pointer-events: none;
-  opacity: 0.85;
-  color: transparent !important; /* ซ่อนข้อความเดิมชั่วคราว */
-}
-
-.btn.loading::after {
-  content: "";
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  top: 50%;
-  left: 50%;
-  margin-top: -9px;
-  margin-left: -9px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: pvt-spin 0.8s linear infinite;
-}
-
-@keyframes pvt-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-/* ==========================================================================
-   📱 แก้ไขแถบบน (Top Bar) ให้กะทัดรัดสำหรับหน้าจอมือถือ
-   ========================================================================== */
-@media screen and (max-width: 768px) {
-  /* 1. ลดความหนาของแถบบน */
-  .topbar { padding: 10px 12px !important; }
-  
-  .topbar-container { 
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 8px !important;
-  }
-  
-  /* 2. ย่อปุ่มย้อนกลับ และซ่อนโลโก้บริษัทที่เกะกะในปุ่มออก */
-  .btn-back { padding: 6px 12px !important; font-size: 13px !important; }
-  .btn-back img { display: none !important; } 
-  .btn-back span:nth-child(2) { display: none !important; } /* ซ่อนเส้นคั่น | */
-
-  /* 3. ย่อขนาดตัวหนังสือตรงกลาง และซ่อนคำบรรยายยาวๆ */
-  .topbar-center { text-align: center !important; flex: 1 !important; }
-  .topbar-title { font-size: 16px !important; }
-  .topbar-subtitle { display: none !important; } 
-
-  /* 4. ย่อปุ่มหลักเกณฑ์ และซ่อนปุ่มพิมพ์ทิ้งไปเลย */
-  .topbar-actions { display: flex !important; gap: 8px !important; }
-  .topbar-actions .btn { padding: 6px 10px !important; font-size: 13px !important; height: auto !important; }
-  .topbar-actions button:last-child { display: none !important; } /* ซ่อนปุ่ม 🖨️ พิมพ์ */
-}
-
-
-/* --- ชุดสไตล์ระบบคู่มือสำหรับหน้าฟอร์มใบลา (Premium Glassmorphism) --- */
+/* ─── 8. FORM GUIDE POPUP (GLASSMORPHISM) ─── */
 .form-guide-wrapper {
   position: fixed;
-  bottom: 24px; /* หากหน้านี้ไม่มีบาร์ติดต่อ HR ลอยด้านล่าง สามารถใช้ 24px เพื่อความสวยงามได้เลย */
-  right: 24px;
-  z-index: 9999;
-  font-family: "Sarabun", sans-serif;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  right: max(24px, env(safe-area-inset-right));
+  z-index: 999;
+  font-family: inherit;
 }
 
-/* ตัวหน้าต่างป๊อปอัพกระจกเบลอ */
 .form-guide-popup {
   width: 340px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(6, 182, 212, 0.15);
+  box-shadow: 0 12px 32px rgba(6, 182, 212, 0.18);
   margin-bottom: 12px;
   overflow: hidden;
   animation: formGuideFadeIn 0.25s ease-out;
 }
 
 .form-guide-header {
-  background: linear-gradient(135deg, #06b6d4, #0891b2); /* ใช้โทนสีฟ้า/เขียวเทอร์ควอยซ์สว่างให้เข้ากับตัวหน้าเว็บ */
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
   color: #ffffff;
   padding: 12px 16px;
   display: flex;
@@ -649,8 +366,6 @@ body {
   font-size: 14.5px;
 }
 
-.form-guide-header .material-symbols-outlined { font-size: 20px; }
-
 .form-guide-close-btn {
   background: transparent;
   border: none;
@@ -659,17 +374,16 @@ body {
   display: flex;
   align-items: center;
   opacity: 0.85;
-  transition: opacity 0.2s;
 }
-.form-guide-close-btn:hover { opacity: 1; }
 
 .form-guide-body {
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 420px;
+  max-height: 400px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .form-guide-item {
@@ -682,18 +396,8 @@ body {
   padding-bottom: 10px;
 }
 
-.form-guide-item strong {
-  color: #0891b2;
-}
-
-.form-guide-emoji {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-/* ปุ่มกลมกดเปิดคู่มือ */
 .form-fab-btn {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #0891b2;
@@ -709,27 +413,120 @@ body {
   box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
   transition: all 0.2s ease;
   float: right;
+  touch-action: manipulation;
 }
-
-.form-fab-btn:hover {
-  background: #ffffff;
-  border-color: #06b6d4;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(6, 182, 212, 0.25);
-}
-
-.form-fab-btn .material-symbols-outlined { font-size: 20px; }
 
 @keyframes formGuideFadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 📱 ปรับหน้าจอฝั่ง Mobile */
-@media (max-width: 600px) {
-  .form-guide-wrapper { right: 16px; bottom: 16px; }
-  .form-guide-popup { width: calc(100vw - 32px); }
-  .form-fab-text { display: none; } /* ซ่อนข้อความยาวบนมือถือ เพื่อป้องกันการซ้อนทับองค์ประกอบอื่น */
-  .form-fab-btn { padding: 10px; border-radius: 50%; }
+/* ─── 9. BREAKPOINTS (TABLET & MOBILE BREAKPOINTS) ─── */
+
+/* 📱 แท็บเล็ตและหน้าจอขนาดกลาง (<= 1024px) */
+@media screen and (max-width: 1024px) {
+  .grid-row-3 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .page { padding: 24px 16px 100px; }
 }
 
+/* 📱 สมาร์ตโฟน Android / iPhone (<= 768px) */
+@media screen and (max-width: 768px) {
+  /* บังคับให้ช่องกรอกขนาดอักษร 16px ป้องกัน Auto-Zoom บน iOS */
+  .input-group input, 
+  .input-group select, 
+  .info-field input {
+    font-size: 16px !important; 
+  }
+
+  .grid-row-3, .info-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  .topbar { padding: 10px 12px !important; }
+  .topbar-subtitle { display: none !important; }
+  .topbar-title { font-size: 16px !important; }
+  
+  .btn-back { padding: 6px 10px !important; font-size: 12px !important; }
+  .btn-back span:nth-child(2) { display: none !important; }
+
+  .info-card, .leave-box-item {
+    padding: 18px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .form-guide-wrapper { 
+    right: 12px !important; 
+    bottom: max(16px, env(safe-area-inset-bottom)) !important; 
+  }
+  .form-guide-popup { width: calc(100vw - 24px); }
+  .form-fab-text { display: none; }
+  .form-fab-btn { padding: 10px; border-radius: 50%; }
+
+  /* ล็อกแถบบันทึกไว้ด้านล่างจอ (Mobile Sticky Actions) */
+  .bottom-actions {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    border-radius: 0 !important;
+    border-top: 1px solid #cbd5e1 !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    padding: 10px 16px max(12px, env(safe-area-inset-bottom)) !important;
+    z-index: 900 !important;
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08) !important;
+    flex-direction: row;
+  }
+
+  .bottom-actions .btn {
+    flex: 1;
+    min-height: 44px;
+    font-size: 14px;
+    padding: 0 8px;
+  }
+}
+
+/* ─── 10. PRINT ENGINE (รองรับโหมดพิมพ์เอกสาร) ─── */
+@media print {
+  @page { size: A4 portrait; margin: 8mm 10mm; }
+  body, html { 
+    background: #ffffff !important; 
+    color: #000000 !important; 
+    font-size: 11px !important; 
+  }
+  .page { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+  .topbar, .bottom-actions, .notice-box, .no-print, .form-guide-wrapper, .custom-file-upload { display: none !important; } 
+
+  .print-header { 
+    display: flex !important; 
+    flex-direction: column; 
+    align-items: center; 
+    margin-bottom: 12px !important; 
+    border-bottom: 2px solid #000; 
+    padding-bottom: 6px; 
+  } 
+
+  .info-card, .leave-box-item { 
+    border: 1px solid #000 !important; 
+    border-radius: 6px !important; 
+    padding: 10px !important; 
+    margin-bottom: 10px !important; 
+    box-shadow: none !important; 
+    page-break-inside: avoid; 
+  }
+
+  .grid-row-3 { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+  .input-group input, .input-group select, .info-field input { 
+    height: 26px !important; 
+    border: 1px solid #000 !important; 
+    background: transparent !important; 
+    font-size: 11px !important; 
+  }
+}
+.print-header { display: none; }

@@ -845,3 +845,76 @@ select.year-select option {
   color: #1e293b !important;
   font-weight: 500 !important;
 }
+
+/* ================= 📝 HERO LEAVE BUTTON ================= */
+.btn-hero-leave {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-xl, 20px);
+  padding: 20px 24px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(6, 182, 212, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.btn-hero-leave:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(6, 182, 212, 0.35);
+  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+}
+
+.btn-hero-icon {
+  width: 54px;
+  height: 54px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  margin-right: 16px;
+}
+
+.btn-hero-text {
+  flex: 1;
+}
+
+.btn-hero-text strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.btn-hero-text span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
+}
+
+.btn-hero-arrow {
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.8);
+  transition: transform 0.2s ease;
+}
+
+.btn-hero-leave:hover .btn-hero-arrow {
+  transform: translateX(4px);
+  color: #ffffff;
+}
+
+/* ปรับตำแหน่งปุ่มคู่มือเมื่อไม่มีปุ่มติดต่อ HR */
+.user-guide-wrapper {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 998;
+}

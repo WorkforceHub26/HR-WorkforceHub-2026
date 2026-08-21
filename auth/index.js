@@ -165,7 +165,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function redirectToDashboard(role) {
   if (role === "hr" || role === "admin") {
-    window.location.href = "/pages/hr/home.html";
+    window.location.href = "/pages/user/index-user.html";
   } else {
     window.location.href = "/pages/user/index-user.html";
   }

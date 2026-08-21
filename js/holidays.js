@@ -217,28 +217,181 @@ function filterHolidays() {
 }
 
 // 🎴 แสดงผลแบบ Card Grid
-// 2. ฟังก์ชันแสดงผล Card Grid พร้อม Badge สัญลักษณ์ประเภทวันหยุดและรายละเอียดคำอธิบาย[cite: 23]
+// 🎴 แสดงผลแบบ Card Grid
+// แสดง: วันที่ / เดือน / วันในสัปดาห์ / ชื่อวันหยุด / ประเภท / รายละเอียด / สถานะ
 function renderGrid(list) {
-  const container = document.getElementById('holidayGridContainer'); //[cite: 23]
-  if (!container) return; //[cite: 23]
+  const container = document.getElementById('holidayGridContainer');
+  if (!container) return;
 
-  container.innerHTML = list.map(item => { //[cite: 23]
-    const hDate = parseLocalDate(item.holiday_date); //[cite: 23]
-    
-    // แปลง Tag Badge แสดงประเภทวันหยุด[cite: 23]
-    let tagClass = item.holiday_type === 'company' ? 'company' : (item.holiday_type === 'substitution' ? 'substitution' : 'official'); //[cite: 23]
-    let tagText = item.holiday_type === 'company' ? 'วันหยุดบริษัท' : (item.holiday_type === 'substitution' ? 'หยุดชดเชย' : 'นักขัตฤกษ์'); //[cite: 23]
+  // ไม่มีข้อมูล
+  if (!list || list.length === 0) {
+    container.innerHTML = `
+      <div class="loading-state-box" style="grid-column: 1 / -1;">
+        <span class="material-symbols-outlined" style="font-size:42px; color:#94a3b8;">
+          event_busy
+        </span>
+        <p style="color:#64748b; margin-top:10px;">
+          ไม่พบข้อมูลวันหยุด
+        </p>
+      </div>
+    `;
+    return;
+  }
 
+  // วันนี้
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // ตรวจสอบสิทธิ์ HR / Admin
+  const isPowerUser = currentUserProfile
+    ? ['admin', 'hr'].includes(
+        currentUserProfile.role
+          ? currentUserProfile.role.toLowerCase()
+          : ''
+      )
+    : false;
+
+  container.innerHTML = list.map(item => {
+
+    // ------------------------------------------
+    // 📅 แปลงวันที่
+    // ------------------------------------------
+    const hDate = parseLocalDate(item.holiday_date);
+
+    const dayNumber = hDate.getDate();
+    const monthShort = THAI_MONTHS_SHORT[hDate.getMonth()];
+    const dayName = THAI_DAYS[hDate.getDay()];
+
+    // วันที่วันนี้ของรายการ
+    const holidayDateOnly = new Date(hDate);
+    holidayDateOnly.setHours(0, 0, 0, 0);
+
+    const diffTime = holidayDateOnly.getTime() - today.getTime();
+    const diffDays = Math.ceil(
+      diffTime / (1000 * 60 * 60 * 24)
+    );
+
+    const isPast = holidayDateOnly < today;
+    const isToday = diffDays === 0;
+
+    // ------------------------------------------
+    // 🏷️ ประเภทวันหยุด
+    // ------------------------------------------
+    let tagClass = 'official';
+    let tagText = 'นักขัตฤกษ์';
+
+    if (item.holiday_type === 'company') {
+      tagClass = 'company';
+      tagText = 'วันหยุดบริษัท';
+    } else if (item.holiday_type === 'substitution') {
+      tagClass = 'substitution';
+      tagText = 'หยุดชดเชย';
+    }
+
+    // ------------------------------------------
+    // ⏳ ข้อความสถานะ
+    // ------------------------------------------
+    let daysText = '';
+
+    if (isToday) {
+      daysText = '📌 วันนี้';
+    } else if (isPast) {
+      daysText = 'ผ่านมาแล้ว';
+    } else if (diffDays === 1) {
+      daysText = '⏰ พรุ่งนี้';
+    } else {
+      daysText = `อีก ${diffDays} วัน`;
+    }
+
+    // ------------------------------------------
+    // 🔧 ปุ่มจัดการสำหรับ HR / Admin
+    // ------------------------------------------
+    const actionButtons = isPowerUser
+      ? `
+        <div class="card-action-btns">
+          <button
+            type="button"
+            class="btn-icon-action"
+            onclick="openEditHolidayModal('${item.id}')"
+            title="แก้ไขวันหยุด"
+          >
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon-action"
+            onclick="deleteHoliday('${item.id}')"
+            title="ลบวันหยุด"
+          >
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+      `
+      : '';
+
+    // ------------------------------------------
+    // 🎨 Card
+    // ------------------------------------------
     return `
-      <div class="holiday-card">
+      <div class="holiday-card ${isPast ? 'past-holiday' : ''}">
+
+        <!-- ส่วนบน -->
         <div class="card-top">
-          <span class="tag-badge ${tagClass}">${tagText}</span>
+
+          <!-- 📅 วันที่ -->
+          <div class="date-badge-box">
+            <span class="date-badge-day">
+              ${dayNumber}
+            </span>
+
+            <span class="date-badge-month">
+              ${monthShort}
+            </span>
+          </div>
+
+          <!-- 🏷️ ประเภท -->
+          <span class="tag-badge ${tagClass}">
+            ${tagText}
+          </span>
+
         </div>
+
+        <!-- ส่วนข้อมูล -->
         <div class="card-body-content">
-          <h3>${item.holiday_name}</h3>
-          <p class="description-text">${item.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+
+          <!-- วันในสัปดาห์ -->
+          <div class="day-name">
+            วัน${dayName}
+          </div>
+
+          <!-- ชื่อวันหยุด -->
+          <h3>
+            ${item.holiday_name || 'ไม่ระบุชื่อวันหยุด'}
+          </h3>
+
+          <!-- รายละเอียด -->
+          <p class="description-text">
+            ${item.description || 'ไม่มีรายละเอียดเพิ่มเติม'}
+          </p>
+
         </div>
-      </div>`; //[cite: 23]
+
+        <!-- ส่วนล่าง -->
+        <div class="card-footer-action">
+
+          <!-- สถานะวันหยุด -->
+          <span class="days-left-text">
+            ${daysText}
+          </span>
+
+          <!-- ปุ่มจัดการ -->
+          ${actionButtons}
+
+        </div>
+
+      </div>
+    `;
   }).join('');
 }
 

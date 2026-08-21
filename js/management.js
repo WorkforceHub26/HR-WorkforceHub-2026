@@ -268,12 +268,12 @@ function handleLogout() {
     }).then((result) => {
       if (result.isConfirmed) {
         localStorage.clear();
-        window.location.href = 'index.html';
+        window.location.href = '/index.html';
       }
     });
   } else {
     localStorage.clear();
-    window.location.href = 'index.html';
+    window.location.href = '/index.html';
   }
 }
 
@@ -334,7 +334,7 @@ async function initManagementSystem() {
     }
 
     if (!profile) {
-      window.location.href = 'index.html';
+      window.location.href = '/index.html';
       return false;
     }
 

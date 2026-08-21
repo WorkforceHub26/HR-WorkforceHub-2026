@@ -1,5 +1,8 @@
 console.log("📢 [SYSTEM] เริ่มต้นโหลดสคริปต์หน้าจอพนักงาน (พร้อมระบบตรวจสอบโควตาวันลาหมด)...");
 
+if (typeof window.currentProfile === 'undefined') window.currentProfile = null;
+if (typeof window.remainingDays === 'undefined') window.remainingDays = 0; 
+let currentSelectedYear = new Date().getFullYear();
 // 🛠️ 1. สคริปต์พิเศษ: บังคับล้างแคชและดึงไฟล์ CSS ใหม่ล่าสุดเสมอ
 (function forceLoadNewCSS() {
   console.log("🔍 [DEBUG-CSS] กำลังค้นหาไฟล์ CSS ในหน้าเว็บเพื่อบังคับอัปเดตดีไซน์...");
@@ -465,36 +468,10 @@ window.goToContactHR = function() { window.location.href = "/pages/user/contact-
 window.logout = function() { 
   console.log("👋 [LOGOUT] กำลังออกจากระบบและล้าง Session...");
   localStorage.removeItem("currentUser"); 
-  window.location.href = "index.html"; 
+  window.location.href = "/index.html"; 
 };
 
-/* ==========================================================================
-   🕵️‍♂️ 7. ฟังก์ชันตรวจสอบสิทธิ์และแสดงปุ่มสลับโหมดหัวหน้างาน
-   ========================================================================== */
-function checkApproverPermission(profileData) {
-  console.log("🔍 [Debug] กำลังตรวจสอบสิทธิ์จาก Profile ที่ส่งมา:", profileData);
-  try {
-    if (!profileData) {
-      console.warn("❌ [Debug] ไม่มีข้อมูล Profile ให้ตรวจสอบสิทธิ์");
-      return;
-    }
 
-    const userRole = (profileData.role || "").toLowerCase();
-    const approverRoles = ["leader", "manager", "director", "hr"];
-
-    if (approverRoles.includes(userRole)) {
-      console.log("✅ [Debug] สิทธิ์ผ่าน! แสดงปุ่มหัวหน้างาน");
-      const switchBtn = document.getElementById("approverModeBtn");
-      if (switchBtn) {
-        switchBtn.style.setProperty("display", "flex", "important");
-      }
-    } else {
-      console.log("⛔ [Debug] สิทธิ์ไม่ถึง ไม่แสดงปุ่ม");
-    }
-  } catch (err) {
-    console.error("❌ [Debug] เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์หัวหน้างาน:", err);
-  }
-}
 
 /* ==========================================================================
    🔮 8. USER INTERACTION GUIDE CONTROLLER (ระบบควบคุมคู่มือผู้ใช้งานพนักงาน)
@@ -578,26 +555,18 @@ function checkApproverPermission(profileData) {
     if (!profileData) return;
 
     const userRole = (profileData.role || "").toLowerCase();
-    const approverRoles = ["leader", "manager", "director", "hr"];
+    
+    // 💡 หากต้องการทดสอบให้เห็นปุ่มทุกคน ให้ใส่ true หรือเพิ่มบทบาท "ทั่วไป" ในรายการนี้
+    const approverRoles = ["leader", "manager", "director", "hr", "admin"];
     const isApprover = approverRoles.includes(userRole);
-
-    const notifBtn = document.getElementById("notificationBtn");
-    if (notifBtn) {
-      notifBtn.style.setProperty("display", "inline-flex", "important");
-    }
 
     const switchBtn = document.getElementById("approverModeBtn");
     if (switchBtn) {
+      // ปรับให้แสดงผลเป็น Flex เมื่อมีสิทธิ์
       switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
     }
-
-    if (isApprover) {
-      fetchPendingApprovalsCount();
-    } else {
-      fetchEmployeeLeaveStatusCount(profileData);
-    }
   } catch (err) {
-    console.error("❌ เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์:", err);
+    console.error("❌ Error in checkApproverPermission:", err);
   }
 }
 
@@ -986,3 +955,15 @@ function renderQuotaCards(quotas) {
     `;
   }).join('');
 }
+
+// 1. ฟังก์ชันนำทางไปยังหน้ายื่นใบลา (ตรวจสอบ path ไฟล์ยื่นใบลาของคุณให้ถูกต้อง)
+function goToLeaveForm() {
+  window.location.href = "/pages/user/leave-user.html";
+}
+
+// 2. เคลียร์ข้อผิดพลาด BFCache (แก้ปัญหาสคริปต์ค้างจาก Live Server เวลากด Back)
+window.addEventListener("pageshow", function (event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+});

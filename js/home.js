@@ -533,7 +533,7 @@ const PVT_CARD_CONFIG = {
   // หากพัฒนาบน localhost จะสลับไปใช้ Domain จริงให้อัตโนมัติ เพื่อให้โทรศัพท์สแกนได้
   PRODUCTION_DOMAIN: "https://dev-workforcehub-2026.pages.dev",
   // ระบุไฟล์ปลายทางให้ชัดเจนเพื่อป้องกันปัญหา Blank Page (หน้าขาว)
-  ENTRY_PAGE_PATH: "index.html", 
+  ENTRY_PAGE_PATH: "/index.html", 
   QR_SIZE: "180x180"
 };
 
