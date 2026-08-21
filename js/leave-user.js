@@ -1,5 +1,5 @@
 /**
- * leave-user.js — ใบลาออนไลน์ PVT HR (เวอร์ชันแก้ไขเสถียรสูงสุด)
+ * leave-user.js — ใบลาออนไลน์ PVT HR (รองรับ Cross-Platform 100%)
  */
 
 console.log("📢 [SYSTEM] เปิดใช้งานระบบติดตามข้อมูลใบลาเวอร์ชันเสถียรสูงสุดแล้ว...");
@@ -13,15 +13,63 @@ let cachedHolidays = [];
 let currentProfile = null;
 let isHRRole = false;
 
-// ตัวแปรเก็บช่วงวันลาเดิมของพนักงานเพื่อล็อกปฏิทิน
 let userDisabledLeaveDates = [];
 
 window.employeeLeaveBalances = []; 
 window.systemLeaveTypes = [];
 
 // ==========================================
-// 🛠️ HELPER FUNCTIONS
+// 🛠️ HELPER & COMPRESSION FUNCTIONS
 // ==========================================
+
+// ฟังก์ชันย่อขนาดรูปภาพฝั่ง Client ป้องกันภาพจากกล้อง iPhone/Android หน่วยความจำล้น
+async function compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) {
+  if (!file || !file.type.startsWith('image/')) return file;
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => resolve(file);
+      img.src = event.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 function parseLocalDate(dateStr) {
   if (!dateStr) return null;
   const cleanStr = String(dateStr).split('T')[0];
@@ -36,7 +84,7 @@ function countWorkDaysInRange(startDateStr, endDateStr) {
   const endDate = parseLocalDate(endDateStr);
 
   while (currentDate <= endDate) {
-    const dayOfWeek = currentDate.getDay(); // 0 = วันอาทิตย์
+    const dayOfWeek = currentDate.getDay(); 
     const dateFormatted = currentDate.toISOString().split('T')[0];
 
     const isSunday = (dayOfWeek === 0);
@@ -116,7 +164,6 @@ async function checkAllOverlaps(currentEmpId, startDateStr, endDateStr, currentB
   return { isOverlapped: false };
 }
 
-// ฟังก์ชันดึงวันลาเดิมที่อยู่ระหว่างรออนุมัติ หรือ อนุมัติแล้ว
 async function fetchUserExistingLeaveDates(employeeId) {
   const sb = window.pvtSupabase?.getClient();
   if (!sb || !employeeId) return [];
@@ -143,7 +190,7 @@ async function fetchUserExistingLeaveDates(employeeId) {
 }
 
 // ==========================================
-// 🗓️ 1. ระบบดึงและจัดการวันหยุดบริษัท (holidays)
+// 🗓️ 1. ระบบดึงและจัดการวันหยุดบริษัท
 // ==========================================
 async function loadCompanyHolidays() {
   const sb = window.pvtSupabase?.getClient();
@@ -218,13 +265,12 @@ async function validateLeaveDate(selectedDateStr) {
 }
 
 // ==========================================
-// 🗓️ 2. ฟังก์ชันจัดการการเปลี่ยนวันที่ (handleDateChange - แก้ไขบั๊กเคลียร์ Flatpickr)
+// 🗓️ 2. จัดการการเปลี่ยนวันที่
 // ==========================================
 async function handleDateChange(inputElement) {
   const boxItem = inputElement.closest('.leave-box-item');
   const selectedDateStr = inputElement.value;
 
-  // Helper สำหรับล้างค่าปฏิทิน Flatpickr ทั้ง UI และ Element
   const clearCalendarInput = (el) => {
     if (el._flatpickr) {
       el._flatpickr.clear();
@@ -302,7 +348,7 @@ async function handleDateChange(inputElement) {
 }
 
 // ==========================================
-// 📦 3. โหลดข้อมูลประเภทการลา (leave_types)
+// 📦 3. โหลดข้อมูลประเภทการลา
 // ==========================================
 function renderLeaveTypeOptions(selectEl) {
   if (!selectEl) return;
@@ -337,7 +383,6 @@ async function loadLeaveTypes() {
     leaveTypes = data || [];
     window.systemLeaveTypes = leaveTypes;
 
-    // อัปเดต Dropdown ในทุกการ์ดบนหน้าจอ
     document.querySelectorAll('select[name="leave_type_id"]').forEach(selectEl => {
       renderLeaveTypeOptions(selectEl);
     });
@@ -433,7 +478,6 @@ async function fetchCurrentUserData() {
 // ==========================================
 // 🔒 5. Flatpickr & Form Sequence Control
 // ==========================================
-// 🛠️ 2. แก้ไข initDatePickerWithDisabledDates : ปิด Flatpickr ทันทีเมื่อเลือกวัน
 function initDatePickerWithDisabledDates(container = document, disabledDates = []) {
   if (typeof flatpickr === "undefined") return;
 
@@ -458,7 +502,7 @@ function initDatePickerWithDisabledDates(container = document, disabledDates = [
     maxDate: `${currentYear}-12-31`,
     disable: formattedDisabled,
     onChange: function (selectedDates, dateStr, instance) {
-      instance.close(); // ปิดปฏิทินทันที ไม่ให้บัง Popup Alert
+      instance.close();
       if (typeof handleDateChange === "function") {
         handleDateChange(instance.element);
       }
@@ -475,6 +519,7 @@ function initDatePickerWithDisabledDates(container = document, disabledDates = [
     flatpickr(input, baseConfig);
   });
 }
+
 function updateFormSequence(boxItem) {
   if (!boxItem) return;
 
@@ -650,7 +695,6 @@ function removeLeaveRow(button) {
   }
 }
 
-// 🛠️ 3. แก้ไข addLeaveRow : ปรับ write_date เป็น Local Timezone ประเทศไทย
 async function addLeaveRow() {
   const container = document.getElementById('leaveCardsList');
   if (!container) return;
@@ -659,7 +703,6 @@ async function addLeaveRow() {
   const boxItem = document.createElement('div');
   boxItem.className = 'leave-box-item';
 
-  // ดึงวันที่ตามเขตเวลาประเทศไทย (YYYY-MM-DD) ป้องกันปัญหายื่นตอนเที่ยงคืนแล้ววันย้อนหลัง
   const todayThaiStr = new Date().toLocaleDateString('en-CA');
 
   boxItem.innerHTML = `
@@ -667,7 +710,8 @@ async function addLeaveRow() {
     <div class="grid-row-3">
       <div class="input-group">
         <label>วันที่เขียนคำขอ</label>
-        <input type="date" name="Local Timezone" value="${todayThaiStr}" readonly tabindex="-1" class="readonly-highlight" style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed;">
+        <!-- แก้ไขชื่อ attribute name เป็น write_date ให้ตรงมาตรฐาน -->
+        <input type="date" name="write_date" value="${todayThaiStr}" readonly tabindex="-1" class="readonly-highlight" style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed;">
       </div>
       <div class="input-group">
         <label>เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
@@ -812,14 +856,13 @@ function calculateLeaveDays(element) {
 // ==========================================
 // 📸 9. เปลี่ยนชื่อปุ่มเมื่อแนบรูป
 // ==========================================
-// 🛠️ 4. แก้ไข handleFileChange : ตรวจเช็กขนาดไฟล์เบื้องต้นก่อนเลือก
 function handleFileChange(input, labelId) {
   const label = document.getElementById(labelId);
   if (!label) return;
   
   if (input.files && input.files.length > 0) {
     const file = input.files[0];
-    const maxMB = 10; // บล็อกไฟล์ที่ใหญ่เกิน 10MB ก่อนย่อ
+    const maxMB = 10;
     
     if (file.size > maxMB * 1024 * 1024) {
       Swal.fire({
@@ -844,6 +887,7 @@ function handleFileChange(input, labelId) {
     label.style.color = 'var(--muted)';
   }
 }
+
 // ==========================================
 // 🔔 10. ระบบแจ้งเตือน และ อัปโหลดไฟล์
 // ==========================================
@@ -867,14 +911,12 @@ async function sendNotification(title, message, type = 'leave', targetUrl = '/pa
   }
 }
 
-// 🛠️ 5. แก้ไข uploadAttachment : ย่อขนาดรูปภาพ iPhone อัตโนมัติก่อนส่งขึ้น Supabase
 async function uploadAttachment(file, employeeId) {
   if (!file) return null;
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return null;
 
   try {
-    // นำไฟล์เข้ากระบวนการย่อรูปอัตโนมัติก่อนส่งขึ้น Server
     const compressedFile = await compressImage(file);
 
     const fileExt = compressedFile.name.split('.').pop();
@@ -901,7 +943,7 @@ async function uploadAttachment(file, employeeId) {
 }
 
 // ==========================================
-// 💾 11. บันทึกคำขอใบลา (saveLeave)
+// 💾 11. บันทึกคำขอใบลา
 // ==========================================
 async function saveLeave() {
   const sb = window.pvtSupabase?.getClient();
@@ -1219,7 +1261,7 @@ async function saveLeave() {
 }
 
 // ==========================================
-// 🔮 12. เมนูคู่มือและการทำงานเริ่มต้น (Initialization)
+// 🔮 12. เมนูคู่มือและการทำงานเริ่มต้น
 // ==========================================
 function toggleFormLeaveGuide() {
   const card = document.getElementById("form-leave-guide-card");
@@ -1249,16 +1291,22 @@ function toggleFormLeaveGuide() {
   }
 }
 
+// ป้องกันปัญหา BFCache เวลาสลับหน้า/กด Back บน iOS Safari
+window.addEventListener("pageshow", function (event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+});
+
 document.addEventListener("DOMContentLoaded", async () => {
   await loadCompanyHolidays(); 
   await loadLeaveTypes();      
   await fetchCurrentUserData(); 
   
-  // ดึงวันลาเดิมของพนักงานท่านนี้มาก่อน
   const currentEmpId = currentProfile?.id || currentProfile?.employee_id;
   if (currentEmpId) {
     await fetchUserExistingLeaveDates(currentEmpId);
   }
 
-  addLeaveRow(); // สร้างช่องยื่นลาพร้อมล็อกวันที่เคยยื่นไปแล้ว
+  addLeaveRow(); 
 });

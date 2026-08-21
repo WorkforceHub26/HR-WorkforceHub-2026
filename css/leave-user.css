@@ -7,8 +7,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  -webkit-tap-highlight-color: transparent; /* ป้องกันแถบสีเทาขณะแตะบน Android/iOS */
-  -webkit-text-size-adjust: 100%;            /* ป้องกัน Safari/Chrome ปรับขนาดตัวอักษรอัตโนมัติ */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
 }
 
 :root {
@@ -33,8 +33,8 @@
 html, body {
   width: 100%;
   min-height: 100vh;
-  min-height: 100dvh; /* รองรับ Dynamic Viewport Height บนมือถือ */
-  overflow-x: hidden; /* ป้องกันหน้าจอเลื่อนแนวนอนขยะ */
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 body {
@@ -67,7 +67,6 @@ body {
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
 }
 
-/* Fallback สำหรับเบราว์เซอร์เก่าที่ไม่รองรับ backdrop-filter */
 @supports not (backdrop-filter: blur(16px)) {
   .topbar { background: var(--card-solid); }
 }
@@ -98,11 +97,11 @@ body {
 
 .topbar-center { text-align: center; flex: 1; }
 .topbar-title { font-size: 20px; font-weight: 700; color: var(--text); display: block; }
-.topbar-subtitle { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; }
+.topbar-subtitle { font-size: 13px; color: var(--muted); display: block; margin-top: 2px; }
 
 /* ─── 3. LAYOUT & RESPONSIVE GRID SYSTEM ─── */
 .page { 
-  padding: 32px 24px 120px; 
+  padding: 32px 24px 140px; 
   max-width: 1400px; 
   margin: 0 auto;
   padding-left: max(24px, env(safe-area-inset-left));
@@ -189,7 +188,6 @@ body {
   text-transform: uppercase;
 }
 
-/* ระบบ Grid 3 คอลัมน์ที่ยืดหยุ่นตามหน้าจอ */
 .grid-row-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -200,22 +198,23 @@ body {
 .input-group { display: flex; flex-direction: column; gap: 8px; }
 .input-group label { font-size: 13.5px; font-weight: 700; color: var(--text); }
 
-/* ─── 5. INPUTS, SELECTS & TOUCH TARGETS (ป้องกัน Zoom บน iOS/Android) ─── */
+/* ─── 5. INPUTS, SELECTS & TOUCH TARGETS ─── */
 .input-group input, 
 .input-group select, 
-.info-field input {
+.info-field input,
+textarea {
   width: 100%;
   height: 48px; 
   border: 2px solid var(--border);
   border-radius: 10px;
   padding: 10px 14px;
   font-family: inherit;
-  font-size: 15px; /* ป้องกัน iOS/Android Chrome ย่อขยายเอง */
+  font-size: 16px; /* 16px ป้องกัน iOS Safari Auto-Zoom */
   color: var(--text);
   background: var(--input-bg);
   outline: none;
   transition: var(--ease);
-  -webkit-appearance: none; /* ล้างสไตล์ดั้งเดิมของ Safari/Android */
+  -webkit-appearance: none;
   appearance: none;
 }
 
@@ -280,7 +279,7 @@ body {
   margin-top: 8px;
 }
 
-/* ─── 6. BUTTONS ─── */
+/* ─── 6. BUTTONS & BOTTOM STICKY BAR ─── */
 .btn { 
   display: inline-flex; 
   align-items: center; 
@@ -309,7 +308,6 @@ body {
 .btn-danger:hover { background: #fecaca; }
 .btn-sm { padding: 8px 16px; font-size: 14px; min-height: 40px; border-radius: 8px; }
 
-/* BOTTOM STICKY BAR */
 .bottom-actions { 
   background: var(--card); 
   border: 2px solid #e2e8f0; 
@@ -323,7 +321,7 @@ body {
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* ─── 7. FLATPICKR CUSTOM STYLING ─── */
+/* ─── 7. FLATPICKR STYLING ─── */
 .flatpickr-day.flatpickr-disabled,
 .flatpickr-day.flatpickr-disabled:hover {
   background-color: #fee2e2 !important;
@@ -333,7 +331,7 @@ body {
   cursor: not-allowed !important;
 }
 
-/* ─── 8. FORM GUIDE POPUP (GLASSMORPHISM) ─── */
+/* ─── 8. FORM GUIDE POPUP ─── */
 .form-guide-wrapper {
   position: fixed;
   bottom: max(24px, env(safe-area-inset-bottom));
@@ -421,25 +419,17 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── 9. BREAKPOINTS (TABLET & MOBILE BREAKPOINTS) ─── */
-
-/* 📱 แท็บเล็ตและหน้าจอขนาดกลาง (<= 1024px) */
+/* ─── 9. RESPONSIVE BREAKPOINTS ─── */
 @media screen and (max-width: 1024px) {
   .grid-row-3 {
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
-  .page { padding: 24px 16px 100px; }
+  .page { padding: 24px 16px 140px; }
 }
 
-/* 📱 สมาร์ตโฟน Android / iPhone (<= 768px) */
 @media screen and (max-width: 768px) {
-  /* บังคับให้ช่องกรอกขนาดอักษร 16px ป้องกัน Auto-Zoom บน iOS */
-  .input-group input, 
-  .input-group select, 
-  .info-field input {
-    font-size: 16px !important; 
-  }
+  .page { padding: 20px 12px 160px !important; }
 
   .grid-row-3, .info-grid {
     grid-template-columns: 1fr !important;
@@ -447,7 +437,7 @@ body {
   }
 
   .topbar { padding: 10px 12px !important; }
-  .topbar-subtitle { display: none !important; }
+  .topbar-subtitle { font-size: 11px !important; }
   .topbar-title { font-size: 16px !important; }
   
   .btn-back { padding: 6px 10px !important; font-size: 12px !important; }
@@ -460,13 +450,12 @@ body {
 
   .form-guide-wrapper { 
     right: 12px !important; 
-    bottom: max(16px, env(safe-area-inset-bottom)) !important; 
+    bottom: max(75px, env(safe-area-inset-bottom)) !important; 
   }
   .form-guide-popup { width: calc(100vw - 24px); }
   .form-fab-text { display: none; }
   .form-fab-btn { padding: 10px; border-radius: 50%; }
 
-  /* ล็อกแถบบันทึกไว้ด้านล่างจอ (Mobile Sticky Actions) */
   .bottom-actions {
     position: fixed !important;
     bottom: 0 !important;
@@ -492,7 +481,11 @@ body {
   }
 }
 
-/* ─── 10. PRINT ENGINE (รองรับโหมดพิมพ์เอกสาร) ─── */
+/* ─── 10. PRINT ENGINE (แสดงเฉพาะเมื่อกดสั่งพิมพ์งาน) ─── */
+.print-header { 
+  display: none !important; /* ซ่อนไว้เสมอเมื่ออยู่บนหน้าจอปกติ */
+}
+
 @media print {
   @page { size: A4 portrait; margin: 8mm 10mm; }
   body, html { 
@@ -501,16 +494,23 @@ body {
     font-size: 11px !important; 
   }
   .page { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
-  .topbar, .bottom-actions, .notice-box, .no-print, .form-guide-wrapper, .custom-file-upload { display: none !important; } 
+  .topbar, .bottom-actions, .notice-box, .no-print, .form-guide-wrapper, .custom-file-upload { 
+    display: none !important; 
+  } 
 
   .print-header { 
     display: flex !important; 
     flex-direction: column; 
     align-items: center; 
+    text-align: center;
     margin-bottom: 12px !important; 
     border-bottom: 2px solid #000; 
     padding-bottom: 6px; 
   } 
+
+  .print-header h1 { font-size: 18px; font-weight: bold; color: #000; margin: 0; }
+  .print-header h2 { font-size: 14px; font-weight: bold; color: #000; margin: 2px 0; }
+  .print-header p { display: block !important; font-size: 12px; color: #000; margin: 0; }
 
   .info-card, .leave-box-item { 
     border: 1px solid #000 !important; 
@@ -529,4 +529,69 @@ body {
     font-size: 11px !important; 
   }
 }
-.print-header { display: none; }
+
+/* ==========================================
+   FIX: TOPBAR RESPONSIVE (รองรับมือถือจอเล็กทุกรุ่น)
+   ========================================== */
+.topbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px !important;
+}
+
+/* ล็อกกล่องตรงกลางไม่ให้โดนบีบจนตัวอักษรพับเป็นแนวตั้ง */
+.topbar-center {
+  text-align: center;
+  flex: 1;
+  min-width: 0 !important; /* ป้องกัน Flexbox ดันข้อความล้น */
+  overflow: hidden;
+}
+
+.topbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* แสดง ... ถ้าชื่อยาวเกิน */
+}
+
+/* ล็อกไม่ให้ปุ่มซ้ายและขวายืดหรือดันพื้นที่คนอื่น */
+.btn-back, 
+.topbar-center + *,
+.topbar-container > *:last-child {
+  flex-shrink: 0 !important;
+}
+
+/* 📱 ปรับแต่งพิเศษสำหรับหน้าจอมือถือ (<= 600px) */
+@media screen and (max-width: 600px) {
+  .topbar {
+    padding: 8px 10px !important;
+  }
+
+  /* ย่อขนาดปุ่มซ้าย และซ่อนรูปโลโก้ PVT บนมือถือ */
+  .btn-back {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  .btn-back img {
+    display: none !important; /* ซ่อนโลโก้ในปุ่มย้อนกลับเพื่อประหยัดพื้นที่ */
+  }
+
+  /* ย่อขนาดปุ่มหลักเกณฑ์ด้านขวา */
+  .topbar-container > *:last-child {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .topbar-title {
+    font-size: 15px !important;
+  }
+
+  /* ซ่อนชื่อบริษัทบรรทัดล่างสุดบนมือถือ เพื่อให้ Header คลีนขึ้น */
+  .topbar-subtitle {
+    display: none !important;
+  }
+}
