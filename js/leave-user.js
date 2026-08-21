@@ -1163,7 +1163,7 @@ async function saveLeave() {
         total_days:             days1,
         reason:                 `${reason.trim()} (ส่วนที่ 1: ตัดรอบปี ${startYear})`,
         attachment_url:         attachmentUrl,
-        social_security_rights: ssoRights,
+        
         status:                 "pending",          
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
@@ -1181,7 +1181,7 @@ async function saveLeave() {
         total_days:             days2,
         reason:                 `${reason.trim()} (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})`,
         attachment_url:         attachmentUrl,
-        social_security_rights: ssoRights,
+        
         status:                 "pending",          
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
@@ -1204,7 +1204,7 @@ async function saveLeave() {
         total_days:             totalDays,
         reason:                 reason.trim(),
         attachment_url:         attachmentUrl,
-        social_security_rights: ssoRights,
+        
         status:                 "pending",          
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
