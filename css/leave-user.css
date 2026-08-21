@@ -659,3 +659,53 @@ textarea {
     font-size: 24px;
   }
 }
+
+/* ==========================================
+   📱 STEPPER BUTTONS (ANDROID FIX)
+   ========================================== */
+.stepper-container {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 6px !important;
+}
+
+.stepper-container input[type="number"] {
+  text-align: center !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.btn-stepper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  -webkit-appearance: none !important; /* Fix สำหรับ Android Chrome */
+  appearance: none !important;
+  touch-action: manipulation !important;
+  user-select: none !important;
+  cursor: pointer !important;
+}
+
+.btn-stepper:active {
+  background-color: #e2e8f0 !important;
+}
+
+/* ล็อคปุ่มเมื่อยังไม่เลือกประเภทการลา */
+.btn-stepper:disabled {
+  opacity: 0.3 !important;
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+}
