@@ -716,6 +716,7 @@ function removeLeaveRow(button) {
   }
 }
 
+// อัปเดต HTML เพิ่มปุ่ม + / - ครอบช่องชั่วโมง
 async function addLeaveRow() {
   const container = document.getElementById('leaveCardsList');
   if (!container) return;
@@ -768,11 +769,19 @@ async function addLeaveRow() {
     <div class="grid-row-3">
       <div class="input-group">
         <label>จำนวนชั่วโมงเช้า (0-4)</label>
-        <input type="number" placeholder="0" name="hours_morning" min="0" max="4" value="0" step="0.5" disabled oninput="calculateLeaveDays(this)">
+        <div class="stepper-container">
+          <button type="button" class="btn-stepper" onclick="stepHours(this, -1)">-</button>
+          <input type="number" placeholder="0" name="hours_morning" min="0" max="4" value="0" step="0.5" disabled readonly oninput="calculateLeaveDays(this)">
+          <button type="button" class="btn-stepper" onclick="stepHours(this, 1)">+</button>
+        </div>
       </div>
       <div class="input-group">
         <label>จำนวนชั่วโมงบ่าย (0-4)</label>
-        <input type="number" placeholder="0" name="hours_afternoon" min="0" max="4" value="0" step="0.5" disabled oninput="calculateLeaveDays(this)">
+        <div class="stepper-container">
+          <button type="button" class="btn-stepper" onclick="stepHours(this, -1)">-</button>
+          <input type="number" placeholder="0" name="hours_afternoon" min="0" max="4" value="0" step="0.5" disabled readonly oninput="calculateLeaveDays(this)">
+          <button type="button" class="btn-stepper" onclick="stepHours(this, 1)">+</button>
+        </div>
       </div>
       <div class="input-group">
         <label>สรุปรวมจำนวนวัน</label>
@@ -1330,3 +1339,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   addLeaveRow(); 
 });
+
+// ฟังก์ชันคำนวณการกดปุ่ม + และ -
+function stepHours(btn, direction) {
+  const container = btn.closest('.stepper-container');
+  if (!container) return;
+
+  const input = container.querySelector('input[type="number"]');
+  if (!input || input.disabled) return;
+
+  let step = parseFloat(input.step) || 0.5;
+  let min = parseFloat(input.min) || 0;
+  let max = parseFloat(input.max) || 4;
+  let val = parseFloat(input.value) || 0;
+
+  let newVal = val + (direction * step);
+  if (newVal < min) newVal = min;
+  if (newVal > max) newVal = max;
+
+  input.value = Math.round(newVal * 100) / 100; // ป้องกันปัญหา Floating point บน JS
+  calculateLeaveDays(input);
+}

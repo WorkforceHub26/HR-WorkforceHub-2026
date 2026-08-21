@@ -595,3 +595,67 @@ textarea {
     display: none !important;
   }
 }
+
+/* ==========================================
+   📱 MOBILE STEPPER & LARGE TOUCH TARGETS
+   ========================================== */
+.stepper-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.stepper-container input {
+  text-align: center !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  flex: 1;
+}
+
+/* ปุ่ม + และ - ขนาดใหญ่พิเศษสำหรับนิ้วสัมผัส */
+.btn-stepper {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: #ffffff;
+  color: var(--primary-dark);
+  font-size: 22px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  transition: var(--ease);
+}
+
+.btn-stepper:active {
+  background: var(--primary-light);
+  transform: scale(0.95);
+}
+
+/* ซ่อนปุ่มเมื่อช่องกรอกถูก Disable */
+.stepper-container:has(input:disabled) .btn-stepper,
+.stepper-container input:disabled ~ .btn-stepper {
+  opacity: 0.4;
+  pointer-events: none;
+  background: #f1f5f9;
+}
+
+/* 📱 ขยายปุ่มทั้งหมดให้กดง่ายบนหน้าจอมือถือ (<= 768px) */
+@media screen and (max-width: 768px) {
+  .btn, .btn-back, .file-upload-label, .input-group input, .input-group select {
+    min-height: 52px !important;
+    font-size: 16px !important;
+  }
+
+  .btn-stepper {
+    width: 52px;
+    height: 52px;
+    font-size: 24px;
+  }
+}
