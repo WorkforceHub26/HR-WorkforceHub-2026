@@ -498,6 +498,7 @@ function initDatePickerWithDisabledDates(container = document, disabledDates = [
     dateFormat: "Y-m-d",
     altInput: true,
     altFormat: "d/m/Y",
+    disableMobile: true, // 👈 บังคับใช้ Flatpickr Calendar บน Android/iOS ป้องกัน Native Picker บล็อกการกด
     minDate: `${currentYear}-01-01`,
     maxDate: `${currentYear}-12-31`,
     disable: formattedDisabled,
@@ -533,16 +534,36 @@ function updateFormSequence(boxItem) {
   const fileLabelEl = boxItem.querySelector('.file-upload-label');
 
   const hasStart = !!startDateEl?.value;
+
   if (endDateEl) {
-    endDateEl.disabled = !hasStart;
-    if (endDateEl._flatpickr) {
-      if (hasStart) {
-        endDateEl._flatpickr.altInput.removeAttribute('disabled');
-      } else {
-        endDateEl._flatpickr.altInput.setAttribute('disabled', 'disabled');
-        if (endDateEl.value) {
-          endDateEl._flatpickr.clear(false);
-        }
+    const fp = endDateEl._flatpickr;
+    const targetAltInput = fp ? fp.altInput : null;
+
+    if (hasStart) {
+      endDateEl.removeAttribute('disabled');
+      endDateEl.disabled = false;
+
+      if (targetAltInput) {
+        targetAltInput.removeAttribute('disabled');
+        targetAltInput.disabled = false;
+        targetAltInput.style.pointerEvents = 'auto';
+        targetAltInput.style.backgroundColor = '#ffffff';
+        targetAltInput.style.cursor = 'pointer';
+      }
+    } else {
+      endDateEl.setAttribute('disabled', 'disabled');
+      endDateEl.disabled = true;
+
+      if (targetAltInput) {
+        targetAltInput.setAttribute('disabled', 'disabled');
+        targetAltInput.disabled = true;
+        targetAltInput.style.pointerEvents = 'none';
+        targetAltInput.style.backgroundColor = '#f1f5f9';
+        targetAltInput.style.cursor = 'not-allowed';
+      }
+
+      if (endDateEl.value && fp) {
+        fp.clear(false);
       }
     }
   }
@@ -710,7 +731,6 @@ async function addLeaveRow() {
     <div class="grid-row-3">
       <div class="input-group">
         <label>วันที่เขียนคำขอ</label>
-        <!-- แก้ไขชื่อ attribute name เป็น write_date ให้ตรงมาตรฐาน -->
         <input type="date" name="write_date" value="${todayThaiStr}" readonly tabindex="-1" class="readonly-highlight" style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed;">
       </div>
       <div class="input-group">
@@ -719,7 +739,7 @@ async function addLeaveRow() {
       </div>
       <div class="input-group">
         <label>สิ้นสุดวันที่ลา <span style="color:#ef4444;">*</span></label>
-        <input type="text" name="end_date" placeholder="คลิกเพื่อเลือกวันสิ้นสุด" disabled readonly style="background-color: #fff; cursor: pointer;">
+        <input type="text" name="end_date" placeholder="คลิกเพื่อเลือกวันสิ้นสุด" readonly style="background-color: #fff; cursor: pointer;">
       </div>
     </div>
 
