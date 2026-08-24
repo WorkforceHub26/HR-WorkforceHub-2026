@@ -132,7 +132,6 @@ async function executeSecureQrLogin(scannedData) {
   try {
     let rawPayload = String(scannedData).trim();
 
-    // ดึงเฉพาะค่าพารามิเตอร์ auto_login
     if (rawPayload.includes("auto_login=")) {
       const match = rawPayload.match(/[?&]auto_login=([^&]+)/);
       if (match && match[1]) {
@@ -142,6 +141,12 @@ async function executeSecureQrLogin(scannedData) {
 
     let empCode = "";
     let timeBlock = null;
+
+    const safeBase64Decode = (str) => {
+      let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) base64 += '=';
+      return decodeURIComponent(atob(base64));
+    };
 
     // 1. ถอดรหัส Payload
     try {
@@ -157,11 +162,12 @@ async function executeSecureQrLogin(scannedData) {
       throw new Error("⛔ รูปแบบ QR Code ไม่ถูกต้อง หรือถูกแก้ไข");
     }
 
-    // 2. ตรวจสอบอายุ Dynamic Block (30 วินาที)
-    const currentTimeBlock = Math.floor(Date.now() / 30000);
+    // 2. ตรวจสอบเวลา Dynamic Block (คำนวณแบบ 1 นาที = 60000ms)
+    const currentTimeBlock = Math.floor(Date.now() / 60000);
     const timeDiff = Math.abs(currentTimeBlock - Number(timeBlock));
 
-    if (!timeBlock || timeDiff > 1) { 
+    // ✅ อนุโลมความต่างเวลาได้สูงสุด 1 บล็อก (ครอบคลุมเวลา 1 - 2 นาที เผื่อเวลาเครื่องไม่ตรงกัน)
+    if (!timeBlock || isNaN(timeDiff) || timeDiff > 1) { 
       throw new Error("⏰ QR Code นี้หมดอายุแล้ว กรุณาเปิด QR Code บนบัตรใหม่อีกครั้ง");
     }
 
@@ -169,20 +175,12 @@ async function executeSecureQrLogin(scannedData) {
     const { data: user, error } = await sb
       .from('employees')
       .select('id, employee_code, full_name, role, status')
-      .eq('employee_code', empCode)
+      .ilike('employee_code', empCode)
       .maybeSingle();
 
-    if (error) {
-      throw new Error("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: " + error.message);
-    }
-
-    if (!user) {
-      throw new Error(`ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ`);
-    }
-
-    if (String(user.status).toLowerCase() !== "active") {
-      throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
-    }
+    if (error) throw new Error("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: " + error.message);
+    if (!user) throw new Error(`ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ`);
+    if (String(user.status).toLowerCase() !== "active") throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
 
     saveUserSession(user);
 

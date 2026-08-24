@@ -385,7 +385,6 @@ window.viewMyDigitalCard = async function() {
   const sessionUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const profile = window.currentProfile || sessionUser;
 
-  // 🛡️ ดึงรหัสพนักงานแบบครอบคลุมทุกรูปแบบคีย์
   const currentCode = String(
     profile?.employee_code || 
     sessionUser?.employee_code || 
@@ -414,8 +413,9 @@ window.viewMyDigitalCard = async function() {
 
   let avatarUrl = window.PVTSDK?.storage?.getAvatarUrl(profile?.image_url || profile?.employees?.image_url);
 
-  // 🔒 เข้ารหัส URL-Safe Base64 (อายุ 30 วินาที)
-  const timeBlock = Math.floor(Date.now() / 30000);
+  // 🔒 ปรับตั้งค่าเวลาเป็น 60,000 ms (1 นาที)
+  const timeBlock = Math.floor(Date.now() / 60000);
+  const safeBase64Encode = (str) => btoa(encodeURIComponent(str)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const securePayload = safeBase64Encode(`${currentCode}|${timeBlock}`);
   
   const targetUrl = `${window.location.origin}/?auto_login=${securePayload}`;
@@ -443,7 +443,7 @@ window.viewMyDigitalCard = async function() {
             <span>🛡️ เงื่อนไขความปลอดภัยและการใช้งาน</span>
           </div>
           <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
-            <li><b>Dynamic Security:</b> QR Code มีอายุใช้งาน 30 วินาที (ห้ามแคปหน้าจอส่งต่อ)</li>
+            <li><b>Dynamic Security:</b> QR Code มีอายุใช้งาน 1 นาที (ห้ามแคปหน้าจอส่งต่อ)</li>
             <li><b>Single Account:</b> บัตรผูกกับบัญชีพนักงานเครื่องนี้เท่านั้น</li>
           </ul>
         </div>
