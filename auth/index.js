@@ -115,6 +115,24 @@ const safeBase64Decode = (str) => {
   return decodeURIComponent(atob(base64));
 };
 
+function redirectToDashboard(role) {
+  const cleanRole = String(role || "").toLowerCase();
+  
+  // กำหนดไฟล์ปลายทาง
+  const targetPath = (cleanRole === "hr" || cleanRole === "admin") 
+    ? "/pages/user/index-user.html" 
+    : "/pages/user/index-user.html";
+
+  // บังคับเปลี่ยนหน้าไปที่ URL ปลายทางทันที
+  const destination = window.location.origin + targetPath;
+  
+  // ล้าง Popup ค้างทั้งหมดก่อนย้ายหน้า
+  if (typeof Swal !== 'undefined') Swal.close();
+
+  // บังคับย้ายหน้าทันที
+  window.location.href = destination;
+}
+
 async function executeSecureQrLogin(scannedData) {
   Swal.fire({
     title: '🔒 กำลังตรวจสอบข้อมูล...',
@@ -182,16 +200,24 @@ async function executeSecureQrLogin(scannedData) {
     if (!user) throw new Error(`ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ`);
     if (String(user.status).toLowerCase() !== "active") throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
 
+    // บันทึก Session
     saveUserSession(user);
 
+    // แสดงแจ้งเตือนสำเร็จ แล้วบังคับย้ายหน้าทันที
     Swal.fire({
       icon: 'success',
       title: `ยินดีต้อนรับ ${user.full_name}`,
-      timer: 1200,
-      showConfirmButton: false
+      timer: 1000,
+      showConfirmButton: false,
+      willClose: () => {
+        redirectToDashboard(user.role);
+      }
     });
 
-    setTimeout(() => redirectToDashboard(user.role), 1200);
+    // สำรองระบบย้ายหน้าเผื่อ Event timer ทำงานช้า
+    setTimeout(() => {
+      redirectToDashboard(user.role);
+    }, 1000);
 
   } catch (err) {
     Swal.fire({ 
