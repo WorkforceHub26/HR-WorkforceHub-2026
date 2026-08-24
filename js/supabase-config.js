@@ -723,39 +723,50 @@
   }
 
     // ==========================================================================
-  // 12. DIGITAL CARD ENGINE (SECURE DYNAMIC QR)
-  // ==========================================================================
-  class CardEngine {
-    constructor(client) {
-      this.client = client;
-      this.timerInstance = null;
-    }
-
-    // ดึง Token ที่ผ่านการรับรองจาก Supabase Server
-    async getSecureToken(employeeCode) {
-      const { data, error } = await this.client.rpc('generate_card_qr_token', { 
-        p_employee_code: employeeCode 
-      });
-
-      if (error || !data || data.length === 0) {
-        throw new Error("ไม่สามารถสร้าง QR Code ได้: " + (error?.message || "Unknown error"));
+    // 12. DIGITAL CARD ENGINE (FIXED DYNAMIC QR)
+    // ==========================================================================
+    class CardEngine {
+      constructor(client) {
+        this.client = client;
+        this.timerInstance = null;
+        this.currentSeconds = 0;
       }
 
-      return data[0]; // คืนค่า { qr_token, seconds_left }
-    }
+      // ดึง Token ที่ผ่านการรับรองจาก Supabase Server
+      async getSecureToken(employeeCode) {
+        const { data, error } = await this.client.rpc('generate_card_qr_token', { 
+          p_employee_code: employeeCode 
+        });
 
-    // สั่งเริ่มทำงาน Dynamic QR Code 30s
-    init(employeeCode, qrContainerId = "qrcode", countdownElementId = "qr-countdown") {
-      if (!employeeCode) return;
-      this.stop();
+        if (error || !data || data.length === 0) {
+          throw new Error("ไม่สามารถสร้าง QR Code ได้: " + (error?.message || "Unknown error"));
+        }
 
-      const updateQr = async () => {
-        try {
-          const { qr_token, seconds_left } = await this.getSecureToken(employeeCode);
+        return data[0]; // คืนค่า { qr_token, seconds_left }
+      }
 
-          // Render QR Code
-          const container = document.getElementById(qrContainerId);
-          if (container && typeof QRCode !== 'undefined') {
+      // สั่งเริ่มทำงาน Dynamic QR Code
+      async init(employeeCode, qrContainerId = "qrcode", countdownElementId = "qr-countdown") {
+        if (!employeeCode) return;
+        this.stop();
+
+        const fetchAndRender = async () => {
+          try {
+            const container = document.getElementById(qrContainerId);
+            if (!container) return;
+
+            // เช็กว่ามี Library QRCode ในระบบหรือไม่
+            if (typeof QRCode === 'undefined') {
+              container.innerHTML = `<div style="color: #ef4444; font-size: 12px; padding: 10px;">ไม่พบ QRCode Library</div>`;
+              console.error("❌ [CardEngine] QRCode JS Library is missing!");
+              return;
+            }
+
+            // ดึง Token ใหม่จาก Supabase RPC
+            const { qr_token, seconds_left } = await this.getSecureToken(employeeCode);
+            this.currentSeconds = seconds_left || 30;
+
+            // Render QR Code
             container.innerHTML = "";
             new QRCode(container, {
               text: qr_token,
@@ -763,29 +774,45 @@
               height: 160,
               correctLevel: QRCode.CorrectLevel.M
             });
-          }
 
-          // อัปเดตเวลานับถอยหลัง
-          const countdownEl = document.getElementById(countdownElementId);
-          if (countdownEl) {
-            countdownEl.textContent = `รหัสรีเฟรชใน ${seconds_left} วินาที`;
+            this.updateCountdownUI(countdownElementId);
+          } catch (err) {
+            console.error("⚠️ [CardEngine] QR Error:", err);
+            const container = document.getElementById(qrContainerId);
+            if (container) {
+              container.innerHTML = `<div style="color: #64748b; font-size: 12px;">ไม่สามารถโหลด QR Code ได้</div>`;
+            }
           }
-        } catch (err) {
-          console.error("⚠️ [CardEngine] QR Error:", err);
+        };
+
+        // 1. ดึงข้อมูลครั้งแรก
+        await fetchAndRender();
+
+        // 2. นับถอยหลังในเครื่อง (Local Timer) ทุก 1 วินาที พอครบ 0 ค่อยดึง Token ใหม่
+        this.timerInstance = setInterval(async () => {
+          this.currentSeconds--;
+          if (this.currentSeconds <= 0) {
+            await fetchAndRender();
+          } else {
+            this.updateCountdownUI(countdownElementId);
+          }
+        }, 1000);
+      }
+
+      updateCountdownUI(countdownElementId) {
+        const countdownEl = document.getElementById(countdownElementId);
+        if (countdownEl) {
+          countdownEl.textContent = `รหัสรีเฟรชใน ${this.currentSeconds} วินาที`;
         }
-      };
+      }
 
-      updateQr();
-      this.timerInstance = setInterval(updateQr, 1000);
-    }
-
-    stop() {
-      if (this.timerInstance) {
-        clearInterval(this.timerInstance);
-        this.timerInstance = null;
+      stop() {
+        if (this.timerInstance) {
+          clearInterval(this.timerInstance);
+          this.timerInstance = null;
+        }
       }
     }
-  }
 
   // ==========================================================================
 // 🔔 NOTIFICATION ENGINE (สำหรับนำไปต่อใน Class/SDK)

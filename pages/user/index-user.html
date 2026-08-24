@@ -189,7 +189,7 @@
           <span class="guide-emoji">👤</span>
           <div><strong>ข้อมูลพนักงาน:</strong> ตรวจสอบประวัติส่วนตัว วันเริ่มงาน อายุงานสะสม</div>
         </div>
-        <div class="guide-item" style="border: none; padding-bottom: 0;">
+        <div class="guide-item" onclick="viewMyDigitalCard()" style="border: none; padding-bottom: 0; cursor: pointer;">
           <span class="guide-emoji">🪪</span>
           <div><strong>ดูบัตรพนักงาน:</strong> เปิดบัตรประจำตัวดิจิทัลพร้อม QR Code</div>
         </div>
@@ -208,11 +208,11 @@
 <!-- 2. Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- 3. สคริปต์ตั้งค่า Supabase และ Auth ของระบบ -->
-<script src="/js/supabase-config.js"></script>
-<script src="/auth/index.js"></script>
-
-<!-- 🚨 4. เพิ่มบรรทัดนี้ลงไป (ตรวจสอบ path ให้ตรงกับตำแหน่งไฟล์ index-user.js จริงในเครื่อง) -->
-<script src="/js/index-user.js"></script>
+<!-- 1. นำเข้า QRCode Library (ต้องใส่ไว้ด้านบนก่อน SDK) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <!-- ไฟล์ SDK และ CSS เดิมของคุณ -->
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/index-user.js"></script>
 </body>
 </html>

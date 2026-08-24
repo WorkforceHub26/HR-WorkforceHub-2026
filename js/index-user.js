@@ -83,10 +83,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 /* ==========================================================================
    📥 4. ฟังก์ชันหลักสำหรับโหลดข้อมูลหน้าพนักงาน (แก้ไข Relational Embedding)
    ========================================================================== */
-// ใน initUserHome() ของ index-user.js
+// ในไฟล์ index-user.js
 async function initUserHome() {
   try {
-    // ใช้ SDK ในการดึงข้อมูลพร้อมระบบ Cache อัตโนมัติ
     const profile = await window.PVTSDK.hr.getProfile();
     
     if (!profile) return handleUnauthorized("Session หรือ Profile ไม่ถูกต้อง");
@@ -94,6 +93,12 @@ async function initUserHome() {
     window.currentProfile = profile;
     renderUserInfo(window.currentProfile);
     await loadRecentLeaves(window.currentProfile);
+
+    // ✅ เพิ่มบรรทัดนี้: สั่งให้ QR Code เริ่มทำงานเมื่อดึงข้อมูลพนักงานเรียบร้อยแล้ว
+    const empCode = profile.employee_code || profile.employees?.employee_code;
+    if (empCode && window.PVTSDK?.card) {
+      window.PVTSDK.card.init(empCode, "qrcode", "qr-countdown");
+    }
     
     checkApproverPermission(window.currentProfile);
     fetchEmployeeLeaveStatusCount(window.currentProfile);
