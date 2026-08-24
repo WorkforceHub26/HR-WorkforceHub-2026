@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - auth/index.js (เวอร์ชันวางทับ: เสถียร ปลอดภัย ไม่มีป๊อปอัปเปลี่ยนรหัส)
+   🔒 PVT HR LEAVE - auth/index.js (เวอร์ชันเสถียรสูงสุด: ป้องกัน Loop & Auto Refresh)
    ========================================================================== */
 
 function getSbClient() {
@@ -9,7 +9,17 @@ function getSbClient() {
       || window.supabase;
 }
 
-// วางทับ event DOMContentLoaded ใน auth/index.js
+// 🚀 1. ฟังก์ชันย้ายหน้าจอ (ล้าง Cache และ URL Parameter ชัวร์ 100%)
+function redirectToDashboard(role) {
+  const cleanRole = String(role || "").toLowerCase();
+  const targetPath = (cleanRole === "hr" || cleanRole === "admin") 
+    ? "/pages/hr/hr.html" 
+    : "/pages/user/index-user.html";
+    
+  // ใช้ location.replace เพื่อไม่ให้เก็บ History ของ URL ที่มี Token
+  window.location.replace(window.location.origin + targetPath);
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   // เช็กว่ามาจาก Redirect ซ้ำหรือไม่ ป้องกัน Infinite Loop
   const hasRedirected = sessionStorage.getItem("redirect_attempt");
@@ -78,7 +88,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       saveUserSession(user);
       
       sessionStorage.removeItem("redirect_attempt");
-      window.location.replace("/pages/user/index-user.html");
+      redirectToDashboard(user.role); // ใช้งานฟังก์ชันที่รวมศูนย์ไว้
 
     } catch (err) {
       Swal.fire({
@@ -91,7 +101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-// ฟังก์ชันบันทึก Session มาตรฐาน ป้องกันปัญหาเด้งหลุด
+// ฟังก์ชันบันทึก Session มาตรฐาน
 function saveUserSession(userData) {
   const sessionPayload = {
     id: userData.id,
@@ -104,8 +114,6 @@ function saveUserSession(userData) {
   localStorage.setItem("currentUser", JSON.stringify(sessionPayload));
 }
 
-// สแกน Dynamic QR Code แบบ 30 วินาที
-// วางทับฟังก์ชัน executeSecureQrLogin ใน auth/index.js
 // 🛠️ Helper ถอดรหัส URL-Safe Base64
 const safeBase64Decode = (str) => {
   let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -115,24 +123,7 @@ const safeBase64Decode = (str) => {
   return decodeURIComponent(atob(base64));
 };
 
-function redirectToDashboard(role) {
-  const cleanRole = String(role || "").toLowerCase();
-  
-  // กำหนดไฟล์ปลายทาง
-  const targetPath = (cleanRole === "hr" || cleanRole === "admin") 
-    ? "/pages/user/index-user.html" 
-    : "/pages/user/index-user.html";
-
-  // บังคับเปลี่ยนหน้าไปที่ URL ปลายทางทันที
-  const destination = window.location.origin + targetPath;
-  
-  // ล้าง Popup ค้างทั้งหมดก่อนย้ายหน้า
-  if (typeof Swal !== 'undefined') Swal.close();
-
-  // บังคับย้ายหน้าทันที
-  window.location.href = destination;
-}
-
+// 🚀 2. ฟังก์ชันประมวลผล QR Login (ใช้ .then() ควบคุมการย้ายหน้าอย่างเป็นลำดับ)
 async function executeSecureQrLogin(scannedData) {
   Swal.fire({
     title: '🔒 กำลังตรวจสอบข้อมูล...',
@@ -150,6 +141,7 @@ async function executeSecureQrLogin(scannedData) {
   try {
     let rawPayload = String(scannedData).trim();
 
+    // ดึงเฉพาะค่าพารามิเตอร์ auto_login
     if (rawPayload.includes("auto_login=")) {
       const match = rawPayload.match(/[?&]auto_login=([^&]+)/);
       if (match && match[1]) {
@@ -160,13 +152,7 @@ async function executeSecureQrLogin(scannedData) {
     let empCode = "";
     let timeBlock = null;
 
-    const safeBase64Decode = (str) => {
-      let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-      while (base64.length % 4) base64 += '=';
-      return decodeURIComponent(atob(base64));
-    };
-
-    // 1. ถอดรหัส Payload
+    // ถอดรหัส Payload
     try {
       const decodedStr = safeBase64Decode(decodeURIComponent(rawPayload));
       const parts = decodedStr.split('|');
@@ -180,51 +166,53 @@ async function executeSecureQrLogin(scannedData) {
       throw new Error("⛔ รูปแบบ QR Code ไม่ถูกต้อง หรือถูกแก้ไข");
     }
 
-    // 2. ตรวจสอบเวลา Dynamic Block (คำนวณแบบ 1 นาที = 60000ms)
-    const currentTimeBlock = Math.floor(Date.now() / 60000);
+    // ตรวจสอบเวลา Dynamic Block (1 นาที = 60000ms)
+    const currentTimeBlock = Math.floor(Date.now() / 60000); 
     const timeDiff = Math.abs(currentTimeBlock - Number(timeBlock));
 
-    // ✅ อนุโลมความต่างเวลาได้สูงสุด 1 บล็อก (ครอบคลุมเวลา 1 - 2 นาที เผื่อเวลาเครื่องไม่ตรงกัน)
-    if (!timeBlock || isNaN(timeDiff) || timeDiff > 1) { 
+    // อนุโลมความต่างเวลาสูงสุด 1 บล็อก (ครอบคลุมการเหลื่อมเวลา)
+    if (!timeBlock || isNaN(timeDiff) || timeDiff > 1) {
       throw new Error("⏰ QR Code นี้หมดอายุแล้ว กรุณาเปิด QR Code บนบัตรใหม่อีกครั้ง");
     }
 
-    // 3. ดึงข้อมูลพนักงานจาก Supabase
+    // ดึงข้อมูลพนักงานจาก Supabase
     const { data: user, error } = await sb
       .from('employees')
       .select('id, employee_code, full_name, role, status')
-      .ilike('employee_code', empCode)
+      .ilike('employee_code', empCode) // ค้นหาแบบ Case-Insensitive
       .maybeSingle();
 
-    if (error) throw new Error("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: " + error.message);
-    if (!user) throw new Error(`ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ`);
-    if (String(user.status).toLowerCase() !== "active") throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
+    if (error) {
+      throw new Error("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: " + error.message);
+    }
 
-    // บันทึก Session
+    if (!user) {
+      throw new Error(`ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ`);
+    }
+
+    if (String(user.status).toLowerCase() !== "active") {
+      throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
+    }
+
+    // บันทึก Session สำเร็จ
     saveUserSession(user);
 
-    // แสดงแจ้งเตือนสำเร็จ แล้วบังคับย้ายหน้าทันที
+    // 🚀 ย้ายหน้าด้วย .then() ป้องกันบั๊กลูปค้าง
     Swal.fire({
       icon: 'success',
       title: `ยินดีต้อนรับ ${user.full_name}`,
       timer: 1000,
-      showConfirmButton: false,
-      willClose: () => {
-        redirectToDashboard(user.role);
-      }
+      showConfirmButton: false
+    }).then(() => {
+      redirectToDashboard(user.role);
     });
 
-    // สำรองระบบย้ายหน้าเผื่อ Event timer ทำงานช้า
-    setTimeout(() => {
-      redirectToDashboard(user.role);
-    }, 1000);
-
   } catch (err) {
-    Swal.fire({ 
-      icon: 'error', 
-      title: 'เข้าสู่ระบบไม่สำเร็จ', 
+    Swal.fire({
+      icon: 'error',
+      title: 'เข้าสู่ระบบไม่สำเร็จ',
       text: err.message,
-      confirmButtonColor: '#ef4444' 
+      confirmButtonColor: '#ef4444'
     });
   }
 }
