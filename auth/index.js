@@ -106,59 +106,86 @@ function saveUserSession(userData) {
 
 // สแกน Dynamic QR Code แบบ 30 วินาที
 // วางทับฟังก์ชัน executeSecureQrLogin ใน auth/index.js
+// 🛠️ Helper ถอดรหัส URL-Safe Base64
+const safeBase64Decode = (str) => {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return decodeURIComponent(atob(base64));
+};
+
 async function executeSecureQrLogin(scannedData) {
   Swal.fire({
     title: '🔒 กำลังตรวจสอบข้อมูล...',
-    html: 'ระบบกำลังเข้าสู่ระบบผ่าน QR Code...',
-    showConfirmButton: false,
-    allowOutsideClick: false
+    text: 'ระบบกำลังตรวจสอบความถูกต้องของ QR Code',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
   });
 
   const sb = getSbClient();
-  if (!sb) return;
+  if (!sb) {
+    Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้' });
+    return;
+  }
 
   try {
-    let rawPayload = decodeURIComponent(scannedData).trim();
+    let rawPayload = String(scannedData).trim();
 
-    // หากรับข้อมูลมาเป็น URL ให้ดึงค่า Parameter auto_login ออกมา
+    // ดึงเฉพาะค่าพารามิเตอร์ auto_login
     if (rawPayload.includes("auto_login=")) {
-      const urlObj = new URL(rawPayload);
-      rawPayload = urlObj.searchParams.get("auto_login") || rawPayload;
+      const match = rawPayload.match(/[?&]auto_login=([^&]+)/);
+      if (match && match[1]) {
+        rawPayload = match[1];
+      }
     }
 
     let empCode = "";
     let timeBlock = null;
 
-    // 🔒 บังคับถอดรหัส Base64 เท่านั้น (ไม่อนุญาตให้ใช้ Plaintext)
+    // 1. ถอดรหัส Payload
     try {
-      const decodedStr = atob(rawPayload);
+      const decodedStr = safeBase64Decode(decodeURIComponent(rawPayload));
       const parts = decodedStr.split('|');
       if (parts.length >= 2) {
-        empCode = parts[0];
-        timeBlock = parts[1];
+        empCode = String(parts[0]).trim();
+        timeBlock = String(parts[1]).trim();
       } else {
         throw new Error();
       }
     } catch (e) {
-      throw new Error("⛔ QR Code ไม่ถูกต้องหรือไม่อยู่ในรูปแบบความปลอดภัยที่กำหนด");
+      throw new Error("⛔ รูปแบบ QR Code ไม่ถูกต้อง หรือถูกแก้ไข");
     }
 
-    // ⏱️ ตรวจสอบอายุ Dynamic Time Block (ยอมรับส่วนต่างไม่เกิน 1 บล็อก หรือประมาณ ±30 วินาที)
+    // 2. ตรวจสอบอายุ Dynamic Block (30 วินาที)
     const currentTimeBlock = Math.floor(Date.now() / 30000);
-    if (!timeBlock || Math.abs(currentTimeBlock - Number(timeBlock)) > 1) {
-      throw new Error("⏰ QR Code หมดอายุแล้ว กรุณาเปิดหน้าบัตรพนักงานใหม่อีกครั้ง");
+    const timeDiff = Math.abs(currentTimeBlock - Number(timeBlock));
+
+    if (!timeBlock || timeDiff > 1) { 
+      throw new Error("⏰ QR Code นี้หมดอายุแล้ว กรุณาเปิด QR Code บนบัตรใหม่อีกครั้ง");
     }
 
+    // 3. ดึงข้อมูลพนักงานจาก Supabase
     const { data: user, error } = await sb
       .from('employees')
       .select('id, employee_code, full_name, role, status')
       .eq('employee_code', empCode)
       .maybeSingle();
 
-    if (error || !user) throw new Error("ไม่พบข้อมูลพนักงานท่านนี้ในระบบ");
-    if (user.status !== "active") throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
+    if (error) {
+      throw new Error("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: " + error.message);
+    }
+
+    if (!user) {
+      throw new Error(`ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ`);
+    }
+
+    if (String(user.status).toLowerCase() !== "active") {
+      throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
+    }
 
     saveUserSession(user);
+
     Swal.fire({
       icon: 'success',
       title: `ยินดีต้อนรับ ${user.full_name}`,
@@ -166,14 +193,14 @@ async function executeSecureQrLogin(scannedData) {
       showConfirmButton: false
     });
 
-    setTimeout(() => window.location.replace("/pages/user/index-user.html"), 1200);
+    setTimeout(() => redirectToDashboard(user.role), 1200);
 
   } catch (err) {
-    Swal.fire({
-      icon: 'error',
-      title: 'เข้าสู่ระบบไม่สำเร็จ',
+    Swal.fire({ 
+      icon: 'error', 
+      title: 'เข้าสู่ระบบไม่สำเร็จ', 
       text: err.message,
-      confirmButtonColor: '#ef4444'
+      confirmButtonColor: '#ef4444' 
     });
   }
 }

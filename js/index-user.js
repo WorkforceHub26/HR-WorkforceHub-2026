@@ -373,12 +373,32 @@ async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avata
   return canvas.toDataURL('image/png');
 }
 
+// 🛠️ Helper แปลงข้อความให้ปลอดภัยสำหรับ URL Parameter
+const safeBase64Encode = (str) => {
+  return btoa(encodeURIComponent(str))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+
 window.viewMyDigitalCard = async function() {
   const sessionUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const profile = window.currentProfile || sessionUser;
-  const currentCode = profile?.employee_code || sessionUser?.employee_code;
+
+  // 🛡️ ดึงรหัสพนักงานแบบครอบคลุมทุกรูปแบบคีย์
+  const currentCode = String(
+    profile?.employee_code || 
+    sessionUser?.employee_code || 
+    profile?.emp_code || 
+    sessionUser?.emp_code || ""
+  ).trim();
   
-  if (!currentCode) return;
+  if (!currentCode) {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: 'ไม่พบรหัสพนักงานในระบบ กรุณาล็อกอินใหม่อีกครั้ง' });
+    }
+    return;
+  }
 
   if (typeof Swal !== 'undefined') {
     Swal.fire({
@@ -394,10 +414,11 @@ window.viewMyDigitalCard = async function() {
 
   let avatarUrl = window.PVTSDK?.storage?.getAvatarUrl(profile?.image_url || profile?.employees?.image_url);
 
-  // 🔒 สร้าง Dynamic Payload แบบจำกัดเวลา (30 วินาที) แทนการใช้ Bypass Token
+  // 🔒 เข้ารหัส URL-Safe Base64 (อายุ 30 วินาที)
   const timeBlock = Math.floor(Date.now() / 30000);
-  const securePayload = btoa(`${currentCode}|${timeBlock}`);
-  const targetUrl = `${window.location.origin}/?auto_login=${encodeURIComponent(securePayload)}`;
+  const securePayload = safeBase64Encode(`${currentCode}|${timeBlock}`);
+  
+  const targetUrl = `${window.location.origin}/?auto_login=${securePayload}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}`;
 
   const cardImageDataUrl = await generateEmployeeCardPNG({
@@ -422,9 +443,8 @@ window.viewMyDigitalCard = async function() {
             <span>🛡️ เงื่อนไขความปลอดภัยและการใช้งาน</span>
           </div>
           <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
-            <li><b>Dynamic Security:</b> QR Code ปลอดภัยสูง มีอายุใช้งานจำกัด (ห้ามแคปหน้าจอส่งต่อ)</li>
-            <li><b>Single Account:</b> บัตรผูกกับบัญชีพนักงานเครื่องนี้เท่านั้น ห้ามใช้ลงเวลาแทนกัน</li>
-            <li><b>Internal Access:</b> สำหรับยืนยันตัวตน เข้า-ออกพื้นที่ และบันทึกเวลาทำงาน PVT</li>
+            <li><b>Dynamic Security:</b> QR Code มีอายุใช้งาน 30 วินาที (ห้ามแคปหน้าจอส่งต่อ)</li>
+            <li><b>Single Account:</b> บัตรผูกกับบัญชีพนักงานเครื่องนี้เท่านั้น</li>
           </ul>
         </div>
       `,
