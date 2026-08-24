@@ -54,7 +54,7 @@ async function fetchUserProfileFromSchema() {
         full_name: empData.full_name || cachedUser.full_name || cachedUser.display_name,
         department_name: deptData.department_name || empData.department_name || cachedUser.department_name, 
         role: cachedUser.role || empData.role,
-        image_url: empData.image_url || cachedUser.image_url || empData.avatar_url || cachedUser.avatar_url,
+        image_url: empData.image_url || cachedUser.image_url || empData.image_url || cachedUser.image_url,
         employees: empData 
       };
       validId = profile.employee_id;
@@ -101,7 +101,7 @@ function normalizeProfileData(raw) {
       id: realEmployeeId,
       employee_code: emp.employee_code || raw.employee_code || "-",
       full_name: emp.full_name || raw.full_name || raw.display_name || "พนักงาน",
-      image_url: emp.image_url || raw.image_url || raw.avatar_url || null,
+      image_url: emp.image_url || raw.image_url || raw.image_url || null,
       department_name: emp.departments?.department_name || emp.department_name || raw.department_name || "ทั่วไป"
     }
   };
@@ -134,7 +134,7 @@ function renderProfileHeader() {
 
   // 3. แสดงรูปโปรไฟล์ (Logic เดียวกับ index-user.js)
   if (avatarEl) {
-    let avatarUrl = emp.image_url || myProfile.image_url || myProfile.avatar_url;
+    let avatarUrl = emp.image_url || myProfile.image_url || myProfile.image_url;
     
     if (avatarUrl && avatarUrl.trim() !== "") {
       // เคสที่ 1: กรณีเป็น Path สั้น ให้ต่อ Domain เต็ม

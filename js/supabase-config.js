@@ -197,45 +197,69 @@
       this.network = network;
     }
 
-// ค้นหาฟังก์ชัน getProfile() ในไฟล์ pvt-supabase-sdk.js แล้วปรับเป็นแบบนี้:
-async getProfile(forceRefresh = false) {
-  const cacheKey = "user_profile";
-  if (!forceRefresh) {
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-  }
+      // ค้นหาฟังก์ชัน getProfile() ในไฟล์ pvt-supabase-sdk.js แล้วปรับเป็นแบบนี้:
+      // ใน class HREngine (pvt-supabase-sdk.js)
+        async getProfile(forceRefresh = false) {
+          const cacheKey = "user_profile";
+          if (!forceRefresh) {
+            const cached = this.cache.get(cacheKey);
+            if (cached) return cached;
+          }
 
-  // 1. เช็คข้อมูลจาก localStorage (currentUser) ของระบบเดิมก่อนเสมอ
-  try {
-    const rawUser = localStorage.getItem("currentUser");
-    if (rawUser) {
-      const localUser = JSON.parse(rawUser);
-      if (localUser && (localUser.id || localUser.employee_code)) {
-        this.cache.set(cacheKey, localUser, CONFIG.DEFAULT_TTL, ["profile"]);
-        return localUser;
-      }
-    }
-  } catch (e) {
-    console.warn("[SDK] Error parsing currentUser from localStorage", e);
-  }
+          let userId = null;
+          let empCode = null;
 
-  // 2. Fallback: กรณีใช้ Supabase Auth Session
-  const session = await global.PVTSDK.auth.getSession();
-  if (session?.user) {
-    const { data: employee } = await this.client
-      .from("employees")
-      .select(`*, departments(department_name), positions(position_name)`)
-      .or(`id.eq.${session.user.id},email.eq.${session.user.email}`)
-      .maybeSingle();
+          // 1. เช็ก Supabase Auth Session ก่อน
+          const session = await global.PVTSDK.auth.getSession();
+          if (session?.user) {
+            userId = session.user.id;
+          } else {
+            // 2. ถ้าไม่มี Supabase Auth ให้ดึงจาก LocalStorage (รองรับ RPC Login)
+            try {
+              const rawLocal = localStorage.getItem("currentUser");
+              if (rawLocal) {
+                const localUser = JSON.parse(rawLocal);
+                // ตรวจสอบว่า session หมดอายุหรือยัง (12 ชั่วโมง)
+                if (localUser.expireAt && Date.now() > localUser.expireAt) {
+                  localStorage.removeItem("currentUser");
+                  return null;
+                }
+                userId = localUser.id;
+                empCode = localUser.employee_code;
+              }
+            } catch (e) {
+              console.warn("[SDK getProfile] Failed to parse local session:", e);
+            }
+          }
 
-    if (employee) {
-      this.cache.set(cacheKey, employee, CONFIG.DEFAULT_TTL, ["profile"]);
-      return employee;
-    }
-  }
+          if (!userId && !empCode) return null;
 
-  return null;
-}
+          // 3. Query ดึงข้อมูลพนักงานพร้อมแผนกและตำแหน่ง
+          let query = this.client.from("employees").select(`
+            *,
+            departments (department_name),
+            positions (position_name)
+          `);
+
+          if (userId) {
+            query = query.eq("id", userId);
+          } else if (empCode) {
+            query = query.eq("employee_code", empCode);
+          }
+
+          const { data: employeeData, error } = await query.maybeSingle();
+
+          if (error || !employeeData) return null;
+
+          const fullProfile = {
+            ...employeeData,
+            department_name: employeeData.departments?.department_name || 'ไม่ระบุแผนก',
+            position_name: employeeData.positions?.position_name || 'ไม่ระบุตำแหน่ง'
+          };
+
+          this.cache.set(cacheKey, fullProfile, CONFIG.DEFAULT_TTL, ["profile"]);
+          return fullProfile;
+        }
 
     async getEmployeesList(options = {}) {
       const { search = "", departmentId = null, role = null, page = 1, limit = 20 } = options;
@@ -409,207 +433,455 @@ async getProfile(forceRefresh = false) {
     }
   }
 
-  // ==========================================================================
-  // 7. REALTIME SYNCHRONIZATION ENGINE
-  // ==========================================================================
-  class RealtimeEngine {
-    constructor(client) {
-      this.client = client;
-      this.channels = new Map();
-    }
+      // ==========================================================================
+      // 7. REALTIME SYNCHRONIZATION ENGINE
+      // ==========================================================================
+      class RealtimeEngine {
+        constructor(client) {
+          this.client = client;
+          this.channels = new Map();
+        }
 
-    subscribeLeaveUpdates(employeeId, onUpdateCallback) {
-      const channelName = `realtime_leaves_${employeeId}`;
-      if (this.channels.has(channelName)) return this.channels.get(channelName);
+        subscribeLeaveUpdates(employeeId, onUpdateCallback) {
+          const channelName = `realtime_leaves_${employeeId}`;
+          if (this.channels.has(channelName)) return this.channels.get(channelName);
 
-      const channel = this.client
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "leave_requests",
-            filter: `employee_id=eq.${employeeId}`,
-          },
-          (payload) => {
-            console.log("[SDK Realtime] Leave Request Change Detected:", payload);
-            global.PVTSDK.cache.invalidateByTag("leaves");
-            if (typeof onUpdateCallback === "function") {
-              onUpdateCallback(payload);
-            }
+          const channel = this.client
+            .channel(channelName)
+            .on(
+              "postgres_changes",
+              {
+                event: "*",
+                schema: "public",
+                table: "leave_requests",
+                filter: `employee_id=eq.${employeeId}`,
+              },
+              (payload) => {
+                console.log("[SDK Realtime] Leave Request Change Detected:", payload);
+                global.PVTSDK.cache.invalidateByTag("leaves");
+                if (typeof onUpdateCallback === "function") {
+                  onUpdateCallback(payload);
+                }
+              }
+            )
+            .subscribe();
+
+          this.channels.set(channelName, channel);
+          return channel;
+        }
+
+        unsubscribeAll() {
+          for (const [name, channel] of this.channels.entries()) {
+            this.client.removeChannel(channel);
           }
-        )
-        .subscribe();
-
-      this.channels.set(channelName, channel);
-      return channel;
-    }
-
-    unsubscribeAll() {
-      for (const [name, channel] of this.channels.entries()) {
-        this.client.removeChannel(channel);
-      }
-      this.channels.clear();
-    }
-  }
-
-  // ==========================================================================
-  // 8. OFFLINE QUEUE ENGINE
-  // ==========================================================================
-  class OfflineEngine {
-    getQueue() {
-      try {
-        return JSON.parse(localStorage.getItem(CONFIG.OFFLINE_QUEUE_KEY) || "[]");
-      } catch (e) {
-        return [];
-      }
-    }
-
-    enqueue(action) {
-      const queue = this.getQueue();
-      queue.push({ ...action, timestamp: Date.now() });
-      localStorage.setItem(CONFIG.OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-      console.log("[SDK Offline] Action queued:", action);
-    }
-
-    async processQueue() {
-      const queue = this.getQueue();
-      if (queue.length === 0) return;
-
-      console.log(`[SDK Offline] Processing ${queue.length} pending actions...`);
-      const remaining = [];
-
-      for (const item of queue) {
-        try {
-          // Process action based on table & payload
-          await global.PVTSDK.client.from(item.table).insert(item.payload);
-        } catch (err) {
-          console.error("[SDK Offline] Failed to process queued item:", item, err);
-          remaining.push(item);
+          this.channels.clear();
         }
       }
 
-      localStorage.setItem(CONFIG.OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
+      // ==========================================================================
+      // 8. OFFLINE QUEUE ENGINE
+      // ==========================================================================
+      class OfflineEngine {
+        getQueue() {
+          try {
+            return JSON.parse(localStorage.getItem(CONFIG.OFFLINE_QUEUE_KEY) || "[]");
+          } catch (e) {
+            return [];
+          }
+        }
+
+        enqueue(action) {
+          const queue = this.getQueue();
+          queue.push({ ...action, timestamp: Date.now() });
+          localStorage.setItem(CONFIG.OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+          console.log("[SDK Offline] Action queued:", action);
+        }
+
+        async processQueue() {
+          const queue = this.getQueue();
+          if (queue.length === 0) return;
+
+          console.log(`[SDK Offline] Processing ${queue.length} pending actions...`);
+          const remaining = [];
+
+          for (const item of queue) {
+            try {
+              // Process action based on table & payload
+              await global.PVTSDK.client.from(item.table).insert(item.payload);
+            } catch (err) {
+              console.error("[SDK Offline] Failed to process queued item:", item, err);
+              remaining.push(item);
+            }
+          }
+
+          localStorage.setItem(CONFIG.OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
+        }
+      }
+
+      // ==========================================================================
+      // 9. UTILITIES & SANITIZER ENGINE
+      // ==========================================================================
+      class UtilsEngine {
+        toISODate(input) {
+          if (!input) return null;
+          const str = String(input).trim();
+          if (!str) return null;
+
+          const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+          if (dmyMatch) {
+            let [, day, month, year] = dmyMatch.map(Number);
+            if (year > 2400) year -= 543;
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          }
+
+          const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+          if (ymdMatch) {
+            let [, year, month, day] = ymdMatch.map(Number);
+            if (year > 2400) year -= 543;
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          }
+
+          const parsed = new Date(str);
+          if (!isNaN(parsed.getTime())) {
+            let year = parsed.getFullYear();
+            if (year > 2400) year -= 543;
+            return `${year}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+          }
+          return null;
+        }
+
+        formatThaiDate(dateValue, format = "short") {
+          if (!dateValue) return "-";
+          const iso = this.toISODate(dateValue);
+          if (!iso) return dateValue;
+
+          const d = new Date(`${iso}T00:00:00`);
+          if (isNaN(d.getTime())) return dateValue;
+
+          const yearType = format === "full" ? "numeric" : "2-digit";
+          const monthType = format === "full" ? "long" : "short";
+
+          return new Intl.DateTimeFormat("th-TH", {
+            day: "2-digit",
+            month: monthType,
+            year: yearType,
+          }).format(d);
+        }
+
+        escapeHtml(value) {
+          return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+        }
+
+        validateThaiCitizenId(id) {
+          if (!id || id.length !== 13 || !/^\d+$/.test(id)) return false;
+          let sum = 0;
+          for (let i = 0; i < 12; i++) {
+            sum += parseInt(id.charAt(i)) * (13 - i);
+          }
+          const check = (11 - (sum % 11)) % 10;
+          return check === parseInt(id.charAt(12));
+        }
+
+        formatPhoneNumber(phone) {
+          const clean = String(phone).replace(/\D/g, "");
+          if (clean.length === 10) {
+            return `${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`;
+          }
+          return phone;
+        }
+      }
+
+    // ==========================================================================
+    // 10. SDK INITIALIZER & BOOTSTRAP
+    // ==========================================================================
+    class PVTHRSdk {
+      constructor() {
+        this.client = null;
+        this.cache = new CacheEngine();
+        this.network = new NetworkEngine();
+        this.utils = new UtilsEngine();
+        this.offline = new OfflineEngine();
+
+        this._initClient();
+
+        this.auth = new AuthEngine(this.client, this.cache);
+        this.hr = new HREngine(this.client, this.cache, this.network);
+        this.leave = new LeaveEngine(this.client, this.cache);
+        this.storage = new StorageEngine(this.client);
+        this.realtime = new RealtimeEngine(this.client);
+        
+        // Modules
+        this.user = new UserEngine(this.client, this.cache, this.network);
+        this.card = new CardEngine(this.client);
+        this.notification = new NotificationEngine(this.client);
+        this.viewport = new ViewportEngine(); // ✅ เพิ่มเรียบร้อย
+      }
+      
+      getClient() {
+        return this.client;
+      }
+
+      _initClient() {
+        if (window.supabaseClient) {
+          this.client = window.supabaseClient;
+          return;
+        }
+        if (global.supabase?.createClient) {
+          this.client = global.supabase.createClient(CONFIG.URL, CONFIG.ANON_KEY);
+          window.supabaseClient = this.client;
+        } else {
+          console.error("[SDK Error] Supabase JS Client is not loaded on window.");
+        }
+      }
+    }
+
+    // ==========================================================================
+  // 11. USER & CENTRAL SERVICE ENGINE
+  // ==========================================================================
+  class UserEngine {
+    constructor(client, cache, network) {
+      this.client = client;
+      this.cache = cache;
+      this.network = network;
+    }
+
+    // ดึงโปรไฟล์พนักงาน + แผนก + ตำแหน่ง (พร้อมระบบ Cache)
+    async getFullProfile(employeeId, forceRefresh = false) {
+      if (!employeeId) throw new Error("ไม่พบ Employee ID");
+      const cacheKey = `full_profile_${employeeId}`;
+
+      if (!forceRefresh) {
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+      }
+
+      const { data, error } = await this.client
+        .from('employees')
+        .select(`
+          id, employee_code, role, status,
+          title, first_name, last_name, full_name, nickname,
+          phone, email, line_id, image_url,
+          department_id, position_id, employment_type, hospital, bank_account,
+          start_date, converted_date, resign_date, created_at, updated_at,
+          departments ( id, department_code, department_name, department_name_en, status, created_at ),
+          positions ( id, position_name, department_id, status, created_at )
+        `)
+        .eq('id', employeeId)
+        .maybeSingle();
+
+      if (error) throw new Error("ดึงข้อมูลพนักงานไม่สำเร็จ: " + error.message);
+      if (!data) throw new Error("ไม่พบข้อมูลพนักงานในระบบ");
+
+      const result = {
+        ...data,
+        department_name: data.departments?.department_name || 'ไม่ระบุแผนก',
+        position_name: data.positions?.position_name || 'ไม่ระบุตำแหน่ง'
+      };
+
+      this.cache.set(cacheKey, result, CONFIG.DEFAULT_TTL, ["profile"]);
+      return result;
+    }
+
+    // ดึงวันลาคงเหลือ
+    async getLeaveBalances(employeeId, year = new Date().getFullYear()) {
+      const cacheKey = `user_leave_balances_${employeeId}_${year}`;
+      const cached = this.cache.get(cacheKey);
+      if (cached) return cached;
+
+      const { data, error } = await this.client
+        .from('leave_balances')
+        .select(`
+          id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days, quota, created_at,
+          leave_types ( 
+            id, leave_code, leave_name, yearly_quota, status, allow_after_months, 
+            requires_attachment, require_advance_days, max_days_per_request, paid_leave, default_days, created_at 
+          )
+        `)
+        .eq('employee_id', employeeId)
+        .eq('year', year);
+
+      if (error) return [];
+      this.cache.set(cacheKey, data || [], CONFIG.DEFAULT_TTL, ["leaves"]);
+      return data || [];
+    }
+
+    // ระบบ Logout กลาง (ล้างทั้ง Session และ SDK Cache)
+    async logout() {
+      this.cache.clearAll();
+      localStorage.clear();
+      sessionStorage.clear();
+      if (this.client?.auth) {
+        try { await this.client.auth.signOut(); } catch (e) {}
+      }
+      window.location.replace("/index.html");
+    }
+  }
+
+    // ==========================================================================
+  // 12. DIGITAL CARD ENGINE (SECURE DYNAMIC QR)
+  // ==========================================================================
+  class CardEngine {
+    constructor(client) {
+      this.client = client;
+      this.timerInstance = null;
+    }
+
+    // ดึง Token ที่ผ่านการรับรองจาก Supabase Server
+    async getSecureToken(employeeCode) {
+      const { data, error } = await this.client.rpc('generate_card_qr_token', { 
+        p_employee_code: employeeCode 
+      });
+
+      if (error || !data || data.length === 0) {
+        throw new Error("ไม่สามารถสร้าง QR Code ได้: " + (error?.message || "Unknown error"));
+      }
+
+      return data[0]; // คืนค่า { qr_token, seconds_left }
+    }
+
+    // สั่งเริ่มทำงาน Dynamic QR Code 30s
+    init(employeeCode, qrContainerId = "qrcode", countdownElementId = "qr-countdown") {
+      if (!employeeCode) return;
+      this.stop();
+
+      const updateQr = async () => {
+        try {
+          const { qr_token, seconds_left } = await this.getSecureToken(employeeCode);
+
+          // Render QR Code
+          const container = document.getElementById(qrContainerId);
+          if (container && typeof QRCode !== 'undefined') {
+            container.innerHTML = "";
+            new QRCode(container, {
+              text: qr_token,
+              width: 160,
+              height: 160,
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          }
+
+          // อัปเดตเวลานับถอยหลัง
+          const countdownEl = document.getElementById(countdownElementId);
+          if (countdownEl) {
+            countdownEl.textContent = `รหัสรีเฟรชใน ${seconds_left} วินาที`;
+          }
+        } catch (err) {
+          console.error("⚠️ [CardEngine] QR Error:", err);
+        }
+      };
+
+      updateQr();
+      this.timerInstance = setInterval(updateQr, 1000);
+    }
+
+    stop() {
+      if (this.timerInstance) {
+        clearInterval(this.timerInstance);
+        this.timerInstance = null;
+      }
     }
   }
 
   // ==========================================================================
-  // 9. UTILITIES & SANITIZER ENGINE
-  // ==========================================================================
-  class UtilsEngine {
-    toISODate(input) {
-      if (!input) return null;
-      const str = String(input).trim();
-      if (!str) return null;
-
-      const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-      if (dmyMatch) {
-        let [, day, month, year] = dmyMatch.map(Number);
-        if (year > 2400) year -= 543;
-        return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      }
-
-      const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-      if (ymdMatch) {
-        let [, year, month, day] = ymdMatch.map(Number);
-        if (year > 2400) year -= 543;
-        return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      }
-
-      const parsed = new Date(str);
-      if (!isNaN(parsed.getTime())) {
-        let year = parsed.getFullYear();
-        if (year > 2400) year -= 543;
-        return `${year}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
-      }
-      return null;
-    }
-
-    formatThaiDate(dateValue, format = "short") {
-      if (!dateValue) return "-";
-      const iso = this.toISODate(dateValue);
-      if (!iso) return dateValue;
-
-      const d = new Date(`${iso}T00:00:00`);
-      if (isNaN(d.getTime())) return dateValue;
-
-      const yearType = format === "full" ? "numeric" : "2-digit";
-      const monthType = format === "full" ? "long" : "short";
-
-      return new Intl.DateTimeFormat("th-TH", {
-        day: "2-digit",
-        month: monthType,
-        year: yearType,
-      }).format(d);
-    }
-
-    escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    validateThaiCitizenId(id) {
-      if (!id || id.length !== 13 || !/^\d+$/.test(id)) return false;
-      let sum = 0;
-      for (let i = 0; i < 12; i++) {
-        sum += parseInt(id.charAt(i)) * (13 - i);
-      }
-      const check = (11 - (sum % 11)) % 10;
-      return check === parseInt(id.charAt(12));
-    }
-
-    formatPhoneNumber(phone) {
-      const clean = String(phone).replace(/\D/g, "");
-      if (clean.length === 10) {
-        return `${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`;
-      }
-      return phone;
-    }
-  }
-
+// 🔔 NOTIFICATION ENGINE (สำหรับนำไปต่อใน Class/SDK)
 // ==========================================================================
-// 10. SDK INITIALIZER & BOOTSTRAP
-// ==========================================================================
-class PVTHRSdk {
-  constructor() {
-    this.client = null;
-    this.cache = new CacheEngine();
-    this.network = new NetworkEngine();
-    this.utils = new UtilsEngine();
-    this.offline = new OfflineEngine();
-
-    this._initClient();
-
-    this.auth = new AuthEngine(this.client, this.cache);
-    this.hr = new HREngine(this.client, this.cache, this.network);
-    this.leave = new LeaveEngine(this.client, this.cache);
-    this.storage = new StorageEngine(this.client);
-    this.realtime = new RealtimeEngine(this.client);
+class NotificationEngine {
+  constructor(client) {
+    this.client = client;
   }
 
-  // ✅ เพิ่มฟังก์ชันนี้เพื่อดึง Supabase Client โดยตรง
-  getClient() {
-    return this.client;
+  // 1. ดึงรายการแจ้งเตือนที่ยังไม่ได้อ่าน
+  async getUnread(userId) {
+    if (!userId) return [];
+    const { data, error } = await this.client
+      .from('notifications')
+      .select('id, user_id, title, message, is_read, created_at')
+      .eq('user_id', userId)
+      .eq('is_read', false)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn("⚠️ [Notification] Fetch error:", error.message);
+      return [];
+    }
+    return data || [];
   }
 
-  _initClient() {
-    if (window.supabaseClient) {
-      this.client = window.supabaseClient;
-      return;
+  // 2. เปลี่ยนสถานะเป็นอ่านแล้ว (Mark as Read)
+  async markAsRead(notificationId) {
+    if (!notificationId) return false;
+    const { error } = await this.client
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error("❌ [Notification] Mark read error:", error.message);
+      return false;
     }
-    if (global.supabase?.createClient) {
-      this.client = global.supabase.createClient(CONFIG.URL, CONFIG.ANON_KEY);
-      window.supabaseClient = this.client;
-    } else {
-      console.error("[SDK Error] Supabase JS Client is not loaded on window.");
-    }
+    return true;
+  }
+
+  // 3. รับแจ้งเตือนแบบ Realtime เมื่อมีข้อความใหม่เด้งเข้า DB
+  subscribe(userId, callback) {
+    if (!userId) return null;
+    return this.client
+      .channel(`realtime_notifications_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          if (typeof callback === 'function') {
+            callback(payload.new);
+          }
+        }
+      )
+      .subscribe();
   }
 }
+
+// ==========================================================================
+  // 14. VIEWPORT & RESPONSIVE ENGINE
+  // ==========================================================================
+  class ViewportEngine {
+    constructor() {
+      this.isMobile = window.innerWidth <= 768;
+      this.init();
+    }
+
+    init() {
+      this.updateVh();
+      // ลิสเซนเนอร์ตรวจจับการหมุนจอหรือย่อขยายเบราว์เซอร์
+      window.addEventListener('resize', () => {
+        this.updateVh();
+        this.isMobile = window.innerWidth <= 768;
+      });
+    }
+
+    // แก้ปัญหา 100vh บนมือถือ (แถบ URL บัง)
+    updateVh() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+
+    // คำนวณขนาด QR Code ให้เหมาะสมกับขนาดจออัตโนมัติ
+    getAdaptiveQrSize() {
+      const width = window.innerWidth;
+      if (width < 360) return 130; // จอเล็กมาก (iPhone SE)
+      if (width < 768) return 160; // จอมือถือทั่วไป
+      return 200;                  // จอแท็บเล็ต / คอมพิวเตอร์
+    }
+  }
 
   // Export Global Instance
   global.PVTSDK = new PVTHRSdk();

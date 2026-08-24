@@ -1,231 +1,202 @@
-console.log("📢 [SYSTEM] เริ่มต้นโหลดสคริปต์หน้าจอพนักงาน (พร้อมระบบตรวจสอบโควตาวันลาหมด)...");
+/* ==========================================================================
+   📱 PVT WORKFORCE HUB - index-user.js (Full Specification & High Stability)
+   ========================================================================== */
 
-if (typeof window.currentProfile === 'undefined') window.currentProfile = null;
-if (typeof window.remainingDays === 'undefined') window.remainingDays = 0; 
-let currentSelectedYear = new Date().getFullYear();
-// 🛠️ 1. สคริปต์พิเศษ: บังคับล้างแคชและดึงไฟล์ CSS ใหม่ล่าสุดเสมอ
-(function forceLoadNewCSS() {
-  console.log("🔍 [DEBUG-CSS] กำลังค้นหาไฟล์ CSS ในหน้าเว็บเพื่อบังคับอัปเดตดีไซน์...");
-  const links = document.getElementsByTagName('link');
-  let found = false;
+console.log("📢 [SYSTEM] เริ่มต้นโหลดสคริปต์หน้าจอพนักงาน (ฉบับสมบูรณ์)...");
+
+/* ==========================================================================
+   🔒 1. Safe Supabase Client & Helper Functions
+   ========================================================================== */
+function getSafeSupabaseClient() {
+  return window.pvtSupabase?.getClient?.() 
+      || window.pvtSupabase?.client 
+      || window.PVTSDK?.client 
+      || window.supabaseClient 
+      || window.supabase 
+      || null;
+}
+
+function safeEscapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return window.PVTSDK?.utils?.escapeHtml(str) ?? String(str).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[m]));
+}
+
+function formatThaiDate(dateStr) {
+  if (!dateStr) return "-";
+  return window.PVTSDK?.utils?.formatThaiDate(dateStr, "short") ?? dateStr;
+}
+
+/* ==========================================================================
+   🔗 2. Navigation & Logout Security
+   ========================================================================== */
+window.goToLeaveForm = () => window.location.href = "/pages/user/leave-user.html";
+window.goToRules = () => window.location.href = "/pages/user/leave-rules.html";
+window.goToLeaveHistory = () => window.location.href = "/pages/user/leave-history.html";
+window.goToProfile = () => window.location.href = "/pages/user/profile-user.html";
+window.goToContactHR = () => window.location.href = "/pages/user/contact-hr.html";
+window.goToHolidays = () => window.location.href = "/pages/user/holidays.html";
+
+window.logout = function() { 
+  console.log("👋 [LOGOUT] กำลังออกจากระบบอย่างปลอดภัย...");
+  try {
+    const sb = getSafeSupabaseClient();
+    if (sb?.auth) sb.auth.signOut();
+  } catch (e) { 
+    console.warn("Supabase signout failed", e); 
+  }
   
+  localStorage.removeItem("currentUser"); 
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.replace("/index.html");
+};
+
+// 🛠️ บังคับอัปเดตไฟล์ CSS ใหม่ล่าสุดเสมอ
+(function forceLoadNewCSS() {
+  const links = document.getElementsByTagName('link');
   for (let i = 0; i < links.length; i++) {
     if (links[i].rel === 'stylesheet' && links[i].href.includes('index-user.css')) {
       const oldHref = links[i].href.split('?')[0]; 
-      const newHref = `${oldHref}?v=${new Date().getTime()}`; 
-      links[i].href = newHref;
-      console.log(`✅ [DEBUG-CSS] เจอไฟล์แล้ว! สั่งบังคับโหลดดีไซน์ใหม่ที่: ${newHref}`);
-      found = true;
+      links[i].href = `${oldHref}?v=${new Date().getTime()}`;
+      break;
     }
   }
-  if (!found) console.warn("⚠️ [DEBUG-CSS] หาแท็ก link index-user.css ไม่เจอใน HTML!");
 })();
 
-// 🟢 ประกาศตัวแปร Global ไว้อย่างปลอดภัย
-if (typeof window.currentProfile === 'undefined') {
-  window.currentProfile = null;
-}
-// ตัวแปรสำหรับเก็บโควตาวันลาคงเหลือ เอาไว้เช็กตอนกดปุ่มลา
-if (typeof window.remainingDays === 'undefined') {
-  window.remainingDays = 0; 
-}
+// 🟢 ประกาศตัวแปร Global
+window.currentProfile = window.currentProfile || null;
+window.remainingDays = window.remainingDays || 0;
+window.currentSelectedYear = window.currentSelectedYear || new Date().getFullYear();
 
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("📌 [LIFECYCLE] โครงสร้าง HTML โหลดเสร็จแล้ว กำลังเรียกฟังก์ชัน initUserHome()");
-  initUserHome();
-  initQuotaSystem(); // 👈 เพิ่มบรรทัดนี้เพื่อสร้างรายการปีตอนโหลดหน้าเว็บ
+/* ==========================================================================
+   📌 3. Main Lifecycle Entrypoint (จุดรันหลักจุดเดียว)
+   ========================================================================== */
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("📌 [LIFECYCLE] โครงสร้าง HTML โหลดเสร็จสิ้น เริ่มต้นดึงข้อมูล...");
+  await initUserHome();
+  initQuotaSystem();
+  checkUserNotifications();
 });
 
 /* ==========================================================================
-   📥 1. ฟังก์ชันโหลดโฮมเพจ (เวอร์ชันดึงรูปภาพอัปเดตล่าสุดจากฐานข้อมูลจริง)
+   📥 4. ฟังก์ชันหลักสำหรับโหลดข้อมูลหน้าพนักงาน (แก้ไข Relational Embedding)
    ========================================================================== */
+// ใน initUserHome() ของ index-user.js
 async function initUserHome() {
   try {
-    console.log("🔄 [INIT] เริ่มกระบวนการดึงข้อมูลโปรไฟล์พนักงาน...");
-
-    // 1. ดึงข้อมูล Profile จาก Supabase
-    if (window.pvtSupabase && typeof window.pvtSupabase.getCurrentProfile === "function") {
-      window.currentProfile = await window.pvtSupabase.getCurrentProfile();
-      console.log("👤 [PROFILE] ข้อมูลที่ดึงได้จากระบบล็อกอิน (Auth):", window.currentProfile);
-    }
+    // ใช้ SDK ในการดึงข้อมูลพร้อมระบบ Cache อัตโนมัติ
+    const profile = await window.PVTSDK.hr.getProfile();
     
-    // 2. ตรวจสอบว่าได้ ID พนักงานมาหรือไม่
-    let validId = window.currentProfile?.employee_id || window.currentProfile?.id;
+    if (!profile) return handleUnauthorized("Session หรือ Profile ไม่ถูกต้อง");
+
+    window.currentProfile = profile;
+    renderUserInfo(window.currentProfile);
+    await loadRecentLeaves(window.currentProfile);
     
-    // 3. ถ้าไม่ได้ ID มา ให้ไปค้นหาใน Session Storage แทน (แผนสำรอง)
-    if (!validId) {
-      console.log("🔄 [DASHBOARD] ใช้แผนสำรอง: ดึงข้อมูลโปรไฟล์จากแคช (Session)");
-      let cachedUser = null;
-      try {
-        cachedUser = JSON.parse(localStorage.getItem("currentUser") || "null");
-        console.log("📦 [SESSION] ข้อมูลที่เจอใน Session Storage:", cachedUser);
-      } catch (e) {
-        console.error("❌ [ERROR] อ่านค่า localStorage ล้มเหลว:", e);
-      }
-
-      if (cachedUser) {
-        const empData = cachedUser.employees || cachedUser;
-        const deptData = empData.departments || cachedUser.departments || cachedUser;
-
-        window.currentProfile = {
-          id: cachedUser.id || empData.id,
-          employee_id: cachedUser.employee_id || cachedUser.id || empData.id,
-          employee_code: empData.employee_code || cachedUser.employee_code,
-          full_name: empData.full_name || cachedUser.full_name || cachedUser.display_name,
-          department_name: deptData.department_name || empData.department_name || cachedUser.department_name, 
-          role: cachedUser.role || empData.role,
-          avatar_url: empData.image_url || cachedUser.image_url || empData.avatar_url || cachedUser.avatar_url,
-          employees: empData 
-        };
-        validId = window.currentProfile.employee_id;
-        console.log("✅ [RECOVERY] กู้คืนโปรไฟล์จาก Session สำเร็จ:", window.currentProfile);
-      } else {
-        console.error("❌ [CRITICAL] ไม่พบข้อมูลทั้งใน Auth และ Session!");
-      }
-    }
-
-    // 🔥 [แก้ไขตรงจุด 100%] วิ่งไปค้นหาผ่านคอลัมน์ id ด้วย UUID ตรงๆ และดึง image_url
-    const sb = window.pvtSupabase?.getClient();
-    if (sb && validId) {
-      try {
-        console.log(`🤖 [FETCH IMAGE] กำลังดึงข้อมูลภาพจาก employees.image_url โดยใช้ id: ${validId}`);
-        
-        const { data: freshEmp, error } = await sb
-          .from("employees")
-          .select("image_url")
-          .eq("id", validId)
-          .single();
-        
-        if (!error && freshEmp && freshEmp.image_url) {
-          window.currentProfile.avatar_url = freshEmp.image_url;
-          if (window.currentProfile.employees) {
-            window.currentProfile.employees.avatar_url = freshEmp.image_url;
-          }
-          console.log("🔄 [FRESH IMAGE] ดึงรูปจากคอลัมน์ image_url สำเร็จ:", freshEmp.image_url);
-        } else if (error) {
-          console.warn("⚠️ ค้นหาไม่สำเร็จ หรือไม่มีข้อมูลในคอลัมน์ image_url:", error.message);
-        }
-      } catch (e) {
-        console.warn("⚠️ ระบบขัดข้องระหว่างดึงข้อมูลรูปภาพจาก DB:", e);
-      }
-    }
-
-    // 4. สั่งให้วาดข้อมูลพนักงานลงหน้าจอ
-    if (typeof window.renderUserInfo === "function") {
-      window.renderUserInfo(window.currentProfile);
-    }
-    // 5. สั่งให้ดึงประวัติการลา
-    if (typeof window.loadRecentLeaves === "function") {
-      window.loadRecentLeaves(window.currentProfile);
-    }
-
-    // 6. โยนโปรไฟล์ไปเช็คสิทธิ์ปุ่มหัวหน้างาน
     checkApproverPermission(window.currentProfile);
+    fetchEmployeeLeaveStatusCount(window.currentProfile);
 
   } catch (err) {
-    console.error("🚨 [SAFE GUARD ERROR] ดักจับข้อผิดพลาดหน้าโฮม:", err);
+    console.error("❌ [SAFEGUARD] เกิดข้อผิดพลาดใน initUserHome:", err);
   }
 }
 
+function handleUnauthorized(reason) {
+  console.error(`🔒 Access Denied [Reason: ${reason}] -> ส่งกลับหน้า Login`);
+  localStorage.removeItem("currentUser");
+  sessionStorage.clear();
+  window.location.replace("/index.html");
+}
+
 /* ==========================================================================
-   🖥️ 2. ฟังก์ชันวาดชื่อพนักงาน และประกอบโครงสร้างรูปภาพจริงลงหน้าจอ
+   🖥️ 5. ฟังก์ชันวาดข้อมูลพนักงานลงหน้าจอ (ปรับปรุงการแสดงตำแหน่ง/แผนก & รูป)
    ========================================================================== */
 window.renderUserInfo = function(profile) {
-  console.log("🎨 [RENDER] กำลังวาดข้อมูลพนักงานลงหน้าจอ...", profile);
   if (!profile) return;
 
   const employee = profile?.employees || profile;
   
-  // 1. จัดการชื่อ
-  const nameEl = document.getElementById("userName");
+  // 1. จัดการชื่อพนักงาน
+  const nameEl = document.getElementById("userName") || document.getElementById("empName");
   if (nameEl) {
-    nameEl.textContent = employee?.full_name || profile?.full_name || profile?.display_name || "พนักงานในระบบ";
+    nameEl.textContent = safeEscapeHtml(employee?.full_name || profile?.full_name || profile?.display_name || "พนักงานในระบบ");
   }
     
-  // 2. จัดการแผนกและรหัสพนักงาน
+  // 2. จัดการตำแหน่ง แผนก และรหัสพนักงาน
   const deptName = employee?.departments?.department_name || employee?.department_name || profile?.department_name || "ทั่วไป";
+  const posName = employee?.positions?.position_name || employee?.position_name || profile?.position_name || "พนักงาน";
   const codeVal = employee?.employee_code || profile?.employee_code;
-  const empCode = codeVal ? `รหัส: ${codeVal}` : "";
+  const empCodeStr = codeVal ? ` (รหัส: ${codeVal})` : "";
   
-  const deptEl = document.getElementById("userDepartment");
+  const deptEl = document.getElementById("userDepartment") || document.getElementById("empDept");
   if (deptEl) {
-    deptEl.textContent = `${deptName} ${empCode}`;
+    deptEl.textContent = safeEscapeHtml(`${posName} - ${deptName}${empCodeStr}`);
   }
 
-  // ✨ 3. จัดการรูปโปรไฟล์พนักงาน (เวอร์ชันเปิดรูปภาพจริง 100%)
+  // 3. จัดการรูปภาพโปรไฟล์ (ใช้ StorageEngine ของ SDK จัดการ URL อัตโนมัติ)
   const avatarEl = document.getElementById("userAvatar");
   if (avatarEl) {
-    let avatarUrl = profile?.avatar_url || profile?.employees?.avatar_url || profile?.image_url || profile?.picture;
+    let rawAvatarUrl = profile?.image_url || employee?.image_url || profile?.avatar_url;
     
-    if (avatarUrl && avatarUrl.trim() !== "") {
-      
-      // 🛠️ เคสที่ 1: ถ้าฐานข้อมูลเก็บเป็นก้อนพาร์ทสั้น (เช่น avatars/3512_xxx.jpg) ให้ต่อ URL เต็มให้ทันที
-      if (!avatarUrl.startsWith("http")) {
-        avatarUrl = `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${avatarUrl}`;
-      }
-      
-      // 🛠️ เคสที่ 2: ดักจับ URL สกัด Error 400! ถ้าลิงก์ขาดคำว่า /public/ ให้แทรกเข้าไปตรงกลางโครงสร้างเซิร์ฟเวอร์
-      if (avatarUrl.includes("storage/v1/object/") && !avatarUrl.includes("storage/v1/object/public/")) {
-        avatarUrl = avatarUrl.replace("storage/v1/object/", "storage/v1/object/public/");
-      }
-      
-      avatarEl.src = avatarUrl; 
-      console.log("📸 [AVATAR EFFECTIVE] แสดงผลรูปภาพจริงสำเร็จที่ URL:", avatarUrl);
-    } else {
-      // แผนสำรองกรณีที่ไม่มีรูปภาพของพนักงานอยู่ในสารบบเลย
-      avatarEl.src = "/assets/img/default-avatar.jpg"; 
-      console.log("📸 [AVATAR] ไม่พบข้อมูลรูปภาพ ใช้ภาพโปรไฟล์เริ่มต้นในเครื่อง");
-    }
+    avatarEl.onerror = function() {
+      this.onerror = null;
+      this.src = "/assets/img/default-avatar.jpg";
+    };
+
+    avatarEl.src = window.PVTSDK?.storage?.getAvatarUrl(rawAvatarUrl) || "/assets/img/default-avatar.jpg";
   }
 };
 
 /* ==========================================================================
-   📥 3. ฟังก์ชันโหลดสถิติตัวเลข และประวัติการลา
+   📥 6. ฟังก์ชันโหลดประวัติการลา (แก้ไขปัญหา Relationship Ambiguous)
    ========================================================================== */
 window.loadRecentLeaves = async function(profile) {
   const recentList = document.getElementById("recentList");
-  const pendingCount = document.getElementById("pendingCount");
   const leaveBalance = document.getElementById("leaveBalance"); 
   const usedBalance = document.getElementById("usedBalance");  
+  const pendingCount = document.getElementById("pendingCount");
   
-  const sb = window.pvtSupabase?.getClient();
-  const employeeId = profile?.employee_id || profile?.id;
+  const sb = getSafeSupabaseClient();
+  const employeeId = profile?.id || profile?.employee_id;
 
   if (!sb || !employeeId) {
-    console.warn("⚠️ [FETCH] ยกเลิกการดึงประวัติ: ไม่พบ Supabase Client หรือ Employee ID");
-    if (recentList) recentList.innerHTML = `<div class="empty-state">ยังไม่ได้เข้าสู่ระบบ หรือไม่พบไอดีพนักงาน</div>`;
+    if (recentList) recentList.innerHTML = `<div class="empty-state">ไม่พบไอดีผู้ใช้งานระบบ</div>`;
     return;
   }
 
   try {
-    console.log(`⏳ [FETCH DATA] กำลังดึงสถิติและโควตาของไอดี: ${employeeId}`);
     const currentYear = new Date().getFullYear();
+    const thaiYear = currentYear + 543;
 
-    // 📍 1. [แก้ไขแล้ว] เพิ่ม approval_comment เข้าไปใน .select()
-    const [requestsRes, pendingRes, balanceRes] = await Promise.all([
-      sb.from("leave_requests").select("id, start_date, end_date, total_days, status, approval_comment, leave_types(leave_name)").eq("employee_id", employeeId).order("created_at", { ascending: false }).limit(50), 
-      sb.from("leave_requests").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).eq("status", "pending"),
-      sb.from("leave_balances").select("leave_type_id, remaining_days, used_days, year, leave_types(leave_name)").eq("employee_id", employeeId).eq("year", currentYear)
+    // ดึงข้อมูลโดยไม่ใช้ Join แบบ Embed เพื่อป้องกัน Error Relationship
+    const [requestsRes, pendingRes, balanceRes, typesRes] = await Promise.all([
+      sb.from("leave_requests")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .order("created_at", { ascending: false })
+        .limit(20), 
+      sb.from("leave_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("employee_id", employeeId)
+        .eq("status", "pending"),
+      sb.from("leave_balances")
+        .select("remaining_days, used_days, year")
+        .eq("employee_id", employeeId)
+        .in("year", [currentYear, thaiYear]),
+      sb.from("leave_types").select("id, leave_name")
     ]);
 
-    // 🛠️ เพิ่มการตรวจสอบ balanceRes.error ตรงนี้
-    if (balanceRes.error) {
-      console.error("❌ [BALANCE ERROR] ดึงโควตาวันลาไม่สำเร็จ:", balanceRes.error.message);
-    } else {
-      console.log("✅ [BALANCE DATA] ดึงโควตาวันลาสำเร็จ:", balanceRes.data);
-    }
+    // สร้าง Map สำหรับแปลง ID เป็นชื่อประเภทการลา
+    const typeMap = {};
+    (typesRes.data || []).forEach(t => typeMap[t.id] = t.leave_name);
 
-    if (requestsRes.error) throw requestsRes.error;
-
+    // คำนวณโควตาวันลา
     const balanceRows = balanceRes.data || [];
-    window.employeeLeaveBalances = balanceRows; 
-
-    if (typeof window.renderAllLeaveBalances === 'function') {
-      window.renderAllLeaveBalances();
-    }
-
     let totalRemaining = 0;
     let totalUsed = 0;
+    
     balanceRows.forEach(b => {
       totalRemaining += parseFloat(b.remaining_days) || 0;
       totalUsed += parseFloat(b.used_days) || 0;
@@ -237,13 +208,7 @@ window.loadRecentLeaves = async function(profile) {
     if (usedBalance) usedBalance.innerHTML = `${totalUsed} <small>วัน</small>`;
     if (pendingCount) pendingCount.innerHTML = `${pendingRes.count ?? 0} <small>รายการ</small>`;
 
-    const escapeFn = window.pvtSupabase?.escapeHtml || ((str) => str ? String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : "");
-    const labelFn = window.pvtSupabase?.statusLabel || ((status) => ({ pending: "รออนุมัติ", approved: "อนุมัติแล้ว", rejected: "ปฏิเสธ" }[status] || status));
-    const dateFn = window.pvtSupabase?.formatThaiDate || ((dateStr) => {
-      if (!dateStr) return "-";
-      try { return new Date(dateStr).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }); } catch (e) { return dateStr; }
-    });
-
+    // แสดงผลรายการลาล่าสุด
     const rows = requestsRes.data || [];
     if (!rows.length) {
       if (recentList) recentList.innerHTML = `<div class="empty-state">ยังไม่มีรายการยื่นใบลาในระบบ</div>`;
@@ -252,42 +217,35 @@ window.loadRecentLeaves = async function(profile) {
 
     if (recentList) {
       const listHtml = rows.map((item) => {
-        const leaveName = item.leave_types?.leave_name || "การลา";
-        
-        // 📍 2. [แก้ไขแล้ว] ตรวจสอบสถานะและคอมเมนต์เพื่อแยก "ไม่อนุมัติ" กับ "ยกเลิก"
-        let displayStatus = labelFn(item.status);
+        const leaveName = safeEscapeHtml(typeMap[item.leave_type_id] || item.leave_types?.leave_name || "การลา");
+        let displayStatus = item.status;
         let badgeStyle = "background:#fff3cd; color:#854d0e; border:1px solid #fde047;"; 
                 
-          // ปรับเงื่อนไขการแสดงผล Status Badge หน้าแรก
-          if (item.status === "approved") {
-            displayStatus = "อนุมัติ";
-            badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
-          } else if (item.status === "cancelled" || item.status === "cancelled_by_user" || item.cancel_status === "approved") {
-            displayStatus = "ยกเลิกโดยคำร้อง";
-            badgeStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;";
-          } else if (item.status === "cancel_pending" || item.status === "cancel_requested" || item.cancel_status === "pending") {
-            displayStatus = "รอ HR อนุมัติยกเลิก";
-            badgeStyle = "background:#ffedd5; color:#c2410c; border:1px solid #fed7aa;";
-          } else if (item.status === "rejected") {
-            displayStatus = "ไม่อนุมัติ";
-            badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;";
-          }
+        if (item.status === "approved") {
+          displayStatus = "อนุมัติ";
+          badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
+        } else if (item.status === "cancelled" || item.status === "cancelled_by_user" || item.cancel_status === "approved") {
+          displayStatus = "ยกเลิกแล้ว";
+          badgeStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;";
+        } else if (item.status === "cancel_pending" || item.cancel_status === "pending") {
+          displayStatus = "รอ HR อนุมัติยกเลิก";
+          badgeStyle = "background:#ffedd5; color:#c2410c; border:1px solid #fed7aa;";
+        } else if (item.status === "rejected") {
+          displayStatus = "ไม่อนุมัติ";
+          badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;";
+        } else if (item.status === "pending") {
+          displayStatus = "รออนุมัติ";
+        }
 
         return `
-          <article class="recent-item" style="margin-bottom: 12px; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
+          <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <strong style="font-size: 15px; color: #0f172a;">${escapeFn(leaveName)}</strong>
+              <strong style="font-size: 15px; color: #0f172a;">${leaveName}</strong>
               <span class="status ${item.status}" style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; ${badgeStyle}">${displayStatus}</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #64748b;">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span>📅 วันที่:</span> 
-                <span style="color: #334155; font-weight: 500;">${dateFn(item.start_date)} - ${dateFn(item.end_date)}</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span>⏱️ จำนวน:</span> 
-                <span style="color: #0fa472; font-weight: 600;">${item.total_days} วัน</span>
-              </div>
+              <div>📅 วันที่: <span style="color: #334155; font-weight: 500;">${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span></div>
+              <div>⏱️ จำนวน: <span style="color: #0fa472; font-weight: 600;">${item.total_days} วัน</span></div>
             </div>
           </article>
         `;
@@ -295,60 +253,13 @@ window.loadRecentLeaves = async function(profile) {
       recentList.innerHTML = `<div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">${listHtml}</div>`;
     }
   } catch (error) {
-    if (recentList) recentList.innerHTML = `<div class="empty-state" style="color:#ef4444;">⚠️ ดึงข้อมูลล่าสุดไม่สำเร็จ</div>`;
+    console.error("❌ loadRecentLeaves Error:", error);
+    if (recentList) recentList.innerHTML = `<div class="empty-state" style="color:#ef4444;">⚠️ ดึงข้อมูลประวัติไม่สำเร็จ</div>`;
   }
 };
 
 /* ==========================================================================
-   🎨 4. ฟังก์ชันวาดกล่องโควตาวันลาแยกประเภท
-   ========================================================================== */
-window.renderAllLeaveBalances = function() {
-  const container = document.getElementById("leaveBalancesContainer");
-  if (!container) return;
-
-  container.innerHTML = ""; 
-
-  // 1. ตรวจสอบว่าตัวแปรมีข้อมูลอยู่จริงและเป็น Array หรือไม่
-  if (!window.employeeLeaveBalances || !Array.isArray(window.employeeLeaveBalances) || window.employeeLeaveBalances.length === 0) {
-    container.innerHTML = "<p style='color:var(--muted); font-size:14px; font-style:italic; margin:0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
-    return;
-  }
-
-  window.employeeLeaveBalances.forEach(balance => {
-    // 2. ดึงชื่อประเภทการลา (รองรับทั้ง Object, Array และ Flat Field)
-    let typeName = "สิทธิ์การลา";
-    if (Array.isArray(balance.leave_types) && balance.leave_types.length > 0) {
-      typeName = balance.leave_types[0].leave_name || typeName;
-    } else if (balance.leave_types && typeof balance.leave_types === 'object') {
-      typeName = balance.leave_types.leave_name || typeName;
-    } else if (balance.leave_name) {
-      typeName = balance.leave_name;
-    }
-
-    // 3. ดึงจำนวนวันคงเหลือ (รองรับกรณีใช้ชื่อ field ต่างกัน)
-    const rawRemaining = balance.remaining_days ?? balance.remaining ?? balance.quota_remaining ?? 0;
-    const remaining = parseFloat(rawRemaining) || 0;
-
-    // 4. แยกคลาสสีตามประเภทวันลา
-    let colorClass = ""; 
-    if (typeName.includes("ป่วย")) colorClass = "sick";
-    else if (typeName.includes("กิจ")) colorClass = "personal";
-    else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
-
-    // 5. สร้างการ์ดแสดงผล
-    const box = document.createElement("div");
-    box.className = `leave-quota-card ${colorClass}`.trim();
-    
-    box.innerHTML = `
-      <span class="leave-quota-name">${typeName}</span>
-      <div class="leave-quota-days">${remaining} <small>วัน</small></div>
-    `;
-    container.appendChild(box);
-  });
-};
-
-/* ==========================================================================
-   🛠️ ฟังก์ชันสร้างรูปภาพบัตรพนักงานด้วย HTML5 Canvas (แก้ปัญหาดาวน์โหลดถาวร)
+   🎨 7. ระบบสร้างบัตรพนักงานดิจิทัล (HTML5 Canvas PNG Generator)
    ========================================================================== */
 async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avatarUrl, qrUrl }) {
   const canvas = document.createElement("canvas");
@@ -356,7 +267,6 @@ async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avata
   canvas.height = 920;
   const ctx = canvas.getContext("2d");
 
-  // โหลดรูปภาพผ่าน Blob เพื่อป้องกันปัญหา CORS/Taint Canvas
   const loadSafeImage = async (url) => {
     if (!url) return null;
     try {
@@ -379,7 +289,6 @@ async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avata
     loadSafeImage(qrUrl)
   ]);
 
-  // ฟังก์ชันวาดกล่องมุมมน
   const drawRoundedRect = (x, y, w, h, r, fillStyle) => {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -392,19 +301,19 @@ async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avata
     ctx.fill();
   };
 
-  // 1. พื้นหลังบัตร Gradient (สีน้ำเงินเข้มตามดีไซน์)
+  // Background Gradient
   const bgGrad = ctx.createLinearGradient(0, 0, 0, 920);
   bgGrad.addColorStop(0, '#0d1b3e');
   bgGrad.addColorStop(1, '#183370');
   drawRoundedRect(0, 0, 600, 920, 48, bgGrad);
 
-  // 2. หัวข้อระบบ
+  // Title Text
   ctx.fillStyle = '#38bdf8';
   ctx.font = 'bold 22px "Sarabun", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('PVT WORKFORCE HUB', 300, 75);
 
-  // 3. รูปโปรไฟล์วงกลม (Object-fit: Cover)
+  // Avatar Circle Clip
   const avatarX = 300, avatarY = 210, avatarRadius = 90;
   ctx.save();
   ctx.beginPath();
@@ -424,14 +333,14 @@ async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avata
   }
   ctx.restore();
 
-  // เส้นขอบรูปโปรไฟล์
+  // Avatar Border Ring
   ctx.beginPath();
   ctx.arc(avatarX, avatarY, avatarRadius, 0, Math.PI * 2);
   ctx.strokeStyle = '#38bdf8';
   ctx.lineWidth = 6;
   ctx.stroke();
 
-  // 4. ชื่อ, ตำแหน่ง, แผนก
+  // Employee Details Text
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 36px "Sarabun", sans-serif';
   ctx.fillText(empName, 300, 355);
@@ -444,13 +353,13 @@ async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avata
   ctx.font = '500 22px "Sarabun", sans-serif';
   ctx.fillText(`แผนก: ${myDept}`, 300, 440);
 
-  // 5. กรอบขาว + QR Code
+  // QR Frame & Image
   drawRoundedRect(160, 480, 280, 280, 36, '#ffffff');
   if (qrImg) {
     ctx.drawImage(qrImg, 180, 500, 240, 240);
   }
 
-  // 6. รหัสพนักงาน
+  // Employee Code Badge
   drawRoundedRect(200, 800, 200, 56, 28, 'rgba(255, 255, 255, 0.15)');
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 28px "Sarabun", sans-serif';
@@ -459,41 +368,31 @@ async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avata
   return canvas.toDataURL('image/png');
 }
 
-/* ==========================================================================
-   🖥️ 5. ฟังก์ชันเปิดบัตรพนักงานดิจิทัล
-   ========================================================================== */
 window.viewMyDigitalCard = async function() {
-  const sessionUser = JSON.parse(localStorage.getItem("currentUser") || "null");
-  const profile = window.currentProfile || {};
-  const employee = profile.employees || profile;
-  const currentCode = sessionUser?.employee_code || employee?.employee_code;
+  const sessionUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const profile = window.currentProfile || sessionUser;
+  const currentCode = profile?.employee_code || sessionUser?.employee_code;
   
   if (!currentCode) return;
 
-  Swal.fire({
-    title: '⏳ กำลังสร้างบัตรพนักงาน...',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
-
-  const fullName = employee?.full_name || profile?.display_name || sessionUser?.full_name || "พนักงานในระบบ";
-  const myDept = employee?.departments?.department_name || employee?.department_name || sessionUser?.department_name || "ทั่วไป";
-  const myRole = employee?.positions?.position_name || employee?.position_name || sessionUser?.position_name || profile?.role || "พนักงาน";
-
-  // ดึงรูปโปรไฟล์
-  let avatarUrl = profile?.avatar_url || profile?.employees?.avatar_url || profile?.image_url || profile?.picture;
-  if (!avatarUrl || avatarUrl.trim() === "") {
-    avatarUrl = "/assets/img/default-avatar.jpg";
-  } else if (!avatarUrl.startsWith("http")) {
-    avatarUrl = `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${avatarUrl}`;
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: '⏳ กำลังสร้างบัตรพนักงาน...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
   }
 
-  // สร้าง URL QR Code
-  const baseUrl = window.location.origin;
-  const targetUrl = `${baseUrl}/?auto_login=${currentCode}&token=PVT_SECURE_BYPASS`; 
+  const fullName = profile?.full_name || sessionUser?.full_name || "พนักงานในระบบ";
+  const myDept = profile?.department_name || profile?.departments?.department_name || "ทั่วไป";
+  const myRole = profile?.position_name || profile?.positions?.position_name || "พนักงาน";
+
+  // ดึง URL รูปภาพผ่าน StorageEngine ของ SDK
+  let avatarUrl = window.PVTSDK?.storage?.getAvatarUrl(profile?.image_url || profile?.employees?.image_url);
+
+  const targetUrl = `${window.location.origin}/?auto_login=${currentCode}&token=PVT_SECURE_BYPASS`; 
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}`;
 
-  // สร้างไฟล์รูปภาพ PNG โดยตรง
   const cardImageDataUrl = await generateEmployeeCardPNG({
     empCode: currentCode,
     empName: fullName,
@@ -503,166 +402,72 @@ window.viewMyDigitalCard = async function() {
     qrUrl: qrUrl
   });
 
-  // แสดงผลป็อปอัปด้วยรูป PNG ที่สร้างเสร็จแล้ว
-  Swal.fire({
-    title: '💳 บัตรประจำตัวพนักงานดิจิทัล', 
-    width: '380px',
-    html: `
-      <div style="margin: 10px 0;">
-        <img src="${cardImageDataUrl}" alt="Employee Card" style="width: 280px; border-radius: 22px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: block; margin: 0 auto;" />
-      </div>
-    `,
-    showCancelButton: true,
-    cancelButtonText: '📥 ดาวน์โหลดบัตร',
-    cancelButtonColor: '#2563eb',
-    confirmButtonText: '✅ ปิด', 
-    confirmButtonColor: '#64748b',
-    reverseButtons: true
-  }).then((result) => {
-    // สั่งดาวน์โหลด DataURL โดยตรง ไม่ต้องพึ่งพาไลบรารีภายนอก
-    if (result.dismiss === Swal.DismissReason.cancel) {
-      const link = document.createElement("a");
-      link.href = cardImageDataUrl;
-      link.download = `Employee_Card_${currentCode}.png`;
-      link.click();
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: '💳 บัตรประจำตัวพนักงานดิจิทัล', 
+      width: '420px',
+      html: `
+        <div style="margin: 10px 0 14px 0;">
+          <img src="${cardImageDataUrl}" alt="Employee Card" style="width: 260px; border-radius: 20px; box-shadow: 0 8px 22px rgba(0,0,0,0.25); display: block; margin: 0 auto;" />
+        </div>
 
-      Swal.fire({
-        icon: 'success',
-        title: '🎉 ดาวน์โหลดสำเร็จ!',
-        text: 'บันทึกรูปภาพบัตรพนักงานเรียบร้อยแล้ว',
-        confirmButtonColor: '#0fa472'
-      });
-    }
-  });
+        <!-- 🛡️ กล่องแจ้งเตือนเงื่อนไขและความปลอดภัยของบัตร -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; text-align: left; font-size: 12px; color: #475569;">
+          <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+            <span>🛡️ เงื่อนไขความปลอดภัยและการใช้งาน</span>
+          </div>
+          <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
+            <li><b>Dynamic Security:</b> QR Code ปลอดภัยสูง มีอายุใช้งานจำกัด (ห้ามแคปหน้าจอส่งต่อ)</li>
+            <li><b>Single Account:</b> บัตรผูกกับบัญชีพนักงานเครื่องนี้เท่านั้น ห้ามใช้ลงเวลาแทนกัน</li>
+            <li><b>Internal Access:</b> สำหรับยืนยันตัวตน เข้า-ออกพื้นที่ และบันทึกเวลาทำงาน PVT</li>
+          </ul>
+        </div>
+      `,
+      showCancelButton: true,
+      cancelButtonText: '📥 ดาวน์โหลดบัตร',
+      cancelButtonColor: '#2563eb',
+      confirmButtonText: '✅ ปิด', 
+      confirmButtonColor: '#64748b',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        const link = document.createElement("a");
+        link.href = cardImageDataUrl;
+        link.download = `Employee_Card_${currentCode}.png`;
+        link.click();
+      }
+    });
+  }
 };
 /* ==========================================================================
-   🔗 6. โซนผูกปุ่มกดเข้ากับหน้าเว็บ
+   🔔 8. ระบบติดตามสถานะการอนุมัติ 3 ขั้นตอน (3-Step Approval Status Tracker)
    ========================================================================== */
-window.goToLeaveForm = function() { window.location.href = "/pages/user/leave-user.html"; };
-window.goToRules = function() { window.location.href = "/pages/user/leave-rules.html"; };
-window.goToLeaveHistory = function() { window.location.href = "/pages/user/leave-history.html"; };
-window.goToProfile = function() { window.location.href = "/pages/user/profile-user.html"; };
-window.goToContactHR = function() { window.location.href = "/pages/user/contact-hr.html"; };
-
-window.logout = function() { 
-  console.log("👋 [LOGOUT] กำลังออกจากระบบและล้าง Session...");
-  localStorage.removeItem("currentUser"); 
-  window.location.href = "/index.html"; 
-};
-
-
-
-/* ==========================================================================
-   🔮 8. USER INTERACTION GUIDE CONTROLLER (ระบบควบคุมคู่มือผู้ใช้งานพนักงาน)
-   ========================================================================== */
-function toggleUserGuide() {
-  const card = document.getElementById("user-guide-card");
-  const icon = document.getElementById("user-guide-icon");
-  const btn = document.getElementById("user-guide-fab");
-  
-  if (!card || !icon || !btn) return;
-
-  const isHidden = card.style.display === "none" || card.style.display === "";
-
-  if (isHidden) {
-    card.style.display = "block";
-    icon.innerText = "close";
-    icon.style.transform = "rotate(90deg)";
-    btn.style.background = "#ef4444"; // เปลี่ยนเป็นสีแดงชั่วคราวเพื่อให้รู้ว่ากดปิดได้
-    btn.style.color = "#ffffff";
-    btn.style.borderColor = "#fecaca";
-  } else {
-    card.style.display = "none";
-    icon.innerText = "help";
-    icon.style.transform = "rotate(0deg)";
-    btn.style.background = "rgba(255, 255, 255, 0.8)";
-    btn.style.color = "var(--primary-dark, #0891b2)";
-    btn.style.borderColor = "rgba(6, 182, 212, 0.3)";
-  }
-}
-
-
-// ฟังก์ชันเปิด Modal
-function openHolidayModal() {
-  const modal = document.getElementById('holidayModal');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-// ฟังก์ชันปิด Modal
-function closeHolidayModal() {
-  const modal = document.getElementById('holidayModal');
-  if (modal) {
-    modal.style.display = 'none';
-    document.getElementById('holidayForm')?.reset(); // ล้างค่าฟอร์มเมื่อปิด
-  }
-}
-
-// ฟังก์ชันบันทึกข้อมูลวันหยุด
-async function handleSaveHoliday(event) {
-  event.preventDefault();
-  
-  const holidayDate = document.getElementById('holidayDate').value;
-  const holidayName = document.getElementById('holidayName').value;
-  const holidayType = document.getElementById('holidayType').value;
-
-  try {
-    // ตัวอย่างการส่งข้อมูลไปยัง Supabase
-    const { data, error } = await pvtSupabase.getClient()
-      .from('holidays')
-      .insert([
-        { holiday_date: holidayDate, holiday_name: holidayName, type: holidayType }
-      ]);
-
-    if (error) throw error;
-
-    Swal.fire('สำเร็จ!', 'เพิ่มวันหยุดเรียบร้อยแล้ว', 'success');
-    closeHolidayModal();
-  } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด!', err.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
-  }
-}
-
-/* ==========================================================================
-   🔔 ระบบแจ้งเตือน & ติดตามสถานะใบลา (ฝั่งพนักงาน)
-   ========================================================================== */
-
-/** 1. ตรวจสอบสิทธิ์ผู้ใช้ และเปิดใช้งานปุ่มแจ้งเตือน */
 function checkApproverPermission(profileData) {
-  try {
-    if (!profileData) return;
+  const switchBtn = document.getElementById("approverModeBtn");
+  if (!switchBtn || !profileData?.role) return;
 
-    const userRole = (profileData.role || "").toLowerCase();
-    
-    // 💡 หากต้องการทดสอบให้เห็นปุ่มทุกคน ให้ใส่ true หรือเพิ่มบทบาท "ทั่วไป" ในรายการนี้
-    const approverRoles = ["leader", "manager", "director", "hr", "admin"];
-    const isApprover = approverRoles.includes(userRole);
+  const userRole = (profileData.role || "").toLowerCase();
+  const approverRoles = ["leader", "manager", "director", "hr", "admin"];
+  const isApprover = approverRoles.includes(userRole);
 
-    const switchBtn = document.getElementById("approverModeBtn");
-    if (switchBtn) {
-      // ปรับให้แสดงผลเป็น Flex เมื่อมีสิทธิ์
-      switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
-    }
-  } catch (err) {
-    console.error("❌ Error in checkApproverPermission:", err);
-  }
+  switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
 }
 
-/** 2. ดึงจำนวนรายการที่อยู่ระหว่างดำเนินการ */
 async function fetchEmployeeLeaveStatusCount(profile) {
-  const sb = window.pvtSupabase?.getClient();
-  const empId = profile?.employee_id || profile?.id;
+  const sb = getSafeSupabaseClient();
+  const empId = profile?.id || profile?.employee_id;
+  const notifBtn = document.getElementById("notificationBtn");
   if (!sb || !empId) return;
 
   try {
-    const { count, error } = await sb
+    const { count } = await sb
       .from("leave_requests")
       .select("id", { count: "exact", head: true })
       .eq("employee_id", empId)
-      .in("status", ["pending", "approved", "rejected", "cancel_pending", "cancelled", "cancel_requested"]);
+      .in("status", ["pending", "approved", "rejected", "cancel_pending"]);
 
-    if (!error) {
+    if (notifBtn) {
+      notifBtn.style.display = "inline-flex";
       const badge = document.getElementById("notifBadge");
       if (badge) {
         badge.innerText = count || 0;
@@ -670,81 +475,95 @@ async function fetchEmployeeLeaveStatusCount(profile) {
       }
     }
   } catch (e) {
-    console.warn("⚠️ ไม่สามารถดึงจำนวนการแจ้งเตือนพนักงานได้:", e);
+    console.warn("⚠️ ไม่สามารถดึงการแจ้งเตือนได้:", e);
   }
 }
 
-/** 3. เปิด Modal ติดตามสถานะใบลา */
-async function openEmployeeStatusTrackerModal() {
-  const sb = window.pvtSupabase?.getClient();
-  const empId = window.currentProfile?.employee_id || window.currentProfile?.id;
+function openNotificationModal() {
+  const userRole = (window.currentProfile?.role || "").toLowerCase();
+  const approverRoles = ["leader", "manager", "director", "hr", "admin"];
 
+  if (approverRoles.includes(userRole)) {
+    openApproverNotificationModal();
+  } else {
+    openEmployeeStatusTrackerModal();
+  }
+}
+
+function renderStepStatus(status) {
+  if (status === 'approved' || status === 'pass') {
+    return `<span style="color:#10b981; font-weight:700; font-size:11px;">✅ อนุมัติ</span>`;
+  } else if (status === 'rejected' || status === 'fail') {
+    return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ไม่ผ่าน</span>`;
+  } else {
+    return `<span style="color:#d97706; font-weight:600; font-size:11px;">⏳ รอพิจารณา</span>`;
+  }
+}
+
+function renderCancelStepStatus(cancelStatus) {
+  if (cancelStatus === 'approved' || cancelStatus === 'cancelled') {
+    return `<span style="color:#475569; font-weight:700; font-size:11px;">🚫 ยกเลิกสำเร็จ</span>`;
+  } else if (cancelStatus === 'rejected') {
+    return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ปฏิเสธการยกเลิก</span>`;
+  } else {
+    return `<span style="color:#ea580c; font-weight:600; font-size:11px;">⏳ รอ HR อนุมัติยกเลิก</span>`;
+  }
+}
+
+async function openEmployeeStatusTrackerModal() {
+  const sb = getSafeSupabaseClient();
+  const empId = window.currentProfile?.id || window.currentProfile?.employee_id;
   if (!sb || !empId) return;
 
-  Swal.fire({
-    title: '⏳ กำลังโหลดสถานะ...',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
+  if (typeof Swal !== 'undefined') Swal.showLoading();
 
   try {
-    const { data: requests, error } = await sb
+    const { data: requests } = await sb
       .from("leave_requests")
       .select("*, leave_types(leave_name)")
       .eq("employee_id", empId)
       .order("created_at", { ascending: false })
       .limit(5);
 
-    if (error || !requests || requests.length === 0) {
-      Swal.fire({
-        title: '🔔 ติดตามสถานะใบลา',
-        text: 'คุณยังไม่มีรายการยื่นใบลาในระบบ',
-        icon: 'info',
-        confirmButtonColor: '#06b6d4'
-      });
+    if (!requests || requests.length === 0) {
+      if (typeof Swal !== 'undefined') Swal.fire('🔔 ติดตามสถานะใบลา', 'คุณยังไม่มีรายการยื่นใบลาในระบบ', 'info');
       return;
     }
 
-    const dateFn = window.pvtSupabase?.formatThaiDate || ((d) => d);
-
     const cardsHtml = requests.map((item) => {
-      const leaveName = item.leave_types?.leave_name || "ใบลา";
+      const leaveName = safeEscapeHtml(item.leave_types?.leave_name || "ใบลา");
       const days = item.total_days || 1;
 
-      // 🟢 1. กำหนดป้ายสถานะรวม (Overall Badge)
       let overallBadge = `<span style="background:#fef3c7; color:#b45309; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">⏳ อยู่ระหว่างพิจารณา</span>`;
       
       if (item.status === "approved") {
         overallBadge = `<span style="background:#d1e7dd; color:#0f5132; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">✅ อนุมัติเรียบร้อย</span>`;
       } else if (item.status === "rejected") {
         overallBadge = `<span style="background:#f8d7da; color:#842029; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">❌ ไม่อนุมัติ</span>`;
-      } else if (item.status === "cancel_pending" || item.status === "cancel_requested" || item.cancel_status === "pending") {
+      } else if (item.status === "cancel_pending" || item.cancel_status === "pending") {
         overallBadge = `<span style="background:#ffedd5; color:#c2410c; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">⏳ รอ HR อนุมัติยกเลิก</span>`;
-      } else if (item.status === "cancelled" || item.status === "cancelled_by_user" || item.cancel_status === "approved") {
-        overallBadge = `<span style="background:#e2e8f0; color:#475569; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">🚫 ยกเลิกโดยคำร้อง</span>`;
+      } else if (item.status === "cancelled" || item.cancel_status === "approved") {
+        overallBadge = `<span style="background:#e2e8f0; color:#475569; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">🚫 ยกเลิกแล้ว</span>`;
       }
 
-      // 🟢 2. Timeline การอนุมัติปกติ
       const leaderStep = renderStepStatus(item.leader_status || (item.status === 'pending' ? 'pending' : 'approved'));
       const managerStep = renderStepStatus(item.manager_status || (item.status === 'approved' ? 'approved' : 'pending'));
       const hrStep = renderStepStatus(item.hr_status || (item.status === 'approved' ? 'approved' : 'pending'));
 
-      // 🟢 3. ตรวจสอบการยกเลิก
-      const isCancellationFlow = item.status === "cancel_pending" || item.status === "cancel_requested" || item.status === "cancelled" || item.cancel_status;
+      const isCancellationFlow = item.status === "cancel_pending" || item.status === "cancelled" || item.cancel_status;
       const hrCancelStep = renderCancelStepStatus(item.cancel_status || (item.status === 'cancelled' ? 'approved' : 'pending'));
 
       return `
-        <div style="background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(226, 232, 240, 0.8); border-radius: 16px; padding: 16px; margin-bottom: 12px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <strong style="font-size: 15px; color: #0f172a;">📝 ${leaveName} (${days} วัน)</strong>
             ${overallBadge}
           </div>
           
           <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
-            <span>📅 ${dateFn(item.start_date)} - ${dateFn(item.end_date)}</span>
+            <span>📅 ${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span>
           </div>
 
-          <!-- Timeline ลาปกติ -->
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center;">
             <div style="border-right: 1px solid #e2e8f0; padding-right: 4px;">
               <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">1. หัวหน้าแผนก</div>
@@ -760,7 +579,6 @@ async function openEmployeeStatusTrackerModal() {
             </div>
           </div>
 
-          <!-- แถบแสดงเฉพาะเมื่อมีการขอยกเลิก -->
           ${isCancellationFlow ? `
             <div style="margin-top: 8px; background: #fff7ed; padding: 8px 12px; border-radius: 10px; border: 1px solid #ffedd5; display: flex; justify-content: space-between; align-items: center;">
               <span style="font-size: 11px; color: #c2410c; font-weight: 600;">🔄 คำร้องขอยกเลิก (HR อนุมัติ):</span>
@@ -770,178 +588,55 @@ async function openEmployeeStatusTrackerModal() {
 
           ${item.cancel_reason ? `
             <div style="margin-top: 8px; font-size: 11px; color: #9a3412; background: #fff7ed; border: 1px solid #ffedd5; padding: 6px 10px; border-radius: 6px;">
-              <b>เหตุผลที่ขอยกเลิก:</b> ${item.cancel_reason}
+              <b>เหตุผลที่ขอยกเลิก:</b> ${safeEscapeHtml(item.cancel_reason)}
             </div>
           ` : ''}
 
           ${item.approval_comment ? `
             <div style="margin-top: 8px; font-size: 11px; color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 6px;">
-              <b>💬 หมายเหตุผู้อนุมัติ:</b> ${item.approval_comment}
+              <b>💬 หมายเหตุผู้อนุมัติ:</b> ${safeEscapeHtml(item.approval_comment)}
             </div>
           ` : ''}
         </div>
       `;
     }).join("");
 
-    Swal.fire({
-      title: '🔔 ติดตามสถานะการอนุมัติ',
-      html: `<div style="max-height: 420px; overflow-y: auto; padding-right: 4px; font-family:'Sarabun', sans-serif;">${cardsHtml}</div>`,
-      width: '480px',
-      confirmButtonText: 'ตกลง',
-      confirmButtonColor: '#06b6d4',
-      customClass: { popup: 'pvt-glass-card' }
-    });
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        title: '🔔 ติดตามสถานะการอนุมัติ',
+        html: `<div style="max-height: 420px; overflow-y: auto; padding-right: 4px;">${cardsHtml}</div>`,
+        width: '480px',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#06b6d4'
+      });
+    }
 
   } catch (err) {
     console.error("❌ ดึงข้อมูลติดตามสถานะล้มเหลว:", err);
-    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลสถานะได้', 'error');
+    if (typeof Swal !== 'undefined') Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลสถานะได้', 'error');
   }
 }
 
-/** 4. ฟังก์ชันคลิกปุ่มแจ้งเตือน */
-function openNotificationModal() {
-  const userRole = (window.currentProfile?.role || "").toLowerCase();
-  const approverRoles = ["leader", "manager", "director", "hr"];
-
-  if (approverRoles.includes(userRole)) {
-    openApproverNotificationModal();
-  } else {
-    openEmployeeStatusTrackerModal();
-  }
-}
-
-/** 5. แปลงสถานะขั้นตอนการลาปกติ */
-function renderStepStatus(status) {
-  if (status === 'approved' || status === 'pass') {
-    return `<span style="color:#10b981; font-weight:700; font-size:11px;">✅ อนุมัติ</span>`;
-  } else if (status === 'rejected' || status === 'fail') {
-    return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ไม่ผ่าน</span>`;
-  } else {
-    return `<span style="color:#d97706; font-weight:600; font-size:11px;">⏳ รอพิจารณา</span>`;
-  }
-}
-
-/** 6. แปลงสถานะขั้นตอนการยกเลิก */
-function renderCancelStepStatus(cancelStatus) {
-  if (cancelStatus === 'approved' || cancelStatus === 'cancelled') {
-    return `<span style="color:#475569; font-weight:700; font-size:11px;">🚫 ยกเลิกสำเร็จ</span>`;
-  } else if (cancelStatus === 'rejected') {
-    return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ปฏิเสธการยกเลิก</span>`;
-  } else {
-    return `<span style="color:#ea580c; font-weight:600; font-size:11px;">⏳ รอ HR อนุมัติยกเลิก</span>`;
-  }
-}
-
-/** 7. Modal แจ้งเตือนฝั่ง HR / หัวหน้างาน */
 function openApproverNotificationModal() {
   const pendingCount = document.getElementById("notifBadge")?.innerText || "0";
-
-  Swal.fire({
-    title: '🔔 รายการแจ้งเตือนการอนุมัติ',
-    html: `
-      <div style="font-family:'Sarabun', sans-serif; text-align:center; padding: 10px 0;">
-        <p style="font-size:16px; color:#1e293b; margin-bottom:12px;">
-          มีใบลาที่รอการอนุมัติอยู่ทั้งหมด <b style="color:#eab308; font-size:20px;">${pendingCount}</b> รายการ
-        </p>
-        <p style="font-size:13px; color:#64748b;">
-          คลิกปุ่มด้านล่างเพื่อไปยังหน้าระบบอนุมัติใบลา
-        </p>
-      </div>
-    `,
-    icon: 'info',
-    showCancelButton: true,
-    confirmButtonText: '🔎 ไปยังระบบอนุมัติ',
-    cancelButtonText: 'ปิด',
-    confirmButtonColor: '#3b82f6',
-    cancelButtonColor: '#64748b'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      window.location.href = '/pages/hr/hr.html';
-    }
-  });
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: '🔔 รายการแจ้งเตือนการอนุมัติ',
+      html: `มีใบลาที่รอการอนุมัติอยู่ทั้งหมด <b style="color:#eab308; font-size:20px;">${pendingCount}</b> รายการ`,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: '🔎 ไปยังระบบอนุมัติ',
+      cancelButtonText: 'ปิด',
+      confirmButtonColor: '#3b82f6'
+    }).then((result) => {
+      if (result.isConfirmed) window.location.href = '/pages/hr/hr.html';
+    });
+  }
 }
 
 /* ==========================================================================
-   🔄 9. ฟังก์ชันรีเฟรชดึงข้อมูลหน้าพนักงานใหม่ทันที (Re-fetch Data)
+   📊 9. ระบบจัดการโควตาประจำปี (แก้ไขการสลับปี ค.ศ./พ.ศ.)
    ========================================================================== */
-window.refreshUserData = async function() {
-  const refreshIcons = document.querySelectorAll('.material-symbols-outlined');
-  
-  // 1. หมุนไอคอนหมุนโหลด (Animation)
-  refreshIcons.forEach(icon => {
-    if (icon.innerText === 'refresh') {
-      icon.style.transition = 'transform 0.5s ease';
-      icon.style.transform = 'rotate(360deg)';
-    }
-  });
-
-  // 2. แสดง Toast แจ้งเตือนกำลังโหลด
-  const toastLoading = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timerProgressBar: true
-  });
-  
-  toastLoading.fire({
-    icon: 'info',
-    title: '⏳ กำลังอัปเดตข้อมูลล่าสุด...'
-  });
-
-  try {
-    // 3. สั่งรันฟังก์ชันดึงข้อมูลโปรไฟล์ วันลา และประวัติใหม่
-    await initUserHome();
-
-    // 4. แสดง Toast แจ้งเตือนเมื่อสำเร็จ
-    Swal.fire({
-      toast: true,
-      position: 'top-end',
-      icon: 'success',
-      title: '✅ อัปเดตข้อมูลล่าสุดเรียบร้อย',
-      showConfirmButton: false,
-      timer: 2000
-    });
-  } catch (err) {
-    console.error("❌ เกิดข้อผิดพลาดในการรีเฟรชข้อมูล:", err);
-    Swal.fire({
-      toast: true,
-      position: 'top-end',
-      icon: 'error',
-      title: 'ไม่สามารถอัปเดตข้อมูลได้',
-      showConfirmButton: false,
-      timer: 2000
-    });
-  } finally {
-    // ล้างค่า rotation ให้กดซ้ำได้
-    setTimeout(() => {
-      refreshIcons.forEach(icon => {
-        if (icon.innerText === 'refresh') {
-          icon.style.transform = 'rotate(0deg)';
-        }
-      });
-    }, 500);
-  }
-};
-
-// ฟังก์ชันเช็กแจ้งเตือน Pop-up เมื่อพนักงานเข้าสู่ระบบ
-function checkUserNotifications() {
-  const today = new Date();
-  const currentMonth = today.getMonth() + 1; // 12 คือ ธันวาคม
-  const currentDate = today.getDate();
-
-  // 1. ตรวจสอบการแจ้งเตือนสิทธิ์ใหม่ประจำปี (1 ธันวาคม)
-  if (currentMonth === 12 && currentDate === 1) {
-    Swal.fire({
-      icon: 'info',
-      title: '🎉 สิทธิ์วันลาประจำปีใหม่ได้รับการปรับปรุงแล้ว!',
-      text: 'ระบบได้ทำการรีเซ็ตและปรับปรุงโควตาวันลาประจำรอบปีใหม่ (1 ธ.ค. - 30 พ.ย.) เรียบร้อยแล้ว',
-      confirmButtonText: 'รับทราบ',
-      confirmButtonColor: '#0d9488'
-    });
-  }
-}
-
-// 🟢 1. สร้างรายการปีใน Dropdown และเริ่มโหลดข้อมูล
 function initQuotaSystem() {
   const yearSelect = document.getElementById('yearFilter');
   if (!yearSelect) return;
@@ -953,96 +648,352 @@ function initQuotaSystem() {
     <option value="${now + 1}">ปี ${now + 1 + 543} (ล่วงหน้า)</option>
   `;
   
-  // ใช้ตัวแปร currentSelectedYear ที่ประกาศไว้ส่วนบนของไฟล์ได้ทันที
-  loadQuotaData(typeof currentSelectedYear !== 'undefined' ? currentSelectedYear : now);
+  // ผูก Event Listener เมื่อมีการเปลี่ยนตัวเลือกปี
+  yearSelect.addEventListener('change', (e) => {
+    handleYearChange(e.target.value);
+  });
+
+  window.currentSelectedYear = now;
+  loadQuotaData(window.currentSelectedYear);
 }
 
-// 🟢 2. ฟังก์ชันทำงานเมื่อมีการเปลี่ยนปีที่เลือก
 async function handleYearChange(year) {
-  currentSelectedYear = parseInt(year, 10); // กำหนดค่าใหม่โดยไม่ต้องใช้คำว่า let ด้านหน้า
-  await loadQuotaData(currentSelectedYear);
+  window.currentSelectedYear = parseInt(year, 10);
+  await loadQuotaData(window.currentSelectedYear);
 }
 
-// 🟢 3. ดึงข้อมูลโควตาวันลาจาก Supabase ตามปีที่เลือก
-async function loadQuotaData(targetYear) {
-  const sb = window.pvtSupabase?.getClient();
-  const employeeId = window.currentProfile?.employee_id || window.currentProfile?.id;
+/* ==========================================================================
+   🎨 Palette ชุดสีสอดคล้องกับแต่ละประเภทวันลา (รับประกันสีไม่ซ้ำกัน)
+   ========================================================================== */
+const LEAVE_COLOR_PALETTE = [
+  "#2563eb", // ฟ้าเข้ม (ลากิจ)
+  "#f97316", // ส้ม (ลาป่วย)
+  "#10b981", // เขียว (พักร้อน/พักผ่อน)
+  "#ec4899", // ชมพู (ลาคลอด)
+  "#8b5cf6", // ม่วง (ลาหมัน)
+  "#f59e0b", // เหลืองทอง (ลาอุปสมบท)
+  "#06b6d4", // ฟ้าสว่าง (ลาฝึกอบรม)
+  "#e11d48", // แดง (ป่วยเนื่องจากการทำงาน)
+  "#64748b", // เทาสโมค (รับราชการทหาร)
+  "#84cc16"  // เขียวตอง (ประเภทอื่นๆ)
+];
 
-  if (!sb || !employeeId) {
-    console.warn("⚠️ [QUOTA] ไม่พบ Supabase Client หรือ Employee ID");
-    return;
-  }
+function getLeaveTypeColor(leaveName = "", index = 0) {
+  const name = leaveName.toLowerCase();
+  if (name.includes("กิจ")) return "#2563eb";
+  if (name.includes("ป่วย")) return "#f97316";
+  if (name.includes("พักผ่อน") || name.includes("พักร้อน")) return "#10b981";
+  if (name.includes("คลอด")) return "#ec4899";
+  if (name.includes("หมัน")) return "#8b5cf6";
+  if (name.includes("ทหาร")) return "#64748b";
+  if (name.includes("อุปสมบท")) return "#f59e0b";
+
+  // หากไม่ตรงเงื่อนไขข้างต้น ให้ดึงสีถัดไปจาก Palette ลูปตาม Index ป้องกันสีซ้ำ
+  return LEAVE_COLOR_PALETTE[index % LEAVE_COLOR_PALETTE.length];
+}
+
+/* ==========================================================================
+   📊 9. ระบบจัดการโควตาประจำปี (นับจำนวนครั้งเฉพาะอนุมัติแล้ว)
+   ========================================================================== */
+async function loadQuotaData(targetYear) {
+  const sb = getSafeSupabaseClient();
+  const employeeId = window.currentProfile?.id || window.currentProfile?.employee_id;
+
+  if (!sb || !employeeId) return;
 
   try {
+    const thaiYear = targetYear + 543;
+
+    // 1. ดึงโควตาประจำปี
     const { data: quotas, error } = await sb
       .from('leave_balances')
-      .select('*, leave_types(leave_name)')
+      .select('*')
       .eq('employee_id', employeeId)
-      .eq('year', targetYear);
+      .in('year', [targetYear, thaiYear]);
 
     if (error) {
       console.error('❌ ดึงข้อมูลโควตาล้มเหลว:', error.message);
       return;
     }
 
-    renderQuotaCards(quotas || []);
+    // 2. ดึงประเภทการลา
+    const { data: types } = await sb.from("leave_types").select("id, leave_name");
+
+    // 3. ดึงรายการยื่นลาทั้งหมดเพื่อ คำนวณนับจำนวนครั้งที่ "อนุมัติแล้ว" (approved) แยกตามประเภท
+    const { data: requests } = await sb
+      .from("leave_requests")
+      .select("leave_type_id, status")
+      .eq("employee_id", employeeId);
+
+    const approvedTimesMap = {};
+
+    (requests || []).forEach(r => {
+      const typeIdStr = String(r.leave_type_id);
+      // ✅ นับเฉพาะที่อนุมัติแล้วเท่านั้น
+      if (r.status === 'approved') {
+        approvedTimesMap[typeIdStr] = (approvedTimesMap[typeIdStr] || 0) + 1;
+      }
+    });
+
+    // Map ข้อมูลประเภทและสีการ์ด
+    const typeMap = {};
+    (types || []).forEach((t, index) => {
+      typeMap[String(t.id)] = {
+        name: t.leave_name,
+        color: getLeaveTypeColor(t.leave_name, index)
+      };
+    });
+
+    const mappedQuotas = (quotas || []).map((q, idx) => {
+      const typeIdStr = String(q.leave_type_id);
+      const typeInfo = typeMap[typeIdStr] || {};
+      const leaveName = typeInfo.name || "สิทธิ์การลา";
+      return {
+        ...q,
+        leave_type_name: leaveName,
+        card_color: typeInfo.color || getLeaveTypeColor(leaveName, idx),
+        approved_times: approvedTimesMap[typeIdStr] || 0 // 👈 จำนวนครั้งที่อนุมัติแล้ว
+      };
+    });
+
+    renderQuotaCards(mappedQuotas);
   } catch (err) {
     console.error('❌ เกิดข้อผิดพลาดใน loadQuotaData:', err);
   }
 }
 
-// 🟢 4. วาดการ์ดโควตาวันลาลงหน้าจอ
+/* ==========================================================================
+   📊 ฟังก์ชันวาดการ์ดโควตาวันลา (แสดงจำนวนครั้งที่อนุมัติแล้ว)
+   ========================================================================== */
 function renderQuotaCards(quotas) {
   const container = document.getElementById('leaveBalancesContainer');
   if (!container) return;
   
   if (!quotas || quotas.length === 0) {
-    container.innerHTML = `<span class="empty-state" style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 20px 0;">ไม่พบข้อมูลสิทธิ์วันลาสำหรับปีนี้</span>`;
+    container.innerHTML = `<div class="empty-state" style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 24px 0;">ไม่พบข้อมูลสิทธิ์วันลาสำหรับปีนี้</div>`;
     return;
   }
 
   container.innerHTML = quotas.map(item => {
-    const typeName = item.leave_types?.leave_name || item.leave_type_name || "สิทธิ์การลา";
-    const total = parseFloat(item.total_days) || parseFloat(item.quota_days) || 0;
+    const typeName = safeEscapeHtml(item.leave_type_name || "สิทธิ์การลา");
+    const total = parseFloat(item.entitlement_days) || parseFloat(item.quota) || 0;
     const used = parseFloat(item.used_days) || 0;
-    const pending = parseFloat(item.pending_days) || 0;
     const remaining = parseFloat(item.remaining_days) ?? (total - used);
-    const usedPercent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
-
-    let colorClass = "";
-    if (typeName.includes("ป่วย")) colorClass = "sick";
-    else if (typeName.includes("กิจ")) colorClass = "personal";
-    else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
+    const usedPercent = total > 0 ? Math.min(Math.round((used / total) * 100), 100) : 0;
+    const cardColor = item.card_color || "#2563eb";
+    const leaveTypeId = item.leave_type_id || "";
+    const approvedTimes = item.approved_times || 0;
 
     return `
-      <div class="leave-quota-card ${colorClass}">
-        <span class="leave-quota-name">${typeName}</span>
-        <div class="leave-quota-days">
-          ${remaining} <small>/ ${total} วัน</small>
+      <div class="quota-card" 
+           onclick="showLeaveTypeHistory('${leaveTypeId}', '${typeName}')"
+           style="border-top: 4px solid ${cardColor}; cursor: pointer; transition: transform 0.15s ease;"
+           title="คลิกเพื่อดูประวัติ ${typeName}">
+        <div class="quota-title" style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 700; color: #0f172a;">${typeName}</span>
+          <!-- ✅ ป้ายบอกจำนวนครั้งที่อนุมัติแล้ว -->
+          <span style="background: ${cardColor}15; color: ${cardColor}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid ${cardColor}30;">
+            อนุมัติ ${approvedTimes} ครั้ง
+          </span>
+        </div>
+        
+        <div class="quota-days" style="margin-top: 6px;">
+          <span class="num-highlight" style="color: ${cardColor}; font-size: 24px; font-weight: 700;">${remaining}</span>
+          <span class="num-total" style="color: #64748b;">/ ${total} วัน</span>
+        </div>
+        
+        <div class="quota-progress-track" style="height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: 10px 0 6px 0;">
+          <div class="quota-progress-bar" style="width: ${usedPercent}%; height: 100%; background-color: ${cardColor}; transition: width 0.4s ease;"></div>
         </div>
 
-        ${pending > 0 ? `<span class="quota-pending-tag">⏳ รออนุมัติ ${pending} วัน</span>` : ''}
-
-        <div class="quota-progress-bg">
-          <div class="quota-progress-fill" style="width: ${usedPercent}%"></div>
-        </div>
-        <div class="quota-info-footer">
-          <span>ใช้ไป ${used} วัน</span>
-          <span>${Math.round(usedPercent)}%</span>
+        <div class="quota-footer" style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b;">
+          <span>ใช้ไป ${used} วัน (${approvedTimes} ครั้ง)</span>
+          <span>${usedPercent}%</span>
         </div>
       </div>
     `;
   }).join('');
 }
 
-// 1. ฟังก์ชันนำทางไปยังหน้ายื่นใบลา (ตรวจสอบ path ไฟล์ยื่นใบลาของคุณให้ถูกต้อง)
-function goToLeaveForm() {
-  window.location.href = "/pages/user/leave-user.html";
+/* ==========================================================================
+   🔍 ฟังก์ชัน Pop-up ประวัติการลา (กรองเฉพาะ leave_type_id ที่คลิกเลือก)
+   ========================================================================== */
+window.showLeaveTypeHistory = async function(leaveTypeId, leaveTypeName) {
+  const sb = getSafeSupabaseClient();
+  const empId = window.currentProfile?.id || window.currentProfile?.employee_id;
+  if (!sb || !empId) return;
+
+  if (typeof Swal !== 'undefined') Swal.showLoading();
+
+  try {
+    // 🎯 ดึงเฉพาะใบลาที่เป็นของ leave_type_id นี้เท่านั้น
+    const { data: requests, error } = await sb
+      .from("leave_requests")
+      .select("*")
+      .eq("employee_id", empId)
+      .eq("leave_type_id", leaveTypeId) // 👈 กรองเฉพาะประเภทที่กดดู
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    if (!requests || requests.length === 0) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'info',
+          title: `📊 ประวัติ ${leaveTypeName}`,
+          text: `คุณยังไม่มีประวัติการยื่น ${leaveTypeName}`,
+          confirmButtonColor: '#3b82f6'
+        });
+      }
+      return;
+    }
+
+    // คำนวณสรุปสถิติเฉพาะประเภทนี้
+    const totalTimes = requests.length;
+    const approvedCount = requests.filter(r => r.status === 'approved').length;
+    const pendingCount = requests.filter(r => r.status === 'pending' || r.status === 'cancel_pending').length;
+
+    // แสดงผลรายการเฉพาะประเภทที่เลือก
+    const historyHtml = requests.map(item => {
+      let badge = `<span style="background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">⏳ รออนุมัติ</span>`;
+      if (item.status === 'approved') badge = `<span style="background:#d1e7dd; color:#0f5132; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">✅ อนุมัติ</span>`;
+      else if (item.status === 'rejected') badge = `<span style="background:#f8d7da; color:#842029; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">❌ ไม่อนุมัติ</span>`;
+      else if (item.status === 'cancelled' || item.status === 'cancelled_by_user') badge = `<span style="background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">🚫 ยกเลิก</span>`;
+
+      return `
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; margin-bottom:8px; text-align:left;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-size:13px; font-weight:600; color:#0f172a;">📅 ${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span>
+            ${badge}
+          </div>
+          <div style="font-size:12px; color:#64748b; line-height: 1.5;">
+            ⏱️ จำนวน: <strong style="color:#0f172a;">${item.total_days} วัน</strong>
+            ${item.reason ? `<br>💬 เหตุผล: ${safeEscapeHtml(item.reason)}` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        title: `📊 ประวัติ ${safeEscapeHtml(leaveTypeName)}`,
+        html: `
+          <!-- สรุปสถิติจำนวนครั้งเฉพาะประเภทที่กดดู -->
+          <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-around; font-size:12px;">
+            <div>ยื่นทั้งหมด: <strong style="color:#2563eb;">${totalTimes} ครั้ง</strong></div>
+            <div>อนุมัติแล้ว: <strong style="color:#16a34a;">${approvedCount} ครั้ง</strong></div>
+            <div>รอพิจารณา: <strong style="color:#d97706;">${pendingCount} ครั้ง</strong></div>
+          </div>
+
+          <!-- รายการใบลาเฉพาะประเภทที่กดดู -->
+          <div style="max-height: 300px; overflow-y: auto; padding-right: 4px;">${historyHtml}</div>
+        `,
+        width: '460px',
+        confirmButtonText: 'ปิด',
+        confirmButtonColor: '#64748b'
+      });
+    }
+
+  } catch (err) {
+    console.error("❌ ดึงประวัติประเภทการลาล้มเหลว:", err);
+    if (typeof Swal !== 'undefined') Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงประวัติการลาได้', 'error');
+  }
+};
+
+/* ==========================================================================
+   🔄 10. ระบบ Refresh Data (พร้อม Animation ปุ่มหมุน)
+   ========================================================================== */
+window.refreshUserData = async function() {
+  const refreshIcons = document.querySelectorAll('.material-symbols-outlined');
+  
+  refreshIcons.forEach(icon => {
+    if (icon.innerText === 'refresh') {
+      icon.style.transition = 'transform 0.6s ease';
+      icon.style.transform = 'rotate(360deg)';
+    }
+  });
+
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'info',
+      title: '⏳ กำลังอัปเดตข้อมูลล่าสุด...',
+      showConfirmButton: false,
+      timer: 1500
+    });
+  }
+
+  try {
+    await initUserHome();
+    if (typeof loadQuotaData === "function") {
+      await loadQuotaData(window.currentSelectedYear);
+    }
+  } catch (err) {
+    console.error("❌ เกิดข้อผิดพลาดในการรีเฟรชข้อมูล:", err);
+  } finally {
+    setTimeout(() => {
+      refreshIcons.forEach(icon => {
+        if (icon.innerText === 'refresh') {
+          icon.style.transform = 'rotate(0deg)';
+        }
+      });
+    }, 600);
+  }
+};
+
+function checkUserNotifications() {
+  const today = new Date();
+  if (today.getMonth() === 11 && today.getDate() === 1) { // 1 ธันวาคม
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'info',
+        title: '🎉 สิทธิ์วันลาประจำปีใหม่ได้รับการปรับปรุงแล้ว!',
+        text: 'ระบบได้ทำการรีเซ็ตโควตาวันลาเรียบร้อยแล้ว',
+        confirmButtonText: 'รับทราบ'
+      });
+    }
+  }
 }
 
-// 2. เคลียร์ข้อผิดพลาด BFCache (แก้ปัญหาสคริปต์ค้างจาก Live Server เวลากด Back)
-window.addEventListener("pageshow", function (event) {
-  if (event.persisted) {
-    window.location.reload();
+function toggleUserGuide() {
+  const card = document.getElementById("user-guide-card");
+  const icon = document.getElementById("user-guide-icon");
+  const btn = document.getElementById("user-guide-fab");
+  if (!card || !icon || !btn) return;
+
+  const isHidden = card.style.display === "none" || card.style.display === "";
+  card.style.display = isHidden ? "block" : "none";
+  icon.innerText = isHidden ? "close" : "help";
+  btn.classList.toggle("active", isHidden);
+}
+
+/* ==========================================================================
+   👁️ ฟังก์ชันซ่อน/แสดง (ระบบ Toggle Class เสถียรสูง)
+   ========================================================================== */
+window.toggleSection = function(sectionId, btnElement) {
+  const targetSection = document.getElementById(sectionId);
+  
+  if (!targetSection) {
+    console.warn("⚠️ ไม่พบ Element ที่มี ID:", sectionId);
+    return;
   }
-});
+
+  // สลับ Class hidden-section
+  const isHidden = targetSection.classList.toggle('hidden-section');
+
+  // เปลี่ยนไอคอนและสไตล์ปุ่ม
+  const iconEl = btnElement?.querySelector('.material-symbols-outlined');
+  if (iconEl) {
+    iconEl.textContent = isHidden ? 'visibility_off' : 'visibility';
+  }
+  if (btnElement) {
+    btnElement.classList.toggle('is-hidden', isHidden);
+  }
+
+  // กรณีเป็นส่วนสิทธิ์วันลา ให้ซ่อนตัวเลือกปี (yearFilter) ด้วย
+  if (sectionId === 'leaveBalancesContainer' || sectionId === 'leaveBalancesSection') {
+    const yearFilter = document.getElementById('yearFilter');
+    if (yearFilter) yearFilter.classList.toggle('hidden-section', isHidden);
+  }
+};

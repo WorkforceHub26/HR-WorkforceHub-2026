@@ -280,6 +280,7 @@ body {
   padding: 24px;
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-card);
+  
 }
 
 .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -917,4 +918,155 @@ select.year-select option {
   bottom: 24px;
   right: 24px;
   z-index: 998;
+}
+
+/* ================= 📊 LEAVE QUOTA CARDS DESIGN (EXACT MATCH) ================= */
+#leaveBalancesContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.quota-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-height: 128px;
+}
+
+.quota-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(6, 182, 212, 0.12);
+}
+
+.quota-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  margin-bottom: 10px;
+  height: 38px;
+  line-clamp: 2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.quota-days {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.quota-days .num-highlight {
+  font-size: 26px;
+  font-weight: 800;
+  color: #2563eb; /* สีตัวเลขหลักสีฟ้าสด */
+}
+
+.quota-days .num-total {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.quota-progress-track {
+  width: 100%;
+  height: 7px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.quota-progress-bar {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.quota-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* รองรับการแสดงผลบนมือถือ */
+@media (max-width: 600px) {
+  #leaveBalancesContainer {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .quota-card {
+    padding: 12px 14px;
+  }
+
+  .quota-days .num-highlight {
+    font-size: 22px;
+  }
+}
+
+/* ==========================================================================
+   👁️ Button Toggle Icon Style (ใช้ร่วมกันได้ทุกเมนู)
+   ========================================================================== */
+.btn-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.btn-toggle-icon:hover {
+  background-color: #f8fafc;
+  color: #0284c7;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn-toggle-icon:active {
+  transform: translateY(0);
+  background-color: #f1f5f9;
+}
+
+.btn-toggle-icon .material-symbols-outlined {
+  font-size: 20px;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+/* สไตล์เมื่อกดซ่อนส่วนนั้นๆ */
+.btn-toggle-icon.is-hidden {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  border-color: #cbd5e1;
+}
+
+/* บังคับซ่อนองค์ประกอบด้วย !important */
+.hidden-section {
+  display: none !important;
 }

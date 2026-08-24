@@ -972,7 +972,7 @@ async function uploadAttachment(file, employeeId) {
 }
 
 // ==========================================
-// 💾 11. บันทึกคำขอใบลา
+// 💾 11. บันทึกคำขอใบลา (ปรับปรุงสายอนุมัติ 3 ระดับ)
 // ==========================================
 async function saveLeave() {
   const sb = window.pvtSupabase?.getClient();
@@ -1005,19 +1005,25 @@ async function saveLeave() {
   let defaultManagerStatus = "pending";
   let defaultDirectorStatus = "pending";
 
-  if (userRole.includes("leader") || userRole.includes("supervisor") || userRole.includes("head") || userRole.includes("หัวหน้า")) {
-    defaultManagerStatus = "approved";
-  } else if (userRole.includes("manager") || userRole.includes("director") || userRole.includes("ผู้จัดการ") || userRole.includes("บริหาร") || userRole.includes("admin")) {
+  // 🧠 [ปรับปรุงใหม่]: ลำดับขั้นการอนุมัติ 3 ระดับ (พนักงาน -> หัวหน้า/ผู้จัดการ -> ผู้บริหาร -> HR)
+  if (userRole.includes("executive") || userRole.includes("owner") || userRole.includes("director") || userRole.includes("ผู้บริหาร") || userRole.includes("เจ้าของ")) {
+    // 1. ระดับผู้บริหาร/เจ้าของบริษัท: ข้ามขั้นหัวหน้าและผู้บริหาร ส่งตรงไปหา HR
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
+  } else if (userRole.includes("manager") || userRole.includes("leader") || userRole.includes("supervisor") || userRole.includes("head") || userRole.includes("หัวหน้า") || userRole.includes("ผู้จัดการ")) {
+    // 2. ระดับหัวหน้า/ผู้จัดการ: ข้ามขั้นหัวหน้า ส่งไปรอผู้บริหารอนุมัติ (director_status = pending)
+    defaultManagerStatus = "approved";
+    defaultDirectorStatus = "pending";
+  } else {
+    // 3. พนักงานทั่วไป: ต้องรอหัวหน้าอนุมัติตามลำดับขั้นตอน
+    defaultManagerStatus = "pending";
+    defaultDirectorStatus = "pending";
   }
 
   const payload = [];
   const uploadedPaths = []; 
   let hasError = false;
   const currentEmpId = currentProfile.id || currentProfile.employee_id;
-
-  const ssoRights = currentProfile.social_security_rights || currentProfile.sso_hospital || currentProfile.social_security || "ไม่ได้ระบุสิทธิ";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1163,8 +1169,7 @@ async function saveLeave() {
         total_days:             days1,
         reason:                 `${reason.trim()} (ส่วนที่ 1: ตัดรอบปี ${startYear})`,
         attachment_url:         attachmentUrl,
-        
-        status:                 "pending",          
+        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
         leave_hours:            hoursMorning,
@@ -1181,8 +1186,7 @@ async function saveLeave() {
         total_days:             days2,
         reason:                 `${reason.trim()} (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})`,
         attachment_url:         attachmentUrl,
-        
-        status:                 "pending",          
+        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
         leave_hours:            hoursAfternoon,
@@ -1204,8 +1208,7 @@ async function saveLeave() {
         total_days:             totalDays,
         reason:                 reason.trim(),
         attachment_url:         attachmentUrl,
-        
-        status:                 "pending",          
+        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
         leave_hours:            totalHours,

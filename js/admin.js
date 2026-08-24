@@ -1,7 +1,7 @@
 // ===================================================================
 // 🚨 1. EMERGENCY CRASH CATCHER
 // ===================================================================
-window.onerror = function (message, source, lineno, colno, error) {
+window.onerror = function (message, _source, lineno, _colno, _error) {
   const terminal = document.getElementById("debugLogContainer");
   if (terminal) {
     terminal.innerHTML = `<div style="background:#7f1d1d; color:#fca5a5; padding:16px; border-radius:8px; margin-bottom:12px; font-family:monospace; border:2px solid #f43f5e;">

@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="stylesheet" href="/css/index-user.css" />
+  <link rel="stylesheet" href="/css/main.css" />
 </head>
 
 <body>
@@ -69,6 +70,11 @@
         <h2>📊 สิทธิ์วันลาคงเหลือ</h2>
         <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
         </select>
+        <!-- 1. ปุ่มซ่อน/แสดง สิทธิ์วันลา -->
+          <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)">
+            <span class="material-symbols-outlined">visibility</span>
+          </button>
+<!-- กล่องต้องมี id="leaveBalancesContainer" -->
       </div>
 
       <div id="leaveBalancesContainer" class="leave-grid">
@@ -76,54 +82,71 @@
       </div>
     </div>
 
-    <!-- เมนูการใช้งานอื่นๆ -->
-    <section class="menu-section">
-      <h2>เลือกเมณูการใช้งาน</h2>
-      <div class="menu-grid">
-        <button class="menu-card" onclick="goToRules()">
-          <div class="menu-icon purple">📖</div>
-          <div>
-            <strong>หลักเกณฑ์การลา</strong>
-            <p>เปิดอ่านเงื่อนไขบริษัท</p>
+        <!-- เมนูการใช้งานอื่นๆ -->
+        <section class="menu-section">
+          
+          <!-- 1. ส่วนหัวข้อ + ปุ่มซ่อน (จัด Flexbox ให้ปุ่มอยู่ชิดขวาบรรทัดเดียวกัน) -->
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="margin: 0;">เลือกเมนูการใช้งาน</h2> 
+            <button type="button" class="btn-toggle-icon" onclick="toggleSection('quickMenuSection', this)" title="ซ่อน/แสดง เมนูการใช้งาน">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
           </div>
-        </button>
 
-        <button class="menu-card" onclick="goToLeaveHistory()">
-          <div class="menu-icon green">⏳</div>
-          <div>
-            <strong>ประวัติการลา</strong>
-            <p>ตรวจสอบสถานะใบลา</p>
+          <!-- 2. กล่องรวมปุ่มเมนู (ใส่ id="quickMenuSection" ครอบการ์ดเมนูไว้ตรงนี้) -->
+          <div id="quickMenuSection" class="menu-grid">
+            <div class="menu-card" onclick="goToRules()">
+              <div class="menu-icon">📖</div>
+              <div class="menu-info">
+                <h3>หลักเกณฑ์การลา</h3>
+                <p>เปิดอ่านเงื่อนไขบริษัท</p>
+              </div>
+            </div>
+
+            <div class="menu-card" onclick="goToLeaveHistory()">
+              <div class="menu-icon">⏳</div>
+              <div class="menu-info">
+                <h3>ประวัติการลา</h3>
+                <p>ตรวจสอบสถานะใบลา</p>
+              </div>
+            </div>
+
+            <div class="menu-card" onclick="goToProfile()">
+              <div class="menu-icon">👤</div>
+              <div class="menu-info">
+                <h3>ข้อมูลพนักงาน</h3>
+                <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
+              </div>
+            </div>
+
+            <div class="menu-card" onclick="goToHolidays()">
+              <div class="menu-icon">📅</div>
+              <div class="menu-info">
+                <h3>วันหยุด</h3>
+                <p>ตรวจสอบวันหยุดประจำปี</p>
+              </div>
+            </div>
+
+            <div class="menu-card card-highlight" onclick="viewMyDigitalCard()">
+              <div class="menu-icon">🪪</div>
+              <div class="menu-info">
+                <h3>ดูบัตรพนักงาน</h3>
+              </div>
+            </div>
           </div>
-        </button>
 
-        <button class="menu-card" onclick="goToProfile()">
-          <div class="menu-icon orange">👤</div>
-          <div>
-            <strong>ข้อมูลพนักงาน</strong>
-            <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
-          </div>
-        </button>
-
-        <button class="menu-card" onclick="window.location.href='/pages/user/holidays.html'">
-          <div class="menu-icon red">📅</div>
-          <div>
-            <strong>วันหยุด</strong>
-            <p>ตรวจสอบวันหยุดประจำปี</p>
-          </div>
-        </button>
-
-        <button class="menu-card btn-premium-card" onclick="viewMyDigitalCard()" style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-direction: row; padding: 16px;">
-          <span style="font-size: 22px;">🪪</span> 
-          <strong style="color: white; margin: 0;">ดูบัตรพนักงาน</strong>
-        </button>
-      </div>
-    </section>
+        </section>
 
     <!-- รายการลาล่าสุด -->
     <section class="recent-card">
       <div class="section-head">
         <h2>รายการล่าสุด</h2>
         <button onclick="goToLeaveHistory()">ดูทั้งหมด</button>
+                
+        <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)">
+          <span class="material-symbols-outlined">visibility</span>
+        </button>
+        <!-- กล่องรายการต้องใส่ id="recentList" -->
       </div>
       <div id="recentList" class="recent-list">
         <div class="empty-state">กำลังโหลดรายการลา...</div>
@@ -178,10 +201,18 @@
     </button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/js/supabase-config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="/js/auth-guard.js"></script>
-  <script src="/js/index-user.js"></script>
+<!-- 1. สคริปต์ภายนอก -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<!-- 2. Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- 3. สคริปต์ตั้งค่า Supabase และ Auth ของระบบ -->
+<script src="/js/supabase-config.js"></script>
+<script src="/auth/index.js"></script>
+
+<!-- 🚨 4. เพิ่มบรรทัดนี้ลงไป (ตรวจสอบ path ให้ตรงกับตำแหน่งไฟล์ index-user.js จริงในเครื่อง) -->
+<script src="/js/index-user.js"></script>
 </body>
 </html>
