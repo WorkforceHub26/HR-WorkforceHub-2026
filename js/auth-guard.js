@@ -1,8 +1,8 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - auth/index.js (เวอร์ชันปรับปรุงแก้ไข Supabase SDK Client)
+   🔒 PVT HR LEAVE - auth-guard.js (เวอร์ชันแก้ไขสมบูรณ์ วางทับได้ทันที)
    ========================================================================== */
 
-// 🟢 Helper สำหรับดึง Supabase Client จาก SDK v3.0 Ultra
+// 🟢 Helper สำหรับดึง Supabase Client จาก SDK ป้องกัน Error
 function getSbClient() {
   return window.pvtSupabase?.client 
       || window.PVTSDK?.client 
@@ -16,17 +16,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const passwordInput = document.getElementById("password");
 
   // =========================================================================
-  // ⚡ [ระบบ AUTO-LOGIN]: ตรวจสอบว่าเปิดเว็บมาจาก QR Code หรือไม่
+  // ⚡ [ระบบ AUTO-LOGIN]: ตรวจสอบ URL Parameter จากการสแกน QR Code
   // =========================================================================
   const urlParams = new URLSearchParams(window.location.search);
-  const autoEmpCode = urlParams.get("auto_login");
-  const autoToken = urlParams.get("token");
+  const autoPayload = urlParams.get("auto_login");
 
-  if (autoEmpCode && autoToken) {
-    executeSecureQrLogin(`${autoEmpCode}|${autoToken}`);
+  if (autoPayload) {
+    executeSecureQrLogin(autoPayload);
     return;
   }
 
+  // =========================================================================
+  // 🔑 [ระบบ LOGIN แบบกรอกข้อมูล]: Form Submit
+  // =========================================================================
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -57,7 +59,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (loginInput.includes("@")) {
         queryRes = await baseQuery.eq("email", loginInput);
       } else if (/^\d+$/.test(loginInput)) {
-        // ✅ แก้ไข 1: ลบ " " ใน .or() ออก แก้ปัญหา HTTP 400 Bad Request
         queryRes = await baseQuery.or(`employee_code.eq.${loginInput},phone.eq.${loginInput}`);
       } else {
         queryRes = await baseQuery.eq("full_name", loginInput);
@@ -69,12 +70,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const users = queryRes.data || [];
 
-      // 🛡️ แก้ไข 2: ตรวจสอบว่าพบผู้ใช้งานหรือไม่
       if (users.length === 0) {
         throw new Error("ไม่พบข้อมูลพนักงานในระบบ (โปรดตรวจสอบ รหัส/ชื่อ/อีเมล/เบอร์โทร อีกครั้ง)");
       }
 
-      // 🛡️ แก้ไข 3: ป้องกันกรณีค้นหาด้วยชื่อ แล้วเจอคนชื่อซ้ำกันมากกว่า 1 คน
       if (users.length > 1) {
         throw new Error("พบชื่อ-นามสกุลนี้ซ้ำกันในระบบหลายคน กรุณาใช้ 'รหัสพนักงาน' ในการเข้าสู่ระบบแทน");
       }
@@ -91,9 +90,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         throw new Error(`บัญชีของคุณถูกระงับ (สถานะในฐานข้อมูลคือ: ${user.status})`);
       }
 
-      // =========================================================================
-      // 🚨 ตรวจสอบว่าพนักงานยังใช้ "รหัสพนักงาน" เป็นรหัสผ่านอยู่หรือไม่
-      // =========================================================================
+      // 3. ตรวจสอบกรณีใช้งานรหัสผ่านเริ่มต้น (รหัสพนักงาน = รหัสผ่าน)
       const isUsingDefaultPassword = (String(user.password).trim() === String(user.employee_code).trim());
 
       if (isUsingDefaultPassword) {
@@ -117,49 +114,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
 
         if (riskChoice.dismiss === Swal.DismissReason.cancel) {
-          if (typeof openChangePasswordModal === "function") {
-            openChangePasswordModal(user);
-          } else {
-            const { value: newPassword } = await Swal.fire({
-              title: 'ตั้งรหัสผ่านใหม่',
-              input: 'password',
-              inputLabel: 'กรอกรหัสผ่านใหม่ที่ต้องการใช้งาน',
-              inputPlaceholder: 'อย่างน้อย 6 ตัวอักษร',
-              showCancelButton: true,
-              confirmButtonText: 'บันทึกรหัสผ่าน',
-              cancelButtonText: 'ยกเลิก',
-              inputValidator: (value) => {
-                if (!value || value.length < 6) {
-                  return 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร!';
-                }
-                if (value.trim() === String(user.employee_code).trim()) {
-                  return 'รหัสผ่านใหม่ต้องไม่ตรงกับรหัสพนักงาน!';
-                }
-              }
-            });
-
-            if (newPassword) {
-              const { error } = await sb
-                .from('employees')
-                .update({ password: newPassword.trim() })
-                .eq('id', user.id);
-
-              if (!error) {
-                await Swal.fire('สำเร็จ!', 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว กรุณาล็อกอินใหม่อีกครั้ง', 'success');
-              } else {
-                await Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเปลี่ยนรหัสผ่านได้: ' + error.message, 'error');
-              }
-            }
-          }
+          openChangePasswordModal(user);
           return;
         }
       }
 
-      // 3. บันทึก Session พร้อมกำหนดเวลาหมดอายุ
+      // บันทึก Session และเปลี่ยนหน้า
       saveUserSession(user);
 
       if (window.PVTLogger) {
-        window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ ${isUsingDefaultPassword ? '(ยอมรับความเสี่ยงรหัสผ่านเริ่มต้น)' : ''}`);
+        window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ`);
       }
 
       redirectToDashboard(user.role);
@@ -176,9 +140,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
+/* ==========================================================================
+   🔗 Helper Functions & Navigation Security
+   ========================================================================== */
+
 function redirectToDashboard(role) {
-  if (role === "hr" || role === "admin") {
-    window.location.href = "/pages/user/index-user.html";
+  const cleanRole = String(role || "").toLowerCase();
+  if (cleanRole === "hr" || cleanRole === "admin") {
+    window.location.href = "/pages/hr/hr.html";
   } else {
     window.location.href = "/pages/user/index-user.html";
   }
@@ -186,30 +155,24 @@ function redirectToDashboard(role) {
 
 function isSessionValid() {
   const rawSession = localStorage.getItem("currentUser");
-
-  if (!rawSession) {
-    return false;
-  }
+  if (!rawSession) return false;
 
   try {
     const sessionData = JSON.parse(rawSession);
-
     if (!sessionData || typeof sessionData !== "object" || !sessionData.id || !sessionData.role) {
-      console.warn("isSessionValid Warning: โครงสร้าง Session ไม่ถูกต้อง ทำการล้างข้อมูล");
       localStorage.removeItem("currentUser");
       return false;
     }
 
     const currentTime = new Date().getTime();
     if (sessionData.expireAt && currentTime > sessionData.expireAt) {
-      console.warn("isSessionValid Warning: Session หมดอายุแล้ว ทำการล้างข้อมูล");
       localStorage.removeItem("currentUser");
       return false;
     }
 
     return true;
   } catch (err) {
-    console.error("isSessionValid Error: ไม่สามารถอ่าน Session จาก localStorage ได้", err);
+    console.error("isSessionValid Error:", err);
     localStorage.removeItem("currentUser");
     return false;
   }
@@ -218,7 +181,6 @@ function isSessionValid() {
 window.togglePassword = function () {
   const input = document.getElementById("password");
   const icon = document.querySelector(".toggle-password");
-
   if (input && icon) {
     const isPassword = input.type === "password";
     input.type = isPassword ? "text" : "password";
@@ -226,6 +188,91 @@ window.togglePassword = function () {
   }
 };
 
+/* ==========================================================================
+   📱 ⚡ Dynamic QR Login Process (สแกน / ถอดรหัส 30 วินาที)
+   ========================================================================== */
+
+async function executeSecureQrLogin(scannedData) {
+  Swal.fire({
+    title: '🔒 กำลังตรวจสอบข้อมูล...',
+    text: 'ระบบกำลังตรวจสอบความถูกต้องของ QR Code',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  const sb = getSbClient();
+  if (!sb) {
+    Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้' });
+    return;
+  }
+
+  try {
+    let rawPayload = decodeURIComponent(scannedData).trim();
+
+    // กรณีสแกนได้ทั้ง URL ให้สกัดเอาเฉพาะพารามิเตอร์ auto_login
+    if (rawPayload.includes("auto_login=")) {
+      const urlObj = new URL(rawPayload);
+      rawPayload = urlObj.searchParams.get("auto_login") || rawPayload;
+    }
+
+    let empCode = "";
+    let timeBlock = null;
+
+    // 1. ถอดรหัส Token จาก Base64 (โครงสร้าง empCode|timeBlock)
+    try {
+      const decodedStr = atob(rawPayload);
+      const parts = decodedStr.split('|');
+      if (parts.length >= 2) {
+        empCode = parts[0];
+        timeBlock = parts[1];
+      } else {
+        throw new Error();
+      }
+    } catch (e) {
+      throw new Error("⛔ QR Code ไม่ถูกต้องหรือไม่อยู่ในรูปแบบความปลอดภัยที่กำหนด");
+    }
+
+    // 2. ตรวจสอบเวลา Dynamic Block (30 วินาที ยอมรับความต่างไม่เกิน 1 บล็อก)
+    const currentTimeBlock = Math.floor(Date.now() / 30000);
+    const timeDiff = Math.abs(currentTimeBlock - Number(timeBlock));
+
+    if (!timeBlock || timeDiff > 1) { 
+      throw new Error("⏰ QR Code นี้หมดอายุแล้ว กรุณาเปิด QR Code บนบัตรใหม่อีกครั้ง");
+    }
+
+    // 3. ดึงข้อมูลพนักงานจาก Supabase
+    const { data: user, error } = await sb
+      .from('employees')
+      .select('id, employee_code, full_name, role, status')
+      .eq('employee_code', empCode)
+      .maybeSingle();
+
+    if (error || !user) throw new Error("ไม่พบข้อมูลพนักงานท่านนี้ในระบบ");
+    if (user.status !== "active") throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
+
+    // บันทึก Session และนำทางเข้าสู่ระบบ
+    saveUserSession(user);
+
+    Swal.fire({
+      icon: 'success',
+      title: `ยินดีต้อนรับ ${user.full_name}`,
+      timer: 1200,
+      showConfirmButton: false
+    });
+
+    setTimeout(() => redirectToDashboard(user.role), 1200);
+
+  } catch (err) {
+    Swal.fire({ 
+      icon: 'error', 
+      title: 'เข้าสู่ระบบไม่สำเร็จ', 
+      text: err.message,
+      confirmButtonColor: '#ef4444' 
+    });
+  }
+}
+
+// เปิดกล้อง / เลือกรูปเพื่อสแกน QR
 function loginByQr() {
   let html5QrCode = null;
 
@@ -336,55 +383,17 @@ function loginByQr() {
   });
 }
 
-async function executeSecureQrLogin(scannedData) {
-  try {
-    // 1. ถอดรหัส Token จาก Base64
-    const decodedStr = atob(scannedData); 
-    const [empCode, timeBlock] = decodedStr.split('|');
+/* ==========================================================================
+   💾 Session & Utility Modals
+   ========================================================================== */
 
-    if (!empCode || !timeBlock) {
-      throw new Error("รูปแบบ QR Code ไม่ถูกต้อง");
-    }
-
-    // 2. ตรวจสอบเวลา (ยอมรับความต่างไม่เกิน 1 Block หรือ 30 วินาที)
-    const currentTimeBlock = Math.floor(Date.now() / 30000);
-    const timeDiff = Math.abs(currentTimeBlock - Number(timeBlock));
-
-    if (timeDiff > 1) { // เกิน 30 วินาที
-      throw new Error("⏰ QR Code นี้หมดอายุแล้ว กรุณาเปิด QR Code บนบัตรใหม่อีกครั้ง");
-    }
-
-    // 3. ดึงข้อมูลพนักงานจาก Supabase
-    const { data: user, error } = await supabase
-      .from('employees')
-      .select('id, employee_code, full_name, role, status')
-      .eq('employee_code', empCode)
-      .maybeSingle();
-
-    if (error || !user) throw new Error("ไม่พบข้อมูลพนักงานท่านนี้");
-    if (user.status !== "active") throw new Error("บัญชีถูกระงับสิทธิ์");
-
-    // เข้าสู่ระบบสำเร็จ
-    saveUserSession(user);
-    window.location.href = "/pages/user/index-user.html";
-
-  } catch (err) {
-    Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: err.message });
-  }
-}
-
-function saveUserSession(userData, expireInHours = 8) {
-  if (!userData || typeof userData !== "object") {
-    console.error("saveUserSession Error: ข้อมูลผู้ใช้งานไม่ถูกต้อง");
-    return false;
-  }
+function saveUserSession(userData, expireInHours = 12) {
+  if (!userData || typeof userData !== "object") return false;
 
   const cleanUser = { ...userData };
   delete cleanUser.password;
 
   const currentTime = new Date().getTime();
-  const expireAt = currentTime + (expireInHours * 60 * 60 * 1000);
-
   const sessionPayload = {
     id: cleanUser.id || "",
     employee_code: cleanUser.employee_code || "",
@@ -392,14 +401,14 @@ function saveUserSession(userData, expireInHours = 8) {
     role: cleanUser.role || "user",
     status: cleanUser.status || "active",
     createdAt: currentTime,
-    expireAt: expireAt
+    expireAt: currentTime + (expireInHours * 60 * 60 * 1000)
   };
 
   try {
     localStorage.setItem("currentUser", JSON.stringify(sessionPayload));
     return true;
   } catch (err) {
-    console.error("saveUserSession Error: ไม่สามารถบันทึกลง localStorage ได้", err);
+    console.error("saveUserSession Error:", err);
     return false;
   }
 }
@@ -407,7 +416,6 @@ function saveUserSession(userData, expireInHours = 8) {
 window.toggleInstructions = function () {
   const content = document.getElementById("instructionsContent");
   const arrow = document.getElementById("instructionArrow");
-
   if (content && arrow) {
     content.classList.toggle("active");
     arrow.textContent = content.classList.contains("active") ? "expand_less" : "expand_more";
@@ -418,15 +426,15 @@ async function openChangePasswordModal(user) {
   const { value: formValues } = await Swal.fire({
     title: 'เปลี่ยนรหัสผ่านเพื่อความปลอดภัย',
     html: `
-      <p class="text-sm text-gray-600 mb-4">เนื่องจากรหัสผ่านปัจจุบันเป็นรหัสผ่านเริ่มต้น กรุณากำหนดรหัสผ่านใหม่ก่อนเข้าใช้งาน</p>
-      <div class="text-left space-y-3">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่านใหม่</label>
-          <input id="swal-new-password" type="password" class="swal2-input w-full m-0" placeholder="อย่างน้อย 6 ตัวอักษร">
+      <p class="text-sm text-gray-600 mb-4" style="font-size:13px; color:#64748b;">เนื่องจากรหัสผ่านปัจจุบันเป็นรหัสผ่านเริ่มต้น กรุณากำหนดรหัสผ่านใหม่ก่อนเข้าใช้งาน</p>
+      <div style="text-align:left;">
+        <div style="margin-bottom:12px;">
+          <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:4px;">รหัสผ่านใหม่</label>
+          <input id="swal-new-password" type="password" class="swal2-input" style="width:100%; margin:0; box-sizing:border-box;" placeholder="อย่างน้อย 6 ตัวอักษร">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">ยืนยันรหัสผ่านใหม่</label>
-          <input id="swal-confirm-password" type="password" class="swal2-input w-full m-0" placeholder="กรอกรหัสผ่านซ้ำอีกครั้ง">
+          <label style="display:block; font-size:12px; font-weight:600; color:#374151; margin-bottom:4px;">ยืนยันรหัสผ่านใหม่</label>
+          <input id="swal-confirm-password" type="password" class="swal2-input" style="width:100%; margin:0; box-sizing:border-box;" placeholder="กรอกรหัสผ่านซ้ำอีกครั้ง">
         </div>
       </div>
     `,

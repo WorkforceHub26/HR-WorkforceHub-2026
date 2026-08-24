@@ -118,28 +118,35 @@ async function executeSecureQrLogin(scannedData) {
   if (!sb) return;
 
   try {
-    let empCode = "";
-    let timeBlock = null;
-    const cleanData = decodeURIComponent(scannedData).trim();
+    let rawPayload = decodeURIComponent(scannedData).trim();
 
-    // ถอดรหัส (รองรับทั้ง Base64 Dynamic QR และ รหัสพนักงานแบบตรง)
-    try {
-      const decodedStr = atob(cleanData);
-      const parts = decodedStr.split('|');
-      if (parts.length >= 1) empCode = parts[0];
-      if (parts.length >= 2) timeBlock = parts[1];
-    } catch (e) {
-      empCode = cleanData;
+    // หากรับข้อมูลมาเป็น URL ให้ดึงค่า Parameter auto_login ออกมา
+    if (rawPayload.includes("auto_login=")) {
+      const urlObj = new URL(rawPayload);
+      rawPayload = urlObj.searchParams.get("auto_login") || rawPayload;
     }
 
-    if (!empCode) throw new Error("รูปแบบ QR Code ไม่ถูกต้อง");
+    let empCode = "";
+    let timeBlock = null;
 
-    // ตรวจสอบเวลา Dynamic Block (หากมี timeBlock)
-    if (timeBlock) {
-      const currentTimeBlock = Math.floor(Date.now() / 30000);
-      if (Math.abs(currentTimeBlock - Number(timeBlock)) > 1) {
-        throw new Error("⏰ QR Code หมดอายุแล้ว กรุณาเปิด QR Code บนบัตรใหม่อีกครั้ง");
+    // 🔒 บังคับถอดรหัส Base64 เท่านั้น (ไม่อนุญาตให้ใช้ Plaintext)
+    try {
+      const decodedStr = atob(rawPayload);
+      const parts = decodedStr.split('|');
+      if (parts.length >= 2) {
+        empCode = parts[0];
+        timeBlock = parts[1];
+      } else {
+        throw new Error();
       }
+    } catch (e) {
+      throw new Error("⛔ QR Code ไม่ถูกต้องหรือไม่อยู่ในรูปแบบความปลอดภัยที่กำหนด");
+    }
+
+    // ⏱️ ตรวจสอบอายุ Dynamic Time Block (ยอมรับส่วนต่างไม่เกิน 1 บล็อก หรือประมาณ ±30 วินาที)
+    const currentTimeBlock = Math.floor(Date.now() / 30000);
+    if (!timeBlock || Math.abs(currentTimeBlock - Number(timeBlock)) > 1) {
+      throw new Error("⏰ QR Code หมดอายุแล้ว กรุณาเปิดหน้าบัตรพนักงานใหม่อีกครั้ง");
     }
 
     const { data: user, error } = await sb
@@ -148,8 +155,8 @@ async function executeSecureQrLogin(scannedData) {
       .eq('employee_code', empCode)
       .maybeSingle();
 
-    if (error || !user) throw new Error("ไม่พบข้อมูลพนักงานท่านนี้");
-    if (user.status !== "active") throw new Error("บัญชีของคุณถูกระงับสิทธิ์");
+    if (error || !user) throw new Error("ไม่พบข้อมูลพนักงานท่านนี้ในระบบ");
+    if (user.status !== "active") throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
 
     saveUserSession(user);
     Swal.fire({

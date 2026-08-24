@@ -392,10 +392,12 @@ window.viewMyDigitalCard = async function() {
   const myDept = profile?.department_name || profile?.departments?.department_name || "ทั่วไป";
   const myRole = profile?.position_name || profile?.positions?.position_name || "พนักงาน";
 
-  // ดึง URL รูปภาพผ่าน StorageEngine ของ SDK
   let avatarUrl = window.PVTSDK?.storage?.getAvatarUrl(profile?.image_url || profile?.employees?.image_url);
 
-  const targetUrl = `${window.location.origin}/?auto_login=${currentCode}&token=PVT_SECURE_BYPASS`; 
+  // 🔒 สร้าง Dynamic Payload แบบจำกัดเวลา (30 วินาที) แทนการใช้ Bypass Token
+  const timeBlock = Math.floor(Date.now() / 30000);
+  const securePayload = btoa(`${currentCode}|${timeBlock}`);
+  const targetUrl = `${window.location.origin}/?auto_login=${encodeURIComponent(securePayload)}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}`;
 
   const cardImageDataUrl = await generateEmployeeCardPNG({
@@ -415,8 +417,6 @@ window.viewMyDigitalCard = async function() {
         <div style="margin: 10px 0 14px 0;">
           <img src="${cardImageDataUrl}" alt="Employee Card" style="width: 260px; border-radius: 20px; box-shadow: 0 8px 22px rgba(0,0,0,0.25); display: block; margin: 0 auto;" />
         </div>
-
-        <!-- 🛡️ กล่องแจ้งเตือนเงื่อนไขและความปลอดภัยของบัตร -->
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; text-align: left; font-size: 12px; color: #475569;">
           <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
             <span>🛡️ เงื่อนไขความปลอดภัยและการใช้งาน</span>
