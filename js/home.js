@@ -110,10 +110,11 @@ window.refreshDashboardData = async function() {
   }
 
   try {
-    const [resRequests, resEmployees] = await Promise.all([
-      sb.from("leave_requests").select("*, employees!leave_requests_employee_id_fkey(*, departments(department_name)), leave_types(*)"),
-      sb.from("employees").select("*, departments(department_name)")
-    ]);
+      // 🟢 เปลี่ยนจากแบบเดิมที่ระบุ FK hint เป็นแบบนี้
+      const [resRequests, resEmployees] = await Promise.all([
+        sb.from("leave_requests").select("*, employees(*, departments(department_name)), leave_types(*)"),
+        sb.from("employees").select("*, departments(department_name)")
+      ]);
 
     if (resRequests.error) console.error("❌ Supabase Request Error:", resRequests.error);
     if (resEmployees.error) console.error("❌ Supabase Employees Error:", resEmployees.error);
