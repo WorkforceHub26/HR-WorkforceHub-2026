@@ -146,10 +146,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function redirectToDashboard(role) {
   const cleanRole = String(role || "").toLowerCase();
-  if (cleanRole === "hr" || cleanRole === "admin") {
-    window.location.href = "/pages/hr/hr.html";
+  
+  // กำหนดปลายทางตามสิทธิ์
+  const targetPath = (cleanRole === "hr" || cleanRole === "admin") 
+    ? "/pages/user/index-user.html" 
+    : "/pages/user/index-user.html";
+
+  // ⚡ ใช้ location.replace แบบกำหนด origin ครบถ้วน 
+  // เพื่อล้างค่า ?auto_login=... ออกจาก URL และบังคับย้ายหน้าทันทีโดยไม่ต้องกด Refresh
+  const targetUrl = new URL(targetPath, window.location.origin).href;
+
+  if (window.location.href !== targetUrl) {
+    window.location.replace(targetUrl);
   } else {
-    window.location.href = "/pages/user/index-user.html";
+    // กรณีที่อยู่ที่หน้านั้นอยู่แล้ว ให้ล้าง Query String แล้วสั่ง Reload หน้า
+    window.history.replaceState({}, document.title, window.location.pathname);
+    window.location.reload();
   }
 }
 
