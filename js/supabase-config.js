@@ -262,8 +262,8 @@
         }
 
     async getEmployeesList(options = {}) {
-      const { search = "", departmentId = null, role = null, page = 1, limit = 20 } = options;
-      const cacheKey = `employees_list_${search}_${departmentId}_${role}_${page}`;
+      const { search = "", departmentId = null, role = null, page = 1, limit = 20, status = "active" } = options;
+      const cacheKey = `employees_list_${search}_${departmentId}_${role}_${page}_${status}`;
       const cached = this.cache.get(cacheKey);
       if (cached) return cached;
 
@@ -276,6 +276,7 @@
       }
       if (departmentId) query = query.eq("department_id", departmentId);
       if (role) query = query.eq("role", role);
+      if (status) query = query.eq("status", status); // กรองสถานะพนักงาน (ค่าเริ่มต้นเป็น active)
 
       const from = (page - 1) * limit;
       const to = from + limit - 1;
@@ -711,7 +712,7 @@
       return data || [];
     }
 
-    // ตรวจสอบและสร้างโควตาวันลาอัตโนมัติหากยังไม่มีในปีนั้นๆ (รองรับทั้ง ค.ศ. และ พ.ศ.)
+    // ตรวจสอบและสร้างโควตาวันลาอัตโนมัติหากยังไม่มีในปีนั้นๆ (ใช้ AD เป็นมาตรฐาน)
     async ensureLeaveBalances(employeeId, yearOrDate = new Date().getFullYear()) {
       if (!this.client || !employeeId) return;
       try {
@@ -724,8 +725,9 @@
             yearAD = parsedYear > 2400 ? parsedYear - 543 : parsedYear;
           }
         }
-        const yearBE = yearAD + 543;
-        const yearsToCheck = [yearAD, yearBE];
+        
+        // ใช้เฉพาะปี AD เพื่อป้องกันข้อมูลซ้ำซ้อน
+        const yearsToCheck = [yearAD];
 
         // 1. ดึงประเภทการลาทั้งหมด
         const { data: leaveTypes } = await this.client
@@ -936,18 +938,39 @@ class NotificationEngine {
 class LineOAEngine {
   constructor(client) {
     this.client = client;
-    this.webhookUrl = localStorage.getItem("PVT_LINE_WEBHOOK_URL") || "";
-    this.channelAccessToken = localStorage.getItem("PVT_LINE_CHANNEL_ACCESS_TOKEN") || "";
+    this.webhookUrl = "";
+    this.channelAccessToken = "";
+    this._loadConfig(); // โหลดคอนฟิกจาก DB ทันที
   }
 
-  setWebhookUrl(url) {
-    this.webhookUrl = url;
-    localStorage.setItem("PVT_LINE_WEBHOOK_URL", url);
+  async _loadConfig() {
+    if (!this.client) return;
+    try {
+      const { data } = await this.client
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'line_oa_config')
+        .maybeSingle();
+      
+      if (data?.setting_value) {
+        this.webhookUrl = data.setting_value.webhook_url || "";
+        this.channelAccessToken = data.setting_value.channel_access_token || "";
+      }
+    } catch (e) {
+      console.warn("⚠️ [LINE OA] Failed to load config from system_settings:", e);
+    }
   }
 
-  setChannelToken(token) {
-    this.channelAccessToken = token;
-    localStorage.setItem("PVT_LINE_CHANNEL_ACCESS_TOKEN", token);
+  async setConfig(webhookUrl, channelToken) {
+    this.webhookUrl = webhookUrl;
+    this.channelAccessToken = channelToken;
+    if (this.client) {
+      await this.client.from('system_settings').upsert({
+        setting_key: 'line_oa_config',
+        setting_value: { webhook_url: webhookUrl, channel_access_token: channelToken },
+        updated_at: new Date().toISOString()
+      });
+    }
   }
 
   async sendWorkflowNotification(opts = {}) {
@@ -956,6 +979,7 @@ class LineOAEngine {
       leaveId = '',
       employeeName = 'พนักงาน',
       employeeCode = '',
+      recipientId = '', // เพิ่ม recipientId เพื่อแก้บั๊กแจ้งเตือนกำพร้า
       recipientRole = 'leader', // 'leader', 'manager', 'employee'
       recipientLineId = '',
       leaveType = 'ใบลา',
@@ -999,9 +1023,10 @@ class LineOAEngine {
     console.log(`💬 [LINE OA Engine] Triggering [${type}] for ${recipientRole}:`, messageText);
 
     // 1. บันทึกแจ้งเตือนลงฐานข้อมูล (In-App Notifications)
-    if (this.client) {
+    if (this.client && recipientId) { // ตรวจสอบ recipientId ก่อนบันทึก
       try {
         await this.client.from('notifications').insert([{
+          user_id: recipientId, // แก้บั๊ก: ระบุผู้รับแจ้งเตือน
           title: title,
           message: messageText.replace(/\*\*/g, ''),
           is_read: false

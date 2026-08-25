@@ -1384,15 +1384,15 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
 
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">รหัสพนักงาน *</label>
-              <input id="inline-edit-code" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.employee_code || '')}" required>
+              <input id="inline-edit-code" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.employee_code || '')}" required>
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">รหัสผ่านใหม่ (ว่างไว้เพื่อคงเดิม)</label>
-              <input type="text" id="inline-edit-password" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" placeholder="ปล่อยว่างหากใช้รหัสผ่านเดิม">
+              <input type="text" id="inline-edit-password" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" placeholder="ปล่อยว่างหากใช้รหัสผ่านเดิม">
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">คำนำหน้าชื่อ</label>
-              <select id="inline-edit-title" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;">
+              <select id="inline-edit-title" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
                 <option value="" disabled ${!emp.title ? 'selected' : ''}>เลือกคำนำหน้า...</option>
                 <option value="นาย" ${emp.title === 'นาย' ? 'selected' : ''}>นาย</option>
                 <option value="นาง" ${emp.title === 'นาง' ? 'selected' : ''}>นาง</option>
@@ -1401,49 +1401,49 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
             </div>
             <div style="grid-column: span 2;">
               <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อ-นามสกุลจริง *</label>
-              <input id="inline-edit-fullName" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.full_name || '')}" required>
+              <input id="inline-edit-fullName" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.full_name || '')}" required>
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อเล่น</label>
-              <input id="inline-edit-nickname" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.nickname || '')}" placeholder="ชื่อเล่น">
+              <input id="inline-edit-nickname" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.nickname || '')}" placeholder="ชื่อเล่น">
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">เบอร์โทรศัพท์</label>
-              <input id="inline-edit-phone" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.phone || '')}" placeholder="08X-XXX-XXXX">
+              <input id="inline-edit-phone" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.phone || '')}" placeholder="08X-XXX-XXXX">
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">ไอดีไลน์ (Line ID)</label>
-              <input id="inline-edit-lineId" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.line_id || '')}" placeholder="Line ID">
+              <input id="inline-edit-lineId" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.line_id || '')}" placeholder="Line ID">
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">อีเมลองค์กร</label>
-              <input type="email" id="inline-edit-email" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.email || '')}" placeholder="email@company.com">
+              <input type="email" id="inline-edit-email" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.email || '')}" placeholder="email@company.com">
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">เลขบัญชีธนาคาร</label>
-              <input id="inline-edit-bankAccount" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.bank_account || '')}" placeholder="เลขบัญชี 10 หลัก">
+              <input id="inline-edit-bankAccount" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.bank_account || '')}" placeholder="เลขบัญชี 10 หลัก">
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">🏥 โรงพยาบาลประกันสังคม</label>
-              <input id="inline-edit-hospital" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.hospital || '')}" placeholder="เช่น รพ.เปาโล">
+              <input id="inline-edit-hospital" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.hospital || '')}" placeholder="เช่น รพ.เปาโล">
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">สังกัดฝ่าย / แผนก *</label>
-              <select id="inline-edit-dept" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" required>
+              <select id="inline-edit-dept" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" required>
                 <option value="" disabled>-- เลือกแผนก --</option>
                 ${deptOptions}
               </select>
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">ตำแหน่งงาน *</label>
-              <select id="inline-edit-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" required>
+              <select id="inline-edit-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" required>
                 <option value="" disabled>-- เลือกตำแหน่ง --</option>
                 ${roleOptions}
               </select>
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">ประเภทพนักงาน *</label>
-              <select id="inline-edit-type" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" required>
+              <select id="inline-edit-type" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" required>
                 <option value="" disabled>เลือกประเภทพนักงาน...</option>
                 <option value="พนักงานประจำ (Full-time)" ${emp.employment_type === 'พนักงานประจำ (Full-time)' || emp.employment_type === 'full_time' ? 'selected' : ''}>พนักงานประจำ (Full-time)</option>
                 <option value="พนักงานพาร์ทไทม์ (Part-time)" ${emp.employment_type === 'พนักงานพาร์ทไทม์ (Part-time)' || emp.employment_type === 'part_time' ? 'selected' : ''}>พนักงานพาร์ทไทม์ (Part-time)</option>
@@ -1455,7 +1455,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">วันที่เริ่มงาน</label>
-              <input type="date" id="inline-edit-startDate" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${emp.start_date ? emp.start_date.split('T')[0] : ''}">
+              <input type="date" id="inline-edit-startDate" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${emp.start_date ? emp.start_date.split('T')[0] : ''}">
             </div>
 
             <!-- Section Custom Columns -->

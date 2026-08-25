@@ -214,9 +214,10 @@ async function calculateActualLeaveDays(startDateStr, endDateStr) {
       const currentIsoString = `${y}-${m}-${d}`;
 
       const isSunday = (dayOfWeek === 0);
+      const isSaturday = (dayOfWeek === 6);
       const isSpecialHoliday = holidaySet.has(currentIsoString);
 
-      if (!isSunday && !isSpecialHoliday) {
+      if (!isSunday && !isSaturday && !isSpecialHoliday) {
         totalDays++;
       }
       start.setDate(start.getDate() + 1);
@@ -1003,9 +1004,23 @@ async function approveLeave(leaveId) {
         const leaveTypeName = reqData.leave_types?.leave_name || 'ใบลา';
 
         if (currentRole === 'leader') {
+          // 🔎 ค้นหา Manager ของแผนกนี้เพื่อส่งแจ้งเตือนต่อ (L2)
+          let managerId = null;
+          try {
+            const { data: deptMgr } = await sb
+              .from('employees')
+              .select('id')
+              .eq('department_id', reqData.employees?.department_id)
+              .eq('role', 'manager')
+              .eq('status', 'active')
+              .maybeSingle();
+            managerId = deptMgr?.id;
+          } catch (e) { console.warn("Failed to find department manager:", e); }
+
           // หัวหน้าอนุมัติ L1 -> แจ้งผู้จัดการฝ่าย (L2)
           await window.PVTSDK.line.sendWorkflowNotification({
             type: 'LEADER_APPROVED',
+            recipientId: managerId, // ระบุผู้รับ L2
             leaveId: leaveId,
             employeeName: applicantName,
             employeeCode: applicantCode,
@@ -1019,6 +1034,7 @@ async function approveLeave(leaveId) {
           // ผู้จัดการ/HR/ผู้บริหาร อนุมัติขั้นสุดท้าย -> แจ้งพนักงานเจ้าของใบลา
           await window.PVTSDK.line.sendWorkflowNotification({
             type: 'FINAL_APPROVED',
+            recipientId: reqData.employee_id, // ระบุผู้รับ (พนักงาน)
             leaveId: leaveId,
             employeeName: applicantName,
             employeeCode: applicantCode,
@@ -1094,6 +1110,7 @@ async function rejectLeave(leaveId) {
         if (reqData) {
           await window.PVTSDK.line.sendWorkflowNotification({
             type: 'REJECTED',
+            recipientId: reqData.employee_id, // ระบุผู้รับ (พนักงาน)
             leaveId: leaveId,
             employeeName: reqData.employees?.full_name || 'พนักงาน',
             employeeCode: reqData.employees?.employee_code || '',
