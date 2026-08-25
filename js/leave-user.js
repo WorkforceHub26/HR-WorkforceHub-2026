@@ -920,7 +920,7 @@ function handleFileChange(input, labelId) {
 // ==========================================
 // 🔔 10. ระบบแจ้งเตือน และ อัปโหลดไฟล์
 // ==========================================
-async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/hr/pages/hr/hr.html') {
+async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/hr/hr.html') {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
@@ -928,9 +928,6 @@ async function sendNotification(title, message, type = 'leave', targetUrl = '/pa
     const { error } = await sb.from("notifications").insert([{
       title: title,
       message: message,
-      type: type,
-      target_url: targetUrl,
-      created_at: new Date().toISOString(),
       is_read: false
     }]);
 
@@ -1010,8 +1007,8 @@ async function saveLeave() {
     // 1. ระดับผู้บริหาร/เจ้าของบริษัท: ข้ามขั้นหัวหน้าและผู้บริหาร ส่งตรงไปหา HR
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
-  } else if (userRole.includes("manager") || userRole.includes("leader") || userRole.includes("supervisor") || userRole.includes("head") || userRole.includes("หัวหน้า") || userRole.includes("ผู้จัดการ")) {
-    // 2. ระดับหัวหน้า/ผู้จัดการ: ข้ามขั้นหัวหน้า ส่งไปรอผู้บริหารอนุมัติ (director_status = pending)
+  } else if (userRole.includes("hr") || userRole.includes("admin") || userRole.includes("manager") || userRole.includes("leader") || userRole.includes("supervisor") || userRole.includes("head") || userRole.includes("หัวหน้า") || userRole.includes("ผู้จัดการ")) {
+    // 2. ระดับหัวหน้า/ผู้จัดการ/HR: ข้ามขั้นหัวหน้า ส่งไปรอผู้บริหารอนุมัติ (director_status = pending)
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "pending";
   } else {
@@ -1262,6 +1259,28 @@ async function saveLeave() {
       'leave', 
       '/pages/hr/pages/hr/hr.html'
     );
+
+    // 💬 ส่งแจ้งเตือน LINE OA ไปยังหัวหน้างาน (L1)
+    if (window.PVTSDK?.line) {
+      try {
+        for (const item of payload) {
+          const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(item.leave_type_id));
+          await window.PVTSDK.line.sendWorkflowNotification({
+            type: 'NEW_REQUEST',
+            employeeName: empName,
+            employeeCode: currentProfile.employee_code || '',
+            recipientRole: 'leader',
+            leaveType: leaveTypeObj ? leaveTypeObj.leave_name : 'ใบลา',
+            startDate: item.start_date,
+            endDate: item.end_date,
+            totalDays: item.total_days,
+            reason: item.reason
+          });
+        }
+      } catch (lineErr) {
+        console.warn("⚠️ [LINE OA Trigger] Submission notice fallback:", lineErr);
+      }
+    }
 
     Swal.fire({
       title: 'ส่งคำขอลาสำเร็จ!',

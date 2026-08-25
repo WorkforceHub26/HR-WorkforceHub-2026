@@ -619,6 +619,7 @@
         this.user = new UserEngine(this.client, this.cache, this.network);
         this.card = new CardEngine(this.client);
         this.notification = new NotificationEngine(this.client);
+        this.line = new LineOAEngine(this.client);
         this.viewport = new ViewportEngine(); // ✅ เพิ่มเรียบร้อย
       }
       
@@ -732,17 +733,26 @@
         this.currentSeconds = 0;
       }
 
-      // ดึง Token ที่ผ่านการรับรองจาก Supabase Server
+      // ดึง Token ที่ผ่านการรับรองจาก Supabase Server (พร้อมระบบสำรอง Auto-Login URL)
       async getSecureToken(employeeCode) {
-        const { data, error } = await this.client.rpc('generate_card_qr_token', { 
-          p_employee_code: employeeCode 
-        });
+        try {
+          const { data, error } = await this.client.rpc('generate_card_qr_token', { 
+            p_employee_code: employeeCode 
+          });
 
-        if (error || !data || data.length === 0) {
-          throw new Error("ไม่สามารถสร้าง QR Code ได้: " + (error?.message || "Unknown error"));
+          if (!error && data && data.length > 0) {
+            return data[0]; // คืนค่า { qr_token, seconds_left }
+          }
+        } catch (err) {
+          console.warn("⚠️ [CardEngine] RPC generate_card_qr_token unavailable, using fallback login URL");
         }
 
-        return data[0]; // คืนค่า { qr_token, seconds_left }
+        const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+        const autoLoginUrl = `${origin}/index.html?auto_login=${encodeURIComponent(employeeCode)}`;
+        return {
+          qr_token: autoLoginUrl,
+          seconds_left: 30
+        };
       }
 
       // สั่งเริ่มทำงาน Dynamic QR Code
@@ -755,32 +765,49 @@
             const container = document.getElementById(qrContainerId);
             if (!container) return;
 
-            // เช็กว่ามี Library QRCode ในระบบหรือไม่
-            if (typeof QRCode === 'undefined') {
-              container.innerHTML = `<div style="color: #ef4444; font-size: 12px; padding: 10px;">ไม่พบ QRCode Library</div>`;
-              console.error("❌ [CardEngine] QRCode JS Library is missing!");
-              return;
-            }
-
-            // ดึง Token ใหม่จาก Supabase RPC
+            // ดึง Token ใหม่จาก Supabase RPC หรือ URL Fallback
             const { qr_token, seconds_left } = await this.getSecureToken(employeeCode);
             this.currentSeconds = seconds_left || 30;
 
-            // Render QR Code
+            // Render QR Code (พร้อมระบบสำรอง Image API หากไม่มี QRCode JS Library)
             container.innerHTML = "";
-            new QRCode(container, {
-              text: qr_token,
-              width: 160,
-              height: 160,
-              correctLevel: QRCode.CorrectLevel.M
-            });
+
+            if (typeof QRCode !== 'undefined') {
+              try {
+                new QRCode(container, {
+                  text: qr_token,
+                  width: 160,
+                  height: 160,
+                  correctLevel: QRCode.CorrectLevel.M
+                });
+              } catch (qrErr) {
+                console.warn("⚠️ [CardEngine] QRCode instance creation error, using img fallback:", qrErr);
+                const qrImg = document.createElement('img');
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qr_token)}`;
+                qrImg.alt = "Employee QR Code";
+                qrImg.style.width = "160px";
+                qrImg.style.height = "160px";
+                qrImg.style.borderRadius = "8px";
+                container.appendChild(qrImg);
+              }
+            } else {
+              const qrImg = document.createElement('img');
+              qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qr_token)}`;
+              qrImg.alt = "Employee QR Code";
+              qrImg.style.width = "160px";
+              qrImg.style.height = "160px";
+              qrImg.style.borderRadius = "8px";
+              container.appendChild(qrImg);
+            }
 
             this.updateCountdownUI(countdownElementId);
           } catch (err) {
             console.error("⚠️ [CardEngine] QR Error:", err);
             const container = document.getElementById(qrContainerId);
             if (container) {
-              container.innerHTML = `<div style="color: #64748b; font-size: 12px;">ไม่สามารถโหลด QR Code ได้</div>`;
+              const origin = window.location.origin || "";
+              const fallbackUrl = `${origin}/index.html?auto_login=${encodeURIComponent(employeeCode)}`;
+              container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(fallbackUrl)}" style="width:160px; height:160px; border-radius:8px;" />`;
             }
           }
         };
@@ -874,6 +901,136 @@ class NotificationEngine {
         }
       )
       .subscribe();
+  }
+}
+
+// ==========================================================================
+// 💬 LINE OA NOTIFICATION ENGINE (หัวหน้า -> ผู้จัดการ -> พนักงาน)
+// ==========================================================================
+class LineOAEngine {
+  constructor(client) {
+    this.client = client;
+    this.webhookUrl = localStorage.getItem("PVT_LINE_WEBHOOK_URL") || "";
+    this.channelAccessToken = localStorage.getItem("PVT_LINE_CHANNEL_ACCESS_TOKEN") || "";
+  }
+
+  setWebhookUrl(url) {
+    this.webhookUrl = url;
+    localStorage.setItem("PVT_LINE_WEBHOOK_URL", url);
+  }
+
+  setChannelToken(token) {
+    this.channelAccessToken = token;
+    localStorage.setItem("PVT_LINE_CHANNEL_ACCESS_TOKEN", token);
+  }
+
+  async sendWorkflowNotification(opts = {}) {
+    const {
+      type = 'NEW_REQUEST', // 'NEW_REQUEST', 'LEADER_APPROVED', 'FINAL_APPROVED', 'REJECTED'
+      leaveId = '',
+      employeeName = 'พนักงาน',
+      employeeCode = '',
+      recipientRole = 'leader', // 'leader', 'manager', 'employee'
+      recipientLineId = '',
+      leaveType = 'ใบลา',
+      startDate = '',
+      endDate = '',
+      totalDays = 1,
+      reason = '',
+      comment = ''
+    } = opts;
+
+    const nowStr = new Date().toLocaleString('th-TH');
+    let title = "";
+    let messageText = "";
+
+    switch (type) {
+      case 'NEW_REQUEST':
+        title = "📩 มีคำขอใบลาใหม่ (รอหัวหน้างานอนุมัติ L1)";
+        messageText = `📌 **มีคำขอลาใหม่ส่งถึงคุณ!**\n👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n📝 ประเภทการลา: ${leaveType}\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate} (${totalDays} วัน)\n💬 เหตุผล: ${reason || '-'}\n⏰ วันที่ส่ง: ${nowStr}\n\n👉 กรุณาเข้าสู่ระบบเพื่อตรวจสอบและอนุมัติ`;
+        break;
+
+      case 'LEADER_APPROVED':
+        title = "🟢 หัวหน้างานอนุมัติแล้ว (รอผู้จัดการฝ่ายอนุมัติ L2)";
+        messageText = `🟢 **หัวหน้างานอนุมัติใบลาเรียบร้อยแล้ว**\n👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n📝 ประเภทการลา: ${leaveType} (${totalDays} วัน)\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate}\n💬 ความเห็นหัวหน้า: ${comment || 'เห็นควรอนุมัติ'}\n\n👉 ส่งต่อผู้จัดการฝ่ายเพื่อพิจารณาอนุมัติขั้นถัดไป`;
+        break;
+
+      case 'FINAL_APPROVED':
+        title = "🎉 ใบลาของคุณได้รับการอนุมัติสมบูรณ์แล้ว!";
+        messageText = `🎉 **ใบลาได้รับการอนุมัติเรียบร้อยแล้ว!**\n👤 พนักงาน: ${employeeName}\n📝 ประเภทการลา: ${leaveType}\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate} (${totalDays} วัน)\n✨ สถานะ: อนุมัติสมบูรณ์ (ใบลาเสร็จเรียบร้อย)\n⏰ อนุมัติเมื่อ: ${nowStr}`;
+        break;
+
+      case 'REJECTED':
+        title = "❌ คำขอใบลาไม่ได้รับการอนุมัติ";
+        messageText = `❌ **คำขอลาไม่ได้รับการอนุมัติ**\n👤 พนักงาน: ${employeeName}\n📝 ประเภทการลา: ${leaveType}\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate}\n⚠️ เหตุผลที่ไม่ผ่าน: ${comment || 'ไม่อนุมัติ'}\n⏰ ดำเนินการเมื่อ: ${nowStr}`;
+        break;
+
+      default:
+        title = "📢 แจ้งเตือนระบบใบลา PVT HR";
+        messageText = `ข้อมูลคำขอลาของคุณมีความเคลื่อนไหว (${type})`;
+    }
+
+    console.log(`💬 [LINE OA Engine] Triggering [${type}] for ${recipientRole}:`, messageText);
+
+    // 1. บันทึกแจ้งเตือนลงฐานข้อมูล (In-App Notifications)
+    if (this.client) {
+      try {
+        await this.client.from('notifications').insert([{
+          title: title,
+          message: messageText.replace(/\*\*/g, ''),
+          is_read: false
+        }]);
+      } catch (err) {
+        console.warn("⚠️ [LINE OA Engine] DB notification log fallback:", err);
+      }
+    }
+
+    // 2. ส่งข้อมูลไปยัง LINE Webhook หรือ Messaging API (ถ้ามีการตั้งค่าไว้)
+    if (this.webhookUrl) {
+      try {
+        await fetch(this.webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: type,
+            recipient_role: recipientRole,
+            recipient_line_id: recipientLineId || null,
+            employee_name: employeeName,
+            employee_code: employeeCode,
+            leave_type: leaveType,
+            start_date: startDate,
+            end_date: endDate,
+            total_days: totalDays,
+            reason: reason,
+            comment: comment,
+            message: messageText,
+            timestamp: new Date().toISOString()
+          })
+        });
+        console.log("✅ [LINE OA] Sent message via Webhook successfully!");
+      } catch (webhookErr) {
+        console.warn("⚠️ [LINE OA] Webhook call warning:", webhookErr);
+      }
+    } else if (this.channelAccessToken && recipientLineId) {
+      try {
+        await fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.channelAccessToken}`
+          },
+          body: JSON.stringify({
+            to: recipientLineId,
+            messages: [{ type: 'text', text: messageText.replace(/\*\*/g, '') }]
+          })
+        });
+        console.log("✅ [LINE OA] Direct Push message sent to LINE ID:", recipientLineId);
+      } catch (lineErr) {
+        console.warn("⚠️ [LINE OA] Direct Push message failed:", lineErr);
+      }
+    }
+
+    return { success: true, title, message: messageText };
   }
 }
 

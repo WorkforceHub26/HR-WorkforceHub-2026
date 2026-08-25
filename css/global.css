@@ -1,22 +1,262 @@
-/* 🌫️ บังคับใช้ฟอนต์ Sarabun และสไตล์กระจกเบลอ SweetAlert ทุกหน้า */
-body {
-  font-family: 'Sarabun', sans-serif !important;
+/* ==========================================================================
+   PVT WORKFORCE HUB - GLOBAL RESPONSIVE & SHARED UTILITIES
+   ========================================================================== */
+
+:root {
+  --primary-teal: #0d9488;
+  --primary-blue: #3b82f6;
+  --primary-green: #10b981;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* ฉากหลังเบลอสำหรับ SweetAlert2 */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  font-family: 'Sarabun', 'Kanit', sans-serif !important;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 🌫️ ฉากหลังเบลอสำหรับ SweetAlert2 */
 .swal2-container {
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   background-color: rgba(15, 23, 42, 0.45) !important;
+  z-index: 10000 !important;
 }
 
 /* กล่องป๊อปอัปสไตล์ Glassmorphism */
-.pvt-guard-popup {
-  border-radius: 24px !important;
-  background: rgba(255, 255, 255, 0.88) !important;
+.pvt-guard-popup, .swal2-popup {
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
-  font-family: 'Sarabun', sans-serif !important;
+  font-family: 'Sarabun', 'Kanit', sans-serif !important;
+  max-width: 95vw !important;
+}
+
+/* 📱 Responsive Mobile Drawer Backdrop */
+.mobile-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.mobile-sidebar-backdrop.active {
+  display: block !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.sidebar-open {
+  overflow: hidden;
+}
+
+/* 📱 Mobile Menu Toggle Button */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #1e293b;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.mobile-menu-btn:hover, .mobile-menu-btn:active {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.mobile-menu-btn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+/* 📊 Responsive Table Wrappers & Touch Optimization */
+.table-wrap, .table-responsive, .table-container, .table-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  position: relative;
+  border-radius: 12px;
+}
+
+/* 📱 Responsive Mobile Tables (< 768px) */
+@media (max-width: 768px) {
+  .table-wrap, .table-responsive, .table-container {
+    box-shadow: inset -8px 0 8px -8px rgba(0, 0, 0, 0.15); /* Shadow indicator for scrollable tables */
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse;
+  }
+
+  table th {
+    padding: 10px 8px !important;
+    font-size: 11.5px !important;
+    white-space: nowrap !important;
+  }
+
+  table td {
+    padding: 10px 8px !important;
+    font-size: 12.5px !important;
+  }
+
+  table .btn, table button, table .btn-act, table .status-badge, table .status, table .badge {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    gap: 4px !important;
+  }
+
+  table .action-btn-group {
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+  }
+}
+
+/* Custom smooth scrollbar */
+.table-wrap::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar,
+.table-container::-webkit-scrollbar,
+.main-content::-webkit-scrollbar,
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb,
+.main-content::-webkit-scrollbar-thumb,
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.table-wrap::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track,
+.main-content::-webkit-scrollbar-track,
+.custom-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+/* 💻 Desktop Sidebar Collapsed state */
+@media (min-width: 1025px) {
+  .sidebar-light.collapsed, .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+  .main-content.expanded {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* 📱 Responsive Drawer for Mobile & Tablet */
+@media (max-width: 1024px) {
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+
+  .sidebar-light, .sidebar, aside.sidebar-light, aside {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    z-index: 9999 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2) !important;
+    background: #ffffff !important;
+  }
+
+  .sidebar-light.mobile-open, .sidebar.mobile-open, aside.sidebar-light.mobile-open, aside.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 1.25rem 1rem 4rem 1rem !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   GLOBAL USER PROFILE (TOPBAR)
+   -------------------------------------------------------------------------- */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 50px;
+  padding: 6px 14px 6px 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.user-profile .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--primary-light, #ccfbf1);
+  color: var(--primary-teal, #0d9488);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.user-profile .info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+.user-profile .info strong {
+  font-size: 0.9rem;
+  color: var(--text-main, #1e293b);
+  line-height: 1.2;
+}
+
+.user-profile .info span {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  line-height: 1.2;
+  margin-top: 2px;
 }

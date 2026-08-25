@@ -693,3 +693,31 @@ html, body {
   border-color: #0fa472;
   transform: translateX(-3px);
 }
+
+/* 📱 Responsive Mobile */
+@media screen and (max-width: 768px) {
+  .holidays-page, .calendar-container {
+    padding: 12px;
+  }
+
+  .holidays-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .holidays-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .holidays-controls select, .holidays-controls input {
+    width: 100%;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+}
