@@ -529,8 +529,10 @@ function renderLeaveTable() {
       actionButtons = `
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span></button>
-          <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
-          <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
+          ${currentRole !== 'hr' ? `
+            <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
+            <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
+          ` : ''}
         </div>
       `;
     }
@@ -736,7 +738,9 @@ async function approveLeave(leaveId) {
     ? 'หัวหน้างาน (L1)' 
     : currentRole === 'manager' 
     ? 'ผู้จัดการฝ่าย (L2)' 
-    : 'ฝ่ายบุคคล HR (L3)';
+    : (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner')
+    ? 'ผู้บริหาร (L3)'
+    : 'ฝ่ายบุคคล HR / Admin';
 
   const result = await Swal.fire({
     title: 'ยืนยันอนุมัติใบลา?',
@@ -763,8 +767,9 @@ async function approveLeave(leaveId) {
       updateFields.manager_status = 'approved';
     } else if (currentRole === 'manager') {
       updateFields.director_status = 'approved';
-    } else {
-      // HR (L3)
+    } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner' || currentRole === 'admin') {
+      // ผู้บริหาร (L3) อนุมัติขั้นสุดท้าย และหักวันลา
+      updateFields.director_status = 'approved';
       updateFields.status = 'approved';
       updateFields.approved_at = new Date().toISOString();
 
@@ -788,6 +793,9 @@ async function approveLeave(leaveId) {
           .update({ remaining_days: newRemaining, used_days: newUsed })
           .eq('id', balData.id);
       }
+    } else {
+      // HR
+      updateFields.status = 'approved';
     }
 
     const { error: updateErr } = await sb
@@ -834,6 +842,11 @@ async function rejectLeave(leaveId) {
       updateFields.manager_status = 'rejected';
     } else if (currentRole === 'manager') {
       updateFields.director_status = 'rejected';
+    } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
+      updateFields.director_status = 'rejected';
+      updateFields.status = 'rejected';
+    } else {
+      updateFields.status = 'rejected';
     }
 
     const { error } = await sb
@@ -1205,6 +1218,426 @@ async function printLeaveA4(leaveId) {
 }
 
 /* ==========================================================================
+   📊 EXCEL EXPORT ENGINE (PREMIUM EXECUTIVE SUMMARY & CATEGORIZED SHEETS)
+   ========================================================================== */
+
+async function exportLeaveReportExcel() {
+  if (!allLeaveRequests || !allLeaveRequests.length) {
+    Swal.fire({
+      title: 'ไม่พบข้อมูล',
+      text: 'ยังไม่มีข้อมูลใบลาในระบบสำหรับการส่งออก',
+      icon: 'info',
+      confirmButtonColor: '#0fa472'
+    });
+    return;
+  }
+
+  if (typeof ExcelJS === 'undefined') {
+    Swal.fire({
+      title: 'กำลังเตรียมระบบ',
+      text: 'กรุณารอสักครู่ กำลังโหลดเครื่องมือสร้างรายงาน Excel',
+      icon: 'warning',
+      confirmButtonColor: '#0fa472'
+    });
+    return;
+  }
+
+  // 1. ตัวเลือกการดาวน์โหลด
+  const { value: exportOption } = await Swal.fire({
+    title: '<span style="color:#0f172a; font-weight:700; font-size:20px;">📊 ดาวน์โหลดรายงานการลา Excel</span>',
+    html: `
+      <div style="text-align: left; font-family: 'Sarabun', sans-serif; font-size: 14px; color: #475569; display:flex; flex-direction:column; gap:14px;">
+        <p>เลือกประเภทและขอบเขตข้อมูลที่ต้องการส่งออกเป็นรายงานระดับผู้บริหาร:</p>
+        
+        <div>
+          <label style="font-weight: 600; color: #1e293b; display: block; margin-bottom: 4px;">รูปแบบรายงาน:</label>
+          <select id="swalExportFormat" class="swal2-select" style="width: 100%; margin: 0; height: 42px; border-radius: 8px; font-size: 13.5px; border-color: #cbd5e1;">
+            <option value="executive_full">📈 เล่มรายงานสมบูรณ์ (สรุป Dashboard + แยกประเภท + รายบุคคล)</option>
+            <option value="summary_only">📊 สรุปภาพรวม Dashboard & สถิติรายแผนก (Executive Summary)</option>
+            <option value="raw_active">📋 รายการตามที่กำลังแสดงบนตาราง (${currentLeaveTab === 'pending' ? 'รออนุมัติ' : currentLeaveTab === 'cancellation' ? 'ขอยกเลิก' : 'ประวัติทั้งหมด'})</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-weight: 600; color: #1e293b; display: block; margin-bottom: 4px;">ตัวกรองสถานะ:</label>
+          <select id="swalExportStatus" class="swal2-select" style="width: 100%; margin: 0; height: 42px; border-radius: 8px; font-size: 13.5px; border-color: #cbd5e1;">
+            <option value="all">-- รวมทุกสถานะ (All Statuses) --</option>
+            <option value="approved">เฉพาะที่ "อนุมัติแล้ว" (Approved Only)</option>
+            <option value="pending">เฉพาะที่ "รอพิจารณา" (Pending Only)</option>
+            <option value="rejected">เฉพาะที่ "ไม่อนุมัติ / ยกเลิก" (Rejected/Cancelled)</option>
+          </select>
+        </div>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '📥 ดาวน์โหลด Excel',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0fa472',
+    cancelButtonColor: '#64748b',
+    focusConfirm: false,
+    preConfirm: () => {
+      return {
+        format: document.getElementById('swalExportFormat').value,
+        statusFilter: document.getElementById('swalExportStatus').value
+      };
+    }
+  });
+
+  if (!exportOption) return;
+
+  Swal.fire({
+    title: 'กำลังสร้างไฟล์ Excel...',
+    text: 'ระบบกำลังจัดทำสรุปภาพรวม สถิติ และแยกชีตข้อมูลอย่างสวยงาม',
+    didOpen: () => Swal.showLoading(),
+    allowOutsideClick: false
+  });
+
+  try {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "PVT Workforce Hub";
+    workbook.created = new Date();
+
+    // กรองตาม statusFilter ที่เลือก
+    let targetLeaves = [...allLeaveRequests];
+    if (exportOption.statusFilter === 'approved') {
+      targetLeaves = targetLeaves.filter(r => String(r.status).toLowerCase() === 'approved');
+    } else if (exportOption.statusFilter === 'pending') {
+      targetLeaves = targetLeaves.filter(r => isPendingStatus(r.status));
+    } else if (exportOption.statusFilter === 'rejected') {
+      targetLeaves = targetLeaves.filter(r => String(r.status).toLowerCase() === 'rejected' || isCancelRequestStatus(r.status));
+    }
+
+    if (exportOption.format === 'raw_active') {
+      if (currentLeaveTab === 'pending') {
+        targetLeaves = targetLeaves.filter(r => isPendingStatus(r.status));
+      } else if (currentLeaveTab === 'cancellation') {
+        targetLeaves = targetLeaves.filter(r => isCancelRequestStatus(r.status));
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 🌟 SHEET 1: สรุปภาพรวม (Executive Leave Dashboard)
+    // -------------------------------------------------------------
+    const summarySheet = workbook.addWorksheet("📊 สรุปภาพรวม (Executive Summary)", {
+      views: [{ showGridLines: true }]
+    });
+
+    // 1. หัวตารางรายงาน
+    summarySheet.mergeCells("A1:G1");
+    const headerCell = summarySheet.getCell("A1");
+    headerCell.value = "🏢 บริษัท พีวีที เวิร์กฟอร์ซ ฮับ | รายงานสรุปภาพรวมการลาพนักงาน (Executive Leave Dashboard)";
+    headerCell.font = { name: "Sarabun", size: 15, bold: true, color: { argb: "FFFFFFFF" } };
+    headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0B845C" } };
+    headerCell.alignment = { vertical: "middle", horizontal: "center" };
+    summarySheet.getRow(1).height = 36;
+
+    summarySheet.mergeCells("A2:G2");
+    const subHeader = summarySheet.getCell("A2");
+    subHeader.value = `วันที่สร้างรายงาน: ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })} | สิทธิ์การเข้าถึง: HR & ผู้บริหาร`;
+    subHeader.font = { name: "Sarabun", size: 10, italic: true, color: { argb: "FF475569" } };
+    subHeader.alignment = { vertical: "middle", horizontal: "center" };
+    summarySheet.getRow(2).height = 20;
+
+    // 2. การ์ด KPI รวม (Stats KPI Cards)
+    const totalRequests = targetLeaves.length;
+    const approvedCount = targetLeaves.filter(r => String(r.status).toLowerCase() === 'approved').length;
+    const pendingCount = targetLeaves.filter(r => isPendingStatus(r.status)).length;
+    const cancelCount = targetLeaves.filter(r => isCancelRequestStatus(r.status)).length;
+    const totalApprovedDays = targetLeaves
+      .filter(r => String(r.status).toLowerCase() === 'approved')
+      .reduce((sum, r) => sum + Number(r.actual_days || r.total_days || 0), 0);
+
+    summarySheet.getRow(4).values = ["ตัวชี้วัดสำคัญ (Key Metrics)", "รายการรวม", "อนุมัติแล้ว", "รอพิจารณา", "ขอยกเลิก", "วันลาที่อนุมัติสะสม", "เฉลี่ยวัน/รายการ"];
+    summarySheet.getRow(5).values = [
+      "สถิติภาพรวมบริษัท", 
+      totalRequests, 
+      approvedCount, 
+      pendingCount, 
+      cancelCount, 
+      totalApprovedDays,
+      approvedCount > 0 ? Number((totalApprovedDays / approvedCount).toFixed(1)) : 0
+    ];
+
+    const kpiHead = summarySheet.getRow(4);
+    const kpiVal = summarySheet.getRow(5);
+    kpiHead.height = 24;
+    kpiVal.height = 28;
+
+    for (let c = 1; c <= 7; c++) {
+      const cellH = kpiHead.getCell(c);
+      const cellV = kpiVal.getCell(c);
+
+      cellH.font = { name: "Sarabun", size: 11, bold: true, color: { argb: "FF0F172A" } };
+      cellH.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+      cellH.alignment = { vertical: "middle", horizontal: "center" };
+      cellH.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+
+      cellV.font = { name: "Kanit", size: 13, bold: true, color: { argb: c === 3 ? "FF059669" : c === 4 ? "FFD97706" : "FF0F172A" } };
+      cellV.fill = { type: "pattern", pattern: "solid", fgColor: { argb: c === 3 ? "FFECFDF5" : c === 4 ? "FFFFFBEB" : "FFF8FAFC" } };
+      cellV.alignment = { vertical: "middle", horizontal: "center" };
+      cellV.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+    }
+
+    // 3. ตารางแยกสถิติตามประเภทการลา (Summary by Leave Type)
+    summarySheet.getCell("A7").value = "📋 1. สรุปสถิติแยกตามประเภทการลา (Breakdown by Leave Type)";
+    summarySheet.getCell("A7").font = { name: "Sarabun", size: 12, bold: true, color: { argb: "FF0B845C" } };
+
+    const typeSummaryRow = summarySheet.getRow(8);
+    typeSummaryRow.values = ["ประเภทการลา", "จำนวนคำขอ (รายการ)", "อนุมัติแล้ว", "วันลารวม (วัน)", "สัดส่วน %", "สถานะ"];
+    typeSummaryRow.height = 24;
+    for (let c = 1; c <= 6; c++) {
+      const cell = typeSummaryRow.getCell(c);
+      cell.font = { name: "Sarabun", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0FA472" } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+    }
+
+    // รวมกลุ่มประเภทการลา
+    const leaveTypeMap = {};
+    targetLeaves.forEach(r => {
+      const type = r.leave_types?.leave_name || "ไม่ระบุประเภท";
+      if (!leaveTypeMap[type]) {
+        leaveTypeMap[type] = { count: 0, approvedCount: 0, days: 0 };
+      }
+      leaveTypeMap[type].count++;
+      if (String(r.status).toLowerCase() === 'approved') {
+        leaveTypeMap[type].approvedCount++;
+        leaveTypeMap[type].days += Number(r.actual_days || r.total_days || 0);
+      }
+    });
+
+    let rowIdx = 9;
+    Object.entries(leaveTypeMap).forEach(([tName, data]) => {
+      const pct = totalRequests > 0 ? ((data.count / totalRequests) * 100).toFixed(1) + "%" : "0%";
+      const row = summarySheet.getRow(rowIdx);
+      row.values = [tName, data.count, data.approvedCount, data.days, pct, data.count > 0 ? "มีรายการลา" : "ไม่มีข้อมูล"];
+      row.height = 20;
+
+      for (let c = 1; c <= 6; c++) {
+        const cell = row.getCell(c);
+        cell.font = { name: "Sarabun", size: 10 };
+        cell.alignment = { vertical: "middle", horizontal: c === 1 ? "left" : "center" };
+        cell.border = { bottom: { style: "thin", color: { argb: "FFE2E8F0" } } };
+      }
+      rowIdx++;
+    });
+
+    // 4. ตารางแยกสถิติตามแผนก (Summary by Department)
+    rowIdx += 2;
+    summarySheet.getCell(`A${rowIdx}`).value = "🏢 2. สรุปสถิติแยกตามแผนก (Breakdown by Department)";
+    summarySheet.getCell(`A${rowIdx}`).font = { name: "Sarabun", size: 12, bold: true, color: { argb: "FF0B845C" } };
+    rowIdx++;
+
+    const deptHeaderRow = summarySheet.getRow(rowIdx);
+    deptHeaderRow.values = ["ชื่อแผนก / ฝ่าย", "จำนวนคำขอทั้งหมด", "อนุมัติแล้ว", "วันลารวม (วัน)", "รอตรวจสอบ", "สัดส่วน %"];
+    deptHeaderRow.height = 24;
+    for (let c = 1; c <= 6; c++) {
+      const cell = deptHeaderRow.getCell(c);
+      cell.font = { name: "Sarabun", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF3B82F6" } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+    }
+    rowIdx++;
+
+    const deptMap = {};
+    targetLeaves.forEach(r => {
+      const dept = r.employees?.departments?.department_name || "ส่วนกลาง / ไม่ระบุ";
+      if (!deptMap[dept]) {
+        deptMap[dept] = { count: 0, approved: 0, days: 0, pending: 0 };
+      }
+      deptMap[dept].count++;
+      if (String(r.status).toLowerCase() === 'approved') {
+        deptMap[dept].approved++;
+        deptMap[dept].days += Number(r.actual_days || r.total_days || 0);
+      }
+      if (isPendingStatus(r.status)) {
+        deptMap[dept].pending++;
+      }
+    });
+
+    Object.entries(deptMap).forEach(([dName, data]) => {
+      const pct = totalRequests > 0 ? ((data.count / totalRequests) * 100).toFixed(1) + "%" : "0%";
+      const row = summarySheet.getRow(rowIdx);
+      row.values = [dName, data.count, data.approved, data.days, data.pending, pct];
+      row.height = 20;
+
+      for (let c = 1; c <= 6; c++) {
+        const cell = row.getCell(c);
+        cell.font = { name: "Sarabun", size: 10 };
+        cell.alignment = { vertical: "middle", horizontal: c === 1 ? "left" : "center" };
+        cell.border = { bottom: { style: "thin", color: { argb: "FFE2E8F0" } } };
+      }
+      rowIdx++;
+    });
+
+    // ปรับความกว้างคอลัมน์ของชีตสรุป
+    summarySheet.columns = [
+      { width: 34 },
+      { width: 22 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 },
+      { width: 20 },
+      { width: 18 }
+    ];
+
+    // -------------------------------------------------------------
+    // 📄 SHEET 2: รายการคำขอลาทั้งหมด (Detailed Requests Log)
+    // -------------------------------------------------------------
+    if (exportOption.format !== 'summary_only') {
+      const detailSheet = workbook.addWorksheet("📋 ข้อมูลการลาละเอียด (Detailed Records)", {
+        views: [{ showGridLines: true }]
+      });
+
+      // Headers
+      const headers = [
+        "ลำดับ",
+        "รหัสพนักงาน",
+        "ชื่อ-นามสกุล",
+        "ชื่อเล่น",
+        "แผนก",
+        "ตำแหน่ง",
+        "ประเภทการลา",
+        "วันที่เริ่มต้น",
+        "วันที่สิ้นสุด",
+        "จำนวนวันลา",
+        "เหตุผลการลา",
+        "สถานะหัวหน้า (L1)",
+        "สถานะผู้จัดการ (L2)",
+        "สถานะสุดท้าย HR (L3)",
+        "วันที่ยื่นคำขอ"
+      ];
+
+      const headerRow = detailSheet.getRow(1);
+      headerRow.values = headers;
+      headerRow.height = 26;
+
+      for (let c = 1; c <= headers.length; c++) {
+        const cell = headerRow.getCell(c);
+        cell.font = { name: "Sarabun", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0FA472" } };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.border = { top: { style: "thin" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" } };
+      }
+
+      // Populate Data
+      targetLeaves.forEach((r, idx) => {
+        const emp = r.employees || {};
+        const empCode = emp.employee_code || "-";
+        const empName = emp.full_name || "-";
+        const nickname = emp.nickname || "-";
+        const dept = emp.departments?.department_name || "-";
+        const position = emp.positions?.position_name || "-";
+        const leaveType = r.leave_types?.leave_name || "ไม่ระบุ";
+        const startDate = formatThaiDate(r.start_date);
+        const endDate = formatThaiDate(r.end_date);
+        const days = r.actual_days || r.days_requested || r.total_days || 0;
+        const reason = (r.reason || r.note || "-").replace(/[\r\n]+/g, " ");
+        
+        const mStatus = r.manager_status === 'approved' ? 'อนุมัติแล้ว' : r.manager_status === 'rejected' ? 'ไม่อนุมัติ' : 'รอพิจารณา';
+        const dStatus = r.director_status === 'approved' ? 'อนุมัติแล้ว' : r.director_status === 'rejected' ? 'ไม่อนุมัติ' : 'รอพิจารณา';
+        const hrStatus = r.status === 'approved' ? 'อนุมัติครบสมบูรณ์' : r.status === 'rejected' ? 'ไม่อนุมัติ' : isCancelRequestStatus(r.status) ? 'ขอยกเลิก' : 'รอ HR พิจารณา';
+        const createdAt = r.created_at ? new Date(r.created_at).toLocaleDateString("th-TH") : "-";
+
+        const row = detailSheet.getRow(idx + 2);
+        row.values = [
+          idx + 1,
+          empCode,
+          empName,
+          nickname,
+          dept,
+          position,
+          leaveType,
+          startDate,
+          endDate,
+          days,
+          reason,
+          mStatus,
+          dStatus,
+          hrStatus,
+          createdAt
+        ];
+        row.height = 20;
+
+        // สลับสีแถว (Zebra striping)
+        const isEven = idx % 2 === 0;
+        const rowBg = isEven ? "FFFFFFFF" : "FFF8FAFC";
+
+        for (let c = 1; c <= headers.length; c++) {
+          const cell = row.getCell(c);
+          cell.font = { name: "Sarabun", size: 10 };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
+          cell.border = { bottom: { style: "thin", color: { argb: "FFE2E8F0" } } };
+
+          if ([1, 2, 4, 8, 9, 10, 12, 13, 14, 15].includes(c)) {
+            cell.alignment = { vertical: "middle", horizontal: "center" };
+          } else {
+            cell.alignment = { vertical: "middle", horizontal: "left" };
+          }
+
+          // ไฮไลต์สถานะ
+          if (c === 14) {
+            if (r.status === 'approved') {
+              cell.font = { name: "Sarabun", size: 10, bold: true, color: { argb: "FF059669" } };
+            } else if (r.status === 'rejected') {
+              cell.font = { name: "Sarabun", size: 10, bold: true, color: { argb: "FFDC2626" } };
+            }
+          }
+        }
+      });
+
+      // ปรับขนาดคอลัมน์ให้สวยงาม
+      detailSheet.columns = [
+        { width: 8 },   // ลำดับ
+        { width: 14 },  // รหัส
+        { width: 24 },  // ชื่อ
+        { width: 12 },  // ชื่อเล่น
+        { width: 22 },  // แผนก
+        { width: 22 },  // ตำแหน่ง
+        { width: 18 },  // ประเภท
+        { width: 16 },  // เริ่ม
+        { width: 16 },  // สิ้นสุด
+        { width: 14 },  // จำนวนวัน
+        { width: 30 },  // เหตุผล
+        { width: 18 },  // L1
+        { width: 18 },  // L2
+        { width: 22 },  // L3
+        { width: 16 }   // วันที่ยื่น
+      ];
+    }
+
+    // ทำการแปลงและดาวน์โหลดไฟล์
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const timestamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `รายงานสรุปภาพรวมการลา_PVT_${timestamp}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    Swal.fire({
+      title: 'ดาวน์โหลดสำเร็จ!',
+      text: 'รายงานสรุปภาพรวมและข้อมูลการลาถูกสร้างเรียบร้อยแล้ว',
+      icon: 'success',
+      confirmButtonColor: '#0fa472'
+    });
+
+  } catch (err) {
+    console.error("💥 Excel Export Error:", err);
+    Swal.fire({
+      title: 'เกิดข้อผิดพลาด',
+      text: 'ไม่สามารถสร้างไฟล์ Excel ได้: ' + err.message,
+      icon: 'error',
+      confirmButtonColor: '#ef4444'
+    });
+  }
+}
+
+/* ==========================================================================
    🚪 8. GLOBAL EXPORTS & LOGOUT
    ========================================================================== */
 
@@ -1219,6 +1652,7 @@ window.previewLeaveModal = previewLeaveModal;
 window.closePreviewModal = closePreviewModal;
 window.openImageLightbox = openImageLightbox;
 window.closeImageLightbox = closeImageLightbox;
+window.exportLeaveReportExcel = exportLeaveReportExcel;
 
 window.handleLogout = function() {
   Swal.fire({

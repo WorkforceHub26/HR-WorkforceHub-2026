@@ -1070,3 +1070,49 @@ select.year-select option {
 .hidden-section {
   display: none !important;
 }
+
+/* ==========================================================================
+   📱 CROSS-PLATFORM & MOBILE RESPONSIVE ENHANCEMENTS
+   ========================================================================== */
+@media screen and (max-width: 640px) {
+  .app {
+    padding: 16px 12px 90px 12px;
+  }
+
+  .user-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .user-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+
+  .menu-card {
+    padding: 14px 10px;
+  }
+
+  .menu-card.card-highlight {
+    grid-column: span 2;
+  }
+
+  .btn-hero-leave {
+    padding: 14px 16px;
+  }
+
+  .btn-hero-icon {
+    font-size: 28px;
+  }
+
+  .recent-card {
+    padding: 16px 12px;
+  }
+}

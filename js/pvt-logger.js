@@ -47,9 +47,15 @@ const PVTLogger = {
     // 3. ยิงไปเซฟในตารางหลังบ้าน Supabase ทันทีแบบเงียบ ๆ
     if (this.config.sendToServer && sb) {
       try {
-        await sb.from('pvt_system_logs').insert(logPayload);
+        await sb.from('hr_admin_management_logs').insert([{
+          action_category: 'SYSTEM_LOG',
+          action_type: String(level || 'INFO'),
+          target_identifier: String(eventName || 'FRONTEND'),
+          description: String(message || '').substring(0, 500),
+          payload_after: logPayload
+        }]);
       } catch (dbErr) {
-        console.error('🚨 ไม่สามารถส่ง Log ไปฐานข้อมูลได้:', dbErr);
+        // เงียบไว้เพื่อไม่ให้กระทบ Flow หลัก
       }
     }
   },

@@ -340,6 +340,11 @@ async function initManagementSystem() {
 
     if (window.state) {
       window.state.currentUserProfile = profile;
+      if (typeof renderGlobalUserProfile === 'function') {
+         window.currentUserProfile = profile;
+         renderGlobalUserProfile();
+      }
+
     }
 
     const userRole = profile.role ? profile.role.toLowerCase() : 'user';
@@ -687,11 +692,10 @@ async function fetchAllPaginated(tableName, selectQuery = '*', filters = {}) {
 
 async function fetchEmployees() {
   try {
-    // 💡 เพิ่ม custom_fields และ title ในการดึงข้อมูล
     const query = `
       id, employee_code, title, full_name, nickname, phone, email, hospital,
       bank_account, line_id, image_url, start_date, status, role,
-      employment_type, department_id, position_id, custom_fields, 
+      employment_type, department_id, position_id,
       departments(department_name), positions(position_name)
     `;
     employees = await fetchAllPaginated("employees", query);
@@ -809,33 +813,72 @@ function fillDepartmentFilter() {
 }
 
 function renderSummary() {
-  const approvedRequests = leaveRequests.filter((item) => String(item.status).toLowerCase() === "approved");
-  const totalApprovedDays = approvedRequests.reduce((sum, item) => sum + Number(item.total_days || 0), 0);
+  const safeRequests = Array.isArray(leaveRequests) ? leaveRequests : [];
+  const safeEmployees = Array.isArray(employees) ? employees : [];
 
-  setText("statEmployees", employees.length);
-  setText("statLeaves", leaveRequests.length);
-  setText("statPending", leaveRequests.filter((item) => String(item.status).toLowerCase() === "pending").length);
-  setText("statDays", totalApprovedDays.toFixed(1).replace(/\.0$/, ""));
+  const approvedRequests = safeRequests.filter((item) => {
+    const st = String(item?.status || "").toLowerCase().trim();
+    return st === "approved" || st === "อนุมัติ" || st === "pass";
+  });
+  
+  const totalApprovedDays = approvedRequests.reduce((sum, item) => {
+    return sum + Number(item.actual_days ?? item.total_days ?? item.days_requested ?? item.days ?? 0);
+  }, 0);
 
-  renderBarChart("typeChart", groupByLeaveType());
-  renderBarChart("statusChart", groupByStatus(), true);
+  const pendingRequests = safeRequests.filter((item) => {
+    const st = String(item?.status || "").toLowerCase().trim();
+    return st === "pending" || st === "รออนุมัติ" || st === "cancel_pending" || st === "cancel_requested" || st === "ขอยกเลิก";
+  });
+
+  setText("statEmployees", safeEmployees.length);
+  setText("statLeaves", safeRequests.length);
+  setText("statPending", pendingRequests.length);
+  setText("statDays", totalApprovedDays > 0 ? totalApprovedDays.toFixed(1).replace(/\.0$/, "") : (safeRequests.length > 0 ? "0" : "0"));
+
+  const typeData = groupByLeaveType();
+  const statusData = groupByStatus();
+
+  renderBarChart("typeChart", typeData, false);
+  renderBarChart("statusChart", statusData, true);
 }
 
 function groupByLeaveType() {
+  const safeRequests = Array.isArray(leaveRequests) ? leaveRequests : [];
+  const approvedRequests = safeRequests.filter((item) => {
+    const st = String(item?.status || "").toLowerCase().trim();
+    return st === "approved" || st === "อนุมัติ" || st === "pass";
+  });
+
+  const dataset = approvedRequests.length > 0 ? approvedRequests : safeRequests;
+  const noteEl = document.getElementById("typeChartNote");
+  if (noteEl) {
+    noteEl.textContent = approvedRequests.length > 0 ? "อนุมัติแล้ว" : "คำขอทั้งหมด";
+    noteEl.className = approvedRequests.length > 0 ? "status active" : "status";
+  }
+
   const map = new Map();
-  leaveRequests.forEach((request) => {
-    if (String(request.status).toLowerCase() === "approved") {
-      const type = getLeaveType(request.leave_type_id)?.leave_name || "ไม่ระบุประเภท";
-      map.set(type, (map.get(type) || 0) + Number(request.total_days || 0));
-    }
+  dataset.forEach((request) => {
+    const type = request.leave_types?.leave_name || getLeaveType(request.leave_type_id)?.leave_name || "ไม่ระบุประเภท";
+    const days = Number(request.actual_days ?? request.total_days ?? request.days_requested ?? request.days ?? 1) || 1;
+    map.set(type, (map.get(type) || 0) + days);
   });
   return [...map.entries()].sort((a, b) => b[1] - a[1]);
 }
 
 function groupByStatus() {
+  const safeRequests = Array.isArray(leaveRequests) ? leaveRequests : [];
   const map = new Map();
-  leaveRequests.forEach((request) => {
-    const label = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(request.status) : (request.status || "-");
+  safeRequests.forEach((request) => {
+    let label = "รอพิจารณา";
+    const st = String(request?.status || "").toLowerCase().trim();
+    if (st === "approved" || st === "อนุมัติ" || st === "pass") label = "อนุมัติแล้ว";
+    else if (st === "rejected" || st === "ไม่อนุมัติ") label = "ไม่อนุมัติ";
+    else if (st === "cancelled" || st === "ยกเลิก") label = "ยกเลิกแล้ว";
+    else if (st === "cancel_pending" || st === "cancel_requested" || st === "ขอยกเลิก") label = "ขอยกเลิก";
+    else if (st === "pending" || st === "รออนุมัติ") label = "รอพิจารณา";
+    else if (window.pvtSupabase?.statusLabel) label = window.pvtSupabase.statusLabel(request.status);
+    else label = request.status || "อื่น ๆ";
+
     map.set(label, (map.get(label) || 0) + 1);
   });
   return [...map.entries()].sort((a, b) => b[1] - a[1]);
@@ -845,19 +888,41 @@ function renderBarChart(targetId, rows, countMode = false) {
   const target = document.getElementById(targetId);
   if (!target) return;
 
-  if (!rows.length) {
-    target.innerHTML = `<div class="empty">ยังไม่มีข้อมูลสำหรับแสดงกราฟ</div>`;
+  if (!rows || !rows.length) {
+    target.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-soft); font-size:14px;">ยังไม่มีข้อมูลสำหรับแสดงกราฟ</div>`;
     return;
   }
 
-  const max = Math.max(...rows.map(([, value]) => value), 1);
-  target.innerHTML = rows.map(([label, value]) => {
-    const pct = Math.max(4, Math.round((value / max) * 100));
-    const display = countMode ? `${value} รายการ` : `${Number(value).toFixed(1).replace(/\.0$/, "")} วัน`;
+  const max = Math.max(...rows.map(([, value]) => Number(value) || 0), 1);
+  const statusColorMap = {
+    "อนุมัติแล้ว": "linear-gradient(90deg, #0fa472 0%, #34d399 100%)",
+    "รอพิจารณา": "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)",
+    "ขอยกเลิก": "linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%)",
+    "ไม่อนุมัติ": "linear-gradient(90deg, #ef4444 0%, #f87171 100%)",
+    "ยกเลิกแล้ว": "linear-gradient(90deg, #64748b 0%, #94a3b8 100%)"
+  };
+
+  const typeColorGradients = [
+    "linear-gradient(90deg, #0fa472 0%, #34d399 100%)",
+    "linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)",
+    "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)",
+    "linear-gradient(90deg, #8b5cf6 0%, #c084fc 100%)",
+    "linear-gradient(90deg, #ef4444 0%, #f87171 100%)",
+    "linear-gradient(90deg, #ec4899 0%, #f472b6 100%)"
+  ];
+
+  target.innerHTML = rows.map(([label, value], idx) => {
+    const numVal = Number(value) || 0;
+    const pct = Math.max(6, Math.min(100, Math.round((numVal / max) * 100)));
+    const display = countMode ? `${numVal} รายการ` : `${numVal.toFixed(1).replace(/\.0$/, "")} วัน`;
+    const barGradient = statusColorMap[label] || typeColorGradients[idx % typeColorGradients.length];
+
     return `
       <div class="bar-row">
-        <strong>${escapeHtml(label)}</strong>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <strong title="${escapeHtml(label)}">${escapeHtml(label)}</strong>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%; background: ${barGradient};"></div>
+        </div>
         <span>${display}</span>
       </div>
     `;
@@ -994,14 +1059,117 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
                   <th style="padding:8px;">จำนวน</th>
                   <th style="padding:8px;">เหตุผล</th>
                   <th style="padding:8px;">สถานะ</th>
+                  <th style="padding:8px; text-align:center;">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
-                ${requests.length ? requests.map(renderLeaveRow).join("") : '<tr><td colspan="5" class="empty">ไม่มีประวัติการลา</td></tr>'}
+                ${requests.length ? requests.map(renderLeaveRow).join("") : '<tr><td colspan="6" class="empty" style="text-align:center; padding:12px; color:#64748b;">ไม่มีประวัติการลา</td></tr>'}
               </tbody>
             </table>
           </div>
         </div>
+      `;
+    }
+  } else {
+    // โหมดแก้ไข
+    if (title) title.innerHTML = `<span>แก้ไขพนักงาน: ${escapeHtml(emp.employee_code || "-")}</span>`;
+    
+    // สร้าง Dropdown แผนกและตำแหน่ง
+    const deptOptions = departments.map(d => `<option value="${d.id}" ${d.id === emp.department_id ? 'selected' : ''}>${escapeHtml(d.department_name)}</option>`).join("");
+    const roleOptions = positions.map(p => `<option value="${p.id}" ${p.id === emp.position_id ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`).join("");
+    
+    const empTypeOptions = [
+      { val: 'full_time', label: 'พนักงานประจำ (Full-time)' },
+      { val: 'part_time', label: 'พนักงานพาร์ทไทม์ (Part-time)' },
+      { val: 'contract', label: 'พนักงานสัญญาจ้าง (Contract)' },
+      { val: 'probation', label: 'ทดลองงาน (Probation)' }
+    ].map(t => `<option value="${t.val}" ${t.val === emp.employment_type ? 'selected' : ''}>${t.label}</option>`).join("");
+
+    if (body) {
+      body.innerHTML = `
+        <form id="inlineEditForm" onsubmit="event.preventDefault(); saveEmployeeInlineEdit('${emp.id}');" style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+            <div class="input-group">
+              <label>รหัสพนักงาน <span class="required">*</span></label>
+              <input type="text" id="inline-edit-code" class="text-input" value="${escapeHtml(emp.employee_code || '')}" required>
+            </div>
+            <div class="input-group">
+              <label>ชื่อ-นามสกุล <span class="required">*</span></label>
+              <input type="text" id="inline-edit-fullName" class="text-input" value="${escapeHtml(emp.full_name || '')}" required>
+            </div>
+            <div class="input-group">
+              <label>คำนำหน้าชื่อ</label>
+              <input type="text" id="inline-edit-title" class="text-input" value="${escapeHtml(emp.title || '')}">
+            </div>
+            <div class="input-group">
+              <label>ชื่อเล่น</label>
+              <input type="text" id="inline-edit-nickname" class="text-input" value="${escapeHtml(emp.nickname || '')}">
+            </div>
+          </div>
+          
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+            <div class="input-group">
+              <label>แผนก <span class="required">*</span></label>
+              <select id="inline-edit-dept" class="select-input" required>
+                <option value="">-- เลือกแผนก --</option>
+                ${deptOptions}
+              </select>
+            </div>
+            <div class="input-group">
+              <label>ตำแหน่ง <span class="required">*</span></label>
+              <select id="inline-edit-role" class="select-input" required>
+                <option value="">-- เลือกตำแหน่ง --</option>
+                ${roleOptions}
+              </select>
+            </div>
+            <div class="input-group">
+              <label>ประเภทพนักงาน <span class="required">*</span></label>
+              <select id="inline-edit-type" class="select-input" required>
+                <option value="">-- เลือกประเภทพนักงาน --</option>
+                ${empTypeOptions}
+              </select>
+            </div>
+            <div class="input-group">
+              <label>วันเริ่มงาน</label>
+              <input type="date" id="inline-edit-startDate" class="text-input" value="${emp.start_date ? emp.start_date.split('T')[0] : ''}">
+            </div>
+          </div>
+          
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+            <div class="input-group">
+              <label>เบอร์โทรศัพท์</label>
+              <input type="tel" id="inline-edit-phone" class="text-input" value="${escapeHtml(emp.phone || '')}">
+            </div>
+            <div class="input-group">
+              <label>อีเมล</label>
+              <input type="email" id="inline-edit-email" class="text-input" value="${escapeHtml(emp.email || '')}">
+            </div>
+            <div class="input-group">
+              <label>LINE ID</label>
+              <input type="text" id="inline-edit-lineId" class="text-input" value="${escapeHtml(emp.line_id || '')}">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+            <div class="input-group">
+              <label>โรงพยาบาล</label>
+              <input type="text" id="inline-edit-hospital" class="text-input" value="${escapeHtml(emp.hospital || '')}">
+            </div>
+            <div class="input-group">
+              <label>บัญชีธนาคาร</label>
+              <input type="text" id="inline-edit-bankAccount" class="text-input" value="${escapeHtml(emp.bank_account || '')}">
+            </div>
+            <div class="input-group">
+              <label>อัปเดตรูปประจำตัว</label>
+              <input type="file" id="inline-edit-img" class="file-input" accept="image/png, image/jpeg, image/jpg">
+            </div>
+          </div>
+          
+          <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #e2e8f0; padding-top:16px;">
+            <button type="button" class="btn-light" onclick="closeEmployeeModal()">ยกเลิก</button>
+            <button type="submit" class="btn-primary">บันทึกข้อมูล</button>
+          </div>
+        </form>
       `;
     }
   }
@@ -1245,22 +1413,16 @@ async function uploadEmployeeImage(supabase, employeeCode, fileObject) {
 // ==========================================================================
 async function getAllExistingCustomKeys(supabase) {
   try {
-    const { data } = await supabase
-      .from('employees')
-      .select('custom_fields')
-      .not('custom_fields', 'is', null);
-
+    const definitions = await getCustomFieldDefinitions(supabase);
     const keysSet = new Set();
-    data?.forEach(emp => {
-      if (emp.custom_fields && typeof emp.custom_fields === 'object') {
-        Object.keys(emp.custom_fields).forEach(key => {
-          if (key.trim()) keysSet.add(key.trim());
-        });
-      }
-    });
-    return Array.from(keysSet); // ได้อาเรย์ เช่น ['เลขผู้เสียภาษี', 'ไซส์เสื้อ', 'ชื่อผู้ปกครอง']
+    if (Array.isArray(definitions)) {
+      definitions.forEach(def => {
+        if (def && def.name) keysSet.add(def.name.trim());
+      });
+    }
+    return Array.from(keysSet);
   } catch (err) {
-    console.error("Error fetching custom keys:", err);
+    console.warn("Error fetching custom keys:", err);
     return [];
   }
 }

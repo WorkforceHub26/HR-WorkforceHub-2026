@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   
+  <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
   
  
@@ -66,8 +67,13 @@
       <!-- TOPBAR -->
       <header class="topbar">
         <div class="topbar-left">
-          <h1>ภาพรวมระบบบริหารจัดการใบลา</h1>
-          <p>PVT HR Live Tracking System</p>
+          <button class="mobile-menu-btn" title="เปิดเมนู">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+          <div>
+            <h1>ภาพรวมระบบบริหารจัดการใบลา</h1>
+            <p>PVT HR Live Tracking System</p>
+          </div>
         </div>
         <div class="topbar-right">
 
@@ -284,9 +290,9 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- 2. Your JS Files (ใช้ ../../ เพื่อถอยออกจาก pages/hr/ ไปหาโฟลเดอร์ js นอกสุด) -->
-<script src="../../js/supabase-config.js"></script>
-<script src="../../js/auth-guard.js"></script>
-<script src="../../js/home.js"></script>
+<!-- 2. Your JS Files -->
+<script src="/js/supabase-config.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script src="/js/home.js"></script>
 </body>
 </html>

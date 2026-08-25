@@ -472,7 +472,7 @@ function checkApproverPermission(profileData) {
   if (!switchBtn || !profileData?.role) return;
 
   const userRole = (profileData.role || "").toLowerCase();
-  const approverRoles = ["leader", "manager", "director", "hr", "admin"];
+  const approverRoles = ["leader", "manager", "director", "executive", "owner", "hr", "admin"];
   const isApprover = approverRoles.includes(userRole);
 
   switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
@@ -506,7 +506,7 @@ async function fetchEmployeeLeaveStatusCount(profile) {
 
 function openNotificationModal() {
   const userRole = (window.currentProfile?.role || "").toLowerCase();
-  const approverRoles = ["leader", "manager", "director", "hr", "admin"];
+  const approverRoles = ["leader", "manager", "director", "executive", "owner", "hr", "admin"];
 
   if (approverRoles.includes(userRole)) {
     openApproverNotificationModal();

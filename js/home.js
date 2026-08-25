@@ -60,14 +60,7 @@ function initializeSupabaseConnection() {
 }
 
 function setupSidebarToggle() {
-  const toggleBtn = document.getElementById("toggleSidebar");
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", () => {
-      document.querySelector(".sidebar")?.classList.toggle("collapsed");
-      document.querySelector(".sidebar-light")?.classList.toggle("collapsed");
-      document.querySelector(".main-content")?.classList.toggle("expanded");
-    });
-  }
+  // Handled globally by auth-guard.js
 }
 
 function setupBellNotificationToggle() {
@@ -110,24 +103,70 @@ window.refreshDashboardData = async function() {
   }
 
   try {
-      // 🟢 เปลี่ยนจากแบบเดิมที่ระบุ FK hint เป็นแบบนี้
-      const [resRequests, resEmployees] = await Promise.all([
-        sb.from("leave_requests").select("*, employees(*, departments(department_name)), leave_types(*)"),
-        sb.from("employees").select("*, departments(department_name)")
+    // 🟢 ดึงข้อมูลแบบสมบูรณ์พร้อม Fallback ป้องกัน Join Error
+    let resRequests = null;
+    let resEmployees = null;
+    let resLeaveTypes = null;
+
+    try {
+      const results = await Promise.all([
+        sb.from("leave_requests").select(`
+          *,
+          employees (
+            id, employee_code, full_name, first_name, last_name, nickname, role, image_url, department_id,
+            departments ( id, department_name ),
+            positions ( position_name )
+          ),
+          leave_types ( id, leave_code, leave_name )
+        `).order("created_at", { ascending: false }),
+        sb.from("employees").select("*, departments(id, department_name), positions(position_name)"),
+        sb.from("leave_types").select("*")
       ]);
+      resRequests = results[0];
+      resEmployees = results[1];
+      resLeaveTypes = results[2];
+    } catch (joinErr) {
+      console.warn("⚠️ Complex Join Query Failed, retrying simple select:", joinErr);
+      const fallbackResults = await Promise.all([
+        sb.from("leave_requests").select("*").order("created_at", { ascending: false }),
+        sb.from("employees").select("*"),
+        sb.from("leave_types").select("*")
+      ]);
+      resRequests = fallbackResults[0];
+      resEmployees = fallbackResults[1];
+      resLeaveTypes = fallbackResults[2];
+    }
 
-    if (resRequests.error) console.error("❌ Supabase Request Error:", resRequests.error);
-    if (resEmployees.error) console.error("❌ Supabase Employees Error:", resEmployees.error);
+    if (resRequests?.error) console.error("❌ Supabase Request Error:", resRequests.error);
+    if (resEmployees?.error) console.error("❌ Supabase Employees Error:", resEmployees.error);
 
-    rawRequests = resRequests.data || [];
-    rawEmployees = resEmployees.data || [];
+    rawRequests = resRequests?.data || [];
+    rawEmployees = resEmployees?.data || [];
+    const allLeaveTypes = resLeaveTypes?.data || [];
+
+    // ผูกข้อมูลสัมพันธ์เพิ่มเติมเพื่อความสมบูรณ์ 100%
+    const empMap = new Map((rawEmployees || []).map(e => [String(e.id), e]));
+    const typeMap = new Map((allLeaveTypes || []).map(t => [String(t.id), t]));
+
+    rawRequests.forEach(r => {
+      if (!r.employees && r.employee_id) {
+        r.employees = empMap.get(String(r.employee_id)) || null;
+      }
+      if (!r.leave_types && r.leave_type_id) {
+        r.leave_types = typeMap.get(String(r.leave_type_id)) || null;
+      }
+    });
 
     if (rawRequests.length === 0 && rawEmployees.length === 0) {
       rawRequests = mockRequests;
       rawEmployees = mockEmployees;
     }
 
-    const pendingCount = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ")).length;
+    const pendingCount = rawRequests.filter(r => {
+      if (!r || !r.status) return false;
+      const st = String(r.status).toLowerCase();
+      return st === "pending" || st === "รออนุมัติ" || st === "cancel_pending" || st === "cancel_requested";
+    }).length;
     
     const todayStr = new Date().toISOString().split('T')[0];
     const todayLeavesCount = rawRequests.filter(r => {
@@ -152,10 +191,7 @@ window.refreshDashboardData = async function() {
 };
 
 /* ==========================================================================
-   5. 📊 CHARTS & TOP LEAVE TAKERS
-   ========================================================================== */
-/* ==========================================================================
-   5. 📊 CHARTS & TOP LEAVE TAKERS (FIXED STATUS FILTER)
+   5. 📊 CHARTS & TOP LEAVE TAKERS (ENHANCED ENGINE)
    ========================================================================== */
 // ประกาศตัวแปร Global สำหรับเก็บ Chart Instance (ป้องกัน ReferenceError)
 if (typeof window.chartTypeInstance === "undefined") window.chartTypeInstance = null;
@@ -164,11 +200,12 @@ if (typeof window.chartDeptInstance === "undefined") window.chartDeptInstance = 
 function drawCharts() {
   // 1. ตรวจสอบว่ามีไลบรารี Chart.js หรือไม่
   if (typeof Chart === "undefined") {
-    console.warn("⚠️ Chart.js library not loaded");
+    console.warn("⚠️ Chart.js library not loaded yet, retrying in 300ms...");
+    setTimeout(drawCharts, 300);
     return;
   }
 
-  // 2. ป้องกัน TypeError กรณี rawRequests ยังไม่ถูกประกาศ หรือส่งมาเป็น null/undefined
+  // 2. ข้อมูลคำขอที่ปลอดภัย
   const safeRequests = Array.isArray(typeof rawRequests !== "undefined" ? rawRequests : null)
     ? rawRequests
     : [];
@@ -176,36 +213,43 @@ function drawCharts() {
   const canvasType = document.getElementById("chartLeaveTypes");
   const canvasDept = document.getElementById("chartDepartments");
 
-  // 🟢 กรองเฉพาะรายการที่ "อนุมัติแล้ว" (รองรับทั้งภาษาไทยและภาษาอังกฤษ)
+  // 🟢 กรองรายการที่อนุมัติแล้ว
   const approvedRequests = safeRequests.filter(r => {
     if (!r || !r.status) return false;
     const st = String(r.status).trim().toLowerCase();
-    return st === "approved" || st === "อนุมัติ";
+    return st === "approved" || st === "อนุมัติ" || st === "pass";
   });
 
-  const hasData = approvedRequests.length > 0;
+  // หากไม่มีรายการอนุมัติเลย ให้ใช้ข้อมูลทั้งหมดเพื่อแสดงโครงสร้างกราฟพร้อมระบุข้อมูล
+  const activeDataset = approvedRequests.length > 0 ? approvedRequests : safeRequests;
+  const isApprovedData = approvedRequests.length > 0;
+  const hasData = activeDataset.length > 0;
 
   // --- 1. กราฟสัดส่วนประเภทการลา ---
   if (canvasType) {
     const typeSummary = {};
     let totalCount = 0;
 
-    approvedRequests.forEach(r => {
+    activeDataset.forEach(r => {
       const typeName = r.leave_types?.leave_name || r.leave_type_name || "อื่น ๆ";
       typeSummary[typeName] = (typeSummary[typeName] || 0) + 1;
       totalCount++;
     });
 
     const headerTotalEl = document.getElementById("leaveTypeTotalHeader");
-    if (headerTotalEl) headerTotalEl.textContent = `(รวม ${totalCount} รายการ)`;
+    if (headerTotalEl) {
+      headerTotalEl.textContent = isApprovedData 
+        ? `(อนุมัติแล้ว ${totalCount} รายการ)` 
+        : `(รวม ${totalCount} รายการ)`;
+    }
 
     const centerTotalEl = document.getElementById("leaveTypeTotalCenter");
     if (centerTotalEl) centerTotalEl.textContent = totalCount;
 
-    const typeLabels = Object.keys(typeSummary);
-    const typeValues = Object.values(typeSummary);
-    const colorPalette = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
-    const bgColors = typeLabels.map((_, i) => colorPalette[i % colorPalette.length]);
+    const typeLabels = hasData ? Object.keys(typeSummary) : ["ไม่มีข้อมูล"];
+    const typeValues = hasData ? Object.values(typeSummary) : [1];
+    const colorPalette = ['#0fa472', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899', '#06b6d4', '#64748b'];
+    const bgColors = hasData ? typeLabels.map((_, i) => colorPalette[i % colorPalette.length]) : ['#e2e8f0'];
 
     // เคลียร์กราฟเก่า
     if (window.chartTypeInstance) {
@@ -217,10 +261,10 @@ function drawCharts() {
     window.chartTypeInstance = new Chart(canvasType.getContext("2d"), {
       type: 'doughnut',
       data: {
-        labels: hasData ? typeLabels : ["ไม่มีข้อมูล"],
+        labels: typeLabels,
         datasets: [{
-          data: hasData ? typeValues : [1],
-          backgroundColor: hasData ? bgColors : ['#e2e8f0'],
+          data: typeValues,
+          backgroundColor: bgColors,
           borderWidth: 2,
           borderColor: '#ffffff',
           hoverOffset: 4
@@ -242,7 +286,7 @@ function drawCharts() {
             }
           }
         },
-        cutout: '72%'
+        cutout: '70%'
       }
     });
 
@@ -255,15 +299,14 @@ function drawCharts() {
   if (canvasDept) {
     const deptSummary = {};
 
-    approvedRequests.forEach(r => {
-      // ดึงชื่อแผนกโดยรองรับทั้ง Object และ Array จาก Supabase Relation
+    activeDataset.forEach(r => {
       const deptObj = r.employees?.departments;
       const deptName = (Array.isArray(deptObj) ? deptObj[0]?.department_name : deptObj?.department_name)
         || r.department
-        || "ไม่ระบุแผนก";
+        || "ส่วนกลาง / ไม่ระบุ";
 
-      const rawDays = r.total_days ?? r.days ?? 1;
-      const days = parseFloat(rawDays) || 0;
+      const rawDays = r.actual_days ?? r.total_days ?? r.days_requested ?? r.days ?? 1;
+      const days = parseFloat(rawDays) || 1;
 
       deptSummary[deptName] = (deptSummary[deptName] || 0) + days;
     });
@@ -308,13 +351,17 @@ function drawCharts() {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { family: 'Sarabun', size: 12 } }
+            ticks: { 
+              font: { family: 'Sarabun', size: 12 },
+              color: '#64748b'
+            }
           },
           y: {
             beginAtZero: true,
             ticks: {
               precision: 0,
               font: { family: 'Sarabun', size: 12 },
+              color: '#64748b',
               callback: function(val) { return val + ' วัน'; }
             },
             grid: { color: '#f1f5f9' }
@@ -326,7 +373,7 @@ function drawCharts() {
 
   // --- 3. อันดับพนักงานที่ลาเยอะที่สุด ---
   if (typeof renderTopLeaveEmployees === "function") {
-    renderTopLeaveEmployees(approvedRequests);
+    renderTopLeaveEmployees(activeDataset);
   }
 }
 
