@@ -20,8 +20,8 @@ let hasExecutiveColumn = false;
 
     const isAllowedRole = (
       fastRole === "hr" || fastRole === "admin" || fastRole === "director" || 
-      fastRole === "manager" || fastRole === "leader" ||
-      fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า")
+      fastRole === "manager" || fastRole === "leader" || fastRole === "executive" || fastRole === "owner" ||
+      fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า") || fastPosition.includes("บริหาร")
     );
 
     if (!isAllowedRole) {
@@ -449,6 +449,7 @@ function canApproveStep(req, role) {
   // ดึง Role ของ "ผู้ยื่นขอลา"
   const applicantRole = String(req.employees?.role || '').toLowerCase();
   const isApplicantHeadOrHr = ['leader', 'manager', 'director', 'hr', 'admin'].includes(applicantRole);
+  const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
 
   // 🔵 2. กรณีผู้จัดการ (L2) กำลังพิจารณา
   if (role === 'manager') {
@@ -461,6 +462,10 @@ function canApproveStep(req, role) {
 
   // 🟡 3. กรณีผู้บริหาร (L3) กำลังพิจารณา ในระบบ 4 ขั้นตอน
   if (hasExecutiveColumn && (role === 'executive' || role === 'director' || role === 'owner')) {
+    if (!isApplicantLeaderOrManager) {
+      Swal.fire('ไม่จำเป็นต้องอนุมัติ', 'พนักงานท่านนี้ไม่จำเป็นต้องผ่านการอนุมัติจากผู้บริหาร (L3)', 'info');
+      return false;
+    }
     if (req.director_status !== 'approved') {
       Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
       return false;
@@ -470,9 +475,17 @@ function canApproveStep(req, role) {
   // 🟢 4. กรณีฝ่าย HR / Admin กำลังพิจารณา
   if (role === 'hr' || role === 'admin') {
     if (hasExecutiveColumn) {
-      if (req.executive_status !== 'approved') {
-        Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้บริหาร (L3)" พิจารณาอนุมัติก่อน', 'warning');
-        return false;
+      if (isApplicantLeaderOrManager) {
+        if (req.executive_status !== 'approved') {
+          Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้บริหาร (L3)" พิจารณาอนุมัติก่อน', 'warning');
+          return false;
+        }
+      } else {
+        // พนักงานธรรมดา ไม่ต้องรอ L3 (ข้ามไปได้เลย) แต่ต้องผ่าน L2 (ผู้จัดการฝ่าย) ก่อน
+        if (req.director_status !== 'approved') {
+          Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
+          return false;
+        }
       }
     } else {
       // ระบบ 3 ขั้นตอนปกติ: ต้องรอ L2 ก่อน (ถ้าผู้ยื่นไม่ใช่ระดับหัวหน้า/HR)
@@ -575,12 +588,22 @@ function renderLeaveTable() {
       const execStatus = req.executive_status || 'pending';
       const hrStatus = req.status || 'pending';
 
+      const applicantRole = String(req.employees?.role || '').toLowerCase();
+      const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+
       if (stepFilter === "pending_manager") return mStatus === 'pending';
       if (stepFilter === "pending_director") return mStatus === 'approved' && dStatus === 'pending';
-      if (stepFilter === "pending_executive") return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'pending';
+      if (stepFilter === "pending_executive") {
+        if (!isApplicantLeaderOrManager) return false;
+        return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'pending';
+      }
       if (stepFilter === "pending_hr") {
         if (hasExecutiveColumn) {
-          return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'approved' && hrStatus === 'pending';
+          if (isApplicantLeaderOrManager) {
+            return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'approved' && hrStatus === 'pending';
+          } else {
+            return mStatus === 'approved' && dStatus === 'approved' && hrStatus === 'pending';
+          }
         } else {
           return mStatus === 'approved' && dStatus === 'approved' && hrStatus === 'pending';
         }
@@ -643,10 +666,18 @@ function renderLeaveTable() {
 
     let statusColumnsHTML = "";
     if (hasExecutiveColumn) {
+      const isApplicantLeaderOrManager = ['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase());
+      let executiveCell = "";
+      if (isApplicantLeaderOrManager) {
+        executiveCell = `<td class="text-center">${getStatusBadgeHTML(req.executive_status)}</td>`;
+      } else {
+        executiveCell = `<td class="text-center" style="color: #cbd5e1; font-weight: 300;">-</td>`;
+      }
+
       statusColumnsHTML = `
         <td class="text-center">${getStatusBadgeHTML(req.manager_status)}</td>
         <td class="text-center">${getStatusBadgeHTML(req.director_status)}</td>
-        <td class="text-center">${getStatusBadgeHTML(req.executive_status)}</td>
+        ${executiveCell}
         <td class="text-center">${getStatusBadgeHTML(req.status)}</td>
       `;
     } else {
@@ -808,12 +839,14 @@ function previewLeaveModal(leaveId) {
           ${getStatusBadgeHTML(req.director_status)}
         </div>
         ${hasExecutiveColumn ? `
+        ${['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase()) ? `
         <div class="step-card">
           <span class="role-title">3. ผู้บริหาร (L3)</span>
           ${getStatusBadgeHTML(req.executive_status)}
         </div>
+        ` : ''}
         <div class="step-card">
-          <span class="role-title">4. ฝ่าย HR (L4)</span>
+          <span class="role-title">${['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase()) ? '4. ฝ่าย HR (L4)' : '3. ฝ่าย HR (L3)'}</span>
           ${getStatusBadgeHTML(req.status)}
         </div>
         ` : `
@@ -907,6 +940,14 @@ async function approveLeave(leaveId) {
       updateFields.manager_status = 'approved';
     } else if (currentRole === 'manager') {
       updateFields.director_status = 'approved';
+      // ถ้าเป็นพนักงานทั่วไป ไม่ต้องมีผู้บริหาร (L3) อนุมัติ ให้เปลี่ยนสถานะ executive_status เป็น 'approved' ควบคู่ไปด้วยเลย เพื่อความสมบูรณ์ของประวัติใน DB
+      if (hasExecutiveColumn) {
+        const applicantRole = String(reqData.employees?.role || '').toLowerCase();
+        const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+        if (!isApplicantLeaderOrManager) {
+          updateFields.executive_status = 'approved';
+        }
+      }
     } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
       if (hasExecutiveColumn) {
         updateFields.executive_status = 'approved';
@@ -1461,7 +1502,7 @@ async function exportLeaveReportExcel() {
     title: '<span style="color:#0f172a; font-weight:700; font-size:20px;">📊 ดาวน์โหลดรายงานการลา Excel</span>',
     html: `
       <div style="text-align: left; font-family: 'Sarabun', sans-serif; font-size: 14px; color: #475569; display:flex; flex-direction:column; gap:14px;">
-        <p>เลือกประเภทและขอบเขตข้อมูลที่ต้องการส่งออกเป็นรายงานระดับผู้บริหาร:</p>
+        <p>เลือกประเภทและขอบเขตข้อมูลที่ต้องการส่งออกเป็นรายงานและนำเข้าเครื่องมือคำนวณเงินเดือน (Payroll):</p>
         
         <div>
           <label style="font-weight: 600; color: #1e293b; display: block; margin-bottom: 4px;">รูปแบบรายงาน:</label>
@@ -1476,10 +1517,36 @@ async function exportLeaveReportExcel() {
           <label style="font-weight: 600; color: #1e293b; display: block; margin-bottom: 4px;">ตัวกรองสถานะ:</label>
           <select id="swalExportStatus" class="swal2-select" style="width: 100%; margin: 0; height: 42px; border-radius: 8px; font-size: 13.5px; border-color: #cbd5e1;">
             <option value="all">-- รวมทุกสถานะ (All Statuses) --</option>
-            <option value="approved">เฉพาะที่ "อนุมัติแล้ว" (Approved Only)</option>
+            <option value="approved" selected>เฉพาะที่ "อนุมัติแล้ว" (Approved Only - แนะนำสำหรับทำเงินเดือน)</option>
             <option value="pending">เฉพาะที่ "รอพิจารณา" (Pending Only)</option>
             <option value="rejected">เฉพาะที่ "ไม่อนุมัติ / ยกเลิก" (Rejected/Cancelled)</option>
           </select>
+        </div>
+
+        <div>
+          <label style="font-weight: 600; color: #1e293b; display: block; margin-bottom: 4px;">รอบระยะเวลา (วีค / 15 วัน เพื่อคำนวณเงินเดือน):</label>
+          <select id="swalExportPeriod" class="swal2-select" style="width: 100%; margin: 0; height: 42px; border-radius: 8px; font-size: 13.5px; border-color: #cbd5e1;">
+            <option value="all_time" selected>แสดงทั้งหมด (All dates)</option>
+            <option value="first_15_cur">📅 วีคที่ 1: วันที่ 1 - 15 ของเดือนนี้</option>
+            <option value="last_15_cur">📅 วีคที่ 2: วันที่ 16 - สิ้นเดือน ของเดือนนี้</option>
+            <option value="first_15_prev">📅 วีคที่ 1: วันที่ 1 - 15 ของเดือนที่แล้ว</option>
+            <option value="last_15_prev">📅 วีคที่ 2: วันที่ 16 - สิ้นเดือน ของเดือนที่แล้ว</option>
+            <option value="weekly_cur">📅 สัปดาห์ปัจจุบัน (7 วันล่าสุด)</option>
+            <option value="custom_range">⚙️ กำหนดช่วงวันที่เอง (Custom Range)</option>
+          </select>
+        </div>
+
+        <div id="swalCustomDatesContainer" style="display: none; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 8px; background: #f8fafc; gap: 8px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight:600; color:#475569;">วันที่เริ่มต้น:</label>
+              <input type="date" id="swalStartDate" class="swal2-input" style="width: 100%; margin: 4px 0 0 0; height: 38px; border-radius: 6px; font-size: 13px; padding: 4px 8px;">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight:600; color:#475569;">วันที่สิ้นสุด:</label>
+              <input type="date" id="swalEndDate" class="swal2-input" style="width: 100%; margin: 4px 0 0 0; height: 38px; border-radius: 6px; font-size: 13px; padding: 4px 8px;">
+            </div>
+          </div>
         </div>
       </div>
     `,
@@ -1489,10 +1556,26 @@ async function exportLeaveReportExcel() {
     confirmButtonColor: '#0fa472',
     cancelButtonColor: '#64748b',
     focusConfirm: false,
+    didOpen: () => {
+      const selectPeriod = document.getElementById('swalExportPeriod');
+      const customDatesDiv = document.getElementById('swalCustomDatesContainer');
+      if (selectPeriod && customDatesDiv) {
+        selectPeriod.addEventListener('change', (e) => {
+          if (e.target.value === 'custom_range') {
+            customDatesDiv.style.display = 'flex';
+          } else {
+            customDatesDiv.style.display = 'none';
+          }
+        });
+      }
+    },
     preConfirm: () => {
       return {
         format: document.getElementById('swalExportFormat').value,
-        statusFilter: document.getElementById('swalExportStatus').value
+        statusFilter: document.getElementById('swalExportStatus').value,
+        period: document.getElementById('swalExportPeriod').value,
+        startDate: document.getElementById('swalStartDate')?.value || '',
+        endDate: document.getElementById('swalEndDate')?.value || ''
       };
     }
   });
@@ -1529,6 +1612,56 @@ async function exportLeaveReportExcel() {
       }
     }
 
+    // 🟢 ประยุกต์ใช้ตัวกรองรอบระยะเวลา (วีค / 15 วัน)
+    const today = new Date();
+    const curYear = today.getFullYear();
+    const curMonth = today.getMonth();
+
+    let rangeStart = null;
+    let rangeEnd = null;
+
+    if (exportOption.period === 'first_15_cur') {
+      rangeStart = new Date(curYear, curMonth, 1);
+      rangeEnd = new Date(curYear, curMonth, 15, 23, 59, 59);
+    } else if (exportOption.period === 'last_15_cur') {
+      rangeStart = new Date(curYear, curMonth, 16);
+      rangeEnd = new Date(curYear, curMonth + 1, 0, 23, 59, 59);
+    } else if (exportOption.period === 'first_15_prev') {
+      let prevMonth = curMonth - 1;
+      let prevYear = curYear;
+      if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear--;
+      }
+      rangeStart = new Date(prevYear, prevMonth, 1);
+      rangeEnd = new Date(prevYear, prevMonth, 15, 23, 59, 59);
+    } else if (exportOption.period === 'last_15_prev') {
+      let prevMonth = curMonth - 1;
+      let prevYear = curYear;
+      if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear--;
+      }
+      rangeStart = new Date(prevYear, prevMonth, 16);
+      rangeEnd = new Date(prevYear, prevMonth + 1, 0, 23, 59, 59);
+    } else if (exportOption.period === 'weekly_cur') {
+      rangeStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      rangeEnd = new Date(today.getTime());
+    } else if (exportOption.period === 'custom_range' && exportOption.startDate && exportOption.endDate) {
+      rangeStart = new Date(exportOption.startDate);
+      rangeEnd = new Date(exportOption.endDate + 'T23:59:59');
+    }
+
+    if (rangeStart && rangeEnd) {
+      targetLeaves = targetLeaves.filter(r => {
+        if (!r.start_date || !r.end_date) return false;
+        const lStart = new Date(r.start_date);
+        const lEnd = new Date(r.end_date);
+        // เช็คการคาบเกี่ยวของช่วงวันที่ลาและรอบการสแกน
+        return lStart <= rangeEnd && lEnd >= rangeStart;
+      });
+    }
+
     // -------------------------------------------------------------
     // 🌟 SHEET 1: สรุปภาพรวม (Executive Leave Dashboard)
     // -------------------------------------------------------------
@@ -1547,7 +1680,11 @@ async function exportLeaveReportExcel() {
 
     summarySheet.mergeCells("A2:G2");
     const subHeader = summarySheet.getCell("A2");
-    subHeader.value = `วันที่สร้างรายงาน: ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })} | สิทธิ์การเข้าถึง: HR & ผู้บริหาร`;
+    let filterPeriodText = "รอบเวลา: ทั้งหมด";
+    if (rangeStart && rangeEnd) {
+      filterPeriodText = `รอบเวลา: ${rangeStart.toLocaleDateString("th-TH")} ถึง ${rangeEnd.toLocaleDateString("th-TH")}`;
+    }
+    subHeader.value = `วันที่สร้างรายงาน: ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })} | ${filterPeriodText} | สิทธิ์: HR`;
     subHeader.font = { name: "Sarabun", size: 10, italic: true, color: { argb: "FF475569" } };
     subHeader.alignment = { vertical: "middle", horizontal: "center" };
     summarySheet.getRow(2).height = 20;
@@ -1712,6 +1849,7 @@ async function exportLeaveReportExcel() {
         "แผนก",
         "ตำแหน่ง",
         "ประเภทการลา",
+        "สิทธิ์จ่ายเงิน (Paid/Unpaid)",
         "วันที่เริ่มต้น",
         "วันที่สิ้นสุด",
         "จำนวนวันลา",
@@ -1743,6 +1881,7 @@ async function exportLeaveReportExcel() {
         const dept = emp.departments?.department_name || "-";
         const position = emp.positions?.position_name || "-";
         const leaveType = r.leave_types?.leave_name || "ไม่ระบุ";
+        const isPaidText = r.leave_types?.paid_leave ? "ได้รับค่าจ้าง (Paid)" : "หักค่าจ้าง (Unpaid)";
         const startDate = formatThaiDate(r.start_date);
         const endDate = formatThaiDate(r.end_date);
         const days = r.actual_days || r.days_requested || r.total_days || 0;
@@ -1762,6 +1901,7 @@ async function exportLeaveReportExcel() {
           dept,
           position,
           leaveType,
+          isPaidText,
           startDate,
           endDate,
           days,
@@ -1783,14 +1923,24 @@ async function exportLeaveReportExcel() {
           cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: rowBg } };
           cell.border = { bottom: { style: "thin", color: { argb: "FFE2E8F0" } } };
 
-          if ([1, 2, 4, 8, 9, 10, 12, 13, 14, 15].includes(c)) {
+          // ปรับการจัดแนว (ลำดับ, รหัส, ชื่อเล่น, วันที่เริ่มต้น, วันที่สิ้นสุด, จำนวนวัน, L1, L2, L3, วันที่ยื่น, สิทธิ์จ่ายเงิน)
+          if ([1, 2, 4, 8, 9, 10, 11, 13, 14, 15, 16].includes(c)) {
             cell.alignment = { vertical: "middle", horizontal: "center" };
           } else {
             cell.alignment = { vertical: "middle", horizontal: "left" };
           }
 
-          // ไฮไลต์สถานะ
-          if (c === 14) {
+          // ไฮไลต์สิทธิ์จ่ายเงิน
+          if (c === 8) {
+            if (r.leave_types?.paid_leave) {
+              cell.font = { name: "Sarabun", size: 10, bold: true, color: { argb: "FF059669" } };
+            } else {
+              cell.font = { name: "Sarabun", size: 10, bold: true, color: { argb: "FFD97706" } };
+            }
+          }
+
+          // ไฮไลต์สถานะสุดท้าย L3
+          if (c === 15) {
             if (r.status === 'approved') {
               cell.font = { name: "Sarabun", size: 10, bold: true, color: { argb: "FF059669" } };
             } else if (r.status === 'rejected') {
@@ -1809,6 +1959,7 @@ async function exportLeaveReportExcel() {
         { width: 22 },  // แผนก
         { width: 22 },  // ตำแหน่ง
         { width: 18 },  // ประเภท
+        { width: 22 },  // สิทธิ์จ่ายเงิน (NEW!)
         { width: 16 },  // เริ่ม
         { width: 16 },  // สิ้นสุด
         { width: 14 },  // จำนวนวัน
@@ -1885,4 +2036,3 @@ window.handleLogout = function() {
     }
   });
 };
-

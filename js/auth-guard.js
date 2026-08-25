@@ -145,8 +145,12 @@ document.addEventListener("DOMContentLoaded", async () => {
    ========================================================================== */
 
 function redirectToDashboard(role) {
-  // ทุกบทบาท (รวมถึง HR และ Admin) ให้เข้าหน้าหลักพนักงาน (/pages/user/index-user.html) เหมือนพนักงานทั่วไป
-  const targetPath = "/pages/user/index-user.html";
+  const cleanRole = String(role || '').toLowerCase();
+  let targetPath = "/pages/user/index-user.html";
+  
+  if (['executive', 'director', 'owner', 'hr', 'admin'].includes(cleanRole)) {
+    targetPath = "/pages/hr/home.html";
+  }
 
   // ⚡ ใช้ location.replace แบบกำหนด origin ครบถ้วน 
   // เพื่อล้างค่า ?auto_login=... ออกจาก URL และบังคับย้ายหน้าทันทีโดยไม่ต้องกด Refresh

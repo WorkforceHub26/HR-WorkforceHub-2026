@@ -9,9 +9,14 @@ function getSbClient() {
       || window.supabase;
 }
 
-// 🚀 1. ฟังก์ชันย้ายหน้าจอ (ทุกบทบาทรวม HR/Admin เข้าสู่หน้าพนักงานเหมือนกันหมด)
+// 🚀 1. ฟังก์ชันย้ายหน้าจอ
 function redirectToDashboard(role) {
-  const targetPath = "/pages/user/index-user.html";
+  const cleanRole = String(role || '').toLowerCase();
+  let targetPath = "/pages/user/index-user.html";
+  
+  if (['executive', 'director', 'owner', 'hr', 'admin'].includes(cleanRole)) {
+    targetPath = "/pages/hr/home.html";
+  }
   window.location.replace(window.location.origin + targetPath);
 }
 
