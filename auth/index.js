@@ -13,7 +13,7 @@ function getSbClient() {
 function redirectToDashboard(role) {
   const cleanRole = String(role || "").toLowerCase();
   const targetPath = (cleanRole === "hr" || cleanRole === "admin") 
-    ? "/pages/hr/hr.html" 
+    ? "/pages/user/index-user.html" 
     : "/pages/user/index-user.html";
     
   // ใช้ location.replace เพื่อไม่ให้เก็บ History ของ URL ที่มี Token
