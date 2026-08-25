@@ -518,34 +518,41 @@ async function resetYearlyLeave(isForce = false) {
   if (!window.Swal) return;
 
   const currentYear = new Date().getFullYear();
-  const nextYear = currentYear + 1; // ปี 2027
+  const nextYear = currentYear + 1;
 
-  // แสดง Popup UI เลือกปีและยืนยันการเจนโควตา
+  // แสดง Popup UI เลือกปีและยืนยันการเจนโควตา (ขยายตัวเลือกให้รองรับปีก่อนๆ และปีหน้า)
   const { value: formValues } = await Swal.fire({
-    title: '📅 เจนโควตาวันลาประจำปีล่วงหน้า',
+    title: '📅 เจน & รีเซ็ตโควตาวันลาประจำปี',
     width: 'min(90vw, 480px)',
     html: `
-      <div style="text-align:left; font-family:'Sarabun', sans-serif;">
+      <div style="text-align:left; font-family:'Sarabun', sans-serif; line-height: 1.5;">
         <div style="margin-bottom: 14px;">
-          <label style="font-size:13px; font-weight:600; color:#334155;">เลือกรอบปีที่ต้องการคำนวณสิทธิ (ค.ศ.) *</label>
+          <label style="font-size:13px; font-weight:600; color:#334155;">เลือกรอบปีที่ต้องการคำนวณและประสานสิทธิ (ค.ศ.) *</label>
           <select id="swal-target-year" class="swal2-select" style="width:100%; margin-top:6px; height:40px; font-size:14px; border-radius:10px;">
-            <option value="${nextYear}" selected>ปี ${nextYear} (เจนล่วงหน้าสำหรับปีหน้า)</option>
+            <option value="${nextYear + 1}">ปี ${nextYear + 1} (ล่วงหน้า 2 ปี)</option>
+            <option value="${nextYear}" selected>ปี ${nextYear} (ล่วงหน้าปีหน้า)</option>
             <option value="${currentYear}">ปี ${currentYear} (ปีปัจจุบัน)</option>
-            <option value="${nextYear + 1}">ปี ${nextYear + 1}</option>
+            <option value="${currentYear - 1}">ปี ${currentYear - 1} (ปีก่อนหน้า)</option>
           </select>
+          <div style="font-size:11px; color:#64748b; margin-top:4px;">
+            * รอบการลาคำนวณตามจริง: 1 ธ.ค. ของปีก่อนหน้า ถึง 30 พ.ย. ของปีที่เลือก
+          </div>
         </div>
 
-        <div style="display:flex; align-items:center; gap:8px; background:#fff1f2; padding:12px; border-radius:10px; border:1px solid #fecdd3;">
+        <div style="display:flex; align-items:center; gap:8px; background:#fff1f2; padding:12px; border-radius:10px; border:1px solid #fecdd3; margin-bottom: 10px;">
           <input type="checkbox" id="swal-force-reset" ${isForce ? 'checked' : ''} style="width:18px; height:18px; accent-color:#e11d48; cursor:pointer;">
           <label for="swal-force-reset" style="font-size:12px; font-weight:600; color:#be123c; cursor:pointer;">
-            เขียนทับข้อมูลเดิม (Force Overwrite) <br>
-            <span style="font-weight:400; color:#9f1239;">(ติ๊กช่องนี้หากเคยเจนปี 2027 ไปแล้วและต้องการรีเซ็ตใหม่)</span>
+            รีเซ็ตโควตาเริ่มต้นใหม่ทั้งหมด (Force Overwrite) <br>
+            <span style="font-weight:400; color:#9f1239;">(ติ๊กช่องนี้เพื่อปรับปรุงโควตากลับไปเป็นค่าเริ่มต้นตามนโยบายบริษัท)</span>
           </label>
+        </div>
+        <div style="font-size:11.5px; color:#0d9488; background:#f0fdfa; border:1px solid #ccfbf1; padding:8px 12px; border-radius:8px;">
+          💡 <strong>ระบบล้างและรีเซ็ตอัจฉริยะ</strong>: ระบบจะไม่ตั้งค่าวันลาเป็น 0 บลอนด์ๆ แต่จะดึงใบลาที่ผ่านการอนุมัติจริงในระบบมาคำนวณยอดใช้วันลาให้ตรงโดยอัตโนมัติ ทำให้สิทธิคงเหลือสมบูรณ์ 100%
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: '🚀 เริ่มเจนโควตาวันลา',
+    confirmButtonText: '🚀 เริ่มซิงค์และคำนวณโควตา',
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#0d9488',
     cancelButtonColor: '#64748b',
@@ -560,8 +567,8 @@ async function resetYearlyLeave(isForce = false) {
 
   try {
     Swal.fire({ 
-      title: `กำลังสร้างโควตาวันลาปี ${formValues.year}...`, 
-      text: 'กรุณารอสักครู่ ระบบกำลังประมวลผลให้พนักงานทุกคน',
+      title: `กำลังซิงค์โควตาวันลาปี ${formValues.year}...`, 
+      text: 'ระบบกำลังนำประวัติใบลามาประมวลผลคำนวณยอดให้พนักงานทุกคน',
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading() 
     });
@@ -569,95 +576,146 @@ async function resetYearlyLeave(isForce = false) {
     const actorName = window.state?.currentUserProfile?.full_name || 'HR Admin'; 
     const actorId = window.state?.currentUserProfile?.id || null; 
 
-    // ยิง RPC ไปยัง Supabase พร้อมระบุปีที่เลือก
-    let isSuccess = false;
-    let successMessage = "";
+    // ดำเนินการผ่านสคริปต์ JS ฝั่ง Client เพื่อการันตีความอัจฉริยะในการคำนวณความสอดคล้อง (Self-Healing)
+    let targetYearAD = formValues.year;
+    if (targetYearAD > 2400) {
+      targetYearAD = targetYearAD - 543;
+    }
+    const targetYearBE = targetYearAD + 543;
+    const yearsToCreate = [targetYearAD, targetYearBE];
 
-    try {
-      const { data, error } = await supabaseClient.rpc('fn_reset_yearly_leave', {
-        p_target_year: formValues.year,
-        p_actor_id: actorId,
-        p_actor_name: actorName,
-        p_is_force: Boolean(formValues.force)
-      });
-      if (!error) {
-        isSuccess = true;
-        successMessage = data?.message || `สร้างสิทธิวันลาปี ${formValues.year} ให้พนักงานเรียบร้อยแล้ว`;
-      }
-    } catch (rpcErr) {
-      console.warn("RPC fn_reset_yearly_leave unavailable, using JS fallback:", rpcErr);
+    // คำนวณขอบเขตวันของรอบปีนั้นๆ (1 ธ.ค. ปีก่อน - 30 พ.ย. ปีเป้าหมาย)
+    const startDateStr = `${targetYearAD - 1}-12-01`;
+    const endDateStr = `${targetYearAD}-11-30`;
+
+    // ดึงข้อมูลในครั้งเดียวเพื่อประสิทธิภาพสูงสุด (Parallel queries)
+    const [empRes, ltRes, leavesRes, balRes] = await Promise.all([
+      supabaseClient.from('employees').select('id, employee_code, full_name').eq('status', 'active'),
+      supabaseClient.from('leave_types').select('id, yearly_quota, default_days'),
+      supabaseClient.from('leave_requests')
+        .select('employee_id, leave_type_id, total_days, start_date')
+        .eq('status', 'approved')
+        .gte('start_date', startDateStr)
+        .lte('start_date', endDateStr),
+      supabaseClient.from('leave_balances')
+        .select('id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days')
+        .in('year', yearsToCreate)
+    ]);
+
+    if (empRes.error) throw empRes.error;
+    if (ltRes.error) throw ltRes.error;
+    if (leavesRes.error) throw leavesRes.error;
+    if (balRes.error) throw balRes.error;
+
+    const employeesList = empRes.data || [];
+    const typesList = ltRes.data || [];
+    const approvedLeavesList = leavesRes.data || [];
+    const existingBalances = balRes.data || [];
+
+    // แผนผังยอดรวมวันลาที่ใช้ไปของแต่ละพนักงาน แยกตามประเภทการลา
+    const leaveSumMap = {};
+    for (const req of approvedLeavesList) {
+      const key = `${req.employee_id}_${req.leave_type_id}`;
+      const days = Number(req.total_days || 0);
+      leaveSumMap[key] = (leaveSumMap[key] || 0) + days;
     }
 
-    if (!isSuccess) {
-      // JS Fallback: สร้างโควตาวันลาให้พนักงานทุกคน
-      const targetYearAD = formValues.year;
-      const targetYearBE = targetYearAD + 543;
-      const yearsToCreate = Array.from(new Set([targetYearAD, targetYearBE]));
+    // แผนผังข้อมูลโควตาเดิมที่มีอยู่แล้วในระบบ
+    const balanceMap = {};
+    for (const bal of existingBalances) {
+      const key = `${bal.employee_id}_${bal.leave_type_id}_${bal.year}`;
+      balanceMap[key] = bal;
+    }
 
-      const [empRes, ltRes] = await Promise.all([
-        supabaseClient.from('employees').select('id, employee_code, full_name').eq('status', 'active'),
-        supabaseClient.from('leave_types').select('id, yearly_quota, default_days')
-      ]);
+    const toUpsert = [];
+    let createdCount = 0;
+    let updatedCount = 0;
 
-      if (empRes.error) throw empRes.error;
-      if (ltRes.error) throw ltRes.error;
+    for (const emp of employeesList) {
+      for (const yr of yearsToCreate) {
+        for (const lt of typesList) {
+          const quota = Number(lt.yearly_quota || lt.default_days || 30);
+          const key = `${emp.id}_${lt.id}_${yr}`;
+          const existing = balanceMap[key];
 
-      const employeesList = empRes.data || [];
-      const typesList = ltRes.data || [];
+          const approvedKey = `${emp.id}_${lt.id}`;
+          const usedDays = leaveSumMap[approvedKey] || 0;
 
-      let createdCount = 0;
-      for (const emp of employeesList) {
-        for (const yr of yearsToCreate) {
-          for (const lt of typesList) {
-            const quota = Number(lt.yearly_quota || lt.default_days || 30);
-            const { data: existing } = await supabaseClient
-              .from('leave_balances')
-              .select('id')
-              .eq('employee_id', emp.id)
-              .eq('leave_type_id', lt.id)
-              .eq('year', yr)
-              .maybeSingle();
+          let entitlement = quota;
+          if (existing) {
+            if (formValues.force) {
+              entitlement = quota; // รีเซ็ตสิทธิกลับไปเป็นค่าเริ่มต้น
+            } else {
+              entitlement = Number(existing.entitlement_days ?? quota); // รักษาสิทธิที่มีการแก้ไขด้วยมือเอาไว้
+            }
+          }
 
-            if (!existing || formValues.force) {
-              if (existing && formValues.force) {
-                await supabaseClient.from('leave_balances').update({
-                  entitlement_days: quota,
-                  remaining_days: quota
-                }).eq('id', existing.id);
-              } else if (!existing) {
-                await supabaseClient.from('leave_balances').insert([{
-                  employee_id: emp.id,
-                  leave_type_id: lt.id,
-                  year: yr,
-                  entitlement_days: quota,
-                  used_days: 0,
-                  remaining_days: quota
-                }]);
-              }
-              createdCount++;
+          const remainingDays = Math.max(0, entitlement - usedDays);
+
+          if (!existing) {
+            toUpsert.push({
+              employee_id: emp.id,
+              leave_type_id: lt.id,
+              year: yr,
+              entitlement_days: entitlement,
+              used_days: usedDays,
+              remaining_days: remainingDays
+            });
+            createdCount++;
+          } else {
+            // อัปเดตเมื่อค่าเปลี่ยนเท่านั้น
+            if (
+              Number(existing.entitlement_days) !== entitlement ||
+              Number(existing.used_days) !== usedDays ||
+              Number(existing.remaining_days) !== remainingDays
+            ) {
+              toUpsert.push({
+                id: existing.id,
+                employee_id: emp.id,
+                leave_type_id: lt.id,
+                year: yr,
+                entitlement_days: entitlement,
+                used_days: usedDays,
+                remaining_days: remainingDays
+              });
+              updatedCount++;
             }
           }
         }
       }
-
-      successMessage = `สร้างสิทธิวันลาประจำปี ${formValues.year} ให้พนักงาน ${employeesList.length} คน เรียบร้อยแล้ว (${createdCount} รายการ)`;
     }
 
-    await saveHRActivityLog('LEAVE_SYSTEM', 'RESET_QUOTA', `ปี ${formValues.year}`, `สร้างโควตาวันลาประจำปี ${formValues.year}`);
+    // บันทึกแบบ Batch Upsert เพื่อความรวดเร็วและป้องกัน Error 409
+    const chunkSize = 100;
+    for (let i = 0; i < toUpsert.length; i += chunkSize) {
+      const chunk = toUpsert.slice(i, i + chunkSize);
+      const { error: upsertErr } = await supabaseClient
+        .from('leave_balances')
+        .upsert(chunk, { onConflict: 'employee_id,leave_type_id,year' });
+
+      if (upsertErr) {
+        console.error("❌ Error during upsert of leave balance chunk:", upsertErr);
+        throw upsertErr;
+      }
+    }
+
+    const successMessage = `ประสานและซิงค์ข้อมูลโควตาประจำปี ${formValues.year} สำเร็จ! ประมวลผลพนักงาน ${employeesList.length} คน (สร้างใหม่ ${createdCount} รายการ, ปรับยอดถูกต้องแล้ว ${updatedCount} รายการ)`;
+
+    await saveHRActivityLog('LEAVE_SYSTEM', 'RESET_QUOTA', `ปี ${formValues.year}`, `รีเซ็ตและคำนวณซิงค์ยอดโควตาประจำปี ${formValues.year} (Force: ${formValues.force})`);
 
     Swal.fire({
       icon: 'success',
-      title: 'สร้างโควตาวันลาสำเร็จ!',
+      title: 'รีเซ็ตและซิงค์โควตาสำเร็จ!',
       text: successMessage,
       confirmButtonColor: '#0d9488'
     });
 
-    // ดึงข้อมูลปีที่เพิ่งเจนมาแสดงผลบน Dashboard ทันที
+    // ดึงข้อมูลปีล่าสุดมาแสดงผลบน Dashboard ทันที
     await fetchLeaveBalances(formValues.year);
     if (typeof renderSummary === 'function') renderSummary();
 
   } catch (err) {
-    showAppError('เกิดข้อผิดพลาดในการเจนโควตา', err.message);
+    showAppError('เกิดข้อผิดพลาดในการคำนวณและรีเซ็ตโควตา', err.message);
   }
 }
 // ==========================================
@@ -1105,6 +1163,103 @@ function exportIndividualLeaveExcel(employeeId) {
   window.pvtSupabase.downloadBlob(filename, csvContent, "text/csv;charset=utf-8;");
 }
 
+// ==========================================================================
+// CUSTOM FIELDS ENTERPRISE SAVE & LOAD IN SYSTEM_SETTINGS
+// ==========================================================================
+async function saveEmployeeCustomFields(supabase, employeeCode, customFields) {
+  try {
+    const { error } = await supabase
+      .from('system_settings')
+      .upsert({
+        setting_key: `custom_fields_emp_${employeeCode}`,
+        setting_value: customFields,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'setting_key' });
+    if (error) console.error("Error saving custom fields to system_settings:", error);
+  } catch (err) {
+    console.error("Error in saveEmployeeCustomFields:", err);
+  }
+}
+
+async function getEmployeeCustomFields(supabase, employeeCode) {
+  try {
+    const { data } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', `custom_fields_emp_${employeeCode}`)
+      .maybeSingle();
+    return data?.setting_value || {};
+  } catch (err) {
+    console.error("Error reading custom fields from system_settings:", err);
+    return {};
+  }
+}
+
+async function renderCustomFieldsHTMLForView(supabase, employeeCode) {
+  const customDefs = await getCustomFieldDefinitions(supabase);
+  const values = await getEmployeeCustomFields(supabase, employeeCode);
+
+  if (!customDefs || customDefs.length === 0) return '';
+
+  const details = customDefs.map(field => {
+    const val = values[field.name] || "-";
+    return detail(field.name, val);
+  }).join('');
+
+  return `
+    <div style="margin-top: 16px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
+      <strong style="font-size:14px; display:block; margin-bottom:8px; color:#0d9488;">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</strong>
+      <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+        ${details}
+      </div>
+    </div>
+  `;
+}
+
+async function renderCustomFieldsHTMLForEdit(supabase, employeeCode) {
+  const customDefs = await getCustomFieldDefinitions(supabase);
+  const values = await getEmployeeCustomFields(supabase, employeeCode);
+
+  if (!customDefs || customDefs.length === 0) {
+    return `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:10px; grid-column: 1 / -1;">ยังไม่มีคอลัมน์พิเศษในระบบ (กดปุ่มจัดการด้านบนได้เลย)</div>`;
+  }
+
+  return customDefs.map(field => {
+    const reqMark = field.required ? `<span style="color:#e11d48; font-weight:bold;">*</span>` : '';
+    const currentVal = values[field.name] || '';
+    let inputControl = '';
+
+    if (field.type === 'select') {
+      const opts = field.options.map(o => `<option value="${escapeHtml(o)}" ${currentVal === o ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('');
+      inputControl = `
+        <select class="swal2-select custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" style="margin:4px 0 0; height:38px; width:100%; font-size:13px; background:#fff; box-sizing: border-box; border:1px solid #cbd5e1; border-radius:6px; padding:0 8px;">
+          <option value="">-- เลือก${escapeHtml(field.name)} --</option>
+          ${opts}
+        </select>
+      `;
+    } else {
+      inputControl = `
+        <input type="text" class="swal2-input custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" value="${escapeHtml(currentVal)}" placeholder="กรอก${escapeHtml(field.name)}" style="margin:4px 0 0; height:38px; width:100%; font-size:13px; background:#fff; box-sizing: border-box; border:1px solid #cbd5e1; border-radius:6px; padding:0 12px;">
+      `;
+    }
+
+    return `
+      <div style="display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <label style="font-size:13px; font-weight:600; color:#334155; margin-bottom:2px;">
+            ${escapeHtml(field.name)} ${reqMark}
+          </label>
+          <button type="button" onclick="window.deleteCustomColumnWithDoubleConfirm('${field.id}', '${escapeHtml(field.name)}', () => openEmployeeDetail('${employeeCode}', true))" 
+                  style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:11px; font-weight:500; display:inline-flex; align-items:center; gap:2px; padding:0;" title="ลบคอลัมน์นี้ออกจากระบบ">
+            🗑️ ลบ
+          </button>
+        </div>
+        ${inputControl}
+      </div>
+    `;
+  }).join('');
+}
+
 // ปรับปรุงฟอร์มเปิดดู/แก้ไขพนักงานแบบย่อ
 async function openEmployeeDetail(employeeId, isEditMode = false) {
   if (!window.departments || window.departments.length === 0) await fetchDepartments();
@@ -1134,18 +1289,21 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
   const modal = document.getElementById("employeeModal");
   const title = document.getElementById("modalTitle");
   const body = document.getElementById("modalBody");
+  const supabase = getSupabase();
 
   if (!isEditMode) {
     if (title) {
       title.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
           <span>${escapeHtml(emp.employee_code || "-")} · ${escapeHtml(emp.full_name || "-")}</span>
-          <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:4px 10px; cursor:pointer;">
+          <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:4px 10px; cursor:pointer; background:#0d9488; border-color:#0d9488; color:white; border-radius:6px;">
             ✏️ แก้ไขข้อมูล
           </button>
         </div>
       `;
     }
+    const customFieldsViewHTML = await renderCustomFieldsHTMLForView(supabase, emp.employee_code);
+
     if (body) {
       body.innerHTML = `
         <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px;">
@@ -1156,7 +1314,8 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
           ${detail("บัญชีธนาคาร", emp.bank_account || "-")}
           ${detail("ประเภทพนักงาน", formatEmploymentType(emp.employment_type))}
         </div>
-        <div style="margin-bottom:16px;">
+        ${customFieldsViewHTML}
+        <div style="margin-bottom:16px; margin-top: 16px;">
           <strong style="font-size:14px; display:block; margin-bottom:8px;">📊 สิทธิวันลาคงเหลือประจำปี</strong>
           ${renderBalanceCards(balances)}
         </div>
@@ -1204,94 +1363,135 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
       { val: 'part_time', label: 'พนักงานพาร์ทไทม์ (Part-time)' },
       { val: 'contract', label: 'พนักงานสัญญาจ้าง (Contract)' },
       { val: 'probation', label: 'ทดลองงาน (Probation)' }
-    ].map(t => `<option value="${t.val}" ${t.val === emp.employment_type ? 'selected' : ''}>${t.label}</option>`).join("");
+    ].map(t => {
+      const isSelected = t.val === emp.employment_type || t.label.includes(emp.employment_type);
+      return `<option value="${t.val}" ${isSelected ? 'selected' : ''}>${t.label}</option>`;
+    }).join("");
+
+    // ดึงข้อมูล Custom Fields สำหรับพนักงานรายนี้
+    const customFieldsHTML = await renderCustomFieldsHTMLForEdit(supabase, emp.employee_code);
 
     if (body) {
       body.innerHTML = `
-        <form id="inlineEditForm" onsubmit="event.preventDefault(); saveEmployeeInlineEdit('${emp.id}');" style="display:flex; flex-direction:column; gap:16px;">
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
-            <div class="input-group">
-              <label>รหัสพนักงาน <span class="required">*</span></label>
-              <input type="text" id="inline-edit-code" class="text-input" value="${escapeHtml(emp.employee_code || '')}" required>
+        <form id="inlineEditForm" onsubmit="event.preventDefault(); saveEmployeeInlineEdit('${emp.id}');" style="display:flex; flex-direction:column; gap:16px; font-family:'Sarabun', sans-serif;">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; text-align:left; max-height: 65vh; overflow-y: auto; padding-right: 6px;">
+            
+            <div style="grid-column: 1 / -1; text-align: center; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px dashed #cbd5e1; margin-bottom: 12px;">
+              <img id="inline-edit-profilePreview" src="${emp.image_url || 'https://placehold.co/100?text=No+Image'}" 
+                   style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 8px; background: #fff;">
+              <input type="file" id="inline-edit-img" class="swal2-file" accept="image/*" style="display: block; margin: 0 auto; font-size: 12px;">
             </div>
-            <div class="input-group">
-              <label>ชื่อ-นามสกุล <span class="required">*</span></label>
-              <input type="text" id="inline-edit-fullName" class="text-input" value="${escapeHtml(emp.full_name || '')}" required>
+
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">รหัสพนักงาน *</label>
+              <input id="inline-edit-code" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.employee_code || '')}" required>
             </div>
-            <div class="input-group">
-              <label>คำนำหน้าชื่อ</label>
-              <input type="text" id="inline-edit-title" class="text-input" value="${escapeHtml(emp.title || '')}">
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">รหัสผ่านใหม่ (ว่างไว้เพื่อคงเดิม)</label>
+              <input type="text" id="inline-edit-password" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" placeholder="ปล่อยว่างหากใช้รหัสผ่านเดิม">
             </div>
-            <div class="input-group">
-              <label>ชื่อเล่น</label>
-              <input type="text" id="inline-edit-nickname" class="text-input" value="${escapeHtml(emp.nickname || '')}">
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">คำนำหน้าชื่อ</label>
+              <select id="inline-edit-title" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;">
+                <option value="" disabled ${!emp.title ? 'selected' : ''}>เลือกคำนำหน้า...</option>
+                <option value="นาย" ${emp.title === 'นาย' ? 'selected' : ''}>นาย</option>
+                <option value="นาง" ${emp.title === 'นาง' ? 'selected' : ''}>นาง</option>
+                <option value="นางสาว" ${emp.title === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+              </select>
             </div>
-          </div>
-          
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
-            <div class="input-group">
-              <label>แผนก <span class="required">*</span></label>
-              <select id="inline-edit-dept" class="select-input" required>
-                <option value="">-- เลือกแผนก --</option>
+            <div style="grid-column: span 2;">
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อ-นามสกุลจริง *</label>
+              <input id="inline-edit-fullName" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.full_name || '')}" required>
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อเล่น</label>
+              <input id="inline-edit-nickname" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.nickname || '')}" placeholder="ชื่อเล่น">
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">เบอร์โทรศัพท์</label>
+              <input id="inline-edit-phone" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.phone || '')}" placeholder="08X-XXX-XXXX">
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">ไอดีไลน์ (Line ID)</label>
+              <input id="inline-edit-lineId" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.line_id || '')}" placeholder="Line ID">
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">อีเมลองค์กร</label>
+              <input type="email" id="inline-edit-email" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.email || '')}" placeholder="email@company.com">
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">เลขบัญชีธนาคาร</label>
+              <input id="inline-edit-bankAccount" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.bank_account || '')}" placeholder="เลขบัญชี 10 หลัก">
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">🏥 โรงพยาบาลประกันสังคม</label>
+              <input id="inline-edit-hospital" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${escapeHtml(emp.hospital || '')}" placeholder="เช่น รพ.เปาโล">
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">สังกัดฝ่าย / แผนก *</label>
+              <select id="inline-edit-dept" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" required>
+                <option value="" disabled>-- เลือกแผนก --</option>
                 ${deptOptions}
               </select>
             </div>
-            <div class="input-group">
-              <label>ตำแหน่ง <span class="required">*</span></label>
-              <select id="inline-edit-role" class="select-input" required>
-                <option value="">-- เลือกตำแหน่ง --</option>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">ตำแหน่งงาน *</label>
+              <select id="inline-edit-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" required>
+                <option value="" disabled>-- เลือกตำแหน่ง --</option>
                 ${roleOptions}
               </select>
             </div>
-            <div class="input-group">
-              <label>ประเภทพนักงาน <span class="required">*</span></label>
-              <select id="inline-edit-type" class="select-input" required>
-                <option value="">-- เลือกประเภทพนักงาน --</option>
-                ${empTypeOptions}
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">ประเภทพนักงาน *</label>
+              <select id="inline-edit-type" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" required>
+                <option value="" disabled>เลือกประเภทพนักงาน...</option>
+                <option value="พนักงานประจำ (Full-time)" ${emp.employment_type === 'พนักงานประจำ (Full-time)' || emp.employment_type === 'full_time' ? 'selected' : ''}>พนักงานประจำ (Full-time)</option>
+                <option value="พนักงานพาร์ทไทม์ (Part-time)" ${emp.employment_type === 'พนักงานพาร์ทไทม์ (Part-time)' || emp.employment_type === 'part_time' ? 'selected' : ''}>พนักงานพาร์ทไทม์ (Part-time)</option>
+                <option value="พนักงานสัญญาจ้าง (Contract)" ${emp.employment_type === 'พนักงานสัญญาจ้าง (Contract)' || emp.employment_type === 'contract' ? 'selected' : ''}>พนักงานสัญญาจ้าง (Contract)</option>
+                <option value="นักศึกษาฝึกงาน (Intern)" ${emp.employment_type === 'นักศึกษาฝึกงาน (Intern)' || emp.employment_type === 'intern' ? 'selected' : ''}>นักศึกษาฝึกงาน (Intern)</option>
+                <option value="รายเดือน (Monthly)" ${emp.employment_type === 'รายเดือน (Monthly)' || emp.employment_type === 'monthly' ? 'selected' : ''}>รายเดือน (Monthly)</option>
+                <option value="รายวัน (Daily)" ${emp.employment_type === 'รายวัน (Daily)' || emp.employment_type === 'daily' ? 'selected' : ''}>รายวัน (Daily)</option>
               </select>
             </div>
-            <div class="input-group">
-              <label>วันเริ่มงาน</label>
-              <input type="date" id="inline-edit-startDate" class="text-input" value="${emp.start_date ? emp.start_date.split('T')[0] : ''}">
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">วันที่เริ่มงาน</label>
+              <input type="date" id="inline-edit-startDate" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px; font-size:13px; box-sizing: border-box;" value="${emp.start_date ? emp.start_date.split('T')[0] : ''}">
             </div>
-          </div>
-          
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
-            <div class="input-group">
-              <label>เบอร์โทรศัพท์</label>
-              <input type="tel" id="inline-edit-phone" class="text-input" value="${escapeHtml(emp.phone || '')}">
+
+            <!-- Section Custom Columns -->
+            <div class="custom-fields-section" style="grid-column: 1 / -1; margin-top: 10px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h6 style="margin: 0; font-weight: 700; color: #0d9488; font-size: 13px;">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</h6>
+                <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => openEmployeeDetail('${emp.id}', true))" style="font-size: 12px; padding: 5px 12px; background: #0d9488; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                  ⚙️ จัดการ/เพิ่มคอลัมน์ระบบ
+                </button>
+              </div>
+              <div id="customColumnsContainer" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">${customFieldsHTML}</div>
             </div>
-            <div class="input-group">
-              <label>อีเมล</label>
-              <input type="email" id="inline-edit-email" class="text-input" value="${escapeHtml(emp.email || '')}">
-            </div>
-            <div class="input-group">
-              <label>LINE ID</label>
-              <input type="text" id="inline-edit-lineId" class="text-input" value="${escapeHtml(emp.line_id || '')}">
-            </div>
+
           </div>
 
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
-            <div class="input-group">
-              <label>โรงพยาบาล</label>
-              <input type="text" id="inline-edit-hospital" class="text-input" value="${escapeHtml(emp.hospital || '')}">
-            </div>
-            <div class="input-group">
-              <label>บัญชีธนาคาร</label>
-              <input type="text" id="inline-edit-bankAccount" class="text-input" value="${escapeHtml(emp.bank_account || '')}">
-            </div>
-            <div class="input-group">
-              <label>อัปเดตรูปประจำตัว</label>
-              <input type="file" id="inline-edit-img" class="file-input" accept="image/png, image/jpeg, image/jpg">
-            </div>
-          </div>
-          
           <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #e2e8f0; padding-top:16px;">
-            <button type="button" class="btn-light" onclick="closeEmployeeModal()">ยกเลิก</button>
-            <button type="submit" class="btn-primary">บันทึกข้อมูล</button>
+            <button type="button" class="btn-light" onclick="openEmployeeDetail('${emp.id}', false)">ยกเลิก</button>
+            <button type="submit" class="btn-primary" style="background:#0d9488; border-color:#0d9488; color:white; border-radius:6px; cursor:pointer;">บันทึกข้อมูล</button>
           </div>
         </form>
       `;
+
+      // ผูก Event Listener ทันทีเพื่ออัปเดตรูปประจำตัวพรีวิวเรียลไทม์เมื่อเลือกไฟล์ใหม่
+      setTimeout(() => {
+        const imgInput = document.getElementById('inline-edit-img');
+        const preview = document.getElementById('inline-edit-profilePreview');
+        if (imgInput && preview) {
+          imgInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const url = URL.createObjectURL(file);
+              preview.src = url;
+            }
+          });
+        }
+      }, 50);
     }
   }
   if (modal) modal.classList.add("open");
@@ -1349,8 +1549,12 @@ async function saveEmployeeInlineEdit(employeeId) {
     start_date: document.getElementById('inline-edit-startDate')?.value || null,
     hospital: document.getElementById('inline-edit-hospital')?.value.trim() || null,
     employment_type: empType,
-    custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
   };
+
+  const newPass = document.getElementById('inline-edit-password')?.value.trim();
+  if (newPass) {
+    updateData.password = newPass;
+  }
 
   const fileInput = document.getElementById('inline-edit-img');
   if (fileInput && fileInput.files[0]) {
@@ -1377,6 +1581,9 @@ async function saveEmployeeInlineEdit(employeeId) {
     const supabase = getSupabase();
     const { error } = await supabase.from('employees').update(updateData).eq('id', emp.id);
     if (error) throw error;
+
+    // บันทึก Custom Fields ลงใน system_settings แทนเพื่อหลีกเลี่ยงข้อจำกัดของโครงสร้างตาราง DB
+    await saveEmployeeCustomFields(supabase, code, customFields);
 
     await saveHRActivityLog('EMPLOYEE', 'UPDATE', code, `แก้ไขข้อมูลพนักงาน: ${name}`);
     if (window.Swal) {
@@ -1904,7 +2111,7 @@ window.addNewEmployee = async function addNewEmployee() {
                 ⚙️ จัดการ/เพิ่มคอลัมน์ระบบ
               </button>
             </div>
-            <div id="customColumnsContainer">${customFieldsHTML}</div>
+            <div id="customColumnsContainer" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">${customFieldsHTML}</div>
           </div>
 
         </div>
@@ -2006,8 +2213,15 @@ window.addNewEmployee = async function addNewEmployee() {
 
       delete formValues.imageFile;
 
+      const customFields = formValues.custom_fields || {};
+      delete formValues.custom_fields;
+
       const { error } = await supabase.from('employees').insert([formValues]);
       if (error) throw error;
+
+      if (Object.keys(customFields).length > 0) {
+        await saveEmployeeCustomFields(supabase, formValues.employee_code, customFields);
+      }
 
       await saveHRActivityLog('EMPLOYEE', 'INSERT', formValues.employee_code, `เพิ่มพนักงานใหม่: ${formValues.full_name}`);
       Swal.fire('สำเร็จ!', 'เพิ่มประวัติพนักงานเข้าสู่ระบบเรียบร้อยแล้ว', 'success');
@@ -3980,7 +4194,7 @@ async function checkAndCreateMissingQuotas() {
       const chunk = newBalances.slice(i, i + chunkSize);
       const { error: insErr } = await supabase
         .from('leave_balances')
-        .insert(chunk);
+        .upsert(chunk, { onConflict: 'employee_id,leave_type_id,year' });
 
       if (insErr) {
         console.error("❌ Chunk Insertion Error:", insErr);

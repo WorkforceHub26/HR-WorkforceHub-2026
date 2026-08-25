@@ -260,3 +260,122 @@ body.sidebar-open {
   line-height: 1.2;
   margin-top: 2px;
 }
+
+/* ==========================================================================
+   📱 SUPER RESPONSIVE OVERRIDES - PERFECT MOBILE FIT WITHOUT HORIZONTAL SCROLL OR ZOOM
+   ========================================================================== */
+html, body {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  box-sizing: border-box !important;
+}
+
+/* ป้องกัน iOS Auto-Zoom เมื่อโฟกัสกล่องข้อความ (Force font-size >= 16px) */
+@media screen and (max-width: 768px) {
+  input, select, textarea, 
+  .swal2-input, .swal2-select, .swal2-textarea,
+  .text-input, .select-input, .custom-field-input {
+    font-size: 16px !important;
+  }
+}
+
+/* ป้องกันตารางและส่วนต่างๆ ล้นจอมือถือ */
+@media screen and (max-width: 768px) {
+  /* จัดการระเบียบกริดและการกะระยะ */
+  .main-content {
+    padding: 12px 8px 60px 8px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbar {
+    padding: 10px !important;
+    margin-bottom: 12px !important;
+    border-radius: 8px !important;
+    gap: 10px !important;
+  }
+
+  .page-title {
+    font-size: 18px !important;
+    text-align: center;
+    width: 100%;
+  }
+
+  /* ตารางแบบเลื่อนแนวนอนได้ ไม่ดันจอเบี้ยว */
+  .table-wrap, .table-responsive, .table-container, .table-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+  }
+
+  table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 600px !important; /* ให้เลื่อนในกรอบ ไม่ดันกรอบหน้าจอพัง */
+  }
+
+  /* ปรับปรุงขนาด Modal ของจอมือถือ */
+  .modal-dialog, .pvt-guard-popup, .swal2-popup {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: 8px auto !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ป้องกันกล่องข้อมูลภายใน Modal ดันล้น */
+  .detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .detail-item {
+    font-size: 13px !important;
+  }
+
+  /* ปรับแต่งปุ่มและกลุ่มควบคุม */
+  .btn, .btn-primary, .btn-light, button {
+    height: auto !important;
+    padding: 8px 12px !important;
+    font-size: 13.5px !important;
+    border-radius: 6px !important;
+  }
+
+  /* ปรับปรุงแผงข้อมูลการลาและการ์ดสรุป */
+  .summary-grid, .leave-balances-grid, .stats-grid, .balance-cards, .grid-cols-2, .grid-cols-3, .grid-cols-4 {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  /* แผงควบคุมตัวเลือกบนหัวเว็บ */
+  .filter-bar, .controls-row, .search-bar-container {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .filter-bar select, .filter-bar input, .filter-bar button,
+  .controls-row select, .controls-row input, .controls-row button {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* สไตล์เพิ่มเติมสำหรับหน้าจอมือถือขนาดเล็กมาก (< 380px) */
+@media screen and (max-width: 380px) {
+  .summary-grid, .leave-balances-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
