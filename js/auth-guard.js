@@ -574,7 +574,6 @@ async function openChangePasswordModal(user) {
 // 🎨 [ระบบ Render Profile ส่วนกลาง]: สำหรับแสดงรูป โปรไฟล์ และตำแหน่งบน Topbar ของทุกหน้า
 // =========================================================================
 
-async 
 async function renderGlobalUserProfile() {
   const sessionUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   if (!sessionUser || !sessionUser.id) return;

@@ -849,10 +849,10 @@ function groupByLeaveType() {
     return st === "approved" || st === "อนุมัติ" || st === "pass";
   });
 
-  const dataset = approvedRequests;
+  const dataset = approvedRequests.length > 0 ? approvedRequests : safeRequests;
   const noteEl = document.getElementById("typeChartNote");
   if (noteEl) {
-    noteEl.textContent = approvedRequests.length > 0 ? "อนุมัติแล้ว" : "ยังไม่มีข้อมูลอนุมัติ";
+    noteEl.textContent = approvedRequests.length > 0 ? "อนุมัติแล้ว" : "คำขอทั้งหมด";
     noteEl.className = approvedRequests.length > 0 ? "status active" : "status";
   }
 

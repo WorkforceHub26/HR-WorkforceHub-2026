@@ -213,14 +213,15 @@ function drawCharts() {
   const canvasType = document.getElementById("chartLeaveTypes");
   const canvasDept = document.getElementById("chartDepartments");
 
-  // 🟢 กรองรายการที่อนุมัติแล้วอย่างเคร่งครัด
+  // กรองรายการที่อนุมัติแล้ว
   const approvedRequests = safeRequests.filter(r => {
     if (!r || !r.status) return false;
     const st = String(r.status).trim().toLowerCase();
     return st === "approved" || st === "อนุมัติ" || st === "pass";
   });
 
-  const activeDataset = approvedRequests;
+  // หากไม่มีรายการอนุมัติเลย ให้ใช้ข้อมูลทั้งหมดเพื่อแสดงโครงสร้างกราฟพร้อมระบุข้อมูล
+  const activeDataset = approvedRequests.length > 0 ? approvedRequests : safeRequests;
   const isApprovedData = approvedRequests.length > 0;
   const hasData = activeDataset.length > 0;
 

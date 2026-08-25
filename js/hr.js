@@ -529,8 +529,10 @@ function renderLeaveTable() {
       actionButtons = `
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span></button>
-          <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
-          <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
+          ${currentRole !== 'hr' ? `
+            <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
+            <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
+          ` : ''}
         </div>
       `;
     }
