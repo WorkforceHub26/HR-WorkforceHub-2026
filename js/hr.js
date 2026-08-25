@@ -6,6 +6,7 @@ let currentRole = "hr";
 let currentUserProfile = null;
 let allLeaveRequests = []; 
 let currentLeaveTab = "pending"; // 'pending' | 'cancellation' | 'history'
+let hasExecutiveColumn = false;
 
 // ⚡ [1. IMMEDIATE CHECK]: เช็กสิทธิ์ทันทีตั้งแต่นาทีแรกที่โหลด JS
 (function checkRoleImmediately() {
@@ -114,7 +115,11 @@ function applyRoleBasedUI() {
     if (mainContent) {
       mainContent.style.setProperty("margin-left", "0", "important");
       mainContent.style.setProperty("width", "100%", "important");
-      mainContent.style.setProperty("padding", "24px 32px", "important");
+      if (window.innerWidth <= 768) {
+        mainContent.style.setProperty("padding", "16px 12px", "important");
+      } else {
+        mainContent.style.setProperty("padding", "24px 32px", "important");
+      }
     }
     if (btnBack) btnBack.style.display = "inline-flex";
 
@@ -327,7 +332,7 @@ async function loadPendingLeavesHR() {
     let rawData = data || [];
 
     const userRole = (currentRole || '').toLowerCase();
-    if (userRole === "leader" || userRole === "manager") {
+    if (userRole === "leader" || userRole === "manager" || userRole === "director" || userRole === "executive" || userRole === "owner") {
       rawData = rawData.filter((req) => {
         const reqEmp = req.employees;
         if (!reqEmp) return false;
@@ -337,17 +342,26 @@ async function loadPendingLeavesHR() {
         const reqEmpId = req.employee_id;
         const reqEmpRole = String(reqEmp.role || 'user').toLowerCase();
 
-        const isSameDept = (myDeptId || myDeptName) 
-          ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
-          : true;
-
         const isNotSelf = currentEmpId ? String(reqEmpId) !== String(currentEmpId) : true;
-        let isSubordinate = false;
         
+        let isSameDept = true;
+        let isSubordinate = false;
+
         if (userRole === "leader") {
+          isSameDept = (myDeptId || myDeptName) 
+            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+            : true;
           isSubordinate = (reqEmpRole === "user");
-        } else {
-          isSubordinate = (reqEmpRole === "user" || reqEmpRole === "leader");
+        } else if (userRole === "manager") {
+          // ผู้จัดการเห็นเฉพาะหัวหน้าแผนก (leader) ตัวเองเท่านั้น
+          isSameDept = (myDeptId || myDeptName) 
+            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+            : true;
+          isSubordinate = (reqEmpRole === "leader");
+        } else if (userRole === "director" || userRole === "executive" || userRole === "owner") {
+          // ผู้บริหาร / ผู้อำนวยการ เห็นเฉพาะหัวหน้าแผนก (leader) และผู้จัดการ (manager) ส่งใบลามาเท่านั้น ทั่วทั้งองค์กร
+          isSameDept = true; 
+          isSubordinate = (reqEmpRole === "leader" || reqEmpRole === "manager");
         }
 
         return isSameDept && isNotSelf && isSubordinate;
@@ -355,6 +369,7 @@ async function loadPendingLeavesHR() {
     }
 
     allLeaveRequests = rawData;
+    hasExecutiveColumn = rawData.length > 0 && rawData.some(r => r.hasOwnProperty('executive_status'));
     updateTabAndStatBadges();
     renderLeaveTable();
 
@@ -444,13 +459,28 @@ function canApproveStep(req, role) {
     }
   }
 
-  // 🟢 3. กรณีฝ่าย HR / Admin (L3) กำลังพิจารณา
+  // 🟡 3. กรณีผู้บริหาร (L3) กำลังพิจารณา ในระบบ 4 ขั้นตอน
+  if (hasExecutiveColumn && (role === 'executive' || role === 'director' || role === 'owner')) {
+    if (req.director_status !== 'approved') {
+      Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
+      return false;
+    }
+  }
+
+  // 🟢 4. กรณีฝ่าย HR / Admin กำลังพิจารณา
   if (role === 'hr' || role === 'admin') {
-    // HR หรือ Admin สามารถกดอนุมัติปิดจบได้ทันที ในกรณี:
-    // - ผู้จัดการ (L2) อนุมัติแล้ว
-    // - หรือผู้ยื่นเป็นระดับ หัวหน้า/ผู้จัดการ/HR (ไม่มี L1/L2 เหนือกว่า)
-    // - หรือกรณีแผนกนั้นไม่มีผู้จัดการ (HR สามารถ Override อนุมัติตรงได้เลย)
-    return true; 
+    if (hasExecutiveColumn) {
+      if (req.executive_status !== 'approved') {
+        Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้บริหาร (L3)" พิจารณาอนุมัติก่อน', 'warning');
+        return false;
+      }
+    } else {
+      // ระบบ 3 ขั้นตอนปกติ: ต้องรอ L2 ก่อน (ถ้าผู้ยื่นไม่ใช่ระดับหัวหน้า/HR)
+      if (!isApplicantHeadOrHr && req.director_status !== 'approved') {
+        Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
+        return false;
+      }
+    }
   }
 
   return true;
@@ -464,6 +494,69 @@ function renderLeaveTable() {
   const tbody = document.getElementById("leaveRequestsBody");
   const stepFilter = document.getElementById("filterStepSelect")?.value || "all";
   if (!tbody) return;
+
+  // ปรับแต่งคอลัมน์ส่วนหัวและตัวเลือกฟิลเตอร์ให้ตรงตามสิทธิ์
+  const headerRow = document.getElementById("tableHeaderRow") || document.querySelector(".approval-table thead tr");
+  if (headerRow) {
+    if (hasExecutiveColumn) {
+      headerRow.innerHTML = `
+        <th class="text-center">โปรไฟล์</th>
+        <th>รหัสพนักงาน</th>
+        <th>ข้อมูลผู้ลา</th>
+        <th>ประเภทการลา</th>
+        <th class="text-center">ช่วงวันที่ลา</th>
+        <th>เหตุผล / หมายเหตุ</th>
+        <th class="text-center">หลักฐาน</th>
+        <th class="text-center">จำนวนวัน</th>
+        <th class="text-center">สถานะ หัวหน้า (L1)</th>
+        <th class="text-center">สถานะ ผู้จัดการ (L2)</th>
+        <th class="text-center">สถานะ ผู้บริหาร (L3)</th>
+        <th class="text-center">สถานะ HR (L4)</th>
+        <th class="text-center">การจัดการ</th>
+      `;
+    } else {
+      headerRow.innerHTML = `
+        <th class="text-center">โปรไฟล์</th>
+        <th>รหัสพนักงาน</th>
+        <th>ข้อมูลผู้ลา</th>
+        <th>ประเภทการลา</th>
+        <th class="text-center">ช่วงวันที่ลา</th>
+        <th>เหตุผล / หมายเหตุ</th>
+        <th class="text-center">หลักฐาน</th>
+        <th class="text-center">จำนวนวัน</th>
+        <th class="text-center">สถานะ หัวหน้า (L1)</th>
+        <th class="text-center">สถานะ ผู้จัดการ (L2)</th>
+        <th class="text-center">สถานะ HR (L3)</th>
+        <th class="text-center">การจัดการ</th>
+      `;
+    }
+  }
+
+  const selectFilter = document.getElementById("filterStepSelect");
+  if (selectFilter) {
+    if (hasExecutiveColumn && !selectFilter.dataset.hasExecutive) {
+      selectFilter.dataset.hasExecutive = "true";
+      selectFilter.innerHTML = `
+        <option value="all">-- แสดงทั้งหมด --</option>
+        <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
+        <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
+        <option value="pending_executive">3. ผู้จัดการผ่านแล้ว / รอผู้บริหารอนุมัติ (L3)</option>
+        <option value="pending_hr">4. ผู้บริหารผ่านแล้ว / รอ HR อนุมัติขั้นสุดท้าย (L4)</option>
+        <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
+        <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
+      `;
+    } else if (!hasExecutiveColumn && selectFilter.dataset.hasExecutive) {
+      delete selectFilter.dataset.hasExecutive;
+      selectFilter.innerHTML = `
+        <option value="all">-- แสดงทั้งหมด --</option>
+        <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
+        <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
+        <option value="pending_hr">3. ผู้จัดการผ่านแล้ว / รอ HR อนุมัติขั้นสุดท้าย (L3)</option>
+        <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
+        <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
+      `;
+    }
+  }
 
   let filteredRequests = [];
 
@@ -479,19 +572,30 @@ function renderLeaveTable() {
     filteredRequests = filteredRequests.filter(req => {
       const mStatus = req.manager_status || 'pending';
       const dStatus = req.director_status || 'pending';
+      const execStatus = req.executive_status || 'pending';
       const hrStatus = req.status || 'pending';
 
       if (stepFilter === "pending_manager") return mStatus === 'pending';
       if (stepFilter === "pending_director") return mStatus === 'approved' && dStatus === 'pending';
-      if (stepFilter === "pending_hr") return mStatus === 'approved' && dStatus === 'approved' && hrStatus === 'pending';
+      if (stepFilter === "pending_executive") return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'pending';
+      if (stepFilter === "pending_hr") {
+        if (hasExecutiveColumn) {
+          return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'approved' && hrStatus === 'pending';
+        } else {
+          return mStatus === 'approved' && dStatus === 'approved' && hrStatus === 'pending';
+        }
+      }
       if (stepFilter === "fully_approved") return hrStatus === 'approved';
-      if (stepFilter === "rejected") return mStatus === 'rejected' || dStatus === 'rejected' || hrStatus === 'rejected';
+      if (stepFilter === "rejected") {
+        return mStatus === 'rejected' || dStatus === 'rejected' || execStatus === 'rejected' || hrStatus === 'rejected';
+      }
       return true;
     });
   }
 
   if (filteredRequests.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12" class="empty-state">ไม่พบรายการใบลาตามเงื่อนไขที่เลือก</td></tr>`;
+    const totalCols = hasExecutiveColumn ? 13 : 12;
+    tbody.innerHTML = `<tr><td colspan="${totalCols}" class="empty-state">ไม่พบรายการใบลาตามเงื่อนไขที่เลือก</td></tr>`;
     return;
   }
 
@@ -499,6 +603,8 @@ function renderLeaveTable() {
   filteredRequests.forEach((req) => {
     const empName = req.employees ? req.employees.full_name : "ไม่ทราบชื่อ";
     const empCode = req.employees ? req.employees.employee_code : "-";
+    const empDeptName = req.employees?.departments?.department_name || "-";
+    const empPositionName = req.employees?.positions?.position_name || "-";
     const leaveType = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุ";
     const startDate = formatThaiDate(req.start_date);
     const endDate = formatThaiDate(req.end_date);
@@ -535,19 +641,39 @@ function renderLeaveTable() {
       `;
     }
 
+    let statusColumnsHTML = "";
+    if (hasExecutiveColumn) {
+      statusColumnsHTML = `
+        <td class="text-center">${getStatusBadgeHTML(req.manager_status)}</td>
+        <td class="text-center">${getStatusBadgeHTML(req.director_status)}</td>
+        <td class="text-center">${getStatusBadgeHTML(req.executive_status)}</td>
+        <td class="text-center">${getStatusBadgeHTML(req.status)}</td>
+      `;
+    } else {
+      statusColumnsHTML = `
+        <td class="text-center">${getStatusBadgeHTML(req.manager_status)}</td>
+        <td class="text-center">${getStatusBadgeHTML(req.director_status)}</td>
+        <td class="text-center">${getStatusBadgeHTML(req.status)}</td>
+      `;
+    }
+
     htmlContent += `
       <tr>
         <td class="text-center"><img src="${avatarUrl}" class="avatar-cell" onerror="this.src='/assets/img/default-avatar.jpg';"></td>
         <td><strong>${empCode}</strong></td>
-        <td><strong>${empName}</strong></td>
+        <td>
+          <strong>${empName}</strong>
+          <div style="font-size: 11px; color: var(--text-soft); margin-top: 3px; line-height: 1.3;">
+            <span style="display: inline-flex; align-items: center; gap: 2px;">📂 ${empDeptName}</span><br>
+            <span style="display: inline-flex; align-items: center; gap: 2px;">💼 ${empPositionName}</span>
+          </div>
+        </td>
         <td><span style="color: var(--primary); font-weight: 600;">${leaveType}</span></td>
         <td class="text-center" style="white-space:nowrap; font-size: 12px;">${startDate}<br>ถึง ${endDate}</td>
         <td>${req.reason || "-"}</td>
         <td class="text-center">${renderAttachmentCell(attachmentUrl, req.id)}</td>
         <td class="text-center"><strong>${displayDays} วัน</strong></td>
-        <td class="text-center">${getStatusBadgeHTML(req.manager_status)}</td>
-        <td class="text-center">${getStatusBadgeHTML(req.director_status)}</td>
-        <td class="text-center">${getStatusBadgeHTML(req.status)}</td>
+        ${statusColumnsHTML}
         <td class="text-center">${actionButtons}</td>
       </tr>
     `;
@@ -681,10 +807,21 @@ function previewLeaveModal(leaveId) {
           <span class="role-title">2. ผู้จัดการฝ่าย (L2)</span>
           ${getStatusBadgeHTML(req.director_status)}
         </div>
+        ${hasExecutiveColumn ? `
+        <div class="step-card">
+          <span class="role-title">3. ผู้บริหาร (L3)</span>
+          ${getStatusBadgeHTML(req.executive_status)}
+        </div>
+        <div class="step-card">
+          <span class="role-title">4. ฝ่าย HR (L4)</span>
+          ${getStatusBadgeHTML(req.status)}
+        </div>
+        ` : `
         <div class="step-card">
           <span class="role-title">3. ฝ่าย HR (L3)</span>
           ${getStatusBadgeHTML(req.status)}
         </div>
+        `}
       </div>
     </div>
 
@@ -770,12 +907,22 @@ async function approveLeave(leaveId) {
       updateFields.manager_status = 'approved';
     } else if (currentRole === 'manager') {
       updateFields.director_status = 'approved';
-    } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner' || currentRole === 'admin') {
-      // ผู้บริหาร (L3) อนุมัติขั้นสุดท้าย และหักวันลา
-      updateFields.director_status = 'approved';
+    } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
+      if (hasExecutiveColumn) {
+        updateFields.executive_status = 'approved';
+      } else {
+        updateFields.director_status = 'approved';
+        updateFields.status = 'approved';
+        updateFields.approved_at = new Date().toISOString();
+      }
+    } else {
+      // HR / Admin / อื่นๆ
       updateFields.status = 'approved';
       updateFields.approved_at = new Date().toISOString();
+    }
 
+    // หักยอดวันลาหากได้รับการอนุมัติขั้นสุดท้ายเรียบร้อยแล้ว (status = approved)
+    if (updateFields.status === 'approved') {
       const leaveDays = await getEffectiveLeaveDays(reqData);
       const currentYear = getADYear(reqData.start_date);
 
@@ -797,9 +944,6 @@ async function approveLeave(leaveId) {
             .eq('id', balData.id);
         }
       }
-    } else {
-      // HR
-      updateFields.status = 'approved';
     }
 
     const { error: updateErr } = await sb
@@ -888,10 +1032,11 @@ async function rejectLeave(leaveId) {
     } else if (currentRole === 'manager') {
       updateFields.director_status = 'rejected';
     } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
-      updateFields.director_status = 'rejected';
-      updateFields.status = 'rejected';
-    } else {
-      updateFields.status = 'rejected';
+      if (hasExecutiveColumn) {
+        updateFields.executive_status = 'rejected';
+      } else {
+        updateFields.director_status = 'rejected';
+      }
     }
 
     const { error } = await sb

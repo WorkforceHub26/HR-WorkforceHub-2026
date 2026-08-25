@@ -101,7 +101,7 @@ async function initUserHome() {
     }
     
     checkApproverPermission(window.currentProfile);
-    fetchEmployeeLeaveStatusCount(window.currentProfile);
+    initUserNotifications(window.currentProfile);
 
   } catch (err) {
     console.error("❌ [SAFEGUARD] เกิดข้อผิดพลาดใน initUserHome:", err);
@@ -479,31 +479,359 @@ function checkApproverPermission(profileData) {
   switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
 }
 
-async function fetchEmployeeLeaveStatusCount(profile) {
-  const sb = getSafeSupabaseClient();
-  const empId = profile?.id || profile?.employee_id;
-  const notifBtn = document.getElementById("notificationBtn");
-  if (!sb || !empId) return;
+// --- UNIFIED USER NOTIFICATION DROPDOWN SYSTEM ---
+let localReadNotifIds = [];
+try {
+  localReadNotifIds = JSON.parse(localStorage.getItem("userReadNotifIds") || "[]");
+} catch(e) {}
 
-  try {
-    const { count } = await sb
-      .from("leave_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("employee_id", empId)
-      .in("status", ["pending", "approved", "rejected", "cancel_pending"]);
+function getUserReadNotifIds() {
+  return localReadNotifIds;
+}
 
-    if (notifBtn) {
-      notifBtn.style.display = "inline-flex";
-      const badge = document.getElementById("notifBadge");
-      if (badge) {
-        badge.innerText = count || 0;
-        badge.style.display = count > 0 ? "flex" : "none";
-      }
-    }
-  } catch (e) {
-    console.warn("⚠️ ไม่สามารถดึงการแจ้งเตือนได้:", e);
+function addUserReadNotifId(id) {
+  if (!localReadNotifIds.includes(id)) {
+    localReadNotifIds.push(id);
+    localStorage.setItem("userReadNotifIds", JSON.stringify(localReadNotifIds));
   }
 }
+
+async function initUserNotifications(profile) {
+  if (!profile) return;
+  setupUserNotifClickOutside();
+  await fetchUserNotifications();
+}
+
+function setupUserNotifClickOutside() {
+  document.addEventListener("click", (e) => {
+    const dropdown = document.getElementById("userNotifDropdown");
+    const btn = document.getElementById("notificationBtn");
+    if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+      dropdown.style.display = "none";
+    }
+  });
+}
+
+function toggleUserNotifDropdown(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById("userNotifDropdown");
+  if (!dropdown) return;
+  if (dropdown.style.display === "flex") {
+    dropdown.style.display = "none";
+  } else {
+    dropdown.style.display = "flex";
+    fetchUserNotifications();
+  }
+}
+
+async function fetchUserNotifications() {
+  const sb = getSafeSupabaseClient();
+  const profile = window.currentProfile;
+  if (!sb || !profile) return;
+
+  const myId = profile.id || profile.employee_id;
+  const myRole = (profile.role || "user").toLowerCase();
+  const myDeptName = profile.departments?.department_name || profile.department_name || "";
+  const myDeptId = profile.department_id || "";
+
+  try {
+    let notificationsList = [];
+
+    // 1. ดึงข้อความแจ้งเตือนจากตาราง notifications
+    const { data: dbNotifs } = await sb
+      .from("notifications")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    let filteredDbNotifs = [];
+    if (dbNotifs) {
+      filteredDbNotifs = dbNotifs.filter(n => {
+        if (n.user_id) {
+          return String(n.user_id) === String(myId);
+        }
+        const titleLower = String(n.title).toLowerCase();
+        const msgLower = String(n.message).toLowerCase();
+
+        if (myRole === "user") {
+          const myName = profile.full_name || "";
+          return myName && (msgLower.includes(myName.toLowerCase()) || titleLower.includes(myName.toLowerCase()));
+        }
+
+        if (myRole === "leader" || myRole === "manager") {
+          const myDeptKeyword = String(myDeptName || "").toLowerCase();
+          if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
+            return true;
+          }
+          return titleLower.includes("คำขอ") || titleLower.includes("อนุมัติ");
+        }
+        return true; // HR / Admin see all
+      });
+    }
+
+    // แปลง db notifications เป็นรูปแบบมาตรฐาน
+    filteredDbNotifs.forEach(n => {
+      notificationsList.push({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        created_at: n.created_at,
+        is_read: n.is_read || getUserReadNotifIds().includes(n.id),
+        type: 'general',
+        link: myRole === 'user' ? '/pages/user/leave-history.html' : '/pages/hr/hr.html'
+      });
+    });
+
+    // 2. ดึงใบลาค้างอนุมัติ หากเป็นสายอนุมัติ (เพื่อเพิ่มปุ่มกระดิ่ง Zero-Inbox)
+    const approverRoles = ["leader", "manager", "director", "executive", "owner", "hr", "admin"];
+    if (approverRoles.includes(myRole)) {
+      const { data: leaveRequests } = await sb
+        .from("leave_requests")
+        .select("id, created_at, status, start_date, end_date, total_days, leave_types(leave_name), employees(full_name, role, department_id, departments(department_name))")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      if (leaveRequests) {
+        let filteredLeaves = leaveRequests;
+
+        // กรองใบลาตามลดับขั้นสายงาน (เหมือนระบบ hr.js)
+        filteredLeaves = leaveRequests.filter(req => {
+          const reqEmp = req.employees;
+          if (!reqEmp) return false;
+
+          const reqDeptId = reqEmp.department_id;
+          const reqDeptName = reqEmp.departments?.department_name;
+          const reqEmpId = req.employee_id;
+          const reqEmpRole = String(reqEmp.role || "user").toLowerCase();
+
+          // ป้องกันหัวหน้าเห็นใบลาตัวเอง
+          if (myId && String(reqEmpId) === String(myId)) return false;
+
+          if (myRole === "leader") {
+            const isSameDept = (myDeptId || myDeptName)
+              ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+              : true;
+            return isSameDept && reqEmpRole === "user";
+          }
+
+          if (myRole === "manager") {
+            const isSameDept = (myDeptId || myDeptName)
+              ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+              : true;
+            return isSameDept && reqEmpRole === "leader";
+          }
+
+          if (myRole === "director" || myRole === "executive" || myRole === "owner") {
+            return reqEmpRole === "leader" || reqEmpRole === "manager";
+          }
+
+          return true; // HR / Admin
+        });
+
+        filteredLeaves.forEach(req => {
+          const leaveName = req.leave_types?.leave_name || "ใบลา";
+          const empName = req.employees?.full_name || "พนักงาน";
+          notificationsList.push({
+            id: `pending-${req.id}`,
+            title: `📥 คำขอใหม่: ${empName}`,
+            message: `ขอลา ${leaveName} จำนวน ${req.total_days} วัน (${formatThaiDate(req.start_date)} - ${formatThaiDate(req.end_date)})`,
+            created_at: req.created_at,
+            is_read: getUserReadNotifIds().includes(`pending-${req.id}`),
+            type: 'pending_leave',
+            link: '/pages/hr/hr.html'
+          });
+        });
+      }
+    } else {
+      // สำหรับพนักงานทั่วไป ดึงข้อมูลความคืบหน้าคำขอล่าสุดมาแสดงด้วย
+      const { data: myLeaves } = await sb
+        .from("leave_requests")
+        .select("id, updated_at, status, start_date, end_date, leave_types(leave_name)")
+        .eq("employee_id", myId)
+        .order("updated_at", { ascending: false })
+        .limit(10);
+
+      if (myLeaves) {
+        myLeaves.forEach(req => {
+          if (req.status !== "pending") {
+            const statusThai = req.status === "approved" ? "✅ อนุมัติแล้ว" : "❌ ปฏิเสธแล้ว";
+            notificationsList.push({
+              id: `status-${req.id}-${req.status}`,
+              title: `📢 สถานะใบลา: ${statusThai}`,
+              message: `ใบลา ${req.leave_types?.leave_name} ของคุณได้รับการพิจารณาเรียบร้อยแล้ว`,
+              created_at: req.updated_at,
+              is_read: getUserReadNotifIds().includes(`status-${req.id}-${req.status}`),
+              type: 'leave_status',
+              link: '/pages/user/leave-history.html'
+            });
+          }
+        });
+      }
+    }
+
+    // เรียงตามเวลาล่าสุด
+    notificationsList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    // กรองแสดงเฉพาะ "ยังไม่ได้อ่าน" สำหรับกล่อง Dropdown
+    const unreadNotifications = notificationsList.filter(n => !n.is_read);
+
+    // อัปเดตตัวเลขแจ้งเตือน (Badge)
+    const badge = document.getElementById("notifBadge");
+    const countPill = document.getElementById("userUnifNotifCount") || document.getElementById("userNotifCount");
+    const totalUnread = unreadNotifications.length;
+
+    if (badge) {
+      badge.innerText = totalUnread;
+      badge.style.display = totalUnread > 0 ? "flex" : "none";
+    }
+
+    if (countPill) {
+      countPill.innerText = `${totalUnread} รายการใหม่`;
+    }
+
+    // วาดรายการแจ้งเตือนลงใน dropdown
+    const container = document.getElementById("userNotifList");
+    if (!container) return;
+
+    if (unreadNotifications.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 32px 16px; text-align: center; color: #64748b; font-size: 13px;">
+          <span class="material-symbols-outlined" style="font-size: 32px; color: #cbd5e1; margin-bottom: 8px;">check_circle</span>
+          <p style="margin: 0; font-weight: 500;">คุณเคลียร์แจ้งเตือนครบหมดแล้ว!</p>
+          <p style="margin: 4px 0 0; font-size: 11px; color: #94a3b8;">ไม่มีรายการค้างอ่านใหม่</p>
+        </div>
+      `;
+      return;
+    }
+
+    let html = "";
+    unreadNotifications.forEach(n => {
+      let iconColor = "#0284c7";
+      let iconBg = "#f0fdfa";
+      let iconName = "notifications";
+
+      if (n.type === 'pending_leave') {
+        iconColor = "#ca8a04";
+        iconBg = "#fef9c3";
+        iconName = "hourglass_top";
+      } else if (n.title.includes("อนุมัติ")) {
+        iconColor = "#16a34a";
+        iconBg = "#d1e7dd";
+        iconName = "check_circle";
+      } else if (n.title.includes("ปฏิเสธ")) {
+        iconColor = "#dc2626";
+        iconBg = "#f8d7da";
+        iconName = "cancel";
+      }
+
+      const thaiTime = formatThaiDate(n.created_at);
+
+      html += `
+        <div class="notif-item unread" onclick="handleUserNotifClick('${n.id}', '${n.link}')" style="display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s; background: #ffffff; text-align: left;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: ${iconBg}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span class="material-symbols-outlined" style="font-size: 18px; color: ${iconColor};">${iconName}</span>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <strong style="display: block; font-size: 13px; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${n.title}</strong>
+            <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${n.message}</p>
+            <span style="font-size: 10px; color: #94a3b8; display: block; margin-top: 4px;">🕒 ${thaiTime}</span>
+          </div>
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #0ea5e9; flex-shrink: 0; align-self: center;"></div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+
+  } catch (err) {
+    console.error("❌ Error fetching notifications on user-home:", err);
+  }
+}
+
+async function handleUserNotifClick(notifId, redirectUrl) {
+  addUserReadNotifId(notifId);
+
+  // อัปเดตในตาราง Supabase (ถ้าไม่ใช่รหัสชั่วคราว)
+  const sb = getSafeSupabaseClient();
+  if (sb && notifId && !String(notifId).startsWith("pending-") && !String(notifId).startsWith("status-")) {
+    try {
+      await sb.from("notifications").update({ is_read: true }).eq("id", notifId);
+    } catch (e) {
+      console.warn("❌ DB read update failed:", e);
+    }
+  }
+
+  // ซ่อน dropdown
+  const dropdown = document.getElementById("userNotifDropdown");
+  if (dropdown) dropdown.style.display = "none";
+
+  // วาร์ปหนี
+  if (redirectUrl && redirectUrl !== "#") {
+    window.location.href = redirectUrl;
+  } else {
+    fetchUserNotifications();
+  }
+}
+
+async function markAllUserNotificationsAsRead(event) {
+  if (event) event.stopPropagation();
+  const sb = getSafeSupabaseClient();
+  const profile = window.currentProfile;
+  if (!profile) return;
+
+  const myId = profile.id || profile.employee_id;
+
+  try {
+    // โหลดแจ้งเตือนทั้งหมดเพื่อกวาด ID
+    const { data: dbNotifs } = await sb
+      .from("notifications")
+      .select("id")
+      .eq("user_id", myId)
+      .eq("is_read", false);
+
+    if (dbNotifs) {
+      dbNotifs.forEach(n => addUserReadNotifId(n.id));
+    }
+
+    // มาร์กใน DB
+    if (sb) {
+      await sb.from("notifications").update({ is_read: true }).eq("user_id", myId);
+    }
+
+    // กวาดรายการค้างอ่านที่ปรากฏทั้งหมด
+    const allPendingItems = document.querySelectorAll("#userNotifList [onclick]");
+    allPendingItems.forEach(el => {
+      const onclickText = el.getAttribute("onclick");
+      const match = onclickText?.match(/handleUserNotifClick\('([^']+)'/);
+      if (match && match[1]) {
+        addUserReadNotifId(match[1]);
+      }
+    });
+
+    await fetchUserNotifications();
+    Swal.fire({
+      icon: "success",
+      title: "อ่านแจ้งเตือนทั้งหมดแล้ว",
+      timer: 1500,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    console.error("❌ markAllUserNotificationsAsRead failed:", err);
+  }
+}
+
+async function openAllUserNotificationsModal(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById("userNotifDropdown");
+  if (dropdown) dropdown.style.display = "none";
+  openNotificationModal();
+}
+
+// ผูกเข้ากับระบบ global window ให้เรียกใช้ได้สะดวก
+window.toggleUserNotifDropdown = toggleUserNotifDropdown;
+window.handleUserNotifClick = handleUserNotifClick;
+window.markAllUserNotificationsAsRead = markAllUserNotificationsAsRead;
+window.openAllUserNotificationsModal = openAllUserNotificationsModal;
 
 function openNotificationModal() {
   const userRole = (window.currentProfile?.role || "").toLowerCase();

@@ -1173,6 +1173,13 @@ async function fetchRealNotifications() {
   if (!container) return;
 
   try {
+    const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+    const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+    const myProfile = window.currentUserProfile || sessionUser;
+    const myRole = (myProfile?.role || "").toLowerCase();
+    const myDeptId = myProfile?.department_id || myProfile?.employees?.department_id;
+    const myDeptName = myProfile?.department_name || myProfile?.departments?.department_name || myProfile?.departments?.id;
+
     let dbNotifications = [];
 
     // 1. ดึงข้อมูลการแจ้งเตือนจากตาราง notifications ใน Supabase
@@ -1181,7 +1188,7 @@ async function fetchRealNotifications() {
         .from('notifications')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(30);
 
       if (!error && data) {
         dbNotifications = data;
@@ -1190,8 +1197,45 @@ async function fetchRealNotifications() {
 
     const readNotifIds = getReadNotifIds();
 
-    // 2. แปลงรายการใบลาค้างอนุมัติ (rawRequests) เป็นรายการแจ้งเตือน
-    const pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
+    // 2. แปลงรายการใบลาค้างอนุมัติ (rawRequests) เป็นรายการแจ้งเตือนตามบทบาท
+    let pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
+
+    if (myRole === "leader" || myRole === "manager" || myRole === "director" || myRole === "executive" || myRole === "owner") {
+      pendingLeaves = pendingLeaves.filter((req) => {
+        const reqEmp = req.employees;
+        if (!reqEmp) return false;
+
+        const reqDeptId = reqEmp.department_id;
+        const reqDeptName = reqEmp.departments?.department_name;
+        const reqEmpId = req.employee_id;
+        const reqEmpRole = String(reqEmp.role || 'user').toLowerCase();
+
+        const isNotSelf = sessionUser.id ? String(reqEmpId) !== String(sessionUser.id) : true;
+        
+        let isSameDept = true;
+        let isSubordinate = false;
+
+        if (myRole === "leader") {
+          isSameDept = (myDeptId || myDeptName) 
+            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+            : true;
+          isSubordinate = (reqEmpRole === "user");
+        } else if (myRole === "manager") {
+          isSameDept = (myDeptId || myDeptName) 
+            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+            : true;
+          isSubordinate = (reqEmpRole === "leader");
+        } else {
+          isSameDept = true;
+          isSubordinate = (reqEmpRole === "leader" || reqEmpRole === "manager");
+        }
+
+        return isSameDept && isNotSelf && isSubordinate;
+      });
+    } else if (myRole === "user") {
+      pendingLeaves = [];
+    }
+
     const pendingNotifications = pendingLeaves.map(item => {
       const empName = item.employees?.full_name || item.emp_name || 'พนักงาน';
       const leaveType = item.leave_types?.leave_name || item.leave_type_name || 'ใบลา';
@@ -1208,26 +1252,65 @@ async function fetchRealNotifications() {
       };
     });
 
-    // 3. รวมการแจ้งเตือนจากทั้งสองส่วนเข้าด้วยกัน
+    // 3. กรองและเชื่อมโยงลิงก์สำหรับ DB notifications
+    dbNotifications = dbNotifications.filter(n => {
+      if (n.user_id && myProfile?.id) {
+        return String(n.user_id) === String(myProfile.id);
+      }
+      
+      const titleLower = String(n.title).toLowerCase();
+      const msgLower = String(n.message).toLowerCase();
+      
+      if (myRole === "user") {
+        const myName = myProfile?.full_name || "";
+        if (myName && (msgLower.includes(myName.toLowerCase()) || titleLower.includes(myName.toLowerCase()))) {
+          return true;
+        }
+        return false;
+      }
+      
+      if (myRole === "leader" || myRole === "manager") {
+        const myDeptKeyword = String(myDeptName || "").toLowerCase();
+        if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
+          return true;
+        }
+        if (titleLower.includes('คำขอ') || titleLower.includes('อนุมัติ')) {
+          return true;
+        }
+        return false;
+      }
+      
+      return true;
+    }).map(n => {
+      // จับคู่วาปไปยังหน้าที่เกี่ยวข้องตามเงื่อนไข
+      let resolvedLink = '/pages/user/leave-history.html';
+      const titleLower = String(n.title).toLowerCase();
+      const msgLower = String(n.message).toLowerCase();
+      
+      if (titleLower.includes('ใหม่') || titleLower.includes('ส่งถึงคุณ') || msgLower.includes('พิจารณาอนุมัติขั้นถัดไป') || titleLower.includes('รอหัวหน้า')) {
+        if (['leader', 'manager', 'director', 'executive', 'hr', 'admin'].includes(myRole)) {
+          resolvedLink = '/pages/hr/hr.html';
+        }
+      } else if (titleLower.includes('อนุมัติสมบูรณ์') || titleLower.includes('ได้รับการอนุมัติ') || titleLower.includes('ยืนยันใบลา')) {
+        resolvedLink = '/pages/user/leave-history.html';
+      }
+      
+      return {
+        ...n,
+        link: resolvedLink,
+        is_read: n.is_read || readNotifIds.includes(String(n.id))
+      };
+    });
+
+    // รวมการแจ้งเตือนทั้งหมด
     const allNotifications = [
       ...pendingNotifications, 
-      ...dbNotifications.map(n => ({
-        ...n,
-        is_read: n.is_read || readNotifIds.includes(String(n.id))
-      }))
+      ...dbNotifications
     ];
 
-    if (allNotifications.length === 0) {
-      container.innerHTML = `
-        <div style="padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 13px;">
-          🔕 ไม่มีรายการแจ้งเตือนในขณะนี้
-        </div>`;
-      if (badge) badge.style.display = 'none';
-      if (unreadCountPill) unreadCountPill.textContent = '0 รายการใหม่';
-      return;
-    }
-
-    const unreadCount = allNotifications.filter(n => !n.is_read).length;
+    // คำนวณเฉพาะยอดที่ยังไม่ได้อ่าน
+    const unreadNotifications = allNotifications.filter(n => !n.is_read);
+    const unreadCount = unreadNotifications.length;
 
     // อัปเดตตัวเลข Badge บนไอคอนกระดิ่ง
     if (badge) {
@@ -1243,15 +1326,22 @@ async function fetchRealNotifications() {
       unreadCountPill.textContent = `${unreadCount} รายการใหม่`;
     }
 
-    // สร้าง HTML แสดงผลใน Dropdown
+    if (unreadNotifications.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 13px;">
+          🔕 ไม่มีแจ้งเตือนใหม่ในขณะนี้
+        </div>`;
+      return;
+    }
+
+    // สร้าง HTML แสดงผลใน Dropdown (แสดงเฉพาะแจ้งเตือนที่ยังไม่ได้อ่าน เพื่อให้กดอ่านแล้วหายไปทันทีตามหลัก Zero-Inbox)
     let html = '';
-    allNotifications.forEach(item => {
+    unreadNotifications.forEach(item => {
       const theme = getNotifTheme(item.type);
-      const isUnreadClass = item.is_read ? '' : 'unread';
       const timeText = formatTimeAgo(item.created_at);
 
       html += `
-        <div class="notif-item ${isUnreadClass}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer;">
+        <div class="notif-item unread" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer;">
           <div class="notif-icon ${theme.bgClass}">
             <span class="material-symbols-outlined">${theme.icon}</span>
           </div>
@@ -1259,7 +1349,7 @@ async function fetchRealNotifications() {
             <p class="notif-text"><strong>${item.title}</strong> ${item.message}</p>
             <span class="notif-time">${timeText}</span>
           </div>
-          ${!item.is_read ? '<span class="unread-dot"></span>' : ''}
+          <span class="unread-dot"></span>
         </div>
       `;
     });
@@ -1397,20 +1487,65 @@ window.openAllNotificationsModal = async function() {
 
   try {
     const client = sb || window.pvtSupabase?.getClient();
+    const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+    const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+    const myProfile = window.currentUserProfile || sessionUser;
+    const myRole = (myProfile?.role || "").toLowerCase();
+    const myDeptId = myProfile?.department_id || myProfile?.employees?.department_id;
+    const myDeptName = myProfile?.department_name || myProfile?.departments?.department_name || myProfile?.departments?.id;
+
     let dbNotifications = [];
 
     if (client) {
       const { data } = await client
         .from('notifications')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
       if (data) dbNotifications = data;
     }
 
     const readNotifIds = getReadNotifIds();
 
-    // รวมคำขอลาค้างอนุมัติ
-    const pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
+    // รวมคำขอลาค้างอนุมัติตามสิทธิ์
+    let pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
+
+    if (myRole === "leader" || myRole === "manager" || myRole === "director" || myRole === "executive" || myRole === "owner") {
+      pendingLeaves = pendingLeaves.filter((req) => {
+        const reqEmp = req.employees;
+        if (!reqEmp) return false;
+
+        const reqDeptId = reqEmp.department_id;
+        const reqDeptName = reqEmp.departments?.department_name;
+        const reqEmpId = req.employee_id;
+        const reqEmpRole = String(reqEmp.role || 'user').toLowerCase();
+
+        const isNotSelf = sessionUser.id ? String(reqEmpId) !== String(sessionUser.id) : true;
+        
+        let isSameDept = true;
+        let isSubordinate = false;
+
+        if (myRole === "leader") {
+          isSameDept = (myDeptId || myDeptName) 
+            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+            : true;
+          isSubordinate = (reqEmpRole === "user");
+        } else if (myRole === "manager") {
+          isSameDept = (myDeptId || myDeptName) 
+            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+            : true;
+          isSubordinate = (reqEmpRole === "leader");
+        } else {
+          isSameDept = true;
+          isSubordinate = (reqEmpRole === "leader" || reqEmpRole === "manager");
+        }
+
+        return isSameDept && isNotSelf && isSubordinate;
+      });
+    } else if (myRole === "user") {
+      pendingLeaves = [];
+    }
+
     const pendingNotifications = pendingLeaves.map(item => {
       const empName = item.employees?.full_name || item.emp_name || 'พนักงาน';
       const leaveType = item.leave_types?.leave_name || item.leave_type_name || 'ใบลา';
@@ -1427,12 +1562,58 @@ window.openAllNotificationsModal = async function() {
       };
     });
 
+    // กรองและอัปเดต DB notifications
+    dbNotifications = dbNotifications.filter(n => {
+      if (n.user_id && myProfile?.id) {
+        return String(n.user_id) === String(myProfile.id);
+      }
+      
+      const titleLower = String(n.title).toLowerCase();
+      const msgLower = String(n.message).toLowerCase();
+      
+      if (myRole === "user") {
+        const myName = myProfile?.full_name || "";
+        if (myName && (msgLower.includes(myName.toLowerCase()) || titleLower.includes(myName.toLowerCase()))) {
+          return true;
+        }
+        return false;
+      }
+      
+      if (myRole === "leader" || myRole === "manager") {
+        const myDeptKeyword = String(myDeptName || "").toLowerCase();
+        if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
+          return true;
+        }
+        if (titleLower.includes('คำขอ') || titleLower.includes('อนุมัติ')) {
+          return true;
+        }
+        return false;
+      }
+      
+      return true;
+    }).map(n => {
+      let resolvedLink = '/pages/user/leave-history.html';
+      const titleLower = String(n.title).toLowerCase();
+      const msgLower = String(n.message).toLowerCase();
+      
+      if (titleLower.includes('ใหม่') || titleLower.includes('ส่งถึงคุณ') || msgLower.includes('พิจารณาอนุมัติขั้นถัดไป') || titleLower.includes('รอหัวหน้า')) {
+        if (['leader', 'manager', 'director', 'executive', 'hr', 'admin'].includes(myRole)) {
+          resolvedLink = '/pages/hr/hr.html';
+        }
+      } else if (titleLower.includes('อนุมัติสมบูรณ์') || titleLower.includes('ได้รับการอนุมัติ') || titleLower.includes('ยืนยันใบลา')) {
+        resolvedLink = '/pages/user/leave-history.html';
+      }
+      
+      return {
+        ...n,
+        link: resolvedLink,
+        is_read: n.is_read || readNotifIds.includes(String(n.id))
+      };
+    });
+
     const allNotifications = [
       ...pendingNotifications, 
-      ...dbNotifications.map(n => ({
-        ...n,
-        is_read: n.is_read || readNotifIds.includes(String(n.id))
-      }))
+      ...dbNotifications
     ];
 
     let listHtml = '';
