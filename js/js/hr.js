@@ -449,6 +449,7 @@ function canApproveStep(req, role) {
   // ดึง Role ของ "ผู้ยื่นขอลา"
   const applicantRole = String(req.employees?.role || '').toLowerCase();
   const isApplicantHeadOrHr = ['leader', 'manager', 'director', 'hr', 'admin'].includes(applicantRole);
+  const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
 
   // 🔵 2. กรณีผู้จัดการ (L2) กำลังพิจารณา
   if (role === 'manager') {
@@ -461,6 +462,10 @@ function canApproveStep(req, role) {
 
   // 🟡 3. กรณีผู้บริหาร (L3) กำลังพิจารณา ในระบบ 4 ขั้นตอน
   if (hasExecutiveColumn && (role === 'executive' || role === 'director' || role === 'owner')) {
+    if (!isApplicantLeaderOrManager) {
+      Swal.fire('ไม่จำเป็นต้องอนุมัติ', 'พนักงานท่านนี้ไม่จำเป็นต้องผ่านการอนุมัติจากผู้บริหาร (L3)', 'info');
+      return false;
+    }
     if (req.director_status !== 'approved') {
       Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
       return false;
@@ -470,9 +475,17 @@ function canApproveStep(req, role) {
   // 🟢 4. กรณีฝ่าย HR / Admin กำลังพิจารณา
   if (role === 'hr' || role === 'admin') {
     if (hasExecutiveColumn) {
-      if (req.executive_status !== 'approved') {
-        Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้บริหาร (L3)" พิจารณาอนุมัติก่อน', 'warning');
-        return false;
+      if (isApplicantLeaderOrManager) {
+        if (req.executive_status !== 'approved') {
+          Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้บริหาร (L3)" พิจารณาอนุมัติก่อน', 'warning');
+          return false;
+        }
+      } else {
+        // พนักงานธรรมดา ไม่ต้องรอ L3 (ข้ามไปได้เลย) แต่ต้องผ่าน L2 (ผู้จัดการฝ่าย) ก่อน
+        if (req.director_status !== 'approved') {
+          Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
+          return false;
+        }
       }
     } else {
       // ระบบ 3 ขั้นตอนปกติ: ต้องรอ L2 ก่อน (ถ้าผู้ยื่นไม่ใช่ระดับหัวหน้า/HR)
@@ -575,12 +588,22 @@ function renderLeaveTable() {
       const execStatus = req.executive_status || 'pending';
       const hrStatus = req.status || 'pending';
 
+      const applicantRole = String(req.employees?.role || '').toLowerCase();
+      const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+
       if (stepFilter === "pending_manager") return mStatus === 'pending';
       if (stepFilter === "pending_director") return mStatus === 'approved' && dStatus === 'pending';
-      if (stepFilter === "pending_executive") return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'pending';
+      if (stepFilter === "pending_executive") {
+        if (!isApplicantLeaderOrManager) return false;
+        return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'pending';
+      }
       if (stepFilter === "pending_hr") {
         if (hasExecutiveColumn) {
-          return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'approved' && hrStatus === 'pending';
+          if (isApplicantLeaderOrManager) {
+            return mStatus === 'approved' && dStatus === 'approved' && execStatus === 'approved' && hrStatus === 'pending';
+          } else {
+            return mStatus === 'approved' && dStatus === 'approved' && hrStatus === 'pending';
+          }
         } else {
           return mStatus === 'approved' && dStatus === 'approved' && hrStatus === 'pending';
         }
@@ -643,10 +666,18 @@ function renderLeaveTable() {
 
     let statusColumnsHTML = "";
     if (hasExecutiveColumn) {
+      const isApplicantLeaderOrManager = ['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase());
+      let executiveCell = "";
+      if (isApplicantLeaderOrManager) {
+        executiveCell = `<td class="text-center">${getStatusBadgeHTML(req.executive_status)}</td>`;
+      } else {
+        executiveCell = `<td class="text-center" style="color: #cbd5e1; font-weight: 300;">-</td>`;
+      }
+
       statusColumnsHTML = `
         <td class="text-center">${getStatusBadgeHTML(req.manager_status)}</td>
         <td class="text-center">${getStatusBadgeHTML(req.director_status)}</td>
-        <td class="text-center">${getStatusBadgeHTML(req.executive_status)}</td>
+        ${executiveCell}
         <td class="text-center">${getStatusBadgeHTML(req.status)}</td>
       `;
     } else {
@@ -808,12 +839,14 @@ function previewLeaveModal(leaveId) {
           ${getStatusBadgeHTML(req.director_status)}
         </div>
         ${hasExecutiveColumn ? `
+        ${['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase()) ? `
         <div class="step-card">
           <span class="role-title">3. ผู้บริหาร (L3)</span>
           ${getStatusBadgeHTML(req.executive_status)}
         </div>
+        ` : ''}
         <div class="step-card">
-          <span class="role-title">4. ฝ่าย HR (L4)</span>
+          <span class="role-title">${['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase()) ? '4. ฝ่าย HR (L4)' : '3. ฝ่าย HR (L3)'}</span>
           ${getStatusBadgeHTML(req.status)}
         </div>
         ` : `
@@ -907,6 +940,14 @@ async function approveLeave(leaveId) {
       updateFields.manager_status = 'approved';
     } else if (currentRole === 'manager') {
       updateFields.director_status = 'approved';
+      // ถ้าเป็นพนักงานทั่วไป ไม่ต้องมีผู้บริหาร (L3) อนุมัติ ให้เปลี่ยนสถานะ executive_status เป็น 'approved' ควบคู่ไปด้วยเลย เพื่อความสมบูรณ์ของประวัติใน DB
+      if (hasExecutiveColumn) {
+        const applicantRole = String(reqData.employees?.role || '').toLowerCase();
+        const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+        if (!isApplicantLeaderOrManager) {
+          updateFields.executive_status = 'approved';
+        }
+      }
     } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
       if (hasExecutiveColumn) {
         updateFields.executive_status = 'approved';
@@ -1885,4 +1926,3 @@ window.handleLogout = function() {
     }
   });
 };
-

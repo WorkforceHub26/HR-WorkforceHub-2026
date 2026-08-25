@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workforce Hub | PVT HR Dashboard</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/home.css" />
+  
+ 
+
+</head>
+
+<body>
+  <div class="app-shell">
+    
+    <!-- 📌 SIDEBAR ด้านซ้าย (Fixed) -->
+    <aside class="sidebar-light">
+      <div class="brand-zone">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
+      </div>
+
+      <nav class="nav-menu">
+        <a href="/pages/hr/home.html" class="nav-item active" title="หน้าหลัก">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">ตรวจใบลา</span>
+        </a>
+        <a href="/pages/hr/management.html" class="nav-item" title="พนักงาน">
+          <span class="material-symbols-outlined">manage_accounts</span>
+          <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
+        </a>
+        <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">หน้าพนักงาน</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="nav-item" title="วันหยุด">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span class="nav-label">วันหยุด</span>
+        </a>
+
+        <!-- ปุ่มเปิดระบบจัดการบัตรพนักงาน ใน Sidebar -->
+        <a href="#" onclick="openEmployeeCardManagerPopup(); return false;" class="nav-item btn-card-nav" title="ระบบบัตรพนักงาน">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="nav-label">ระบบบัตรพนักงาน & QR</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </aside>
+      
+    <!-- 💻 MAIN CONTENT ส่วนเนื้อหาหลัก -->
+    <main class="main-content">
+      
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" title="เปิดเมนู">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+          <div>
+            <h1>ภาพรวมระบบบริหารจัดการใบลา</h1>
+            <p>PVT HR Live Tracking System</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA) -->
+          <div class="notif-wrapper" style="position: relative; display: inline-block;">
+            <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน">
+              <span class="material-symbols-outlined">notifications</span>
+              <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
+            </button>
+
+            <div class="notif-dropdown" id="notifDropdown" style="position: absolute; top: calc(100% + 12px); right: 0; width: 360px; z-index: 1000; display: none; flex-direction: column; overflow: hidden;">
+              <div class="notif-header">
+                <div class="notif-title">
+                  <strong>การแจ้งเตือน</strong>
+                  <span class="notif-count-pill" id="notifUnreadCount">0 รายการใหม่</span>
+                </div>
+                <button type="button" class="btn-mark-read" onclick="markAllNotificationsAsRead()">อ่านทั้งหมด</button>
+              </div>
+
+              <!-- Container สำหรับแสดงรายการจริงจาก Supabase -->
+              <div class="notif-body" id="notifListContainer">
+                <div style="padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
+                  ⌛ กำลังโหลดการแจ้งเตือน...
+                </div>
+              </div>
+
+              <div class="notif-footer">
+                <a href="#" onclick="openAllNotificationsModal(); return false;">ดูการแจ้งเตือนทั้งหมด</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="user-profile">
+            <div class="avatar">HR</div>
+            <div class="info">
+              <strong>ผู้ดูแลระบบ</strong>
+              <span>PVT Administrator</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- 📊 KPI STATS CARDS -->
+      <div class="stats-grid">
+        <div class="stat-card border-blue">
+          <div class="icon-box bg-blue"><span class="material-symbols-outlined">group</span></div>
+          <div class="stat-info">
+            <span class="label">พนักงานทั้งหมด</span>
+            <span class="value" id="statTotalEmployees">0</span>
+          </div>
+        </div>
+        <div class="stat-card border-green">
+          <div class="icon-box bg-green"><span class="material-symbols-outlined">person</span></div>
+          <div class="stat-info">
+            <span class="label">ลาวันนี้ (คน)</span>
+            <span class="value" id="statTodayLeaves">0</span>
+          </div>
+        </div>
+        <div class="stat-card border-orange">
+          <div class="icon-box bg-orange"><span class="material-symbols-outlined">pending_actions</span></div>
+          <div class="stat-info">
+            <span class="label">ใบลารออนุมัติ (รอพิจารณา)</span>
+            <span class="value" id="statPendingLeaves">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 📌 ROW 1: เมนูด่วน + กราฟสัดส่วนประเภทการลา -->
+      <div class="middle-grid">
+        <!-- เมนูด่วน -->
+        <section class="panel quick-menu-panel">
+          <div class="panel-header">
+            <span class="material-symbols-outlined text-primary">apps</span>
+            <h2>เมนูจัดการด่วน</h2>
+          </div>
+          <div class="quick-grid">
+            <a href="/pages/hr/hr.html" class="quick-card hover-purple">
+              <div class="icon-circle bg-purple"><span class="material-symbols-outlined">fact_check</span></div>
+              <div class="text">
+                <strong>ตรวจใบลา</strong>
+                <p>จัดการคำขอลา</p>
+              </div>
+            </a>
+            <a href="/pages/hr/management.html" class="quick-card hover-blue">
+              <div class="icon-circle bg-blue"><span class="material-symbols-outlined">manage_accounts</span></div>
+              <div class="text">
+                <strong>ข้อมูลพนักงาน</strong>
+                <p>เพิ่ม/แก้ไข สมาชิก</p>
+              </div>
+            </a>
+            <a href="/pages/user/leave-rules.html" class="quick-card hover-green">
+              <div class="icon-circle bg-green"><span class="material-symbols-outlined">rule</span></div>
+              <div class="text">
+                <strong>เงื่อนไขการลา</strong>
+                <p>ตั้งค่าสิทธิ์วันลา</p>
+              </div>
+            </a>
+            <a href="/pages/admin/holidays.html" class="quick-card hover-orange">
+              <div class="icon-circle bg-orange"><span class="material-symbols-outlined">calendar_today</span></div>
+              <div class="text">
+                <strong>วันหยุดบริษัท</strong>
+                <p>กำหนดปฏิทิน</p>
+              </div>
+            </a>
+            <button type="button" onclick="openEmployeeCardManagerPopup()" class="quick-card hover-card-qr" style="border:none; cursor:pointer; text-align:left; width:100%;">
+              <div class="icon-circle bg-teal"><span class="material-symbols-outlined">badge</span></div>
+              <div class="text">
+                <strong>บัตรพนักงาน & QR</strong>
+                <p>เปิดระบบจัดการบัตร</p>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        <!-- 📊 Card สัดส่วนประเภทการลา -->
+        <div class="leave-analytics-card">
+          <div class="panel-header">
+            <span class="material-symbols-outlined text-primary">pie_chart</span>
+            <h2>สัดส่วนประเภทการลา <span id="leaveTypeTotalHeader" style="font-weight: normal; color: var(--text-soft);">(รวม 0 รายการ)</span></h2>
+          </div>
+          
+          <div class="card-body">
+            <div class="chart-box">
+              <canvas id="chartLeaveTypes"></canvas>
+              <div class="chart-center-text">
+                <span class="total-num" id="leaveTypeTotalCenter">0</span>
+                <span class="total-label">รายการ</span>
+              </div>
+            </div>
+            
+            <div id="leaveDetailsList" class="details-list">
+              <div style="color:var(--text-soft); font-size:13px;">กำลังโหลดข้อมูลสัดส่วนการลา...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 📌 ROW 2: กราฟแท่งวันลาแยกแผนก + ตาราง Top Leave Takers -->
+      <div class="middle-grid">
+        <section class="panel chart-panel">
+          <div class="panel-header">
+            <span class="material-symbols-outlined text-primary">bar_chart</span>
+            <h2>สถิติจำนวนวันลาแยกตามแผนก (วัน)</h2>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartDepartments"></canvas>
+          </div>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="panel-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="material-symbols-outlined text-primary" style="color: #f59e0b;">emoji_events</span>
+              <h2>อันดับพนักงานที่ลาเยอะที่สุด</h2>
+            </div>
+            <span style="font-size: 11px; color: var(--text-soft); font-weight: 500;">คำนวณจากอนุมัติแล้ว</span>
+          </div>
+          <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 60px; text-align: center;">อันดับ</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>แผนก / สังกัด</th>
+                  <th style="text-align: center;">ครั้ง</th>
+                  <th style="text-align: right;">วันลา</th>
+                </tr>
+              </thead>
+              <tbody id="topLeaveEmployeesTable">
+                <tr><td colspan="5" style="text-align: center; padding: 24px; color: #94a3b8;">กำลังคำนวณอันดับ...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- 📌 ROW 3: ตารางรายการคำขอลาล่าสุด -->
+      <section class="panel table-panel" style="margin-bottom: 40px;">
+        <div class="panel-header">
+          <span class="material-symbols-outlined text-primary">list_alt</span>
+          <h2 id="tableTitle">รายการคำขอลาล่าสุด (รอพิจารณา)</h2>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr id="tableHeader">
+                <th>รหัส</th>
+                <th>ชื่อ-สกุล</th>
+                <th>ประเภท</th>
+                <th>วันที่เริ่ม - สิ้นสุด</th>
+                <th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="5" style="text-align: center; padding: 40px; color: #94a3b8;">กำลังประมวลผลข้อมูล...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  
+  <!-- Toast Notification -->
+  <div id="statusToast" class="toast"></div>
+
+  <!-- Scripts -->
+<!-- 1. External Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- 2. Your JS Files -->
+<script src="/js/supabase-config.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script src="/js/home.js"></script>
+</body>
+</html>

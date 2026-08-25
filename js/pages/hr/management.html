@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบจัดการ HR & ประวัติพนักงาน | PVT System</title>
+  
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  
+  <!-- Style Sheets -->
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/home.css" />
+  <link rel="stylesheet" href="/css/Management.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+    
+    <!-- เมนูด้านข้าง (Sidebar Navigation) -->
+    <aside class="sidebar-light">
+      <div class="brand-zone">
+        <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
+      </div>
+      
+      <nav class="nav-menu">
+        <a href="/pages/hr/home.html" class="nav-item" title="หน้าหลัก">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">ตรวจใบลา</span>
+        </a>
+        <a href="/pages/hr/management.html" class="nav-item active" title="พนักงาน">
+          <span class="material-symbols-outlined">manage_accounts</span>
+          <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
+        </a>
+        <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">หน้าพนักงาน</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="nav-item" title="วันหยุด">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span class="nav-label">วันหยุด</span>
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- พื้นที่เนื้อหาหลัก ด้านขวา -->
+    <main class="main-content">
+      
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" title="เปิดเมนู">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+          <div class="topbar-left-text">
+            <h1 class="page-title">ระบบจัดการส่วนกลาง & ประวัติพนักงาน</h1>
+            <p class="page-subtitle">HR MANAGEMENT & LEAVE HISTORY DASHBOARD</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="action-btn" onclick="handleFetchDataClick()">
+            <span class="material-symbols-outlined">sync</span>
+            <span>ดึงข้อมูลล่าสุด</span>
+          </button>
+          <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()">
+            <span class="material-symbols-outlined">download</span>
+            <span>Excel ประวัติลา</span>
+          </button>
+          <div class="user-profile">
+            <div class="avatar avatar-badge">HR</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- SECTION 1: เมนูการจัดการส่วนกลาง (Management Actions) -->
+      <div class="section-title">
+        <span class="material-symbols-outlined">admin_panel_settings</span>
+        <span>เมนูบริหารจัดการ HR</span>
+      </div>
+      <div class="management-grid">
+        <div class="manage-card">
+          <h3><span class="material-symbols-outlined">group</span> 1. จัดการบุคลากร</h3>
+          <div class="card-btn-group">
+            <button class="action-btn" onclick="addNewEmployee()"><span class="material-symbols-outlined">person_add</span> เพิ่มพนักงานใหม่</button>
+            <button class="action-btn" onclick="editEmployeeData()"><span class="material-symbols-outlined">manage_accounts</span> แก้ไขข้อมูล/ตำแหน่ง</button>
+            <button class="action-btn" onclick="manageDepartments()"><span class="material-symbols-outlined">corporate_fare</span> จัดการแผนก/ตำแหน่ง</button>
+          </div>
+        </div>
+
+        <div class="manage-card">
+          <h3><span class="material-symbols-outlined">fact_check</span> 2. กฎระเบียบ & โควตา</h3>
+          <div class="card-btn-group">
+            <button class="action-btn" onclick="editGlobalLeaveRules()"><span class="material-symbols-outlined">rule</span> ตั้งค่าโควตากลาง</button>
+            <button class="action-btn" onclick="editIndividualLeaveBalance()"><span class="material-symbols-outlined">tune</span> ปรับโควตารายบุคคล</button>
+            <button class="action-btn" onclick="openHolidayManagerModal()"><span class="material-symbols-outlined">calendar_month</span> ปฏิทินวันหยุด</button>
+          </div>
+        </div>
+
+        <div class="manage-card">
+          <h3><span class="material-symbols-outlined">shield</span> 3. รายงาน & ความปลอดภัย</h3>
+          <div class="card-btn-group">
+            <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()"><span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Excel)</button>
+            <button class="action-btn" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
+            <button class="action-btn" onclick="resetYearlyLeave()"><span class="material-symbols-outlined">published_with_changes</span> สร้าง/จัดการโควตาประจำปี</button>
+          </div>
+      </div>
+      </div>
+
+      <!-- SECTION 2: การ์ดสรุปสถิติ (Stat Cards) -->
+      <div class="section-title">
+        <span class="material-symbols-outlined">analytics</span>
+        <span>สรุปภาพรวมสถิติการลา</span>
+      </div>
+      <section class="summary-grid">
+        <article class="panel stat-card">
+          <span class="stat-label">พนักงานทั้งหมด</span>
+          <strong id="statEmployees" class="stat-val">0</strong>
+        </article>
+        <article class="panel stat-card">
+          <span class="stat-label">รายการลาทั้งหมด</span>
+          <strong id="statLeaves" class="stat-val">0</strong>
+        </article>
+        <article class="panel stat-card">
+          <span class="stat-label">รออนุมัติ</span>
+          <strong id="statPending" class="stat-val warning">0</strong>
+        </article>
+        <article class="panel stat-card">
+          <span class="stat-label">วันลารวม</span>
+          <strong id="statDays" class="stat-val primary">0</strong>
+        </article>
+      </section>
+
+      <!-- SECTION 3: กราฟวิเคราะห์ (Charts) -->
+      <section class="chart-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>สรุปแยกตามประเภทการลา</h2>
+            <span id="typeChartNote" class="status active">พร้อมใช้งาน</span>
+          </div>
+          <div id="typeChart" class="bars"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <h2>สถานะคำขอลา</h2>
+          </div>
+          <div id="statusChart" class="bars"></div>
+        </article>
+      </section>
+
+        <!-- SECTION 4: ตารางข้อมูลพนักงาน & ประวัติการลา -->
+        <div class="section-title">
+          <span class="material-symbols-outlined">badge</span>
+          <span>ทำเนียบพนักงานและประวัติการลา</span>
+        </div>
+        <section class="panel">
+          <div class="panel-head">
+            <h2>รายชื่อพนักงาน</h2>
+            <span id="loadStatus" class="status pending">กำลังโหลด</span>
+          </div>
+          
+          <div class="filter-panel" style="display: flex; gap: 12px; width: 100%; margin-bottom: 16px;">
+            <!-- ช่องค้นหาขยายเต็มพื้นที่ (Flex: 1) และเพิ่ม oninput -->
+            <div class="custom-search-container" style="flex: 1; width: 100%;">
+              <div class="search-box" style="display: flex; align-items: center; width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 12px;">
+                <span class="material-symbols-outlined icon-search" style="color: #64748b; margin-right: 8px;">search</span>
+                <input 
+                  type="text" 
+                  id="empSearchInput" 
+                  class="search-input" 
+                  placeholder="ค้นหาชื่อ-นามสกุล, รหัสพนักงาน หรือตำแหน่ง..."
+                  oninput="renderEmployeeTable()"
+                  autocomplete="off"
+                  style="width: 100%; border: none; outline: none; padding: 8px 0; font-size: 14px;"
+                />
+              </div>
+              <div id="customDropdown" class="custom-dropdown-list hidden"></div>
+            </div>
+
+            <!-- ตัวกรองแผนก -->
+            <select id="deptFilter" class="select-input" onchange="renderEmployeeTable()" style="min-width: 180px; height: 42px;">
+              <option value="">ทุกแผนก</option>
+            </select>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">รูป</th>
+                  <th style="width: 100px;">รหัส</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>ตำแหน่ง</th>
+                  <th>แผนก</th>
+                  <th style="width: 110px;">วันเริ่มงาน</th>
+                  <th style="width: 90px;">สถานะ</th>
+                  <th style="width: 110px; text-align: center;">รายละเอียด</th>
+                </tr>
+              </thead>
+              <tbody id="employeeTableBody">
+                <tr><td colspan="8" class="empty">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+    </main>
+  </div>
+
+  <!-- Modal แสดงรายละเอียดพนักงานรายบุคคล -->
+  <div id="employeeModal" class="modal" onclick="closeEmployeeModal(event)">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modalTitle">รายละเอียดพนักงาน</h2>
+        <div class="modal-header-actions">
+          <button id="modalDownloadBtn" class="btn-light btn-sm">
+            <span class="material-symbols-outlined">download</span> ดาวน์โหลด Excel
+          </button>
+          <button class="btn-close" onclick="closeEmployeeModal()">&times;</button>
+        </div>
+      </div>
+      <div id="modalBody" class="modal-body">
+        <!-- ไดนามิกเนื้อหาแสดงจาก JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- External Libraries & Scripts -->
+   
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+  
+  <script>
+    console.log("🔍 [CHECK 1] โหลด CDN External Libraries สำเร็จแล้ว");
+  </script>
+
+  <script src="/js/supabase-config.js" onload="console.log('✅ โหลด supabase-config.js สำเร็จ')" onerror="console.error('❌ โหลด supabase-config.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/auth-guard.js" onload="console.log('✅ โหลด auth-guard.js สำเร็จ')" onerror="console.error('❌ โหลด auth-guard.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/management.js" onload="console.log('✅ โหลด management.js สำเร็จ')" onerror="console.error('❌ โหลด management.js ล้มเหลว (404 Not Found)')"></script>
+</body>
+</html>

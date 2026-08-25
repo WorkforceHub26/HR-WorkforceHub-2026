@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>หน้าพนักงาน | PVT HR Leave</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/index-user.css" />
+  
+</head>
+
+<body>
+  <main class="app">
+    
+    <!-- ปุ่มสลับไปหน้าระบบอนุมัติ (แสดงเฉพาะ Leader / Manager / HR) -->
+    <a href="/pages/hr/hr.html" id="approverModeBtn" style="display: none; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 14px 20px; border-radius: 16px; text-decoration: none; font-weight: 600; margin-bottom: 20px; box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25); transition: all 0.3s ease;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="material-symbols-outlined" style="font-size: 26px;">supervisor_account</span>
+        <div style="text-align: left; line-height: 1.2;">
+          <span style="display: block; font-size: 14px; font-weight: 700;">ระบบหัวหน้างาน / HR</span>
+          <span style="display: block; font-size: 11px; color: #bfdbfe; font-weight: 400;">สลับไปหน้าอนุมัติใบลาและจัดการข้อมูล ➜</span>
+        </div>
+      </div>
+      <span class="material-symbols-outlined">arrow_forward_ios</span>
+    </a>
+
+    <!-- Header ข้อมูลพนักงาน -->
+    <header class="user-header">
+      <div class="brand-row">
+        <img id="userAvatar" src="/assets/img/default-avatar.jpg" alt="PVT" />
+        <div>
+          <p class="hello">สวัสดีค่ะ</p>
+          <h1 id="userName">กำลังโหลด...</h1>
+          <span id="userDepartment">PVT HR Leave</span>
+        </div>
+      </div>
+      
+      <div class="user-header-actions" style="display: flex; align-items: center; gap: 10px;">
+        <button id="refreshBtn" class="notif-btn" onclick="refreshUserData()" title="รีเฟรชข้อมูลล่าสุด">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+
+        <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA DROPDOWN) -->
+        <div class="notif-wrapper" style="position: relative; display: inline-block;">
+          <button id="notificationBtn" class="notif-btn" style="display: inline-flex;" onclick="toggleUserNotifDropdown(event)" title="การแจ้งเตือนใบลา">
+            <span class="material-symbols-outlined">notifications</span>
+            <span id="notifBadge" class="notif-badge" style="display: none;">0</span>
+          </button>
+
+          <div class="notif-dropdown" id="userNotifDropdown" style="position: absolute; top: calc(100% + 12px); right: 0; width: 360px; background: #ffffff; border: 1px solid #cbd5e1; max-width: calc(100vw - 32px); border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); z-index: 1000; display: none; flex-direction: column; overflow: hidden;">
+            <div class="notif-header" style="padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #cbd5e1; background: #f8fafc;">
+              <div class="notif-title" style="display: flex; align-items: center; gap: 8px;">
+                <strong style="font-size: 14px; color: #1e293b;">การแจ้งเตือน</strong>
+                <span class="notif-count-pill" id="userNotifCount" style="font-size: 11px; font-weight: 600; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 12px;">0 รายการใหม่</span>
+              </div>
+              <button type="button" class="btn-mark-read" onclick="markAllUserNotificationsAsRead(event)" style="background: transparent; border: none; font-size: 11px; color: #0284c7; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 4px;">อ่านทั้งหมด</button>
+            </div>
+            <div class="notif-body" id="userNotifList" style="max-height: 320px; overflow-y: auto;">
+              <div style="padding: 24px; text-align: center; color: #64748b; font-size: 13px;">
+                ⌛ กำลังโหลดแจ้งเตือน...
+              </div>
+            </div>
+            <div class="notif-footer" style="padding: 10px 16px; text-align: center; border-top: 1px solid #cbd5e1; background: #f8fafc; font-size: 12px;">
+              <a href="#" onclick="openAllUserNotificationsModal(event); return false;" style="color: #0284c7; text-decoration: none; font-weight: 600;">ดูการแจ้งเตือนทั้งหมด</a>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="logout-btn" onclick="logout(); return false;">
+          ออก
+        </button>
+      </div>
+    </header>
+
+    <!-- 🟢 ปุ่มใหญ่สำหรับยื่นใบลา (แยกออกมาเดี่ยวๆ) -->
+    <div class="hero-leave-container" style="margin-bottom: 24px;">
+      <button class="btn-hero-leave" onclick="goToLeaveForm()">
+        <div class="btn-hero-icon">📝</div>
+        <div class="btn-hero-text">
+          <strong>ยื่นใบลาออนไลน์</strong>
+          <span>กรอกฟอร์มขออนุญาตลา อนุมัติตามลำดับขั้นไว</span>
+        </div>
+        <span class="material-symbols-outlined btn-hero-arrow">chevron_right</span>
+      </button>
+    </div>
+
+    <!-- ส่วนแสดงสิทธิ์วันลาคงเหลือ -->
+    <div class="leave-section">
+      <div class="leave-header-row">
+        <h2>📊 สิทธิ์วันลาคงเหลือ</h2>
+        <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
+        </select>
+        <!-- 1. ปุ่มซ่อน/แสดง สิทธิ์วันลา -->
+          <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)">
+            <span class="material-symbols-outlined">visibility</span>
+          </button>
+<!-- กล่องต้องมี id="leaveBalancesContainer" -->
+      </div>
+
+      <div id="leaveBalancesContainer" class="leave-grid">
+        <span class="loading-text">⏳ กำลังโหลดข้อมูลสิทธิ์วันลา...</span>
+      </div>
+    </div>
+
+        <!-- เมนูการใช้งานอื่นๆ -->
+        <section class="menu-section">
+          
+          <!-- 1. ส่วนหัวข้อ + ปุ่มซ่อน (จัด Flexbox ให้ปุ่มอยู่ชิดขวาบรรทัดเดียวกัน) -->
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="margin: 0;">เลือกเมนูการใช้งาน</h2> 
+            <button type="button" class="btn-toggle-icon" onclick="toggleSection('quickMenuSection', this)" title="ซ่อน/แสดง เมนูการใช้งาน">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+
+          <!-- 2. กล่องรวมปุ่มเมนู (ใส่ id="quickMenuSection" ครอบการ์ดเมนูไว้ตรงนี้) -->
+          <div id="quickMenuSection" class="menu-grid">
+            <div class="menu-card" onclick="goToRules()">
+              <div class="menu-icon">📖</div>
+              <div class="menu-info">
+                <h3>หลักเกณฑ์การลา</h3>
+                <p>เปิดอ่านเงื่อนไขบริษัท</p>
+              </div>
+            </div>
+
+            <div class="menu-card" onclick="goToLeaveHistory()">
+              <div class="menu-icon">⏳</div>
+              <div class="menu-info">
+                <h3>ประวัติการลา</h3>
+                <p>ตรวจสอบสถานะใบลา</p>
+              </div>
+            </div>
+
+            <div class="menu-card" onclick="goToProfile()">
+              <div class="menu-icon">👤</div>
+              <div class="menu-info">
+                <h3>ข้อมูลพนักงาน</h3>
+                <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
+              </div>
+            </div>
+
+            <div class="menu-card" onclick="goToHolidays()">
+              <div class="menu-icon">📅</div>
+              <div class="menu-info">
+                <h3>วันหยุด</h3>
+                <p>ตรวจสอบวันหยุดประจำปี</p>
+              </div>
+            </div>
+
+            <div class="menu-card card-highlight" onclick="viewMyDigitalCard()">
+              <div class="menu-icon">🪪</div>
+              <div class="menu-info">
+                <h3>ดูบัตรพนักงาน</h3>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+    <!-- รายการลาล่าสุด -->
+    <section class="recent-card">
+      <div class="section-head">
+        <h2>รายการล่าสุด</h2>
+        <button onclick="goToLeaveHistory()">ดูทั้งหมด</button>
+                
+        <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)">
+          <span class="material-symbols-outlined">visibility</span>
+        </button>
+        <!-- กล่องรายการต้องใส่ id="recentList" -->
+      </div>
+      <div id="recentList" class="recent-list">
+        <div class="empty-state">กำลังโหลดรายการลา...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ปุ่มคู่มืออธิบายการใช้งาน (User Guide) -->
+  <div class="user-guide-wrapper">
+    <div id="user-guide-card" class="guide-card-popup">
+      <div class="guide-card-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-outlined" style="font-size: 20px;">info</span>
+          <span>คำแนะนำการใช้งานเมนู</span>
+        </div>
+        <button onclick="toggleUserGuide()" class="guide-close-btn">
+          <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+        </button>
+      </div>
+      
+      <div class="guide-card-body">
+        <button type="button" class="btn-hero-leave" onclick="goToLeaveForm()">
+          <div class="btn-hero-icon">📝</div>
+          <div class="btn-hero-text">
+            <strong>ยื่นใบลาออนไลน์</strong>
+            <span>กรอกฟอร์มขออนุญาตลา อนุมัติตามลำดับขั้นไว</span>
+          </div>
+          <span class="material-symbols-outlined btn-hero-arrow">chevron_right</span>
+        </button>
+        <div class="guide-item">
+          <span class="guide-emoji">📖</span>
+          <div><strong>หลักเกณฑ์การลา:</strong> ตรวจสอบเงื่อนไข ข้อบังคับ และกฎการแนบใบรับรองแพทย์</div>
+        </div>
+        <div class="guide-item">
+          <span class="guide-emoji">⏳</span>
+          <div><strong>ประวัติการลา:</strong> เช็กสถานะใบลาปัจจุบัน และเรียกดูใบลาเก่า</div>
+        </div>
+        <div class="guide-item">
+          <span class="guide-emoji">👤</span>
+          <div><strong>ข้อมูลพนักงาน:</strong> ตรวจสอบประวัติส่วนตัว วันเริ่มงาน อายุงานสะสม</div>
+        </div>
+        <div class="guide-item" onclick="viewMyDigitalCard()" style="border: none; padding-bottom: 0; cursor: pointer;">
+          <span class="guide-emoji">🪪</span>
+          <div><strong>ดูบัตรพนักงาน:</strong> เปิดบัตรประจำตัวดิจิทัลพร้อม QR Code</div>
+        </div>
+      </div>
+    </div>
+
+    <button id="user-guide-fab" onclick="toggleUserGuide()" class="guide-fab-btn">
+      <span id="user-guide-icon" class="material-symbols-outlined">help</span>
+    </button>
+  </div>
+
+<!-- 1. สคริปต์ภายนอก -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<!-- 2. Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- 1. นำเข้า QRCode Library (ต้องใส่ไว้ด้านบนก่อน SDK) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <!-- ไฟล์ SDK และ CSS เดิมของคุณ -->
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/index-user.js"></script>
+</body>
+</html>

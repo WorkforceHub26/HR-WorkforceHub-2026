@@ -1,0 +1,326 @@
+/* ==========================================================================
+   🔒 PVT HR LEAVE - index.css (หน้าล็อกอินเข้าสู่ระบบเวอร์ชันคลีน + รองรับ QR)
+   ========================================================================== */
+
+body {
+  background-color: #f0fdfa; 
+  background-image: 
+    radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
+    radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
+    radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
+    radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 20px;
+}
+
+/* ================== กล่องล็อกอินจัดกึ่งกลางหน้าจอ ================== */
+.login-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-card {
+  background: var(--bg-card, #ffffff);
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  animation: smoothEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ================== ส่วนหัวแบรนด์และโลโก้ ================== */
+.brand-area {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.brand-area img { 
+  height: 90px; 
+  width: auto;
+  margin-bottom: 12px; 
+}
+.brand-area h1 { 
+  font-size: 24px; 
+  font-weight: 600; 
+  color: var(--text-dark, #1e293b); 
+  margin: 0 0 6px 0; 
+}
+.brand-area p { 
+  color: var(--text-muted, #64748b); 
+  font-size: 14px; 
+  margin: 0; 
+}
+
+/* ================== ฟอร์มและช่องกรอกข้อมูล ================== */
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark, #1e293b);
+  margin-bottom: 8px;
+}
+.input-field {
+  width: 100%;
+  height: 50px;
+  padding: 0 16px;
+  border: 1.5px solid var(--border-light, #e2e8f0);
+  border-radius: 12px;
+  font-size: 15px;
+  background: #f8fafc;
+  color: var(--text-dark, #1e293b);
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary, #3b82f6);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px var(--primary-light, #eff6ff);
+}
+
+/* ================== ปุ่มกดเข้าสู่ระบบ (Login Button) ================== */
+/* ================== ปุ่มกดเข้าสู่ระบบ (Login Button) สไตล์พรีเมียม ================== */
+.login-btn {
+  width: 100%;
+  height: 50px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  
+  /* ไล่สีพื้นหลังโทนฟ้า-น้ำเงิน (ดึงโทนสีมาจาก var(--primary)) */
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
+  
+  /* เงาปุ่มแบบเรืองแสง */
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35); 
+  
+  cursor: pointer;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* เพิ่มระยะห่างเผื่อคุณอยากใส่ไอคอน */
+  
+  /* แอนิเมชันความสมูทตอนเอาเมาส์ชี้ */
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+}
+
+/* เอฟเฟกต์ตอนเมาส์ชี้ (Hover) */
+.login-btn:hover {
+  transform: translateY(-3px); /* ปุ่มลอยขึ้นเล็กน้อย */
+  box-shadow: 0 8px 22px rgba(59, 130, 246, 0.5); /* เงาเข้มและกว้างขึ้น */
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); /* สว่างขึ้น */
+}
+
+/* เอฟเฟกต์ตอนคลิกกดปุ่ม (Active) */
+.login-btn:active {
+  transform: scale(0.97); /* ปุ่มหดตัวลงสมจริงตอนโดนกด */
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* ================== ปุ่มสแกน QR Code ================== */
+.qr-btn {
+  width: 100%;
+  height: 50px;
+  margin-top: 12px;
+  border: 1.5px solid var(--primary, #3b82f6);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--primary, #3b82f6);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
+}
+.qr-btn:hover {
+  background: var(--primary-light, #eff6ff);
+}
+.qr-btn:active {
+  transform: scale(0.98);
+}
+
+/* ข้อความเวอร์ชันด้านล่าง */
+.footer-text {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+  margin-top: 32px;
+  margin-bottom: 0;
+}
+
+/* ================== กล่องรหัสผ่าน & ปุ่มดูรหัส (ดวงตา) ================== */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.password-wrapper .input-field {
+  padding-right: 48px;
+}
+.toggle-password {
+  position: absolute;
+  right: 16px;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease !important;
+}
+.toggle-password:hover {
+  color: var(--primary, #3b82f6);
+}
+.toggle-password:active {
+  transform: scale(0.7) rotate(-15deg) !important;
+}
+
+/* ==========================================================================
+   ✨ PREMIUM MICRO-ANIMATIONS (ลูกเล่นแอนิเมชันตอนเปิดหน้าเว็บ)
+   ========================================================================== */
+@keyframes smoothEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ปรับแต่งส่วนเสริมของหน้าต่าง SweetAlert ให้เป็นธีมตามระบเดิมของท่าน */
+.swal2-popup {
+  font-family: 'Sarabun', sans-serif !important;
+  border-radius: 24px !important;
+  padding: 2em !important;
+}
+.swal2-title {
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  color: var(--text-dark) !important;
+}
+.swal2-styled.swal2-confirm {
+  border-radius: 12px !important;
+  padding: 10px 30px !important;
+  font-weight: 500 !important;
+}
+
+
+
+
+/* ==========================================================================
+   ✨ Custom Style: ย้ายกล่องคู่มือไปลอยฝั่ง "ขอบขวาบน" (Top-Right Floating Widget)
+   ========================================================================= */
+.instructions-container {
+  position: fixed;
+  top: 30px;       /* ย้ายมาอยู่ด้านบน */
+  right: 30px;     /* ชิดขวา */
+  bottom: auto;    /* ยกเลิกค่าด้านล่าง */
+  z-index: 9999;   /* ให้อยู่ชั้นบนสุดเสมอ */
+  font-family: 'Sarabun', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* ปุ่มกดสไตล์มินิมอล มีเงาละมุน */
+.instructions-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 9px 15px;
+  border-radius: 30px;
+  color: #64748b;
+  font-size: 13px;
+  font-family: 'Sarabun', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.instructions-toggle-btn:hover {
+  color: #0fa472; /* ไฮไลท์สีเขียวประจำระบบ */
+  border-color: #0fa472;
+  box-shadow: 0 6px 16px rgba(15, 164, 114, 0.12);
+}
+
+.instructions-toggle-btn .icon-main {
+  font-size: 18px;
+}
+
+.instructions-toggle-btn .icon-arrow {
+  font-size: 18px;
+  margin-left: 2px;
+}
+
+/* หน้าต่างเนื้อหาคู่มือ: สไลด์ "ทิ้งตัวลงข้างล่าง" */
+.instructions-content {
+  position: absolute;
+  top: 48px;        /* เด้งลงมาใต้ปุ่มกด */
+  bottom: auto;
+  right: 0;
+  width: 310px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  background-color: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.2s ease, 
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(-10px); /* เอฟเฟกต์ค่อยๆ เลื่อนลงมา */
+  pointer-events: none;
+}
+
+/* สถานะเมื่อกดเปิดใช้งาน */
+.instructions-content.active {
+  max-height: 400px;
+  opacity: 1;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  transform: translateY(0);
+  pointer-events: auto;
+  margin-top: 6px;
+}
+
+.instructions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.instructions-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.instructions-list .icon-bullet {
+  font-size: 16px;
+  color: #0fa472;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
