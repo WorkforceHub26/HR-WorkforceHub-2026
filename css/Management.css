@@ -769,7 +769,61 @@ body {
   background: transparent;
 }
 
+/* 📝 Form Controls & Input Group Styling */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.input-group label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.input-group label .required {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.text-input,
+.form-control,
+.modal-dialog input[type="text"],
+.modal-dialog input[type="date"],
+.modal-dialog input[type="email"],
+.modal-dialog input[type="tel"],
+.modal-dialog input[type="number"],
+.modal-dialog input[type="password"] {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text, #0f172a);
+  outline: none;
+  transition: var(--fluid-transition, all 0.2s ease);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  box-sizing: border-box;
+}
+
+.text-input:focus,
+.form-control:focus,
+.modal-dialog input:focus {
+  border-color: var(--primary, #0d9488);
+  box-shadow: 0 0 0 3px var(--primary-light, rgba(13, 148, 136, 0.15));
+}
+
 .select-input {
+  width: 100%;
+  box-sizing: border-box;
   height: 44px;
   padding: 0 36px 0 16px;
   border: 1px solid var(--border);
@@ -792,6 +846,66 @@ body {
 .select-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.file-input,
+.modal-dialog input[type="file"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 12px;
+  font-size: 13px;
+  border: 1px dashed var(--border, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  background: #f8fafc;
+  cursor: pointer;
+  height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.file-input::file-selector-button,
+.modal-dialog input[type="file"]::file-selector-button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--primary, #0d9488);
+  color: #ffffff;
+  border: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: background 0.2s ease;
+}
+
+.file-input::file-selector-button:hover,
+.modal-dialog input[type="file"]::file-selector-button:hover {
+  background: #0f766e;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  height: 42px;
+  background: var(--primary, #0d9488);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+}
+
+.btn-primary:hover {
+  background: #0f766e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
 }
 
 /* 📊 Table Wrap & Perfectly Formatted Data Table */
@@ -859,18 +973,22 @@ body {
 
 .btn-light {
   background: #f8fafc;
-  border: 1px solid var(--border);
-  color: var(--text);
+  border: 1px solid var(--border, #cbd5e1);
+  color: var(--text, #1e293b);
   cursor: pointer;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 20px;
+  height: 42px;
   font-family: inherit;
+  font-size: 14px;
   font-weight: 600;
-  transition: var(--fluid-transition);
+  transition: var(--fluid-transition, all 0.2s ease);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
 }
 
 .btn-light:hover {
@@ -883,6 +1001,7 @@ body {
 
 .btn-sm {
   padding: 6px 12px;
+  height: auto;
   font-size: 13px;
 }
 

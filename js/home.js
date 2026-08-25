@@ -213,15 +213,14 @@ function drawCharts() {
   const canvasType = document.getElementById("chartLeaveTypes");
   const canvasDept = document.getElementById("chartDepartments");
 
-  // กรองรายการที่อนุมัติแล้ว
+  // 🟢 กรองรายการที่อนุมัติแล้วอย่างเคร่งครัด
   const approvedRequests = safeRequests.filter(r => {
     if (!r || !r.status) return false;
     const st = String(r.status).trim().toLowerCase();
     return st === "approved" || st === "อนุมัติ" || st === "pass";
   });
 
-  // หากไม่มีรายการอนุมัติเลย ให้ใช้ข้อมูลทั้งหมดเพื่อแสดงโครงสร้างกราฟพร้อมระบุข้อมูล
-  const activeDataset = approvedRequests.length > 0 ? approvedRequests : safeRequests;
+  const activeDataset = approvedRequests;
   const isApprovedData = approvedRequests.length > 0;
   const hasData = activeDataset.length > 0;
 
@@ -606,17 +605,14 @@ function generateEmployeeQrUrl(empCode) {
   const baseUrl = getSystemBaseUrl();
   
   try {
-    // รวม Base Domain และ Path เข้าด้วยกันอย่างถูกต้อง
     const targetUrl = new URL(PVT_CARD_CONFIG.ENTRY_PAGE_PATH, baseUrl);
     targetUrl.searchParams.set("auto_login", cleanCode);
-    targetUrl.searchParams.set("token", "PVT_SECURE_BYPASS");
 
     const encodedTarget = encodeURIComponent(targetUrl.toString());
     return `https://api.qrserver.com/v1/create-qr-code/?size=${PVT_CARD_CONFIG.QR_SIZE}&data=${encodedTarget}`;
   } catch (err) {
     console.error("❌ Error generating QR URL:", err);
-    // Fallback URL กรณีโครงสร้าง URL มีปัญหา
-    const fallbackTarget = `${baseUrl}${PVT_CARD_CONFIG.ENTRY_PAGE_PATH}?auto_login=${encodeURIComponent(cleanCode)}&token=PVT_SECURE_BYPASS`;
+    const fallbackTarget = `${baseUrl}${PVT_CARD_CONFIG.ENTRY_PAGE_PATH}?auto_login=${encodeURIComponent(cleanCode)}`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=${PVT_CARD_CONFIG.QR_SIZE}&data=${encodeURIComponent(fallbackTarget)}`;
   }
 }
@@ -675,6 +671,7 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
       const empDept = emp.departments?.department_name || 'ไม่ระบุแผนก';
       const empName = emp.full_name || 'ไม่ระบุชื่อ';
       const empCode = emp.employee_code || '';
+      const fullAvatarUrl = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : (emp.image_url || '');
 
       rowsHtml += `
         <tr class="emp-card-row" style="border-bottom: 1px solid #e2e8f0;">
@@ -700,6 +697,7 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
                     data-name="${escapeHtmlAttribute(empName)}" 
                     data-role="${escapeHtmlAttribute(empRole)}" 
                     data-dept="${escapeHtmlAttribute(empDept)}"
+                    data-avatar="${escapeHtmlAttribute(fullAvatarUrl)}"
               style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">
               <span class="material-symbols-outlined" style="font-size:16px;">visibility</span> ดู
             </button>
@@ -757,8 +755,8 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
       tableBody.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-view-card');
         if (btn) {
-          const { code, name, role, dept } = btn.dataset;
-          showIndividualIdCard(code, name, role, dept);
+          const { code, name, role, dept, avatar } = btn.dataset;
+          showIndividualIdCard(code, name, role, dept, avatar);
         }
       });
 
@@ -836,25 +834,26 @@ window.handlePrintSelectedCardsFromPopup = function () {
 };
 
 // 🟢 7.3 ฟังก์ชันแสดงพรีวิวบัตรใบเดียว (Single Card Modal)
-window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
+window.showIndividualIdCard = function (empCode, empName, empRole, empDept, avatarUrl) {
   // เรียกใช้ Centralized QR URL Generator
   const qrUrl = generateEmployeeQrUrl(empCode);
+  const imgUrl = avatarUrl || '/assets/img/default-avatar.jpg';
   
   Swal.fire({
     title: '💳 ตัวอย่างบัตรพนักงานดิจิทัล',
-    width: '400px',
+    width: '420px',
     html: `
-      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 280px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 20px;">PVT WORKFORCE HUB</div>
-        <div style="width: 76px; height: 76px; background: rgba(255,255,255,0.1); border-radius: 50%; margin: 0 auto 14px auto; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255,255,255,0.2);">
-          <span class="material-symbols-outlined" style="font-size: 42px; color: #93c5fd;">account_circle</span>
+      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 320px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 16px;">PVT WORKFORCE HUB</div>
+        <div style="width: 80px; height: 80px; margin: 0 auto 14px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #1e293b;">
+          <img src="${imgUrl}" onerror="this.src='/assets/img/default-avatar.jpg';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
         </div>
         <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">${escapeHtmlText(empName)}</div>
         <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtmlText(empRole)}</div>
-        <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 20px;">แผนก: ${escapeHtmlText(empDept)}</div>
+        <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 16px;">แผนก: ${escapeHtmlText(empDept)}</div>
         <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px;">
-          <img src="${qrUrl}" alt="Employee QR Code" style="width: 140px; height: 140px; display: block;" 
-               onerror="this.onerror=null; this.src='https://via.placeholder.com/140?text=QR+Error';" />
+          <img src="${qrUrl}" alt="Employee QR Code" style="width: 130px; height: 130px; display: block;" 
+               onerror="this.onerror=null; this.src='https://via.placeholder.com/130?text=QR+Error';" />
         </div>
         <div>
           <span style="font-size: 11px; color: #94a3b8; display: block; text-transform: uppercase;">Employee ID</span>
@@ -873,7 +872,7 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept) {
     if (result.dismiss === Swal.DismissReason.cancel) {
       openEmployeeCardManagerPopup();
     } else if (result.isConfirmed) {
-      printSingleCard(empCode, empName, empRole, empDept, qrUrl);
+      printSingleCard(empCode, empName, empRole, empDept, imgUrl);
     }
   });
 };
@@ -888,6 +887,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       name: empCode.name || empCode.empName || empCode.full_name || '-',
       position: empCode.position || empCode.empRole || '-',
       department: empCode.department || empCode.empDept || '-',
+      avatar: empCode.image_url || empCode.avatarUrl || '/assets/img/default-avatar.jpg',
       qr_url: empCode.qr_url || generateEmployeeQrUrl(empCode.employee_code || empCode.empCode)
     };
   } else {
@@ -896,6 +896,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       name: empName || '-',
       position: position || '-',
       department: department || '-',
+      avatar: pictureUrl || '/assets/img/default-avatar.jpg',
       qr_url: (pictureUrl && pictureUrl.includes('qrserver.com')) ? pictureUrl : generateEmployeeQrUrl(empCode)
     };
   }
@@ -925,12 +926,14 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
         }
         .card-header { font-size: 10px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
         .card-body { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+        .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid #38bdf8; flex-shrink: 0; background: #1e293b; }
+        .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
         .details { flex: 1; font-size: 9px; line-height: 1.3; }
         .name { font-weight: 700; font-size: 11px; color: #fff; margin-bottom: 2px; }
         .meta { color: #94a3b8; font-size: 9px; }
         .role { color: #38bdf8; font-weight: 600; }
         .qr-box { background: white; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
-        .qr-box img { width: 52px; height: 52px; display: block; }
+        .qr-box img { width: 50px; height: 50px; display: block; }
         .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
         .emp-id { font-size: 10px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; }
         @media print { body { background: transparent; } .card { border: none; box-shadow: none; } }
@@ -940,6 +943,9 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       <div class="card">
         <div class="card-header">PVT WORKFORCE HUB</div>
         <div class="card-body">
+          <div class="avatar-box">
+            <img src="${employee.avatar}" onerror="this.src='/assets/img/default-avatar.jpg';" alt="Avatar" />
+          </div>
           <div class="details">
             <div class="name">${escapeHtmlText(employee.name)}</div>
             <div class="meta role">ตำแหน่ง: ${escapeHtmlText(employee.position)}</div>
@@ -1476,3 +1482,11 @@ window.openAllNotificationsModal = async function() {
     Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถโหลดรายการแจ้งเตือนทั้งหมดได้', 'error');
   }
 };
+
+// 🌐 Global Window Function Bindings for Home Page
+window.handleNotifClick = typeof handleNotifClick !== 'undefined' ? handleNotifClick : window.handleNotifClick;
+window.openEmployeeCardManagerPopup = typeof openEmployeeCardManagerPopup !== 'undefined' ? openEmployeeCardManagerPopup : window.openEmployeeCardManagerPopup;
+window.markAllNotificationsAsRead = typeof markAllNotificationsAsRead !== 'undefined' ? markAllNotificationsAsRead : window.markAllNotificationsAsRead;
+window.openAllNotificationsModal = typeof openAllNotificationsModal !== 'undefined' ? openAllNotificationsModal : window.openAllNotificationsModal;
+window.handlePrintSelectedCardsFromPopup = typeof handlePrintSelectedCardsFromPopup !== 'undefined' ? handlePrintSelectedCardsFromPopup : window.handlePrintSelectedCardsFromPopup;
+window.toggleSelectAllCards = typeof toggleSelectAllCards !== 'undefined' ? toggleSelectAllCards : window.toggleSelectAllCards;

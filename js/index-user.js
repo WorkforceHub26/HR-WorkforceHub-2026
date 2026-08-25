@@ -413,12 +413,8 @@ window.viewMyDigitalCard = async function() {
 
   let avatarUrl = window.PVTSDK?.storage?.getAvatarUrl(profile?.image_url || profile?.employees?.image_url);
 
-  // 🔒 ปรับตั้งค่าเวลาเป็น 60,000 ms (1 นาที)
-  const timeBlock = Math.floor(Date.now() / 60000);
-  const safeBase64Encode = (str) => btoa(encodeURIComponent(str)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const securePayload = safeBase64Encode(`${currentCode}|${timeBlock}`);
-  
-  const targetUrl = `${window.location.origin}/?auto_login=${securePayload}`;
+  // 🔒 QR Code ถาวรประจำตัวพนักงาน
+  const targetUrl = `${window.location.origin}/index.html?auto_login=${encodeURIComponent(currentCode)}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}`;
 
   const cardImageDataUrl = await generateEmployeeCardPNG({
@@ -440,11 +436,11 @@ window.viewMyDigitalCard = async function() {
         </div>
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; text-align: left; font-size: 12px; color: #475569;">
           <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
-            <span>🛡️ เงื่อนไขความปลอดภัยและการใช้งาน</span>
+            <span>🛡️ QR Code ถาวรประจำตัวพนักงาน</span>
           </div>
           <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
-            <li><b>Dynamic Security:</b> QR Code มีอายุใช้งาน 1 นาที (ห้ามแคปหน้าจอส่งต่อ)</li>
-            <li><b>Single Account:</b> บัตรผูกกับบัญชีพนักงานเครื่องนี้เท่านั้น</li>
+            <li><b>Permanent QR:</b> QR Code ถาวรประจำตัวพนักงาน ใช้สแกนเข้าสู่ระบบได้ตลอดเวลา</li>
+            <li><b>Single Account:</b> บัตรผูกกับรหัสพนักงาน ${currentCode}</li>
           </ul>
         </div>
       `,
@@ -469,11 +465,16 @@ window.viewMyDigitalCard = async function() {
    ========================================================================== */
 function checkApproverPermission(profileData) {
   const switchBtn = document.getElementById("approverModeBtn");
-  if (!switchBtn || !profileData?.role) return;
+  if (!switchBtn) return;
 
-  const userRole = (profileData.role || "").toLowerCase();
+  const userRole = (profileData?.role || "").toLowerCase();
+  const positionName = (profileData?.position_name || profileData?.positions?.position_name || "").toLowerCase();
+
   const approverRoles = ["leader", "manager", "director", "executive", "owner", "hr", "admin"];
-  const isApprover = approverRoles.includes(userRole);
+  const isApprover = approverRoles.includes(userRole) || 
+                     positionName.includes("ผู้จัดการ") || 
+                     positionName.includes("ผู้อำนวยการ") || 
+                     positionName.includes("หัวหน้า");
 
   switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
 }
@@ -1022,3 +1023,17 @@ window.toggleSection = function(sectionId, btnElement) {
     if (yearFilter) yearFilter.classList.toggle('hidden-section', isHidden);
   }
 };
+
+// 🌐 Global Window Function Bindings for User Dashboard Page
+window.loadRecentLeaves = typeof loadRecentLeaves !== 'undefined' ? loadRecentLeaves : window.loadRecentLeaves;
+window.viewMyDigitalCard = typeof viewMyDigitalCard !== 'undefined' ? viewMyDigitalCard : window.viewMyDigitalCard;
+window.showLeaveTypeHistory = typeof showLeaveTypeHistory !== 'undefined' ? showLeaveTypeHistory : window.showLeaveTypeHistory;
+window.openEmployeeStatusTrackerModal = typeof openEmployeeStatusTrackerModal !== 'undefined' ? openEmployeeStatusTrackerModal : window.openEmployeeStatusTrackerModal;
+window.refreshUserData = typeof refreshUserData !== 'undefined' ? refreshUserData : window.refreshUserData;
+window.goToLeaveForm = typeof goToLeaveForm !== 'undefined' ? goToLeaveForm : window.goToLeaveForm;
+window.goToLeaveHistory = typeof goToLeaveHistory !== 'undefined' ? goToLeaveHistory : window.goToLeaveHistory;
+window.goToRules = typeof goToRules !== 'undefined' ? goToRules : window.goToRules;
+window.goToProfile = typeof goToProfile !== 'undefined' ? goToProfile : window.goToProfile;
+window.goToHolidays = typeof goToHolidays !== 'undefined' ? goToHolidays : window.goToHolidays;
+window.logout = typeof logout !== 'undefined' ? logout : window.logout;
+window.toggleUserGuide = typeof toggleUserGuide !== 'undefined' ? toggleUserGuide : window.toggleUserGuide;

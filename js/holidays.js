@@ -604,3 +604,12 @@ function smartGoBack(defaultUrl = '/pages/user/index-user.html') {
     window.location.href = defaultUrl;
   }
 }
+
+// 🌐 Global Window Function Bindings for Holidays Page
+window.openAddHolidayModal = typeof openAddHolidayModal !== 'undefined' ? openAddHolidayModal : window.openAddHolidayModal;
+window.openEditHolidayModal = typeof openEditHolidayModal !== 'undefined' ? openEditHolidayModal : window.openEditHolidayModal;
+window.deleteHoliday = typeof deleteHoliday !== 'undefined' ? deleteHoliday : window.deleteHoliday;
+window.closeHolidayModal = typeof closeHolidayModal !== 'undefined' ? closeHolidayModal : window.closeHolidayModal;
+window.handleSaveHoliday = typeof handleSaveHoliday !== 'undefined' ? handleSaveHoliday : window.handleSaveHoliday;
+window.smartGoBack = smartGoBack;
+window.changeYear = typeof changeYear !== 'undefined' ? changeYear : window.changeYear;

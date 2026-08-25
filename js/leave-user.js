@@ -1231,6 +1231,13 @@ async function saveLeave() {
   }
 
   try {
+    // 🛡️ ตรวจสอบและสร้างโควตาวันลาอัตโนมัติก่อนส่งคำขอลา
+    if (window.PVTSDK?.user?.ensureLeaveBalances) {
+      for (const item of payload) {
+        await window.PVTSDK.user.ensureLeaveBalances(currentEmpId, item.start_date);
+      }
+    }
+
     const { data, error } = await sb.from("leave_requests").insert(payload).select();
 
     if (error) {
@@ -1382,3 +1389,11 @@ function stepHours(btn, direction) {
   input.value = Math.round(newVal * 100) / 100; // ป้องกันปัญหา Floating point บน JS
   calculateLeaveDays(input);
 }
+
+// 🌐 Global Window Function Bindings for Leave Form Page
+window.stepHours = typeof stepHours !== 'undefined' ? stepHours : window.stepHours;
+window.removeLeaveRow = typeof removeLeaveRow !== 'undefined' ? removeLeaveRow : window.removeLeaveRow;
+window.addLeaveRow = typeof addLeaveRow !== 'undefined' ? addLeaveRow : window.addLeaveRow;
+window.calculateLeaveDays = typeof calculateLeaveDays !== 'undefined' ? calculateLeaveDays : window.calculateLeaveDays;
+window.handleFileChange = typeof handleFileChange !== 'undefined' ? handleFileChange : window.handleFileChange;
+window.updateLeaveBalanceDisplay = typeof updateLeaveBalanceDisplay !== 'undefined' ? updateLeaveBalanceDisplay : window.updateLeaveBalanceDisplay;

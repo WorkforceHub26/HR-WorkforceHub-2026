@@ -197,13 +197,90 @@ window.togglePassword = function () {
 };
 
 /* ==========================================================================
-   📱 ⚡ Dynamic QR Login Process (สแกน / ถอดรหัส 30 วินาที)
+   📱 ⚡ Dynamic QR Login Process (สแกน / ถอดรหัสยืดหยุ่นรองรับทุกรูปแบบ)
    ========================================================================== */
 
+function extractEmployeeCodeFromScannedData(scannedData) {
+  if (!scannedData) return "";
+  let raw = String(scannedData).trim();
+
+  // 1. ถอด URL Encoded ดั้งเดิม
+  try {
+    if (raw.includes("%")) {
+      raw = decodeURIComponent(raw);
+    }
+  } catch (e) {}
+
+  // 2. ถ้าเป็น URL สมบูรณ์ หรือมีพารามิเตอร์ auto_login, token, code ฯลฯ
+  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.includes("?") || raw.includes("&") || raw.includes("auto_login=") || raw.includes("token=")) {
+    try {
+      let searchStr = raw;
+      if (raw.includes("?")) {
+        searchStr = raw.substring(raw.indexOf("?"));
+      } else if (!raw.startsWith("?")) {
+        searchStr = "?" + raw;
+      }
+      const params = new URLSearchParams(searchStr);
+      const keys = ["auto_login", "token", "code", "emp_code", "employee_code", "emp", "id", "user"];
+      for (const k of keys) {
+        const val = params.get(k);
+        if (val && val.trim() !== "PVT_SECURE_BYPASS") {
+          raw = val.trim();
+          break;
+        }
+      }
+    } catch (e) {
+      const match = raw.match(/[?&](?:auto_login|token|code|emp_code|employee_code|emp)=([^&#]+)/i);
+      if (match && match[1]) {
+        raw = decodeURIComponent(match[1]).trim();
+      }
+    }
+  }
+
+  // 3. ถ้าเป็น JSON string
+  if (raw.startsWith("{") && raw.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(raw);
+      const code = parsed.employee_code || parsed.empCode || parsed.code || parsed.emp_code || parsed.id;
+      if (code) return String(code).trim();
+    } catch (e) {}
+  }
+
+  // 4. ถ้าเป็น Base64 หรือโครงสร้าง code|timeBlock
+  try {
+    if (raw.includes("|")) {
+      const parts = raw.split("|");
+      if (parts[0] && parts[0].trim()) return String(parts[0]).trim();
+    }
+    if (raw.length > 20 || raw.includes("=") || raw.includes("-") || raw.includes("_")) {
+      let base64 = raw.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) {
+        base64 += '=';
+      }
+      let decodedStr = atob(base64);
+      if (decodedStr && decodedStr.includes("%")) {
+        try { decodedStr = decodeURIComponent(decodedStr); } catch (e) {}
+      }
+      
+      if (decodedStr && decodedStr.includes("|")) {
+        const parts = decodedStr.split("|");
+        if (parts[0] && parts[0].trim()) return String(parts[0]).trim();
+      }
+    }
+  } catch (e) {}
+
+  // 5. ลบอักขระตกค้าง
+  raw = raw.replace(/^[?&=]+/, "").trim();
+
+  return raw;
+}
+
 async function executeSecureQrLogin(scannedData) {
+  if (!scannedData) return;
+
   Swal.fire({
     title: '🔒 กำลังตรวจสอบข้อมูล...',
-    text: 'ระบบกำลังตรวจสอบความถูกต้องของ QR Code',
+    text: 'ระบบกำลังตรวจสอบความถูกต้องของ QR Code บนบัตร',
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading()
   });
@@ -215,66 +292,63 @@ async function executeSecureQrLogin(scannedData) {
   }
 
   try {
-    let rawPayload = decodeURIComponent(scannedData).trim();
+    const empCode = extractEmployeeCodeFromScannedData(scannedData);
 
-    // กรณีสแกนได้ทั้ง URL ให้สกัดเอาเฉพาะพารามิเตอร์ auto_login
-    if (rawPayload.includes("auto_login=")) {
-      const urlObj = new URL(rawPayload);
-      rawPayload = urlObj.searchParams.get("auto_login") || rawPayload;
+    if (!empCode) {
+      throw new Error("ไม่พบรหัสพนักงานใน QR Code กรุณาลองใหม่อีกครั้ง");
     }
 
-    let empCode = "";
-    let timeBlock = null;
-
-    // 1. ถอดรหัส Token จาก Base64 (โครงสร้าง empCode|timeBlock)
-    try {
-      const decodedStr = atob(rawPayload);
-      const parts = decodedStr.split('|');
-      if (parts.length >= 2) {
-        empCode = parts[0];
-        timeBlock = parts[1];
-      } else {
-        throw new Error();
-      }
-    } catch (e) {
-      throw new Error("⛔ QR Code ไม่ถูกต้องหรือไม่อยู่ในรูปแบบความปลอดภัยที่กำหนด");
-    }
-
-    // 2. ตรวจสอบเวลา Dynamic Block (30 วินาที ยอมรับความต่างไม่เกิน 1 บล็อก)
-    const currentTimeBlock = Math.floor(Date.now() / 30000);
-    const timeDiff = Math.abs(currentTimeBlock - Number(timeBlock));
-
-    if (!timeBlock || timeDiff > 1) { 
-      throw new Error("⏰ QR Code นี้หมดอายุแล้ว กรุณาเปิด QR Code บนบัตรใหม่อีกครั้ง");
-    }
-
-    // 3. ดึงข้อมูลพนักงานจาก Supabase
-    const { data: user, error } = await sb
+    // ค้นหาพนักงานในฐานข้อมูลด้วย employee_code (Case-Insensitive)
+    let { data: users, error } = await sb
       .from('employees')
       .select('id, employee_code, full_name, role, status')
-      .eq('employee_code', empCode)
-      .maybeSingle();
+      .ilike('employee_code', empCode);
 
-    if (error || !user) throw new Error("ไม่พบข้อมูลพนักงานท่านนี้ในระบบ");
-    if (user.status !== "active") throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
+    if (error) throw new Error("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: " + error.message);
+
+    // Fallback: ถ้าไม่พบ ลองค้นหาด้วยรหัสที่เติม 0 หรือเบอร์โทร
+    if (!users || users.length === 0) {
+      const { data: fallbackUsers } = await sb
+        .from('employees')
+        .select('id, employee_code, full_name, role, status')
+        .or(`employee_code.eq.${empCode},employee_code.eq.${empCode.padStart(4, '0')},phone.eq.${empCode}`);
+      
+      if (fallbackUsers && fallbackUsers.length > 0) {
+        users = fallbackUsers;
+      }
+    }
+
+    if (!users || users.length === 0) {
+      throw new Error(`ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ`);
+    }
+
+    const user = users[0];
+
+    if (String(user.status || "").toLowerCase() !== "active") {
+      throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน (สถานะ: " + (user.status || "inactive") + ")");
+    }
 
     // บันทึก Session และนำทางเข้าสู่ระบบ
     saveUserSession(user);
 
     Swal.fire({
       icon: 'success',
-      title: `ยินดีต้อนรับ ${user.full_name}`,
+      title: 'ยินดีต้อนรับ',
+      html: `
+        <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-top: 4px;">${user.full_name}</div>
+        <div style="font-size: 13px; color: #0fa472; margin-top: 2px;">รหัสพนักงาน: ${user.employee_code}</div>
+      `,
       timer: 1200,
       showConfirmButton: false
+    }).then(() => {
+      redirectToDashboard(user.role);
     });
-
-    setTimeout(() => redirectToDashboard(user.role), 1200);
 
   } catch (err) {
     Swal.fire({ 
       icon: 'error', 
       title: 'เข้าสู่ระบบไม่สำเร็จ', 
-      text: err.message,
+      text: err.message || 'ไม่สามารถยืนยันข้อมูลจาก QR Code ได้',
       confirmButtonColor: '#ef4444' 
     });
   }

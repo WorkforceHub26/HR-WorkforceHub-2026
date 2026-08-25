@@ -529,10 +529,8 @@ function renderLeaveTable() {
       actionButtons = `
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span></button>
-          ${currentRole !== 'hr' ? `
-            <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
-            <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
-          ` : ''}
+          <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
+          <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
         </div>
       `;
     }
@@ -763,6 +761,11 @@ async function approveLeave(leaveId) {
   try {
     let updateFields = {};
 
+    // 🛡️ ตรวจสอบและสร้างโควตาวันลาใน leave_balances อัตโนมัติ (รองรับทั้งปี ค.ศ. และ พ.ศ. 2569) เพื่อป้องกัน Trigger Error
+    if (window.PVTSDK?.user?.ensureLeaveBalances) {
+      await window.PVTSDK.user.ensureLeaveBalances(reqData.employee_id, reqData.start_date);
+    }
+
     if (currentRole === 'leader') {
       updateFields.manager_status = 'approved';
     } else if (currentRole === 'manager') {
@@ -776,22 +779,23 @@ async function approveLeave(leaveId) {
       const leaveDays = await getEffectiveLeaveDays(reqData);
       const currentYear = getADYear(reqData.start_date);
 
-      const { data: balData } = await sb
+      const { data: balDataList } = await sb
         .from('leave_balances')
         .select('id, remaining_days, used_days')
         .eq('employee_id', reqData.employee_id)
         .eq('leave_type_id', reqData.leave_type_id)
-        .eq('year', currentYear)
-        .maybeSingle();
+        .in('year', [currentYear, currentYear + 543]);
 
-      if (balData) {
-        const newUsed = (balData.used_days || 0) + leaveDays;
-        const newRemaining = Math.max(0, (balData.remaining_days || 0) - leaveDays);
+      if (balDataList && balDataList.length > 0) {
+        for (const balData of balDataList) {
+          const newUsed = (balData.used_days || 0) + leaveDays;
+          const newRemaining = Math.max(0, (balData.remaining_days || 0) - leaveDays);
 
-        await sb
-          .from('leave_balances')
-          .update({ remaining_days: newRemaining, used_days: newUsed })
-          .eq('id', balData.id);
+          await sb
+            .from('leave_balances')
+            .update({ remaining_days: newRemaining, used_days: newUsed })
+            .eq('id', balData.id);
+        }
       }
     } else {
       // HR

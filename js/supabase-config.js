@@ -711,6 +711,67 @@
       return data || [];
     }
 
+    // ตรวจสอบและสร้างโควตาวันลาอัตโนมัติหากยังไม่มีในปีนั้นๆ (รองรับทั้ง ค.ศ. และ พ.ศ.)
+    async ensureLeaveBalances(employeeId, yearOrDate = new Date().getFullYear()) {
+      if (!this.client || !employeeId) return;
+      try {
+        let yearAD = new Date().getFullYear();
+        if (typeof yearOrDate === 'number') {
+          yearAD = yearOrDate > 2400 ? yearOrDate - 543 : yearOrDate;
+        } else if (typeof yearOrDate === 'string' && yearOrDate.trim()) {
+          const parsedYear = parseInt(yearOrDate.split('-')[0], 10);
+          if (!isNaN(parsedYear)) {
+            yearAD = parsedYear > 2400 ? parsedYear - 543 : parsedYear;
+          }
+        }
+        const yearBE = yearAD + 543;
+        const yearsToCheck = [yearAD, yearBE];
+
+        // 1. ดึงประเภทการลาทั้งหมด
+        const { data: leaveTypes } = await this.client
+          .from('leave_types')
+          .select('id, yearly_quota, default_days');
+
+        if (!leaveTypes || leaveTypes.length === 0) return;
+
+        // 2. ดึงรายการที่มีอยู่ใน leave_balances ทั้งปี ค.ศ. และ พ.ศ.
+        const { data: existingBalances } = await this.client
+          .from('leave_balances')
+          .select('leave_type_id, year')
+          .eq('employee_id', employeeId)
+          .in('year', yearsToCheck);
+
+        const existingKeys = new Set(
+          (existingBalances || []).map(b => `${b.leave_type_id}_${b.year}`)
+        );
+
+        const newBalances = [];
+        for (const yr of yearsToCheck) {
+          for (const lt of leaveTypes) {
+            const key = `${lt.id}_${yr}`;
+            if (!existingKeys.has(key)) {
+              const quota = Number(lt.yearly_quota || lt.default_days || 30);
+              newBalances.push({
+                employee_id: employeeId,
+                leave_type_id: lt.id,
+                year: yr,
+                entitlement_days: quota,
+                used_days: 0,
+                remaining_days: quota
+              });
+            }
+          }
+        }
+
+        if (newBalances.length > 0) {
+          await this.client.from('leave_balances').insert(newBalances);
+          console.log("✅ Auto-created missing leave_balances:", newBalances.length, "records");
+        }
+      } catch (err) {
+        console.warn("⚠️ [ensureLeaveBalances] Warning:", err);
+      }
+    }
+
     // ระบบ Logout กลาง (ล้างทั้ง Session และ SDK Cache)
     async logout() {
       this.cache.clearAll();
@@ -724,73 +785,47 @@
   }
 
     // ==========================================================================
-    // 12. DIGITAL CARD ENGINE (FIXED DYNAMIC QR)
+    // 12. DIGITAL CARD ENGINE (PERMANENT INDIVIDUAL QR)
     // ==========================================================================
     class CardEngine {
       constructor(client) {
         this.client = client;
         this.timerInstance = null;
-        this.currentSeconds = 0;
       }
 
-      // ดึง Token ที่ผ่านการรับรองจาก Supabase Server (พร้อมระบบสำรอง Auto-Login URL)
-      async getSecureToken(employeeCode) {
-        try {
-          const { data, error } = await this.client.rpc('generate_card_qr_token', { 
-            p_employee_code: employeeCode 
-          });
-
-          if (!error && data && data.length > 0) {
-            return data[0]; // คืนค่า { qr_token, seconds_left }
-          }
-        } catch (err) {
-          console.warn("⚠️ [CardEngine] RPC generate_card_qr_token unavailable, using fallback login URL");
-        }
-
+      // สร้าง URL สำหรับ QR Code ถาวรประจำตัวพนักงาน
+      getSecureToken(employeeCode) {
+        const cleanCode = String(employeeCode || "").trim();
         const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
-        const autoLoginUrl = `${origin}/index.html?auto_login=${encodeURIComponent(employeeCode)}`;
+        const autoLoginUrl = `${origin}/index.html?auto_login=${encodeURIComponent(cleanCode)}`;
         return {
           qr_token: autoLoginUrl,
-          seconds_left: 30
+          employee_code: cleanCode
         };
       }
 
-      // สั่งเริ่มทำงาน Dynamic QR Code
+      // สั่งแสดง QR Code ถาวรประจำตัวพนักงาน
       async init(employeeCode, qrContainerId = "qrcode", countdownElementId = "qr-countdown") {
         if (!employeeCode) return;
         this.stop();
 
-        const fetchAndRender = async () => {
-          try {
-            const container = document.getElementById(qrContainerId);
-            if (!container) return;
+        try {
+          const container = document.getElementById(qrContainerId);
+          if (!container) return;
 
-            // ดึง Token ใหม่จาก Supabase RPC หรือ URL Fallback
-            const { qr_token, seconds_left } = await this.getSecureToken(employeeCode);
-            this.currentSeconds = seconds_left || 30;
+          const { qr_token } = this.getSecureToken(employeeCode);
+          container.innerHTML = "";
 
-            // Render QR Code (พร้อมระบบสำรอง Image API หากไม่มี QRCode JS Library)
-            container.innerHTML = "";
-
-            if (typeof QRCode !== 'undefined') {
-              try {
-                new QRCode(container, {
-                  text: qr_token,
-                  width: 160,
-                  height: 160,
-                  correctLevel: QRCode.CorrectLevel.M
-                });
-              } catch (qrErr) {
-                console.warn("⚠️ [CardEngine] QRCode instance creation error, using img fallback:", qrErr);
-                const qrImg = document.createElement('img');
-                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qr_token)}`;
-                qrImg.alt = "Employee QR Code";
-                qrImg.style.width = "160px";
-                qrImg.style.height = "160px";
-                qrImg.style.borderRadius = "8px";
-                container.appendChild(qrImg);
-              }
-            } else {
+          if (typeof QRCode !== 'undefined') {
+            try {
+              new QRCode(container, {
+                text: qr_token,
+                width: 160,
+                height: 160,
+                correctLevel: QRCode.CorrectLevel.M
+              });
+            } catch (qrErr) {
+              console.warn("⚠️ [CardEngine] QRCode instance creation error, using img fallback:", qrErr);
               const qrImg = document.createElement('img');
               qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qr_token)}`;
               qrImg.alt = "Employee QR Code";
@@ -799,37 +834,28 @@
               qrImg.style.borderRadius = "8px";
               container.appendChild(qrImg);
             }
-
-            this.updateCountdownUI(countdownElementId);
-          } catch (err) {
-            console.error("⚠️ [CardEngine] QR Error:", err);
-            const container = document.getElementById(qrContainerId);
-            if (container) {
-              const origin = window.location.origin || "";
-              const fallbackUrl = `${origin}/index.html?auto_login=${encodeURIComponent(employeeCode)}`;
-              container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(fallbackUrl)}" style="width:160px; height:160px; border-radius:8px;" />`;
-            }
-          }
-        };
-
-        // 1. ดึงข้อมูลครั้งแรก
-        await fetchAndRender();
-
-        // 2. นับถอยหลังในเครื่อง (Local Timer) ทุก 1 วินาที พอครบ 0 ค่อยดึง Token ใหม่
-        this.timerInstance = setInterval(async () => {
-          this.currentSeconds--;
-          if (this.currentSeconds <= 0) {
-            await fetchAndRender();
           } else {
-            this.updateCountdownUI(countdownElementId);
+            const qrImg = document.createElement('img');
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qr_token)}`;
+            qrImg.alt = "Employee QR Code";
+            qrImg.style.width = "160px";
+            qrImg.style.height = "160px";
+            qrImg.style.borderRadius = "8px";
+            container.appendChild(qrImg);
           }
-        }, 1000);
-      }
 
-      updateCountdownUI(countdownElementId) {
-        const countdownEl = document.getElementById(countdownElementId);
-        if (countdownEl) {
-          countdownEl.textContent = `รหัสรีเฟรชใน ${this.currentSeconds} วินาที`;
+          const countdownEl = document.getElementById(countdownElementId);
+          if (countdownEl) {
+            countdownEl.textContent = "QR Code ถาวรประจำตัวพนักงาน";
+          }
+        } catch (err) {
+          console.error("⚠️ [CardEngine] QR Error:", err);
+          const container = document.getElementById(qrContainerId);
+          if (container) {
+            const origin = window.location.origin || "";
+            const fallbackUrl = `${origin}/index.html?auto_login=${encodeURIComponent(employeeCode)}`;
+            container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(fallbackUrl)}" style="width:160px; height:160px; border-radius:8px;" />`;
+          }
         }
       }
 

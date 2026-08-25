@@ -137,15 +137,15 @@ function extractEmployeeCodeFromScannedData(scannedData) {
   if (!scannedData) return "";
   let raw = String(scannedData).trim();
 
-  // 1. ถอด URL Encoded
+  // 1. ถอด URL Encoded ดั้งเดิม
   try {
     if (raw.includes("%")) {
       raw = decodeURIComponent(raw);
     }
   } catch (e) {}
 
-  // 2. ถ้าเป็น URL สมบูรณ์ หรือมีพารามิเตอร์
-  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.includes("?") || raw.includes("&") || raw.includes("auto_login=")) {
+  // 2. ถ้าเป็น URL สมบูรณ์ หรือมีพารามิเตอร์ auto_login, token, code ฯลฯ
+  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.includes("?") || raw.includes("&") || raw.includes("auto_login=") || raw.includes("token=")) {
     try {
       let searchStr = raw;
       if (raw.includes("?")) {
@@ -179,28 +179,30 @@ function extractEmployeeCodeFromScannedData(scannedData) {
     } catch (e) {}
   }
 
-  // 4. ถ้ามี Base64 หรือโครงสร้าง code|timeBlock
+  // 4. ถ้าเป็น Base64 หรือโครงสร้าง code|timeBlock
   try {
-    let base64 = raw.replace(/-/g, '+').replace(/_/g, '/');
-    while (base64.length % 4) {
-      base64 += '=';
+    if (raw.includes("|")) {
+      const parts = raw.split("|");
+      if (parts[0] && parts[0].trim()) return String(parts[0]).trim();
     }
-    const decodedStr = decodeURIComponent(escape(atob(base64)));
-    if (decodedStr && decodedStr.includes("|")) {
-      const parts = decodedStr.split("|");
-      if (parts[0]) return String(parts[0]).trim();
-    } else if (decodedStr && /^[a-zA-Z0-9_-]+$/.test(decodedStr) && decodedStr.length < 30) {
-      return decodedStr.trim();
+    if (raw.length > 20 || raw.includes("=") || raw.includes("-") || raw.includes("_")) {
+      let base64 = raw.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) {
+        base64 += '=';
+      }
+      let decodedStr = atob(base64);
+      if (decodedStr && decodedStr.includes("%")) {
+        try { decodedStr = decodeURIComponent(decodedStr); } catch (e) {}
+      }
+      
+      if (decodedStr && decodedStr.includes("|")) {
+        const parts = decodedStr.split("|");
+        if (parts[0] && parts[0].trim()) return String(parts[0]).trim();
+      }
     }
   } catch (e) {}
 
-  // 5. กรณีมีรูปแบบ code|... ในสตริงดิบ
-  if (raw.includes("|")) {
-    const parts = raw.split("|");
-    if (parts[0]) return String(parts[0]).trim();
-  }
-
-  // 6. ลบอักขระตกค้าง
+  // 5. ลบอักขระตกค้าง
   raw = raw.replace(/^[?&=]+/, "").trim();
 
   return raw;
@@ -387,8 +389,8 @@ function loginByQr() {
         }
       });
 
-      document.getElementById('qr-file-input').addEventListener('change', async (e) => {
-        if (e.target.files.length === 0) return;
+      document.getElementById('qr-file-input')?.addEventListener('change', async (e) => {
+        if (!e.target.files || e.target.files.length === 0) return;
         const imageFile = e.target.files[0];
         try {
           const decodedText = await html5QrCode.scanFile(imageFile, true);
@@ -425,4 +427,12 @@ window.togglePassword = function () {
     input.type = isPassword ? "text" : "password";
     icon.textContent = isPassword ? "visibility" : "visibility_off";
   }
+};
+
+window.toggleInstructions = function () {
+  const content = document.getElementById("instructionsContent");
+  const arrow = document.getElementById("instructionArrow");
+  if (!content) return;
+  content.classList.toggle("show");
+  if (arrow) arrow.classList.toggle("rotate");
 };

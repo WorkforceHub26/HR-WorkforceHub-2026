@@ -240,6 +240,8 @@ let employees = [];
 let leaveRequests = [];
 let leaveBalances = [];
 let leaveTypes = [];
+window.departments = [];
+window.positions = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   console.clear();
@@ -568,21 +570,85 @@ async function resetYearlyLeave(isForce = false) {
     const actorId = window.state?.currentUserProfile?.id || null; 
 
     // ยิง RPC ไปยัง Supabase พร้อมระบุปีที่เลือก
-    const { data, error } = await supabaseClient.rpc('fn_reset_yearly_leave', {
-      p_target_year: formValues.year,
-      p_actor_id: actorId,
-      p_actor_name: actorName,
-      p_is_force: Boolean(formValues.force)
-    });
+    let isSuccess = false;
+    let successMessage = "";
 
-    if (error) throw error;
+    try {
+      const { data, error } = await supabaseClient.rpc('fn_reset_yearly_leave', {
+        p_target_year: formValues.year,
+        p_actor_id: actorId,
+        p_actor_name: actorName,
+        p_is_force: Boolean(formValues.force)
+      });
+      if (!error) {
+        isSuccess = true;
+        successMessage = data?.message || `สร้างสิทธิวันลาปี ${formValues.year} ให้พนักงานเรียบร้อยแล้ว`;
+      }
+    } catch (rpcErr) {
+      console.warn("RPC fn_reset_yearly_leave unavailable, using JS fallback:", rpcErr);
+    }
+
+    if (!isSuccess) {
+      // JS Fallback: สร้างโควตาวันลาให้พนักงานทุกคน
+      const targetYearAD = formValues.year;
+      const targetYearBE = targetYearAD + 543;
+      const yearsToCreate = Array.from(new Set([targetYearAD, targetYearBE]));
+
+      const [empRes, ltRes] = await Promise.all([
+        supabaseClient.from('employees').select('id, employee_code, full_name').eq('status', 'active'),
+        supabaseClient.from('leave_types').select('id, yearly_quota, default_days')
+      ]);
+
+      if (empRes.error) throw empRes.error;
+      if (ltRes.error) throw ltRes.error;
+
+      const employeesList = empRes.data || [];
+      const typesList = ltRes.data || [];
+
+      let createdCount = 0;
+      for (const emp of employeesList) {
+        for (const yr of yearsToCreate) {
+          for (const lt of typesList) {
+            const quota = Number(lt.yearly_quota || lt.default_days || 30);
+            const { data: existing } = await supabaseClient
+              .from('leave_balances')
+              .select('id')
+              .eq('employee_id', emp.id)
+              .eq('leave_type_id', lt.id)
+              .eq('year', yr)
+              .maybeSingle();
+
+            if (!existing || formValues.force) {
+              if (existing && formValues.force) {
+                await supabaseClient.from('leave_balances').update({
+                  entitlement_days: quota,
+                  remaining_days: quota
+                }).eq('id', existing.id);
+              } else if (!existing) {
+                await supabaseClient.from('leave_balances').insert([{
+                  employee_id: emp.id,
+                  leave_type_id: lt.id,
+                  year: yr,
+                  entitlement_days: quota,
+                  used_days: 0,
+                  remaining_days: quota
+                }]);
+              }
+              createdCount++;
+            }
+          }
+        }
+      }
+
+      successMessage = `สร้างสิทธิวันลาประจำปี ${formValues.year} ให้พนักงาน ${employeesList.length} คน เรียบร้อยแล้ว (${createdCount} รายการ)`;
+    }
 
     await saveHRActivityLog('LEAVE_SYSTEM', 'RESET_QUOTA', `ปี ${formValues.year}`, `สร้างโควตาวันลาประจำปี ${formValues.year}`);
 
     Swal.fire({
       icon: 'success',
       title: 'สร้างโควตาวันลาสำเร็จ!',
-      text: data?.message || `สร้างสิทธิวันลาปี ${formValues.year} ให้พนักงานเรียบร้อยแล้ว`,
+      text: successMessage,
       confirmButtonColor: '#0d9488'
     });
 
@@ -607,6 +673,8 @@ async function refreshDashboard() {
   try {
     await Promise.all([
       fetchEmployees(),
+      fetchDepartments(),
+      fetchPositions(),
       fetchLeaveTypes(),
       fetchLeaveBalances(),
       fetchLeaveRequests(),
@@ -701,6 +769,22 @@ async function fetchEmployees() {
     employees = await fetchAllPaginated("employees", query);
   } catch (err) {
     showAppError("ดึงข้อมูลพนักงานล้มเหลว", err.message);
+  }
+}
+
+async function fetchDepartments() {
+  try {
+    window.departments = await fetchAllPaginated("departments", "id, department_code, department_name, status");
+  } catch (err) {
+    console.warn("fetchDepartments error:", err);
+  }
+}
+
+async function fetchPositions() {
+  try {
+    window.positions = await fetchAllPaginated("positions", "id, position_name, department_id, status");
+  } catch (err) {
+    console.warn("fetchPositions error:", err);
   }
 }
 
@@ -804,12 +888,12 @@ function fillDepartmentFilter() {
   if (!select) return;
 
   const current = select.value;
-  const departments = [...new Set(employees.map((emp) => emp.departments?.department_name).filter(Boolean))].sort();
+  const deptNames = [...new Set(employees.map((emp) => emp.departments?.department_name).filter(Boolean))].sort();
 
   select.innerHTML = `<option value="">ทุกแผนก</option>` + 
-    departments.map((dept) => `<option value="${escapeHtml(dept)}">${escapeHtml(dept)}</option>`).join("");
+    deptNames.map((dept) => `<option value="${escapeHtml(dept)}">${escapeHtml(dept)}</option>`).join("");
 
-  select.value = departments.includes(current) ? current : "";
+  select.value = deptNames.includes(current) ? current : "";
 }
 
 function renderSummary() {
@@ -849,10 +933,10 @@ function groupByLeaveType() {
     return st === "approved" || st === "อนุมัติ" || st === "pass";
   });
 
-  const dataset = approvedRequests.length > 0 ? approvedRequests : safeRequests;
+  const dataset = approvedRequests;
   const noteEl = document.getElementById("typeChartNote");
   if (noteEl) {
-    noteEl.textContent = approvedRequests.length > 0 ? "อนุมัติแล้ว" : "คำขอทั้งหมด";
+    noteEl.textContent = approvedRequests.length > 0 ? "อนุมัติแล้ว" : "ยังไม่มีข้อมูลอนุมัติ";
     noteEl.className = approvedRequests.length > 0 ? "status active" : "status";
   }
 
@@ -1021,19 +1105,47 @@ function exportIndividualLeaveExcel(employeeId) {
   window.pvtSupabase.downloadBlob(filename, csvContent, "text/csv;charset=utf-8;");
 }
 
-// ปรับปรุงฟอร์มเปิดดู/แก้ไขพนักงานแบบย่อ (ตัด Line, Email, Phone ออก)
-function openEmployeeDetail(employeeId, isEditMode = false) {
-  const emp = employees.find((item) => String(item.id) === String(employeeId));
-  if (!emp) return;
+// ปรับปรุงฟอร์มเปิดดู/แก้ไขพนักงานแบบย่อ
+async function openEmployeeDetail(employeeId, isEditMode = false) {
+  if (!window.departments || window.departments.length === 0) await fetchDepartments();
+  if (!window.positions || window.positions.length === 0) await fetchPositions();
 
-  const requests = leaveRequests.filter((item) => String(item.employee_id) === String(employeeId));
-  const balances = leaveBalances.filter((item) => String(item.employee_id) === String(employeeId));
+  let emp = employees.find((item) => String(item.id) === String(employeeId) || String(item.employee_code) === String(employeeId));
+  if (!emp) {
+    try {
+      const supabase = getSupabase();
+      const { data } = await supabase.from('employees')
+        .select('*, departments(department_name), positions(position_name)')
+        .or(`id.eq.${employeeId},employee_code.eq.${employeeId}`)
+        .maybeSingle();
+      if (data) emp = data;
+    } catch (e) {
+      console.warn("Direct employee fetch error:", e);
+    }
+  }
+
+  if (!emp) {
+    showAppError("ไม่พบข้อมูลพนักงาน", "ไม่พบข้อมูลพนักงานที่ต้องการเปิดในระบบ");
+    return;
+  }
+
+  const requests = leaveRequests.filter((item) => String(item.employee_id) === String(emp.id));
+  const balances = leaveBalances.filter((item) => String(item.employee_id) === String(emp.id));
   const modal = document.getElementById("employeeModal");
   const title = document.getElementById("modalTitle");
   const body = document.getElementById("modalBody");
 
   if (!isEditMode) {
-    if (title) title.innerHTML = `<span>${escapeHtml(emp.employee_code || "-")} · ${escapeHtml(emp.full_name || "-")}</span>`;
+    if (title) {
+      title.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+          <span>${escapeHtml(emp.employee_code || "-")} · ${escapeHtml(emp.full_name || "-")}</span>
+          <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:4px 10px; cursor:pointer;">
+            ✏️ แก้ไขข้อมูล
+          </button>
+        </div>
+      `;
+    }
     if (body) {
       body.innerHTML = `
         <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px;">
@@ -1072,13 +1184,22 @@ function openEmployeeDetail(employeeId, isEditMode = false) {
     }
   } else {
     // โหมดแก้ไข
-    if (title) title.innerHTML = `<span>แก้ไขพนักงาน: ${escapeHtml(emp.employee_code || "-")}</span>`;
+    if (title) title.innerHTML = `<span>✏️ แก้ไขพนักงาน: ${escapeHtml(emp.employee_code || "-")}</span>`;
     
     // สร้าง Dropdown แผนกและตำแหน่ง
-    const deptOptions = departments.map(d => `<option value="${d.id}" ${d.id === emp.department_id ? 'selected' : ''}>${escapeHtml(d.department_name)}</option>`).join("");
-    const roleOptions = positions.map(p => `<option value="${p.id}" ${p.id === emp.position_id ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`).join("");
+    const deptOptions = (window.departments || []).map(d => {
+      const isSelected = String(d.id) === String(emp.department_id) || d.department_name === emp.departments?.department_name;
+      return `<option value="${d.id}" ${isSelected ? 'selected' : ''}>${escapeHtml(d.department_name)}</option>`;
+    }).join("");
+
+    const roleOptions = (window.positions || []).map(p => {
+      const isSelected = String(p.id) === String(emp.position_id) || p.position_name === emp.positions?.position_name;
+      return `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;
+    }).join("");
     
     const empTypeOptions = [
+      { val: 'monthly', label: 'รายเดือน (Monthly)' },
+      { val: 'daily', label: 'รายวัน (Daily)' },
       { val: 'full_time', label: 'พนักงานประจำ (Full-time)' },
       { val: 'part_time', label: 'พนักงานพาร์ทไทม์ (Part-time)' },
       { val: 'contract', label: 'พนักงานสัญญาจ้าง (Contract)' },
@@ -1271,7 +1392,9 @@ async function saveEmployeeInlineEdit(employeeId) {
 
 
 function closeEmployeeModal(event) {
-  if (event && event.target.id !== "employeeModal") return;
+  if (event && event.target && event.target.id !== "employeeModal" && !event.target.closest('.btn-close') && !event.target.closest('.btn-light')) {
+    return;
+  }
   document.getElementById("employeeModal")?.classList.remove("open");
 }
 
@@ -1384,6 +1507,9 @@ async function editSingleLeaveRequest(requestId) {
 
   if (formValues) {
     Swal.fire({ title: 'กำลังปรับปรุงข้อมูลคำขอ...', didOpen: () => Swal.showLoading() });
+    if (window.PVTSDK?.user?.ensureLeaveBalances) {
+      await window.PVTSDK.user.ensureLeaveBalances(req.employee_id, req.start_date);
+    }
     const { error } = await supabase.from('leave_requests').update(formValues).eq('id', req.id);
     if (error) {
       showAppError('ปรับปรุงข้อมูลคำขอล้มเหลว', error.message);
@@ -1893,10 +2019,21 @@ window.addNewEmployee = async function addNewEmployee() {
 };
 
 async function editEmployeeData(presetSearchKey = null) {
+  if (!employees || employees.length === 0) {
+    await fetchEmployees();
+  }
+
   if (presetSearchKey) {
-    const emp = employees.find(e => e.employee_code === presetSearchKey || e.id === presetSearchKey);
+    let emp = employees.find(e => e.employee_code === presetSearchKey || e.id === presetSearchKey);
+    if (!emp) {
+      try {
+        const supabase = getSupabase();
+        const { data } = await supabase.from('employees').select('*, departments(department_name), positions(position_name)').or(`id.eq.${presetSearchKey},employee_code.eq.${presetSearchKey}`).maybeSingle();
+        if (data) emp = data;
+      } catch (e) {}
+    }
     if (emp) {
-      openEmployeeDetail(emp.id, true);
+      await openEmployeeDetail(emp.id, true);
       return;
     }
   }
@@ -1904,7 +2041,7 @@ async function editEmployeeData(presetSearchKey = null) {
   if (!window.Swal) return;
 
   // 💡 สร้างรายการตัวเลือกพนักงานทั้งหมดมาเป็น <option>
-  const employeeOptions = employees.map(e => 
+  const employeeOptions = (employees || []).map(e => 
     `<option value="${escapeHtml(e.employee_code || '')}">${escapeHtml(e.full_name || '')} (${escapeHtml(e.departments?.department_name || 'ไม่ระบุแผนก')})</option>`
   ).join('');
 
@@ -1937,14 +2074,30 @@ async function editEmployeeData(presetSearchKey = null) {
 
   if (!inputKey) return;
 
-  // ค้นหาจากทั้ง รหัสพนักงาน และ ชื่อ-นามสกุล
-  const emp = employees.find(e =>
-    e.employee_code?.toLowerCase() === inputKey.toLowerCase() ||
-    e.full_name?.toLowerCase().includes(inputKey.toLowerCase())
+  const cleanKey = inputKey.trim().toLowerCase();
+  let emp = employees.find(e =>
+    (e.employee_code && e.employee_code.toLowerCase() === cleanKey) ||
+    (e.full_name && e.full_name.toLowerCase().includes(cleanKey)) ||
+    (e.id && String(e.id) === cleanKey)
   );
 
+  if (!emp) {
+    try {
+      const supabase = getSupabase();
+      const { data } = await supabase.from('employees')
+        .select('*, departments(department_name), positions(position_name)')
+        .or(`employee_code.ilike.%${cleanKey}%,full_name.ilike.%${cleanKey}%,id.eq.${cleanKey}`)
+        .limit(1);
+      if (data && data.length > 0) {
+        emp = data[0];
+      }
+    } catch(e) {
+      console.warn("Direct DB employee search error:", e);
+    }
+  }
+
   if (emp) {
-    openEmployeeDetail(emp.id, true);
+    await openEmployeeDetail(emp.id, true);
   } else {
     Swal.fire('ไม่พบพนักงาน', `ไม่พบข้อมูลพนักงานที่ค้นหา: ${escapeHtml(inputKey)}`, 'warning');
   }
@@ -2496,7 +2649,7 @@ async function openHolidayManagerModal() {
               </span>
             </td>
             <td style="padding: 10px; text-align: center; white-space: nowrap;">
-              <button onclick="openEditHolidayModal(${h.id})" style="background:#f8fafc; color:#0284c7; border:1px solid #bae6fd; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px; margin-right:4px;">
+              <button onclick="openEditHolidayModal('${h.id}')" style="background:#f8fafc; color:#0284c7; border:1px solid #bae6fd; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px; margin-right:4px;">
                 ✏️ แก้ไข
               </button>
                 <button onclick="deleteHoliday('${h.id}')" style="background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px;">
@@ -3092,4 +3245,31 @@ async function handleFetchDataClick() {
     });
   }
 }
+
+// 🌐 Global Window Function Bindings for Management Page
+window.openEmployeeDetail = typeof openEmployeeDetail !== 'undefined' ? openEmployeeDetail : window.openEmployeeDetail;
+window.deleteEmployee = typeof deleteEmployee !== 'undefined' ? deleteEmployee : window.deleteEmployee;
+window.saveEmployeeInlineEdit = typeof saveEmployeeInlineEdit !== 'undefined' ? saveEmployeeInlineEdit : window.saveEmployeeInlineEdit;
+window.closeEmployeeModal = closeEmployeeModal;
+window.editSingleLeaveRequest = typeof editSingleLeaveRequest !== 'undefined' ? editSingleLeaveRequest : window.editSingleLeaveRequest;
+window.saveSingleLeaveRule = typeof saveSingleLeaveRule !== 'undefined' ? saveSingleLeaveRule : window.saveSingleLeaveRule;
+window.addNewLeaveTypeModal = typeof addNewLeaveTypeModal !== 'undefined' ? addNewLeaveTypeModal : window.addNewLeaveTypeModal;
+window.openEditHolidayModal = typeof openEditHolidayModal !== 'undefined' ? openEditHolidayModal : window.openEditHolidayModal;
+window.openAddHolidayModal = typeof openAddHolidayModal !== 'undefined' ? openAddHolidayModal : window.openAddHolidayModal;
+window.removeCustomColumnField = typeof removeCustomColumnField !== 'undefined' ? removeCustomColumnField : window.removeCustomColumnField;
+window.addChoiceInput = typeof addChoiceInput !== 'undefined' ? addChoiceInput : window.addChoiceInput;
+window.calcRem = typeof calcRem !== 'undefined' ? calcRem : window.calcRem;
+window.deleteCustomColumnWithDoubleConfirm = typeof deleteCustomColumnWithDoubleConfirm !== 'undefined' ? deleteCustomColumnWithDoubleConfirm : window.deleteCustomColumnWithDoubleConfirm;
+window.toggleCustomFieldType = typeof toggleCustomFieldType !== 'undefined' ? toggleCustomFieldType : window.toggleCustomFieldType;
+window.openCreateCustomFieldModal = typeof openCreateCustomFieldModal !== 'undefined' ? openCreateCustomFieldModal : window.openCreateCustomFieldModal;
+window.handleFetchDataClick = handleFetchDataClick;
+window.exportAllLeaveHistoryExcel = typeof exportAllLeaveHistoryExcel !== 'undefined' ? exportAllLeaveHistoryExcel : window.exportAllLeaveHistoryExcel;
+window.addNewEmployee = typeof addNewEmployee !== 'undefined' ? addNewEmployee : window.addNewEmployee;
+window.editEmployeeData = typeof editEmployeeData !== 'undefined' ? editEmployeeData : window.editEmployeeData;
+window.manageDepartments = typeof manageDepartments !== 'undefined' ? manageDepartments : window.manageDepartments;
+window.editGlobalLeaveRules = typeof editGlobalLeaveRules !== 'undefined' ? editGlobalLeaveRules : window.editGlobalLeaveRules;
+window.editIndividualLeaveBalance = typeof editIndividualLeaveBalance !== 'undefined' ? editIndividualLeaveBalance : window.editIndividualLeaveBalance;
+window.openHolidayManagerModal = typeof openHolidayManagerModal !== 'undefined' ? openHolidayManagerModal : window.openHolidayManagerModal;
+window.viewAuditLogs = typeof viewAuditLogs !== 'undefined' ? viewAuditLogs : window.viewAuditLogs;
+window.resetYearlyLeave = typeof resetYearlyLeave !== 'undefined' ? resetYearlyLeave : window.resetYearlyLeave;
 
