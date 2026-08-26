@@ -1002,34 +1002,7 @@ async function approveLeave(leaveId) {
     }
 
     if (currentRole === 'leader') {
-      // ✅ L1 อนุมัติ
       updateFields.manager_status = 'approved';
-
-      // 🔀 ตรวจสายอนุมัติของแผนกจาก department_approvers
-      // ถ้าแผนกนี้ไม่มี L2 ให้ข้าม L2 และส่งต่อไป HR ทันที
-      const deptId = reqData.employees?.department_id || null;
-
-      if (deptId) {
-        const { data: approverConfig, error: approverConfigError } = await sb
-          .from('department_approvers')
-          .select('department_id, supervisor_id, manager_id')
-          .eq('department_id', deptId)
-          .maybeSingle();
-
-        if (approverConfigError) throw approverConfigError;
-
-        if (!approverConfig?.manager_id) {
-          console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี L2 → ข้ามไป HR');
-
-          // director_status คือสถานะของขั้น L2 ในโครงสร้างเดิม
-          updateFields.director_status = 'approved';
-
-          // พนักงานทั่วไปไม่ต้องผ่านผู้บริหาร L3
-          if (hasExecutiveColumn) {
-            updateFields.executive_status = 'approved';
-          }
-        }
-      }
     } else if (currentRole === 'manager') {
       updateFields.director_status = 'approved';
       // ถ้าเป็นพนักงานทั่วไป ไม่ต้องมีผู้บริหาร (L3) อนุมัติ ให้เปลี่ยนสถานะ executive_status เป็น 'approved' ควบคู่ไปด้วยเลย เพื่อความสมบูรณ์ของประวัติใน DB
@@ -1095,113 +1068,39 @@ async function approveLeave(leaveId) {
         const leaveTypeName = reqData.leave_types?.leave_name || 'ใบลา';
 
         if (currentRole === 'leader') {
-          // 🔀 ใช้ Manager L2 ที่ Admin กำหนดไว้ใน department_approvers
-          const deptId = reqData.employees?.department_id || null;
-          const deptName = reqData.employees?.departments?.department_name || '';
-
+          // 🔎 ค้นหา Manager ของแผนกนี้เพื่อส่งแจ้งเตือนต่อ (L2)
           let managerId = null;
           let managerLineId = '';
-
-          if (deptId) {
-            const { data: approverConfig, error: approverError } = await sb
-              .from('department_approvers')
-              .select('manager_id')
-              .eq('department_id', deptId)
+          try {
+            const { data: deptMgr } = await sb
+              .from('employees')
+              .select('id, full_name, line_id')
+              .eq('department_id', reqData.employees?.department_id)
+              .in('role', ['manager', 'ผู้จัดการ', 'director'])
+              .eq('status', 'active')
               .maybeSingle();
+            managerId = deptMgr?.id;
+            managerLineId = deptMgr?.line_id || '';
+          } catch (e) { console.warn("Failed to find department manager:", e); }
 
-            if (approverError) throw approverError;
+          const deptName = reqData.employees?.departments?.department_name || '';
 
-            managerId = approverConfig?.manager_id || null;
-
-            // มี L2 → ดึง LINE User ID และส่งแจ้งเตือน
-            if (managerId) {
-              const { data: managerEmp, error: managerError } = await sb
-                .from('employees')
-                .select('id, full_name, line_id')
-                .eq('id', managerId)
-                .maybeSingle();
-
-              if (managerError) throw managerError;
-
-              managerLineId = managerEmp?.line_id || '';
-
-              await window.PVTSDK.line.sendWorkflowNotification({
-                type: 'LEADER_APPROVED',
-                recipientId: managerId,
-                recipientLineId: managerLineId,
-                leaveId: leaveId,
-                employeeName: applicantName,
-                employeeCode: applicantCode,
-                departmentName: deptName,
-                recipientRole: 'manager',
-                leaveType: leaveTypeName,
-                startDate: reqData.start_date,
-                endDate: reqData.end_date,
-                totalDays: reqData.total_days,
-                comment: reqData.approval_comment || 'หัวหน้างานตรวจสอบแล้ว เห็นควรอนุมัติ'
-              });
-
-              if (!managerLineId) {
-                console.warn('⚠️ [LINE OA] ผู้จัดการ L2 ยังไม่มี LINE User ID');
-              }
-            } else {
-              // ไม่มี L2 → ไม่ส่ง LINE ให้ HR ตาม Requirement
-              console.log('ℹ️ [LINE OA] แผนกนี้ไม่มี L2 → ข้าม LINE และส่งรายการไป HR ในระบบ');
-            }
-          }
-
-        } else if (currentRole === 'manager') {
-          // ผู้จัดการ L2 อนุมัติคำขอของ "หัวหน้างาน/ผู้จัดการ"
-          // → แจ้งผู้บริหาร L3
-          const applicantRole = String(reqData.employees?.role || '').toLowerCase();
-          const needsExecutive = ['leader', 'manager'].includes(applicantRole);
-
-          if (needsExecutive) {
-            const { data: executiveSetting, error: executiveSettingError } = await sb
-              .from('system_settings')
-              .select('employee_id')
-              .eq('setting_key', 'leave_executive_approver')
-              .maybeSingle();
-
-            if (executiveSettingError) throw executiveSettingError;
-
-            let executiveEmp = null;
-
-            if (executiveSetting?.employee_id) {
-              const { data: executiveData, error: executiveError } = await sb
-                .from('employees')
-                .select('id, full_name, line_id, role')
-                .eq('id', executiveSetting.employee_id)
-                .maybeSingle();
-
-              if (executiveError) throw executiveError;
-              executiveEmp = executiveData || null;
-            }
-
-            if (executiveEmp) {
-              await window.PVTSDK.line.sendWorkflowNotification({
-                type: 'MANAGER_APPROVED',
-                recipientId: executiveEmp.id,
-                recipientLineId: executiveEmp.line_id || '',
-                leaveId: leaveId,
-                employeeName: applicantName,
-                employeeCode: applicantCode,
-                departmentName: reqData.employees?.departments?.department_name || '',
-                recipientRole: 'executive',
-                leaveType: leaveTypeName,
-                startDate: reqData.start_date,
-                endDate: reqData.end_date,
-                totalDays: reqData.total_days,
-                comment: reqData.approval_comment || 'ผู้จัดการตรวจสอบแล้ว เห็นควรอนุมัติ'
-              });
-
-              if (!executiveEmp.line_id) {
-                console.warn('⚠️ [LINE OA] ผู้บริหารยังไม่มี LINE User ID');
-              }
-            } else {
-              console.warn('⚠️ [LINE OA] ไม่พบผู้บริหาร role executive/director/owner');
-            }
-          }
+          // หัวหน้าอนุมัติ L1 -> แจ้งผู้จัดการฝ่าย (L2) ผ่าน LINE
+          await window.PVTSDK.line.sendWorkflowNotification({
+            type: 'LEADER_APPROVED',
+            recipientId: managerId, // ระบุผู้รับ L2
+            recipientLineId: managerLineId,
+            leaveId: leaveId,
+            employeeName: applicantName,
+            employeeCode: applicantCode,
+            departmentName: deptName,
+            recipientRole: 'manager',
+            leaveType: leaveTypeName,
+            startDate: reqData.start_date,
+            endDate: reqData.end_date,
+            totalDays: reqData.total_days,
+            comment: reqData.approval_comment || 'หัวหน้างานตรวจสอบแล้ว เห็นควรอนุมัติ'
+          });
         }
       } catch (lineErr) {
         console.warn("⚠️ [LINE OA Trigger] Approval notice error:", lineErr);
