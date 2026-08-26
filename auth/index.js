@@ -34,7 +34,7 @@ function redirectToDashboard(role) {
     cleanRole.includes('ผู้อำนวยการ');
   
   if (isHrOrLeader) {
-    targetPath = "/pages/hr/home.html";
+    targetPath = "/pages/user/index-user.html";
   }
 
   sessionStorage.removeItem("redirect_attempt");
