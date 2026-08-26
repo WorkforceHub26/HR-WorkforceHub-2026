@@ -908,67 +908,170 @@ body {
   box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
 }
 
-/* 📊 Table Wrap & Perfectly Formatted Data Table */
-.table-wrap {
+/* ==========================================================================
+   📋 SECTION 4: EMPLOYEE DIRECTORY & RESPONSIVE CARDS
+   ========================================================================== */
+.employee-list-wrapper {
   width: 100%;
-  max-height: 65vh;
-  overflow-x: auto;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: #ffffff;
-  box-shadow: var(--shadow-sm);
+  margin-top: 8px;
 }
 
-.data-table {
-  width: 100%;
-  min-width: 820px;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 14px;
-}
-
-.data-table th {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+.employee-list-header {
+  display: grid;
+  grid-template-columns: 60px 100px 1fr 180px 140px 100px 140px;
   background: #f8fafc;
+  padding: 14px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
   color: var(--text-soft);
-  font-weight: 600;
   font-size: 13px;
-  padding: 16px 20px;
-  border-bottom: 2px solid var(--border);
-  white-space: nowrap;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.data-table td {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  background: #ffffff;
-  vertical-align: middle;
-  transition: var(--fluid-transition);
+.employee-list-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.data-table tbody tr:hover td {
-  background-color: #f8fafc;
-  color: var(--primary);
+.emp-card-item {
+  display: grid;
+  grid-template-columns: 60px 100px 1fr 180px 140px 100px 140px;
+  align-items: center;
+  background: var(--card);
+  padding: 16px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: var(--spring-bounce);
+  gap: 16px;
 }
 
-.data-table tbody tr:last-child td {
-  border-bottom: none;
+.emp-card-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-light);
+  box-shadow: var(--shadow-md);
 }
 
-.table-avatar {
-  width: 38px;
-  height: 38px;
+.emp-card-item .col-avatar img {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #ffffff;
-  display: block;
-  margin: 0 auto;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.emp-card-item .col-code {
+  font-weight: 800;
+  color: var(--text);
+  font-family: 'Kanit', sans-serif;
+}
+
+.emp-card-item .col-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emp-card-item .emp-name {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.emp-card-item .emp-pos {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+.emp-card-item .col-dept {
+  font-size: 13px;
+  color: var(--text-soft);
+  font-weight: 500;
+}
+
+.emp-card-item .col-start {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.emp-card-item .col-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 📱 RESPONSIVE CARDS (Big Cards on Mobile) */
+@media screen and (max-width: 1024px) {
+  .desktop-only { display: none !important; }
+  
+  .emp-card-item {
+    grid-template-columns: 1fr;
+    padding: 24px;
+    gap: 12px;
+    text-align: center;
+    border-radius: 24px; /* Extra round for premium feel */
+    border-width: 2px;
+  }
+  
+  .emp-card-item .col-avatar img {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 8px;
+  }
+  
+  .emp-card-item .col-code {
+    background: var(--primary-soft);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    width: fit-content;
+    margin: 0 auto;
+    font-size: 14px;
+  }
+  
+  .emp-card-item .emp-name { font-size: 19px; }
+  .emp-card-item .emp-pos { font-size: 14px; margin-top: 4px; }
+  
+  .emp-card-item .col-dept {
+    background: #f1f5f9;
+    padding: 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+  
+  .emp-card-item .col-start {
+    font-size: 13px;
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 12px;
+    width: 100%;
+  }
+  
+  .emp-card-item .col-status {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 8px 0;
+  }
+  
+  .emp-card-item .col-actions {
+    width: 100%;
+    flex-direction: column;
+    margin-top: 12px;
+    gap: 10px;
+  }
+  
+  .emp-card-item .btn-light {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
 }
 
 .btn-light {
@@ -1197,5 +1300,15 @@ body {
   }
   .stat-val {
     font-size: 24px;
+  }
+  .card-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card-btn-group .action-btn {
+    width: 100%;
+    transform: none !important;
+    padding: 12px;
   }
 }

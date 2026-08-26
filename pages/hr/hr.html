@@ -188,32 +188,12 @@
           </div>
         </div>
 
-        <div class="table-container">
-          <table class="approval-table">
-            <thead>
-              <tr>
-                <th class="text-center">โปรไฟล์</th>
-                <th>รหัสพนักงาน</th>
-                <th>ข้อมูลผู้ลา</th>
-                <th>ประเภทการลา</th>
-                <th class="text-center">ช่วงวันที่ลา</th>
-                <th>เหตุผล / หมายเหตุ</th>
-                <th class="text-center">หลักฐาน</th>
-                <th class="text-center">จำนวนวัน</th>
-                <th class="text-center">สถานะ หัวหน้า (L1)</th>
-                <th class="text-center">สถานะ ผู้จัดการ (L2)</th>
-                <th class="text-center">สถานะ HR (L3)</th>
-                <th class="text-center">การจัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="leaveRequestsBody">
-              <tr>
-                <td colspan="12" class="empty-state">
-                  กำลังโหลดข้อมูล...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="table-container" id="leaveListContainer">
+          <!-- ข้อมูลจะถูก Render เป็น Card List โดย js/hr.js -->
+          <div class="loading-state" style="padding: 60px; text-align: center; color: var(--text-soft);">
+            <span class="material-symbols-outlined spin" style="font-size: 40px; margin-bottom: 12px; display: block;">sync</span>
+            <p>กำลังโหลดข้อมูลคำขออนุมัติ...</p>
+          </div>
         </div>
       </section>
     </main>

@@ -412,11 +412,11 @@ function renderLeaveBreakdownList(typeSummary, totalCount, colors) {
 }
 
 function renderTopLeaveEmployees(approvedRequests) {
-  const tbody = document.getElementById("topLeaveEmployeesTable");
-  if (!tbody) return;
+  const container = document.getElementById("topLeaveEmployeesTable");
+  if (!container) return;
 
   if (!approvedRequests || approvedRequests.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-soft);">ไม่มีข้อมูลประวัติการลาที่อนุมัติ</td></tr>`;
+    container.innerHTML = `<div class="empty-state">ไม่มีข้อมูลประวัติการลาที่อนุมัติ</div>`;
     return;
   }
 
@@ -425,8 +425,8 @@ function renderTopLeaveEmployees(approvedRequests) {
   approvedRequests.forEach(r => {
     const empId = r.employee_id || r.employees?.employee_code || r.emp_name || "Unknown";
     const empName = r.employees?.full_name || r.employees?.first_name || r.emp_name || "ไม่ระบุชื่อ";
-    const deptName = r.employees?.departments?.department_name || r.department || "-";
-    const days = parseFloat(r.total_days || r.days || 1);
+    const deptName = (r.employees?.departments?.department_name) || r.department || "-";
+    const days = parseFloat(r.actual_days || r.total_days || r.days || 1);
 
     if (!empMap[empId]) {
       empMap[empId] = { name: empName, dept: deptName, count: 0, totalDays: 0 };
@@ -441,23 +441,27 @@ function renderTopLeaveEmployees(approvedRequests) {
 
   let html = "";
   sortedEmployees.forEach((emp, index) => {
-    let rankBadge = `<span style="font-weight:700; color:#64748b;">${index + 1}</span>`;
-    if (index === 0) rankBadge = `<span style="font-size:16px;">🥇</span>`;
-    if (index === 1) rankBadge = `<span style="font-size:16px;">🥈</span>`;
-    if (index === 2) rankBadge = `<span style="font-size:16px;">🥉</span>`;
+    let rankBadge = `<span class="col-rank">${index + 1}</span>`;
+    if (index === 0) rankBadge = `<span class="col-rank" style="font-size:20px;">🥇</span>`;
+    if (index === 1) rankBadge = `<span class="col-rank" style="font-size:20px;">🥈</span>`;
+    if (index === 2) rankBadge = `<span class="col-rank" style="font-size:20px;">🥉</span>`;
 
     html += `
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="text-align: center; padding: 12px 8px;">${rankBadge}</td>
-        <td style="padding: 12px 8px; font-weight: 600;">${emp.name}</td>
-        <td style="padding: 12px 8px; color: var(--text-soft);">${emp.dept}</td>
-        <td style="text-align: center; padding: 12px 8px;"><span style="background:#f1f5f9; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:600;">${emp.count} ครั้ง</span></td>
-        <td style="text-align: right; padding: 12px 8px; font-weight: 700; color: #ef4444;">${emp.totalDays} วัน</td>
-      </tr>
+      <div class="top-emp-card">
+        <div class="col-rank">${rankBadge}</div>
+        <div class="col-name">
+          <span class="emp-name">${emp.name}</span>
+          <span class="emp-dept">${emp.dept}</span>
+        </div>
+        <div class="col-stats">
+          <span class="stat-badge">${emp.count} ครั้ง</span>
+          <span class="stat-days">${emp.totalDays} วัน</span>
+        </div>
+      </div>
     `;
   });
 
-  tbody.innerHTML = html;
+  container.innerHTML = html;
 }
 
 /* ==========================================================================
@@ -465,26 +469,20 @@ function renderTopLeaveEmployees(approvedRequests) {
    ========================================================================== */
 window.switchTab = function(targetTab) {
   currentTabState = targetTab;
-  const tHeader = document.getElementById("tableHeader");
-  const tBody = document.getElementById("tableBody");
+  const tContainer = document.getElementById("tableBody");
   const tTitle = document.getElementById("tableTitle");
-  const tIcon = document.getElementById("tableIcon");
 
-  if (!tHeader || !tBody) return;
-  tBody.style.opacity = "0.3";
+  if (!tContainer) return;
+  tContainer.style.opacity = "0.3";
 
-  let headersHtml = "";
   let bodyHtml = "";
 
   if (targetTab === "pending") {
-    if (tTitle) tTitle.textContent = "รายการคำขอลาปัจจุบัน (รอพิจารณา)";
-    if (tIcon) tIcon.textContent = "pending_actions";
-    headersHtml = `<th>ชื่อพนักงาน</th><th>ฝ่าย/แผนก</th><th>ประเภทการลา</th><th>วันที่เริ่ม - สิ้นสุด</th><th>สถานะ</th>`;
-
+    if (tTitle) tTitle.textContent = "รายการคำขอลาล่าสุด (รอพิจารณา)";
     const filtered = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
 
     if (filtered.length === 0) {
-      bodyHtml = `<tr><td colspan="5" style="padding:35px; text-align:center; color:var(--text-soft);">ไม่มีใบลาค้างพิจารณาในระบบ ✨</td></tr>`;
+      bodyHtml = `<div class="empty-state">ไม่มีใบลาค้างพิจารณาในระบบ ✨</div>`;
     } else {
       filtered.forEach(item => {
         const safeEmp = item.employees || {};
@@ -499,24 +497,26 @@ window.switchTab = function(targetTab) {
         const dateStr = sDate !== "-" ? `${sDate} - ${eDate !== "-" ? eDate : sDate}` : `${getSafeValue(item, ["total_days", "days"], 0)} วัน`;
 
         bodyHtml += `
-          <tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:16px 20px; font-weight:600;">${name}</td>
-            <td style="padding:16px 20px;">${dept || "-"}</td>
-            <td style="padding:16px 20px;"><span style="background:#f1f5f9; padding:4px 10px; border-radius:6px; font-size:13px;">${type || "-"}</span></td>
-            <td style="padding:16px 20px; font-weight:500; color:var(--primary);">${dateStr}</td>
-            <td style="padding:16px 20px;"><span style="background:#fef3c7; color:#d97706; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:600;">รออนุมัติ</span></td>
-          </tr>`;
+          <div class="dash-leave-card">
+            <div class="col-emp">
+              <span class="emp-name">${name}</span>
+              <span class="emp-dept">${dept || "-"}</span>
+            </div>
+            <div class="col-type"><span>${type || "-"}</span></div>
+            <div class="col-date">${dateStr}</div>
+            <div class="col-status">
+              <span class="status pending">รออนุมัติ</span>
+            </div>
+          </div>`;
       });
     }
   }
   else if (targetTab === "approved") {
     if (tTitle) tTitle.textContent = "ประวัติคำขอลาที่พิจารณาเสร็จสิ้นแล้ว";
-    if (tIcon) tIcon.textContent = "task_alt";
-    headersHtml = `<th>ชื่อพนักงาน</th><th>ประเภทใบลา</th><th>วันที่</th><th>เหตุผลความจำเป็น</th><th>ผลพิจารณา</th>`;
-
     const filtered = rawRequests.filter(r => r && (r.status === "approved" || r.status === "rejected" || r.status === "อนุมัติ"));
+    
     if (filtered.length === 0) {
-      bodyHtml = `<tr><td colspan="5" style="padding:35px; text-align:center; color:var(--text-soft);">ยังไม่มีประวัติการบันทึกผลในระบบ</td></tr>`;
+      bodyHtml = `<div class="empty-state">ยังไม่มีประวัติการบันทึกผลในระบบ</div>`;
     } else {
       filtered.forEach(item => {
         const safeEmp = item.employees || {};
@@ -524,25 +524,28 @@ window.switchTab = function(targetTab) {
 
         const name = safeEmp.full_name || safeEmp.name || getSafeValue(item, ["emp_name", "employee_name", "name"]);
         const type = safeType.leave_name || getSafeValue(item, ["leave_type_name", "leave_type"]);
+        const dept = safeEmp.departments?.department_name || getSafeValue(item, ["department", "division"]);
         const dateStr = formatThaiDate(getSafeValue(item, ["start_date", "date"]));
-        const reason = getSafeValue(item, ["reason", "detail"], "-");
         const isApp = item.status === "approved" || item.status === "อนุมัติ";
         
         bodyHtml += `
-          <tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:16px 20px; font-weight:600;">${name || "-"}</td>
-            <td style="padding:16px 20px;">${type || "-"}</td>
-            <td style="padding:16px 20px; font-weight:500;">${dateStr}</td>
-            <td style="padding:16px 20px;">${reason}</td>
-            <td style="padding:16px 20px;"><span style="background:${isApp?'#dcfce7':'#fee2e2'}; color:${isApp?'#15803d':'#b91c1c'}; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:600;">${isApp?'อนุมัติแล้ว':'ปฏิเสธ'}</span></td>
-          </tr>`;
+          <div class="dash-leave-card">
+            <div class="col-emp">
+              <span class="emp-name">${name || "-"}</span>
+              <span class="emp-dept">${dept || "-"}</span>
+            </div>
+            <div class="col-type"><span>${type || "-"}</span></div>
+            <div class="col-date">${dateStr}</div>
+            <div class="col-status">
+              <span class="status ${isApp?'approved':'rejected'}">${isApp?'อนุมัติแล้ว':'ปฏิเสธ'}</span>
+            </div>
+          </div>`;
       });
     }
   }
 
-  tHeader.innerHTML = headersHtml;
-  tBody.innerHTML = bodyHtml;
-  setTimeout(() => { tBody.style.opacity = "1"; }, 20);
+  tContainer.innerHTML = bodyHtml;
+  setTimeout(() => { tContainer.style.opacity = "1"; }, 20);
 };
 
 function renderCounters(pending, todayLeaves, employees) {
@@ -674,85 +677,82 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
       const fullAvatarUrl = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : (emp.image_url || '');
 
       rowsHtml += `
-        <tr class="emp-card-row" style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 12px 8px; text-align: center; width: 40px;">
+        <div class="emp-card-selection-item" style="display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #e2e8f0; gap: 12px;">
+          <div style="flex-shrink: 0;">
             <input type="checkbox" class="emp-card-checkbox" 
                    data-code="${empCode}" 
                    data-name="${escapeHtmlAttribute(empName)}" 
                    data-role="${escapeHtmlAttribute(empRole)}" 
                    data-dept="${escapeHtmlAttribute(empDept)}"
-                   style="cursor: pointer; width: 16px; height: 16px;" />
-          </td>
-          <td style="padding: 12px 8px; font-weight: 600; color: #475569;">${empCode}</td>
-          <td style="padding: 12px 8px; text-align: left;">
-            <span style="font-weight: 600; color: #1e293b; display:block;">${escapeHtmlText(empName)}</span>
-            <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
-              <small style="color: #0fa472; background: #ebf7f3; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">💼 ${escapeHtmlText(empRole)}</small>
-              <small style="color: #3b82f6; background: #eff6ff; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🏢 ${escapeHtmlText(empDept)}</small>
-            </div>
-          </td>
-          <td style="padding: 12px 8px; text-align: center;">
+                   style="cursor: pointer; width: 20px; height: 20px;" />
+          </div>
+          <div style="flex-shrink: 0;">
+            <img src="${fullAvatarUrl || '/assets/img/default-avatar.jpg'}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 700; color: #1e293b; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtmlText(empName)}</div>
+            <div style="color: #64748b; font-size: 12px; margin-top: 2px;">#${empCode} · ${escapeHtmlText(empDept)}</div>
+          </div>
+          <div style="flex-shrink: 0;">
             <button class="btn-view-card" 
                     data-code="${empCode}" 
                     data-name="${escapeHtmlAttribute(empName)}" 
                     data-role="${escapeHtmlAttribute(empRole)}" 
                     data-dept="${escapeHtmlAttribute(empDept)}"
                     data-avatar="${escapeHtmlAttribute(fullAvatarUrl)}"
-              style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">
-              <span class="material-symbols-outlined" style="font-size:16px;">visibility</span> ดู
+              style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+              <span class="material-symbols-outlined" style="font-size:18px;">visibility</span>
             </button>
-          </td>
-        </tr>
+          </div>
+        </div>
       `;
     });
   }
 
   Swal.fire({
     title: '👥 เลือกพนักงานเพื่อพิมพ์บัตรประจำตัว',
-    width: '740px',
+    width: '600px',
     html: `
-      <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; justify-content: space-between;">
-        <input type="text" id="cardSearchInput" placeholder="🔍 ค้นหารหัส, ชื่อ-สกุล, ตำแหน่ง..." 
-          style="flex: 1; padding: 10px 14px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-family: inherit;" />
-        <button id="btnPrintSelectedCards" onclick="handlePrintSelectedCardsFromPopup()" disabled
-          style="background: #10b981; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: not-allowed; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; opacity: 0.5; transition: all 0.2s;">
-          <span class="material-symbols-outlined" style="font-size:18px;">print</span> 
-          พิมพ์ที่เลือก (<span id="selectedCardCount">0</span>)
-        </button>
-      </div>
-      <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-          <thead>
-            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
-              <th style="padding: 12px 8px; text-align: center; width: 40px;">
-                <input type="checkbox" id="selectAllCardsCheckbox" onchange="toggleSelectAllCards(this)" style="cursor: pointer; width: 16px; height: 16px;" />
-              </th>
-              <th style="padding: 12px 8px; text-align: left; color: #475569; width: 90px;">รหัส</th>
-              <th style="padding: 12px 8px; text-align: left; color: #475569;">ชื่อ-นามสกุล / ตำแหน่ง / แผนก</th>
-              <th style="padding: 12px 8px; text-align: center; color: #475569; width: 80px;">ตัวเลือก</th>
-            </tr>
-          </thead>
-          <tbody id="employeeCardTableBody">${rowsHtml}</tbody>
-        </table>
-        <div id="noMatchCardMessage" style="display: none; padding: 24px; text-align: center; color: #64748b; font-size: 14px;">
-          ❌ ไม่พบข้อมูลพนักงานที่ตรงกับคำค้นหา
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="cardSearchInput" placeholder="🔍 ค้นหารหัส, ชื่อ-สกุล, ตำแหน่ง..." 
+            style="flex: 1; padding: 12px 14px; font-size: 15px; border: 1px solid #cbd5e1; border-radius: 12px; outline: none; font-family: inherit;" />
         </div>
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: #475569;">
+            <input type="checkbox" id="selectAllCardsCheckbox" onchange="toggleSelectAllCards(this)" style="cursor: pointer; width: 18px; height: 18px;" />
+            เลือกทั้งหมด
+          </label>
+          <button id="btnPrintSelectedCards" onclick="handlePrintSelectedCardsFromPopup()" disabled
+            style="background: #10b981; color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: not-allowed; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; opacity: 0.5; transition: all 0.2s;">
+            <span class="material-symbols-outlined" style="font-size:20px;">print</span> 
+            พิมพ์ (<span id="selectedCardCount">0</span>)
+          </button>
+        </div>
+      </div>
+      
+      <div id="employeeCardTableBody" style="max-height: 450px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; text-align: left;">
+        ${rowsHtml}
+      </div>
+      <div id="noMatchCardMessage" style="display: none; padding: 24px; text-align: center; color: #64748b; font-size: 14px;">
+        ❌ ไม่พบข้อมูลพนักงานที่ตรงกับคำค้นหา
       </div>
     `,
     confirmButtonText: 'ปิดหน้าต่าง',
     confirmButtonColor: '#64748b',
     didOpen: () => {
       const searchInput = document.getElementById("cardSearchInput");
-      const tableBody = document.getElementById("employeeCardTableBody");
+      const container = document.getElementById("employeeCardTableBody");
       const noMatchMsg = document.getElementById("noMatchCardMessage");
 
-      tableBody.addEventListener('change', (e) => {
+      container.addEventListener('change', (e) => {
         if (e.target.classList.contains('emp-card-checkbox')) {
           updateCardSelectionCount();
         }
       });
 
-      tableBody.addEventListener('click', (e) => {
+      container.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-view-card');
         if (btn) {
           const { code, name, role, dept, avatar } = btn.dataset;
@@ -760,25 +760,25 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
         }
       });
 
-      if (searchInput && tableBody) {
+      if (searchInput && container) {
         searchInput.focus();
         searchInput.addEventListener("input", (e) => {
           const keyword = e.target.value.trim().toLowerCase();
-          const rows = tableBody.querySelectorAll(".emp-card-row");
+          const items = container.querySelectorAll(".emp-card-selection-item");
           let visibleCount = 0;
 
-          rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
+          items.forEach(item => {
+            const text = item.innerText.toLowerCase();
             if (text.includes(keyword)) {
-              row.style.display = "";
+              item.style.display = "flex";
               visibleCount++;
             } else {
-              row.style.display = "none";
+              item.style.display = "none";
             }
           });
 
           if (noMatchMsg) {
-            noMatchMsg.style.display = (visibleCount === 0 && rows.length > 0) ? "block" : "none";
+            noMatchMsg.style.display = (visibleCount === 0 && items.length > 0) ? "block" : "none";
           }
         });
       }
@@ -790,7 +790,7 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
 window.toggleSelectAllCards = function (masterCb) {
   const checkboxes = document.querySelectorAll('.emp-card-checkbox');
   checkboxes.forEach(cb => {
-    const row = cb.closest('tr');
+    const row = cb.closest('.emp-card-selection-item');
     if (row && row.style.display !== 'none') {
       cb.checked = masterCb.checked;
     }
@@ -1334,22 +1334,33 @@ async function fetchRealNotifications() {
       return;
     }
 
-    // สร้าง HTML แสดงผลใน Dropdown (แสดงเฉพาะแจ้งเตือนที่ยังไม่ได้อ่าน เพื่อให้กดอ่านแล้วหายไปทันทีตามหลัก Zero-Inbox)
+    // แสดงผลใน Dropdown (แสดงทั้งหมดโดยเรียงลำดับเวลา ล่าสุดอยู่บน)
     let html = '';
-    unreadNotifications.forEach(item => {
+    const displayList = allNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
+    
+    if (displayList.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 13px;">
+          🔕 ยังไม่มีการแจ้งเตือน
+        </div>`;
+      return;
+    }
+
+    displayList.forEach(item => {
       const theme = getNotifTheme(item.type);
       const timeText = formatTimeAgo(item.created_at);
+      const isUnread = !item.is_read;
 
       html += `
-        <div class="notif-item unread" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer;">
+        <div class="notif-item ${isUnread ? 'unread' : 'read'}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer; opacity: ${isUnread ? '1' : '0.7'}; border-left: 3px solid ${isUnread ? 'var(--primary)' : 'transparent'};">
           <div class="notif-icon ${theme.bgClass}">
             <span class="material-symbols-outlined">${theme.icon}</span>
           </div>
           <div class="notif-content">
-            <p class="notif-text"><strong>${item.title}</strong> ${item.message}</p>
+            <p class="notif-text" style="${isUnread ? 'font-weight: 600;' : ''}"><strong>${item.title}</strong> ${item.message}</p>
             <span class="notif-time">${timeText}</span>
           </div>
-          <span class="unread-dot"></span>
+          ${isUnread ? '<span class="unread-dot"></span>' : ''}
         </div>
       `;
     });

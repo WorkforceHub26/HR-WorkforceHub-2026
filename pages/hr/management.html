@@ -164,7 +164,7 @@
         <!-- SECTION 4: ตารางข้อมูลพนักงาน & ประวัติการลา -->
         <div class="section-title">
           <span class="material-symbols-outlined">badge</span>
-          <span>ทำเนียบพนักงานและประวัติการลา</span>
+          <span>ประวัติพนักงาน</span>
         </div>
         <section class="panel">
           <div class="panel-head">
@@ -196,24 +196,22 @@
             </select>
           </div>
 
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th style="width: 50px;">รูป</th>
-                  <th style="width: 100px;">รหัส</th>
-                  <th>ชื่อ-นามสกุล</th>
-                  <th>ตำแหน่ง</th>
-                  <th>แผนก</th>
-                  <th style="width: 110px;">วันเริ่มงาน</th>
-                  <th style="width: 90px;">สถานะ</th>
-                  <th style="width: 110px; text-align: center;">รายละเอียด</th>
-                </tr>
-              </thead>
-              <tbody id="employeeTableBody">
-                <tr><td colspan="8" class="empty">กำลังโหลดข้อมูล...</td></tr>
-              </tbody>
-            </table>
+          <div id="employeeListWrapper" class="employee-list-wrapper">
+            <!-- Header สำหรับ Desktop -->
+            <div class="employee-list-header desktop-only">
+              <div class="col-avatar">รูป</div>
+              <div class="col-code">รหัส</div>
+              <div class="col-info">ชื่อ-นามสกุล / ตำแหน่ง</div>
+              <div class="col-dept">แผนก</div>
+              <div class="col-start">วันเริ่มงาน</div>
+              <div class="col-status">สถานะ</div>
+              <div class="col-actions">จัดการ</div>
+            </div>
+
+            <!-- Container สำหรับข้อมูล (Render จาก JS) -->
+            <div id="employeeTableBody" class="employee-list-body">
+              <div class="empty">กำลังโหลดข้อมูล...</div>
+            </div>
           </div>
         </section>
 

@@ -1072,8 +1072,8 @@ function renderBarChart(targetId, rows, countMode = false) {
 }
 
 function renderEmployeeTable() {
-  const tbody = document.getElementById("employeeTableBody");
-  if (!tbody) return;
+  const container = document.getElementById("employeeTableBody");
+  if (!container) return;
 
   const search = document.getElementById("empSearchInput")?.value.trim().toLowerCase() || "";
   const dept = document.getElementById("deptFilter")?.value || "";
@@ -1092,38 +1092,53 @@ function renderEmployeeTable() {
   });
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty">ไม่พบพนักงานตามเงื่อนไข</td></tr>`;
+    container.innerHTML = `<div class="empty">ไม่พบพนักงานตามเงื่อนไข</div>`;
     return;
   }
 
-  tbody.innerHTML = filtered.map((emp) => `
-    <tr>
+  container.innerHTML = filtered.map((emp) => {
+    const avatarUrl = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : '/assets/img/default-avatar.jpg';
+    const thaiStartDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-");
+    const statusLabel = emp.status === "inactive" || emp.status === "resigned" ? "ลาออก" : "ใช้งาน";
+    const statusClass = emp.status || "active";
 
-      <td>
-        <img class="table-avatar" 
-            src="${window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : '/assets/img/default-avatar.jpg'}" 
-            onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(emp.full_name || 'PVT')}&background=0d9488&color=fff';" 
-            alt="${escapeHtml(emp.full_name || '')}" />
-      </td>
-      <td><strong>${escapeHtml(emp.employee_code || "-")}</strong></td>
-      <td>${escapeHtml(emp.full_name || "-")}</td>
-      <td>${escapeHtml(emp.positions?.position_name || "-")}</td>
-      <td>${escapeHtml(emp.departments?.department_name || "-")}</td>
-      <td>${window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-")}</td>
-      <td><span class="status ${emp.status || "active"}">${emp.status === "inactive" || emp.status === "resigned" ? "ลาออก" : "ใช้งาน"}</span></td>
-      <td style="text-align: center; white-space: nowrap;">
-        <button class="btn-light btn-sm" onclick="openEmployeeDetail('${emp.id}')" title="ดูรายละเอียด / แก้ไขข้อมูล">
-          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">analytics</span> ดูรายละเอียด
-        </button>
-        <button class="btn-light btn-sm danger-zone" 
-                onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
-                style="margin-left: 4px; padding: 0.4rem 0.6rem; background: #fff1f2; color: #e11d48; border-color: #fecdd3;" 
-                title="ลบพนักงานถาวร">
-          <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span>
-        </button>
-      </td>
-    </tr>
-  `).join("");
+    return `
+      <div class="emp-card-item">
+        <div class="col-avatar">
+          <img src="${avatarUrl}" 
+               onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(emp.full_name || 'PVT')}&background=0d9488&color=fff';" 
+               alt="${escapeHtml(emp.full_name || '')}">
+        </div>
+        <div class="col-code">#${escapeHtml(emp.employee_code || "-")}</div>
+        <div class="col-info">
+          <span class="emp-name">${escapeHtml(emp.full_name || "-")}</span>
+          <span class="emp-pos">${escapeHtml(emp.positions?.position_name || "-")}</span>
+        </div>
+        <div class="col-dept">
+          <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px; color: var(--primary);">corporate_fare</span>
+          ${escapeHtml(emp.departments?.department_name || "-")}
+        </div>
+        <div class="col-start">
+          <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">calendar_today</span>
+          เริ่มงาน: ${thaiStartDate}
+        </div>
+        <div class="col-status">
+          <span class="status ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="col-actions">
+          <button class="btn-light btn-sm" onclick="openEmployeeDetail('${emp.id}')" title="ดูรายละเอียด">
+            <span class="material-symbols-outlined">analytics</span> รายละเอียด
+          </button>
+          <button class="btn-light btn-sm danger-zone" 
+                  onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
+                  style="background: #fff1f2; color: #e11d48; border-color: #fecdd3;" 
+                  title="ลบพนักงาน">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 // ==========================================
@@ -1165,7 +1180,6 @@ function exportIndividualLeaveExcel(employeeId) {
 
 // ==========================================================================
 // CUSTOM FIELDS ENTERPRISE SAVE & LOAD IN SYSTEM_SETTINGS
-// ==========================================================================
 async function saveEmployeeCustomFields(supabase, employeeCode, customFields) {
   try {
     const { error } = await supabase
@@ -1319,24 +1333,10 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
           <strong style="font-size:14px; display:block; margin-bottom:8px;">📊 สิทธิวันลาคงเหลือประจำปี</strong>
           ${renderBalanceCards(balances)}
         </div>
-        <div>
-          <strong style="font-size:14px; display:block; margin-bottom:8px;">📋 ประวัติการลาทั้งหมด</strong>
-          <div style="max-height:250px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
-            <table style="width:100%; font-size:13px; text-align:left; border-collapse:collapse;">
-              <thead style="background:#f8fafc;">
-                <tr>
-                  <th style="padding:8px;">ประเภท</th>
-                  <th style="padding:8px;">วันที่</th>
-                  <th style="padding:8px;">จำนวน</th>
-                  <th style="padding:8px;">เหตุผล</th>
-                  <th style="padding:8px;">สถานะ</th>
-                  <th style="padding:8px; text-align:center;">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${requests.length ? requests.map(renderLeaveRow).join("") : '<tr><td colspan="6" class="empty" style="text-align:center; padding:12px; color:#64748b;">ไม่มีประวัติการลา</td></tr>'}
-              </tbody>
-            </table>
+        <div style="margin-top: 24px;">
+          <strong style="font-size:15px; display:block; margin-bottom:12px; color: #1e293b; border-left: 4px solid #0d9488; padding-left: 8px;">📋 ประวัติการลาทั้งหมด</strong>
+          <div class="leave-history-cards-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+            ${requests.length ? requests.sort((a,b) => new Date(b.start_date) - new Date(a.start_date)).map(renderLeaveCardItem).join("") : '<div style="text-align:center; padding:32px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">ยังไม่มีประวัติการลา</div>'}
           </div>
         </div>
       `;
@@ -1631,6 +1631,35 @@ function renderBalanceCards(rows) {
       </div>
     `;
   }).join("")}</div>`;
+}
+
+function renderLeaveCardItem(request) {
+  const type = getLeaveType(request.leave_type_id)?.leave_name || "ไม่ระบุ";
+  const startDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.start_date) : (request.start_date || "-");
+  const endDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.end_date) : (request.end_date || "-");
+  const statusLabel = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(request.status) : request.status;
+  const statusClass = (request.status || "pending").toLowerCase();
+
+  return `
+    <div class="leave-history-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <span style="font-size: 13px; font-weight: 700; color: #0d9488; background: #f0fdfa; padding: 2px 8px; border-radius: 6px;">${escapeHtml(type)}</span>
+          <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 4px;">${startDate} - ${endDate}</div>
+        </div>
+        <span class="status ${statusClass}" style="font-size: 11px; padding: 2px 8px; border-radius: 20px;">${statusLabel}</span>
+      </div>
+      <div style="font-size: 13px; color: #64748b; line-height: 1.4;">
+        <b>เหตุผล:</b> ${escapeHtml(request.reason || request.note || "-")}
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 4px;">
+        <span style="font-size: 13px; font-weight: 600; color: #475569;">จำนวน <strong style="color: #0d9488;">${request.total_days || 0}</strong> วัน</span>
+        <button class="btn-light btn-sm" title="แก้ไขคำขอ" onclick="editSingleLeaveRequest('${request.id}')" style="display: flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; border-radius: 6px;">
+          <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไข
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 function renderLeaveRow(request) {
