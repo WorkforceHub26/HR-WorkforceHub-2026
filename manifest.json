@@ -1,5 +1,5 @@
 {
-  "name": "PVT HR Leave - ระบบขออนุญาตลาออนไลน์",
+  "name": "ใบลาออนไลน์",
   "short_name": "PVT Leave",
   "description": "ระบบขออนุญาตลาออนไลน์และจัดการเวลาทำงาน PVT Workforce Management System",
   "start_url": "/index.html",
@@ -9,7 +9,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/assets/icons/logo-pvt.png",
+      "src": "/assets/icons/iconicapp.png",
       "sizes": "192x192 512x512",
       "type": "image/png",
       "purpose": "any maskable"
