@@ -1,6 +1,6 @@
 {
-  "name": "ใบลาออนไลน์",
-  "short_name": "PVT Leave",
+  "name": "PVT HR Leave - ระบบขออนุญาตลาออนไลน์",
+  "short_name": "ใบลาออนไลน์",
   "description": "ระบบขออนุญาตลาออนไลน์และจัดการเวลาทำงาน PVT Workforce Management System",
   "start_url": "/index.html",
   "display": "standalone",
