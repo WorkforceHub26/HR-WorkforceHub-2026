@@ -1308,10 +1308,14 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
   if (!isEditMode) {
     if (title) {
       title.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-          <span>${escapeHtml(emp.employee_code || "-")} · ${escapeHtml(emp.full_name || "-")}</span>
-          <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:4px 10px; cursor:pointer; background:#0d9488; border-color:#0d9488; color:white; border-radius:6px;">
-            ✏️ แก้ไขข้อมูล
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px; flex-wrap:wrap;">
+          <span style="display:flex; align-items:center; gap:8px; font-size:16px;">
+            <strong style="color:#0f766e;">${escapeHtml(emp.employee_code || "-")}</strong>
+            <span style="color:#64748b;">·</span>
+            <span>${escapeHtml(emp.full_name || "-")}</span>
+          </span>
+          <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:#0d9488; border:1px solid #0d9488; color:white; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+            <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไขข้อมูล
           </button>
         </div>
       `;
@@ -1320,23 +1324,38 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
 
     if (body) {
       body.innerHTML = `
-        <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px;">
-          ${detail("ตำแหน่ง", emp.positions?.position_name || "-")}
-          ${detail("แผนก", emp.departments?.department_name || "-")}
+        <div style="display:flex; align-items:center; gap:14px; background:#f8fafc; padding:14px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px; flex-wrap:wrap;">
+          <img src="${emp.image_url || 'https://placehold.co/100?text=PVT'}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #0d9488; background:#fff; flex-shrink:0;">
+          <div style="flex:1; min-width:180px;">
+            <div style="font-size:15px; font-weight:700; color:#1e293b;">${escapeHtml(emp.full_name || "-")} ${emp.nickname ? `<span style="font-weight:400; color:#64748b;">(${escapeHtml(emp.nickname)})</span>` : ''}</div>
+            <div style="font-size:13px; color:#0d9488; font-weight:600; margin-top:2px;">${escapeHtml(emp.positions?.position_name || "-")} · ${escapeHtml(emp.departments?.department_name || "-")}</div>
+            <div style="font-size:12px; color:#64748b; margin-top:2px;">ประเภท: ${formatEmploymentType(emp.employment_type)}</div>
+          </div>
+        </div>
+
+        <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 16px;">
+          ${detail("เบอร์โทรศัพท์", emp.phone || "-")}
+          ${detail("ไอดีไลน์ (LINE ID)", emp.line_id || "-")}
+          ${detail("อีเมล", emp.email || "-")}
           ${detail("วันเริ่มงาน", window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-"))}
-          ${detail("โรงพยาบาล", emp.hospital || "-")}
-          ${detail("บัญชีธนาคาร", emp.bank_account || "-")}
-          ${detail("ประเภทพนักงาน", formatEmploymentType(emp.employment_type))}
+          ${detail("โรงพยาบาลประกันสังคม", emp.hospital || "-")}
+          ${detail("เลขบัญชีธนาคาร", emp.bank_account || "-")}
         </div>
         ${customFieldsViewHTML}
-        <div style="margin-bottom:16px; margin-top: 16px;">
-          <strong style="font-size:14px; display:block; margin-bottom:8px;">📊 สิทธิวันลาคงเหลือประจำปี</strong>
+        
+        <div style="margin-bottom:20px; margin-top: 16px;">
+          <strong style="font-size:14px; display:flex; align-items:center; gap:6px; margin-bottom:10px; color:#0f766e;">
+            <span class="material-symbols-outlined" style="font-size:18px;">analytics</span> สิทธิวันลาคงเหลือประจำปี
+          </strong>
           ${renderBalanceCards(balances)}
         </div>
-        <div style="margin-top: 24px;">
-          <strong style="font-size:15px; display:block; margin-bottom:12px; color: #1e293b; border-left: 4px solid #0d9488; padding-left: 8px;">📋 ประวัติการลาทั้งหมด</strong>
-          <div class="leave-history-cards-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
-            ${requests.length ? requests.sort((a,b) => new Date(b.start_date) - new Date(a.start_date)).map(renderLeaveCardItem).join("") : '<div style="text-align:center; padding:32px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">ยังไม่มีประวัติการลา</div>'}
+
+        <div style="margin-top: 20px;">
+          <strong style="font-size:14px; display:flex; align-items:center; gap:6px; margin-bottom:10px; color:#1e293b; border-left: 4px solid #0d9488; padding-left: 8px;">
+            <span class="material-symbols-outlined" style="font-size:18px; color:#0d9488;">history</span> ประวัติการลาทั้งหมด
+          </strong>
+          <div class="leave-history-cards-container" style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px;">
+            ${requests.length ? requests.sort((a,b) => new Date(b.start_date) - new Date(a.start_date)).map(renderLeaveCardItem).join("") : '<div style="text-align:center; padding:28px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">ยังไม่มีประวัติการลาในระบบ</div>'}
           </div>
         </div>
       `;
@@ -1639,6 +1658,7 @@ function renderLeaveCardItem(request) {
   const endDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.end_date) : (request.end_date || "-");
   const statusLabel = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(request.status) : request.status;
   const statusClass = (request.status || "pending").toLowerCase();
+  const cancelOrRejectReason = request.cancel_reason || request.approval_comment;
 
   return `
     <div class="leave-history-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
@@ -1652,6 +1672,15 @@ function renderLeaveCardItem(request) {
       <div style="font-size: 13px; color: #64748b; line-height: 1.4;">
         <b>เหตุผล:</b> ${escapeHtml(request.reason || request.note || "-")}
       </div>
+      ${((request.status === 'cancelled' || (request.approval_comment && request.approval_comment.includes('ยกเลิก'))) && cancelOrRejectReason) ? `
+        <div style="font-size: 11.5px; color: #be123c; background: #fff1f2; padding: 4px 8px; border-radius: 6px; border: 1px solid #fecdd3;">
+          <strong>เหตุผลที่ยกเลิก:</strong> ${escapeHtml(cancelOrRejectReason)}
+        </div>
+      ` : (request.status === 'rejected' && request.approval_comment) ? `
+        <div style="font-size: 11.5px; color: #be123c; background: #fff1f2; padding: 4px 8px; border-radius: 6px; border: 1px solid #fecdd3;">
+          <strong>เหตุผลที่ไม่อนุมัติ:</strong> ${escapeHtml(request.approval_comment)}
+        </div>
+      ` : ''}
       <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 4px;">
         <span style="font-size: 13px; font-weight: 600; color: #475569;">จำนวน <strong style="color: #0d9488;">${request.total_days || 0}</strong> วัน</span>
         <button class="btn-light btn-sm" title="แก้ไขคำขอ" onclick="editSingleLeaveRequest('${request.id}')" style="display: flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; border-radius: 6px;">
@@ -1667,13 +1696,25 @@ function renderLeaveRow(request) {
   const startDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.start_date) : (request.start_date || "-");
   const endDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(request.end_date) : (request.end_date || "-");
   const statusLabel = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(request.status) : request.status;
+  const cancelOrRejectReason = request.cancel_reason || request.approval_comment;
 
   return `
     <tr>
       <td>${escapeHtml(type)}</td>
       <td>${startDate} - ${endDate}</td>
       <td><strong style="color:#0f766e;">${request.total_days || 0}</strong> วัน</td>
-      <td>${escapeHtml(request.reason || request.note || "-")}</td>
+      <td>
+        <div>${escapeHtml(request.reason || request.note || "-")}</div>
+        ${((request.status === 'cancelled' || (request.approval_comment && request.approval_comment.includes('ยกเลิก'))) && cancelOrRejectReason) ? `
+          <div style="font-size: 11px; color: #be123c; background: #fff1f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecdd3; margin-top: 3px; display: inline-block;">
+            <strong>ยกเลิก:</strong> ${escapeHtml(cancelOrRejectReason)}
+          </div>
+        ` : (request.status === 'rejected' && request.approval_comment) ? `
+          <div style="font-size: 11px; color: #be123c; background: #fff1f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecdd3; margin-top: 3px; display: inline-block;">
+            <strong>ไม่อนุมัติ:</strong> ${escapeHtml(request.approval_comment)}
+          </div>
+        ` : ''}
+      </td>
       <td><span class="status ${request.status || "pending"}">${statusLabel}</span></td>
       <td style="text-align: center;">
         <button class="btn-light btn-sm" title="แก้ไขจำนวนวัน/ข้อมูลคำขอ" onclick="editSingleLeaveRequest('${request.id}')">

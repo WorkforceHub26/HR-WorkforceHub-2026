@@ -1334,6 +1334,50 @@ async function fetchRealNotifications() {
       return;
     }
 
+// 🛠️ Helper function จัดแต่งข้อความแจ้งเตือนให้อ่านง่าย สะอาดตา และไม่ซ้ำซ้อน
+function formatCleanNotification(title, rawMessage) {
+  if (!rawMessage) return { title: title || '', bodyHtml: '' };
+  
+  let cleanTitle = String(title || '').trim();
+  let msg = String(rawMessage).replace(/\*\*/g, '').trim();
+
+  // ตัดบรรทัดแรกที่ซ้ำซ้อนกับ Title ออก
+  const lines = msg.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length > 0) {
+    const rawFirst = lines[0].replace(/^[❌✅📌🟢🎉📢⚠️\s]+/, '').trim();
+    const rawTitle = cleanTitle.replace(/^[❌✅📌🟢🎉📢⚠️\s]+/, '').trim();
+    if (rawFirst.includes(rawTitle) || rawTitle.includes(rawFirst) || rawFirst.startsWith("คำขอลา") || rawFirst.startsWith("ใบลาได้รับการอนุมัติ")) {
+      lines.shift();
+    }
+  }
+
+  if (lines.length === 0) {
+    return {
+      title: cleanTitle,
+      bodyHtml: ''
+    };
+  }
+
+  // แปลงแต่ละบรรทัดให้เป็น Tag ชัดเจนสวยงาม
+  const formattedLines = lines.map(line => {
+    if (line.includes('เหตุผลที่ไม่ผ่าน') || line.includes('เหตุผลที่ยกเลิก') || line.includes('⚠️')) {
+      return `<div style="background: #fff1f2; color: #be123c; padding: 4px 8px; border-radius: 6px; border: 1px solid #fecdd3; font-weight: 600; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+    }
+    if (line.includes('ความเห็นหัวหน้า') || line.includes('ความเห็นผู้จัดการ')) {
+      return `<div style="background: #f0fdf4; color: #166534; padding: 4px 8px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+    }
+    if (line.startsWith('👉')) {
+      return `<div style="color: #0d9488; font-weight: 600; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+    }
+    return `<div style="line-height: 1.45;">${line}</div>`;
+  });
+
+  return {
+    title: cleanTitle,
+    bodyHtml: `<div class="notif-parsed-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #475569; margin-top: 4px;">${formattedLines.join('')}</div>`
+  };
+}
+
     // แสดงผลใน Dropdown (แสดงทั้งหมดโดยเรียงลำดับเวลา ล่าสุดอยู่บน)
     let html = '';
     const displayList = allNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
@@ -1350,17 +1394,19 @@ async function fetchRealNotifications() {
       const theme = getNotifTheme(item.type);
       const timeText = formatTimeAgo(item.created_at);
       const isUnread = !item.is_read;
+      const formatted = formatCleanNotification(item.title, item.message);
 
       html += `
-        <div class="notif-item ${isUnread ? 'unread' : 'read'}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer; opacity: ${isUnread ? '1' : '0.7'}; border-left: 3px solid ${isUnread ? 'var(--primary)' : 'transparent'};">
-          <div class="notif-icon ${theme.bgClass}">
-            <span class="material-symbols-outlined">${theme.icon}</span>
+        <div class="notif-item ${isUnread ? 'unread' : 'read'}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer; opacity: ${isUnread ? '1' : '0.85'}; border-left: 3px solid ${isUnread ? 'var(--primary)' : 'transparent'}; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; border-bottom: 1px solid #f1f5f9; background: ${isUnread ? '#ffffff' : '#fafafa'}; transition: background 0.15s;">
+          <div class="notif-icon ${theme.bgClass}" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span class="material-symbols-outlined" style="font-size: 20px;">${theme.icon}</span>
           </div>
-          <div class="notif-content">
-            <p class="notif-text" style="${isUnread ? 'font-weight: 600;' : ''}"><strong>${item.title}</strong> ${item.message}</p>
-            <span class="notif-time">${timeText}</span>
+          <div class="notif-content" style="flex: 1; min-width: 0;">
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.35; margin-bottom: 2px;">${formatted.title}</div>
+            ${formatted.bodyHtml}
+            <span class="notif-time" style="font-size: 11px; color: #94a3b8; margin-top: 5px; display: block;">🕒 ${timeText}</span>
           </div>
-          ${isUnread ? '<span class="unread-dot"></span>' : ''}
+          ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: #0d9488; border-radius: 50%; flex-shrink: 0; margin-top: 6px;"></span>' : ''}
         </div>
       `;
     });
@@ -1637,6 +1683,7 @@ window.openAllNotificationsModal = async function() {
         const bgStyle = item.is_read 
           ? 'background: #ffffff; border: 1px solid #e2e8f0;' 
           : 'background: #f0fdfa; border: 1px solid #a7f3d0; border-left: 4px solid #0fa472;';
+        const formatted = formatCleanNotification(item.title, item.message);
 
         listHtml += `
           <div onclick="Swal.close(); handleNotifClick('${item.id}', '${item.link}');" 
@@ -1645,10 +1692,9 @@ window.openAllNotificationsModal = async function() {
               <span class="material-symbols-outlined" style="font-size: 20px; color: #0fa472;">${theme.icon}</span>
             </div>
             <div style="flex: 1;">
-              <div style="font-size: 13.5px; color: #0f172a; line-height: 1.4;">
-                <strong style="color: #0f172a;">${item.title}</strong> ${item.message}
-              </div>
-              <span style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">${timeText}</span>
+              <div style="font-size: 13.5px; font-weight: 700; color: #0f172a; line-height: 1.35;">${formatted.title}</div>
+              ${formatted.bodyHtml}
+              <span style="font-size: 11px; color: #64748b; margin-top: 5px; display: block;">🕒 ${timeText}</span>
             </div>
             ${!item.is_read ? '<span style="width: 8px; height: 8px; background: #0fa472; border-radius: 50%; margin-top: 6px;"></span>' : ''}
           </div>

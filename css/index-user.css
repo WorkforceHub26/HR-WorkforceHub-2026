@@ -95,6 +95,30 @@ body {
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-card);
   margin-bottom: 24px;
+  position: relative;
+  z-index: 1000; /* ป้องกันกระดิ่งแจ้งเตือนจมลงไปข้างหลังการ์ด */
+}
+
+.notif-wrapper {
+  position: relative;
+  display: inline-block;
+  z-index: 1001;
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 360px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  max-width: calc(100vw - 32px);
+  border-radius: 16px;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.18), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 99999 !important;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .brand-row {
@@ -696,9 +720,18 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   border-bottom: 1px dashed rgba(6, 182, 212, 0.3);
   padding-bottom: 12px;
   margin-bottom: 20px;
+}
+
+.leave-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 /* ปรับ h2 ใน header row ไม่ให้ติดเส้นซ้ำ */
@@ -706,6 +739,7 @@ body {
   border-bottom: none;
   padding-bottom: 0;
   margin-bottom: 0;
+  font-size: 20px;
 }
 
 
@@ -920,50 +954,70 @@ select.year-select option {
   z-index: 998;
 }
 
-/* ================= 📊 LEAVE QUOTA CARDS DESIGN (EXACT MATCH) ================= */
+/* ================= 📊 LEAVE QUOTA CARDS DESIGN (CLEAN & RESPONSIVE) ================= */
 #leaveBalancesContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
   width: 100%;
 }
 
 .quota-card {
   background: #ffffff;
   border-radius: 16px;
-  padding: 16px 18px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  padding: 16px 16px 14px 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  min-height: 128px;
+  min-height: auto;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .quota-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(6, 182, 212, 0.12);
+  box-shadow: 0 8px 20px rgba(6, 182, 212, 0.15);
 }
 
-.quota-title {
-  font-size: 14px;
+.quota-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  min-height: 40px;
+}
+
+.quota-type-title {
+  font-size: 13.5px;
   font-weight: 700;
   color: #0f172a;
-  line-height: 1.3;
-  margin-bottom: 10px;
-  height: 38px;
-  line-clamp: 2;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.35;
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.quota-approved-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  line-height: 1.4;
+  display: inline-block;
 }
 
 .quota-days {
   font-size: 13px;
   color: #64748b;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   display: flex;
   align-items: baseline;
   gap: 4px;
@@ -972,7 +1026,7 @@ select.year-select option {
 .quota-days .num-highlight {
   font-size: 26px;
   font-weight: 800;
-  color: #2563eb; /* สีตัวเลขหลักสีฟ้าสด */
+  line-height: 1;
 }
 
 .quota-days .num-total {
@@ -992,7 +1046,6 @@ select.year-select option {
 
 .quota-progress-bar {
   height: 100%;
-  background: #2563eb;
   border-radius: 99px;
   transition: width 0.4s ease;
 }
@@ -1000,7 +1053,7 @@ select.year-select option {
 .quota-footer {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 11.5px;
   color: #64748b;
   font-weight: 500;
 }
@@ -1013,11 +1066,46 @@ select.year-select option {
   }
   
   .quota-card {
-    padding: 12px 14px;
+    padding: 12px 10px;
+    border-radius: 14px;
+  }
+
+  .quota-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 6px;
+    min-height: auto;
+  }
+
+  .quota-type-title {
+    font-size: 12.5px;
+    line-height: 1.3;
+  }
+
+  .quota-approved-badge {
+    font-size: 9.5px;
+    padding: 1px 6px;
   }
 
   .quota-days .num-highlight {
     font-size: 22px;
+  }
+
+  .quota-days .num-total {
+    font-size: 11.5px;
+  }
+
+  .quota-footer {
+    font-size: 10px;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+}
+
+@media (max-width: 360px) {
+  #leaveBalancesContainer {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -979,7 +979,8 @@ class LineOAEngine {
       leaveId = '',
       employeeName = 'พนักงาน',
       employeeCode = '',
-      recipientId = '', // เพิ่ม recipientId เพื่อแก้บั๊กแจ้งเตือนกำพร้า
+      departmentName = '',
+      recipientId = '', // ID พนักงานผู้รับแจ้งเตือน
       recipientRole = 'leader', // 'leader', 'manager', 'employee'
       recipientLineId = '',
       leaveType = 'ใบลา',
@@ -990,29 +991,43 @@ class LineOAEngine {
       comment = ''
     } = opts;
 
-    const nowStr = new Date().toLocaleString('th-TH');
+    const nowStr = new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
     let title = "";
     let messageText = "";
 
     switch (type) {
       case 'NEW_REQUEST':
         title = "📩 มีคำขอใบลาใหม่ (รอหัวหน้างานอนุมัติ L1)";
-        messageText = `📌 **มีคำขอลาใหม่ส่งถึงคุณ!**\n👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n📝 ประเภทการลา: ${leaveType}\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate} (${totalDays} วัน)\n💬 เหตุผล: ${reason || '-'}\n⏰ วันที่ส่ง: ${nowStr}\n\n👉 กรุณาเข้าสู่ระบบเพื่อตรวจสอบและอนุมัติ`;
+        messageText = `📩 [แจ้งเตือนคำขอลาใหม่ - รอหัวหน้างานตรวจสอบ L1]\n` +
+          `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
+          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
+          `📝 ประเภทการลา: ${leaveType}\n` +
+          `📅 ช่วงวันที่: ${startDate} ถึง ${endDate} (${totalDays} วัน)\n` +
+          `💬 เหตุผลการลา: ${reason || '-'}\n` +
+          `⏰ วันที่ส่งคำขอ: ${nowStr}\n\n` +
+          `👉 กรุณาเข้าสู่ระบบเพื่อตรวจสอบและพิจารณาอนุมัติขั้นต้น`;
         break;
 
       case 'LEADER_APPROVED':
         title = "🟢 หัวหน้างานอนุมัติแล้ว (รอผู้จัดการฝ่ายอนุมัติ L2)";
-        messageText = `🟢 **หัวหน้างานอนุมัติใบลาเรียบร้อยแล้ว**\n👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n📝 ประเภทการลา: ${leaveType} (${totalDays} วัน)\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate}\n💬 ความเห็นหัวหน้า: ${comment || 'เห็นควรอนุมัติ'}\n\n👉 ส่งต่อผู้จัดการฝ่ายเพื่อพิจารณาอนุมัติขั้นถัดไป`;
+        messageText = `🟢 [แจ้งเตือนใบลาผ่านการรับรอง - รอผู้จัดการฝ่ายอนุมัติ L2]\n` +
+          `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
+          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
+          `📝 ประเภทการลา: ${leaveType} (${totalDays} วัน)\n` +
+          `📅 ช่วงวันที่: ${startDate} ถึง ${endDate}\n` +
+          `💬 ความเห็นหัวหน้างาน: ${comment || 'หัวหน้างานตรวจสอบแล้ว เห็นควรอนุมัติ'}\n` +
+          `⏰ ดำเนินการเมื่อ: ${nowStr}\n\n` +
+          `👉 หัวหน้างานให้ความเห็นชอบแล้ว กรุณาเข้าสู่ระบบเพื่อพิจารณาอนุมัติขั้นสุดท้าย (L2)`;
         break;
 
       case 'FINAL_APPROVED':
         title = "🎉 ใบลาของคุณได้รับการอนุมัติสมบูรณ์แล้ว!";
-        messageText = `🎉 **ใบลาได้รับการอนุมัติเรียบร้อยแล้ว!**\n👤 พนักงาน: ${employeeName}\n📝 ประเภทการลา: ${leaveType}\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate} (${totalDays} วัน)\n✨ สถานะ: อนุมัติสมบูรณ์ (ใบลาเสร็จเรียบร้อย)\n⏰ อนุมัติเมื่อ: ${nowStr}`;
+        messageText = `👤 พนักงาน: ${employeeName}\n📝 ประเภทการลา: ${leaveType}\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate} (${totalDays} วัน)\n✨ สถานะ: อนุมัติสมบูรณ์ (ใบลาเสร็จเรียบร้อย)\n⏰ อนุมัติเมื่อ: ${nowStr}`;
         break;
 
       case 'REJECTED':
         title = "❌ คำขอใบลาไม่ได้รับการอนุมัติ";
-        messageText = `❌ **คำขอลาไม่ได้รับการอนุมัติ**\n👤 พนักงาน: ${employeeName}\n📝 ประเภทการลา: ${leaveType}\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate}\n⚠️ เหตุผลที่ไม่ผ่าน: ${comment || 'ไม่อนุมัติ'}\n⏰ ดำเนินการเมื่อ: ${nowStr}`;
+        messageText = `👤 พนักงาน: ${employeeName}\n📝 ประเภทการลา: ${leaveType}\n📅 ช่วงวันที่: ${startDate} ถึง ${endDate}\n⚠️ เหตุผลที่ไม่ผ่าน: ${comment || 'ไม่อนุมัติ'}\n⏰ ดำเนินการเมื่อ: ${nowStr}`;
         break;
 
       default:
@@ -1020,13 +1035,13 @@ class LineOAEngine {
         messageText = `ข้อมูลคำขอลาของคุณมีความเคลื่อนไหว (${type})`;
     }
 
-    console.log(`💬 [LINE OA Engine] Triggering [${type}] for ${recipientRole}:`, messageText);
+    console.log(`💬 [LINE OA Engine] Processing [${type}] for ${recipientRole}:`, messageText);
 
     // 1. บันทึกแจ้งเตือนลงฐานข้อมูล (In-App Notifications)
-    if (this.client && recipientId) { // ตรวจสอบ recipientId ก่อนบันทึก
+    if (this.client && recipientId) {
       try {
         await this.client.from('notifications').insert([{
-          user_id: recipientId, // แก้บั๊ก: ระบุผู้รับแจ้งเตือน
+          user_id: recipientId,
           title: title,
           message: messageText.replace(/\*\*/g, ''),
           is_read: false
@@ -1036,7 +1051,16 @@ class LineOAEngine {
       }
     }
 
-    // 2. ส่งข้อมูลไปยัง LINE Webhook หรือ Messaging API (ถ้ามีการตั้งค่าไว้)
+    // 2. 💬 กรองให้ส่งแจ้งเตือน LINE ภายนอก "เฉพาะ 2 จังหวะที่กำหนด":
+    //   - ลูกน้องในแผนกส่งคำขอลา -> แจ้งเตือนหัวหน้าแผนก (NEW_REQUEST)
+    //   - หัวหน้ายืนยัน/อนุมัติเสร็จ -> แจ้งเตือนผู้จัดการฝ่าย (LEADER_APPROVED)
+    const allowedLineTypes = ['NEW_REQUEST', 'LEADER_APPROVED'];
+    if (!allowedLineTypes.includes(type)) {
+      console.log(`ℹ️ [LINE OA Engine] Skip external LINE message for [${type}] per workflow setting.`);
+      return { success: true, title, message: messageText, lineSent: false };
+    }
+
+    // 3. ส่งข้อมูลไปยัง LINE Webhook หรือ Messaging API
     if (this.webhookUrl) {
       try {
         await fetch(this.webhookUrl, {
@@ -1045,9 +1069,11 @@ class LineOAEngine {
           body: JSON.stringify({
             event: type,
             recipient_role: recipientRole,
+            recipient_id: recipientId || null,
             recipient_line_id: recipientLineId || null,
             employee_name: employeeName,
             employee_code: employeeCode,
+            department_name: departmentName,
             leave_type: leaveType,
             start_date: startDate,
             end_date: endDate,
@@ -1081,7 +1107,7 @@ class LineOAEngine {
       }
     }
 
-    return { success: true, title, message: messageText };
+    return { success: true, title, message: messageText, lineSent: true };
   }
 }
 

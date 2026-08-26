@@ -210,7 +210,7 @@ body {
   padding: 14px 24px; 
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: 1000; /* ให้อยู่เหนือการ์ดและตารางทั้งหมด */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--shadow-sm);
@@ -996,12 +996,12 @@ input[type="file"]:hover {
   top: calc(100% + 12px);
   right: 0;
   width: 360px;
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   max-width: calc(100vw - 32px);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  z-index: 1000;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.18), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 99999 !important;
   display: none; /* ซ่อนเป็นค่าเริ่มต้น */
   flex-direction: column;
   overflow: hidden;

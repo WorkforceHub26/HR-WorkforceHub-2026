@@ -704,6 +704,50 @@ async function fetchUserNotifications() {
       return;
     }
 
+// 🛠️ Helper function จัดแต่งข้อความแจ้งเตือนให้อ่านง่าย สะอาดตา และไม่ซ้ำซ้อน
+function formatCleanNotification(title, rawMessage) {
+  if (!rawMessage) return { title: title || '', bodyHtml: '' };
+  
+  let cleanTitle = String(title || '').trim();
+  let msg = String(rawMessage).replace(/\*\*/g, '').trim();
+
+  // ตัดบรรทัดแรกที่ซ้ำซ้อนกับ Title ออก
+  const lines = msg.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length > 0) {
+    const rawFirst = lines[0].replace(/^[❌✅📌🟢🎉📢⚠️\s]+/, '').trim();
+    const rawTitle = cleanTitle.replace(/^[❌✅📌🟢🎉📢⚠️\s]+/, '').trim();
+    if (rawFirst.includes(rawTitle) || rawTitle.includes(rawFirst) || rawFirst.startsWith("คำขอลา") || rawFirst.startsWith("ใบลาได้รับการอนุมัติ")) {
+      lines.shift();
+    }
+  }
+
+  if (lines.length === 0) {
+    return {
+      title: cleanTitle,
+      bodyHtml: ''
+    };
+  }
+
+  // แปลงแต่ละบรรทัดให้เป็น Tag ชัดเจนสวยงาม
+  const formattedLines = lines.map(line => {
+    if (line.includes('เหตุผลที่ไม่ผ่าน') || line.includes('เหตุผลที่ยกเลิก') || line.includes('⚠️')) {
+      return `<div style="background: #fff1f2; color: #be123c; padding: 3px 8px; border-radius: 6px; border: 1px solid #fecdd3; font-weight: 600; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+    }
+    if (line.includes('ความเห็นหัวหน้า') || line.includes('ความเห็นผู้จัดการ')) {
+      return `<div style="background: #f0fdf4; color: #166534; padding: 3px 8px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+    }
+    if (line.startsWith('👉')) {
+      return `<div style="color: #0d9488; font-weight: 600; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+    }
+    return `<div style="line-height: 1.45;">${line}</div>`;
+  });
+
+  return {
+    title: cleanTitle,
+    bodyHtml: `<div class="notif-parsed-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #475569; margin-top: 4px;">${formattedLines.join('')}</div>`
+  };
+}
+
     let html = "";
     unreadNotifications.forEach(n => {
       let iconColor = "#0284c7";
@@ -714,29 +758,30 @@ async function fetchUserNotifications() {
         iconColor = "#ca8a04";
         iconBg = "#fef9c3";
         iconName = "hourglass_top";
-      } else if (n.title.includes("อนุมัติ")) {
+      } else if (n.title.includes("อนุมัติ") || n.title.includes("✅")) {
         iconColor = "#16a34a";
         iconBg = "#d1e7dd";
         iconName = "check_circle";
-      } else if (n.title.includes("ปฏิเสธ")) {
+      } else if (n.title.includes("ปฏิเสธ") || n.title.includes("❌") || n.title.includes("ไม่อนุมัติ")) {
         iconColor = "#dc2626";
         iconBg = "#f8d7da";
         iconName = "cancel";
       }
 
       const thaiTime = formatThaiDate(n.created_at);
+      const formatted = formatCleanNotification(n.title, n.message);
 
       html += `
-        <div class="notif-item unread" onclick="handleUserNotifClick('${n.id}', '${n.link}')" style="display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s; background: #ffffff; text-align: left;">
+        <div class="notif-item unread" onclick="handleUserNotifClick('${n.id}', '${n.link}')" style="display: flex; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.15s; background: #ffffff; text-align: left; align-items: flex-start;">
           <div style="width: 36px; height: 36px; border-radius: 50%; background: ${iconBg}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <span class="material-symbols-outlined" style="font-size: 18px; color: ${iconColor};">${iconName}</span>
+            <span class="material-symbols-outlined" style="font-size: 20px; color: ${iconColor};">${iconName}</span>
           </div>
           <div style="flex: 1; min-width: 0;">
-            <strong style="display: block; font-size: 13px; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${n.title}</strong>
-            <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${n.message}</p>
-            <span style="font-size: 10px; color: #94a3b8; display: block; margin-top: 4px;">🕒 ${thaiTime}</span>
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.35; margin-bottom: 2px;">${formatted.title}</div>
+            ${formatted.bodyHtml}
+            <span style="font-size: 10.5px; color: #94a3b8; display: block; margin-top: 5px;">🕒 ${thaiTime}</span>
           </div>
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: #0ea5e9; flex-shrink: 0; align-self: center;"></div>
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #0ea5e9; flex-shrink: 0; margin-top: 6px;"></div>
         </div>
       `;
     });
@@ -1047,7 +1092,7 @@ function getLeaveTypeColor(leaveName = "", index = 0) {
 }
 
 /* ==========================================================================
-   📊 9. ระบบจัดการโควตาประจำปี (นับจำนวนครั้งเฉพาะอนุมัติแล้ว)
+   📊 9. ระบบจัดการโควตาประจำปี (รวมข้อมูลไม่ให้ซ้ำซ้อน และนับจำนวนครั้งเฉพาะที่อนุมัติแล้ว)
    ========================================================================== */
 async function loadQuotaData(targetYear) {
   const sb = getSafeSupabaseClient();
@@ -1056,36 +1101,60 @@ async function loadQuotaData(targetYear) {
   if (!sb || !employeeId) return;
 
   try {
-    const thaiYear = targetYear + 543;
+    let yearNum = parseInt(targetYear, 10) || new Date().getFullYear();
+    const targetYearAD = yearNum > 2400 ? yearNum - 543 : yearNum;
+    const thaiYear = targetYearAD + 543;
 
-    // 1. ดึงโควตาประจำปี
+    // 1. ดึงโควตาประจำปี (รองรับทั้ง ค.ศ. และ พ.ศ.)
     const { data: quotas, error } = await sb
       .from('leave_balances')
       .select('*')
       .eq('employee_id', employeeId)
-      .in('year', [targetYear, thaiYear]);
+      .in('year', [targetYearAD, thaiYear]);
 
     if (error) {
       console.error('❌ ดึงข้อมูลโควตาล้มเหลว:', error.message);
       return;
     }
 
-    // 2. ดึงประเภทการลา
-    const { data: types } = await sb.from("leave_types").select("id, leave_name");
+    // 2. ดึงประเภทการลาทั้งหมดที่เปิดใช้งาน
+    const { data: types } = await sb
+      .from("leave_types")
+      .select("id, leave_name, yearly_quota, default_days")
+      .order("created_at", { ascending: true });
 
-    // 3. ดึงรายการยื่นลาทั้งหมดเพื่อ คำนวณนับจำนวนครั้งที่ "อนุมัติแล้ว" (approved) แยกตามประเภท
+    // 3. ดึงรายการยื่นลาทั้งหมดเพื่อคำนวณนับจำนวนครั้งและวันลาที่ "อนุมัติแล้ว" (approved) ในปีนี้
     const { data: requests } = await sb
       .from("leave_requests")
-      .select("leave_type_id, status")
+      .select("leave_type_id, status, total_days, start_date")
       .eq("employee_id", employeeId);
 
     const approvedTimesMap = {};
+    const approvedDaysMap = {};
 
     (requests || []).forEach(r => {
       const typeIdStr = String(r.leave_type_id);
-      // ✅ นับเฉพาะที่อนุมัติแล้วเท่านั้น
       if (r.status === 'approved') {
-        approvedTimesMap[typeIdStr] = (approvedTimesMap[typeIdStr] || 0) + 1;
+        const reqYear = r.start_date ? new Date(r.start_date).getFullYear() : targetYearAD;
+        if (reqYear === targetYearAD) {
+          approvedTimesMap[typeIdStr] = (approvedTimesMap[typeIdStr] || 0) + 1;
+          approvedDaysMap[typeIdStr] = (approvedDaysMap[typeIdStr] || 0) + (parseFloat(r.total_days) || 0);
+        }
+      }
+    });
+
+    // 🎯 รวมข้อมูลแบบ Deduplication โดยยึด leave_type_id เป็นหลัก (1 ประเภทลา = 1 การ์ดเท่านั้น)
+    const quotaMap = new Map();
+    (quotas || []).forEach(q => {
+      const typeId = String(q.leave_type_id);
+      if (!quotaMap.has(typeId)) {
+        quotaMap.set(typeId, q);
+      } else {
+        // หากมีทั้งปี ค.ศ. และ พ.ศ. ให้เก็บรายการ ค.ศ. หรือรายการที่มีข้อมูลใหม่กว่า
+        const existing = quotaMap.get(typeId);
+        if (Number(existing.year) > 2400 && Number(q.year) < 2400) {
+          quotaMap.set(typeId, q);
+        }
       }
     });
 
@@ -1094,27 +1163,226 @@ async function loadQuotaData(targetYear) {
     (types || []).forEach((t, index) => {
       typeMap[String(t.id)] = {
         name: t.leave_name,
-        color: getLeaveTypeColor(t.leave_name, index)
+        color: getLeaveTypeColor(t.leave_name, index),
+        defaultQuota: parseFloat(t.yearly_quota || t.default_days || 0)
       };
     });
 
-    const mappedQuotas = (quotas || []).map((q, idx) => {
-      const typeIdStr = String(q.leave_type_id);
+    const deduplicatedQuotas = [];
+    (types || []).forEach((t, idx) => {
+      const typeIdStr = String(t.id);
+      const q = quotaMap.get(typeIdStr);
       const typeInfo = typeMap[typeIdStr] || {};
-      const leaveName = typeInfo.name || "สิทธิ์การลา";
-      return {
-        ...q,
+      const leaveName = typeInfo.name || t.leave_name || "สิทธิ์การลา";
+      const totalEntitlement = q ? (parseFloat(q.entitlement_days) || parseFloat(q.quota) || typeInfo.defaultQuota || 0) : (typeInfo.defaultQuota || 0);
+      const usedDays = q ? (parseFloat(q.used_days) || 0) : (approvedDaysMap[typeIdStr] || 0);
+      const remainingDays = q && q.remaining_days !== null && q.remaining_days !== undefined
+        ? parseFloat(q.remaining_days)
+        : Math.max(0, totalEntitlement - usedDays);
+
+      deduplicatedQuotas.push({
+        ...(q || {}),
+        leave_type_id: t.id,
         leave_type_name: leaveName,
+        entitlement_days: totalEntitlement,
+        used_days: usedDays,
+        remaining_days: remainingDays,
         card_color: typeInfo.color || getLeaveTypeColor(leaveName, idx),
-        approved_times: approvedTimesMap[typeIdStr] || 0 // 👈 จำนวนครั้งที่อนุมัติแล้ว
-      };
+        approved_times: approvedTimesMap[typeIdStr] || 0
+      });
     });
 
-    renderQuotaCards(mappedQuotas);
+    renderQuotaCards(deduplicatedQuotas);
   } catch (err) {
     console.error('❌ เกิดข้อผิดพลาดใน loadQuotaData:', err);
   }
 }
+
+/* ==========================================================================
+   🔄 9.1 ฟังก์ชันรีเซ็ตและคำนวณโควต้าใหม่ (ระบบยืนยัน 2 ชั้น ป้องกันข้อผิดพลาด)
+   ========================================================================== */
+window.resetLeaveQuotaWithDoubleConfirm = async function() {
+  const sb = getSafeSupabaseClient();
+  const employeeId = window.currentProfile?.id || window.currentProfile?.employee_id;
+  const currentYear = new Date().getFullYear();
+  const thaiYear = currentYear + 543;
+
+  if (!sb || !employeeId) {
+    if (typeof Swal !== 'undefined') {
+      Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลผู้ใช้งานในระบบ', 'error');
+    }
+    return;
+  }
+
+  // 🛡️ ขั้นตอนที่ 1 (Step 1: First Confirmation)
+  const step1 = await Swal.fire({
+    title: '🔄 รีเซ็ตและคำนวณโควต้าใหม่?',
+    html: `
+      <div style="text-align: left; font-size: 13.5px; color: #334155; line-height: 1.6;">
+        <p style="margin-bottom: 8px;">ระบบจะทำการประมวลผลดังนี้:</p>
+        <ul style="padding-left: 20px; margin-bottom: 12px;">
+          <li><b>รวมข้อมูลโควต้าที่ซ้ำซ้อน</b> ให้เป็นมาตรฐานปี ค.ศ. ${currentYear} (พ.ศ. ${thaiYear}) เดียวกัน</li>
+          <li><b>คำนวณวันลาที่ใช้ไปใหม่</b> ตามใบลาที่ได้รับอนุมัติจริงทั้งหมดในปี ${currentYear}</li>
+          <li><b>ปรับยอดคงเหลือให้ถูกต้องแม่นยำ</b> ตามสิทธิ์ประจำปีลบด้วยวันที่ลาจริง</li>
+        </ul>
+        <div style="background: #fef3c7; color: #92400e; padding: 10px 12px; border-radius: 8px; font-size: 12px; border: 1px solid #fde68a;">
+          ⚠️ <b>หมายเหตุ:</b> การคำนวณใหม่จะอิงจากประวัติใบลาในระบบ เหมาะสำหรับการแก้ปัญหาโควต้าซ้ำหรือยอดไม่ตรง
+        </div>
+      </div>
+    `,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ถัดไป (ยืนยันขั้นที่ 2) ➡️',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0d9488',
+    cancelButtonColor: '#94a3b8'
+  });
+
+  if (!step1.isConfirmed) return;
+
+  // 🛡️ ขั้นตอนที่ 2 (Step 2: Second Confirmation - Strict Double Confirmation)
+  const step2 = await Swal.fire({
+    title: '🔐 ยืนยันการรีเซ็ตโควต้า (ขั้นที่ 2/2)',
+    html: `
+      <div style="font-size: 13px; color: #475569; margin-bottom: 14px;">
+        กรุณาพิมพ์คำว่า <b style="color:#0d9488; font-size: 16px; letter-spacing: 1px;">CONFIRM</b> ในช่องด้านล่างเพื่อยืนยัน
+      </div>
+    `,
+    input: 'text',
+    inputPlaceholder: 'พิมพ์ CONFIRM เพื่อยืนยัน',
+    showCancelButton: true,
+    confirmButtonText: '🚀 ยืนยันและรีเซ็ตทันที',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#94a3b8',
+    inputValidator: (value) => {
+      if (!value || value.trim().toUpperCase() !== 'CONFIRM') {
+        return '❌ กรุณาพิมพ์คำว่า CONFIRM ให้ถูกต้อง';
+      }
+    }
+  });
+
+  if (!step2.isConfirmed) return;
+
+  Swal.fire({
+    title: 'กำลังรีเซ็ตและคำนวณโควต้าใหม่...',
+    text: 'ระบบกำลังรวมแถวซ้ำและคำนวณวันลาจริง กรุณารอสักครู่',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    // 1. ดึงประเภทการลาทั้งหมด
+    const { data: leaveTypes, error: ltErr } = await sb
+      .from('leave_types')
+      .select('id, leave_name, yearly_quota, default_days');
+    if (ltErr) throw ltErr;
+
+    // 2. ดึงใบลาที่อนุมัติแล้วในปีนี้
+    const { data: approvedLeaves, error: reqErr } = await sb
+      .from('leave_requests')
+      .select('id, leave_type_id, total_days, start_date, status')
+      .eq('employee_id', employeeId)
+      .eq('status', 'approved');
+    if (reqErr) throw reqErr;
+
+    // รวมยอดวันลาที่ใช้ไปจริงแยกตามประเภทในปีนี้
+    const usedMap = {};
+    (approvedLeaves || []).forEach(r => {
+      const reqYear = r.start_date ? new Date(r.start_date).getFullYear() : currentYear;
+      if (reqYear === currentYear) {
+        const typeIdStr = String(r.leave_type_id);
+        usedMap[typeIdStr] = (usedMap[typeIdStr] || 0) + (parseFloat(r.total_days) || 0);
+      }
+    });
+
+    // 3. ดึง leave_balances ที่มีอยู่ทั้งหมดของพนักงานในปีนี้ (ทั้ง AD และ BE)
+    const { data: existingBalances, error: balErr } = await sb
+      .from('leave_balances')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .in('year', [currentYear, thaiYear]);
+    if (balErr) throw balErr;
+
+    // 4. ค้นหาแถวที่ซ้ำซ้อนเพื่อลบออก (เช่น แถวปี พ.ศ. 2569 ที่ซ้ำกับ ค.ศ. 2026)
+    const toDeleteIds = [];
+    const balancesByTypeId = new Map();
+
+    (existingBalances || []).forEach(b => {
+      const typeIdStr = String(b.leave_type_id);
+      if (!balancesByTypeId.has(typeIdStr)) {
+        balancesByTypeId.set(typeIdStr, b);
+      } else {
+        const currentSaved = balancesByTypeId.get(typeIdStr);
+        if (Number(b.year) > 2400) {
+          toDeleteIds.push(b.id);
+        } else {
+          toDeleteIds.push(currentSaved.id);
+          balancesByTypeId.set(typeIdStr, b);
+        }
+      }
+    });
+
+    if (toDeleteIds.length > 0) {
+      await sb.from('leave_balances').delete().in('id', toDeleteIds);
+    }
+
+    // 5. ปรับปรุง / สร้างแถวโควต้าให้ตรงตามความจริงและเป็นมาตรฐานปี ค.ศ.
+    for (const lt of (leaveTypes || [])) {
+      const typeIdStr = String(lt.id);
+      const quotaDefault = parseFloat(lt.yearly_quota || lt.default_days || 30);
+      const existing = balancesByTypeId.get(typeIdStr);
+      const actualUsed = usedMap[typeIdStr] || 0;
+      const entitlement = existing ? (parseFloat(existing.entitlement_days) || quotaDefault) : quotaDefault;
+      const remaining = Math.max(0, entitlement - actualUsed);
+
+      if (existing) {
+        await sb
+          .from('leave_balances')
+          .update({
+            year: currentYear,
+            entitlement_days: entitlement,
+            used_days: actualUsed,
+            remaining_days: remaining
+          })
+          .eq('id', existing.id);
+      } else {
+        await sb
+          .from('leave_balances')
+          .insert({
+            employee_id: employeeId,
+            leave_type_id: lt.id,
+            year: currentYear,
+            entitlement_days: entitlement,
+            used_days: actualUsed,
+            remaining_days: remaining
+          });
+      }
+    }
+
+    // โหลดข้อมูลขึ้นหน้าจอใหม่ทันที
+    if (typeof loadQuotaData === 'function') {
+      await loadQuotaData(currentYear);
+    }
+    if (typeof loadRecentLeaves === 'function' && window.currentProfile) {
+      await loadRecentLeaves(window.currentProfile);
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: '✅ รีเซ็ตโควต้าสำเร็จ!',
+      html: `
+        <div style="font-size: 13.5px; color: #334155; line-height: 1.5;">
+          ระบบได้รวมข้อมูลที่ซ้ำซ้อน และคำนวณสิทธิ์วันลาคงเหลือประจำปี <b>${currentYear} (พ.ศ. ${thaiYear})</b> เรียบร้อยแล้ว
+        </div>
+      `,
+      confirmButtonColor: '#0d9488'
+    });
+  } catch (err) {
+    console.error('❌ Reset quota error:', err);
+    Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถรีเซ็ตโควต้าได้', 'error');
+  }
+};
 
 /* ==========================================================================
    📊 ฟังก์ชันวาดการ์ดโควตาวันลา (แสดงจำนวนครั้งที่อนุมัติแล้ว)
@@ -1143,24 +1411,23 @@ function renderQuotaCards(quotas) {
            onclick="showLeaveTypeHistory('${leaveTypeId}', '${typeName}')"
            style="border-top: 4px solid ${cardColor}; cursor: pointer; transition: transform 0.15s ease;"
            title="คลิกเพื่อดูประวัติ ${typeName}">
-        <div class="quota-title" style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 700; color: #0f172a;">${typeName}</span>
-          <!-- ✅ ป้ายบอกจำนวนครั้งที่อนุมัติแล้ว -->
-          <span style="background: ${cardColor}15; color: ${cardColor}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid ${cardColor}30;">
+        <div class="quota-header-row">
+          <div class="quota-type-title">${typeName}</div>
+          <span class="quota-approved-badge" style="background: ${cardColor}15; color: ${cardColor}; border: 1px solid ${cardColor}30;">
             อนุมัติ ${approvedTimes} ครั้ง
           </span>
         </div>
         
-        <div class="quota-days" style="margin-top: 6px;">
-          <span class="num-highlight" style="color: ${cardColor}; font-size: 24px; font-weight: 700;">${remaining}</span>
-          <span class="num-total" style="color: #64748b;">/ ${total} วัน</span>
+        <div class="quota-days">
+          <span class="num-highlight" style="color: ${cardColor};">${remaining}</span>
+          <span class="num-total">/ ${total} วัน</span>
         </div>
         
-        <div class="quota-progress-track" style="height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: 10px 0 6px 0;">
-          <div class="quota-progress-bar" style="width: ${usedPercent}%; height: 100%; background-color: ${cardColor}; transition: width 0.4s ease;"></div>
+        <div class="quota-progress-track">
+          <div class="quota-progress-bar" style="width: ${usedPercent}%; background-color: ${cardColor};"></div>
         </div>
 
-        <div class="quota-footer" style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b;">
+        <div class="quota-footer">
           <span>ใช้ไป ${used} วัน (${approvedTimes} ครั้ง)</span>
           <span>${usedPercent}%</span>
         </div>
@@ -1365,3 +1632,4 @@ window.goToProfile = typeof goToProfile !== 'undefined' ? goToProfile : window.g
 window.goToHolidays = typeof goToHolidays !== 'undefined' ? goToHolidays : window.goToHolidays;
 window.logout = typeof logout !== 'undefined' ? logout : window.logout;
 window.toggleUserGuide = typeof toggleUserGuide !== 'undefined' ? toggleUserGuide : window.toggleUserGuide;
+window.resetLeaveQuotaWithDoubleConfirm = typeof resetLeaveQuotaWithDoubleConfirm !== 'undefined' ? resetLeaveQuotaWithDoubleConfirm : window.resetLeaveQuotaWithDoubleConfirm;

@@ -9,18 +9,48 @@ function getSbClient() {
       || window.supabase;
 }
 
-// 🚀 1. ฟังก์ชันย้ายหน้าจอ
+// 🚀 1. ฟังก์ชันย้ายหน้าจอตามสิทธิ์การใช้งาน (Role Routing)
 function redirectToDashboard(role) {
-  const cleanRole = String(role || '').toLowerCase();
+  const cleanRole = String(role || '').toLowerCase().trim();
   let targetPath = "/pages/user/index-user.html";
   
-  if (['executive', 'director', 'owner', 'hr', 'admin'].includes(cleanRole)) {
+  const hrAndLeaderRoles = [
+    'hr', 'admin', 'superadmin', 'executive', 'director', 'owner',
+    'manager', 'leader', 'head', 'supervisor', 'it'
+  ];
+
+  const isHrOrLeader = hrAndLeaderRoles.includes(cleanRole) ||
+    cleanRole.includes('hr') ||
+    cleanRole.includes('admin') ||
+    cleanRole.includes('manager') ||
+    cleanRole.includes('leader') ||
+    cleanRole.includes('director') ||
+    cleanRole.includes('executive') ||
+    cleanRole.includes('supervisor') ||
+    cleanRole.includes('head') ||
+    cleanRole.includes('หัวหน้า') ||
+    cleanRole.includes('ผู้จัดการ') ||
+    cleanRole.includes('ผู้บริหาร') ||
+    cleanRole.includes('ผู้อำนวยการ');
+  
+  if (isHrOrLeader) {
     targetPath = "/pages/hr/home.html";
   }
-  window.location.replace(window.location.origin + targetPath);
+
+  sessionStorage.removeItem("redirect_attempt");
+  const targetUrl = new URL(targetPath, window.location.origin).href;
+  window.location.replace(targetUrl);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Register Service Worker for PWA (Add to Home Screen)
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('/sw.js');
+    } catch (swErr) {
+      console.log('Service Worker not registered:', swErr);
+    }
+  }
   // เช็กว่ามาจาก Redirect ซ้ำหรือไม่ ป้องกัน Infinite Loop
   const hasRedirected = sessionStorage.getItem("redirect_attempt");
   
@@ -30,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const session = JSON.parse(rawSession);
       if (session.expireAt && Date.now() < session.expireAt) {
         sessionStorage.setItem("redirect_attempt", "true");
-        window.location.replace("/pages/user/index-user.html");
+        redirectToDashboard(session.role);
         return;
       }
     }
@@ -76,25 +106,58 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
-      const { data, error } = await sb.rpc('login_employee', {
-        p_account: loginInput,
-        p_password: password
-      });
+      let user = null;
 
-      if (error) throw new Error(error.message);
-      if (!data || data.length === 0) throw new Error("การเข้าสู่ระบบล้มเหลว");
+      // 1. ลองเข้าสู่ระบบผ่าน RPC login_employee
+      try {
+        const { data: rpcData, error: rpcError } = await sb.rpc('login_employee', {
+          p_account: loginInput,
+          p_password: password
+        });
+        if (!rpcError && rpcData && rpcData.length > 0) {
+          user = rpcData[0];
+        }
+      } catch (rpcErr) {
+        console.warn("RPC login fallback:", rpcErr);
+      }
 
-      const user = data[0];
+      // 2. Fallback: ค้นหาในตาราง employees โดยตรง
+      if (!user) {
+        let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password");
+        let queryRes;
+        if (loginInput.includes("@")) {
+          queryRes = await baseQuery.eq("email", loginInput);
+        } else {
+          queryRes = await baseQuery.or(`employee_code.ilike.${loginInput},phone.eq.${loginInput},full_name.ilike.%${loginInput}%`);
+        }
+
+        if (queryRes.error) throw new Error(queryRes.error.message);
+        if (!queryRes.data || queryRes.data.length === 0) {
+          throw new Error("ไม่พบชื่อผู้ใช้งาน หรือรหัสผ่านไม่ถูกต้อง");
+        }
+
+        const candidate = queryRes.data[0];
+        if (candidate.password && String(candidate.password) !== String(password)) {
+          throw new Error("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
+        }
+        user = candidate;
+      }
+
+      if (!user) throw new Error("การเข้าสู่ระบบล้มเหลว");
+
+      if (String(user.status || "").toLowerCase() === "inactive") {
+        throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
+      }
+
       saveUserSession(user);
-      
       sessionStorage.removeItem("redirect_attempt");
-      redirectToDashboard(user.role); // ใช้งานฟังก์ชันที่รวมศูนย์ไว้
+      redirectToDashboard(user.role);
 
     } catch (err) {
       Swal.fire({
         icon: 'error',
         title: 'เข้าสู่ระบบไม่สำเร็จ',
-        text: err.message,
+        text: err.message || 'ข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง',
         confirmButtonColor: '#ef4444'
       });
     }

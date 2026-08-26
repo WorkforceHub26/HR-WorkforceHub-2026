@@ -5,7 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>PVT HR Leave - เข้าสู่ระบบ</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <meta name="theme-color" content="#0d9488"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+    <meta name="apple-mobile-web-app-title" content="PVT Leave"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link rel="apple-touch-icon" href="/assets/icons/logo-pvt.png"/>
+    <link rel="icon" type="image/png" href="/assets/icons/logo-pvt.png"/>
+    
+    <!-- Modern Thai & International Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     
     <link rel="stylesheet" href="/css/index.css"/>
@@ -17,69 +28,88 @@
       <main class="login-card">
         
         <section class="brand-area">
-          <img src="/assets/icons/logo-pvt.png" alt="PVT Logo"/>
+          <div class="logo-wrapper">
+            <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="brand-logo"/>
+          </div>
           <h1>PVT HR Leave</h1>
-          <p>ระบบขออนุญาตลาออนไลน์</p>
+          <div class="brand-badge">
+            <span class="pulse-dot"></span>
+            <span>ระบบขออนุญาตลาออนไลน์</span>
+          </div>
         </section>
         
         <form id="loginForm">
           <div class="form-group">
-            <label for="username">รหัสพนักงาน/ชื่อ-นามสกุล</label>
-            <input type="text" id="username" class="input-field" placeholder="รหัสพนักงาน หรือ ชื่อ-นามสกุล" autocomplete="username" required/>
+            <label for="username">รหัสพนักงาน หรือ ชื่อ-นามสกุล</label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">badge</span>
+              <input type="text" id="username" class="input-field" placeholder="กรอกรหัสพนักงาน หรือ ชื่อพนักงาน" autocomplete="username" required/>
+            </div>
           </div>
           
           <div class="form-group">
-            <label for="password">รหัสผ่าน</label>
-            <div class="password-wrapper">
-              <input type="password" id="password" class="input-field" placeholder="กรอกรหัสผ่าน" autocomplete="current-password" required>
+            <label for="password">รหัสผ่าน (Password)</label>
+            <div class="input-wrapper password-wrapper">
+              <span class="material-symbols-outlined input-icon">lock</span>
+              <input type="password" id="password" class="input-field" placeholder="กรอกรหัสผ่านเข้าสู่ระบบ" autocomplete="current-password" required>
               <!-- เรียกใช้ฟังก์ชัน togglePassword เมื่อคลิก -->
-              <span class="toggle-password material-symbols-outlined" onclick="togglePassword()">visibility_off</span>
+              <span class="toggle-password material-symbols-outlined" onclick="togglePassword()" title="แสดง/ซ่อนรหัสผ่าน">visibility_off</span>
             </div>
           </div>
 
-          <button type="submit" class="login-btn">เข้าสู่ระบบ</button>
+          <button type="submit" class="login-btn">
+            <span class="material-symbols-outlined">login</span>
+            <span>เข้าสู่ระบบ</span>
+          </button>
           
-            <!-- คัดลอกส่วนนี้ไปแทนที่ฟอร์มด้านล่างปุ่ม QR Code ได้เลยครับ -->
           <button type="button" class="qr-btn" onclick="loginByQr()">
             <span class="material-symbols-outlined">qr_code_scanner</span>
-            สแกนคิวอาร์โค้ด
+            <span>สแกนคิวอาร์โค้ดบัตรพนักงาน</span>
           </button>
         </form>
       </main>
 
-       
-    <div class="instructions-container">
-      <button type="button" class="instructions-toggle-btn" onclick="toggleInstructions()">
-        <span class="material-symbols-outlined icon-main">help</span>
-        <span>คู่มือแนะนำการใช้งาน</span>
-        <span class="material-symbols-outlined icon-arrow" id="instructionArrow">expand_more</span>
-      </button>
-      
-      <div id="instructionsContent" class="instructions-content">
-        <ul class="instructions-list">
-          <li>
-            <span class="material-symbols-outlined icon-bullet">badge</span>
-            <div><strong>การพิมพ์ล็อกอิน:</strong> กรอกรหัสพนักงาน, ชื่อ-นามสกุล  ในช่องเดียวได้เลย เช่น นาย สมคิด มีภูมิ ระบบจะค้นหาให้อัตโนมัติ</div>
-          </li>
-          <li>
-            <span class="material-symbols-outlined icon-bullet">qr_code</span>
-            <div><strong>การสแกนผ่านบัตร:</strong> กดปุ่มสแกน QR Code นำบัตรพนักงานมาส่องหน้ากล้องเพื่อเข้าสู่ระบบทันที</div>
-          </li>
-          <li>
-            <span class="material-symbols-outlined icon-bullet">account_circle</span>
-            <div><strong>สำหรับหัวหน้าแผนก:</strong> ระบบจะพาไปหน้าตรวจเช็ควันลาตัวเองก่อน สามารถกดสลับไปเมนูตรวจใบลาได้ที่ปุ่มสีเงินบนชื่อ</div>
-          </li>
-        </ul>
+      <div class="login-footer-info">
+        <span>© 2026 PVT Workforce Management System · Ver 2.5</span>
+      </div>
+
+      <div class="instructions-container">
+        <button type="button" class="instructions-toggle-btn" onclick="toggleInstructions()">
+          <span class="material-symbols-outlined icon-main">help</span>
+          <span>คู่มือแนะนำการใช้งาน</span>
+          <span class="material-symbols-outlined icon-arrow" id="instructionArrow">expand_more</span>
+        </button>
+        
+        <div id="instructionsContent" class="instructions-content">
+          <div class="instructions-header">
+            <strong>คำแนะนำการเข้าสู่ระบบ</strong>
+          </div>
+          <ul class="instructions-list">
+            <li>
+              <span class="material-symbols-outlined icon-bullet">badge</span>
+              <div><strong>การพิมพ์ล็อกอิน:</strong> กรอกรหัสพนักงาน หรือชื่อ-นามสกุลในช่องเดียวได้เลย ระบบจะค้นหาให้อัตโนมัติ</div>
+            </li>
+            <li>
+              <span class="material-symbols-outlined icon-bullet">qr_code</span>
+              <div><strong>การสแกนผ่านบัตร:</strong> กดปุ่มสแกน QR Code แล้วนำบัตรพนักงานมาส่องหน้ากล้องเพื่อเข้าสู่ระบบทันที</div>
+            </li>
+            <li>
+              <span class="material-symbols-outlined icon-bullet">account_circle</span>
+              <div><strong>สำหรับหัวหน้าแผนก / HR:</strong> เมื่อเข้าสู่ระบบแล้ว สามารถตรวจเช็ควันลาส่วนตัวหรือจัดการใบลาของทีมได้ตามสิทธิ์</div>
+            </li>
+            <li>
+              <span class="material-symbols-outlined icon-bullet">install_mobile</span>
+              <div><strong>ติดตั้งลงหน้าจอมือถือ (PWA):</strong> กดปุ่มแชร์/เมนูของเบราว์เซอร์ แล้วเลือก <em>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</em> เพื่อใช้งานเหมือนแอปจริงได้ทันที</div>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
 
-
-    <!-- ส่วนโหลดสคริปต์ต่างๆ อยู่ล่างสุดเหมือนเดิม -->
-     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- ส่วนโหลดสคริปต์ต่างๆ -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="/js/supabase-config.js"></script>
-    
-    
     <script src="/auth/index.js"></script>
   </body>
 </html>

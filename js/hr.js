@@ -700,6 +700,22 @@ function renderLeaveTable() {
               ${renderAttachmentCell(attachmentUrl, req.id)}
             </div>
           </div>
+          ${(req.cancel_reason || (req.approval_comment && req.approval_comment.includes('ยกเลิก')) || req.status === 'cancelled') ? `
+            <div class="cancellation-reason-box" style="margin-top: 6px; padding: 6px 10px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; font-size: 12px; color: #be123c; display: flex; align-items: flex-start; gap: 4px;">
+              <span class="material-symbols-outlined" style="font-size: 16px; margin-top: 1px; flex-shrink: 0;">info</span>
+              <div>
+                <strong>เหตุผลที่ยกเลิก:</strong> ${escapeHtml(req.cancel_reason || req.approval_comment || 'ไม่ได้ระบุเหตุผล')}
+              </div>
+            </div>
+          ` : ''}
+          ${(req.status === 'rejected' && req.approval_comment && !req.approval_comment.includes('ยกเลิก')) ? `
+            <div class="rejection-reason-box" style="margin-top: 6px; padding: 6px 10px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; font-size: 12px; color: #be123c; display: flex; align-items: flex-start; gap: 4px;">
+              <span class="material-symbols-outlined" style="font-size: 16px; margin-top: 1px; flex-shrink: 0;">cancel</span>
+              <div>
+                <strong>เหตุผลที่ไม่อนุมัติ:</strong> ${escapeHtml(req.approval_comment)}
+              </div>
+            </div>
+          ` : ''}
         </div>
 
         <!-- Zone 3: Approval Steps -->
@@ -857,6 +873,24 @@ function previewLeaveModal(leaveId) {
       <label>เหตุผล / หมายเหตุประกอบการลา</label>
       <div style="font-weight: 400; line-height: 1.5; color: var(--text);">${req.reason || 'ไม่ได้ระบุเหตุผล'}</div>
     </div>
+
+    ${(req.cancel_reason || (req.approval_comment && req.approval_comment.includes('ยกเลิก')) || req.status === 'cancelled') ? `
+      <div class="preview-item" style="margin-bottom: 16px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 12px;">
+        <label style="color: #be123c; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+          <span class="material-symbols-outlined" style="font-size:18px;">warning</span> เหตุผลการยกเลิกใบลา (Cancellation Reason)
+        </label>
+        <div style="font-weight: 500; line-height: 1.5; color: #9f1239;">${escapeHtml(req.cancel_reason || req.approval_comment || 'ไม่ได้ระบุเหตุผล')}</div>
+      </div>
+    ` : ''}
+
+    ${(req.status === 'rejected' && req.approval_comment && !req.approval_comment.includes('ยกเลิก')) ? `
+      <div class="preview-item" style="margin-bottom: 16px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 12px;">
+        <label style="color: #be123c; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+          <span class="material-symbols-outlined" style="font-size:18px;">cancel</span> เหตุผลที่ไม่อนุมัติ (Rejection Reason)
+        </label>
+        <div style="font-weight: 500; line-height: 1.5; color: #9f1239;">${escapeHtml(req.approval_comment)}</div>
+      </div>
+    ` : ''}
 
     <div style="margin-bottom: 16px;">
       <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); display: block; margin-bottom: 6px;">สถานะการอนุมัติตามลำดับขั้น</label>
@@ -1036,44 +1070,36 @@ async function approveLeave(leaveId) {
         if (currentRole === 'leader') {
           // 🔎 ค้นหา Manager ของแผนกนี้เพื่อส่งแจ้งเตือนต่อ (L2)
           let managerId = null;
+          let managerLineId = '';
           try {
             const { data: deptMgr } = await sb
               .from('employees')
-              .select('id')
+              .select('id, full_name, line_id')
               .eq('department_id', reqData.employees?.department_id)
-              .eq('role', 'manager')
+              .in('role', ['manager', 'ผู้จัดการ', 'director'])
               .eq('status', 'active')
               .maybeSingle();
             managerId = deptMgr?.id;
+            managerLineId = deptMgr?.line_id || '';
           } catch (e) { console.warn("Failed to find department manager:", e); }
 
-          // หัวหน้าอนุมัติ L1 -> แจ้งผู้จัดการฝ่าย (L2)
+          const deptName = reqData.employees?.departments?.department_name || '';
+
+          // หัวหน้าอนุมัติ L1 -> แจ้งผู้จัดการฝ่าย (L2) ผ่าน LINE
           await window.PVTSDK.line.sendWorkflowNotification({
             type: 'LEADER_APPROVED',
             recipientId: managerId, // ระบุผู้รับ L2
+            recipientLineId: managerLineId,
             leaveId: leaveId,
             employeeName: applicantName,
             employeeCode: applicantCode,
+            departmentName: deptName,
             recipientRole: 'manager',
             leaveType: leaveTypeName,
             startDate: reqData.start_date,
             endDate: reqData.end_date,
-            totalDays: reqData.total_days
-          });
-        } else {
-          // ผู้จัดการ/HR/ผู้บริหาร อนุมัติขั้นสุดท้าย -> แจ้งพนักงานเจ้าของใบลา
-          await window.PVTSDK.line.sendWorkflowNotification({
-            type: 'FINAL_APPROVED',
-            recipientId: reqData.employee_id, // ระบุผู้รับ (พนักงาน)
-            leaveId: leaveId,
-            employeeName: applicantName,
-            employeeCode: applicantCode,
-            recipientRole: 'employee',
-            recipientLineId: applicantLineId,
-            leaveType: leaveTypeName,
-            startDate: reqData.start_date,
-            endDate: reqData.end_date,
-            totalDays: reqData.total_days
+            totalDays: reqData.total_days,
+            comment: reqData.approval_comment || 'หัวหน้างานตรวจสอบแล้ว เห็นควรอนุมัติ'
           });
         }
       } catch (lineErr) {
@@ -1220,7 +1246,8 @@ async function forceCancelLeave(leaveId) {
       .from('leave_requests')
       .update({ 
         status: 'cancelled',
-        approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason}`
+        cancel_reason: reason.trim(),
+        approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason.trim()}`
       })
       .eq('id', leaveId);
 

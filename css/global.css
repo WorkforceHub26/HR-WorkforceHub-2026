@@ -338,17 +338,53 @@ html, body {
     min-width: 600px !important; /* ให้เลื่อนในกรอบ ไม่ดันกรอบหน้าจอพัง */
   }
 
-  /* ปรับปรุงขนาด Modal ของจอมือถือ */
+  /* ปรับปรุงขนาด Modal ของจอมือถือแบบยืดหยุ่นตามความสูงหน้าจอ (Dynamic Viewport Height) */
   .modal-dialog, .pvt-guard-popup, .swal2-popup {
-    width: 95vw !important;
-    max-width: 95vw !important;
-    margin: 8px auto !important;
-    padding: 12px !important;
-    border-radius: 12px !important;
+    width: min(96vw, 760px) !important;
+    max-width: 96vw !important;
+    max-height: min(92dvh, calc(100dvh - 16px)) !important;
+    margin: auto !important;
+    padding: clamp(12px, 3vw, 20px) !important;
+    border-radius: 16px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .modal-body, .swal2-html-container {
+    max-height: calc(100dvh - 140px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 4px !important;
+    margin: 4px 0 !important;
+    width: 100% !important;
     box-sizing: border-box !important;
   }
 
-  /* ป้องกันกล่องข้อมูลภายใน Modal ดันล้น */
+  /* ป้องกันกล่องข้อมูลภายใน Modal และฟอร์มดันล้นจอมือถือ */
+  .modal-body form,
+  .modal-body .detail-grid,
+  .modal-body [style*="display:grid"],
+  .modal-body [style*="display: grid"],
+  .swal2-html-container [style*="display:grid"],
+  .swal2-html-container [style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    max-height: none !important;
+  }
+
+  .modal-body [style*="grid-column: span 2"],
+  .modal-body [style*="grid-column:span 2"],
+  .modal-body [style*="grid-column: 1 / -1"],
+  .modal-body [style*="grid-column:1 / -1"],
+  .swal2-html-container [style*="grid-column: span 2"],
+  .swal2-html-container [style*="grid-column:span 2"],
+  .swal2-html-container [style*="grid-column: 1 / -1"],
+  .swal2-html-container [style*="grid-column:1 / -1"] {
+    grid-column: 1 / -1 !important;
+  }
+
   .detail-grid {
     grid-template-columns: 1fr !important;
     gap: 8px !important;
@@ -364,6 +400,18 @@ html, body {
     padding: 8px 12px !important;
     font-size: 13.5px !important;
     border-radius: 6px !important;
+  }
+
+  .swal2-actions {
+    flex-direction: column-reverse !important;
+    gap: 6px !important;
+    width: 100% !important;
+    margin-top: 8px !important;
+  }
+
+  .swal2-actions button {
+    width: 100% !important;
+    margin: 0 !important;
   }
 
   /* ปรับปรุงแผงข้อมูลการลาและการ์ดสรุป */
@@ -393,5 +441,33 @@ html, body {
 @media screen and (max-width: 380px) {
   .summary-grid, .leave-balances-grid {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==========================================================================
+   🔔 GLOBAL NOTIFICATION & STACKING LAYER PROTECTION
+   ========================================================================== */
+.notif-wrapper {
+  position: relative !important;
+  display: inline-block !important;
+  z-index: 1001 !important;
+}
+
+.notif-dropdown {
+  position: absolute !important;
+  z-index: 99999 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.2), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+@media screen and (max-width: 768px) {
+  .notif-dropdown {
+    position: fixed !important;
+    top: 70px !important;
+    right: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
   }
 }

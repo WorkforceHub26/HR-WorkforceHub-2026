@@ -90,13 +90,14 @@
     <div class="leave-section">
       <div class="leave-header-row">
         <h2>📊 สิทธิ์วันลาคงเหลือ</h2>
-        <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
-        </select>
-        <!-- 1. ปุ่มซ่อน/แสดง สิทธิ์วันลา -->
-          <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)">
+        <div class="leave-header-controls">
+          <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
+          </select>
+          <!-- ปุ่มซ่อน/แสดง สิทธิ์วันลา -->
+          <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ซ่อน/แสดง สิทธิ์วันลา">
             <span class="material-symbols-outlined">visibility</span>
           </button>
-<!-- กล่องต้องมี id="leaveBalancesContainer" -->
+        </div>
       </div>
 
       <div id="leaveBalancesContainer" class="leave-grid">

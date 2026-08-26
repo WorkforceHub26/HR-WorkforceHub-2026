@@ -1267,15 +1267,32 @@ async function saveLeave() {
       '/pages/hr/pages/hr/hr.html'
     );
 
-    // 💬 ส่งแจ้งเตือน LINE OA ไปยังหัวหน้างาน (L1)
+    // 💬 ส่งแจ้งเตือน LINE OA ไปยังหัวหน้างานประจำแผนก (L1)
     if (window.PVTSDK?.line) {
       try {
+        let leaderEmp = null;
+        if (currentProfile?.department_id) {
+          const { data: deptLeader } = await sb
+            .from('employees')
+            .select('id, full_name, line_id, role')
+            .eq('department_id', currentProfile.department_id)
+            .in('role', ['leader', 'head', 'supervisor', 'หัวหน้า'])
+            .eq('status', 'active')
+            .maybeSingle();
+          leaderEmp = deptLeader;
+        }
+
+        const deptName = currentProfile.departments?.department_name || '';
+
         for (const item of payload) {
           const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(item.leave_type_id));
           await window.PVTSDK.line.sendWorkflowNotification({
             type: 'NEW_REQUEST',
+            recipientId: leaderEmp?.id || null,
+            recipientLineId: leaderEmp?.line_id || '',
             employeeName: empName,
             employeeCode: currentProfile.employee_code || '',
+            departmentName: deptName,
             recipientRole: 'leader',
             leaveType: leaveTypeObj ? leaveTypeObj.leave_name : 'ใบลา',
             startDate: item.start_date,

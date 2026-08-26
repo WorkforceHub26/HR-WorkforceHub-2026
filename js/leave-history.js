@@ -274,12 +274,27 @@ function renderRows() {
     const startDateStr = window.pvtSupabase?.utils?.formatThaiDate ? window.pvtSupabase.utils.formatThaiDate(item.start_date) : item.start_date;
     const endDateStr = window.pvtSupabase?.utils?.formatThaiDate ? window.pvtSupabase.utils.formatThaiDate(item.end_date) : item.end_date;
 
+    const cancelOrRejectReason = item.cancel_reason || item.approval_comment;
+    const isCancelled = item.status === "cancelled" || (item.approval_comment && item.approval_comment.includes("ยกเลิก"));
+    const isRejected = item.status === "rejected" && !isCancelled;
+
     return `
       <tr>
         <td data-label="ประเภทการลา"><strong class="leave-type-title">${escapeHtml(leaveTypeName)}</strong></td>
         <td data-label="ช่วงวันที่">${startDateStr} - ${endDateStr}</td>
         <td data-label="จำนวนวัน"><span class="day-count-badge">${item.total_days || 0}</span> วัน</td>
-        <td data-label="เหตุผล" class="td-reason">${escapeHtml(item.reason || "-")}</td>
+        <td data-label="เหตุผล" class="td-reason">
+          <div>${escapeHtml(item.reason || "-")}</div>
+          ${isCancelled && cancelOrRejectReason ? `
+            <div style="margin-top:4px; font-size:11.5px; color:#be123c; background:#fff1f2; padding:3px 6px; border-radius:6px; border:1px solid #fecdd3; display:inline-block; max-width:100%; text-align:left;">
+              <strong>เหตุผลที่ยกเลิก:</strong> ${escapeHtml(cancelOrRejectReason)}
+            </div>
+          ` : isRejected && item.approval_comment ? `
+            <div style="margin-top:4px; font-size:11.5px; color:#be123c; background:#fff1f2; padding:3px 6px; border-radius:6px; border:1px solid #fecdd3; display:inline-block; max-width:100%; text-align:left;">
+              <strong>เหตุผลที่ไม่อนุมัติ:</strong> ${escapeHtml(item.approval_comment)}
+            </div>
+          ` : ''}
+        </td>
         <td data-label="สถานะ"><span class="status-badge ${statusClass}">${displayStatus}</span></td>
         <td data-label="จัดการคำขอ" class="td-action">${actionBtnHtml}</td>
       </tr>
