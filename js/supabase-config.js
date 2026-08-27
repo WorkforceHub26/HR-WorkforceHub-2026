@@ -1060,54 +1060,78 @@ class LineOAEngine {
       return { success: true, title, message: messageText, lineSent: false };
     }
 
-    // 3. ส่งข้อมูลไปยัง LINE Webhook หรือ Messaging API
-    if (this.webhookUrl) {
-      try {
-        await fetch(this.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event: type,
-            recipient_role: recipientRole,
-            recipient_id: recipientId || null,
-            recipient_line_id: recipientLineId || null,
-            employee_name: employeeName,
-            employee_code: employeeCode,
-            department_name: departmentName,
-            leave_type: leaveType,
-            start_date: startDate,
-            end_date: endDate,
-            total_days: totalDays,
-            reason: reason,
-            comment: comment,
-            message: messageText,
-            timestamp: new Date().toISOString()
-          })
-        });
-        console.log("✅ [LINE OA] Sent message via Webhook successfully!");
-      } catch (webhookErr) {
-        console.warn("⚠️ [LINE OA] Webhook call warning:", webhookErr);
-      }
-    } else if (this.channelAccessToken && recipientLineId) {
-      try {
-        await fetch('https://api.line.me/v2/bot/message/push', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.channelAccessToken}`
-          },
-          body: JSON.stringify({
-            to: recipientLineId,
-            messages: [{ type: 'text', text: messageText.replace(/\*\*/g, '') }]
-          })
-        });
-        console.log("✅ [LINE OA] Direct Push message sent to LINE ID:", recipientLineId);
-      } catch (lineErr) {
-        console.warn("⚠️ [LINE OA] Direct Push message failed:", lineErr);
-      }
-    }
+ // 3. ส่ง LINE ผ่าน Supabase Edge Function: line-send
+if (!recipientLineId) {
+  console.warn(
+    "⚠️ [LINE OA] ผู้รับยังไม่มี LINE User ID:",
+    recipientId
+  );
 
-    return { success: true, title, message: messageText, lineSent: true };
+  return {
+    success: true,
+    title,
+    message: messageText,
+    lineSent: false
+  };
+}
+
+try {
+  const LINE_SEND_URL =
+    "https://pgogmhqjdchakyctsomx.supabase.co/functions/v1/line-send";
+
+  const response = await fetch(LINE_SEND_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      to: recipientLineId,
+      message: messageText.replace(/\*\*/g, "")
+    })
+  });
+
+  const resultText = await response.text();
+
+  if (!response.ok) {
+    console.error(
+      "❌ [LINE OA] line-send Error:",
+      response.status,
+      resultText
+    );
+
+    return {
+      success: false,
+      title,
+      message: messageText,
+      lineSent: false
+    };
+  }
+
+  console.log(
+    "✅ [LINE OA] Push message sent:",
+    recipientLineId
+  );
+
+  return {
+    success: true,
+    title,
+    message: messageText,
+    lineSent: true
+  };
+
+} catch (lineErr) {
+  console.error(
+    "❌ [LINE OA] line-send failed:",
+    lineErr
+  );
+
+  return {
+    success: false,
+    title,
+    message: messageText,
+    lineSent: false
+  };
+}
   }
 }
 
