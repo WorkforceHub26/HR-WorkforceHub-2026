@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>หน้าแรกพนักงาน</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/index-user.css" />
+</head>
+
+<body>
+  <main class="app">
+
+    <!-- Header -->
+    <header class="user-header">
+      <div>
+        <p class="hello">สวัสดีค่ะ</p>
+        <h1 id="userName">พนักงาน</h1>
+        <span id="userDepartment">ฝ่าย / แผนก</span>
+      </div>
+
+      <button class="logout-btn" onclick="logoutUser()">
+        ออก
+      </button>
+    </header>
+
+    <!-- Summary -->
+    <section class="summary-card">
+      <div>
+        <span>วันลาคงเหลือ</span>
+        <strong id="leaveBalance">6</strong>
+        <p>วัน</p>
+      </div>
+
+      <div>
+        <span>คำขอรออนุมัติ</span>
+        <strong id="pendingCount">0</strong>
+        <p>รายการ</p>
+      </div>
+    </section>
+
+    <!-- Quick Action -->
+    <section class="primary-action">
+      <h2>ต้องการทำรายการอะไร?</h2>
+
+      <button class="request-leave-btn" onclick="goToLeaveForm()">
+        <span>+</span>
+        ขออนุญาตลา
+      </button>
+    </section>
+
+    <!-- Menu -->
+    <section class="menu-grid">
+
+      <button class="menu-card" onclick="goToLeaveForm()">
+        <div class="menu-icon blue">📝</div>
+        <div>
+          <strong>ขอลา</strong>
+          <p>กรอกคำขอลาใหม่</p>
+        </div>
+      </button>
+
+      <button class="menu-card" onclick="goToLeaveHistory()">
+        <div class="menu-icon green">📋</div>
+        <div>
+          <strong>ประวัติการลา</strong>
+          <p>ดูรายการที่เคยส่ง</p>
+        </div>
+      </button>
+
+      <button class="menu-card" onclick="goToProfile()">
+        <div class="menu-icon orange">👤</div>
+        <div>
+          <strong>ข้อมูลพนักงาน</strong>
+          <p>ตรวจสอบข้อมูลส่วนตัว</p>
+        </div>
+      </button>
+
+      <button class="menu-card" onclick="goToContactHR()">
+        <div class="menu-icon purple">☎️</div>
+        <div>
+          <strong>ติดต่อ HR</strong>
+          <p>สอบถามเรื่องการลา</p>
+        </div>
+      </button>
+
+    </section>
+
+    <!-- Recent -->
+    <section class="recent-card">
+      <div class="section-head">
+        <h2>รายการล่าสุด</h2>
+        <button onclick="goToLeaveHistory()">ดูทั้งหมด</button>
+      </div>
+
+      <div id="recentList" class="recent-list">
+        <div class="empty-state">
+          ยังไม่มีรายการลา
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/js/index-user.js"></script>
+</body>
+</html>
