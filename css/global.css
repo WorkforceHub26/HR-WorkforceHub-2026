@@ -471,3 +471,86 @@ html, body {
     max-width: calc(100vw - 24px) !important;
   }
 }
+
+/* Global Animations & UX Improvements */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseSoft {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.main-content, .panel, .stat-card, .quick-actions, .glass-panel {
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Staggering for lists or grids if needed */
+.stat-card:nth-child(1) { animation-delay: 0.1s; opacity: 0; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; opacity: 0; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; opacity: 0; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; opacity: 0; }
+
+.btn, button, .action-btn {
+  transition: all 0.25s ease !important;
+}
+
+.btn:active, button:active, .action-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* Make icons larger and more prominent for universal design */
+.material-symbols-outlined {
+  vertical-align: middle;
+}
+
+/* Desktop Sidebar Toggle */
+@media (min-width: 1025px) {
+  .sidebar, .sidebar-light, aside {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  body.desktop-sidebar-collapsed .sidebar,
+  body.desktop-sidebar-collapsed .sidebar-light,
+  body.desktop-sidebar-collapsed aside {
+    width: 80px !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar .logo-text,
+  body.desktop-sidebar-collapsed .sidebar .menu-text,
+  body.desktop-sidebar-collapsed .sidebar .badge,
+  body.desktop-sidebar-collapsed .sidebar .logout-text,
+  body.desktop-sidebar-collapsed .sidebar .user-info {
+    display: none !important;
+  }
+  body.desktop-sidebar-collapsed .main-content {
+    margin-left: 80px !important;
+  }
+  
+  .desktop-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #475569;
+    transition: all 0.2s;
+  }
+  .desktop-menu-toggle:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+}
+
+/* Ensure mobile toggle is hidden on desktop and desktop toggle hidden on mobile */
+@media (max-width: 1024px) {
+  .desktop-menu-toggle {
+    display: none !important;
+  }
+}
+

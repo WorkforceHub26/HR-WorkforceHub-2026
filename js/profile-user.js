@@ -142,6 +142,13 @@ async function loadProfile() {
       </article>
     `;
 
+    // Populate LINE User ID input
+    const lineInput = document.getElementById("userLineIdInput");
+    if (lineInput) {
+      lineInput.value = emp?.line_id || "";
+    }
+    window.currentEmpProfile = emp;
+
     console.log("✅ [SUCCESS] โหลดข้อมูลโปรไฟล์จริงของ HR/User สำเร็จ!");
 
   } catch (error) {
@@ -149,4 +156,123 @@ async function loadProfile() {
     box.innerHTML = `<div class="empty-state" style="color: #ef4444; text-align: center; padding: 20px;">เกิดข้อผิดพลาดในการโหลดข้อมูลโปรไฟล์</div>`;
   }
 }
+
+async function saveUserLineId() {
+  const lineInput = document.getElementById("userLineIdInput");
+  const newLineId = lineInput ? lineInput.value.trim() : "";
+  const emp = window.currentEmpProfile;
+
+  if (!emp || !emp.id) {
+    if (window.Swal) {
+      Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลโปรไฟล์พนักงานสำหรับบันทึก', 'error');
+    } else {
+      alert('ไม่พบข้อมูลโปรไฟล์พนักงานสำหรับบันทึก');
+    }
+    return;
+  }
+
+  try {
+    const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+    if (!client) throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้');
+
+    const { error } = await client
+      .from('employees')
+      .update({ line_id: newLineId || null })
+      .eq('id', emp.id);
+
+    if (error) throw error;
+
+    emp.line_id = newLineId;
+
+    if (window.Swal) {
+      Swal.fire({
+        icon: 'success',
+        title: 'บันทึก LINE User ID สำเร็จ!',
+        text: 'ระบบได้อัปเดตข้อมูล LINE ID สำหรับรับแจ้งเตือนใบลาเรียบร้อยแล้ว',
+        confirmButtonColor: '#059669'
+      });
+    } else {
+      alert('บันทึก LINE User ID สำเร็จ!');
+    }
+  } catch (err) {
+    console.error("❌ Save LINE ID error:", err);
+    if (window.Swal) {
+      Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถบันทึก LINE ID ได้', 'error');
+    } else {
+      alert('เกิดข้อผิดพลาดในการบันทึก LINE ID');
+    }
+  }
+}
+
+async function testLineNotification() {
+  const lineInput = document.getElementById("userLineIdInput");
+  const lineId = lineInput ? lineInput.value.trim() : "";
+  const emp = window.currentEmpProfile;
+
+  if (!lineId) {
+    if (window.Swal) {
+      Swal.fire('กรุณาระบุ LINE User ID', 'โปรดใส่ LINE User ID ก่อนทดสอบส่งข้อความ', 'warning');
+    } else {
+      alert('โปรดใส่ LINE User ID ก่อนทดสอบส่งข้อความ');
+    }
+    return;
+  }
+
+  if (window.Swal) {
+    Swal.fire({
+      title: 'กำลังส่งข้อความทดสอบ...',
+      text: 'กรุณารอสักครู่ ระบบกำลังส่งข้อความไปยัง LINE',
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading(); }
+    });
+  }
+
+  try {
+    if (window.PVTSDK?.line?.sendWorkflowNotification) {
+      const res = await window.PVTSDK.line.sendWorkflowNotification({
+        type: 'TEST',
+        recipientId: emp?.id || '',
+        recipientLineId: lineId,
+        employeeName: emp?.full_name || 'พนักงาน',
+        employeeCode: emp?.employee_code || '',
+        leaveType: 'ทดสอบระบบแจ้งเตือน LINE',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0],
+        totalDays: 1,
+        reason: 'ทดสอบการส่งข้อความแจ้งเตือนใบลาผ่าน LINE'
+      });
+
+      if (res && res.lineSent) {
+        if (window.Swal) {
+          Swal.fire({
+            icon: 'success',
+            title: 'ส่งข้อความทดสอบสำเร็จ! 🎉',
+            text: 'ส่งข้อความไปยัง LINE เรียบร้อยแล้ว กรุณาเช็กข้อความในแอป LINE ของคุณ',
+            confirmButtonColor: '#0284c7'
+          });
+        }
+      } else {
+        if (window.Swal) {
+          Swal.fire({
+            icon: 'info',
+            title: 'บันทึกการส่งแล้ว',
+            text: res?.message || 'ส่งแจ้งเตือนในระบบเรียบร้อย (หากยังไม่ได้รับใน LINE กรุณาตรวจสอบว่าบอท LINE OA เปิดทำงานและได้รับ LINE User ID ที่ถูกต้อง)',
+            confirmButtonColor: '#0284c7'
+          });
+        }
+      }
+    } else {
+      throw new Error('ไม่พบเอนจิน PVTSDK.line');
+    }
+  } catch (err) {
+    console.error("❌ Test LINE Notification error:", err);
+    if (window.Swal) {
+      Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถส่งข้อความทดสอบได้', 'error');
+    }
+  }
+}
+
+window.saveUserLineId = saveUserLineId;
+window.testLineNotification = testLineNotification;
+
 

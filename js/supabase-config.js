@@ -1051,10 +1051,11 @@ class LineOAEngine {
       }
     }
 
-    // 2. 💬 กรองให้ส่งแจ้งเตือน LINE ภายนอก "เฉพาะ 2 จังหวะที่กำหนด":
-    //   - ลูกน้องในแผนกส่งคำขอลา -> แจ้งเตือนหัวหน้าแผนก (NEW_REQUEST)
-    //   - หัวหน้ายืนยัน/อนุมัติเสร็จ -> แจ้งเตือนผู้จัดการฝ่าย (LEADER_APPROVED)
-    const allowedLineTypes = ['NEW_REQUEST', 'LEADER_APPROVED'];
+    // 2. 💬 กรองให้ส่งแจ้งเตือน LINE ภายนอกครอบคลุมทั้งกระบวนการลา:
+    //   - ส่งคำขอลาใหม่ -> แจ้งเตือนผู้อนุมัติ
+    //   - อนุมัติเบื้องต้น -> แจ้งเตือนผู้จัดการ
+    //   - อนุมัติสมบูรณ์ / ปฏิเสธ -> แจ้งเตือนพนักงานผู้ขอลา
+    const allowedLineTypes = ['NEW_REQUEST', 'LEADER_APPROVED', 'REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED', 'TEST'];
     if (!allowedLineTypes.includes(type)) {
       console.log(`ℹ️ [LINE OA Engine] Skip external LINE message for [${type}] per workflow setting.`);
       return { success: true, title, message: messageText, lineSent: false };

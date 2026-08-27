@@ -721,3 +721,114 @@ html, body {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Team Calendar Layout */
+.team-calendar-layout {
+  display: flex;
+  gap: 24px;
+  position: relative;
+  transition: all 0.3s ease;
+  overflow: visible; /* Need visible for toggle button */
+  margin-bottom: 32px;
+  min-height: 500px;
+}
+
+@media (max-width: 1024px) {
+  .team-calendar-layout {
+    overflow: hidden;
+  }
+}
+
+.team-calendar-main {
+  flex: 1;
+  min-width: 0;
+  transition: all 0.3s ease;
+}
+
+.team-summary-sidebar.collapsed {
+  width: 0 !important;
+  border: none !important;
+}
+
+.team-summary-sidebar.collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+@media (max-width: 1024px) {
+  /* Mobile / Tablet Behavior */
+  .team-summary-sidebar {
+    position: fixed !important;
+    right: 0;
+    top: 80px;
+    bottom: 20px;
+    z-index: 100;
+    border-radius: 16px 0 0 16px !important;
+    transform: translateX(100%);
+    width: 300px !important;
+    border-right: none !important;
+    height: auto !important;
+  }
+  .team-summary-sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: -4px 0 15px rgba(0,0,0,0.1) !important;
+  }
+  .toggle-sidebar-btn {
+    left: -20px !important;
+    width: 40px !important;
+    height: 40px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    border-radius: 8px 0 0 8px !important;
+    border: none !important;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.1) !important;
+  }
+}
+
+/* Calendar Grid Styles */
+.cal-day-cell {
+  aspect-ratio: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px;
+  position: relative;
+  transition: all 0.2s;
+  cursor: pointer;
+  background: white;
+  display: flex;
+  flex-direction: column;
+}
+.cal-day-cell:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+.cal-day-cell.other-month {
+  color: #cbd5e1;
+  background: #f8fafc;
+}
+.cal-day-cell.today {
+  border-color: var(--primary, #0fa472);
+  background: #f0fdf4;
+}
+.cal-day-number {
+  font-weight: 600;
+  font-size: 14px;
+  color: #334155;
+  display: block;
+}
+.cal-day-cell.other-month .cal-day-number {
+  color: #cbd5e1;
+}
+.cal-leave-dots {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.cal-leave-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

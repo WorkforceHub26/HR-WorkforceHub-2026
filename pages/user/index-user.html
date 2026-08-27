@@ -77,7 +77,9 @@
     <!-- 🟢 ปุ่มใหญ่สำหรับยื่นใบลา (แยกออกมาเดี่ยวๆ) -->
     <div class="hero-leave-container" style="margin-bottom: 24px;">
       <button class="btn-hero-leave" onclick="goToLeaveForm()">
-        <div class="btn-hero-icon">📝</div>
+        <div class="btn-hero-icon">
+          <span class="material-symbols-outlined" style="font-size: 28px; color: #fff;">edit_document</span>
+        </div>
         <div class="btn-hero-text">
           <strong>ยื่นใบลาออนไลน์</strong>
           <span>กรอกฟอร์มขออนุญาตลา อนุมัติตามลำดับขั้นไว</span>
@@ -89,7 +91,7 @@
     <!-- ส่วนแสดงสิทธิ์วันลาคงเหลือ -->
     <div class="leave-section">
       <div class="leave-header-row">
-        <h2>📊 สิทธิ์วันลาคงเหลือ</h2>
+        <h2>  สิทธิ์วันลาคงเหลือ</h2>
         <div class="leave-header-controls">
           <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
           </select>
@@ -101,7 +103,7 @@
       </div>
 
       <div id="leaveBalancesContainer" class="leave-grid">
-        <span class="loading-text">⏳ กำลังโหลดข้อมูลสิทธิ์วันลา...</span>
+        <span class="loading-text">  กำลังโหลดข้อมูลสิทธิ์วันลา...</span>
       </div>
     </div>
 
@@ -119,7 +121,7 @@
           <!-- 2. กล่องรวมปุ่มเมนู (ใส่ id="quickMenuSection" ครอบการ์ดเมนูไว้ตรงนี้) -->
           <div id="quickMenuSection" class="menu-grid">
             <div class="menu-card" onclick="goToRules()">
-              <div class="menu-icon">📖</div>
+              <div class="menu-icon" style="font-size: 28px;">📖</div>
               <div class="menu-info">
                 <h3>หลักเกณฑ์การลา</h3>
                 <p>เปิดอ่านเงื่อนไขบริษัท</p>
@@ -127,7 +129,7 @@
             </div>
 
             <div class="menu-card" onclick="goToLeaveHistory()">
-              <div class="menu-icon">⏳</div>
+              <div class="menu-icon" style="font-size: 28px;">🕒</div>
               <div class="menu-info">
                 <h3>ประวัติการลา</h3>
                 <p>ตรวจสอบสถานะใบลา</p>
@@ -135,7 +137,7 @@
             </div>
 
             <div class="menu-card" onclick="goToProfile()">
-              <div class="menu-icon">👤</div>
+              <div class="menu-icon" style="font-size: 28px;">👤</div>
               <div class="menu-info">
                 <h3>ข้อมูลพนักงาน</h3>
                 <p>ตรวจสอบรหัส ชื่อ และวันเริ่มงาน</p>
@@ -143,7 +145,7 @@
             </div>
 
             <div class="menu-card" onclick="goToHolidays()">
-              <div class="menu-icon">📅</div>
+              <div class="menu-icon" style="font-size: 28px;">📅</div>
               <div class="menu-info">
                 <h3>วันหยุด</h3>
                 <p>ตรวจสอบวันหยุดประจำปี</p>
@@ -151,7 +153,7 @@
             </div>
 
             <div class="menu-card card-highlight" onclick="viewMyDigitalCard()">
-              <div class="menu-icon">🪪</div>
+              <div class="menu-icon" style="font-size: 28px;">🪪</div>
               <div class="menu-info">
                 <h3>ดูบัตรพนักงาน</h3>
               </div>
@@ -193,7 +195,9 @@
       
       <div class="guide-card-body">
         <button type="button" class="btn-hero-leave" onclick="goToLeaveForm()">
-          <div class="btn-hero-icon">📝</div>
+          <div class="btn-hero-icon">
+            <span class="material-symbols-outlined" style="font-size: 28px; color: #fff;">edit_document</span>
+          </div>
           <div class="btn-hero-text">
             <strong>ยื่นใบลาออนไลน์</strong>
             <span>กรอกฟอร์มขออนุญาตลา อนุมัติตามลำดับขั้นไว</span>
@@ -205,7 +209,7 @@
           <div><strong>หลักเกณฑ์การลา:</strong> ตรวจสอบเงื่อนไข ข้อบังคับ และกฎการแนบใบรับรองแพทย์</div>
         </div>
         <div class="guide-item">
-          <span class="guide-emoji">⏳</span>
+          <span class="guide-emoji">🕒</span>
           <div><strong>ประวัติการลา:</strong> เช็กสถานะใบลาปัจจุบัน และเรียกดูใบลาเก่า</div>
         </div>
         <div class="guide-item">
@@ -216,6 +220,11 @@
           <span class="guide-emoji">🪪</span>
           <div><strong>ดูบัตรพนักงาน:</strong> เปิดบัตรประจำตัวดิจิทัลพร้อม QR Code</div>
         </div>
+      </div>
+      <div style="padding: 0 16px 16px;">
+        <button type="button" onclick="goToRules()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-weight: 500; color: #334155; display: flex; justify-content: center; align-items: center; gap: 6px; cursor: pointer;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">library_books</span> คู่มือการลาฉบับเต็ม
+        </button>
       </div>
     </div>
 
@@ -237,5 +246,6 @@
   <!-- ไฟล์ SDK และ CSS เดิมของคุณ -->
   <script src="/js/supabase-config.js"></script>
   <script src="/js/index-user.js"></script>
+  <script src="/js/system-diagnostics.js"></script>
 </body>
 </html>

@@ -148,27 +148,20 @@ function redirectToDashboard(role) {
   const cleanRole = String(role || '').toLowerCase().trim();
   let targetPath = "/pages/user/index-user.html";
   
-  const hrAndLeaderRoles = [
-    'hr', 'admin', 'superadmin', 'executive', 'director', 'owner',
-    'manager', 'leader', 'head', 'supervisor', 'it'
+  const executiveRoles = [
+    'executive', 'director', 'owner'
   ];
 
-  const isHrOrLeader = hrAndLeaderRoles.includes(cleanRole) ||
-    cleanRole.includes('hr') ||
-    cleanRole.includes('admin') ||
-    cleanRole.includes('manager') ||
-    cleanRole.includes('leader') ||
+  const isExecutive = executiveRoles.includes(cleanRole) ||
     cleanRole.includes('director') ||
     cleanRole.includes('executive') ||
-    cleanRole.includes('supervisor') ||
-    cleanRole.includes('head') ||
-    cleanRole.includes('หัวหน้า') ||
-    cleanRole.includes('ผู้จัดการ') ||
     cleanRole.includes('ผู้บริหาร') ||
     cleanRole.includes('ผู้อำนวยการ');
-  
-  if (isHrOrLeader) {
+
+  if (isExecutive) {
     targetPath = "/pages/hr/home.html";
+  } else {
+    targetPath = "/pages/user/index-user.html";
   }
 
   // ⚡ ใช้ location.replace แบบกำหนด origin ครบถ้วน 

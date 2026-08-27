@@ -1208,6 +1208,29 @@ async function approveLeave(leaveId) {
       }
     }
 
+    // 💬 ส่งแจ้งเตือนกลับหาพนักงานเจ้าของใบลา
+    if (window.PVTSDK?.line) {
+      try {
+        await window.PVTSDK.line.sendWorkflowNotification({
+          type: 'REQUEST_APPROVED',
+          recipientId: reqData.employee_id, // เจ้าของใบลา
+          recipientLineId: reqData.employees?.line_id || '',
+          leaveId: leaveId,
+          employeeName: reqData.employees?.full_name || 'พนักงาน',
+          employeeCode: reqData.employees?.employee_code || '',
+          departmentName: reqData.employees?.departments?.department_name || '',
+          recipientRole: 'employee',
+          leaveType: reqData.leave_types?.leave_name || 'ใบลา',
+          startDate: reqData.start_date,
+          endDate: reqData.end_date,
+          totalDays: reqData.total_days,
+          comment: 'ใบลาของคุณได้รับการอนุมัติเรียบร้อยแล้ว'
+        });
+      } catch (lineErr) {
+        console.warn("⚠️ [Workflow Notification] Approval notice error:", lineErr);
+      }
+    }
+
     await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
     loadPendingLeavesHR();
 

@@ -541,6 +541,7 @@ async function fetchUserNotifications() {
     const { data: dbNotifs } = await sb
       .from("notifications")
       .select("*")
+      .eq('user_id', myId) // 👈 แก้ไข: ดึงเฉพาะแจ้งเตือนส่วนบุคคลเท่านั้น เพื่อความเป็นส่วนตัว
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -560,10 +561,13 @@ async function fetchUserNotifications() {
 
         if (myRole === "leader" || myRole === "manager") {
           const myDeptKeyword = String(myDeptName || "").toLowerCase();
+          // ถ้ามีชื่อแผนกในข้อความ หรือเป็นคำขอที่เกี่ยวกับ "อนุมัติ" ในแผนกตัวเอง
           if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
             return true;
           }
-          return titleLower.includes("คำขอ") || titleLower.includes("อนุมัติ");
+          // ถ้าไม่มีข้อมูลแผนก แต่อย่างน้อยต้องเป็นคำขออนุมัติ และไม่ใช่ของพนักงานทั่วไปคนอื่น (กรณีไม่มี user_id)
+          // แต่ทางที่ดีควรระบุ user_id ตอนสร้างแจ้งเตือน
+          return false; // ปิดการมองเห็นแบบเหมาเข่ง เพื่อความเป็นส่วนตัว
         }
         return true; // HR / Admin see all
       });

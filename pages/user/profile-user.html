@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/css/index-user.css" />
   <link rel="stylesheet" href="/css/profile-user.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -20,7 +21,7 @@
         <div>
           <p class="hello">PVT HR Leave</p>
           <h1>ข้อมูลพนักงาน</h1>
-          <span>ตรวจสอบข้อมูลโปรไฟล์ของท่าน</span>
+          <span>ตรวจสอบข้อมูลโปรไฟล์และการแจ้งเตือน LINE</span>
         </div>
       </div>
       <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับ</button>
@@ -32,6 +33,42 @@
       </div>
       <div id="profileBox" class="recent-list">
         <div class="empty-state">กำลังโหลดข้อมูลพนักงาน...</div>
+      </div>
+    </section>
+
+    <!-- 💬 ตั้งค่าระบบแจ้งเตือน LINE สำหรับใบลานี้ -->
+    <section class="recent-card" style="margin-top: 20px;">
+      <div class="section-head" style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 22px;">💬</span>
+        <h2>การแจ้งเตือนใบลานี้ผ่าน LINE (LINE Notification)</h2>
+      </div>
+      <div id="lineSettingBox" style="padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; margin-top: 10px;">
+        <div style="font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 16px;">
+          เมื่อเปิดใช้งานและผูก <strong>LINE User ID</strong> เรียบร้อยแล้ว ระบบจะส่งข้อความแจ้งเตือนสถานะใบลากลับมายังแอป LINE ของคุณทันทีเมื่อ:
+          <ul style="margin: 6px 0 0 20px; padding: 0;">
+            <li>ส่งคำขอลาใหม่สำเร็จ</li>
+            <li>หัวหน้างานหรือ HR พิจารณาอนุมัติใบลา</li>
+            <li>ใบลามีการปฏิเสธ หรือต้องการข้อมูลเพิ่มเติม</li>
+          </ul>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px;">
+            LINE User ID (สำหรับรับข้อความแจ้งเตือนใบลา)
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="userLineIdInput" placeholder="เช่น U1234567890abcdef..." style="flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-family: monospace;" />
+            <button type="button" onclick="saveUserLineId()" style="background: #059669; color: #ffffff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer;">
+              💾 บันทึก
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+          <button type="button" onclick="testLineNotification()" style="background: #0284c7; color: #ffffff; border: none; padding: 9px 16px; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <span>🔔</span> ทดสอบส่งข้อความแจ้งเตือน LINE
+          </button>
+        </div>
       </div>
     </section>
 

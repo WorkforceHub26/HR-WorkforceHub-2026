@@ -924,16 +924,22 @@ function handleFileChange(input, labelId) {
 // ==========================================
 // 🔔 10. ระบบแจ้งเตือน และ อัปโหลดไฟล์
 // ==========================================
-async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/hr/hr.html') {
+async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/hr/hr.html', recipientId = null) {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
   try {
-    const { error } = await sb.from("notifications").insert([{
+    const payload = {
       title: title,
       message: message,
       is_read: false
-    }]);
+    };
+    
+    if (recipientId) {
+      payload.user_id = recipientId;
+    }
+
+    const { error } = await sb.from("notifications").insert([payload]);
 
     if (error) console.warn("⚠️ บันทึกแจ้งเตือนลง DB ไม่สำเร็จ:", error.message);
   } catch (err) {
@@ -1309,153 +1315,84 @@ async function saveLeave() {
     }
 
     const empName = currentProfile.full_name || 'พนักงาน';
-    await sendNotification(
-      'คำขอลาใหม่', 
-      `${empName} ได้ยื่นคำขอลาใหม่จำนวน ${payload.length} รายการ`, 
-      'leave', 
-      '/pages/hr/pages/hr/hr.html'
+    const deptId = currentProfile?.department_id || null;
+    const deptName = currentProfile?.department_name || "";
+    
+    const isLeaderApplicant = (
+      userRole.includes("leader") || userRole.includes("supervisor") ||
+      userRole.includes("head") || userRole.includes("หัวหน้า")
+    );
+    const isManagerApplicant = (
+      userRole.includes("manager") || userRole.includes("ผู้จัดการ")
+    );
+    const isExecutiveApplicant = (
+      userRole.includes("executive") || userRole.includes("director") ||
+      userRole.includes("owner") || userRole.includes("ผู้บริหาร")
     );
 
-    // 💬 LINE OA: แจ้งผู้อนุมัติคนถัดไปตาม Role ของผู้ยื่น
-    if (window.PVTSDK?.line) {
-      try {
-        const deptId = currentProfile?.department_id || null;
-        const deptName = currentProfile?.department_name || "";
+    let recipient = null;
+    let recipientRole = "";
+    let notificationType = "NEW_REQUEST";
 
-        const isLeaderApplicant = (
-          userRole.includes("leader") || userRole.includes("supervisor") ||
-          userRole.includes("head") || userRole.includes("หัวหน้า")
-        );
-        const isManagerApplicant = (
-          userRole.includes("manager") || userRole.includes("ผู้จัดการ")
-        );
-        const isExecutiveApplicant = (
-          userRole.includes("executive") || userRole.includes("director") ||
-          userRole.includes("owner") || userRole.includes("ผู้บริหาร")
-        );
+    // Helper: หา Executive คนแรกที่ active
+    async function findExecutiveRecipient() {
+      const { data: setting } = await sb.from("system_settings").select("employee_id").eq("setting_key", "leave_executive_approver").maybeSingle();
+      if (!setting?.employee_id) return null;
+      const { data } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", setting.employee_id).maybeSingle();
+      return data || null;
+    }
 
-        let recipient = null;
-        let recipientRole = "";
-        let notificationType = "NEW_REQUEST";
-
-        // Helper: หา Executive คนแรกที่ active
-        async function findExecutiveRecipient() {
-          const { data: setting, error: settingError } = await sb
-            .from("system_settings")
-            .select("employee_id")
-            .eq("setting_key", "leave_executive_approver")
-            .maybeSingle();
-
-          if (settingError) throw settingError;
-          if (!setting?.employee_id) return null;
-
-          const { data, error } = await sb
-            .from("employees")
-            .select("id, full_name, line_id, role")
-            .eq("id", setting.employee_id)
-            .maybeSingle();
-
-          if (error) throw error;
-          return data || null;
-        }
-
-        if (isExecutiveApplicant) {
-          // ผู้บริหารยื่นเอง → เข้า HR ในระบบ ไม่ส่ง LINE HR
-          console.log("ℹ️ [LINE OA] ผู้บริหารยื่นลา → ไม่ส่ง LINE HR");
-
-        } else if (isManagerApplicant) {
-          // ผู้จัดการยื่นเอง → ส่งผู้บริหาร
+    // --- Logic หาผู้อนุมัติ ---
+    if (isExecutiveApplicant) {
+      console.log("ℹ️ [Workflow] ผู้บริหารยื่นลาเอง");
+    } else if (isManagerApplicant) {
+      recipient = await findExecutiveRecipient();
+      recipientRole = "executive";
+    } else if (isLeaderApplicant) {
+      if (deptId) {
+        const { data: routing } = await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle();
+        if (routing?.manager_id) {
+          const { data: mgr } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", routing.manager_id).maybeSingle();
+          recipient = mgr;
+          recipientRole = "manager";
+        } else {
           recipient = await findExecutiveRecipient();
           recipientRole = "executive";
-          notificationType = "NEW_REQUEST";
-
-        } else if (isLeaderApplicant) {
-          // หัวหน้ายื่นเอง → Manager L2 ถ้ามี, ถ้าไม่มีข้ามไป Executive
-          if (!deptId) {
-            console.warn("⚠️ [LINE OA] ไม่พบ department_id ของหัวหน้าผู้ยื่น");
-          } else {
-            const { data: routing, error: routingError } = await sb
-              .from("department_approvers")
-              .select("manager_id")
-              .eq("department_id", deptId)
-              .maybeSingle();
-
-            if (routingError) throw routingError;
-
-            if (routing?.manager_id) {
-              const { data: mgr, error: mgrError } = await sb
-                .from("employees")
-                .select("id, full_name, line_id, role")
-                .eq("id", routing.manager_id)
-                .maybeSingle();
-
-              if (mgrError) throw mgrError;
-              recipient = mgr || null;
-              recipientRole = "manager";
-            } else {
-              recipient = await findExecutiveRecipient();
-              recipientRole = "executive";
-            }
-          }
-
-        } else {
-          // พนักงานทั่วไป → หัวหน้า L1 ของแผนก
-          if (!deptId) {
-            console.warn("⚠️ [LINE OA] ไม่พบ department_id ของผู้ยื่นลา");
-          } else {
-            const { data: routing, error: routingError } = await sb
-              .from("department_approvers")
-              .select("supervisor_id")
-              .eq("department_id", deptId)
-              .maybeSingle();
-
-            if (routingError) throw routingError;
-
-            if (routing?.supervisor_id) {
-              const { data: leaderEmp, error: leaderError } = await sb
-                .from("employees")
-                .select("id, full_name, line_id, role")
-                .eq("id", routing.supervisor_id)
-                .maybeSingle();
-
-              if (leaderError) throw leaderError;
-              recipient = leaderEmp || null;
-              recipientRole = "leader";
-            } else {
-              console.warn("⚠️ [LINE OA] แผนกนี้ยังไม่ได้กำหนดหัวหน้า L1");
-            }
-          }
         }
-
-        if (recipient) {
-          for (const item of payload) {
-            const leaveTypeObj = (leaveTypes || []).find(
-              t => String(t.id) === String(item.leave_type_id)
-            );
-
-            await window.PVTSDK.line.sendWorkflowNotification({
-              type: notificationType,
-              recipientId: recipient.id,
-              recipientLineId: recipient.line_id || "",
-              employeeName: empName,
-              employeeCode: currentProfile.employee_code || "",
-              departmentName: deptName,
-              recipientRole: recipientRole,
-              leaveType: leaveTypeObj ? leaveTypeObj.leave_name : "ใบลา",
-              startDate: item.start_date,
-              endDate: item.end_date,
-              totalDays: item.total_days,
-              reason: item.reason
-            });
-          }
-
-          if (!recipient.line_id) {
-            console.warn(`⚠️ [LINE OA] ผู้รับ ${recipient.full_name || ""} ยังไม่มี LINE User ID`);
-          }
+      }
+    } else {
+      if (deptId) {
+        const { data: routing } = await sb.from("department_approvers").select("supervisor_id").eq("department_id", deptId).maybeSingle();
+        if (routing?.supervisor_id) {
+          const { data: leaderEmp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", routing.supervisor_id).maybeSingle();
+          recipient = leaderEmp;
+          recipientRole = "leader";
         }
-      } catch (lineErr) {
-        // LINE ผิดพลาดต้องไม่ทำให้การยื่นใบลาล้มเหลว
-        console.warn("⚠️ [LINE OA Trigger] Submission notice fallback:", lineErr);
+      }
+    }
+
+    // 💬 1. แจ้งเตือนในระบบและ LINE (ผ่าน Workflow กลาง)
+    if (recipient && recipient.id) {
+      try {
+        for (const item of payload) {
+          const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(item.leave_type_id));
+          await window.PVTSDK.line.sendWorkflowNotification({
+            type: notificationType,
+            recipientId: recipient.id,
+            recipientLineId: recipient.line_id || "",
+            employeeName: empName,
+            employeeCode: currentProfile.employee_code || "",
+            departmentName: deptName,
+            recipientRole: recipientRole,
+            leaveType: leaveTypeObj ? leaveTypeObj.leave_name : "ใบลา",
+            startDate: item.start_date,
+            endDate: item.end_date,
+            totalDays: item.total_days,
+            reason: item.reason
+          });
+        }
+      } catch (err) {
+        console.warn("⚠️ [Workflow Notification] Error:", err);
       }
     }
 

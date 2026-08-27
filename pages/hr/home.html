@@ -116,7 +116,7 @@
         </div>
       </header>
 
-      <!-- 📊 KPI STATS CARDS -->
+      <!--   KPI STATS CARDS -->
       <div class="stats-grid">
         <div class="stat-card border-blue">
           <div class="icon-box bg-blue"><span class="material-symbols-outlined">group</span></div>
@@ -188,11 +188,18 @@
           </div>
         </section>
 
-        <!-- 📊 Card สัดส่วนประเภทการลา -->
+        <!--   Card สัดส่วนประเภทการลา -->
         <div class="leave-analytics-card">
-          <div class="panel-header">
-            <span class="material-symbols-outlined text-primary">pie_chart</span>
-            <h2>สัดส่วนประเภทการลา <span id="leaveTypeTotalHeader" style="font-weight: normal; color: var(--text-soft);">(รวม 0 รายการ)</span></h2>
+          <div class="panel-header" style="justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="material-symbols-outlined text-primary">pie_chart</span>
+              <h2>สัดส่วนประเภทการลา <span id="leaveTypeTotalHeader" style="font-weight: normal; color: var(--text-soft);">(รวม 0 รายการ)</span></h2>
+            </div>
+            <select id="typeChartType" onchange="drawCharts()" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; outline: none; background: #f8fafc;">
+              <option value="doughnut">โดนัท (Doughnut)</option>
+              <option value="pie">วงกลม (Pie)</option>
+              <option value="bar">กราฟแท่ง (Bar)</option>
+            </select>
           </div>
           
           <div class="card-body">
@@ -214,9 +221,16 @@
       <!-- 📌 ROW 2: กราฟแท่งวันลาแยกแผนก + ตาราง Top Leave Takers -->
       <div class="middle-grid">
         <section class="panel chart-panel">
-          <div class="panel-header">
-            <span class="material-symbols-outlined text-primary">bar_chart</span>
-            <h2>สถิติจำนวนวันลาแยกตามแผนก (วัน)</h2>
+          <div class="panel-header" style="justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="material-symbols-outlined text-primary">bar_chart</span>
+              <h2>สถิติจำนวนวันลาแยกตามแผนก (วัน)</h2>
+            </div>
+            <select id="deptChartType" onchange="drawCharts()" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; outline: none; background: #f8fafc;">
+              <option value="bar">กราฟแท่ง (Bar)</option>
+              <option value="pie">กราฟวงกลม (Pie)</option>
+              <option value="line">กราฟเส้น (Line)</option>
+            </select>
           </div>
           <div class="chart-container">
             <canvas id="chartDepartments"></canvas>
@@ -265,5 +279,6 @@
 <script src="/js/supabase-config.js"></script>
 <script src="/js/auth-guard.js"></script>
 <script src="/js/home.js"></script>
+<script src="/js/system-diagnostics.js"></script>
 </body>
 </html>

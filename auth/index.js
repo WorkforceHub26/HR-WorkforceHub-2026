@@ -14,26 +14,19 @@ function redirectToDashboard(role) {
   const cleanRole = String(role || '').toLowerCase().trim();
   let targetPath = "/pages/user/index-user.html";
   
-  const hrAndLeaderRoles = [
-    'hr', 'admin', 'superadmin', 'executive', 'director', 'owner',
-    'manager', 'leader', 'head', 'supervisor', 'it'
+  const executiveRoles = [
+    'executive', 'director', 'owner'
   ];
 
-  const isHrOrLeader = hrAndLeaderRoles.includes(cleanRole) ||
-    cleanRole.includes('hr') ||
-    cleanRole.includes('admin') ||
-    cleanRole.includes('manager') ||
-    cleanRole.includes('leader') ||
+  const isExecutive = executiveRoles.includes(cleanRole) ||
     cleanRole.includes('director') ||
     cleanRole.includes('executive') ||
-    cleanRole.includes('supervisor') ||
-    cleanRole.includes('head') ||
-    cleanRole.includes('หัวหน้า') ||
-    cleanRole.includes('ผู้จัดการ') ||
     cleanRole.includes('ผู้บริหาร') ||
     cleanRole.includes('ผู้อำนวยการ');
   
-  if (isHrOrLeader) {
+  if (isExecutive) {
+    targetPath = "/pages/hr/home.html";
+  } else {
     targetPath = "/pages/user/index-user.html";
   }
 
@@ -166,13 +159,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ฟังก์ชันบันทึก Session มาตรฐาน
 function saveUserSession(userData) {
+  const rememberCheckbox = document.getElementById("rememberMe");
+  const isRemember = rememberCheckbox ? rememberCheckbox.checked : true;
+  const expireHours = isRemember ? (30 * 24) : 12; // 30 วัน ถ้าจดจำระบบ, 12 ชม. ถ้าไม่
+  
   const sessionPayload = {
     id: userData.id,
     employee_code: userData.employee_code,
     full_name: userData.full_name,
     role: userData.role || "user",
     status: userData.status || "active",
-    expireAt: new Date().getTime() + (12 * 60 * 60 * 1000) // อยู่ได้ 12 ชั่วโมง
+    expireAt: new Date().getTime() + (expireHours * 60 * 60 * 1000)
   };
   localStorage.setItem("currentUser", JSON.stringify(sessionPayload));
 }

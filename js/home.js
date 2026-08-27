@@ -256,9 +256,12 @@ function drawCharts() {
       window.chartTypeInstance = null;
     }
 
+    const chartTypeElement1 = document.getElementById('typeChartType');
+    const typeChartTypeValue = chartTypeElement1 ? chartTypeElement1.value : 'doughnut';
+
     // วาดกราฟใหม่
     window.chartTypeInstance = new Chart(canvasType.getContext("2d"), {
-      type: 'doughnut',
+      type: typeChartTypeValue,
       data: {
         labels: typeLabels,
         datasets: [{
@@ -273,7 +276,7 @@ function drawCharts() {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: { display: typeChartTypeValue !== 'doughnut' },
           tooltip: {
             enabled: hasData,
             callbacks: {
@@ -285,7 +288,7 @@ function drawCharts() {
             }
           }
         },
-        cutout: '70%'
+        cutout: typeChartTypeValue === 'doughnut' ? '70%' : undefined
       }
     });
 
@@ -304,14 +307,16 @@ function drawCharts() {
         || r.department
         || "ส่วนกลาง / ไม่ระบุ";
 
-      const rawDays = r.actual_days ?? r.total_days ?? r.days_requested ?? r.days ?? 1;
-      const days = parseFloat(rawDays) || 1;
+      const rawDays = r.actual_days ?? r.total_days ?? r.days_requested ?? r.days;
+      const days = (rawDays !== null && rawDays !== undefined && rawDays !== "") ? parseFloat(rawDays) : 1;
 
       deptSummary[deptName] = (deptSummary[deptName] || 0) + days;
     });
 
     const deptLabels = hasData ? Object.keys(deptSummary) : ["ไม่มีข้อมูล"];
     const deptValues = hasData ? Object.values(deptSummary) : [0];
+    const colorPalette = ['#0fa472', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899', '#06b6d4', '#64748b'];
+    const deptColors = hasData ? deptLabels.map((_, i) => colorPalette[i % colorPalette.length]) : ['#e2e8f0'];
 
     // เคลียร์กราฟเก่า
     if (window.chartDeptInstance) {
@@ -319,18 +324,20 @@ function drawCharts() {
       window.chartDeptInstance = null;
     }
 
+    const chartTypeElement = document.getElementById('deptChartType');
+    const chartType = chartTypeElement ? chartTypeElement.value : 'bar';
+
     // วาดกราฟใหม่
     window.chartDeptInstance = new Chart(canvasDept.getContext("2d"), {
-      type: 'bar',
+      type: chartType,
       data: {
         labels: deptLabels,
         datasets: [{
           label: 'รวมวันลา (วัน)',
           data: deptValues,
-          backgroundColor: '#0fa472',
+          backgroundColor: deptColors,
           borderRadius: 8,
-          borderSkipped: false,
-          hoverBackgroundColor: '#0b845c'
+          borderSkipped: false
         }]
       },
       options: {
@@ -426,7 +433,8 @@ function renderTopLeaveEmployees(approvedRequests) {
     const empId = r.employee_id || r.employees?.employee_code || r.emp_name || "Unknown";
     const empName = r.employees?.full_name || r.employees?.first_name || r.emp_name || "ไม่ระบุชื่อ";
     const deptName = (r.employees?.departments?.department_name) || r.department || "-";
-    const days = parseFloat(r.actual_days || r.total_days || r.days || 1);
+    const rawDays = r.actual_days ?? r.total_days ?? r.days_requested ?? r.days;
+    const days = (rawDays !== null && rawDays !== undefined && rawDays !== "") ? parseFloat(rawDays) : 1;
 
     if (!empMap[empId]) {
       empMap[empId] = { name: empName, dept: deptName, count: 0, totalDays: 0 };
@@ -1184,9 +1192,11 @@ async function fetchRealNotifications() {
 
     // 1. ดึงข้อมูลการแจ้งเตือนจากตาราง notifications ใน Supabase
     if (client) {
+      const myId = sessionUser?.id || myProfile?.id;
       const { data, error } = await client
         .from('notifications')
         .select('*')
+        .eq('user_id', myId) // 👈 แก้ไข: ดึงเฉพาะแจ้งเตือนส่วนบุคคลเท่านั้น เพื่อความเป็นส่วนตัว
         .order('created_at', { ascending: false })
         .limit(30);
 
@@ -1252,36 +1262,34 @@ async function fetchRealNotifications() {
       };
     });
 
-    // 3. กรองและเชื่อมโยงลิงก์สำหรับ DB notifications
-    dbNotifications = dbNotifications.filter(n => {
-      if (n.user_id && myProfile?.id) {
-        return String(n.user_id) === String(myProfile.id);
-      }
-      
-      const titleLower = String(n.title).toLowerCase();
-      const msgLower = String(n.message).toLowerCase();
-      
-      if (myRole === "user") {
-        const myName = myProfile?.full_name || "";
-        if (myName && (msgLower.includes(myName.toLowerCase()) || titleLower.includes(myName.toLowerCase()))) {
-          return true;
+      // 3. กรองและเชื่อมโยงลิงก์สำหรับ DB notifications
+      dbNotifications = dbNotifications.filter(n => {
+        if (n.user_id && myProfile?.id) {
+          return String(n.user_id) === String(myProfile.id);
         }
-        return false;
-      }
-      
-      if (myRole === "leader" || myRole === "manager") {
-        const myDeptKeyword = String(myDeptName || "").toLowerCase();
-        if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
-          return true;
+        
+        const titleLower = String(n.title).toLowerCase();
+        const msgLower = String(n.message).toLowerCase();
+        
+        if (myRole === "user") {
+          const myName = myProfile?.full_name || "";
+          if (myName && (msgLower.includes(myName.toLowerCase()) || titleLower.includes(myName.toLowerCase()))) {
+            return true;
+          }
+          return false;
         }
-        if (titleLower.includes('คำขอ') || titleLower.includes('อนุมัติ')) {
-          return true;
+        
+        if (myRole === "leader" || myRole === "manager") {
+          const myDeptKeyword = String(myDeptName || "").toLowerCase();
+          if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
+            return true;
+          }
+          // ถ้าไม่มีข้อมูลแผนกในข้อความ หรือไม่ใช่ของแผนกตัวเอง ให้ข้ามไปเพื่อความเป็นส่วนตัว
+          return false;
         }
-        return false;
-      }
-      
-      return true;
-    }).map(n => {
+        
+        return true;
+      }).map(n => {
       // จับคู่วาปไปยังหน้าที่เกี่ยวข้องตามเงื่อนไข
       let resolvedLink = '/pages/user/leave-history.html';
       const titleLower = String(n.title).toLowerCase();
@@ -1641,9 +1649,7 @@ window.openAllNotificationsModal = async function() {
         if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
           return true;
         }
-        if (titleLower.includes('คำขอ') || titleLower.includes('อนุมัติ')) {
-          return true;
-        }
+        // ถ้าไม่มีข้อมูลแผนก หรือไม่ใช่ของแผนกตนเอง ไม่ควรแสดงเพื่อความเป็นส่วนตัว
         return false;
       }
       
