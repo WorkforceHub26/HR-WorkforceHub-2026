@@ -1389,6 +1389,61 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
 };
 
 /* ==========================================================================
+   🔗 10. ระบบเชื่อมต่อ LINE Notification
+   ========================================================================== */
+window.generateLineLinkToken = async function() {
+  const sb = getSafeSupabaseClient();
+  const employeeId = window.currentProfile?.id || window.currentProfile?.employee_id;
+
+  if (!sb || !employeeId) {
+    Swal.fire('แจ้งเตือน', 'กรุณาล็อกอินใหม่อีกครั้งเพื่อเชื่อมต่อ LINE', 'warning');
+    return;
+  }
+
+  try {
+    // 1. สุ่มรหัส 6 หลัก
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // หมดอายุใน 10 นาที
+
+    // 2. บันทึกลงฐานข้อมูล
+    const { error } = await sb.from('line_link_tokens').insert({
+      employee_id: employeeId,
+      token: token,
+      expires_at: expiresAt
+    });
+
+    if (error) throw error;
+
+    // 3. แสดงรหัสให้ผู้ใช้
+    Swal.fire({
+      title: '🔗 เชื่อมต่อ LINE แจ้งเตือน',
+      html: `
+        <div style="text-align: center; padding: 10px;">
+          <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">
+            กรุณาส่งรหัส 6 หลักนี้ไปยัง <b>LINE Official Account</b> ของบริษัท
+          </p>
+          <div style="font-size: 42px; font-weight: 800; color: #166534; letter-spacing: 8px; background: #f0fdf4; padding: 20px; border-radius: 16px; border: 2px dashed #22c55e;">
+            ${token}
+          </div>
+          <p style="font-size: 12px; color: #94a3b8; margin-top: 20px;">
+            * รหัสมีอายุการใช้งาน 10 นาที
+          </p>
+        </div>
+      `,
+      confirmButtonText: 'รับทราบ',
+      confirmButtonColor: '#166534',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg',
+      imageWidth: 60,
+      imageHeight: 60,
+    });
+
+  } catch (err) {
+    console.error('❌ Generate LINE token error:', err);
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถสร้างรหัสเชื่อมต่อได้ กรุณาลองใหม่ครับ', 'error');
+  }
+};
+
+/* ==========================================================================
    📊 ฟังก์ชันวาดการ์ดโควตาวันลา (แสดงจำนวนครั้งที่อนุมัติแล้ว)
    ========================================================================== */
 function renderQuotaCards(quotas) {
@@ -1581,17 +1636,7 @@ function checkUserNotifications() {
   }
 }
 
-function toggleUserGuide() {
-  const card = document.getElementById("user-guide-card");
-  const icon = document.getElementById("user-guide-icon");
-  const btn = document.getElementById("user-guide-fab");
-  if (!card || !icon || !btn) return;
-
-  const isHidden = card.style.display === "none" || card.style.display === "";
-  card.style.display = isHidden ? "block" : "none";
-  icon.innerText = isHidden ? "close" : "help";
-  btn.classList.toggle("active", isHidden);
-}
+/* [DEPRECATED] toggleUserGuide is now handled by SystemDiagnostics unified button */
 
 /* ==========================================================================
    👁️ ฟังก์ชันซ่อน/แสดง (ระบบ Toggle Class เสถียรสูง)
@@ -1635,5 +1680,4 @@ window.goToRules = typeof goToRules !== 'undefined' ? goToRules : window.goToRul
 window.goToProfile = typeof goToProfile !== 'undefined' ? goToProfile : window.goToProfile;
 window.goToHolidays = typeof goToHolidays !== 'undefined' ? goToHolidays : window.goToHolidays;
 window.logout = typeof logout !== 'undefined' ? logout : window.logout;
-window.toggleUserGuide = typeof toggleUserGuide !== 'undefined' ? toggleUserGuide : window.toggleUserGuide;
 window.resetLeaveQuotaWithDoubleConfirm = typeof resetLeaveQuotaWithDoubleConfirm !== 'undefined' ? resetLeaveQuotaWithDoubleConfirm : window.resetLeaveQuotaWithDoubleConfirm;

@@ -1012,7 +1012,7 @@ async function approveLeave(leaveId) {
       if (deptId) {
         const { data: approverConfig, error: approverConfigError } = await sb
           .from('department_approvers')
-          .select('department_id, supervisor_id, manager_id')
+          .select('supervisor_id, manager_id')
           .eq('department_id', deptId)
           .maybeSingle();
 
@@ -1086,7 +1086,32 @@ async function approveLeave(leaveId) {
 
     if (updateErr) throw updateErr;
 
-    // 💬 ส่งแจ้งเตือน LINE OA ตามลำดับสายงาน (หัวหน้า -> ผู้จัดการ -> พนักงาน)
+    // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล (In-app)
+    const notificationTitle = `ใบลาของคุณได้รับการอนุมัติ (ขั้นสุดท้าย)`;
+    const notificationMessage = `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติเรียบร้อยแล้ว`;
+    
+    await sb.from('notifications').insert({
+      employee_id: reqData.employee_id,
+      title: notificationTitle,
+      message: notificationMessage,
+      type: 'leave',
+      link_url: '/pages/user/index-user.html'
+    });
+
+    // 💬 ส่งแจ้งเตือน LINE ผ่าน Server API
+    try {
+      await fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: reqData.employee_id,
+          title: notificationTitle,
+          message: notificationMessage
+        })
+      });
+    } catch (lineErr) {
+      console.error('Error calling LINE notification API:', lineErr);
+    }
     if (window.PVTSDK?.line) {
       try {
         const applicantName = reqData.employees?.full_name || 'พนักงาน';
@@ -1095,12 +1120,11 @@ async function approveLeave(leaveId) {
         const leaveTypeName = reqData.leave_types?.leave_name || 'ใบลา';
 
         if (currentRole === 'leader') {
-          // 🔀 ใช้ Manager L2 ที่ Admin กำหนดไว้ใน department_approvers
+          // 🔀 ใช้ Manager L2 ที่ Admin กำหนดไว้ในตาราง departments
           const deptId = reqData.employees?.department_id || null;
           const deptName = reqData.employees?.departments?.department_name || '';
 
           let managerId = null;
-          let managerLineId = '';
 
           if (deptId) {
             const { data: approverConfig, error: approverError } = await sb
@@ -1282,6 +1306,36 @@ async function rejectLeave(leaveId) {
       .eq('id', leaveId);
 
     if (error) throw error;
+
+    // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล (In-app)
+    const reqData = allLeaveRequests.find(r => r.id === leaveId);
+    if (reqData) {
+      const notificationTitle = `ใบลาของคุณถูกปฏิเสธ`;
+      const notificationMessage = `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ไม่ได้รับการอนุมัติ\nเหตุผล: ${reason.trim()}`;
+      
+      await sb.from('notifications').insert({
+        employee_id: reqData.employee_id,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      });
+
+      // 💬 ส่งแจ้งเตือน LINE ผ่าน Server API
+      try {
+        await fetch('/api/send-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            employee_id: reqData.employee_id,
+            title: notificationTitle,
+            message: notificationMessage
+          })
+        });
+      } catch (lineErr) {
+        console.error('Error calling LINE notification API:', lineErr);
+      }
+    }
 
     // 💬 แจ้งเตือนพนักงานผ่าน LINE OA เมื่อคำขอลาโดนปฏิเสธ
     if (window.PVTSDK?.line) {

@@ -272,7 +272,57 @@ async function testLineNotification() {
   }
 }
 
+async function generateLineLinkCode() {
+  const emp = window.currentEmpProfile;
+  if (!emp || !emp.id) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลพนักงาน', 'error');
+    return;
+  }
+
+  const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+  if (!client) return;
+
+  try {
+    // Generate 6 digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+
+    const { error } = await client
+      .from('line_link_tokens')
+      .insert([
+        { 
+          employee_id: emp.id, 
+          link_code: code, 
+          expires_at: expiresAt 
+        }
+      ]);
+
+    if (error) throw error;
+
+    Swal.fire({
+      title: 'รหัสเชื่อมต่อ LINE ของคุณ',
+      html: `
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #059669; margin: 20px 0;">
+          ${code}
+        </div>
+        <p style="font-size: 14px; color: #64748b;">
+          กรุณาส่งรหัสนี้ไปยัง LINE Official Account ของบริษัท<br>
+          รหัสมีอายุใช้งาน 10 นาที
+        </p>
+      `,
+      icon: 'info',
+      confirmButtonText: 'รับทราบ',
+      confirmButtonColor: '#059669'
+    });
+
+  } catch (err) {
+    console.error("Generate Token Error:", err);
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถสร้างรหัสได้: ' + err.message, 'error');
+  }
+}
+
 window.saveUserLineId = saveUserLineId;
 window.testLineNotification = testLineNotification;
+window.generateLineLinkCode = generateLineLinkCode;
 
 

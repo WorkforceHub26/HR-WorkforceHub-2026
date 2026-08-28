@@ -445,8 +445,72 @@ with check (
 
 
 -- ======================================================
--- Seed ข้อมูลเริ่มต้น
+-- 11) ตารางแจ้งเตือน (Notifications)
 -- ======================================================
+
+create table if not exists notifications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id) on delete cascade,
+  title text not null,
+  message text not null,
+  type text default 'general', -- leave / work / announcement / system
+  is_read boolean default false,
+  link_url text,
+  created_at timestamptz not null default now()
+);
+
+alter table notifications enable row level security;
+
+create policy "user can read own notifications"
+on notifications for select
+to authenticated
+using (employee_id = (select employee_id from profiles where id = auth.uid()));
+
+create policy "system/admin can insert notifications"
+on notifications for insert
+to authenticated
+with check (true);
+
+create policy "user can update own notifications"
+on notifications for update
+to authenticated
+using (employee_id = (select employee_id from profiles where id = auth.uid()))
+with check (employee_id = (select employee_id from profiles where id = auth.uid()));
+
+
+-- ======================================================
+-- 12) ตารางเก็บ Token สำหรับผูก LINE
+-- ======================================================
+
+create table if not exists line_link_tokens (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id) on delete cascade,
+  token text unique not null,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+-- เพิ่มคอลัมน์ line_id ในตาราง employees หากยังไม่มี
+do $$ 
+begin 
+  if not exists (select 1 from INFORMATION_SCHEMA.COLUMNS where table_name = 'employees' and column_name = 'line_id') then
+    alter table employees add column line_id text;
+  end if;
+end $$;
+
+-- เพิ่มคอลัมน์ในตาราง departments สำหรับตั้งค่าผู้อนุมัติ
+do $$ 
+begin 
+  if not exists (select 1 from INFORMATION_SCHEMA.COLUMNS where table_name = 'departments' and column_name = 'approver_id') then
+    alter table departments add column approver_id uuid references employees(id);
+  end if;
+  if not exists (select 1 from INFORMATION_SCHEMA.COLUMNS where table_name = 'departments' and column_name = 'backup_approver_id') then
+    alter table departments add column backup_approver_id uuid references employees(id);
+  end if;
+  if not exists (select 1 from INFORMATION_SCHEMA.COLUMNS where table_name = 'departments' and column_name = 'notify_hr_direct') then
+    alter table departments add column notify_hr_direct boolean default false;
+  end if;
+end $$;
 
 insert into departments (department_code, department_name)
 values

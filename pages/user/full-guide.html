@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คู่มือการใช้งาน - PVT Workforce Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import "tailwindcss";
+    
+    :root {
+      --primary: #06b6d4;
+      --primary-dark: #0891b2;
+      --primary-soft: #ecfeff;
+      --bg: #f0fdfa;
+      --card-bg: rgba(255, 255, 255, 0.55);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border-light: rgba(255, 255, 255, 0.8);
+    }
+    
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
+        radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
+        radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
+        radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text);
+    }
+
+    .heading-font {
+      font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    }
+
+    .sidebar-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 16px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    }
+
+    .content-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 32px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: slideUp 0.6s ease-out backwards;
+    }
+
+    .content-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 36px rgba(6, 182, 212, 0.15);
+      border-color: var(--primary);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      color: white;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+    }
+
+    .nav-link {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 4px solid transparent;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .nav-link:hover {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--primary);
+      padding-left: 20px;
+    }
+
+    .nav-link.active {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--primary-dark);
+      border-left-color: var(--primary);
+      font-weight: 700;
+      padding-left: 24px;
+    }
+
+    .sub-card {
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 16px;
+    }
+
+    /* Staggered animation for cards */
+    section:nth-child(1) .content-card { animation-delay: 0.1s; }
+    section:nth-child(2) .content-card { animation-delay: 0.2s; }
+    section:nth-child(3) .content-card { animation-delay: 0.3s; }
+    section:nth-child(4) .content-card { animation-delay: 0.4s; }
+    section:nth-child(5) .content-card { animation-delay: 0.5s; }
+    section:nth-child(6) .content-card { animation-delay: 0.6s; }
+
+    pre {
+      font-family: monospace;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass-card px-6 py-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-200">
+          <span class="material-symbols-outlined">menu_book</span>
+        </div>
+        <div>
+          <h1 class="heading-font text-lg font-bold text-slate-800 leading-tight">PVT User Manual</h1>
+          <p class="text-xs text-cyan-600 font-medium">คู่มือการใช้งานระบบพนักงาน (ฉบับสมบูรณ์)</p>
+        </div>
+      </div>
+      <a href="/pages/user/index-user.html" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-sm transition-all border border-slate-200">
+        <span class="material-symbols-outlined text-lg">home</span>
+        กลับหน้าหลัก
+      </a>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-10">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="hidden lg:block sticky top-28 h-fit">
+      <div class="sidebar-card space-y-1">
+        <h3 class="text-[10px] font-black text-cyan-600 uppercase tracking-[0.2em] px-4 pt-2 mb-4">หัวข้อแนะนำ</h3>
+        <a href="#login" class="nav-link block px-4 py-2.5 rounded-xl font-medium active">1. การเข้าสู่ระบบ</a>
+        <a href="#dashboard" class="nav-link block px-4 py-2.5 rounded-xl font-medium">2. หน้าแผงควบคุม (Dashboard)</a>
+        <a href="#leave-request" class="nav-link block px-4 py-2.5 rounded-xl font-medium">3. ขั้นตอนการยื่นใบลา</a>
+        <a href="#leave-history" class="nav-link block px-4 py-2.5 rounded-xl font-medium">4. ตรวจสอบสถานะและประวัติ</a>
+        <a href="#line-link" class="nav-link block px-4 py-2.5 rounded-xl font-medium">5. การเชื่อมต่อ LINE</a>
+        <a href="#calendar" class="nav-link block px-4 py-2.5 rounded-xl font-medium">6. การใช้งานปฏิทิน</a>
+        
+        <!-- Manager/HR sections (Hidden by default) -->
+        <div id="sidebar-manager-section" style="display: none;">
+          <a href="#manager" class="nav-link block px-4 py-2.5 rounded-xl font-medium">7. สำหรับหัวหน้าแผนก</a>
+        </div>
+        <div id="sidebar-hr-section" style="display: none;">
+          <a href="#hr" class="nav-link block px-4 py-2.5 rounded-xl font-medium">8. สำหรับฝ่ายบุคคล (HR)</a>
+        </div>
+
+        <a href="#pwa" class="nav-link block px-4 py-2.5 rounded-xl font-medium">9. ติดตั้งเป็นแอปมือถือ</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:col-span-3 space-y-12">
+
+      <!-- Section: Login -->
+      <section id="login" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">login</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">1. การเข้าสู่ระบบ</h2>
+        </div>
+        <div class="content-card space-y-6" style="animation-delay: 0.1s">
+          <p class="text-slate-600">คุณสามารถเข้าสู่ระบบได้ 2 วิธีหลัก เพื่อความสะดวกสูงสุด:</p>
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="p-6 rounded-2xl sub-card">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="material-symbols-outlined text-cyan-600">keyboard</span>
+                <strong class="text-slate-800">วิธีที่ 1: พิมพ์ค้นหา</strong>
+              </div>
+              <p class="text-sm text-slate-500 leading-relaxed">
+                พิมพ์ **ชื่อ-นามสกุล** หรือ **รหัสพนักงาน** ลงในช่องค้นหา ระบบจะแสดงชื่อของคุณขึ้นมาให้เลือกทันที
+              </p>
+            </div>
+            <div class="p-6 rounded-2xl sub-card">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="material-symbols-outlined text-cyan-600">qr_code_scanner</span>
+                <strong class="text-slate-800">วิธีที่ 2: สแกนบัตร</strong>
+              </div>
+              <p class="text-sm text-slate-500 leading-relaxed">
+                กดปุ่มสแกน QR Code แล้วนำบัตรพนักงานมาส่องที่กล้อง ระบบจะล็อกอินให้คุณอัตโนมัติใน 1 วินาที
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Dashboard -->
+      <section id="dashboard" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">dashboard</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">2. หน้าแผงควบคุม (Dashboard)</h2>
+        </div>
+        <div class="content-card" style="animation-delay: 0.2s">
+          <div class="grid md:grid-cols-2 gap-10">
+            <div class="space-y-4">
+              <h4 class="font-bold text-cyan-600 underline decoration-cyan-500/30 underline-offset-8 mb-6 uppercase tracking-wider text-xs">ปุ่มและเมนูหลัก:</h4>
+              <ul class="space-y-4">
+                <li class="flex gap-4 text-sm items-center">
+                  <span class="material-symbols-outlined text-cyan-600 font-bold p-2 bg-cyan-500/10 rounded-lg">check_circle</span>
+                  <span class="text-slate-600"><strong>สิทธิ์วันลาคงเหลือ:</strong> แสดงจำนวนวันที่คุณลาได้ในปีนี้</span>
+                </li>
+                <li class="flex gap-4 text-sm items-center">
+                  <span class="material-symbols-outlined text-cyan-600 font-bold p-2 bg-cyan-500/10 rounded-lg">edit_document</span>
+                  <span class="text-slate-600"><strong>ยื่นใบลาออนไลน์:</strong> ปุ่มหลักสำหรับเปิดฟอร์มขอลา</span>
+                </li>
+                <li class="flex gap-4 text-sm items-center">
+                  <span class="material-symbols-outlined text-cyan-600 font-bold p-2 bg-cyan-500/10 rounded-lg">help</span>
+                  <span class="text-slate-600"><strong>ปุ่มช่วยเหลือ:</strong> กดเพื่อเปิดคู่มือนี้หรือซ่อมระบบ</span>
+                </li>
+              </ul>
+            </div>
+            <div class="p-8 bg-cyan-50 rounded-2xl border border-cyan-100">
+              <h4 class="font-bold text-cyan-800 mb-4 text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg">lightbulb</span>
+                ข้อควรระวัง
+              </h4>
+              <p class="text-sm text-cyan-700 leading-relaxed">
+                หากคุณเห็นตัวเลข **"ติดลบ"** ในช่องวันคงเหลือ หมายความว่าคุณได้ลาเกินสิทธิ์ที่ได้รับ กรุณาตรวจสอบกับฝ่ายบุคคลเพื่อปรับปรุงข้อมูล
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Leave Request -->
+      <section id="leave-request" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">edit_document</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">3. ขั้นตอนการยื่นใบลา</h2>
+        </div>
+        <div class="content-card space-y-10" style="animation-delay: 0.3s">
+          <div class="flex gap-6 items-start">
+            <div class="step-number">1</div>
+            <div>
+              <h4 class="font-bold text-slate-800 mb-2">เลือกประเภทการลา</h4>
+              <p class="text-sm text-slate-500">เลือกประเภทที่ต้องการ เช่น ลากิจ, ลาป่วย ระบบจะโชว์วันคงเหลือปัจจุบันให้เห็น</p>
+            </div>
+          </div>
+          <div class="flex gap-6 items-start">
+            <div class="step-number">2</div>
+            <div>
+              <h4 class="font-bold text-slate-800 mb-2">ระบุวันที่และเวลา</h4>
+              <p class="text-sm text-slate-500">เลือกวันที่เริ่มและสิ้นสุด หากลาครึ่งวัน ให้ติ๊กเลือกช่วงเวลา (เช้า/บ่าย)</p>
+            </div>
+          </div>
+          <div class="flex gap-6 items-start">
+            <div class="step-number">3</div>
+            <div>
+              <h4 class="font-bold text-slate-800 mb-2">ระบุเหตุผลและหลักฐาน</h4>
+              <p class="text-sm text-slate-500">พิมพ์เหตุผลสั้นๆ และแนบรูปภาพ (เช่น ใบรับรองแพทย์) หากจำเป็น</p>
+            </div>
+          </div>
+          <div class="flex gap-6 items-start">
+            <div class="step-number">4</div>
+            <div>
+              <h4 class="font-bold text-slate-800 mb-2">ยืนยันข้อมูล</h4>
+              <p class="text-sm text-slate-500">ตรวจสอบความถูกต้องอีกครั้งก่อนกด "ส่งใบลา" ระบบจะส่งแจ้งเตือนหาหัวหน้าทันที</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Leave History -->
+      <section id="leave-history" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">history</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">4. ตรวจสอบสถานะและประวัติ</h2>
+        </div>
+        <div class="content-card space-y-8" style="animation-delay: 0.4s">
+          <p class="text-slate-600">คุณสามารถติดตามใบลาที่ส่งไปแล้วได้ที่เมนู <strong>"ประวัติการลา"</strong> โดยสถานะจะถูกแบ่งเป็น 3 ประเภทหลัก:</p>
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="p-6 rounded-2xl bg-amber-50 border border-amber-100 text-center">
+              <span class="block font-black text-amber-600 mb-2 uppercase tracking-tighter">รออนุมัติ</span>
+              <span class="text-xs text-amber-500/70 italic">อยู่ระหว่างพิจารณา</span>
+            </div>
+            <div class="p-6 rounded-2xl bg-emerald-50 border border-emerald-100 text-center">
+              <span class="block font-black text-emerald-600 mb-2 uppercase tracking-tighter">อนุมัติแล้ว</span>
+              <span class="text-xs text-emerald-500/70 italic">ผ่านการพิจารณาเรียบร้อย</span>
+            </div>
+            <div class="p-6 rounded-2xl bg-rose-50 border border-rose-100 text-center">
+              <span class="block font-black text-rose-600 mb-2 uppercase tracking-tighter">ปฏิเสธ</span>
+              <span class="text-xs text-rose-500/70 italic">ไม่ผ่านการพิจารณา</span>
+            </div>
+          </div>
+          <p class="text-sm text-slate-500 p-4 border-l-2 border-cyan-500/30 italic bg-slate-50/50 rounded-r-xl">หากใบลาถูก **ปฏิเสธ** คุณสามารถกดดู "เหตุผลที่ไม่อนุมัติ" จากหัวหน้าแผนกได้โดยตรงในตารางประวัติ</p>
+        </div>
+      </section>
+
+      <!-- Section: LINE Linking -->
+      <section id="line-link" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" class="w-8 h-8" alt="LINE" />
+          <h2 class="heading-font text-2xl font-bold text-slate-800">5. การเชื่อมต่อ LINE</h2>
+        </div>
+        <div class="content-card" style="animation-delay: 0.5s">
+          <p class="text-slate-600 mb-8 leading-relaxed">
+            เชื่อมต่อกับ LINE เพื่อรับข้อความแจ้งเตือนเมื่อ **"ใบลาได้รับอนุมัติ"** หรือถูกปฏิเสธ โดยไม่ต้องคอยเปิดเว็บเช็คบ่อยๆ
+          </p>
+          <div class="sub-card p-8 border-l-4 border-emerald-500 space-y-6 bg-emerald-50/30">
+            <p class="text-sm font-black text-emerald-700 uppercase tracking-widest">ขั้นตอนการผูกบัญชี:</p>
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-4">
+              <li>ไปที่หน้า <strong>"ข้อมูลพนักงาน"</strong> (Profile)</li>
+              <li>กดปุ่ม <strong>"ขอรหัสเชื่อมต่อ LINE"</strong> ระบบจะให้รหัส 6 หลักมา</li>
+              <li>นำรหัสที่ได้ <strong>ส่งเข้าไปในแชท LINE OA</strong> ของบริษัท</li>
+              <li>ระบบจะตอบกลับว่า <span class="text-emerald-600 font-bold">"เชื่อมต่อสำเร็จ"</span> ทันที</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Calendar -->
+      <section id="calendar" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">calendar_month</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">6. การใช้งานปฏิทิน</h2>
+        </div>
+        <div class="content-card space-y-10" style="animation-delay: 0.6s">
+          <p class="text-slate-600 leading-relaxed">ปฏิทินเป็นเครื่องมือสำคัญในการวางแผนการทำงานและการลา โดยระบบออกแบบมาให้ใช้งานได้ง่ายและเห็นภาพรวมชัดเจน:</p>
+          
+          <div class="grid md:grid-cols-2 gap-10">
+            <div class="p-8 rounded-2xl sub-card relative overflow-hidden bg-blue-50/30">
+              <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-3">
+                <span class="material-symbols-outlined text-blue-600 p-2 bg-blue-100 rounded-lg">event</span> วันหยุดบริษัท
+              </h4>
+              <ul class="text-sm text-slate-600 space-y-4 relative z-10">
+                <li class="flex items-start gap-3">
+                  <span class="text-blue-600 font-bold">•</span>
+                  <span><strong>แถบสรุปสถิติ:</strong> ด้านบนจะบอกจำนวนวันหยุดที่เหลือในปีนี้</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="text-blue-600 font-bold">•</span>
+                  <span><strong>มุมมองปฏิทิน:</strong> แสดงวันหยุดเป็นช่องสี่เหลี่ยม สลับเดือนได้รวดเร็ว</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="text-blue-600 font-bold">•</span>
+                  <span><strong>ปุ่มสลับมุมมอง:</strong> เลือกดูแบบตารางหรือแบบปฏิทินได้ตามใจ</span>
+                </li>
+              </ul>
+              <span class="material-symbols-outlined absolute -right-8 -bottom-8 text-[120px] text-blue-500 opacity-5">calendar_view_day</span>
+            </div>
+
+            <div class="p-8 rounded-2xl sub-card relative overflow-hidden bg-cyan-50/30">
+              <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-3">
+                <span class="material-symbols-outlined text-cyan-600 p-2 bg-cyan-100 rounded-lg">groups</span> วันลาของทีม
+              </h4>
+              <ul class="text-sm text-slate-600 space-y-4 relative z-10">
+                <li class="flex items-start gap-3">
+                  <span class="text-cyan-600 font-bold">•</span>
+                  <span><strong>จุดสีบนปฏิทิน:</strong> หากมีเพื่อนร่วมงานลา จะปรากฏจุดสีใต้เลขวันที่</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="text-cyan-600 font-bold">•</span>
+                  <span><strong>แถบรายชื่อ:</strong> เมื่อกดที่วันที่ ระบบจะแสดงรายชื่อผู้ลาที่ด้านขวา</span>
+                </li>
+                <li class="flex items-start gap-3">
+                  <span class="text-cyan-600 font-bold">•</span>
+                  <span><strong>ช่องค้นหา:</strong> พิมพ์ชื่อเพื่อนร่วมงานเพื่อเช็ควันลาของเขาได้ทันที</span>
+                </li>
+              </ul>
+              <span class="material-symbols-outlined absolute -right-8 -bottom-8 text-[120px] text-cyan-500 opacity-5">diversity_3</span>
+            </div>
+          </div>
+
+          <div class="p-8 bg-slate-50 rounded-3xl border border-slate-100">
+            <h4 class="font-bold mb-6 flex items-center gap-3 text-cyan-700 uppercase tracking-widest text-xs">
+              <span class="material-symbols-outlined text-xl">touch_app</span> แนะนำการใช้งานปุ่มต่างๆ
+            </h4>
+            <div class="grid md:grid-cols-3 gap-8 text-sm">
+              <div class="space-y-3">
+                <div class="flex items-center gap-3 font-bold text-slate-800">
+                  <span class="material-symbols-outlined text-cyan-600">arrow_back</span> ย้อนกลับ
+                </div>
+                <p class="text-slate-500">กลับไปยังหน้าจอก่อนหน้าอย่างรวดเร็ว</p>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3 font-bold text-slate-800">
+                  <span class="material-symbols-outlined text-cyan-600">sync</span> สลับแท็บ
+                </div>
+                <p class="text-slate-500">เลือกดูระหว่าง "วันหยุดบริษัท" หรือ "วันลาของคนในแผนก"</p>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3 font-bold text-slate-800">
+                  <span class="material-symbols-outlined text-cyan-600">filter_alt</span> ตัวกรองปี/เดือน
+                </div>
+                <p class="text-slate-500">ค้นหาข้อมูลข้ามเดือนหรือข้ามปีเพื่อตรวจสอบประวัติ</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Manager Guide -->
+      <section id="manager" class="scroll-mt-32" style="display: none;">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">admin_panel_settings</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">7. สำหรับหัวหน้าแผนก</h2>
+        </div>
+        <div class="content-card space-y-10" style="animation-delay: 0.7s">
+          <div class="flex gap-6 items-start">
+            <div class="step-number">1</div>
+            <div>
+              <h4 class="font-bold text-slate-800 mb-2">การอนุมัติใบลา</h4>
+              <p class="text-sm text-slate-500">เมื่อลูกน้องยื่นลา คุณจะได้รับแจ้งเตือน สามารถกด **อนุมัติ** หรือ **ปฏิเสธ** ได้</p>
+            </div>
+          </div>
+          <div class="flex gap-6 items-start">
+            <div class="step-number">2</div>
+            <div>
+              <h4 class="font-bold text-slate-800 mb-2">การดูภาพรวมทีม</h4>
+              <p class="text-sm text-slate-500">ในหน้าปฏิทิน คุณจะเห็นวันลาของพนักงานทุกคนในแผนก เพื่อประกอบการตัดสินใจ</p>
+            </div>
+          </div>
+          <div class="flex gap-6 items-start">
+            <div class="step-number">3</div>
+            <div>
+              <h4 class="font-bold text-slate-800 mb-2">การสลับบทบาท</h4>
+              <p class="text-sm text-slate-500">คุณสามารถกดปุ่ม "หน้าจัดการ" เพื่อเข้าสู่เมนูสำหรับหัวหน้า และกด "หน้าพนักงาน" เพื่อกลับมาดูข้อมูลส่วนตัว</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: HR Guide -->
+      <section id="hr" class="scroll-mt-32" style="display: none;">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">manage_accounts</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">8. สำหรับฝ่ายบุคคล (HR)</h2>
+        </div>
+        <div class="content-card space-y-8" style="animation-delay: 0.8s">
+          <div class="grid md:grid-cols-2 gap-8">
+            <div class="p-8 rounded-3xl border-t-4 border-cyan-500 bg-white shadow-xl">
+              <h4 class="font-black text-slate-800 mb-3 uppercase tracking-tighter">📦 การจัดการพนักงาน</h4>
+              <p class="text-sm text-slate-500 leading-relaxed mb-6">เพิ่ม/ลบ พนักงาน กำหนดแผนก และตั้งค่าลำดับการอนุมัติ (Hierarchy Management)</p>
+              <div class="flex gap-3">
+                <span class="px-3 py-1.5 bg-cyan-50 text-cyan-600 rounded-lg text-[10px] font-black tracking-widest border border-cyan-100">ADD EMPLOYEE</span>
+                <span class="px-3 py-1.5 bg-cyan-50 text-cyan-600 rounded-lg text-[10px] font-black tracking-widest border border-cyan-100">EDIT ROLE</span>
+              </div>
+            </div>
+            <div class="p-8 rounded-3xl border-t-4 border-blue-500 bg-white shadow-xl">
+              <h4 class="font-black text-slate-800 mb-3 uppercase tracking-tighter">📅 การตั้งค่าวันหยุด</h4>
+              <p class="text-sm text-slate-500 leading-relaxed mb-6">กำหนดวันหยุดนักขัตฤกษ์ประจำปีในเมนู "ปฏิทินวันหยุด" เพื่อให้ระบบคำนวณวันลาได้แม่นยำ</p>
+              <div class="flex gap-3">
+                <span class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black tracking-widest border border-blue-100">SET HOLIDAYS</span>
+                <span class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black tracking-widest border border-blue-100">SYNC DATA</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 bg-amber-50 rounded-2xl border border-amber-100 flex gap-5 items-center">
+            <span class="material-symbols-outlined text-amber-500 text-3xl">warning</span>
+            <div>
+              <p class="text-sm font-black text-amber-800 mb-1">ความปลอดภัยสูงสุด</p>
+              <p class="text-xs text-amber-700 leading-relaxed">การแก้ไขข้อมูลพนักงานและวันลา ควรทำด้วยความระมัดระวังเนื่องจากมีผลต่อสิทธิ์ประโยชน์ของพนักงานโดยตรง</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: PWA -->
+      <section id="pwa" class="scroll-mt-32 pb-20">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">install_mobile</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">9. ติดตั้งเป็นแอปมือถือ (PWA)</h2>
+        </div>
+        <div class="bg-gradient-to-br from-cyan-600 to-cyan-800 rounded-[32px] p-12 text-white shadow-2xl border border-white/20 relative overflow-hidden" style="animation: slideUp 0.6s ease-out backwards; animation-delay: 0.9s">
+          <div class="relative z-10 space-y-10">
+            <p class="text-white/90 text-lg leading-relaxed">คุณสามารถใช้งาน PVT เหมือนเป็นแอปพลิเคชันจริงบนมือถือได้โดยไม่ต้องผ่าน Store:</p>
+            <div class="grid md:grid-cols-2 gap-10">
+              <div class="space-y-4 p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
+                <div class="flex items-center gap-3 text-white font-black uppercase tracking-widest text-xs">
+                  <span class="material-symbols-outlined text-xl">apple</span> iOS (Safari)
+                </div>
+                <p class="text-sm text-white/80 leading-relaxed">กดปุ่ม <strong>แชร์ (Share)</strong> ด้านล่างจอ แล้วเลือก <strong>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</strong></p>
+              </div>
+              <div class="space-y-4 p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
+                <div class="flex items-center gap-3 text-white font-black uppercase tracking-widest text-xs">
+                  <span class="material-symbols-outlined text-xl">android</span> Android (Chrome)
+                </div>
+                <p class="text-sm text-white/80 leading-relaxed">กดปุ่ม <strong>จุดสามจุด</strong> มุมขวาบน แล้วเลือก <strong>"ติดตั้งแอป" (Install App)</strong></p>
+              </div>
+            </div>
+          </div>
+          <!-- Background Decoration -->
+          <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-white rounded-full blur-[120px] opacity-20"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-10">
+    <div class="max-w-7xl mx-auto px-6 text-center text-slate-400 text-sm">
+      <p>© 2026 PVT Workforce Management System · Ver 2.5</p>
+      <p class="mt-2 text-xs">พัฒนาเพื่อยกระดับการทำงานอย่างมืออาชีพ</p>
+    </div>
+  </footer>
+
+  <script>
+    // Role-based visibility logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const userRole = localStorage.getItem('pvt_user_role') || 'employee';
+      
+      if (userRole === 'manager' || userRole === 'admin' || userRole === 'hr') {
+        const sidebarManager = document.getElementById('sidebar-manager-section');
+        const contentManager = document.getElementById('manager');
+        if(sidebarManager) sidebarManager.style.display = 'block';
+        if(contentManager) contentManager.style.display = 'block';
+      }
+      
+      if (userRole === 'hr' || userRole === 'admin') {
+        const sidebarHR = document.getElementById('sidebar-hr-section');
+        const contentHR = document.getElementById('hr');
+        if(sidebarHR) sidebarHR.style.display = 'block';
+        if(contentHR) contentHR.style.display = 'block';
+      }
+    });
+
+    // Simple Active Nav Highlighting
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        // Only consider sections that are actually visible
+        if (section.style.display !== 'none') {
+          const sectionTop = section.offsetTop;
+          if (window.pageYOffset >= sectionTop - 150) {
+            current = section.getAttribute('id');
+          }
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href').includes('#' + current)) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

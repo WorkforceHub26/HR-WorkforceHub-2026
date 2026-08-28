@@ -494,10 +494,4 @@ window.togglePassword = function () {
   }
 };
 
-window.toggleInstructions = function () {
-  const content = document.getElementById("instructionsContent");
-  const arrow = document.getElementById("instructionArrow");
-  if (!content) return;
-  content.classList.toggle("show");
-  if (arrow) arrow.classList.toggle("rotate");
-};
+/* [DEPRECATED] toggleInstructions is now handled by SystemDiagnostics unified button */

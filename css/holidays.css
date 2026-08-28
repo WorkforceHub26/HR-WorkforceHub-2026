@@ -8,7 +8,7 @@
    🌟 HERO UPCOMING HOLIDAY BANNER
    ========================================================================== */
 .holiday-hero-banner {
-  background: linear-gradient(135deg, #0fa472 0%, #0b845c 50%, #064e3b 100%);
+  background: linear-gradient(135deg, #0d9488 0%, #0b845c 50%, #064e3b 100%);
   border-radius: var(--radius-lg, 16px);
   padding: 28px 32px;
   color: #ffffff;
@@ -141,7 +141,7 @@
 
 .search-box input:focus {
   outline: none;
-  border-color: var(--primary, #0fa472);
+  border-color: var(--primary, #0d9488);
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(15, 164, 114, 0.15);
 }
@@ -198,7 +198,7 @@
 
 .btn-view.active {
   background: #ffffff;
-  color: var(--primary, #0fa472);
+  color: var(--primary, #0d9488);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   font-weight: 600;
 }
@@ -256,7 +256,7 @@
 .date-badge-day {
   font-size: 22px;
   font-weight: 800;
-  color: var(--primary, #0fa472);
+  color: var(--primary, #0d9488);
   line-height: 1;
   display: block;
 }
@@ -289,7 +289,7 @@
 
 .day-name {
   font-size: 13px;
-  color: #0fa472;
+  color: #0d9488;
   font-weight: 600;
   margin-bottom: 8px;
 }
@@ -642,7 +642,7 @@ html, body {
 .user-avatar {
   width: 32px;
   height: 32px;
-  background: var(--primary, #0fa472);
+  background: var(--primary, #0d9488);
   color: #fff;
   border-radius: 50%;
   display: flex;
@@ -689,8 +689,8 @@ html, body {
 
 .btn-back:hover {
   background-color: #f8fafc;
-  color: #0fa472;
-  border-color: #0fa472;
+  color: #0d9488;
+  border-color: #0d9488;
   transform: translateX(-3px);
 }
 
@@ -808,7 +808,7 @@ html, body {
   background: #f8fafc;
 }
 .cal-day-cell.today {
-  border-color: var(--primary, #0fa472);
+  border-color: #0d9488;
   background: #f0fdf4;
 }
 .cal-day-number {

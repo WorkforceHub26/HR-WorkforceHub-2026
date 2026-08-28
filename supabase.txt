@@ -140,7 +140,10 @@ CREATE TABLE public.system_settings (
   setting_key text NOT NULL,
   setting_value jsonb,
   updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT system_settings_pkey PRIMARY KEY (setting_key)
+  description text,
+  employee_id uuid,
+  CONSTRAINT system_settings_pkey PRIMARY KEY (setting_key),
+  CONSTRAINT system_settings_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
 );
 CREATE TABLE public.employees (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -170,4 +173,26 @@ CREATE TABLE public.employees (
   CONSTRAINT employees_pkey PRIMARY KEY (id),
   CONSTRAINT fk_employees_departments FOREIGN KEY (department_id) REFERENCES public.departments(id),
   CONSTRAINT fk_employees_positions FOREIGN KEY (position_id) REFERENCES public.positions(id)
+);
+CREATE TABLE public.department_approvers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  department_id uuid NOT NULL UNIQUE,
+  supervisor_id uuid,
+  manager_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT department_approvers_pkey PRIMARY KEY (id),
+  CONSTRAINT department_approvers_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id),
+  CONSTRAINT department_approvers_supervisor_id_fkey FOREIGN KEY (supervisor_id) REFERENCES public.employees(id),
+  CONSTRAINT department_approvers_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.employees(id)
+);
+CREATE TABLE public.line_link_tokens (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_id uuid NOT NULL,
+  link_code text NOT NULL UNIQUE,
+  expires_at timestamp with time zone NOT NULL,
+  used_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT line_link_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT line_link_tokens_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
 );

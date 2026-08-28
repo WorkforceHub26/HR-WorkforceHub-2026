@@ -5,325 +5,321 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ตั้งค่าสายอนุมัติใบลา | PVT Workforce Hub</title>
 
-    <link
-      href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/css/global.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/global.css" />
 
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        font-family: "Sarabun", sans-serif;
-        background: #f5f7fb;
-        color: #1e293b;
-      }
-      .page {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 28px 20px 50px;
-      }
-      .top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        margin-bottom: 22px;
-      }
-      .top h1 {
-        margin: 0;
-        font-size: 26px;
-      }
-      .top p {
-        margin: 5px 0 0;
-        color: #64748b;
-      }
-      .back {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        text-decoration: none;
-        color: #475569;
-        font-weight: 700;
-      }
-      .card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 18px;
-        padding: 22px;
-        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
-      }
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px;
-      }
-      .field.full {
-        grid-column: 1/-1;
-      }
-      label {
-        display: block;
-        font-weight: 700;
-        margin-bottom: 7px;
-      }
-      select {
-        width: 100%;
-        padding: 12px 13px;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        background: #fff;
-        font: inherit;
-      }
-      .hint {
-        color: #64748b;
-        font-size: 13px;
-        margin-top: 6px;
-      }
-      .actions {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 20px;
-      }
-      button {
-        border: 0;
-        border-radius: 10px;
-        padding: 11px 18px;
-        font: inherit;
-        font-weight: 800;
-        cursor: pointer;
-      }
-      .save {
-        background: #0f766e;
-        color: #fff;
-      }
-      .save:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-      .btn-edit,
-      .btn-delete {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 7px 10px;
-        border-radius: 8px;
-        font-size: 13px;
-      }
-      .btn-edit {
-        background: #e0f2fe;
-        color: #0369a1;
-      }
-      .btn-delete {
-        background: #fee2e2;
-        color: #b91c1c;
-        margin-left: 6px;
-      }
-      .btn-edit:hover {
-        background: #bae6fd;
-      }
-      .btn-delete:hover {
-        background: #fecaca;
-      }
-      .action-cell {
-        white-space: nowrap;
-      }
-      .section-title {
-        margin: 28px 0 12px;
-        font-size: 18px;
-      }
-      .table-wrap {
-        overflow: auto;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 720px;
-        background: #fff;
-      }
-      th,
-      td {
-        padding: 13px 14px;
-        border-bottom: 1px solid #eef2f7;
-        text-align: left;
-      }
-      th {
-        background: #f8fafc;
-        font-size: 13px;
-        color: #475569;
-      }
-      .line-ok {
-        color: #15803d;
-        font-weight: 700;
-      }
-      .line-no {
-        color: #b45309;
-        font-weight: 700;
-      }
+  <style>
+    :root {
+      --mint-light: #f0fdfa;
+      --mint-primary: #0d9488;
+      --mint-dark: #0f766e;
+    }
 
+    body {
+      margin: 0;
+      font-family: 'Sarabun', sans-serif;
+      background: var(--mint-light);
+      color: #1e293b;
+    }
 
-      .btn-line-link {
-  margin-top: 9px;
-  padding: 8px 12px;
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
+    .page-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
 
-.btn-line-link:hover {
-  background: #d1fae5;
-}
+    .glass-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 10px 30px rgba(13, 148, 136, 0.05);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
 
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
 
+    .page-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 1.875rem;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+    }
 
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--mint-primary);
+      text-decoration: none;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
 
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
 
-      .empty {
-        text-align: center;
-        color: #94a3b8;
-        padding: 28px;
-      }
-      @media (max-width: 700px) {
-        .form-grid {
-          grid-template-columns: 1fr;
-        }
-        .field.full {
-          grid-column: auto;
-        }
-        .top {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main class="page">
-      <div class="top">
-        <div>
-          <a class="back" href="/pages/hr/home.html"
-            ><span class="material-symbols-outlined">arrow_back</span>
-            กลับหน้าหลัก HR</a
-          >
-          <h1>ตั้งค่าสายอนุมัติใบลา</h1>
-          <p>กำหนดหัวหน้า L1 และผู้จัดการ L2 (ถ้ามี) ประจำแต่ละแผนก</p>
-        </div>
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--mint-primary);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--mint-primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--mint-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: white;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+    }
+
+    .btn-outline:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .hint {
+      font-size: 0.8125rem;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .line-ok { color: #166534; font-weight: 700; }
+    .line-no { color: #92400e; font-weight: 700; }
+
+    .table-responsive {
+      overflow-x: auto;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th {
+      background: #f8fafc;
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 700;
+      color: #64748b;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 16px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8125rem;
+      border-radius: 8px;
+    }
+
+    .btn-edit { background: #f0f9ff; color: #0369a1; }
+    .btn-delete { background: #fef2f2; color: #b91c1c; }
+
+    .btn-line-link {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px dashed #22c55e;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      margin-top: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .empty-state {
+      padding: 3rem;
+      text-align: center;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <a href="/pages/hr/management.html" class="nav-back">
+      <span class="material-symbols-outlined">arrow_back</span>
+      กลับหน้าจัดการพนักงาน
+    </a>
+
+    <header class="header-section">
+      <div>
+        <h1 class="page-title">
+          <span class="material-symbols-outlined" style="font-size: 40px; color: var(--mint-primary)">rule_settings</span>
+          ตั้งค่าสายอนุมัติ & แจ้งเตือน
+        </h1>
+        <p style="color: #64748b; margin-top: 4px;">กำหนดลำดับผู้อนุมัติ L1, L2 และ L3 ประจำแต่ละแผนก</p>
       </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn btn-outline" onclick="manageDepartmentsModal()">
+          <span class="material-symbols-outlined">corporate_fare</span>
+          จัดการรายชื่อแผนก
+        </button>
+      </div>
+    </header>
 
-      <section class="card" style="margin-bottom: 20px">
-        <div class="form-grid">
-          <div class="field full">
-            <label for="executiveSelect">ผู้บริหารอนุมัติหลัก L3</label>
-            <select id="executiveSelect">
-              <option value="">กำลังโหลดรายชื่อ...</option>
-            </select>
-            <div id="executiveLine" class="hint">LINE: -</div>
-            <button
-  type="button"
-  class="btn-line-link"
-  onclick="createLineLinkCode(document.getElementById('executiveSelect').value)"
->
-  <span class="material-symbols-outlined" style="font-size:18px;">link</span>
-  สร้างรหัสเชื่อม LINE
-</button>
-          </div>
-        </div>
-        <div class="actions">
-          <button id="saveExecutiveBtn" class="save">บันทึกผู้บริหาร L3</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="form-grid">
-          <div class="field full">
-            <label for="departmentSelect">แผนก</label>
-            <select id="departmentSelect">
-              <option value="">กำลังโหลดแผนก...</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="supervisorSelect">หัวหน้า L1</label>
-            <select id="supervisorSelect" disabled>
-              <option value="">-- เลือกหัวหน้า --</option>
-            </select>
-            <div id="supervisorLine" class="hint">LINE: -</div>
-            <button
-  type="button"
-  class="btn-line-link"
-  onclick="createLineLinkCode(document.getElementById('supervisorSelect').value)"
->
-  <span class="material-symbols-outlined" style="font-size:18px;">link</span>
-  สร้างรหัสเชื่อม LINE
-</button>
-          </div>
-          <div class="field">
-            <label for="managerSelect"
-              >ผู้จัดการ L2
-              <span style="color: #64748b; font-weight: 500"
-                >(ถ้ามี)</span
-              ></label
-            >
-            <select id="managerSelect" disabled>
-              <option value="">-- ไม่มี / ข้าม L2 --</option>
-            </select>
-            <div id="managerLine" class="hint">LINE: -</div>
-            <button
-  type="button"
-  class="btn-line-link"
-  onclick="createLineLinkCode(document.getElementById('managerSelect').value)"
->
-  <span class="material-symbols-outlined" style="font-size:18px;">link</span>
-  สร้างรหัสเชื่อม LINE
-</button>
-          </div>
-        </div>
-        <div class="actions">
-          <button id="saveApproverBtn" class="save" disabled>
-            บันทึกสายอนุมัติ
+    <!-- Section 1: Executive L3 -->
+    <section class="glass-card">
+      <h3 style="margin-top: 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="color: var(--mint-primary)">shield_person</span>
+        1. ผู้บริหารสูงสุดอนุมัติหลัก (L3)
+      </h3>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="executiveSelect">รายชื่อผู้บริหาร L3</label>
+          <select id="executiveSelect">
+            <option value="">กำลังโหลดรายชื่อ...</option>
+          </select>
+          <div id="executiveLine" class="hint">LINE: -</div>
+          <button type="button" class="btn btn-line-link" onclick="createLineLinkCode(document.getElementById('executiveSelect').value)">
+            <span class="material-symbols-outlined" style="font-size:16px;">link</span> เชื่อม LINE
           </button>
         </div>
-      </section>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button id="saveExecutiveBtn" class="btn btn-primary">
+          <span class="material-symbols-outlined">save</span>
+          บันทึกผู้บริหาร L3
+        </button>
+      </div>
+    </section>
 
-      <h2 class="section-title">สายอนุมัติที่ตั้งค่าแล้ว</h2>
-      <div class="table-wrap">
+    <!-- Section 2: Department Workflow -->
+    <section class="glass-card">
+      <h3 style="margin-top: 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="color: var(--mint-primary)">account_tree</span>
+        2. ตั้งค่าสายอนุมัติรายแผนก (L1 & L2)
+      </h3>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="departmentSelect">เลือกแผนกที่ต้องการตั้งค่า</label>
+          <select id="departmentSelect">
+            <option value="">-- เลือกแผนก --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="supervisorSelect">หัวหน้าสายงาน (L1)</label>
+          <select id="supervisorSelect" disabled>
+            <option value="">-- เลือกหัวหน้า L1 --</option>
+          </select>
+          <div id="supervisorLine" class="hint">LINE: -</div>
+          <button type="button" class="btn btn-line-link" onclick="createLineLinkCode(document.getElementById('supervisorSelect').value)">
+            <span class="material-symbols-outlined" style="font-size:16px;">link</span> เชื่อม LINE
+          </button>
+        </div>
+        <div class="form-group">
+          <label for="managerSelect">ผู้จัดการแผนก (L2) <span style="font-weight: 400; color: #64748b;">(ถ้ามี)</span></label>
+          <select id="managerSelect" disabled>
+            <option value="">-- ไม่มี / ข้าม L2 --</option>
+          </select>
+          <div id="managerLine" class="hint">LINE: -</div>
+          <button type="button" class="btn btn-line-link" onclick="createLineLinkCode(document.getElementById('managerSelect').value)">
+            <span class="material-symbols-outlined" style="font-size:16px;">link</span> เชื่อม LINE
+          </button>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button id="saveApproverBtn" class="btn btn-primary" disabled>
+          <span class="material-symbols-outlined">save</span>
+          บันทึกสายอนุมัติแผนก
+        </button>
+      </div>
+    </section>
+
+    <!-- Section 3: Summary Table -->
+    <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.25rem; font-weight: 800; margin-bottom: 1rem;">
+      สายอนุมัติที่ตั้งค่าแล้ว
+    </h2>
+    <div class="glass-card" style="padding: 0; overflow: hidden;">
+      <div class="table-responsive">
         <table>
           <thead>
             <tr>
               <th>แผนก</th>
               <th>หัวหน้า L1</th>
-              <th>LINE</th>
-              <th>ผู้จัดการ L2 (ถ้ามี)</th>
-              <th>LINE</th>
-              <th>จัดการ</th>
+              <th>ผู้จัดการ L2</th>
+              <th style="width: 150px;">จัดการ</th>
             </tr>
           </thead>
           <tbody id="approverTableBody">
             <tr>
-              <td colspan="6" class="empty">กำลังโหลดข้อมูล...</td>
+              <td colspan="4" class="empty-state">กำลังโหลดข้อมูล...</td>
             </tr>
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/js/supabase-config.js"></script>
-    <script src="/js/auth-guard.js"></script>
-    <script src="/js/approval-settings.js"></script>
-  </body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/auth-guard.js"></script>
+  <script src="/js/approval-settings.js"></script>
+</body>
 </html>

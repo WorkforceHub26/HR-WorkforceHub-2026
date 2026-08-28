@@ -52,9 +52,22 @@
           </ul>
         </div>
 
+        <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px dashed #e2e8f0;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 8px;">
+            ผูกบัญชี LINE อัตโนมัติ (แนะนำ)
+          </label>
+          <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+            รับรหัสเชื่อมต่อและส่งไปที่ LINE OA เพื่อผูกบัญชีทันทีโดยไม่ต้องหา User ID เอง
+          </p>
+          <button type="button" onclick="generateLineLinkCode()" style="background: #00b900; color: #ffffff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" style="width: 20px; height: 20px; filter: brightness(0) invert(1);" alt="LINE" />
+            ขอรหัสเชื่อมต่อ LINE
+          </button>
+        </div>
+
         <div style="margin-bottom: 12px;">
           <label style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 6px;">
-            LINE User ID (สำหรับรับข้อความแจ้งเตือนใบลา)
+            หรือระบุ LINE User ID ด้วยตนเอง
           </label>
           <div style="display: flex; gap: 8px;">
             <input type="text" id="userLineIdInput" placeholder="เช่น U1234567890abcdef..." style="flex: 1; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-family: monospace;" />

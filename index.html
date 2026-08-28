@@ -72,44 +72,13 @@
       <div class="login-footer-info">
         <span>© 2026 PVT Workforce Management System · Ver 2.5</span>
       </div>
-
-      <div class="instructions-container">
-        <button type="button" class="instructions-toggle-btn" onclick="toggleInstructions()">
-          <span class="material-symbols-outlined icon-main">help</span>
-          <span>คู่มือแนะนำการใช้งาน</span>
-          <span class="material-symbols-outlined icon-arrow" id="instructionArrow">expand_more</span>
-        </button>
-        
-        <div id="instructionsContent" class="instructions-content">
-          <div class="instructions-header">
-            <strong>คำแนะนำการเข้าสู่ระบบ</strong>
-          </div>
-          <ul class="instructions-list">
-            <li>
-              <span class="material-symbols-outlined icon-bullet">badge</span>
-              <div><strong>การพิมพ์ล็อกอิน:</strong> กรอกรหัสพนักงาน หรือชื่อ-นามสกุลในช่องเดียวได้เลย ระบบจะค้นหาให้อัตโนมัติ</div>
-            </li>
-            <li>
-              <span class="material-symbols-outlined icon-bullet">qr_code</span>
-              <div><strong>การสแกนผ่านบัตร:</strong> กดปุ่มสแกน QR Code แล้วนำบัตรพนักงานมาส่องหน้ากล้องเพื่อเข้าสู่ระบบทันที</div>
-            </li>
-            <li>
-              <span class="material-symbols-outlined icon-bullet">account_circle</span>
-              <div><strong>สำหรับหัวหน้าแผนก / HR:</strong> เมื่อเข้าสู่ระบบแล้ว สามารถตรวจเช็ควันลาส่วนตัวหรือจัดการใบลาของทีมได้ตามสิทธิ์</div>
-            </li>
-            <li>
-              <span class="material-symbols-outlined icon-bullet">install_mobile</span>
-              <div><strong>ติดตั้งลงหน้าจอมือถือ (PWA):</strong> กดปุ่มแชร์/เมนูของเบราว์เซอร์ แล้วเลือก <em>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</em> เพื่อใช้งานเหมือนแอปจริงได้ทันที</div>
-            </li>
-          </ul>
-        </div>
-      </div>
     </div>
 
     <!-- ส่วนโหลดสคริปต์ต่างๆ -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="/js/supabase-config.js"></script>
+    <script src="/js/system-diagnostics.js"></script>
     <script src="/auth/index.js"></script>
   </body>
 </html>

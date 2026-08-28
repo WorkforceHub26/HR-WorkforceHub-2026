@@ -1376,6 +1376,32 @@ async function saveLeave() {
       try {
         for (const item of payload) {
           const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(item.leave_type_id));
+          const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : "ใบลา";
+          
+          const notificationTitle = `มีคำขอลาใหม่จาก ${empName}`;
+          const notificationMessage = `พนักงาน: ${empName} (${currentProfile.employee_code || "-"})\nประเภท: ${leaveName}\nวันที่: ${item.start_date} ถึง ${item.end_date}\nเหตุผล: ${item.reason}`;
+
+          // 🔔 บันทึกลงตาราง notifications (In-app)
+          await sb.from("notifications").insert({
+            employee_id: recipient.id,
+            title: notificationTitle,
+            message: notificationMessage,
+            type: 'leave',
+            link_url: '/pages/hr/hr.html'
+          });
+
+          // 💬 ส่ง LINE ผ่าน Server API
+          await fetch('/api/send-notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              employee_id: recipient.id,
+              title: notificationTitle,
+              message: notificationMessage
+            })
+          });
+
+          // โค้ดเดิม (Workflow SDK)
           await window.PVTSDK.line.sendWorkflowNotification({
             type: notificationType,
             recipientId: recipient.id,
@@ -1384,7 +1410,7 @@ async function saveLeave() {
             employeeCode: currentProfile.employee_code || "",
             departmentName: deptName,
             recipientRole: recipientRole,
-            leaveType: leaveTypeObj ? leaveTypeObj.leave_name : "ใบลา",
+            leaveType: leaveName,
             startDate: item.start_date,
             endDate: item.end_date,
             totalDays: item.total_days,
@@ -1392,7 +1418,7 @@ async function saveLeave() {
           });
         }
       } catch (err) {
-        console.warn("⚠️ [Workflow Notification] Error:", err);
+        console.warn("⚠️ [Notification Trigger] Error:", err);
       }
     }
 

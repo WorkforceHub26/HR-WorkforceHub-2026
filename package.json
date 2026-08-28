@@ -11,11 +11,12 @@
     "lint": "node -e \"console.log('Lint passed')\""
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/express": "^5.0.6",
     "express": "^5.2.1",
     "sirv": "^3.0.2",
+    "tailwindcss": "^4.3.3",
     "vite": "^6.2.0"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

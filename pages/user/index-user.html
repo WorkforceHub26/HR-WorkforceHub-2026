@@ -152,6 +152,16 @@
               </div>
             </div>
 
+            <div class="menu-card" onclick="generateLineLinkToken()" style="border: 1px solid #22c55e33; background: #f0fdf4;">
+              <div class="menu-icon">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" style="width: 28px; height: 28px;" alt="LINE">
+              </div>
+              <div class="menu-info">
+                <h3 style="color: #166534;">เชื่อมต่อ LINE</h3>
+                <p>รับแจ้งเตือนผ่านมือถือ</p>
+              </div>
+            </div>
+
             <div class="menu-card card-highlight" onclick="viewMyDigitalCard()">
               <div class="menu-icon" style="font-size: 28px;">🪪</div>
               <div class="menu-info">
@@ -179,59 +189,6 @@
     </section>
 
   </main>
-
-  <!-- ปุ่มคู่มืออธิบายการใช้งาน (User Guide) -->
-  <div class="user-guide-wrapper">
-    <div id="user-guide-card" class="guide-card-popup">
-      <div class="guide-card-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="material-symbols-outlined" style="font-size: 20px;">info</span>
-          <span>คำแนะนำการใช้งานเมนู</span>
-        </div>
-        <button onclick="toggleUserGuide()" class="guide-close-btn">
-          <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
-        </button>
-      </div>
-      
-      <div class="guide-card-body">
-        <button type="button" class="btn-hero-leave" onclick="goToLeaveForm()">
-          <div class="btn-hero-icon">
-            <span class="material-symbols-outlined" style="font-size: 28px; color: #fff;">edit_document</span>
-          </div>
-          <div class="btn-hero-text">
-            <strong>ยื่นใบลาออนไลน์</strong>
-            <span>กรอกฟอร์มขออนุญาตลา อนุมัติตามลำดับขั้นไว</span>
-          </div>
-          <span class="material-symbols-outlined btn-hero-arrow">chevron_right</span>
-        </button>
-        <div class="guide-item">
-          <span class="guide-emoji">📖</span>
-          <div><strong>หลักเกณฑ์การลา:</strong> ตรวจสอบเงื่อนไข ข้อบังคับ และกฎการแนบใบรับรองแพทย์</div>
-        </div>
-        <div class="guide-item">
-          <span class="guide-emoji">🕒</span>
-          <div><strong>ประวัติการลา:</strong> เช็กสถานะใบลาปัจจุบัน และเรียกดูใบลาเก่า</div>
-        </div>
-        <div class="guide-item">
-          <span class="guide-emoji">👤</span>
-          <div><strong>ข้อมูลพนักงาน:</strong> ตรวจสอบประวัติส่วนตัว วันเริ่มงาน อายุงานสะสม</div>
-        </div>
-        <div class="guide-item" onclick="viewMyDigitalCard()" style="border: none; padding-bottom: 0; cursor: pointer;">
-          <span class="guide-emoji">🪪</span>
-          <div><strong>ดูบัตรพนักงาน:</strong> เปิดบัตรประจำตัวดิจิทัลพร้อม QR Code</div>
-        </div>
-      </div>
-      <div style="padding: 0 16px 16px;">
-        <button type="button" onclick="goToRules()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-weight: 500; color: #334155; display: flex; justify-content: center; align-items: center; gap: 6px; cursor: pointer;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">library_books</span> คู่มือการลาฉบับเต็ม
-        </button>
-      </div>
-    </div>
-
-    <button id="user-guide-fab" onclick="toggleUserGuide()" class="guide-fab-btn">
-      <span id="user-guide-icon" class="material-symbols-outlined">help</span>
-    </button>
-  </div>
 
 <!-- 1. สคริปต์ภายนอก -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

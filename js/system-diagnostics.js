@@ -40,8 +40,44 @@
       const envResult = this.checkEnvironment();
       this.testResults.push(envResult);
 
+      // TEST 7: Business Logic Integrity (Deep Check)
+      const logicResult = await this.checkBusinessLogic();
+      this.testResults.push(logicResult);
+
       this.log('INFO', 'Diagnostic sweep completed.', this.testResults);
       return this.testResults;
+    },
+
+    // 🔍 Check 7: Business Logic Integrity
+    async checkBusinessLogic() {
+      const sb = window.pvtSupabase?.getClient();
+      if (!sb) return { id: 'logic', title: 'ความถูกต้องของตรรกะธุรกิจ', status: 'warning', message: 'ข้ามการตรวจสอบ (ไม่มี DB Client)' };
+
+      try {
+        const issues = [];
+        
+        // Check for negative balances
+        const { data: quotas } = await sb.from('leave_quotas').select('id, employee_id, leave_type_id, remaining_days').lt('remaining_days', 0);
+        if (quotas?.length > 0) {
+          issues.push(`พบพนักงาน ${quotas.length} รายที่มีวันลาติดลบ (Negative Balance)`);
+        }
+
+        // Check for pending leaves with past dates (stale requests)
+        const today = new Date().toISOString().split('T')[0];
+        const { data: staleRequests } = await sb.from('leave_requests').select('id').eq('status', 'pending').lt('start_date', today);
+        if (staleRequests?.length > 0) {
+          issues.push(`พบใบลาค้างพิจารณาที่เลยกำหนดวันลาแล้ว ${staleRequests.length} รายการ`);
+        }
+
+        return {
+          id: 'logic',
+          title: 'ความถูกต้องของตรรกะธุรกิจ',
+          status: issues.length === 0 ? 'passed' : 'warning',
+          message: issues.length === 0 ? 'ไม่พบความผิดปกติในข้อมูลใบลาและสิทธิ์วันลา' : issues.join(', ')
+        };
+      } catch (err) {
+        return { id: 'logic', title: 'ความถูกต้องของตรรกะธุรกิจ', status: 'failed', message: `ตรวจเช็คไม่สำเร็จ: ${err.message}` };
+      }
     },
 
     // 🔍 Check 1: Global Functions & Utilities
@@ -425,68 +461,105 @@
       });
     },
 
-    // 🔘 5. ปุ่มลอยเข้าถึงแผงซ่อมบำรุงมุมขวาล่าง
-    injectFloatingWidget() {
-      if (document.getElementById('pvt-diagnostics-fab')) return;
+    // 🔘 5. ระบบปุ่มช่วยเหลือใหม่ (Unified Help Button)
+    injectUnifiedHelpButton() {
+      if (document.getElementById('pvt-unified-help-btn')) return;
 
-      const fab = document.createElement('div');
-      fab.id = 'pvt-diagnostics-fab';
-      fab.title = '🩺 กดเพื่อตรวจเช็คและแก้บัคระบบอัตโนมัติ (Ctrl+Shift+D)';
-      fab.innerHTML = `
-        <span class="material-symbols-outlined" style="font-size:18px;">healing</span>
-        <span class="fab-text" style="font-size:11.5px; font-weight:700; white-space:nowrap; overflow:hidden; max-width:0; opacity:0; transition:all 0.3s ease; display:inline-block; vertical-align:middle; margin-left:0px;">ซ่อมระบบ/ตรวจบัค</span>
-      `;
+      const btn = document.createElement('button');
+      btn.id = 'pvt-unified-help-btn';
+      btn.title = 'คู่มือการใช้งานและการช่วยเหลือ';
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 26px;">help</span>';
 
-      Object.assign(fab.style, {
+      Object.assign(btn.style, {
         position: 'fixed',
-        bottom: '80px',
-        right: '0px',
-        zIndex: '99990',
+        bottom: '24px',
+        right: '24px',
+        zIndex: '9999',
+        width: '50px',
+        height: '50px',
+        borderRadius: '50%',
+        background: '#ffffff',
+        color: '#0d9488',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+        cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(13, 148, 136, 0.7)',
-        color: '#ffffff',
-        width: '32px',
-        height: '40px',
-        borderRadius: '8px 0 0 8px',
-        boxShadow: '-2px 0 10px rgba(0,0,0,0.1)',
-        cursor: 'pointer',
-        fontFamily: "'IBM Plex Sans Thai', sans-serif",
-        userSelect: 'none',
-        transition: 'all 0.3s ease',
-        overflow: 'hidden'
+        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        outline: 'none'
       });
 
-      fab.addEventListener('mouseenter', () => {
-        fab.style.width = '140px';
-        fab.style.background = 'rgba(13, 148, 136, 1)';
-        const textSpan = fab.querySelector('.fab-text');
-        if(textSpan) {
-          textSpan.style.maxWidth = '100px';
-          textSpan.style.opacity = '1';
-          textSpan.style.marginLeft = '6px';
-        }
-      });
-      fab.addEventListener('mouseleave', () => {
-        fab.style.width = '32px';
-        fab.style.background = 'rgba(13, 148, 136, 0.7)';
-        const textSpan = fab.querySelector('.fab-text');
-        if(textSpan) {
-          textSpan.style.maxWidth = '0';
-          textSpan.style.opacity = '0';
-          textSpan.style.marginLeft = '0px';
-        }
-      });
+      btn.onmouseenter = () => {
+        btn.style.transform = 'scale(1.1) rotate(5deg)';
+        btn.style.boxShadow = '0 12px 28px rgba(13, 148, 136, 0.2)';
+      };
+      btn.onmouseleave = () => {
+        btn.style.transform = 'scale(1) rotate(0deg)';
+        btn.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+      };
 
-      fab.addEventListener('click', () => {
-        this.showDiagnosticsModal();
-      });
+      btn.onclick = () => this.showUnifiedHelpPopup();
 
-      document.body.appendChild(fab);
+      document.body.appendChild(btn);
     },
 
-    // ⌨️ 6. คีย์ลัดแป้นพิมพ์เปิดแผงตรวจแก้บัค (Ctrl + Shift + D)
+    // 🖥️ 6. แสดงผล Popup คู่มือการใช้งานแบบใหม่ (Beautiful SweetAlert2)
+    showUnifiedHelpPopup() {
+      if (!window.Swal) {
+        alert("คำแนะนำ: หากพบปัญหาโปรดติดต่อฝ่ายบุคคล (HR)");
+        return;
+      }
+
+      Swal.fire({
+        title: '<div style="font-size: 20px; font-weight: 700; color: #0d9488;">📘 คู่มือแนะนำการใช้งานระบบ</div>',
+        html: `
+          <div style="text-align: left; font-family: 'Sarabun', sans-serif;">
+            <div style="background: #f0fdfa; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #ccfbf1;">
+              <strong style="color: #0d9488; display: block; margin-bottom: 8px;">🚀 คู่มือแบบย่อ (Quick Guide)</strong>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.6;">
+                <li><b>การลา:</b> กดปุ่ม "ยื่นใบลาออนไลน์" เลือกประเภทลาและวันที่</li>
+                <li><b>ตรวจสอบสถานะ:</b> ดูได้ที่ "ประวัติการลา" หรือแถบแจ้งเตือน</li>
+                <li><b>สิทธิ์วันลา:</b> ระบบจะคำนวณวันลาคงเหลือให้ในหน้าหลัก</li>
+                <li><b>สแกนบัตร:</b> ใช้ QR บนบัตรพนักงานสแกนเพื่อเข้าสู่ระบบไว</li>
+              </ul>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+              <button id="pvt-btn-full-guide" class="swal2-styled" style="background: #ffffff; color: #334155; border: 1px solid #cbd5e1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">library_books</span> อ่านคู่มือฉบับเต็ม
+              </button>
+              <button id="pvt-btn-diagnostics" class="swal2-styled" style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">healing</span> ตรวจเช็ค & ซ่อมแซมระบบ
+              </button>
+            </div>
+          </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: 450,
+        padding: '2rem',
+        didOpen: () => {
+          document.getElementById('pvt-btn-full-guide').onclick = () => {
+            Swal.fire({
+              title: 'คู่มือฉบับเต็ม',
+              text: 'กำลังเปิดหน้าเอกสารคู่มือการใช้งานพนักงาน...',
+              icon: 'info',
+              timer: 1000,
+              showConfirmButton: false
+            }).then(() => {
+               window.location.href = '/pages/user/full-guide.html';
+            });
+          };
+
+          document.getElementById('pvt-btn-diagnostics').onclick = () => {
+            this.showDiagnosticsModal();
+          };
+        }
+      });
+    },
+
+    // ⌨️ 7. คีย์ลัดแป้นพิมพ์เปิดแผงตรวจแก้บัค (Ctrl + Shift + D)
     initHotkey() {
       window.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
@@ -502,9 +575,9 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     SystemDiagnostics.initHotkey();
-    // สร้างปุ่มซ่อมบำรุงลอยให้หัวหน้า/HR/ผู้ใช้ทั่วไปเรียกใช้ได้ตลอดเวลา
+    // สร้างปุ่มช่วยเหลือหนึ่งเดียวที่มุมขวา
     setTimeout(() => {
-      SystemDiagnostics.injectFloatingWidget();
+      SystemDiagnostics.injectUnifiedHelpButton();
     }, 800);
   });
 
@@ -569,34 +642,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Inject Help button on every page bottom left
-  if (!document.getElementById('global-help-btn')) {
-    const helpBtn = document.createElement('button');
-    helpBtn.id = 'global-help-btn';
-    Object.assign(helpBtn.style, {
-      position: 'fixed', bottom: '140px', right: '0px', zIndex: 9998,
-      width: '40px', height: '40px', borderRadius: '8px 0 0 8px', background: '#3b82f6',
-      color: 'white', border: 'none', boxShadow: '-2px 2px 8px rgba(0,0,0,0.1)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-      transition: 'all 0.2s'
-    });
-    helpBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 24px;">help</span>';
-    helpBtn.title = "คำแนะนำการใช้งาน";
-    helpBtn.onclick = () => {
-      if(window.Swal) {
-        Swal.fire({
-          icon: 'info',
-          title: 'คู่มือ / แนะนำการใช้งาน',
-          html: 'หากพบปัญหาหรือต้องการความช่วยเหลือ<br>สามารถติดต่อฝ่ายบุคคล (HR) ได้ที่ช่องทางติดต่อภายใน',
-          confirmButtonText: 'รับทราบ',
-          confirmButtonColor: '#3b82f6'
-        });
-      } else {
-        alert("คำแนะนำ: หากพบปัญหาโปรดติดต่อ HR");
-      }
-    };
-    helpBtn.onmouseenter = () => helpBtn.style.transform = 'scale(1.1)';
-    helpBtn.onmouseleave = () => helpBtn.style.transform = 'scale(1)';
-    document.body.appendChild(helpBtn);
-  }
+  // Inject Unified Help button on every page
+  // (Handled by SystemDiagnostics for consistency)
 });
