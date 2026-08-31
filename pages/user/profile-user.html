@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="/css/profile-user.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <!-- Security Auth Guard (Head Check) -->
+  <script src="/js/auth-guard.js"></script>
 </head>
 
 <body>
@@ -77,11 +80,7 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
-          <button type="button" onclick="testLineNotification()" style="background: #0284c7; color: #ffffff; border: none; padding: 9px 16px; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-            <span>🔔</span> ทดสอบส่งข้อความแจ้งเตือน LINE
-          </button>
-        </div>
+        
       </div>
     </section>
 

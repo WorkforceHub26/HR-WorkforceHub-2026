@@ -250,7 +250,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const authSuccess = await initManagementSystem();
 
-  if (authSuccess || document.getElementById("employeeTableBody")) {
+  if (authSuccess) {
     await refreshDashboard();
   }
 
@@ -349,9 +349,18 @@ async function initManagementSystem() {
 
     }
 
-    const userRole = profile.role ? profile.role.toLowerCase() : 'user';
-    if (userRole !== 'admin' && userRole !== 'hr' && userRole !== 'it' && userRole !== 'user') {
-      showAppError("ไม่มีสิทธิ์เข้าใช้งาน", "หน้านี้สงวนไว้สำหรับ HR, Admin และ IT เท่านั้น");
+    const userStatus = typeof window.getUserRoleCategory === 'function' 
+      ? window.getUserRoleCategory(profile) 
+      : { isAuth: true, category: (profile.role === 'admin' || profile.role === 'hr') ? 'hr_exec' : 'employee' };
+    
+    if (userStatus.category !== 'hr_exec') {
+      console.warn("🚫 [Management]: ผู้ใช้งานไม่มีสิทธิ์เข้าถึงหน้านี้ -> กำลังส่งกลับ");
+      try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+      if (userStatus.category === 'leader_manager') {
+        window.location.replace('/pages/hr/home.html');
+      } else {
+        window.location.replace('/pages/user/index-user.html');
+      }
       return false;
     }
 
@@ -897,6 +906,161 @@ async function fetchLeaveBalances(selectedYear = null) {
   }
 }
 
+// ==========================================
+// 4.1 POSITION CATEGORIZATION & HELPER
+// ==========================================
+// จำแนกหมวดหมู่ตำแหน่งงาน: ผู้จัดการ (manager), หัวหน้าแผนก (supervisor), เจ้าหน้าที่/ผู้ช่วย (officer), พนักงานทั่วไป (staff)
+function classifyPositionCategory(posOrName) {
+  if (!posOrName) return 'staff';
+  if (typeof posOrName === 'object') {
+    if (posOrName.level_type && ['manager', 'supervisor', 'officer', 'staff'].includes(String(posOrName.level_type).toLowerCase())) {
+      return String(posOrName.level_type).toLowerCase();
+    }
+    posOrName = posOrName.position_name || '';
+  }
+  const name = String(posOrName).trim().toLowerCase();
+  
+  // 1. ผู้จัดการ / ผู้บริหารระดับสูง
+  if (
+    name.includes('ผู้จัดการ') || 
+    name.includes('manager') || 
+    name.includes('ผู้อำนวยการ') || 
+    name.includes('director') || 
+    name.includes('ผู้บริหาร') || 
+    name.includes('executive') || 
+    name.includes('กรรมการ') ||
+    name.includes('md') || 
+    name.includes('ceo')
+  ) {
+    return 'manager';
+  }
+  
+  // 2. หัวหน้าแผนก / หัวหน้างาน / Supervisor
+  if (
+    name.includes('หัวหน้า') || 
+    name.includes('supervisor') || 
+    name.includes('lead') || 
+    name.includes('leader')
+  ) {
+    return 'supervisor';
+  }
+  
+  // 3. เจ้าหน้าที่ (รวมตำแหน่ง "ผู้ช่วย" อยู่ในหมวดนี้ตามระเบียบที่กำหนด)
+  if (
+    name.includes('เจ้าหน้าที่') || 
+    name.includes('ผู้ช่วย') || 
+    name.includes('officer') || 
+    name.includes('assistant') || 
+    name.includes('นักวิชาการ') || 
+    name.includes('ธุรการ') || 
+    name.includes('admin') || 
+    name.includes('ประสานงาน') || 
+    name.includes('coordinator') || 
+    name.includes('วิศวกร') || 
+    name.includes('engineer') || 
+    name.includes('developer') || 
+    name.includes('โปรแกรมเมอร์') || 
+    name.includes('ช่างเทคนิค') || 
+    name.includes('technician') || 
+    name.includes('นักบัญชี') || 
+    name.includes('accountant') || 
+    name.includes('hr') ||
+    name.includes('กราฟิก') ||
+    name.includes('การตลาด')
+  ) {
+    return 'officer';
+  }
+  
+  // 4. พนักงานทั่วไป / ระดับปฏิบัติการ
+  return 'staff';
+}
+
+function getPositionCategoryLabel(catKey) {
+  switch (catKey) {
+    case 'manager': return '👔 กลุ่มผู้จัดการ / ผู้บริหาร (Manager & Executive)';
+    case 'supervisor': return '🎖️ กลุ่มหัวหน้าแผนก / หัวหน้างาน (Supervisor & Lead)';
+    case 'officer': return '📋 กลุ่มเจ้าหน้าที่ / ผู้ช่วย (Officer & Assistant)';
+    case 'staff': return '👤 กลุ่มพนักงานทั่วไป / ปฏิบัติการ (General Staff)';
+    default: return 'ตำแหน่งงาน';
+  }
+}
+
+// สร้าง Dropdown Options จัดกลุ่มตามหมวดหมู่ <optgroup>
+function buildGroupedPositionOptions(positionsList, selectedIdOrName) {
+  const list = positionsList || window.positions || [];
+  const groups = {
+    manager: [],
+    supervisor: [],
+    officer: [],
+    staff: []
+  };
+
+  list.forEach(p => {
+    const cat = classifyPositionCategory(p.position_name);
+    groups[cat].push(p);
+  });
+
+  const sortFn = (a, b) => (a.position_name || '').localeCompare(b.position_name || '', 'th');
+  groups.manager.sort(sortFn);
+  groups.supervisor.sort(sortFn);
+  groups.officer.sort(sortFn);
+  groups.staff.sort(sortFn);
+
+  let html = `<option value="" disabled ${!selectedIdOrName ? 'selected' : ''}>-- เลือกตำแหน่งงาน --</option>`;
+
+  if (groups.manager.length > 0) {
+    html += `<optgroup label="👔 กลุ่มผู้จัดการ / ผู้บริหาร (${groups.manager.length})">`;
+    groups.manager.forEach(p => {
+      const isSel = String(p.id) === String(selectedIdOrName) || p.position_name === selectedIdOrName;
+      html += `<option value="${p.id}" ${isSel ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  if (groups.supervisor.length > 0) {
+    html += `<optgroup label="🎖️ กลุ่มหัวหน้าแผนก / หัวหน้างาน (${groups.supervisor.length})">`;
+    groups.supervisor.forEach(p => {
+      const isSel = String(p.id) === String(selectedIdOrName) || p.position_name === selectedIdOrName;
+      html += `<option value="${p.id}" ${isSel ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  if (groups.officer.length > 0) {
+    html += `<optgroup label="📋 กลุ่มเจ้าหน้าที่ & ผู้ช่วย (${groups.officer.length})">`;
+    groups.officer.forEach(p => {
+      const isSel = String(p.id) === String(selectedIdOrName) || p.position_name === selectedIdOrName;
+      html += `<option value="${p.id}" ${isSel ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  if (groups.staff.length > 0) {
+    html += `<optgroup label="👤 กลุ่มพนักงานทั่วไป / ปฏิบัติการ (${groups.staff.length})">`;
+    groups.staff.forEach(p => {
+      const isSel = String(p.id) === String(selectedIdOrName) || p.position_name === selectedIdOrName;
+      html += `<option value="${p.id}" ${isSel ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  return html;
+}
+
+let currentPosCategoryFilter = 'all';
+
+window.filterByPosCategory = function(category) {
+  currentPosCategoryFilter = category;
+  document.querySelectorAll('.pos-tab').forEach(tab => {
+    if (tab.dataset.category === category) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+  renderEmployeeTable();
+};
+
 // ฟังก์ชันระบบช่วยเหลือแนะนำตำแหน่งตามแผนก
 window.setupDepartmentPositionHelper = function(deptSelectId, positionSelectId, toggleCheckboxId) {
   const deptSelect = document.getElementById(deptSelectId);
@@ -1078,12 +1242,43 @@ function renderEmployeeTable() {
   const search = document.getElementById("empSearchInput")?.value.trim().toLowerCase() || "";
   const dept = document.getElementById("deptFilter")?.value || "";
 
+  // คำนวณจำนวนพนักงานในแต่ละหมวดหมู่ตำแหน่ง
+  let cAll = 0, cManager = 0, cSupervisor = 0, cOfficer = 0, cStaff = 0;
+  employees.forEach(emp => {
+    const posName = emp.positions?.position_name || emp.position_name || "";
+    const cat = classifyPositionCategory(posName);
+    cAll++;
+    if (cat === 'manager') cManager++;
+    else if (cat === 'supervisor') cSupervisor++;
+    else if (cat === 'officer') cOfficer++;
+    else if (cat === 'staff') cStaff++;
+  });
+
+  const setTextIfEl = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setTextIfEl('count-all', cAll);
+  setTextIfEl('count-manager', cManager);
+  setTextIfEl('count-supervisor', cSupervisor);
+  setTextIfEl('count-officer', cOfficer);
+  setTextIfEl('count-staff', cStaff);
+
   const filtered = employees.filter((emp) => {
     const department = emp.departments?.department_name || "";
+    const posName = emp.positions?.position_name || emp.position_name || "";
+    const empCat = classifyPositionCategory(posName);
+
+    // กรองตามหมวดหมู่ตำแหน่งงาน
+    if (currentPosCategoryFilter && currentPosCategoryFilter !== 'all' && empCat !== currentPosCategoryFilter) {
+      return false;
+    }
+
     const haystack = [
       emp.employee_code,
       emp.full_name,
-      emp.positions?.position_name,
+      posName,
       department,
       emp.hospital,
     ].join(" ").toLowerCase();
@@ -1364,16 +1559,13 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
     // โหมดแก้ไข
     if (title) title.innerHTML = `<span>✏️ แก้ไขพนักงาน: ${escapeHtml(emp.employee_code || "-")}</span>`;
     
-    // สร้าง Dropdown แผนกและตำแหน่ง
+    // สร้าง Dropdown แผนกและตำแหน่ง (จัดกลุ่มตามประเภท: ผู้จัดการ, หัวหน้า, เจ้าหน้าที่/ผู้ช่วย, พนักงาน)
     const deptOptions = (window.departments || []).map(d => {
       const isSelected = String(d.id) === String(emp.department_id) || d.department_name === emp.departments?.department_name;
       return `<option value="${d.id}" ${isSelected ? 'selected' : ''}>${escapeHtml(d.department_name)}</option>`;
     }).join("");
 
-    const roleOptions = (window.positions || []).map(p => {
-      const isSelected = String(p.id) === String(emp.position_id) || p.position_name === emp.positions?.position_name;
-      return `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;
-    }).join("");
+    const roleOptions = buildGroupedPositionOptions(window.positions, emp.position_id || emp.positions?.position_name);
     
     const empTypeOptions = [
       { val: 'monthly', label: 'รายเดือน (Monthly)' },
@@ -1458,6 +1650,17 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
               <select id="inline-edit-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" required>
                 <option value="" disabled>-- เลือกตำแหน่ง --</option>
                 ${roleOptions}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #0d9488;">👑 สิทธิ์ในระบบ (System Role) *</label>
+              <select id="inline-edit-system-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box; background:#f0fdf4; font-weight:600; color:#166534;" required>
+                <option value="user" ${emp.role === 'user' || !emp.role ? 'selected' : ''}>👤 พนักงานทั่วไป (Employee / Staff)</option>
+                <option value="leader" ${emp.role === 'leader' ? 'selected' : ''}>🎖️ หัวหน้างาน (Supervisor / Leader - ผู้อนุมัติ L1)</option>
+                <option value="manager" ${emp.role === 'manager' ? 'selected' : ''}>👔 ผู้จัดการฝ่าย (Department Manager - ผู้อนุมัติ L2)</option>
+                <option value="executive" ${emp.role === 'executive' || emp.role === 'director' || emp.role === 'owner' ? 'selected' : ''}>⭐ ผู้บริหารระดับสูง (Director / Executive - ผู้อนุมัติ L3)</option>
+                <option value="hr" ${emp.role === 'hr' ? 'selected' : ''}>📋 ฝ่ายบุคคล (HR Officer - อนุมัติขั้นสุดท้าย)</option>
+                <option value="admin" ${emp.role === 'admin' || emp.role === 'superadmin' ? 'selected' : ''}>🛡️ ผู้ดูแลระบบ (System Admin)</option>
               </select>
             </div>
             <div>
@@ -1564,6 +1767,7 @@ async function saveEmployeeInlineEdit(employeeId) {
     email: document.getElementById('inline-edit-email')?.value.trim() || null,
     department_id: dept,
     position_id: role,
+    role: document.getElementById('inline-edit-system-role')?.value || 'user',
     bank_account: document.getElementById('inline-edit-bankAccount')?.value.trim() || null,
     start_date: document.getElementById('inline-edit-startDate')?.value || null,
     hospital: document.getElementById('inline-edit-hospital')?.value.trim() || null,
@@ -2085,7 +2289,7 @@ window.addNewEmployee = async function addNewEmployee() {
     ]);
 
     let deptOptions = deptRes.data?.map(d => `<option value="${d.id}">${escapeHtml(d.department_name)}</option>`).join('') || '';
-    let roleOptions = roleRes.data?.map(r => `<option value="${r.id}">${escapeHtml(r.position_name)}</option>`).join('') || '';
+    let roleOptions = buildGroupedPositionOptions(roleRes.data, null);
 
     const { value: formValues } = await Swal.fire({
       title: '➕ เพิ่มพนักงานใหม่เข้าสู่ระบบ',
@@ -2156,6 +2360,17 @@ window.addNewEmployee = async function addNewEmployee() {
             <select id="swal-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>-- เลือกตำแหน่ง --</option>
               ${roleOptions}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px; font-weight:600; color: #0d9488;">👑 สิทธิ์ในระบบ (System Role) *</label>
+            <select id="swal-system-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; background:#f0fdf4; font-weight:600; color:#166534;">
+              <option value="user" selected>👤 พนักงานทั่วไป (Employee / Staff)</option>
+              <option value="leader">🎖️ หัวหน้างาน (Supervisor / Leader - ผู้อนุมัติ L1)</option>
+              <option value="manager">👔 ผู้จัดการฝ่าย (Department Manager - ผู้อนุมัติ L2)</option>
+              <option value="executive">⭐ ผู้บริหารระดับสูง (Director / Executive - ผู้อนุมัติ L3)</option>
+              <option value="hr">📋 ฝ่ายบุคคล (HR Officer - อนุมัติขั้นสุดท้าย)</option>
+              <option value="admin">🛡️ ผู้ดูแลระบบ (System Admin)</option>
             </select>
           </div>
           <div>
@@ -2254,7 +2469,7 @@ window.addNewEmployee = async function addNewEmployee() {
           hospital: document.getElementById('swal-hospital').value.trim() || null,
           employment_type: employee_type,
           status: 'active',
-          role: 'user',
+          role: document.getElementById('swal-system-role')?.value || 'user',
           custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
           imageFile: imageFile
         };
@@ -2472,65 +2687,393 @@ async function manageDepartments() {
   if (!supabase || !window.Swal) return;
 
   try {
-    const result = await Swal.fire({
-      title: '🏢 จัดการฝ่ายและตำแหน่งงาน',
-      text: 'เลือกประเภทโครงสร้างองค์กรที่คุณต้องการเพิ่ม',
-      icon: 'question',
-      showCancelButton: true,
-      showDenyButton: true,
-      confirmButtonText: '🏢 เพิ่มฝ่าย/แผนกใหม่',
-      denyButtonText: '💼 เพิ่มตำแหน่งงานใหม่',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#0d9488',
-      denyButtonColor: '#3b82f6'
+    Swal.fire({ title: 'กำลังโหลดโครงสร้างองค์กร...', didOpen: () => Swal.showLoading() });
+    
+    const [deptRes, posRes, empRes] = await Promise.all([
+      supabase.from('departments').select('id, department_name, department_code, status').order('department_name', { ascending: true }),
+      supabase.from('positions').select('id, position_name, department_id, level_type, duty_name, status').order('position_name', { ascending: true }),
+      supabase.from('employees').select('id, position_id, department_id, positions(position_name), departments(department_name)')
+    ]);
+
+    Swal.close();
+
+    const depts = deptRes.data || [];
+    const positions = posRes.data || [];
+    const emps = empRes.data || [];
+
+    // คำนวณจำนวนพนักงานต่อตำแหน่ง
+    const posCountMap = {};
+    const deptCountMap = {};
+    emps.forEach(e => {
+      if (e.position_id) posCountMap[e.position_id] = (posCountMap[e.position_id] || 0) + 1;
+      if (e.positions?.position_name) posCountMap[e.positions.position_name] = (posCountMap[e.positions.position_name] || 0) + 1;
+      if (e.department_id) deptCountMap[e.department_id] = (deptCountMap[e.department_id] || 0) + 1;
     });
 
-    if (result.isConfirmed) {
-      const { value: deptName } = await Swal.fire({
-        title: 'เพิ่มแผนกใหม่เข้าสู่องค์กร',
-        input: 'text',
-        inputLabel: 'ระบุชื่อฝ่าย/แผนกงาน',
-        inputPlaceholder: 'เช่น ฝ่ายขนส่ง, ฝ่ายนวัตกรรม...',
-        showCancelButton: true,
-        confirmButtonText: 'บันทึกข้อมูล',
-        inputValidator: (value) => { if (!value) return '❌ จำเป็นต้องใส่ชื่อแผนกงาน!'; }
-      });
+    // จำแนกตำแหน่งออกเป็น 4 หมวด
+    const categorizedPositions = {
+      manager: [],
+      supervisor: [],
+      officer: [],
+      staff: []
+    };
 
-      if (deptName) {
-        const cleanDeptName = deptName.trim();
-        const deptCode = generateDeptCode(cleanDeptName);
-        Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
-        const { error } = await supabase.from('departments').insert([{ department_name: cleanDeptName, department_code: deptCode }]);
-        if (error) throw error;
-        await saveHRActivityLog('DEPARTMENT', 'INSERT', cleanDeptName, `เพิ่มแผนกงานใหม่: ${cleanDeptName}`);
-        Swal.fire('สำเร็จ!', `บันทึกแผนก "${escapeHtml(cleanDeptName)}" เรียบร้อยแล้ว`, 'success');
-        refreshDashboard();
-      }
-    } else if (result.isDenied) {
-      const { value: posName } = await Swal.fire({
-        title: 'เพิ่มตำแหน่งงานใหม่',
-        input: 'text',
-        inputLabel: 'ระบุชื่อตำแหน่งงาน',
-        inputPlaceholder: 'เช่น Senior Developer...',
-        showCancelButton: true,
-        confirmButtonText: 'บันทึกข้อมูล',
-        confirmButtonColor: '#3b82f6',
-        inputValidator: (value) => { if (!value) return '❌ จำเป็นต้องใส่ชื่อตำแหน่งงาน!'; }
+    positions.forEach(p => {
+      const cat = classifyPositionCategory(p.position_name);
+      categorizedPositions[cat].push({
+        ...p,
+        empCount: posCountMap[p.id] || posCountMap[p.position_name] || 0
       });
+    });
 
-      if (posName) {
-        Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
-        const { error } = await supabase.from('positions').insert([{ position_name: posName.trim() }]);
-        if (error) throw error;
-        await saveHRActivityLog('POSITION', 'INSERT', posName.trim(), `เพิ่มตำแหน่งงานใหม่: ${posName.trim()}`);
-        Swal.fire('สำเร็จ!', `บันทึกตำแหน่ง "${escapeHtml(posName.trim())}" สำเร็จ`, 'success');
-        refreshDashboard();
+    // สร้าง HTML สำหรับแต่ละหมวดหมู่
+    const renderPosListHTML = (catKey) => {
+      const list = categorizedPositions[catKey] || [];
+      if (!list.length) {
+        return `
+          <div style="text-align:center; padding:32px 16px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">
+            <span class="material-symbols-outlined" style="font-size:32px; display:block; margin-bottom:6px; color:#cbd5e1;">folder_open</span>
+            ยังไม่มีตำแหน่งงานในหมวดนี้
+          </div>
+        `;
       }
-    }
+
+      return `
+        <div class="pos-item-grid">
+          ${list.map(p => `
+            <div class="pos-item-card" id="pos-card-${p.id}">
+              <div style="flex:1; min-width:0;">
+                <div class="pos-item-name" title="${escapeHtml(p.position_name)}">${escapeHtml(p.position_name)}</div>
+                <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
+                  พนักงาน: <strong>${p.empCount}</strong> คน
+                </div>
+              </div>
+              <div style="display:flex; gap:4px; align-items:center;">
+                <button type="button" onclick="editPositionName('${p.id}', '${escapeHtml(p.position_name)}')" 
+                        style="padding:4px 6px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; cursor:pointer; font-size:11px; color:#475569;"
+                        title="แก้ไขชื่อตำแหน่ง">
+                  ✏️
+                </button>
+                <button type="button" onclick="deletePositionItem('${p.id}', '${escapeHtml(p.position_name)}', ${p.empCount})" 
+                        style="padding:4px 6px; background:#fff1f2; border:1px solid #fecdd3; border-radius:6px; cursor:pointer; font-size:11px; color:#e11d48;"
+                        title="ลบตำแหน่ง">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    };
+
+    // สร้าง HTML สำหรับรายการแผนก
+    const renderDeptListHTML = () => {
+      if (!depts.length) {
+        return `
+          <div style="text-align:center; padding:32px 16px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">
+            ยังไม่มีข้อมูลฝ่าย/แผนกในระบบ
+          </div>
+        `;
+      }
+      return `
+        <div class="pos-item-grid">
+          ${depts.map(d => {
+            const count = deptCountMap[d.id] || 0;
+            return `
+              <div class="pos-item-card" id="dept-card-${d.id}">
+                <div style="flex:1; min-width:0;">
+                  <div class="pos-item-name" title="${escapeHtml(d.department_name)}">${escapeHtml(d.department_name)}</div>
+                  <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
+                    รหัส: <code style="background:#f1f5f9; padding:1px 4px; border-radius:4px;">${escapeHtml(d.department_code || '-')}</code> · พนักงาน: <strong>${count}</strong> คน
+                  </div>
+                </div>
+                <div style="display:flex; gap:4px; align-items:center;">
+                  <button type="button" onclick="editDepartmentName('${d.id}', '${escapeHtml(d.department_name)}')" 
+                          style="padding:4px 6px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; cursor:pointer; font-size:11px; color:#475569;"
+                          title="แก้ไขชื่อแผนก">
+                    ✏️
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    };
+
+    await Swal.fire({
+      title: '🏢 ศูนย์จัดการโครงสร้างองค์กร & ตำแหน่งงาน',
+      width: 'min(94vw, 840px)',
+      html: `
+        <div style="font-family:'Sarabun', sans-serif; text-align:left;">
+          <p style="font-size:13px; color:#64748b; margin-bottom:12px;">
+            เลือกแท็บประเภทตำแหน่งงานเพื่อดู/เพิ่ม/แก้ไขตำแหน่งในแต่ละสายงาน หรือจัดการรายชื่อฝ่าย/แผนก
+          </p>
+
+          <!-- แถบเลือกแท็บแยกประเภทตำแหน่ง -->
+          <div class="pos-modal-tabs" id="posModalTabs">
+            <button type="button" class="pos-modal-tab-btn active" onclick="switchPosModalView('manager')">
+              <span>👔 ผู้จัดการ (${categorizedPositions.manager.length})</span>
+            </button>
+            <button type="button" class="pos-modal-tab-btn" onclick="switchPosModalView('supervisor')">
+              <span>🎖️ หัวหน้าแผนก (${categorizedPositions.supervisor.length})</span>
+            </button>
+            <button type="button" class="pos-modal-tab-btn" onclick="switchPosModalView('officer')">
+              <span>📋 เจ้าหน้าที่/ผู้ช่วย (${categorizedPositions.officer.length})</span>
+            </button>
+            <button type="button" class="pos-modal-tab-btn" onclick="switchPosModalView('staff')">
+              <span>👤 พนักงาน (${categorizedPositions.staff.length})</span>
+            </button>
+            <button type="button" class="pos-modal-tab-btn" onclick="switchPosModalView('department')">
+              <span>🏢 แผนกงาน (${depts.length})</span>
+            </button>
+          </div>
+
+          <!-- แถบเครื่องมือและปุ่มเพิ่มข้อมูล -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="posModalSearch" placeholder="🔍 ค้นหาในหน้านี้..." 
+                   oninput="filterPosModalItems()" 
+                   style="padding:6px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; min-width:200px; flex:1;">
+            
+            <button type="button" id="posModalAddBtn" onclick="quickAddPositionOrDept()" 
+                    class="action-btn success-zone" style="font-size:12.5px; padding:6px 14px;">
+              ➕ เพิ่มตำแหน่งใหม่
+            </button>
+          </div>
+
+          <!-- เนื้อหาของแต่ละแท็บ -->
+          <div id="pos-view-manager" class="pos-view-panel">
+            ${renderPosListHTML('manager')}
+          </div>
+          <div id="pos-view-supervisor" class="pos-view-panel" style="display:none;">
+            ${renderPosListHTML('supervisor')}
+          </div>
+          <div id="pos-view-officer" class="pos-view-panel" style="display:none;">
+            ${renderPosListHTML('officer')}
+          </div>
+          <div id="pos-view-staff" class="pos-view-panel" style="display:none;">
+            ${renderPosListHTML('staff')}
+          </div>
+          <div id="pos-view-department" class="pos-view-panel" style="display:none;">
+            ${renderDeptListHTML()}
+          </div>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: 'ปิดหน้าต่าง',
+      cancelButtonColor: '#64748b'
+    });
+
   } catch (err) {
     showAppError("เกิดข้อผิดพลาดในการจัดการโครงสร้างองค์กร", err.message);
   }
 }
+
+let activePosModalTab = 'manager';
+
+window.switchPosModalView = function(tabKey) {
+  activePosModalTab = tabKey;
+  
+  // ปรับ active class ของปุ่มแท็บ
+  document.querySelectorAll('.pos-modal-tab-btn').forEach((btn, idx) => {
+    const keys = ['manager', 'supervisor', 'officer', 'staff', 'department'];
+    if (keys[idx] === tabKey) btn.classList.add('active');
+    else btn.classList.remove('active');
+  });
+
+  // สลับการแสดงผลหน้าจอ
+  ['manager', 'supervisor', 'officer', 'staff', 'department'].forEach(k => {
+    const el = document.getElementById(`pos-view-${k}`);
+    if (el) el.style.display = k === tabKey ? 'block' : 'none';
+  });
+
+  // ปรับข้อความปุ่มเพิ่ม
+  const addBtn = document.getElementById('posModalAddBtn');
+  if (addBtn) {
+    if (tabKey === 'department') {
+      addBtn.innerHTML = '➕ เพิ่มฝ่าย/แผนกใหม่';
+    } else {
+      const labels = {
+        manager: '➕ เพิ่มตำแหน่งผู้จัดการ',
+        supervisor: '➕ เพิ่มตำแหน่งหัวหน้างาน',
+        officer: '➕ เพิ่มตำแหน่งเจ้าหน้าที่/ผู้ช่วย',
+        staff: '➕ เพิ่มตำแหน่งพนักงานทั่วไป'
+      };
+      addBtn.innerHTML = labels[tabKey] || '➕ เพิ่มตำแหน่งใหม่';
+    }
+  }
+
+  // รีเซ็ตการค้นหา
+  const searchInput = document.getElementById('posModalSearch');
+  if (searchInput) {
+    searchInput.value = '';
+    filterPosModalItems();
+  }
+};
+
+window.filterPosModalItems = function() {
+  const query = document.getElementById('posModalSearch')?.value.trim().toLowerCase() || '';
+  const currentPanel = document.getElementById(`pos-view-${activePosModalTab}`);
+  if (!currentPanel) return;
+
+  const cards = currentPanel.querySelectorAll('.pos-item-card');
+  cards.forEach(c => {
+    const text = c.textContent.toLowerCase();
+    c.style.display = (!query || text.includes(query)) ? 'flex' : 'none';
+  });
+};
+
+window.quickAddPositionOrDept = async function() {
+  const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
+  if (activePosModalTab === 'department') {
+    const { value: deptName } = await Swal.fire({
+      title: '🏢 เพิ่มฝ่าย/แผนกงานใหม่',
+      input: 'text',
+      inputLabel: 'ระบุชื่อฝ่ายหรือแผนกงาน',
+      inputPlaceholder: 'เช่น ฝ่ายการเงิน, ฝ่ายโลจิสติกส์...',
+      showCancelButton: true,
+      confirmButtonText: '💾 บันทึกแผนก',
+      confirmButtonColor: '#0d9488',
+      inputValidator: (value) => { if (!value || !value.trim()) return '❌ จำเป็นต้องระบุชื่อแผนก!'; }
+    });
+
+    if (deptName && deptName.trim()) {
+      const cleanName = deptName.trim();
+      const code = generateDeptCode(cleanName);
+      Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+      const { error } = await supabase.from('departments').insert([{ department_name: cleanName, department_code: code }]);
+      if (error) throw error;
+      await saveHRActivityLog('DEPARTMENT', 'INSERT', cleanName, `เพิ่มแผนกงานใหม่: ${cleanName}`);
+      Swal.fire('สำเร็จ!', `บันทึกแผนก "${escapeHtml(cleanName)}" เรียบร้อยแล้ว`, 'success');
+      refreshDashboard();
+    }
+  } else {
+    const placeholders = {
+      manager: 'เช่น ผู้จัดการฝ่ายผลิต, ผู้อำนวยการฝ่ายการเงิน...',
+      supervisor: 'เช่น หัวหน้าแผนกสโตร์, หัวหน้ากะงาน...',
+      officer: 'เช่น เจ้าหน้าที่บัญชี, ผู้ช่วยผู้จัดการ, โปรแกรมเมอร์...',
+      staff: 'เช่น พนักงานขนส่ง, พนักงานฝ่ายผลิต, ช่างซ่อมบำรุง...'
+    };
+
+    const { value: posName } = await Swal.fire({
+      title: '💼 เพิ่มตำแหน่งงานใหม่',
+      text: `ประเภท: ${getPositionCategoryLabel(activePosModalTab)}`,
+      input: 'text',
+      inputLabel: 'ระบุชื่อตำแหน่งงาน',
+      inputPlaceholder: placeholders[activePosModalTab] || 'ระบุชื่อตำแหน่ง...',
+      showCancelButton: true,
+      confirmButtonText: '💾 บันทึกตำแหน่ง',
+      confirmButtonColor: '#0d9488',
+      inputValidator: (value) => { if (!value || !value.trim()) return '❌ จำเป็นต้องระบุชื่อตำแหน่งงาน!'; }
+    });
+
+    if (posName && posName.trim()) {
+      const cleanName = posName.trim();
+      Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+      const { error } = await supabase.from('positions').insert([{ 
+        position_name: cleanName,
+        level_type: activePosModalTab,
+        status: 'active'
+      }]);
+      if (error) throw error;
+      await saveHRActivityLog('POSITION', 'INSERT', cleanName, `เพิ่มตำแหน่งงานใหม่: ${cleanName} (ประเภท: ${activePosModalTab})`);
+      Swal.fire('สำเร็จ!', `บันทึกตำแหน่ง "${escapeHtml(cleanName)}" เรียบร้อยแล้ว`, 'success');
+      refreshDashboard();
+    }
+  }
+};
+
+window.editPositionName = async function(posId, currentName) {
+  const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
+  const { value: newName } = await Swal.fire({
+    title: '✏️ แก้ไขชื่อตำแหน่งงาน',
+    input: 'text',
+    inputValue: currentName,
+    showCancelButton: true,
+    confirmButtonText: '💾 บันทึกการแก้ไข',
+    confirmButtonColor: '#0d9488',
+    inputValidator: (value) => { if (!value || !value.trim()) return '❌ กรุณาระบุชื่อตำแหน่ง!'; }
+  });
+
+  if (newName && newName.trim() && newName.trim() !== currentName) {
+    const cleanName = newName.trim();
+    Swal.fire({ title: 'กำลังอัปเดต...', didOpen: () => Swal.showLoading() });
+    const { error } = await supabase.from('positions').update({ position_name: cleanName }).eq('id', posId);
+    if (error) {
+      showAppError("แก้ไขตำแหน่งล้มเหลว", error.message);
+      return;
+    }
+    await saveHRActivityLog('POSITION', 'UPDATE', cleanName, `แก้ไขตำแหน่งจาก ${currentName} เป็น ${cleanName}`);
+    Swal.fire('สำเร็จ!', 'อัปเดตชื่อตำแหน่งเรียบร้อยแล้ว', 'success');
+    refreshDashboard();
+  }
+};
+
+window.editDepartmentName = async function(deptId, currentName) {
+  const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
+  const { value: newName } = await Swal.fire({
+    title: '✏️ แก้ไขชื่อฝ่าย/แผนก',
+    input: 'text',
+    inputValue: currentName,
+    showCancelButton: true,
+    confirmButtonText: '💾 บันทึกการแก้ไข',
+    confirmButtonColor: '#0d9488',
+    inputValidator: (value) => { if (!value || !value.trim()) return '❌ กรุณาระบุชื่อแผนก!'; }
+  });
+
+  if (newName && newName.trim() && newName.trim() !== currentName) {
+    const cleanName = newName.trim();
+    Swal.fire({ title: 'กำลังอัปเดต...', didOpen: () => Swal.showLoading() });
+    const { error } = await supabase.from('departments').update({ department_name: cleanName }).eq('id', deptId);
+    if (error) {
+      showAppError("แก้ไขแผนกล้มเหลว", error.message);
+      return;
+    }
+    await saveHRActivityLog('DEPARTMENT', 'UPDATE', cleanName, `แก้ไขแผนกจาก ${currentName} เป็น ${cleanName}`);
+    Swal.fire('สำเร็จ!', 'อัปเดตชื่อแผนกเรียบร้อยแล้ว', 'success');
+    refreshDashboard();
+  }
+};
+
+window.deletePositionItem = async function(posId, posName, empCount) {
+  const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
+  if (empCount > 0) {
+    Swal.fire('ไม่สามารถลบได้', `ตำแหน่ง "${escapeHtml(posName)}" มีพนักงานสังกัดอยู่ ${empCount} คน กรุณาย้ายตำแหน่งพนักงานก่อนทำการลบ`, 'warning');
+    return;
+  }
+
+  const confirm = await Swal.fire({
+    title: 'ยืนยันการลบตำแหน่งงาน?',
+    text: `ต้องการลบตำแหน่ง "${posName}" ออกจากระบบ ใช่หรือไม่?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: '🗑️ ยืนยันลบ',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (confirm.isConfirmed) {
+    Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() });
+    const { error } = await supabase.from('positions').delete().eq('id', posId);
+    if (error) {
+      showAppError("ลบตำแหน่งล้มเหลว", error.message);
+      return;
+    }
+    await saveHRActivityLog('POSITION', 'DELETE', posName, `ลบตำแหน่งงาน: ${posName}`);
+    Swal.fire('สำเร็จ!', `ลบตำแหน่ง "${escapeHtml(posName)}" เรียบร้อยแล้ว`, 'success');
+    refreshDashboard();
+  }
+};
 
 // ==========================================
 // 8. LEAVE RULES & FLEXIBLE BALANCES MANAGEMENT
@@ -3929,7 +4472,7 @@ async function executeDatabaseImport(rows) {
   const errorLogs = [];
 
   let { data: dbDepts } = await supabase.from('departments').select('id, department_code, department_name');
-  let { data: dbPositions } = await supabase.from('positions').select('id, position_name, department_id');
+  let { data: dbPositions } = await supabase.from('positions').select('id, position_name, department_id, level_type, duty_name, status');
   
   dbDepts = dbDepts || [];
   dbPositions = dbPositions || [];
@@ -3970,8 +4513,9 @@ async function executeDatabaseImport(rows) {
     
     if (pos) return pos.id;
     
+    const posCat = classifyPositionCategory(cleanPos);
     const { data, error } = await supabase.from('positions').insert([
-      { position_name: cleanPos, department_id: deptId, status: 'active' }
+      { position_name: cleanPos, department_id: deptId, level_type: posCat, status: 'active' }
     ]).select().single();
     
     if (error) {
@@ -4289,7 +4833,187 @@ async function checkAndCreateMissingQuotas() {
   }
 }
 
+/**
+ * ⚡ ฟังก์ชันสำหรับทดสอบส่งแจ้งเตือน LINE สำหรับ HR (เลือกยิง Flex Message)
+ */
+async function testLineNotificationFromHR() {
+  if (!window.Swal) {
+    alert("ระบบไม่พบ SweetAlert2 SDK");
+    return;
+  }
+
+  // แสดง Loading ระหว่างดึงข้อมูลพนักงานที่ผูก LINE ไว้
+  Swal.fire({
+    title: 'กำลังดึงข้อมูลพนักงานที่เชื่อมต่อ LINE...',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
+  let linkedEmployees = [];
+  try {
+    const sb = (typeof PVTSDK !== 'undefined' && PVTSDK.getClient) ? PVTSDK.getClient() : window.supabaseClient;
+    if (sb) {
+      const { data, error } = await sb
+        .from('employees')
+        .select('id, full_name, line_id, employee_code')
+        .not('line_id', 'is', null)
+        .order('full_name');
+      
+      if (!error && data) {
+        // กรองค่าว่างเปล่าออก
+        linkedEmployees = data.filter(emp => emp.line_id && emp.line_id.trim() !== "");
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️ ไม่สามารถดึงข้อมูลพนักงานที่ผูก LINE ได้:", err);
+  }
+
+  Swal.close();
+
+  // สร้าง HTML Options สำหรับเลือกพนักงาน
+  let empSelectHtml = '<option value="CUSTOM">-- ✍️ กรอกรหัส LINE User ID ด้วยตนเอง --</option>';
+  if (linkedEmployees.length > 0) {
+    linkedEmployees.forEach(emp => {
+      empSelectHtml += `<option value="${emp.line_id}">${emp.full_name} (${emp.employee_code || 'ไม่มีรหัส'})</option>`;
+    });
+  }
+
+  const { value: formValues } = await Swal.fire({
+    title: '💬 ทดสอบส่งแจ้งเตือน LINE (HR)',
+    html:
+      '<div style="text-align: left; margin-bottom: 8px; font-size: 13px; line-height: 1.5; background: #f8fafc; padding: 10px; border-radius: 6px; color: #475569; border: 1px solid #e2e8f0; margin-bottom: 14px;">' +
+        '💡 <b>LINE User ID คืออะไร?</b><br>' +
+        'คือรหัสเฉพาะของระบบ LINE (ขึ้นต้นด้วยตัว <b>U</b> ตามด้วยเลข/อักษรรวม 32 หลัก) ' +
+        'ได้จากการที่พนักงานกดปุ่ม <b>"ขอรหัสเชื่อมต่อ LINE"</b> ในหน้าโปรไฟล์ แล้วส่งรหัส 6 หลักไปให้บอทในแชต LINE ครับ' +
+      '</div>' +
+
+      '<div style="text-align: left; margin-bottom: 8px;"><label style="font-size: 13px; font-weight: 600; color: #1e293b;">🎯 เลือกพนักงานที่ผูก LINE แล้ว:</label></div>' +
+      `<select id="swal-select-employee" class="swal2-input" style="margin-top: 0; margin-bottom: 12px; width: 85%; font-size: 14px; padding: 8px; height: 42px;">${empSelectHtml}</select>` +
+
+      '<div id="custom-line-id-wrapper" style="text-align: left; margin-bottom: 12px;">' +
+        '<div style="text-align: left; margin-bottom: 8px;"><label style="font-size: 13px; font-weight: 600; color: #1e293b;">ระบุ LINE User ID ของคุณเองเพื่อเทส:</label></div>' +
+        '<input id="swal-input-line-id" class="swal2-input" style="margin-top: 0; margin-bottom: 4px; width: 85%; font-family: monospace; font-size: 14px; padding: 10px;" placeholder="เช่น U8590cc03a13b22da60ab9991b771afd8">' +
+      '</div>' +
+
+      '<div style="text-align: left; margin-bottom: 8px;"><label style="font-size: 13px; font-weight: 600; color: #1e293b;">📊 ประเภทดีไซน์สลิปทดสอบ:</label></div>' +
+      '<select id="swal-input-type" class="swal2-input" style="margin-top: 0; width: 85%; font-size: 14px; padding: 10px; height: 42px;">' +
+        '<option value="NEW_REQUEST">คำขอใหม่ (รออนุมัติ L1)</option>' +
+        '<option value="LEADER_APPROVED">ผ่านอนุมัติขั้นต้น (รอ L2)</option>' +
+        '<option value="MANAGER_APPROVED">ผ่านอนุมัติผู้จัดการ (รอ HR)</option>' +
+        '<option value="FINAL_APPROVED">อนุมัติเสร็จสมบูรณ์</option>' +
+        '<option value="REJECTED">คำขอลาไม่อนุมัติ</option>' +
+        '<option value="CANCELLATION">แจ้งเตือนยกเลิกใบลา</option>' +
+      '</select>',
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: '⚡ ส่งสลิปทดสอบ',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#4f46e5',
+    didOpen: () => {
+      const selectEmp = document.getElementById('swal-select-employee');
+      const customWrapper = document.getElementById('custom-line-id-wrapper');
+      
+      // ตรวจสอบสถานะเริ่มต้น
+      if (selectEmp.value === 'CUSTOM') {
+        customWrapper.style.display = 'block';
+      } else {
+        customWrapper.style.display = 'none';
+      }
+
+      // ตรวจสอบเมื่อเปลี่ยนค่า dropdown
+      selectEmp.addEventListener('change', (e) => {
+        if (e.target.value === 'CUSTOM') {
+          customWrapper.style.display = 'block';
+        } else {
+          customWrapper.style.display = 'none';
+        }
+      });
+    },
+    preConfirm: () => {
+      const selectEmpVal = document.getElementById('swal-select-employee').value;
+      const customLineId = document.getElementById('swal-input-line-id').value.trim();
+      const type = document.getElementById('swal-input-type').value;
+
+      let lineId = selectEmpVal;
+      if (selectEmpVal === 'CUSTOM') {
+        lineId = customLineId;
+        if (!lineId) {
+          Swal.showValidationMessage('กรุณาระบุ LINE User ID สำหรับทดสอบ');
+          return false;
+        }
+        if (!lineId.startsWith('U') || lineId.length < 20) {
+          Swal.showValidationMessage('LINE User ID ที่ถูกต้องมักจะขึ้นต้นด้วยตัว U และมีความยาว 32 หลัก');
+          return false;
+        }
+      }
+      return { lineId, type };
+    }
+  });
+
+  if (!formValues) return;
+
+  const { lineId, type } = formValues;
+
+  Swal.fire({
+    title: 'กำลังส่งข้อความสลิปทดสอบ...',
+    text: 'กรุณารอสักครู่ ระบบกำลังส่ง Flex Message ไปยัง LINE OA',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
+  try {
+    if (!window.PVTSDK?.line?.sendWorkflowNotification) {
+      throw new Error('ไม่พบเอนจิน LINE SDK ในระบบ (PVTSDK.line)');
+    }
+
+    // ค้นหาข้อมูลพนักงานเพิ่มเติมมาใช้พรีวิวข้อมูลสลิป
+    let testEmpName = 'สมมุติ ทดสอบระบบ (HR TEST)';
+    let testEmpCode = 'EMP99999';
+    if (linkedEmployees.length > 0) {
+      const found = linkedEmployees.find(e => e.line_id === lineId);
+      if (found) {
+        testEmpName = found.full_name;
+        testEmpCode = found.employee_code || 'EMP99999';
+      }
+    }
+
+    const res = await window.PVTSDK.line.sendWorkflowNotification({
+      type: type,
+      recipientId: '', // ส่งตรงด้วย LINE ID
+      recipientLineId: lineId,
+      employeeName: testEmpName,
+      employeeCode: testEmpCode,
+      leaveType: 'ลาพักร้อนประจำปี',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      totalDays: 1,
+      reason: 'ทดสอบส่งการ์ดแจ้งเตือนสลิปธนาคารจากเมนูควบคุมส่วนกลาง HR',
+      comment: 'ความเห็นตัวอย่างจากผู้อนุมัติ (ผ่านระบบทดสอบ)'
+    });
+
+    if (res && res.lineSent) {
+      Swal.fire({
+        icon: 'success',
+        title: 'ส่งการ์ดสลิปทดสอบสำเร็จ! 🎉',
+        text: 'การ์ด Flex Message สไตล์ธนาคารส่งไปยัง LINE เรียบร้อยแล้ว กรุณาเช็กห้องแชต LINE ของคุณ',
+        confirmButtonColor: '#16a34a'
+      });
+    } else {
+      Swal.fire({
+        icon: 'info',
+        title: 'บันทึกการส่งสำเร็จ',
+        text: res?.message || 'ระบบบันทึกการส่งทดสอบแล้ว (หากยังไม่ได้รับใน LINE กรุณาตรวจสอบว่าบอท LINE OA ได้รับ LINE User ID ที่ถูกต้อง)',
+        confirmButtonColor: '#0284c7'
+      });
+    }
+  } catch (err) {
+    console.error("❌ Test LINE Notification from HR error:", err);
+    Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถส่งข้อความทดสอบได้', 'error');
+  }
+}
+
 // 🌐 Global Window Function Bindings for Management Page
+window.testLineNotificationFromHR = testLineNotificationFromHR;
 window.checkAndCreateMissingQuotas = checkAndCreateMissingQuotas;
 window.openEmployeeDetail = typeof openEmployeeDetail !== 'undefined' ? openEmployeeDetail : window.openEmployeeDetail;
 window.deleteEmployee = typeof deleteEmployee !== 'undefined' ? deleteEmployee : window.deleteEmployee;

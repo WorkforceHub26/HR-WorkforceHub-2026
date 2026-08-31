@@ -283,21 +283,51 @@ async function generateLineLinkCode() {
   if (!client) return;
 
   try {
-    // Generate 6 digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+    let code = "";
+    let created = false;
 
-    const { error } = await client
-      .from('line_link_tokens')
-      .insert([
-        { 
-          employee_id: emp.id, 
-          link_code: code, 
-          expires_at: expiresAt 
+    // 1. Try server API (/api/create-line-link) first
+    try {
+      const apiRes = await fetch("/api/create-line-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_id: emp.id })
+      });
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (apiData.success && apiData.token) {
+          code = apiData.token;
+          created = true;
         }
-      ]);
+      }
+    } catch (e) {}
 
-    if (error) throw error;
+    // 2. Fallback to direct client insert if API is unavailable
+    if (!created && client) {
+      code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+      try {
+        await client.from('line_link_tokens').delete().eq('employee_id', emp.id);
+      } catch (e) {}
+
+      const { error } = await client
+        .from('line_link_tokens')
+        .insert([
+          { 
+            employee_id: emp.id, 
+            token: code,
+            link_code: code,
+            expires_at: expiresAt 
+          }
+        ]);
+
+      if (!error) created = true;
+    }
+
+    if (!code) {
+      throw new Error("ไม่สามารถสร้างรหัสเชื่อมต่อ LINE ได้");
+    }
 
     Swal.fire({
       title: 'รหัสเชื่อมต่อ LINE ของคุณ',

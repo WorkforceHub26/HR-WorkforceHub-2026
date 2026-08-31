@@ -16,6 +16,8 @@ CREATE TABLE public.positions (
   department_id uuid,
   status text NOT NULL DEFAULT 'active'::text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  level_type text,
+  duty_name text,
   CONSTRAINT positions_pkey PRIMARY KEY (id),
   CONSTRAINT positions_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id)
 );
@@ -92,15 +94,6 @@ CREATE TABLE public.leave_balances (
   CONSTRAINT leave_balances_pkey PRIMARY KEY (id),
   CONSTRAINT fk_leave_balances_leave_types FOREIGN KEY (leave_type_id) REFERENCES public.leave_types(id)
 );
-CREATE TABLE public.employee_import (
-  employee_code text,
-  title_name text,
-  first_name text,
-  last_name text,
-  position_name text,
-  department_name text,
-  start_date text
-);
 CREATE TABLE public.hr_admin_management_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   actor_id uuid,
@@ -126,15 +119,6 @@ CREATE TABLE public.holidays (
   holiday_type text,
   is_paid boolean DEFAULT true,
   CONSTRAINT holidays_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.notifications (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  user_id uuid,
-  title text NOT NULL,
-  message text NOT NULL,
-  is_read boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT notifications_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.system_settings (
   setting_key text NOT NULL,
@@ -186,13 +170,40 @@ CREATE TABLE public.department_approvers (
   CONSTRAINT department_approvers_supervisor_id_fkey FOREIGN KEY (supervisor_id) REFERENCES public.employees(id),
   CONSTRAINT department_approvers_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.employees(id)
 );
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_id uuid NOT NULL,
+  title text NOT NULL,
+  message text NOT NULL,
+  type text DEFAULT 'general'::text,
+  is_read boolean DEFAULT false,
+  link_url text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
+);
 CREATE TABLE public.line_link_tokens (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   employee_id uuid NOT NULL,
-  link_code text NOT NULL UNIQUE,
+  token text NOT NULL UNIQUE,
   expires_at timestamp with time zone NOT NULL,
-  used_at timestamp with time zone,
-  created_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT line_link_tokens_pkey PRIMARY KEY (id),
   CONSTRAINT line_link_tokens_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id)
+);
+CREATE TABLE public.employee_import (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_code text,
+  title_name text,
+  first_name text,
+  last_name text,
+  nickname text,
+  full_name text,
+  department_name text,
+  level_type text,
+  duty_name text,
+  position_name text,
+  start_date text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT employee_import_pkey PRIMARY KEY (id)
 );

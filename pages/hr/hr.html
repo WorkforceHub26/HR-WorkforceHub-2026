@@ -16,6 +16,9 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/hr.css" /> 
+
+  <!-- Security Auth Guard (Head Check) -->
+  <script src="/js/auth-guard.js"></script>
 </head>
 
 <body>
@@ -193,6 +196,28 @@
           <div class="loading-state" style="padding: 60px; text-align: center; color: var(--text-soft);">
             <span class="material-symbols-outlined spin" style="font-size: 40px; margin-bottom: 12px; display: block;">sync</span>
             <p>กำลังโหลดข้อมูลคำขออนุมัติ...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 👥 PANEL รายชื่อสมาชิกพนักงานในแผนก (สำหรับหัวหน้า / ผู้จัดการ / HR) -->
+      <section class="panel" style="margin-top: 24px;">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="material-symbols-outlined" style="color: var(--primary);">badge</span>
+            <h2 id="hrTeamSectionTitle">รายชื่อสมาชิกพนักงานในแผนก</h2>
+            <span id="hrTeamCountBadge" class="tab-count-badge" style="background: var(--primary-soft); color: var(--primary); font-size: 12px; margin-left: 8px;">0 คน</span>
+          </div>
+          <div class="panel-header-controls">
+            <button class="btn-pvt-refresh" onclick="toggleHrTeamContainer(this)">
+              <span class="material-symbols-outlined" id="hrTeamToggleIcon">expand_less</span> ซ่อน/แสดง
+            </button>
+          </div>
+        </div>
+
+        <div id="hrTeamContainer" style="padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;">
+          <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
+            กำลังโหลดข้อมูลสมาชิกในแผนก...
           </div>
         </div>
       </section>

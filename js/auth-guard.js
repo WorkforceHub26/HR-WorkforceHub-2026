@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🔒 PVT HR LEAVE - auth-guard.js (เวอร์ชันแก้ไขสมบูรณ์ วางทับได้ทันที)
+   🔒 PVT HR LEAVE - auth-guard.js (ระบบความปลอดภัยและการควบคุมสิทธิ์สูงสุด)
    ========================================================================== */
 
 // 🟢 Helper สำหรับดึง Supabase Client จาก SDK ป้องกัน Error
@@ -9,6 +9,159 @@ function getSbClient() {
       || window.supabaseClient 
       || window.supabase;
 }
+
+// 🟢 ตรวจสอบกลุ่มสิทธิ์ของผู้ใช้ (Role Classifier)
+window.getUserRoleCategory = function(userSession) {
+  if (!userSession || (!userSession.id && !userSession.employee_code)) return { isAuth: false, category: 'guest' };
+
+  // ดึงข้อมูลพนักงานทั้งกรณี Flat และ Nested Object
+  const emp = userSession.employees || userSession;
+  const role = String(userSession.role || emp.role || '').toLowerCase().trim();
+  const position = String(
+    userSession.position_name || 
+    userSession.position || 
+    userSession.positions?.position_name || 
+    emp.position_name || 
+    emp.positions?.position_name || ''
+  ).toLowerCase().trim();
+  const dept = String(
+    userSession.department_name || 
+    userSession.departments?.department_name || 
+    emp.department_name || 
+    emp.departments?.department_name || ''
+  ).toLowerCase().trim();
+  const deptId = String(userSession.department_id || emp.department_id || '');
+  const duty = String(userSession.duty_name || emp.duty_name || userSession.positions?.duty_name || emp.positions?.duty_name || '').toLowerCase().trim();
+  const code = String(userSession.employee_code || emp.employee_code || '').trim();
+
+  // 0. ตรวจสอบ แม่บ้าน / พ่อบ้าน / คนสวน -> บังคับเป็น employee (พนักงานทั่วไป) เสมอ
+  const isServiceStaff = position.includes('แม่บ้าน') || position.includes('พ่อบ้าน') || position.includes('คนสวน') ||
+                         duty.includes('แม่บ้าน') || duty.includes('พ่อบ้าน') || duty.includes('คนสวน');
+  if (isServiceStaff) {
+    return { isAuth: true, category: 'employee', role, position, dept };
+  }
+
+  // 1. HR และ ผู้บริหารระดับสูง (HR / Admin / Executive / Director / Owner / บุคคล-ธุรการ) -> สิทธิ์เข้าถึงทุกหน้า 100%
+  const isHrOrExecutive = 
+    role === 'hr' || role === 'admin' || role === 'superadmin' || role === 'executive' || role === 'director' || role === 'owner' || role === 'hr_manager' ||
+    role.includes('hr') || role.includes('admin') || role.includes('superadmin') || role.includes('executive') || role.includes('director') || role.includes('owner') ||
+    role === 'ผู้บริหาร' || role === 'ผู้อำนวยการ' || role === 'เจ้าของ' || role.includes('บุคคล') ||
+    code === '19122' || code === '19128' || code === '10001' || // รหัส HR (ผู้จัดการ/เจ้าหน้าที่) และผู้บริหาร
+    dept.includes('บุคคล') || dept.includes('ธุรการ') || dept.includes('hr') || dept.includes('human') ||
+    position.includes('บุคคล') || position.includes('hr') || position.includes('ธุรการ') ||
+    duty.includes('บุคคล') || duty.includes('ธุรการ') || duty.includes('hr') ||
+    deptId === 'e494e865-689d-432b-9dd4-1ab32125105f' || // แผนก บุคคล-ธุรการ
+    position.includes('ผู้บริหาร') || position.includes('ผู้อำนวยการ') || position.includes('เจ้าของ') || position.includes('director') || position.includes('executive') || position.includes('owner');
+
+  if (isHrOrExecutive) {
+    return { isAuth: true, category: 'hr_exec', role, position, dept };
+  }
+
+  // 2. หัวหน้างาน และ ผู้จัดการแผนก (Leader / Manager / Supervisor)
+  const isManagerOrLeader = 
+    role === 'manager' || role === 'leader' || role === 'supervisor' || role === 'head' ||
+    role.includes('manager') || role.includes('leader') || role.includes('supervisor') ||
+    role.includes('หัวหน้า') || role.includes('ผู้จัดการ') ||
+    position.includes('manager') || position.includes('leader') || position.includes('supervisor') ||
+    position.includes('หัวหน้า') || position.includes('ผู้จัดการ');
+
+  if (isManagerOrLeader) {
+    return { isAuth: true, category: 'leader_manager', role, position, dept };
+  }
+
+  // 3. พนักงานทั่วไป (Employee / Staff)
+  return { isAuth: true, category: 'employee', role, position, dept };
+};
+
+// =========================================================================
+// 🔒 [GLOBAL AUTH GUARD]: ตรวจสอบสิทธิ์ทันทีแบบ Synchronous
+// =========================================================================
+(function enforceSecurity() {
+  let session = null;
+  try {
+    const raw = localStorage.getItem("currentUser");
+    session = raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    session = null;
+  }
+
+  const path = window.location.pathname.toLowerCase();
+  const isLoginPage = path === "/" || path === "/index.html" || (path.endsWith("/index.html") && !path.includes("/pages/"));
+  const isHrArea = path.includes("/pages/hr/");
+  const isManagementOrSettings = path.includes("management") || path.includes("approval-settings") || path.includes("test.html");
+
+  const userStatus = window.getUserRoleCategory(session);
+
+  // 1. กรณีไม่มี Session / ยังไม่ล็อกอิน
+  if (!userStatus.isAuth) {
+    if (!isLoginPage) {
+      console.warn("🚫 [Auth Guard]: ยังไม่ได้เข้าสู่ระบบ -> เด้งไปหน้า Login");
+      try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+      window.location.replace("/index.html");
+    }
+    return;
+  }
+
+  // 2. กรณีล็อกอินแล้ว แต่อยู่หน้า Login -> ส่งไปหน้าแรกตามสิทธิ์
+  if (isLoginPage) {
+    console.log("✅ [Auth Guard]: ล็อกอินแล้ว -> นำทางไปหน้าแรกตามสิทธิ์");
+    if (userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager') {
+      window.location.replace("/pages/hr/home.html");
+    } else {
+      window.location.replace("/pages/user/index-user.html");
+    }
+    return;
+  }
+
+  // 3. กรณีพนักงานธรรมดา (Employee)
+  if (userStatus.category === 'employee') {
+    if (isHrArea) {
+      console.warn("🚫 [Auth Guard]: พนักงานทั่วไปไม่มีสิทธิ์เข้าโซน HR -> เด้งไปหน้าพนักงาน");
+      try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+      window.location.replace("/pages/user/index-user.html");
+      return;
+    }
+  }
+
+  // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager)
+  if (userStatus.category === 'leader_manager') {
+    if (isManagementOrSettings) {
+      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติ/ตั้งค่า -> เด้งไปหน้า home");
+      try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+      window.location.replace("/pages/hr/home.html");
+      return;
+    }
+  }
+})();
+
+// 🎨 ซ่อนเมนูที่ไม่มีสิทธิ์เข้าถึงออกจาก UI ทันที
+function applyNavPermissions() {
+  try {
+    const raw = localStorage.getItem("currentUser");
+    const session = raw ? JSON.parse(raw) : null;
+    const userStatus = window.getUserRoleCategory(session);
+
+    // หากไม่ใช่ HR หรือ ผู้บริหาร ให้ซ่อนเมนูแก้ไขประวัติและตั้งค่าทั้งหมด
+    if (userStatus.category !== 'hr_exec') {
+      const selectors = [
+        'a[href*="management"]',
+        'a[href*="approval-settings"]',
+        '.btn-card-nav',
+        '.hover-card-qr',
+        '.quick-card[href*="management"]',
+        '[data-role="hr-only"]'
+      ];
+      document.querySelectorAll(selectors.join(', ')).forEach(el => {
+        el.style.setProperty("display", "none", "important");
+      });
+    }
+  } catch (err) {
+    console.error("applyNavPermissions error:", err);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", applyNavPermissions);
+
 
 document.addEventListener("DOMContentLoaded", async () => {
   const loginForm = document.getElementById("loginForm");
@@ -53,7 +206,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       let queryRes;
-      let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password");
+      let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password, department_id, position_id, image_url, departments(department_name), positions(position_name, level_type, duty_name)");
 
       // 🧠 Smart Detect คัดกรองประเภทข้อมูลนำเข้า (อีเมล / เบอร์โทร-รหัสพนักงาน / ชื่อ-สกุล)
       if (loginInput.includes("@")) {
@@ -126,7 +279,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ`);
       }
 
-      redirectToDashboard(user.role);
+      redirectToDashboard(user.role, user);
 
     } catch (err) {
       Swal.fire({
@@ -144,34 +297,23 @@ document.addEventListener("DOMContentLoaded", async () => {
    🔗 Helper Functions & Navigation Security
    ========================================================================== */
 
-function redirectToDashboard(role) {
+function redirectToDashboard(role, userObj) {
   const cleanRole = String(role || '').toLowerCase().trim();
-  let targetPath = "/pages/user/index-user.html";
-  
-  const executiveRoles = [
-    'executive', 'director', 'owner'
-  ];
-
-  const isExecutive = executiveRoles.includes(cleanRole) ||
-    cleanRole.includes('director') ||
-    cleanRole.includes('executive') ||
-    cleanRole.includes('ผู้บริหาร') ||
-    cleanRole.includes('ผู้อำนวยการ');
-
-  if (isExecutive) {
-    targetPath = "/pages/hr/home.html";
-  } else {
-    targetPath = "/pages/user/index-user.html";
+  let userStatus = { category: 'employee' };
+  if (typeof window.getUserRoleCategory === "function") {
+    userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
   }
 
-  // ⚡ ใช้ location.replace แบบกำหนด origin ครบถ้วน 
-  // เพื่อล้างค่า ?auto_login=... ออกจาก URL และบังคับย้ายหน้าทันทีโดยไม่ต้องกด Refresh
+  const isPower = userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager';
+  const adminRoles = ['executive', 'director', 'owner', 'hr', 'admin', 'superadmin', 'manager', 'leader', 'supervisor', 'head', 'ผู้บริหาร', 'ผู้อำนวยการ', 'เจ้าของ', 'หัวหน้า', 'ผู้จัดการ'];
+  const isAdminRole = adminRoles.some(r => cleanRole.includes(r));
+  
+  const targetPath = (isPower || isAdminRole) ? "/pages/hr/home.html" : "/pages/user/index-user.html";
   const targetUrl = new URL(targetPath, window.location.origin).href;
 
   if (window.location.href !== targetUrl) {
     window.location.replace(targetUrl);
   } else {
-    // กรณีที่อยู่ที่หน้านั้นอยู่แล้ว ให้ล้าง Query String แล้วสั่ง Reload หน้า
     window.history.replaceState({}, document.title, window.location.pathname);
     window.location.reload();
   }
@@ -491,6 +633,10 @@ function saveUserSession(userData, expireInHours = 12) {
   const cleanUser = { ...userData };
   delete cleanUser.password;
 
+  const deptName = cleanUser.department_name || cleanUser.departments?.department_name || "";
+  const posName = cleanUser.position_name || cleanUser.positions?.position_name || "";
+  const dutyName = cleanUser.duty_name || cleanUser.positions?.duty_name || "";
+
   const currentTime = new Date().getTime();
   const sessionPayload = {
     id: cleanUser.id || "",
@@ -498,6 +644,12 @@ function saveUserSession(userData, expireInHours = 12) {
     full_name: cleanUser.full_name || "",
     role: cleanUser.role || "user",
     status: cleanUser.status || "active",
+    department_id: cleanUser.department_id || "",
+    position_id: cleanUser.position_id || "",
+    department_name: deptName,
+    position_name: posName,
+    duty_name: dutyName,
+    image_url: cleanUser.image_url || "",
     createdAt: currentTime,
     expireAt: currentTime + (expireInHours * 60 * 60 * 1000)
   };

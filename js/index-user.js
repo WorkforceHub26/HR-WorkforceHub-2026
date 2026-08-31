@@ -479,6 +479,98 @@ function checkApproverPermission(profileData) {
   switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
 }
 
+/* ==========================================================================
+   👥 ระบบแสดงผลสมาชิกพนักงานในแผนกสำหรับหัวหน้า/ผู้จัดการ
+   ========================================================================== */
+async function loadDepartmentTeam(profileData) {
+  const teamSection = document.getElementById("departmentTeamSection");
+  const teamGrid = document.getElementById("teamMembersContainer");
+  const teamTitle = document.getElementById("teamSectionTitle");
+  const teamSubtitle = document.getElementById("teamSectionSubtitle");
+  const teamBadge = document.getElementById("teamCountBadge");
+
+  if (!teamSection || !teamGrid) return;
+
+  const employee = profileData?.employees || profileData;
+  const deptId = employee?.department_id || profileData?.department_id;
+  const deptName = employee?.departments?.department_name || employee?.department_name || profileData?.department_name || "แผนกของคุณ";
+  const userRole = (profileData?.role || employee?.role || "").toLowerCase();
+  const positionName = (employee?.positions?.position_name || "").toLowerCase();
+
+  const isLeaderOrHigher = ["leader", "manager", "director", "executive", "owner", "hr", "admin"].includes(userRole) ||
+                           positionName.includes("หัวหน้า") || positionName.includes("ผู้จัดการ") || positionName.includes("บริหาร");
+
+  teamSection.style.display = "block";
+  if (teamTitle) teamTitle.textContent = `สมาชิกพนักงานในแผนก (${deptName})`;
+  if (teamSubtitle) teamSubtitle.textContent = isLeaderOrHigher 
+    ? `คุณมีสิทธิ์บริหารและดูรายชื่อสมาชิกในทีมสังกัด ${deptName}` 
+    : `รายชื่อเพื่อนร่วมงานในสังกัด ${deptName}`;
+
+  const sb = getSafeSupabaseClient();
+  if (!sb || !deptId) {
+    teamGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 16px; text-align: center; color: #94a3b8; font-size: 13px;">ไม่พบข้อมูลแผนกสังกัด</div>`;
+    return;
+  }
+
+  try {
+    const { data: team, error } = await sb
+      .from('employees')
+      .select('id, full_name, nickname, employee_code, image_url, line_id, role, positions(position_name), departments(department_name)')
+      .eq('department_id', deptId)
+      .order('full_name', { ascending: true });
+
+    if (error || !team || team.length === 0) {
+      teamGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 16px; text-align: center; color: #94a3b8; font-size: 13px;">ไม่พบสมาชิกพนักงานในแผนกนี้</div>`;
+      if (teamBadge) teamBadge.textContent = "0 คน";
+      return;
+    }
+
+    if (teamBadge) teamBadge.textContent = `${team.length} คน`;
+
+    teamGrid.innerHTML = team.map(emp => {
+      const avatar = window.PVTSDK?.storage?.getAvatarUrl(emp.image_url) || "/assets/img/default-avatar.jpg";
+      const pos = emp.positions?.position_name || "พนักงาน";
+      const empCode = emp.employee_code ? `รหัส: ${emp.employee_code}` : "";
+      const nick = emp.nickname ? `(${emp.nickname})` : "";
+      const roleLower = (emp.role || "").toLowerCase();
+
+      let roleBadge = '<span style="font-size: 10px; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-weight: 600;">พนักงาน</span>';
+      if (roleLower === "leader" || roleLower.includes("leader")) {
+        roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 6px; font-weight: 700;">👑 หัวหน้างาน (L1)</span>';
+      } else if (roleLower === "manager" || roleLower.includes("manager")) {
+        roleBadge = '<span style="font-size: 10px; background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (L2)</span>';
+      } else if (["hr", "admin", "superadmin"].includes(roleLower)) {
+        roleBadge = '<span style="font-size: 10px; background: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
+      }
+
+      const lineBadge = emp.line_id 
+        ? '<span style="color: #16a34a; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 2px;">● LINE แล้ว</span>'
+        : '<span style="color: #94a3b8; font-size: 11px;">○ ยังไม่ผูก LINE</span>';
+
+      return `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+          <img src="${avatar}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
+              <strong style="font-size: 13px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeEscapeHtml(emp.full_name)} ${nick}</strong>
+            </div>
+            <div style="font-size: 12px; color: #0284c7; font-weight: 600; margin-bottom: 4px;">💼 ${safeEscapeHtml(pos)}</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #64748b;">
+              <span>${empCode}</span>
+              ${lineBadge}
+            </div>
+            <div style="margin-top: 4px;">${roleBadge}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+  } catch (e) {
+    console.error("loadDepartmentTeam error:", e);
+    teamGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 16px; text-align: center; color: #ef4444; font-size: 13px;">เกิดข้อผิดพลาดในการดึงข้อมูลสมาชิก</div>`;
+  }
+}
+
 // --- UNIFIED USER NOTIFICATION DROPDOWN SYSTEM ---
 let localReadNotifIds = [];
 try {
@@ -541,15 +633,16 @@ async function fetchUserNotifications() {
     const { data: dbNotifs } = await sb
       .from("notifications")
       .select("*")
-      .eq('user_id', myId) // 👈 แก้ไข: ดึงเฉพาะแจ้งเตือนส่วนบุคคลเท่านั้น เพื่อความเป็นส่วนตัว
+      .or(`employee_id.eq.${myId},user_id.eq.${myId}`) // 👈 ดึงแจ้งเตือนส่วนบุคคลตาม employee_id
       .order("created_at", { ascending: false })
       .limit(50);
 
     let filteredDbNotifs = [];
     if (dbNotifs) {
       filteredDbNotifs = dbNotifs.filter(n => {
-        if (n.user_id) {
-          return String(n.user_id) === String(myId);
+        const notifRecipient = n.employee_id || n.user_id;
+        if (notifRecipient) {
+          return String(notifRecipient) === String(myId);
         }
         const titleLower = String(n.title).toLowerCase();
         const msgLower = String(n.message).toLowerCase();
@@ -844,7 +937,7 @@ async function markAllUserNotificationsAsRead(event) {
 
     // มาร์กใน DB
     if (sb) {
-      await sb.from("notifications").update({ is_read: true }).eq("user_id", myId);
+      await sb.from("notifications").update({ is_read: true }).or(`employee_id.eq.${myId},user_id.eq.${myId}`);
     }
 
     // กวาดรายการค้างอ่านที่ปรากฏทั้งหมด
@@ -1401,18 +1494,42 @@ window.generateLineLinkToken = async function() {
   }
 
   try {
-    // 1. สุ่มรหัส 6 หลัก
-    const token = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // หมดอายุใน 10 นาที
+    let token = "";
+    let created = false;
 
-    // 2. บันทึกลงฐานข้อมูล
-    const { error } = await sb.from('line_link_tokens').insert({
-      employee_id: employeeId,
-      token: token,
-      expires_at: expiresAt
-    });
+    // 1. ลองเรียกผ่าน Server API (/api/create-line-link) เพื่อหลีกเลี่ยง RLS
+    try {
+      const apiRes = await fetch("/api/create-line-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_id: employeeId })
+      });
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (apiData.success && apiData.token) {
+          token = apiData.token;
+          created = true;
+        }
+      }
+    } catch (e) {}
 
-    if (error) throw error;
+    // 2. Fallback บันทึกลง DB
+    if (!created && sb) {
+      token = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+      const { error } = await sb.from('line_link_tokens').insert({
+        employee_id: employeeId,
+        token: token,
+        link_code: token,
+        expires_at: expiresAt
+      });
+      if (!error) created = true;
+    }
+
+    if (!token) {
+      throw new Error("ไม่สามารถสร้างรหัสเชื่อมต่อ LINE ได้");
+    }
 
     // 3. แสดงรหัสให้ผู้ใช้
     Swal.fire({

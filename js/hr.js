@@ -7,6 +7,7 @@ let currentUserProfile = null;
 let allLeaveRequests = []; 
 let currentLeaveTab = "pending"; // 'pending' | 'cancellation' | 'history'
 let hasExecutiveColumn = false;
+let deptApproversMap = {};
 
 // ⚡ [1. IMMEDIATE CHECK]: เช็กสิทธิ์ทันทีตั้งแต่นาทีแรกที่โหลด JS
 (function checkRoleImmediately() {
@@ -32,6 +33,23 @@ let hasExecutiveColumn = false;
     console.error("🔒 Auth Check Error:", e);
   }
 })();
+
+// 🛡️ Helper function to escape HTML string to prevent XSS
+function escapeHtml(value) {
+  if (window.PVTSDK?.utils?.escapeHtml) {
+    return window.PVTSDK.utils.escapeHtml(value);
+  }
+  if (window.pvtSupabase?.utils?.escapeHtml) {
+    return window.pvtSupabase.utils.escapeHtml(value);
+  }
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__PVT_ACCESS_DENIED__) {
@@ -84,14 +102,34 @@ async function initSystemAndPermissions() {
 
     console.log("[HR Init] User Identity:", { rawRole, rawPos, empId: empData?.id });
 
+    // ตรวจสอบกับ department_approvers เพื่อความแม่นยำของสายอนุมัติ
+    const sb = window.pvtSupabase?.getClient();
+    let isDeptSupervisor = false;
+    let isDeptManager = false;
+    if (sb && empData?.id) {
+      try {
+        const { data: apprvList } = await sb.from("department_approvers").select("department_id, supervisor_id, manager_id");
+        if (apprvList && apprvList.length > 0) {
+          deptApproversMap = {};
+          apprvList.forEach(a => {
+            if (a.department_id) deptApproversMap[a.department_id] = a;
+          });
+          isDeptSupervisor = apprvList.some(a => String(a.supervisor_id) === String(empData.id));
+          isDeptManager = apprvList.some(a => String(a.manager_id) === String(empData.id));
+        }
+      } catch (e) {
+        console.warn("Error checking approver list:", e);
+      }
+    }
+
     // กำหนดกลุ่ม Role เพื่อใช้ในการ Filter ข้อมูล
     if (rawRole === "hr" || rawRole === "admin" || rawRole === "superadmin" || rawRole.includes("hr") || rawRole.includes("admin")) {
       currentRole = "hr";
-    } else if (rawRole === "director" || rawRole === "executive" || rawRole === "owner" || rawPos.includes("ผู้อำนวยการ") || rawPos.includes("บริหาร") || rawPos.includes("director") || rawPos.includes("executive")) {
+    } else if (rawRole === "director" || rawRole === "executive" || rawRole === "owner" || rawPos.includes("ผู้อำนวยการ") || rawPos.includes("บริหาร") || rawPos.includes("director") || rawPos.includes("executive") || rawPos.includes("owner")) {
       currentRole = "director";
-    } else if (rawRole === "manager" || rawPos.includes("ผู้จัดการ") || rawPos.includes("manager")) {
+    } else if (rawRole === "manager" || isDeptManager || rawPos.includes("ผู้จัดการ") || rawPos.includes("manager")) {
       currentRole = "manager";
-    } else if (rawRole === "leader" || rawPos.includes("หัวหน้า") || rawPos.includes("leader")) {
+    } else if (rawRole === "leader" || isDeptSupervisor || rawPos.includes("หัวหน้า") || rawPos.includes("leader") || rawPos.includes("supervisor")) {
       currentRole = "leader";
     } else {
       currentRole = "user"; // Default สำหรับพนักงานทั่วไป
@@ -150,6 +188,9 @@ function applyRoleBasedUI() {
       roleBadge.className = "status-badge status-approved";
     }
   }
+
+  // โหลดรายชื่อพนักงานในแผนก
+  renderDepartmentTeamRoster();
 }
 
 /* ==========================================================================
@@ -472,60 +513,49 @@ function canApproveStep(req, role) {
   if (currentEmpId && String(req.employee_id) === String(currentEmpId)) {
     Swal.fire({
       title: 'ไม่สามารถทำรายการได้',
-      text: 'คุณไม่สามารถกดอนุมัติใบลาของตนเองได้ กรุณาให้ผู้จัดการฝ่าย หรือ Admin/Director เป็นผู้อนุมัติ',
+      text: 'คุณไม่สามารถกดอนุมัติใบลาของตนเองได้ กรุณาให้ผู้จัดการฝ่าย หรือ ผู้บริหาร/HR เป็นผู้อนุมัติ',
       icon: 'warning',
       confirmButtonColor: '#06b6d4'
     });
     return false;
   }
 
-  // ดึง Role ของ "ผู้ยื่นขอลา"
-  const applicantRole = String(req.employees?.role || '').toLowerCase();
-  const isApplicantHeadOrHr = ['leader', 'manager', 'director', 'hr', 'admin'].includes(applicantRole);
-  const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+  // ดึงสถานะปัจจุบันของแต่ละขั้น
+  const isL1Approved = req.manager_status === 'approved';
+  const isL2Approved = req.director_status === 'approved';
+  const isL3Approved = req.executive_status === 'approved';
+  const isFinalApproved = req.status === 'approved';
 
-  // 🔵 2. กรณีผู้จัดการ (L2) กำลังพิจารณา
+  // 🔵 2. กรณีหัวหน้างาน (L1 Leader) กำลังพิจารณา
+  if (role === 'leader') {
+    if (isL1Approved) {
+      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้หัวหน้างาน (L1) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/HR', 'info');
+      return false;
+    }
+  }
+
+  // 🔵 3. กรณีผู้จัดการ (L2 Manager) กำลังพิจารณา
   if (role === 'manager') {
-    // ถ้าพนักงานทั่วไปยื่น ต้องผ่าน L1 ก่อน แต่ถ้าผู้ยื่นเป็นระดับ Leader ขึ้นไป ให้ข้าม L1 ได้เลย
-    if (!isApplicantHeadOrHr && req.manager_status !== 'approved') {
-      Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "หัวหน้าแผนก (L1)" พิจารณาอนุมัติก่อน', 'warning');
+    if (isL2Approved) {
+      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ผู้จัดการฝ่าย (L2) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของ HR/ผู้บริหาร', 'info');
+      return false;
+    }
+    // หาก L1 ยังไม่ได้รับอนุมัติ ผู้จัดการมีสิทธิ์พิจารณาอนุมัติแทนหรืออนุมัติข้ามขั้นได้ทันที
+  }
+
+  // 🟡 4. กรณีผู้บริหาร (L3 Executive / Director) กำลังพิจารณา
+  if (role === 'director' || role === 'executive' || role === 'owner') {
+    if (isL3Approved || isFinalApproved) {
+      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
       return false;
     }
   }
 
-  // 🟡 3. กรณีผู้บริหาร (L3) กำลังพิจารณา ในระบบ 4 ขั้นตอน
-  if (hasExecutiveColumn && (role === 'executive' || role === 'director' || role === 'owner')) {
-    if (!isApplicantLeaderOrManager) {
-      Swal.fire('ไม่จำเป็นต้องอนุมัติ', 'พนักงานท่านนี้ไม่จำเป็นต้องผ่านการอนุมัติจากผู้บริหาร (L3)', 'info');
-      return false;
-    }
-    if (req.director_status !== 'approved') {
-      Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
-      return false;
-    }
-  }
-
-  // 🟢 4. กรณีฝ่าย HR / Admin กำลังพิจารณา
+  // 🟢 5. กรณีฝ่ายบุคคล (HR / Admin) กำลังพิจารณา
   if (role === 'hr' || role === 'admin') {
-    if (hasExecutiveColumn) {
-      if (isApplicantLeaderOrManager) {
-        if (req.executive_status !== 'approved') {
-          Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้บริหาร (L3)" พิจารณาอนุมัติก่อน', 'warning');
-          return false;
-        }
-      } else {
-        // พนักงานธรรมดา ไม่ต้องรอ L3 (ข้ามไปได้เลย) แต่ต้องผ่าน L2 (ผู้จัดการฝ่าย) ก่อน
-        if (req.director_status !== 'approved') {
-          Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
-          return false;
-        }
-      }
-    } else {
-      // ระบบ 3 ขั้นตอนปกติ: ต้องรอ L2 ก่อน (ถ้าผู้ยื่นไม่ใช่ระดับหัวหน้า/HR)
-      if (!isApplicantHeadOrHr && req.director_status !== 'approved') {
-        Swal.fire('ไม่สามารถดำเนินการได้', 'คำร้องนี้ต้องรอให้ "ผู้จัดการฝ่าย (L2)" พิจารณาอนุมัติก่อน', 'warning');
-        return false;
-      }
+    if (isFinalApproved) {
+      Swal.fire('ดำเนินการแล้ว', 'ใบลาฉบับนี้ได้รับการอนุมัติขั้นสุดท้ายแล้ว', 'info');
+      return false;
     }
   }
 
@@ -630,7 +660,30 @@ function renderLeaveTable() {
     const startDate = formatThaiDate(req.start_date);
     const endDate = formatThaiDate(req.end_date);
     const avatarUrl = getAvatarUrl(req.employees?.image_url);
-    const displayDays = req.actual_days || req.days_requested || req.total_days || 0;
+    const rawDays = req.actual_days || req.days_requested || req.total_days || 0;
+    const leaveHours = req.leave_hours || 0;
+    let durationText = `${rawDays} วัน`;
+    if (leaveHours > 0) {
+      const d = Math.floor(leaveHours / 8);
+      const remH = leaveHours % 8;
+      const wholeH = Math.floor(remH);
+      const mins = Math.round((remH - wholeH) * 60);
+      let parts = [];
+      if (d > 0) parts.push(`${d} วัน`);
+      if (wholeH > 0) parts.push(`${wholeH} ชม.`);
+      if (mins > 0) parts.push(`${mins} นาที`);
+      durationText = parts.length > 0 ? parts.join(" ") : `${leaveHours} ชม.`;
+    } else if (rawDays % 1 !== 0) {
+      const wholeDays = Math.floor(rawDays);
+      const totalH = (rawDays - wholeDays) * 8;
+      const wholeH = Math.floor(totalH);
+      const mins = Math.round((totalH - wholeH) * 60);
+      let parts = [];
+      if (wholeDays > 0) parts.push(`${wholeDays} วัน`);
+      if (wholeH > 0) parts.push(`${wholeH} ชม.`);
+      if (mins > 0) parts.push(`${mins} นาที`);
+      durationText = parts.length > 0 ? parts.join(" ") : `${rawDays} วัน`;
+    }
     const attachmentUrl = getAttachmentUrl(req);
 
     let actionButtons = "";
@@ -687,7 +740,7 @@ function renderLeaveTable() {
         <div class="card-zone details-zone">
           <div class="detail-row">
             <span class="label">ประเภท:</span>
-            <span class="val-highlight">${leaveType} (${displayDays} วัน)</span>
+            <span class="val-highlight">${leaveType} (${durationText})</span>
           </div>
           <div class="detail-row">
             <span class="label">วันที่:</span>
@@ -718,25 +771,57 @@ function renderLeaveTable() {
           ` : ''}
         </div>
 
-        <!-- Zone 3: Approval Steps -->
+        <!-- Zone 3: Approval Steps (ซ่อน L1/L2 หากแผนกไม่มีผู้รับผิดชอบในระดับนั้น) -->
         <div class="card-zone status-zone">
           <div class="status-steps-grid">
-            <div class="step-item">
-              <span class="step-lbl">หัวหน้า (L1)</span>
-              ${getStatusBadgeHTML(req.manager_status)}
-            </div>
-            <div class="step-item">
-              <span class="step-lbl">ผู้จัดการ (L2)</span>
-              ${getStatusBadgeHTML(req.director_status)}
-            </div>
-            <div class="step-item">
-              <span class="step-lbl">บริหาร (L3)</span>
-              <div class="badge-mini">${ executiveStatusHTML }</div>
-            </div>
-            <div class="step-item">
-              <span class="step-lbl">${hasExecutiveColumn && isApplicantLeaderOrManager ? 'HR (L4)' : 'HR (L3)'}</span>
-              ${getStatusBadgeHTML(req.status)}
-            </div>
+            ${(() => {
+              const reqDeptId = req.department_id || req.employees?.department_id;
+              const reqDeptInfo = deptApproversMap[reqDeptId];
+              const hasL1 = reqDeptInfo ? Boolean(reqDeptInfo.supervisor_id) : true;
+              const hasL2 = reqDeptInfo ? Boolean(reqDeptInfo.manager_id) : true;
+
+              let stepsHtml = '';
+              let stepIdx = 1;
+
+              if (hasL1) {
+                stepsHtml += `
+                  <div class="step-item">
+                    <span class="step-lbl">หัวหน้า (L${stepIdx})</span>
+                    ${getStatusBadgeHTML(req.manager_status)}
+                  </div>
+                `;
+                stepIdx++;
+              }
+
+              if (hasL2) {
+                stepsHtml += `
+                  <div class="step-item">
+                    <span class="step-lbl">ผู้จัดการ (L${stepIdx})</span>
+                    ${getStatusBadgeHTML(req.director_status)}
+                  </div>
+                `;
+                stepIdx++;
+              }
+
+              if (hasExecutiveColumn && isApplicantLeaderOrManager) {
+                stepsHtml += `
+                  <div class="step-item">
+                    <span class="step-lbl">บริหาร (L${stepIdx})</span>
+                    <div class="badge-mini">${executiveStatusHTML}</div>
+                  </div>
+                `;
+                stepIdx++;
+              }
+
+              stepsHtml += `
+                <div class="step-item">
+                  <span class="step-lbl">HR (L${stepIdx})</span>
+                  ${getStatusBadgeHTML(req.status)}
+                </div>
+              `;
+
+              return stepsHtml;
+            })()}
           </div>
         </div>
 
@@ -837,6 +922,7 @@ function previewLeaveModal(leaveId) {
   const emp = req.employees || {};
   const avatarUrl = getAvatarUrl(emp.image_url);
   const displayDays = req.actual_days || req.days_requested || req.total_days || 0;
+  const friendlyDuration = window.PVTSDK?.formatLeaveDurationFriendly ? window.PVTSDK.formatLeaveDurationFriendly(displayDays, req.leave_hours || 0) : `${displayDays} วัน`;
   const leaveName = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุประเภทการลา";
   const attachUrl = getAttachmentUrl(req);
   const isImage = attachUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachUrl.split('?')[0]);
@@ -856,8 +942,8 @@ function previewLeaveModal(leaveId) {
         <div style="color: var(--primary); font-weight:700;">${leaveName}</div>
       </div>
       <div class="preview-item">
-        <label>จำนวนวันลาทั้งหมด</label>
-        <div>${displayDays} วัน</div>
+        <label>ระยะเวลาการลา</label>
+        <div style="font-weight:700; color:var(--text);">${friendlyDuration}</div>
       </div>
       <div class="preview-item">
         <label>ตั้งแต่วันที่</label>
@@ -895,31 +981,54 @@ function previewLeaveModal(leaveId) {
     <div style="margin-bottom: 16px;">
       <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); display: block; margin-bottom: 6px;">สถานะการอนุมัติตามลำดับขั้น</label>
       <div class="workflow-steps">
-        <div class="step-card">
-          <span class="role-title">1. หัวหน้าแผนก (L1)</span>
-          ${getStatusBadgeHTML(req.manager_status)}
-        </div>
-        <div class="step-card">
-          <span class="role-title">2. ผู้จัดการฝ่าย (L2)</span>
-          ${getStatusBadgeHTML(req.director_status)}
-        </div>
-        ${hasExecutiveColumn ? `
-        ${['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase()) ? `
-        <div class="step-card">
-          <span class="role-title">3. ผู้บริหาร (L3)</span>
-          ${getStatusBadgeHTML(req.executive_status)}
-        </div>
-        ` : ''}
-        <div class="step-card">
-          <span class="role-title">${['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase()) ? '4. ฝ่าย HR (L4)' : '3. ฝ่าย HR (L3)'}</span>
-          ${getStatusBadgeHTML(req.status)}
-        </div>
-        ` : `
-        <div class="step-card">
-          <span class="role-title">3. ฝ่าย HR (L3)</span>
-          ${getStatusBadgeHTML(req.status)}
-        </div>
-        `}
+        ${(() => {
+          const reqDeptId = req.department_id || req.employees?.department_id;
+          const reqDeptInfo = deptApproversMap[reqDeptId];
+          const hasL1 = reqDeptInfo ? Boolean(reqDeptInfo.supervisor_id) : true;
+          const hasL2 = reqDeptInfo ? Boolean(reqDeptInfo.manager_id) : true;
+
+          let modalStepsHtml = '';
+          let modalStepNum = 1;
+
+          if (hasL1) {
+            modalStepsHtml += `
+              <div class="step-card">
+                <span class="role-title">${modalStepNum}. หัวหน้าแผนก (L${modalStepNum})</span>
+                ${getStatusBadgeHTML(req.manager_status)}
+              </div>
+            `;
+            modalStepNum++;
+          }
+
+          if (hasL2) {
+            modalStepsHtml += `
+              <div class="step-card">
+                <span class="role-title">${modalStepNum}. ผู้จัดการฝ่าย (L${modalStepNum})</span>
+                ${getStatusBadgeHTML(req.director_status)}
+              </div>
+            `;
+            modalStepNum++;
+          }
+
+          if (hasExecutiveColumn && ['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase())) {
+            modalStepsHtml += `
+              <div class="step-card">
+                <span class="role-title">${modalStepNum}. ผู้บริหาร (L${modalStepNum})</span>
+                ${getStatusBadgeHTML(req.executive_status)}
+              </div>
+            `;
+            modalStepNum++;
+          }
+
+          modalStepsHtml += `
+            <div class="step-card">
+              <span class="role-title">${modalStepNum}. ฝ่าย HR (L${modalStepNum})</span>
+              ${getStatusBadgeHTML(req.status)}
+            </div>
+          `;
+
+          return modalStepsHtml;
+        })()}
       </div>
     </div>
 
@@ -1002,7 +1111,7 @@ async function approveLeave(leaveId) {
     }
 
     if (currentRole === 'leader') {
-      // ✅ L1 อนุมัติ
+      // ✅ L1 อนุมัติ (หัวหน้างาน / Supervisor)
       updateFields.manager_status = 'approved';
 
       // 🔀 ตรวจสายอนุมัติของแผนกจาก department_approvers
@@ -1020,19 +1129,18 @@ async function approveLeave(leaveId) {
 
         if (!approverConfig?.manager_id) {
           console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี L2 → ข้ามไป HR');
-
-          // director_status คือสถานะของขั้น L2 ในโครงสร้างเดิม
           updateFields.director_status = 'approved';
-
-          // พนักงานทั่วไปไม่ต้องผ่านผู้บริหาร L3
           if (hasExecutiveColumn) {
             updateFields.executive_status = 'approved';
           }
         }
       }
     } else if (currentRole === 'manager') {
+      // ✅ L2 อนุมัติ (ผู้จัดการฝ่าย / Department Manager)
       updateFields.director_status = 'approved';
-      // ถ้าเป็นพนักงานทั่วไป ไม่ต้องมีผู้บริหาร (L3) อนุมัติ ให้เปลี่ยนสถานะ executive_status เป็น 'approved' ควบคู่ไปด้วยเลย เพื่อความสมบูรณ์ของประวัติใน DB
+      if (reqData.manager_status !== 'approved') {
+        updateFields.manager_status = 'approved';
+      }
       if (hasExecutiveColumn) {
         const applicantRole = String(reqData.employees?.role || '').toLowerCase();
         const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
@@ -1041,15 +1149,20 @@ async function approveLeave(leaveId) {
         }
       }
     } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
+      // ✅ L3 อนุมัติ (ผู้บริหารระดับสูง / Director / Executive)
+      if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+      if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
       if (hasExecutiveColumn) {
         updateFields.executive_status = 'approved';
       } else {
-        updateFields.director_status = 'approved';
         updateFields.status = 'approved';
         updateFields.approved_at = new Date().toISOString();
       }
     } else {
-      // HR / Admin / อื่นๆ
+      // ✅ L4 / ขั้นสุดท้าย (ฝ่ายบุคคล HR / Super Admin)
+      if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+      if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
+      if (hasExecutiveColumn) updateFields.executive_status = 'approved';
       updateFields.status = 'approved';
       updateFields.approved_at = new Date().toISOString();
     }
@@ -1580,6 +1693,7 @@ async function printLeaveA4(leaveId) {
 
     const emp = req.employees || {};
     const printDays = req.actual_days || req.days_requested || req.total_days || 0;
+    const printDurationFormatted = window.PVTSDK?.formatLeaveDurationFriendly ? window.PVTSDK.formatLeaveDurationFriendly(printDays, req.leave_hours || 0) : `${printDays} วัน`;
     const leaveName = req.leave_types?.leave_name || 'ไม่ระบุประเภทการลา';
     const deptName = emp.departments?.department_name || '-';
     const posName = emp.positions?.position_name || '-';
@@ -1704,8 +1818,8 @@ async function printLeaveA4(leaveId) {
                 <td class="value"><strong>${formatThaiDate(req.end_date)}</strong></td>
               </tr>
               <tr>
-                <td class="label">รวมจำนวนวันลา</td>
-                <td class="value" colspan="3"><strong style="font-size: 16px; color: #059669;">${printDays} วัน</strong></td>
+                <td class="label">รวมระยะเวลาการลา</td>
+                <td class="value" colspan="3"><strong style="font-size: 16px; color: #059669;">${printDurationFormatted}</strong></td>
               </tr>
             </table>
           </div>
@@ -2296,6 +2410,111 @@ async function exportLeaveReportExcel() {
     });
   }
 }
+
+/* ==========================================================================
+   👥 7.5 TEAM ROSTER FOR DEPARTMENTS
+   ========================================================================== */
+async function renderDepartmentTeamRoster() {
+  const container = document.getElementById("hrTeamContainer");
+  const titleEl = document.getElementById("hrTeamSectionTitle");
+  const badgeEl = document.getElementById("hrTeamCountBadge");
+
+  if (!container) return;
+
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const empData = currentUserProfile?.employees || sessionUser?.employees || sessionUser || {};
+  const userDeptId = empData?.department_id || currentUserProfile?.department_id;
+  const userRole = currentRole || "leader";
+
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) return;
+
+  try {
+    let query = sb.from("employees").select("id, full_name, nickname, employee_code, image_url, line_id, role, department_id, departments(department_name), positions(position_name)").order("full_name");
+
+    // ถ้าเป็น Leader หรือ Manager ที่ไม่ใช่ HR/Admin ให้กรองเฉพาะพนักงานในแผนกตัวเอง
+    if (["leader", "manager"].includes(userRole) && userDeptId) {
+      query = query.eq("department_id", userDeptId);
+    }
+
+    const { data: list, error } = await query;
+    if (error || !list || list.length === 0) {
+      container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-soft);">ไม่พบข้อมูลพนักงานในแผนก</div>`;
+      if (badgeEl) badgeEl.textContent = "0 คน";
+      return;
+    }
+
+    if (badgeEl) badgeEl.textContent = `${list.length} คน`;
+
+    if (titleEl) {
+      if (["hr", "admin", "director"].includes(userRole)) {
+        titleEl.textContent = "รายชื่อพนักงานในองค์กรทั้งหมด";
+      } else {
+        const deptName = list[0]?.departments?.department_name || "แผนกของคุณ";
+        titleEl.textContent = `รายชื่อสมาชิกพนักงานในแผนก (${deptName})`;
+      }
+    }
+
+    container.innerHTML = list.map(emp => {
+      const avatar = getAvatarUrl(emp.image_url);
+      const pos = emp.positions?.position_name || "พนักงาน";
+      const deptName = emp.departments?.department_name || "-";
+      const codeStr = emp.employee_code ? `รหัส: ${emp.employee_code}` : "";
+      const nickStr = emp.nickname ? `(${emp.nickname})` : "";
+      const roleStr = (emp.role || "").toLowerCase();
+
+      let roleTag = '<span class="status-badge status-cancelled" style="font-size:10px; padding:2px 6px;">พนักงาน</span>';
+      if (roleStr === "leader" || roleStr.includes("leader")) {
+        roleTag = '<span class="status-badge status-pending" style="font-size:10px; padding:2px 6px; background:#fef3c7; color:#b45309;">👑 หัวหน้า (L1)</span>';
+      } else if (roleStr === "manager" || roleStr.includes("manager")) {
+        roleTag = '<span class="status-badge status-approved" style="font-size:10px; padding:2px 6px; background:#dbeafe; color:#1d4ed8;">💼 ผู้จัดการ (L2)</span>';
+      } else if (["hr", "admin"].includes(roleStr)) {
+        roleTag = '<span class="status-badge status-approved" style="font-size:10px; padding:2px 6px; background:#f3e8ff; color:#6b21a8;">⚙️ ฝ่ายบุคคล</span>';
+      }
+
+      const lineStatus = emp.line_id 
+        ? '<span style="color:#16a34a; font-size:11px; font-weight:600;">● LINE เชื่อมแล้ว</span>'
+        : '<span style="color:#94a3b8; font-size:11px;">○ ยังไม่ผูก LINE</span>';
+
+      return `
+        <div style="display:flex; align-items:center; gap:12px; padding:12px; background:#ffffff; border:1px solid var(--border); border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+          <img src="${avatar}" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid var(--border-soft); flex-shrink:0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${escapeHtml(emp.full_name)} ${nickStr}
+            </div>
+            <div style="font-size:12px; color:var(--primary); font-weight:600; margin:2px 0;">
+              💼 ${escapeHtml(pos)} <span style="font-weight:400; color:var(--text-soft); font-size:11px;">(${escapeHtml(deptName)})</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--text-soft);">
+              <span>${codeStr}</span>
+              ${lineStatus}
+            </div>
+            <div style="margin-top:4px;">${roleTag}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+  } catch(e) {
+    console.error("renderDepartmentTeamRoster error:", e);
+    container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:#ef4444;">เกิดข้อผิดพลาดในการโหลดสมาชิก</div>`;
+  }
+}
+
+window.toggleHrTeamContainer = function(btn) {
+  const container = document.getElementById("hrTeamContainer");
+  const icon = document.getElementById("hrTeamToggleIcon");
+  if (!container) return;
+  if (container.style.display === "none") {
+    container.style.display = "grid";
+    if (icon) icon.textContent = "expand_less";
+  } else {
+    container.style.display = "none";
+    if (icon) icon.textContent = "expand_more";
+  }
+};
 
 /* ==========================================================================
    🚪 8. GLOBAL EXPORTS & LOGOUT

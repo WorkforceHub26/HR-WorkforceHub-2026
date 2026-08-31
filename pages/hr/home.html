@@ -11,8 +11,8 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
   
- 
-
+  <!-- Security Auth Guard (Head Check) -->
+  <script src="/js/auth-guard.js"></script>
 </head>
 
 <body>
@@ -125,21 +125,67 @@
             <span class="value" id="statTotalEmployees">0</span>
           </div>
         </div>
-        <div class="stat-card border-green">
-          <div class="icon-box bg-green"><span class="material-symbols-outlined">person</span></div>
-          <div class="stat-info">
-            <span class="label">ลาวันนี้ (คน)</span>
-            <span class="value" id="statTodayLeaves">0</span>
-          </div>
-        </div>
         <div class="stat-card border-orange">
           <div class="icon-box bg-orange"><span class="material-symbols-outlined">pending_actions</span></div>
           <div class="stat-info">
-            <span class="label">ใบลารออนุมัติ (รอพิจารณา)</span>
+            <span class="label">รอพิจารณา (L1/L2)</span>
             <span class="value" id="statPendingLeaves">0</span>
           </div>
         </div>
+        <div class="stat-card border-green">
+          <div class="icon-box bg-green"><span class="material-symbols-outlined">how_to_reg</span></div>
+          <div class="stat-info">
+            <span class="label">ลาวันนี้</span>
+            <span class="value" id="statTodayLeaves">0</span>
+          </div>
+        </div>
+        <div class="stat-card border-purple">
+          <div class="icon-box bg-purple"><span class="material-symbols-outlined">event_upcoming</span></div>
+          <div class="stat-info">
+            <span class="label">ลาพรุ่งนี้</span>
+            <span class="value" id="statTomorrowLeaves">0</span>
+          </div>
+        </div>
       </div>
+
+      <!-- 📌 ROW: Today's Leaves Detailed List -->
+      <section class="panel mb-6" id="todayLeavesPanel">
+        <div class="panel-header">
+          <span class="material-symbols-outlined text-primary">hail</span>
+          <h2>รายละเอียดพนักงานที่ลาวันนี้</h2>
+        </div>
+        <div class="card-body">
+          <div id="todayLeavesDetailList" class="today-leaves-grid">
+            <div style="padding: 20px; text-align: center; color: #94a3b8;">กำลังโหลดข้อมูล...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 👥 PANEL: รายชื่อพนักงานในแผนก (สำหรับหัวหน้า / ผู้จัดการ / HR) -->
+      <section class="panel mb-6" id="homeDepartmentTeamSection">
+        <div class="panel-header" style="justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="material-symbols-outlined text-primary" style="font-size: 26px; color: var(--primary);">badge</span>
+            <div>
+              <h2 id="homeTeamSectionTitle" style="margin: 0; font-size: 16px; font-weight: 700;">สมาชิกพนักงานในแผนก</h2>
+              <p id="homeTeamSectionSubtitle" style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-soft);">รายชื่อพนักงานและตำแหน่งงานสังกัดแผนกของคุณ</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="homeTeamCountBadge" style="background: var(--primary-soft, #e0f2fe); color: var(--primary, #0284c7); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 20px;">0 คน</span>
+            <button type="button" class="btn-toggle-icon" onclick="toggleHomeTeamContainer(this)" title="ซ่อน/แสดง รายชื่อสมาชิก" style="background: transparent; border: none; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center;">
+              <span class="material-symbols-outlined" id="homeTeamToggleIcon">expand_less</span>
+            </button>
+          </div>
+        </div>
+        <div class="card-body" style="padding: 16px;">
+          <div id="homeTeamMembersGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;">
+            <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
+              ⏳ กำลังโหลดข้อมูลสมาชิกในแผนก...
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- 📌 ROW 1: เมนูด่วน + กราฟสัดส่วนประเภทการลา -->
       <div class="middle-grid">
@@ -171,7 +217,7 @@
                 <p>ตั้งค่าสิทธิ์วันลา</p>
               </div>
             </a>
-            <a href="/pages/admin/holidays.html" class="quick-card hover-orange">
+            <a href="/pages/user/holidays.html" class="quick-card hover-orange">
               <div class="icon-circle bg-orange"><span class="material-symbols-outlined">calendar_today</span></div>
               <div class="text">
                 <strong>วันหยุดบริษัท</strong>

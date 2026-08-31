@@ -10,21 +10,24 @@ function getSbClient() {
 }
 
 // 🚀 1. ฟังก์ชันย้ายหน้าจอตามสิทธิ์การใช้งาน (Role Routing)
-function redirectToDashboard(role) {
+function redirectToDashboard(role, userObj) {
   const cleanRole = String(role || '').toLowerCase().trim();
   let targetPath = "/pages/user/index-user.html";
   
-  const executiveRoles = [
-    'executive', 'director', 'owner'
+  let userStatus = { category: 'employee' };
+  if (typeof window.getUserRoleCategory === "function") {
+    userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
+  }
+
+  const isPower = userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager';
+
+  const powerRoles = [
+    'executive', 'director', 'owner', 'hr', 'admin', 'superadmin', 'manager', 'leader', 'supervisor', 'head', 'ผู้บริหาร', 'ผู้อำนวยการ', 'เจ้าของ', 'หัวหน้า', 'ผู้จัดการ'
   ];
 
-  const isExecutive = executiveRoles.includes(cleanRole) ||
-    cleanRole.includes('director') ||
-    cleanRole.includes('executive') ||
-    cleanRole.includes('ผู้บริหาร') ||
-    cleanRole.includes('ผู้อำนวยการ');
+  const isPowerRole = powerRoles.some(r => cleanRole.includes(r));
   
-  if (isExecutive) {
+  if (isPower || isPowerRole) {
     targetPath = "/pages/hr/home.html";
   } else {
     targetPath = "/pages/user/index-user.html";
@@ -116,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       // 2. Fallback: ค้นหาในตาราง employees โดยตรง
       if (!user) {
-        let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password");
+        let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password, department_id, position_id, image_url, departments(department_name), positions(position_name, level_type, duty_name)");
         let queryRes;
         if (loginInput.includes("@")) {
           queryRes = await baseQuery.eq("email", loginInput);
@@ -144,7 +147,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       saveUserSession(user);
       sessionStorage.removeItem("redirect_attempt");
-      redirectToDashboard(user.role);
+      redirectToDashboard(user.role, user);
 
     } catch (err) {
       Swal.fire({
@@ -163,12 +166,22 @@ function saveUserSession(userData) {
   const isRemember = rememberCheckbox ? rememberCheckbox.checked : true;
   const expireHours = isRemember ? (30 * 24) : 12; // 30 วัน ถ้าจดจำระบบ, 12 ชม. ถ้าไม่
   
+  const deptName = userData.department_name || userData.departments?.department_name || "";
+  const posName = userData.position_name || userData.positions?.position_name || "";
+  const dutyName = userData.duty_name || userData.positions?.duty_name || "";
+
   const sessionPayload = {
     id: userData.id,
     employee_code: userData.employee_code,
     full_name: userData.full_name,
     role: userData.role || "user",
     status: userData.status || "active",
+    department_id: userData.department_id || "",
+    position_id: userData.position_id || "",
+    department_name: deptName,
+    position_name: posName,
+    duty_name: dutyName,
+    image_url: userData.image_url || "",
     expireAt: new Date().getTime() + (expireHours * 60 * 60 * 1000)
   };
   localStorage.setItem("currentUser", JSON.stringify(sessionPayload));

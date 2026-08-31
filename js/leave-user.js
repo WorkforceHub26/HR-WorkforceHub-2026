@@ -107,11 +107,52 @@ function getBalanceForYear(leaveTypeId, year) {
 function formatHoursToThaiText(totalHours) {
   if (!totalHours || totalHours <= 0) return "";
   const days = Math.floor(totalHours / 8);
-  const hours = totalHours % 8;
-  let result = [];
-  if (days > 0) result.push(`${days} วัน`);
-  if (hours > 0) result.push(`${hours} ชั่วโมง`);
-  return result.join(" ");
+  const remainingHours = totalHours % 8;
+  const wholeHours = Math.floor(remainingHours);
+  const minutes = Math.round((remainingHours - wholeHours) * 60);
+
+  let parts = [];
+  if (days > 0) parts.push(`${days} วัน`);
+  if (wholeHours > 0) parts.push(`${wholeHours} ชั่วโมง`);
+  if (minutes > 0) parts.push(`${minutes} นาที`);
+
+  return parts.length > 0 ? parts.join(" ") : `${totalHours} ชั่วโมง`;
+}
+
+function formatLeaveDurationText(totalDays, totalHours = 0) {
+  const daysNum = parseFloat(totalDays) || 0;
+  const hoursNum = parseFloat(totalHours) || 0;
+
+  if (daysNum <= 0 && hoursNum <= 0) return "0 วัน";
+
+  // กรณีมี totalHours ระบุชัดเจน
+  if (hoursNum > 0) {
+    const daysFromHours = Math.floor(hoursNum / 8);
+    const remHours = hoursNum % 8;
+    const wholeH = Math.floor(remHours);
+    const mins = Math.round((remHours - wholeH) * 60);
+
+    let parts = [];
+    if (daysFromHours > 0) parts.push(`${daysFromHours} วัน`);
+    if (wholeH > 0) parts.push(`${wholeH} ชั่วโมง`);
+    if (mins > 0) parts.push(`${mins} นาที`);
+
+    return parts.length > 0 ? parts.join(" ") : `${hoursNum} ชั่วโมง`;
+  }
+
+  // กรณีคำนวณจาก totalDays ที่เป็นทศนิยม
+  const wholeDays = Math.floor(daysNum);
+  const fracDay = daysNum - wholeDays;
+  const totalH = fracDay * 8;
+  const wholeH = Math.floor(totalH);
+  const mins = Math.round((totalH - wholeH) * 60);
+
+  let parts = [];
+  if (wholeDays > 0) parts.push(`${wholeDays} วัน`);
+  if (wholeH > 0) parts.push(`${wholeH} ชั่วโมง`);
+  if (mins > 0) parts.push(`${mins} นาที`);
+
+  return parts.length > 0 ? parts.join(" ") : `${daysNum} วัน`;
 }
 
 async function checkOverlappingLeave(employeeId, startDate, endDate) {
@@ -788,8 +829,9 @@ async function addLeaveRow() {
         </div>
       </div>
       <div class="input-group">
-        <label>สรุปรวมจำนวนวัน</label>
-        <input type="number" placeholder="0" readonly name="leave_days" class="readonly-highlight" value="0">
+        <label>สรุปรวมระยะเวลาที่ขอลา</label>
+        <input type="text" placeholder="0 วัน" readonly name="leave_days_display" class="readonly-highlight" value="0 วัน" style="font-weight:700; color:#0f766e !important; background:#f0fdfa !important; border-color:#99f6e4 !important;">
+        <input type="hidden" name="leave_days" value="0">
       </div>
     </div>
 
@@ -883,7 +925,15 @@ function calculateLeaveDays(element) {
     totalDays = (totalDays > 0 ? totalDays - 1 : 0) + extraDays;
   }
 
-  resultInput.value = totalDays % 1 === 0 ? totalDays : Number(totalDays.toFixed(4));
+  const cleanDays = totalDays % 1 === 0 ? totalDays : Number(totalDays.toFixed(4));
+  if (resultInput) {
+    resultInput.value = cleanDays;
+  }
+
+  const displayInput = boxItem.querySelector('input[name="leave_days_display"]');
+  if (displayInput) {
+    displayInput.value = formatLeaveDurationText(cleanDays, (startDateInput === endDateInput && totalHours > 0) ? totalHours : 0);
+  }
 }
 
 // ==========================================
@@ -932,11 +982,13 @@ async function sendNotification(title, message, type = 'leave', targetUrl = '/pa
     const payload = {
       title: title,
       message: message,
+      type: 'leave',
+      link_url: '/pages/hr/hr.html',
       is_read: false
     };
     
     if (recipientId) {
-      payload.user_id = recipientId;
+      payload.employee_id = recipientId;
     }
 
     const { error } = await sb.from("notifications").insert([payload]);
@@ -1008,6 +1060,14 @@ async function saveLeave() {
 
   const rawRole = currentProfile.role || currentProfile.position_name || localStorage.getItem("userRole") || "";
   const userRole = String(rawRole).toLowerCase().trim();
+  const deptId = currentProfile?.department_id || null;
+
+  // 🔀 ดึงข้อมูลสายอนุมัติของแผนกเพื่อตรวจสอบความหยืดหยุ่น (มี L1/L2 หรือไม่)
+  let approverConfig = null;
+  if (deptId) {
+    const { data } = await sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle();
+    approverConfig = data;
+  }
 
   let defaultManagerStatus = "pending";
   let defaultDirectorStatus = "pending";
@@ -1018,34 +1078,29 @@ async function saveLeave() {
     userRole.includes("director") || userRole.includes("ผู้บริหาร") ||
     userRole.includes("เจ้าของ")
   ) {
-    // ผู้บริหารยื่นเอง → ข้าม L1/L2 แล้วเข้า HR
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
-
   } else if (
     userRole.includes("manager") || userRole.includes("ผู้จัดการ")
   ) {
-    // ผู้จัดการยื่นเอง → ข้าม L1 และ L2 → รอผู้บริหาร L3
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
-
   } else if (
     userRole.includes("leader") || userRole.includes("supervisor") ||
     userRole.includes("head") || userRole.includes("หัวหน้า")
   ) {
-    // หัวหน้ายื่นเอง → ข้าม L1 → รอ L2 (ถ้ามี)
     defaultManagerStatus = "approved";
-    defaultDirectorStatus = "pending";
-
+    // ถ้าแผนกนี้ไม่มีผู้จัดการ L2 -> ให้ผ่าน L2 ไปเลย
+    defaultDirectorStatus = (!approverConfig?.manager_id) ? "approved" : "pending";
   } else if (userRole.includes("hr") || userRole.includes("admin")) {
-    // HR/Admin ยื่นเอง → ข้าม L1/L2
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
-
   } else {
-    // พนักงานทั่วไป → L1 → L2 (ถ้ามี) → HR
-    defaultManagerStatus = "pending";
-    defaultDirectorStatus = "pending";
+    // พนักงานทั่วไป:
+    // ถ้าไม่มี L1 ในแผนก -> ข้าม L1
+    if (!approverConfig?.supervisor_id) defaultManagerStatus = "approved";
+    // ถ้าไม่มี L2 ในแผนก -> ข้าม L2
+    if (!approverConfig?.manager_id) defaultDirectorStatus = "approved";
   }
 
   const payload = [];
@@ -1345,9 +1400,19 @@ async function saveLeave() {
     // --- Logic หาผู้อนุมัติ ---
     if (isExecutiveApplicant) {
       console.log("ℹ️ [Workflow] ผู้บริหารยื่นลาเอง");
+      // แจ้ง HR รับทราบ
+      const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).limit(1).maybeSingle();
+      if (hrEmp) {
+        recipient = hrEmp;
+        recipientRole = "hr";
+      }
     } else if (isManagerApplicant) {
       recipient = await findExecutiveRecipient();
       recipientRole = "executive";
+      if (!recipient) {
+        const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).limit(1).maybeSingle();
+        if (hrEmp) { recipient = hrEmp; recipientRole = "hr"; }
+      }
     } else if (isLeaderApplicant) {
       if (deptId) {
         const { data: routing } = await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle();
@@ -1355,19 +1420,37 @@ async function saveLeave() {
           const { data: mgr } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", routing.manager_id).maybeSingle();
           recipient = mgr;
           recipientRole = "manager";
-        } else {
-          recipient = await findExecutiveRecipient();
-          recipientRole = "executive";
         }
       }
+      if (!recipient) {
+        recipient = await findExecutiveRecipient();
+        recipientRole = "executive";
+      }
+      if (!recipient) {
+        const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).limit(1).maybeSingle();
+        if (hrEmp) { recipient = hrEmp; recipientRole = "hr"; }
+      }
     } else {
+      // พนักงานทั่วไป: ลำดับคือ หัวหน้างาน (L1) -> ผู้จัดการฝ่าย (L2) -> ผู้บริหาร (L3) -> HR
       if (deptId) {
-        const { data: routing } = await sb.from("department_approvers").select("supervisor_id").eq("department_id", deptId).maybeSingle();
+        const { data: routing } = await sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle();
         if (routing?.supervisor_id) {
           const { data: leaderEmp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", routing.supervisor_id).maybeSingle();
           recipient = leaderEmp;
           recipientRole = "leader";
+        } else if (routing?.manager_id) {
+          const { data: mgrEmp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", routing.manager_id).maybeSingle();
+          recipient = mgrEmp;
+          recipientRole = "manager";
         }
+      }
+      if (!recipient) {
+        recipient = await findExecutiveRecipient();
+        recipientRole = "executive";
+      }
+      if (!recipient) {
+        const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).limit(1).maybeSingle();
+        if (hrEmp) { recipient = hrEmp; recipientRole = "hr"; }
       }
     }
 

@@ -144,6 +144,29 @@ window.refreshDashboardData = async function() {
     rawEmployees = resEmployees?.data || [];
     const allLeaveTypes = resLeaveTypes?.data || [];
 
+    // --- 🔐 Role-Based Data Filtering (Personalized Dashboard) ---
+    const savedSession = localStorage.getItem("currentUser");
+    const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+    const myRole = String(sessionUser.role || 'user').toLowerCase();
+    const myDeptId = sessionUser.department_id || (rawEmployees.find(e => String(e.id) === String(sessionUser.id))?.department_id);
+
+    // ถ้าเป็น Leader หรือ Manager ให้เห็นเฉพาะข้อมูลในแผนกตนเอง
+    const isDeptHead = (myRole === 'leader' || myRole === 'manager');
+    if (isDeptHead && myDeptId) {
+      console.log(`🔒 [Role Filter]: กรองข้อมูลเฉพาะแผนก ID: ${myDeptId} (Role: ${myRole})`);
+      
+      // กรองพนักงานในแผนก
+      rawEmployees = rawEmployees.filter(e => String(e.department_id) === String(myDeptId));
+      
+      // กรองใบลาของพนักงานในแผนก
+      const deptEmpIds = new Set(rawEmployees.map(e => String(e.id)));
+      rawRequests = rawRequests.filter(r => deptEmpIds.has(String(r.employee_id)));
+      
+      // เปลี่ยนหัวข้อให้ชัดเจน
+      const titleEl = document.querySelector('.topbar-left h1');
+      if (titleEl) titleEl.textContent = `ภาพรวมข้อมูลแผนก (${rawEmployees[0]?.departments?.department_name || 'ฝ่ายงานของคุณ'})`;
+    }
+
     // ผูกข้อมูลสัมพันธ์เพิ่มเติมเพื่อความสมบูรณ์ 100%
     const empMap = new Map((rawEmployees || []).map(e => [String(e.id), e]));
     const typeMap = new Map((allLeaveTypes || []).map(t => [String(t.id), t]));
@@ -168,25 +191,35 @@ window.refreshDashboardData = async function() {
       return st === "pending" || st === "รออนุมัติ" || st === "cancel_pending" || st === "cancel_requested";
     }).length;
     
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todayLeavesCount = rawRequests.filter(r => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const todayLeaves = rawRequests.filter(r => {
       const isApproved = (r.status === "approved" || r.status === "อนุมัติ");
       const inRange = r.start_date && r.end_date && (todayStr >= r.start_date && todayStr <= r.end_date);
       return isApproved && inRange;
-    }).length;
+    });
+
+    const tomorrowLeaves = rawRequests.filter(r => {
+      const isApproved = (r.status === "approved" || r.status === "อนุมัติ");
+      const inRange = r.start_date && r.end_date && (tomorrowStr >= r.start_date && tomorrowStr <= r.end_date);
+      return isApproved && inRange;
+    });
 
     const totalEmp = rawEmployees.length;
 
-    renderCounters(pendingCount, todayLeavesCount, totalEmp);
+    renderCounters(pendingCount, todayLeaves.length, totalEmp, tomorrowLeaves.length);
+    renderTodayLeavesDetail(todayLeaves);
+    renderHomeDepartmentTeam(rawEmployees, sessionUser);
     drawCharts();
     showToast(`✅ ซิงค์ข้อมูลระบบเรียบร้อยแล้ว`, "success");
 
   } catch (error) {
     console.error("❌ [Catch Error]: เกิดข้อผิดพลาดระหว่างคิวรีข้อมูล:", error);
-    rawRequests = mockRequests;
-    rawEmployees = mockEmployees;
-    renderCounters(1, 1, 1);
-    drawCharts();
+    renderCounters(0, 0, 0, 0);
   }
 };
 
@@ -556,7 +589,7 @@ window.switchTab = function(targetTab) {
   setTimeout(() => { tContainer.style.opacity = "1"; }, 20);
 };
 
-function renderCounters(pending, todayLeaves, employees) {
+function renderCounters(pending, todayLeaves, employees, tomorrowLeaves) {
   const setEl = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
@@ -564,7 +597,167 @@ function renderCounters(pending, todayLeaves, employees) {
   setEl("statPendingLeaves", pending);
   setEl("statTodayLeaves", todayLeaves);
   setEl("statTotalEmployees", employees);
+  setEl("statTomorrowLeaves", tomorrowLeaves);
 }
+
+function renderTodayLeavesDetail(leaves) {
+  const container = document.getElementById("todayLeavesDetailList");
+  if (!container) return;
+
+  if (leaves.length === 0) {
+    container.innerHTML = `<div style="padding: 30px; text-align: center; color: #94a3b8; width: 100%;">วันนี้ไม่มีพนักงานลางาน ✨</div>`;
+    return;
+  }
+
+  container.innerHTML = leaves.map(r => {
+    const emp = r.employees || {};
+    const type = r.leave_types?.leave_name || "ไม่ระบุประเภท";
+    const dept = (emp.departments?.department_name) || "-";
+    const img = emp.image_url || "/assets/img/default-avatar.jpg";
+    
+    return `
+      <div class="today-leave-card-detail">
+        <img src="${img}" class="emp-avatar" onerror="this.src='/assets/img/default-avatar.jpg'">
+        <div class="info">
+          <div class="name">${escapeHtmlText(emp.full_name || "ไม่ระบุชื่อ")}</div>
+          <div class="dept">${escapeHtmlText(dept)}</div>
+          <div class="type-badge">${escapeHtmlText(type)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ==========================================================================
+   👥 6.5 DEPARTMENT TEAM ROSTER FOR LEADERS
+   ========================================================================== */
+function renderHomeDepartmentTeam(employeesList, sessionUser) {
+  const container = document.getElementById("homeTeamMembersGrid");
+  const titleEl = document.getElementById("homeTeamSectionTitle");
+  const subtitleEl = document.getElementById("homeTeamSectionSubtitle");
+  const badgeEl = document.getElementById("homeTeamCountBadge");
+
+  if (!container) return;
+
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const userObj = sessionUser || (savedSession ? JSON.parse(savedSession) : {});
+  const userRole = String(userObj.role || 'user').toLowerCase();
+  
+  let deptId = userObj.department_id;
+  let deptName = userObj.department_name || userObj.departments?.department_name;
+
+  if (!deptId && Array.isArray(employeesList)) {
+    const me = employeesList.find(e => String(e.id) === String(userObj.id));
+    if (me) {
+      deptId = me.department_id;
+      deptName = me.departments?.department_name || me.department_name;
+    }
+  }
+
+  const isLeaderOrManager = ['leader', 'manager', 'supervisor', 'head'].includes(userRole);
+  const isHrOrAdmin = ['hr', 'admin', 'director', 'executive', 'owner'].includes(userRole);
+
+  let filteredList = Array.isArray(employeesList) ? [...employeesList] : [];
+
+  // ถ้าเป็น Leader หรือ Manager ให้แสดงเฉพาะสมาชิกในแผนกของเขา
+  if (isLeaderOrManager && deptId) {
+    filteredList = filteredList.filter(e => String(e.department_id) === String(deptId));
+  }
+
+  if (filteredList.length > 0 && !deptName) {
+    deptName = filteredList[0]?.departments?.department_name || filteredList[0]?.department_name || "แผนกของคุณ";
+  }
+
+  if (titleEl) {
+    if (isLeaderOrManager) {
+      titleEl.textContent = `สมาชิกพนักงานในแผนก (${deptName || 'แผนกของคุณ'})`;
+    } else if (isHrOrAdmin) {
+      titleEl.textContent = `สมาชิกพนักงานในองค์กร (${deptName ? deptName : 'ทั้งหมด'})`;
+    } else {
+      titleEl.textContent = `เพื่อนร่วมงานในแผนก (${deptName || 'แผนกของคุณ'})`;
+    }
+  }
+
+  if (subtitleEl) {
+    if (isLeaderOrManager) {
+      subtitleEl.textContent = `ข้อมูลสมาชิกและตำแหน่งงานในสังกัดแผนก ${deptName || 'ของคุณ'}`;
+    } else {
+      subtitleEl.textContent = `ข้อมูลสมาชิกและตำแหน่งงานสังกัดแผนก ${deptName || 'บริษัท'}`;
+    }
+  }
+
+  if (badgeEl) {
+    badgeEl.textContent = `${filteredList.length} คน`;
+  }
+
+  if (filteredList.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
+        ไม่พบข้อมูลสมาชิกพนักงานในแผนกนี้
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filteredList.map(emp => {
+    const avatar = (window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : emp.image_url) || "/assets/img/default-avatar.jpg";
+    const pos = emp.positions?.position_name || emp.position_name || "พนักงาน";
+    const empDept = emp.departments?.department_name || emp.department_name || deptName || "-";
+    const empCode = emp.employee_code ? `${emp.employee_code}` : "-";
+    const nickStr = emp.nickname ? `(${emp.nickname})` : "";
+    const roleStr = String(emp.role || "").toLowerCase();
+
+    let roleBadge = '<span style="font-size: 10px; background: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 6px; font-weight: 600;">👤 พนักงาน</span>';
+    if (roleStr === "leader" || roleStr.includes("leader")) {
+      roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 6px; font-weight: 700;">👑 หัวหน้า (L1)</span>';
+    } else if (roleStr === "manager" || roleStr.includes("manager")) {
+      roleBadge = '<span style="font-size: 10px; background: #dbeafe; color: #1d4ed8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (L2)</span>';
+    } else if (["hr", "admin", "superadmin"].includes(roleStr)) {
+      roleBadge = '<span style="font-size: 10px; background: #f3e8ff; color: #6b21a8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
+    } else if (["director", "executive", "owner"].includes(roleStr)) {
+      roleBadge = '<span style="font-size: 10px; background: #ecfdf5; color: #047857; padding: 2px 7px; border-radius: 6px; font-weight: 700;">🏛️ ผู้บริหาร</span>';
+    }
+
+    const lineBadge = emp.line_id 
+      ? '<span style="color: #16a34a; font-size: 11px; font-weight: 600;">● LINE แล้ว</span>'
+      : '<span style="color: #94a3b8; font-size: 11px;">○ ไม่ผูก LINE</span>';
+
+    return `
+      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: transform 0.15s, box-shadow 0.15s;">
+        <img src="${avatar}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;">
+            ${escapeHtmlText(emp.full_name || (emp.first_name ? `${emp.first_name} ${emp.last_name || ''}` : 'พนักงาน'))} ${nickStr}
+          </div>
+          <div style="font-size: 12px; color: #0284c7; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <span class="material-symbols-outlined" style="font-size: 15px;">badge</span>
+            <span>${escapeHtmlText(pos)}</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #64748b;">
+            <span>🆔 ${escapeHtmlText(empCode)}</span>
+            ${lineBadge}
+          </div>
+          <div style="margin-top: 5px; display: flex; align-items: center; justify-content: space-between;">
+            ${roleBadge}
+            <span style="font-size: 11px; color: #94a3b8;">${escapeHtmlText(empDept)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+window.toggleHomeTeamContainer = function(btn) {
+  const container = document.getElementById("homeTeamMembersGrid");
+  const icon = document.getElementById("homeTeamToggleIcon");
+  if (!container) return;
+  if (container.style.display === "none") {
+    container.style.display = "grid";
+    if (icon) icon.textContent = "expand_less";
+  } else {
+    container.style.display = "none";
+    if (icon) icon.textContent = "expand_more";
+  }
+};
 
 function setupTableSearch() {
   const searchInput = document.getElementById("searchInput");
@@ -1196,7 +1389,7 @@ async function fetchRealNotifications() {
       const { data, error } = await client
         .from('notifications')
         .select('*')
-        .eq('user_id', myId) // 👈 แก้ไข: ดึงเฉพาะแจ้งเตือนส่วนบุคคลเท่านั้น เพื่อความเป็นส่วนตัว
+        .or(`employee_id.eq.${myId},user_id.eq.${myId}`) // 👈 ดึงเฉพาะแจ้งเตือนส่วนบุคคลตาม employee_id
         .order('created_at', { ascending: false })
         .limit(30);
 
@@ -1264,8 +1457,9 @@ async function fetchRealNotifications() {
 
       // 3. กรองและเชื่อมโยงลิงก์สำหรับ DB notifications
       dbNotifications = dbNotifications.filter(n => {
-        if (n.user_id && myProfile?.id) {
-          return String(n.user_id) === String(myProfile.id);
+        const notifRecipient = n.employee_id || n.user_id;
+        if (notifRecipient && myProfile?.id) {
+          return String(notifRecipient) === String(myProfile.id);
         }
         
         const titleLower = String(n.title).toLowerCase();

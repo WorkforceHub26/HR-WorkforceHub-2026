@@ -13,6 +13,9 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
   <link rel="stylesheet" href="/css/Management.css" />
+
+  <!-- Security Auth Guard (Head Check) -->
+  <script src="/js/auth-guard.js"></script>
 </head>
 
 <body>
@@ -117,6 +120,7 @@
             <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()"><span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Excel)</button>
             <button class="action-btn" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
             <button class="action-btn" onclick="resetYearlyLeave()"><span class="material-symbols-outlined">published_with_changes</span> สร้าง/จัดการโควตาประจำปี</button>
+            <button class="action-btn" onclick="testLineNotificationFromHR()" style="border-left: 4px solid #4f46e5;"><span class="material-symbols-outlined">notifications_active</span> ทดสอบแจ้งเตือน LINE (Slip)</button>
           </div>
       </div>
       </div>
@@ -171,6 +175,31 @@
           <div class="panel-head">
             <h2>รายชื่อพนักงาน</h2>
             <span id="loadStatus" class="status pending">กำลังโหลด</span>
+          </div>
+
+          <!-- แถบเลือกแยกประเภทตำแหน่งงาน (ผู้จัดการ, หัวหน้าแผนก, เจ้าหน้าที่/ผู้ช่วย, พนักงานทั่วไป) -->
+          <div class="pos-category-tabs" id="posCategoryTabs">
+            <button type="button" class="pos-tab active" data-category="all" onclick="filterByPosCategory('all')">
+              <span class="material-symbols-outlined" style="font-size: 16px;">groups</span>
+              <span>ทุกตำแหน่ง</span>
+              <span class="pos-tab-count" id="count-all">0</span>
+            </button>
+            <button type="button" class="pos-tab" data-category="manager" onclick="filterByPosCategory('manager')">
+              <span>👔 ผู้จัดการ</span>
+              <span class="pos-tab-count" id="count-manager">0</span>
+            </button>
+            <button type="button" class="pos-tab" data-category="supervisor" onclick="filterByPosCategory('supervisor')">
+              <span>🎖️ หัวหน้าแผนก</span>
+              <span class="pos-tab-count" id="count-supervisor">0</span>
+            </button>
+            <button type="button" class="pos-tab" data-category="officer" onclick="filterByPosCategory('officer')">
+              <span>📋 เจ้าหน้าที่ (รวมผู้ช่วย)</span>
+              <span class="pos-tab-count" id="count-officer">0</span>
+            </button>
+            <button type="button" class="pos-tab" data-category="staff" onclick="filterByPosCategory('staff')">
+              <span>👤 พนักงานทั่วไป</span>
+              <span class="pos-tab-count" id="count-staff">0</span>
+            </button>
           </div>
           
           <div class="filter-panel" style="display: flex; gap: 12px; width: 100%; margin-bottom: 16px;">

@@ -3,6 +3,39 @@ let filteredLeaveRows = [];
 let myProfile = null;
 let currentFilter = 'all';
 
+function formatDuration(totalDays, leaveHours = null) {
+  const days = parseFloat(totalDays) || 0;
+  const hours = parseFloat(leaveHours) || 0;
+
+  if (hours > 0) {
+    const d = Math.floor(hours / 8);
+    const remH = hours % 8;
+    const wholeH = Math.floor(remH);
+    const mins = Math.round((remH - wholeH) * 60);
+
+    let parts = [];
+    if (d > 0) parts.push(`${d} วัน`);
+    if (wholeH > 0) parts.push(`${wholeH} ชม.`);
+    if (mins > 0) parts.push(`${mins} นาที`);
+    return parts.length > 0 ? parts.join(" ") : `${hours} ชม.`;
+  }
+
+  if (days <= 0) return "0 วัน";
+
+  const wholeDays = Math.floor(days);
+  const fracDay = days - wholeDays;
+  const totalH = fracDay * 8;
+  const wholeH = Math.floor(totalH);
+  const mins = Math.round((totalH - wholeH) * 60);
+
+  let parts = [];
+  if (wholeDays > 0) parts.push(`${wholeDays} วัน`);
+  if (wholeH > 0) parts.push(`${wholeH} ชม.`);
+  if (mins > 0) parts.push(`${mins} นาที`);
+
+  return parts.length > 0 ? parts.join(" ") : `${days} วัน`;
+}
+
 document.addEventListener("DOMContentLoaded", initLeaveHistory);
 
 async function initLeaveHistory() {
@@ -282,7 +315,7 @@ function renderRows() {
       <tr>
         <td data-label="ประเภทการลา"><strong class="leave-type-title">${escapeHtml(leaveTypeName)}</strong></td>
         <td data-label="ช่วงวันที่">${startDateStr} - ${endDateStr}</td>
-        <td data-label="จำนวนวัน"><span class="day-count-badge">${item.total_days || 0}</span> วัน</td>
+        <td data-label="จำนวนวัน"><span class="day-count-badge">${formatDuration(item.total_days, item.leave_hours)}</span></td>
         <td data-label="เหตุผล" class="td-reason">
           <div>${escapeHtml(item.reason || "-")}</div>
           ${isCancelled && cancelOrRejectReason ? `

@@ -485,10 +485,23 @@ with check (employee_id = (select employee_id from profiles where id = auth.uid(
 create table if not exists line_link_tokens (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references employees(id) on delete cascade,
-  token text unique not null,
+  token text not null,
+  link_code text,
   expires_at timestamptz not null,
+  used_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- เพิ่มคอลัมน์ link_code และ used_at หากยังไม่มี
+do $$ 
+begin 
+  if not exists (select 1 from INFORMATION_SCHEMA.COLUMNS where table_name = 'line_link_tokens' and column_name = 'link_code') then
+    alter table line_link_tokens add column link_code text;
+  end if;
+  if not exists (select 1 from INFORMATION_SCHEMA.COLUMNS where table_name = 'line_link_tokens' and column_name = 'used_at') then
+    alter table line_link_tokens add column used_at timestamptz;
+  end if;
+end $$;
 
 -- เพิ่มคอลัมน์ line_id ในตาราง employees หากยังไม่มี
 do $$ 
