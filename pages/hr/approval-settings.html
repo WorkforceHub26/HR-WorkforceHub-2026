@@ -882,6 +882,25 @@
       background: #0d9488;
       transform: translateY(-1px);
     }
+
+    /* 🎛️ Custom Switch Toggles for LINE Notification settings */
+    .switch-container input:checked + .switch-slider {
+      background-color: var(--primary);
+    }
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    .switch-container input:checked + .switch-slider:before {
+      transform: translateX(20px);
+    }
   </style>
 </head>
 <body>
@@ -1069,6 +1088,127 @@
           <button id="saveExecutiveBtn" class="btn-save">
             <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
             บันทึกผู้บริหาร L3
+          </button>
+        </div>
+      </section>
+
+      <!-- Panel 3: LINE Notification Step Routing Settings (Full Width Grid Span) -->
+      <section class="card-panel" id="lineNotificationConfigSection" style="grid-column: span 2;">
+        <div class="card-panel-header">
+          <h2 class="card-panel-title">
+            <span class="material-symbols-outlined" style="color: #16a34a;">notifications_active</span>
+            3. ตั้งค่าการแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
+          </h2>
+          <span class="field-label-tag" style="background:#ccfbf1; color:#0f766e;">เปิด-ปิดแยกแต่ละสถานะ</span>
+        </div>
+        <div class="card-panel-body" style="padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+          
+          <!-- Column 1: เมื่อพนักงานส่งใบลาใหม่ (Employee Submission) -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="font-weight: 800; font-size: 14px; color: var(--primary-hover); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">forward_to_inbox</span>
+              เมื่อพนักงาน "ยื่นใบลาใหม่"
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่งหาหัวหน้างาน L1</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">ส่งคำขอเข้าแชต LINE ของหัวหน้า L1 ประจำแผนก</div>
+              </div>
+              <label class="switch-container" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink:0;">
+                <input type="checkbox" id="notif-new-request" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px;"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่งหาผู้จัดการ L2 (เมื่อไม่มี L1)</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งข้ามไปหา L2 ทันทีถ้าไม่ได้กำหนดหัวหน้า L1 ไว้</div>
+              </div>
+              <label class="switch-container" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink:0;">
+                <input type="checkbox" id="notif-new-request-l2" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px;"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Column 2: ระหว่างขั้นอนุมัติ (Approval States) -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="font-weight: 800; font-size: 14px; color: var(--accent-blue); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">sync_alt</span>
+              ในระหว่างขั้นตอนการพิจารณา
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">หัวหน้า L1 ผ่าน ➡️ ส่งหาผู้จัดการ L2</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งแชต LINE ผู้จัดการ L2 เมื่อหัวหน้างาน L1 กดอนุมัติแล้ว</div>
+              </div>
+              <label class="switch-container" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink:0;">
+                <input type="checkbox" id="notif-leader-approved" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px;"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ผู้จัดการ L2 ผ่าน ➡️ ส่งหาผู้บริหาร L3</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งเตือน LINE ผู้บริหาร L3 สำหรับเคสพิเศษ/ระดับหัวหน้างานลา</div>
+              </div>
+              <label class="switch-container" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink:0;">
+                <input type="checkbox" id="notif-manager-approved" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px;"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Column 3: ส่งกลับหาพนักงาน & ขอยกเลิก (Send Back to Employee) -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="font-weight: 800; font-size: 14px; color: var(--accent-purple); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">reply</span>
+              ส่งผลการพิจารณากลับหาพนักงาน & อื่นๆ
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">อนุมัติเสร็จสมบูรณ์ ➡️ ส่งหาพนักงาน</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">ส่งการ์ดสลิปอนุมัติสมบูรณ์ (ผ่าน 100%) กลับเข้าแชตพนักงาน</div>
+              </div>
+              <label class="switch-container" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink:0;">
+                <input type="checkbox" id="notif-final-approved" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px;"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ปฏิเสธใบลา ➡️ ส่งหาพนักงาน</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งพนักงานเมื่อคำขอโดนปฏิเสธ (ไม่อนุมัติ) พร้อมเหตุผลประกอบ</div>
+              </div>
+              <label class="switch-container" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink:0;">
+                <input type="checkbox" id="notif-rejected" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px;"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ขอยกเลิกคำขอ ➡️ แจ้งผู้อนุมัติ</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งผู้อนุมัติ L1/L2 ทันทีเมื่อพนักงานกดยื่นเรื่องขอยกเลิกใบลา</div>
+              </div>
+              <label class="switch-container" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink:0;">
+                <input type="checkbox" id="notif-cancellation" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px;"></span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+        <div class="card-panel-footer">
+          <button id="saveLineNotifSettingsBtn" class="btn-save">
+            <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
+            บันทึกการตั้งค่าแจ้งเตือน LINE
           </button>
         </div>
       </section>

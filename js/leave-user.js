@@ -1457,7 +1457,10 @@ async function saveLeave() {
     // 💬 1. แจ้งเตือนในระบบและ LINE (ผ่าน Workflow กลาง)
     if (recipient && recipient.id) {
       try {
-        for (const item of payload) {
+        payload.forEach((item, index) => {
+          const insertedLeave = (data && data[index]) ? data[index] : null;
+          const leaveId = insertedLeave ? insertedLeave.id : '';
+
           const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(item.leave_type_id));
           const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : "ใบลา";
           
@@ -1465,7 +1468,7 @@ async function saveLeave() {
           const notificationMessage = `พนักงาน: ${empName} (${currentProfile.employee_code || "-"})\nประเภท: ${leaveName}\nวันที่: ${item.start_date} ถึง ${item.end_date}\nเหตุผล: ${item.reason}`;
 
           // 🔔 บันทึกลงตาราง notifications (In-app)
-          await sb.from("notifications").insert({
+          sb.from("notifications").insert({
             employee_id: recipient.id,
             title: notificationTitle,
             message: notificationMessage,
@@ -1473,20 +1476,10 @@ async function saveLeave() {
             link_url: '/pages/hr/hr.html'
           });
 
-          // 💬 ส่ง LINE ผ่าน Server API
-          await fetch('/api/send-notification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              employee_id: recipient.id,
-              title: notificationTitle,
-              message: notificationMessage
-            })
-          });
-
-          // โค้ดเดิม (Workflow SDK)
-          await window.PVTSDK.line.sendWorkflowNotification({
+          // โค้ดเดิม (Workflow SDK) - ส่ง Flex Message สวยงามพร้อมปุ่มกด
+          window.PVTSDK.line.sendWorkflowNotification({
             type: notificationType,
+            leaveId: leaveId,
             recipientId: recipient.id,
             recipientLineId: recipient.line_id || "",
             employeeName: empName,
@@ -1499,7 +1492,7 @@ async function saveLeave() {
             totalDays: item.total_days,
             reason: item.reason
           });
-        }
+        });
       } catch (err) {
         console.warn("⚠️ [Notification Trigger] Error:", err);
       }

@@ -39,6 +39,7 @@ function bindEvents() {
   document.getElementById("saveApproverBtn")?.addEventListener("click", saveApprover);
   document.getElementById("executiveSelect")?.addEventListener("change", updateExecutiveLineStatus);
   document.getElementById("saveExecutiveBtn")?.addEventListener("click", saveExecutiveSetting);
+  document.getElementById("saveLineNotifSettingsBtn")?.addEventListener("click", saveLineNotificationSettings);
 }
 
 window.focusSection = function(sectionId, focusElementId) {
@@ -84,6 +85,7 @@ async function loadAllData() {
     renderExecutiveOptions();
     renderDepartmentOptions();
     renderApproverTable();
+    await loadLineNotificationSettings();
   } catch (err) {
     console.error("loadAllData:", err);
     Swal.fire("โหลดข้อมูลไม่สำเร็จ", err.message || "กรุณาลองใหม่", "error");
@@ -1211,3 +1213,90 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 function escapeAttr(value) { return escapeHtml(value); }
+
+// ============================================================
+// 🎛️ 3. ตั้งค่าการเปิด/ปิดแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
+// ============================================================
+
+async function loadLineNotificationSettings() {
+  try {
+    const { data, error } = await sb
+      .from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", "line_notification_settings")
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // Default values if no settings found
+    const settings = data?.setting_value || {
+      new_request: true,
+      new_request_l2: true,
+      leader_approved: true,
+      manager_approved: true,
+      final_approved: true,
+      rejected: true,
+      cancellation: true
+    };
+
+    // Set DOM checkbox states
+    if (document.getElementById("notif-new-request")) document.getElementById("notif-new-request").checked = settings.new_request !== false;
+    if (document.getElementById("notif-new-request-l2")) document.getElementById("notif-new-request-l2").checked = settings.new_request_l2 !== false;
+    if (document.getElementById("notif-leader-approved")) document.getElementById("notif-leader-approved").checked = settings.leader_approved !== false;
+    if (document.getElementById("notif-manager-approved")) document.getElementById("notif-manager-approved").checked = settings.manager_approved !== false;
+    if (document.getElementById("notif-final-approved")) document.getElementById("notif-final-approved").checked = settings.final_approved !== false;
+    if (document.getElementById("notif-rejected")) document.getElementById("notif-rejected").checked = settings.rejected !== false;
+    if (document.getElementById("notif-cancellation")) document.getElementById("notif-cancellation").checked = settings.cancellation !== false;
+
+  } catch (err) {
+    console.error("loadLineNotificationSettings Error:", err);
+  }
+}
+
+async function saveLineNotificationSettings() {
+  const btn = document.getElementById("saveLineNotifSettingsBtn");
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined spinning-icon" style="font-size:18px;">sync</span> กำลังบันทึก...';
+  }
+
+  const settings = {
+    new_request: document.getElementById("notif-new-request")?.checked ?? true,
+    new_request_l2: document.getElementById("notif-new-request-l2")?.checked ?? true,
+    leader_approved: document.getElementById("notif-leader-approved")?.checked ?? true,
+    manager_approved: document.getElementById("notif-manager-approved")?.checked ?? true,
+    final_approved: document.getElementById("notif-final-approved")?.checked ?? true,
+    rejected: document.getElementById("notif-rejected")?.checked ?? true,
+    cancellation: document.getElementById("notif-cancellation")?.checked ?? true,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const { error } = await sb
+      .from("system_settings")
+      .upsert({
+        setting_key: "line_notification_settings",
+        setting_value: settings,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "setting_key" });
+
+    if (error) throw error;
+
+    Swal.fire({
+      icon: "success",
+      title: "บันทึกเรียบร้อย",
+      text: "อัปเดตสิทธิ์การแจ้งเตือน LINE รายขั้นตอนเรียบร้อยแล้ว",
+      timer: 1600,
+      showConfirmButton: false
+    });
+  } catch (err) {
+    console.error("saveLineNotificationSettings Error:", err);
+    Swal.fire("ผิดพลาด", "ไม่สามารถบันทึกการตั้งค่าได้: " + err.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml || '<span class="material-symbols-outlined" style="font-size: 18px;">save</span> บันทึกการตั้งค่าแจ้งเตือน LINE';
+    }
+  }
+}

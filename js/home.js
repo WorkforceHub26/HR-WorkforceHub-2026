@@ -636,12 +636,26 @@ function renderHomeDepartmentTeam(employeesList, sessionUser) {
   const titleEl = document.getElementById("homeTeamSectionTitle");
   const subtitleEl = document.getElementById("homeTeamSectionSubtitle");
   const badgeEl = document.getElementById("homeTeamCountBadge");
+  const sectionEl = document.getElementById("homeDepartmentTeamSection");
 
   if (!container) return;
 
   const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
   const userObj = sessionUser || (savedSession ? JSON.parse(savedSession) : {});
   const userRole = String(userObj.role || 'user').toLowerCase();
+
+  // ซ่อนรายชื่อพนักงานในแผนกเฉพาะ HR เท่านั้นตามความต้องการของลูกค้า
+  const isHr = userRole === 'hr' || userRole.includes('hr');
+  if (isHr) {
+    if (sectionEl) {
+      sectionEl.style.setProperty("display", "none", "important");
+    }
+    return;
+  } else {
+    if (sectionEl) {
+      sectionEl.style.setProperty("display", "block", "important");
+    }
+  }
   
   let deptId = userObj.department_id;
   let deptName = userObj.department_name || userObj.departments?.department_name;

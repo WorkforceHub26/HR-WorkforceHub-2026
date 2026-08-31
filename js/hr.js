@@ -152,6 +152,50 @@ async function initSystemAndPermissions() {
     // โหลดข้อมูลใบลา
     await loadPendingLeavesHR();
 
+    // 🎯 [Query Param Auto Action Engine]:
+    const urlParams = new URLSearchParams(window.location.search);
+    const leaveIdParam = urlParams.get("id") || urlParams.get("leave_id");
+    const actionParam = urlParams.get("action");
+    if (leaveIdParam) {
+      console.log(`🎯 [Query Param]: Auto-opening leave preview/action for ID: ${leaveIdParam}`);
+      setTimeout(() => {
+        const found = allLeaveRequests.find(r => String(r.id) === String(leaveIdParam));
+        if (found) {
+          // If the leave status is cancellation or historical, automatically switch tab to make it visual
+          const isCancel = found.status === 'cancel_requested' || found.status === 'cancel_pending' || found.status === 'ขอยกเลิก';
+          const isHistory = found.status !== 'pending' && found.status !== 'รออนุมัติ' && !isCancel;
+          
+          if (isCancel) {
+            currentLeaveTab = "cancellation";
+            const tabBtn = document.querySelector('[onclick*="switchLeaveTab(\'cancellation\')"]');
+            if (tabBtn) {
+              document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+              tabBtn.classList.add('active');
+            }
+            renderLeaveTable();
+          } else if (isHistory) {
+            currentLeaveTab = "history";
+            const tabBtn = document.querySelector('[onclick*="switchLeaveTab(\'history\')"]');
+            if (tabBtn) {
+              document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+              tabBtn.classList.add('active');
+            }
+            renderLeaveTable();
+          }
+
+          if (actionParam === "approve") {
+            approveLeave(leaveIdParam);
+          } else if (actionParam === "reject") {
+            rejectLeave(leaveIdParam);
+          } else {
+            previewLeaveModal(leaveIdParam);
+          }
+        } else {
+          console.warn(`⚠️ [Query Param]: Leave ID ${leaveIdParam} not found in the loaded requests.`);
+        }
+      }, 800);
+    }
+
   } catch (err) {
     console.error("💥 Error during HR System Init:", err);
   }
@@ -1211,20 +1255,7 @@ async function approveLeave(leaveId) {
       link_url: '/pages/user/index-user.html'
     });
 
-    // 💬 ส่งแจ้งเตือน LINE ผ่าน Server API
-    try {
-      await fetch('/api/send-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employee_id: reqData.employee_id,
-          title: notificationTitle,
-          message: notificationMessage
-        })
-      });
-    } catch (lineErr) {
-      console.error('Error calling LINE notification API:', lineErr);
-    }
+    // 💬 ส่งแจ้งเตือน LINE โดยอัตโนมัติผ่าน SDK ด้านล่าง (ส่ง Flex Message)
     if (window.PVTSDK?.line) {
       try {
         const applicantName = reqData.employees?.full_name || 'พนักงาน';
@@ -1434,20 +1465,7 @@ async function rejectLeave(leaveId) {
         link_url: '/pages/user/index-user.html'
       });
 
-      // 💬 ส่งแจ้งเตือน LINE ผ่าน Server API
-      try {
-        await fetch('/api/send-notification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            employee_id: reqData.employee_id,
-            title: notificationTitle,
-            message: notificationMessage
-          })
-        });
-      } catch (lineErr) {
-        console.error('Error calling LINE notification API:', lineErr);
-      }
+      // 💬 ส่งแจ้งเตือน LINE โดยอัตโนมัติผ่าน SDK ด้านล่าง (ส่ง Flex Message)
     }
 
     // 💬 แจ้งเตือนพนักงานผ่าน LINE OA เมื่อคำขอลาโดนปฏิเสธ

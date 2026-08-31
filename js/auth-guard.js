@@ -105,8 +105,23 @@ window.getUserRoleCategory = function(userSession) {
   // 2. กรณีล็อกอินแล้ว แต่อยู่หน้า Login -> ส่งไปหน้าแรกตามสิทธิ์
   if (isLoginPage) {
     console.log("✅ [Auth Guard]: ล็อกอินแล้ว -> นำทางไปหน้าแรกตามสิทธิ์");
-    if (userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager') {
+    if (userStatus.category === 'hr_exec') {
       window.location.replace("/pages/hr/home.html");
+    } else if (userStatus.category === 'leader_manager') {
+      window.location.replace("/pages/hr/hr.html");
+    } else {
+      window.location.replace("/pages/user/index-user.html");
+    }
+    return;
+  }
+
+  // 🔒 ควบคุมการเข้าถึงหน้า home.html ให้เข้าได้เฉพาะ HR
+  const isHomeHtmlPage = path.includes("home.html");
+  if (isHomeHtmlPage && userStatus.category !== 'hr_exec') {
+    console.warn("🚫 [Auth Guard]: เฉพาะสิทธิ์ HR เท่านั้นที่เข้าถึงหน้าหลัก Dashboard ได้");
+    try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+    if (userStatus.category === 'leader_manager') {
+      window.location.replace("/pages/hr/hr.html");
     } else {
       window.location.replace("/pages/user/index-user.html");
     }
@@ -126,9 +141,9 @@ window.getUserRoleCategory = function(userSession) {
   // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager)
   if (userStatus.category === 'leader_manager') {
     if (isManagementOrSettings) {
-      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติ/ตั้งค่า -> เด้งไปหน้า home");
+      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติ/ตั้งค่า -> เด้งไปหน้าตรวจใบลา");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
-      window.location.replace("/pages/hr/home.html");
+      window.location.replace("/pages/hr/hr.html");
       return;
     }
   }
@@ -141,9 +156,10 @@ function applyNavPermissions() {
     const session = raw ? JSON.parse(raw) : null;
     const userStatus = window.getUserRoleCategory(session);
 
-    // หากไม่ใช่ HR หรือ ผู้บริหาร ให้ซ่อนเมนูแก้ไขประวัติและตั้งค่าทั้งหมด
+    // หากไม่ใช่ HR หรือ ผู้บริหาร ให้ซ่อนเมนูแก้ไขประวัติ ตั้งค่า และแดชบอร์ดหลักทั้งหมด
     if (userStatus.category !== 'hr_exec') {
       const selectors = [
+        'a[href*="home.html"]',
         'a[href*="management"]',
         'a[href*="approval-settings"]',
         '.btn-card-nav',

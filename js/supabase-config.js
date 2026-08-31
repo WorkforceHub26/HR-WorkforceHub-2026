@@ -1035,6 +1035,7 @@ class LineOAEngine {
 
   formatLineFlexCard(type, opts = {}) {
     const {
+      leaveId = '',
       employeeName = 'พนักงาน',
       employeeCode = '',
       departmentName = '',
@@ -1055,7 +1056,7 @@ class LineOAEngine {
     let statusBadgeText = "⏳ รออนุมัติขั้นต้น (L1)";
     let statusBadgeBg = "#e0e7ff";
     let statusBadgeColor = "#3730a3";
-    let actionLabel = "👉 เปิดหน้าอนุมัติใบลา";
+    let actionLabel = "👉 ตรวจสอบใบลา";
     let actionUrl = approvalUrl;
     let showComment = false;
 
@@ -1068,7 +1069,7 @@ class LineOAEngine {
         statusBadgeText = "⏳ รอการอนุมัติขั้นต้น (L1)";
         statusBadgeBg = "#dbeafe";
         statusBadgeColor = "#1e40af";
-        actionLabel = "👉 ตรวจสอบและอนุมัติใบลา";
+        actionLabel = "👉 ตรวจสอบใบลา";
         actionUrl = approvalUrl;
         break;
 
@@ -1080,7 +1081,7 @@ class LineOAEngine {
         statusBadgeText = "🟢 ผ่าน L1 (รออนุมัติ L2)";
         statusBadgeBg = "#d1fae5";
         statusBadgeColor = "#065f46";
-        actionLabel = "👉 พิจารณาอนุมัติขั้นถัดไป (L2)";
+        actionLabel = "👉 ตรวจสอบใบลา L2";
         actionUrl = approvalUrl;
         showComment = true;
         break;
@@ -1093,7 +1094,7 @@ class LineOAEngine {
         statusBadgeText = "🔵 ผ่าน L2 (รอฝ่ายบุคคล)";
         statusBadgeBg = "#e0f2fe";
         statusBadgeColor = "#075985";
-        actionLabel = "👉 เข้าสู่ระบบอนุมัติ";
+        actionLabel = "👉 ตรวจสอบใบลา";
         actionUrl = approvalUrl;
         showComment = true;
         break;
@@ -1107,7 +1108,7 @@ class LineOAEngine {
         statusBadgeText = "✅ อนุมัติสมบูรณ์เรียบร้อย";
         statusBadgeBg = "#dcfce7";
         statusBadgeColor = "#166534";
-        actionLabel = "📋 ตรวจสอบประวัติใบลาของคุณ";
+        actionLabel = "📋 ดูประวัติการลา";
         actionUrl = historyUrl;
         break;
 
@@ -1119,7 +1120,7 @@ class LineOAEngine {
         statusBadgeText = "❌ คำขอไม่อนุมัติ";
         statusBadgeBg = "#fee2e2";
         statusBadgeColor = "#991b1b";
-        actionLabel = "📋 ตรวจสอบรายละเอียดประวัติการลา";
+        actionLabel = "📋 ดูรายละเอียด";
         actionUrl = historyUrl;
         showComment = true;
         break;
@@ -1132,7 +1133,7 @@ class LineOAEngine {
         statusBadgeText = "⚠️ ขอยกเลิกใบลา";
         statusBadgeBg = "#fef3c7";
         statusBadgeColor = "#92400e";
-        actionLabel = "👉 ตรวจสอบคำขอยกเลิก";
+        actionLabel = "👉 ดูคำขอยกเลิก";
         actionUrl = approvalUrl;
         break;
     }
@@ -1346,19 +1347,68 @@ class LineOAEngine {
           layout: "vertical",
           paddingAll: "16px",
           paddingTop: "0px",
-          contents: [
-            {
-              type: "button",
-              style: "primary",
-              color: themeColor,
-              height: "md",
-              action: {
-                type: "uri",
-                label: actionLabel,
-                uri: actionUrl
-              }
+          contents: (() => {
+            const isApprovalNotif = ['NEW_REQUEST', 'LEADER_APPROVED', 'MANAGER_APPROVED', 'CANCELLATION'].includes(type);
+            if (isApprovalNotif && leaveId) {
+              return [
+                {
+                  type: "box",
+                  layout: "horizontal",
+                  spacing: "md",
+                  margin: "none",
+                  contents: [
+                    {
+                      type: "button",
+                      style: "primary",
+                      color: "#10b981",
+                      height: "sm",
+                      action: {
+                        type: "uri",
+                        label: "✔️ อนุมัติ",
+                        uri: `${approvalUrl}?id=${leaveId}&action=approve`
+                      }
+                    },
+                    {
+                      type: "button",
+                      style: "primary",
+                      color: "#ef4444",
+                      height: "sm",
+                      action: {
+                        type: "uri",
+                        label: "❌ ไม่อนุมัติ",
+                        uri: `${approvalUrl}?id=${leaveId}&action=reject`
+                      }
+                    }
+                  ]
+                },
+                {
+                  type: "button",
+                  style: "secondary",
+                  height: "sm",
+                  margin: "sm",
+                  action: {
+                    type: "uri",
+                    label: "🔍 ดูรายละเอียด",
+                    uri: `${approvalUrl}?id=${leaveId}`
+                  }
+                }
+              ];
+            } else {
+              return [
+                {
+                  type: "button",
+                  style: "primary",
+                  color: themeColor,
+                  height: "md",
+                  action: {
+                    type: "uri",
+                    label: actionLabel,
+                    uri: actionUrl
+                  }
+                }
+              ];
             }
-          ]
+          })()
         }
       }
     };
@@ -1552,6 +1602,49 @@ class LineOAEngine {
       return { success: true, title, message: messageText, lineSent: false };
     }
 
+    // 🎛️ ตรวจสอบการตั้งค่าสวิตช์ LINE Notification Steps จากตาราง system_settings
+    if (this.client) {
+      try {
+        const { data: notifSettingsRes } = await this.client
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', 'line_notification_settings')
+          .maybeSingle();
+
+        if (notifSettingsRes?.setting_value) {
+          const settings = notifSettingsRes.setting_value;
+          let isEnabled = true;
+
+          if (type === 'NEW_REQUEST') {
+            if (recipientRole === 'leader' && settings.new_request === false) {
+              isEnabled = false;
+            } else if (recipientRole === 'manager' && settings.new_request_l2 === false) {
+              isEnabled = false;
+            } else if (settings.new_request === false) {
+              isEnabled = false;
+            }
+          } else if (type === 'LEADER_APPROVED') {
+            if (settings.leader_approved === false) isEnabled = false;
+          } else if (type === 'MANAGER_APPROVED') {
+            if (settings.manager_approved === false) isEnabled = false;
+          } else if (type === 'REQUEST_APPROVED' || type === 'FINAL_APPROVED') {
+            if (settings.final_approved === false) isEnabled = false;
+          } else if (type === 'REJECTED') {
+            if (settings.rejected === false) isEnabled = false;
+          } else if (type === 'CANCELLATION') {
+            if (settings.cancellation === false) isEnabled = false;
+          }
+
+          if (!isEnabled) {
+            console.log(`ℹ️ [LINE OA Engine] Skip external LINE message for [${type}] to [${recipientRole}] per LINE Notification settings.`);
+            return { success: true, title, message: messageText, lineSent: false, disabledBySetting: true };
+          }
+        }
+      } catch (err) {
+        console.warn("⚠️ [LINE OA Engine] Failed to evaluate LINE notification settings:", err);
+      }
+    }
+
     // Auto-lookup line_id if recipientLineId is missing but recipientId is provided
     let targetLineId = recipientLineId;
     if (!targetLineId && recipientId && this.client) {
@@ -1567,6 +1660,7 @@ class LineOAEngine {
 
     // สร้าง Flex Message Card สไตล์เดียวกับสลิปธนาคาร (SCB Slip Card UI)
     const flexCardObj = this.formatLineFlexCard(type, {
+      leaveId,
       employeeName,
       employeeCode,
       departmentName,
