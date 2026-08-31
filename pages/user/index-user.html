@@ -190,6 +190,32 @@
       </div>
     </section>
 
+    <!-- 👥 PANEL: สมาชิกพนักงานในแผนก -->
+    <section class="panel mb-6" id="departmentTeamSection" style="display: none; margin-top: 24px;">
+      <div class="panel-header" style="justify-content: space-between; align-items: center; display: flex; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="material-symbols-outlined text-primary" style="font-size: 26px; color: var(--primary);">badge</span>
+          <div>
+            <h2 id="teamSectionTitle" style="margin: 0; font-size: 16px; font-weight: 700;">สมาชิกพนักงานในแผนก</h2>
+            <p id="teamSectionSubtitle" style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-soft);">เพื่อนร่วมงานในแผนกของคุณ</p>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="teamCountBadge" style="background: var(--primary-soft, #e0f2fe); color: var(--primary, #0284c7); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 20px;">0 คน</span>
+          <button type="button" class="btn-toggle-icon" onclick="toggleSection('teamMembersContainer', this)" title="ซ่อน/แสดง รายชื่อสมาชิก" style="background: transparent; border: none; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center;">
+            <span class="material-symbols-outlined">visibility</span>
+          </button>
+        </div>
+      </div>
+      <div class="card-body" style="padding: 16px;">
+        <div id="teamMembersContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;">
+          <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
+            ⏳ กำลังโหลดข้อมูลสมาชิกในแผนก...
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
 <!-- 1. สคริปต์ภายนอก -->

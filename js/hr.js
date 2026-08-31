@@ -1043,25 +1043,33 @@ function previewLeaveModal(leaveId) {
     <div class="preview-grid">
       <div class="preview-item">
         <label>ประเภทการลา</label>
-        <div style="color: var(--primary); font-weight:700;">${leaveName}</div>
+        <span class="value" style="color: var(--primary); font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">event_note</span> ${leaveName}
+        </span>
       </div>
       <div class="preview-item">
         <label>ระยะเวลาการลา</label>
-        <div style="font-weight:700; color:var(--text);">${friendlyDuration}</div>
+        <span class="value" style="font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span> ${friendlyDuration}
+        </span>
       </div>
       <div class="preview-item">
         <label>ตั้งแต่วันที่</label>
-        <div>${formatThaiDate(req.start_date)}</div>
+        <span class="value" style="display: flex; align-items: center; gap: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 18px; color: #64748b;">calendar_today</span> ${formatThaiDate(req.start_date)}
+        </span>
       </div>
       <div class="preview-item">
         <label>ถึงวันที่</label>
-        <div>${formatThaiDate(req.end_date)}</div>
+        <span class="value" style="display: flex; align-items: center; gap: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 18px; color: #64748b;">calendar_today</span> ${formatThaiDate(req.end_date)}
+        </span>
       </div>
     </div>
 
-    <div class="preview-item" style="margin-bottom: 16px;">
+    <div class="preview-item-full">
       <label>เหตุผล / หมายเหตุประกอบการลา</label>
-      <div style="font-weight: 400; line-height: 1.5; color: var(--text);">${req.reason || 'ไม่ได้ระบุเหตุผล'}</div>
+      <div style="font-weight: 500; line-height: 1.6; color: #334155; font-size: 14px;">${req.reason || 'ไม่ได้ระบุเหตุผล'}</div>
     </div>
 
     ${(req.cancel_reason || (req.approval_comment && req.approval_comment.includes('ยกเลิก')) || req.status === 'cancelled') ? `
@@ -1082,8 +1090,8 @@ function previewLeaveModal(leaveId) {
       </div>
     ` : ''}
 
-    <div style="margin-bottom: 16px;">
-      <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); display: block; margin-bottom: 6px;">สถานะการอนุมัติตามลำดับขั้น</label>
+    <div class="workflow-section">
+      <div class="workflow-section-title">สถานะการอนุมัติตามลำดับขั้น</div>
       <div class="workflow-steps">
         ${(() => {
           const reqDeptId = req.department_id || req.employees?.department_id;
@@ -1136,15 +1144,15 @@ function previewLeaveModal(leaveId) {
       </div>
     </div>
 
-    <div>
-      <label style="font-size: 12px; font-weight: 700; color: var(--text-soft); display: block; margin-bottom: 6px;">หลักฐานแนบประกอบการลา</label>
+    <div class="preview-attachment-section" style="margin-bottom: 8px;">
+      <label style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">หลักฐานแนบประกอบการลา</label>
       ${attachUrl ? `
         <div class="preview-attachment-box">
           ${isImage ? `
             <img src="${attachUrl}" class="preview-attachment-img" alt="หลักฐานการลา" onclick="openImageLightbox('${attachUrl}', 'รายการ #${req.id}')">
-            <p style="font-size:11px; color:var(--text-soft); margin-top:6px;">(คลิกรูปเพื่อดูขนาดเต็ม)</p>
+            <p style="font-size:11px; color:var(--text-soft); margin-top:8px; font-weight: 500;">(คลิกรูปเพื่อดูขนาดเต็ม)</p>
           ` : `
-            <a href="${attachUrl}" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+            <a href="${attachUrl}" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px; font-size: 14px;">
               <span class="material-symbols-outlined">attach_file</span> เปิดดูเอกสารแนบ
             </a>
           `}
@@ -1285,8 +1293,8 @@ async function approveLeave(leaveId) {
 
       if (balDataList && balDataList.length > 0) {
         for (const balData of balDataList) {
-          const newUsed = (balData.used_days || 0) + leaveDays;
-          const newRemaining = Math.max(0, (balData.remaining_days || 0) - leaveDays);
+          const newUsed = Math.round(((balData.used_days || 0) + leaveDays) * 100) / 100;
+          const newRemaining = Math.max(0, Math.round(((balData.remaining_days || 0) - leaveDays) * 100) / 100);
 
           await sb
             .from('leave_balances')
@@ -1609,8 +1617,8 @@ async function forceCancelLeave(leaveId) {
 
       if (balData) {
         await sb.from('leave_balances').update({
-          remaining_days: (balData.remaining_days || 0) + daysToReturn,
-          used_days: Math.max(0, (balData.used_days || 0) - daysToReturn)
+          remaining_days: Math.round(((balData.remaining_days || 0) + daysToReturn) * 100) / 100,
+          used_days: Math.max(0, Math.round(((balData.used_days || 0) - daysToReturn) * 100) / 100)
         }).eq('id', balData.id);
       }
     }
@@ -1678,8 +1686,8 @@ async function approveCancellation(leaveId) {
       .maybeSingle();
 
     if (balData) {
-      const newUsed = Math.max(0, (balData.used_days || 0) - daysToReturn);
-      const newRemaining = (balData.remaining_days || 0) + daysToReturn;
+      const newUsed = Math.max(0, Math.round(((balData.used_days || 0) - daysToReturn) * 100) / 100);
+      const newRemaining = Math.round(((balData.remaining_days || 0) + daysToReturn) * 100) / 100;
 
       await sb
         .from('leave_balances')
@@ -1798,48 +1806,61 @@ async function printLeaveA4(leaveId) {
       <head>
         <meta charset="UTF-8">
         <title>${docTitle}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
-          @page { size: A4 portrait; margin: 15mm; }
+          @page { size: A4 portrait; margin: 12mm 15mm 12mm 15mm; }
           * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; background: #ffffff; color: #1e293b; line-height: 1.6; }
-          .page { width: 210mm; min-height: 297mm; padding: 10mm; margin: 0 auto; background: #ffffff; position: relative; }
+          body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; background: #ffffff; color: #1e293b; line-height: 1.5; }
+          .page { width: 100%; min-height: 270mm; background: #ffffff; position: relative; padding-bottom: 20mm; }
           
-          .doc-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #059669; padding-bottom: 15px; margin-bottom: 25px; }
-          .logo-area { display: flex; align-items: center; gap: 15px; }
-          .logo-placeholder { width: 50px; height: 50px; background: #059669; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 24px; }
-          .company-name { font-size: 22px; font-weight: 800; color: #059669; letter-spacing: -0.5px; }
-          .company-sub { font-size: 12px; color: #64748b; font-weight: 500; }
+          /* Elegant modern company banner */
+          .doc-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 20px; }
+          .logo-area { display: flex; align-items: center; gap: 12px; }
+          .logo-placeholder { width: 44px; height: 44px; background: linear-gradient(135deg, #0f766e, #0d9488); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(15, 118, 110, 0.15); }
+          .company-name { font-size: 18px; font-weight: 800; color: #0f766e; letter-spacing: -0.3px; line-height: 1.2; }
+          .company-sub { font-size: 11px; color: #475569; font-weight: 500; margin-top: 1px; }
           
-          .doc-meta { text-align: right; font-size: 12px; color: #475569; }
+          .doc-meta { text-align: right; font-size: 11px; color: #475569; line-height: 1.4; }
           .doc-meta strong { color: #0f172a; }
 
-          .form-title-box { text-align: center; margin: 20px 0 30px 0; border: 2px solid #e2e8f0; padding: 15px; border-radius: 12px; background: #f8fafc; }
-          .form-title-box h1 { margin: 0; font-size: 22px; font-weight: 800; color: #1e293b; text-transform: uppercase; }
+          /* Clean, authoritative document title */
+          .form-title-box { text-align: center; margin: 15px 0 20px 0; border: 1.5px solid #cbd5e1; padding: 12px; border-radius: 10px; background: #f8fafc; }
+          .form-title-box h1 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: 0.3px; }
+          .form-title-box p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
           
-          .section { margin-bottom: 25px; }
-          .section-label { font-size: 15px; font-weight: 700; color: #059669; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-          .section-label::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; margin-left: 10px; }
+          /* Section separation */
+          .section { margin-bottom: 20px; }
+          .section-label { font-size: 13px; font-weight: 800; color: #0f766e; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+          .section-label::after { content: ''; flex: 1; height: 1px; background: #cbd5e1; margin-left: 8px; }
           
-          .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
-          .info-table td { padding: 10px 15px; font-size: 14px; border: 1px solid #e2e8f0; }
-          .info-table td.label { width: 25%; background: #f1f5f9; font-weight: 600; color: #475569; }
+          /* Form Tables (Sleek corporate grids) */
+          .info-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; }
+          .info-table td { padding: 8px 12px; font-size: 13px; border: 1px solid #cbd5e1; color: #334155; }
+          .info-table td.label { width: 22%; background: #f8fafc; font-weight: 700; color: #475569; }
           .info-table td.value { background: #ffffff; }
+          .info-table td.value strong { color: #0f172a; }
 
-          .reason-container { padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fafafa; font-size: 14px; min-height: 80px; }
+          /* Reason statement container */
+          .reason-container { padding: 12px 16px; border: 1.5px solid #cbd5e1; border-radius: 8px; background: #fafafa; font-size: 13px; min-height: 60px; line-height: 1.6; color: #1e293b; }
           
-          .status-indicator { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 15px; }
-          .status-approved { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-          .status-pending { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+          /* Status Stamp Style */
+          .status-indicator { display: inline-flex; align-items: center; justify-content: center; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+          .status-approved { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+          .status-pending { background: #fffbeb; color: #b45309; border: 1px solid #fef3c7; }
+          .status-rejected { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
 
-          .signature-grid { margin-top: 50px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-          .sig-box { text-align: center; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 10px 15px 10px; background: #fff; }
-          .sig-space { height: 60px; margin-bottom: 10px; display: flex; align-items: flex-end; justify-content: center; }
-          .sig-line { width: 80%; border-bottom: 1px solid #cbd5e1; margin: 0 auto; }
-          .sig-name { font-size: 13px; font-weight: 600; margin-top: 8px; }
-          .sig-title { font-size: 11px; color: #64748b; margin-top: 2px; }
+          /* Beautiful corporate stamp / sign block */
+          .signature-grid { margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+          .sig-box { text-align: center; border: 1px solid #cbd5e1; border-radius: 10px; padding: 15px 10px 12px 10px; background: #ffffff; position: relative; }
+          .sig-space { height: 50px; margin-bottom: 8px; display: flex; align-items: flex-end; justify-content: center; position: relative; }
+          .sig-line { width: 85%; border-bottom: 1.2px solid #cbd5e1; margin: 0 auto; }
+          .sig-name { font-size: 12px; font-weight: 700; margin-top: 6px; color: #1e293b; }
+          .sig-title { font-size: 10.5px; color: #64748b; margin-top: 1px; font-weight: 500; }
+          
+          /* Electronic approval badge watermark overlay */
+          .digital-stamp { font-size: 9px; border: 1.5px dashed #059669; color: #059669; padding: 4px 6px; border-radius: 6px; text-transform: uppercase; font-weight: 800; display: inline-block; transform: rotate(-3deg); line-height: 1.2; background: #f0fdf4; }
 
-          .doc-footer { position: absolute; bottom: 10mm; left: 10mm; right: 10mm; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 10px; }
+          .doc-footer { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px; }
         </style>
       </head>
       <body>
@@ -1857,13 +1878,14 @@ async function printLeaveA4(leaveId) {
               วันที่พิมพ์: <strong>${formatThaiDate(new Date().toISOString(), true)}</strong>
             </div>
           </div>
-
+ 
           <div class="form-title-box">
-            <h1>ใบขออนุมัติลาหยุดงาน (LEAVE REQUEST FORM)</h1>
+            <h1>ใบขออนุมัติลาหยุดงาน</h1>
+            <p>LEAVE REQUEST APPLICATION FORM</p>
           </div>
-
+ 
           <div class="section">
-            <div class="section-label">ข้อมูลผู้ยื่นคำขอลา</div>
+            <div class="section-label">ข้อมูลผู้ยื่นคำขอลา (Applicant Profile)</div>
             <table class="info-table">
               <tr>
                 <td class="label">รหัสพนักงาน</td>
@@ -1873,23 +1895,23 @@ async function printLeaveA4(leaveId) {
               </tr>
               <tr>
                 <td class="label">แผนก / สังกัด</td>
-                <td class="value">${deptName}</td>
+                <td class="value"><strong>${deptName}</strong></td>
                 <td class="label">ตำแหน่งงาน</td>
-                <td class="value">${posName}</td>
+                <td class="value"><strong>${posName}</strong></td>
               </tr>
             </table>
           </div>
-
+ 
           <div class="section">
-            <div class="section-label">รายละเอียดการขอลา</div>
+            <div class="section-label">รายละเอียดการขอลา (Leave Details)</div>
             <table class="info-table">
               <tr>
                 <td class="label">ประเภทการลา</td>
-                <td class="value"><strong style="color: #059669;">${leaveName}</strong></td>
-                <td class="label">สถานะปัจจุบัน</td>
+                <td class="value"><strong style="color: #0f766e; font-size: 14px;">${leaveName}</strong></td>
+                <td class="label">สถานะคำขอ</td>
                 <td class="value">
-                  <span class="status-indicator ${req.status === 'approved' ? 'status-approved' : 'status-pending'}">
-                    ${req.status === 'approved' ? 'อนุมัติแล้ว' : req.status === 'rejected' ? 'ปฏิเสธ' : 'รอการพิจารณา'}
+                  <span class="status-indicator ${req.status === 'approved' ? 'status-approved' : req.status === 'rejected' ? 'status-rejected' : 'status-pending'}">
+                    ${req.status === 'approved' ? 'อนุมัติแล้ว' : req.status === 'rejected' ? 'ปฏิเสธ' : 'รอพิจารณา'}
                   </span>
                 </td>
               </tr>
@@ -1901,47 +1923,62 @@ async function printLeaveA4(leaveId) {
               </tr>
               <tr>
                 <td class="label">รวมระยะเวลาการลา</td>
-                <td class="value" colspan="3"><strong style="font-size: 16px; color: #059669;">${printDurationFormatted}</strong></td>
+                <td class="value" colspan="3"><strong style="font-size: 14px; color: #0f766e;">${printDurationFormatted}</strong></td>
               </tr>
             </table>
           </div>
-
+ 
           <div class="section">
-            <div class="section-label">เหตุผลความจำเป็น</div>
+            <div class="section-label">เหตุผลความจำเป็นในการลา (Leave Reason)</div>
             <div class="reason-container">
-              ${req.reason || 'ไม่ได้ระบุเหตุผลความจำเป็น'}
-              ${req.approval_comment ? `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; color: #dc2626; font-size: 13px;"><strong>* ความเห็นจากผู้อนุมัติ:</strong> ${req.approval_comment}</div>` : ''}
+              <strong>เหตุผลการลา:</strong> ${req.reason || 'ไม่ได้ระบุเหตุผลความจำเป็น'}<br>
+              ${req.approval_comment ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1.2px dashed #cbd5e1; color: #b91c1c; font-size: 12px; font-weight: 600;">* ความเห็นเพิ่มเติมจากผู้อนุมัติ: ${req.approval_comment}</div>` : ''}
             </div>
           </div>
-
+ 
           <div class="signature-grid">
             <div class="sig-box">
-              <div class="sig-space"><div class="sig-line"></div></div>
-              <div class="sig-name">( ${emp.full_name || 'ผู้ยื่นคำขอ'} )</div>
+              <div class="sig-space">
+                <span class="digital-stamp" style="border-color: #0d9488; color: #0d9488; background: #f0fdfa;">[ ส่งออนไลน์สำเร็จ ]</span>
+              </div>
+              <div class="sig-name">${emp.full_name || 'ผู้ยื่นคำขอ'}</div>
+              <div class="sig-line" style="margin-top: 4px;"></div>
               <div class="sig-title">พนักงานผู้ขอลา</div>
             </div>
             <div class="sig-box">
               <div class="sig-space">
-                ${req.manager_status === 'approved' ? '<span style="color:#15803d; font-weight:bold; font-size:12px;">[ อนุมัติผ่านระบบ ]</span>' : '<div class="sig-line"></div>'}
+                ${req.manager_status === 'approved' ? `
+                  <div class="digital-stamp">
+                    APPROVED L1<br>
+                    <span style="font-size:7px; font-weight:normal;">ผ่านระบบออนไลน์</span>
+                  </div>
+                ` : '<div class="sig-line"></div>'}
               </div>
-              <div class="sig-name">( ................................................... )</div>
-              <div class="sig-title">หัวหน้างาน / ผู้จัดการ</div>
+              <div class="sig-name">${req.manager_status === 'approved' ? 'อนุมัติโดยผู้จัดการ (L1)' : '( .................................................. )'}</div>
+              <div class="sig-line" style="margin-top: 4px;"></div>
+              <div class="sig-title">หัวหน้างาน / ผู้จัดการ (L1)</div>
             </div>
             <div class="sig-box">
               <div class="sig-space">
-                ${req.status === 'approved' ? '<span style="color:#15803d; font-weight:bold; font-size:12px;">[ อนุมัติผ่านระบบ HR ]</span>' : '<div class="sig-line"></div>'}
+                ${req.status === 'approved' ? `
+                  <div class="digital-stamp" style="border-color: #0f766e; color: #0f766e;">
+                    APPROVED L2 (HR)<br>
+                    <span style="font-size:7px; font-weight:normal;">ผ่านระบบอนุมัติกลาง</span>
+                  </div>
+                ` : '<div class="sig-line"></div>'}
               </div>
-              <div class="sig-name">( ................................................... )</div>
-              <div class="sig-title">ฝ่ายทรัพยากรบุคคล (HR)</div>
+              <div class="sig-name">${req.status === 'approved' ? 'ฝ่ายทรัพยากรบุคคล' : '( .................................................. )'}</div>
+              <div class="sig-line" style="margin-top: 4px;"></div>
+              <div class="sig-title">ฝ่ายทรัพยากรบุคคล (HR L2)</div>
             </div>
           </div>
-
+ 
           <div class="doc-footer">
-            เอกสารฉบับนี้พิมพ์จากระบบ PVT WORKFORCE HUB เมื่อวันที่ ${formatThaiDate(new Date().toISOString(), true)}<br>
-            รหัสตรวจสอบ: ${req.id}
+            เอกสารฉบับนี้พิมพ์อย่างเป็นทางการโดยระบบระบบสารสนเทศความร่วมมือทีมและจัดสรรวันลา (PVT WORKFORCE HUB)<br>
+            รหัสเอกสารอ้างอิง: <strong>${req.id}</strong> | ตรวจสอบข้อมูลล่าสุดในแอปพลิเคชันหลัก
           </div>
         </div>
-
+ 
         <script>
           window.onload = function() {
             if (window.opener && window.opener.Swal) window.opener.Swal.close();

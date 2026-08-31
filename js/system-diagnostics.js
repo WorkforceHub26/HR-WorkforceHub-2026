@@ -504,43 +504,151 @@
       document.body.appendChild(btn);
     },
 
-    // 🖥️ 6. แสดงผล Popup คู่มือการใช้งานแบบใหม่ (Beautiful SweetAlert2)
+    // 🖥️ 6. แสดงผล Popup คู่มือการใช้งานแบบใหม่ (Beautiful SweetAlert2 - Context Aware)
     showUnifiedHelpPopup() {
       if (!window.Swal) {
         alert("คำแนะนำ: หากพบปัญหาโปรดติดต่อฝ่ายบุคคล (HR)");
         return;
       }
 
+      // ตรวจสอบหน้าปัจจุบันด้วย pathname
+      const path = window.location.pathname.toLowerCase();
+      let pageTitle = "🚀 คู่มือแนะนำการใช้งานระบบ";
+      let guideContent = "";
+
+      if (path.includes("index-user.html") || path === "/" || path.endsWith("/user/")) {
+        pageTitle = "🏠 หน้าแผงควบคุมหลักพนักงาน (Dashboard)";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>สิทธิ์วันลาคงเหลือ:</b> แสดงสถิติโควตาวันลาสะสมปีนี้ที่ได้รับการจัดสรรตามตำแหน่งงานของคุณ</li>
+            <li style="margin-bottom: 6px;"><b>ยื่นใบลาแบบด่วน:</b> กดปุ่มสีเขียว <span style="color:#0d9488; font-weight:700;">"ยื่นใบลาออนไลน์"</span> เพื่อเริ่มเปิดฟอร์มยื่นคำขอใหม่</li>
+            <li style="margin-bottom: 6px;"><b>ตรวจสอบเพื่อนร่วมงาน:</b> แผงด้านล่างสุดจะแสดงรายชื่อและตารางของเพื่อนร่วมงานในแผนกเดียวกัน</li>
+            <li style="margin-bottom: 6px;"><b>ประวัติคำขอลาล่าสุด:</b> ตรวจสอบรายการเดินเอกสารที่อยู่ระหว่างรอผลอนุมัติหรือประวัติสรุปล่าสุด</li>
+          </ul>
+        `;
+      } else if (path.includes("leave-user.html")) {
+        pageTitle = "✍️ หน้ายื่นใบลาออนไลน์ (Leave Application)";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>เลือกประเภทวันลา:</b> คลิกเลือกประเภทการลาที่ถูกต้อง (เช่น ลาป่วย, ลากิจ, ลาพักร้อน) เพื่อตรวจสอบสิทธิ์คงเหลือ</li>
+            <li style="margin-bottom: 6px;"><b>ระบุเวลาการลา:</b> เลือกวันเริ่มต้นและวันสิ้นสุด หรือเลือกติ๊ก <span style="color:#0d9488; font-weight:700;">"ลาเป็นชั่วโมง"</span> เพื่อระบุเวลาแบบละเอียด</li>
+            <li style="margin-bottom: 6px;"><b>ระบุเหตุผล:</b> กรอกรายละเอียดความจำเป็น และอัปโหลดรูปภาพหลักฐานประกอบ (เช่น ใบรับรองแพทย์)</li>
+            <li style="margin-bottom: 6px;"><b>ตรวจสอบผู้อนุมัติ:</b> ระบบแสดงสายงานการพิจารณา L1 และ L2 อัตโนมัติ ก่อนกดปุ่ม <span style="color:#0d9488; font-weight:700;">"ส่งคำขออนุมัติ"</span></li>
+          </ul>
+        `;
+      } else if (path.includes("leave-history.html")) {
+        pageTitle = "📜 หน้าประวัติและติดตามสถานะใบลา";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>สถานะใบลาปัจจุบัน:</b> แถบสีจะระบุสิทธิ์พิจารณา เช่น รออนุมัติ (สีส้ม), อนุมัติ (สีเขียว), หรือ ปฏิเสธ (สีแดง)</li>
+            <li style="margin-bottom: 6px;"><b>ดูรายละเอียดเชิงลึก:</b> คลิกปุ่มไอคอน <span style="color:#0d9488; font-weight:700;">"ดวงตา (ดูรายละเอียด)"</span> เพื่อเปิดอ่านความเห็นจากผู้อนุมัติ</li>
+            <li style="margin-bottom: 6px;"><b>พิมพ์เอกสาร A4:</b> กดปุ่มไอคอน <span style="color:#0d9488; font-weight:700;">"เครื่องพิมพ์"</span> เพื่อเปิดดูหน้าพิมพ์ใบลาที่เป็นทางการเพื่อเก็บหลักฐาน</li>
+            <li style="margin-bottom: 6px;"><b>การยกเลิกใบลา:</b> ใบลาที่ยื่นผิดพลาดหรือผ่านการอนุมัติแล้วต้องการขอสิทธิ์คืน สามารถส่งคำขอยกเลิกได้จากตาราง</li>
+          </ul>
+        `;
+      } else if (path.includes("holidays.html")) {
+        pageTitle = "📅 หน้าปฏิทินวันหยุดและวันลาทีม";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>ปฏิทินวันหยุดบริษัท:</b> เช็ครายชื่อวันหยุดราชการหรือวันหยุดกรณีพิเศษที่องค์กรกำหนดในแถบหลัก</li>
+            <li style="margin-bottom: 6px;"><b>ตารางและจุดสีบนปฏิทิน:</b> เมื่อสลับมุมมอง จะแสดงจุดกลมเล็กใต้เลขวันที่ ระบุวันลาของคนในแผนก</li>
+            <li style="margin-bottom: 6px;"><b>แผนงานของทีมงาน:</b> แถบข้อมูลด้านล่างจะระบุชื่อพนักงานที่หยุดเพื่อป้องกันการลางานพร้อมกันจำนวนมาก</li>
+            <li style="margin-bottom: 6px;"><b>ตัวกรองปีและเดือน:</b> ใช้เมนูแบบเลื่อนเลือกเพื่อเปลี่ยนปีงบประมาณหรือเดือนสำหรับการวางแผนล่วงหน้า</li>
+          </ul>
+        `;
+      } else if (path.includes("profile-user.html")) {
+        pageTitle = "👤 หน้าข้อมูลพนักงานและผูกแจ้งเตือน LINE";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>ข้อมูลส่วนตัว:</b> แสดงรหัสพนักงาน ชื่อจริง ตแหน่ง และช่องทางการติดต่ออย่างเป็นทางการ</li>
+            <li style="margin-bottom: 6px;"><b>เปลี่ยนรูปโปรไฟล์:</b> สามารถเลือกอัปโหลดรูปภาพใบหน้าของคุณเพื่อนำมาอัปเดตบนการ์ดและใบลา</li>
+            <li style="margin-bottom: 6px;"><b>เปิดแจ้งเตือน LINE Notify:</b> กดปุ่ม <span style="color:#059669; font-weight:700;">"ขอรหัสผ่าน LINE"</span> จากนั้นนำตัวเลข 6 หลักไปส่งใน LINE OA เพื่อผูกแจ้งเตือน</li>
+            <li style="margin-bottom: 6px;"><b>สถิติจำนวนครั้งการลา:</b> สรุปผลอัตราความถี่การยื่นขอลาพักร้อนและวันลาประเภทต่างๆ ของคุณสะสม</li>
+          </ul>
+        `;
+      } else if (path.includes("hr.html")) {
+        pageTitle = "⚖️ หน้าอนุมัติและจัดการใบลา (HR/Manager)";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>การตรวจสอบแบบกรอง:</b> ตารางงานระบุคำขออนุมัติใหม่ และคำขอพิจารณายกเลิกใบลาอย่างเป็นหมวดหมู่</li>
+            <li style="margin-bottom: 6px;"><b>ดูเอกสารและหลักฐาน:</b> กดปุ่ม "รายละเอียด" เพื่อดูรูปภาพใบรับรองแพทย์ หรือตารางสถิติลำดับขั้น</li>
+            <li style="margin-bottom: 6px;"><b>การอนุมัติ / ปฏิเสธ:</b> หัวหน้าหรือ HR สามารถป้อนบันทึกความเห็นเพิ่มเติมและกดตอบรับผลกลับทันที</li>
+            <li style="margin-bottom: 6px;"><b>คัดลอกข้อมูลด่วน:</b> ส่งประวัติออกเป็นตาราง Excel ผ่านปุ่ม "ส่งออก Excel" ด้านบนปฏิทิน</li>
+          </ul>
+        `;
+      } else if (path.includes("home.html") && path.includes("/hr/")) {
+        pageTitle = "📊 หน้าแดชบอร์ดสถิติวิเคราะห์ HR Overview";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>ตัวชี้วัดดัชนีลา:</b> แสดงสรุปยอดรวมวันลาประเภทต่างๆ ประจำเดือนนี้ทั้งหมดของบริษัท</li>
+            <li style="margin-bottom: 6px;"><b>กราฟแท่งวิเคราะห์ D3.js:</b> ตรวจวัดความถี่การใช้งานวันลาเปรียบเทียบสัดส่วนระหว่างแต่ละแผนกงาน</li>
+            <li style="margin-bottom: 6px;"><b>รายงานการลาของบุคคล:</b> วิเคราะห์และจัดอันดับพนักงานที่มีอัตราความถี่ลาสูงสุดเพื่อประเมินศักยภาพ</li>
+          </ul>
+        `;
+      } else if (path.includes("management.html")) {
+        pageTitle = "👥 หน้าจัดการข้อมูลพนักงานและจัดสรรสิทธิ์";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>เพิ่มบุคลากรรายใหม่:</b> กดปุ่มเพิ่มบัญชี ป้อนชื่อ นามสกุล และเลือกสังกัดแผนกเพื่อสร้าง QR Code บัตรพนักงาน</li>
+            <li style="margin-bottom: 6px;"><b>ตั้งค่าหรือปรับโควตาลา:</b> สามารถแก้ไขวันลาเริ่มต้นของพนักงานเป็นรายบุคคลในตารางได้อย่างยืดหยุ่น</li>
+            <li style="margin-bottom: 6px;"><b>ยกเลิกการเปิดบัญชี:</b> เปลี่ยนสถานะการทำงานของพนักงานกรณีโยกย้ายตำแหน่งหรือพ้นจากหน้าที่</li>
+          </ul>
+        `;
+      } else if (path.includes("approval-settings.html")) {
+        pageTitle = "⚙️ หน้าจัดการสายงานและผู้มีอำนาจอนุมัติ";
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>เลือกแผนกงาน:</b> เลือกค้นหาแผนกเพื่อดึงสายงานการส่งคำขออนุมัติมาแสดงผล</li>
+            <li style="margin-bottom: 6px;"><b>ตั้งค่าขั้น L1 (หัวหน้างาน):</b> เลือกกำหนดพนักงานที่มีตำแหน่งหัวหน้างานของแผนกนั้นให้มีหน้าที่รับตรวจใบลา</li>
+            <li style="margin-bottom: 6px;"><b>ตั้งค่าขั้น L2 (ฝ่ายบุคคล/ผู้บริหาร):</b> กำหนดบุคคลที่มีสิทธิ์สูงสุดในการเซ็นอนุมัติขั้นสุดท้าย</li>
+          </ul>
+        `;
+      } else {
+        guideContent = `
+          <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
+            <li style="margin-bottom: 6px;"><b>การลางาน:</b> เข้าสู่หน้าหลัก เลือก <span style="color:#0d9488; font-weight:700;">"ยื่นใบลาออนไลน์"</span> กรอกข้อมูล แล้วกดตกลง</li>
+            <li style="margin-bottom: 6px;"><b>ตรวจสอบผล:</b> เข้าหน้า <span style="color:#0d9488; font-weight:700;">"ประวัติการลา"</span> เพื่อตรวจประเมินสายอนุมัติเรียลไทม์</li>
+            <li style="margin-bottom: 6px;"><b>วันลาคงเหลือ:</b> แผงควบคุมคำนวณวันคงเหลือในรูปการ์ดสวยงามให้อย่างรวดเร็วอัตโนมัติ</li>
+            <li style="margin-bottom: 6px;"><b>ผูกแจ้งเตือน LINE:</b> ไปหน้าโปรไฟล์ ขอรับรหัสผูกแชท เพื่อรับข้อความแจ้งเตือนทางแอป LINE ได้ฟรี</li>
+          </ul>
+        `;
+      }
+
       Swal.fire({
-        title: '<div style="font-size: 20px; font-weight: 700; color: #0d9488;">📘 คู่มือแนะนำการใช้งานระบบ</div>',
+        title: `<div style="font-size: 20px; font-weight: 800; color: #0d9488;">📘 ${pageTitle}</div>`,
         html: `
           <div style="text-align: left; font-family: 'Sarabun', sans-serif;">
-            <div style="background: #f0fdfa; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #ccfbf1;">
-              <strong style="color: #0d9488; display: block; margin-bottom: 8px;">🚀 คู่มือแบบย่อ (Quick Guide)</strong>
-              <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.6;">
-                <li><b>การลา:</b> กดปุ่ม "ยื่นใบลาออนไลน์" เลือกประเภทลาและวันที่</li>
-                <li><b>ตรวจสอบสถานะ:</b> ดูได้ที่ "ประวัติการลา" หรือแถบแจ้งเตือน</li>
-                <li><b>สิทธิ์วันลา:</b> ระบบจะคำนวณวันลาคงเหลือให้ในหน้าหลัก</li>
-                <li><b>สแกนบัตร:</b> ใช้ QR บนบัตรพนักงานสแกนเพื่อเข้าสู่ระบบไว</li>
-              </ul>
+            <div style="background: #f0fdfa; border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid #ccfbf1; box-shadow: inset 0 1px 2px rgba(13,148,136,0.05);">
+              <strong style="color: #0f766e; display: block; margin-bottom: 10px; font-size: 14.5px; font-weight: 800; border-bottom: 1.5px solid #ccfbf1; padding-bottom: 6px;">🚀 คู่มือแนะนำระบบฉบับย่อ (Quick Guide)</strong>
+              ${guideContent}
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
-              <button id="pvt-btn-full-guide" class="swal2-styled" style="background: #ffffff; color: #334155; border: 1px solid #cbd5e1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span class="material-symbols-outlined" style="font-size: 20px;">library_books</span> อ่านคู่มือฉบับเต็ม
+              <button id="pvt-btn-full-guide" class="swal2-styled" style="background: #ffffff; color: #1e293b; border: 1.5px solid #cbd5e1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 20px; color: #0d9488;">library_books</span> อ่านคู่มือการใช้งานฉบับเต็ม
               </button>
-              <button id="pvt-btn-diagnostics" class="swal2-styled" style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span class="material-symbols-outlined" style="font-size: 20px;">healing</span> ตรวจเช็ค & ซ่อมแซมระบบ
+              <button id="pvt-btn-diagnostics" class="swal2-styled" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 20px; color: #64748b;">healing</span> ตรวจเช็ค & ซ่อมแซมระบบ
               </button>
             </div>
           </div>
         `,
         showConfirmButton: false,
         showCloseButton: true,
-        width: 450,
-        padding: '2rem',
+        width: 470,
+        padding: '1.8rem',
         didOpen: () => {
-          document.getElementById('pvt-btn-full-guide').onclick = () => {
+          // Add soft hover effects
+          const btnFull = document.getElementById('pvt-btn-full-guide');
+          const btnDiag = document.getElementById('pvt-btn-diagnostics');
+          
+          btnFull.onmouseenter = () => { btnFull.style.borderColor = '#0d9488'; btnFull.style.background = '#f0fdfa'; };
+          btnFull.onmouseleave = () => { btnFull.style.borderColor = '#cbd5e1'; btnFull.style.background = '#ffffff'; };
+          
+          btnDiag.onmouseenter = () => { btnDiag.style.borderColor = '#64748b'; btnDiag.style.background = '#f1f5f9'; };
+          btnDiag.onmouseleave = () => { btnDiag.style.borderColor = '#cbd5e1'; btnDiag.style.background = '#f8fafc'; };
+
+          btnFull.onclick = () => {
             Swal.fire({
               title: 'คู่มือฉบับเต็ม',
               text: 'กำลังเปิดหน้าเอกสารคู่มือการใช้งานพนักงาน...',
@@ -552,7 +660,7 @@
             });
           };
 
-          document.getElementById('pvt-btn-diagnostics').onclick = () => {
+          btnDiag.onclick = () => {
             this.showDiagnosticsModal();
           };
         }

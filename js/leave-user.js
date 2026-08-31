@@ -925,7 +925,7 @@ function calculateLeaveDays(element) {
     totalDays = (totalDays > 0 ? totalDays - 1 : 0) + extraDays;
   }
 
-  const cleanDays = totalDays % 1 === 0 ? totalDays : Number(totalDays.toFixed(4));
+  const cleanDays = Math.round(totalDays * 100) / 100;
   if (resultInput) {
     resultInput.value = cleanDays;
   }
