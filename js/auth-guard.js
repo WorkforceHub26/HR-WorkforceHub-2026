@@ -126,16 +126,12 @@ window.getUserRoleCategory = function(userSession) {
     return;
   }
 
-  // 🔒 ควบคุมการเข้าถึงหน้า home.html ให้เข้าได้เฉพาะ HR
+  // 🔒 ควบคุมการเข้าถึงหน้า home.html ให้เข้าได้เฉพาะ HR และ หัวหน้างาน / ผู้จัดการ
   const isHomeHtmlPage = path.includes("home.html");
-  if (isHomeHtmlPage && userStatus.category !== 'hr_exec') {
-    console.warn("🚫 [Auth Guard]: เฉพาะสิทธิ์ HR เท่านั้นที่เข้าถึงหน้าหลัก Dashboard ได้");
+  if (isHomeHtmlPage && userStatus.category !== 'hr_exec' && userStatus.category !== 'leader_manager') {
+    console.warn("🚫 [Auth Guard]: เฉพาะสิทธิ์ HR และ หัวหน้างาน/ผู้จัดการเท่านั้นที่เข้าถึงหน้าหลัก Dashboard ได้");
     try { if (document.body) document.body.innerHTML = ''; } catch(e){}
-    if (userStatus.category === 'leader_manager') {
-      window.location.replace("/pages/hr/hr.html");
-    } else {
-      window.location.replace("/pages/user/index-user.html");
-    }
+    window.location.replace("/pages/user/index-user.html");
     return;
   }
 
@@ -151,8 +147,8 @@ window.getUserRoleCategory = function(userSession) {
 
   // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager)
   if (userStatus.category === 'leader_manager') {
-    if (isManagementOrSettings) {
-      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติ/ตั้งค่า -> เด้งไปหน้าตรวจใบลา");
+    if (path.includes("management")) {
+      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติพนักงาน -> เด้งไปหน้าตรวจใบลา");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
       window.location.replace("/pages/hr/hr.html");
       return;
@@ -167,14 +163,25 @@ function applyNavPermissions() {
     const session = raw ? JSON.parse(raw) : null;
     const userStatus = window.getUserRoleCategory(session);
 
-    // หากไม่ใช่ HR หรือ ผู้บริหาร ให้ซ่อนเมนูแก้ไขประวัติ ตั้งค่า และแดชบอร์ดหลักทั้งหมด
-    if (userStatus.category !== 'hr_exec') {
+    if (userStatus.category === 'employee') {
+      // พนักงานทั่วไป: ซ่อนหลังบ้านทั้งหมด
       const selectors = [
         'a[href*="home.html"]',
+        'a[href*="hr.html"]',
         'a[href*="management"]',
         'a[href*="approval-settings"]',
         '.btn-card-nav',
         '.hover-card-qr',
+        '.quick-card[href*="management"]',
+        '[data-role="hr-only"]'
+      ];
+      document.querySelectorAll(selectors.join(', ')).forEach(el => {
+        el.style.setProperty("display", "none", "important");
+      });
+    } else if (userStatus.category === 'leader_manager') {
+      // หัวหน้า/ผู้จัดการ: เข้าได้ทุกหน้า ยกเว้นแก้ไขประวัติพนักงาน (management) และ สิทธิ์เฉพาะ HR (hr-only)
+      const selectors = [
+        'a[href*="management"]',
         '.quick-card[href*="management"]',
         '[data-role="hr-only"]'
       ];
@@ -825,13 +832,11 @@ async function openChangePasswordModal(user) {
     if (window.innerWidth <= 1024) {
       window.toggleMobileSidebar();
     } else {
-      const sidebar = document.querySelector(".sidebar-light") || document.querySelector(".sidebar") || document.querySelector("aside");
-      const mainContent = document.querySelector(".main-content");
-      if (sidebar) {
-        sidebar.classList.toggle("collapsed");
-      }
-      if (mainContent) {
-        mainContent.classList.toggle("expanded");
+      if (typeof window.toggleDesktopSidebar === "function") {
+        window.toggleDesktopSidebar();
+      } else {
+        document.body.classList.toggle('desktop-sidebar-collapsed');
+        localStorage.setItem('sidebar-collapsed', document.body.classList.contains('desktop-sidebar-collapsed'));
       }
     }
   };

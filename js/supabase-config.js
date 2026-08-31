@@ -1046,7 +1046,8 @@ class LineOAEngine {
       comment = '',
       nowStr = '',
       approvalUrl = '',
-      historyUrl = ''
+      historyUrl = '',
+      attachmentUrl = ''
     } = opts;
 
     let headerTitle = "คำขอใบลาใหม่";
@@ -1143,11 +1144,22 @@ class LineOAEngine {
         type: "box",
         layout: "horizontal",
         contents: [
-          { type: "text", text: "👤 ผู้ขอลา", size: "sm", color: "#64748b", flex: 4 },
-          { type: "text", text: `${employeeName} ${employeeCode ? `(${employeeCode})` : ''}`, size: "sm", color: "#0f172a", weight: "bold", flex: 6, align: "end", wrap: true }
+          { type: "text", text: "👤 ชื่อผู้ขอลา", size: "sm", color: "#64748b", flex: 4 },
+          { type: "text", text: employeeName, size: "sm", color: "#0f172a", weight: "bold", flex: 6, align: "end", wrap: true }
         ]
       }
     ];
+
+    if (employeeCode) {
+      detailRows.push({
+        type: "box",
+        layout: "horizontal",
+        contents: [
+          { type: "text", text: "🆔 รหัสพนักงาน", size: "sm", color: "#64748b", flex: 4 },
+          { type: "text", text: employeeCode, size: "sm", color: "#0f172a", weight: "bold", flex: 6, align: "end", wrap: true }
+        ]
+      });
+    }
 
     if (departmentName) {
       detailRows.push({
@@ -1194,10 +1206,13 @@ class LineOAEngine {
       type: "box",
       layout: "horizontal",
       contents: [
-        { type: "text", text: "⏰ วันเวลาที่ทำรายการ", size: "xs", color: "#94a3b8", flex: 5 },
+        { type: "text", text: "⏰ วันเวลาทำรายการ", size: "xs", color: "#94a3b8", flex: 5 },
         { type: "text", text: nowStr, size: "xs", color: "#94a3b8", flex: 5, align: "end" }
       ]
     });
+
+    // ตรวจสอบชนิดไฟล์แนบว่าเป็นรูปภาพหรือไม่
+    const isImage = attachmentUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachmentUrl.split('?')[0]);
 
     return {
       type: "flex",
@@ -1324,6 +1339,43 @@ class LineOAEngine {
               contents: detailRows
             },
 
+            // 🖼️ Leave Attachment Preview (รูปหลักฐานการลาแบบสวยงามและเห็นชัดเจน)
+            ...(isImage ? [
+              {
+                type: "separator",
+                margin: "lg",
+                color: "#e2e8f0"
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                spacing: "xs",
+                margin: "lg",
+                contents: [
+                  {
+                    type: "text",
+                    text: "🖼️ หลักฐานแนบประกอบการลา",
+                    size: "xs",
+                    color: "#64748b",
+                    weight: "bold"
+                  },
+                  {
+                    type: "image",
+                    url: attachmentUrl,
+                    size: "full",
+                    aspectMode: "cover",
+                    aspectRatio: "16:9",
+                    cornerRadius: "8px",
+                    action: {
+                      type: "uri",
+                      label: "ดูรูปขนาดเต็ม",
+                      uri: attachmentUrl
+                    }
+                  }
+                ]
+              }
+            ] : []),
+
             // Dotted Separator line
             {
               type: "separator",
@@ -1361,10 +1413,10 @@ class LineOAEngine {
                       type: "button",
                       style: "primary",
                       color: "#10b981",
-                      height: "sm",
+                      height: "md",
                       action: {
                         type: "uri",
-                        label: "✔️ อนุมัติ",
+                        label: "✅ อนุมัติ (Approve)",
                         uri: `${approvalUrl}?id=${leaveId}&action=approve`
                       }
                     },
@@ -1372,10 +1424,10 @@ class LineOAEngine {
                       type: "button",
                       style: "primary",
                       color: "#ef4444",
-                      height: "sm",
+                      height: "md",
                       action: {
                         type: "uri",
-                        label: "❌ ไม่อนุมัติ",
+                        label: "❌ ปฏิเสธ (Reject)",
                         uri: `${approvalUrl}?id=${leaveId}&action=reject`
                       }
                     }
@@ -1384,11 +1436,11 @@ class LineOAEngine {
                 {
                   type: "button",
                   style: "secondary",
-                  height: "sm",
+                  height: "md",
                   margin: "sm",
                   action: {
                     type: "uri",
-                    label: "🔍 ดูรายละเอียด",
+                    label: "🔍 รายละเอียดเพิ่มเติม",
                     uri: `${approvalUrl}?id=${leaveId}`
                   }
                 }
@@ -1430,7 +1482,8 @@ class LineOAEngine {
       totalDays = 1,
       leaveHours = 0,
       reason = '',
-      comment = ''
+      comment = '',
+      attachmentUrl = ''
     } = opts;
 
     const nowStr = new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
@@ -1671,7 +1724,8 @@ class LineOAEngine {
       comment,
       nowStr,
       approvalUrl,
-      historyUrl
+      historyUrl,
+      attachmentUrl
     });
 
     // 3. ส่ง LINE ผ่าน Supabase Edge Function: line-send หรือ Server API: /api/send-notification

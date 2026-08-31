@@ -518,6 +518,46 @@ html, body {
   body.desktop-sidebar-collapsed .sidebar-light,
   body.desktop-sidebar-collapsed aside {
     width: 80px !important;
+    min-width: 80px !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar-light .brand-zone {
+    padding: 16px 8px !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar-light .logo-mini {
+    max-height: 36px !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar-light .nav-menu {
+    padding: 16px 8px !important;
+    align-items: center !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar-light .nav-item {
+    justify-content: center !important;
+    padding: 12px !important;
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    gap: 0 !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar-light .nav-item .nav-label {
+    display: none !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar-light .sidebar-footer {
+    padding: 16px 8px !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar-light .btn-logout {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+  }
+  body.desktop-sidebar-collapsed .sidebar-light .btn-logout span:not(.material-symbols-outlined) {
+    display: none !important;
   }
   body.desktop-sidebar-collapsed .sidebar .logo-text,
   body.desktop-sidebar-collapsed .sidebar .menu-text,
@@ -528,6 +568,7 @@ html, body {
   }
   body.desktop-sidebar-collapsed .main-content {
     margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
   }
   
   .desktop-menu-toggle {

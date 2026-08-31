@@ -1490,7 +1490,8 @@ async function saveLeave() {
             startDate: item.start_date,
             endDate: item.end_date,
             totalDays: item.total_days,
-            reason: item.reason
+            reason: item.reason,
+            attachmentUrl: item.attachment_url || ""
           });
         });
       } catch (err) {

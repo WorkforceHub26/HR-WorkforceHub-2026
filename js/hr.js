@@ -207,16 +207,35 @@ function applyRoleBasedUI() {
   const btnBack = document.getElementById("btnHeaderBack");
   const roleBadge = document.getElementById("userRoleBadge");
 
-  if (currentRole === "leader" || currentRole === "manager") {
-    if (sidebar) sidebar.style.setProperty("display", "none", "important");
-    if (mainContent) {
-      mainContent.style.setProperty("margin-left", "0", "important");
-      mainContent.style.setProperty("width", "100%", "important");
-      if (window.innerWidth <= 768) {
-        mainContent.style.setProperty("padding", "16px 12px", "important");
+  // กรองเมนูด้านข้างสำหรับ Leader/Manager
+  if (sidebar) {
+    const navItems = sidebar.querySelectorAll(".nav-menu .nav-item");
+    navItems.forEach(item => {
+      const href = item.getAttribute("href") || "";
+      if (currentRole === "leader" || currentRole === "manager") {
+        // ซ่อนลิงก์ "หน้าหลัก" (Dashboard) และ "แก้ไข/เพิ่ม ประวัติ" (Management) สำหรับผู้อนุมัติทั่วไป
+        if (href.includes("home.html") || href.includes("management.html")) {
+          item.style.setProperty("display", "none", "important");
+        } else {
+          item.style.setProperty("display", "flex", "important");
+        }
       } else {
-        mainContent.style.setProperty("padding", "24px 32px", "important");
+        // แอดมินและฝ่ายบุคคลสามารถเห็นเมนูทั้งหมดได้
+        item.style.setProperty("display", "flex", "important");
       }
+    });
+  }
+
+  if (currentRole === "leader" || currentRole === "manager") {
+    // แสดงแถบเมนูด้านข้างเสมอ เพื่อให้สามารถสลับเมนูและกดดูข้อมูลส่วนตัว/วันหยุดได้
+    if (sidebar) {
+      sidebar.style.display = "flex";
+    }
+    if (mainContent) {
+      // ล้าง inline styles เพื่อให้สไตล์ CSS ปกติและระบบย่อขยายเมนูด้านข้าง (Collapsible Sidebar) ทำงานได้ปกติ
+      mainContent.style.removeProperty("margin-left");
+      mainContent.style.removeProperty("width");
+      mainContent.style.removeProperty("padding");
     }
     if (btnBack) btnBack.style.display = "inline-flex";
 
@@ -226,6 +245,11 @@ function applyRoleBasedUI() {
     }
   } else {
     if (sidebar) sidebar.style.display = "flex";
+    if (mainContent) {
+      mainContent.style.removeProperty("margin-left");
+      mainContent.style.removeProperty("width");
+      mainContent.style.removeProperty("padding");
+    }
     if (btnBack) btnBack.style.display = "none";
     if (roleBadge) {
       roleBadge.textContent = "PVT HR Administrator";
@@ -274,6 +298,40 @@ function isCancelRequestStatus(status) {
   if (!status) return false;
   const s = String(status).trim().toLowerCase();
   return s === 'cancel_requested' || s === 'cancel_pending' || s === 'ขอยกเลิก' || s === 'รออนุมัติยกเลิก';
+}
+
+function isPendingForRole(r, role) {
+  if (!isPendingStatus(r.status)) return false;
+  const userRole = String(role || '').toLowerCase();
+  if (userRole === 'leader') {
+    return (r.manager_status || 'pending') === 'pending';
+  }
+  if (userRole === 'manager') {
+    return (r.director_status || 'pending') === 'pending';
+  }
+  if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
+    return (r.executive_status || 'pending') === 'pending';
+  }
+  return true;
+}
+
+function isHistoryForRole(r, role) {
+  const userRole = String(role || '').toLowerCase();
+  if (!isPendingStatus(r.status) && !isCancelRequestStatus(r.status)) {
+    return true;
+  }
+  if (isPendingStatus(r.status)) {
+    if (userRole === 'leader') {
+      return (r.manager_status || 'pending') !== 'pending';
+    }
+    if (userRole === 'manager') {
+      return (r.director_status || 'pending') !== 'pending';
+    }
+    if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
+      return (r.executive_status || 'pending') !== 'pending';
+    }
+  }
+  return false;
 }
 
 function getADYear(dateStr) {
@@ -500,10 +558,10 @@ async function loadPendingLeavesHR() {
 }
 
 function updateTabAndStatBadges() {
-  const pendingRequests = allLeaveRequests.filter(r => isPendingStatus(r.status));
+  const pendingRequests = allLeaveRequests.filter(r => isPendingForRole(r, currentRole));
   const cancelRequests = allLeaveRequests.filter(r => isCancelRequestStatus(r.status));
   const approvedRequests = allLeaveRequests.filter(r => String(r.status).toLowerCase() === 'approved');
-  const historyRequests = allLeaveRequests.filter(r => !isPendingStatus(r.status) && !isCancelRequestStatus(r.status));
+  const historyRequests = allLeaveRequests.filter(r => isHistoryForRole(r, currentRole));
 
   const pBadge = document.getElementById("pendingCountBadge");
   const cBadge = document.getElementById("cancelCountBadge");
@@ -644,11 +702,11 @@ function renderLeaveTable() {
   let filteredRequests = [];
 
   if (currentLeaveTab === "pending") {
-    filteredRequests = allLeaveRequests.filter(r => isPendingStatus(r.status));
+    filteredRequests = allLeaveRequests.filter(r => isPendingForRole(r, currentRole));
   } else if (currentLeaveTab === "cancellation") {
     filteredRequests = allLeaveRequests.filter(r => isCancelRequestStatus(r.status));
   } else {
-    filteredRequests = allLeaveRequests.filter(r => !isPendingStatus(r.status) && !isCancelRequestStatus(r.status));
+    filteredRequests = allLeaveRequests.filter(r => isHistoryForRole(r, currentRole));
   }
 
   if (stepFilter !== "all") {
@@ -742,11 +800,13 @@ function renderLeaveTable() {
         </div>
       `;
     } else if (currentLeaveTab === "history") {
+      const userRoleLower = String(currentRole || '').toLowerCase();
+      const canForceCancel = (userRoleLower === 'hr' || userRoleLower === 'admin' || userRoleLower === 'superadmin');
       actionButtons = `
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span> รายละเอียด</button>
           <button class="btn-act btn-act-print" onclick="printLeaveA4('${req.id}')" title="พิมพ์ใบลา" style="background:#f1f5f9; color:#475569; border-color:#e2e8f0;"><span class="material-symbols-outlined">print</span> พิมพ์</button>
-          ${req.status === 'approved' ? `
+          ${(req.status === 'approved' && canForceCancel) ? `
             <button class="btn-act btn-act-cancel" onclick="forceCancelLeave('${req.id}')"><span class="material-symbols-outlined">block</span> ยกเลิกใบลา</button>
           ` : ''}
         </div>
@@ -1306,7 +1366,8 @@ async function approveLeave(leaveId) {
                 startDate: reqData.start_date,
                 endDate: reqData.end_date,
                 totalDays: reqData.total_days,
-                comment: reqData.approval_comment || 'หัวหน้างานตรวจสอบแล้ว เห็นควรอนุมัติ'
+                comment: reqData.approval_comment || 'หัวหน้างานตรวจสอบแล้ว เห็นควรอนุมัติ',
+                attachmentUrl: reqData.attachment_url || ""
               });
 
               if (!managerLineId) {
@@ -1360,7 +1421,8 @@ async function approveLeave(leaveId) {
                 startDate: reqData.start_date,
                 endDate: reqData.end_date,
                 totalDays: reqData.total_days,
-                comment: reqData.approval_comment || 'ผู้จัดการตรวจสอบแล้ว เห็นควรอนุมัติ'
+                comment: reqData.approval_comment || 'ผู้จัดการตรวจสอบแล้ว เห็นควรอนุมัติ',
+                attachmentUrl: reqData.attachment_url || ""
               });
 
               if (!executiveEmp.line_id) {
@@ -1392,7 +1454,8 @@ async function approveLeave(leaveId) {
           startDate: reqData.start_date,
           endDate: reqData.end_date,
           totalDays: reqData.total_days,
-          comment: 'ใบลาของคุณได้รับการอนุมัติเรียบร้อยแล้ว'
+          comment: 'ใบลาของคุณได้รับการอนุมัติเรียบร้อยแล้ว',
+          attachmentUrl: reqData.attachment_url || ""
         });
       } catch (lineErr) {
         console.warn("⚠️ [Workflow Notification] Approval notice error:", lineErr);
@@ -1485,7 +1548,8 @@ async function rejectLeave(leaveId) {
             startDate: reqData.start_date,
             endDate: reqData.end_date,
             totalDays: reqData.total_days,
-            comment: reason.trim()
+            comment: reason.trim(),
+            attachmentUrl: reqData.attachment_url || ""
           });
         }
       } catch (lineErr) {

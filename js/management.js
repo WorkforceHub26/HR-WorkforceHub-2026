@@ -4988,7 +4988,8 @@ async function testLineNotificationFromHR() {
       endDate: new Date().toISOString().split('T')[0],
       totalDays: 1,
       reason: 'ทดสอบส่งการ์ดแจ้งเตือนสลิปธนาคารจากเมนูควบคุมส่วนกลาง HR',
-      comment: 'ความเห็นตัวอย่างจากผู้อนุมัติ (ผ่านระบบทดสอบ)'
+      comment: 'ความเห็นตัวอย่างจากผู้อนุมัติ (ผ่านระบบทดสอบ)',
+      attachmentUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=600&q=80'
     });
 
     if (res && res.lineSent) {

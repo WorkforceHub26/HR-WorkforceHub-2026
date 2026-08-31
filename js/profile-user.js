@@ -239,7 +239,8 @@ async function testLineNotification() {
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
         totalDays: 1,
-        reason: 'ทดสอบการส่งข้อความแจ้งเตือนใบลาผ่าน LINE'
+        reason: 'ทดสอบการส่งข้อความแจ้งเตือนใบลาผ่าน LINE',
+        attachmentUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=600&q=80'
       });
 
       if (res && res.lineSent) {
