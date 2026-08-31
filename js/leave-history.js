@@ -231,6 +231,28 @@ async function loadMyLeaveHistory() {
     
     renderSummary();
     renderRows();
+
+    // 🎯 [Highlight Specific Leave Item from LINE Link / Query Param]:
+    const urlParams = new URLSearchParams(window.location.search);
+    const leaveIdParam = urlParams.get("id") || urlParams.get("leave_id");
+    if (leaveIdParam) {
+      setTimeout(() => {
+        const rowEl = document.getElementById(`row-${leaveIdParam}`);
+        if (rowEl) {
+          rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          rowEl.style.transition = 'all 0.8s ease-in-out';
+          rowEl.style.backgroundColor = '#f0fdf4'; // Light green background
+          rowEl.style.boxShadow = 'inset 0 0 10px rgba(16, 185, 129, 0.2), 0 0 15px rgba(16, 185, 129, 0.3)';
+          rowEl.style.outline = '2px solid #10b981';
+          
+          setTimeout(() => {
+            rowEl.style.backgroundColor = '';
+            rowEl.style.boxShadow = '';
+            rowEl.style.outline = '';
+          }, 4500);
+        }
+      }, 600);
+    }
   } catch (error) {
     console.error("❌ โหลดประวัติการลาล้มเหลว:", error);
     tableBody.innerHTML = `<tr><td colspan="6" class="error-state">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(error.message)}</td></tr>`;
@@ -312,7 +334,7 @@ function renderRows() {
     const isRejected = item.status === "rejected" && !isCancelled;
 
     return `
-      <tr>
+      <tr id="row-${item.id}">
         <td data-label="ประเภทการลา"><strong class="leave-type-title">${escapeHtml(leaveTypeName)}</strong></td>
         <td data-label="ช่วงวันที่">${startDateStr} - ${endDateStr}</td>
         <td data-label="จำนวนวัน"><span class="day-count-badge">${formatDuration(item.total_days, item.leave_hours)}</span></td>

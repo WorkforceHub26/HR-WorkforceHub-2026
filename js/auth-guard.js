@@ -97,7 +97,9 @@ window.getUserRoleCategory = function(userSession) {
     if (!isLoginPage) {
       console.warn("🚫 [Auth Guard]: ยังไม่ได้เข้าสู่ระบบ -> เด้งไปหน้า Login");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
-      window.location.replace("/index.html");
+      const currentSearch = window.location.search || "";
+      const originalPage = encodeURIComponent(window.location.pathname + currentSearch);
+      window.location.replace("/index.html?redirect=" + originalPage);
     }
     return;
   }
@@ -105,6 +107,15 @@ window.getUserRoleCategory = function(userSession) {
   // 2. กรณีล็อกอินแล้ว แต่อยู่หน้า Login -> ส่งไปหน้าแรกตามสิทธิ์
   if (isLoginPage) {
     console.log("✅ [Auth Guard]: ล็อกอินแล้ว -> นำทางไปหน้าแรกตามสิทธิ์");
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectUrl = urlParams.get("redirect");
+    if (redirectUrl) {
+      const decodedRedirect = decodeURIComponent(redirectUrl);
+      if (decodedRedirect.startsWith("/") && !decodedRedirect.startsWith("//")) {
+        window.location.replace(decodedRedirect);
+        return;
+      }
+    }
     if (userStatus.category === 'hr_exec') {
       window.location.replace("/pages/hr/home.html");
     } else if (userStatus.category === 'leader_manager') {
@@ -314,17 +325,35 @@ document.addEventListener("DOMContentLoaded", async () => {
    ========================================================================== */
 
 function redirectToDashboard(role, userObj) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectUrl = urlParams.get("redirect");
+  if (redirectUrl) {
+    const decodedRedirect = decodeURIComponent(redirectUrl);
+    if (decodedRedirect.startsWith("/") && !decodedRedirect.startsWith("//")) {
+      window.location.replace(decodedRedirect);
+      return;
+    }
+  }
+
   const cleanRole = String(role || '').toLowerCase().trim();
   let userStatus = { category: 'employee' };
   if (typeof window.getUserRoleCategory === "function") {
     userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
   }
 
-  const isPower = userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager';
-  const adminRoles = ['executive', 'director', 'owner', 'hr', 'admin', 'superadmin', 'manager', 'leader', 'supervisor', 'head', 'ผู้บริหาร', 'ผู้อำนวยการ', 'เจ้าของ', 'หัวหน้า', 'ผู้จัดการ'];
-  const isAdminRole = adminRoles.some(r => cleanRole.includes(r));
+  let targetPath = "/pages/user/index-user.html";
+  if (userStatus.category === 'hr_exec') {
+    targetPath = "/pages/hr/home.html";
+  } else if (userStatus.category === 'leader_manager') {
+    targetPath = "/pages/hr/hr.html";
+  } else {
+    const adminRoles = ['executive', 'director', 'owner', 'hr', 'admin', 'superadmin', 'manager', 'leader', 'supervisor', 'head', 'ผู้บริหาร', 'ผู้อำนวยการ', 'เจ้าของ', 'หัวหน้า', 'ผู้จัดการ'];
+    const isAdminRole = adminRoles.some(r => cleanRole.includes(r));
+    if (isAdminRole) {
+      targetPath = "/pages/hr/hr.html";
+    }
+  }
   
-  const targetPath = (isPower || isAdminRole) ? "/pages/hr/home.html" : "/pages/user/index-user.html";
   const targetUrl = new URL(targetPath, window.location.origin).href;
 
   if (window.location.href !== targetUrl) {
