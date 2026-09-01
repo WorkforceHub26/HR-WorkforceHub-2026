@@ -1298,3 +1298,61 @@ input[type="file"]:hover {
     padding: 1rem;
   }
 }
+
+/* ==========================================================================
+   👥 HOME DEPARTMENT TEAM ROSTER PANEL STYLES (3-4 COLUMNS)
+   ========================================================================== */
+.home-team-panel {
+  background: var(--card, #ffffff);
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));
+  overflow: hidden;
+}
+
+.home-team-scroll-area::-webkit-scrollbar {
+  width: 5px;
+}
+
+.home-team-scroll-area::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.home-team-scroll-area::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.home-team-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.team-grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+@media screen and (max-width: 1280px) {
+  .team-grid-4col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media screen and (max-width: 860px) {
+  .team-grid-4col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media screen and (max-width: 520px) {
+  .team-grid-4col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.team-filter-chip:hover {
+  filter: brightness(0.96);
+}
+

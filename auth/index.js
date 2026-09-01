@@ -38,7 +38,229 @@ function redirectToDashboard(role, userObj) {
   window.location.replace(targetUrl);
 }
 
+// 🌐 Language Switcher Translations (TH, LO, MY)
+const loginTranslations = {
+  th: {
+    badge: "ระบบขออนุญาตลาออนไลน์",
+    userLabel: "รหัสพนักงาน หรือ ชื่อ-นามสกุล",
+    userInputPlaceholder: "กรอกรหัสพนักงาน หรือ ชื่อพนักงาน",
+    passLabel: "รหัสผ่าน (Password)",
+    passInputPlaceholder: "กรอกรหัสผ่านเข้าสู่ระบบ",
+    remember: "จดจำรหัสพนักงาน (Remember Me)",
+    loginBtn: "เข้าสู่ระบบ",
+    qrBtn: "สแกนคิวอาร์โค้ดบัตรพนักงาน",
+    errEmptyBoth: "กรุณากรอกข้อมูลผู้ใช้งานและรหัสผ่านให้ครบถ้วน",
+    errEmptyUser: "กรุณากรอกรหัสพนักงาน หรือชื่อผู้ใช้งาน",
+    errEmptyPass: "กรุณากรอกรหัสผ่าน",
+    errInvalidCreds: "รหัสพนักงาน หรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง",
+    errUserNotFound: "ไม่พบข้อมูลผู้ใช้งานในระบบ กรุณาตรวจสอบรหัสพนักงานหรือชื่ออีกครั้ง",
+    errPassWrong: "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
+    errInactive: "บัญชีของคุณถูกระงับสิทธิ์การใช้งาน กรุณาติดต่อฝ่ายบุคคล (HR)",
+    errDbConn: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
+    errMultipleUsers: "พบชื่อ-นามสกุลนี้ซ้ำกันในระบบ กรุณาใช้รหัสพนักงานเข้าสู่ระบบแทน"
+  },
+  lo: {
+    badge: "ລະບົບຂໍອະນຸຍາດລາພັກອອນໄລນ໌",
+    userLabel: "ລະຫັດພະນັກງານ ຫຼື ຊື່-ນາມສະກຸນ",
+    userInputPlaceholder: "ປ້ອນລະຫັດພະນັກງານ ຫຼື ຊື່ພະນັກງານ",
+    passLabel: "ລະຫັດຜ່ານ (Password)",
+    passInputPlaceholder: "ປ້ອນລະຫັດຜ່ານເຂົ້າສູ່ລະບົບ",
+    remember: "ຈົດຈຳລະຫັດພະນັກງານ (Remember Me)",
+    loginBtn: "ເຂົ້າສູ່ລະບົບ",
+    qrBtn: "ສະແກນຄິວອ່າວໂຄດບັດພະນັກງານ",
+    errEmptyBoth: "ກະລຸນາປ້ອນຊື່ຜູ້ໃຊ້ງານ ແລະ ລະຫັດຜ່ານໃຫ້ຄົບຖ້ວນ",
+    errEmptyUser: "ກະລຸນາປ້ອນລະຫັດພະນັກງານ ຫຼື ຊື່ຜູ້ໃຊ້ງານ",
+    errEmptyPass: "ກະລຸນາປ້ອນລະຫັດຜ່ານ",
+    errInvalidCreds: "ລະຫັດພະນັກງານ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ ກະລຸນາກວດສອບຄືນໃໝ່",
+    errUserNotFound: "ບໍ່ພົບຂໍ້ມູນຜູ້ໃຊ້ງານໃນລະບົບ ກະລຸນາກວດສອບລະຫັດ ຫຼື ຊື່ອີກຄັ້ງ",
+    errPassWrong: "ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ ກະລຸນາລອງໃໝ່ອີກຄັ້ງ",
+    errInactive: "ບັນຊີຂອງທ່ານຖືກລະງັບການນຳໃຊ້ ກະລຸນາຕິດຕໍ່ຝ່າຍບຸກຄະລາກອນ (HR)",
+    errDbConn: "ບໍ່ສາມາດເຊື່ອມຕໍ່ຖານຂໍ້ມູນໄດ້ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ",
+    errMultipleUsers: "ພົບຊື່-ນາມສະກຸນຊໍ້າກັນໃນລະບົບ ກະລຸນາໃຊ້ລະຫັດພະນັກງານເຂົ້າສູ່ລະບົບແທນ"
+  },
+  my: {
+    badge: "အွန်လိုင်းခွင့်တောင်းခံလွှာစနစ်",
+    userLabel: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်",
+    userInputPlaceholder: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်ကို ထည့်ပါ",
+    passLabel: "စကားဝှက် (Password)",
+    passInputPlaceholder: "စကားဝှက်ကို ထည့်ပါ",
+    remember: "ဝန်ထမ်းနံပါတ်ကို မှတ်ထားရန်",
+    loginBtn: "အကောင့်ဝင်ရန်",
+    qrBtn: "ဝန်ထမ်းကတ် QR ကုဒ်ကို စကန်ဖတ်ရန်",
+    errEmptyBoth: "အသုံးပြုသူအမည်နှင့် စကားဝှက်ကို အပြည့်အစုံ ဖြည့်သွင်းပါ",
+    errEmptyUser: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်ကို ဖြည့်သွင်းပါ",
+    errEmptyPass: "စကားဝှက်ကို ဖြည့်သွင်းပါ",
+    errInvalidCreds: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်",
+    errUserNotFound: "အသုံးပြုသူအချက်အလက်ကို ရှာမတွေ့ပါ စစ်ဆေးပြီး ပြန်လည်ကြိုးစားပါ",
+    errPassWrong: "စကားဝှက် မှားယွင်းနေပါသည် ထပ်မံကြိုးစားပါ",
+    errInactive: "သင့်အကောင့်ကို ရပ်ဆိုင်းထားပါသည် HR သို့ ဆက်သွယ်ပါ",
+    errDbConn: "ဒေတာဘေ့စ်နှင့် ချိတ်ဆက်၍မရပါ နောက်မှ ပြန်လည်ကြိုးစားပါ",
+    errMultipleUsers: "နာမည်တူ ဝန်ထမ်းများ ရှိနေပါသဖြင့် ဝန်ထမ်းနံပါတ်ဖြင့် အကောင့်ဝင်ပါ"
+  }
+};
+
+function getActiveLoginI18n() {
+  const lang = localStorage.getItem("pvt_login_lang") || 'th';
+  return loginTranslations[lang] || loginTranslations.th;
+}
+
+// 💥 Visual Shake Animation on Login Card
+function triggerLoginCardShake() {
+  const card = document.querySelector('.login-card');
+  if (!card) return;
+  
+  card.classList.remove('shake');
+  // Trigger DOM reflow to re-play animation
+  void card.offsetWidth;
+  card.classList.add('shake');
+
+  // Haptic feedback if supported
+  if (typeof navigator !== "undefined" && navigator.vibrate) {
+    try { navigator.vibrate([80, 40, 80]); } catch (e) {}
+  }
+
+  setTimeout(() => {
+    card.classList.remove('shake');
+  }, 600);
+}
+
+// 🚨 Visual Color-Coded Validation Error Display
+function showLoginValidationError(message, options = {}) {
+  const {
+    type = 'error', // 'error' | 'warning' | 'success'
+    highlightUser = false,
+    highlightPass = false,
+    userHint = '',
+    passHint = '',
+    focusTarget = null,
+    showToast = true
+  } = options;
+
+  // 1. Shake animation on the card
+  triggerLoginCardShake();
+
+  // 2. Color-coded alert message banner inside card
+  const banner = document.getElementById("loginAlertBanner");
+  const bannerText = document.getElementById("loginAlertText");
+  const bannerIcon = document.getElementById("loginAlertIcon");
+
+  if (banner && bannerText) {
+    banner.className = `login-alert-banner active ${type}`;
+    bannerText.textContent = message;
+    if (bannerIcon) {
+      bannerIcon.textContent = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'check_circle';
+    }
+  }
+
+  // 3. Highlight inputs with visual error classes & hint messages
+  const userWrapper = document.getElementById("usernameWrapper") || document.getElementById("username")?.closest('.input-wrapper');
+  const passWrapper = document.getElementById("passwordWrapper") || document.getElementById("password")?.closest('.input-wrapper');
+  const userHintEl = document.getElementById("usernameErrorHint");
+  const passHintEl = document.getElementById("passwordErrorHint");
+  const userHintText = document.getElementById("usernameErrorText");
+  const passHintText = document.getElementById("passwordErrorText");
+
+  if (highlightUser && userWrapper) {
+    userWrapper.classList.add("error-state");
+    if (userHint && userHintEl && userHintText) {
+      userHintText.textContent = userHint;
+      userHintEl.classList.add("active");
+    }
+  }
+
+  if (highlightPass && passWrapper) {
+    passWrapper.classList.add("error-state");
+    if (passHint && passHintEl && passHintText) {
+      passHintText.textContent = passHint;
+      passHintEl.classList.add("active");
+    }
+  }
+
+  if (focusTarget) {
+    try { focusTarget.focus(); } catch (e) {}
+  }
+
+  if (showToast && typeof Swal !== "undefined") {
+    Swal.fire({
+      icon: type === 'warning' ? 'warning' : 'error',
+      title: type === 'warning' ? 'ข้อมูลไม่ครบถ้วน' : 'เข้าสู่ระบบไม่สำเร็จ',
+      text: message,
+      confirmButtonColor: type === 'warning' ? '#f59e0b' : '#ef4444',
+      timer: 3500,
+      timerProgressBar: true
+    });
+  }
+}
+
+// 🧹 Clear visual validation states
+function clearLoginValidationErrors() {
+  const banner = document.getElementById("loginAlertBanner");
+  if (banner) {
+    banner.className = "login-alert-banner";
+  }
+
+  const userWrapper = document.getElementById("usernameWrapper") || document.getElementById("username")?.closest('.input-wrapper');
+  const passWrapper = document.getElementById("passwordWrapper") || document.getElementById("password")?.closest('.input-wrapper');
+  if (userWrapper) userWrapper.classList.remove("error-state");
+  if (passWrapper) passWrapper.classList.remove("error-state");
+
+  const userHintEl = document.getElementById("usernameErrorHint");
+  const passHintEl = document.getElementById("passwordErrorHint");
+  if (userHintEl) userHintEl.classList.remove("active");
+  if (passHintEl) passHintEl.classList.remove("active");
+}
+
+function setLanguage(lang) {
+  localStorage.setItem("pvt_login_lang", lang);
+  const t = loginTranslations[lang] || loginTranslations.th;
+
+  const badgeEl = document.getElementById("i18nBadge");
+  const userLabelEl = document.getElementById("i18nUserLabel");
+  const usernameInput = document.getElementById("username");
+  const passLabelEl = document.getElementById("i18nPassLabel");
+  const passwordInput = document.getElementById("password");
+  const rememberEl = document.getElementById("i18nRemember");
+  const loginBtnEl = document.getElementById("i18nLoginBtn");
+  const qrBtnEl = document.getElementById("i18nQrBtn");
+
+  if (badgeEl) badgeEl.textContent = t.badge;
+  if (userLabelEl) userLabelEl.textContent = t.userLabel;
+  if (usernameInput) usernameInput.placeholder = t.userInputPlaceholder;
+  if (passLabelEl) passLabelEl.textContent = t.passLabel;
+  if (passwordInput) passwordInput.placeholder = t.passInputPlaceholder;
+  if (rememberEl) rememberEl.textContent = t.remember;
+  if (loginBtnEl) loginBtnEl.textContent = t.loginBtn;
+  if (qrBtnEl) qrBtnEl.textContent = t.qrBtn;
+
+  const btnTh = document.getElementById("langThBtn");
+  const btnLo = document.getElementById("langLoBtn");
+  const btnMy = document.getElementById("langMyBtn");
+
+  [btnTh, btnLo, btnMy].forEach(b => {
+    if (b) {
+      b.style.backgroundColor = "transparent";
+      b.style.color = "#64748b";
+      b.style.boxShadow = "none";
+      b.style.fontWeight = "600";
+    }
+  });
+
+  const activeBtn = lang === 'th' ? btnTh : lang === 'lo' ? btnLo : btnMy;
+  if (activeBtn) {
+    activeBtn.style.backgroundColor = "#ffffff";
+    activeBtn.style.color = "#0d9488";
+    activeBtn.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+    activeBtn.style.fontWeight = "700";
+  }
+}
+
+window.setLanguage = setLanguage;
+
 document.addEventListener("DOMContentLoaded", async () => {
+  // Initialize saved language or default to 'th'
+  const savedLang = localStorage.getItem("pvt_login_lang") || 'th';
+  setLanguage(savedLang);
+
   // Register Service Worker for PWA (Add to Home Screen)
   if ('serviceWorker' in navigator) {
     try {
@@ -70,6 +292,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("username");
   const passwordInput = document.getElementById("password");
+  const rememberCheckbox = document.getElementById("rememberMe");
+
+  // Pre-fill remembered username if exists
+  const rememberedUsername = localStorage.getItem("pvt_remembered_username");
+  if (rememberedUsername && usernameInput) {
+    usernameInput.value = rememberedUsername;
+    if (rememberCheckbox) {
+      rememberCheckbox.checked = true;
+    }
+  }
+
+  // Realtime clear errors on typing
+  usernameInput?.addEventListener("input", () => {
+    const userWrapper = document.getElementById("usernameWrapper") || usernameInput.closest('.input-wrapper');
+    userWrapper?.classList.remove("error-state");
+    const userHintEl = document.getElementById("usernameErrorHint");
+    userHintEl?.classList.remove("active");
+    const banner = document.getElementById("loginAlertBanner");
+    if (banner && !passwordInput?.closest('.input-wrapper')?.classList.contains("error-state")) {
+      banner.className = "login-alert-banner";
+    }
+  });
+
+  passwordInput?.addEventListener("input", () => {
+    const passWrapper = document.getElementById("passwordWrapper") || passwordInput.closest('.input-wrapper');
+    passWrapper?.classList.remove("error-state");
+    const passHintEl = document.getElementById("passwordErrorHint");
+    passHintEl?.classList.remove("active");
+    const banner = document.getElementById("loginAlertBanner");
+    if (banner && !usernameInput?.closest('.input-wrapper')?.classList.contains("error-state")) {
+      banner.className = "login-alert-banner";
+    }
+  });
 
   // ตรวจสอบ Auto Login ผ่าน QR Code บน URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -82,22 +337,63 @@ document.addEventListener("DOMContentLoaded", async () => {
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    const i18n = getActiveLoginI18n();
     const loginInput = usernameInput.value.trim();
     const password = passwordInput.value.trim();
 
-    if (!loginInput || !password) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'ข้อมูลไม่ครบ',
-        text: 'กรุณากรอกผู้ใช้งานและรหัสผ่านให้ครบถ้วน',
-        confirmButtonColor: '#3b82f6'
+    // 1. Validation for empty inputs
+    if (!loginInput && !password) {
+      showLoginValidationError(i18n.errEmptyBoth, {
+        type: 'warning',
+        highlightUser: true,
+        highlightPass: true,
+        userHint: i18n.errEmptyUser,
+        passHint: i18n.errEmptyPass,
+        focusTarget: usernameInput
       });
       return;
     }
 
+    if (!loginInput) {
+      showLoginValidationError(i18n.errEmptyUser, {
+        type: 'warning',
+        highlightUser: true,
+        userHint: i18n.errEmptyUser,
+        focusTarget: usernameInput
+      });
+      return;
+    }
+
+    if (!password) {
+      showLoginValidationError(i18n.errEmptyPass, {
+        type: 'warning',
+        highlightPass: true,
+        passHint: i18n.errEmptyPass,
+        focusTarget: passwordInput
+      });
+      return;
+    }
+
+    clearLoginValidationErrors();
+
+    const loginBtn = loginForm.querySelector('.login-btn');
+    loginBtn?.classList.add('loading');
+
+    // Handle Remember Me storage
+    if (rememberCheckbox && rememberCheckbox.checked) {
+      localStorage.setItem("pvt_remembered_username", loginInput);
+    } else {
+      localStorage.removeItem("pvt_remembered_username");
+    }
+
     const sb = getSbClient();
     if (!sb) {
-      Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้' });
+      loginBtn?.classList.remove('loading');
+      showLoginValidationError(i18n.errDbConn, {
+        type: 'error',
+        highlightUser: true,
+        highlightPass: true
+      });
       return;
     }
 
@@ -129,20 +425,56 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (queryRes.error) throw new Error(queryRes.error.message);
         if (!queryRes.data || queryRes.data.length === 0) {
-          throw new Error("ไม่พบชื่อผู้ใช้งาน หรือรหัสผ่านไม่ถูกต้อง");
+          showLoginValidationError(i18n.errUserNotFound, {
+            type: 'error',
+            highlightUser: true,
+            highlightPass: true,
+            userHint: i18n.errUserNotFound,
+            focusTarget: usernameInput
+          });
+          return;
+        }
+
+        if (queryRes.data.length > 1) {
+          showLoginValidationError(i18n.errMultipleUsers, {
+            type: 'warning',
+            highlightUser: true,
+            userHint: i18n.errMultipleUsers,
+            focusTarget: usernameInput
+          });
+          return;
         }
 
         const candidate = queryRes.data[0];
         if (candidate.password && String(candidate.password) !== String(password)) {
-          throw new Error("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
+          showLoginValidationError(i18n.errPassWrong, {
+            type: 'error',
+            highlightPass: true,
+            passHint: i18n.errPassWrong,
+            focusTarget: passwordInput
+          });
+          return;
         }
         user = candidate;
       }
 
-      if (!user) throw new Error("การเข้าสู่ระบบล้มเหลว");
+      if (!user) {
+        showLoginValidationError(i18n.errInvalidCreds, {
+          type: 'error',
+          highlightUser: true,
+          highlightPass: true,
+          focusTarget: usernameInput
+        });
+        return;
+      }
 
       if (String(user.status || "").toLowerCase() === "inactive") {
-        throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน");
+        showLoginValidationError(i18n.errInactive, {
+          type: 'error',
+          highlightUser: true,
+          userHint: i18n.errInactive
+        });
+        return;
       }
 
       saveUserSession(user);
@@ -150,12 +482,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       redirectToDashboard(user.role, user);
 
     } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'เข้าสู่ระบบไม่สำเร็จ',
-        text: err.message || 'ข้อมูลผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง',
-        confirmButtonColor: '#ef4444'
+      loginBtn?.classList.remove('loading');
+      showLoginValidationError(err.message || i18n.errInvalidCreds, {
+        type: 'error',
+        highlightUser: true,
+        highlightPass: true
       });
+    } finally {
+      loginBtn?.classList.remove('loading');
     }
   });
 });

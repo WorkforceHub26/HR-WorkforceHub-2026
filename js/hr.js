@@ -1240,11 +1240,8 @@ async function approveLeave(leaveId) {
         if (approverConfigError) throw approverConfigError;
 
         if (!approverConfig?.manager_id) {
-          console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี L2 → ข้ามไป HR');
-          updateFields.director_status = 'approved';
-          if (hasExecutiveColumn) {
-            updateFields.executive_status = 'approved';
-          }
+          console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี L2 → ส่งไปให้ผู้บริหาร (L3) อนุมัติแทน');
+          updateFields.director_status = 'pending'; // ให้คงสถานะ pending ไว้เพื่อให้ผู้บริหารอนุมัติ
         }
       }
     } else if (currentRole === 'manager') {
@@ -1382,8 +1379,51 @@ async function approveLeave(leaveId) {
                 console.warn('⚠️ [LINE OA] ผู้จัดการ L2 ยังไม่มี LINE User ID');
               }
             } else {
-              // ไม่มี L2 → ไม่ส่ง LINE ให้ HR ตาม Requirement
-              console.log('ℹ️ [LINE OA] แผนกนี้ไม่มี L2 → ข้าม LINE และส่งรายการไป HR ในระบบ');
+              // ไม่มี L2 → ส่งแจ้งเตือนผู้บริหารระดับสูง (Executive)
+              console.log('ℹ️ [LINE OA] แผนกนี้ไม่มี L2 → ส่งต่อผู้บริหาร L3');
+              const { data: executiveSetting } = await sb
+                .from('system_settings')
+                .select('employee_id')
+                .eq('setting_key', 'leave_executive_approver')
+                .maybeSingle();
+
+              if (executiveSetting?.employee_id) {
+                const { data: executiveEmp } = await sb
+                  .from('employees')
+                  .select('id, full_name, line_id')
+                  .eq('id', executiveSetting.employee_id)
+                  .maybeSingle();
+
+                if (executiveEmp) {
+                  // บันทึกแจ้งเตือนลงตาราง notifications สำหรับผู้บริหาร
+                  await sb.from('notifications').insert({
+                    employee_id: executiveEmp.id,
+                    title: `ใบลาจาก ${applicantName} ส่งหาผู้บริหาร (เนื่องจากแผนกไม่มีผู้จัดการ)`,
+                    message: `พนักงาน: ${applicantName} (${applicantCode})\nแผนก: ${deptName}\nประเภท: ${leaveTypeName}\nวันที่: ${reqData.start_date} ถึง ${reqData.end_date}\n(แผนกไม่มีผู้จัดการฝ่าย)`,
+                    type: 'leave',
+                    link_url: '/pages/hr/hr.html'
+                  });
+
+                  if (window.PVTSDK?.line) {
+                    await window.PVTSDK.line.sendWorkflowNotification({
+                      type: 'LEADER_APPROVED',
+                      recipientId: executiveEmp.id,
+                      recipientLineId: executiveEmp.line_id || '',
+                      leaveId: leaveId,
+                      employeeName: applicantName,
+                      employeeCode: applicantCode,
+                      departmentName: deptName,
+                      recipientRole: 'executive',
+                      leaveType: leaveTypeName,
+                      startDate: reqData.start_date,
+                      endDate: reqData.end_date,
+                      totalDays: reqData.total_days,
+                      comment: reqData.approval_comment || 'หัวหน้างานตรวจสอบแล้ว และไม่มีผู้จัดการฝ่าย (ส่งหาผู้บริหาร)',
+                      attachmentUrl: reqData.attachment_url || ""
+                    });
+                  }
+                }
+              }
             }
           }
 

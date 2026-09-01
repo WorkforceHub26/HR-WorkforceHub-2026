@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import tailwindcss from '@tailwindcss/vite';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification } from './api-handlers.js';
+import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine } from './api-handlers.js';
 
 export default defineConfig({
   plugins: [
@@ -11,6 +11,10 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use('/api/create-line-link', (req, res) => {
           if (req.method === 'POST') handleCreateLineLink(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/clear-approver-line', (req, res) => {
+          if (req.method === 'POST') handleClearApproverLine(req, res);
           else res.end();
         });
         server.middlewares.use('/api/line-webhook', (req, res) => {

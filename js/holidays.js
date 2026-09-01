@@ -1,6 +1,7 @@
 /**
  * ==========================================================================
  * 🤍 PVT WORKFORCE HUB - Holidays Management Module (holidays.js)
+ * Supports Multi-Language Localization (TH, LO, MY)
  * ==========================================================================
  */
 
@@ -9,7 +10,7 @@ let holidaysData = [];
 let currentView = 'grid';
 let currentUserProfile = null;
 
-// ข้อมูลวันหยุดประจำปี 2026 (สำรองในกรณี DB ยังไม่ได้สร้างตาราง หรือโหลดไม่สำเร็จ)
+// Default Holidays Data for 2026
 const defaultHolidays2026 = [
   { id: 'def-1', holiday_date: '2026-01-01', holiday_name: 'วันขึ้นปีใหม่', holiday_type: 'official', description: 'วันหยุดต้อนรับปีใหม่ พ.ศ. 2569' },
   { id: 'def-2', holiday_date: '2026-03-03', holiday_name: 'วันมาฆบูชา', holiday_type: 'official', description: 'วันสำคัญทางศาสนาพุทธ' },
@@ -31,9 +32,193 @@ const defaultHolidays2026 = [
   { id: 'def-18', holiday_date: '2026-12-31', holiday_name: 'วันสิ้นปี', holiday_type: 'official', description: 'วันหยุดส่งท้ายปีเก่า' }
 ];
 
-const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-const THAI_MONTHS_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-const THAI_DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+// Localization dictionaries
+const HOLIDAY_NAME_MAP = {
+  'วันขึ้นปีใหม่': { lo: 'ວັນຂຶ້ນປີໃໝ່', my: 'နှစ်သစ်ကူးနေ့' },
+  'วันมาฆบูชา': { lo: 'ວັນມາຄະບູຊາ', my: 'မာဃပူဇာနေ့' },
+  'วันจักรี': { lo: 'ວັນຈັກກີ', my: 'ချက်ကရီနေ့' },
+  'วันสงกรานต์': { lo: 'ວັນບຸນປີໃໝ່ (ສົງການ)', my: 'သင်္ကြန်ပွဲတော်' },
+  'วันแรงงานแห่งชาติ': { lo: 'ວັນກຳມະກອນສາກົນ', my: 'အလုပ်သမားနေ့' },
+  'วันฉัตรมงคล': { lo: 'ວັນສັດມຸງຄຸນ', my: 'ဘိသိက်ခံနေ့' },
+  'วันวิสาขบูชา': { lo: 'ວັນວິສາຂະບູຊາ', my: 'ကဆုန်လပြည့် ဗုဒ္ဓနေ့' },
+  'วันเฉลิมพระชนมพรรษา สมเด็จพระนางเจ้าฯ พระบรมราชินี': { lo: 'ວັນສະເຫຼີມສະຫຼອງພະລາຊິນີ', my: 'မိဖုရားကြီး မွေးနေ့' },
+  'วันเฉลิมพระชนมพรรษา พระบาทสมเด็จพระเจ้าอยู่หัว': { lo: 'ວັນສະເຫຼີມສະຫຼອງພະເຈົ້າມະຫາຊີວິດ', my: 'ဘုရင်မင်းမြတ် မွေးနေ့' },
+  'วันอาสาฬหบูชา': { lo: 'ວັນອາສາລະຫະບູຊາ', my: 'ဝါဆိုလပြည့်နေ့' },
+  'วันแม่แห่งชาติ': { lo: 'ວັນແມ່ແຫ່ງຊາດ', my: 'မိခင်များနေ့' },
+  'วันนวมินทรมหาราช': { lo: 'ວັນນະວະມິນມະຫາລາດ', my: 'ဘုရင်မင်းမြတ် ရာမ ၉ အောက်မေ့ဖွယ်နေ့' },
+  'วันปิยมหาราช': { lo: 'ວັນປີຍະມະຫາລາດ', my: 'ချူလာလောင်ကွန်းနေ့' },
+  'วันพ่อแห่งชาติ': { lo: 'ວັນພໍ່ແຫ່ງຊາດ', my: 'ဖခင်များနေ့' },
+  'วันรัฐธรรมนูญ': { lo: 'ວັນລັດຖະທຳມະນູນ', my: 'ဖွဲ့စည်းပုံအခြေခံဥပဒေနေ့' },
+  'วันสิ้นปี': { lo: 'ວັນສົ່ງທ້າຍປີເກົ່າ', my: 'နှစ်ကုန်ရက်' }
+};
+
+const HOLIDAY_DESC_MAP = {
+  'วันหยุดต้อนรับปีใหม่ พ.ศ. 2569': { lo: 'ວັນພັກຕ້ອນຮັບປີໃໝ່', my: 'နှစ်သစ်ကူး အားလပ်ရက်' },
+  'วันสำคัญทางศาสนาพุทธ': { lo: 'ວັນສຳຄັນທາງພຸດທະສາດສະໜາ', my: 'ဗုဒ္ဓဘာသာ နေ့ထူးနေ့မြတ်' },
+  'วันระลึกมหาจักรีบรมราชวงศ์': { lo: 'ວັນລະນຶກມະຫາຈັກກີ', my: 'ချက်ကရီ မင်းဆက် အောက်မေ့ဖွယ်နေ့' },
+  'วันขึ้นปีใหม่ไทย': { lo: 'ວັນຂຶ້ນປີໃໝ່ໄທ (ສົງການ)', my: 'ထိုင်းနှစ်သစ်ကူးနေ့' },
+  'วันครอบครัว': { lo: 'ວັນຄອບຄົວ', my: 'မိသားစုနေ့' },
+  'วันผู้สูงอายุแห่งชาติ': { lo: 'ວັນຜູ້ສູງອາຍຸແຫ່ງຊາດ', my: 'သက်ကြီးရွယ်အိုများနေ့' },
+  'วันหยุดพิเศษประจำปีของพนักงาน': { lo: 'ວັນພັກພິເສດປະຈຳປີຂອງພະນັກງານ', my: 'ဝန်ထမ်းများအတွက် အထူးနှစ်ပတ်လည် အားလပ်ရက်' },
+  'วันรอยพระบาทสมเด็จพระเจ้าอยู่หัวเสด็จบรมราชาภิเษก': { lo: 'ວັນສະເຫຼີມສະຫຼອງບໍລົມລາຊາພິເສກ', my: 'ဘိသိက်မင်္ဂလာ အထိမ်းအမှတ်နေ့' },
+  'วันเฉลิมพระชนมพรรษา': { lo: 'ວັນສະເຫຼີມສະຫຼອງວັນເກີດ', my: 'မွေးနေ့တော် အထိမ်းအမှတ်' },
+  'วันเฉลิมพระชนมพรรษา ร.10': { lo: 'ວັນສະເຫຼີມສະຫຼອງ ຣ.10', my: 'ဘုရင် ရာမ ၁၀ မွေးနေ့' },
+  'วันเฉลิมพระชนมพรรษา สมเด็จพระบรมราชชนนีพันปีหลวง': { lo: 'ວັນສະເຫຼີມສະຫຼອງພະລາຊະຊົນນະນີ', my: 'မိဖုရားကြီး မွေးနေ့တော်' },
+  'วันคล้ายวันสวรรคต ร.9': { lo: 'ວັນຄ້າຍວັນສະຫວັນນະຄົດ ຣ.9', my: 'ဘုရင် ရာမ ၉ ကွယ်လွန်ခြင်း အောက်မေ့ဖွယ်နေ့' },
+  'วันคล้ายวันสวรรคต ร.5': { lo: 'ວັນຄ້ายວັນສະຫວັນນະຄົດ ຣ.5', my: 'ဘုရင် ရာမ ၅ ကွယ်လွန်ခြင်း အောက်မေ့ဖွယ်နေ့' },
+  'วันคล้ายวันพระบรมราชสมภพ ร.9': { lo: 'ວັນຄ້າຍວັນພະລາຊະສົມພົບ ຣ.9', my: 'ဘုရင် ရာမ ၉ မွေးနေ့တော်' },
+  'วันระลึกการมีรัฐธรรมนูญฉบับแรก': { lo: 'ວັນລະນຶກລັດຖະທຳມະນູນສະບັບທຳອິດ', my: 'ပထမဆုံး ဖွဲ့စည်းပုံအခြေခံဥပဒေ အောက်မေ့ဖွယ်နေ့' },
+  'วันหยุดส่งท้ายปีเก่า': { lo: 'ວັນພັກສົ່ງທ້າຍປີເກົ່າ', my: 'နှစ်ဟောင်းကုန် အားလပ်ရက်' }
+};
+
+const LANG_CONFIG = {
+  th: {
+    monthsShort: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+    monthsFull: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
+    days: ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'],
+    daysShort: ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
+    dayPrefix: 'วัน',
+    tagOfficial: 'นักขัตฤกษ์',
+    tagCompany: 'วันหยุดบริษัท',
+    tagSubstitution: 'หยุดชดเชย',
+    statusToday: '📌 วันนี้',
+    statusTomorrow: '⏰ พรุ่งนี้',
+    statusPast: 'ผ่านมาแล้ว',
+    statusUpcoming: 'กำลังจะถึง',
+    daysLeftText: (d) => `อีก ${d} วัน`,
+    daysUnit: 'วัน',
+    yearPrefix: 'ปี ',
+    yearSuffix: (y) => ` (${y + 543})`,
+    formatYear: (y) => (y + 543).toString(),
+    emptyHolidays: 'ไม่พบข้อมูลวันหยุด',
+    noNextHoliday: 'ไม่มีวันหยุดถัดไป',
+    noNextHolidayYear: 'ไม่มีวันหยุดถัดไปในปีนี้',
+    allPassedDesc: 'ผ่านพ้นวันหยุดทั้งหมดของปีนี้เรียบร้อยแล้ว',
+    summaryMonthTitle: (m, y) => `วันหยุดเดือน${m} ${y}`,
+    summaryYearTitle: (y) => `สรุปวันหยุดปี ${y}`,
+    summaryDayTitle: (d) => `ประจำวันที่ ${d}`,
+    totalDaysLabel: (n) => `รวม ${n} วัน`,
+    btnViewWholeYear: 'ดูทั้งปี',
+    btnBack: 'ย้อนกลับ',
+    noHolidaysSection: 'ไม่มีวันหยุดในส่วนนี้',
+    teamMonthlyTitle: (m, y) => `ผู้ลาเดือน${m} ${y}`,
+    teamDayTitle: (d) => `วันที่ ${d}`,
+    btnViewWholeMonth: 'ดูทั้งเดือน',
+    noTeamLeaves: 'ไม่มีรายการในส่วนนี้',
+    approved: 'อนุมัติ',
+    pending: 'รออนุมัติ',
+    edit: 'แก้ไข',
+    delete: 'ลบ',
+    btnEditHoliday: 'แก้ไขวันหยุด',
+    btnDeleteHoliday: 'ลบวันหยุด'
+  },
+  lo: {
+    monthsShort: ['ມ.ກ.', 'ກ.ພ.', 'ມ.ນ.', 'ມ.ສ.', 'ພ.ພ.', 'ມິ.ຖ.', 'ກ.ລ.', 'ສ.ຫ.', 'ກ.ຍ.', 'ຕ.ລ.', 'ພ.ຈ.', 'ທ.ວ.'],
+    monthsFull: ['ມັງກອນ', 'ກຸມພາ', 'ມີນາ', 'ເມສາ', 'ພຶດສະພາ', 'ມິຖຸນາ', 'ກໍລະກົດ', 'ສິງຫາ', 'ກັນຍາ', 'ຕຸລາ', 'ພະຈິກ', 'ທັນວາ'],
+    days: ['ວັນອາທິດ', 'ວັນຈັນ', 'ວັນອັງຄານ', 'ວັນພຸດ', 'ວັນພະຫັດ', 'ວັນສຸກ', 'ວັນເສົາ'],
+    daysShort: ['ອາ.', 'ຈ.', 'ອ.', 'ພ.', 'ພຫ.', 'ສຸ.', 'ສ.'],
+    dayPrefix: 'ວັນ',
+    tagOfficial: 'ວັນພັກລັດຖະການ',
+    tagCompany: 'ວັນພັກບໍລິສັດ',
+    tagSubstitution: 'ວັນພັກຊົດເຊີຍ',
+    statusToday: '📌 ມື້ນີ້',
+    statusTomorrow: '⏰ ມື້ອື່ນ',
+    statusPast: 'ຜ່ານມາແລ້ວ',
+    statusUpcoming: 'ກຳລັງຈະມາຮອດ',
+    daysLeftText: (d) => `ອີກ ${d} ວັນ`,
+    daysUnit: 'ວັນ',
+    yearPrefix: 'ປີ ',
+    yearSuffix: () => '',
+    formatYear: (y) => y.toString(),
+    emptyHolidays: 'ບໍ່ພົບຂໍ້ມູນວັນພັກ',
+    noNextHoliday: 'ບໍ່ມີວັນພັກຖັດໄປ',
+    noNextHolidayYear: 'ບໍ່ມີວັນພັກຖັດໄປໃນປີນີ້',
+    allPassedDesc: 'ຜ່ານພົ້ນວັນພັກທັງໝົດຂອງປີນີ້ແລ້ວ',
+    summaryMonthTitle: (m, y) => `ວັນພັກເດືອນ${m} ${y}`,
+    summaryYearTitle: (y) => `ສະຫຼຸບວັນພັກປີ ${y}`,
+    summaryDayTitle: (d) => `ປະຈຳວັນທີ ${d}`,
+    totalDaysLabel: (n) => `ລວມ ${n} ວັນ`,
+    btnViewWholeYear: 'ເບິ່ງທັງປີ',
+    btnBack: 'ຍ້ອນກັບ',
+    noHolidaysSection: 'ບໍ່ມີວັນພັກໃນສ່ວນນີ້',
+    teamMonthlyTitle: (m, y) => `ຜູ້ລາພັກເດືອນ${m} ${y}`,
+    teamDayTitle: (d) => `ວັນທີ ${d}`,
+    btnViewWholeMonth: 'ເບິ່ງທັງເດືອນ',
+    noTeamLeaves: 'ບໍ່ມີລາຍການໃນສ່ວນນີ້',
+    approved: 'ອະນຸມັດ',
+    pending: 'ຖ້າອະນຸມັດ',
+    edit: 'ແກ້ໄຂ',
+    delete: 'ລຶບ',
+    btnEditHoliday: 'ແກ້ໄຂວັນພັກ',
+    btnDeleteHoliday: 'ລຶບວັນພັກ'
+  },
+  my: {
+    monthsShort: ['ဇန်', 'ဖေ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်', 'ဇူ', 'သြ', 'စက်', 'အောက်', 'နို', 'ဒီ'],
+    monthsFull: ['ဇန်နဝါရီ', 'ဖေဖော်ဝါရီ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်', 'ဇူလိုင်', 'သြဂုတ်', 'စက်တင်ဘာ', 'အောက်တိုဘာ', 'နိုဝင်ဘာ', 'ဒီဇင်ဘာ'],
+    days: ['တနင်္ဂနွေနေ့', 'တနင်္လာနေ့', 'အင်္ဂါနေ့', 'ဗုဒ္ဓဟူးနေ့', 'ကြာသပတေးနေ့', 'သောကြာနေ့', 'စနေနေ့'],
+    daysShort: ['နွေ', 'လာ', 'ဂါ', 'ဟူး', 'တေး', 'ကြာ', 'နေ'],
+    dayPrefix: '',
+    tagOfficial: 'ရုံးပိတ်ရက်',
+    tagCompany: 'ကုမ္ပဏီ အားလပ်ရက်',
+    tagSubstitution: 'အစားထိုး အားလပ်ရက်',
+    statusToday: '📌 ယနေ့',
+    statusTomorrow: '⏰ မနက်ဖြန်',
+    statusPast: 'ပြီးဆုံးခဲ့ပြီ',
+    statusUpcoming: 'မကြာမီ ရောက်ရှိမည်',
+    daysLeftText: (d) => `နောက်ထပ် ${d} ရက်`,
+    daysUnit: 'ရက်',
+    yearPrefix: '',
+    yearSuffix: () => ' ခုနှစ်',
+    formatYear: (y) => `${y} ခုနှစ်`,
+    emptyHolidays: 'ရုံးပိတ်ရက် အချက်အလက် မရှိပါ',
+    noNextHoliday: 'နောက်ထပ် ရုံးပိတ်ရက် မရှိပါ',
+    noNextHolidayYear: 'ယခုနှစ်အတွက် နောက်ထပ် ရုံးပိတ်ရက် မရှိပါ',
+    allPassedDesc: 'ယခုနှစ်၏ ရုံးပိတ်ရက်များ အားလုံး ပြီးဆုံးသွားပါပြီ',
+    summaryMonthTitle: (m, y) => `${m} ${y} ရုံးပိတ်ရက်များ`,
+    summaryYearTitle: (y) => `${y} တစ်နှစ်တာ ရုံးပိတ်ရက် အကျဉ်းချုပ်`,
+    summaryDayTitle: (d) => `${d} ရက်နေ့`,
+    totalDaysLabel: (n) => `စုစုပေါင်း ${n} ရက်`,
+    btnViewWholeYear: 'တစ်နှစ်လုံး ကြည့်မည်',
+    btnBack: 'နောက်သို့',
+    noHolidaysSection: 'ဤအပိုင်းတွင် ရုံးပိတ်ရက် မရှိပါ',
+    teamMonthlyTitle: (m, y) => `${m} ${y} ခွင့်ယူသူများ`,
+    teamDayTitle: (d) => `${d} ရက်နေ့`,
+    btnViewWholeMonth: 'တစ်လလုံး ကြည့်မည်',
+    noTeamLeaves: 'ဤအပိုင်းတွင် အချက်အလက် မရှိပါ',
+    approved: 'အတည်ပြုပြီး',
+    pending: 'စောင့်ဆိုင်းဆဲ',
+    edit: 'ပြင်ဆင်ရန်',
+    delete: 'ဖျက်ရန်',
+    btnEditHoliday: 'ရုံးပိတ်ရက် ပြင်ဆင်ရန်',
+    btnDeleteHoliday: 'ရုံးပိတ်ရက် ဖျက်ရန်'
+  }
+};
+
+function getActiveLang() {
+  if (typeof window.getGlobalLanguage === 'function') {
+    return window.getGlobalLanguage();
+  }
+  return localStorage.getItem('pvt_language') || 'th';
+}
+
+function getLangStrings() {
+  const lang = getActiveLang();
+  return LANG_CONFIG[lang] || LANG_CONFIG.th;
+}
+
+function getLocalizedHolidayName(name) {
+  if (!name) return '';
+  const lang = getActiveLang();
+  if (lang === 'th') return name;
+  return HOLIDAY_NAME_MAP[name]?.[lang] || name;
+}
+
+function getLocalizedHolidayDesc(desc) {
+  if (!desc) return '';
+  const lang = getActiveLang();
+  if (lang === 'th') return desc;
+  return HOLIDAY_DESC_MAP[desc]?.[lang] || desc;
+}
 
 // 🚀 INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
@@ -45,15 +230,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 // 🛠️ HELPER: แปลงสตริง วันที่ ป้องกัน Timezone Offset และรองรับ ISO String
 function parseLocalDate(dateStr) {
   if (!dateStr) return new Date();
-  
-  // ตัดส่วนเวลา T... ออกถ้ามี (เช่น "2026-08-12T00:00:00.000Z" -> "2026-08-12")
   const cleanStr = dateStr.toString().split('T')[0];
   const parts = cleanStr.split('-').map(Number);
-  
   if (parts.length < 3 || parts.some(isNaN)) {
     return new Date();
   }
-  
   return new Date(parts[0], parts[1] - 1, parts[2]);
 }
 
@@ -145,6 +326,7 @@ async function fetchHolidays() {
 
 // 📊 อัปเดต Banner และ KPI Cards
 function updateStatsAndHero() {
+  const strings = getLangStrings();
   const total = holidaysData.length;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -161,8 +343,8 @@ function updateStatsAndHero() {
 
   const elStatTotal = document.getElementById('statTotalHolidays');
   const elStatRemaining = document.getElementById('statRemainingHolidays');
-  if (elStatTotal) elStatTotal.innerText = `${total} วัน`;
-  if (elStatRemaining) elStatRemaining.innerText = `${upcomingList.length} วัน`;
+  if (elStatTotal) elStatTotal.innerText = `${total} ${strings.daysUnit}`;
+  if (elStatRemaining) elStatRemaining.innerText = `${upcomingList.length} ${strings.daysUnit}`;
 
   const nextHoliday = upcomingList.length > 0 ? upcomingList[0] : null;
 
@@ -178,25 +360,27 @@ function updateStatsAndHero() {
     
     const diffTime = hDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const locName = getLocalizedHolidayName(nextHoliday.holiday_name);
+    const locDesc = getLocalizedHolidayDesc(nextHoliday.description) || locName;
 
-    if (elNextName) elNextName.innerText = nextHoliday.holiday_name;
-    if (elNextDate) elNextDate.innerText = formatThaiDateShort(nextHoliday.holiday_date);
-    if (elHeroTitle) elHeroTitle.innerText = nextHoliday.holiday_name;
-    if (elHeroDetails) elHeroDetails.innerText = `${formatThaiDateFull(nextHoliday.holiday_date)} (${nextHoliday.description || 'วันหยุดตามปฏิทิน'})`;
-    if (elHeroCountdown) elHeroCountdown.innerText = diffDays === 0 ? 'วันนี้' : diffDays;
+    if (elNextName) elNextName.innerText = locName;
+    if (elNextDate) elNextDate.innerText = formatLocalDateShort(nextHoliday.holiday_date);
+    if (elHeroTitle) elHeroTitle.innerText = locName;
+    if (elHeroDetails) elHeroDetails.innerText = `${formatLocalDateFull(nextHoliday.holiday_date)} (${locDesc})`;
+    if (elHeroCountdown) elHeroCountdown.innerText = diffDays === 0 ? strings.statusToday : diffDays;
   } else {
     // Fallback กรณีไม่มีวันหยุดถัดไปในปีนี้แล้ว
-    if (elNextName) elNextName.innerText = 'ไม่มีวันหยุดถัดไป';
+    if (elNextName) elNextName.innerText = strings.noNextHoliday;
     if (elNextDate) elNextDate.innerText = '-';
-    if (elHeroTitle) elHeroTitle.innerText = 'ไม่มีวันหยุดถัดไปในปีนี้';
-    if (elHeroDetails) elHeroDetails.innerText = 'ผ่านพ้นวันหยุดทั้งหมดของปีนี้เรียบร้อยแล้ว';
+    if (elHeroTitle) elHeroTitle.innerText = strings.noNextHolidayYear;
+    if (elHeroDetails) elHeroDetails.innerText = strings.allPassedDesc;
     if (elHeroCountdown) elHeroCountdown.innerText = '0';
   }
 }
 
 // 🔍 ระบบกรองและค้นหา
-// 1. ฟังก์ชันกรองข้อมูลวันหยุดตามหมวดหมู่และคำค้นหา[cite: 23]
 function filterHolidays() {
+  const strings = getLangStrings();
   const searchInput = document.getElementById('holidaySearchInput'); 
   const categorySelect = document.getElementById('categorySelect'); 
   const monthSelect = document.getElementById('monthSelect');
@@ -208,13 +392,16 @@ function filterHolidays() {
 
   const filtered = holidaysData.filter(h => { 
     const matchCategory = category === 'all' || h.holiday_type === category; 
+    const locName = getLocalizedHolidayName(h.holiday_name).toLowerCase();
+    const locDesc = getLocalizedHolidayDesc(h.description).toLowerCase();
     const matchSearch = h.holiday_name.toLowerCase().includes(searchTxt) ||
+                        locName.includes(searchTxt) ||
                         (h.description && h.description.toLowerCase().includes(searchTxt)) || 
+                        locDesc.includes(searchTxt) ||
                         h.holiday_date.includes(searchTxt); 
     return matchCategory && matchSearch; 
   });
 
-  const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
   const month = companyCalCurrentDate.getMonth();
   const year = companyCalCurrentDate.getFullYear();
   const titleEl = document.getElementById('companyCalMonthYear');
@@ -224,7 +411,7 @@ function filterHolidays() {
   }
 
   if (selectedMonthVal === 'all') {
-    if (titleEl) titleEl.innerText = `ปี ${year + 543} (สรุปวันหยุดทั้งปี)`;
+    if (titleEl) titleEl.innerText = strings.summaryYearTitle(strings.formatYear(year));
     if (monthSelect) monthSelect.value = 'all';
 
     if (window.renderCompanyCalendarGrid) {
@@ -235,7 +422,7 @@ function filterHolidays() {
     if (monthSelect && monthSelect.value !== month.toString()) {
       monthSelect.value = month.toString();
     }
-    if (titleEl) titleEl.innerText = `${monthNames[month]} ${year + 543}`;
+    if (titleEl) titleEl.innerText = `${strings.monthsFull[month]} ${strings.formatYear(year)}`;
 
     if (window.renderCompanyCalendarGrid) {
       window.renderCompanyCalendarGrid(year, month, filtered);
@@ -243,14 +430,20 @@ function filterHolidays() {
       window.renderCompanySummarySidebar(monthHolidays);
     }
   }
+
+  if (currentView === 'grid') {
+    renderGrid(filtered);
+  } else {
+    renderTable(filtered);
+  }
 }
 
 // 🎴 แสดงผลแบบ Card Grid
-// 🎴 แสดงผลแบบ Card Grid
-// แสดง: วันที่ / เดือน / วันในสัปดาห์ / ชื่อวันหยุด / ประเภท / รายละเอียด / สถานะ
 function renderGrid(list) {
   const container = document.getElementById('holidayGridContainer');
   if (!container) return;
+
+  const strings = getLangStrings();
 
   // ไม่มีข้อมูล
   if (!list || list.length === 0) {
@@ -260,7 +453,7 @@ function renderGrid(list) {
           event_busy
         </span>
         <p style="color:#64748b; margin-top:10px;">
-          ไม่พบข้อมูลวันหยุด
+          ${strings.emptyHolidays}
         </p>
       </div>
     `;
@@ -281,60 +474,45 @@ function renderGrid(list) {
     : false;
 
   container.innerHTML = list.map(item => {
-
-    // ------------------------------------------
-    // 📅 แปลงวันที่
-    // ------------------------------------------
     const hDate = parseLocalDate(item.holiday_date);
-
     const dayNumber = hDate.getDate();
-    const monthShort = THAI_MONTHS_SHORT[hDate.getMonth()];
-    const dayName = THAI_DAYS[hDate.getDay()];
+    const monthShort = strings.monthsShort[hDate.getMonth()];
+    const dayName = strings.days[hDate.getDay()];
 
-    // วันที่วันนี้ของรายการ
     const holidayDateOnly = new Date(hDate);
     holidayDateOnly.setHours(0, 0, 0, 0);
 
     const diffTime = holidayDateOnly.getTime() - today.getTime();
-    const diffDays = Math.ceil(
-      diffTime / (1000 * 60 * 60 * 24)
-    );
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     const isPast = holidayDateOnly < today;
     const isToday = diffDays === 0;
 
-    // ------------------------------------------
-    // 🏷️ ประเภทวันหยุด
-    // ------------------------------------------
     let tagClass = 'official';
-    let tagText = 'นักขัตฤกษ์';
+    let tagText = strings.tagOfficial;
 
     if (item.holiday_type === 'company') {
       tagClass = 'company';
-      tagText = 'วันหยุดบริษัท';
+      tagText = strings.tagCompany;
     } else if (item.holiday_type === 'substitution') {
       tagClass = 'substitution';
-      tagText = 'หยุดชดเชย';
+      tagText = strings.tagSubstitution;
     }
 
-    // ------------------------------------------
-    // ⏳ ข้อความสถานะ
-    // ------------------------------------------
     let daysText = '';
-
     if (isToday) {
-      daysText = '📌 วันนี้';
+      daysText = strings.statusToday;
     } else if (isPast) {
-      daysText = 'ผ่านมาแล้ว';
+      daysText = strings.statusPast;
     } else if (diffDays === 1) {
-      daysText = '⏰ พรุ่งนี้';
+      daysText = strings.statusTomorrow;
     } else {
-      daysText = `อีก ${diffDays} วัน`;
+      daysText = strings.daysLeftText(diffDays);
     }
 
-    // ------------------------------------------
-    // 🔧 ปุ่มจัดการสำหรับ HR / Admin
-    // ------------------------------------------
+    const locHolidayName = getLocalizedHolidayName(item.holiday_name);
+    const locHolidayDesc = getLocalizedHolidayDesc(item.description);
+
     const actionButtons = isPowerUser
       ? `
         <div class="card-action-btns">
@@ -342,7 +520,7 @@ function renderGrid(list) {
             type="button"
             class="btn-icon-action"
             onclick="openEditHolidayModal('${item.id}')"
-            title="แก้ไขวันหยุด"
+            title="${strings.btnEditHoliday}"
           >
             <span class="material-symbols-outlined">edit</span>
           </button>
@@ -351,7 +529,7 @@ function renderGrid(list) {
             type="button"
             class="btn-icon-action"
             onclick="deleteHoliday('${item.id}')"
-            title="ลบวันหยุด"
+            title="${strings.btnDeleteHoliday}"
           >
             <span class="material-symbols-outlined">delete</span>
           </button>
@@ -359,66 +537,28 @@ function renderGrid(list) {
       `
       : '';
 
-    // ------------------------------------------
-    // 🎨 Card
-    // ------------------------------------------
     return `
       <div class="holiday-card ${isPast ? 'past-holiday' : ''}">
-
-        <!-- ส่วนบน -->
         <div class="card-top">
-
-          <!-- 📅 วันที่ -->
           <div class="date-badge-box">
-            <span class="date-badge-day">
-              ${dayNumber}
-            </span>
-
-            <span class="date-badge-month">
-              ${monthShort}
-            </span>
+            <span class="date-badge-day">${dayNumber}</span>
+            <span class="date-badge-month">${monthShort}</span>
           </div>
-
-          <!-- 🏷️ ประเภท -->
           <span class="tag-badge ${tagClass}">
             ${tagText}
           </span>
-
         </div>
 
-        <!-- ส่วนข้อมูล -->
         <div class="card-body-content">
-
-          <!-- วันในสัปดาห์ -->
-          <div class="day-name">
-            วัน${dayName}
-          </div>
-
-          <!-- ชื่อวันหยุด -->
-          <h3>
-            ${item.holiday_name || 'ไม่ระบุชื่อวันหยุด'}
-          </h3>
-
-          <!-- รายละเอียด -->
-          <p class="description-text">
-            ${item.description || 'ไม่มีรายละเอียดเพิ่มเติม'}
-          </p>
-
+          <div class="day-name">${dayName}</div>
+          <h3>${locHolidayName || item.holiday_name || '-'}</h3>
+          <p class="description-text">${locHolidayDesc || item.description || '-'}</p>
         </div>
 
-        <!-- ส่วนล่าง -->
         <div class="card-footer-action">
-
-          <!-- สถานะวันหยุด -->
-          <span class="days-left-text">
-            ${daysText}
-          </span>
-
-          <!-- ปุ่มจัดการ -->
+          <span class="days-left-text">${daysText}</span>
           ${actionButtons}
-
         </div>
-
       </div>
     `;
   }).join('');
@@ -429,11 +569,12 @@ function renderTable(list) {
   const tbody = document.getElementById('holidayTableBody');
   if (!tbody) return;
 
+  const strings = getLangStrings();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="table-empty-state">ไม่พบข้อมูลวันหยุด</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="table-empty-state">${strings.emptyHolidays}</td></tr>`;
     return;
   }
 
@@ -441,25 +582,27 @@ function renderTable(list) {
 
   tbody.innerHTML = list.map((item, index) => {
     const hDate = parseLocalDate(item.holiday_date);
-    const dayName = THAI_DAYS[hDate.getDay()];
+    const dayName = strings.days[hDate.getDay()];
     const isPast = hDate < today;
 
-    let tagText = item.holiday_type === 'company' ? 'วันหยุดบริษัท' : (item.holiday_type === 'substitution' ? 'หยุดชดเชย' : 'นักขัตฤกษ์');
+    let tagText = item.holiday_type === 'company' ? strings.tagCompany : (item.holiday_type === 'substitution' ? strings.tagSubstitution : strings.tagOfficial);
+    const locHolidayName = getLocalizedHolidayName(item.holiday_name);
+    const locHolidayDesc = getLocalizedHolidayDesc(item.description);
 
     return `
       <tr style="${isPast ? 'opacity: 0.6; background: #f8fafc;' : ''}">
         <td style="text-align: center;">${index + 1}</td>
-        <td><strong>${formatThaiDateShort(item.holiday_date)}</strong></td>
-        <td>วัน${dayName}</td>
-        <td><strong>${item.holiday_name}</strong></td>
+        <td><strong>${formatLocalDateShort(item.holiday_date)}</strong></td>
+        <td>${dayName}</td>
+        <td><strong>${locHolidayName || item.holiday_name}</strong></td>
         <td>${tagText}</td>
-        <td>${isPast ? 'ผ่านมาแล้ว' : 'กำลังจะถึง'}</td>
-        <td>${item.description || '-'}</td>
+        <td>${isPast ? strings.statusPast : strings.statusUpcoming}</td>
+        <td>${locHolidayDesc || item.description || '-'}</td>
         <td style="text-align: center;">
           ${isPowerUser ? `
             <div class="table-action-btns">
-              <button type="button" class="btn-table-edit" onclick="openEditHolidayModal('${item.id}')">แก้ไข</button>
-              <button type="button" class="btn-table-delete" onclick="deleteHoliday('${item.id}')">ลบ</button>
+              <button type="button" class="btn-table-edit" onclick="openEditHolidayModal('${item.id}')">${strings.edit}</button>
+              <button type="button" class="btn-table-delete" onclick="deleteHoliday('${item.id}')">${strings.delete}</button>
             </div>
           ` : '-'}
         </td>
@@ -555,37 +698,37 @@ function closeHolidayModal() {
 }
 
 async function handleSaveHoliday(event) {
-  event.preventDefault(); //[cite: 23]
+  event.preventDefault();
 
-  const id = document.getElementById('holidayId').value; //[cite: 23]
-  const holidayDate = document.getElementById('holidayDate').value; //[cite: 23]
-  const holidayName = document.getElementById('holidayName').value.trim(); //[cite: 23]
-  const holidayType = document.getElementById('holidayCategory').value; //[cite: 23]
-  const description = document.getElementById('holidayDescription').value.trim(); //[cite: 23]
+  const id = document.getElementById('holidayId').value;
+  const holidayDate = document.getElementById('holidayDate').value;
+  const holidayName = document.getElementById('holidayName').value.trim();
+  const holidayType = document.getElementById('holidayCategory').value;
+  const description = document.getElementById('holidayDescription').value.trim();
 
-  const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null; //[cite: 23]
+  const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
 
   try {
-    if (supabase) { //[cite: 23]
+    if (supabase) {
       const payload = {
-        holiday_name: holidayName, //[cite: 23]
-        holiday_date: holidayDate, //[cite: 23]
-        holiday_type: holidayType, //[cite: 23]
-        description: description  // บันทึกรายละเอียด/เหตุผลวันหยุด[cite: 23]
+        holiday_name: holidayName,
+        holiday_date: holidayDate,
+        holiday_type: holidayType,
+        description: description
       };
 
-      if (id && !id.startsWith('def-') && !id.startsWith('local-')) { //[cite: 23]
-        await supabase.from('holidays').update(payload).eq('id', id); //[cite: 23]
+      if (id && !id.startsWith('def-') && !id.startsWith('local-')) {
+        await supabase.from('holidays').update(payload).eq('id', id);
       } else {
-        await supabase.from('holidays').insert([payload]); //[cite: 23]
+        await supabase.from('holidays').insert([payload]);
       }
     }
 
-    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', timer: 1500, showConfirmButton: false }); //[cite: 23]
-    closeHolidayModal(); //[cite: 23]
-    await fetchHolidays(); //[cite: 23]
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', timer: 1500, showConfirmButton: false });
+    closeHolidayModal();
+    await fetchHolidays();
   } catch (err) {
-    Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.message }); //[cite: 23]
+    Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.message });
   }
 }
 
@@ -618,18 +761,31 @@ async function deleteHoliday(id) {
   }
 }
 
-// 🗓️ DATE FORMATTING UTILITIES
-function formatThaiDateShort(dateStr) {
+// 🗓️ DATE FORMATTING UTILITIES (Localized)
+function formatLocalDateShort(dateStr) {
   if (!dateStr) return '-';
+  const strings = getLangStrings();
   const d = parseLocalDate(dateStr);
-  return `${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]} ${d.getFullYear() + 543}`;
+  return `${d.getDate()} ${strings.monthsShort[d.getMonth()]} ${strings.formatYear(d.getFullYear())}`;
 }
 
-function formatThaiDateFull(dateStr) {
+function formatLocalDateFull(dateStr) {
   if (!dateStr) return '-';
+  const strings = getLangStrings();
   const d = parseLocalDate(dateStr);
-  return `วัน${THAI_DAYS[d.getDay()]}ที่ ${d.getDate()} ${THAI_MONTHS_FULL[d.getMonth()]} พ.ศ. ${d.getFullYear() + 543}`;
+  const lang = getActiveLang();
+  if (lang === 'th') {
+    return `วัน${strings.days[d.getDay()]}ที่ ${d.getDate()} ${strings.monthsFull[d.getMonth()]} พ.ศ. ${d.getFullYear() + 543}`;
+  } else if (lang === 'lo') {
+    return `${strings.days[d.getDay()]} ວັນທີ ${d.getDate()} ${strings.monthsFull[d.getMonth()]} ${d.getFullYear()}`;
+  } else {
+    return `${d.getFullYear()} ${strings.monthsFull[d.getMonth()]} ${d.getDate()} ရက် (${strings.days[d.getDay()]})`;
+  }
 }
+
+// Retain backwards compatibility aliases
+function formatThaiDateShort(dateStr) { return formatLocalDateShort(dateStr); }
+function formatThaiDateFull(dateStr) { return formatLocalDateFull(dateStr); }
 
 // 🔔 NOTIFICATION & NAVIGATION
 function initNotificationBell() {
@@ -696,7 +852,7 @@ window.switchHolidayTab = function(tab) {
     
     // Set to current month initially
     teamCalCurrentDate = new Date();
-    loadTeamLeavesForCalendar(); // Load when clicked
+    loadTeamLeavesForCalendar();
   }
 };
 
@@ -715,7 +871,6 @@ window.toggleTeamSidebar = function() {
   const icon = document.getElementById('teamSidebarIcon');
   
   if (window.innerWidth <= 1024) {
-    // Mobile mode
     if (sidebar.classList.contains('mobile-open')) {
       sidebar.classList.remove('mobile-open');
       icon.innerText = 'chevron_left';
@@ -724,7 +879,6 @@ window.toggleTeamSidebar = function() {
       icon.innerText = 'chevron_right';
     }
   } else {
-    // Desktop mode
     if (sidebar.classList.contains('collapsed')) {
       sidebar.classList.remove('collapsed');
       icon.innerText = 'chevron_right';
@@ -735,10 +889,10 @@ window.toggleTeamSidebar = function() {
   }
 };
 
-// Also listen for resize to reset states if needed
 window.addEventListener('resize', () => {
   const sidebar = document.getElementById('teamSummarySidebar');
   const icon = document.getElementById('teamSidebarIcon');
+  if (!sidebar || !icon) return;
   if (window.innerWidth > 1024) {
     sidebar.classList.remove('mobile-open');
     if (!sidebar.classList.contains('collapsed')) {
@@ -759,12 +913,12 @@ window.addEventListener('resize', () => {
 window.loadTeamLeavesForCalendar = async function() {
   const grid = document.getElementById('teamCalGrid');
   const listContainer = document.getElementById('teamLeavesList');
-  if (!currentUserProfile) return;
+  if (!currentUserProfile || !grid || !listContainer) return;
   
-  const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  const strings = getLangStrings();
   const month = teamCalCurrentDate.getMonth();
   const year = teamCalCurrentDate.getFullYear();
-  document.getElementById('teamCalMonthYear').innerText = `${monthNames[month]} ${year + 543}`;
+  document.getElementById('teamCalMonthYear').innerText = `${strings.monthsFull[month]} ${strings.formatYear(year)}`;
   
   grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #64748b;"><span class="material-symbols-outlined spinning-icon" style="font-size: 32px;">sync</span></div>`;
   listContainer.innerHTML = `<div class="loading-state-box" style="text-align: center; padding: 40px; color: #64748b;"><span class="material-symbols-outlined spinning-icon" style="font-size: 24px;">sync</span></div>`;
@@ -773,7 +927,6 @@ window.loadTeamLeavesForCalendar = async function() {
     const supabase = window.pvtSupabase ? window.pvtSupabase.getClient() : null;
     if (!supabase) return;
     
-    // Get start and end of the month buffer (to include crossing leaves)
     const startDate = new Date(year, month, 1);
     const endDate = new Date(year, month + 1, 0);
     const startStr = startDate.toISOString().split('T')[0];
@@ -790,7 +943,6 @@ window.loadTeamLeavesForCalendar = async function() {
       .lte('start_date', endStr)
       .gte('end_date', startStr);
       
-    // Filter logic based on role
     const role = currentUserProfile.role.toLowerCase();
     const isExecutiveOrHr = ['hr', 'admin', 'executive', 'director', 'owner'].includes(role);
     
@@ -813,11 +965,12 @@ window.loadTeamLeavesForCalendar = async function() {
 
 window.renderTeamCalendarGrid = function(year, month, leaves) {
   const grid = document.getElementById('teamCalGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  const startOffset = firstDay.getDay(); // 0 (Sun) to 6 (Sat)
+  const startOffset = firstDay.getDay();
   const daysInMonth = lastDay.getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
   
@@ -825,7 +978,6 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
   const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
   const todayDate = today.getDate();
   
-  // Previous month trailing days
   for (let i = startOffset - 1; i >= 0; i--) {
     const dayNum = daysInPrevMonth - i;
     const cell = document.createElement('div');
@@ -834,7 +986,6 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
     grid.appendChild(cell);
   }
   
-  // Current month days
   for (let i = 1; i <= daysInMonth; i++) {
     const cell = document.createElement('div');
     cell.className = 'cal-day-cell';
@@ -848,7 +999,6 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
     let dotsHtml = '';
     if (dayLeaves.length > 0) {
       dotsHtml = `<div class="cal-leave-dots">`;
-      // Show up to 3 dots
       for(let j=0; j<Math.min(dayLeaves.length, 3); j++) {
         const bg = dayLeaves[j].status === 'approved' ? '#0fa472' : '#f59e0b';
         dotsHtml += `<div class="cal-leave-dot" style="background:${bg};" title="${dayLeaves[j].employees?.full_name}"></div>`;
@@ -865,7 +1015,8 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
       cell.style.outline = '2px solid #0fa472';
       cell.style.outlineOffset = '-2px';
       
-      document.getElementById('teamSearchInput').value = '';
+      const teamSearchInput = document.getElementById('teamSearchInput');
+      if (teamSearchInput) teamSearchInput.value = '';
       if(dayLeaves.length > 0) {
         renderTeamLeavesSidebar(dayLeaves, dayStr);
       } else {
@@ -875,7 +1026,6 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
     grid.appendChild(cell);
   }
   
-  // Next month leading days (fill up to 42 cells = 6 rows)
   const totalCells = startOffset + daysInMonth;
   const remainingCells = (Math.ceil(totalCells / 7) * 7) - totalCells;
   for (let i = 1; i <= remainingCells; i++) {
@@ -887,7 +1037,7 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
 };
 
 window.filterTeamLeaves = function() {
-  const keyword = (document.getElementById('teamSearchInput').value || '').toLowerCase();
+  const keyword = (document.getElementById('teamSearchInput')?.value || '').toLowerCase();
   if (!keyword) {
     renderTeamLeavesSidebar(teamLeavesData);
     return;
@@ -904,20 +1054,23 @@ window.filterTeamLeaves = function() {
 window.renderTeamLeavesSidebar = function(data, specificDay = null) {
   const container = document.getElementById('teamLeavesList');
   const title = document.getElementById('teamSummaryTitle');
+  if (!container) return;
+
+  const strings = getLangStrings();
+
   if (title) {
     if (specificDay) {
       title.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-          <span style="font-size: 15px;">วันที่ ${parseInt(specificDay.split('-')[2], 10)}</span>
+          <span style="font-size: 15px;">${strings.teamDayTitle(parseInt(specificDay.split('-')[2], 10))}</span>
           <button type="button" onclick="renderTeamLeavesSidebar(teamLeavesData)" style="background: #f1f5f9; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #475569; display: flex; align-items: center; gap: 4px;">
-            <span class="material-symbols-outlined" style="font-size: 14px;">calendar_month</span> ดูทั้งเดือน
+            <span class="material-symbols-outlined" style="font-size: 14px;">calendar_month</span> ${strings.btnViewWholeMonth}
           </button>
         </div>`;
     } else {
-      const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
       const currentM = teamCalCurrentDate.getMonth();
-      const currentY = teamCalCurrentDate.getFullYear() + 543;
-      title.innerText = `ผู้ลาเดือน${monthNames[currentM]} ${currentY}`;
+      const currentY = strings.formatYear(teamCalCurrentDate.getFullYear());
+      title.innerText = strings.teamMonthlyTitle(strings.monthsFull[currentM], currentY);
       document.querySelectorAll('#teamCalGrid .cal-day-cell').forEach(c => c.style.outline = 'none');
     }
   }
@@ -926,7 +1079,7 @@ window.renderTeamLeavesSidebar = function(data, specificDay = null) {
     container.innerHTML = `
       <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
         <span class="material-symbols-outlined" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;">search_off</span>
-        <p style="margin: 0; font-size: 13px;">ไม่มีรายการในส่วนนี้</p>
+        <p style="margin: 0; font-size: 13px;">${strings.noTeamLeaves}</p>
       </div>`;
     return;
   }
@@ -934,25 +1087,25 @@ window.renderTeamLeavesSidebar = function(data, specificDay = null) {
   let html = ``;
   
   data.forEach(leave => {
-    const empName = leave.employees?.full_name || 'ไม่ทราบชื่อ';
-    const deptName = leave.employees?.departments?.department_name || '-';
-    const leaveName = leave.leave_types?.leave_name || 'การลา';
-    const startDate = new Date(leave.start_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-    const endDate = new Date(leave.end_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-    const dateDisplay = (leave.start_date === leave.end_date) ? startDate : `${startDate}-${endDate}`;
+    const empName = leave.employees?.full_name || '-';
+    const rawLeaveName = leave.leave_types?.leave_name || 'Leave';
+    const leaveName = typeof window.localizeCategory === 'function' ? window.localizeCategory(rawLeaveName) : rawLeaveName;
+    const startDate = formatLocalDateShort(leave.start_date);
+    const endDate = formatLocalDateShort(leave.end_date);
+    const dateDisplay = (leave.start_date === leave.end_date) ? startDate : `${startDate} - ${endDate}`;
     const statusBg = leave.status === 'approved' ? '#dcfce7' : '#fef08a';
     const statusColor = leave.status === 'approved' ? '#166534' : '#854d0e';
-    const statusText = leave.status === 'approved' ? 'อนุมัติ' : 'รออนุมัติ';
+    const statusText = leave.status === 'approved' ? strings.approved : strings.pending;
     
     html += `
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <h4 style="margin: 0; font-size: 14px; color: #0f172a; line-height: 1.4;">${empName}</h4>
-          <span style="background: ${statusBg}; color: ${statusColor}; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; margin-left: 8px;">${statusText}</span>
+          <span class="status-badge" data-raw-status="${leave.status}" style="background: ${statusBg}; color: ${statusColor}; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; margin-left: 8px;">${statusText}</span>
         </div>
         <div style="font-size: 12px; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">event</span>${dateDisplay} (${leave.total_days} วัน)</span>
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">category</span>${leaveName}</span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">event</span>${dateDisplay} (${leave.total_days} ${strings.daysUnit})</span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">category</span><span class="leave-type-title" data-raw-cat="${rawLeaveName}">${leaveName}</span></span>
         </div>
       </div>
     `;
@@ -960,8 +1113,10 @@ window.renderTeamLeavesSidebar = function(data, specificDay = null) {
   
   container.innerHTML = html;
 };
+
 window.smartGoBack = smartGoBack;
 window.changeYear = typeof changeYear !== 'undefined' ? changeYear : window.changeYear;
+
 // ----------------------------------------------------
 // 🏢 COMPANY HOLIDAY CALENDAR LOGIC
 // ----------------------------------------------------
@@ -1012,6 +1167,7 @@ window.companyCalNextMonth = function() {
 window.toggleCompanySidebar = function() {
   const sidebar = document.getElementById('companySummarySidebar');
   const icon = document.getElementById('companySidebarIcon');
+  if (!sidebar || !icon) return;
   if (window.innerWidth <= 1024) {
     sidebar.classList.toggle('mobile-open');
     icon.innerText = sidebar.classList.contains('mobile-open') ? 'chevron_right' : 'chevron_left';
@@ -1036,7 +1192,6 @@ window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
   const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
   const todayDate = today.getDate();
   
-  // Previous month trailing days
   for (let i = startOffset - 1; i >= 0; i--) {
     const dayNum = daysInPrevMonth - i;
     const cell = document.createElement('div');
@@ -1045,7 +1200,6 @@ window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
     grid.appendChild(cell);
   }
   
-  // Current month days
   for (let i = 1; i <= daysInMonth; i++) {
     const cell = document.createElement('div');
     cell.className = 'cal-day-cell';
@@ -1058,10 +1212,11 @@ window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
     if (dayHolidays.length > 0) {
       dotsHtml = `<div class="cal-leave-dots">`;
       for(let j=0; j<Math.min(dayHolidays.length, 3); j++) {
-        let bg = '#3b82f6'; // company
+        let bg = '#3b82f6';
         if(dayHolidays[j].holiday_type === 'official') bg = '#ef4444';
         if(dayHolidays[j].holiday_type === 'substitution') bg = '#f59e0b';
-        dotsHtml += `<div class="cal-leave-dot" style="background:${bg};" title="${dayHolidays[j].holiday_name}"></div>`;
+        const locName = getLocalizedHolidayName(dayHolidays[j].holiday_name);
+        dotsHtml += `<div class="cal-leave-dot" style="background:${bg};" title="${locName}"></div>`;
       }
       dotsHtml += `</div>`;
       cell.style.background = '#f0f9ff';
@@ -1070,7 +1225,6 @@ window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
     
     cell.innerHTML = `<span class="cal-day-number">${i}</span>${dotsHtml}`;
     cell.onclick = () => {
-      // Future: highlight cell
       document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => c.style.outline = 'none');
       cell.style.outline = '2px solid #0ea5e9';
       cell.style.outlineOffset = '-2px';
@@ -1084,7 +1238,6 @@ window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
     grid.appendChild(cell);
   }
   
-  // Next month leading days
   const totalCells = startOffset + daysInMonth;
   const remainingCells = (Math.ceil(totalCells / 7) * 7) - totalCells;
   for (let i = 1; i <= remainingCells; i++) {
@@ -1100,34 +1253,34 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
   const title = document.getElementById('companySummaryTitle');
   if (!container || !title) return;
   
+  const strings = getLangStrings();
   const monthSelect = document.getElementById('monthSelect');
   const selectedMonthVal = monthSelect ? monthSelect.value : 'all';
 
   if (specificDay) {
     title.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-        <span style="font-size: 14px; font-weight: 600;">ประจำวันที่ ${parseInt(specificDay.split('-')[2], 10)}</span>
+        <span style="font-size: 14px; font-weight: 600;">${strings.summaryDayTitle(parseInt(specificDay.split('-')[2], 10))}</span>
         <button type="button" onclick="filterHolidays()" style="background: #f1f5f9; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #475569; display: flex; align-items: center; gap: 4px;">
-          <span class="material-symbols-outlined" style="font-size: 14px;">calendar_month</span> ย้อนกลับ
+          <span class="material-symbols-outlined" style="font-size: 14px;">calendar_month</span> ${strings.btnBack}
         </button>
       </div>`;
   } else if (isYearly || selectedMonthVal === 'all') {
-    const currentY = companyCalCurrentDate.getFullYear() + 543;
+    const currentY = strings.formatYear(companyCalCurrentDate.getFullYear());
     title.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-        <span style="font-size: 15px; font-weight: 700; color: #0f172a;">สรุปวันหยุดปี ${currentY}</span>
-        <span style="font-size: 11px; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 12px; font-weight: 600;">รวม ${list ? list.length : 0} วัน</span>
+        <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${strings.summaryYearTitle(currentY)}</span>
+        <span style="font-size: 11px; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${strings.totalDaysLabel(list ? list.length : 0)}</span>
       </div>`;
     document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => c.style.outline = 'none');
   } else {
-    const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
     const currentM = companyCalCurrentDate.getMonth();
-    const currentY = companyCalCurrentDate.getFullYear() + 543;
+    const currentY = strings.formatYear(companyCalCurrentDate.getFullYear());
     title.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-        <span style="font-size: 14px; font-weight: 600; color: #0f172a;">วันหยุดเดือน${monthNames[currentM]} ${currentY}</span>
+        <span style="font-size: 14px; font-weight: 600; color: #0f172a;">${strings.summaryMonthTitle(strings.monthsFull[currentM], currentY)}</span>
         <button type="button" onclick="showYearlySummary()" style="background: #f1f5f9; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #0284c7; font-weight: 500; display: flex; align-items: center; gap: 3px;" title="ดูสรุปวันหยุดตลอดทั้งปี">
-          <span class="material-symbols-outlined" style="font-size: 13px;">calendar_today</span> ดูทั้งปี
+          <span class="material-symbols-outlined" style="font-size: 13px;">calendar_today</span> ${strings.btnViewWholeYear}
         </button>
       </div>`;
     document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => c.style.outline = 'none');
@@ -1137,7 +1290,7 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
     container.innerHTML = `
       <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
         <span class="material-symbols-outlined" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;">event_busy</span>
-        <p style="margin: 0; font-size: 13px;">ไม่มีวันหยุดในส่วนนี้</p>
+        <p style="margin: 0; font-size: 13px;">${strings.noHolidaysSection}</p>
       </div>`;
     return;
   }
@@ -1146,17 +1299,17 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
   
   let html = ``;
   list.forEach(item => {
-    let tagText = item.holiday_type === 'company' ? 'วันหยุดบริษัท' : (item.holiday_type === 'substitution' ? 'หยุดชดเชย' : 'นักขัตฤกษ์');
+    let tagText = item.holiday_type === 'company' ? strings.tagCompany : (item.holiday_type === 'substitution' ? strings.tagSubstitution : strings.tagOfficial);
     let color = item.holiday_type === 'company' ? '#3b82f6' : (item.holiday_type === 'substitution' ? '#f59e0b' : '#ef4444');
-    let bg = item.holiday_type === 'company' ? '#eff6ff' : (item.holiday_type === 'substitution' ? '#fef3c7' : '#fef2f2');
+    const locName = getLocalizedHolidayName(item.holiday_name);
     
     html += `
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid ${color}; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <h4 style="margin: 0; font-size: 14px; color: #0f172a; line-height: 1.4;">${item.holiday_name}</h4>
+          <h4 style="margin: 0; font-size: 14px; color: #0f172a; line-height: 1.4;">${locName}</h4>
         </div>
         <div style="font-size: 12px; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; color: ${color}">event</span>${formatThaiDateShort(item.holiday_date)}</span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; color: ${color}">event</span>${formatLocalDateShort(item.holiday_date)}</span>
           <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">category</span>${tagText}</span>
         </div>
         ${isPowerUser ? `
@@ -1170,3 +1323,14 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
   
   container.innerHTML = html;
 };
+
+// 🌐 Multi-language event listener
+window.addEventListener("pvt-lang-changed", () => {
+  updateStatsAndHero();
+  filterHolidays();
+  
+  const teamWrapper = document.getElementById('teamLeavesWrapper');
+  if (teamWrapper && teamWrapper.style.display !== 'none' && typeof window.loadTeamLeavesForCalendar === "function") {
+    window.loadTeamLeavesForCalendar();
+  }
+});

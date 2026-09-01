@@ -68,6 +68,118 @@ body {
   -webkit-backdrop-filter: blur(16px);
   animation: smoothEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* 💥 Shake Animation & Visual Error on Failed Authentication */
+@keyframes loginCardShake {
+  0%, 100% { transform: translateX(0); }
+  15%, 45%, 75% { transform: translateX(-8px); }
+  30%, 60%, 90% { transform: translateX(8px); }
+}
+
+.login-card.shake {
+  animation: loginCardShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4), 0 20px 35px -8px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* 🚨 Color-Coded Alert Banner inside Login Card */
+.login-alert-banner {
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  font-weight: 500;
+  animation: fadeInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.25s ease;
+}
+
+.login-alert-banner.active {
+  display: flex;
+}
+
+.login-alert-banner.error {
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  color: #991b1b;
+}
+
+.login-alert-banner.error .banner-icon {
+  color: #dc2626;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.login-alert-banner.warning {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  color: #92400e;
+}
+
+.login-alert-banner.warning .banner-icon {
+  color: #d97706;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.login-alert-banner.success {
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  color: #166534;
+}
+
+.login-alert-banner.success .banner-icon {
+  color: #16a34a;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Input wrapper error states */
+.input-wrapper.error-state .input-field {
+  border-color: #ef4444 !important;
+  background-color: #fff8f8 !important;
+  color: #991b1b !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14) !important;
+}
+
+.input-wrapper.error-state .input-icon {
+  color: #ef4444 !important;
+}
+
+.input-error-hint {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #dc2626;
+  margin-top: 5px;
+  padding-left: 2px;
+  animation: fadeInDown 0.2s ease-out forwards;
+}
+
+.input-error-hint.active {
+  display: flex;
+}
+
+.input-error-hint .material-symbols-outlined {
+  font-size: 15px;
 }
 
 /* ================== ส่วนหัวแบรนด์และโลโก้ ================== */
@@ -416,6 +528,48 @@ body {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.login-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn.loading {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.login-btn.loading .btn-content {
+  opacity: 0;
+}
+
+.login-btn .btn-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-gradient);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.login-btn.loading .btn-spinner {
+  opacity: 1;
+  visibility: visible;
+}
+
+.login-btn .btn-spinner span {
+  animation: spin 0.8s linear infinite;
+  font-size: 24px;
+  color: #ffffff;
 }
 
 .swal2-popup {

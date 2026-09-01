@@ -34,43 +34,74 @@
           <h1>PVT HR Leave</h1>
           <div class="brand-badge">
             <span class="pulse-dot"></span>
-            <span>ระบบขออนุญาตลาออนไลน์</span>
+            <span id="i18nBadge">ระบบขออนุญาตลาออนไลน์</span>
           </div>
         </section>
+
+        <!-- Color-Coded Validation Alert Banner -->
+        <div id="loginAlertBanner" class="login-alert-banner" role="alert" aria-live="polite">
+          <span class="material-symbols-outlined banner-icon" id="loginAlertIcon">error</span>
+          <span id="loginAlertText" class="banner-text"></span>
+        </div>
         
         <form id="loginForm">
           <div class="form-group">
-            <label for="username">รหัสพนักงาน หรือ ชื่อ-นามสกุล</label>
-            <div class="input-wrapper">
+            <label for="username" id="i18nUserLabel">รหัสพนักงาน หรือ ชื่อ-นามสกุล</label>
+            <div class="input-wrapper" id="usernameWrapper">
               <span class="material-symbols-outlined input-icon">badge</span>
               <input type="text" id="username" class="input-field" placeholder="กรอกรหัสพนักงาน หรือ ชื่อพนักงาน" autocomplete="username" required/>
+            </div>
+            <div id="usernameErrorHint" class="input-error-hint">
+              <span class="material-symbols-outlined">info</span>
+              <span id="usernameErrorText"></span>
             </div>
           </div>
           
           <div class="form-group">
-            <label for="password">รหัสผ่าน (Password)</label>
-            <div class="input-wrapper password-wrapper">
+            <label for="password" id="i18nPassLabel">รหัสผ่าน (Password)</label>
+            <div class="input-wrapper password-wrapper" id="passwordWrapper">
               <span class="material-symbols-outlined input-icon">lock</span>
               <input type="password" id="password" class="input-field" placeholder="กรอกรหัสผ่านเข้าสู่ระบบ" autocomplete="current-password" required>
               <!-- เรียกใช้ฟังก์ชัน togglePassword เมื่อคลิก -->
               <span class="toggle-password material-symbols-outlined" onclick="togglePassword()" title="แสดง/ซ่อนรหัสผ่าน">visibility_off</span>
             </div>
+            <div id="passwordErrorHint" class="input-error-hint">
+              <span class="material-symbols-outlined">info</span>
+              <span id="passwordErrorText"></span>
+            </div>
+          </div>
+
+          <div class="form-group" style="display: flex; align-items: center; margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px; font-weight: 500; color: #475569; margin-bottom: 0;">
+              <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; accent-color: #0d9488; cursor: pointer;">
+              <span id="i18nRemember">จดจำรหัสพนักงาน (Remember Me)</span>
+            </label>
           </div>
 
           <button type="submit" class="login-btn">
-            <span class="material-symbols-outlined">login</span>
-            <span>เข้าสู่ระบบ</span>
+            <span class="btn-content" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+              <span class="material-symbols-outlined">login</span>
+              <span id="i18nLoginBtn">เข้าสู่ระบบ</span>
+            </span>
+            <div class="btn-spinner">
+              <span class="material-symbols-outlined">sync</span>
+            </div>
           </button>
           
           <button type="button" class="qr-btn" onclick="loginByQr()">
             <span class="material-symbols-outlined">qr_code_scanner</span>
-            <span>สแกนคิวอาร์โค้ดบัตรพนักงาน</span>
+            <span id="i18nQrBtn">สแกนคิวอาร์โค้ดบัตรพนักงาน</span>
           </button>
         </form>
       </main>
 
-      <div class="login-footer-info">
-        <span>© 2026 PVT Workforce Management System · Ver 2.5</span>
+      <div class="login-footer-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 420px; margin-top: 20px; font-size: 13px; color: #64748b;">
+        <span>© 2026 PVT Workforce · Ver 2.5</span>
+        <div class="lang-switcher" style="display: flex; gap: 2px; align-items: center; background: #f1f5f9; padding: 3px; border-radius: 9999px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+          <button type="button" id="langThBtn" onclick="setLanguage('th')" style="background: transparent; border: none; padding: 4px 10px; border-radius: 9999px; cursor: pointer; font-size: 12px; font-weight: 600; color: #64748b; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 4px;">🇹🇭 TH</button>
+          <button type="button" id="langLoBtn" onclick="setLanguage('lo')" style="background: transparent; border: none; padding: 4px 10px; border-radius: 9999px; cursor: pointer; font-size: 12px; font-weight: 600; color: #64748b; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 4px;">🇱🇦 LO</button>
+          <button type="button" id="langMyBtn" onclick="setLanguage('my')" style="background: transparent; border: none; padding: 4px 10px; border-radius: 9999px; cursor: pointer; font-size: 12px; font-weight: 600; color: #64748b; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 4px;">🇲🇲 MY</button>
+        </div>
       </div>
     </div>
 

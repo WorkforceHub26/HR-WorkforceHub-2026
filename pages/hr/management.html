@@ -13,9 +13,6 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
   <link rel="stylesheet" href="/css/Management.css" />
-
-  <!-- Security Auth Guard (Head Check) -->
-  <script src="/js/auth-guard.js"></script>
 </head>
 
 <body>
@@ -36,9 +33,9 @@
           <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">ตรวจใบลา</span>
         </a>
-        <a href="/pages/hr/management.html" class="nav-item active" title="พนักงาน">
+        <a href="/pages/hr/management.html" class="nav-item active" title="ระบบจัดการส่วนกลาง & ประวัติพนักงาน">
           <span class="material-symbols-outlined">manage_accounts</span>
-          <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
+          <span class="nav-label">ระบบจัดการส่วนกลาง & ประวัติพนักงาน</span>
         </a>
         <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
           <span class="material-symbols-outlined">person</span>
@@ -177,32 +174,57 @@
             <span id="loadStatus" class="status pending">กำลังโหลด</span>
           </div>
 
+          <!-- ข้อมูลคำอธิบายกลุ่มตำแหน่งงานตามหมวดหมู่ -->
+          <div class="category-description-panel" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;">
+            <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <span class="material-symbols-outlined" style="color: #0d9488; font-size: 18px;">info</span>
+              <span>ข้อมูลจำแนกกลุ่มตำแหน่งงาน:</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; font-size: 12px; color: #334155;">
+              <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px;">
+                <span style="font-weight: 700; color: #0f172a;">👥 ทุกตำแหน่ง:</span> แสดงจำนวนพนักงานรวมทั้งหมด
+              </div>
+              <div style="background: #ffffff; border: 1px solid #bae6fd; border-radius: 6px; padding: 6px 10px;">
+                <span style="font-weight: 700; color: #0369a1;">👔 ผู้จัดการ / ผู้บริหาร:</span> ผู้จัดการฝ่ายบริหารและบริหาร
+              </div>
+              <div style="background: #ffffff; border: 1px solid #fde68a; border-radius: 6px; padding: 6px 10px;">
+                <span style="font-weight: 700; color: #92400e;">🎖️ หัวหน้างาน / หัวหน้าแผนก:</span> กลุ่มหัวหน้าแผนก หัวหน้ากะ และ Supervisor
+              </div>
+              <div style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 6px; padding: 6px 10px;">
+                <span style="font-weight: 700; color: #0f766e;">📋 เจ้าหน้าที่ / ผู้ช่วย:</span> กลุ่มเจ้าหน้าที่ ผู้ช่วย ช่างเทคนิค เยี่ยมชม และธุรการ
+              </div>
+              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px;">
+                <span style="font-weight: 700; color: #475569;">👤 พนักงานทั่วไป:</span> กลุ่มพนักงานทั่วไป
+              </div>
+            </div>
+          </div>
+
           <!-- แถบเลือกแยกประเภทตำแหน่งงาน (ผู้จัดการ, หัวหน้าแผนก, เจ้าหน้าที่/ผู้ช่วย, พนักงานทั่วไป) -->
           <div class="pos-category-tabs" id="posCategoryTabs">
-            <button type="button" class="pos-tab active" data-category="all" onclick="filterByPosCategory('all')">
+            <button type="button" class="pos-tab active" data-pos-cat="all" onclick="filterByPosCategory('all')">
               <span class="material-symbols-outlined" style="font-size: 16px;">groups</span>
               <span>ทุกตำแหน่ง</span>
               <span class="pos-tab-count" id="count-all">0</span>
             </button>
-            <button type="button" class="pos-tab" data-category="manager" onclick="filterByPosCategory('manager')">
-              <span>👔 ผู้จัดการ</span>
+            <button type="button" class="pos-tab" data-pos-cat="manager" onclick="filterByPosCategory('manager')">
+              <span>👔 ผู้จัดการ / ผู้บริหาร</span>
               <span class="pos-tab-count" id="count-manager">0</span>
             </button>
-            <button type="button" class="pos-tab" data-category="supervisor" onclick="filterByPosCategory('supervisor')">
-              <span>🎖️ หัวหน้าแผนก</span>
+            <button type="button" class="pos-tab" data-pos-cat="supervisor" onclick="filterByPosCategory('supervisor')">
+              <span>🎖️ หัวหน้างาน / หัวหน้าแผนก</span>
               <span class="pos-tab-count" id="count-supervisor">0</span>
             </button>
-            <button type="button" class="pos-tab" data-category="officer" onclick="filterByPosCategory('officer')">
-              <span>📋 เจ้าหน้าที่ (รวมผู้ช่วย)</span>
+            <button type="button" class="pos-tab" data-pos-cat="officer" onclick="filterByPosCategory('officer')">
+              <span>📋 เจ้าหน้าที่ / ผู้ช่วย</span>
               <span class="pos-tab-count" id="count-officer">0</span>
             </button>
-            <button type="button" class="pos-tab" data-category="staff" onclick="filterByPosCategory('staff')">
+            <button type="button" class="pos-tab" data-pos-cat="staff" onclick="filterByPosCategory('staff')">
               <span>👤 พนักงานทั่วไป</span>
               <span class="pos-tab-count" id="count-staff">0</span>
             </button>
           </div>
           
-          <div class="filter-panel" style="display: flex; gap: 12px; width: 100%; margin-bottom: 16px;">
+          <div class="filter-panel" style="display: flex; gap: 12px; width: 100%; margin-bottom: 12px;">
             <!-- ช่องค้นหาขยายเต็มพื้นที่ (Flex: 1) และเพิ่ม oninput -->
             <div class="custom-search-container" style="flex: 1; width: 100%;">
               <div class="search-box" style="display: flex; align-items: center; width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 12px;">
@@ -220,19 +242,33 @@
               <div id="customDropdown" class="custom-dropdown-list hidden"></div>
             </div>
 
-            <!-- ตัวกรองแผนก -->
-            <select id="deptFilter" class="select-input" onchange="renderEmployeeTable()" style="min-width: 180px; height: 42px;">
-              <option value="">ทุกแผนก</option>
+            <!-- ตัวกรองตำแหน่งงานเฉพาะเจาะจง (ภาษาไทย + จำนวนคน) -->
+            <select id="posFilter" class="select-input" onchange="renderEmployeeTable()" style="min-width: 210px; height: 42px;">
+              <option value="">💼 ทุกตำแหน่งงาน</option>
             </select>
+
+            <!-- ตัวกรองแผนก -->
+            <select id="deptFilter" class="select-input" onchange="fillPositionFilter(); renderEmployeeTable();" style="min-width: 210px; height: 42px;">
+              <option value="">🏢 ทุกแผนก</option>
+            </select>
+          </div>
+
+          <!-- แถบสรุปจำนวนพนักงานตามตำแหน่งและแผนก -->
+          <div id="empCategorySummaryBanner" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div id="summaryTextLeft" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488;">analytics</span>
+              <span>กำลังคำนวณจำนวนพนักงาน...</span>
+            </div>
+            <div id="summaryTextRight" style="font-size: 12px; color: #64748b; display: flex; gap: 10px; flex-wrap: wrap;"></div>
           </div>
 
           <div id="employeeListWrapper" class="employee-list-wrapper">
             <!-- Header สำหรับ Desktop -->
             <div class="employee-list-header desktop-only">
-              <div class="col-avatar">รูป</div>
-              <div class="col-code">รหัส</div>
+              <div class="col-avatar">รูปภาพ</div>
+              <div class="col-code">รหัสพนักงาน</div>
               <div class="col-info">ชื่อ-นามสกุล / ตำแหน่ง</div>
-              <div class="col-dept">แผนก</div>
+              <div class="col-dept">แผนก / สังกัด</div>
               <div class="col-start">วันเริ่มงาน</div>
               <div class="col-status">สถานะ</div>
               <div class="col-actions">จัดการ</div>

@@ -93,6 +93,106 @@ export async function handleCreateLineLink(req, res) {
   }
 }
 
+// 1.1 Clear Approvers LINE & Mapping
+export async function handleClearApproverLine(req, res) {
+  try {
+    let bodyData = {};
+    if (typeof req.body === 'object' && req.body !== null) {
+      bodyData = req.body;
+    } else if (typeof req.body === 'string') {
+      try { bodyData = JSON.parse(req.body); } catch (e) {}
+    } else {
+      bodyData = await parseJsonBody(req);
+    }
+
+    const { department_id, employee_ids } = bodyData;
+    const { url, serviceKey } = getSupabaseConfig();
+    const targetEmpIds = new Set(Array.isArray(employee_ids) ? employee_ids.filter(Boolean).map(String) : []);
+
+    // If department_id is supplied, look up the supervisor and manager of that department
+    if (department_id) {
+      try {
+        const appRes = await fetch(`${url}/rest/v1/department_approvers?department_id=eq.${department_id}&select=supervisor_id,manager_id`, {
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`
+          }
+        });
+        if (appRes.ok) {
+          const appData = await appRes.json();
+          if (Array.isArray(appData)) {
+            appData.forEach(row => {
+              if (row.supervisor_id) targetEmpIds.add(String(row.supervisor_id));
+              if (row.manager_id) targetEmpIds.add(String(row.manager_id));
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Lookup department approvers warning:", err);
+      }
+
+      // Delete department_approvers record
+      try {
+        await fetch(`${url}/rest/v1/department_approvers?department_id=eq.${department_id}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`
+          }
+        });
+      } catch (delErr) {
+        console.warn("Delete department approvers record warning:", delErr);
+      }
+    }
+
+    // Clear line_id and delete tokens for each target employee
+    const clearedList = [];
+    for (const empId of targetEmpIds) {
+      try {
+        // Clear in-memory tokens
+        for (const [t, data] of memoryLineTokens.entries()) {
+          if (String(data.employee_id) === String(empId)) {
+            memoryLineTokens.delete(t);
+          }
+        }
+
+        // Delete line_link_tokens from DB
+        await fetch(`${url}/rest/v1/line_link_tokens?employee_id=eq.${empId}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`
+          }
+        });
+
+        // Set line_id to null on employees table
+        const updRes = await fetch(`${url}/rest/v1/employees?id=eq.${empId}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({ line_id: null })
+        });
+
+        if (updRes.ok) {
+          clearedList.push(empId);
+          console.log(`✅ [LINE ID Cleared]: Cleared LINE ID for Employee ID ${empId}`);
+        }
+      } catch (updErr) {
+        console.warn("Clear employee line_id warning for:", empId, updErr);
+      }
+    }
+
+    return sendJson(res, 200, { success: true, clearedEmployees: clearedList });
+  } catch (err) {
+    console.error("Error in handleClearApproverLine:", err);
+    return sendJson(res, 500, { error: err.message });
+  }
+}
+
 // 2. LINE Webhook
 export async function handleLineWebhook(req, res) {
   try {

@@ -209,48 +209,69 @@ window.loadRecentLeaves = async function(profile) {
 
     window.remainingDays = totalRemaining;
 
-    if (leaveBalance) leaveBalance.innerHTML = `${window.remainingDays} <small>วัน</small>`;
-    if (usedBalance) usedBalance.innerHTML = `${totalUsed} <small>วัน</small>`;
-    if (pendingCount) pendingCount.innerHTML = `${pendingRes.count ?? 0} <small>รายการ</small>`;
+    const lang = window.getGlobalLanguage ? window.getGlobalLanguage() : "th";
+    const unitDays = window.getPVTTranslation ? window.getPVTTranslation("unitDays") : "วัน";
+    const unitItems = lang === 'lo' ? "ລາຍການ" : (lang === 'my' ? "ခု" : "รายการ");
+    const labelDates = lang === 'lo' ? "ວັນທີ:" : (lang === 'my' ? "ရက်စွဲ:" : "วันที่:");
+    const labelDuration = lang === 'lo' ? "ຈຳນວນ:" : (lang === 'my' ? "အရေအတွက်:" : "จำนวน:");
+    const emptyMsg = window.getPVTTranslation ? window.getPVTTranslation("statAll") : "ยังไม่มีรายการยื่นใบลาในระบบ";
+
+    if (leaveBalance) leaveBalance.innerHTML = `${window.remainingDays} <small>${unitDays}</small>`;
+    if (usedBalance) usedBalance.innerHTML = `${totalUsed} <small>${unitDays}</small>`;
+    if (pendingCount) pendingCount.innerHTML = `${pendingRes.count ?? 0} <small>${unitItems}</small>`;
 
     // แสดงผลรายการลาล่าสุด
     const rows = requestsRes.data || [];
     if (!rows.length) {
-      if (recentList) recentList.innerHTML = `<div class="empty-state">ยังไม่มีรายการยื่นใบลาในระบบ</div>`;
+      if (recentList) recentList.innerHTML = `<div class="empty-state">${emptyMsg}</div>`;
       return;
     }
 
     if (recentList) {
       const listHtml = rows.map((item) => {
-        const leaveName = safeEscapeHtml(typeMap[item.leave_type_id] || item.leave_types?.leave_name || "การลา");
+        const rawName = typeMap[item.leave_type_id] || item.leave_types?.leave_name || "การลา";
+        let leaveName = safeEscapeHtml(rawName);
+        if (typeof window.localizeCategory === "function") {
+          leaveName = window.localizeCategory(rawName, lang);
+        } else if (window.getPVTTranslation) {
+          if (rawName.includes("ป่วย") || rawName.includes("Sick")) leaveName = window.getPVTTranslation("leaveSick");
+          else if (rawName.includes("พักผ่อน") || rawName.includes("พักร้อน") || rawName.includes("Annual")) leaveName = window.getPVTTranslation("leaveAnnual");
+          else if (rawName.includes("กิจ") || rawName.includes("Business")) leaveName = window.getPVTTranslation("leaveBusiness");
+          else if (rawName.includes("หมัน") || rawName.includes("Steril")) leaveName = window.getPVTTranslation("leaveSterilization");
+          else if (rawName.includes("ทหาร") || rawName.includes("Military")) leaveName = window.getPVTTranslation("leaveMilitary");
+          else if (rawName.includes("บวช") || rawName.includes("อุปสมบท") || rawName.includes("Ordina")) leaveName = window.getPVTTranslation("leaveOrdination");
+          else if (rawName.includes("ฌาปนกิจ") || rawName.includes("Funeral")) leaveName = window.getPVTTranslation("leaveFuneral");
+          else if (rawName.includes("คลอด") || rawName.includes("Matern")) leaveName = window.getPVTTranslation("leaveMaternity");
+        }
+
         let displayStatus = item.status;
         let badgeStyle = "background:#fff3cd; color:#854d0e; border:1px solid #fde047;"; 
                 
         if (item.status === "approved") {
-          displayStatus = "อนุมัติ";
+          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusApproved") : "อนุมัติ";
           badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
         } else if (item.status === "cancelled" || item.status === "cancelled_by_user" || item.cancel_status === "approved") {
-          displayStatus = "ยกเลิกแล้ว";
+          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusCancelled") : "ยกเลิกแล้ว";
           badgeStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;";
         } else if (item.status === "cancel_pending" || item.cancel_status === "pending") {
-          displayStatus = "รอ HR อนุมัติยกเลิก";
+          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusCancelReq") : "รอ HR อนุมัติยกเลิก";
           badgeStyle = "background:#ffedd5; color:#c2410c; border:1px solid #fed7aa;";
         } else if (item.status === "rejected") {
-          displayStatus = "ไม่อนุมัติ";
+          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusRejected") : "ไม่อนุมัติ";
           badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;";
         } else if (item.status === "pending") {
-          displayStatus = "รออนุมัติ";
+          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusPending") : "รออนุมัติ";
         }
 
         return `
           <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <strong style="font-size: 15px; color: #0f172a;">${leaveName}</strong>
-              <span class="status ${item.status}" style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; ${badgeStyle}">${displayStatus}</span>
+              <strong class="leave-type-title" data-raw-cat="${safeEscapeHtml(rawName)}" style="font-size: 15px; color: #0f172a;">${leaveName}</strong>
+              <span class="status ${item.status}" data-raw-status="${item.status}" style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; ${badgeStyle}">${displayStatus}</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #64748b;">
-              <div>📅 วันที่: <span style="color: #334155; font-weight: 500;">${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span></div>
-              <div>⏱️ จำนวน: <span style="color: #0fa472; font-weight: 600;">${item.total_days} วัน</span></div>
+              <div>📅 ${labelDates} <span style="color: #334155; font-weight: 500;">${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span></div>
+              <div>⏱️ ${labelDuration} <span style="color: #0fa472; font-weight: 600;">${item.total_days} ${unitDays}</span></div>
             </div>
           </article>
         `;
@@ -262,6 +283,12 @@ window.loadRecentLeaves = async function(profile) {
     if (recentList) recentList.innerHTML = `<div class="empty-state" style="color:#ef4444;">⚠️ ดึงข้อมูลประวัติไม่สำเร็จ</div>`;
   }
 };
+
+window.addEventListener("pvt-lang-changed", () => {
+  if (typeof loadRecentLeaves === "function") {
+    loadRecentLeaves();
+  }
+});
 
 /* ==========================================================================
    🎨 7. ระบบสร้างบัตรพนักงานดิจิทัล (HTML5 Canvas PNG Generator)

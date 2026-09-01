@@ -65,8 +65,7 @@ async function loadAllData() {
     const [deptRes, empRes, mapRes, executiveRes] = await Promise.all([
       sb.from("departments").select("id, department_name").order("department_name"),
       sb.from("employees")
-        .select("id, employee_code, full_name, department_id, role, line_id, status, positions(position_name)")
-        .eq("status", "active")
+        .select("id, employee_code, full_name, nickname, department_id, role, line_id, status, image_url, positions(position_name), departments(department_name)")
         .order("full_name"),
       sb.from("department_approvers").select("id, department_id, supervisor_id, manager_id"),
       sb.from("system_settings").select("setting_key, employee_id").eq("setting_key", "leave_executive_approver").maybeSingle()
@@ -85,6 +84,7 @@ async function loadAllData() {
     renderExecutiveOptions();
     renderDepartmentOptions();
     renderApproverTable();
+    renderEmployeeLineTable();
     await loadLineNotificationSettings();
   } catch (err) {
     console.error("loadAllData:", err);
@@ -228,6 +228,7 @@ window.deleteDeptPrompt = async function(id, name) {
 
 function isLeaderCandidate(emp) {
   if (!emp) return false;
+  if (emp.status === 'resigned' || emp.status === 'inactive') return false;
   const role = (emp.role || "").toLowerCase();
   const pos = (emp.positions?.position_name || emp.position_name || emp.position || "").toLowerCase();
   const duty = (emp.positions?.duty_name || emp.duty_name || "").toLowerCase();
@@ -262,6 +263,7 @@ function isLeaderCandidate(emp) {
 
 function isManagerCandidate(emp) {
   if (!emp) return false;
+  if (emp.status === 'resigned' || emp.status === 'inactive') return false;
   const role = (emp.role || "").toLowerCase();
   const pos = (emp.positions?.position_name || emp.position_name || emp.position || "").toLowerCase();
   const duty = (emp.positions?.duty_name || emp.duty_name || "").toLowerCase();
@@ -289,6 +291,7 @@ function isManagerCandidate(emp) {
 
 function isExecutiveCandidate(emp) {
   if (!emp) return false;
+  if (emp.status === 'resigned' || emp.status === 'inactive') return false;
   const role = (emp.role || "").toLowerCase();
   const pos = (emp.positions?.position_name || "").toLowerCase();
 
@@ -322,35 +325,50 @@ function buildSupervisorOptions(departmentId, selectedId) {
   const dept = departments.find(d => String(d.id) === targetId);
   const deptName = dept?.department_name || "แผนก";
 
-  // คัดกรองเฉพาะพนักงานที่สังกัดในแผนกนี้เท่านั้น 100% (Strict Department Only)
+  // 1. คัดกรองเฉพาะพนักงานในแผนกนี้ที่เป็นระดับหัวหน้า (Leader) เพื่อยกไว้ด้านบน
   const inDeptEmployees = employees.filter(e => String(e.department_id) === targetId);
-
-  if (inDeptEmployees.length === 0) {
-    return `<option value="">-- ไม่มีพนักงานสังกัดในแผนก ${escapeHtml(deptName)} --</option>`;
-  }
-
-  // คัดกรองเฉพาะผู้ที่มีตำแหน่งหรือ Role เป็นหัวหน้า/Leader ในแผนกนี้เท่านั้น 100%
   const inDeptLeaders = inDeptEmployees.filter(isLeaderCandidate);
 
+  // 2. ดึงหัวหน้าจากทุกแผนกทั้งหมด
+  const allLeaders = employees.filter(isLeaderCandidate);
+
   let html = "";
+  html += `<option value="">-- ไม่กำหนด / ข้ามขั้นตอน L1 (ส่งไป L2 หรือ HR) --</option>`;
+
+  // แสดงกลุ่มหัวหน้าในแผนกตนเองก่อน
   if (inDeptLeaders.length > 0) {
-    html = `<option value="">-- ไม่กำหนด / ข้ามขั้นตอน L1 (ส่งไป L2 หรือ HR) --</option>`;
+    html += `<optgroup label="หัวหน้าสังกัดแผนก ${escapeHtml(deptName)}">`;
     inDeptLeaders.forEach(e => {
       const pos = e.positions?.position_name || e.role || "หัวหน้างาน";
       const code = e.employee_code ? `#${e.employee_code} · ` : "";
       html += `<option value="${escapeAttr(e.id)}">${escapeHtml(code + (e.full_name || "-") + " — " + pos)}</option>`;
     });
-  } else {
-    html = `<option value="">-- ไม่มีหัวหน้างาน (Leader) ในแผนก ${escapeHtml(deptName)} (ข้ามขั้นตอน L1) --</option>`;
+    html += `</optgroup>`;
   }
 
-  // กรณีมีหัวหน้าเดิมที่เคยผูกไว้
-  if (selectedId && !inDeptLeaders.some(e => String(e.id) === String(selectedId))) {
+  // 3. แสดงกลุ่มหัวหน้าจากแผนกอื่น
+  const otherLeaders = allLeaders.filter(e => !inDeptLeaders.includes(e));
+  if (otherLeaders.length > 0) {
+    html += `<optgroup label="หัวหน้าจากแผนกอื่น">`;
+    otherLeaders.forEach(e => {
+      const pos = e.positions?.position_name || e.role || "หัวหน้างาน";
+      const empDept = departments.find(d => String(d.id) === String(e.department_id));
+      const deptLabel = empDept ? ` [แผนก ${empDept.department_name}]` : "";
+      const code = e.employee_code ? `#${e.employee_code} · ` : "";
+      html += `<option value="${escapeAttr(e.id)}">${escapeHtml(code + (e.full_name || "-") + " — " + pos + deptLabel)}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  // กรณีมีหัวหน้าเดิมที่เคยผูกไว้ (ถ้าไม่ติดอยู่ในกลุ่มข้างต้น)
+  if (selectedId && !allLeaders.some(e => String(e.id) === String(selectedId))) {
     const e = employees.find(x => String(x.id) === String(selectedId));
     if (e) {
       const pos = e.positions?.position_name || e.role || "หัวหน้างาน";
+      const empDept = departments.find(d => String(d.id) === String(e.department_id));
+      const deptLabel = empDept ? ` [แผนก ${empDept.department_name}]` : "";
       const code = e.employee_code ? `#${e.employee_code} · ` : "";
-      html += `<option value="${escapeAttr(e.id)}">${escapeHtml(code + (e.full_name || "-") + " — " + pos + " (ผู้อนุมัติเดิม)")}</option>`;
+      html += `<option value="${escapeAttr(e.id)}" selected>${escapeHtml(code + (e.full_name || "-") + " — " + pos + deptLabel + " (หัวหน้าเดิม)")}</option>`;
     }
   }
 
@@ -362,30 +380,50 @@ function buildManagerOptions(departmentId, selectedId) {
   const dept = departments.find(d => String(d.id) === targetId);
   const deptName = dept?.department_name || "แผนก";
 
-  // คัดกรองเฉพาะพนักงานในแผนกนี้เท่านั้น 100% ที่เป็นระดับผู้จัดการ (Manager)
+  // 1. คัดกรองเฉพาะพนักงานในแผนกนี้ที่เป็นระดับผู้จัดการ (Manager) เพื่อยกไว้ด้านบน
   const inDeptEmployees = employees.filter(e => String(e.department_id) === targetId);
   const inDeptManagers = inDeptEmployees.filter(isManagerCandidate);
 
-  let html = "";
+  // 2. ดึงผู้จัดการจากทุกแผนกทั้งหมด
+  const allManagers = employees.filter(isManagerCandidate);
 
+  let html = "";
+  html += `<option value="">-- ไม่มีผู้จัดการ (ส่งใบลาหาผู้บริหารโดยตรง) --</option>`;
+
+  // แสดงกลุ่มผู้จัดการในแผนกตนเองก่อน
   if (inDeptManagers.length > 0) {
-    html = `<option value="">-- เลือกผู้จัดการ L2 แผนก ${escapeHtml(deptName)} (${inDeptManagers.length} ท่าน) / หรือข้าม L2 --</option>`;
+    html += `<optgroup label="ผู้จัดการสังกัดแผนก ${escapeHtml(deptName)}">`;
     inDeptManagers.forEach(e => {
       const pos = e.positions?.position_name || e.role || "ผู้จัดการ";
       const code = e.employee_code ? `#${e.employee_code} · ` : "";
       html += `<option value="${escapeAttr(e.id)}">${escapeHtml(code + (e.full_name || "-") + " — " + pos)}</option>`;
     });
-  } else {
-    html = `<option value="">-- ไม่มีผู้จัดการ (Manager) ในแผนก ${escapeHtml(deptName)} (ข้ามขั้นตอน L2) --</option>`;
+    html += `</optgroup>`;
   }
 
-  // กรณีมีผู้จัดการเดิมที่เคยผูกไว้
-  if (selectedId && !inDeptManagers.some(e => String(e.id) === String(selectedId))) {
+  // แสดงผู้จัดการจากแผนกอื่นๆ ทั้งหมด
+  const otherManagers = allManagers.filter(e => String(e.department_id) !== targetId);
+  if (otherManagers.length > 0) {
+    html += `<optgroup label="ผู้จัดการแผนกอื่นๆ (สำหรับผู้จัดการที่คุมหลายแผนก)">`;
+    otherManagers.forEach(e => {
+      const pos = e.positions?.position_name || e.role || "ผู้จัดการ";
+      const empDept = departments.find(d => String(d.id) === String(e.department_id));
+      const deptLabel = empDept ? ` [แผนก ${empDept.department_name}]` : "";
+      const code = e.employee_code ? `#${e.employee_code} · ` : "";
+      html += `<option value="${escapeAttr(e.id)}">${escapeHtml(code + (e.full_name || "-") + " — " + pos + deptLabel)}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  // กรณีมีผู้จัดการเดิมที่เคยผูกไว้ แต่หาไม่เจอในตัวเลือกด้านบน
+  if (selectedId && !allManagers.some(e => String(e.id) === String(selectedId))) {
     const e = employees.find(x => String(x.id) === String(selectedId));
     if (e) {
       const pos = e.positions?.position_name || e.role || "ผู้จัดการ";
+      const empDept = departments.find(d => String(d.id) === String(e.department_id));
+      const deptLabel = empDept ? ` [แผนก ${empDept.department_name}]` : "";
       const code = e.employee_code ? `#${e.employee_code} · ` : "";
-      html += `<option value="${escapeAttr(e.id)}">${escapeHtml(code + (e.full_name || "-") + " — " + pos + " (ผู้จัดการเดิม)")}</option>`;
+      html += `<option value="${escapeAttr(e.id)}">${escapeHtml(code + (e.full_name || "-") + " — " + pos + deptLabel + " (ผู้จัดการเดิม)")}</option>`;
     }
   }
 
@@ -503,33 +541,52 @@ function renderDepartmentOptions() {
 }
 
 function handleDepartmentChange() {
-  const departmentId = document.getElementById("departmentSelect").value;
-  const sup = document.getElementById("supervisorSelect");
-  const mgr = document.getElementById("managerSelect");
-  const save = document.getElementById("saveApproverBtn");
+  try {
+    const deptSelect = document.getElementById("departmentSelect");
+    if (!deptSelect) return;
+    
+    const departmentId = deptSelect.value;
+    const sup = document.getElementById("supervisorSelect");
+    const mgr = document.getElementById("managerSelect");
+    const save = document.getElementById("saveApproverBtn");
 
-  if (!departmentId) {
-    sup.disabled = mgr.disabled = save.disabled = true;
-    sup.innerHTML = `<option value="">-- กรุณาเลือกแผนกก่อน --</option>`;
-    mgr.innerHTML = `<option value="">-- ไม่มี / ข้ามขั้นตอน L2 --</option>`;
+    if (!departmentId) {
+      if (sup) {
+        sup.disabled = true;
+        sup.innerHTML = `<option value="">-- กรุณาเลือกแผนกก่อน --</option>`;
+      }
+      if (mgr) {
+        mgr.disabled = true;
+        mgr.innerHTML = `<option value="">-- ไม่มี / ข้ามขั้นตอน L2 --</option>`;
+      }
+      if (save) save.disabled = true;
+      updateLineStatus("supervisor");
+      updateLineStatus("manager");
+      return;
+    }
+
+    const current = approverMap.get(String(departmentId));
+    const currentSupId = current?.supervisor_id || "";
+    const currentMgrId = current?.manager_id || "";
+
+    if (sup) {
+      sup.innerHTML = buildSupervisorOptions(departmentId, currentSupId);
+      if (currentSupId) sup.value = currentSupId;
+      sup.disabled = false;
+    }
+    
+    if (mgr) {
+      mgr.innerHTML = buildManagerOptions(departmentId, currentMgrId);
+      if (currentMgrId) mgr.value = currentMgrId;
+      mgr.disabled = false;
+    }
+
+    if (save) save.disabled = false;
     updateLineStatus("supervisor");
     updateLineStatus("manager");
-    return;
+  } catch (err) {
+    console.error("handleDepartmentChange Error:", err);
   }
-
-  const current = approverMap.get(String(departmentId));
-  const currentSupId = current?.supervisor_id || "";
-  const currentMgrId = current?.manager_id || "";
-
-  sup.innerHTML = buildSupervisorOptions(departmentId, currentSupId);
-  mgr.innerHTML = buildManagerOptions(departmentId, currentMgrId);
-
-  if (currentSupId) sup.value = currentSupId;
-  if (currentMgrId) mgr.value = currentMgrId;
-
-  sup.disabled = mgr.disabled = save.disabled = false;
-  updateLineStatus("supervisor");
-  updateLineStatus("manager");
 }
 
 function updateLineStatus(type) {
@@ -601,7 +658,7 @@ async function saveApprover() {
     }
 
     approverMap.set(String(departmentId), data);
-    renderApproverTable();
+    await loadAllData();
     Swal.fire({ icon:"success", title:"บันทึกแล้ว", text:"ตั้งค่าสายอนุมัติของแผนกเรียบร้อย", timer:1600, showConfirmButton:false });
   } catch (err) {
     console.error("saveApprover:", err);
@@ -617,7 +674,7 @@ let currentLineFilter = "all";
 
 window.setLineStatusFilter = function(filter) {
   currentLineFilter = filter;
-  document.querySelectorAll(".filter-tab-btn").forEach(btn => {
+  document.querySelectorAll("#approverFilterTabs .filter-tab-btn").forEach(btn => {
     btn.classList.toggle("active", btn.getAttribute("data-filter") === filter);
   });
   renderApproverTable();
@@ -806,60 +863,79 @@ function renderApproverTable() {
 
   body.innerHTML = rows.length ? rows.join("") :
     `<tr><td colspan="4" class="empty-state">
-      <span class="material-symbols-outlined" style="font-size: 32px; color: #cbd5e1; margin-bottom: 8px;">search_off</span>
-      <p style="margin:0; font-weight:600;">ไม่พบข้อมูลสายอนุมัติที่ตรงกับการค้นหาหรือตัวกรอง</p>
+      <span class="material-symbols-outlined" style="font-size: 48px; color: #cbd5e1; margin-bottom: 8px;">search_off</span>
+      <p style="margin:0; font-weight:600; font-size: 14.5px; color: #64748b;">ไม่พบข้อมูลสายอนุมัติที่ตรงกับการค้นหาหรือตัวกรอง</p>
     </td></tr>`;
 }
 
 window.editApprover = function(departmentId) {
-  const dept = departments.find(d => String(d.id) === String(departmentId));
-  if (!dept) return;
+  console.log("editApprover clicked for:", departmentId);
+  try {
+    const dept = departments.find(d => String(d.id) === String(departmentId));
+    if (!dept) {
+      console.warn("Department not found", departmentId);
+      return;
+    }
 
-  // ตั้งค่าใน Form บนหน้าจอหลักด้วย
-  const deptSelect = document.getElementById("departmentSelect");
-  if (deptSelect) {
-    deptSelect.value = departmentId;
-    handleDepartmentChange();
+    // ตั้งค่าใน Form บนหน้าจอหลักด้วย
+    const deptSelect = document.getElementById("departmentSelect");
+    if (deptSelect) {
+      deptSelect.value = departmentId;
+      if (typeof handleDepartmentChange === "function") {
+        handleDepartmentChange();
+      }
+    }
+
+    // เปิด Modal เพื่อให้แก้ไขได้ทันทีโดยตรง
+    openApproverModal(departmentId);
+  } catch (err) {
+    console.error("editApprover Error:", err);
+    if (typeof Swal !== "undefined") {
+      Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปิดหน้าต่างตั้งค่าได้", "error");
+    }
   }
-
-  // เปิด Modal เพื่อให้แก้ไขได้ทันทีโดยตรง
-  openApproverModal(departmentId);
 };
 
-window.openApproverModal = function(deptId) {
-  openApproverModal(deptId);
-};
+window.openApproverModal = function(departmentId) {
+  // Logic from function openApproverModal moved directly here
+  try {
+    const dept = departments.find(d => String(d.id) === String(departmentId));
+    if (!dept) return;
 
-function openApproverModal(departmentId) {
-  const dept = departments.find(d => String(d.id) === String(departmentId));
-  if (!dept) return;
+    const modal = document.getElementById("approverModalBackdrop");
+    const modalDeptId = document.getElementById("modalDeptId");
+    const modalDeptTitle = document.getElementById("modalDeptTitle");
+    const supSelect = document.getElementById("modalSupervisorSelect");
+    const mgrSelect = document.getElementById("modalManagerSelect");
 
-  const modal = document.getElementById("approverModalBackdrop");
-  const modalDeptId = document.getElementById("modalDeptId");
-  const modalDeptTitle = document.getElementById("modalDeptTitle");
-  const supSelect = document.getElementById("modalSupervisorSelect");
-  const mgrSelect = document.getElementById("modalManagerSelect");
+    if (!modal || !supSelect || !mgrSelect || !modalDeptId || !modalDeptTitle) {
+      console.warn("Modal elements missing", { modal, supSelect, mgrSelect, modalDeptId, modalDeptTitle });
+      return;
+    }
 
-  if (!modal || !supSelect || !mgrSelect) return;
+    modalDeptId.value = departmentId;
+    modalDeptTitle.textContent = `ตั้งค่าสายอนุมัติ: ${dept.department_name || "แผนก"}`;
 
-  modalDeptId.value = departmentId;
-  modalDeptTitle.textContent = `ตั้งค่าสายอนุมัติ: ${dept.department_name || "แผนก"}`;
+    const current = approverMap.get(String(departmentId));
+    const currentSupId = current?.supervisor_id || "";
+    const currentMgrId = current?.manager_id || "";
 
-  const current = approverMap.get(String(departmentId));
-  const currentSupId = current?.supervisor_id || "";
-  const currentMgrId = current?.manager_id || "";
+    // ใช้ตัวสร้าง Option คัดกรองตรงตามแผนก
+    supSelect.innerHTML = buildSupervisorOptions(departmentId, currentSupId);
+    mgrSelect.innerHTML = buildManagerOptions(departmentId, currentMgrId);
 
-  // ใช้ตัวสร้าง Option คัดกรองตรงตามแผนก
-  supSelect.innerHTML = buildSupervisorOptions(departmentId, currentSupId);
-  mgrSelect.innerHTML = buildManagerOptions(departmentId, currentMgrId);
+    if (currentSupId) supSelect.value = currentSupId;
+    if (currentMgrId) mgrSelect.value = currentMgrId;
 
-  if (currentSupId) supSelect.value = currentSupId;
-  if (currentMgrId) mgrSelect.value = currentMgrId;
+    if (typeof updateModalLineStatus === "function") {
+      updateModalLineStatus("supervisor");
+      updateModalLineStatus("manager");
+    }
 
-  updateModalLineStatus("supervisor");
-  updateModalLineStatus("manager");
-
-  modal.classList.add("show");
+    modal.classList.add("show");
+  } catch (err) {
+    console.error("openApproverModal Error:", err);
+  }
 }
 
 window.closeApproverModal = function(e) {
@@ -970,47 +1046,118 @@ window.saveApproverFromModal = async function() {
 window.deleteApprover = async function(departmentId) {
   const dept = departments.find(d => String(d.id) === String(departmentId));
   const deptName = dept?.department_name || "แผนกนี้";
+  const map = approverMap.get(String(departmentId));
+  const supId = map?.supervisor_id;
+  const mgrId = map?.manager_id;
+  const sup = employees.find(e => String(e.id) === String(supId));
+  const mgr = employees.find(e => String(e.id) === String(mgrId));
+
+  let approverDetailsHtml = "";
+  if (sup || mgr) {
+    approverDetailsHtml = `
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin: 12px 0; text-align: left; font-size: 13.5px; line-height: 1.6;">
+        <div style="font-weight: 700; color: #b91c1c; margin-bottom: 4px;">
+          ⚠️ รายการที่จะถูกล้างสายอนุมัติและปลดการผูก LINE ID:
+        </div>
+        ${sup ? `<div>• หัวหน้างาน L1: <b>${escapeHtml(sup.full_name)}</b> ${sup.line_id ? '<span style="color:#059669; font-weight:600;">(มี LINE ID ผูกอยู่ ➔ จะถูกล้างออก)</span>' : '<span style="color:#94a3b8;">(ยังไม่ได้ผูก LINE)</span>'}</div>` : ''}
+        ${mgr ? `<div>• ผู้จัดการฝ่าย L2: <b>${escapeHtml(mgr.full_name)}</b> ${mgr.line_id ? '<span style="color:#059669; font-weight:600;">(มี LINE ID ผูกอยู่ ➔ จะถูกล้างออก)</span>' : '<span style="color:#94a3b8;">(ยังไม่ได้ผูก LINE)</span>'}</div>` : ''}
+        <div style="margin-top: 6px; font-size: 12px; color: #7f1d1d; border-top: 1px dashed #fca5a5; padding-top: 4px;">
+          📌 ระบบจะลบการตั้งค่าสายอนุมัติของแผนก และ<b>ล้างค่า LINE User ID ของหัวหน้างาน/ผู้จัดการฝ่าย</b>ออกจากระบบทันที
+        </div>
+      </div>
+    `;
+  }
 
   const result = await Swal.fire({
-    title: "ล้างสายอนุมัติ?",
-    html: `ต้องการล้างการตั้งค่าผู้อนุมัติของ <b>${escapeHtml(deptName)}</b> ใช่หรือไม่?`,
+    title: "ล้างสายอนุมัติและ LINE ID?",
+    html: `
+      <div>ต้องการล้างสายอนุมัติของแผนก <b>${escapeHtml(deptName)}</b> ใช่หรือไม่?</div>
+      ${approverDetailsHtml}
+    `,
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#dc2626",
     cancelButtonColor: "#64748b",
-    confirmButtonText: "ล้างค่า",
+    confirmButtonText: "🗑️ ยืนยันล้างข้อมูลและ LINE ID",
     cancelButtonText: "ยกเลิก"
   });
 
   if (!result.isConfirmed) return;
 
+  const empIdsToClear = [supId, mgrId].filter(Boolean);
+
   try {
-    const { error } = await sb
-      .from("department_approvers")
-      .delete()
-      .eq("department_id", departmentId);
+    // 1. เรียกผ่าน Server API (/api/clear-approver-line) เพื่อหลีกเลี่ยง RLS limitation
+    let apiSuccess = false;
+    try {
+      const apiRes = await fetch("/api/clear-approver-line", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          department_id: departmentId,
+          employee_ids: empIdsToClear
+        })
+      });
+      if (apiRes.ok) {
+        apiSuccess = true;
+      }
+    } catch (apiErr) {
+      console.warn("API /api/clear-approver-line warning:", apiErr);
+    }
 
-    if (error) throw error;
+    // 2. ลบผ่าน Supabase Client Direct Fallback
+    if (!apiSuccess && sb) {
+      const { error: delErr } = await sb
+        .from("department_approvers")
+        .delete()
+        .eq("department_id", departmentId);
 
+      if (delErr) throw delErr;
+
+      for (const empId of empIdsToClear) {
+        await sb
+          .from("employees")
+          .update({ line_id: null })
+          .eq("id", empId);
+
+        try {
+          await sb.from("line_link_tokens").delete().eq("employee_id", empId);
+        } catch (tokErr) {}
+      }
+    }
+
+    // 3. ปรับปรุง Local in-memory state
     approverMap.delete(String(departmentId));
+    empIdsToClear.forEach(empId => {
+      const emp = employees.find(e => String(e.id) === String(empId));
+      if (emp) {
+        emp.line_id = null;
+      }
+    });
+
+    // 4. Render UI ใหม่
     renderApproverTable();
+    renderEmployeeLineTable();
+    updateLineSummaryStats();
 
     const deptSelect = document.getElementById("departmentSelect");
     if (String(deptSelect?.value) === String(departmentId)) {
       deptSelect.value = "";
-      handleDepartmentChange();
+      if (typeof handleDepartmentChange === "function") {
+        handleDepartmentChange();
+      }
     }
 
     Swal.fire({
       icon: "success",
-      title: "ล้างข้อมูลแล้ว",
-      text: `ล้างสายอนุมัติของ ${deptName} เรียบร้อย`,
-      timer: 1400,
+      title: "ล้างข้อมูลสำเร็จ",
+      html: `ล้างสายอนุมัติและ LINE ID ของ <b>${escapeHtml(deptName)}</b> เรียบร้อยแล้ว`,
+      timer: 1800,
       showConfirmButton: false
     });
   } catch (err) {
-    console.error("deleteApprover:", err);
-    Swal.fire("ล้างข้อมูลไม่สำเร็จ", err.message, "error");
+    console.error("deleteApprover error:", err);
+    Swal.fire("ล้างข้อมูลไม่สำเร็จ", err.message || "เกิดข้อผิดพลาดในการล้างข้อมูล", "error");
   }
 };
 
@@ -1180,7 +1327,7 @@ window.createLineLinkCode = async function(employeeId) {
             timer: 2000,
             showConfirmButton: false
           });
-          if (typeof loadData === "function") loadData();
+          if (typeof loadAllData === "function") loadAllData();
         }
       }
     }
@@ -1218,6 +1365,53 @@ function escapeAttr(value) { return escapeHtml(value); }
 // 🎛️ 3. ตั้งค่าการเปิด/ปิดแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
 // ============================================================
 
+window.handleSwitchVisualChange = function(checkboxId) {
+  const checkbox = document.getElementById(checkboxId);
+  const row = document.getElementById(`row-${checkboxId}`);
+  const tag = document.getElementById(`tag-${checkboxId}`);
+  if (!checkbox) return;
+
+  const isChecked = checkbox.checked;
+  if (row) {
+    if (isChecked) {
+      row.classList.add("is-active");
+      row.classList.remove("is-inactive");
+    } else {
+      row.classList.remove("is-active");
+      row.classList.add("is-inactive");
+    }
+  }
+
+  if (tag) {
+    if (isChecked) {
+      tag.textContent = "เปิด";
+      tag.className = "switch-status-tag on";
+    } else {
+      tag.textContent = "ปิด";
+      tag.className = "switch-status-tag off";
+    }
+  }
+};
+
+window.toggleAllLineNotifs = function(enable) {
+  const ids = [
+    "notif-new-request",
+    "notif-new-request-l2",
+    "notif-leader-approved",
+    "notif-manager-approved",
+    "notif-final-approved",
+    "notif-rejected",
+    "notif-cancellation"
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.checked = Boolean(enable);
+      handleSwitchVisualChange(id);
+    }
+  });
+};
+
 async function loadLineNotificationSettings() {
   try {
     const { data, error } = await sb
@@ -1239,14 +1433,24 @@ async function loadLineNotificationSettings() {
       cancellation: true
     };
 
-    // Set DOM checkbox states
-    if (document.getElementById("notif-new-request")) document.getElementById("notif-new-request").checked = settings.new_request !== false;
-    if (document.getElementById("notif-new-request-l2")) document.getElementById("notif-new-request-l2").checked = settings.new_request_l2 !== false;
-    if (document.getElementById("notif-leader-approved")) document.getElementById("notif-leader-approved").checked = settings.leader_approved !== false;
-    if (document.getElementById("notif-manager-approved")) document.getElementById("notif-manager-approved").checked = settings.manager_approved !== false;
-    if (document.getElementById("notif-final-approved")) document.getElementById("notif-final-approved").checked = settings.final_approved !== false;
-    if (document.getElementById("notif-rejected")) document.getElementById("notif-rejected").checked = settings.rejected !== false;
-    if (document.getElementById("notif-cancellation")) document.getElementById("notif-cancellation").checked = settings.cancellation !== false;
+    // Set DOM checkbox states & visual classes
+    const mapList = [
+      { id: "notif-new-request", val: settings.new_request !== false },
+      { id: "notif-new-request-l2", val: settings.new_request_l2 !== false },
+      { id: "notif-leader-approved", val: settings.leader_approved !== false },
+      { id: "notif-manager-approved", val: settings.manager_approved !== false },
+      { id: "notif-final-approved", val: settings.final_approved !== false },
+      { id: "notif-rejected", val: settings.rejected !== false },
+      { id: "notif-cancellation", val: settings.cancellation !== false }
+    ];
+
+    mapList.forEach(item => {
+      const el = document.getElementById(item.id);
+      if (el) {
+        el.checked = item.val;
+        handleSwitchVisualChange(item.id);
+      }
+    });
 
   } catch (err) {
     console.error("loadLineNotificationSettings Error:", err);
@@ -1300,3 +1504,380 @@ async function saveLineNotificationSettings() {
     }
   }
 }
+
+// ============================================================
+// 📱 4. จัดการรายชื่อพนักงาน & ผู้บริหารที่ผูก LINE (สำหรับพนักงานลาออก / เปลี่ยนตำแหน่ง)
+// ============================================================
+
+let currentEmpLineFilter = "all"; // "all", "connected", "unconnected", "approvers"
+let currentEmpLineSearch = "";
+
+window.setEmpLineFilter = function(filterType) {
+  currentEmpLineFilter = filterType;
+  document.querySelectorAll("#empLineFilterTabs .filter-tab-btn").forEach(btn => {
+    if (btn.dataset.empfilter === filterType) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+  renderEmployeeLineTable();
+};
+
+window.filterEmployeeLineTable = function() {
+  const input = document.getElementById("empLineSearchInput");
+  currentEmpLineSearch = (input?.value || "").trim().toLowerCase();
+  renderEmployeeLineTable();
+};
+
+window.copyLineId = function(lineId) {
+  if (!lineId) return;
+  navigator.clipboard.writeText(lineId).then(() => {
+    if (typeof Swal !== "undefined") {
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 1500,
+        timerProgressBar: false
+      });
+      Toast.fire({
+        icon: 'success',
+        title: 'คัดลอก LINE User ID แล้ว'
+      });
+    }
+  }).catch(err => {
+    console.error("Copy LINE ID failed:", err);
+  });
+};
+
+function renderEmployeeLineTable() {
+  const body = document.getElementById("employeeLineTableBody");
+  const countBadge = document.getElementById("empLineCountBadge");
+  const countAll = document.getElementById("empCountAll");
+  const countConnected = document.getElementById("empCountConnected");
+  const countUnconnected = document.getElementById("empCountUnconnected");
+  const countApprovers = document.getElementById("empCountApprovers");
+
+  // รวบรวม ID ของผู้ที่เป็นผู้อนุมัติในสายปัจจุบัน
+  const activeApproverIds = new Set();
+  departments.forEach(dept => {
+    const map = approverMap.get(String(dept.id));
+    if (map?.supervisor_id) activeApproverIds.add(String(map.supervisor_id));
+    if (map?.manager_id) activeApproverIds.add(String(map.manager_id));
+  });
+  if (executiveSetting?.employee_id) {
+    activeApproverIds.add(String(executiveSetting.employee_id));
+  }
+
+  // คำนวณตัวเลขสถิติบน Tabs
+  const totalAll = employees.length;
+  let totalConnected = 0;
+  let totalUnconnected = 0;
+  let totalApprovers = 0;
+
+  employees.forEach(emp => {
+    const hasLine = Boolean(emp.line_id && String(emp.line_id).trim() !== "");
+    if (hasLine) totalConnected++;
+    else totalUnconnected++;
+
+    const isApp = activeApproverIds.has(String(emp.id)) || 
+      ['executive', 'director', 'manager', 'leader', 'hr', 'admin'].includes((emp.role || '').toLowerCase()) ||
+      isLeaderCandidate(emp) || isManagerCandidate(emp) || isExecutiveCandidate(emp);
+    if (isApp) totalApprovers++;
+  });
+
+  if (countAll) countAll.textContent = totalAll;
+  if (countConnected) countConnected.textContent = totalConnected;
+  if (countUnconnected) countUnconnected.textContent = totalUnconnected;
+  if (countApprovers) countApprovers.textContent = totalApprovers;
+
+  if (!body) return;
+
+  // กรองรายชื่อตาม Tab และคำค้นหา
+  const filtered = employees.filter(emp => {
+    const hasLine = Boolean(emp.line_id && String(emp.line_id).trim() !== "");
+    const isApp = activeApproverIds.has(String(emp.id)) || 
+      ['executive', 'director', 'manager', 'leader', 'hr', 'admin'].includes((emp.role || '').toLowerCase()) ||
+      isLeaderCandidate(emp) || isManagerCandidate(emp) || isExecutiveCandidate(emp);
+
+    // ตัวกรองแท็บ
+    if (currentEmpLineFilter === "connected" && !hasLine) return false;
+    if (currentEmpLineFilter === "unconnected" && hasLine) return false;
+    if (currentEmpLineFilter === "approvers" && !isApp) return false;
+
+    // คำค้นหา
+    if (currentEmpLineSearch) {
+      const dept = departments.find(d => String(d.id) === String(emp.department_id));
+      const deptName = dept?.department_name || emp.departments?.department_name || "";
+      const posName = emp.positions?.position_name || "";
+      const searchTarget = `${emp.full_name || ''} ${emp.nickname || ''} ${emp.employee_code || ''} ${deptName} ${posName} ${emp.line_id || ''} ${emp.role || ''}`.toLowerCase();
+      if (!searchTarget.includes(currentEmpLineSearch)) return false;
+    }
+
+    return true;
+  });
+
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} คน`;
+  }
+
+  if (filtered.length === 0) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-state">
+          <span class="material-symbols-outlined" style="font-size: 48px; color: #cbd5e1; margin-bottom: 8px;">person_search</span>
+          <p style="margin:0; font-weight:600; font-size: 14.5px; color: #64748b;">ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไขการค้นหาหรือตัวกรอง</p>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const rows = filtered.map(emp => {
+    const dept = departments.find(d => String(d.id) === String(emp.department_id));
+    const deptName = dept?.department_name || emp.departments?.department_name || "ไม่ระบุแผนก";
+    const posName = emp.positions?.position_name || "พนักงาน";
+    const hasLine = Boolean(emp.line_id && String(emp.line_id).trim() !== "");
+    const isResigned = emp.status === "resigned" || emp.status === "inactive";
+
+    // อวาตาร์
+    let avatarContent = "";
+    if (emp.image_url) {
+      avatarContent = `<img src="${escapeAttr(emp.image_url)}" class="emp-avatar-img" alt="${escapeAttr(emp.full_name)}" onerror="this.parentElement.innerHTML='${escapeHtml(emp.full_name?.substring(0,2) || 'EM')}'">`;
+    } else {
+      const initials = (emp.full_name || "EM").substring(0, 2).toUpperCase();
+      avatarContent = escapeHtml(initials);
+    }
+
+    // บทบาทหลักในระบบ (Role)
+    const role = (emp.role || "user").toLowerCase();
+    let roleBadgeHtml = "";
+    if (role === "executive" || role === "director") {
+      roleBadgeHtml = `<span class="role-badge-tag exec">👑 ผู้บริหารระดับสูง</span>`;
+    } else if (role === "manager") {
+      roleBadgeHtml = `<span class="role-badge-tag mgr">👔 ผู้จัดการฝ่าย</span>`;
+    } else if (role === "leader") {
+      roleBadgeHtml = `<span class="role-badge-tag sup">🎖️ หัวหน้างาน</span>`;
+    } else if (role === "hr" || role === "admin") {
+      roleBadgeHtml = `<span class="role-badge-tag hr">🛡️ HR / ผู้ดูแลระบบ</span>`;
+    } else {
+      roleBadgeHtml = `<span class="role-badge-tag staff">👤 พนักงานทั่วไป</span>`;
+    }
+
+    // บทบาทในสายอนุมัติจริง (Workflow Assignments)
+    const assignedDeptsL1 = [];
+    const assignedDeptsL2 = [];
+    departments.forEach(d => {
+      const map = approverMap.get(String(d.id));
+      if (String(map?.supervisor_id) === String(emp.id)) assignedDeptsL1.push(d.department_name);
+      if (String(map?.manager_id) === String(emp.id)) assignedDeptsL2.push(d.department_name);
+    });
+    const isExecL3 = executiveSetting?.employee_id && String(executiveSetting.employee_id) === String(emp.id);
+
+    let workflowTags = "";
+    if (isExecL3) {
+      workflowTags += `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #fde68a;">👑 ผู้อนุมัติ L3 (ผู้บริหาร)</span></div>`;
+    }
+    if (assignedDeptsL1.length > 0) {
+      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#ccfbf1; color:#0f766e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #99f6e4;" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ L1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
+    }
+    if (assignedDeptsL2.length > 0) {
+      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#e0e7ff; color:#4338ca; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #c7d2fe;" title="${escapeAttr(assignedDeptsL2.join(', '))}">👔 ผู้อนุมัติ L2 (${escapeHtml(assignedDeptsL2[0])}${assignedDeptsL2.length > 1 ? ` +${assignedDeptsL2.length - 1}` : ''})</span></div>`;
+    }
+
+    // สถานะ LINE & รหัส User ID
+    let lineDisplayHtml = "";
+    if (hasLine) {
+      lineDisplayHtml = `
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span class="line-status-chip connected">
+            <span style="font-size: 8px;">●</span> เชื่อมต่อ LINE แล้ว
+          </span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="line-id-val" title="${escapeAttr(emp.line_id)}">${escapeHtml(emp.line_id.length > 16 ? emp.line_id.substring(0, 15) + '...' : emp.line_id)}</span>
+            <button type="button" onclick="copyLineId('${escapeAttr(emp.line_id)}')" title="คัดลอก LINE User ID" style="background:none; border:none; cursor:pointer; color:#64748b; padding:2px; display:inline-flex; align-items:center;">
+              <span class="material-symbols-outlined" style="font-size:14px;">content_copy</span>
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      lineDisplayHtml = `
+        <span class="line-status-chip unconnected">
+          <span style="font-size: 8px;">○</span> ยังไม่เชื่อมต่อ
+        </span>
+      `;
+    }
+
+    // ปุ่มการจัดการ LINE ID
+    let actionButtonsHtml = "";
+    if (hasLine) {
+      actionButtonsHtml = `
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:center;">
+          <button type="button" class="btn-unlink-line" onclick="unlinkEmployeeLine('${escapeAttr(emp.id)}', '${escapeAttr(emp.full_name)}')" title="ลบช่อง line_id ใน employees (สำหรับคนลาออก หรือเปลี่ยนตำแหน่ง)">
+            <span class="material-symbols-outlined" style="font-size: 14px;">link_off</span> ล้าง LINE ID
+          </button>
+          <button type="button" class="btn-link-line" onclick="createLineLinkCode('${escapeAttr(emp.id)}')" title="สร้างรหัสผูกบัญชีใหม่" style="font-size:11px; padding:3px 8px;">
+            <span class="material-symbols-outlined" style="font-size: 13px;">sync</span> สร้างรหัสใหม่
+          </button>
+        </div>
+      `;
+    } else {
+      actionButtonsHtml = `
+        <div style="display:flex; justify-content:center;">
+          <button type="button" class="btn-link-line" onclick="createLineLinkCode('${escapeAttr(emp.id)}')" title="สร้างรหัส 6 หลักเพื่อส่งให้พนักงานผูก LINE">
+            <span class="material-symbols-outlined" style="font-size: 14px;">link</span> สร้างรหัสผูก LINE
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <tr style="${isResigned ? 'background: #fff8f8;' : ''}">
+        <td>
+          <div class="emp-cell-user">
+            <div class="emp-avatar-badge" style="${isResigned ? 'background:#fee2e2; color:#b91c1c; border-color:#fca5a5;' : ''}">
+              ${avatarContent}
+            </div>
+            <div class="emp-detail-col">
+              <div class="emp-name-text">
+                ${escapeHtml(emp.full_name || "-")}
+                ${emp.nickname ? `<span style="font-weight:400; color:#64748b; font-size:12px;">(${escapeHtml(emp.nickname)})</span>` : ''}
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                <span class="emp-code-badge">#${escapeHtml(emp.employee_code || '-')}</span>
+                ${isResigned 
+                  ? `<span style="background:#fee2e2; color:#b91c1c; font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:4px; border:1px solid #fca5a5;">⚠️ ลาออกแล้ว</span>` 
+                  : `<span style="background:#f0fdf4; color:#15803d; font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:4px;">ปกติ</span>`
+                }
+              </div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <div style="font-weight:600; color:#1e293b; font-size:13px; display:flex; align-items:center; gap:4px;">
+              <span class="material-symbols-outlined" style="font-size:14px; color:#64748b;">domain</span>
+              <span>${escapeHtml(deptName)}</span>
+            </div>
+            <div style="font-size:12px; color:#64748b; margin-left:18px;">
+              ${escapeHtml(posName)}
+            </div>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            ${roleBadgeHtml}
+            ${workflowTags}
+          </div>
+        </td>
+        <td>
+          ${lineDisplayHtml}
+        </td>
+        <td style="text-align: center;">
+          ${actionButtonsHtml}
+        </td>
+      </tr>
+    `;
+  });
+
+  body.innerHTML = rows.join("");
+}
+
+window.unlinkEmployeeLine = async function(employeeId, employeeName) {
+  const emp = employees.find(e => String(e.id) === String(employeeId));
+  const name = employeeName || emp?.full_name || "พนักงานท่านนี้";
+  const code = emp?.employee_code ? `(#${emp.employee_code})` : "";
+  const isResigned = emp?.status === "resigned" || emp?.status === "inactive";
+
+  const result = await Swal.fire({
+    title: "ยืนยันล้าง LINE ID?",
+    html: `
+      <div style="text-align: center; margin-bottom: 12px;">
+        คุณต้องการลบและยกเลิกการเชื่อมต่อ LINE ของ<br>
+        <b style="font-size: 16px; color: #0f172a;">${escapeHtml(name)} ${escapeHtml(code)}</b> ใช่หรือไม่?
+      </div>
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; font-size: 13px; color: #991b1b; text-align: left; line-height: 1.6;">
+        <div style="font-weight: 700; margin-bottom: 4px;">📌 ผลของการล้าง LINE ID:</div>
+        <div>• ระบบจะลบค่าในช่อง <b>line_id</b> ของตาราง <code>employees</code> เป็นค่าว่าง (null) ทันที</div>
+        <div>• พนักงานจะไม่ได้รับการแจ้งเตือนใบลาผ่าน LINE อีกต่อไป (เหมาะสำหรับ<b>พนักงานที่ลาออก หรือเปลี่ยนตำแหน่งงาน</b>)</div>
+        ${isResigned ? '<div style="color: #b91c1c; font-weight: 700; margin-top: 4px;">⚠️ พนักงานท่านนี้มีสถานะลาออกแล้ว การล้าง LINE ID จะช่วยป้องกันไม่ให้ระบบส่งข้อมูลของบริษัทไปยัง LINE ส่วนตัว</div>' : ''}
+      </div>
+    `,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#dc2626",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "🗑️ ยืนยันลบช่อง LINE ID",
+    cancelButtonText: "ยกเลิก"
+  });
+
+  if (!result.isConfirmed) return;
+
+  // Show loading dialog
+  Swal.fire({
+    title: "กำลังล้าง LINE ID...",
+    text: "กำลังอัปเดตฐานข้อมูล employees...",
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    // 1. เรียกผ่าน Server API /api/clear-approver-line
+    let apiSuccess = false;
+    try {
+      const res = await fetch("/api/clear-approver-line", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_ids: [employeeId] })
+      });
+      if (res.ok) {
+        apiSuccess = true;
+      }
+    } catch (apiErr) {
+      console.warn("API /api/clear-approver-line warning:", apiErr);
+    }
+
+    // 2. Direct Supabase Fallback เพื่อให้แน่ใจว่า line_id = null 100%
+    if (sb) {
+      const { error: updErr } = await sb
+        .from("employees")
+        .update({ line_id: null })
+        .eq("id", employeeId);
+
+      if (updErr && !apiSuccess) throw updErr;
+
+      try {
+        await sb.from("line_link_tokens").delete().eq("employee_id", employeeId);
+      } catch (tokErr) {}
+    }
+
+    // 3. ปรับปรุง local in-memory state
+    if (emp) {
+      emp.line_id = null;
+    }
+
+    // 4. Re-render UI ทุกส่วนที่เกี่ยวข้อง
+    renderEmployeeLineTable();
+    renderApproverTable();
+    updateLineSummaryStats();
+    updateExecutiveLineStatus();
+    updateLineStatus("supervisor");
+    updateLineStatus("manager");
+
+    Swal.fire({
+      icon: "success",
+      title: "ล้าง LINE ID สำเร็จ",
+      html: `ลบช่อง <b>line_id</b> ใน employees ของ <b>${escapeHtml(name)}</b> เรียบร้อยแล้ว`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+
+  } catch (err) {
+    console.error("unlinkEmployeeLine error:", err);
+    Swal.fire("ไม่สำเร็จ", err.message || "เกิดข้อผิดพลาดในการล้าง LINE ID", "error");
+  }
+};

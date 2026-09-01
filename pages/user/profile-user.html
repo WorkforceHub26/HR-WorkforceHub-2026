@@ -10,24 +10,23 @@
   <link rel="stylesheet" href="/css/profile-user.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  
-  <!-- Security Auth Guard (Head Check) -->
-  <script src="/js/auth-guard.js"></script>
 </head>
 
 <body>
   <main class="app">
     
-    <header class="user-header">
+    <header class="user-header" id="profileUserHeader">
       <div class="brand-row">
         <img src="/assets/icons/logo-pvt.png" alt="PVT" />
         <div>
-          <p class="hello">PVT HR Leave</p>
-          <h1>ข้อมูลพนักงาน</h1>
-          <span>ตรวจสอบข้อมูลโปรไฟล์และการแจ้งเตือน LINE</span>
+          <p class="hello" id="profileBrandTitle">PVT HR Leave</p>
+          <h1 id="profileHeaderTitle">ข้อมูลพนักงาน</h1>
+          <span id="profileHeaderSubtitle">ตรวจสอบข้อมูลโปรไฟล์และการแจ้งเตือน LINE</span>
         </div>
       </div>
-      <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับ</button>
+      <div class="user-header-actions" style="display: flex; align-items: center; gap: 10px;">
+        <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับ</button>
+      </div>
     </header>
 
     <section class="recent-card">
@@ -87,6 +86,7 @@
   </main>
 
   <script src="/js/supabase-config.js"></script>
+  <script src="/js/auth-guard.js"></script>
 
   <script src="/js/profile-user.js"></script>
 </body>

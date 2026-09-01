@@ -391,16 +391,35 @@ async function handleDateChange(inputElement) {
 // ==========================================
 // 📦 3. โหลดข้อมูลประเภทการลา
 // ==========================================
+function getTranslatedLeaveTypeName(rawName) {
+  if (!rawName) return "";
+  const lang = window.getGlobalLanguage ? window.getGlobalLanguage() : "th";
+  const t = window.globalAppTranslations ? (window.globalAppTranslations[lang] || window.globalAppTranslations.th) : null;
+  if (!t) return rawName;
+
+  if (rawName.includes("ป่วย")) return t.leaveSick;
+  if (rawName.includes("พักผ่อน") || rawName.includes("ประจำปี")) return t.leaveAnnual;
+  if (rawName.includes("กิจ")) return t.leaveBusiness;
+  if (rawName.includes("ทำหมัน")) return t.leaveSterilization;
+  if (rawName.includes("ทหาร")) return t.leaveMilitary;
+  if (rawName.includes("อุปสมบท") || rawName.includes("บวช")) return t.leaveOrdination;
+  if (rawName.includes("ฌาปนกิจ") || rawName.includes("ศพ")) return t.leaveFuneral;
+  if (rawName.includes("คลอด")) return t.leaveMaternity;
+  if (rawName.includes("อื่น")) return t.leaveOther;
+  return rawName;
+}
+
 function renderLeaveTypeOptions(selectEl) {
   if (!selectEl) return;
   const currentValue = selectEl.value;
-  selectEl.innerHTML = `<option value="" disabled ${!currentValue ? 'selected' : ''}>-- เลือกประเภทการลา --</option>`;
+  const placeholderText = window.getPVTTranslation ? window.getPVTTranslation("leaveTypePlaceholder") : "-- เลือกประเภทการลา --";
+  selectEl.innerHTML = `<option value="" disabled ${!currentValue ? 'selected' : ''}>${placeholderText}</option>`;
 
   if (leaveTypes && leaveTypes.length > 0) {
     leaveTypes.forEach(type => {
       const opt = document.createElement("option");
       opt.value = type.id;
-      opt.textContent = type.leave_name;
+      opt.textContent = getTranslatedLeaveTypeName(type.leave_name);
       if (String(type.id) === String(currentValue)) {
         opt.selected = true;
       }
@@ -647,34 +666,38 @@ window.renderAllLeaveBalances = function() {
   const leaveBalances = window.employeeLeaveBalances || [];
   const systemLeaveTypes = window.systemLeaveTypes || [];
   const currentYear = new Date().getFullYear();
+  const uDays = window.getPVTTranslation ? window.getPVTTranslation("unitDays") : "วัน";
 
   if (leaveBalances.length === 0 && systemLeaveTypes.length === 0) {
-    container.innerHTML = "<p style='color:#ef4444; font-size:14px; margin: 0;'>❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้</p>";
+    const noQuotaText = window.getPVTTranslation ? window.getPVTTranslation("noQuotaData") : "❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้";
+    container.innerHTML = `<p style='color:#ef4444; font-size:14px; margin: 0;'>${noQuotaText}</p>`;
     return;
   }
 
   let displayItems = systemLeaveTypes.map(type => {
     const matchedBal = leaveBalances.find(b => String(b.leave_type_id) === String(type.id) && Number(b.year) === currentYear);
     return {
-      typeName: type.leave_name || "สิทธิ์การลา",
+      rawName: type.leave_name || "สิทธิ์การลา",
+      typeName: getTranslatedLeaveTypeName(type.leave_name || "สิทธิ์การลา"),
       remaining: matchedBal ? (parseFloat(matchedBal.remaining_days) || 0) : 0
     };
   });
 
   displayItems.forEach(item => {
+    const rawName = item.rawName;
     const typeName = item.typeName;
     const remaining = item.remaining;
 
     let colorClass = ""; 
-    if (typeName.includes("ป่วย")) colorClass = "sick";
-    else if (typeName.includes("กิจ")) colorClass = "personal";
-    else if (typeName.includes("พักผ่อน") || typeName.includes("พักร้อน")) colorClass = "vacation";
+    if (rawName.includes("ป่วย")) colorClass = "sick";
+    else if (rawName.includes("กิจ")) colorClass = "personal";
+    else if (rawName.includes("พักผ่อน") || rawName.includes("พักร้อน")) colorClass = "vacation";
 
     const box = document.createElement("div");
     box.className = `leave-quota-box ${colorClass}`;
     box.innerHTML = `
       <div class="leave-quota-name">${typeName}</div>
-      <div class="leave-quota-days">${remaining} <span class="unit">วัน</span></div>
+      <div class="leave-quota-days">${remaining} <span class="unit">${uDays}</span></div>
     `;
     container.appendChild(box);
   });
@@ -1090,8 +1113,8 @@ async function saveLeave() {
     userRole.includes("head") || userRole.includes("หัวหน้า")
   ) {
     defaultManagerStatus = "approved";
-    // ถ้าแผนกนี้ไม่มีผู้จัดการ L2 -> ให้ผ่าน L2 ไปเลย
-    defaultDirectorStatus = (!approverConfig?.manager_id) ? "approved" : "pending";
+    // ถ้าแผนกไม่มีผู้จัดการ ให้ผู้บริหารอนุมัติแทน ดังนั้นห้ามข้ามขั้นตอน L2 (ให้คงสถานะ pending)
+    defaultDirectorStatus = "pending";
   } else if (userRole.includes("hr") || userRole.includes("admin")) {
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
@@ -1099,8 +1122,10 @@ async function saveLeave() {
     // พนักงานทั่วไป:
     // ถ้าไม่มี L1 ในแผนก -> ข้าม L1
     if (!approverConfig?.supervisor_id) defaultManagerStatus = "approved";
-    // ถ้าไม่มี L2 ในแผนก -> ข้าม L2
-    if (!approverConfig?.manager_id) defaultDirectorStatus = "approved";
+    // ถ้าไม่มี L2 ในแผนก -> เดิมข้าม L2 แต่ใหม่: ให้ผู้บริหารอนุมัติแทน ดังนั้นห้ามข้ามขั้นตอน L2 (ให้คงสถานะ pending)
+    if (!approverConfig?.manager_id) {
+      defaultDirectorStatus = "pending";
+    }
   }
 
   const payload = [];
@@ -1335,9 +1360,9 @@ async function saveLeave() {
 
       if (!routingConfig?.manager_id) {
         payload.forEach(item => {
-          item.director_status = "approved";
+          item.director_status = "pending";
         });
-        console.log("ℹ️ [Leave Routing] หัวหน้ายื่นลา + ไม่มี L2 → ข้ามไปผู้บริหาร L3");
+        console.log("ℹ️ [Leave Routing] หัวหน้ายื่นลา + ไม่มี L2 → ส่งไปผู้บริหาร L3 เพื่อรออนุมัติ");
       }
     }
 
@@ -1607,3 +1632,14 @@ window.addLeaveRow = typeof addLeaveRow !== 'undefined' ? addLeaveRow : window.a
 window.calculateLeaveDays = typeof calculateLeaveDays !== 'undefined' ? calculateLeaveDays : window.calculateLeaveDays;
 window.handleFileChange = typeof handleFileChange !== 'undefined' ? handleFileChange : window.handleFileChange;
 window.updateLeaveBalanceDisplay = typeof updateLeaveBalanceDisplay !== 'undefined' ? updateLeaveBalanceDisplay : window.updateLeaveBalanceDisplay;
+
+window.addEventListener("pvt-lang-changed", () => {
+  if (typeof window.renderAllLeaveBalances === "function") {
+    window.renderAllLeaveBalances();
+  }
+  document.querySelectorAll('select[name="leave_type_id"]').forEach(selectEl => {
+    if (typeof renderLeaveTypeOptions === "function") {
+      renderLeaveTypeOptions(selectEl);
+    }
+  });
+});

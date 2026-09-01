@@ -104,40 +104,51 @@ async function loadProfile() {
       }
     });
 
+    const lang = window.getGlobalLanguage ? window.getGlobalLanguage() : "th";
+    const t = window.globalAppTranslations ? (window.globalAppTranslations[lang] || window.globalAppTranslations.th) : {
+      lblFullName: "ชื่อ-นามสกุล",
+      lblEmpCode: "รหัสพนักงาน",
+      lblDept: "ฝ่าย / แผนก",
+      lblPos: "ตำแหน่งงาน",
+      lblEmail: "อีเมล / บัญชี",
+      lblRole: "สิทธิ์การใช้งาน",
+      lblStartDate: "วันเริ่มงาน"
+    };
+
     // 🌟 พ่น HTML แสดงผลข้อมูลโปรไฟล์จริง
     box.innerHTML = `
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #64748b; font-size: 14px;">ชื่อ-นามสกุล</span>
+        <span style="color: #64748b; font-size: 14px;">${t.lblFullName || "ชื่อ-นามสกุล"}</span>
         <strong style="color: #1e293b; font-size: 15px;">${escapeFn(emp?.full_name || currentUserData?.display_name || currentUserData?.full_name)}</strong>
       </article>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #64748b; font-size: 14px;">รหัสพนักงาน</span>
+        <span style="color: #64748b; font-size: 14px;">${t.lblEmpCode || "รหัสพนักงาน"}</span>
         <strong style="color: #1e293b; font-size: 15px;">${escapeFn(emp?.employee_code || currentUserData?.employee_code)}</strong>
       </article>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #64748b; font-size: 14px;">ฝ่าย / แผนก</span>
+        <span style="color: #64748b; font-size: 14px;">${t.lblDept || "ฝ่าย / แผนก"}</span>
         <strong style="color: #1e293b; font-size: 15px;">${escapeFn(deptName)}</strong>
       </article>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #64748b; font-size: 14px;">ตำแหน่งงาน</span>
+        <span style="color: #64748b; font-size: 14px;">${t.lblPos || "ตำแหน่งงาน"}</span>
         <strong style="color: #1e293b; font-size: 15px;">${escapeFn(posName)}</strong>
       </article>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #64748b; font-size: 14px;">อีเมล / บัญชี</span>
+        <span style="color: #64748b; font-size: 14px;">${t.lblEmail || "อีเมล / บัญชี"}</span>
         <strong style="color: #1e293b; font-size: 15px;">${escapeFn(emp?.email || currentUserData?.email)}</strong>
       </article>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #64748b; font-size: 14px;">สิทธิ์การใช้งาน</span>
+        <span style="color: #64748b; font-size: 14px;">${t.lblRole || "สิทธิ์การใช้งาน"}</span>
         <strong style="color: #1e293b; font-size: 15px; text-transform: uppercase;">${escapeFn(emp?.role || currentUserData?.role || "HR")}</strong>
       </article>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #64748b; font-size: 14px;">วันเริ่มงาน</span>
+        <span style="color: #64748b; font-size: 14px;">${t.lblStartDate || "วันเริ่มงาน"}</span>
         <strong style="color: #1e293b; font-size: 15px;">${dateFn(rawStartDate)}</strong>
       </article>
     `;
@@ -355,5 +366,11 @@ async function generateLineLinkCode() {
 window.saveUserLineId = saveUserLineId;
 window.testLineNotification = testLineNotification;
 window.generateLineLinkCode = generateLineLinkCode;
+
+window.addEventListener("pvt-lang-changed", () => {
+  if (typeof loadProfile === "function") {
+    loadProfile();
+  }
+});
 
 

@@ -185,5 +185,20 @@
     </main>
   </div>
 
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof window.renderLeaveRulesCards === "function") {
+        const lang = window.getGlobalLanguage ? window.getGlobalLanguage() : "th";
+        window.renderLeaveRulesCards(lang);
+      }
+    });
+
+    window.addEventListener("pvt-lang-changed", (e) => {
+      const lang = (e.detail && e.detail.lang) || (window.getGlobalLanguage ? window.getGlobalLanguage() : "th");
+      if (typeof window.renderLeaveRulesCards === "function") {
+        window.renderLeaveRulesCards(lang);
+      }
+    });
+  </script>
 </body>
 </html>

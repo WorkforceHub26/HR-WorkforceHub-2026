@@ -6,6 +6,9 @@ let currentFilter = 'all';
 function formatDuration(totalDays, leaveHours = null) {
   const days = parseFloat(totalDays) || 0;
   const hours = parseFloat(leaveHours) || 0;
+  const uDays = window.getPVTTranslation ? window.getPVTTranslation("unitDays") : "วัน";
+  const uHours = window.getPVTTranslation ? window.getPVTTranslation("unitHours") : "ชม.";
+  const uMins = window.getPVTTranslation ? window.getPVTTranslation("unitMinutes") : "นาที";
 
   if (hours > 0) {
     const d = Math.floor(hours / 8);
@@ -14,13 +17,13 @@ function formatDuration(totalDays, leaveHours = null) {
     const mins = Math.round((remH - wholeH) * 60);
 
     let parts = [];
-    if (d > 0) parts.push(`${d} วัน`);
-    if (wholeH > 0) parts.push(`${wholeH} ชม.`);
-    if (mins > 0) parts.push(`${mins} นาที`);
-    return parts.length > 0 ? parts.join(" ") : `${hours} ชม.`;
+    if (d > 0) parts.push(`${d} ${uDays}`);
+    if (wholeH > 0) parts.push(`${wholeH} ${uHours}`);
+    if (mins > 0) parts.push(`${mins} ${uMins}`);
+    return parts.length > 0 ? parts.join(" ") : `${hours} ${uHours}`;
   }
 
-  if (days <= 0) return "0 วัน";
+  if (days <= 0) return `0 ${uDays}`;
 
   const wholeDays = Math.floor(days);
   const fracDay = days - wholeDays;
@@ -29,11 +32,11 @@ function formatDuration(totalDays, leaveHours = null) {
   const mins = Math.round((totalH - wholeH) * 60);
 
   let parts = [];
-  if (wholeDays > 0) parts.push(`${wholeDays} วัน`);
-  if (wholeH > 0) parts.push(`${wholeH} ชม.`);
-  if (mins > 0) parts.push(`${mins} นาที`);
+  if (wholeDays > 0) parts.push(`${wholeDays} ${uDays}`);
+  if (wholeH > 0) parts.push(`${wholeH} ${uHours}`);
+  if (mins > 0) parts.push(`${mins} ${uMins}`);
 
-  return parts.length > 0 ? parts.join(" ") : `${days} วัน`;
+  return parts.length > 0 ? parts.join(" ") : `${days} ${uDays}`;
 }
 
 document.addEventListener("DOMContentLoaded", initLeaveHistory);
@@ -271,12 +274,47 @@ function renderSummary() {
   setText("sumDays", totalDays.toFixed(1).replace(/\.0$/, ""));
 }
 
+function translateLeaveTypeName(name) {
+  if (!name) return "-";
+  if (typeof window.localizeCategory === "function") {
+    return window.localizeCategory(name);
+  }
+  const lang = window.getGlobalLanguage ? window.getGlobalLanguage() : "th";
+  const t = window.globalAppTranslations ? (window.globalAppTranslations[lang] || window.globalAppTranslations.th) : null;
+  if (!t) return name;
+
+  if (name.includes("ป่วย")) return t.leaveSick || "ลาป่วย";
+  if (name.includes("พักผ่อน") || name.includes("ประจำปี")) return t.leaveAnnual || "วันหยุดพักผ่อนประจำปี";
+  if (name.includes("กิจ")) return t.leaveBusiness || "การลากิจเพื่อธุรกิจอันจำเป็น";
+  if (name.includes("ทำหมัน")) return t.leaveSterilization || "การลาเพื่อทำหมัน";
+  if (name.includes("ทหาร")) return t.leaveMilitary || "การลาเพื่อรับราชการทหาร";
+  if (name.includes("อุปสมบท") || name.includes("บวช")) return t.leaveOrdination || "การลาเพื่ออุปสมบท";
+  if (name.includes("ฌาปนกิจ") || name.includes("ศพ")) return t.leaveFuneral || "การลาเพื่อฌาปนกิจศพ";
+  if (name.includes("คลอด")) return t.leaveMaternity || "การลาเพื่อคลอดบุตร";
+  if (name.includes("อื่น")) return t.leaveOther || "ลาอื่น ๆ";
+  return name;
+}
+
 function renderRows() {
   const tableBody = document.getElementById("table-data-rows");
   if (!tableBody) return;
+
+  const t = window.globalAppTranslations ? (window.globalAppTranslations[window.getGlobalLanguage()] || window.globalAppTranslations.th) : {
+    emptyHistory: "ไม่พบรายการใบลาตามเงื่อนไขที่เลือก",
+    statusPending: "รออนุมัติ",
+    statusApproved: "อนุมัติแล้ว",
+    statusCancelReq: "รอ HR อนุมัติยกเลิก",
+    statusCancelled: "ยกเลิกแล้ว",
+    statusRejected: "ไม่อนุมัติ",
+    btnDirectCancel: "ยกเลิกคำขอ",
+    btnRequestCancel: "ขอยกเลิกใบลา",
+    badgeWaitingHr: "ส่งเรื่องแล้ว",
+    reasonCancelPrefix: "เหตุผลที่ยกเลิก:",
+    reasonRejectPrefix: "เหตุผลที่ไม่อนุมัติ:"
+  };
   
   if (!filteredLeaveRows.length) {
-    tableBody.innerHTML = `<tr><td colspan="6" class="empty-state">ไม่พบรายการใบลาตามเงื่อนไขที่เลือก</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="6" class="empty-state">${t.emptyHistory || "ไม่พบรายการใบลาตามเงื่อนไขที่เลือก"}</td></tr>`;
     return;
   }
 
@@ -285,43 +323,44 @@ function renderRows() {
     let statusClass = item.status || "pending";
     let actionBtnHtml = `<span class="action-disabled">-</span>`;
 
-    let leaveTypeName = "ไม่ระบุ";
+    let rawLeaveTypeName = "ไม่ระบุ";
     if (Array.isArray(item.leave_types) && item.leave_types.length > 0) {
-      leaveTypeName = item.leave_types[0].leave_name;
+      rawLeaveTypeName = item.leave_types[0].leave_name;
     } else if (item.leave_types?.leave_name) {
-      leaveTypeName = item.leave_types.leave_name;
+      rawLeaveTypeName = item.leave_types.leave_name;
     }
+    const leaveTypeName = translateLeaveTypeName(rawLeaveTypeName);
 
     if (item.status === "pending") {
-      displayStatus = "รออนุมัติ";
+      displayStatus = t.statusPending || "รออนุมัติ";
       actionBtnHtml = `
-        <button class="btn-cancel-direct" onclick="directCancelLeave('${item.id}')" title="ยกเลิกคำขอนี้ทันที">
-          <span class="material-symbols-outlined">close</span> ยกเลิกคำขอ
+        <button class="btn-cancel-direct" onclick="directCancelLeave('${item.id}')" title="${t.btnDirectCancel}">
+          <span class="material-symbols-outlined">close</span> ${t.btnDirectCancel}
         </button>`;
     } 
     else if (item.status === "approved") {
-      displayStatus = "อนุมัติแล้ว";
+      displayStatus = t.statusApproved || "อนุมัติแล้ว";
       actionBtnHtml = `
-        <button class="btn-request-cancel" onclick="requestCancelApprovedLeave('${item.id}')" title="ส่งคำร้องขอยกเลิกใบลาให้ HR">
-          <span class="material-symbols-outlined">assignment_return</span> ขอยกเลิกใบลา
+        <button class="btn-request-cancel" onclick="requestCancelApprovedLeave('${item.id}')" title="${t.btnRequestCancel}">
+          <span class="material-symbols-outlined">assignment_return</span> ${t.btnRequestCancel}
         </button>`;
     } 
     else if (item.status === "cancel_requested") {
-      displayStatus = "รอ HR อนุมัติยกเลิก";
+      displayStatus = t.statusCancelReq || "รอ HR อนุมัติยกเลิก";
       statusClass = "cancel_requested";
-      actionBtnHtml = `<span class="badge-waiting-hr"><span class="material-symbols-outlined">hourglass_empty</span> ส่งเรื่องแล้ว</span>`;
+      actionBtnHtml = `<span class="badge-waiting-hr"><span class="material-symbols-outlined">hourglass_empty</span> ${t.badgeWaitingHr || "ส่งเรื่องแล้ว"}</span>`;
     } 
     else if (item.status === "cancelled") {
-      displayStatus = "ยกเลิกแล้ว";
+      displayStatus = t.statusCancelled || "ยกเลิกแล้ว";
       statusClass = "cancelled";
     } 
     else if (item.status === "rejected") {
       const comment = item.approval_comment || "";
       if (comment.includes("ยกเลิก")) {
-        displayStatus = "ยกเลิกแล้ว";
+        displayStatus = t.statusCancelled || "ยกเลิกแล้ว";
         statusClass = "cancelled"; 
       } else {
-        displayStatus = "ไม่อนุมัติ";
+        displayStatus = t.statusRejected || "ไม่อนุมัติ";
         statusClass = "rejected";
       }
     }
@@ -335,23 +374,23 @@ function renderRows() {
 
     return `
       <tr id="row-${item.id}">
-        <td data-label="ประเภทการลา"><strong class="leave-type-title">${escapeHtml(leaveTypeName)}</strong></td>
-        <td data-label="ช่วงวันที่">${startDateStr} - ${endDateStr}</td>
-        <td data-label="จำนวนวัน"><span class="day-count-badge">${formatDuration(item.total_days, item.leave_hours)}</span></td>
-        <td data-label="เหตุผล" class="td-reason">
+        <td data-label="${t.thLeaveType || "ประเภทการลา"}"><strong class="leave-type-title" data-raw-cat="${escapeHtml(rawLeaveTypeName)}">${escapeHtml(leaveTypeName)}</strong></td>
+        <td data-label="${t.thDateRange || "ช่วงวันที่"}">${startDateStr} - ${endDateStr}</td>
+        <td data-label="${t.thDays || "จำนวนวัน"}"><span class="day-count-badge">${formatDuration(item.total_days, item.leave_hours)}</span></td>
+        <td data-label="${t.thReason || "เหตุผล"}" class="td-reason">
           <div>${escapeHtml(item.reason || "-")}</div>
           ${isCancelled && cancelOrRejectReason ? `
             <div style="margin-top:4px; font-size:11.5px; color:#be123c; background:#fff1f2; padding:3px 6px; border-radius:6px; border:1px solid #fecdd3; display:inline-block; max-width:100%; text-align:left;">
-              <strong>เหตุผลที่ยกเลิก:</strong> ${escapeHtml(cancelOrRejectReason)}
+              <strong>${t.reasonCancelPrefix || "เหตุผลที่ยกเลิก:"}</strong> ${escapeHtml(cancelOrRejectReason)}
             </div>
           ` : isRejected && item.approval_comment ? `
             <div style="margin-top:4px; font-size:11.5px; color:#be123c; background:#fff1f2; padding:3px 6px; border-radius:6px; border:1px solid #fecdd3; display:inline-block; max-width:100%; text-align:left;">
-              <strong>เหตุผลที่ไม่อนุมัติ:</strong> ${escapeHtml(item.approval_comment)}
+              <strong>${t.reasonRejectPrefix || "เหตุผลที่ไม่อนุมัติ:"}</strong> ${escapeHtml(item.approval_comment)}
             </div>
           ` : ''}
         </td>
-        <td data-label="สถานะ"><span class="status-badge ${statusClass}">${displayStatus}</span></td>
-        <td data-label="จัดการคำขอ" class="td-action">${actionBtnHtml}</td>
+        <td data-label="${t.thStatus || "สถานะ"}"><span class="status-badge ${statusClass}" data-raw-status="${item.status}">${displayStatus}</span></td>
+        <td data-label="${t.thAction || "จัดการคำขอ"}" class="td-action">${actionBtnHtml}</td>
       </tr>
     `;
   }).join("");
@@ -476,3 +515,8 @@ window.directCancelLeave = typeof directCancelLeave !== 'undefined' ? directCanc
 window.requestCancelApprovedLeave = typeof requestCancelApprovedLeave !== 'undefined' ? requestCancelApprovedLeave : window.requestCancelApprovedLeave;
 window.filterLeaveHistory = typeof filterLeaveHistory !== 'undefined' ? filterLeaveHistory : window.filterLeaveHistory;
 window.loadMyLeaveHistory = typeof loadMyLeaveHistory !== 'undefined' ? loadMyLeaveHistory : window.loadMyLeaveHistory;
+
+// Re-render when language changes
+window.addEventListener("pvt-lang-changed", () => {
+  renderRows();
+});

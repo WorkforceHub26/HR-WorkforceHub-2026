@@ -15,48 +15,56 @@ const PVTLogger = {
 
   // 🚀 ฟังก์ชันหลักในการบันทึก Log
   async log(level, source, eventName, message, errorInstance = null, extraContext = {}) {
-    const sb = window.pvtSupabase?.getClient();
-    const currentUser = sb?.auth?.user?.() || null;
+    if (this._isLogging) return; // ป้องกัน infinite recursion (Maximum call stack size exceeded)
+    this._isLogging = true;
+    try {
+      const sb = window.pvtSupabase?.getClient();
+      const currentUser = sb?.auth?.user?.() || null;
 
-    const logPayload = {
-      log_level: level,
-      source: source,
-      event_name: eventName,
-      message: message,
-      stack_trace: errorInstance?.stack || errorInstance?.componentStack || null,
-      context_data: {
-        url: window.location.href,
-        userAgent: navigator.userAgent,
-        screenSize: `${window.innerWidth}x${window.innerHeight}`,
-        ...extraContext
-      },
-      user_id: currentUser?.id || null
-    };
+      const logPayload = {
+        log_level: level,
+        source: source,
+        event_name: eventName,
+        message: message,
+        stack_trace: errorInstance?.stack || errorInstance?.componentStack || null,
+        context_data: {
+          url: window.location.href,
+          userAgent: navigator.userAgent,
+          screenSize: `${window.innerWidth}x${window.innerHeight}`,
+          ...extraContext
+        },
+        user_id: currentUser?.id || null
+      };
 
-    // 1. พ่นออกหน้า Console ปกติแบบแต่งสีให้สังเกตง่าย
-    if (this.config.enableConsoleLog) {
-      const colors = { INFO: '#10b981', WARN: '#f59e0b', ERROR: '#ef4444', CRITICAL: '#7c3aed' };
-      console.log(`%c[${level}][${eventName}]`, `color: ${colors[level]}; font-weight: bold;`, message, errorInstance || '');
-    }
-
-    // 2. อัปเดตข้อมูลเข้าหน้าต่างแดชบอร์ดจิ๋วบนจอภาพ
-    if (this.config.showWidget) {
-      this._appendLogToWidget(level, eventName, message);
-    }
-
-    // 3. ยิงไปเซฟในตารางหลังบ้าน Supabase ทันทีแบบเงียบ ๆ
-    if (this.config.sendToServer && sb) {
-      try {
-        await sb.from('hr_admin_management_logs').insert([{
-          action_category: 'SYSTEM_LOG',
-          action_type: String(level || 'INFO'),
-          target_identifier: String(eventName || 'FRONTEND'),
-          description: String(message || '').substring(0, 500),
-          payload_after: logPayload
-        }]);
-      } catch (dbErr) {
-        // เงียบไว้เพื่อไม่ให้กระทบ Flow หลัก
+      // 1. พ่นออกหน้า Console ปกติแบบแต่งสีให้สังเกตง่าย
+      if (this.config.enableConsoleLog) {
+        const colors = { INFO: '#10b981', WARN: '#f59e0b', ERROR: '#ef4444', CRITICAL: '#7c3aed' };
+        console.log(`%c[${level}][${eventName}]`, `color: ${colors[level]}; font-weight: bold;`, message, errorInstance || '');
       }
+
+      // 2. อัปเดตข้อมูลเข้าหน้าต่างแดชบอร์ดจิ๋วบนจอภาพ
+      if (this.config.showWidget) {
+        this._appendLogToWidget(level, eventName, message);
+      }
+
+      // 3. ยิงไปเซฟในตารางหลังบ้าน Supabase ทันทีแบบเงียบ ๆ
+      if (this.config.sendToServer && sb) {
+        try {
+          await sb.from('hr_admin_management_logs').insert([{
+            action_category: 'SYSTEM_LOG',
+            action_type: String(level || 'INFO'),
+            target_identifier: String(eventName || 'FRONTEND'),
+            description: String(message || '').substring(0, 500),
+            payload_after: logPayload
+          }]);
+        } catch (dbErr) {
+          // เงียบไว้เพื่อไม่ให้กระทบ Flow หลัก
+        }
+      }
+    } catch (err) {
+      console.error("PVTLogger failed:", err);
+    } finally {
+      this._isLogging = false;
     }
   },
 

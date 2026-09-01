@@ -629,8 +629,13 @@ function renderTodayLeavesDetail(leaves) {
 }
 
 /* ==========================================================================
-   👥 6.5 DEPARTMENT TEAM ROSTER FOR LEADERS
+   👥 6.5 DEPARTMENT TEAM ROSTER FOR LEADERS (3-4 COLUMNS COMPACT LAYOUT)
    ========================================================================== */
+let homeTeamFullList = [];
+let homeTeamCurrentRoleFilter = 'all';
+let homeTeamSearchKeyword = '';
+let homeTeamIsExpandedHeight = false;
+
 function renderHomeDepartmentTeam(employeesList, sessionUser) {
   const container = document.getElementById("homeTeamMembersGrid");
   const titleEl = document.getElementById("homeTeamSectionTitle");
@@ -704,55 +709,121 @@ function renderHomeDepartmentTeam(employeesList, sessionUser) {
     badgeEl.textContent = `${filteredList.length} คน`;
   }
 
-  if (filteredList.length === 0) {
+  // บันทึกรายการทั้งหมดสำหรับค้นหา/กรอง
+  homeTeamFullList = filteredList;
+  updateHomeTeamFilterCounts(filteredList);
+  applyHomeTeamRender();
+}
+
+function updateHomeTeamFilterCounts(list) {
+  const allCount = list.length;
+  let leaderCount = 0;
+  let staffCount = 0;
+
+  list.forEach(emp => {
+    const r = String(emp.role || '').toLowerCase();
+    if (['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x))) {
+      leaderCount++;
+    } else {
+      staffCount++;
+    }
+  });
+
+  const chipAll = document.getElementById("chipCountAll");
+  const chipLeader = document.getElementById("chipCountLeader");
+  const chipStaff = document.getElementById("chipCountStaff");
+
+  if (chipAll) chipAll.textContent = allCount;
+  if (chipLeader) chipLeader.textContent = leaderCount;
+  if (chipStaff) chipStaff.textContent = staffCount;
+}
+
+function applyHomeTeamRender() {
+  const container = document.getElementById("homeTeamMembersGrid");
+  const showingInfo = document.getElementById("homeTeamShowingInfo");
+  if (!container) return;
+
+  let displayList = [...homeTeamFullList];
+
+  // กรองตามบทบาท
+  if (homeTeamCurrentRoleFilter === 'leader') {
+    displayList = displayList.filter(emp => {
+      const r = String(emp.role || '').toLowerCase();
+      return ['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x));
+    });
+  } else if (homeTeamCurrentRoleFilter === 'staff') {
+    displayList = displayList.filter(emp => {
+      const r = String(emp.role || '').toLowerCase();
+      return !['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x));
+    });
+  }
+
+  // ค้นหาข้อความ
+  if (homeTeamSearchKeyword) {
+    const kw = homeTeamSearchKeyword.toLowerCase();
+    displayList = displayList.filter(emp => {
+      const name = `${emp.first_name || ''} ${emp.last_name || ''} ${emp.full_name || ''} ${emp.nickname || ''}`.toLowerCase();
+      const code = String(emp.employee_code || '').toLowerCase();
+      const pos = String(emp.positions?.position_name || emp.position_name || '').toLowerCase();
+      return name.includes(kw) || code.includes(kw) || pos.includes(kw);
+    });
+  }
+
+  if (showingInfo) {
+    showingInfo.textContent = `กำลังแสดง ${displayList.length} จากทั้งหมด ${homeTeamFullList.length} คน`;
+  }
+
+  if (displayList.length === 0) {
     container.innerHTML = `
-      <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
-        ไม่พบข้อมูลสมาชิกพนักงานในแผนกนี้
+      <div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--text-soft); font-size: 12.5px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+        <span class="material-symbols-outlined" style="font-size: 28px; color: #94a3b8; display: block; margin-bottom: 4px;">person_search</span>
+        ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไขการค้นหา
       </div>`;
     return;
   }
 
-  container.innerHTML = filteredList.map(emp => {
+  // 🗂️ GRID 3-4 COLUMNS (จัดเรียง 3-4 แถว/คอลัมน์ให้อ่านง่าย สวยงาม เลื่อนน้อยที่สุด)
+  container.className = "team-grid-4col";
+
+  container.innerHTML = displayList.map(emp => {
     const avatar = (window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : emp.image_url) || "/assets/img/default-avatar.jpg";
     const pos = emp.positions?.position_name || emp.position_name || "พนักงาน";
-    const empDept = emp.departments?.department_name || emp.department_name || deptName || "-";
     const empCode = emp.employee_code ? `${emp.employee_code}` : "-";
     const nickStr = emp.nickname ? `(${emp.nickname})` : "";
     const roleStr = String(emp.role || "").toLowerCase();
+    const fullName = emp.full_name || (emp.first_name ? `${emp.first_name} ${emp.last_name || ''}` : 'พนักงาน');
 
-    let roleBadge = '<span style="font-size: 10px; background: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 6px; font-weight: 600;">👤 พนักงาน</span>';
+    let roleBadge = '<span style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 6px; font-weight: 600;">👤 พนักงาน</span>';
     if (roleStr === "leader" || roleStr.includes("leader")) {
-      roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 6px; font-weight: 700;">👑 หัวหน้า (L1)</span>';
+      roleBadge = '<span style="font-size: 11px; background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 6px; font-weight: 700;">👑 หัวหน้า</span>';
     } else if (roleStr === "manager" || roleStr.includes("manager")) {
-      roleBadge = '<span style="font-size: 10px; background: #dbeafe; color: #1d4ed8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (L2)</span>';
+      roleBadge = '<span style="font-size: 11px; background: #dbeafe; color: #1d4ed8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผจก.</span>';
     } else if (["hr", "admin", "superadmin"].includes(roleStr)) {
-      roleBadge = '<span style="font-size: 10px; background: #f3e8ff; color: #6b21a8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
+      roleBadge = '<span style="font-size: 11px; background: #f3e8ff; color: #6b21a8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
     } else if (["director", "executive", "owner"].includes(roleStr)) {
-      roleBadge = '<span style="font-size: 10px; background: #ecfdf5; color: #047857; padding: 2px 7px; border-radius: 6px; font-weight: 700;">🏛️ ผู้บริหาร</span>';
+      roleBadge = '<span style="font-size: 11px; background: #ecfdf5; color: #047857; padding: 2px 7px; border-radius: 6px; font-weight: 700;">🏛️ ผู้บริหาร</span>';
     }
 
-    const lineBadge = emp.line_id 
-      ? '<span style="color: #16a34a; font-size: 11px; font-weight: 600;">● LINE แล้ว</span>'
-      : '<span style="color: #94a3b8; font-size: 11px;">○ ไม่ผูก LINE</span>';
+    const lineIndicator = emp.line_id 
+      ? '<span title="เชื่อมต่อ LINE แล้ว" style="font-size: 11.5px; color: #16a34a; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block;"></span> LINE</span>'
+      : '<span title="ยังไม่ผูก LINE" style="font-size: 11.5px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px;height:6px;border-radius:50%;background:#cbd5e1;display:inline-block;"></span> ไม่ผูก</span>';
 
     return `
-      <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: transform 0.15s, box-shadow 0.15s;">
-        <img src="${avatar}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; transition: all 0.15s;" onmouseover="this.style.borderColor='#0284c7'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.05)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+        <img src="${avatar}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.src='/assets/img/default-avatar.jpg';">
         <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;">
-            ${escapeHtmlText(emp.full_name || (emp.first_name ? `${emp.first_name} ${emp.last_name || ''}` : 'พนักงาน'))} ${nickStr}
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
+            <span style="font-weight: 700; font-size: 14px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtmlText(fullName)}">
+              ${escapeHtmlText(fullName)} ${nickStr}
+            </span>
+            <span style="font-size: 12px; color: #64748b; font-weight: 600; flex-shrink: 0;">#${escapeHtmlText(empCode)}</span>
           </div>
-          <div style="font-size: 12px; color: #0284c7; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            <span class="material-symbols-outlined" style="font-size: 15px;">badge</span>
-            <span>${escapeHtmlText(pos)}</span>
+          <div style="font-size: 12.5px; color: #0284c7; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${escapeHtmlText(pos)}
           </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #64748b;">
-            <span>🆔 ${escapeHtmlText(empCode)}</span>
-            ${lineBadge}
-          </div>
-          <div style="margin-top: 5px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
             ${roleBadge}
-            <span style="font-size: 11px; color: #94a3b8;">${escapeHtmlText(empDept)}</span>
+            ${lineIndicator}
           </div>
         </div>
       </div>
@@ -760,15 +831,58 @@ function renderHomeDepartmentTeam(employeesList, sessionUser) {
   }).join("");
 }
 
+// 🔍 ควบคุมการค้นหาชื่อ/รหัส
+window.handleHomeTeamSearch = function(keyword) {
+  homeTeamSearchKeyword = (keyword || '').trim();
+  applyHomeTeamRender();
+};
+
+// 🏷️ ควบคุมการกรองตาม Role
+window.filterHomeTeamByRole = function(role, btn) {
+  homeTeamCurrentRoleFilter = role;
+  const chips = document.querySelectorAll("#homeTeamRoleFilters .team-filter-chip");
+  chips.forEach(c => {
+    c.style.background = "#fff";
+    c.style.color = "#64748b";
+    c.style.borderColor = "#e2e8f0";
+  });
+  if (btn) {
+    btn.style.background = "#0284c7";
+    btn.style.color = "#fff";
+    btn.style.borderColor = "#0284c7";
+  }
+  applyHomeTeamRender();
+};
+
+// ↕️ ขยาย / ยุบความสูง Scroll Container
+window.toggleHomeTeamScrollHeight = function() {
+  const scrollArea = document.getElementById("homeTeamScrollContainer");
+  const txt = document.getElementById("txtToggleTeamHeight");
+  const ico = document.getElementById("icoToggleTeamHeight");
+  if (!scrollArea) return;
+
+  homeTeamIsExpandedHeight = !homeTeamIsExpandedHeight;
+  if (homeTeamIsExpandedHeight) {
+    scrollArea.style.maxHeight = "none";
+    if (txt) txt.textContent = "ย่อความสูง (ประหยัดพื้นที่)";
+    if (ico) ico.textContent = "unfold_less";
+  } else {
+    scrollArea.style.maxHeight = "380px";
+    if (txt) txt.textContent = "ขยายดูทั้งหมด";
+    if (ico) ico.textContent = "unfold_more";
+  }
+};
+
+// 🔼 ซ่อน / แสดงแผงสมาชิกทั้งหมด
 window.toggleHomeTeamContainer = function(btn) {
-  const container = document.getElementById("homeTeamMembersGrid");
+  const body = document.getElementById("homeTeamBodyWrapper");
   const icon = document.getElementById("homeTeamToggleIcon");
-  if (!container) return;
-  if (container.style.display === "none") {
-    container.style.display = "grid";
+  if (!body) return;
+  if (body.style.display === "none") {
+    body.style.display = "flex";
     if (icon) icon.textContent = "expand_less";
   } else {
-    container.style.display = "none";
+    body.style.display = "none";
     if (icon) icon.textContent = "expand_more";
   }
 };

@@ -10,9 +10,6 @@
   
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
-  
-  <!-- Security Auth Guard (Head Check) -->
-  <script src="/js/auth-guard.js"></script>
 </head>
 
 <body>
@@ -33,9 +30,9 @@
           <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">ตรวจใบลา</span>
         </a>
-        <a href="/pages/hr/management.html" class="nav-item" title="พนักงาน">
+        <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง & ประวัติพนักงาน">
           <span class="material-symbols-outlined">manage_accounts</span>
-          <span class="nav-label">แก้ไข/เพิ่ม ประวัติ</span>
+          <span class="nav-label">ระบบจัดการส่วนกลาง & ประวัติพนักงาน</span>
         </a>
         <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
           <span class="material-symbols-outlined">person</span>
@@ -162,27 +159,65 @@
       </section>
 
       <!-- 👥 PANEL: รายชื่อพนักงานในแผนก (สำหรับหัวหน้า / ผู้จัดการ / HR) -->
-      <section class="panel mb-6" id="homeDepartmentTeamSection">
-        <div class="panel-header" style="justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="material-symbols-outlined text-primary" style="font-size: 26px; color: var(--primary);">badge</span>
+      <section class="panel mb-6 home-team-panel" id="homeDepartmentTeamSection">
+        <div class="panel-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #f1f5f9;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="panel-icon-circle" style="width: 42px; height: 42px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <span class="material-symbols-outlined" style="font-size: 24px;">group</span>
+            </div>
             <div>
-              <h2 id="homeTeamSectionTitle" style="margin: 0; font-size: 16px; font-weight: 700;">สมาชิกพนักงานในแผนก</h2>
-              <p id="homeTeamSectionSubtitle" style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-soft);">รายชื่อพนักงานและตำแหน่งงานสังกัดแผนกของคุณ</p>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h2 id="homeTeamSectionTitle" style="margin: 0; font-size: 17px; font-weight: 700; color: #0f172a;">สมาชิกพนักงานในแผนก</h2>
+                <span id="homeTeamCountBadge" style="background: #e0f2fe; color: #0284c7; font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 20px;">0 คน</span>
+              </div>
+              <p id="homeTeamSectionSubtitle" style="margin: 2px 0 0 0; font-size: 13px; color: var(--text-soft);">รายชื่อพนักงานและตำแหน่งงานสังกัดแผนกของคุณ</p>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span id="homeTeamCountBadge" style="background: var(--primary-soft, #e0f2fe); color: var(--primary, #0284c7); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 20px;">0 คน</span>
-            <button type="button" class="btn-toggle-icon" onclick="toggleHomeTeamContainer(this)" title="ซ่อน/แสดง รายชื่อสมาชิก" style="background: transparent; border: none; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center;">
-              <span class="material-symbols-outlined" id="homeTeamToggleIcon">expand_less</span>
+          
+          <div class="home-team-controls" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <!-- ช่องค้นหา -->
+            <div class="home-team-search" style="position: relative; width: 240px;">
+              <span class="material-symbols-outlined" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 19px; color: #94a3b8; pointer-events: none;">search</span>
+              <input type="text" id="homeTeamSearchInput" placeholder="ค้นหาชื่อ, รหัส, ตำแหน่ง..." oninput="handleHomeTeamSearch(this.value)" style="width: 100%; padding: 8px 12px 8px 34px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13.5px; background: #f8fafc; outline: none; transition: all 0.2s;" onfocus="this.style.borderColor='#0284c7'; this.style.background='#fff';" onblur="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc';">
+            </div>
+
+            <!-- ปุ่มย้อนกลับ/ขยาย -->
+            <button type="button" class="btn-toggle-icon" onclick="toggleHomeTeamContainer(this)" title="ซ่อน/แสดง รายชื่อสมาชิก" style="background: #f8fafc; border: 1px solid #e2e8f0; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center;">
+              <span class="material-symbols-outlined" id="homeTeamToggleIcon" style="font-size: 22px;">expand_less</span>
             </button>
           </div>
         </div>
-        <div class="card-body" style="padding: 16px;">
-          <div id="homeTeamMembersGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;">
-            <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
-              ⏳ กำลังโหลดข้อมูลสมาชิกในแผนก...
+
+        <div class="card-body" id="homeTeamBodyWrapper" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+          <!-- Filter chips -->
+          <div id="homeTeamRoleFilters" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-bottom: 2px;">
+            <button type="button" class="team-filter-chip active" onclick="filterHomeTeamByRole('all', this)" style="padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #0284c7; background: #0284c7; color: #fff; cursor: pointer; transition: all 0.15s;">
+              ทั้งหมด (<span id="chipCountAll">0</span>)
+            </button>
+            <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('leader', this)" style="padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer; transition: all 0.15s;">
+              👑 หัวหน้า/ผจก. (<span id="chipCountLeader">0</span>)
+            </button>
+            <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('staff', this)" style="padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer; transition: all 0.15s;">
+              👤 พนักงาน (<span id="chipCountStaff">0</span>)
+            </button>
+          </div>
+
+          <!-- Roster Grid Container (3-4 columns) -->
+          <div id="homeTeamScrollContainer" class="home-team-scroll-area" style="max-height: 420px; overflow-y: auto; padding-right: 4px;">
+            <div id="homeTeamMembersGrid" class="team-grid-4col">
+              <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 14px;">
+                ⏳ กำลังโหลดข้อมูลสมาชิกในแผนก...
+              </div>
             </div>
+          </div>
+
+          <!-- Footer summary -->
+          <div id="homeTeamFooterBar" style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">
+            <span id="homeTeamShowingInfo">กำลังแสดง 0 คน</span>
+            <button type="button" id="btnToggleTeamHeight" onclick="toggleHomeTeamScrollHeight()" style="background: transparent; border: none; color: #0284c7; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <span id="txtToggleTeamHeight">ขยายดูทั้งหมด</span>
+              <span class="material-symbols-outlined" id="icoToggleTeamHeight" style="font-size: 18px;">unfold_more</span>
+            </button>
           </div>
         </div>
       </section>

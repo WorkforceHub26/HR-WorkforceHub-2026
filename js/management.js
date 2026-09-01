@@ -8,13 +8,12 @@
 // ==========================================
 // 0. CONFIGURATION & REAL CREDENTIALS
 // ==========================================
-const SUPABASE_URL = "https://pgogmhqjdchakcytsomx.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRsomxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
-
+var SUPABASE_URL = window.SUPABASE_URL || "https://pgogmhqjdchakcytsomx.supabase.co";
+var SUPABASE_KEY = window.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRsomxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
 window.PVT_SUPABASE_URL = SUPABASE_URL;
 window.PVT_SUPABASE_ANON_KEY = SUPABASE_KEY;
-const supabaseClient = PVTSDK.getClient();
+var supabaseClient = window.supabaseClient || PVTSDK.getClient();
 
 function showAppError(title, message) {
   console.error(`❌ [${title}]:`, message);
@@ -748,6 +747,7 @@ async function refreshDashboard() {
     ]);
 
     fillDepartmentFilter();
+    fillPositionFilter();
     renderSummary();
     renderEmployeeTable();
 
@@ -940,7 +940,8 @@ function classifyPositionCategory(posOrName) {
     name.includes('หัวหน้า') || 
     name.includes('supervisor') || 
     name.includes('lead') || 
-    name.includes('leader')
+    name.includes('leader') ||
+    name.includes('หัวหน้ากะ')
   ) {
     return 'supervisor';
   }
@@ -966,7 +967,8 @@ function classifyPositionCategory(posOrName) {
     name.includes('accountant') || 
     name.includes('hr') ||
     name.includes('กราฟิก') ||
-    name.includes('การตลาด')
+    name.includes('การตลาด') ||
+    name.includes('เยี่ยมชม')
   ) {
     return 'officer';
   }
@@ -1052,7 +1054,8 @@ let currentPosCategoryFilter = 'all';
 window.filterByPosCategory = function(category) {
   currentPosCategoryFilter = category;
   document.querySelectorAll('.pos-tab').forEach(tab => {
-    if (tab.dataset.category === category) {
+    const catVal = tab.dataset.posCat || tab.dataset.category;
+    if (catVal === category) {
       tab.classList.add('active');
     } else {
       tab.classList.remove('active');
@@ -1110,12 +1113,50 @@ function fillDepartmentFilter() {
   if (!select) return;
 
   const current = select.value;
-  const deptNames = [...new Set(employees.map((emp) => emp.departments?.department_name).filter(Boolean))].sort();
 
-  select.innerHTML = `<option value="">ทุกแผนก</option>` + 
-    deptNames.map((dept) => `<option value="${escapeHtml(dept)}">${escapeHtml(dept)}</option>`).join("");
+  // คำนวณจำนวนพนักงานแยกตามแผนก
+  const deptCounts = {};
+  employees.forEach((emp) => {
+    const dName = emp.departments?.department_name;
+    if (dName) {
+      deptCounts[dName] = (deptCounts[dName] || 0) + 1;
+    }
+  });
+
+  const deptNames = Object.keys(deptCounts).sort((a, b) => a.localeCompare(b, 'th'));
+
+  select.innerHTML = `<option value="">🏢 ทุกแผนก (รวม ${employees.length} คน)</option>` + 
+    deptNames.map((dept) => `<option value="${escapeHtml(dept)}">${escapeHtml(dept)} (${deptCounts[dept]} คน)</option>`).join("");
 
   select.value = deptNames.includes(current) ? current : "";
+}
+
+function fillPositionFilter() {
+  const select = document.getElementById("posFilter");
+  if (!select) return;
+
+  const current = select.value;
+  const currentDept = document.getElementById("deptFilter")?.value || "";
+
+  // คำนวณจำนวนพนักงานแยกตามชื่อตำแหน่งงาน (กรองตามแผนกหากระบุ)
+  const posCounts = {};
+  let totalScope = 0;
+
+  employees.forEach((emp) => {
+    const department = emp.departments?.department_name || "";
+    if (currentDept && department !== currentDept) return;
+
+    const pName = emp.positions?.position_name || emp.position_name || "ไม่ระบุตำแหน่ง";
+    posCounts[pName] = (posCounts[pName] || 0) + 1;
+    totalScope++;
+  });
+
+  const posNames = Object.keys(posCounts).sort((a, b) => a.localeCompare(b, 'th'));
+
+  select.innerHTML = `<option value="">💼 ทุกตำแหน่งงาน (รวม ${totalScope} คน)</option>` + 
+    posNames.map((pos) => `<option value="${escapeHtml(pos)}">${escapeHtml(pos)} (${posCounts[pos]} คน)</option>`).join("");
+
+  select.value = posNames.includes(current) ? current : "";
 }
 
 function renderSummary() {
@@ -1241,10 +1282,14 @@ function renderEmployeeTable() {
 
   const search = document.getElementById("empSearchInput")?.value.trim().toLowerCase() || "";
   const dept = document.getElementById("deptFilter")?.value || "";
+  const specificPos = document.getElementById("posFilter")?.value || "";
 
-  // คำนวณจำนวนพนักงานในแต่ละหมวดหมู่ตำแหน่ง
+  // คำนวณจำนวนพนักงานในแต่ละหมวดหมู่ตำแหน่ง (กรองตามแผนกถ้ามีการเลือกแผนก)
   let cAll = 0, cManager = 0, cSupervisor = 0, cOfficer = 0, cStaff = 0;
   employees.forEach(emp => {
+    const department = emp.departments?.department_name || "";
+    if (dept && department !== dept) return;
+
     const posName = emp.positions?.position_name || emp.position_name || "";
     const cat = classifyPositionCategory(posName);
     cAll++;
@@ -1259,19 +1304,24 @@ function renderEmployeeTable() {
     if (el) el.textContent = val;
   };
 
-  setTextIfEl('count-all', cAll);
-  setTextIfEl('count-manager', cManager);
-  setTextIfEl('count-supervisor', cSupervisor);
-  setTextIfEl('count-officer', cOfficer);
-  setTextIfEl('count-staff', cStaff);
+  setTextIfEl('count-all', `${cAll} คน`);
+  setTextIfEl('count-manager', `${cManager} คน`);
+  setTextIfEl('count-supervisor', `${cSupervisor} คน`);
+  setTextIfEl('count-officer', `${cOfficer} คน`);
+  setTextIfEl('count-staff', `${cStaff} คน`);
 
   const filtered = employees.filter((emp) => {
     const department = emp.departments?.department_name || "";
     const posName = emp.positions?.position_name || emp.position_name || "";
     const empCat = classifyPositionCategory(posName);
 
-    // กรองตามหมวดหมู่ตำแหน่งงาน
+    // กรองตามหมวดหมู่ตำแหน่งงาน (แท็บ)
     if (currentPosCategoryFilter && currentPosCategoryFilter !== 'all' && empCat !== currentPosCategoryFilter) {
+      return false;
+    }
+
+    // กรองตามชื่อตำแหน่งเจาะจง (Dropdown)
+    if (specificPos && posName !== specificPos) {
       return false;
     }
 
@@ -1285,6 +1335,30 @@ function renderEmployeeTable() {
 
     return (!search || haystack.includes(search)) && (!dept || department === dept);
   });
+
+  // อัปเดตแถบสรุปข้อมูลสถิติพนักงาน
+  const leftTextEl = document.getElementById("summaryTextLeft");
+  const rightTextEl = document.getElementById("summaryTextRight");
+  if (leftTextEl && rightTextEl) {
+    const deptTitle = dept ? `🏢 แผนก "${dept}"` : `🏢 ทุกแผนก`;
+    const filterCatName = currentPosCategoryFilter === 'manager' ? 'ผู้จัดการ/ผู้บริหาร' :
+                          currentPosCategoryFilter === 'supervisor' ? 'หัวหน้างาน/หัวหน้าแผนก' :
+                          currentPosCategoryFilter === 'officer' ? 'เจ้าหน้าที่/ผู้ช่วย' :
+                          currentPosCategoryFilter === 'staff' ? 'พนักงานทั่วไป' : 'ทุกกลุ่มตำแหน่ง';
+    const posSubTitle = specificPos ? ` | ตำแหน่ง "${specificPos}"` : '';
+
+    leftTextEl.innerHTML = `
+      <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488;">analytics</span>
+      <span>${escapeHtml(deptTitle)} (${filterCatName}${escapeHtml(posSubTitle)}): แสดง ${filtered.length} คน (จากทั้งหมด ${cAll} คน)</span>
+    `;
+
+    rightTextEl.innerHTML = `
+      <span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: 600;">👔 ผู้จัดการ: ${cManager} คน</span>
+      <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600;">🎖️ หัวหน้างาน: ${cSupervisor} คน</span>
+      <span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 4px; font-weight: 600;">📋 เจ้าหน้าที่: ${cOfficer} คน</span>
+      <span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-weight: 600;">👤 พนักงานทั่วไป: ${cStaff} คน</span>
+    `;
+  }
 
   if (!filtered.length) {
     container.innerHTML = `<div class="empty">ไม่พบพนักงานตามเงื่อนไข</div>`;
@@ -1304,32 +1378,48 @@ function renderEmployeeTable() {
                onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(emp.full_name || 'PVT')}&background=0d9488&color=fff';" 
                alt="${escapeHtml(emp.full_name || '')}">
         </div>
-        <div class="col-code">#${escapeHtml(emp.employee_code || "-")}</div>
+        <div class="col-code">
+          <span class="emp-code-badge">#${escapeHtml(emp.employee_code || "-")}</span>
+        </div>
         <div class="col-info">
           <span class="emp-name">${escapeHtml(emp.full_name || "-")}</span>
-          <span class="emp-pos">${escapeHtml(emp.positions?.position_name || "-")}</span>
+          <span class="emp-pos">${escapeHtml(emp.positions?.position_name || emp.position_name || "ไม่ระบุตำแหน่ง")}</span>
         </div>
         <div class="col-dept">
-          <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px; color: var(--primary);">corporate_fare</span>
-          ${escapeHtml(emp.departments?.department_name || "-")}
+          <span class="emp-dept-chip">
+            <span class="material-symbols-outlined" style="font-size: 14px; color: #0d9488;">corporate_fare</span>
+            ${escapeHtml(emp.departments?.department_name || "ไม่ระบุแผนก")}
+          </span>
         </div>
         <div class="col-start">
-          <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">calendar_today</span>
-          เริ่มงาน: ${thaiStartDate}
+          <span class="emp-start-date">
+            <span class="material-symbols-outlined" style="font-size: 14px; color: #64748b;">calendar_today</span>
+            ${thaiStartDate}
+          </span>
         </div>
         <div class="col-status">
-          <span class="status ${statusClass}">${statusLabel}</span>
+          <span class="status-badge-pill ${statusClass}">
+            <span class="status-dot"></span>
+            ${statusLabel}
+          </span>
         </div>
         <div class="col-actions">
-          <button class="btn-light btn-sm" onclick="openEmployeeDetail('${emp.id}')" title="ดูรายละเอียด">
-            <span class="material-symbols-outlined">analytics</span> รายละเอียด
+          <button class="btn-table-act primary" onclick="openEmployeeDetail('${emp.id}')" title="ดูรายละเอียดพนักงาน">
+            <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
+            <span>รายละเอียด</span>
           </button>
-          <button class="btn-light btn-sm danger-zone" 
+          <button class="btn-table-act danger" 
                   onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
-                  style="background: #fff1f2; color: #e11d48; border-color: #fecdd3;" 
                   title="ลบพนักงาน">
-            <span class="material-symbols-outlined">delete</span>
+            <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
           </button>
+          ${emp.line_id ? `
+          <button class="btn-table-act warning" 
+                  onclick="unlinkLineAccount('${emp.id}', '${escapeHtml(emp.full_name)}')" 
+                  title="ยกเลิกการผูกบัญชี LINE">
+            <span class="material-symbols-outlined" style="font-size: 16px;">link_off</span>
+          </button>
+          ` : ''}
         </div>
       </div>
     `;
@@ -2608,6 +2698,48 @@ async function editEmployeeData(presetSearchKey = null) {
 // ==========================================
 // deleteEmployee (ใช้ window.state ป้องกัน Error)
 // ==========================================
+window.unlinkLineAccount = async function(employeeId, employeeName) {
+  const userRole = window.state?.currentUserProfile?.role;
+  if (!['admin', 'hr'].includes(userRole)) {
+    return Swal.fire('ไม่มีสิทธิ์', 'เฉพาะ Admin และ HR เท่านั้นที่สามารถยกเลิกการผูกบัญชี LINE ได้', 'error');
+  }
+
+  const confirm = await Swal.fire({
+    title: `ยกเลิกการผูกบัญชี LINE?`,
+    html: `คุณกำลังจะยกเลิกการเชื่อมต่อ LINE ของพนักงาน <b>"${employeeName}"</b><br><span style="color:red; font-size:13px;">* พนักงานจะไม่ได้รับการแจ้งเตือนผ่าน LINE อีกจนกว่าจะเชื่อมต่อใหม่</span>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'ยืนยันยกเลิก',
+    cancelButtonText: 'ปิด'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  
+  try {
+    const client = window.pvtSupabase.getClient();
+    const { error } = await client.from('employees').update({ line_id: null }).eq('id', employeeId);
+    
+    if (error) throw error;
+    
+    Swal.fire({
+      icon: 'success',
+      title: 'ยกเลิกการผูกบัญชีเรียบร้อย',
+      text: `ข้อมูลการเชื่อมต่อ LINE ของ ${employeeName} ถูกลบแล้ว`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+    
+    await fetchEmployees();
+    renderEmployeeTable();
+  } catch (error) {
+    Swal.fire('ข้อผิดพลาด', `ไม่สามารถยกเลิกการผูกบัญชีได้: ${error.message}`, 'error');
+  }
+};
+
 async function deleteEmployee(employeeId, employeeCode, employeeName) {
   // เช็กสิทธิ์ก่อนทำรายการ
   const userRole = window.state?.currentUserProfile?.role;
