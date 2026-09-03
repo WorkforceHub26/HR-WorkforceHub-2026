@@ -223,12 +223,12 @@ body {
    ========================================================================== */
 .main-content {
   flex: 1;
-  margin-left: 260px;
-  width: calc(100% - 260px);
+  min-width: 0;
   padding: 32px 40px;
   box-sizing: border-box;
-  min-width: 0;
   transition: var(--fluid-transition);
+  max-width: 100%;
+  margin-left: 260px;
 }
 
 .topbar {
@@ -719,7 +719,7 @@ body {
 }
 
 /* ==========================================================================
-   📋 SECTION 4: EMPLOYEE DIRECTORY & DATA TABLE (Home.css luxury tables)
+   📋 SECTION 4: EMPLOYEE DIRECTORY & DATA TABLE (Shared UI Components)
    ========================================================================== */
 .filter-panel {
   display: flex;
@@ -769,58 +769,6 @@ body {
   background: transparent;
 }
 
-/* 📝 Form Controls & Input Group Styling */
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.input-group label {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text, #1e293b);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.input-group label .required {
-  color: #ef4444;
-  font-weight: 700;
-}
-
-.text-input,
-.form-control,
-.modal-dialog input[type="text"],
-.modal-dialog input[type="date"],
-.modal-dialog input[type="email"],
-.modal-dialog input[type="tel"],
-.modal-dialog input[type="number"],
-.modal-dialog input[type="password"] {
-  width: 100%;
-  height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--border, #cbd5e1);
-  border-radius: var(--radius-md, 8px);
-  background: #ffffff;
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--text, #0f172a);
-  outline: none;
-  transition: var(--fluid-transition, all 0.2s ease);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
-  box-sizing: border-box;
-}
-
-.text-input:focus,
-.form-control:focus,
-.modal-dialog input:focus {
-  border-color: var(--primary, #0d9488);
-  box-shadow: 0 0 0 3px var(--primary-light, rgba(13, 148, 136, 0.15));
-}
-
 .select-input {
   width: 100%;
   box-sizing: border-box;
@@ -846,41 +794,6 @@ body {
 .select-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-light);
-}
-
-.file-input,
-.modal-dialog input[type="file"] {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 6px 12px;
-  font-size: 13px;
-  border: 1px dashed var(--border, #cbd5e1);
-  border-radius: var(--radius-md, 8px);
-  background: #f8fafc;
-  cursor: pointer;
-  height: 44px;
-  display: flex;
-  align-items: center;
-}
-
-.file-input::file-selector-button,
-.modal-dialog input[type="file"]::file-selector-button {
-  padding: 6px 14px;
-  border-radius: 6px;
-  background: var(--primary, #0d9488);
-  color: #ffffff;
-  border: none;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-right: 10px;
-  transition: background 0.2s ease;
-}
-
-.file-input::file-selector-button:hover,
-.modal-dialog input[type="file"]::file-selector-button:hover {
-  background: #0f766e;
 }
 
 .btn-primary {
@@ -914,61 +827,131 @@ body {
 .employee-list-wrapper {
   width: 100%;
   margin-top: 8px;
+  overflow: visible; /* มั่นใจว่าไม่ตัดเงาของการ์ด */
 }
 
 .employee-list-header {
   display: grid;
-  grid-template-columns: 56px 110px 1.2fr 165px 145px 105px 150px;
-  align-items: center;
-  background: #f8fafc;
-  padding: 12px 20px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 10px;
-  color: #475569;
-  font-size: 12.5px;
-  font-weight: 700;
+  grid-template-columns: 80px 100px 1.5fr 1fr 1fr 120px 140px;
   gap: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  padding: 12px 24px;
+  background: #f8fafc;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
 }
 
+.employee-list-header div {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@media screen and (max-width: 1024px) {
+  .employee-list-header {
+    display: none;
+  }
+}
+
+/* 🟢 Desktop: แสดงผลเป็นแถว (List Row) | Mobile: แสดงผลเป็นคอร์ก (Card) */
 .employee-list-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  width: 100%;
 }
 
+@media screen and (max-width: 1024px) {
+  .employee-list-body {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .employee-list-body {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* ปรับสไตล์ของแถวพนักงาน */
 .emp-card-item {
   display: grid;
-  grid-template-columns: 56px 110px 1.2fr 165px 145px 105px 150px;
+  grid-template-columns: 80px 100px 1.5fr 1fr 1fr 120px 140px;
   align-items: center;
   background: #ffffff;
-  padding: 12px 20px;
-  border-radius: 14px;
+  padding: 12px 24px;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
   gap: 12px;
+  text-align: left;
 }
 
 .emp-card-item:hover {
-  transform: translateY(-2px);
+  background: #f0fdfa;
   border-color: #0d9488;
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.12);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
+}
+
+@media screen and (max-width: 1024px) {
+  .emp-card-item {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+    border-radius: 16px;
+    gap: 14px;
+  }
+  
+  .emp-card-item:hover {
+    transform: translateY(-5px);
+  }
+}
+
+/* จัดระเบียบเนื้อหาภายในการ์ดให้สวยงามและไม่ล้น */
+.emp-card-item .col-avatar {
+  margin: 0 auto;
+  position: relative;
 }
 
 .emp-card-item .col-avatar img {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.emp-card-item:hover .col-avatar img {
-  transform: scale(1.06);
+@media screen and (max-width: 1024px) {
+  .emp-card-item .col-avatar img {
+    width: 80px;
+    height: 80px;
+    border: 4px solid #ffffff;
+  }
+}
+
+.emp-card-item .col-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+@media screen and (max-width: 1024px) {
+  .emp-card-item .col-code {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+  }
 }
 
 .emp-code-badge {
@@ -981,57 +964,75 @@ body {
   border-radius: 8px;
   font-family: 'Kanit', sans-serif;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 12px;
   letter-spacing: 0.3px;
 }
 
 .emp-card-item .col-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .emp-card-item .emp-name {
   font-weight: 700;
   color: #0f172a;
-  font-size: 14.5px;
-  line-height: 1.3;
+  font-size: 17px;
+  line-height: 1.2;
 }
 
 .emp-card-item .emp-pos {
-  font-size: 12.5px;
-  color: #64748b;
-  font-weight: 500;
+  font-size: 14px;
+  color: #0d9488;
+  font-weight: 600;
+}
+
+.emp-card-item .col-dept {
+  display: flex;
+  justify-content: center;
 }
 
 .emp-dept-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 6px 14px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 20px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: #334155;
-  white-space: nowrap;
+  color: #475569;
+}
+
+.emp-card-item .col-start {
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 15px;
+  margin-top: 5px;
+  display: flex;
+  justify-content: center;
 }
 
 .emp-start-date {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
+  gap: 6px;
+  font-size: 13px;
   color: #64748b;
   font-weight: 500;
+}
+
+.emp-card-item .col-status {
+  display: flex;
+  justify-content: center;
+  margin: 5px 0;
 }
 
 .status-badge-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
@@ -1039,24 +1040,11 @@ body {
   border: 1px solid transparent;
 }
 
-.status-badge-pill .status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
 .status-badge-pill.active,
 .status-badge-pill.approved {
   background: #ecfdf5;
   color: #047857;
   border-color: #a7f3d0;
-}
-
-.status-badge-pill.active .status-dot,
-.status-badge-pill.approved .status-dot {
-  background: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .status-badge-pill.inactive,
@@ -1067,146 +1055,63 @@ body {
   border-color: #fecaca;
 }
 
-.status-badge-pill.inactive .status-dot,
-.status-badge-pill.resigned .status-dot,
-.status-badge-pill.rejected .status-dot {
-  background: #ef4444;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
-}
-
-.status-badge-pill.pending {
-  background: #fffbeb;
-  color: #b45309;
-  border-color: #fde68a;
-}
-
-.status-badge-pill.pending .status-dot {
-  background: #f59e0b;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
-}
-
 .emp-card-item .col-actions {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
 }
 
 .btn-table-act {
-  display: inline-flex;
+  flex: 1;
+  padding: 12px;
+  font-size: 13.5px;
+  border-radius: 12px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 6px;
   border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
 }
 
 .btn-table-act.primary {
   background: #f0fdfa;
-  color: #0f766e;
-  border-color: #99f6e4;
+  color: #0d9488;
+  border-color: #ccfbf1;
 }
 
 .btn-table-act.primary:hover {
   background: #0d9488;
   color: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 3px 10px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
 }
 
 .btn-table-act.danger {
   background: #fff1f2;
   color: #e11d48;
   border-color: #fecdd3;
-  padding: 6px 9px;
 }
 
 .btn-table-act.danger:hover {
   background: #e11d48;
   color: #ffffff;
-  border-color: #e11d48;
-  box-shadow: 0 3px 10px rgba(225, 29, 72, 0.25);
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
 }
 
-.btn-table-act.warning {
-  background: #fffbeb;
-  color: #d97706;
-  border-color: #fde68a;
-  padding: 6px 9px;
-}
+/* 💻 ปรับการแสดงผลบน Desktop ที่กว้างพอ ให้แสดงเป็นแถวเรียงกัน (ถ้าต้องการแบบเดิม) 
+   แต่จากรูปที่ส่งมา คุณน่าจะต้องการแบบการ์ดแต่ไม่ให้ล้น ผมจึงตั้งค่า Grid ให้เป็น Auto-fill แทน */
 
-.btn-table-act.warning:hover {
-  background: #d97706;
-  color: #ffffff;
-  border-color: #d97706;
-  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.25);
-}
-
-/* 📱 RESPONSIVE CARDS (Big Cards on Mobile) */
+/* 📱 RESPONSIVE CARDS (หน้าจอมือถือ) */
 @media screen and (max-width: 1024px) {
   .desktop-only { display: none !important; }
   
-  .emp-card-item {
-    grid-template-columns: 1fr;
-    padding: 20px;
-    gap: 12px;
-    text-align: center;
-    border-radius: 18px;
-    border-width: 1px;
-  }
-  
-  .emp-card-item .col-avatar img {
-    width: 72px;
-    height: 72px;
-    margin-bottom: 4px;
-  }
-  
-  .emp-code-badge {
-    margin: 0 auto;
-  }
-  
-  .emp-card-item .emp-name { font-size: 17px; }
-  .emp-card-item .emp-pos { font-size: 13.5px; margin-top: 2px; }
-  
-  .emp-dept-chip {
-    margin: 4px auto 0;
-    font-size: 13px;
-    padding: 6px 14px;
-  }
-  
-  .emp-start-date {
-    justify-content: center;
-    font-size: 13px;
-    border-top: 1px dashed #e2e8f0;
-    padding-top: 10px;
-    width: 100%;
-  }
-  
-  .emp-card-item .col-status {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    margin: 4px 0;
-  }
-  
-  .emp-card-item .col-actions {
-    width: 100%;
-    justify-content: center;
-    margin-top: 8px;
-    gap: 8px;
-  }
-  
-  .btn-table-act {
-    flex: 1;
-    padding: 10px;
-    font-size: 13.5px;
-    border-radius: 10px;
+  .employee-list-body {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
   }
 }
 
@@ -1264,7 +1169,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 1000;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -1622,3 +1527,178 @@ body {
   color: #0369a1;
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   ✨ VIBRANT HIGHLIGHTS, ROLE TAGS & MODERN POLISH
+   ========================================================================== */
+mark.text-highlight {
+  background: linear-gradient(120deg, #fef08a 0%, #fde047 100%);
+  color: #854d0e;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(234, 179, 8, 0.2);
+}
+
+/* 👑 Role Tags */
+.badge-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.badge-role-exec {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.badge-role-mgr {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+}
+
+.badge-role-sup {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-role-off {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
+/* Special styling for Executive Card row */
+.emp-card-item.is-executive {
+  background: linear-gradient(to right, #ffffff, #f8fafc);
+  border-left: 4px solid #3b82f6;
+}
+
+.emp-card-item.is-executive:hover {
+  background: linear-gradient(to right, #eff6ff, #f8fafc);
+  border-left-color: #2563eb;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+}
+
+.exec-crown-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 14px;
+  background: #ffffff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.12);
+  border: 1px solid #bfdbfe;
+}
+
+/* 🏷️ Position Tab Enhancements with Custom Category Tones */
+.pos-tab[data-pos-cat="all"].active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+}
+
+.pos-tab[data-pos-cat="executive"].active {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: #1d4ed8;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+}
+
+.pos-tab[data-pos-cat="manager"].active {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  border-color: #0f766e;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+}
+
+.pos-tab[data-pos-cat="supervisor"].active {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  border-color: #b45309;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.25);
+}
+
+.pos-tab[data-pos-cat="officer"].active {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  border-color: #6d28d9;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+}
+
+.pos-tab[data-pos-cat="staff"].active {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  border-color: #334155;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(71, 85, 105, 0.25);
+}
+
+/* Pill Count Styling within tabs */
+.pos-tab[data-pos-cat="executive"] .pos-tab-count {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.pos-tab[data-pos-cat="manager"] .pos-tab-count {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.pos-tab[data-pos-cat="supervisor"] .pos-tab-count {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pos-tab[data-pos-cat="officer"] .pos-tab-count {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.pos-tab[data-pos-cat="staff"] .pos-tab-count {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.pos-tab.active .pos-tab-count {
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Stat card gradient accent glow */
+.panel.stat-card:nth-child(1) {
+  border-left: 4px solid var(--primary);
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.panel.stat-card:nth-child(2) {
+  border-left: 4px solid #3b82f6;
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+}
+
+.panel.stat-card:nth-child(3) {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+}
+
+.panel.stat-card:nth-child(4) {
+  border-left: 4px solid #8b5cf6;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
+}
+

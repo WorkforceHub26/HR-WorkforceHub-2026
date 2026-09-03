@@ -38,7 +38,7 @@ function redirectToDashboard(role, userObj) {
   window.location.replace(targetUrl);
 }
 
-// 🌐 Language Switcher Translations (TH, LO, MY)
+/// 🌐 Language Switcher Translations (TH, LO, MY)
 const loginTranslations = {
   th: {
     badge: "ระบบขออนุญาตลาออนไลน์",
@@ -48,7 +48,9 @@ const loginTranslations = {
     passInputPlaceholder: "กรอกรหัสผ่านเข้าสู่ระบบ",
     remember: "จดจำรหัสพนักงาน (Remember Me)",
     loginBtn: "เข้าสู่ระบบ",
+    loggingIn: "กำลังเข้าสู่ระบบ...",
     qrBtn: "สแกนคิวอาร์โค้ดบัตรพนักงาน",
+    biometricLoginBtn: "เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า",
     errEmptyBoth: "กรุณากรอกข้อมูลผู้ใช้งานและรหัสผ่านให้ครบถ้วน",
     errEmptyUser: "กรุณากรอกรหัสพนักงาน หรือชื่อผู้ใช้งาน",
     errEmptyPass: "กรุณากรอกรหัสผ่าน",
@@ -57,7 +59,10 @@ const loginTranslations = {
     errPassWrong: "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
     errInactive: "บัญชีของคุณถูกระงับสิทธิ์การใช้งาน กรุณาติดต่อฝ่ายบุคคล (HR)",
     errDbConn: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
-    errMultipleUsers: "พบชื่อ-นามสกุลนี้ซ้ำกันในระบบ กรุณาใช้รหัสพนักงานเข้าสู่ระบบแทน"
+    errMultipleUsers: "พบชื่อ-นามสกุลนี้ซ้ำกันในระบบ กรุณาใช้รหัสพนักงานเข้าสู่ระบบแทน",
+    camWarnTitleOutdated: "⚠️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า",
+    camWarnTitleUnsupported: "⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก",
+    camDiagBtn: "ผลตรวจวินิจฉัย & วิธีแก้ไข"
   },
   lo: {
     badge: "ລະບົບຂໍອະນຸຍາດລາພັກອອນໄລນ໌",
@@ -67,7 +72,9 @@ const loginTranslations = {
     passInputPlaceholder: "ປ້ອນລະຫັດຜ່ານເຂົ້າສູ່ລະບົບ",
     remember: "ຈົດຈຳລະຫັດພະນັກງານ (Remember Me)",
     loginBtn: "ເຂົ້າສູ່ລະບົບ",
+    loggingIn: "ກຳລັງເຂົ້າສູ່ລະບົບ...",
     qrBtn: "ສະແກນຄິວອ່າວໂຄດບັດພະນັກງານ",
+    biometricLoginBtn: "ເຂົ້າສູ່ລະບົບດ້ວຍລາຍນິ້ວມື / ໃບໜ້າ",
     errEmptyBoth: "ກະລຸນາປ້ອນຊື່ຜູ້ໃຊ້ງານ ແລະ ລະຫັດຜ່ານໃຫ້ຄົບຖ້ວນ",
     errEmptyUser: "ກະລຸນາປ້ອນລະຫັດພະນັກງານ ຫຼື ຊື່ຜູ້ໃຊ້ງານ",
     errEmptyPass: "ກະລຸນາປ້ອນລະຫັດຜ່ານ",
@@ -76,26 +83,34 @@ const loginTranslations = {
     errPassWrong: "ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ ກະລຸນາລອງໃໝ່ອີກຄັ້ງ",
     errInactive: "ບັນຊີຂອງທ່ານຖືກລະງັບການນຳໃຊ້ ກະລຸນາຕິດຕໍ່ຝ່າຍບຸກຄະລາກອນ (HR)",
     errDbConn: "ບໍ່ສາມາດເຊື່ອມຕໍ່ຖານຂໍ້ມູນໄດ້ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ",
-    errMultipleUsers: "ພົບຊື່-ນາມສະກຸນຊໍ້າກັນໃນລະບົບ ກະລຸນາໃຊ້ລະຫັດພະນັກງານເຂົ້າສູ່ລະບົບແທນ"
+    errMultipleUsers: "ພົບຊື່-ນາມສະກຸນຊໍ້າກັນໃນລະບົບ ກະລຸນາໃຊ້ລະຫັດພະນັກງານເຂົ້າສູ່ລະບົບແທນ",
+    camWarnTitleOutdated: "⚠️ ຄຳເຕືອນ: ບຣາວເຊີຂອງທ່ານເປັນລຸ້ນເກົ່າ",
+    camWarnTitleUnsupported: "⚠️ ຄຳເຕືອນ: ບຣາວເຊີບໍ່ຮອງຮັບກ້ອງໄບໂອເມຕຣິກ",
+    camDiagBtn: "ຜົນກວດວິເຄາະ & ວິທີແກ້ໄຂ"
   },
   my: {
-    badge: "အွန်လိုင်းခွင့်တောင်းခံလွှာစနစ်",
+    badge: "အွန်လိုင်းခွင့်တောင်းခံလွှาစနစ်",
     userLabel: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်",
     userInputPlaceholder: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်ကို ထည့်ပါ",
     passLabel: "စကားဝှက် (Password)",
     passInputPlaceholder: "စကားဝှက်ကို ထည့်ပါ",
     remember: "ဝန်ထမ်းနံပါတ်ကို မှတ်ထားရန်",
     loginBtn: "အကောင့်ဝင်ရန်",
+    loggingIn: "အကောင့်ဝင်နေပါသည်...",
     qrBtn: "ဝန်ထမ်းကတ် QR ကုဒ်ကို စကန်ဖတ်ရန်",
+    biometricLoginBtn: "လက်ဗွေ သို့မဟုတ် မျက်နှာဖြင့် အကောင့်ဝင်ရန်",
     errEmptyBoth: "အသုံးပြုသူအမည်နှင့် စကားဝှက်ကို အပြည့်အစုံ ဖြည့်သွင်းပါ",
     errEmptyUser: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်ကို ဖြည့်သွင်းပါ",
     errEmptyPass: "စကားဝှက်ကို ဖြည့်သွင်းပါ",
-    errInvalidCreds: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်",
+    errInvalidCreds: "ဝန်ถမ်းနံပါတ် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်",
     errUserNotFound: "အသုံးပြုသူအချက်အလက်ကို ရှာမတွေ့ပါ စစ်ဆေးပြီး ပြန်လည်ကြိုးစားပါ",
     errPassWrong: "စကားဝှက် မှားယွင်းနေပါသည် ထပ်မံကြိုးစားပါ",
     errInactive: "သင့်အကောင့်ကို ရပ်ဆိုင်းထားပါသည် HR သို့ ဆက်သွယ်ပါ",
     errDbConn: "ဒေတာဘေ့စ်နှင့် ချိတ်ဆက်၍မရပါ နောက်မှ ပြန်လည်ကြိုးစားပါ",
-    errMultipleUsers: "နာမည်တူ ဝန်ထမ်းများ ရှိနေပါသဖြင့် ဝန်ထမ်းနံပါတ်ဖြင့် အကောင့်ဝင်ပါ"
+    errMultipleUsers: "နာမည်တူ ဝန်ထမ်းများ ရှိနေပါသဖြင့် ဝန်ထမ်းနံပါတ်ဖြင့် အကောင့်ဝင်ပါ",
+    camWarnTitleOutdated: "⚠️ သတိပေးချက်: သင့်ဘရောက်ဆာသည် ဗားရှင်းဟောင်းဖြစ်နေပါသည်",
+    camWarnTitleUnsupported: "⚠️ သတိပေးချက်: ဤဘရောက်ဆာသည် ဘာရိုမက်ထရစ်ကင်မရာကို မထောက်ပံ့ပါ",
+    camDiagBtn: "ရောဂါရှาဖွေမှုရလဒ် & နည်းလမ်းများ"
   }
 };
 
@@ -221,7 +236,9 @@ function setLanguage(lang) {
   const passwordInput = document.getElementById("password");
   const rememberEl = document.getElementById("i18nRemember");
   const loginBtnEl = document.getElementById("i18nLoginBtn");
+  const loggingInEl = document.getElementById("i18nLoggingInText");
   const qrBtnEl = document.getElementById("i18nQrBtn");
+  const biometricLoginBtnText = document.getElementById("i18nBiometricLoginBtn");
 
   if (badgeEl) badgeEl.textContent = t.badge;
   if (userLabelEl) userLabelEl.textContent = t.userLabel;
@@ -230,7 +247,17 @@ function setLanguage(lang) {
   if (passwordInput) passwordInput.placeholder = t.passInputPlaceholder;
   if (rememberEl) rememberEl.textContent = t.remember;
   if (loginBtnEl) loginBtnEl.textContent = t.loginBtn;
+  if (loggingInEl && t.loggingIn) loggingInEl.textContent = t.loggingIn;
   if (qrBtnEl) qrBtnEl.textContent = t.qrBtn;
+  if (biometricLoginBtnText && t.biometricLoginBtn) biometricLoginBtnText.textContent = t.biometricLoginBtn;
+
+  const camTitleEl = document.getElementById("biometricCameraAlertTitle");
+  const camBtnEl = document.getElementById("i18nCamDiagBtn");
+  if (camBtnEl && t.camDiagBtn) camBtnEl.textContent = t.camDiagBtn;
+  if (camTitleEl) {
+    const isOutdated = window.SystemDiagnostics?.lastCameraResult?.isOutdated;
+    camTitleEl.textContent = isOutdated ? (t.camWarnTitleOutdated || "⚠️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า") : (t.camWarnTitleUnsupported || "⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก");
+  }
 
   const btnTh = document.getElementById("langThBtn");
   const btnLo = document.getElementById("langLoBtn");
@@ -242,6 +269,7 @@ function setLanguage(lang) {
       b.style.color = "#64748b";
       b.style.boxShadow = "none";
       b.style.fontWeight = "600";
+      b.style.transform = "scale(1)";
     }
   });
 
@@ -249,8 +277,9 @@ function setLanguage(lang) {
   if (activeBtn) {
     activeBtn.style.backgroundColor = "#ffffff";
     activeBtn.style.color = "#0d9488";
-    activeBtn.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+    activeBtn.style.boxShadow = "0 2px 5px rgba(13, 148, 136, 0.12)";
     activeBtn.style.fontWeight = "700";
+    activeBtn.style.transform = "scale(1.08)";
   }
 }
 
@@ -288,6 +317,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ล้าง Flag เมื่ออยู่หน้า Login สำเร็จ
   sessionStorage.removeItem("redirect_attempt");
+
+  // Check if WebAuthn is available and show the biometric button
+  try {
+    if (window.PVTWebAuthn) {
+      const bioCheck = await window.PVTWebAuthn.isBiometricAvailable();
+      const bioBtn = document.getElementById("biometricLoginBtn");
+      if (bioBtn) {
+        if (bioCheck.supported) {
+          bioBtn.style.display = "flex";
+        } else {
+          bioBtn.style.display = "none";
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Error checking biometric availability on load:", err);
+  }
 
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("username");
@@ -334,8 +380,41 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  let isLoginAuthenticating = false;
+
+  const setLoginBtnLoading = (isLoading) => {
+    const loginBtn = document.getElementById("loginBtn") || loginForm?.querySelector('.login-btn');
+    const qrBtn = loginForm?.querySelector('.qr-btn');
+    
+    if (loginBtn) {
+      loginBtn.disabled = isLoading;
+      loginBtn.setAttribute('aria-busy', String(isLoading));
+      if (isLoading) {
+        loginBtn.classList.add('loading');
+      } else {
+        loginBtn.classList.remove('loading');
+      }
+    }
+
+    if (qrBtn) {
+      qrBtn.disabled = isLoading;
+      if (isLoading) {
+        qrBtn.style.opacity = '0.6';
+        qrBtn.style.pointerEvents = 'none';
+      } else {
+        qrBtn.style.opacity = '';
+        qrBtn.style.pointerEvents = '';
+      }
+    }
+  };
+
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    // 🛑 ป้องกันการกด Submit ซ้ำขณะกำลังตรวจสอบข้อมูล (Duplicate Submissions Prevention)
+    if (isLoginAuthenticating) {
+      return;
+    }
 
     const i18n = getActiveLoginI18n();
     const loginInput = usernameInput.value.trim();
@@ -376,8 +455,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     clearLoginValidationErrors();
 
-    const loginBtn = loginForm.querySelector('.login-btn');
-    loginBtn?.classList.add('loading');
+    // 🔄 เริ่มต้นกระบวนการ Authentication & ล็อคปุ่มพร้อมหมุน Spinner
+    isLoginAuthenticating = true;
+    setLoginBtnLoading(true);
 
     // Handle Remember Me storage
     if (rememberCheckbox && rememberCheckbox.checked) {
@@ -388,7 +468,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const sb = getSbClient();
     if (!sb) {
-      loginBtn?.classList.remove('loading');
+      isLoginAuthenticating = false;
+      setLoginBtnLoading(false);
       showLoginValidationError(i18n.errDbConn, {
         type: 'error',
         highlightUser: true,
@@ -425,6 +506,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (queryRes.error) throw new Error(queryRes.error.message);
         if (!queryRes.data || queryRes.data.length === 0) {
+          isLoginAuthenticating = false;
+          setLoginBtnLoading(false);
           showLoginValidationError(i18n.errUserNotFound, {
             type: 'error',
             highlightUser: true,
@@ -436,6 +519,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (queryRes.data.length > 1) {
+          isLoginAuthenticating = false;
+          setLoginBtnLoading(false);
           showLoginValidationError(i18n.errMultipleUsers, {
             type: 'warning',
             highlightUser: true,
@@ -447,6 +532,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const candidate = queryRes.data[0];
         if (candidate.password && String(candidate.password) !== String(password)) {
+          isLoginAuthenticating = false;
+          setLoginBtnLoading(false);
           showLoginValidationError(i18n.errPassWrong, {
             type: 'error',
             highlightPass: true,
@@ -459,6 +546,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       if (!user) {
+        isLoginAuthenticating = false;
+        setLoginBtnLoading(false);
         showLoginValidationError(i18n.errInvalidCreds, {
           type: 'error',
           highlightUser: true,
@@ -469,6 +558,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       if (String(user.status || "").toLowerCase() === "inactive") {
+        isLoginAuthenticating = false;
+        setLoginBtnLoading(false);
         showLoginValidationError(i18n.errInactive, {
           type: 'error',
           highlightUser: true,
@@ -478,18 +569,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       saveUserSession(user);
+
+      // 🔒 บันทึกประวัติการเข้าสู่ระบบไปยัง Supabase 'login_logs' สำหรับตรวจสอบ (Audit Purposes)
+      try {
+        if (typeof recordLoginLog === 'function') {
+          recordLoginLog(user, { method: 'password' });
+        } else if (window.PVTSDK?.loginAudit?.recordLoginLog) {
+          window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'password' });
+        }
+      } catch (logErr) {
+        console.warn("⚠️ [Login Audit Log] Notice recording login:", logErr);
+      }
+
       sessionStorage.removeItem("redirect_attempt");
+      // รักษาสถานะ loading ไว้ขณะกำลังย้ายหน้าจอเพื่อป้องกันการกดซ้ำ
       redirectToDashboard(user.role, user);
 
     } catch (err) {
-      loginBtn?.classList.remove('loading');
+      isLoginAuthenticating = false;
+      setLoginBtnLoading(false);
       showLoginValidationError(err.message || i18n.errInvalidCreds, {
         type: 'error',
         highlightUser: true,
         highlightPass: true
       });
-    } finally {
-      loginBtn?.classList.remove('loading');
     }
   });
 });
@@ -677,6 +780,17 @@ async function executeSecureQrLogin(scannedData) {
     // บันทึก Session สำเร็จ
     saveUserSession(user);
 
+    // 🔒 บันทึกประวัติการเข้าสู่ระบบผ่าน QR Code ไปยัง Supabase 'login_logs' สำหรับตรวจสอบ (Audit Purposes)
+    try {
+      if (typeof recordLoginLog === 'function') {
+        recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
+      } else if (window.PVTSDK?.loginAudit?.recordLoginLog) {
+        window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
+      }
+    } catch (logErr) {
+      console.warn("⚠️ [Login Audit Log] Notice recording QR login:", logErr);
+    }
+
     // ย้ายหน้าจอ
     Swal.fire({
       icon: 'success',
@@ -739,6 +853,8 @@ function loginByQr() {
       const camBox = document.getElementById('qr-cam-box');
       const fileBox = document.getElementById('qr-file-box');
 
+      const camStatus = window.SystemDiagnostics?.lastCameraResult;
+
       const onScanSuccess = (decodedText) => {
         if (html5QrCode && isCamRunning) {
           html5QrCode.stop().then(() => {
@@ -756,8 +872,34 @@ function loginByQr() {
       };
 
       const startCamera = async () => {
+        // If browser is detected as completely unsupported, warn immediately and switch
+        if (camStatus && !camStatus.isSupported) {
+          if (camLoading) {
+            camLoading.innerHTML = `
+              <div style="padding: 12px; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 10px; text-align: left; margin: 10px 0;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                  <span class="material-symbols-outlined" style="color: #dc2626; font-size: 20px;">videocam_off</span>
+                  <strong style="color: #991b1b; font-size: 13.5px;">เบราว์เซอร์ไม่รองรับกล้องสด</strong>
+                </div>
+                <p style="color: #7f1d1d; font-size: 12px; margin: 0 0 8px 0; line-height: 1.4;">${camStatus.reason || 'กรุณาใช้ฟังก์ชันอัปโหลดรูปภาพบัตรพนักงานแทน'}</p>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" onclick="document.getElementById('btn-tab-file').click()" style="background: #059669; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer;">📸 สลับไปเลือกรูปภาพ</button>
+                  <button type="button" onclick="window.SystemDiagnostics?.showBiometricCameraDetailsModal()" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer;">🔍 ผลตรวจระบบ</button>
+                </div>
+              </div>
+            `;
+          }
+          return;
+        }
+
         try {
-          if (camLoading) camLoading.style.display = "block";
+          if (camLoading) {
+            camLoading.style.display = "block";
+            camLoading.innerHTML = `
+              ⏳ กำลังเปิดกล้อง กรุณาอนุญาตการเข้าถึง...
+              ${camStatus && camStatus.isOutdated ? '<br><small style="color:#d97706;">⚠️ เบราว์เซอร์รุ่นเก่า อาจใช้เวลาเปิดกล้องสักครู่</small>' : ''}
+            `;
+          }
           const config = { fps: 15, qrbox: { width: 220, height: 220 } };
 
           try {
@@ -771,14 +913,26 @@ function loginByQr() {
           console.error("Camera access error:", err);
           if (camLoading) {
             camLoading.innerHTML = `
-              <span style="color:#ef4444; display:block; margin-bottom:4px;">⚠️ ไม่สามารถเปิดกล้องได้</span>
-              <small style="color:#94a3b8;">โปรดอนุญาตสิทธิ์กล้อง หรือกดปุ่ม <b>"เลือกรูปภาพ"</b> ด้านบน</small>
+              <div style="padding: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; text-align: center; margin: 8px 0;">
+                <span style="color:#d97706; font-weight:bold; display:block; margin-bottom:4px;">⚠️ ไม่สามารถเปิดกล้องได้</span>
+                <p style="color:#92400e; font-size:12px; margin:0 0 6px 0;">โปรดอนุญาตสิทธิ์กล้อง หรือกดปุ่ม <b>"เลือกรูปภาพ"</b> ด้านบน</p>
+                <button type="button" onclick="window.SystemDiagnostics?.showBiometricCameraDetailsModal()" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">🔍 วินิจฉัยข้อผิดพลาด</button>
+              </div>
             `;
           }
         }
       };
 
-      startCamera();
+      // Auto-fallback to file tab if browser is unsupported
+      if (camStatus && !camStatus.isSupported) {
+        btnFile.style.background = '#2563eb';
+        btnCam.style.background = '#4b5563';
+        camBox.style.display = 'none';
+        fileBox.style.display = 'block';
+        startCamera(); // will populate helpful error in camBox
+      } else {
+        startCamera();
+      }
 
       btnCam.addEventListener('click', async () => {
         btnCam.style.background = '#2563eb';
@@ -842,3 +996,111 @@ window.togglePassword = function () {
 };
 
 /* [DEPRECATED] toggleInstructions is now handled by SystemDiagnostics unified button */
+
+// ============================================================================
+// 🔐 Biometric WebAuthn Login Core Function
+// ============================================================================
+async function loginByBiometrics() {
+  const i18n = getActiveLoginI18n();
+  const banner = document.getElementById("loginAlertBanner");
+  
+  if (!window.PVTWebAuthn) {
+    Swal.fire({
+      icon: 'error',
+      title: 'ข้อผิดพลาด',
+      text: 'ไม่สามารถโหลดระบบชีวมาตรได้ในขณะนี้',
+      confirmButtonColor: '#ef4444'
+    });
+    return;
+  }
+
+  const check = await window.PVTWebAuthn.isBiometricAvailable();
+  if (!check.supported) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'ไม่รองรับไบโอเมตริก',
+      text: check.reason || 'อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับการสแกนลายนิ้วมือ / ใบหน้า',
+      confirmButtonColor: '#f59e0b'
+    });
+    return;
+  }
+
+  const localCreds = window.PVTWebAuthn.getLocalCredentials();
+  if (localCreds.length === 0) {
+    Swal.fire({
+      icon: 'info',
+      title: 'ยังไม่ได้ลงทะเบียนอุปกรณ์',
+      text: 'ไม่พบกุญแจยืนยันตัวตนสำหรับเครื่องนี้ กรุณาเข้าสู่ระบบด้วยรหัสผ่านปกติก่อน จากนั้นเข้าไปที่หน้า "โปรไฟล์ผู้ใช้" เพื่อเปิดใช้งานลายนิ้วมือ/ใบหน้า',
+      confirmButtonColor: '#0d9488'
+    });
+    return;
+  }
+
+  // Clear previous validation states
+  clearLoginValidationErrors();
+
+  const loginBtn = document.getElementById("loginBtn");
+  const bioBtn = document.getElementById("biometricLoginBtn");
+
+  if (loginBtn) loginBtn.disabled = true;
+  if (bioBtn) {
+    bioBtn.disabled = true;
+    bioBtn.style.opacity = '0.6';
+  }
+
+  try {
+    // 1. Call WebAuthn assertion
+    const targetEmpCode = document.getElementById("username")?.value?.trim() || "";
+    const authResult = await window.PVTWebAuthn.authenticateBiometric({ employeeCode: targetEmpCode });
+
+    if (authResult.success && authResult.employee) {
+      const user = authResult.employee;
+      
+      // Save session
+      saveUserSession(user);
+
+      // Save audit log
+      try {
+        if (typeof recordLoginLog === 'function') {
+          recordLoginLog(user, { method: 'biometric' });
+        } else if (window.PVTSDK?.loginAudit?.recordLoginLog) {
+          window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'biometric' });
+        }
+      } catch (logErr) {
+        console.warn("⚠️ [Login Audit Log] Notice recording biometric login:", logErr);
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'ยืนยันตัวตนสำเร็จ',
+        text: `ยินดีต้อนรับคุณ ${user.full_name}`,
+        confirmButtonColor: '#0d9488',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      setTimeout(() => {
+        redirectToDashboard(user.role, user);
+      }, 1000);
+    } else {
+      throw new Error('ไม่สามารถตรวจสอบข้อมูลพนักงานได้');
+    }
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: 'error',
+      title: 'สแกนล้มเหลว',
+      text: err.message || 'เกิดข้อผิดพลาดในการตรวจสอบลายนิ้วมือ/ใบหน้า',
+      confirmButtonColor: '#ef4444'
+    });
+  } finally {
+    if (loginBtn) loginBtn.disabled = false;
+    if (bioBtn) {
+      bioBtn.disabled = false;
+      bioBtn.style.opacity = '1';
+    }
+  }
+}
+
+window.loginByBiometrics = loginByBiometrics;
+

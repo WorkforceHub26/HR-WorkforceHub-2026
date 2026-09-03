@@ -11,6 +11,25 @@ let employees = [];
 let leaveTypes = [];          
 let cachedHolidays = [];      
 let currentProfile = null;
+let currentDeptApproverConfig = null;
+
+function getLeaveFormSteps() {
+  const rawRole = String(currentProfile?.role || currentProfile?.position_name || localStorage.getItem("userRole") || "").toLowerCase();
+  const isLeader = rawRole.includes("leader") || rawRole.includes("supervisor") || rawRole.includes("head") || rawRole.includes("หัวหน้า");
+  const isManager = rawRole.includes("manager") || rawRole.includes("ผู้จัดการ");
+  const isHr = rawRole.includes("hr") || rawRole.includes("admin");
+  const isExecutive = rawRole.includes("executive") || rawRole.includes("director") || rawRole.includes("owner");
+
+  const deptApprover = currentDeptApproverConfig || {};
+  const hasLeader = !isLeader && !isManager && !isHr && !isExecutive && (Boolean(currentProfile?.l1_approver_id) || Boolean(deptApprover.hasLeader));
+  const hasManager = !isManager && !isHr && !isExecutive && (Boolean(currentProfile?.l2_approver_id) || Boolean(deptApprover.hasManager));
+
+  const steps = [];
+  if (hasLeader) steps.push("หัวหน้าแผนก");
+  if (hasManager) steps.push("ผู้จัดการฝ่าย");
+  steps.push("ฝ่ายบุคคล");
+  return steps;
+}
 let isHRRole = false;
 
 let userDisabledLeaveDates = [];
@@ -473,18 +492,30 @@ async function fetchCurrentUserData() {
 
     const { data: empData, error: empError } = await supabase
       .from('employees')
-      .select(`*, departments ( department_name ), positions ( position_name )`)
+      .select(`*, departments!department_id ( department_name ), positions ( position_name )`)
       .eq('id', currentUserId)
       .single();
 
     if (empError) throw empError;
 
     const currentYear = new Date().getFullYear();
-    const { data: leaveData } = await supabase
-      .from('leave_balances')
-      .select('leave_type_id, remaining_days, year') 
-      .eq('employee_id', currentUserId)
-      .gte('year', currentYear);
+    let leaveData = [];
+    if (window.PVTSDK?.user?.getLeaveBalances) {
+      leaveData = await window.PVTSDK.user.getLeaveBalances(currentUserId, currentYear);
+    } else {
+      const { data: empBal } = await supabase
+        .from('employee_leave_balances')
+        .select('*')
+        .eq('employee_id', currentUserId)
+        .eq('year', currentYear)
+        .maybeSingle();
+      if (empBal) {
+        const { data: lTypes } = await supabase.from('leave_types').select('*');
+        if (window.PVTSDK?.user?.transformEmployeeLeaveBalanceToItems) {
+          leaveData = window.PVTSDK.user.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
+        }
+      }
+    }
 
     window.employeeLeaveBalances = leaveData || [];
 
@@ -501,6 +532,11 @@ async function fetchCurrentUserData() {
       // ✅ สำคัญ: เก็บ department_id ไว้ใช้ Routing ผู้อนุมัติ
       department_id: empData.department_id || null,
       department_name: empData.departments?.department_name || "ไม่ได้ระบุแผนก",
+      
+      // ✅ เพิ่มข้อมูลผู้อนุมัติรายบุคคล (Individual Overrides)
+      l1_approver_id: empData.l1_approver_id || null,
+      l2_approver_id: empData.l2_approver_id || null,
+      l3_approver_id: empData.l3_approver_id || null,
 
       position_name: empData.positions?.position_name || empData.position_id || "ไม่ได้ระบุตำแหน่ง",
       start_date: empData.start_date || "-",
@@ -509,6 +545,49 @@ async function fetchCurrentUserData() {
 
     currentProfile = realUser;
     localStorage.setItem("currentUser", JSON.stringify(realUser));
+
+    // ดึงและวิเคราะห์สายอนุมัติของแผนกผู้ยื่น (ตรวจสอบทั้งตาราง department_approvers และตำแหน่งงานจริง)
+    try {
+      const deptId = realUser.department_id;
+      if (deptId && sb) {
+        const [apprvRes, deptRes, empsRes] = await Promise.all([
+          sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle(),
+          sb.from("departments").select("approver_id").eq("id", deptId).maybeSingle(),
+          sb.from("employees").select("id, role, positions!position_id(position_name), status").eq("department_id", deptId)
+        ]);
+        const apprv = apprvRes.data;
+        const deptData = deptRes.data;
+        const emps = (empsRes.data || []).filter(e => e.status === 'active' || !e.status);
+
+        const hasLeader = Boolean(
+          apprv?.supervisor_id ||
+          emps.some(e => {
+            const r = String(e.role || '').toLowerCase();
+            const p = String(e.positions?.position_name || '').toLowerCase();
+            return r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า');
+          })
+        );
+
+        const hasManager = Boolean(
+          apprv?.manager_id ||
+          deptData?.approver_id ||
+          emps.some(e => {
+            const r = String(e.role || '').toLowerCase();
+            const p = String(e.positions?.position_name || '').toLowerCase();
+            return r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ');
+          })
+        );
+
+        currentDeptApproverConfig = {
+          hasLeader,
+          hasManager,
+          supervisor_id: apprv?.supervisor_id,
+          manager_id: apprv?.manager_id || deptData?.approver_id
+        };
+      }
+    } catch (e) {
+      console.warn("Could not check department approver details:", e);
+    }
 
     const setTealInputStyle = (elementId, value) => {
       const el = document.getElementById(elementId);
@@ -674,14 +753,34 @@ window.renderAllLeaveBalances = function() {
     return;
   }
 
-  let displayItems = systemLeaveTypes.map(type => {
-    const matchedBal = leaveBalances.find(b => String(b.leave_type_id) === String(type.id) && Number(b.year) === currentYear);
-    return {
-      rawName: type.leave_name || "สิทธิ์การลา",
-      typeName: getTranslatedLeaveTypeName(type.leave_name || "สิทธิ์การลา"),
-      remaining: matchedBal ? (parseFloat(matchedBal.remaining_days) || 0) : 0
-    };
-  });
+  let displayItems = [];
+  if (leaveBalances && leaveBalances.length > 0) {
+    displayItems = leaveBalances.map(b => {
+      const name = b.leave_types?.leave_name || b.leave_type_name || b.leave_name || "สิทธิ์การลา";
+      const remaining = b.remaining_days !== undefined && b.remaining_days !== null
+        ? parseFloat(b.remaining_days)
+        : (parseFloat(b.entitlement_days || b.quota || 0) - parseFloat(b.used_days || 0));
+      return {
+        rawName: name,
+        typeName: typeof getTranslatedLeaveTypeName === 'function' ? getTranslatedLeaveTypeName(name) : name,
+        remaining: Math.max(0, remaining)
+      };
+    });
+  } else if (systemLeaveTypes && systemLeaveTypes.length > 0) {
+    displayItems = systemLeaveTypes.map(type => {
+      return {
+        rawName: type.leave_name || "สิทธิ์การลา",
+        typeName: typeof getTranslatedLeaveTypeName === 'function' ? getTranslatedLeaveTypeName(type.leave_name) : (type.leave_name || "สิทธิ์การลา"),
+        remaining: 0
+      };
+    });
+  }
+
+  if (displayItems.length === 0) {
+    const noQuotaText = window.getPVTTranslation ? window.getPVTTranslation("noQuotaData") : "❌ ยังไม่มีข้อมูลโควตาวันลาในปีนี้";
+    container.innerHTML = `<p style='color:#ef4444; font-size:14px; margin: 0;'>${noQuotaText}</p>`;
+    return;
+  }
 
   displayItems.forEach(item => {
     const rawName = item.rawName;
@@ -861,11 +960,17 @@ async function addLeaveRow() {
     <div class="split-preview-container" style="display:none; margin-top:15px;"></div>
 
     <div class="row-divider">หมวดหมู่ที่ 4: สถานะผลการพิจารณาและอนุมัติ</div>
-    <div class="grid-row-3">
-      <div class="input-group"><label>หัวหน้าแผนก</label><span class="badge-status">รอพิจารณา</span></div>
-      <div class="input-group"><label>ผู้จัดการฝ่าย</label><span class="badge-status">รอพิจารณา</span></div>
-      <div class="input-group"><label>ฝ่ายบุคคล</label><span class="badge-status">รอพิจารณา</span></div>
-    </div>
+    ${(() => {
+      const formSteps = getLeaveFormSteps();
+      const gridCols = formSteps.length;
+      return `
+        <div class="grid-row-3" style="grid-template-columns: repeat(${gridCols}, 1fr);">
+          ${formSteps.map(stepName => `
+            <div class="input-group"><label>${stepName}</label><span class="badge-status">รอพิจารณา</span></div>
+          `).join('')}
+        </div>
+      `;
+    })()}
 
     <div class="box-item-footer no-print">
       <button type="button" class="btn btn-danger btn-sm" onclick="removeLeaveRow(this)">ลบรายการนี้</button>
@@ -1086,11 +1191,56 @@ async function saveLeave() {
   const deptId = currentProfile?.department_id || null;
 
   // 🔀 ดึงข้อมูลสายอนุมัติของแผนกเพื่อตรวจสอบความหยืดหยุ่น (มี L1/L2 หรือไม่)
-  let approverConfig = null;
-  if (deptId) {
-    const { data } = await sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle();
-    approverConfig = data;
+  let approverConfig = currentDeptApproverConfig;
+  if (!approverConfig && deptId) {
+    try {
+      const [apprvRes, deptRes, empsRes] = await Promise.all([
+        sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle(),
+        sb.from("departments").select("approver_id").eq("id", deptId).maybeSingle(),
+        sb.from("employees").select("id, role, positions!position_id(position_name), status").eq("department_id", deptId)
+      ]);
+      const apprv = apprvRes.data;
+      const deptData = deptRes.data;
+      const emps = (empsRes.data || []).filter(e => e.status === 'active' || !e.status);
+
+      const hasLeader = Boolean(
+        apprv?.supervisor_id ||
+        emps.some(e => {
+          const r = String(e.role || '').toLowerCase();
+          const p = String(e.positions?.position_name || '').toLowerCase();
+          return r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า');
+        })
+      );
+
+      const hasManager = Boolean(
+        apprv?.manager_id ||
+        deptData?.approver_id ||
+        emps.some(e => {
+          const r = String(e.role || '').toLowerCase();
+          const p = String(e.positions?.position_name || '').toLowerCase();
+          return r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ');
+        })
+      );
+
+      approverConfig = {
+        hasLeader,
+        hasManager,
+        supervisor_id: apprv?.supervisor_id,
+        manager_id: apprv?.manager_id || deptData?.approver_id
+      };
+      currentDeptApproverConfig = approverConfig;
+    } catch (e) {
+      console.warn("Could not check approver config on submit:", e);
+    }
   }
+
+  // ✅ รวมผลกับ Individual Overrides (ถ้ามีให้ทับค่าของแผนก)
+  const l1Id = currentProfile?.l1_approver_id || approverConfig?.supervisor_id;
+  const l2Id = currentProfile?.l2_approver_id || approverConfig?.manager_id;
+  const l3Id = currentProfile?.l3_approver_id;
+
+  const hasL1 = Boolean(l1Id || approverConfig?.hasLeader);
+  const hasL2 = Boolean(l2Id || approverConfig?.hasManager);
 
   let defaultManagerStatus = "pending";
   let defaultDirectorStatus = "pending";
@@ -1113,18 +1263,22 @@ async function saveLeave() {
     userRole.includes("head") || userRole.includes("หัวหน้า")
   ) {
     defaultManagerStatus = "approved";
-    // ถ้าแผนกไม่มีผู้จัดการ ให้ผู้บริหารอนุมัติแทน ดังนั้นห้ามข้ามขั้นตอน L2 (ให้คงสถานะ pending)
-    defaultDirectorStatus = "pending";
+    // หัวหน้ายื่นลา: ถ้าแผนกไม่มี L2 (ผู้จัดการ) ให้ข้าม L2 ไปรอ HR/ผู้บริหาร
+    if (!hasL2) {
+      defaultDirectorStatus = "approved";
+    } else {
+      defaultDirectorStatus = "pending";
+    }
   } else if (userRole.includes("hr") || userRole.includes("admin")) {
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
   } else {
     // พนักงานทั่วไป:
-    // ถ้าไม่มี L1 ในแผนก -> ข้าม L1
-    if (!approverConfig?.supervisor_id) defaultManagerStatus = "approved";
-    // ถ้าไม่มี L2 ในแผนก -> เดิมข้าม L2 แต่ใหม่: ให้ผู้บริหารอนุมัติแทน ดังนั้นห้ามข้ามขั้นตอน L2 (ให้คงสถานะ pending)
-    if (!approverConfig?.manager_id) {
-      defaultDirectorStatus = "pending";
+    // ถ้าไม่มีหัวหน้าในแผนก/รายบุคคล -> ข้าม L1 ทันที
+    if (!hasL1) defaultManagerStatus = "approved";
+    // ถ้าไม่มีผู้จัดการในแผนก/รายบุคคล -> ข้าม L2 ทันที (ยกเว้นมี L3 ให้รอ L3)
+    if (!hasL2 && !l3Id) {
+      defaultDirectorStatus = "approved";
     }
   }
 
@@ -1422,7 +1576,7 @@ async function saveLeave() {
       return data || null;
     }
 
-    // --- Logic หาผู้อนุมัติ ---
+    // --- Logic หาผู้อนุมัติ (แบบใหม่ รองรับรายบุคคล) ---
     if (isExecutiveApplicant) {
       console.log("ℹ️ [Workflow] ผู้บริหารยื่นลาเอง");
       // แจ้ง HR รับทราบ
@@ -1432,21 +1586,38 @@ async function saveLeave() {
         recipientRole = "hr";
       }
     } else if (isManagerApplicant) {
-      recipient = await findExecutiveRecipient();
-      recipientRole = "executive";
+      // ผู้จัดการยื่นลา -> ส่งให้ L3 (รายบุคคล) หรือ Executive ส่วนกลาง
+      if (currentProfile?.l3_approver_id) {
+        const { data: l3Emp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", currentProfile.l3_approver_id).maybeSingle();
+        recipient = l3Emp;
+        recipientRole = "executive";
+      }
+      
+      if (!recipient) {
+        recipient = await findExecutiveRecipient();
+        recipientRole = "executive";
+      }
+
       if (!recipient) {
         const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).limit(1).maybeSingle();
         if (hrEmp) { recipient = hrEmp; recipientRole = "hr"; }
       }
     } else if (isLeaderApplicant) {
-      if (deptId) {
-        const { data: routing } = await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle();
-        if (routing?.manager_id) {
-          const { data: mgr } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", routing.manager_id).maybeSingle();
-          recipient = mgr;
-          recipientRole = "manager";
-        }
+      // หัวหน้ายื่นลา -> ส่งให้ L2 (รายบุคคล) หรือ Manager แผนก
+      const targetL2Id = currentProfile?.l2_approver_id || (deptId ? (await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle()).data?.manager_id : null);
+      
+      if (targetL2Id) {
+        const { data: mgr } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", targetL2Id).maybeSingle();
+        recipient = mgr;
+        recipientRole = "manager";
       }
+      
+      if (!recipient && currentProfile?.l3_approver_id) {
+        const { data: l3Emp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", currentProfile.l3_approver_id).maybeSingle();
+        recipient = l3Emp;
+        recipientRole = "executive";
+      }
+
       if (!recipient) {
         recipient = await findExecutiveRecipient();
         recipientRole = "executive";
@@ -1457,18 +1628,23 @@ async function saveLeave() {
       }
     } else {
       // พนักงานทั่วไป: ลำดับคือ หัวหน้างาน (L1) -> ผู้จัดการฝ่าย (L2) -> ผู้บริหาร (L3) -> HR
-      if (deptId) {
-        const { data: routing } = await sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle();
-        if (routing?.supervisor_id) {
-          const { data: leaderEmp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", routing.supervisor_id).maybeSingle();
-          recipient = leaderEmp;
-          recipientRole = "leader";
-        } else if (routing?.manager_id) {
-          const { data: mgrEmp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", routing.manager_id).maybeSingle();
-          recipient = mgrEmp;
-          recipientRole = "manager";
-        }
+      const targetL1Id = currentProfile?.l1_approver_id || (deptId ? (await sb.from("department_approvers").select("supervisor_id").eq("department_id", deptId).maybeSingle()).data?.supervisor_id : null);
+      const targetL2Id = currentProfile?.l2_approver_id || (deptId ? (await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle()).data?.manager_id : null);
+
+      if (targetL1Id) {
+        const { data: leaderEmp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", targetL1Id).maybeSingle();
+        recipient = leaderEmp;
+        recipientRole = "leader";
+      } else if (targetL2Id) {
+        const { data: mgrEmp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", targetL2Id).maybeSingle();
+        recipient = mgrEmp;
+        recipientRole = "manager";
+      } else if (currentProfile?.l3_approver_id) {
+        const { data: l3Emp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", currentProfile.l3_approver_id).maybeSingle();
+        recipient = l3Emp;
+        recipientRole = "executive";
       }
+      
       if (!recipient) {
         recipient = await findExecutiveRecipient();
         recipientRole = "executive";

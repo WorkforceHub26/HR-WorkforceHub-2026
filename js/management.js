@@ -112,7 +112,7 @@ async function getCurrentProfile(userId) {
       .from('employees')
       .select(`
         *,
-        departments(*), 
+        departments!department_id(*), 
         positions(*)
       `)
       .eq('id', userId)
@@ -504,6 +504,219 @@ async function viewAuditLogs() {
   }
 }
 
+/**
+ * 🔒 ดูประวัติการเข้าสู่ระบบ (Login Activity Audit Logs)
+ * ดึงข้อมูลจากตาราง 'login_logs' ใน Supabase แสดง User ID, Timestamp และ Device Info พร้อมตัวกรองวันที่
+ */
+async function viewLoginAuditLogs() {
+  try {
+    if (typeof window.openLoginLogsViewerModal === 'function') {
+      return await window.openLoginLogsViewerModal();
+    }
+    if (window.PVTLoginLogsViewer?.openModal) {
+      return await window.PVTLoginLogsViewer.openModal();
+    }
+
+    if (window.Swal) {
+      Swal.fire({
+        title: 'กำลังโหลดประวัติการเข้าสู่ระบบ...',
+        text: 'กำลังตรวจสอบข้อมูลจาก Supabase login_logs',
+        didOpen: () => Swal.showLoading(),
+        allowOutsideClick: false
+      });
+    }
+
+    // 1. ดึงข้อมูลผ่าน getLoginLogs หรือ API หรือ Supabase SDK
+    let logs = [];
+    if (typeof window.getLoginLogs === 'function') {
+      logs = await window.getLoginLogs(100);
+    } else if (window.PVTSDK?.loginAudit?.getLoginLogs) {
+      logs = await window.PVTSDK.loginAudit.getLoginLogs(100);
+    } else {
+      const res = await fetch('/api/login-logs?limit=100');
+      if (res.ok) {
+        const json = await res.json();
+        logs = json.data || [];
+      }
+    }
+
+    if (!Array.isArray(logs)) logs = [];
+
+    // 2. สร้างหน้าต่างแสดงผล Audit Modal
+    let rowsHTML = '';
+    if (logs.length === 0) {
+      rowsHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 24px; color: #64748b; font-size: 13px;">
+            <div style="font-size: 24px; margin-bottom: 6px;">📋</div>
+            ยังไม่พบประวัติการเข้าสู่ระบบในระบบ หรือยังไม่มีการบันทึกข้อมูลล่าสุด
+          </td>
+        </tr>
+      `;
+    } else {
+      logs.forEach((log, idx) => {
+        const rawTime = log.timestamp || log.created_at || log.login_at;
+        const timeStr = rawTime 
+          ? new Date(rawTime).toLocaleString('th-TH', { 
+              year: 'numeric', month: 'short', day: 'numeric', 
+              hour: '2-digit', minute: '2-digit', second: '2-digit' 
+            }) 
+          : '-';
+
+        const userId = log.user_id || log.employee_id || '-';
+        const empCode = log.employee_code || '';
+        const fullName = log.full_name || 'พนักงาน';
+        const role = log.role || '';
+
+        // Device info formatting
+        let devInfo = log.device_info;
+        if (typeof devInfo === 'string') {
+          try { devInfo = JSON.parse(devInfo); } catch(e) {}
+        }
+        devInfo = devInfo || {};
+
+        const devType = devInfo.device_type || (devInfo.screen && parseInt(devInfo.screen) < 600 ? 'Mobile' : 'Desktop');
+        const os = devInfo.os || 'Unknown OS';
+        const browser = devInfo.browser || 'Browser';
+        const screen = devInfo.screen || '';
+        const ip = log.ip_address || devInfo.server_ip || '-';
+
+        const devIcon = devType === 'Mobile' ? 'smartphone' : (devType === 'Tablet' ? 'tablet_mac' : 'laptop_mac');
+        const devBadgeColor = devType === 'Mobile' ? '#f59e0b' : '#0ea5e9';
+
+        // Method formatting
+        const method = String(log.login_method || 'password').toLowerCase();
+        let methodBadge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🔑 รหัสผ่าน</span>`;
+        if (method.includes('qr')) {
+          methodBadge = `<span style="background: #ecfdf5; color: #047857; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">📱 QR Code</span>`;
+        } else if (method.includes('token') || method.includes('auto')) {
+          methodBadge = `<span style="background: #fdf4ff; color: #a21caf; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🔗 Token</span>`;
+        }
+
+        rowsHTML += `
+          <tr style="border-bottom: 1px solid #f1f5f9; font-size: 12px; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+            <td style="padding: 10px 8px; color: #334155; white-space: nowrap; font-family: monospace;">${timeStr}</td>
+            <td style="padding: 10px 8px;">
+              <div style="font-weight: 600; color: #0f172a;">${fullName}</div>
+              <div style="font-size: 11px; color: #64748b;">${empCode ? `รหัส: ${empCode} · ` : ''}<span style="font-family: monospace; font-size: 10px; color: #94a3b8;">${String(userId).substring(0, 12)}...</span></div>
+            </td>
+            <td style="padding: 10px 8px; white-space: nowrap;">
+              ${methodBadge}
+            </td>
+            <td style="padding: 10px 8px;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span class="material-symbols-outlined" style="font-size: 15px; color: ${devBadgeColor};">${devIcon}</span>
+                <span style="font-weight: 500; color: #1e293b;">${browser}</span>
+              </div>
+              <div style="font-size: 11px; color: #64748b;">${os} ${screen ? `· ${screen}` : ''}</div>
+            </td>
+            <td style="padding: 10px 8px; font-family: monospace; font-size: 11px; color: #475569; white-space: nowrap;">
+              ${ip}
+            </td>
+            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">
+              <span style="background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 9999px; font-size: 11px; font-weight: 600;">สำเร็จ</span>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    const modalHTML = `
+      <div style="font-family: 'Sarabun', sans-serif; text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <div style="font-size: 13px; color: #334155;">
+            <strong style="color: #0d9488;">ตาราง Supabase:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px;">login_logs</code>
+            <span style="margin-left: 10px; color: #64748b;">(ทั้งหมด ${logs.length} รายการล่าสุด)</span>
+          </div>
+          <button type="button" onclick="copyLoginLogsMigrationSql()" style="background: white; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #475569; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.color='#0d9488'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#475569'">
+            <span class="material-symbols-outlined" style="font-size: 15px;">content_copy</span> คัดลอก SQL สร้างตาราง
+          </button>
+        </div>
+
+        <div style="max-height: 480px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 2;">
+              <tr style="border-bottom: 2px solid #cbd5e1; font-size: 12px; color: #475569;">
+                <th style="padding: 8px; font-weight: 600;">เวลา (Timestamp)</th>
+                <th style="padding: 8px; font-weight: 600;">ผู้ใช้งาน (User ID / พนักงาน)</th>
+                <th style="padding: 8px; font-weight: 600;">ช่องทาง</th>
+                <th style="padding: 8px; font-weight: 600;">อุปกรณ์ & เบราว์เซอร์ (Device Info)</th>
+                <th style="padding: 8px; font-weight: 600;">IP Address</th>
+                <th style="padding: 8px; font-weight: 600; text-align: center;">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHTML}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top: 10px; font-size: 12px; color: #64748b; text-align: right;">
+          💡 บันทึกอัตโนมัติทุกครั้งเมื่อมีการเข้าสู่ระบบผ่านรหัสผ่าน, คิวอาร์โค้ด หรือโทเค็นความปลอดภัย
+        </div>
+      </div>
+    `;
+
+    if (window.Swal) {
+      Swal.fire({
+        title: '🛡️ ประวัติการเข้าสู่ระบบ (Login Activity Audit Logs)',
+        html: modalHTML,
+        width: 'min(94vw, 920px)',
+        confirmButtonText: 'ปิดหน้าต่าง',
+        confirmButtonColor: '#0d9488'
+      });
+    }
+
+  } catch (err) {
+    showAppError("ไม่สามารถดึงข้อมูลประวัติการเข้าสู่ระบบได้", err.message);
+  }
+}
+
+// 📋 ฟังก์ชันสำหรับคัดลอกคำสั่ง SQL สำหรับสร้างตาราง login_logs ใน Supabase Dashboard
+window.copyLoginLogsMigrationSql = function() {
+  const sql = `-- สร้างตาราง login_logs ใน Supabase
+CREATE TABLE IF NOT EXISTS public.login_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id text NOT NULL,
+  employee_id uuid REFERENCES public.employees(id) ON DELETE SET NULL,
+  employee_code text,
+  full_name text,
+  role text,
+  timestamp timestamp with time zone NOT NULL DEFAULT now(),
+  device_info jsonb,
+  ip_address text,
+  login_method text DEFAULT 'password'::text,
+  status text NOT NULL DEFAULT 'success'::text,
+  metadata jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT login_logs_pkey PRIMARY KEY (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_logs_user_id ON public.login_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_login_logs_timestamp ON public.login_logs(timestamp DESC);
+
+ALTER TABLE public.login_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow insert login_logs" ON public.login_logs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow read login_logs" ON public.login_logs FOR SELECT USING (true);`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(sql).then(() => {
+      Swal.fire({
+        icon: 'success',
+        title: 'คัดลอก SQL สำเร็จ!',
+        text: 'นำคำสั่งนี้ไปวางใน SQL Editor ของ Supabase Dashboard ได้ทันที',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }).catch(() => {
+      prompt("คัดลอก SQL ด้านล่างนี้ไปรันใน Supabase SQL Editor:", sql);
+    });
+  } else {
+    prompt("คัดลอก SQL ด้านล่างนี้ไปรันใน Supabase SQL Editor:", sql);
+  }
+};
+
+window.viewLoginAuditLogs = viewLoginAuditLogs;
+
 // ==========================================
 // 3. resetYearlyLeave & Admin Rules (เช็ก Role ล็อคความปลอดภัย)
 // ==========================================
@@ -751,6 +964,11 @@ async function refreshDashboard() {
     renderSummary();
     renderEmployeeTable();
 
+    // Rerender the Recharts Summary panel
+    if (typeof window.renderRechartsDashboard === 'function') {
+      window.renderRechartsDashboard();
+    }
+
     if (status) {
       status.textContent = "โหลดสำเร็จ";
       status.className = "status active";
@@ -831,9 +1049,10 @@ async function fetchEmployees() {
       id, employee_code, title, full_name, nickname, phone, email, hospital,
       bank_account, line_id, image_url, start_date, status, role,
       employment_type, department_id, position_id,
-      departments(department_name), positions(position_name)
+      departments!department_id(department_name), positions(position_name)
     `;
     employees = await fetchAllPaginated("employees", query);
+    window.employees = employees;
   } catch (err) {
     showAppError("ดึงข้อมูลพนักงานล้มเหลว", err.message);
   }
@@ -841,9 +1060,42 @@ async function fetchEmployees() {
 
 async function fetchDepartments() {
   try {
+    const supabase = getSupabase();
+    // 1. ตรวจสอบและสร้างแผนก "ฝ่ายบริหาร" หากยังไม่มี
+    await ensureManagementDepartment(supabase);
+    
     window.departments = await fetchAllPaginated("departments", "id, department_code, department_name, status");
   } catch (err) {
     console.warn("fetchDepartments error:", err);
+  }
+}
+
+/**
+ * 🏢 ตรวจสอบและสร้างแผนก "ฝ่ายบริหาร" อัตโนมัติ
+ */
+async function ensureManagementDepartment(supabase) {
+  try {
+    const { data: depts, error: fetchErr } = await supabase
+      .from('departments')
+      .select('id')
+      .eq('department_name', 'ฝ่ายบริหาร')
+      .maybeSingle();
+
+    if (fetchErr) throw fetchErr;
+
+    if (!depts) {
+      console.log("✨ กำลังสร้างแผนกใหม่: ฝ่ายบริหาร");
+      const { error: insErr } = await supabase
+        .from('departments')
+        .insert([{ 
+          department_name: 'ฝ่ายบริหาร', 
+          department_code: 'MGMT',
+          status: 'active' 
+        }]);
+      if (insErr) throw insErr;
+    }
+  } catch (err) {
+    console.error("ensureManagementDepartment error:", err);
   }
 }
 
@@ -863,6 +1115,7 @@ async function fetchLeaveRequests() {
       leave_hours, note, manager_status, director_status, is_over_quota, created_at
     `;
     leaveRequests = await fetchAllPaginated("leave_requests", query);
+    window.leaveRequests = leaveRequests;
   } catch (err) {
     showAppError("ดึงคำขอการลาล้มเหลว", err.message);
   }
@@ -890,16 +1143,40 @@ async function fetchLeaveBalances(selectedYear = null) {
   if (!sb) return;
 
   try {
-    // ถ้าไม่ระบุปี ให้ใช้ปี 2027 เป็นหลักกรณีสลับไปดูปีหน้า หรือใช้ปีปัจจุบัน
-    const year = selectedYear || 2027; 
+    let yearNum = selectedYear ? parseInt(selectedYear, 10) : new Date().getFullYear(); 
+    const yearAD = yearNum > 2400 ? yearNum - 543 : yearNum;
+    const thaiYear = yearAD + 543;
+    let formattedBalances = [];
 
+    // Query employee_leave_balances
+    const { data: empBalList, error: empErr } = await sb
+      .from("employee_leave_balances")
+      .select("*")
+      .in("year", [yearAD, thaiYear]);
+
+    if (!empErr && empBalList && empBalList.length > 0) {
+      const { data: lTypes } = await sb.from("leave_types").select("*");
+      const activeTypes = lTypes || leaveTypes || [];
+      
+      empBalList.forEach(empBal => {
+        if (window.PVTSDK?.user?.transformEmployeeLeaveBalanceToItems) {
+          const items = window.PVTSDK.user.transformEmployeeLeaveBalanceToItems(empBal, activeTypes);
+          formattedBalances.push(...items);
+        }
+      });
+      leaveBalances = formattedBalances;
+      return;
+    }
+
+    // Fallback: leave_balances
     const { data, error } = await sb
       .from("leave_balances")
       .select("id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days")
-      .eq("year", year);
+      .in("year", [yearAD, thaiYear]);
 
-    if (error) throw error;
-    leaveBalances = data || [];
+    if (!error) {
+      leaveBalances = data || [];
+    }
   } catch (err) {
     console.warn("leave_balances unavailable", err);
     leaveBalances = [];
@@ -913,24 +1190,32 @@ async function fetchLeaveBalances(selectedYear = null) {
 function classifyPositionCategory(posOrName) {
   if (!posOrName) return 'staff';
   if (typeof posOrName === 'object') {
-    if (posOrName.level_type && ['manager', 'supervisor', 'officer', 'staff'].includes(String(posOrName.level_type).toLowerCase())) {
+    if (posOrName.level_type && ['executive', 'manager', 'supervisor', 'officer', 'staff'].includes(String(posOrName.level_type).toLowerCase())) {
       return String(posOrName.level_type).toLowerCase();
     }
     posOrName = posOrName.position_name || '';
   }
   const name = String(posOrName).trim().toLowerCase();
   
-  // 1. ผู้จัดการ / ผู้บริหารระดับสูง
+  // 0. ผู้บริหารระดับสูง (Executive)
   if (
-    name.includes('ผู้จัดการ') || 
-    name.includes('manager') || 
     name.includes('ผู้อำนวยการ') || 
     name.includes('director') || 
     name.includes('ผู้บริหาร') || 
     name.includes('executive') || 
     name.includes('กรรมการ') ||
     name.includes('md') || 
-    name.includes('ceo')
+    name.includes('ceo') ||
+    name.includes('ประธาน') ||
+    name.includes('president')
+  ) {
+    return 'executive';
+  }
+
+  // 1. ผู้จัดการ (Manager)
+  if (
+    name.includes('ผู้จัดการ') || 
+    name.includes('manager')
   ) {
     return 'manager';
   }
@@ -979,7 +1264,8 @@ function classifyPositionCategory(posOrName) {
 
 function getPositionCategoryLabel(catKey) {
   switch (catKey) {
-    case 'manager': return '👔 กลุ่มผู้จัดการ / ผู้บริหาร (Manager & Executive)';
+    case 'executive': return '👑 กลุ่มผู้บริหารระดับสูง (Executive)';
+    case 'manager': return '👔 กลุ่มผู้จัดการ (Manager)';
     case 'supervisor': return '🎖️ กลุ่มหัวหน้าแผนก / หัวหน้างาน (Supervisor & Lead)';
     case 'officer': return '📋 กลุ่มเจ้าหน้าที่ / ผู้ช่วย (Officer & Assistant)';
     case 'staff': return '👤 กลุ่มพนักงานทั่วไป / ปฏิบัติการ (General Staff)';
@@ -991,6 +1277,7 @@ function getPositionCategoryLabel(catKey) {
 function buildGroupedPositionOptions(positionsList, selectedIdOrName) {
   const list = positionsList || window.positions || [];
   const groups = {
+    executive: [],
     manager: [],
     supervisor: [],
     officer: [],
@@ -998,11 +1285,14 @@ function buildGroupedPositionOptions(positionsList, selectedIdOrName) {
   };
 
   list.forEach(p => {
-    const cat = classifyPositionCategory(p.position_name);
+    let cat = classifyPositionCategory(p.position_name);
+    // Safety check: if cat is not one of our keys, default to staff or handle gracefully
+    if (!groups[cat]) cat = 'staff'; 
     groups[cat].push(p);
   });
 
   const sortFn = (a, b) => (a.position_name || '').localeCompare(b.position_name || '', 'th');
+  groups.executive.sort(sortFn);
   groups.manager.sort(sortFn);
   groups.supervisor.sort(sortFn);
   groups.officer.sort(sortFn);
@@ -1010,8 +1300,17 @@ function buildGroupedPositionOptions(positionsList, selectedIdOrName) {
 
   let html = `<option value="" disabled ${!selectedIdOrName ? 'selected' : ''}>-- เลือกตำแหน่งงาน --</option>`;
 
+  if (groups.executive.length > 0) {
+    html += `<optgroup label="👑 กลุ่มผู้บริหารระดับสูง (${groups.executive.length})">`;
+    groups.executive.forEach(p => {
+      const isSel = String(p.id) === String(selectedIdOrName) || p.position_name === selectedIdOrName;
+      html += `<option value="${p.id}" ${isSel ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
   if (groups.manager.length > 0) {
-    html += `<optgroup label="👔 กลุ่มผู้จัดการ / ผู้บริหาร (${groups.manager.length})">`;
+    html += `<optgroup label="👔 กลุ่มผู้จัดการ (${groups.manager.length})">`;
     groups.manager.forEach(p => {
       const isSel = String(p.id) === String(selectedIdOrName) || p.position_name === selectedIdOrName;
       html += `<option value="${p.id}" ${isSel ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;
@@ -1285,7 +1584,7 @@ function renderEmployeeTable() {
   const specificPos = document.getElementById("posFilter")?.value || "";
 
   // คำนวณจำนวนพนักงานในแต่ละหมวดหมู่ตำแหน่ง (กรองตามแผนกถ้ามีการเลือกแผนก)
-  let cAll = 0, cManager = 0, cSupervisor = 0, cOfficer = 0, cStaff = 0;
+  let cAll = 0, cExecutive = 0, cManager = 0, cSupervisor = 0, cOfficer = 0, cStaff = 0;
   employees.forEach(emp => {
     const department = emp.departments?.department_name || "";
     if (dept && department !== dept) return;
@@ -1293,7 +1592,8 @@ function renderEmployeeTable() {
     const posName = emp.positions?.position_name || emp.position_name || "";
     const cat = classifyPositionCategory(posName);
     cAll++;
-    if (cat === 'manager') cManager++;
+    if (cat === 'executive') cExecutive++;
+    else if (cat === 'manager') cManager++;
     else if (cat === 'supervisor') cSupervisor++;
     else if (cat === 'officer') cOfficer++;
     else if (cat === 'staff') cStaff++;
@@ -1305,6 +1605,7 @@ function renderEmployeeTable() {
   };
 
   setTextIfEl('count-all', `${cAll} คน`);
+  setTextIfEl('count-executive', `${cExecutive} คน`);
   setTextIfEl('count-manager', `${cManager} คน`);
   setTextIfEl('count-supervisor', `${cSupervisor} คน`);
   setTextIfEl('count-officer', `${cOfficer} คน`);
@@ -1341,7 +1642,8 @@ function renderEmployeeTable() {
   const rightTextEl = document.getElementById("summaryTextRight");
   if (leftTextEl && rightTextEl) {
     const deptTitle = dept ? `🏢 แผนก "${dept}"` : `🏢 ทุกแผนก`;
-    const filterCatName = currentPosCategoryFilter === 'manager' ? 'ผู้จัดการ/ผู้บริหาร' :
+    const filterCatName = currentPosCategoryFilter === 'executive' ? 'ผู้บริหารระดับสูง' :
+                          currentPosCategoryFilter === 'manager' ? 'ผู้จัดการ' :
                           currentPosCategoryFilter === 'supervisor' ? 'หัวหน้างาน/หัวหน้าแผนก' :
                           currentPosCategoryFilter === 'officer' ? 'เจ้าหน้าที่/ผู้ช่วย' :
                           currentPosCategoryFilter === 'staff' ? 'พนักงานทั่วไป' : 'ทุกกลุ่มตำแหน่ง';
@@ -1353,10 +1655,11 @@ function renderEmployeeTable() {
     `;
 
     rightTextEl.innerHTML = `
-      <span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: 600;">👔 ผู้จัดการ: ${cManager} คน</span>
-      <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600;">🎖️ หัวหน้างาน: ${cSupervisor} คน</span>
-      <span style="background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 4px; font-weight: 600;">📋 เจ้าหน้าที่: ${cOfficer} คน</span>
-      <span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-weight: 600;">👤 พนักงานทั่วไป: ${cStaff} คน</span>
+      <span class="badge-role-tag badge-role-exec" style="padding: 4px 10px; font-size: 12px;">👑 ผู้บริหาร: ${cExecutive} คน</span>
+      <span class="badge-role-tag badge-role-mgr" style="padding: 4px 10px; font-size: 12px;">👔 ผู้จัดการ: ${cManager} คน</span>
+      <span class="badge-role-tag badge-role-sup" style="padding: 4px 10px; font-size: 12px;">🎖️ หัวหน้างาน: ${cSupervisor} คน</span>
+      <span class="badge-role-tag badge-role-off" style="padding: 4px 10px; font-size: 12px;">📋 เจ้าหน้าที่: ${cOfficer} คน</span>
+      <span style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">👤 พนักงานทั่วไป: ${cStaff} คน</span>
     `;
   }
 
@@ -1371,24 +1674,56 @@ function renderEmployeeTable() {
     const statusLabel = emp.status === "inactive" || emp.status === "resigned" ? "ลาออก" : "ใช้งาน";
     const statusClass = emp.status || "active";
 
+    const posCategory = classifyPositionCategory(emp.positions?.position_name || emp.position_name || "");
+    const roleBadgeHtml = posCategory === 'executive' 
+      ? `<span class="badge-role-tag badge-role-exec">👑 ผู้บริหาร</span>`
+      : posCategory === 'manager'
+      ? `<span class="badge-role-tag badge-role-mgr">👔 ผู้จัดการ</span>`
+      : posCategory === 'supervisor'
+      ? `<span class="badge-role-tag badge-role-sup">🎖️ หัวหน้างาน</span>`
+      : posCategory === 'officer'
+      ? `<span class="badge-role-tag badge-role-off">📋 เจ้าหน้าที่</span>`
+      : '';
+
+    // Search term highlight helper
+    const highlightMatch = (text, term) => {
+      if (!term || !text) return escapeHtml(text || "");
+      const cleanText = String(text);
+      const idx = cleanText.toLowerCase().indexOf(term.toLowerCase());
+      if (idx === -1) return escapeHtml(cleanText);
+      const before = escapeHtml(cleanText.slice(0, idx));
+      const matched = escapeHtml(cleanText.slice(idx, idx + term.length));
+      const after = escapeHtml(cleanText.slice(idx + term.length));
+      return `${before}<mark class="text-highlight">${matched}</mark>${after}`;
+    };
+
+    const displayName = highlightMatch(emp.full_name || "-", search);
+    const displayCode = highlightMatch(emp.employee_code || "-", search);
+    const displayPos = highlightMatch(emp.positions?.position_name || emp.position_name || "ไม่ระบุตำแหน่ง", search);
+    const displayDept = highlightMatch(emp.departments?.department_name || "ไม่ระบุแผนก", search);
+
     return `
-      <div class="emp-card-item">
+      <div class="emp-card-item ${posCategory === 'executive' ? 'is-executive' : ''}">
         <div class="col-avatar">
           <img src="${avatarUrl}" 
                onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(emp.full_name || 'PVT')}&background=0d9488&color=fff';" 
                alt="${escapeHtml(emp.full_name || '')}">
+          ${posCategory === 'executive' ? '<span class="exec-crown-badge">👑</span>' : ''}
         </div>
         <div class="col-code">
-          <span class="emp-code-badge">#${escapeHtml(emp.employee_code || "-")}</span>
+          <span class="emp-code-badge">#${displayCode}</span>
         </div>
         <div class="col-info">
-          <span class="emp-name">${escapeHtml(emp.full_name || "-")}</span>
-          <span class="emp-pos">${escapeHtml(emp.positions?.position_name || emp.position_name || "ไม่ระบุตำแหน่ง")}</span>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span class="emp-name">${displayName}</span>
+            ${roleBadgeHtml}
+          </div>
+          <span class="emp-pos">${displayPos}</span>
         </div>
         <div class="col-dept">
           <span class="emp-dept-chip">
             <span class="material-symbols-outlined" style="font-size: 14px; color: #0d9488;">corporate_fare</span>
-            ${escapeHtml(emp.departments?.department_name || "ไม่ระบุแผนก")}
+            ${displayDept}
           </span>
         </div>
         <div class="col-start">
@@ -1569,7 +1904,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
     try {
       const supabase = getSupabase();
       const { data } = await supabase.from('employees')
-        .select('*, departments(department_name), positions(position_name)')
+        .select('*, departments!department_id(department_name), positions(position_name)')
         .or(`id.eq.${employeeId},employee_code.eq.${employeeId}`)
         .maybeSingle();
       if (data) emp = data;
@@ -1692,12 +2027,13 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
               <input type="text" id="inline-edit-password" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" placeholder="ปล่อยว่างหากใช้รหัสผ่านเดิม">
             </div>
             <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">คำนำหน้าชื่อ</label>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">คำนำหน้าชื่อ <span id="edit-prefix-req" style="color:red;">*</span></label>
               <select id="inline-edit-title" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
                 <option value="" disabled ${!emp.title ? 'selected' : ''}>เลือกคำนำหน้า...</option>
                 <option value="นาย" ${emp.title === 'นาย' ? 'selected' : ''}>นาย</option>
                 <option value="นาง" ${emp.title === 'นาง' ? 'selected' : ''}>นาง</option>
                 <option value="นางสาว" ${emp.title === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+                ${(emp.role === 'executive' || emp.role === 'admin' || emp.title === 'คุณ') ? `<option value="คุณ" ${emp.title === 'คุณ' ? 'selected' : ''}>คุณ</option>` : ''}
               </select>
             </div>
             <div style="grid-column: span 2;">
@@ -1729,22 +2065,22 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
               <input id="inline-edit-hospital" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.hospital || '')}" placeholder="เช่น รพ.เปาโล">
             </div>
             <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">สังกัดฝ่าย / แผนก *</label>
-              <select id="inline-edit-dept" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" required>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">สังกัดฝ่าย / แผนก <span id="edit-dept-req" style="color:red;">*</span></label>
+              <select id="inline-edit-dept" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
                 <option value="" disabled>-- เลือกแผนก --</option>
                 ${deptOptions}
               </select>
             </div>
             <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">ตำแหน่งงาน *</label>
-              <select id="inline-edit-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" required>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">ตำแหน่งงาน <span id="edit-role-req" style="color:red;">*</span></label>
+              <select id="inline-edit-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
                 <option value="" disabled>-- เลือกตำแหน่ง --</option>
                 ${roleOptions}
               </select>
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #0d9488;">👑 สิทธิ์ในระบบ (System Role) *</label>
-              <select id="inline-edit-system-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box; background:#f0fdf4; font-weight:600; color:#166534;" required>
+              <select id="inline-edit-system-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box; background:#ffffff; border: 2px solid #0d9488; font-weight:600; color:#0d9488; cursor: pointer;" onchange="window.updateEmployeeEditFormRequirements()">
                 <option value="user" ${emp.role === 'user' || !emp.role ? 'selected' : ''}>👤 พนักงานทั่วไป (Employee / Staff)</option>
                 <option value="leader" ${emp.role === 'leader' ? 'selected' : ''}>🎖️ หัวหน้างาน (Supervisor / Leader - ผู้อนุมัติ L1)</option>
                 <option value="manager" ${emp.role === 'manager' ? 'selected' : ''}>👔 ผู้จัดการฝ่าย (Department Manager - ผู้อนุมัติ L2)</option>
@@ -1754,19 +2090,20 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
               </select>
             </div>
             <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">ประเภทพนักงาน *</label>
-              <select id="inline-edit-type" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" required>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">ประเภทพนักงาน <span id="edit-type-req" style="color:red;">*</span></label>
+              <select id="inline-edit-type" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
                 <option value="" disabled>เลือกประเภทพนักงาน...</option>
                 <option value="พนักงานประจำ (Full-time)" ${emp.employment_type === 'พนักงานประจำ (Full-time)' || emp.employment_type === 'full_time' ? 'selected' : ''}>พนักงานประจำ (Full-time)</option>
                 <option value="พนักงานพาร์ทไทม์ (Part-time)" ${emp.employment_type === 'พนักงานพาร์ทไทม์ (Part-time)' || emp.employment_type === 'part_time' ? 'selected' : ''}>พนักงานพาร์ทไทม์ (Part-time)</option>
                 <option value="พนักงานสัญญาจ้าง (Contract)" ${emp.employment_type === 'พนักงานสัญญาจ้าง (Contract)' || emp.employment_type === 'contract' ? 'selected' : ''}>พนักงานสัญญาจ้าง (Contract)</option>
                 <option value="นักศึกษาฝึกงาน (Intern)" ${emp.employment_type === 'นักศึกษาฝึกงาน (Intern)' || emp.employment_type === 'intern' ? 'selected' : ''}>นักศึกษาฝึกงาน (Intern)</option>
+                <option value="พนักงานทดลองงาน (Probation)" ${emp.employment_type === 'พนักงานทดลองงาน (Probation)' ? 'selected' : ''}>พนักงานทดลองงาน (Probation)</option>
                 <option value="รายเดือน (Monthly)" ${emp.employment_type === 'รายเดือน (Monthly)' || emp.employment_type === 'monthly' ? 'selected' : ''}>รายเดือน (Monthly)</option>
                 <option value="รายวัน (Daily)" ${emp.employment_type === 'รายวัน (Daily)' || emp.employment_type === 'daily' ? 'selected' : ''}>รายวัน (Daily)</option>
               </select>
             </div>
             <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">วันที่เริ่มงาน</label>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">วันที่เริ่มงาน <span id="edit-start-req" style="color:red;">*</span></label>
               <input type="date" id="inline-edit-startDate" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${emp.start_date ? emp.start_date.split('T')[0] : ''}">
             </div>
 
@@ -1792,6 +2129,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
 
       // ผูก Event Listener ทันทีเพื่ออัปเดตรูปประจำตัวพรีวิวเรียลไทม์เมื่อเลือกไฟล์ใหม่
       setTimeout(() => {
+        window.updateEmployeeEditFormRequirements();
         const imgInput = document.getElementById('inline-edit-img');
         const preview = document.getElementById('inline-edit-profilePreview');
         if (imgInput && preview) {
@@ -1819,8 +2157,16 @@ async function saveEmployeeInlineEdit(employeeId) {
   const role = document.getElementById('inline-edit-role')?.value;
   const empType = document.getElementById('inline-edit-type')?.value;
 
-  if (!code || !name || !dept || !role || !empType) {
-    showAppError("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลช่องที่มีเครื่องหมาย * ให้ครบถ้วน");
+  const system_role = document.getElementById('inline-edit-system-role')?.value || 'user';
+  const isExec = system_role === 'executive' || system_role === 'admin' || system_role === 'hr';
+  
+  if (!code || !name) {
+    showAppError("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลรหัส และชื่อ");
+    return;
+  }
+  
+  if (!isExec && (!dept || !role)) {
+    showAppError("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลแผนก และ ตำแหน่ง");
     return;
   }
 
@@ -1855,13 +2201,13 @@ async function saveEmployeeInlineEdit(employeeId) {
     phone: document.getElementById('inline-edit-phone')?.value.trim() || null,
     line_id: document.getElementById('inline-edit-lineId')?.value.trim() || null,
     email: document.getElementById('inline-edit-email')?.value.trim() || null,
-    department_id: dept,
-    position_id: role,
+    department_id: dept || null,
+    position_id: role || null,
     role: document.getElementById('inline-edit-system-role')?.value || 'user',
     bank_account: document.getElementById('inline-edit-bankAccount')?.value.trim() || null,
     start_date: document.getElementById('inline-edit-startDate')?.value || null,
     hospital: document.getElementById('inline-edit-hospital')?.value.trim() || null,
-    employment_type: empType,
+    employment_type: empType || null,
   };
 
   const newPass = document.getElementById('inline-edit-password')?.value.trim();
@@ -1891,6 +2237,16 @@ async function saveEmployeeInlineEdit(employeeId) {
   }
 
   try {
+    if (window.Swal) {
+      Swal.fire({
+        title: 'กำลังบันทึกข้อมูล...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+    }
+
     const supabase = getSupabase();
     const { error } = await supabase.from('employees').update(updateData).eq('id', emp.id);
     if (error) throw error;
@@ -1899,12 +2255,22 @@ async function saveEmployeeInlineEdit(employeeId) {
     await saveEmployeeCustomFields(supabase, code, customFields);
 
     await saveHRActivityLog('EMPLOYEE', 'UPDATE', code, `แก้ไขข้อมูลพนักงาน: ${name}`);
+    
     if (window.Swal) {
-      Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'อัปเดตข้อมูลพนักงานเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+      Swal.fire({ 
+        icon: 'success', 
+        title: 'บันทึกสำเร็จ', 
+        text: 'อัปเดตข้อมูลพนักงานเรียบร้อยแล้ว', 
+        timer: 1500, 
+        showConfirmButton: false 
+      });
     }
+    
     await refreshDashboard();
+    // ปิด Modal และเปิดใหม่ในโหมดดูข้อมูลเพื่อรีเฟรช UI
     openEmployeeDetail(emp.id, false);
   } catch (err) {
+    console.error("Save error:", err);
     showAppError("ไม่สามารถบันทึกข้อมูลได้", err.message);
   }
 }
@@ -1929,7 +2295,7 @@ function renderBalanceCards(rows) {
   if (!rows.length) return `<div class="empty">ยังไม่มีข้อมูลโควตาวันลาในระบบ</div>`;
   return `<div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">${rows.map((row) => {
     const typeObj = getLeaveType(row.leave_type_id);
-    const type = typeObj?.leave_name || "สิทธิการลา";
+    const type = row.leave_types?.leave_name || typeObj?.leave_name || "สิทธิการลา";
 
     const entitlement = Number(row.entitlement_days ?? typeObj?.yearly_quota ?? 0);
     const used = Number(row.used_days ?? 0);
@@ -2402,7 +2768,7 @@ window.addNewEmployee = async function addNewEmployee() {
             <input type="text" id="swal-password" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="รหัสผ่านเข้าสู่ระบบ">
           </div>
           <div>
-            <label style="font-size:13px; font-weight:600;">คำนำหน้าชื่อ</label>
+            <label style="font-size:13px; font-weight:600;">คำนำหน้าชื่อ <span id="swal-prefix-req" style="color:red;">*</span></label>
             <select id="title" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>เลือกคำนำหน้า...</option>
               <option value="นาย">นาย</option>
@@ -2439,14 +2805,14 @@ window.addNewEmployee = async function addNewEmployee() {
             <input id="swal-hospital" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เช่น รพ.เปาโล">
           </div>
           <div>
-            <label style="font-size:13px; font-weight:600;">สังกัดฝ่าย / แผนก *</label>
+            <label style="font-size:13px; font-weight:600;">สังกัดฝ่าย / แผนก <span id="swal-dept-req" style="color:red;">*</span></label>
             <select id="swal-dept" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>-- เลือกแผนก --</option>
               ${deptOptions}
             </select>
           </div>
           <div>
-            <label style="font-size:13px; font-weight:600;">ตำแหน่งงาน *</label>
+            <label style="font-size:13px; font-weight:600;">ตำแหน่งงาน <span id="swal-role-req" style="color:red;">*</span></label>
             <select id="swal-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>-- เลือกตำแหน่ง --</option>
               ${roleOptions}
@@ -2454,7 +2820,7 @@ window.addNewEmployee = async function addNewEmployee() {
           </div>
           <div>
             <label style="font-size:13px; font-weight:600; color: #0d9488;">👑 สิทธิ์ในระบบ (System Role) *</label>
-            <select id="swal-system-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; background:#f0fdf4; font-weight:600; color:#166534;">
+            <select id="swal-system-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; background:#ffffff; border: 2px solid #0d9488; font-weight:600; color:#0d9488; cursor: pointer;" onchange="window.updateEmployeeFormRequirements()">
               <option value="user" selected>👤 พนักงานทั่วไป (Employee / Staff)</option>
               <option value="leader">🎖️ หัวหน้างาน (Supervisor / Leader - ผู้อนุมัติ L1)</option>
               <option value="manager">👔 ผู้จัดการฝ่าย (Department Manager - ผู้อนุมัติ L2)</option>
@@ -2464,17 +2830,18 @@ window.addNewEmployee = async function addNewEmployee() {
             </select>
           </div>
           <div>
-            <label style="font-size:13px; font-weight:600;">ประเภทพนักงาน *</label>
+            <label style="font-size:13px; font-weight:600;">ประเภทพนักงาน <span id="swal-type-req" style="color:red;">*</span></label>
             <select id="employee_type" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
               <option value="" disabled selected>เลือกประเภทพนักงาน...</option>
               <option value="พนักงานประจำ (Full-time)">พนักงานประจำ (Full-time)</option>
               <option value="พนักงานพาร์ทไทม์ (Part-time)">พนักงานพาร์ทไทม์ (Part-time)</option>
               <option value="พนักงานสัญญาจ้าง (Contract)">พนักงานสัญญาจ้าง (Contract)</option>
               <option value="นักศึกษาฝึกงาน (Intern)">นักศึกษาฝึกงาน (Intern)</option>
+              <option value="พนักงานทดลองงาน (Probation)">พนักงานทดลองงาน (Probation)</option>
             </select>
           </div>
           <div>
-            <label style="font-size:13px; font-weight:600;">วันที่เริ่มงาน</label>
+            <label style="font-size:13px; font-weight:600;">วันที่เริ่มงาน <span id="swal-start-req" style="color:red;">*</span></label>
             <input type="date" id="swal-startDate" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;">
           </div>
 
@@ -2497,6 +2864,7 @@ window.addNewEmployee = async function addNewEmployee() {
       cancelButtonText: 'ยกเลิก',
       confirmButtonColor: '#0d9488',
       didOpen: (popup) => {
+        window.updateEmployeeFormRequirements();
         const empImageInput = popup.querySelector('#empImage');
         const profilePreviewImg = popup.querySelector('#profilePreview');
         if (empImageInput && profilePreviewImg) {
@@ -2512,12 +2880,25 @@ window.addNewEmployee = async function addNewEmployee() {
         const name = document.getElementById('swal-fullName').value.trim();
         const dept = document.getElementById('swal-dept').value;
         const role = document.getElementById('swal-role').value;
+        const system_role = document.getElementById('swal-system-role')?.value || 'user';
         const employee_type = document.getElementById('employee_type').value;
+        const startDate = document.getElementById('swal-startDate').value;
+        const title = document.getElementById('title').value;
         const imageFile = document.getElementById('empImage').files[0];
 
-        if (!code || !password || !name || !dept || !role || !employee_type) {
-          Swal.showValidationMessage('⚠️ กรุณากรอกข้อมูลช่องที่มีเครื่องหมาย * ให้ครบถ้วน');
+        // Basic Check
+        if (!code || !password || !name) {
+          Swal.showValidationMessage('⚠️ กรุณากรอกข้อมูลรหัส, รหัสผ่าน และชื่อ');
           return false;
+        }
+
+        // Executive / Admin bypass certain required fields
+        const isExec = system_role === 'executive' || system_role === 'admin' || system_role === 'hr';
+        if (!isExec) {
+          if (!dept || !role || !startDate || !title) {
+            Swal.showValidationMessage('⚠️ กรุณากรอกข้อมูลแผนก, ตำแหน่ง, วันเริ่มงาน และ คำนำหน้า ให้ครบถ้วน');
+            return false;
+          }
         }
 
         // Check Validation Custom Fields (Required Check)
@@ -2552,12 +2933,12 @@ window.addNewEmployee = async function addNewEmployee() {
           phone: document.getElementById('swal-phone').value.trim() || null,
           line_id: document.getElementById('swal-lineId').value.trim() || null,
           email: document.getElementById('swal-email').value.trim() || null,
-          department_id: dept,
-          position_id: role,
+          department_id: dept || null,
+          position_id: role || null,
           bank_account: document.getElementById('swal-bankAccount').value.trim() || null,
           start_date: document.getElementById('swal-startDate').value || null,
           hospital: document.getElementById('swal-hospital').value.trim() || null,
-          employment_type: employee_type,
+          employment_type: employee_type || null,
           status: 'active',
           role: document.getElementById('swal-system-role')?.value || 'user',
           custom_fields: Object.keys(customFields).length > 0 ? customFields : null,
@@ -2607,6 +2988,127 @@ window.addNewEmployee = async function addNewEmployee() {
   }
 };
 
+/**
+ * 💡 Update form field requirements based on system role
+ * For Executives and Admins, certain fields are optional
+ */
+window.updateEmployeeFormRequirements = function() {
+  try {
+    const role = document.getElementById('swal-system-role')?.value;
+    const isExec = role === 'executive' || role === 'admin' || role === 'hr';
+    
+    const reqMarkers = {
+      'swal-prefix-req': 'title',
+      'swal-dept-req': 'swal-dept',
+      'swal-role-req': 'swal-role',
+      'swal-start-req': 'swal-startDate',
+      'swal-type-req': 'employee_type'
+    };
+    
+    for (const [markerId, fieldId] of Object.entries(reqMarkers)) {
+      const marker = document.getElementById(markerId);
+      if (marker) {
+        marker.style.display = isExec ? 'none' : 'inline';
+      }
+    }
+
+    // Update Prefix options
+    const titleSelect = document.getElementById('title');
+    if (titleSelect) {
+      const currentVal = titleSelect.value;
+      const hasKhun = Array.from(titleSelect.options).some(opt => opt.value === 'คุณ');
+      
+      if (isExec && !hasKhun) {
+        const opt = document.createElement('option');
+        opt.value = 'คุณ';
+        opt.textContent = 'คุณ';
+        titleSelect.appendChild(opt);
+      } else if (!isExec && hasKhun) {
+        for (let i = 0; i < titleSelect.options.length; i++) {
+          if (titleSelect.options[i].value === 'คุณ') {
+            titleSelect.remove(i);
+            break;
+          }
+        }
+      }
+      titleSelect.value = currentVal;
+    }
+
+    // ✨ แนะนำแผนก "ฝ่ายบริหาร" สำหรับผู้บริหาร
+    const deptSelect = document.getElementById('swal-dept');
+    if (isExec && deptSelect && !deptSelect.value) {
+      for (let i = 0; i < deptSelect.options.length; i++) {
+        if (deptSelect.options[i].textContent.includes('ฝ่ายบริหาร')) {
+          deptSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("updateEmployeeFormRequirements error:", err);
+  }
+}
+
+/**
+ * 💡 Update edit form field requirements based on system role
+ */
+window.updateEmployeeEditFormRequirements = function() {
+  try {
+    const role = document.getElementById('inline-edit-system-role')?.value;
+    const isExec = role === 'executive' || role === 'admin' || role === 'hr';
+    
+    const reqMarkers = {
+      'edit-prefix-req': 'inline-edit-title',
+      'edit-dept-req': 'inline-edit-dept',
+      'edit-role-req': 'inline-edit-role',
+      'edit-start-req': 'inline-edit-startDate',
+      'edit-type-req': 'inline-edit-type'
+    };
+    
+    for (const [markerId, fieldId] of Object.entries(reqMarkers)) {
+      const marker = document.getElementById(markerId);
+      if (marker) {
+        marker.style.display = isExec ? 'none' : 'inline';
+      }
+    }
+
+    // Update Prefix options for Edit Modal
+    const titleSelect = document.getElementById('inline-edit-title');
+    if (titleSelect) {
+      const currentVal = titleSelect.value;
+      const hasKhun = Array.from(titleSelect.options).some(opt => opt.value === 'คุณ');
+      
+      if (isExec && !hasKhun) {
+        const opt = document.createElement('option');
+        opt.value = 'คุณ';
+        opt.textContent = 'คุณ';
+        titleSelect.appendChild(opt);
+      } else if (!isExec && hasKhun) {
+        for (let i = 0; i < titleSelect.options.length; i++) {
+          if (titleSelect.options[i].value === 'คุณ') {
+            titleSelect.remove(i);
+            break;
+          }
+        }
+      }
+      titleSelect.value = currentVal;
+    }
+
+    // ✨ แนะนำแผนก "ฝ่ายบริหาร" สำหรับผู้บริหาร (ในหน้าแก้ไข)
+    const deptSelect = document.getElementById('inline-edit-dept');
+    if (isExec && deptSelect && !deptSelect.value) {
+      for (let i = 0; i < deptSelect.options.length; i++) {
+        if (deptSelect.options[i].textContent.includes('ฝ่ายบริหาร')) {
+          deptSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("updateEmployeeEditFormRequirements error:", err);
+  }
+}
+
 async function editEmployeeData(presetSearchKey = null) {
   if (!employees || employees.length === 0) {
     await fetchEmployees();
@@ -2617,7 +3119,7 @@ async function editEmployeeData(presetSearchKey = null) {
     if (!emp) {
       try {
         const supabase = getSupabase();
-        const { data } = await supabase.from('employees').select('*, departments(department_name), positions(position_name)').or(`id.eq.${presetSearchKey},employee_code.eq.${presetSearchKey}`).maybeSingle();
+        const { data } = await supabase.from('employees').select('*, departments!department_id(department_name), positions(position_name)').or(`id.eq.${presetSearchKey},employee_code.eq.${presetSearchKey}`).maybeSingle();
         if (data) emp = data;
       } catch (e) {}
     }
@@ -2674,7 +3176,7 @@ async function editEmployeeData(presetSearchKey = null) {
     try {
       const supabase = getSupabase();
       const { data } = await supabase.from('employees')
-        .select('*, departments(department_name), positions(position_name)')
+        .select('*, departments!department_id(department_name), positions(position_name)')
         .or(`employee_code.ilike.%${cleanKey}%,full_name.ilike.%${cleanKey}%,id.eq.${cleanKey}`)
         .limit(1);
       if (data && data.length > 0) {
@@ -2774,9 +3276,13 @@ async function deleteEmployee(employeeId, employeeCode, employeeName) {
     if (rpcError) {
       console.warn("RPC delete_employee_cascade ไม่พร้อมใช้งาน, ระบบจะใช้ Fallback Delete:", rpcError.message);
 
+      await client.from('employee_leave_balances').delete().eq('employee_id', employeeId);
       await client.from('leave_balances').delete().eq('employee_id', employeeId);
       await client.from('leave_requests').delete().eq('employee_id', employeeId);
       await client.from('profiles').update({ employee_id: null }).eq('employee_id', employeeId);
+      await client.from('employees').update({ l1_approver_id: null }).eq('l1_approver_id', employeeId);
+      await client.from('employees').update({ l2_approver_id: null }).eq('l2_approver_id', employeeId);
+      await client.from('employees').update({ l3_approver_id: null }).eq('l3_approver_id', employeeId);
       
       const { error: empErr } = await client.from('employees').delete().eq('id', employeeId);
       if (empErr) throw empErr;
@@ -2824,7 +3330,7 @@ async function manageDepartments() {
     const [deptRes, posRes, empRes] = await Promise.all([
       supabase.from('departments').select('id, department_name, department_code, status').order('department_name', { ascending: true }),
       supabase.from('positions').select('id, position_name, department_id, level_type, duty_name, status').order('position_name', { ascending: true }),
-      supabase.from('employees').select('id, position_id, department_id, positions(position_name), departments(department_name)')
+      supabase.from('employees').select('id, position_id, department_id, positions(position_name), departments!department_id(department_name)')
     ]);
 
     Swal.close();
@@ -2842,8 +3348,9 @@ async function manageDepartments() {
       if (e.department_id) deptCountMap[e.department_id] = (deptCountMap[e.department_id] || 0) + 1;
     });
 
-    // จำแนกตำแหน่งออกเป็น 4 หมวด
+    // จำแนกตำแหน่งออกเป็น 5 หมวด (รวมผู้บริหาร)
     const categorizedPositions = {
+      executive: [],
       manager: [],
       supervisor: [],
       officer: [],
@@ -2851,7 +3358,8 @@ async function manageDepartments() {
     };
 
     positions.forEach(p => {
-      const cat = classifyPositionCategory(p.position_name);
+      let cat = classifyPositionCategory(p.position_name);
+      if (!categorizedPositions[cat]) cat = 'staff';
       categorizedPositions[cat].push({
         ...p,
         empCount: posCountMap[p.id] || posCountMap[p.position_name] || 0
@@ -2925,6 +3433,11 @@ async function manageDepartments() {
                           title="แก้ไขชื่อแผนก">
                     ✏️
                   </button>
+                  <button type="button" onclick="deleteDepartmentItem('${d.id}', '${escapeHtml(d.department_name)}', ${count})" 
+                          style="padding:4px 6px; background:#fef2f2; border:1px solid #fca5a5; border-radius:6px; cursor:pointer; font-size:11px; color:#dc2626;"
+                          title="ลบแผนก">
+                    🗑️
+                  </button>
                 </div>
               </div>
             `;
@@ -2944,7 +3457,10 @@ async function manageDepartments() {
 
           <!-- แถบเลือกแท็บแยกประเภทตำแหน่ง -->
           <div class="pos-modal-tabs" id="posModalTabs">
-            <button type="button" class="pos-modal-tab-btn active" onclick="switchPosModalView('manager')">
+            <button type="button" class="pos-modal-tab-btn active" onclick="switchPosModalView('executive')">
+              <span>👑 ผู้บริหาร (${categorizedPositions.executive.length})</span>
+            </button>
+            <button type="button" class="pos-modal-tab-btn" onclick="switchPosModalView('manager')">
               <span>👔 ผู้จัดการ (${categorizedPositions.manager.length})</span>
             </button>
             <button type="button" class="pos-modal-tab-btn" onclick="switchPosModalView('supervisor')">
@@ -2969,12 +3485,15 @@ async function manageDepartments() {
             
             <button type="button" id="posModalAddBtn" onclick="quickAddPositionOrDept()" 
                     class="action-btn success-zone" style="font-size:12.5px; padding:6px 14px;">
-              ➕ เพิ่มตำแหน่งใหม่
+              ➕ เพิ่มตำแหน่งผู้บริหารระดับสูง
             </button>
           </div>
 
           <!-- เนื้อหาของแต่ละแท็บ -->
-          <div id="pos-view-manager" class="pos-view-panel">
+          <div id="pos-view-executive" class="pos-view-panel">
+            ${renderPosListHTML('executive')}
+          </div>
+          <div id="pos-view-manager" class="pos-view-panel" style="display:none;">
             ${renderPosListHTML('manager')}
           </div>
           <div id="pos-view-supervisor" class="pos-view-panel" style="display:none;">
@@ -3002,20 +3521,21 @@ async function manageDepartments() {
   }
 }
 
-let activePosModalTab = 'manager';
+let activePosModalTab = 'executive';
 
 window.switchPosModalView = function(tabKey) {
   activePosModalTab = tabKey;
   
+  const allKeys = ['executive', 'manager', 'supervisor', 'officer', 'staff', 'department'];
+
   // ปรับ active class ของปุ่มแท็บ
   document.querySelectorAll('.pos-modal-tab-btn').forEach((btn, idx) => {
-    const keys = ['manager', 'supervisor', 'officer', 'staff', 'department'];
-    if (keys[idx] === tabKey) btn.classList.add('active');
+    if (allKeys[idx] === tabKey) btn.classList.add('active');
     else btn.classList.remove('active');
   });
 
   // สลับการแสดงผลหน้าจอ
-  ['manager', 'supervisor', 'officer', 'staff', 'department'].forEach(k => {
+  allKeys.forEach(k => {
     const el = document.getElementById(`pos-view-${k}`);
     if (el) el.style.display = k === tabKey ? 'block' : 'none';
   });
@@ -3027,6 +3547,7 @@ window.switchPosModalView = function(tabKey) {
       addBtn.innerHTML = '➕ เพิ่มฝ่าย/แผนกใหม่';
     } else {
       const labels = {
+        executive: '➕ เพิ่มตำแหน่งผู้บริหารระดับสูง',
         manager: '➕ เพิ่มตำแหน่งผู้จัดการ',
         supervisor: '➕ เพิ่มตำแหน่งหัวหน้างาน',
         officer: '➕ เพิ่มตำแหน่งเจ้าหน้าที่/ผู้ช่วย',
@@ -3084,6 +3605,7 @@ window.quickAddPositionOrDept = async function() {
     }
   } else {
     const placeholders = {
+      executive: 'เช่น ประธานเจ้าหน้าที่บริหาร (CEO), กรรมการผู้จัดการ (MD), ผู้อำนวยการฝ่าย...',
       manager: 'เช่น ผู้จัดการฝ่ายผลิต, ผู้อำนวยการฝ่ายการเงิน...',
       supervisor: 'เช่น หัวหน้าแผนกสโตร์, หัวหน้ากะงาน...',
       officer: 'เช่น เจ้าหน้าที่บัญชี, ผู้ช่วยผู้จัดการ, โปรแกรมเมอร์...',
@@ -3170,6 +3692,39 @@ window.editDepartmentName = async function(deptId, currentName) {
     }
     await saveHRActivityLog('DEPARTMENT', 'UPDATE', cleanName, `แก้ไขแผนกจาก ${currentName} เป็น ${cleanName}`);
     Swal.fire('สำเร็จ!', 'อัปเดตชื่อแผนกเรียบร้อยแล้ว', 'success');
+    refreshDashboard();
+  }
+};
+
+window.deleteDepartmentItem = async function(deptId, deptName, empCount) {
+  const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+
+  if (empCount > 0) {
+    Swal.fire('ไม่สามารถลบได้', `ฝ่าย/แผนก "${escapeHtml(deptName)}" มีพนักงานสังกัดอยู่ ${empCount} คน กรุณาย้ายแผนกสังกัดของพนักงานก่อนทำการลบ`, 'warning');
+    return;
+  }
+
+  const confirm = await Swal.fire({
+    title: 'ยืนยันการลบฝ่าย/แผนกงาน?',
+    text: `ต้องการลบแผนก "${deptName}" ออกจากระบบ ใช่หรือไม่?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: '🗑️ ยืนยันลบ',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (confirm.isConfirmed) {
+    Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() });
+    const { error } = await supabase.from('departments').delete().eq('id', deptId);
+    if (error) {
+      showAppError("ลบแผนกล้มเหลว", error.message);
+      return;
+    }
+    await saveHRActivityLog('DEPARTMENT', 'DELETE', deptName, `ลบฝ่าย/แผนกงาน: ${deptName}`);
+    Swal.fire('สำเร็จ!', `ลบแผนก "${escapeHtml(deptName)}" เรียบร้อยแล้ว`, 'success');
     refreshDashboard();
   }
 };
@@ -3410,26 +3965,16 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
     }
 
     const currentYear = new Date().getFullYear();
-    let { data: balances, error } = await supabase
-      .from('leave_balances')
-      .select('id, entitlement_days, used_days, remaining_days, leave_type_id, leave_types(leave_name)')
-      .eq('employee_id', emp.id)
-      .eq('year', currentYear);
-
-    if (error) throw error;
+    let balances = [];
+    if (window.PVTSDK?.user?.getLeaveBalances) {
+      balances = await window.PVTSDK.user.getLeaveBalances(emp.id, currentYear);
+    }
 
     if (!balances || balances.length === 0) {
-      const newBalances = leaveTypes.map(t => ({
-        employee_id: emp.id,
-        leave_type_id: t.id,
-        year: currentYear,
-        entitlement_days: t.yearly_quota || 0,
-        used_days: 0,
-        remaining_days: t.yearly_quota || 0
-      }));
-      const { data: inserted, error: insErr } = await supabase.from('leave_balances').insert(newBalances).select('id, entitlement_days, used_days, remaining_days, leave_type_id, leave_types(leave_name)');
-      if (insErr) throw insErr;
-      if (inserted) balances = inserted;
+      if (window.PVTSDK?.user?.ensureLeaveBalances) {
+        await window.PVTSDK.user.ensureLeaveBalances(emp.id, currentYear);
+        balances = await window.PVTSDK.user.getLeaveBalances(emp.id, currentYear);
+      }
     }
 
     let formHTML = `<div style="text-align:left; font-size:13px; max-height:360px; overflow-y:auto; font-family:'Sarabun', sans-serif;">`;
@@ -3497,6 +4042,8 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
           const newRemain = parseFloat(document.getElementById(`remain-${b.id}`).value) || 0;
           listBalances.push({ 
             id: b.id, 
+            leave_type_id: b.leave_type_id,
+            leave_code: b.leave_types?.leave_code,
             old_entit: b.entitlement_days, 
             old_used: b.used_days,
             old_remain: b.remaining_days, 
@@ -3513,12 +4060,15 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
       Swal.fire({ title: 'กำลังปรับปรุงยอดโควตา...', didOpen: () => Swal.showLoading() });
       for (const b of updatedBalances) {
         if (b.new_entit !== b.old_entit || b.new_used !== b.old_used || b.new_remain !== b.old_remain) {
-          const { error: updErr } = await supabase.from('leave_balances').update({ 
-            entitlement_days: b.new_entit, 
-            used_days: b.new_used,
-            remaining_days: b.new_remain 
-          }).eq('id', b.id);
-          if (updErr) throw updErr;
+          if (window.PVTSDK?.user?.updateLeaveBalance) {
+            await window.PVTSDK.user.updateLeaveBalance(emp.id, b.leave_type_id, b.leave_code, currentYear, 0, b.new_used);
+          } else {
+            await supabase.from('leave_balances').update({ 
+              entitlement_days: b.new_entit, 
+              used_days: b.new_used,
+              remaining_days: b.new_remain 
+            }).eq('id', b.id);
+          }
         }
       }
       await saveHRActivityLog('LEAVE_QUOTA', 'UPDATE', emp.employee_code, `ปรับสิทธิ์ใบลาให้คุณ ${emp.full_name}`);
@@ -3880,249 +4430,807 @@ window.deleteHoliday = deleteHoliday;
 // ==========================================
 // EXCEL EXPORT ENGINE (EXCELJS INTEGRATION)
 // ==========================================
+/**
+ * 📊 ดึงรายงานการลาและโควตาวันลาพนักงานเป็นไฟล์ Excel
+ * รองรับทั้ง:
+ * 1. ดึงข้อมูลพนักงานทั้งหมด 100% (ไม่สนว่าจะมีใบลาหรือไม่) รูปแบบคล้ายตาราง employee_leave_balances ใน Supabase
+ * 2. เอาเฉพาะพนักงานที่มีประวัติการลา (Leave Active Only)
+ * 3. รวมทุกข้อมูลในไฟล์เดียว (All-in-One Workbook: ทุกคน + คนที่ลา + ประวัติใบลาดิบ + ตาราง Supabase 1:1)
+ * 4. ประวัติใบลาแบบละเอียดรายใบ (Raw Leave Requests)
+ */
 async function exportAllLeaveHistoryExcel() {
-  if (!leaveRequests || !leaveRequests.length) {
-    showAppError("ไม่พบข้อมูล", "ยังไม่มีประวัติการลาในระบบสำหรับส่งออก");
-    return;
-  }
-
   if (typeof ExcelJS === "undefined") {
     showAppError("ไลบรารีไม่พร้อมใช้งาน", "ยังไม่ได้โหลด ExcelJS กรุณารีเฟรชหน้าเว็บ");
     return;
   }
 
-  // 1. ให้ผู้ใช้เลือกรูปแบบรายงานที่ต้องการ
+  // 1. ตรวจสอบและดึงข้อมูลพนักงานหากยังไม่มี
+  if (!employees || !employees.length) {
+    if (typeof fetchEmployees === "function") {
+      await fetchEmployees();
+    }
+  }
+
+  if (!employees || !employees.length) {
+    showAppError("ไม่พบข้อมูลพนักงาน", "ยังไม่มีข้อมูลพนักงานในระบบสำหรับส่งออก");
+    return;
+  }
+
+  // 2. ให้ผู้ใช้เลือกรูปแบบรายงานที่ต้องการอย่างชัดเจน
+  const empCount = employees.length;
+  const leaveCount = Array.isArray(leaveRequests) ? leaveRequests.length : 0;
+
   const { value: exportType } = await Swal.fire({
-    title: '📊 ส่งออกรายงานการลา Excel',
-    text: 'กรุณาเลือกรูปแบบรายงานที่คุณต้องการดาวน์โหลด',
-    icon: 'question',
+    title: '📊 ส่งออกรายงานการลา & โควตาพนักงาน (Excel)',
+    html: `
+      <div style="text-align: left; font-family: 'Sarabun', sans-serif; font-size: 13.5px; color: #334155;">
+        <div style="margin-bottom: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>👥 พนักงานทั้งหมด: <strong style="color: #0d9488;">${empCount} คน</strong></span>
+            <span>📋 ใบลาในระบบ: <strong style="color: #2563eb;">${leaveCount} รายการ</strong></span>
+          </div>
+          <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">
+            อิงตามฐานข้อมูลตาราง <code style="background: #e2e8f0; padding: 1px 5px; border-radius: 4px;">employee_leave_balances</code> และ <code style="background: #e2e8f0; padding: 1px 5px; border-radius: 4px;">leave_requests</code>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- 1. พนักงานทุกคน -->
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+            <input type="radio" name="exportChoiceRadio" value="all_employees" checked style="margin-top: 3px; accent-color: #0d9488; transform: scale(1.2);">
+            <div>
+              <div style="font-weight: 700; color: #0f172a; font-size: 14px;">👥 1. ดึงข้อมูลพนักงานทั้งหมด (ไม่สนใบลารวม)</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                ส่งออกพนักงานทุกคนในระบบ 100% (แม้ไม่เคยลา) โครงสร้างตามตาราง <code>employee_leave_balances</code> พร้อมยอดสิทธิ์, ใช้ไป, คงเหลือ ครบทุกประเภท
+              </div>
+            </div>
+          </label>
+
+          <!-- 2. เฉพาะคนที่ลา -->
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+            <input type="radio" name="exportChoiceRadio" value="active_only" style="margin-top: 3px; accent-color: #0d9488; transform: scale(1.2);">
+            <div>
+              <div style="font-weight: 700; color: #0f172a; font-size: 14px;">🏃 2. เอาเฉพาะคนที่ลา (Employees with Leave Requests)</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                คัดกรองเฉพาะพนักงานที่เคยมียอดวันลาที่ใช้ไป หรือมีประวัติการยื่นใบลา พร้อมตารางสรุปโควตาคล้าย <code>employee_leave_balances</code>
+              </div>
+            </div>
+          </label>
+
+          <!-- 3. รวมทุกอย่างในไฟล์เดียว -->
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+            <input type="radio" name="exportChoiceRadio" value="all_in_one" style="margin-top: 3px; accent-color: #0d9488; transform: scale(1.2);">
+            <div>
+              <div style="font-weight: 700; color: #0f172a; font-size: 14px;">📑 3. รวมทุกข้อมูลในไฟล์เดียว (All-in-One Complete Workbook)</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                ครบถ้วนทุกชีต: ชีตพนักงานทุกคน + ชีตเฉพาะคนที่ลา + ชีตประวัติใบลาละเอียด + ชีตโครงสร้าง Supabase 1:1
+              </div>
+            </div>
+          </label>
+
+          <!-- 4. ประวัติใบลาดิบ -->
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+            <input type="radio" name="exportChoiceRadio" value="raw_leaves" style="margin-top: 3px; accent-color: #0d9488; transform: scale(1.2);">
+            <div>
+              <div style="font-weight: 700; color: #0f172a; font-size: 14px;">📄 4. ข้อมูลประวัติใบลาแบบละเอียดรายใบ (Raw Leave Requests Only)</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                รายการคำขอลาทุกรายการ พร้อมวันเริ่มต้น-สิ้นสุด เหตุผล สถานะ และผู้อนุมัติ
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+    `,
     showCancelButton: true,
-    showDenyButton: true,
-    confirmButtonText: '📈 สรุปภาพรวม (Executive Summary)',
-    denyButtonText: '📄 ข้อมูลดิบทั้งหมด (Raw Data)',
+    confirmButtonText: '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">download</span> ดาวน์โหลด Excel',
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#0d9488',
-    denyButtonColor: '#3b82f6',
-    width: 'min(92vw, 550px)'
+    cancelButtonColor: '#94a3b8',
+    width: 'min(94vw, 580px)',
+    preConfirm: () => {
+      const selected = document.querySelector('input[name="exportChoiceRadio"]:checked');
+      return selected ? selected.value : 'all_employees';
+    }
   });
 
-  if (exportType === undefined) return; // กดยกเลิก
+  if (!exportType) return; // กดยกเลิก
 
+  await generateAndDownloadLeaveBalancesExcel(exportType);
+}
+
+/**
+ * ⚡ ฟังก์ชันประมวลผลข้อมูลและสร้างไฟล์ Excel ตามตัวเลือกที่ระบุ
+ * @param {'all_employees' | 'active_only' | 'all_in_one' | 'raw_leaves'} mode 
+ */
+async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees') {
   Swal.fire({
     title: 'กำลังสร้างไฟล์ Excel...',
-    text: 'ระบบกำลังประมวลผลข้อมูลและจัดรูปแบบรายงาน',
-    didOpen: () => Swal.showLoading()
+    text: 'กำลังรวบรวมข้อมูลจากตาราง employee_leave_balances และจัดรูปแบบรายงาน',
+    didOpen: () => Swal.showLoading(),
+    allowOutsideClick: false
   });
 
   try {
+    const sb = getSupabase();
+    const currentYearAD = new Date().getFullYear();
+    const thaiYear = currentYearAD > 2400 ? currentYearAD : currentYearAD + 543;
+    const yearAD = currentYearAD > 2400 ? currentYearAD - 543 : currentYearAD;
+
+    // 1. ดึงข้อมูลพนักงานล่าสุด
+    if (!employees || !employees.length) {
+      await fetchEmployees();
+    }
+
+    // 2. ดึงข้อมูลใบลาล่าสุด
+    if (!leaveRequests || !leaveRequests.length) {
+      if (typeof fetchLeaveRequests === 'function') {
+        await fetchLeaveRequests();
+      }
+    }
+
+    // 3. ดึงข้อมูลจากตาราง employee_leave_balances ใน Supabase สำหรับปีปัจจุบัน
+    let rawBalances = [];
+    if (sb) {
+      try {
+        const { data, error } = await sb
+          .from("employee_leave_balances")
+          .select("*")
+          .in("year", [yearAD, thaiYear]);
+
+        if (!error && Array.isArray(data)) {
+          rawBalances = data;
+        }
+      } catch (dbErr) {
+        console.warn("Could not query employee_leave_balances:", dbErr);
+      }
+    }
+
+    // สร้าง Map สำหรับค้นหาโควตาตาม employee_id
+    const balancesMap = new Map();
+    rawBalances.forEach(b => {
+      if (b && b.employee_id) {
+        balancesMap.set(String(b.employee_id), b);
+      }
+    });
+
+    // สร้าง Map สำหรับจัดกลุ่มประวัติใบลาตาม employee_id
+    const requestsByEmp = new Map();
+    (leaveRequests || []).forEach(r => {
+      if (r && r.employee_id) {
+        const eid = String(r.employee_id);
+        if (!requestsByEmp.has(eid)) requestsByEmp.set(eid, []);
+        requestsByEmp.get(eid).push(r);
+      }
+    });
+
+    // 4. รวบรวมข้อมูลโควตาวันลาของพนักงานทุกคน (All Employees Dataset)
+    const allEmployeesData = (employees || []).map((emp, index) => {
+      const eid = String(emp.id);
+      const bal = balancesMap.get(eid);
+      const empRequests = requestsByEmp.get(eid) || [];
+
+      // ดึงหรือคำนวณสิทธิ์และวันลาที่ใช้ไป (อิงตาม employee_leave_balances)
+      let sick_total = bal ? Number(bal.sick_total ?? 30) : 30;
+      let sick_used = bal ? Number(bal.sick_used ?? 0) : 0;
+
+      let personal_total = bal ? Number(bal.personal_total ?? 6) : 6;
+      let personal_used = bal ? Number(bal.personal_used ?? 0) : 0;
+
+      let vacation_total = bal ? Number(bal.vacation_total ?? 6) : 6;
+      let vacation_used = bal ? Number(bal.vacation_used ?? 0) : 0;
+
+      let maternity_total = bal ? Number(bal.maternity_total ?? 98) : 98;
+      let maternity_used = bal ? Number(bal.maternity_used ?? 0) : 0;
+
+      let other_total = bal ? Number(bal.other_total ?? 30) : 30;
+      let other_used = bal ? Number(bal.other_used ?? 0) : 0;
+
+      // หากไม่มีข้อมูลใน employee_leave_balances แต่มีใบลาที่อนุมัติแล้วในระบบ ให้คำนวณวันลาที่ใช้ไป
+      if (!bal && empRequests.length > 0) {
+        empRequests.forEach(r => {
+          if (String(r.status).toLowerCase() === 'approved') {
+            const days = Number(r.total_days || 0);
+            const typeName = String(getLeaveType(r.leave_type_id)?.leave_name || '').toLowerCase();
+            if (typeName.includes('ป่วย')) sick_used += days;
+            else if (typeName.includes('กิจ')) personal_used += days;
+            else if (typeName.includes('พักร้อน')) vacation_used += days;
+            else if (typeName.includes('คลอด')) maternity_used += days;
+            else other_used += days;
+          }
+        });
+      }
+
+      // คำนวณคงเหลือ
+      const sick_remaining = Math.max(0, sick_total - sick_used);
+      const personal_remaining = Math.max(0, personal_total - personal_used);
+      const vacation_remaining = Math.max(0, vacation_total - vacation_used);
+      const maternity_remaining = Math.max(0, maternity_total - maternity_used);
+      const other_remaining = Math.max(0, other_total - other_used);
+
+      // ยอดรวม
+      const total_entitled = sick_total + personal_total + vacation_total + maternity_total + other_total;
+      const total_used = sick_used + personal_used + vacation_used + maternity_used + other_used;
+      const total_remaining = Math.max(0, total_entitled - total_used);
+
+      // ตรวจสอบว่าพนักงานคนนี้ "เคยลาหรือไม่" (Active Leave Employee)
+      const isLeaveActive = total_used > 0 || empRequests.length > 0;
+
+      const deptName = emp.departments?.department_name || (typeof emp.departments === 'string' ? emp.departments : '-');
+      const posName = emp.positions?.position_name || (typeof emp.positions === 'string' ? emp.positions : '-');
+      
+      let statusText = 'ปฏิบัติงาน';
+      if (emp.status === 'resigned' || emp.status === 'inactive') statusText = 'พ้นสภาพ/ลาออก';
+      else if (emp.status === 'probation') statusText = 'ทดลองงาน';
+
+      return {
+        no: index + 1,
+        employee_id: emp.id,
+        balance_id: bal?.id || `BAL-${emp.id.substring(0, 8)}`,
+        employee_code: emp.employee_code || '-',
+        full_name: emp.full_name || '-',
+        nickname: emp.nickname || '-',
+        department_name: deptName,
+        position_name: posName,
+        status: statusText,
+        start_date: emp.start_date ? new Date(emp.start_date).toLocaleDateString('th-TH') : '-',
+        year: bal?.year || thaiYear,
+        
+        // หมวดลาป่วย
+        sick_total,
+        sick_used,
+        sick_remaining,
+
+        // หมวดลากิจ
+        personal_total,
+        personal_used,
+        personal_remaining,
+
+        // หมวดพักร้อน
+        vacation_total,
+        vacation_used,
+        vacation_remaining,
+
+        // หมวดลาคลอด
+        maternity_total,
+        maternity_used,
+        maternity_remaining,
+
+        // หมวดลาอื่นๆ
+        other_total,
+        other_used,
+        other_remaining,
+
+        // สรุปรวม
+        total_entitled,
+        total_used,
+        total_remaining,
+
+        // สถิติใบลา
+        leave_requests_count: empRequests.length,
+        approved_requests_count: empRequests.filter(r => String(r.status).toLowerCase() === 'approved').length,
+        isLeaveActive,
+        created_at: bal?.created_at || emp.created_at || new Date().toISOString(),
+        updated_at: bal?.updated_at || new Date().toISOString()
+      };
+    });
+
+    // พนักงานเฉพาะคนที่มีประวัติการลา
+    const activeOnlyData = allEmployeesData.filter(e => e.isLeaveActive);
+
+    // 5. สร้าง Workbook ด้วย ExcelJS
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "PVT Workforce Hub";
     workbook.created = new Date();
 
-    const isSummaryMode = exportType === true; // กดเลือก Executive Summary
+    const dateStr = new Date().toISOString().slice(0, 10);
+    let fileName = `รายงานการลา_${dateStr}.xlsx`;
 
     // -------------------------------------------------------------
-    // SHEET 1: สรุปภาพรวม (กรณีเลือก Executive Summary)
+    // BUILD SHEETS ตาม MODE ที่เลือก
     // -------------------------------------------------------------
-    if (isSummaryMode) {
-      const summarySheet = workbook.addWorksheet("สรุปภาพรวม (Summary)");
-      summarySheet.views = [{ showGridLines: true }];
-
-      // หัวข้อรายงาน
-      summarySheet.mergeCells("A1:E1");
-      const titleCell = summarySheet.getCell("A1");
-      titleCell.value = "🏢 รายงานสรุปภาพรวมการลาพนักงาน (Executive Leave Dashboard)";
-      titleCell.font = { name: "Sarabun", size: 16, bold: true, color: { argb: "FF0F766E" } };
-      titleCell.alignment = { vertical: "middle", horizontal: "left" };
-
-      summarySheet.getCell("A2").value = `วันที่ดึงรายงาน: ${new Date().toLocaleDateString("th-TH")} | สังกัด: ทุกแผนก`;
-      summarySheet.getCell("A2").font = { name: "Sarabun", size: 10, italic: true, color: { argb: "FF64748B" } };
-
-      // KPI Cards (กล่องสรุปตัวเลข)
-      const approvedList = leaveRequests.filter(r => String(r.status).toLowerCase() === "approved");
-      const totalDays = approvedList.reduce((sum, r) => sum + Number(r.total_days || 0), 0);
-      const pendingCount = leaveRequests.filter(r => String(r.status).toLowerCase() === "pending").length;
-
-      summarySheet.getRow(4).values = ["สถิติลารวมทั้งหมด", "อนุมัติแล้ว (วัน)", "รออนุมัติ (รายการ)", "พนักงานทั้งหมด"];
-      summarySheet.getRow(5).values = [leaveRequests.length, totalDays, pendingCount, employees.length];
-
-      // จัดสไตล์ KPI Cards
-      const kpiHeaderRow = summarySheet.getRow(4);
-      const kpiValueRow = summarySheet.getRow(5);
+    if (mode === 'all_employees') {
+      // 1. ดึงพนักงานทุกคน (ไม่สนว่าจะมีใบลาหรือไม่)
+      fileName = `โควตาวันลาพนักงานทุกคน_PVT_${thaiYear}_${dateStr}.xlsx`;
+      addLeaveBalancesWorksheet(workbook, `โควตาพนักงานทุกคน (${allEmployeesData.length})`, allEmployeesData, `พนักงานทั้งหมด (${allEmployeesData.length} คน)`);
+      addSupabaseFormatWorksheet(workbook, "ตาราง Supabase Format", allEmployeesData);
+    } 
+    else if (mode === 'active_only') {
+      // 2. เอาเฉพาะคนที่ลา
+      fileName = `โควตาวันลาเฉพาะคนที่มีการลา_PVT_${thaiYear}_${dateStr}.xlsx`;
+      const activeList = activeOnlyData.length > 0 ? activeOnlyData : allEmployeesData;
+      const subtitle = activeOnlyData.length > 0 
+        ? `เฉพาะพนักงานที่มีการลา (${activeOnlyData.length} คน)` 
+        : `ไม่พบพนักงานที่มีการลา แสดงพนักงานทั้งหมด (${allEmployeesData.length} คน)`;
       
-      for (let col = 1; col <= 4; col++) {
-        const hCell = kpiHeaderRow.getCell(col);
-        const vCell = kpiValueRow.getCell(col);
-
-        hCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
-        hCell.font = { bold: true, size: 10, color: { argb: "FF475569" } };
-        hCell.alignment = { horizontal: "center", vertical: "middle" };
-
-        vCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0FDFA" } };
-        vCell.font = { bold: true, size: 14, color: { argb: "FF0D9488" } };
-        vCell.alignment = { horizontal: "center", vertical: "middle" };
-
-        hCell.border = { top: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-        vCell.border = { bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} };
-      }
-
-      // ตารางตารางสรุปแยกตามประเภทการลา
-      summarySheet.getCell("A7").value = "📊 สรุปจำนวนวันลาแยกตามประเภท (เฉพาะที่อนุมัติ)";
-      summarySheet.getCell("A7").font = { bold: true, size: 12, color: { argb: "FF1E293B" } };
-
-      const typeSummaryHeader = summarySheet.getRow(8);
-      typeSummaryHeader.values = ["ประเภทการลา", "จำนวนรายการ", "รวมจำนวนวันลา"];
-      typeSummaryHeader.font = { bold: true, color: { argb: "FFFFFFFF" } };
-      typeSummaryHeader.eachCell((cell) => {
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0D9488" } };
-        cell.alignment = { horizontal: "center" };
-      });
-
-      // ดึงสถิติแยกตามประเภท
-      const typeMap = new Map();
-      approvedList.forEach(r => {
-        const typeName = getLeaveType(r.leave_type_id)?.leave_name || "อื่นๆ";
-        const current = typeMap.get(typeName) || { count: 0, days: 0 };
-        typeMap.set(typeName, { count: current.count + 1, days: current.days + Number(r.total_days || 0) });
-      });
-
-      let currentRowIdx = 9;
-      typeMap.forEach((val, typeName) => {
-        const row = summarySheet.getRow(currentRowIdx);
-        row.values = [typeName, val.count, val.days];
-        row.getCell(1).alignment = { horizontal: "left" };
-        row.getCell(2).alignment = { horizontal: "center" };
-        row.getCell(3).alignment = { horizontal: "right" };
-        row.eachCell(cell => {
-          cell.border = { top: {style:'thin', color:{argb:'FFE2E8F0'}}, bottom: {style:'thin', color:{argb:'FFE2E8F0'}}, left: {style:'thin', color:{argb:'FFE2E8F0'}}, right: {style:'thin', color:{argb:'FFE2E8F0'}} };
-        });
-        currentRowIdx++;
-      });
+      addLeaveBalancesWorksheet(workbook, `เฉพาะคนที่มีการลา (${activeOnlyData.length})`, activeList, subtitle);
+      addRawLeaveRequestsWorksheet(workbook, "ประวัติใบลาทั้งหมด", leaveRequests, employees);
+    } 
+    else if (mode === 'all_in_one') {
+      // 3. รวมทุกชีตในเล่มเดียว
+      fileName = `รายงานโควตาและประวัติการลารวมเล่ม_PVT_${thaiYear}_${dateStr}.xlsx`;
+      addLeaveBalancesWorksheet(workbook, "1.พนักงานทุกคน (All)", allEmployeesData, `พนักงานทั้งหมดในระบบ (${allEmployeesData.length} คน)`);
+      addLeaveBalancesWorksheet(workbook, "2.เฉพาะคนลา (Active)", activeOnlyData.length > 0 ? activeOnlyData : allEmployeesData, `เฉพาะคนที่มีการลา (${activeOnlyData.length} คน)`);
+      addRawLeaveRequestsWorksheet(workbook, "3.ประวัติใบลาละเอียด", leaveRequests, employees);
+      addSupabaseFormatWorksheet(workbook, "4.Supabase Format (1-1)", allEmployeesData);
+    } 
+    else if (mode === 'raw_leaves') {
+      // 4. ประวัติใบลาดิบ
+      fileName = `ประวัติการลาดิบ_PVT_${dateStr}.xlsx`;
+      addRawLeaveRequestsWorksheet(workbook, "ประวัติใบลาทั้งหมด", leaveRequests, employees);
+      addLeaveBalancesWorksheet(workbook, "สรุปโควตาพนักงานทุกคน", allEmployeesData, `ข้อมูลสรุปพนักงานทั้งหมด (${allEmployeesData.length} คน)`);
     }
 
-    // -------------------------------------------------------------
-    // SHEET 2: ข้อมูลดิบ (RAW DATA LEAVE HISTORY)
-    // -------------------------------------------------------------
-    const rawSheet = workbook.addWorksheet("ประวัติการลาทั้งหมด (Data)");
-    rawSheet.views = [{ showGridLines: true }];
-
-    // กำหนดโครงสร้างคอลัมน์
-    rawSheet.columns = [
-      { header: "รหัสพนักงาน", key: "emp_code", width: 14 },
-      { header: "ชื่อ-นามสกุล", key: "emp_name", width: 22 },
-      { header: "แผนก/ฝ่าย", key: "dept", width: 18 },
-      { header: "ตำแหน่ง", key: "position", width: 20 },
-      { header: "ประเภทการลา", key: "leave_type", width: 18 },
-      { header: "วันที่เริ่มต้น", key: "start_date", width: 14 },
-      { header: "วันที่สิ้นสุด", key: "end_date", width: 14 },
-      { header: "จำนวนวัน", key: "total_days", width: 12 },
-      { header: "เหตุผลการลา", key: "reason", width: 30 },
-      { header: "สถานะคำขอ", key: "status", width: 14 },
-      { header: "วันที่ยื่นคำขอ", key: "created_at", width: 18 }
-    ];
-
-    // ตกแต่ง Header ของตารางข้อมูลดิบ
-    const headerRow = rawSheet.getRow(1);
-    headerRow.height = 26;
-    headerRow.eachCell((cell) => {
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0D9488" } };
-      cell.font = { name: "Sarabun", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
-      cell.alignment = { vertical: "middle", horizontal: "center" };
-      cell.border = { top: { style: "medium" }, bottom: { style: "medium" } };
-    });
-
-    // วนลูปเพิ่ม Row ข้อมูล
-    leaveRequests.forEach((r, idx) => {
-      const emp = employees.find((e) => String(e.id) === String(r.employee_id));
-      const leaveType = getLeaveType(r.leave_type_id)?.leave_name || "ไม่ระบุ";
-      const statusText = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(r.status) : (r.status || "-");
-      
-      const createdDateFormatted = r.created_at ? new Date(r.created_at).toLocaleString("th-TH") : "-";
-
-      const addedRow = rawSheet.addRow({
-        emp_code: emp?.employee_code || "-",
-        emp_name: emp?.full_name || "-",
-        dept: emp?.departments?.department_name || "-",
-        position: emp?.positions?.position_name || "-",
-        leave_type: leaveType,
-        start_date: window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(r.start_date) : r.start_date,
-        end_date: window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(r.end_date) : r.end_date,
-        total_days: Number(r.total_days || 0),
-        reason: (r.reason || r.note || "-").trim(),
-        status: statusText,
-        created_at: createdDateFormatted
-      });
-
-      addedRow.height = 20;
-
-      // สลับสีบรรทัด (Zebra Striping) + สไตล์ตัวอักษร
-      const isEven = idx % 2 === 0;
-      addedRow.eachCell((cell, colNumber) => {
-        cell.font = { name: "Sarabun", size: 10 };
-        cell.border = {
-          top: { style: "thin", color: { argb: "FFE2E8F0" } },
-          bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
-          left: { style: "thin", color: { argb: "FFE2E8F0" } },
-          right: { style: "thin", color: { argb: "FFE2E8F0" } }
-        };
-
-        if (isEven) {
-          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
-        }
-
-        // จัด Alignment รายคอลัมน์
-        if ([1, 6, 7, 10, 11].includes(colNumber)) cell.alignment = { horizontal: "center", vertical: "middle" };
-        else if (colNumber === 8) cell.alignment = { horizontal: "right", vertical: "middle" };
-        else cell.alignment = { horizontal: "left", vertical: "middle" };
-
-        // ใส่สีแยกตามสถานะ
-        if (colNumber === 10) {
-          if (r.status === "approved") cell.font = { bold: true, color: { argb: "FF15803D" } };
-          else if (r.status === "pending") cell.font = { bold: true, color: { argb: "FFA16207" } };
-          else if (r.status === "rejected") cell.font = { bold: true, color: { argb: "FFBE123C" } };
-        }
-      });
-    });
-
-    // ปรับ Auto-Width ของคอลัมน์ใน Sheet ข้อมูลดิบเพิ่มเติม
-    rawSheet.columns.forEach((column) => {
-      let maxLen = column.header ? column.header.length : 12;
-      column.eachCell({ includeEmpty: true }, (cell) => {
-        const len = cell.value ? String(cell.value).length : 0;
-        if (len > maxLen) maxLen = len;
-      });
-      column.width = Math.min(Math.max(maxLen + 4, 12), 40);
-    });
-
-    // -------------------------------------------------------------
-    // GENERATE FILE & DOWNLOAD
-    // -------------------------------------------------------------
+    // 6. ดาวน์โหลดไฟล์
     const buffer = await workbook.xlsx.writeBuffer();
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const fileName = isSummaryMode 
-      ? `รายงานสรุปภาพรวมการลา_PVT_${dateStr}.xlsx` 
-      : `ประวัติการลาดิบ_PVT_${dateStr}.xlsx`;
-
     window.pvtSupabase.downloadBlob(
-      fileName, 
-      buffer, 
+      fileName,
+      buffer,
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
 
     Swal.fire({
       icon: "success",
       title: "ดาวน์โหลดสำเร็จ!",
-      text: `ส่งออกไฟล์ ${fileName} เรียบร้อยแล้ว`,
-      timer: 2000,
-      showConfirmButton: false
+      html: `
+        <div style="font-size: 13.5px; text-align: left; color: #334155;">
+          <div>✅ ส่งออกไฟล์ <strong>${fileName}</strong> เรียบร้อยแล้ว</div>
+          <div style="margin-top: 6px; font-size: 12px; color: #64748b;">
+            • จำนวนพนักงานในรายงาน: <strong>${mode === 'active_only' ? activeOnlyData.length : allEmployeesData.length} คน</strong><br/>
+            • โครงสร้างคอลัมน์ตรงตามตาราง <code>employee_leave_balances</code> ของ Supabase ครบทุกประเภทวันลา
+          </div>
+        </div>
+      `,
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#0d9488'
     });
-
-    
 
   } catch (err) {
     console.error("Excel Export Error:", err);
     showAppError("ไม่สามารถสร้างไฟล์ Excel ได้", err.message);
   }
+}
+
+/**
+ * 🎨 Helper: สร้างชีตตารางโควตาวันลา (employee_leave_balances) พร้อมสไตล์ที่สวยงามและอ่านง่าย
+ */
+function addLeaveBalancesWorksheet(workbook, sheetTitle, dataList, scopeSubtitle = '') {
+  const sheet = workbook.addWorksheet(sheetTitle);
+  sheet.views = [{ state: 'frozen', ySplit: 4, showGridLines: true }];
+
+  // 1. หัวข้อรายงาน (Banner Rows)
+  sheet.mergeCells("A1:AA1");
+  const titleCell = sheet.getCell("A1");
+  titleCell.value = `🏢 บริษัท ปัญจวัฒนา จำกัด - รายงานสรุปโควตาวันลาพนักงาน (employee_leave_balances)`;
+  titleCell.font = { name: "Sarabun", size: 15, bold: true, color: { argb: "FFFFFFFF" } };
+  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
+  titleCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+  sheet.getRow(1).height = 36;
+
+  sheet.mergeCells("A2:AA2");
+  const subCell = sheet.getCell("A2");
+  const nowStr = new Date().toLocaleString("th-TH");
+  subCell.value = `ขอบเขตรายงาน: ${scopeSubtitle} | วันที่ส่งออก: ${nowStr} | ตารางฐานข้อมูล: public.employee_leave_balances`;
+  subCell.font = { name: "Sarabun", size: 10.5, italic: true, color: { argb: "FF475569" } };
+  subCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0FDFA" } };
+  subCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+  sheet.getRow(2).height = 22;
+
+  // 2. หมวดหมู่กลุ่มหัวตาราง (Group Headers - Row 3)
+  const groupRow = sheet.getRow(3);
+  groupRow.height = 24;
+
+  sheet.mergeCells("A3:F3");
+  sheet.getCell("A3").value = "ข้อมูลพนักงานทั่วไป (Employee Info)";
+  sheet.getCell("A3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+  sheet.getCell("A3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("A3").alignment = { horizontal: "center", vertical: "middle" };
+
+  sheet.getCell("G3").value = "ปี พ.ศ.";
+  sheet.getCell("G3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF334155" } };
+  sheet.getCell("G3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("G3").alignment = { horizontal: "center", vertical: "middle" };
+
+  sheet.mergeCells("H3:J3");
+  sheet.getCell("H3").value = "🩺 ลาป่วย (Sick)";
+  sheet.getCell("H3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0D9488" } };
+  sheet.getCell("H3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("H3").alignment = { horizontal: "center", vertical: "middle" };
+
+  sheet.mergeCells("K3:M3");
+  sheet.getCell("K3").value = "💼 ลากิจ (Personal)";
+  sheet.getCell("K3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
+  sheet.getCell("K3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("K3").alignment = { horizontal: "center", vertical: "middle" };
+
+  sheet.mergeCells("N3:P3");
+  sheet.getCell("N3").value = "🏖️ พักร้อน (Vacation)";
+  sheet.getCell("N3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF059669" } };
+  sheet.getCell("N3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("N3").alignment = { horizontal: "center", vertical: "middle" };
+
+  sheet.mergeCells("Q3:S3");
+  sheet.getCell("Q3").value = "🍼 ลาคลอด (Maternity)";
+  sheet.getCell("Q3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7C3AED" } };
+  sheet.getCell("Q3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("Q3").alignment = { horizontal: "center", vertical: "middle" };
+
+  sheet.mergeCells("T3:V3");
+  sheet.getCell("T3").value = "📌 ลาอื่นๆ (Other)";
+  sheet.getCell("T3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF475569" } };
+  sheet.getCell("T3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("T3").alignment = { horizontal: "center", vertical: "middle" };
+
+  sheet.mergeCells("W3:Y3");
+  sheet.getCell("W3").value = "📊 สรุปรวมวันลาทุกประเภท";
+  sheet.getCell("W3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4338CA" } };
+  sheet.getCell("W3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("W3").alignment = { horizontal: "center", vertical: "middle" };
+
+  sheet.mergeCells("Z3:AA3");
+  sheet.getCell("Z3").value = "สถิติใบลา & สถานะ";
+  sheet.getCell("Z3").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0284C7" } };
+  sheet.getCell("Z3").font = { name: "Sarabun", size: 10.5, bold: true, color: { argb: "FFFFFFFF" } };
+  sheet.getCell("Z3").alignment = { horizontal: "center", vertical: "middle" };
+
+  // 3. ชื่อคอลัมน์ย่อย (Row 4)
+  const columnsDef = [
+    { key: "no", header: "ลำดับ", width: 7 },
+    { key: "employee_code", header: "รหัสพนักงาน", width: 14 },
+    { key: "full_name", header: "ชื่อ - นามสกุล", width: 22 },
+    { key: "nickname", header: "ชื่อเล่น", width: 11 },
+    { key: "department_name", header: "แผนก / ฝ่าย", width: 18 },
+    { key: "position_name", header: "ตำแหน่งงาน", width: 20 },
+    { key: "year", header: "ปี พ.ศ.", width: 10 },
+
+    // ลาป่วย
+    { key: "sick_total", header: "สิทธิ์ (วัน)", width: 11 },
+    { key: "sick_used", header: "ใช้ไป (วัน)", width: 11 },
+    { key: "sick_remaining", header: "คงเหลือ (วัน)", width: 12 },
+
+    // ลากิจ
+    { key: "personal_total", header: "สิทธิ์ (วัน)", width: 11 },
+    { key: "personal_used", header: "ใช้ไป (วัน)", width: 11 },
+    { key: "personal_remaining", header: "คงเหลือ (วัน)", width: 12 },
+
+    // พักร้อน
+    { key: "vacation_total", header: "สิทธิ์ (วัน)", width: 11 },
+    { key: "vacation_used", header: "ใช้ไป (วัน)", width: 11 },
+    { key: "vacation_remaining", header: "คงเหลือ (วัน)", width: 12 },
+
+    // ลาคลอด
+    { key: "maternity_total", header: "สิทธิ์ (วัน)", width: 11 },
+    { key: "maternity_used", header: "ใช้ไป (วัน)", width: 11 },
+    { key: "maternity_remaining", header: "คงเหลือ (วัน)", width: 12 },
+
+    // ลาอื่นๆ
+    { key: "other_total", header: "สิทธิ์ (วัน)", width: 11 },
+    { key: "other_used", header: "ใช้ไป (วัน)", width: 11 },
+    { key: "other_remaining", header: "คงเหลือ (วัน)", width: 12 },
+
+    // สรุปรวม
+    { key: "total_entitled", header: "สิทธิ์รวม", width: 12 },
+    { key: "total_used", header: "ใช้ไปรวม", width: 12 },
+    { key: "total_remaining", header: "คงเหลือรวม", width: 13 },
+
+    // สถิติใบลา
+    { key: "leave_requests_count", header: "จำนวนใบลา", width: 12 },
+    { key: "leave_status_note", header: "ประวัติการลา", width: 16 }
+  ];
+
+  const subHeaderRow = sheet.getRow(4);
+  subHeaderRow.height = 24;
+  columnsDef.forEach((col, idx) => {
+    const colNumber = idx + 1;
+    const cell = subHeaderRow.getCell(colNumber);
+    cell.value = col.header;
+    cell.font = { name: "Sarabun", size: 10, bold: true, color: { argb: "FF334155" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = {
+      top: { style: "thin", color: { argb: "FF94A3B8" } },
+      bottom: { style: "medium", color: { argb: "FF475569" } },
+      left: { style: "thin", color: { argb: "FFCBD5E1" } },
+      right: { style: "thin", color: { argb: "FFCBD5E1" } }
+    };
+  });
+
+  // 4. บันทึกข้อมูลแถว (Data Rows)
+  dataList.forEach((item, rIdx) => {
+    const rowNumber = rIdx + 5;
+    const row = sheet.getRow(rowNumber);
+    row.height = 21;
+
+    const rowValues = [
+      item.no,
+      item.employee_code,
+      item.full_name,
+      item.nickname,
+      item.department_name,
+      item.position_name,
+      item.year,
+      
+      item.sick_total,
+      item.sick_used,
+      item.sick_remaining,
+
+      item.personal_total,
+      item.personal_used,
+      item.personal_remaining,
+
+      item.vacation_total,
+      item.vacation_used,
+      item.vacation_remaining,
+
+      item.maternity_total,
+      item.maternity_used,
+      item.maternity_remaining,
+
+      item.other_total,
+      item.other_used,
+      item.other_remaining,
+
+      item.total_entitled,
+      item.total_used,
+      item.total_remaining,
+
+      item.leave_requests_count,
+      item.isLeaveActive ? "✓ มีประวัติการลา" : "— ยังไม่มีการลา"
+    ];
+
+    rowValues.forEach((val, cIdx) => {
+      const cell = row.getCell(cIdx + 1);
+      cell.value = val;
+      cell.font = { name: "Sarabun", size: 10 };
+
+      // Zebra striping
+      const isEven = rIdx % 2 === 0;
+      if (isEven) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
+      }
+
+      // Border
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFE2E8F0" } },
+        bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+        left: { style: "thin", color: { argb: "FFE2E8F0" } },
+        right: { style: "thin", color: { argb: "FFE2E8F0" } }
+      };
+
+      const colNum = cIdx + 1;
+
+      // จัด Alignment
+      if (colNum === 1 || colNum === 2 || colNum === 7 || colNum === 26 || colNum === 27) {
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      } else if (colNum === 3 || colNum === 4 || colNum === 5 || colNum === 6) {
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      } else {
+        // ตัวเลขยอดวันลา
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+        cell.numFmt = "#,##0.0";
+      }
+
+      // Highlight used columns if > 0
+      const usedColIndexes = [9, 12, 15, 18, 21, 24];
+      if (usedColIndexes.includes(colNum) && typeof val === 'number' && val > 0) {
+        cell.font = { name: "Sarabun", size: 10, bold: true, color: { argb: "FFB45309" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } };
+      }
+
+      // Highlight remaining columns
+      const remColIndexes = [10, 13, 16, 19, 22, 25];
+      if (remColIndexes.includes(colNum)) {
+        cell.font = { name: "Sarabun", size: 10, bold: true, color: { argb: "FF0F766E" } };
+      }
+
+      // Active badge
+      if (colNum === 27) {
+        if (item.isLeaveActive) {
+          cell.font = { name: "Sarabun", size: 9.5, bold: true, color: { argb: "FF15803D" } };
+        } else {
+          cell.font = { name: "Sarabun", size: 9.5, color: { argb: "FF94A3B8" } };
+        }
+      }
+    });
+  });
+
+  // ปรับความกว้างของคอลัมน์
+  columnsDef.forEach((col, idx) => {
+    sheet.getColumn(idx + 1).width = col.width;
+  });
+}
+
+/**
+ * 🛠️ Helper: สร้างชีตแบบ 1:1 เทียบเคียงกับโครงสร้างตาราง Supabase 'employee_leave_balances'
+ */
+function addSupabaseFormatWorksheet(workbook, sheetTitle, dataList) {
+  const sheet = workbook.addWorksheet(sheetTitle);
+  sheet.views = [{ state: 'frozen', ySplit: 2, showGridLines: true }];
+
+  // หัวเรื่องชีต Supabase Format
+  sheet.mergeCells("A1:R1");
+  const titleCell = sheet.getCell("A1");
+  titleCell.value = `💾 ตาราง public.employee_leave_balances (Supabase Schema 1:1 Compatibility)`;
+  titleCell.font = { name: "Consolas", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
+  titleCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+  sheet.getRow(1).height = 30;
+
+  const rawColumns = [
+    { key: "id", header: "id (UUID)", width: 34 },
+    { key: "employee_id", header: "employee_id (UUID)", width: 34 },
+    { key: "employee_code", header: "employee_code", width: 16 },
+    { key: "full_name", header: "full_name", width: 22 },
+    { key: "department_name", header: "department", width: 18 },
+    { key: "year", header: "year", width: 10 },
+    { key: "sick_total", header: "sick_total", width: 12 },
+    { key: "sick_used", header: "sick_used", width: 12 },
+    { key: "personal_total", header: "personal_total", width: 14 },
+    { key: "personal_used", header: "personal_used", width: 14 },
+    { key: "vacation_total", header: "vacation_total", width: 14 },
+    { key: "vacation_used", header: "vacation_used", width: 14 },
+    { key: "maternity_total", header: "maternity_total", width: 15 },
+    { key: "maternity_used", header: "maternity_used", width: 15 },
+    { key: "other_total", header: "other_total", width: 12 },
+    { key: "other_used", header: "other_used", width: 12 },
+    { key: "created_at", header: "created_at", width: 22 },
+    { key: "updated_at", header: "updated_at", width: 22 }
+  ];
+
+  const headerRow = sheet.getRow(2);
+  headerRow.height = 24;
+  rawColumns.forEach((col, idx) => {
+    const cell = headerRow.getCell(idx + 1);
+    cell.value = col.header;
+    cell.font = { name: "Consolas", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E293B" } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = {
+      top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "thin" }, right: { style: "thin" }
+    };
+    sheet.getColumn(idx + 1).width = col.width;
+  });
+
+  dataList.forEach((item, idx) => {
+    const row = sheet.getRow(idx + 3);
+    row.height = 20;
+
+    const values = [
+      item.balance_id,
+      item.employee_id,
+      item.employee_code,
+      item.full_name,
+      item.department_name,
+      item.year,
+      item.sick_total,
+      item.sick_used,
+      item.personal_total,
+      item.personal_used,
+      item.vacation_total,
+      item.vacation_used,
+      item.maternity_total,
+      item.maternity_used,
+      item.other_total,
+      item.other_used,
+      item.created_at,
+      item.updated_at
+    ];
+
+    values.forEach((val, cIdx) => {
+      const cell = row.getCell(cIdx + 1);
+      cell.value = val;
+      cell.font = { name: "Consolas", size: 9.5 };
+
+      if (idx % 2 === 0) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
+      }
+
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFE2E8F0" } },
+        bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+        left: { style: "thin", color: { argb: "FFE2E8F0" } },
+        right: { style: "thin", color: { argb: "FFE2E8F0" } }
+      };
+
+      if ([1, 2].includes(cIdx + 1)) cell.alignment = { horizontal: "left", vertical: "middle" };
+      else if ([3, 6].includes(cIdx + 1)) cell.alignment = { horizontal: "center", vertical: "middle" };
+      else if (cIdx + 1 >= 7 && cIdx + 1 <= 16) {
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+        cell.numFmt = "0.0";
+      } else {
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      }
+    });
+  });
+}
+
+/**
+ * 📄 Helper: สร้างชีตแสดงประวัติใบลาทุกรายการ (Raw Leave Requests)
+ */
+function addRawLeaveRequestsWorksheet(workbook, sheetTitle, requests, employeesList) {
+  const sheet = workbook.addWorksheet(sheetTitle);
+  sheet.views = [{ state: 'frozen', ySplit: 1, showGridLines: true }];
+
+  const columns = [
+    { key: "emp_code", header: "รหัสพนักงาน", width: 14 },
+    { key: "emp_name", header: "ชื่อ-นามสกุล", width: 22 },
+    { key: "dept", header: "แผนก/ฝ่าย", width: 18 },
+    { key: "position", header: "ตำแหน่ง", width: 20 },
+    { key: "leave_type", header: "ประเภทการลา", width: 18 },
+    { key: "start_date", header: "วันที่เริ่มต้น", width: 14 },
+    { key: "end_date", header: "วันที่สิ้นสุด", width: 14 },
+    { key: "total_days", header: "จำนวนวัน", width: 12 },
+    { key: "reason", header: "เหตุผลการลา", width: 30 },
+    { key: "status", header: "สถานะคำขอ", width: 14 },
+    { key: "created_at", header: "วันที่ยื่นคำขอ", width: 18 }
+  ];
+
+  sheet.columns = columns;
+
+  const headerRow = sheet.getRow(1);
+  headerRow.height = 26;
+  headerRow.eachCell((cell) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0D9488" } };
+    cell.font = { name: "Sarabun", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    cell.border = { top: { style: "medium" }, bottom: { style: "medium" } };
+  });
+
+  const empMap = new Map();
+  (employeesList || []).forEach(e => empMap.set(String(e.id), e));
+
+  (requests || []).forEach((r, idx) => {
+    const emp = empMap.get(String(r.employee_id));
+    const leaveType = getLeaveType(r.leave_type_id)?.leave_name || "ไม่ระบุ";
+    const statusText = window.pvtSupabase?.statusLabel ? window.pvtSupabase.statusLabel(r.status) : (r.status || "-");
+    const createdDateFormatted = r.created_at ? new Date(r.created_at).toLocaleString("th-TH") : "-";
+
+    const addedRow = sheet.addRow({
+      emp_code: emp?.employee_code || "-",
+      emp_name: emp?.full_name || "-",
+      dept: emp?.departments?.department_name || "-",
+      position: emp?.positions?.position_name || "-",
+      leave_type: leaveType,
+      start_date: window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(r.start_date) : r.start_date,
+      end_date: window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(r.end_date) : r.end_date,
+      total_days: Number(r.total_days || 0),
+      reason: (r.reason || r.note || "-").trim(),
+      status: statusText,
+      created_at: createdDateFormatted
+    });
+
+    addedRow.height = 20;
+    const isEven = idx % 2 === 0;
+
+    addedRow.eachCell((cell, colNumber) => {
+      cell.font = { name: "Sarabun", size: 10 };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFE2E8F0" } },
+        bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+        left: { style: "thin", color: { argb: "FFE2E8F0" } },
+        right: { style: "thin", color: { argb: "FFE2E8F0" } }
+      };
+
+      if (isEven) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
+      }
+
+      if ([1, 6, 7, 10, 11].includes(colNumber)) cell.alignment = { horizontal: "center", vertical: "middle" };
+      else if (colNumber === 8) {
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+        cell.numFmt = "0.0";
+      } else cell.alignment = { horizontal: "left", vertical: "middle" };
+
+      if (colNumber === 10) {
+        if (r.status === "approved") cell.font = { bold: true, color: { argb: "FF15803D" } };
+        else if (r.status === "pending") cell.font = { bold: true, color: { argb: "FFA16207" } };
+        else if (r.status === "rejected") cell.font = { bold: true, color: { argb: "FFBE123C" } };
+      }
+    });
+  });
+
+  columns.forEach((column, idx) => {
+    sheet.getColumn(idx + 1).width = column.width;
+  });
 }
 
 // 1. ฟังก์ชันสร้างช่องกรอกคอลัมน์ใหม่เมื่อกดปุ่ม "+ เพิ่มคอลัมน์"
@@ -4855,52 +5963,26 @@ async function checkAndCreateMissingQuotas() {
       return;
     }
 
-    // 3. กำหนดปีที่จะตรวจสอบ (ตรวจสอบทั้ง ค.ศ. และ พ.ศ. ของปีปัจจุบัน)
+    // 3. กำหนดปีที่จะตรวจสอบ (รองรับทั้ง ค.ศ. และ พ.ศ.)
     const currentYear = new Date().getFullYear();
-    const yearBE = currentYear + 543;
-    const yearsToCheck = [currentYear, yearBE];
+    const thaiYear = currentYear + 543;
 
-    // 4. ดึงรายการที่มีอยู่ใน leave_balances ทั้งปี ค.ศ. และ พ.ศ.
-    const { data: existingBalances, error: balErr } = await supabase
-      .from('leave_balances')
-      .select('employee_id, leave_type_id, year')
-      .in('year', yearsToCheck);
+    // 4. ดึงรายการที่มีอยู่ใน employee_leave_balances
+    const { data: existingEmpBal } = await supabase
+      .from('employee_leave_balances')
+      .select('employee_id')
+      .in('year', [currentYear, thaiYear]);
 
-    if (balErr) throw balErr;
+    const existingEmpIds = new Set([
+      ...(existingEmpBal || []).map(b => b.employee_id)
+    ]);
+    const missingEmployees = employees.filter(e => !existingEmpIds.has(e.id));
 
-    const existingKeys = new Set(
-      (existingBalances || []).map(b => `${b.employee_id}_${b.leave_type_id}_${b.year}`)
-    );
-
-    const newBalances = [];
-    const missingEmployeeIds = new Set();
-
-    for (const empItem of employees) {
-      for (const lt of activeLeaveTypes) {
-        for (const yr of yearsToCheck) {
-          const key = `${empItem.id}_${lt.id}_${yr}`;
-          if (!existingKeys.has(key)) {
-            const quota = Number(lt.yearly_quota || lt.default_days || 0);
-            newBalances.push({
-              employee_id: empItem.id,
-              leave_type_id: lt.id,
-              year: yr,
-              entitlement_days: quota,
-              used_days: 0,
-              remaining_days: quota,
-              quota: quota
-            });
-            missingEmployeeIds.add(empItem.id);
-          }
-        }
-      }
-    }
-
-    if (newBalances.length === 0) {
+    if (missingEmployees.length === 0) {
       Swal.fire({
         icon: 'success',
-        title: 'ตรวจสอบเสร็จสิ้น ✨',
-        text: 'พนักงานทุกคนในระบบมีโควตาวันลาครบถ้วนสมบูรณ์แล้ว ไม่จำเป็นต้องสร้างใหม่',
+        title: 'มีข้อมูลแล้ว ✨',
+        html: `พนักงานทุกคนในระบบ (จำนวน <b>${employees.length}</b> คน) มีข้อมูลโควตาวันลาประจำปี ${currentYear} (employee_leave_balances) ครบถ้วนเรียบร้อยแล้ว`,
         confirmButtonText: 'ตกลง',
         confirmButtonColor: '#0f766e'
       });
@@ -4911,8 +5993,7 @@ async function checkAndCreateMissingQuotas() {
     const confirmResult = await Swal.fire({
       icon: 'question',
       title: 'พบข้อมูลที่ไม่มีโควตาวันลา!',
-      html: `พบพนักงานจำนวน <b>${missingEmployeeIds.size}</b> คน ที่ยังไม่มีข้อมูลโควตาวันลา<br>` +
-            `รวมโควตาทุกประเภทและปีที่ขาดหายทั้งหมด <b>${newBalances.length}</b> รายการ<br><br>` +
+      html: `พบพนักงานจำนวน <b>${missingEmployees.length}</b> คน ที่ยังไม่มีข้อมูลโควตาวันลาประจำปี ${currentYear}<br><br>` +
             `คุณต้องการให้ระบบสร้างข้อมูลโควตาวันลาเริ่มต้นให้กับกลุ่มพนักงานดังกล่าวทันทีหรือไม่?`,
       showCancelButton: true,
       confirmButtonText: 'ใช่, สร้างโควตาเริ่มต้นให้ทันที',
@@ -4923,7 +6004,6 @@ async function checkAndCreateMissingQuotas() {
 
     if (!confirmResult.isConfirmed) return;
 
-    // 6. ทำการบันทึกข้อมูลโควตาที่ขาด (บันทึกเป็นก้อน ๆ ละ 200 รายการเพื่อป้องกัน Request Size Limit)
     Swal.fire({
       title: 'กำลังสร้างโควตาวันลา...',
       text: 'กรุณาอย่าปิดหน้านี้ ระบบกำลังเชื่อมต่อฐานข้อมูล',
@@ -4933,29 +6013,21 @@ async function checkAndCreateMissingQuotas() {
       }
     });
 
-    const chunkSize = 200;
     let successCount = 0;
-
-    for (let i = 0; i < newBalances.length; i += chunkSize) {
-      const chunk = newBalances.slice(i, i + chunkSize);
-      const { error: insErr } = await supabase
-        .from('leave_balances')
-        .upsert(chunk, { onConflict: 'employee_id,leave_type_id,year' });
-
-      if (insErr) {
-        console.error("❌ Chunk Insertion Error:", insErr);
-        throw new Error(`เกิดข้อผิดพลาดขณะนำเข้าข้อมูลโควตา: ${insErr.message}`);
+    for (const empItem of missingEmployees) {
+      if (window.PVTSDK?.user?.ensureLeaveBalances) {
+        await window.PVTSDK.user.ensureLeaveBalances(empItem.id, currentYear);
+        successCount++;
       }
-      successCount += chunk.length;
     }
 
     // 7. บันทึกประวัติใน HR Log
-    await saveHRActivityLog('LEAVE_QUOTA', 'CREATE', `SYSTEM_AUTO_INITIALIZE`, `ระบบตรวจสอบและสร้างโควตาวันลาเริ่มต้นอัตโนมัติให้กับพนักงาน ${missingEmployeeIds.size} คน รวม ${successCount} รายการ`);
+    await saveHRActivityLog('LEAVE_QUOTA', 'CREATE', `SYSTEM_AUTO_INITIALIZE`, `ระบบตรวจสอบและสร้างโควตาวันลาเริ่มต้นอัตโนมัติให้กับพนักงาน ${successCount} คน`);
 
     Swal.fire({
       icon: 'success',
       title: 'สร้างโควตาวันลาสำเร็จ! 🎉',
-      html: `ระบบสร้างโควตาวันลาเริ่มต้นจำนวน <b>${successCount}</b> รายการ ให้กับพนักงาน <b>${missingEmployeeIds.size}</b> คน ครบถ้วนแล้ว`,
+      html: `ระบบสร้างโควตาวันลาเริ่มต้นให้กับพนักงานจำนวน <b>${successCount}</b> คน ครบถ้วนแล้ว`,
       confirmButtonText: 'ตกลง',
       confirmButtonColor: '#0f766e'
     });
@@ -5165,6 +6237,7 @@ window.toggleCustomFieldType = typeof toggleCustomFieldType !== 'undefined' ? to
 window.openCreateCustomFieldModal = typeof openCreateCustomFieldModal !== 'undefined' ? openCreateCustomFieldModal : window.openCreateCustomFieldModal;
 window.handleFetchDataClick = handleFetchDataClick;
 window.exportAllLeaveHistoryExcel = typeof exportAllLeaveHistoryExcel !== 'undefined' ? exportAllLeaveHistoryExcel : window.exportAllLeaveHistoryExcel;
+window.generateAndDownloadLeaveBalancesExcel = typeof generateAndDownloadLeaveBalancesExcel !== 'undefined' ? generateAndDownloadLeaveBalancesExcel : window.generateAndDownloadLeaveBalancesExcel;
 window.addNewEmployee = typeof addNewEmployee !== 'undefined' ? addNewEmployee : window.addNewEmployee;
 window.editEmployeeData = typeof editEmployeeData !== 'undefined' ? editEmployeeData : window.editEmployeeData;
 window.manageDepartments = typeof manageDepartments !== 'undefined' ? manageDepartments : window.manageDepartments;

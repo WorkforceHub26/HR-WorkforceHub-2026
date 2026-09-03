@@ -176,7 +176,7 @@ window.loadRecentLeaves = async function(profile) {
     const thaiYear = currentYear + 543;
 
     // ดึงข้อมูลโดยไม่ใช้ Join แบบ Embed เพื่อป้องกัน Error Relationship
-    const [requestsRes, pendingRes, balanceRes, typesRes] = await Promise.all([
+    const [requestsRes, pendingRes, typesRes] = await Promise.all([
       sb.from("leave_requests")
         .select("*")
         .eq("employee_id", employeeId)
@@ -186,23 +186,25 @@ window.loadRecentLeaves = async function(profile) {
         .select("id", { count: "exact", head: true })
         .eq("employee_id", employeeId)
         .eq("status", "pending"),
-      sb.from("leave_balances")
-        .select("remaining_days, used_days, year")
-        .eq("employee_id", employeeId)
-        .in("year", [currentYear, thaiYear]),
-      sb.from("leave_types").select("id, leave_name")
+      sb.from("leave_types")
+        .select("id, leave_name")
     ]);
 
-    // สร้าง Map สำหรับแปลง ID เป็นชื่อประเภทการลา
     const typeMap = {};
-    (typesRes.data || []).forEach(t => typeMap[t.id] = t.leave_name);
+    (typesRes?.data || []).forEach(t => {
+      typeMap[t.id] = t.leave_name;
+    });
 
-    // คำนวณโควตาวันลา
-    const balanceRows = balanceRes.data || [];
+    // ดึงวันลาคงเหลือโดยใช้ helper
+    let userBalances = [];
+    if (window.PVTSDK?.user?.getLeaveBalances) {
+      userBalances = await window.PVTSDK.user.getLeaveBalances(employeeId, currentYear);
+    }
+
     let totalRemaining = 0;
     let totalUsed = 0;
     
-    balanceRows.forEach(b => {
+    (userBalances || []).forEach(b => {
       totalRemaining += parseFloat(b.remaining_days) || 0;
       totalUsed += parseFloat(b.used_days) || 0;
     });
@@ -542,7 +544,7 @@ async function loadDepartmentTeam(profileData) {
   try {
     const { data: team, error } = await sb
       .from('employees')
-      .select('id, full_name, nickname, employee_code, image_url, line_id, role, positions(position_name), departments(department_name)')
+      .select('id, full_name, nickname, employee_code, image_url, line_id, role, positions(position_name), departments!department_id(department_name)')
       .eq('department_id', deptId)
       .order('full_name', { ascending: true });
 
@@ -711,7 +713,7 @@ async function fetchUserNotifications() {
     if (approverRoles.includes(myRole)) {
       const { data: leaveRequests } = await sb
         .from("leave_requests")
-        .select("id, created_at, status, start_date, end_date, total_days, leave_types(leave_name), employees(full_name, role, department_id, departments(department_name))")
+        .select("id, created_at, status, start_date, end_date, total_days, leave_types(leave_name), employees(full_name, role, department_id, departments!department_id(department_name))")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
@@ -1053,6 +1055,53 @@ async function openEmployeeStatusTrackerModal() {
       return;
     }
 
+    const profile = window.currentProfile || {};
+    const deptId = profile.department_id;
+    let hasLeader = Boolean(profile.l1_approver_id);
+    let hasManager = Boolean(profile.l2_approver_id);
+
+    if (deptId && (!hasLeader || !hasManager)) {
+      try {
+        const [apprvRes, deptEmpsRes] = await Promise.all([
+          sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle(),
+          sb.from("employees").select("id, role, positions!position_id(position_name), status").eq("department_id", deptId)
+        ]);
+        const apprv = apprvRes.data;
+        const emps = (deptEmpsRes.data || []).filter(e => e.status === 'active' || !e.status);
+
+        if (!hasLeader) {
+          hasLeader = Boolean(
+            apprv?.supervisor_id ||
+            emps.some(e => {
+              const r = String(e.role || '').toLowerCase();
+              const p = String(e.positions?.position_name || '').toLowerCase();
+              return r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า');
+            })
+          );
+        }
+
+        if (!hasManager) {
+          hasManager = Boolean(
+            apprv?.manager_id ||
+            emps.some(e => {
+              const r = String(e.role || '').toLowerCase();
+              const p = String(e.positions?.position_name || '').toLowerCase();
+              return r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ');
+            })
+          );
+        }
+      } catch (err) {
+        console.warn("Could not check department leaders:", err);
+      }
+    }
+
+    const userRole = String(profile.role || '').toLowerCase();
+    if (userRole === 'leader') hasLeader = false;
+    if (userRole === 'manager' || userRole === 'hr' || userRole === 'admin') {
+      hasLeader = false;
+      hasManager = false;
+    }
+
     const cardsHtml = requests.map((item) => {
       const leaveName = safeEscapeHtml(item.leave_types?.leave_name || "ใบลา");
       const days = item.total_days || 1;
@@ -1069,12 +1118,27 @@ async function openEmployeeStatusTrackerModal() {
         overallBadge = `<span style="background:#e2e8f0; color:#475569; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">🚫 ยกเลิกแล้ว</span>`;
       }
 
-      const leaderStep = renderStepStatus(item.leader_status || (item.status === 'pending' ? 'pending' : 'approved'));
-      const managerStep = renderStepStatus(item.manager_status || (item.status === 'approved' ? 'approved' : 'pending'));
-      const hrStep = renderStepStatus(item.hr_status || (item.status === 'approved' ? 'approved' : 'pending'));
-
       const isCancellationFlow = item.status === "cancel_pending" || item.status === "cancelled" || item.cancel_status;
       const hrCancelStep = renderCancelStepStatus(item.cancel_status || (item.status === 'cancelled' ? 'approved' : 'pending'));
+
+      // สรุปขั้นตอนตามจริงของแผนก (ซ่อนขั้นตอนที่ไม่มีหัวหน้าหรือผู้จัดการ)
+      const steps = [];
+      if (hasLeader) {
+        steps.push({
+          title: 'หัวหน้าแผนก',
+          status: item.manager_status || (item.status === 'pending' ? 'pending' : 'approved')
+        });
+      }
+      if (hasManager) {
+        steps.push({
+          title: 'ผู้จัดการ',
+          status: item.director_status || (item.status === 'approved' ? 'approved' : 'pending')
+        });
+      }
+      steps.push({
+        title: 'HR อนุมัติ',
+        status: item.status === 'approved' ? 'approved' : (item.status === 'rejected' ? 'rejected' : 'pending')
+      });
 
       return `
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
@@ -1087,19 +1151,13 @@ async function openEmployeeStatusTrackerModal() {
             <span>📅 ${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center;">
-            <div style="border-right: 1px solid #e2e8f0; padding-right: 4px;">
-              <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">1. หัวหน้าแผนก</div>
-              ${leaderStep}
-            </div>
-            <div style="border-right: 1px solid #e2e8f0; padding-right: 4px;">
-              <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">2. ผู้จัดการ</div>
-              ${managerStep}
-            </div>
-            <div>
-              <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">3. HR อนุมัติ</div>
-              ${hrStep}
-            </div>
+          <div style="display: grid; grid-template-columns: repeat(${steps.length}, 1fr); gap: 6px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center;">
+            ${steps.map((step, sIdx) => `
+              <div style="${sIdx < steps.length - 1 ? 'border-right: 1px solid #e2e8f0; padding-right: 4px;' : ''}">
+                <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">${sIdx + 1}. ${step.title}</div>
+                ${renderStepStatus(step.status)}
+              </div>
+            `).join('')}
           </div>
 
           ${isCancellationFlow ? `
@@ -1229,16 +1287,18 @@ async function loadQuotaData(targetYear) {
     const targetYearAD = yearNum > 2400 ? yearNum - 543 : yearNum;
     const thaiYear = targetYearAD + 543;
 
-    // 1. ดึงโควตาประจำปี (รองรับทั้ง ค.ศ. และ พ.ศ.)
-    const { data: quotas, error } = await sb
-      .from('leave_balances')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .in('year', [targetYearAD, thaiYear]);
-
-    if (error) {
-      console.error('❌ ดึงข้อมูลโควตาล้มเหลว:', error.message);
-      return;
+    // 1. ดึงโควตาประจำปี (ใช้ getLeaveBalances จาก SDK หรือดึงจากทั้งสองตาราง)
+    let quotas = [];
+    if (window.PVTSDK?.user?.getLeaveBalances) {
+      quotas = await window.PVTSDK.user.getLeaveBalances(employeeId, targetYearAD);
+    }
+    if (!quotas || quotas.length === 0) {
+      const { data: qData } = await sb
+        .from('leave_balances')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .in('year', [targetYearAD, thaiYear]);
+      quotas = qData || [];
     }
 
     // 2. ดึงประเภทการลาทั้งหมดที่เปิดใช้งาน
@@ -1293,28 +1353,53 @@ async function loadQuotaData(targetYear) {
     });
 
     const deduplicatedQuotas = [];
-    (types || []).forEach((t, idx) => {
-      const typeIdStr = String(t.id);
-      const q = quotaMap.get(typeIdStr);
-      const typeInfo = typeMap[typeIdStr] || {};
-      const leaveName = typeInfo.name || t.leave_name || "สิทธิ์การลา";
-      const totalEntitlement = q ? (parseFloat(q.entitlement_days) || parseFloat(q.quota) || typeInfo.defaultQuota || 0) : (typeInfo.defaultQuota || 0);
-      const usedDays = q ? (parseFloat(q.used_days) || 0) : (approvedDaysMap[typeIdStr] || 0);
-      const remainingDays = q && q.remaining_days !== null && q.remaining_days !== undefined
-        ? parseFloat(q.remaining_days)
-        : Math.max(0, totalEntitlement - usedDays);
+    if (types && types.length > 0) {
+      types.forEach((t, idx) => {
+        const typeIdStr = String(t.id);
+        const q = quotaMap.get(typeIdStr);
+        const typeInfo = typeMap[typeIdStr] || {};
+        const leaveName = typeInfo.name || t.leave_name || "สิทธิ์การลา";
+        const totalEntitlement = q ? (parseFloat(q.entitlement_days) || parseFloat(q.quota) || typeInfo.defaultQuota || 0) : (typeInfo.defaultQuota || 0);
+        const usedDays = q ? (parseFloat(q.used_days) || 0) : (approvedDaysMap[typeIdStr] || 0);
+        const remainingDays = q && q.remaining_days !== null && q.remaining_days !== undefined
+          ? parseFloat(q.remaining_days)
+          : Math.max(0, totalEntitlement - usedDays);
 
-      deduplicatedQuotas.push({
-        ...(q || {}),
-        leave_type_id: t.id,
-        leave_type_name: leaveName,
-        entitlement_days: totalEntitlement,
-        used_days: usedDays,
-        remaining_days: remainingDays,
-        card_color: typeInfo.color || getLeaveTypeColor(leaveName, idx),
-        approved_times: approvedTimesMap[typeIdStr] || 0
+        deduplicatedQuotas.push({
+          ...(q || {}),
+          leave_type_id: t.id,
+          leave_type_name: leaveName,
+          entitlement_days: totalEntitlement,
+          used_days: usedDays,
+          remaining_days: remainingDays,
+          card_color: typeInfo.color || getLeaveTypeColor(leaveName, idx),
+          approved_times: approvedTimesMap[typeIdStr] || 0
+        });
       });
-    });
+    }
+
+    // 🎯 Fallback: ถ้าไม่มี types หรือ deduplicatedQuotas ยังว่างเปล่า แต่มี quotas
+    if (deduplicatedQuotas.length === 0 && quotas && quotas.length > 0) {
+      quotas.forEach((q, idx) => {
+        const leaveName = q.leave_types?.leave_name || q.leave_type_name || q.leave_name || "สิทธิ์การลา";
+        const typeId = q.leave_type_id || q.id || `type_${idx}`;
+        const typeIdStr = String(typeId);
+        const totalEntitlement = parseFloat(q.entitlement_days) || parseFloat(q.quota) || 0;
+        const usedDays = parseFloat(q.used_days) || 0;
+        const remainingDays = parseFloat(q.remaining_days) ?? Math.max(0, totalEntitlement - usedDays);
+
+        deduplicatedQuotas.push({
+          ...q,
+          leave_type_id: typeId,
+          leave_type_name: leaveName,
+          entitlement_days: totalEntitlement,
+          used_days: usedDays,
+          remaining_days: remainingDays,
+          card_color: getLeaveTypeColor(leaveName, idx),
+          approved_times: approvedTimesMap[typeIdStr] || 0
+        });
+      });
+    }
 
     renderQuotaCards(deduplicatedQuotas);
   } catch (err) {
@@ -1420,67 +1505,16 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
       }
     });
 
-    // 3. ดึง leave_balances ที่มีอยู่ทั้งหมดของพนักงานในปีนี้ (ทั้ง AD และ BE)
-    const { data: existingBalances, error: balErr } = await sb
-      .from('leave_balances')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .in('year', [currentYear, thaiYear]);
-    if (balErr) throw balErr;
-
-    // 4. ค้นหาแถวที่ซ้ำซ้อนเพื่อลบออก (เช่น แถวปี พ.ศ. 2569 ที่ซ้ำกับ ค.ศ. 2026)
-    const toDeleteIds = [];
-    const balancesByTypeId = new Map();
-
-    (existingBalances || []).forEach(b => {
-      const typeIdStr = String(b.leave_type_id);
-      if (!balancesByTypeId.has(typeIdStr)) {
-        balancesByTypeId.set(typeIdStr, b);
-      } else {
-        const currentSaved = balancesByTypeId.get(typeIdStr);
-        if (Number(b.year) > 2400) {
-          toDeleteIds.push(b.id);
-        } else {
-          toDeleteIds.push(currentSaved.id);
-          balancesByTypeId.set(typeIdStr, b);
-        }
-      }
-    });
-
-    if (toDeleteIds.length > 0) {
-      await sb.from('leave_balances').delete().in('id', toDeleteIds);
+    // 3. ปรับปรุงยอดวันลาที่ใช้ไปจริงใน employee_leave_balances
+    if (window.PVTSDK?.user?.ensureLeaveBalances) {
+      await window.PVTSDK.user.ensureLeaveBalances(employeeId, currentYear);
     }
 
-    // 5. ปรับปรุง / สร้างแถวโควต้าให้ตรงตามความจริงและเป็นมาตรฐานปี ค.ศ.
     for (const lt of (leaveTypes || [])) {
       const typeIdStr = String(lt.id);
-      const quotaDefault = parseFloat(lt.yearly_quota || lt.default_days || 30);
-      const existing = balancesByTypeId.get(typeIdStr);
       const actualUsed = usedMap[typeIdStr] || 0;
-      const entitlement = existing ? (parseFloat(existing.entitlement_days) || quotaDefault) : quotaDefault;
-      const remaining = Math.max(0, entitlement - actualUsed);
-
-      if (existing) {
-        await sb
-          .from('leave_balances')
-          .update({
-            year: currentYear,
-            entitlement_days: entitlement,
-            used_days: actualUsed,
-            remaining_days: remaining
-          })
-          .eq('id', existing.id);
-      } else {
-        await sb
-          .from('leave_balances')
-          .insert({
-            employee_id: employeeId,
-            leave_type_id: lt.id,
-            year: currentYear,
-            entitlement_days: entitlement,
-            used_days: actualUsed,
-            remaining_days: remaining
-          });
+      if (window.PVTSDK?.user?.updateLeaveBalance) {
+        await window.PVTSDK.user.updateLeaveBalance(employeeId, lt.id, lt.leave_code, currentYear, 0, actualUsed);
       }
     }
 

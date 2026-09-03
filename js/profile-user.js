@@ -74,7 +74,7 @@ async function loadProfile() {
     const targetCode = currentUserData.employee_code;
 
     if (client) {
-      let query = client.from('employees').select('*, departments(department_name), positions(position_name)');
+      let query = client.from('employees').select('*, departments!department_id(department_name), positions(position_name)');
 
       if (targetId) query = query.eq('id', targetId);
       else if (targetCode) query = query.eq('employee_code', targetCode);
@@ -159,6 +159,13 @@ async function loadProfile() {
       lineInput.value = emp?.line_id || "";
     }
     window.currentEmpProfile = emp;
+
+    // Initialize WebAuthn biometric settings
+    try {
+      await initBiometricProfile();
+    } catch (bioErr) {
+      console.warn("Error initializing biometrics in profile:", bioErr);
+    }
 
     console.log("✅ [SUCCESS] โหลดข้อมูลโปรไฟล์จริงของ HR/User สำเร็จ!");
 
@@ -372,5 +379,216 @@ window.addEventListener("pvt-lang-changed", () => {
     loadProfile();
   }
 });
+
+
+// ============================================================================
+// 🔐 Biometric / WebAuthn Settings in Profile Page
+// ============================================================================
+async function initBiometricProfile() {
+  const statusEl = document.getElementById("biometricSupportStatus");
+  const registerBtn = document.getElementById("btnRegisterBiometric");
+  const nicknameInput = document.getElementById("biometricDeviceName");
+  
+  if (!statusEl || !registerBtn) return;
+
+  const emp = window.currentEmpProfile;
+  if (!emp || !emp.id) {
+    statusEl.innerHTML = `⚠️ <span style="color:#b91c1c;">กรุณารอโหลดโปรไฟล์ให้สำเร็จก่อน</span>`;
+    statusEl.style.backgroundColor = "#fee2e2";
+    statusEl.style.color = "#991b1b";
+    registerBtn.disabled = true;
+    return;
+  }
+
+  // Set default nickname to browser/OS name if possible
+  if (nicknameInput && !nicknameInput.value) {
+    const ua = navigator.userAgent;
+    let deviceName = "เบราว์เซอร์ปัจจุบัน";
+    if (ua.includes("Windows")) deviceName = "Windows Device";
+    else if (ua.includes("Macintosh")) deviceName = "MacBook / iMac";
+    else if (ua.includes("iPhone")) deviceName = "iPhone Device";
+    else if (ua.includes("iPad")) deviceName = "iPad Device";
+    else if (ua.includes("Android")) deviceName = "Android Device";
+    else if (ua.includes("Linux")) deviceName = "Linux Device";
+    nicknameInput.value = deviceName;
+  }
+
+  if (!window.PVTWebAuthn) {
+    statusEl.innerHTML = `⚠️ <span style="color:#b91c1c;">ไม่สามารถโหลดไลบรารีระบบชีวมาตรได้</span>`;
+    statusEl.style.backgroundColor = "#fee2e2";
+    statusEl.style.color = "#991b1b";
+    registerBtn.disabled = true;
+    return;
+  }
+
+  const check = await window.PVTWebAuthn.isBiometricAvailable();
+  if (check.supported) {
+    statusEl.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> <span>อุปกรณ์นี้รองรับการสแกนลายนิ้วมือ / ใบหน้า</span>`;
+    statusEl.style.backgroundColor = "#dcfce7";
+    statusEl.style.color = "#166534";
+    registerBtn.disabled = false;
+  } else {
+    statusEl.innerHTML = `⚠️ <span style="color:#b91c1c;">ไม่รองรับ: ${check.reason}</span>`;
+    statusEl.style.backgroundColor = "#fee2e2";
+    statusEl.style.color = "#991b1b";
+    registerBtn.disabled = true;
+  }
+
+  // List registered devices
+  await loadRegisteredBiometrics();
+}
+
+async function loadRegisteredBiometrics() {
+  const listEl = document.getElementById("registeredBiometricList");
+  if (!listEl) return;
+
+  const emp = window.currentEmpProfile;
+  if (!emp || !emp.id) return;
+
+  if (!window.PVTWebAuthn) return;
+
+  try {
+    const creds = await window.PVTWebAuthn.listEmployeeCredentials(emp.id);
+    if (creds.length === 0) {
+      listEl.innerHTML = `
+        <div style="font-size: 12.5px; color: #64748b; padding: 12px; text-align: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+          ไม่มีอุปกรณ์ที่ลงทะเบียนไว้ในปัจจุบัน
+        </div>
+      `;
+      return;
+    }
+
+    let html = "";
+    creds.forEach(cred => {
+      const addedDate = new Date(cred.created_at).toLocaleDateString('th-TH', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      html += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="material-symbols-outlined" style="color: #0d9488; font-size: 24px; background: #f0fdfa; padding: 6px; border-radius: 8px;">fingerprint</span>
+            <div>
+              <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${cred.device_name || 'อุปกรณ์ลงทะเบียน'}</div>
+              <div style="font-size: 11.5px; color: #64748b;">ลงทะเบียนเมื่อ: ${addedDate}</div>
+            </div>
+          </div>
+          <button type="button" onclick="deleteBiometricDevice('${cred.id}')" style="background: transparent; color: #ef4444; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+            <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+            ลบ
+          </button>
+        </div>
+      `;
+    });
+    listEl.innerHTML = html;
+  } catch (err) {
+    console.error("Error rendering biometric list:", err);
+    listEl.innerHTML = `
+      <div style="font-size: 12.5px; color: #ef4444; padding: 10px; text-align: center; background: #fef2f2; border-radius: 8px;">
+        ไม่สามารถโหลดรายการอุปกรณ์ได้
+      </div>
+    `;
+  }
+}
+
+async function registerCurrentBiometricDevice() {
+  const emp = window.currentEmpProfile;
+  if (!emp || !emp.id) {
+    Swal.fire('ข้อผิดพลาด', 'กรุณารอให้ระบบโหลดโปรไฟล์เสร็จสิ้น', 'warning');
+    return;
+  }
+
+  const nicknameInput = document.getElementById("biometricDeviceName");
+  const nickname = nicknameInput ? nicknameInput.value.trim() : "";
+  if (!nickname) {
+    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุชื่อเรียกอุปกรณ์เพื่อความจดจำ', 'warning');
+    return;
+  }
+
+  const registerBtn = document.getElementById("btnRegisterBiometric");
+  if (registerBtn) registerBtn.disabled = true;
+
+  try {
+    Swal.fire({
+      title: 'กำลังลงทะเบียนอุปกรณ์',
+      text: 'กรุณาแตะเซนเซอร์สแกนนิ้วหรือมองกล้องตามคําแนะนําของระบบ',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    const result = await window.PVTWebAuthn.registerBiometricCredential({
+      employeeId: emp.id,
+      employeeCode: emp.employee_code,
+      fullName: emp.full_name,
+      deviceName: nickname
+    });
+
+    if (result.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'ลงทะเบียนสำเร็จ!',
+        text: `ลงทะเบียนอุปกรณ์ "${nickname}" สำหรับคุณ ${emp.full_name} เรียบร้อยแล้ว`,
+        confirmButtonColor: '#0d9488'
+      });
+      await loadRegisteredBiometrics();
+    } else {
+      throw new Error(result.error || 'การยืนยันสิทธิล้มเหลว');
+    }
+  } catch (err) {
+    console.error("Register device failure:", err);
+    Swal.fire({
+      icon: 'error',
+      title: 'ลงทะเบียนไม่สำเร็จ',
+      text: err.message || 'เกิดปัญหาในการเรียกใช้งานอุปกรณ์รักษาความปลอดภัยชีวมาตร',
+      confirmButtonColor: '#ef4444'
+    });
+  } finally {
+    if (registerBtn) registerBtn.disabled = false;
+  }
+}
+
+async function deleteBiometricDevice(credId) {
+  const confirmRes = await Swal.fire({
+    title: 'ยืนยันการลบอุปกรณ์?',
+    text: 'เมื่อลบแล้ว คุณจะไม่สามารถใช้ลายนิ้วมือหรือการสแกนใบหน้าของอุปกรณ์นี้ล็อกอินได้อีกต่อไป',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'ใช่, ต้องการลบ',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (!confirmRes.isConfirmed) return;
+
+  try {
+    const deleted = await window.PVTWebAuthn.deleteBiometricCredential(credId);
+    if (deleted) {
+      Swal.fire({
+        icon: 'success',
+        title: 'ลบสำเร็จ',
+        text: 'ลบกุญแจความปลอดภัยอุปกรณ์นี้เสร็จเรียบร้อย',
+        confirmButtonColor: '#0d9488',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      await loadRegisteredBiometrics();
+    } else {
+      throw new Error("ลบข้อมูลไม่สำเร็จ");
+    }
+  } catch (err) {
+    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+  }
+}
+
+window.registerCurrentBiometricDevice = registerCurrentBiometricDevice;
+window.deleteBiometricDevice = deleteBiometricDevice;
+
 
 

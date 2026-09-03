@@ -237,7 +237,7 @@
           // 3. Query ดึงข้อมูลพนักงานพร้อมแผนกและตำแหน่ง
           let query = this.client.from("employees").select(`
             *,
-            departments (department_name),
+            departments!department_id (department_name),
             positions (position_name)
           `);
 
@@ -269,7 +269,7 @@
 
       let query = this.client
         .from("employees")
-        .select(`*, departments(department_name), positions(position_name)`, { count: "exact" });
+        .select(`*, departments!department_id(department_name), positions(position_name)`, { count: "exact" });
 
       if (search) {
         query = query.or(`full_name.ilike.%${search}%,employee_code.ilike.%${search}%,nickname.ilike.%${search}%`);
@@ -317,11 +317,7 @@
       const profile = await global.PVTSDK.hr.getProfile();
       if (!profile) return null;
 
-      const { data: leaveBalances } = await this.client
-        .from("leave_balances")
-        .select("*, leave_types(leave_name, leave_code)")
-        .eq("employee_id", profile.id)
-        .eq("year", targetYear);
+      const leaveBalances = await this.getLeaveBalances(profile.id, targetYear);
 
       const result = {
         profile,
@@ -619,6 +615,8 @@
         // Modules
         this.user = new UserEngine(this.client, this.cache, this.network);
         this.card = new CardEngine(this.client);
+        this.attendance = new AttendanceEngine(this.client, this.cache);
+        this.loginAudit = new LoginAuditEngine(this.client, this.cache);
         this.notification = new NotificationEngine(this.client);
         this.line = new LineOAEngine(this.client);
         this.viewport = new ViewportEngine(); // ✅ เพิ่มเรียบร้อย
@@ -670,7 +668,7 @@
           phone, email, line_id, image_url,
           department_id, position_id, employment_type, hospital, bank_account,
           start_date, converted_date, resign_date, created_at, updated_at,
-          departments ( id, department_code, department_name, department_name_en, status, created_at ),
+          departments!department_id ( id, department_code, department_name, department_name_en, status, created_at ),
           positions ( id, position_name, department_id, status, created_at )
         `)
         .eq('id', employeeId)
@@ -689,27 +687,140 @@
       return result;
     }
 
+    // Helper แปลง employee_leave_balances แถวเดียว ให้เป็นอาร์เรย์รายการวันลาตามประเภท
+    transformEmployeeLeaveBalanceToItems(row, leaveTypesList) {
+      if (!row) return [];
+      const yr = row.year;
+      const empId = row.employee_id;
+
+      let typesToUse = leaveTypesList;
+      if (!typesToUse || typesToUse.length === 0) {
+        typesToUse = [
+          { id: 'sick_type', leave_code: 'SICK', leave_name: 'ลาป่วย' },
+          { id: 'personal_type', leave_code: 'PERSONAL', leave_name: 'ลากิจ' },
+          { id: 'vacation_type', leave_code: 'VACATION', leave_name: 'ลาพักร้อน' },
+          { id: 'maternity_type', leave_code: 'MATERNITY', leave_name: 'ลาคลอดบุตร' },
+          { id: 'other_type', leave_code: 'OTHER', leave_name: 'ลาอื่นๆ' }
+        ];
+      }
+
+      return typesToUse.map(lt => {
+        const code = String(lt.leave_code || '').toUpperCase();
+        const name = String(lt.leave_name || '').toLowerCase();
+
+        let total = 0;
+        let used = 0;
+
+        if (code === 'SICK' || code === '01' || name.includes('ป่วย')) {
+          total = Number(row.sick_total ?? 30);
+          used = Number(row.sick_used ?? 0);
+        } else if (code === 'PERSONAL' || code === '02' || name.includes('กิจ')) {
+          total = Number(row.personal_total ?? 6);
+          used = Number(row.personal_used ?? 0);
+        } else if (code === 'VACATION' || code === '03' || name.includes('พักร้อน') || name.includes('พักผ่อน')) {
+          total = Number(row.vacation_total ?? 6);
+          used = Number(row.vacation_used ?? 0);
+        } else if (code === 'MATERNITY' || name.includes('คลอด')) {
+          total = Number(row.maternity_total ?? 98);
+          used = Number(row.maternity_used ?? 0);
+        } else {
+          total = Number(row.other_total ?? 30);
+          used = Number(row.other_used ?? 0);
+        }
+
+        return {
+          id: `${row.id}_${lt.id}`,
+          row_id: row.id,
+          employee_id: empId,
+          leave_type_id: lt.id,
+          year: yr,
+          entitlement_days: total,
+          used_days: used,
+          remaining_days: Math.max(0, total - used),
+          quota: total,
+          leave_types: {
+            id: lt.id,
+            leave_code: lt.leave_code || code,
+            leave_name: lt.leave_name || name
+          }
+        };
+      });
+    }
+
     // ดึงวันลาคงเหลือ
     async getLeaveBalances(employeeId, year = new Date().getFullYear()) {
-      const cacheKey = `user_leave_balances_${employeeId}_${year}`;
+      let yearNum = parseInt(year, 10) || new Date().getFullYear();
+      const yearAD = yearNum > 2400 ? yearNum - 543 : yearNum;
+      const thaiYear = yearAD + 543;
+
+      const cacheKey = `user_leave_balances_${employeeId}_${yearAD}`;
       const cached = this.cache.get(cacheKey);
       if (cached) return cached;
 
-      const { data, error } = await this.client
-        .from('leave_balances')
-        .select(`
-          id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days, quota, created_at,
-          leave_types ( 
-            id, leave_code, leave_name, yearly_quota, status, allow_after_months, 
-            requires_attachment, require_advance_days, max_days_per_request, paid_leave, default_days, created_at 
-          )
-        `)
-        .eq('employee_id', employeeId)
-        .eq('year', year);
+      let result = [];
+      try {
+        const { data: empBalList, error: empBalErr } = await this.client
+          .from('employee_leave_balances')
+          .select('*')
+          .eq('employee_id', employeeId)
+          .in('year', [yearAD, thaiYear])
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      if (error) return [];
-      this.cache.set(cacheKey, data || [], CONFIG.DEFAULT_TTL, ["leaves"]);
-      return data || [];
+        const empBal = (empBalList && empBalList.length > 0) ? empBalList[0] : null;
+
+        if (!empBalErr && empBal) {
+          const { data: lTypes } = await this.client
+            .from('leave_types')
+            .select('*');
+          result = this.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
+        }
+      } catch (e) {
+        console.warn("employee_leave_balances fetch error:", e);
+      }
+
+      if (!result || result.length === 0) {
+        try {
+          const { data, error } = await this.client
+            .from('leave_balances')
+            .select(`
+              id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days, quota, created_at,
+              leave_types ( 
+                id, leave_code, leave_name, yearly_quota, status, allow_after_months, 
+                requires_attachment, require_advance_days, max_days_per_request, paid_leave, default_days, created_at 
+              )
+            `)
+            .eq('employee_id', employeeId)
+            .in('year', [yearAD, thaiYear]);
+
+          if (!error && data && data.length > 0) {
+            result = data;
+          }
+        } catch(e) {}
+      }
+
+      // 🛡️ หากยังไม่มีข้อมูลโควตา ให้สร้างอัตโนมัติแล้วลองดึงอีกครั้ง
+      if (!result || result.length === 0) {
+        try {
+          await this.ensureLeaveBalances(employeeId, yearAD);
+          const { data: empBalList } = await this.client
+            .from('employee_leave_balances')
+            .select('*')
+            .eq('employee_id', employeeId)
+            .in('year', [yearAD, thaiYear])
+            .limit(1);
+
+          if (empBalList && empBalList.length > 0) {
+            const { data: lTypes } = await this.client.from('leave_types').select('*');
+            result = this.transformEmployeeLeaveBalanceToItems(empBalList[0], lTypes || []);
+          }
+        } catch (e) {
+          console.warn("Auto ensureLeaveBalances fallback error:", e);
+        }
+      }
+
+      this.cache.set(cacheKey, result || [], CONFIG.DEFAULT_TTL, ["leaves"]);
+      return result || [];
     }
 
     // ตรวจสอบและสร้างโควตาวันลาอัตโนมัติหากยังไม่มีในปีนั้นๆ (ใช้ AD เป็นมาตรฐาน)
@@ -725,52 +836,167 @@
             yearAD = parsedYear > 2400 ? parsedYear - 543 : parsedYear;
           }
         }
+        const thaiYear = yearAD + 543;
         
-        // ใช้เฉพาะปี AD เพื่อป้องกันข้อมูลซ้ำซ้อน
-        const yearsToCheck = [yearAD];
-
-        // 1. ดึงประเภทการลาทั้งหมด
-        const { data: leaveTypes } = await this.client
-          .from('leave_types')
-          .select('id, yearly_quota, default_days');
-
-        if (!leaveTypes || leaveTypes.length === 0) return;
-
-        // 2. ดึงรายการที่มีอยู่ใน leave_balances ทั้งปี ค.ศ. และ พ.ศ.
-        const { data: existingBalances } = await this.client
-          .from('leave_balances')
-          .select('leave_type_id, year')
+        // 1. ตรวจสอบตารางหลัก employee_leave_balances
+        const { data: empBalList } = await this.client
+          .from('employee_leave_balances')
+          .select('id')
           .eq('employee_id', employeeId)
-          .in('year', yearsToCheck);
+          .in('year', [yearAD, thaiYear])
+          .limit(1);
 
-        const existingKeys = new Set(
-          (existingBalances || []).map(b => `${b.leave_type_id}_${b.year}`)
-        );
+        if (empBalList && empBalList.length > 0) {
+          console.log(`ℹ️ [ensureLeaveBalances] มีข้อมูลโควตาวันลาของพนักงาน ${employeeId} ปี ${yearAD} ในระบบแล้ว`);
+          return { status: 'existed', message: 'มีข้อมูลแล้ว', id: empBalList[0].id };
+        }
 
-        const newBalances = [];
-        for (const yr of yearsToCheck) {
-          for (const lt of leaveTypes) {
-            const key = `${lt.id}_${yr}`;
-            if (!existingKeys.has(key)) {
-              const quota = Number(lt.yearly_quota || lt.default_days || 30);
-              newBalances.push({
-                employee_id: employeeId,
-                leave_type_id: lt.id,
-                year: yr,
-                entitlement_days: quota,
-                used_days: 0,
-                remaining_days: quota
-              });
+        await this.client
+          .from('employee_leave_balances')
+          .insert([{
+            employee_id: employeeId,
+            year: yearAD,
+            sick_total: 30.0,
+            sick_used: 0.0,
+            personal_total: 6.0,
+            personal_used: 0.0,
+            vacation_total: 6.0,
+            vacation_used: 0.0,
+            maternity_total: 98.0,
+            maternity_used: 0.0,
+            other_total: 30.0,
+            other_used: 0.0
+          }]);
+        console.log("✅ Auto-created missing employee_leave_balances for year", yearAD);
+
+        // 2. ลองสร้างในตารางเก่า leave_balances หากมีตาราง
+        try {
+          const { data: leaveTypes } = await this.client
+            .from('leave_types')
+            .select('id, yearly_quota, default_days');
+
+          if (leaveTypes && leaveTypes.length > 0) {
+            const { data: existingBalances } = await this.client
+              .from('leave_balances')
+              .select('leave_type_id')
+              .eq('employee_id', employeeId)
+              .in('year', [yearAD, thaiYear]);
+
+            const existingKeys = new Set((existingBalances || []).map(b => b.leave_type_id));
+            const newBalances = [];
+            for (const lt of leaveTypes) {
+              if (!existingKeys.has(lt.id)) {
+                const quota = Number(lt.yearly_quota || lt.default_days || 30);
+                newBalances.push({
+                  employee_id: employeeId,
+                  leave_type_id: lt.id,
+                  year: yearAD,
+                  entitlement_days: quota,
+                  used_days: 0,
+                  remaining_days: quota
+                });
+              }
             }
+            if (newBalances.length > 0) {
+              await this.client.from('leave_balances').insert(newBalances);
+            }
+          }
+        } catch (e) {}
+
+        return { status: 'created', message: 'สร้างข้อมูลเรียบร้อยแล้ว' };
+      } catch (err) {
+        console.warn("⚠️ [ensureLeaveBalances] Warning:", err);
+        return { status: 'error', message: err.message || err };
+      }
+    }
+
+    // อัปเดต/หัก ยอดวันลาในตารางหลัก employee_leave_balances
+    async updateLeaveBalance(employeeId, leaveTypeId, leaveCode, yearAD, deltaUsedDays, absoluteUsedDays = null, absoluteTotalDays = null) {
+      if (!this.client || !employeeId) return;
+      try {
+        let code = (leaveCode || '').toUpperCase();
+        if (!code && leaveTypeId) {
+          const { data: lt } = await this.client.from('leave_types').select('leave_code, leave_name').eq('id', leaveTypeId).maybeSingle();
+          if (lt) {
+            code = (lt.leave_code || '').toUpperCase();
+            if (!code && (lt.leave_name || '').includes('ป่วย')) code = 'SICK';
+            if (!code && (lt.leave_name || '').includes('กิจ')) code = 'PERSONAL';
+            if (!code && (lt.leave_name || '').includes('พัก')) code = 'VACATION';
           }
         }
 
-        if (newBalances.length > 0) {
-          await this.client.from('leave_balances').insert(newBalances);
-          console.log("✅ Auto-created missing leave_balances:", newBalances.length, "records");
+        let usedCol = 'sick_used';
+        let totalCol = 'sick_total';
+        if (code === 'SICK' || code === '01' || code.includes('ป่วย')) {
+          usedCol = 'sick_used'; totalCol = 'sick_total';
+        } else if (code === 'PERSONAL' || code === '02' || code.includes('กิจ')) {
+          usedCol = 'personal_used'; totalCol = 'personal_total';
+        } else if (code === 'VACATION' || code === '03' || code.includes('พัก')) {
+          usedCol = 'vacation_used'; totalCol = 'vacation_total';
+        } else if (code === 'MATERNITY' || code.includes('คลอด')) {
+          usedCol = 'maternity_used'; totalCol = 'maternity_total';
+        } else {
+          usedCol = 'other_used'; totalCol = 'other_total';
         }
-      } catch (err) {
-        console.warn("⚠️ [ensureLeaveBalances] Warning:", err);
+
+        const { data: row } = await this.client
+          .from('employee_leave_balances')
+          .select('*')
+          .eq('employee_id', employeeId)
+          .eq('year', yearAD)
+          .maybeSingle();
+
+        const updates = { updated_at: new Date().toISOString() };
+        if (absoluteTotalDays !== null) {
+          updates[totalCol] = Math.max(0, absoluteTotalDays);
+        }
+
+        if (row) {
+          const currentUsed = Number(row[usedCol] || 0);
+          const newUsed = absoluteUsedDays !== null 
+            ? Math.max(0, absoluteUsedDays)
+            : Math.max(0, Math.round((currentUsed + deltaUsedDays) * 100) / 100);
+          updates[usedCol] = newUsed;
+
+          await this.client
+            .from('employee_leave_balances')
+            .update(updates)
+            .eq('id', row.id);
+        } else {
+          const initialUsed = absoluteUsedDays !== null ? absoluteUsedDays : Math.max(0, deltaUsedDays);
+          const initialTotal = absoluteTotalDays !== null ? absoluteTotalDays : 30;
+          await this.client
+            .from('employee_leave_balances')
+            .insert([{
+              employee_id: employeeId,
+              year: yearAD,
+              [usedCol]: initialUsed,
+              [totalCol]: initialTotal
+            }]);
+        }
+
+        // ลองอัปเดตตารางเก่า leave_balances หากมี
+        try {
+          if (leaveTypeId) {
+            const { data: balData } = await this.client
+              .from('leave_balances')
+              .select('id, remaining_days, used_days, entitlement_days')
+              .eq('employee_id', employeeId)
+              .eq('leave_type_id', leaveTypeId)
+              .eq('year', yearAD)
+              .maybeSingle();
+
+            if (balData) {
+              const ent = Number(balData.entitlement_days || 30);
+              const curUsed = Number(balData.used_days || 0);
+              const nUsed = absoluteUsedDays !== null ? absoluteUsedDays : Math.max(0, curUsed + deltaUsedDays);
+              const nRem = Math.max(0, ent - nUsed);
+              await this.client.from('leave_balances').update({ used_days: nUsed, remaining_days: nRem }).eq('id', balData.id);
+            }
+          }
+        } catch(e) {}
+      } catch(err) {
+        console.warn("⚠️ updateLeaveBalance error:", err);
       }
     }
 
@@ -869,9 +1095,304 @@
       }
     }
 
-  // ==========================================================================
-// 🔔 NOTIFICATION ENGINE (สำหรับนำไปต่อใน Class/SDK)
-// ==========================================================================
+    // ==========================================================================
+    // 12.1 ATTENDANCE & QR LOG ENGINE
+    // ==========================================================================
+    class AttendanceEngine {
+      constructor(client, cache) {
+        this.client = client;
+        this.cache = cache;
+      }
+
+      /**
+       * Record successful QR code scans into 'qr_attendance_logs' table in Supabase.
+       * Captures employee ID and timestamp for audit purposes.
+       * 
+       * @param {string} employeeId - UUID or Employee ID
+       * @param {Object} [metadata={}] - Optional metadata (scanned_data, scan_type, status, etc.)
+       * @returns {Promise<Object|null>} Inserted record or null
+       */
+      async recordQrAttendanceLog(employeeId, metadata = {}) {
+        if (!employeeId) {
+          console.warn("⚠️ [AttendanceEngine] Missing employeeId for QR attendance log");
+          return null;
+        }
+
+        const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
+        if (!client) {
+          console.error("❌ [AttendanceEngine] Supabase client is not available");
+          return null;
+        }
+
+        const scannedAt = metadata.scanned_at || metadata.timestamp || new Date().toISOString();
+        const payload = {
+          employee_id: employeeId,
+          scanned_at: scannedAt,
+          status: metadata.status || 'success',
+          scanned_data: metadata.scanned_data || metadata.scannedData || null,
+          scan_type: metadata.scan_type || metadata.scanType || 'qr_scan',
+          created_at: new Date().toISOString()
+        };
+
+        try {
+          let { data, error } = await client
+            .from('qr_attendance_logs')
+            .insert([payload])
+            .select();
+
+          if (error) {
+            console.warn("⚠️ [AttendanceEngine] Full insert into qr_attendance_logs failed, attempting fallback:", error.message);
+            const minimalPayload = {
+              employee_id: employeeId,
+              scanned_at: scannedAt
+            };
+            const fallbackRes = await client
+              .from('qr_attendance_logs')
+              .insert([minimalPayload])
+              .select();
+
+            if (fallbackRes.error) {
+              console.error("❌ [AttendanceEngine] Fallback insert failed:", fallbackRes.error.message);
+              return null;
+            }
+            data = fallbackRes.data;
+          }
+
+          console.log("✅ [AttendanceEngine] QR attendance log recorded successfully:", { employeeId, scannedAt, data });
+          return data ? (Array.isArray(data) ? data[0] : data) : null;
+        } catch (err) {
+          console.error("❌ [AttendanceEngine] Unexpected error recording QR scan:", err);
+          return null;
+        }
+      }
+    }
+
+    // ==========================================================================
+    // 12.2 LOGIN ACTIVITY & AUDIT TRACKING ENGINE
+    // Records user ID, timestamp, and device info into 'login_logs' table
+    // ==========================================================================
+    class LoginAuditEngine {
+      constructor(client, cache) {
+        this.client = client;
+        this.cache = cache;
+      }
+
+      /**
+       * Collects comprehensive client device information for audit logging
+       */
+      getDeviceInfo() {
+        const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+
+        // Operating System detection
+        let os = 'Unknown OS';
+        if (/windows phone/i.test(ua)) os = 'Windows Phone';
+        else if (/win/i.test(ua)) os = 'Windows';
+        else if (/android/i.test(ua)) os = 'Android';
+        else if (/ipad|iphone|ipod/i.test(ua)) os = 'iOS';
+        else if (/mac/i.test(ua)) os = 'macOS';
+        else if (/linux/i.test(ua)) os = 'Linux';
+
+        // Browser detection
+        let browser = 'Unknown Browser';
+        if (/Line\//i.test(ua)) browser = 'LINE In-App Browser';
+        else if (/FBAV|FBAN/i.test(ua)) browser = 'Facebook In-App Browser';
+        else if (/Instagram/i.test(ua)) browser = 'Instagram In-App Browser';
+        else if (/edg/i.test(ua)) browser = 'Microsoft Edge';
+        else if (/chrome|crios/i.test(ua)) browser = 'Google Chrome';
+        else if (/firefox|fxios/i.test(ua)) browser = 'Mozilla Firefox';
+        else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = 'Apple Safari';
+        else if (/opera|opr/i.test(ua)) browser = 'Opera';
+
+        // Form Factor / Device Category
+        let deviceType = 'Desktop';
+        if (/tablet|ipad/i.test(ua) || (typeof screen !== 'undefined' && Math.min(screen.width, screen.height) >= 600 && Math.min(screen.width, screen.height) <= 900)) {
+          deviceType = 'Tablet';
+        } else if (/mobile|iphone|ipod|android/i.test(ua) || (typeof screen !== 'undefined' && Math.min(screen.width, screen.height) < 600)) {
+          deviceType = 'Mobile';
+        }
+
+        const screenRes = typeof screen !== 'undefined' ? `${screen.width}x${screen.height}` : 'N/A';
+        const viewportRes = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'N/A';
+        const lang = typeof navigator !== 'undefined' ? (navigator.language || 'th-TH') : 'th-TH';
+        let timezone = 'Asia/Bangkok';
+        try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Bangkok'; } catch (e) {}
+
+        return {
+          os,
+          browser,
+          device_type: deviceType,
+          screen: screenRes,
+          viewport: viewportRes,
+          language: lang,
+          timezone,
+          user_agent: ua
+        };
+      }
+
+      /**
+       * Records login activity into Supabase 'login_logs' table.
+       * Captures User ID, Timestamp, and Device Info for audit purposes.
+       * 
+       * @param {Object|string} user - Employee object or User ID string
+       * @param {Object} [options={}] - Additional metadata (method: 'password'|'qr_code'|'auto_token', status, etc.)
+       * @returns {Promise<Object|null>}
+       */
+      async recordLoginLog(user, options = {}) {
+        try {
+          const userId = typeof user === 'object' && user ? (user.id || user.employee_code || user.employee_id) : user;
+          if (!userId) {
+            console.warn("⚠️ [LoginAuditEngine] Missing user identifier for login log");
+            return null;
+          }
+
+          const timestamp = options.timestamp || new Date().toISOString();
+          const deviceInfo = options.device_info || this.getDeviceInfo();
+          const loginMethod = options.method || options.login_method || 'password';
+          const status = options.status || 'success';
+
+          const empCode = typeof user === 'object' && user ? (user.employee_code || '') : '';
+          const fullName = typeof user === 'object' && user ? (user.full_name || '') : '';
+          const role = typeof user === 'object' && user ? (user.role || '') : '';
+          const employeeId = typeof user === 'object' && user && user.id ? user.id : (String(userId).length === 36 ? userId : null);
+
+          const payload = {
+            user_id: String(userId),
+            employee_id: employeeId,
+            employee_code: empCode,
+            full_name: fullName,
+            role: role,
+            timestamp: timestamp,
+            device_info: deviceInfo,
+            login_method: loginMethod,
+            status: status,
+            metadata: options.metadata || { source: 'web_portal' },
+            created_at: timestamp
+          };
+
+          // 1. Try server-side API first (best for capturing real client IP and using service_role)
+          try {
+            const apiRes = await fetch('/api/record-login-log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (apiRes.ok) {
+              const resJson = await apiRes.json();
+              console.log("✅ [LoginAuditEngine] Login activity logged via server API:", resJson);
+              this._bufferLocalLog(payload);
+              return resJson;
+            }
+          } catch (apiErr) {
+            // Proceed to direct SDK call
+          }
+
+          // 2. Direct Supabase SDK insert into 'login_logs' table
+          const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
+          if (client) {
+            try {
+              const { data, error } = await client
+                .from('login_logs')
+                .insert([payload])
+                .select();
+
+              if (!error && data) {
+                console.log("✅ [LoginAuditEngine] Login activity recorded directly in Supabase 'login_logs':", data);
+                this._bufferLocalLog(payload);
+                return Array.isArray(data) ? data[0] : data;
+              }
+
+              console.warn("⚠️ [LoginAuditEngine] Direct insert into 'login_logs' notice:", error?.message);
+
+              // If 'login_logs' table is not yet migrated, save into hr_admin_management_logs fallback
+              try {
+                await client.from('hr_admin_management_logs').insert([{
+                  actor_id: employeeId,
+                  actor_name: fullName || empCode || 'User',
+                  action_category: 'LOGIN_AUDIT',
+                  action_type: `LOGIN_${String(loginMethod).toUpperCase()}`,
+                  target_identifier: empCode || String(userId),
+                  description: `เข้าสู่ระบบสำเร็จ (${deviceInfo.browser} บน ${deviceInfo.os})`,
+                  payload_after: payload
+                }]);
+                console.log("ℹ️ [LoginAuditEngine] Fallback audit log saved in hr_admin_management_logs");
+              } catch (fallbackErr) {}
+
+            } catch (sdkErr) {
+              console.warn("⚠️ [LoginAuditEngine] SDK error:", sdkErr);
+            }
+          }
+
+          // 3. Keep local storage buffer
+          this._bufferLocalLog(payload);
+          return payload;
+        } catch (err) {
+          console.error("❌ [LoginAuditEngine] Unexpected error recording login log:", err);
+          return null;
+        }
+      }
+
+      _bufferLocalLog(payload) {
+        try {
+          const localLogs = JSON.parse(localStorage.getItem('pvt_login_logs_history') || '[]');
+          localLogs.unshift({ ...payload, buffered_at: new Date().toISOString() });
+          if (localLogs.length > 50) localLogs.length = 50;
+          localStorage.setItem('pvt_login_logs_history', JSON.stringify(localLogs));
+        } catch (e) {}
+      }
+
+      /**
+       * Retrieve recent login logs for audit analysis
+       */
+      async getLoginLogs(limit = 50) {
+        // Try server API first
+        try {
+          const res = await fetch(`/api/login-logs?limit=${limit}`);
+          if (res.ok) {
+            const json = await res.json();
+            if (json.data && json.data.length > 0) return json.data;
+          }
+        } catch (e) {}
+
+        const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
+        if (client) {
+          try {
+            const { data, error } = await client
+              .from('login_logs')
+              .select('*')
+              .order('timestamp', { ascending: false })
+              .limit(limit);
+            if (!error && data && data.length > 0) return data;
+          } catch (e) {}
+
+          // Fallback to hr_admin_management_logs
+          try {
+            const { data } = await client
+              .from('hr_admin_management_logs')
+              .select('*')
+              .eq('action_category', 'LOGIN_AUDIT')
+              .order('created_at', { ascending: false })
+              .limit(limit);
+            if (data && data.length > 0) {
+              return data.map(d => d.payload_after || {
+                user_id: d.actor_id,
+                full_name: d.actor_name,
+                employee_code: d.target_identifier,
+                timestamp: d.created_at,
+                device_info: { description: d.description },
+                login_method: d.action_type
+              });
+            }
+          } catch (e) {}
+        }
+
+        // Local storage fallback
+        try {
+          return JSON.parse(localStorage.getItem('pvt_login_logs_history') || '[]');
+        } catch (e) {
+          return [];
+        }
+      }
+    }
 class NotificationEngine {
   constructor(client) {
     this.client = client;
@@ -1323,6 +1844,30 @@ class LineOAEngine {
               ]
             },
 
+            // SLA Deadline warning box inside the LINE Flex Card
+            ...(['NEW_REQUEST', 'LEADER_APPROVED', 'MANAGER_APPROVED', 'CANCELLATION'].includes(type) ? [
+              {
+                type: "box",
+                layout: "horizontal",
+                backgroundColor: "#fff7ed",
+                borderColor: "#ffedd5",
+                borderWidth: "1px",
+                paddingAll: "8px",
+                cornerRadius: "8px",
+                margin: "md",
+                contents: [
+                  {
+                    type: "text",
+                    text: "⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ",
+                    size: "xs",
+                    color: "#ea580c",
+                    weight: "bold",
+                    align: "center"
+                  }
+                ]
+              }
+            ] : []),
+
             // Separator line (เส้นแบ่งสวยๆ แบบสลิป)
             {
               type: "separator",
@@ -1507,6 +2052,7 @@ class LineOAEngine {
         title = "📩 มีคำขอใบลาใหม่ (รออนุมัติ L1)";
         messageText = 
           `📩 [แจ้งเตือนคำขอใบลาใหม่ - รออนุมัติ]\n` +
+          `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
           `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
           (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
@@ -1524,6 +2070,7 @@ class LineOAEngine {
         title = "🟢 หัวหน้างานอนุมัติแล้ว (รออนุมัติ L2)";
         messageText = 
           `🟢 [คำขอลาผ่านการอนุมัติขั้นต้น (L1)]\n` +
+          `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
           `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
           (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
@@ -1542,6 +2089,7 @@ class LineOAEngine {
         title = "🔵 ผู้จัดการฝ่ายอนุมัติแล้ว (รอการพิจารณาถัดไป)";
         messageText = 
           `🔵 [คำขอลาผ่านการอนุมัติระดับผู้จัดการ (L2)]\n` +
+          `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
           `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
           (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
@@ -1595,6 +2143,7 @@ class LineOAEngine {
         title = "⚠️ แจ้งเตือนคำขอยกเลิกใบลา";
         messageText = 
           `⚠️ [แจ้งเตือนคำขอยกเลิกใบลา]\n` +
+          `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
           `👤 พนักงาน: ${employeeName} (${employeeCode || '-'})\n` +
           (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
@@ -1871,5 +2420,29 @@ class LineOAEngine {
   // Export Global Instance
   global.PVTSDK = new PVTHRSdk();
   global.pvtSupabase = global.PVTSDK; // Backward Compatibility
+
+  // Global Function for Recording QR Attendance Logs
+  global.recordQrAttendanceLog = async function(employeeId, metadata = {}) {
+    if (global.PVTSDK?.attendance?.recordQrAttendanceLog) {
+      return await global.PVTSDK.attendance.recordQrAttendanceLog(employeeId, metadata);
+    }
+    return null;
+  };
+
+  // Global Function for Recording Login Activity Audit Logs ('login_logs')
+  global.recordLoginLog = async function(user, options = {}) {
+    if (global.PVTSDK?.loginAudit?.recordLoginLog) {
+      return await global.PVTSDK.loginAudit.recordLoginLog(user, options);
+    }
+    return null;
+  };
+
+  // Global Function for Retrieving Login Activity Logs
+  global.getLoginLogs = async function(limit = 50) {
+    if (global.PVTSDK?.loginAudit?.getLoginLogs) {
+      return await global.PVTSDK.loginAudit.getLoginLogs(limit);
+    }
+    return [];
+  };
 
 })(typeof window !== "undefined" ? window : this);

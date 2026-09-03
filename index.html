@@ -3,15 +3,18 @@
   <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>PVT HR Leave - เข้าสู่ระบบ</title>
+    <title>PVT Workforce Hub - เข้าสู่ระบบ</title>
+    <meta name="description" content="Integrated HR Management & Leave Dashboard System with Supabase authentication and approval workflows." />
+    <meta property="og:title" content="PVT Workforce Hub - เข้าสู่ระบบ" />
+    <meta property="og:description" content="Integrated HR Management & Leave Dashboard System with Supabase authentication and approval workflows." />
     
     <meta name="theme-color" content="#0d9488"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
     <meta name="apple-mobile-web-app-title" content="PVT Leave"/>
     <link rel="manifest" href="/manifest.json"/>
-    <link rel="apple-touch-icon" href="/assets/icons/logo-pvt.png"/>
-    <link rel="icon" type="image/png" href="/assets/icons/logo-pvt.png"/>
+    <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png"/>
+    <link rel="icon" type="image/png" href="/assets/icons/Logo_PVT_2026_B.png"/>
     
     <!-- Modern Thai & International Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,9 +32,9 @@
         
         <section class="brand-area">
           <div class="logo-wrapper">
-            <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="brand-logo"/>
+            <img src="/assets/icons/Logo_PVT_2026_B.png" alt="PVT Logo" class="brand-logo"/>
           </div>
-          <h1>PVT HR Leave</h1>
+          <h1>PVT&T HR Leave</h1>
           <div class="brand-badge">
             <span class="pulse-dot"></span>
             <span id="i18nBadge">ระบบขออนุญาตลาออนไลน์</span>
@@ -42,6 +45,26 @@
         <div id="loginAlertBanner" class="login-alert-banner" role="alert" aria-live="polite">
           <span class="material-symbols-outlined banner-icon" id="loginAlertIcon">error</span>
           <span id="loginAlertText" class="banner-text"></span>
+        </div>
+
+        <!-- Biometric Camera Browser Compatibility Diagnostic Alert Banner -->
+        <div id="biometricCameraAlertBanner" class="login-alert-banner warning" role="alert" aria-live="polite" style="display: none;">
+          <span class="material-symbols-outlined banner-icon" id="biometricCameraAlertIcon" style="color: #d97706; font-size: 22px; flex-shrink: 0; margin-top: 1px;">videocam_off</span>
+          <div style="flex: 1; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
+              <span id="biometricCameraAlertTitle" style="font-weight: 700; font-size: 13.5px; color: #92400e;">⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก</span>
+              <button type="button" id="btnDismissCameraAlert" aria-label="ปิดการแจ้งเตือน" style="background: transparent; border: none; font-size: 18px; line-height: 1; color: #b45309; cursor: pointer; padding: 0 4px; font-weight: bold; margin-left: 8px;">✕</button>
+            </div>
+            <div id="biometricCameraAlertMsg" style="font-size: 12px; color: #78350f; line-height: 1.45;">
+              เบราว์เซอร์ของคุณเป็นรุ่นเก่าหรือไม่รองรับกล้องสแกนใบหน้า/QR Code แนะนำให้อัปเดตเบราว์เซอร์ หรือเปิดด้วย Google Chrome/Safari
+            </div>
+            <div style="margin-top: 8px; display: flex; gap: 8px;">
+              <button type="button" id="btnCameraDetails" style="background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; font-size: 12px; font-weight: 600; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: background 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 15px;">manage_search</span>
+                <span id="i18nCamDiagBtn">ผลตรวจวินิจฉัย & วิธีแก้ไข</span>
+              </button>
+            </div>
+          </div>
         </div>
         
         <form id="loginForm">
@@ -78,19 +101,25 @@
             </label>
           </div>
 
-          <button type="submit" class="login-btn">
-            <span class="btn-content" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+          <button type="submit" id="loginBtn" class="login-btn" aria-live="polite">
+            <span class="btn-content">
               <span class="material-symbols-outlined">login</span>
               <span id="i18nLoginBtn">เข้าสู่ระบบ</span>
             </span>
-            <div class="btn-spinner">
-              <span class="material-symbols-outlined">sync</span>
-            </div>
+            <span class="btn-spinner" aria-hidden="true">
+              <span class="spinner-circle"></span>
+              <span id="i18nLoggingInText" class="spinner-text">กำลังเข้าสู่ระบบ...</span>
+            </span>
           </button>
           
           <button type="button" class="qr-btn" onclick="loginByQr()">
             <span class="material-symbols-outlined">qr_code_scanner</span>
             <span id="i18nQrBtn">สแกนคิวอาร์โค้ดบัตรพนักงาน</span>
+          </button>
+
+          <button type="button" id="biometricLoginBtn" class="biometric-btn" style="display: none;" onclick="loginByBiometrics()">
+            <span class="material-symbols-outlined">fingerprint</span>
+            <span id="i18nBiometricLoginBtn">เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า</span>
           </button>
         </form>
       </main>
@@ -110,6 +139,7 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="/js/supabase-config.js"></script>
     <script src="/js/system-diagnostics.js"></script>
+    <script src="/js/webauthn-service.js"></script>
     <script src="/auth/index.js"></script>
   </body>
 </html>

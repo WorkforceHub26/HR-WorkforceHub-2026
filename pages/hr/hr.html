@@ -16,6 +16,7 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/hr.css" /> 
+  <link rel="stylesheet" href="/css/leave-sla-tracker.css" />
 </head>
 
 <body>
@@ -24,7 +25,7 @@
     <!-- 📌 SIDEBAR ด้านซ้าย -->
     <aside class="sidebar-light" id="mainSidebar">
       <div class="brand-zone">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
+        <img src="/assets/icons/Logo_PVT_2026_B.png" alt="PVT Logo" class="logo-mini" />
       </div>
 
       <nav class="nav-menu">
@@ -48,6 +49,10 @@
           <span class="material-symbols-outlined">calendar_today</span>
           <span class="nav-label">วันหยุด</span>
         </a>
+        <a href="/pages/user/full-guide.html" class="nav-item" title="คู่มือการใช้งาน">
+          <span class="material-symbols-outlined">menu_book</span>
+          <span class="nav-label">คู่มือการใช้งาน</span>
+        </a>
 
 
       </nav>
@@ -66,13 +71,13 @@
       <!-- Topbar / Header Glass Card -->
       <header class="topbar">
         <div class="topbar-left">
-          <button class="mobile-menu-btn" title="เปิดเมนู">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" title="เปิดเมนู" onclick="toggleMobileSidebar()">
             <span class="material-symbols-outlined">menu</span>
           </button>
           
           <div>
-            <h1 id="pageMainTitle">ระบบอนุมัติและจัดการใบลา</h1>
-            <p id="pageSubTitle">LEAVE APPROVALS & CANCELLATION MANAGEMENT</p>
+            <h1 id="pageMainTitle">ระบบอนุมัติใบลา</h1>
+            <p id="pageSubTitle">LEAVE APPROVALS</p>
           </div>
         </div>
 
@@ -134,10 +139,10 @@
       </section>
 
       <!-- 🟢 TAB NAVIGATOR (FILTER CHIPS) -->
-      <div class="leave-tab-container">
-        <button class="tab-btn active" onclick="switchLeaveTab('pending', this)">
+      <div class="leave-tab-container" style="overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 8px;">
+        <button class="tab-btn active" onclick="switchLeaveTab('pending', this)" style="display: inline-flex; flex-shrink: 0;">
           <span class="material-symbols-outlined">hourglass_top</span>
-            ใบลารออนุมัติ
+            รออนุมัติ
           <span id="pendingCountBadge" class="tab-count-badge">0</span>
         </button>
 
@@ -154,6 +159,9 @@
         </button>
       </div>
 
+      <!-- ⏱️ 2-DAY APPROVAL SLA COUNTDOWN TRACKER WIDGET -->
+      <div id="leaveSlaTrackerContainer"></div>
+
       <!-- PANEL ตารางข้อมูล -->
       <section class="panel">
         <div class="panel-header">
@@ -164,8 +172,14 @@
 
           <!-- 🔍 แถบเครื่องมือการกรองข้อมูล และ ปุ่มรีเฟรช -->
           <div class="panel-header-controls">
+            <div class="search-box-wrap" style="position: relative; min-width: 220px;">
+              <span class="material-symbols-outlined" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; color: #94a3b8; pointer-events: none;">search</span>
+              <input type="text" id="hrLeaveSearchInput" placeholder="ค้นหาชื่อ, รหัส, แผนก, ประเภท..." 
+                     oninput="renderLeaveTable()" 
+                     style="padding: 7px 12px 7px 34px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; background: #ffffff;">
+            </div>
             <div class="filter-group">
-              <label for="filterStepSelect">สถานะตามลำดับขั้น:</label>
+              <label for="filterStepSelect">สถานะ:</label>
               <select id="filterStepSelect" class="form-select" onchange="renderLeaveTable()">
                 <option value="all">-- แสดงทั้งหมด --</option>
                 <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
@@ -179,7 +193,7 @@
               <span class="material-symbols-outlined">sync</span> รีเฟรชข้อมูล
             </button>
             <button class="btn-pvt-refresh btn-export-excel" onclick="exportLeaveReportExcel()" style="background: var(--primary-soft); color: var(--primary-dark); border-color: var(--primary-light);">
-              <span class="material-symbols-outlined" style="color: var(--primary);">download</span> ดาวน์โหลดสรุป Excel
+              <span class="material-symbols-outlined" style="color: var(--primary);">download</span> สรุป Excel
             </button>
           </div>
         </div>
@@ -193,33 +207,6 @@
         </div>
       </section>
 
-      <!-- 👥 PANEL: รายชื่อพนักงานในแผนก -->
-      <section class="panel mb-6" id="hrDepartmentTeamSection" style="margin-top: 24px;">
-        <div class="panel-header" style="justify-content: space-between; align-items: center; display: flex; width: 100%;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="material-symbols-outlined text-primary" style="font-size: 26px; color: var(--primary);">badge</span>
-            <div>
-              <h2 id="hrTeamSectionTitle" style="margin: 0; font-size: 16px; font-weight: 700;">สมาชิกพนักงานในแผนก</h2>
-              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-soft);">รายชื่อพนักงานและตำแหน่งงานสังกัดแผนกของคุณ</p>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span id="hrTeamCountBadge" style="background: var(--primary-soft, #e0f2fe); color: var(--primary, #0284c7); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 20px;">0 คน</span>
-            <button type="button" class="btn-toggle-icon" onclick="toggleHrTeamContainer(this)" title="ซ่อน/แสดง รายชื่อสมาชิก" style="background: transparent; border: none; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center;">
-              <span class="material-symbols-outlined" id="hrTeamToggleIcon">expand_less</span>
-            </button>
-          </div>
-        </div>
-        <div class="card-body" style="padding: 16px;">
-          <div id="hrTeamContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;">
-            <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
-              ⏳ กำลังโหลดข้อมูลสมาชิกในแผนก...
-            </div>
-          </div>
-        </div>
-      </section>
-
-      
     </main>
   </div>
 
@@ -247,6 +234,7 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="/js/supabase-config.js"></script>
   <script src="/js/auth-guard.js"></script>
+  <script src="/js/components/leave-sla-tracker.js"></script>
   <script src="/js/hr.js"></script>
   <script src="/js/system-diagnostics.js"></script>
 </body>

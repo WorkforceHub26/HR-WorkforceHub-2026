@@ -26,17 +26,17 @@
     </a>
 
     <!-- Header ข้อมูลพนักงาน -->
-    <header class="user-header" id="indexUserHeader">
-      <div class="brand-row">
+    <header class="user-header" id="indexUserHeader" style="flex-wrap: wrap; gap: 16px;">
+      <div class="brand-row" style="flex: 1; min-width: 200px;">
         <img id="userAvatar" src="/assets/img/default-avatar.jpg" alt="PVT" />
         <div>
-          <p class="hello" id="userHelloText">สวัสดีค่ะ</p>
-          <h1 id="userName">กำลังโหลด...</h1>
-          <span id="userDepartment">PVT HR Leave</span>
+          <p class="hello" id="userHelloText" style="margin: 0; font-size: 13px;">สวัสดีค่ะ</p>
+          <h1 id="userName" style="margin: 2px 0; font-size: 18px; line-height: 1.2;">กำลังโหลด...</h1>
+          <span id="userDepartment" style="font-size: 12px; opacity: 0.8;">PVT HR Leave</span>
         </div>
       </div>
       
-      <div class="user-header-actions" style="display: flex; align-items: center; gap: 10px;">
+      <div class="user-header-actions" style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
         <button id="refreshBtn" class="notif-btn" onclick="refreshUserData()" title="รีเฟรชข้อมูลล่าสุด">
           <span class="material-symbols-outlined">refresh</span>
         </button>
@@ -89,19 +89,18 @@
 
     <!-- ส่วนแสดงสิทธิ์วันลาคงเหลือ -->
     <div class="leave-section">
-      <div class="leave-header-row">
+      <div class="leave-header-row" style="flex-wrap: wrap; gap: 10px;">
         <h2>  สิทธิ์วันลาคงเหลือ</h2>
-        <div class="leave-header-controls">
+        <div class="leave-header-controls" style="margin-left: auto;">
           <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
           </select>
-          <!-- ปุ่มซ่อน/แสดง สิทธิ์วันลา -->
           <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ซ่อน/แสดง สิทธิ์วันลา">
             <span class="material-symbols-outlined">visibility</span>
           </button>
         </div>
       </div>
 
-      <div id="leaveBalancesContainer" class="leave-grid">
+      <div id="leaveBalancesContainer" class="leave-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
         <span class="loading-text">  กำลังโหลดข้อมูลสิทธิ์วันลา...</span>
       </div>
     </div>
@@ -118,8 +117,8 @@
           </div>
 
           <!-- 2. กล่องรวมปุ่มเมนู (ใส่ id="quickMenuSection" ครอบการ์ดเมนูไว้ตรงนี้) -->
-          <div id="quickMenuSection" class="menu-grid">
-            <div class="menu-card" onclick="goToRules()">
+          <div id="quickMenuSection" class="menu-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+            <div class="menu-card" onclick="goToRules()" style="padding: 12px;">
               <div class="menu-icon" style="font-size: 28px;">📖</div>
               <div class="menu-info">
                 <h3>หลักเกณฑ์การลา</h3>
@@ -158,6 +157,14 @@
               <div class="menu-info">
                 <h3 style="color: #166534;">เชื่อมต่อ LINE</h3>
                 <p>รับแจ้งเตือนผ่านมือถือ</p>
+              </div>
+            </div>
+
+            <div class="menu-card" onclick="window.location.href='/pages/user/full-guide.html'" style="border: 1px solid #06b6d433; background: #ecfeff;">
+              <div class="menu-icon" style="font-size: 28px;">📘</div>
+              <div class="menu-info">
+                <h3 style="color: #0891b2;">คู่มือการใช้งาน</h3>
+                <p>คู่มือระบบฉบับสมบูรณ์ & SLA</p>
               </div>
             </div>
 

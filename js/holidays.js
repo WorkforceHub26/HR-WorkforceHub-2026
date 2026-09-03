@@ -473,6 +473,20 @@ function renderGrid(list) {
       )
     : false;
 
+  const searchInput = document.getElementById('holidaySearchInput');
+  const searchTxt = searchInput ? searchInput.value.trim() : '';
+
+  const highlightMatch = (text, term) => {
+    if (!term || !text) return text || "-";
+    const cleanText = String(text);
+    const idx = cleanText.toLowerCase().indexOf(term.toLowerCase());
+    if (idx === -1) return cleanText;
+    const before = cleanText.slice(0, idx);
+    const matched = cleanText.slice(idx, idx + term.length);
+    const after = cleanText.slice(idx + term.length);
+    return `${before}<mark class="text-highlight">${matched}</mark>${after}`;
+  };
+
   container.innerHTML = list.map(item => {
     const hDate = parseLocalDate(item.holiday_date);
     const dayNumber = hDate.getDate();
@@ -513,6 +527,9 @@ function renderGrid(list) {
     const locHolidayName = getLocalizedHolidayName(item.holiday_name);
     const locHolidayDesc = getLocalizedHolidayDesc(item.description);
 
+    const displayHolidayName = highlightMatch(locHolidayName || item.holiday_name || '-', searchTxt);
+    const displayHolidayDesc = highlightMatch(locHolidayDesc || item.description || '-', searchTxt);
+
     const actionButtons = isPowerUser
       ? `
         <div class="card-action-btns">
@@ -551,8 +568,8 @@ function renderGrid(list) {
 
         <div class="card-body-content">
           <div class="day-name">${dayName}</div>
-          <h3>${locHolidayName || item.holiday_name || '-'}</h3>
-          <p class="description-text">${locHolidayDesc || item.description || '-'}</p>
+          <h3>${displayHolidayName}</h3>
+          <p class="description-text">${displayHolidayDesc}</p>
         </div>
 
         <div class="card-footer-action">
@@ -580,6 +597,20 @@ function renderTable(list) {
 
   const isPowerUser = currentUserProfile ? ['admin', 'hr'].includes(currentUserProfile.role ? currentUserProfile.role.toLowerCase() : '') : false;
 
+  const searchInput = document.getElementById('holidaySearchInput');
+  const searchTxt = searchInput ? searchInput.value.trim() : '';
+
+  const highlightMatch = (text, term) => {
+    if (!term || !text) return text || "-";
+    const cleanText = String(text);
+    const idx = cleanText.toLowerCase().indexOf(term.toLowerCase());
+    if (idx === -1) return cleanText;
+    const before = cleanText.slice(0, idx);
+    const matched = cleanText.slice(idx, idx + term.length);
+    const after = cleanText.slice(idx + term.length);
+    return `${before}<mark class="text-highlight">${matched}</mark>${after}`;
+  };
+
   tbody.innerHTML = list.map((item, index) => {
     const hDate = parseLocalDate(item.holiday_date);
     const dayName = strings.days[hDate.getDay()];
@@ -589,15 +620,18 @@ function renderTable(list) {
     const locHolidayName = getLocalizedHolidayName(item.holiday_name);
     const locHolidayDesc = getLocalizedHolidayDesc(item.description);
 
+    const displayHolidayName = highlightMatch(locHolidayName || item.holiday_name, searchTxt);
+    const displayHolidayDesc = highlightMatch(locHolidayDesc || item.description || '-', searchTxt);
+
     return `
       <tr style="${isPast ? 'opacity: 0.6; background: #f8fafc;' : ''}">
         <td style="text-align: center;">${index + 1}</td>
         <td><strong>${formatLocalDateShort(item.holiday_date)}</strong></td>
         <td>${dayName}</td>
-        <td><strong>${locHolidayName || item.holiday_name}</strong></td>
+        <td><strong>${displayHolidayName}</strong></td>
         <td>${tagText}</td>
         <td>${isPast ? strings.statusPast : strings.statusUpcoming}</td>
-        <td>${locHolidayDesc || item.description || '-'}</td>
+        <td>${displayHolidayDesc}</td>
         <td style="text-align: center;">
           ${isPowerUser ? `
             <div class="table-action-btns">
@@ -936,7 +970,7 @@ window.loadTeamLeavesForCalendar = async function() {
       .from('leave_requests')
       .select(`
         id, start_date, end_date, leave_type_id, total_days, reason, status,
-        employees!inner (id, full_name, role, department_id, departments (department_name)),
+        employees!inner (id, full_name, role, department_id, departments!department_id (department_name)),
         leave_types (leave_name)
       `)
       .in('status', ['approved', 'pending'])

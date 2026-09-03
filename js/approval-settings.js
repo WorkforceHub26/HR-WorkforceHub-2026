@@ -40,6 +40,10 @@ function bindEvents() {
   document.getElementById("executiveSelect")?.addEventListener("change", updateExecutiveLineStatus);
   document.getElementById("saveExecutiveBtn")?.addEventListener("click", saveExecutiveSetting);
   document.getElementById("saveLineNotifSettingsBtn")?.addEventListener("click", saveLineNotificationSettings);
+  
+  // New: Individual Approver Events
+  document.getElementById("individualEmployeeSelect")?.addEventListener("change", handleIndividualEmployeeChange);
+  document.getElementById("btnSaveIndividual")?.addEventListener("click", saveIndividualApprover);
 }
 
 window.focusSection = function(sectionId, focusElementId) {
@@ -65,7 +69,7 @@ async function loadAllData() {
     const [deptRes, empRes, mapRes, executiveRes] = await Promise.all([
       sb.from("departments").select("id, department_name").order("department_name"),
       sb.from("employees")
-        .select("id, employee_code, full_name, nickname, department_id, role, line_id, status, image_url, positions(position_name), departments(department_name)")
+        .select("id, employee_code, full_name, nickname, department_id, role, line_id, status, image_url, l1_approver_id, l2_approver_id, positions(position_name), departments!department_id(department_name)")
         .order("full_name"),
       sb.from("department_approvers").select("id, department_id, supervisor_id, manager_id"),
       sb.from("system_settings").select("setting_key, employee_id").eq("setting_key", "leave_executive_approver").maybeSingle()
@@ -83,6 +87,13 @@ async function loadAllData() {
 
     renderExecutiveOptions();
     renderDepartmentOptions();
+    renderIndividualEmployeeOptions(); // New
+    
+    // Initialize Tom Select for searchable dropdowns
+    setTimeout(() => {
+      initTomSelect();
+    }, 500);
+    
     renderApproverTable();
     renderEmployeeLineTable();
     await loadLineNotificationSettings();
@@ -802,13 +813,28 @@ function renderApproverTable() {
     countBadge.textContent = `${validDepts.length} แผนก`;
   }
 
+  const highlightMatch = (text, term) => {
+    if (!term || !text) return escapeHtml(text || "");
+    const cleanText = String(text);
+    const idx = cleanText.toLowerCase().indexOf(term.toLowerCase());
+    if (idx === -1) return escapeHtml(cleanText);
+    const before = escapeHtml(cleanText.slice(0, idx));
+    const matched = escapeHtml(cleanText.slice(idx, idx + term.length));
+    const after = escapeHtml(cleanText.slice(idx + term.length));
+    return `${before}<mark class="text-highlight">${matched}</mark>${after}`;
+  };
+
   const rows = validDepts.map(dept => {
     const map = approverMap.get(String(dept.id));
     const sup = employees.find(e => String(e.id) === String(map?.supervisor_id));
     const mgr = employees.find(e => String(e.id) === String(map?.manager_id));
 
+    const supNameHtml = sup ? highlightMatch(sup.full_name, currentSearchQuery) : '';
+    const mgrNameHtml = mgr ? highlightMatch(mgr.full_name, currentSearchQuery) : '';
+    const deptNameHtml = highlightMatch(dept.department_name || "-", currentSearchQuery);
+
     const l1Display = sup 
-      ? `<div class="approver-name">🎖️ ${escapeHtml(sup.full_name)}</div><div class="approver-pos">${escapeHtml(sup.positions?.position_name || 'หัวหน้างาน')}</div>` 
+      ? `<div class="approver-name">🎖️ ${supNameHtml}</div><div class="approver-pos">${escapeHtml(sup.positions?.position_name || 'หัวหน้างาน')}</div>` 
       : '<span style="color:#64748b; font-style:italic; font-size:13px;">⚡ ข้ามขั้นตอน L1 (ส่งไป L2 / HR)</span>';
     
     const l1Line = sup 
@@ -818,7 +844,7 @@ function renderApproverTable() {
       : '';
     
     const l2Display = mgr 
-      ? `<div class="approver-name">👔 ${escapeHtml(mgr.full_name)}</div><div class="approver-pos">${escapeHtml(mgr.positions?.position_name || 'ผู้จัดการฝ่าย')}</div>` 
+      ? `<div class="approver-name">👔 ${mgrNameHtml}</div><div class="approver-pos">${escapeHtml(mgr.positions?.position_name || 'ผู้จัดการฝ่าย')}</div>` 
       : '<span style="color:#64748b; font-style:italic; font-size:13px;">⚡ ข้ามขั้นตอน L2 (มีเฉพาะ L1)</span>';
     
     const l2Line = mgr 
@@ -831,7 +857,7 @@ function renderApproverTable() {
       <td>
         <div class="dept-title">
           <span class="dept-badge"><span class="material-symbols-outlined" style="font-size:16px;">domain</span></span>
-          <span>${escapeHtml(dept.department_name || "-")}</span>
+          <span>${deptNameHtml}</span>
         </div>
       </td>
       <td>
@@ -933,6 +959,11 @@ window.openApproverModal = function(departmentId) {
     }
 
     modal.classList.add("show");
+    
+    // Re-init Tom Select for modal selects
+    setTimeout(() => {
+      initTomSelect();
+    }, 100);
   } catch (err) {
     console.error("openApproverModal Error:", err);
   }
@@ -1634,12 +1665,29 @@ function renderEmployeeLineTable() {
     return;
   }
 
+  const highlightMatch = (text, term) => {
+    if (!term || !text) return escapeHtml(text || "");
+    const cleanText = String(text);
+    const idx = cleanText.toLowerCase().indexOf(term.toLowerCase());
+    if (idx === -1) return escapeHtml(cleanText);
+    const before = escapeHtml(cleanText.slice(0, idx));
+    const matched = escapeHtml(cleanText.slice(idx, idx + term.length));
+    const after = escapeHtml(cleanText.slice(idx + term.length));
+    return `${before}<mark class="text-highlight">${matched}</mark>${after}`;
+  };
+
   const rows = filtered.map(emp => {
     const dept = departments.find(d => String(d.id) === String(emp.department_id));
     const deptName = dept?.department_name || emp.departments?.department_name || "ไม่ระบุแผนก";
     const posName = emp.positions?.position_name || "พนักงาน";
     const hasLine = Boolean(emp.line_id && String(emp.line_id).trim() !== "");
     const isResigned = emp.status === "resigned" || emp.status === "inactive";
+
+    const empNameHtml = highlightMatch(emp.full_name || "-", currentEmpLineSearch);
+    const empNicknameHtml = emp.nickname ? highlightMatch(emp.nickname, currentEmpLineSearch) : '';
+    const empCodeHtml = highlightMatch(emp.employee_code || '-', currentEmpLineSearch);
+    const deptNameHtml = highlightMatch(deptName, currentEmpLineSearch);
+    const posNameHtml = highlightMatch(posName, currentEmpLineSearch);
 
     // อวาตาร์
     let avatarContent = "";
@@ -1742,11 +1790,11 @@ function renderEmployeeLineTable() {
             </div>
             <div class="emp-detail-col">
               <div class="emp-name-text">
-                ${escapeHtml(emp.full_name || "-")}
-                ${emp.nickname ? `<span style="font-weight:400; color:#64748b; font-size:12px;">(${escapeHtml(emp.nickname)})</span>` : ''}
+                ${empNameHtml}
+                ${emp.nickname ? `<span style="font-weight:400; color:#64748b; font-size:12px;">(${empNicknameHtml})</span>` : ''}
               </div>
               <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
-                <span class="emp-code-badge">#${escapeHtml(emp.employee_code || '-')}</span>
+                <span class="emp-code-badge">#${empCodeHtml}</span>
                 ${isResigned 
                   ? `<span style="background:#fee2e2; color:#b91c1c; font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:4px; border:1px solid #fca5a5;">⚠️ ลาออกแล้ว</span>` 
                   : `<span style="background:#f0fdf4; color:#15803d; font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:4px;">ปกติ</span>`
@@ -1759,10 +1807,10 @@ function renderEmployeeLineTable() {
           <div style="display:flex; flex-direction:column; gap:2px;">
             <div style="font-weight:600; color:#1e293b; font-size:13px; display:flex; align-items:center; gap:4px;">
               <span class="material-symbols-outlined" style="font-size:14px; color:#64748b;">domain</span>
-              <span>${escapeHtml(deptName)}</span>
+              <span>${deptNameHtml}</span>
             </div>
             <div style="font-size:12px; color:#64748b; margin-left:18px;">
-              ${escapeHtml(posName)}
+              ${posNameHtml}
             </div>
           </div>
         </td>
@@ -1881,3 +1929,173 @@ window.unlinkEmployeeLine = async function(employeeId, employeeName) {
     Swal.fire("ไม่สำเร็จ", err.message || "เกิดข้อผิดพลาดในการล้าง LINE ID", "error");
   }
 };
+
+// ============================================================
+// 🎯 3. ตั้งค่าสายอนุมัติรายบุคคล (Individual Override Logic)
+// ============================================================
+
+function renderIndividualEmployeeOptions() {
+  const el = document.getElementById("individualEmployeeSelect");
+  if (!el) return;
+
+  const options = employees
+    .filter(e => e.status !== "resigned")
+    .map(e => {
+      const dept = e.departments?.department_name || "ไม่ระบุแผนก";
+      const pos = e.positions?.position_name || e.role || "พนักงาน";
+      const code = e.employee_code ? `#${e.employee_code} ` : "";
+      return `<option value="${escapeAttr(e.id)}">${escapeHtml(code + e.full_name + " (" + pos + " - " + dept + ")")}</option>`;
+    }).join("");
+
+  el.innerHTML = `<option value="">-- ค้นหา/เลือกพนักงาน --</option>${options}`;
+
+  // Populate Approver Selects (Reuse logic)
+  const l1El = document.getElementById("individualL1Select");
+  const l2El = document.getElementById("individualL2Select");
+
+  if (l1El) l1El.innerHTML = buildSupervisorOptions(null, null); // Load all possible leaders
+  if (l2El) l2El.innerHTML = buildManagerOptions(null, null);    // Load all possible managers
+}
+
+function handleIndividualEmployeeChange() {
+  const employeeId = document.getElementById("individualEmployeeSelect")?.value;
+  const statusEl = document.getElementById("individualCurrentStatus");
+  const l1Select = document.getElementById("individualL1Select");
+  const l2Select = document.getElementById("individualL2Select");
+
+  if (!employeeId || !statusEl) {
+    if (statusEl) statusEl.textContent = "กรุณาเลือกพนักงานเพื่อดูสายอนุมัติปัจจุบัน";
+    return;
+  }
+
+  const emp = employees.find(e => String(e.id) === String(employeeId));
+  if (!emp) return;
+
+  // 1. Get Department Default Approvers
+  const deptMap = approverMap.get(String(emp.department_id));
+  const deptL1 = employees.find(e => String(e.id) === String(deptMap?.supervisor_id));
+  const deptL2 = employees.find(e => String(e.id) === String(deptMap?.manager_id));
+
+  // 2. Build Status Text
+  let statusHtml = `<div style="line-height: 1.6;">`;
+  statusHtml += `<b>🏢 แผนกหลัก:</b> ${escapeHtml(emp.departments?.department_name || "ไม่ระบุ")}<br>`;
+  
+  if (emp.l1_approver_id || emp.l2_approver_id) {
+    statusHtml += `<span style="color: var(--accent-purple); font-weight: 700;">✨ มีการตั้งค่ารายบุคคล (Override)</span><br>`;
+  } else {
+    statusHtml += `<span style="color: #64748b;">📂 ใช้ตามสายอนุมัติแผนก</span><br>`;
+  }
+
+  statusHtml += `<b>L1:</b> ${escapeHtml(deptL1?.full_name || "ไม่มี")} (ตามแผนก)<br>`;
+  statusHtml += `<b>L2:</b> ${escapeHtml(deptL2?.full_name || "ไม่มี")} (ตามแผนก)`;
+  statusHtml += `</div>`;
+  
+  statusEl.innerHTML = statusHtml;
+
+  // 3. Set Values in Selects
+  if (l1Select) l1Select.value = emp.l1_approver_id || "";
+  if (l2Select) l2Select.value = emp.l2_approver_id || "";
+}
+
+async function saveIndividualApprover() {
+  const employeeId = document.getElementById("individualEmployeeSelect")?.value;
+  const l1Id = document.getElementById("individualL1Select")?.value || null;
+  const l2Id = document.getElementById("individualL2Select")?.value || null;
+
+  if (!employeeId) {
+    Swal.fire("แจ้งเตือน", "กรุณาเลือกพนักงานที่ต้องการตั้งค่า", "warning");
+    return;
+  }
+
+  const btn = document.getElementById("btnSaveIndividual");
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined spinning-icon">sync</span> กำลังบันทึก...';
+
+  try {
+    const { error } = await sb
+      .from("employees")
+      .update({
+        l1_approver_id: l1Id,
+        l2_approver_id: l2Id,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", employeeId);
+
+    if (error) throw error;
+
+    // Update local state
+    const empIdx = employees.findIndex(e => String(e.id) === String(employeeId));
+    if (empIdx !== -1) {
+      employees[empIdx].l1_approver_id = l1Id;
+      employees[empIdx].l2_approver_id = l2Id;
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "บันทึกสำเร็จ",
+      text: "ตั้งค่าสายอนุมัติรายบุคคลเรียบร้อยแล้ว",
+      timer: 2000,
+      showConfirmButton: false
+    });
+    
+    handleIndividualEmployeeChange(); // Refresh status text
+  } catch (err) {
+    console.error("saveIndividualApprover Error:", err);
+    Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถบันทึกได้: " + err.message + "\n\n(หากเกิดข้อผิดพลาดเกี่ยวกับ Column กรุณารัน SQL ตามคู่มือ)", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+/**
+ * 🔍 Initialize Tom Select for all searchable dropdowns
+ * Allows searching by Code, Name, Position, Department
+ */
+function initTomSelect() {
+  if (typeof TomSelect === "undefined") {
+    console.warn("TomSelect library not loaded");
+    return;
+  }
+
+  const selects = [
+    '#departmentSelect',
+    '#individualEmployeeSelect',
+    '#individualL1Select',
+    '#individualL2Select',
+    '#modalSupervisorSelect',
+    '#modalManagerSelect',
+    '#executiveSelect'
+  ];
+
+  selects.forEach(id => {
+    const el = document.querySelector(id);
+    if (el) {
+      // Destroy existing instance if any
+      if (el.tomselect) {
+        el.tomselect.destroy();
+      }
+      
+      // Initialize new instance
+      try {
+        new TomSelect(id, {
+          create: false,
+          sortField: {
+            field: "text",
+            direction: "asc"
+          },
+          placeholder: el.getAttribute('placeholder') || 'พิมพ์เพื่อค้นหา...',
+          allowEmptyOption: true,
+          maxOptions: 2000, // Show more options for large employee lists
+          plugins: ['dropdown_input'], // Better mobile search experience
+          onInitialize: function() {
+            // Optional: fine-tune styling after initialization
+          }
+        });
+      } catch (err) {
+        console.error(`Error initializing Tom Select for ${id}:`, err);
+      }
+    }
+  });
+}

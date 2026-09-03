@@ -102,20 +102,61 @@ async function initSystemAndPermissions() {
 
     console.log("[HR Init] User Identity:", { rawRole, rawPos, empId: empData?.id });
 
-    // ตรวจสอบกับ department_approvers เพื่อความแม่นยำของสายอนุมัติ
+    // ตรวจสอบโครงสร้างสายอนุมัติของแต่ละแผนก (department_approvers + รายชื่อหัวหน้า/ผู้จัดการจริงในแต่ละแผนก)
     const sb = window.pvtSupabase?.getClient();
     let isDeptSupervisor = false;
     let isDeptManager = false;
-    if (sb && empData?.id) {
+    if (sb) {
       try {
-        const { data: apprvList } = await sb.from("department_approvers").select("department_id, supervisor_id, manager_id");
-        if (apprvList && apprvList.length > 0) {
-          deptApproversMap = {};
-          apprvList.forEach(a => {
-            if (a.department_id) deptApproversMap[a.department_id] = a;
+        const [apprvRes, deptRes, empRes] = await Promise.all([
+          sb.from("department_approvers").select("department_id, supervisor_id, manager_id"),
+          sb.from("departments").select("id, department_name, approver_id, backup_approver_id"),
+          sb.from("employees").select("id, department_id, role, positions!position_id(position_name), status, l1_approver_id, l2_approver_id")
+        ]);
+
+        const apprvList = apprvRes.data || [];
+        const depts = deptRes.data || [];
+        const allEmps = empRes.data || [];
+
+        const approverConfigByDept = {};
+        apprvList.forEach(a => {
+          if (a.department_id) approverConfigByDept[a.department_id] = a;
+        });
+
+        deptApproversMap = {};
+        depts.forEach(d => {
+          const deptEmps = allEmps.filter(e => e.department_id === d.id && (e.status === 'active' || !e.status));
+          
+          const leaders = deptEmps.filter(e => {
+            const r = String(e.role || '').toLowerCase();
+            const p = String(e.positions?.position_name || '').toLowerCase();
+            return r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า');
           });
-          isDeptSupervisor = apprvList.some(a => String(a.supervisor_id) === String(empData.id));
-          isDeptManager = apprvList.some(a => String(a.manager_id) === String(empData.id));
+
+          const managers = deptEmps.filter(e => {
+            const r = String(e.role || '').toLowerCase();
+            const p = String(e.positions?.position_name || '').toLowerCase();
+            const isHrDept = String(d.department_name || '').includes('บุคคล');
+            return (r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ')) && (!isHrDept || r !== 'hr');
+          });
+
+          const cfg = approverConfigByDept[d.id] || {};
+          const hasLeader = Boolean(cfg.supervisor_id || leaders.length > 0);
+          const hasManager = Boolean(cfg.manager_id || d.approver_id || managers.length > 0);
+
+          deptApproversMap[d.id] = {
+            hasLeader,
+            hasManager,
+            supervisor_id: cfg.supervisor_id || (leaders[0]?.id || null),
+            manager_id: cfg.manager_id || d.approver_id || (managers[0]?.id || null)
+          };
+        });
+
+        if (empData?.id) {
+          isDeptSupervisor = apprvList.some(a => String(a.supervisor_id) === String(empData.id)) ||
+            allEmps.some(e => String(e.id) === String(empData.id) && (e.role === 'leader' || String(e.positions?.position_name || '').includes('หัวหน้า')));
+          isDeptManager = apprvList.some(a => String(a.manager_id) === String(empData.id)) ||
+            allEmps.some(e => String(e.id) === String(empData.id) && (e.role === 'manager' || String(e.positions?.position_name || '').includes('ผู้จัดการ')));
         }
       } catch (e) {
         console.warn("Error checking approver list:", e);
@@ -152,8 +193,54 @@ async function initSystemAndPermissions() {
     // โหลดข้อมูลใบลา
     await loadPendingLeavesHR();
 
-    // 🎯 [Query Param Auto Action Engine]:
+    // 🎯 [Query Param Tab/Status Auto Handler]:
     const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get("tab");
+    const filterParam = urlParams.get("filter") || urlParams.get("status");
+
+    if (tabParam) {
+      console.log(`🎯 [Query Param]: Auto-switching tab to: ${tabParam}`);
+      currentLeaveTab = tabParam;
+      
+      const tabBtn = document.querySelector(`.leave-tab-container .tab-btn[onclick*="${tabParam}"]`);
+      if (tabBtn) {
+        document.querySelectorAll('.leave-tab-container .tab-btn').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+      }
+
+      // Update header titles based on tab
+      const headerTitle = document.getElementById("sectionHeaderTitle");
+      const headerIcon = document.getElementById("sectionHeaderIcon");
+      if (tabParam === 'pending') {
+        if (headerTitle) headerTitle.textContent = "คำขออนุมัติลาค้างพิจารณา";
+        if (headerIcon) headerIcon.textContent = "hourglass_top";
+        const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+        if (slaContainer) slaContainer.style.display = "block";
+      } else if (tabParam === 'cancellation') {
+        if (headerTitle) headerTitle.textContent = "คำร้องขอยกเลิกใบลาหยุดงาน";
+        if (headerIcon) headerIcon.textContent = "published_with_changes";
+        const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+        if (slaContainer) slaContainer.style.display = "none";
+      } else {
+        if (headerTitle) headerTitle.textContent = "ประวัติการพิจารณาใบลาทั้งหมด";
+        if (headerIcon) headerIcon.textContent = "history";
+        const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+        if (slaContainer) slaContainer.style.display = "none";
+      }
+    }
+
+    if (filterParam) {
+      console.log(`🎯 [Query Param]: Auto-filtering to status/step: ${filterParam}`);
+      const selectEl = document.getElementById("filterStepSelect");
+      if (selectEl) {
+        selectEl.value = filterParam;
+      }
+    }
+
+    // Now render the table with the applied query parameters
+    renderLeaveTable();
+
+    // 🎯 [Query Param Auto Action Engine]:
     const leaveIdParam = urlParams.get("id") || urlParams.get("leave_id");
     const actionParam = urlParams.get("action");
     if (leaveIdParam) {
@@ -256,9 +343,6 @@ function applyRoleBasedUI() {
       roleBadge.className = "status-badge status-approved";
     }
   }
-
-  // โหลดรายชื่อพนักงานในแผนก
-  renderDepartmentTeamRoster();
 }
 
 /* ==========================================================================
@@ -425,6 +509,50 @@ function formatThaiDate(dateStr, showTime = false) {
   }
 }
 
+/**
+ * ⏱️ คำนวณสถานะ SLA การพิจารณาอนุมัติใบลา
+ * กฎบริษัท: หัวหน้างาน (L1) และ ผู้จัดการ (L2) ต้องพิจารณาอนุมัติภายใน 2 วันทำการ (48 ชม.)
+ * หากเกินกำหนด 2 วัน ระบบจะระบุว่า "เกินกำหนด" / "ใบลาไม่ได้รับการพิจารณาในเวลาที่กำหนด"
+ */
+function getLeaveApprovalSLA(req) {
+  if (!req || !req.created_at) {
+    return { isOverdue: false, elapsedDays: 0, elapsedHours: 0, label: "" };
+  }
+
+  const st = String(req.status || '').toLowerCase();
+  const isFinalApproved = (st === 'approved' || st === 'อนุมัติแล้ว');
+  const isFinalRejected = (st === 'rejected' || st === 'ไม่อนุมัติ');
+  const isCancelled = (st === 'cancelled' || st === 'ยกเลิก' || isCancelRequestStatus(st));
+
+  // ถ้าสิ้นสุดกระบวนการแล้ว ไม่ถือว่าค้างพิจารณา
+  if (isFinalApproved || isFinalRejected || isCancelled) {
+    return { isOverdue: false, isClosed: true, elapsedDays: 0, elapsedHours: 0, label: "" };
+  }
+
+  const createdTime = new Date(req.created_at).getTime();
+  const now = Date.now();
+  if (isNaN(createdTime)) {
+    return { isOverdue: false, elapsedDays: 0, elapsedHours: 0, label: "" };
+  }
+
+  const diffMs = now - createdTime;
+  const elapsedHours = Math.max(0, diffMs / (1000 * 60 * 60));
+  const elapsedDays = Math.floor(elapsedHours / 24);
+
+  // เงื่อนไข: เกิน 2 วัน (>= 48 ชั่วโมง)
+  const isOverdue = elapsedHours >= 48;
+
+  return {
+    isOverdue,
+    elapsedHours: Math.round(elapsedHours * 10) / 10,
+    elapsedDays,
+    label: isOverdue 
+      ? `เกินกำหนด (${elapsedDays} วัน)` 
+      : `เหลือเวลาพิจารณา ${Math.max(0, Math.ceil(48 - elapsedHours))} ชม.`
+  };
+}
+window.getLeaveApprovalSLA = getLeaveApprovalSLA;
+
 function getStatusBadgeHTML(status) {
   const st = (status || 'pending').toLowerCase();
   if (st === 'approved' || st === 'อนุมัติแล้ว') {
@@ -437,6 +565,92 @@ function getStatusBadgeHTML(status) {
     return `<span class="status-badge status-cancelled"><span class="material-symbols-outlined">block</span> ยกเลิกแล้ว</span>`;
   }
   return `<span class="status-badge status-pending"><span class="material-symbols-outlined">schedule</span> รอพิจารณา</span>`;
+}
+
+/**
+ * 🔀 คำนวณลำดับและรายการขั้นตอนการอนุมัติสำหรับใบลาแต่ละใบ
+ * แผนกไหนไม่มี หัวหน้า (L1) หรือ ผู้จัดการ (L2) ให้ซ่อน/ตัดขั้นตอนนั้นออกไปเลย
+ */
+function getApprovalWorkflowSteps(req) {
+  const reqEmp = req.employees || {};
+  const reqDeptId = req.department_id || reqEmp.department_id;
+  const deptInfo = deptApproversMap[reqDeptId] || { hasLeader: false, hasManager: false };
+
+  const applicantRole = String(reqEmp.role || '').toLowerCase();
+  const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
+
+  const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
+  const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
+  const isApplicantHr = applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin';
+  const isApplicantExecutive = applicantRole === 'director' || applicantRole === 'executive' || applicantRole === 'owner';
+
+  // 1. ตรวจสอบขั้นตอน "หัวหน้า" (L1):
+  // - ซ่อน/ตัดออก ถ้าผู้ยื่นเป็นระดับหัวหน้า/ผู้จัดการ/HR/ผู้บริหาร เองอยู่แล้ว
+  // - หรือ แผนกนั้นไม่มีหัวหน้า (และไม่มีรายบุคคล l1_approver_id กำหนดไว้)
+  let hasL1 = false;
+  if (!isApplicantLeader && !isApplicantManager && !isApplicantHr && !isApplicantExecutive) {
+    if (reqEmp.l1_approver_id) {
+      hasL1 = true;
+    } else {
+      hasL1 = Boolean(deptInfo.hasLeader);
+    }
+  }
+
+  // 2. ตรวจสอบขั้นตอน "ผู้จัดการ" (L2):
+  // - ซ่อน/ตัดออก ถ้าผู้ยื่นเป็นผู้จัดการ/HR/ผู้บริหาร เองอยู่แล้ว
+  // - หรือ แผนกนั้นไม่มีผู้จัดการ (และไม่มีรายบุคคล l2_approver_id กำหนดไว้)
+  let hasL2 = false;
+  if (!isApplicantManager && !isApplicantHr && !isApplicantExecutive) {
+    if (reqEmp.l2_approver_id) {
+      hasL2 = true;
+    } else {
+      hasL2 = Boolean(deptInfo.hasManager);
+    }
+  }
+
+  // 3. ตรวจสอบขั้นตอน "บริหาร" (สำหรับกรณีหัวหน้าหรือผู้จัดการเป็นผู้ยื่นลา)
+  const isLeaderOrManager = isApplicantLeader || isApplicantManager;
+  const hasExecutive = Boolean(hasExecutiveColumn && isLeaderOrManager);
+
+  // สร้างลำดับขั้นตอนการอนุมัติเฉพาะขั้นตอนที่มีอยู่จริงในสายงาน
+  const steps = [];
+
+  if (hasL1) {
+    steps.push({
+      role: 'leader',
+      shortName: 'หัวหน้า',
+      fullName: 'หัวหน้าแผนก',
+      status: req.manager_status
+    });
+  }
+
+  if (hasL2) {
+    steps.push({
+      role: 'manager',
+      shortName: 'ผู้จัดการ',
+      fullName: 'ผู้จัดการฝ่าย',
+      status: req.director_status
+    });
+  }
+
+  if (hasExecutive) {
+    steps.push({
+      role: 'executive',
+      shortName: 'บริหาร',
+      fullName: 'ผู้บริหาร',
+      status: req.executive_status
+    });
+  }
+
+  // ฝ่ายบุคคล (HR) เป็นผู้อนุมัติขั้นสุดท้ายเสมอ
+  steps.push({
+    role: 'hr',
+    shortName: 'HR',
+    fullName: 'ฝ่าย HR',
+    status: req.status
+  });
+
+  return steps;
 }
 
 /* ==========================================================================
@@ -467,7 +681,7 @@ async function loadPendingLeavesHR() {
         *,
         employees!employee_id ( 
           id, full_name, employee_code, nickname, role, image_url,
-          department_id, 
+          department_id, l1_approver_id, l2_approver_id,
           departments!department_id (id, department_name), 
           positions!position_id (position_name) 
         ),
@@ -543,6 +757,11 @@ async function loadPendingLeavesHR() {
     updateTabAndStatBadges();
     renderLeaveTable();
 
+    // ⏱️ อัปเดตและแสดงผล SLA Countdown Tracker สำหรับรายการรอพิจารณา
+    if (typeof window.renderLeaveSlaTracker === 'function') {
+      window.renderLeaveSlaTracker("leaveSlaTrackerContainer", allLeaveRequests);
+    }
+
   } catch (err) {
     console.error("💥 Critical Failure in loadPendingLeavesHR:", err);
     if (container) {
@@ -589,12 +808,18 @@ window.switchLeaveTab = function(tabName, btnEl) {
   if (tabName === 'pending') {
     if (headerTitle) headerTitle.textContent = "คำขออนุมัติลาค้างพิจารณา";
     if (headerIcon) headerIcon.textContent = "hourglass_top";
+    const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+    if (slaContainer) slaContainer.style.display = "block";
   } else if (tabName === 'cancellation') {
     if (headerTitle) headerTitle.textContent = "คำร้องขอยกเลิกใบลาหยุดงาน";
     if (headerIcon) headerIcon.textContent = "published_with_changes";
+    const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+    if (slaContainer) slaContainer.style.display = "none";
   } else {
     if (headerTitle) headerTitle.textContent = "ประวัติการพิจารณาใบลาทั้งหมด";
     if (headerIcon) headerIcon.textContent = "history";
+    const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+    if (slaContainer) slaContainer.style.display = "none";
   }
 
   renderLeaveTable();
@@ -679,6 +904,7 @@ function renderLeaveTable() {
       selectFilter.dataset.hasExecutive = "true";
       selectFilter.innerHTML = `
         <option value="all">-- แสดงทั้งหมด --</option>
+        <option value="overdue">⚠️ ค้างพิจารณาเกิน 2 วัน (เกินกำหนด)</option>
         <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
         <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
         <option value="pending_executive">3. ผู้จัดการผ่านแล้ว / รอผู้บริหารอนุมัติ (L3)</option>
@@ -690,6 +916,7 @@ function renderLeaveTable() {
       delete selectFilter.dataset.hasExecutive;
       selectFilter.innerHTML = `
         <option value="all">-- แสดงทั้งหมด --</option>
+        <option value="overdue">⚠️ ค้างพิจารณาเกิน 2 วัน (เกินกำหนด)</option>
         <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
         <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
         <option value="pending_hr">3. ผู้จัดการผ่านแล้ว / รอ HR อนุมัติขั้นสุดท้าย (L3)</option>
@@ -709,8 +936,29 @@ function renderLeaveTable() {
     filteredRequests = allLeaveRequests.filter(r => isHistoryForRole(r, currentRole));
   }
 
+  // 🔍 Real-time Search Filter
+  const searchTerm = (document.getElementById("hrLeaveSearchInput")?.value || "").trim().toLowerCase();
+  if (searchTerm) {
+    filteredRequests = filteredRequests.filter(r => {
+      const eName = (r.employees?.full_name || "").toLowerCase();
+      const eCode = (r.employees?.employee_code || "").toLowerCase();
+      const eDept = (r.employees?.departments?.department_name || "").toLowerCase();
+      const ePos = (r.employees?.positions?.position_name || "").toLowerCase();
+      const lType = (r.leave_types?.leave_name || "").toLowerCase();
+      const reason = (r.reason || "").toLowerCase();
+      return eName.includes(searchTerm) || eCode.includes(searchTerm) || 
+             eDept.includes(searchTerm) || ePos.includes(searchTerm) || 
+             lType.includes(searchTerm) || reason.includes(searchTerm);
+    });
+  }
+
   if (stepFilter !== "all") {
     filteredRequests = filteredRequests.filter(req => {
+      const sla = getLeaveApprovalSLA(req);
+      if (stepFilter === "overdue") {
+        return sla.isOverdue;
+      }
+
       const mStatus = req.manager_status || 'pending';
       const dStatus = req.director_status || 'pending';
       const execStatus = req.executive_status || 'pending';
@@ -753,12 +1001,32 @@ function renderLeaveTable() {
   }
 
   let cardsContent = "";
+
+  const highlightMatch = (text, term) => {
+    if (!term || !text) return escapeHtml(text || "");
+    const cleanText = String(text);
+    const idx = cleanText.toLowerCase().indexOf(term.toLowerCase());
+    if (idx === -1) return escapeHtml(cleanText);
+    const before = escapeHtml(cleanText.slice(0, idx));
+    const matched = escapeHtml(cleanText.slice(idx, idx + term.length));
+    const after = escapeHtml(cleanText.slice(idx + term.length));
+    return `${before}<mark class="text-highlight">${matched}</mark>${after}`;
+  };
+
   filteredRequests.forEach((req) => {
-    const empName = req.employees ? req.employees.full_name : "ไม่ทราบชื่อ";
-    const empCode = req.employees ? req.employees.employee_code : "-";
-    const empDeptName = req.employees?.departments?.department_name || "-";
-    const empPositionName = req.employees?.positions?.position_name || "-";
-    const leaveType = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุ";
+    const rawEmpName = req.employees ? req.employees.full_name : "ไม่ทราบชื่อ";
+    const rawEmpCode = req.employees ? req.employees.employee_code : "-";
+    const rawDeptName = req.employees?.departments?.department_name || "-";
+    const rawPositionName = req.employees?.positions?.position_name || "-";
+    const rawLeaveType = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุ";
+
+    const empName = highlightMatch(rawEmpName, searchTerm);
+    const empCode = highlightMatch(rawEmpCode, searchTerm);
+    const empDeptName = highlightMatch(rawDeptName, searchTerm);
+    const empPositionName = highlightMatch(rawPositionName, searchTerm);
+    const leaveType = highlightMatch(rawLeaveType, searchTerm);
+    const reasonText = highlightMatch(req.reason || "-", searchTerm);
+
     const startDate = formatThaiDate(req.start_date);
     const endDate = formatThaiDate(req.end_date);
     const avatarUrl = getAvatarUrl(req.employees?.image_url);
@@ -787,6 +1055,10 @@ function renderLeaveTable() {
       durationText = parts.length > 0 ? parts.join(" ") : `${rawDays} วัน`;
     }
     const attachmentUrl = getAttachmentUrl(req);
+
+    // ⏱️ คำนวณ SLA การพิจารณาอนุมัติ 2 วัน
+    const sla = getLeaveApprovalSLA(req);
+    const isOverdue = sla.isOverdue;
 
     let actionButtons = "";
 
@@ -829,7 +1101,7 @@ function renderLeaveTable() {
     }
 
     cardsContent += `
-      <div class="leave-card-item">
+      <div class="leave-card-item ${isOverdue ? 'is-overdue' : ''}">
         <!-- Zone 1: Profile & Emp Info -->
         <div class="card-zone profile-zone">
           <img src="${avatarUrl}" class="card-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
@@ -852,11 +1124,19 @@ function renderLeaveTable() {
           </div>
           <div class="detail-row reason-row">
             <span class="label">เหตุผล:</span>
-            <span class="val text-truncate-2">${req.reason || "-"}</span>
+            <span class="val text-truncate-2">${reasonText}</span>
             <div class="attachment-trigger">
               ${renderAttachmentCell(attachmentUrl, req.id)}
             </div>
           </div>
+          ${isOverdue ? `
+            <div class="overdue-alert-box">
+              <span class="material-symbols-outlined" style="font-size: 16px; flex-shrink: 0; color: #ea580c;">timer_off</span>
+              <div>
+                <strong>ใบลาไม่ได้รับการพิจารณาในเวลาที่กำหนด:</strong> ค้างพิจารณามาแล้ว <strong>${sla.elapsedDays} วัน</strong> (กำหนดหัวหน้าและผู้จัดการอนุมัติภายใน 2 วัน)
+              </div>
+            </div>
+          ` : ''}
           ${(req.cancel_reason || (req.approval_comment && req.approval_comment.includes('ยกเลิก')) || req.status === 'cancelled') ? `
             <div class="cancellation-reason-box" style="margin-top: 6px; padding: 6px 10px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; font-size: 12px; color: #be123c; display: flex; align-items: flex-start; gap: 4px;">
               <span class="material-symbols-outlined" style="font-size: 16px; margin-top: 1px; flex-shrink: 0;">info</span>
@@ -877,56 +1157,29 @@ function renderLeaveTable() {
 
         <!-- Zone 3: Approval Steps (ซ่อน L1/L2 หากแผนกไม่มีผู้รับผิดชอบในระดับนั้น) -->
         <div class="card-zone status-zone">
-          <div class="status-steps-grid">
-            ${(() => {
-              const reqDeptId = req.department_id || req.employees?.department_id;
-              const reqDeptInfo = deptApproversMap[reqDeptId];
-              const hasL1 = reqDeptInfo ? Boolean(reqDeptInfo.supervisor_id) : true;
-              const hasL2 = reqDeptInfo ? Boolean(reqDeptInfo.manager_id) : true;
-
-              let stepsHtml = '';
-              let stepIdx = 1;
-
-              if (hasL1) {
-                stepsHtml += `
+          ${(() => {
+            const workflowSteps = getApprovalWorkflowSteps(req);
+            const gridStyle = workflowSteps.length <= 2 
+              ? `grid-template-columns: repeat(${workflowSteps.length}, 1fr);` 
+              : '';
+            return `
+              <div class="status-steps-grid" style="${gridStyle}">
+                ${workflowSteps.map((step, idx) => `
                   <div class="step-item">
-                    <span class="step-lbl">หัวหน้า (L${stepIdx})</span>
-                    ${getStatusBadgeHTML(req.manager_status)}
+                    <span class="step-lbl">${step.shortName} (L${idx + 1})</span>
+                    ${getStatusBadgeHTML(step.status)}
                   </div>
-                `;
-                stepIdx++;
-              }
-
-              if (hasL2) {
-                stepsHtml += `
-                  <div class="step-item">
-                    <span class="step-lbl">ผู้จัดการ (L${stepIdx})</span>
-                    ${getStatusBadgeHTML(req.director_status)}
-                  </div>
-                `;
-                stepIdx++;
-              }
-
-              if (hasExecutiveColumn && isApplicantLeaderOrManager) {
-                stepsHtml += `
-                  <div class="step-item">
-                    <span class="step-lbl">บริหาร (L${stepIdx})</span>
-                    <div class="badge-mini">${executiveStatusHTML}</div>
-                  </div>
-                `;
-                stepIdx++;
-              }
-
-              stepsHtml += `
-                <div class="step-item">
-                  <span class="step-lbl">HR (L${stepIdx})</span>
-                  ${getStatusBadgeHTML(req.status)}
+                `).join('')}
+              </div>
+              ${isOverdue ? `
+                <div style="margin-top: 6px; text-align: center;">
+                  <span class="status-badge status-overdue" style="font-size: 11px; padding: 2px 8px;" title="เกินกรอบเวลาพิจารณา 2 วัน">
+                    <span class="material-symbols-outlined" style="font-size: 13px;">timer_off</span> เกินกำหนด (${sla.elapsedDays} วัน)
+                  </span>
                 </div>
-              `;
-
-              return stepsHtml;
-            })()}
-          </div>
+              ` : ''}
+            `;
+          })()}
         </div>
 
         <!-- Zone 4: Actions -->
@@ -1031,6 +1284,9 @@ function previewLeaveModal(leaveId) {
   const attachUrl = getAttachmentUrl(req);
   const isImage = attachUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachUrl.split('?')[0]);
 
+  const sla = getLeaveApprovalSLA(req);
+  const isOverdue = sla.isOverdue;
+
   modalBody.innerHTML = `
     <div class="preview-user-card">
       <img src="${avatarUrl}" class="preview-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
@@ -1039,6 +1295,17 @@ function previewLeaveModal(leaveId) {
         <p>รหัสพนักงาน: <strong>${emp.employee_code || '-'}</strong> | แผนก: ${emp.departments?.department_name || '-'} | ตำแหน่ง: ${emp.positions?.position_name || '-'}</p>
       </div>
     </div>
+
+    ${isOverdue ? `
+      <div class="preview-item" style="margin-bottom: 16px; background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 10px; padding: 12px 16px;">
+        <label style="color: #c2410c; font-weight: 800; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13px;">
+          <span class="material-symbols-outlined" style="font-size:20px; color:#ea580c;">timer_off</span> ใบลาไม่ได้รับการพิจารณาในเวลาที่กำหนด (Overdue Leave Request)
+        </label>
+        <div style="font-weight: 600; line-height: 1.5; color: #9a3412; font-size: 13px;">
+          คำขอนี้ค้างการพิจารณามาแล้ว <strong>${sla.elapsedDays} วัน</strong> (${sla.elapsedHours} ชม.) ซึ่งเกินกำหนดเวลาที่หัวหน้าและผู้จัดการต้องพิจารณาภายใน 2 วันทำการ
+        </div>
+      </div>
+    ` : ''}
 
     <div class="preview-grid">
       <div class="preview-item">
@@ -1094,52 +1361,13 @@ function previewLeaveModal(leaveId) {
       <div class="workflow-section-title">สถานะการอนุมัติตามลำดับขั้น</div>
       <div class="workflow-steps">
         ${(() => {
-          const reqDeptId = req.department_id || req.employees?.department_id;
-          const reqDeptInfo = deptApproversMap[reqDeptId];
-          const hasL1 = reqDeptInfo ? Boolean(reqDeptInfo.supervisor_id) : true;
-          const hasL2 = reqDeptInfo ? Boolean(reqDeptInfo.manager_id) : true;
-
-          let modalStepsHtml = '';
-          let modalStepNum = 1;
-
-          if (hasL1) {
-            modalStepsHtml += `
-              <div class="step-card">
-                <span class="role-title">${modalStepNum}. หัวหน้าแผนก (L${modalStepNum})</span>
-                ${getStatusBadgeHTML(req.manager_status)}
-              </div>
-            `;
-            modalStepNum++;
-          }
-
-          if (hasL2) {
-            modalStepsHtml += `
-              <div class="step-card">
-                <span class="role-title">${modalStepNum}. ผู้จัดการฝ่าย (L${modalStepNum})</span>
-                ${getStatusBadgeHTML(req.director_status)}
-              </div>
-            `;
-            modalStepNum++;
-          }
-
-          if (hasExecutiveColumn && ['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase())) {
-            modalStepsHtml += `
-              <div class="step-card">
-                <span class="role-title">${modalStepNum}. ผู้บริหาร (L${modalStepNum})</span>
-                ${getStatusBadgeHTML(req.executive_status)}
-              </div>
-            `;
-            modalStepNum++;
-          }
-
-          modalStepsHtml += `
+          const workflowSteps = getApprovalWorkflowSteps(req);
+          return workflowSteps.map((step, idx) => `
             <div class="step-card">
-              <span class="role-title">${modalStepNum}. ฝ่าย HR (L${modalStepNum})</span>
-              ${getStatusBadgeHTML(req.status)}
+              <span class="role-title">${idx + 1}. ${step.fullName} (L${idx + 1})</span>
+              ${getStatusBadgeHTML(step.status)}
             </div>
-          `;
-
-          return modalStepsHtml;
+          `).join('');
         })()}
       </div>
     </div>
@@ -1226,23 +1454,15 @@ async function approveLeave(leaveId) {
       // ✅ L1 อนุมัติ (หัวหน้างาน / Supervisor)
       updateFields.manager_status = 'approved';
 
-      // 🔀 ตรวจสายอนุมัติของแผนกจาก department_approvers
-      // ถ้าแผนกนี้ไม่มี L2 ให้ข้าม L2 และส่งต่อไป HR ทันที
+      // 🔀 ตรวจสายอนุมัติของแผนก
+      // ถ้าแผนกนี้ไม่มี ผู้จัดการ (L2) ให้ข้าม L2 และส่งต่อไป HR ทันที
       const deptId = reqData.employees?.department_id || null;
+      const deptInfo = deptApproversMap[deptId] || {};
+      const hasManagerInDept = deptInfo.hasManager || Boolean(reqData.employees?.l2_approver_id);
 
-      if (deptId) {
-        const { data: approverConfig, error: approverConfigError } = await sb
-          .from('department_approvers')
-          .select('supervisor_id, manager_id')
-          .eq('department_id', deptId)
-          .maybeSingle();
-
-        if (approverConfigError) throw approverConfigError;
-
-        if (!approverConfig?.manager_id) {
-          console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี L2 → ส่งไปให้ผู้บริหาร (L3) อนุมัติแทน');
-          updateFields.director_status = 'pending'; // ให้คงสถานะ pending ไว้เพื่อให้ผู้บริหารอนุมัติ
-        }
+      if (!hasManagerInDept) {
+        console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี ผู้จัดการ (L2) → ข้าม L2 ส่งตรงไป HR (L2)');
+        updateFields.director_status = 'approved';
       }
     } else if (currentRole === 'manager') {
       // ✅ L2 อนุมัติ (ผู้จัดการฝ่าย / Department Manager)
@@ -1281,22 +1501,26 @@ async function approveLeave(leaveId) {
       const leaveDays = await getEffectiveLeaveDays(reqData);
       const currentYear = getADYear(reqData.start_date);
 
-      const { data: balDataList } = await sb
-        .from('leave_balances')
-        .select('id, remaining_days, used_days')
-        .eq('employee_id', reqData.employee_id)
-        .eq('leave_type_id', reqData.leave_type_id)
-        .in('year', [currentYear, currentYear + 543]);
+      if (window.PVTSDK?.user?.updateLeaveBalance) {
+        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, leaveDays);
+      } else {
+        const { data: balDataList } = await sb
+          .from('leave_balances')
+          .select('id, remaining_days, used_days')
+          .eq('employee_id', reqData.employee_id)
+          .eq('leave_type_id', reqData.leave_type_id)
+          .in('year', [currentYear, currentYear + 543]);
 
-      if (balDataList && balDataList.length > 0) {
-        for (const balData of balDataList) {
-          const newUsed = Math.round(((balData.used_days || 0) + leaveDays) * 100) / 100;
-          const newRemaining = Math.max(0, Math.round(((balData.remaining_days || 0) - leaveDays) * 100) / 100);
+        if (balDataList && balDataList.length > 0) {
+          for (const balData of balDataList) {
+            const newUsed = Math.round(((balData.used_days || 0) + leaveDays) * 100) / 100;
+            const newRemaining = Math.max(0, Math.round(((balData.remaining_days || 0) - leaveDays) * 100) / 100);
 
-          await sb
-            .from('leave_balances')
-            .update({ remaining_days: newRemaining, used_days: newUsed })
-            .eq('id', balData.id);
+            await sb
+              .from('leave_balances')
+              .update({ remaining_days: newRemaining, used_days: newUsed })
+              .eq('id', balData.id);
+          }
         }
       }
     }
@@ -1647,19 +1871,23 @@ async function forceCancelLeave(leaveId) {
       const currentYear = getADYear(reqData.start_date);
       const daysToReturn = await getEffectiveLeaveDays(reqData);
 
-      const { data: balData } = await sb
-        .from('leave_balances')
-        .select('id, remaining_days, used_days')
-        .eq('employee_id', reqData.employee_id)
-        .eq('leave_type_id', reqData.leave_type_id)
-        .eq('year', currentYear)
-        .maybeSingle();
+      if (window.PVTSDK?.user?.updateLeaveBalance) {
+        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, -daysToReturn);
+      } else {
+        const { data: balData } = await sb
+          .from('leave_balances')
+          .select('id, remaining_days, used_days')
+          .eq('employee_id', reqData.employee_id)
+          .eq('leave_type_id', reqData.leave_type_id)
+          .eq('year', currentYear)
+          .maybeSingle();
 
-      if (balData) {
-        await sb.from('leave_balances').update({
-          remaining_days: Math.round(((balData.remaining_days || 0) + daysToReturn) * 100) / 100,
-          used_days: Math.max(0, Math.round(((balData.used_days || 0) - daysToReturn) * 100) / 100)
-        }).eq('id', balData.id);
+        if (balData) {
+          await sb.from('leave_balances').update({
+            remaining_days: Math.round(((balData.remaining_days || 0) + daysToReturn) * 100) / 100,
+            used_days: Math.max(0, Math.round(((balData.used_days || 0) - daysToReturn) * 100) / 100)
+          }).eq('id', balData.id);
+        }
       }
     }
 
@@ -1717,22 +1945,26 @@ async function approveCancellation(leaveId) {
     const daysToReturn = await getEffectiveLeaveDays(reqData);
     const currentYear = getADYear(reqData.start_date);
 
-    const { data: balData } = await sb
-      .from('leave_balances')
-      .select('id, remaining_days, used_days')
-      .eq('employee_id', reqData.employee_id)
-      .eq('leave_type_id', reqData.leave_type_id)
-      .eq('year', currentYear)
-      .maybeSingle();
-
-    if (balData) {
-      const newUsed = Math.max(0, Math.round(((balData.used_days || 0) - daysToReturn) * 100) / 100);
-      const newRemaining = Math.round(((balData.remaining_days || 0) + daysToReturn) * 100) / 100;
-
-      await sb
+    if (window.PVTSDK?.user?.updateLeaveBalance) {
+      await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, -daysToReturn);
+    } else {
+      const { data: balData } = await sb
         .from('leave_balances')
-        .update({ remaining_days: newRemaining, used_days: newUsed })
-        .eq('id', balData.id);
+        .select('id, remaining_days, used_days')
+        .eq('employee_id', reqData.employee_id)
+        .eq('leave_type_id', reqData.leave_type_id)
+        .eq('year', currentYear)
+        .maybeSingle();
+
+      if (balData) {
+        const newUsed = Math.max(0, Math.round(((balData.used_days || 0) - daysToReturn) * 100) / 100);
+        const newRemaining = Math.round(((balData.remaining_days || 0) + daysToReturn) * 100) / 100;
+
+        await sb
+          .from('leave_balances')
+          .update({ remaining_days: newRemaining, used_days: newUsed })
+          .eq('id', balData.id);
+      }
     }
 
     const { error: updateErr } = await sb
@@ -1813,7 +2045,7 @@ async function printLeaveA4(leaveId) {
       .from('leave_requests')
       .select(`
         *,
-        employees!employee_id ( full_name, employee_code, nickname, departments(department_name), positions(position_name) ),
+        employees!employee_id ( full_name, employee_code, nickname, departments!department_id(department_name), positions(position_name) ),
         leave_types ( leave_name )
       `)
       .eq('id', leaveId)
@@ -2569,111 +2801,6 @@ async function exportLeaveReportExcel() {
     });
   }
 }
-
-/* ==========================================================================
-   👥 7.5 TEAM ROSTER FOR DEPARTMENTS
-   ========================================================================== */
-async function renderDepartmentTeamRoster() {
-  const container = document.getElementById("hrTeamContainer");
-  const titleEl = document.getElementById("hrTeamSectionTitle");
-  const badgeEl = document.getElementById("hrTeamCountBadge");
-
-  if (!container) return;
-
-  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
-  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
-  const empData = currentUserProfile?.employees || sessionUser?.employees || sessionUser || {};
-  const userDeptId = empData?.department_id || currentUserProfile?.department_id;
-  const userRole = currentRole || "leader";
-
-  const sb = window.pvtSupabase?.getClient();
-  if (!sb) return;
-
-  try {
-    let query = sb.from("employees").select("id, full_name, nickname, employee_code, image_url, line_id, role, department_id, departments(department_name), positions(position_name)").order("full_name");
-
-    // ถ้าเป็น Leader หรือ Manager ที่ไม่ใช่ HR/Admin ให้กรองเฉพาะพนักงานในแผนกตัวเอง
-    if (["leader", "manager"].includes(userRole) && userDeptId) {
-      query = query.eq("department_id", userDeptId);
-    }
-
-    const { data: list, error } = await query;
-    if (error || !list || list.length === 0) {
-      container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-soft);">ไม่พบข้อมูลพนักงานในแผนก</div>`;
-      if (badgeEl) badgeEl.textContent = "0 คน";
-      return;
-    }
-
-    if (badgeEl) badgeEl.textContent = `${list.length} คน`;
-
-    if (titleEl) {
-      if (["hr", "admin", "director"].includes(userRole)) {
-        titleEl.textContent = "รายชื่อพนักงานในองค์กรทั้งหมด";
-      } else {
-        const deptName = list[0]?.departments?.department_name || "แผนกของคุณ";
-        titleEl.textContent = `รายชื่อสมาชิกพนักงานในแผนก (${deptName})`;
-      }
-    }
-
-    container.innerHTML = list.map(emp => {
-      const avatar = getAvatarUrl(emp.image_url);
-      const pos = emp.positions?.position_name || "พนักงาน";
-      const deptName = emp.departments?.department_name || "-";
-      const codeStr = emp.employee_code ? `รหัส: ${emp.employee_code}` : "";
-      const nickStr = emp.nickname ? `(${emp.nickname})` : "";
-      const roleStr = (emp.role || "").toLowerCase();
-
-      let roleTag = '<span class="status-badge status-cancelled" style="font-size:10px; padding:2px 6px;">พนักงาน</span>';
-      if (roleStr === "leader" || roleStr.includes("leader")) {
-        roleTag = '<span class="status-badge status-pending" style="font-size:10px; padding:2px 6px; background:#fef3c7; color:#b45309;">👑 หัวหน้า (L1)</span>';
-      } else if (roleStr === "manager" || roleStr.includes("manager")) {
-        roleTag = '<span class="status-badge status-approved" style="font-size:10px; padding:2px 6px; background:#dbeafe; color:#1d4ed8;">💼 ผู้จัดการ (L2)</span>';
-      } else if (["hr", "admin"].includes(roleStr)) {
-        roleTag = '<span class="status-badge status-approved" style="font-size:10px; padding:2px 6px; background:#f3e8ff; color:#6b21a8;">⚙️ ฝ่ายบุคคล</span>';
-      }
-
-      const lineStatus = emp.line_id 
-        ? '<span style="color:#16a34a; font-size:11px; font-weight:600;">● LINE เชื่อมแล้ว</span>'
-        : '<span style="color:#94a3b8; font-size:11px;">○ ยังไม่ผูก LINE</span>';
-
-      return `
-        <div style="display:flex; align-items:center; gap:12px; padding:12px; background:#ffffff; border:1px solid var(--border); border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
-          <img src="${avatar}" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid var(--border-soft); flex-shrink:0;" onerror="this.src='/assets/img/default-avatar.jpg';">
-          <div style="flex:1; min-width:0;">
-            <div style="font-weight:700; font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-              ${escapeHtml(emp.full_name)} ${nickStr}
-            </div>
-            <div style="font-size:12px; color:var(--primary); font-weight:600; margin:2px 0;">
-              💼 ${escapeHtml(pos)} <span style="font-weight:400; color:var(--text-soft); font-size:11px;">(${escapeHtml(deptName)})</span>
-            </div>
-            <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--text-soft);">
-              <span>${codeStr}</span>
-              ${lineStatus}
-            </div>
-            <div style="margin-top:4px;">${roleTag}</div>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-  } catch(e) {
-    console.error("renderDepartmentTeamRoster error:", e);
-    container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:#ef4444;">เกิดข้อผิดพลาดในการโหลดสมาชิก</div>`;
-  }
-}
-
-window.toggleHrTeamContainer = function(btn) {
-  const container = document.getElementById("hrTeamContainer");
-  const icon = document.getElementById("hrTeamToggleIcon");
-  if (!container) return;
-  if (container.style.display === "none") {
-    container.style.display = "grid";
-    if (icon) icon.textContent = "expand_less";
-  } else {
-    container.style.display = "none";
-    if (icon) icon.textContent = "expand_more";
-  }
-};
 
 /* ==========================================================================
    🚪 8. GLOBAL EXPORTS & LOGOUT

@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       let queryRes;
-      let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password, department_id, position_id, image_url, departments(department_name), positions(position_name, level_type, duty_name)");
+      let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password, department_id, position_id, image_url, departments!department_id(department_name), positions(position_name, level_type, duty_name)");
 
       // 🧠 Smart Detect คัดกรองประเภทข้อมูลนำเข้า (อีเมล / เบอร์โทร-รหัสพนักงาน / ชื่อ-สกุล)
       if (loginInput.includes("@")) {
@@ -308,6 +308,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       // บันทึก Session และเปลี่ยนหน้า
       saveUserSession(user);
+
+      // 🔒 บันทึกประวัติการเข้าสู่ระบบไปยัง Supabase 'login_logs' สำหรับตรวจสอบ (Audit Purposes)
+      try {
+        if (typeof recordLoginLog === 'function') {
+          recordLoginLog(user, { method: 'password' });
+        } else if (window.PVTSDK?.loginAudit?.recordLoginLog) {
+          window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'password' });
+        }
+      } catch (logErr) {
+        console.warn("⚠️ [Login Audit Log] Notice recording login:", logErr);
+      }
 
       if (window.PVTLogger) {
         window.PVTLogger.info("LOGIN_SUCCESS", `${user.full_name} เข้าสู่ระบบสำเร็จ`);
@@ -545,8 +556,40 @@ async function executeSecureQrLogin(scannedData) {
       throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน (สถานะ: " + (user.status || "inactive") + ")");
     }
 
+    // 📸 บันทึกประวัติการสแกน QR Code เข้าสู่ตาราง qr_attendance_logs สำหรับ Audit
+    try {
+      if (typeof window.recordQrAttendanceLog === 'function') {
+        await window.recordQrAttendanceLog(user.id, {
+          scanned_data: scannedData,
+          scan_type: 'login_qr_scan',
+          status: 'success',
+          employee_code: user.employee_code
+        });
+      } else if (window.PVTSDK?.attendance?.recordQrAttendanceLog) {
+        await window.PVTSDK.attendance.recordQrAttendanceLog(user.id, {
+          scanned_data: scannedData,
+          scan_type: 'login_qr_scan',
+          status: 'success',
+          employee_code: user.employee_code
+        });
+      }
+    } catch (logErr) {
+      console.warn("⚠️ [QR Audit Log] Warning logging QR attendance:", logErr);
+    }
+
     // บันทึก Session และนำทางเข้าสู่ระบบ
     saveUserSession(user);
+
+    // 🔒 บันทึกประวัติการเข้าสู่ระบบผ่าน QR Code ไปยัง Supabase 'login_logs' สำหรับตรวจสอบ (Audit Purposes)
+    try {
+      if (typeof recordLoginLog === 'function') {
+        recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
+      } else if (window.PVTSDK?.loginAudit?.recordLoginLog) {
+        window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
+      }
+    } catch (logErr) {
+      console.warn("⚠️ [Login Audit Log] Notice recording QR login:", logErr);
+    }
 
     Swal.fire({
       icon: 'success',
@@ -611,7 +654,14 @@ function loginByQr() {
       const camBox = document.getElementById('qr-cam-box');
       const fileBox = document.getElementById('qr-file-box');
 
+      const camStatus = window.SystemDiagnostics?.lastCameraResult;
+
       const startCamera = async () => {
+        if (camStatus && !camStatus.isSupported) {
+          Swal.showValidationMessage ? Swal.showValidationMessage('⚠️ เบราว์เซอร์นี้ไม่รองรับการเปิดกล้องโดยตรง โปรดใช้ปุ่มเลือกรูปภาพ') : null;
+          return;
+        }
+
         try {
           await html5QrCode.start(
             { facingMode: "environment" },
@@ -627,6 +677,8 @@ function loginByQr() {
           isCamRunning = true;
         } catch (err) {
           console.error("Camera access error:", err);
+          // If camera failed, advise switching to file upload
+          if (btnFile) btnFile.click();
         }
       };
 
@@ -637,7 +689,14 @@ function loginByQr() {
         }
       };
 
-      startCamera();
+      if (camStatus && !camStatus.isSupported) {
+        btnFile.style.background = '#2563eb';
+        btnCam.style.background = '#4b5563';
+        camBox.style.display = 'none';
+        fileBox.style.display = 'block';
+      } else {
+        startCamera();
+      }
 
       btnCam.addEventListener('click', async () => {
         btnCam.style.background = '#2563eb';
@@ -804,22 +863,52 @@ async function openChangePasswordModal(user) {
 
 // 📱 Global Mobile & Desktop Sidebar Navigation Helper
 (function initGlobalSidebar() {
+  let lastToggleTime = 0;
+
   function getBackdrop() {
     let backdrop = document.querySelector(".mobile-sidebar-backdrop");
     if (!backdrop) {
       backdrop = document.createElement("div");
       backdrop.className = "mobile-sidebar-backdrop";
       document.body.appendChild(backdrop);
-      backdrop.addEventListener("click", () => {
+      backdrop.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         window.toggleMobileSidebar(false);
       });
     }
     return backdrop;
   }
 
+  function ensureSidebarCloseBtn() {
+    const sidebar = document.querySelector(".sidebar-light") || document.querySelector(".sidebar") || document.querySelector("aside");
+    if (!sidebar) return;
+    const brandZone = sidebar.querySelector(".brand-zone");
+    if (brandZone && !brandZone.querySelector(".btn-close-sidebar")) {
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "btn-close-sidebar";
+      closeBtn.setAttribute("aria-label", "ปิดเมนู");
+      closeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+      closeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.toggleMobileSidebar(false);
+      });
+      brandZone.appendChild(closeBtn);
+    }
+  }
+
   window.toggleMobileSidebar = function(forceState) {
+    const now = Date.now();
+    if (typeof forceState !== "boolean" && now - lastToggleTime < 280) {
+      return; // Ignore rapid colliding events within same click cycle
+    }
+    lastToggleTime = now;
+
     const sidebar = document.querySelector(".sidebar-light") || document.querySelector(".sidebar") || document.querySelector("aside");
     const backdrop = getBackdrop();
+    ensureSidebarCloseBtn();
     if (!sidebar) return;
 
     const shouldOpen = typeof forceState === "boolean" ? forceState : !sidebar.classList.contains("mobile-open");
@@ -850,6 +939,7 @@ async function openChangePasswordModal(user) {
 
   document.addEventListener("DOMContentLoaded", () => {
     getBackdrop();
+    ensureSidebarCloseBtn();
 
     document.querySelectorAll(".mobile-menu-btn, .btn-menu-toggle, #toggleSidebar").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -865,6 +955,13 @@ async function openChangePasswordModal(user) {
           window.toggleMobileSidebar(false);
         }
       });
+    });
+
+    // Close drawer on Escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        window.toggleMobileSidebar(false);
+      }
     });
   });
 })();
@@ -884,7 +981,7 @@ async function renderGlobalUserProfile() {
     const sb = getSbClient();
     if (sb) {
       try {
-         const { data, error } = await sb.from('employees').select('*, departments(*), positions(*)').eq('id', sessionUser.id).single();
+         const { data, error } = await sb.from('employees').select('*, departments!department_id(*), positions(*)').eq('id', sessionUser.id).single();
          if (data) {
            profileData = data;
            window.currentUserProfile = data; // Cache
@@ -2942,4 +3039,96 @@ document.addEventListener("DOMContentLoaded", () => {
 
   observer.observe(document.body, { childList: true, subtree: true });
 });
+
+// =========================================================================
+// 🌐 [ระบบตรวจจับสถานะเครือข่าย]: แจ้งเตือนเมื่อหลุดการเชื่อมต่ออินเทอร์เน็ต
+// =========================================================================
+(function initNetworkStatusMonitor() {
+  const translations = {
+    th: {
+      offline: "⚠️ ขาดการเชื่อมต่ออินเทอร์เน็ต: การส่งใบลาและระบบประมวลผลจำเป็นต้องใช้อินเทอร์เน็ตที่ทำงานอยู่",
+      online: "✅ เชื่อมต่ออินเทอร์เน็ตกลับมาเรียบร้อยแล้ว"
+    },
+    lo: {
+      offline: "⚠️ ຂາດການເຊື່ອມຕໍ່ອິນເຕີເນັດ: ການສົ່ງໃບລາ ແລະ ລະບົບປະມວນຜົນຈຳເປັນຕ້ອງໃຊ້ອິນເຕີເນັດ",
+      online: "✅ ເຊື່ອມຕໍ່ອິນເຕີເນັດຄືນໃຫມ່ສຳເລັດແລ້ວ"
+    },
+    my: {
+      offline: "⚠️ အင်တာနက်လိုင်းပြတ်တောက်နေပါသည် - ခွင့်တောင်းခံလွှာတင်ရန် အင်တာနက်ချိတ်ဆက်မှု လိုအပ်ပါသည်",
+      online: "✅ အင်တာနက်ပြန်လည်ချိတ်ဆက်မိပါပြီ"
+    }
+  };
+
+  function getActiveLang() {
+    return localStorage.getItem("pvt_login_lang") || "th";
+  }
+
+  function showBanner(type) {
+    let banner = document.getElementById("pvtNetworkStatusBanner");
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = "pvtNetworkStatusBanner";
+      banner.style.cssText = `
+        position: fixed;
+        top: -60px;
+        left: 0;
+        right: 0;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        font-family: 'Kanit', sans-serif;
+        font-size: 13.5px;
+        font-weight: 500;
+        text-align: center;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        transition: top 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+      `;
+      document.body.appendChild(banner);
+    }
+
+    const lang = getActiveLang();
+    const t = translations[lang] || translations.th;
+
+    if (type === "offline") {
+      banner.textContent = t.offline;
+      banner.style.backgroundColor = "#fffbeb"; // Tailwind amber-50
+      banner.style.color = "#b45309"; // Tailwind amber-700
+      banner.style.borderBottom = "1.5px solid #f59e0b"; // Tailwind amber-500
+      banner.style.top = "0";
+    } else if (type === "online") {
+      banner.textContent = t.online;
+      banner.style.backgroundColor = "#f0fdf4"; // Tailwind green-50
+      banner.style.color = "#15803d"; // Tailwind green-700
+      banner.style.borderBottom = "1.5px solid #22c55e"; // Tailwind green-500
+      banner.style.top = "0";
+
+      // Hide the "back online" message after 3 seconds
+      setTimeout(() => {
+        if (navigator.onLine) {
+          banner.style.top = "-60px";
+        }
+      }, 3000);
+    }
+  }
+
+  window.addEventListener("offline", () => {
+    showBanner("offline");
+  });
+
+  window.addEventListener("online", () => {
+    showBanner("online");
+  });
+
+  // Check initial state on page load
+  document.addEventListener("DOMContentLoaded", () => {
+    if (!navigator.onLine) {
+      setTimeout(() => {
+        showBanner("offline");
+      }, 500);
+    }
+  });
+})();
+
 

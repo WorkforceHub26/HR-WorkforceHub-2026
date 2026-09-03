@@ -354,11 +354,35 @@ export async function handleSendNotification(req, res) {
   }
 }
 
+async function getLineAccessToken() {
+  if (process.env.LINE_CHANNEL_ACCESS_TOKEN) {
+    return process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  }
+  try {
+    const { url, serviceKey } = getSupabaseConfig();
+    const resp = await fetch(`${url}/rest/v1/system_settings?setting_key=eq.line_oa_config&select=setting_value`, {
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`
+      }
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data) && data.length > 0 && data[0].setting_value?.channel_access_token) {
+        return data[0].setting_value.channel_access_token;
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️ [LINE Token Fetch Error]:", err);
+  }
+  return null;
+}
+
 // Helper Functions
 async function replyLine(replyToken, text) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const token = await getLineAccessToken();
   if (!token) {
-    console.warn("LINE_CHANNEL_ACCESS_TOKEN is not configured in process.env");
+    console.warn("LINE Channel Access Token is not configured in process.env or system_settings");
     return;
   }
 
@@ -380,9 +404,9 @@ async function replyLine(replyToken, text) {
 }
 
 async function sendLinePush(to, message, flexMessage = null) {
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  const token = await getLineAccessToken();
   if (!token) {
-    console.warn("LINE_CHANNEL_ACCESS_TOKEN is not configured in process.env");
+    console.warn("LINE Channel Access Token is not configured in process.env or system_settings");
     return;
   }
 
@@ -448,3 +472,239 @@ function sendJson(res, statusCode, data) {
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(data));
 }
+
+/**
+ * 🔒 Handle Recording Login Activity to 'login_logs' table in Supabase
+ * Records User ID, Timestamp, and Device Info for audit purposes.
+ */
+export async function handleRecordLoginLog(req, res) {
+  try {
+    let bodyData = {};
+    if (typeof req.body === 'object' && req.body !== null) {
+      bodyData = req.body;
+    } else if (typeof req.body === 'string') {
+      try { bodyData = JSON.parse(req.body); } catch (e) {}
+    } else {
+      bodyData = await parseJsonBody(req);
+    }
+
+    const userId = bodyData.user_id || bodyData.userId || bodyData.employee_id || bodyData.employeeId;
+    if (!userId) {
+      return sendJson(res, 400, { error: 'Missing user identifier for login audit log' });
+    }
+
+    // Extract client IP address from request headers
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const clientIp = forwardedFor ? String(forwardedFor).split(',')[0].trim() : (req.socket?.remoteAddress || req.ip || 'Unknown IP');
+
+    const timestamp = bodyData.timestamp || bodyData.client_timestamp || new Date().toISOString();
+    const deviceInfo = bodyData.device_info || bodyData.deviceInfo || {};
+    
+    // Enrich device_info with server-observed headers if not already specified
+    if (typeof deviceInfo === 'object' && deviceInfo !== null) {
+      deviceInfo.server_ip = clientIp;
+      if (!deviceInfo.user_agent && req.headers['user-agent']) {
+        deviceInfo.user_agent = req.headers['user-agent'];
+      }
+    }
+
+    const employeeId = bodyData.employee_id || (String(userId).length === 36 ? userId : null);
+    const loginMethod = bodyData.login_method || bodyData.method || 'password';
+
+    const record = {
+      user_id: String(userId),
+      employee_id: employeeId,
+      employee_code: bodyData.employee_code || '',
+      full_name: bodyData.full_name || '',
+      role: bodyData.role || '',
+      timestamp: timestamp,
+      device_info: deviceInfo,
+      ip_address: clientIp,
+      login_method: loginMethod,
+      status: bodyData.status || 'success',
+      metadata: bodyData.metadata || { source: 'api' },
+      created_at: timestamp
+    };
+
+    const { url, serviceKey } = getSupabaseConfig();
+    let insertSuccess = false;
+    let dbResult = null;
+
+    // 1. Try insert into 'login_logs' table in Supabase via REST with service_role key
+    try {
+      const resp = await fetch(`${url}/rest/v1/login_logs`, {
+        method: 'POST',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(record)
+      });
+
+      if (resp.ok) {
+        dbResult = await resp.json();
+        insertSuccess = true;
+        console.log(`✅ [Login Audit Log] Recorded to 'login_logs': User ${userId} (${loginMethod}) from ${clientIp}`);
+      } else {
+        const errText = await resp.text();
+        console.warn(`⚠️ [Login Audit Log] Supabase 'login_logs' status ${resp.status}:`, errText);
+      }
+    } catch (dbErr) {
+      console.warn("⚠️ [Login Audit Log] Supabase direct insert error:", dbErr.message);
+    }
+
+    // 2. Fallback to 'hr_admin_management_logs' if 'login_logs' is pending creation
+    if (!insertSuccess) {
+      try {
+        await fetch(`${url}/rest/v1/hr_admin_management_logs`, {
+          method: 'POST',
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            actor_id: employeeId,
+            actor_name: bodyData.full_name || bodyData.employee_code || 'User',
+            action_category: 'LOGIN_AUDIT',
+            action_type: `LOGIN_${String(loginMethod).toUpperCase()}`,
+            target_identifier: bodyData.employee_code || String(userId),
+            description: `เข้าสู่ระบบสำเร็จผ่าน ${loginMethod} [IP: ${clientIp}]`,
+            payload_after: record
+          })
+        });
+        console.log("ℹ️ [Login Audit Log] Recorded into fallback audit table (hr_admin_management_logs)");
+      } catch (fallbackErr) {
+        console.warn("⚠️ [Login Audit Log] Fallback logging error:", fallbackErr.message);
+      }
+    }
+
+    return sendJson(res, 200, {
+      success: true,
+      message: 'Login activity logged successfully',
+      log: record,
+      persisted_to_login_logs: insertSuccess,
+      ip: clientIp
+    });
+  } catch (err) {
+    console.error("❌ Error in handleRecordLoginLog:", err);
+    return sendJson(res, 500, { error: err.message });
+  }
+}
+
+/**
+ * 📋 Handle Fetching Recent Login Logs for Audit Review with Date and Search Filtering
+ */
+export async function handleGetLoginLogs(req, res) {
+  try {
+    const { url, serviceKey } = getSupabaseConfig();
+    const reqUrl = new URL(req.url, 'http://localhost');
+    const limit = Math.min(Math.max(parseInt(reqUrl.searchParams.get('limit') || '100', 10), 1), 500);
+    const startDate = reqUrl.searchParams.get('startDate'); // YYYY-MM-DD
+    const endDate = reqUrl.searchParams.get('endDate');     // YYYY-MM-DD
+    const search = reqUrl.searchParams.get('search');
+
+    let queryParams = `select=*&order=timestamp.desc&limit=${limit}`;
+    if (startDate) {
+      queryParams += `&timestamp=gte.${encodeURIComponent(startDate + 'T00:00:00.000Z')}`;
+    }
+    if (endDate) {
+      queryParams += `&timestamp=lte.${encodeURIComponent(endDate + 'T23:59:59.999Z')}`;
+    }
+    if (search) {
+      queryParams += `&or=(user_id.ilike.*${encodeURIComponent(search)}*,full_name.ilike.*${encodeURIComponent(search)}*,employee_code.ilike.*${encodeURIComponent(search)}*,ip_address.ilike.*${encodeURIComponent(search)}*)`;
+    }
+
+    // 1. Try querying 'login_logs'
+    try {
+      const resp = await fetch(`${url}/rest/v1/login_logs?${queryParams}`, {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
+        }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (Array.isArray(data)) {
+          return sendJson(res, 200, { success: true, source: 'login_logs', data });
+        }
+      }
+    } catch (e) {}
+
+    // 2. Query fallback from 'hr_admin_management_logs'
+    try {
+      let fallbackParams = `action_category=eq.LOGIN_AUDIT&select=*&order=created_at.desc&limit=${limit}`;
+      if (startDate) {
+        fallbackParams += `&created_at=gte.${encodeURIComponent(startDate + 'T00:00:00.000Z')}`;
+      }
+      if (endDate) {
+        fallbackParams += `&created_at=lte.${encodeURIComponent(endDate + 'T23:59:59.999Z')}`;
+      }
+
+      const resp = await fetch(`${url}/rest/v1/hr_admin_management_logs?${fallbackParams}`, {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
+        }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const mapped = data.map(item => item.payload_after || {
+          user_id: item.actor_id,
+          full_name: item.actor_name,
+          employee_code: item.target_identifier,
+          timestamp: item.created_at,
+          device_info: { description: item.description },
+          login_method: item.action_type
+        });
+        return sendJson(res, 200, { success: true, source: 'hr_admin_management_logs_fallback', data: mapped });
+      }
+    } catch (e) {}
+
+    return sendJson(res, 200, { success: true, source: 'empty', data: [] });
+  } catch (err) {
+    return sendJson(res, 500, { error: err.message });
+  }
+}
+
+// 🧹 Purge login logs older than 90 days from 'login_logs' table
+export async function handlePurgeLoginLogs(req, res) {
+  try {
+    const { url, serviceKey } = getSupabaseConfig();
+    
+    // Calculate the date 90 days ago
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const isoString = ninetyDaysAgo.toISOString();
+
+    console.log(`🧹 [Purge Login Logs] Initiated. Purging logs older than: ${isoString}`);
+
+    // Delete from 'login_logs' table in Supabase via REST
+    const resp = await fetch(`${url}/rest/v1/login_logs?timestamp=lt.${encodeURIComponent(isoString)}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Prefer': 'return=representation'
+      }
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const count = Array.isArray(data) ? data.length : 0;
+      console.log(`✅ [Purge Login Logs] Successfully purged ${count} logs older than 90 days from 'login_logs'.`);
+      return sendJson(res, 200, { success: true, count, dateLimit: isoString });
+    } else {
+      const errText = await resp.text();
+      console.error(`❌ [Purge Login Logs] Failed to delete from Supabase:`, resp.status, errText);
+      return sendJson(res, resp.status || 500, { success: false, error: errText });
+    }
+  } catch (err) {
+    console.error("Error in handlePurgeLoginLogs:", err);
+    return sendJson(res, 500, { success: false, error: err.message });
+  }
+}
+
+

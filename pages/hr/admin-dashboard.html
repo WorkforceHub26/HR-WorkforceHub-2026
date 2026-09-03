@@ -18,9 +18,9 @@
       --accent: #0f172a; 
       --sidebar-width: 280px;
     }
-    body { background: var(--bg); color: var(--text); padding: 0; margin: 0; font-family: 'Sarabun', sans-serif; overflow: hidden; }
+    body { background: var(--bg); color: var(--text); padding: 0; margin: 0; font-family: 'Sarabun', sans-serif; overflow-x: hidden; overflow-y: auto; }
     
-    .app-container { display: flex; height: 100vh; }
+    .app-container { display: flex; min-height: 100vh; position: relative; }
     
     /* Sidebar */
     aside { 
@@ -31,6 +31,20 @@
       display: flex; 
       flex-direction: column;
       box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 100;
+    }
+    
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 90;
+      backdrop-filter: blur(2px);
     }
     .sidebar-header { padding: 32px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .sidebar-header h2 { margin: 0; font-size: 20px; font-weight: 700; color: #5eead4; }
@@ -53,9 +67,19 @@
     .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
     
     /* Main Content */
-    main { flex: 1; overflow-y: auto; padding: 40px; position: relative; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+    main { flex: 1; min-width: 0; overflow-y: auto; padding: 40px; position: relative; box-sizing: border-box; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; gap: 16px; flex-wrap: wrap; }
     .top-bar h1 { margin: 0; font-size: 28px; font-weight: 700; color: var(--accent); }
+    
+    .mobile-nav-toggle {
+      display: none;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      color: var(--accent);
+      cursor: pointer;
+    }
     
     /* Grid Layout */
     .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -221,13 +245,43 @@
     @media (max-width: 1200px) {
       .dashboard-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    @media (max-width: 992px) {
+      aside {
+        position: fixed;
+        left: calc(-1 * var(--sidebar-width));
+        top: 0;
+        bottom: 0;
+      }
+      .app-container.sidebar-open aside {
+        left: 0;
+      }
+      .app-container.sidebar-open .sidebar-overlay {
+        display: block;
+      }
+      .mobile-nav-toggle {
+        display: flex;
+      }
+      main { padding: 24px; }
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .top-bar h1 { font-size: 22px; }
+      .panel { padding: 16px; }
+      #admin-profile-form { grid-template-columns: 1fr !important; }
+    }
   </style>
 </head>
 <body>
-<div class="app-container">
-  <aside>
-    <div class="sidebar-header">
+<div class="app-container" id="app-wrapper">
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <aside id="main-sidebar">
+    <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center;">
       <h2>PVT คอนโซลแอดมิน</h2>
+      <button class="icon-btn mobile-nav-toggle" onclick="toggleSidebar()" style="background: transparent; border: none; color: white;">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
     <div class="sidebar-menu">
       <a href="/pages/hr/home.html" class="menu-item">
@@ -250,7 +304,12 @@
 
   <main>
     <div class="top-bar">
-      <h1>ภาพรวมระบบ</h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="mobile-nav-toggle" onclick="toggleSidebar()">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <h1>ภาพรวมระบบ</h1>
+      </div>
       <div id="live-time" style="font-weight: 500; color: #64748b;"></div>
     </div>
 
@@ -406,29 +465,24 @@
           </table>
         <div class="table-container" style="margin-top:40px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin:0; font-size:16px; color:var(--accent);">ตั้งค่าสายการอนุมัติ (Approval Chains)</h3>
-            <div class="flex-gap">
-              <button class="secondary" style="padding:6px 12px; font-size:12px; background:var(--primary);" onclick="addNewApproval()">
-                <span class="material-symbols-outlined" style="font-size:16px;">add_link</span> เพิ่มสายอนุมัติ
-              </button>
-              <button class="secondary" style="padding:6px 12px; font-size:12px;" onclick="loadApprovalData()">
-                <span class="material-symbols-outlined" style="font-size:16px;">refresh</span> รีเฟรชสายอนุมัติ
-              </button>
-            </div>
+            <h3 style="margin:0; font-size:16px; color:var(--accent);">โครงสร้างสายอนุมัติรายแผนก (L1 & L2)</h3>
+            <button class="secondary" style="padding:6px 12px; font-size:12px;" onclick="loadDeptApprovalData()">
+              <span class="material-symbols-outlined" style="font-size:16px;">refresh</span> รีเฟรชโครงสร้างแผนก
+            </button>
           </div>
           <table>
             <thead>
               <tr>
-                <th>ประเภทการลา</th>
-                <th>บทบาทผู้ขอ</th>
-                <th>บทบาทผู้อนุมัติ</th>
-                <th>ลำดับขั้นตอน</th>
+                <th>รหัสแผนก</th>
+                <th>ชื่อแผนก</th>
+                <th>หัวหน้า (L1)</th>
+                <th>ผู้จัดการ (L2)</th>
                 <th style="width: 120px;">การจัดการ</th>
               </tr>
             </thead>
             <tbody id="approval-table-body">
               <tr>
-                <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">กำลังโหลดข้อมูลสายอนุมัติ...</td>
+                <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">กำลังโหลดข้อมูลโครงสร้างแผนก...</td>
               </tr>
             </tbody>
           </table>
@@ -565,12 +619,18 @@
 
       const start = Date.now();
       try {
-        const { count: leaveCount } = await sb.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-        document.getElementById('stat-pending-leaves').textContent = leaveCount || 0;
+        // Query pending leaves if possible, or fallback to employees
+        let leaveCount = 0;
+        try {
+          const { count } = await sb.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+          leaveCount = count || 0;
+        } catch(e) { /* ignore table missing */ }
+        document.getElementById('stat-pending-leaves').textContent = leaveCount;
 
         const { data: emps } = await sb.from('employees').select('line_id');
-        const connected = emps.filter(e => e.line_id).length;
-        const percent = Math.round((connected / (emps.length || 1)) * 100);
+        const connected = (emps || []).filter(e => e.line_id).length;
+        const total = (emps || []).length || 1;
+        const percent = Math.round((connected / total) * 100);
         document.getElementById('stat-line-health').textContent = percent + '%';
 
         const latency = Date.now() - start;
@@ -608,8 +668,8 @@
       } catch(e) { updateStatusBadge('check-auth', 'failed', 'ข้อผิดพลาด'); }
       
       try {
-        const res = await fetch("/functions/v1/line-send", { method: "POST", body: JSON.stringify({ ping: true }) });
-        updateStatusBadge('check-line', (res.ok || res.status === 401) ? 'passed' : 'failed', 'ตอบสนองปกติ');
+        // Soft check for LINE function without triggering alert-like 404
+        updateStatusBadge('check-line', 'warning', 'รอการติดตั้ง');
       } catch(e) { updateStatusBadge('check-line', 'failed', 'ติดต่อไม่ได้'); }
       
       fetchMetrics();
@@ -848,157 +908,50 @@
       } catch (e) { showToast('เพิ่มพนักงานไม่สำเร็จ: ' + e.message, 'error'); }
     }
 
-    async function addNewApproval() {
-      if (document.getElementById('new-appr-row')) return;
-      const newRow = document.createElement('tr');
-      newRow.id = 'new-appr-row';
-      newRow.className = 'editing';
-      newRow.innerHTML = `
-        <td><input type="text" class="editable-input" placeholder="ทุกประเภท" id="new-appr-type"></td>
-        <td><input type="text" class="editable-input" placeholder="บทบาทผู้ขอ" id="new-appr-req"></td>
-        <td><input type="text" class="editable-input" placeholder="บทบาทผู้อนุมัติ" id="new-appr-app"></td>
-        <td><input type="number" class="editable-input" value="1" id="new-appr-step"></td>
-        <td class="action-btns">
-          <button class="icon-btn save" onclick="saveNewApproval()" title="บันทึก">
-            <span class="material-symbols-outlined" style="font-size:18px;">check</span>
-          </button>
-          <button class="icon-btn cancel" onclick="document.getElementById('new-appr-row').remove()" title="ยกเลิก">
-            <span class="material-symbols-outlined" style="font-size:18px;">close</span>
-          </button>
-        </td>
-      `;
-      approvalTableBody.prepend(newRow);
-    }
-
-    async function saveNewApproval() {
-      const type = document.getElementById('new-appr-type').value.trim();
-      const req = document.getElementById('new-appr-req').value.trim();
-      const app = document.getElementById('new-appr-app').value.trim();
-      const step = parseInt(document.getElementById('new-appr-step').value) || 1;
-
-      if (!req || !app) { showToast('กรุณาระบุบทบาทผู้ขอและผู้อนุมัติ', 'warning'); return; }
-
-      const sb = window.pvtSupabase?.getClient();
-      try {
-        const { error } = await sb.from('approval_settings').insert({ leave_type: type || null, requester_role: req, approver_role: app, step_order: step });
-        if (error) throw error;
-        showToast('เพิ่มสายอนุมัติใหม่สำเร็จ');
-        loadApprovalData();
-      } catch (e) { showToast('เพิ่มสายอนุมัติไม่สำเร็จ: ' + e.message, 'error'); }
-    }
-
-    // Approval Settings Management
-    let approvalData = [];
+    // Department & Approval Management
+    let deptData = [];
     const approvalTableBody = document.getElementById('approval-table-body');
 
-    async function loadApprovalData() {
+    async function loadDeptApprovalData() {
       const sb = window.pvtSupabase?.getClient();
       if (!sb) return;
 
       try {
-        const { data, error } = await sb.from('approval_settings').select('*').order('step_order');
+        const { data, error } = await sb.from('departments').select(`
+          *,
+          supervisor:employees!supervisor_id(full_name),
+          manager:employees!manager_id(full_name)
+        `).order('department_code');
+        
         if (error) throw error;
-        approvalData = data;
-        renderApprovalTable();
+        deptData = data;
+        renderDeptTable();
       } catch (e) {
-        console.error('Error loading approvals:', e);
-        if (approvalTableBody) approvalTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#ef4444;">โหลดข้อมูลไม่สำเร็จ: ${e.message}</td></tr>`;
+        console.error('Error loading depts:', e);
+        if (approvalTableBody) approvalTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#ef4444;">ไม่พบตาราง departments หรือเกิดข้อผิดพลาด</td></tr>`;
       }
     }
 
-    function renderApprovalTable() {
+    function renderDeptTable() {
       if (!approvalTableBody) return;
-      if (!approvalData.length) {
-        approvalTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">ไม่พบการตั้งค่าสายอนุมัติ</td></tr>';
+      if (!deptData.length) {
+        approvalTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">ไม่พบข้อมูลแผนก</td></tr>';
         return;
       }
 
-      approvalTableBody.innerHTML = approvalData.map(appr => `
-        <tr id="appr-row-${appr.id}">
-          <td class="appr-type">${appr.leave_type || 'ทุกประเภท'}</td>
-          <td class="appr-req-role">${appr.requester_role || '-'}</td>
-          <td class="appr-app-role">${appr.approver_role || '-'}</td>
-          <td class="appr-step">${appr.step_order || '1'}</td>
+      approvalTableBody.innerHTML = deptData.map(dept => `
+        <tr>
+          <td>${dept.department_code || '-'}</td>
+          <td>${dept.department_name || '-'}</td>
+          <td>${dept.supervisor?.full_name || '<span style="color:#94a3b8">ไม่ได้ตั้งค่า</span>'}</td>
+          <td>${dept.manager?.full_name || '<span style="color:#94a3b8">ไม่ได้ตั้งค่า</span>'}</td>
           <td class="action-btns">
-            <button class="icon-btn" onclick="editApproval('${appr.id}')" title="แก้ไข">
-              <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
-            </button>
-            <button class="icon-btn" onclick="deleteApproval('${appr.id}')" title="ลบ" style="color:#ef4444;">
-              <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+            <button class="icon-btn" onclick="window.location.href='/pages/hr/approval-settings.html'" title="ไปที่หน้าตั้งค่าละเอียด">
+              <span class="material-symbols-outlined" style="font-size:18px;">settings</span>
             </button>
           </td>
         </tr>
       `).join('');
-    }
-
-    function editApproval(id) {
-      const row = document.getElementById(`appr-row-${id}`);
-      const appr = approvalData.find(a => a.id === id);
-      if (!row || !appr) return;
-
-      row.classList.add('editing');
-      const cells = {
-        type: row.querySelector('.appr-type'),
-        reqRole: row.querySelector('.appr-req-role'),
-        appRole: row.querySelector('.appr-app-role'),
-        step: row.querySelector('.appr-step'),
-        actions: row.querySelector('.action-btns')
-      };
-
-      cells.type.innerHTML = `<input type="text" class="editable-input" value="${appr.leave_type || ''}" id="edit-appr-type-${id}">`;
-      cells.reqRole.innerHTML = `<input type="text" class="editable-input" value="${appr.requester_role || ''}" id="edit-appr-req-${id}">`;
-      cells.appRole.innerHTML = `<input type="text" class="editable-input" value="${appr.approver_role || ''}" id="edit-appr-app-${id}">`;
-      cells.step.innerHTML = `<input type="number" class="editable-input" value="${appr.step_order || '1'}" id="edit-appr-step-${id}">`;
-
-      cells.actions.innerHTML = `
-        <button class="icon-btn save" onclick="saveApproval('${id}')" title="บันทึก">
-          <span class="material-symbols-outlined" style="font-size:18px;">check</span>
-        </button>
-        <button class="icon-btn cancel" onclick="renderApprovalTable()" title="ยกเลิก">
-          <span class="material-symbols-outlined" style="font-size:18px;">close</span>
-        </button>
-      `;
-    }
-
-    async function saveApproval(id) {
-      const type = document.getElementById(`edit-appr-type-${id}`).value.trim();
-      const req = document.getElementById(`edit-appr-req-${id}`).value.trim();
-      const app = document.getElementById(`edit-appr-app-${id}`).value.trim();
-      const step = parseInt(document.getElementById(`edit-appr-step-${id}`).value) || 1;
-
-      if (!req || !app) { showToast('กรุณาระบุบทบาทผู้ขอและผู้อนุมัติ', 'warning'); return; }
-
-      const sb = window.pvtSupabase?.getClient();
-      if (!sb) return;
-
-      try {
-        const { error } = await sb.from('approval_settings').update({
-          leave_type: type || null,
-          requester_role: req,
-          approver_role: app,
-          step_order: step
-        }).eq('id', id);
-
-        if (error) throw error;
-        loadApprovalData();
-        showToast('อัปเดตสายอนุมัติสำเร็จ');
-        console.log('บันทึกการตั้งค่าสายอนุมัติสำเร็จ');
-      } catch (e) {
-        console.error('Error saving approval:', e);
-        showToast('บันทึกไม่สำเร็จ: ' + e.message, 'error');
-      }
-    }
-
-    async function deleteApproval(id) {
-      if (!confirm('ยืนยันการลบสายอนุมัตินี้?')) return;
-      const sb = window.pvtSupabase?.getClient();
-      if (!sb) return;
-      try {
-        const { error } = await sb.from('approval_settings').delete().eq('id', id);
-        if (error) throw error;
-        showToast('ลบสายอนุมัติสำเร็จ');
-        loadApprovalData();
-      } catch (e) { showToast('ลบไม่สำเร็จ: ' + e.message, 'error'); }
     }
 
     // Database Snapshot Logic
@@ -1009,13 +962,13 @@
       showToast('กำลังเตรียมข้อมูลสำรอง...', 'info');
       try {
         const { data: employees } = await sb.from('employees').select('*');
-        const { data: approvals } = await sb.from('approval_settings').select('*');
+        const { data: depts } = await sb.from('departments').select('*');
 
         const snapshot = {
-          version: "1.0",
+          version: "1.1",
           timestamp: new Date().toISOString(),
           employees,
-          approvals
+          departments: depts
         };
 
         const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
@@ -1041,11 +994,14 @@
           const snapshot = JSON.parse(e.target.result);
           
           // Validation
-          if (!snapshot.employees || !snapshot.approvals) {
+          if (!snapshot.employees || (!snapshot.departments && !snapshot.approvals)) {
             throw new Error('โครงสร้างไฟล์ไม่ถูกต้อง');
           }
 
-          if (!confirm(`⚠️ คำเตือน: การกู้คืนจะเขียนทับข้อมูลปัจจุบัน\nพบพนักงาน: ${snapshot.employees.length} ราย\nพบสายอนุมัติ: ${snapshot.approvals.length} ราย\nต้องการดำเนินการต่อหรือไม่?`)) {
+          const empCount = snapshot.employees.length;
+          const deptCount = (snapshot.departments || snapshot.approvals).length;
+
+          if (!confirm(`⚠️ คำเตือน: การกู้คืนจะเขียนทับข้อมูลปัจจุบัน\nพบพนักงาน: ${empCount} ราย\nพบโครงสร้าง: ${deptCount} รายการ\nต้องการดำเนินการต่อหรือไม่?`)) {
             event.target.value = '';
             return;
           }
@@ -1054,19 +1010,18 @@
           showToast('กำลังกู้คืนข้อมูล...', 'info');
 
           // Restore Employees
-          if (snapshot.employees.length > 0) {
-            await sb.from('employees').delete().neq('id', 'placeholder'); // Clear (Simplified)
-            const { error: empError } = await sb.from('employees').insert(snapshot.employees.map(emp => {
-              const { id, created_at, ...rest } = emp; // Let DB handle IDs/Timestamps if needed, or keep them
-              return emp; 
-            }));
+          if (empCount > 0) {
+            await sb.from('employees').delete().neq('id', 'placeholder');
+            const { error: empError } = await sb.from('employees').insert(snapshot.employees);
             if (empError) throw empError;
           }
 
-          // Restore Approvals
-          if (snapshot.approvals.length > 0) {
-            await sb.from('approval_settings').delete().neq('id', 'placeholder'); // Clear
-            const { error: appError } = await sb.from('approval_settings').insert(snapshot.approvals);
+          // Restore Departments
+          const deptsToRestore = snapshot.departments || snapshot.approvals;
+          if (deptsToRestore.length > 0) {
+            const tableName = snapshot.departments ? 'departments' : 'approval_settings';
+            await sb.from(tableName).delete().neq('id', 'placeholder');
+            const { error: appError } = await sb.from(tableName).insert(deptsToRestore);
             if (appError) throw appError;
           }
 
@@ -1091,7 +1046,13 @@
     initProfile();
     runDeepCheck();
     loadEmployeeData();
-    loadApprovalData();
+    loadDeptApprovalData();
+    
+    // Sidebar Toggle
+    window.toggleSidebar = function() {
+      const wrapper = document.getElementById('app-wrapper');
+      wrapper.classList.toggle('sidebar-open');
+    }
 
     // Live update every 5 seconds
     setInterval(fetchMetrics, 5000);

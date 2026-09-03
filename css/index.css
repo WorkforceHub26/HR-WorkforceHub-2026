@@ -150,6 +150,61 @@ body {
   }
 }
 
+@keyframes fadeOutUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    max-height: 250px;
+    margin-bottom: 20px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  50% {
+    opacity: 0.3;
+    transform: translateY(-4px) scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+  }
+}
+
+.login-alert-banner.dismissing,
+.login-alert-banner.fade-out {
+  animation: fadeOutUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+#btnDismissCameraAlert {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #b45309;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-left: 8px;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+#btnDismissCameraAlert:hover {
+  background-color: rgba(180, 83, 9, 0.14);
+  color: #78350f;
+  transform: scale(1.08);
+}
+
+#btnDismissCameraAlert:active {
+  transform: scale(0.92);
+}
+
 /* Input wrapper error states */
 .input-wrapper.error-state .input-field {
   border-color: #ef4444 !important;
@@ -343,22 +398,117 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              box-shadow 0.2s ease, 
+              filter 0.2s ease, 
+              background 0.2s ease,
+              opacity 0.2s ease;
 }
 
 .login-btn span.material-symbols-outlined {
   font-size: 20px;
 }
 
-.login-btn:hover {
+.login-btn .btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-btn .btn-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--primary-gradient);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.92);
+  pointer-events: none;
+  transition: opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), 
+              visibility 0.24s ease;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.login-btn .spinner-circle {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-right-color: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  animation: loginBtnSpin 0.75s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.login-btn .spinner-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+@keyframes loginBtnSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hover & Active States (Only when not loading and not disabled) */
+.login-btn:not(:disabled):not(.loading):hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px var(--primary-glow);
   filter: brightness(1.04);
 }
 
-.login-btn:active {
-  transform: scale(0.98);
+.login-btn:not(:disabled):not(.loading):active {
+  transform: scale(0.97) translateY(1px);
+  box-shadow: 0 2px 6px var(--primary-glow);
+  filter: brightness(0.96);
+  transition-duration: 0.08s;
+}
+
+/* Loading & Disabled States (Prevents double clicks and glitches) */
+.login-btn.loading {
+  cursor: wait !important;
+  pointer-events: none !important;
+  box-shadow: 0 4px 12px var(--primary-glow) !important;
+  filter: brightness(0.98);
+}
+
+.login-btn:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.9;
+}
+
+.login-btn.loading .btn-content {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.92);
+  pointer-events: none;
+}
+
+.login-btn.loading .btn-spinner {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
 }
 
 /* ================== ปุ่มสแกน QR Code ================== */
@@ -378,7 +528,10 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s ease-in-out;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .qr-btn span.material-symbols-outlined {
@@ -389,10 +542,57 @@ body {
   background: #ccfbf1;
   border-color: #0f766e;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.12);
 }
 
 .qr-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.96) translateY(1px);
+  background: #bbf7d0;
+  border-color: #0d9488;
+  box-shadow: inset 0 2px 4px rgba(13, 148, 136, 0.12);
+  transition-duration: 0.08s;
+}
+
+/* ================== ปุ่มสแกน Biometrics ================== */
+.biometric-btn {
+  width: 100%;
+  height: 46px;
+  margin-top: 10px;
+  border: 1.5px solid #16a34a;
+  border-radius: 12px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 14.5px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.biometric-btn span.material-symbols-outlined {
+  font-size: 20px;
+}
+
+.biometric-btn:hover {
+  background: #dcfce7;
+  border-color: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.12);
+}
+
+.biometric-btn:active {
+  transform: scale(0.96) translateY(1px);
+  background: #bbf7d0;
+  border-color: #16a34a;
+  box-shadow: inset 0 2px 4px rgba(22, 163, 74, 0.12);
+  transition-duration: 0.08s;
 }
 
 .login-footer-info {
@@ -517,7 +717,7 @@ body {
 }
 
 /* ==========================================================================
-   ✨ MICRO-ANIMATIONS & POPUPS
+   ✨ MICRO-ANIMATIONS, FIELD SLIDE-UP & POPUPS
    ========================================================================== */
 @keyframes smoothEntrance {
   0% {
@@ -530,46 +730,63 @@ body {
   }
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* 🚀 Smooth Slide-Up Entrance Animation for Login Fields & Elements */
+@keyframes fieldSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.login-btn {
-  position: relative;
-  overflow: hidden;
+/* Staggered Entrance Animation for Container Fields to Improve Perceived Performance */
+.brand-area {
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
 }
 
-.login-btn.loading {
-  pointer-events: none;
-  opacity: 0.85;
+#loginForm .form-group:nth-of-type(1) {
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
 }
 
-.login-btn.loading .btn-content {
-  opacity: 0;
+#loginForm .form-group:nth-of-type(2) {
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
 }
 
-.login-btn .btn-spinner {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--primary-gradient);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
+#loginForm .form-group:nth-of-type(3) {
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
 }
 
-.login-btn.loading .btn-spinner {
-  opacity: 1;
-  visibility: visible;
+#loginForm .login-btn {
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
 }
 
-.login-btn .btn-spinner span {
-  animation: spin 0.8s linear infinite;
-  font-size: 24px;
-  color: #ffffff;
+#loginForm .qr-btn {
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.36s both;
+}
+
+.login-footer-info {
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.42s both;
+}
+
+.instructions-container {
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.48s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card,
+  .brand-area,
+  #loginForm .form-group,
+  #loginForm .login-btn,
+  #loginForm .qr-btn,
+  .login-footer-info,
+  .instructions-container {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
 }
 
 .swal2-popup {

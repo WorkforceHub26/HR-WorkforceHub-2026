@@ -13,6 +13,12 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
   <link rel="stylesheet" href="/css/Management.css" />
+
+  <!-- React & Recharts CDN Dependencies for Analytics Visualization -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
 </head>
 
 <body>
@@ -21,7 +27,7 @@
     <!-- เมนูด้านข้าง (Sidebar Navigation) -->
     <aside class="sidebar-light">
       <div class="brand-zone">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
+        <img src="/assets/icons/Logo_PVT_2026_B.png" alt="PVT Logo" class="logo-mini" />
       </div>
       
       <nav class="nav-menu">
@@ -45,6 +51,10 @@
           <span class="material-symbols-outlined">calendar_today</span>
           <span class="nav-label">วันหยุด</span>
         </a>
+        <a href="/pages/user/full-guide.html" class="nav-item" title="คู่มือการใช้งาน">
+          <span class="material-symbols-outlined">menu_book</span>
+          <span class="nav-label">คู่มือการใช้งาน</span>
+        </a>
       </nav>
       
       <div class="sidebar-footer">
@@ -61,18 +71,18 @@
       <!-- Topbar Header -->
       <header class="topbar">
         <div class="topbar-left">
-          <button class="mobile-menu-btn" title="เปิดเมนู">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" title="เปิดเมนู" onclick="toggleMobileSidebar()">
             <span class="material-symbols-outlined">menu</span>
           </button>
           <div class="topbar-left-text">
-            <h1 class="page-title">ระบบจัดการส่วนกลาง & ประวัติพนักงาน</h1>
-            <p class="page-subtitle">HR MANAGEMENT & LEAVE HISTORY DASHBOARD</p>
+            <h1 class="page-title">ระบบจัดการส่วนกลาง</h1>
+            <p class="page-subtitle">HR DASHBOARD</p>
           </div>
         </div>
         <div class="topbar-right">
           <button class="action-btn" onclick="handleFetchDataClick()">
             <span class="material-symbols-outlined">sync</span>
-            <span>ดึงข้อมูลล่าสุด</span>
+            <span class="hidden-mobile">ดึงข้อมูลล่าสุด</span>
           </button>
           <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()">
             <span class="material-symbols-outlined">download</span>
@@ -114,13 +124,21 @@
         <div class="manage-card">
           <h3><span class="material-symbols-outlined">shield</span> 3. รายงาน & ความปลอดภัย</h3>
           <div class="card-btn-group">
-            <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()"><span class="material-symbols-outlined">download</span> ดึงรายงานการลา (Excel)</button>
+            <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()" title="ส่งออกรายงานโควตาวันลา (employee_leave_balances) และประวัติการลา"><span class="material-symbols-outlined">download</span> ดึงรายงานโควตา & การลา (Excel)</button>
             <button class="action-btn" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
+            <button class="action-btn" onclick="viewLoginAuditLogs()" style="border-left: 4px solid #0d9488;"><span class="material-symbols-outlined">badge</span> ประวัติการเข้าสู่ระบบ (Login Logs)</button>
             <button class="action-btn" onclick="resetYearlyLeave()"><span class="material-symbols-outlined">published_with_changes</span> สร้าง/จัดการโควตาประจำปี</button>
             <button class="action-btn" onclick="testLineNotificationFromHR()" style="border-left: 4px solid #4f46e5;"><span class="material-symbols-outlined">notifications_active</span> ทดสอบแจ้งเตือน LINE (Slip)</button>
           </div>
       </div>
       </div>
+
+      <!-- SECTION: Recharts Analytics (สถิติรายวันประจำเดือน) -->
+      <div class="section-title">
+        <span class="material-symbols-outlined">monitoring</span>
+        <span>วิเคราะห์แนวโน้มการเข้าใช้งานและการลาประจำเดือนนี้</span>
+      </div>
+      <div id="rechartsSummaryPanel" style="margin-bottom: 24px;"></div>
 
       <!-- SECTION 2: การ์ดสรุปสถิติ (Stat Cards) -->
       <div class="section-title">
@@ -132,15 +150,15 @@
           <span class="stat-label">พนักงานทั้งหมด</span>
           <strong id="statEmployees" class="stat-val">0</strong>
         </article>
-        <article class="panel stat-card">
+        <article class="panel stat-card" onclick="location.href='/pages/hr/hr.html'" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
           <span class="stat-label">รายการลาทั้งหมด</span>
           <strong id="statLeaves" class="stat-val">0</strong>
         </article>
-        <article class="panel stat-card">
+        <article class="panel stat-card" onclick="location.href='/pages/hr/hr.html?tab=pending'" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
           <span class="stat-label">รออนุมัติ</span>
           <strong id="statPending" class="stat-val warning">0</strong>
         </article>
-        <article class="panel stat-card">
+        <article class="panel stat-card" onclick="location.href='/pages/hr/hr.html?tab=history&filter=fully_approved'" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
           <span class="stat-label">วันลารวม</span>
           <strong id="statDays" class="stat-val primary">0</strong>
         </article>
@@ -175,51 +193,58 @@
           </div>
 
           <!-- ข้อมูลคำอธิบายกลุ่มตำแหน่งงานตามหมวดหมู่ -->
-          <div class="category-description-panel" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;">
-            <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-              <span class="material-symbols-outlined" style="color: #0d9488; font-size: 18px;">info</span>
-              <span>ข้อมูลจำแนกกลุ่มตำแหน่งงาน:</span>
+          <div class="category-description-panel" style="background: linear-gradient(135deg, #f8fafc 0%, #f0fdfa 100%); border: 1px solid #ccfbf1; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(13, 148, 136, 0.05);">
+            <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+              <span class="material-symbols-outlined" style="color: #0d9488; font-size: 20px;">info</span>
+              <span>หมวดหมู่โครงสร้างตำแหน่งงาน:</span>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; font-size: 12px; color: #334155;">
-              <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px;">
-                <span style="font-weight: 700; color: #0f172a;">👥 ทุกตำแหน่ง:</span> แสดงจำนวนพนักงานรวมทั้งหมด
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; font-size: 12.5px;">
+              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                <span style="font-weight: 700; color: #0f172a;">👥 ทุกตำแหน่ง:</span> <span style="color: #64748b;">ภาพรวมพนักงานทั้งหมด</span>
               </div>
-              <div style="background: #ffffff; border: 1px solid #bae6fd; border-radius: 6px; padding: 6px 10px;">
-                <span style="font-weight: 700; color: #0369a1;">👔 ผู้จัดการ / ผู้บริหาร:</span> ผู้จัดการฝ่ายบริหารและบริหาร
+              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
+                <span style="font-weight: 700; color: #1e40af;">👑 ผู้บริหาร:</span> <span style="color: #3b82f6;">CEO, MD, ผู้อำนวยการ</span>
               </div>
-              <div style="background: #ffffff; border: 1px solid #fde68a; border-radius: 6px; padding: 6px 10px;">
-                <span style="font-weight: 700; color: #92400e;">🎖️ หัวหน้างาน / หัวหน้าแผนก:</span> กลุ่มหัวหน้าแผนก หัวหน้ากะ และ Supervisor
+              <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(13,148,136,0.05);">
+                <span style="font-weight: 700; color: #0f766e;">👔 ผู้จัดการ:</span> <span style="color: #14b8a6;">ผู้จัดการฝ่าย/สายงาน</span>
               </div>
-              <div style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 6px; padding: 6px 10px;">
-                <span style="font-weight: 700; color: #0f766e;">📋 เจ้าหน้าที่ / ผู้ช่วย:</span> กลุ่มเจ้าหน้าที่ ผู้ช่วย ช่างเทคนิค เยี่ยมชม และธุรการ
+              <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(217,119,6,0.05);">
+                <span style="font-weight: 700; color: #92400e;">🎖️ หัวหน้างาน:</span> <span style="color: #d97706;">หัวหน้าแผนก / Supervisor</span>
               </div>
-              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px;">
-                <span style="font-weight: 700; color: #475569;">👤 พนักงานทั่วไป:</span> กลุ่มพนักงานทั่วไป
+              <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(124,58,237,0.05);">
+                <span style="font-weight: 700; color: #5b21b6;">📋 เจ้าหน้าที่:</span> <span style="color: #7c3aed;">เจ้าหน้าที่, ผู้ช่วย, ช่างเทคนิค</span>
+              </div>
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                <span style="font-weight: 700; color: #334155;">👤 พนักงานทั่วไป:</span> <span style="color: #64748b;">ฝ่ายปฏิบัติการและทั่วไป</span>
               </div>
             </div>
           </div>
 
           <!-- แถบเลือกแยกประเภทตำแหน่งงาน (ผู้จัดการ, หัวหน้าแผนก, เจ้าหน้าที่/ผู้ช่วย, พนักงานทั่วไป) -->
-          <div class="pos-category-tabs" id="posCategoryTabs">
-            <button type="button" class="pos-tab active" data-pos-cat="all" onclick="filterByPosCategory('all')">
+          <div class="pos-category-tabs" id="posCategoryTabs" style="overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 8px; margin-bottom: 16px;">
+            <button type="button" class="pos-tab active" data-pos-cat="all" onclick="filterByPosCategory('all')" style="display: inline-flex; flex-shrink: 0;">
               <span class="material-symbols-outlined" style="font-size: 16px;">groups</span>
               <span>ทุกตำแหน่ง</span>
               <span class="pos-tab-count" id="count-all">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="manager" onclick="filterByPosCategory('manager')">
-              <span>👔 ผู้จัดการ / ผู้บริหาร</span>
+            <button type="button" class="pos-tab" data-pos-cat="executive" onclick="filterByPosCategory('executive')" style="display: inline-flex; flex-shrink: 0;">
+              <span>👑 ผู้บริหาร</span>
+              <span class="pos-tab-count" id="count-executive">0</span>
+            </button>
+            <button type="button" class="pos-tab" data-pos-cat="manager" onclick="filterByPosCategory('manager')" style="display: inline-flex; flex-shrink: 0;">
+              <span>👔 ผู้จัดการ</span>
               <span class="pos-tab-count" id="count-manager">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="supervisor" onclick="filterByPosCategory('supervisor')">
-              <span>🎖️ หัวหน้างาน / หัวหน้าแผนก</span>
+            <button type="button" class="pos-tab" data-pos-cat="supervisor" onclick="filterByPosCategory('supervisor')" style="display: inline-flex; flex-shrink: 0;">
+              <span>🎖️ หัวหน้างาน</span>
               <span class="pos-tab-count" id="count-supervisor">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="officer" onclick="filterByPosCategory('officer')">
-              <span>📋 เจ้าหน้าที่ / ผู้ช่วย</span>
+            <button type="button" class="pos-tab" data-pos-cat="officer" onclick="filterByPosCategory('officer')" style="display: inline-flex; flex-shrink: 0;">
+              <span>📋 เจ้าหน้าที่</span>
               <span class="pos-tab-count" id="count-officer">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="staff" onclick="filterByPosCategory('staff')">
-              <span>👤 พนักงานทั่วไป</span>
+            <button type="button" class="pos-tab" data-pos-cat="staff" onclick="filterByPosCategory('staff')" style="display: inline-flex; flex-shrink: 0;">
+              <span>👤 พนักงาน</span>
               <span class="pos-tab-count" id="count-staff">0</span>
             </button>
           </div>
@@ -307,13 +332,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
-  
-  <script>
-    console.log("🔍 [CHECK 1] โหลด CDN External Libraries สำเร็จแล้ว");
-  </script>
 
   <script src="/js/supabase-config.js" onload="console.log('  โหลด supabase-config.js สำเร็จ')" onerror="console.error('❌ โหลด supabase-config.js ล้มเหลว (404 Not Found)')"></script>
   <script src="/js/auth-guard.js" onload="console.log('  โหลด auth-guard.js สำเร็จ')" onerror="console.error('❌ โหลด auth-guard.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/components/login-logs-viewer.js" onload="console.log('  โหลด login-logs-viewer.js สำเร็จ')" onerror="console.error('❌ โหลด login-logs-viewer.js ล้มเหลว')"></script>
   <script src="/js/management.js" onload="console.log('  โหลด management.js สำเร็จ')" onerror="console.error('❌ โหลด management.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error('❌ โหลด recharts-summary.js ล้มเหลว')"></script>
 </body>
 </html>

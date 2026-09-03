@@ -235,6 +235,28 @@ async function loadMyLeaveHistory() {
     renderSummary();
     renderRows();
 
+    // ⏱️ แสดงผล 2-Day SLA Countdown Tracker สำหรับใบลาที่รออนุมัติของพนักงาน
+    if (typeof window.renderLeaveSlaTracker === 'function') {
+      const pendingLeaves = (myLeaveRows || []).filter(r => r.status === 'pending' || r.status === 'รออนุมัติ').map(r => ({
+        ...r,
+        user_name: myProfile?.name || myProfile?.employees?.full_name || 'ฉัน (ผู้ยื่นคำขอ)',
+        employee_code: myProfile?.employee_code || myProfile?.employees?.employee_code || '',
+        department: myProfile?.department || myProfile?.employees?.departments?.department_name || '',
+        avatar_url: myProfile?.image_url || myProfile?.employees?.image_url || '/assets/img/default-avatar.jpg'
+      }));
+      
+      const userSlaContainer = document.getElementById("userLeaveSlaTrackerContainer");
+      if (pendingLeaves.length > 0) {
+        if (userSlaContainer) userSlaContainer.style.display = "block";
+        window.renderLeaveSlaTracker("userLeaveSlaTrackerContainer", pendingLeaves);
+      } else {
+        if (userSlaContainer) {
+          userSlaContainer.style.display = "none";
+          userSlaContainer.innerHTML = "";
+        }
+      }
+    }
+
     // 🎯 [Highlight Specific Leave Item from LINE Link / Query Param]:
     const urlParams = new URLSearchParams(window.location.search);
     const leaveIdParam = urlParams.get("id") || urlParams.get("leave_id");
@@ -295,6 +317,45 @@ function translateLeaveTypeName(name) {
   return name;
 }
 
+function filterLeaveHistory(type, element) {
+  currentFilter = type || currentFilter || 'all';
+
+  if (element) {
+    document.querySelectorAll('.filter-chips .chip, .history-summary .summary-card').forEach(el => {
+      el.classList.remove('active');
+    });
+    element.classList.add('active');
+  }
+
+  let rows = [...myLeaveRows];
+  if (currentFilter === 'pending') {
+    rows = rows.filter(item => item.status === 'pending');
+  } else if (currentFilter === 'approved') {
+    rows = rows.filter(item => item.status === 'approved');
+  } else if (currentFilter === 'cancel_requested') {
+    rows = rows.filter(item => item.status === 'cancel_requested');
+  } else if (currentFilter === 'rejected_cancelled') {
+    rows = rows.filter(item => item.status === 'rejected' || item.status === 'cancelled');
+  }
+
+  const searchTerm = (document.getElementById("historySearchInput")?.value || "").trim().toLowerCase();
+  if (searchTerm) {
+    rows = rows.filter(item => {
+      const typeName = translateLeaveTypeName(item.leave_types?.leave_name || "").toLowerCase();
+      const reason = (item.reason || "").toLowerCase();
+      const cancelReason = (item.cancel_reason || item.approval_comment || "").toLowerCase();
+      return typeName.includes(searchTerm) || reason.includes(searchTerm) || cancelReason.includes(searchTerm);
+    });
+  }
+
+  filteredLeaveRows = rows;
+  renderRows();
+}
+
+function onHistorySearchChange() {
+  filterLeaveHistory(currentFilter, null);
+}
+
 function renderRows() {
   const tableBody = document.getElementById("table-data-rows");
   if (!tableBody) return;
@@ -318,6 +379,19 @@ function renderRows() {
     return;
   }
 
+  const searchTerm = (document.getElementById("historySearchInput")?.value || "").trim();
+
+  const highlightMatch = (text, term) => {
+    if (!term || !text) return escapeHtml(text || "");
+    const cleanText = String(text);
+    const idx = cleanText.toLowerCase().indexOf(term.toLowerCase());
+    if (idx === -1) return escapeHtml(cleanText);
+    const before = escapeHtml(cleanText.slice(0, idx));
+    const matched = escapeHtml(cleanText.slice(idx, idx + term.length));
+    const after = escapeHtml(cleanText.slice(idx + term.length));
+    return `${before}<mark class="text-highlight">${matched}</mark>${after}`;
+  };
+
   tableBody.innerHTML = filteredLeaveRows.map((item) => {
     let displayStatus = "";
     let statusClass = item.status || "pending";
@@ -331,8 +405,26 @@ function renderRows() {
     }
     const leaveTypeName = translateLeaveTypeName(rawLeaveTypeName);
 
+    let isOverdue = false;
+    let overdueDays = 0;
+    if (item.status === "pending" && item.created_at) {
+      const createdTime = new Date(item.created_at).getTime();
+      if (!isNaN(createdTime)) {
+        const diffHours = (Date.now() - createdTime) / (1000 * 60 * 60);
+        if (diffHours >= 48) {
+          isOverdue = true;
+          overdueDays = Math.floor(diffHours / 24);
+        }
+      }
+    }
+
     if (item.status === "pending") {
-      displayStatus = t.statusPending || "รออนุมัติ";
+      if (isOverdue) {
+        displayStatus = `<span class="material-symbols-outlined" style="font-size:13px; vertical-align:middle; margin-right:2px;">timer_off</span> เกินกำหนด (${overdueDays} วัน)`;
+        statusClass = "overdue";
+      } else {
+        displayStatus = t.statusPending || "รออนุมัติ";
+      }
       actionBtnHtml = `
         <button class="btn-cancel-direct" onclick="directCancelLeave('${item.id}')" title="${t.btnDirectCancel}">
           <span class="material-symbols-outlined">close</span> ${t.btnDirectCancel}
@@ -372,20 +464,30 @@ function renderRows() {
     const isCancelled = item.status === "cancelled" || (item.approval_comment && item.approval_comment.includes("ยกเลิก"));
     const isRejected = item.status === "rejected" && !isCancelled;
 
+    const displayTypeName = highlightMatch(leaveTypeName, searchTerm);
+    const displayReason = highlightMatch(item.reason || "-", searchTerm);
+    const displayCancelReason = highlightMatch(cancelOrRejectReason || "", searchTerm);
+
     return `
-      <tr id="row-${item.id}">
-        <td data-label="${t.thLeaveType || "ประเภทการลา"}"><strong class="leave-type-title" data-raw-cat="${escapeHtml(rawLeaveTypeName)}">${escapeHtml(leaveTypeName)}</strong></td>
+      <tr id="row-${item.id}" class="${isOverdue ? 'row-overdue' : ''}">
+        <td data-label="${t.thLeaveType || "ประเภทการลา"}"><strong class="leave-type-title" data-raw-cat="${escapeHtml(rawLeaveTypeName)}">${displayTypeName}</strong></td>
         <td data-label="${t.thDateRange || "ช่วงวันที่"}">${startDateStr} - ${endDateStr}</td>
         <td data-label="${t.thDays || "จำนวนวัน"}"><span class="day-count-badge">${formatDuration(item.total_days, item.leave_hours)}</span></td>
         <td data-label="${t.thReason || "เหตุผล"}" class="td-reason">
-          <div>${escapeHtml(item.reason || "-")}</div>
+          <div>${displayReason}</div>
+          ${isOverdue ? `
+            <div class="history-overdue-alert" style="margin-top:4px; font-size:11.5px; color:#c2410c; background:#fff7ed; padding:4px 8px; border-radius:6px; border:1px solid #fed7aa; display:inline-flex; align-items:center; gap:4px; max-width:100%; text-align:left;">
+              <span class="material-symbols-outlined" style="font-size:14px; color:#ea580c; flex-shrink:0;">timer_off</span>
+              <span><strong>ใบลาไม่ได้รับการพิจารณาในเวลาที่กำหนด:</strong> หัวหน้าและผู้จัดการยังไม่ได้อนุมัติภายในกำหนด 2 วัน (ค้างมาแล้ว ${overdueDays} วัน)</span>
+            </div>
+          ` : ''}
           ${isCancelled && cancelOrRejectReason ? `
             <div style="margin-top:4px; font-size:11.5px; color:#be123c; background:#fff1f2; padding:3px 6px; border-radius:6px; border:1px solid #fecdd3; display:inline-block; max-width:100%; text-align:left;">
-              <strong>${t.reasonCancelPrefix || "เหตุผลที่ยกเลิก:"}</strong> ${escapeHtml(cancelOrRejectReason)}
+              <strong>${t.reasonCancelPrefix || "เหตุผลที่ยกเลิก:"}</strong> ${displayCancelReason}
             </div>
           ` : isRejected && item.approval_comment ? `
             <div style="margin-top:4px; font-size:11.5px; color:#be123c; background:#fff1f2; padding:3px 6px; border-radius:6px; border:1px solid #fecdd3; display:inline-block; max-width:100%; text-align:left;">
-              <strong>${t.reasonRejectPrefix || "เหตุผลที่ไม่อนุมัติ:"}</strong> ${escapeHtml(item.approval_comment)}
+              <strong>${t.reasonRejectPrefix || "เหตุผลที่ไม่อนุมัติ:"}</strong> ${displayCancelReason}
             </div>
           ` : ''}
         </td>
@@ -476,30 +578,40 @@ async function requestCancelApprovedLeave(requestId) {
   }
 }
 
-function filterLeaveHistory(type, element) {
-  currentFilter = type;
+window.previewLeaveModalFromHistory = function(leaveId) {
+  const item = (myLeaveRows || []).find(r => String(r.id) === String(leaveId));
+  if (!item) return;
 
-  if (element) {
-    document.querySelectorAll('.filter-chips .chip, .history-summary .summary-card').forEach(el => {
-      el.classList.remove('active');
-    });
-    element.classList.add('active');
-  }
+  const sla = window.calculateSlaDetails ? window.calculateSlaDetails(item) : { countdownText: "", isOverdue: false };
+  const rawType = item.leave_types?.leave_name || "ลาทั่วไป";
+  const typeName = translateLeaveTypeName ? translateLeaveTypeName(rawType) : rawType;
+  const startStr = formatDate(item.start_date);
+  const endStr = formatDate(item.end_date);
+  const duration = formatDuration(item.total_days, item.leave_hours);
 
-  if (type === 'pending') {
-    filteredLeaveRows = myLeaveRows.filter(item => item.status === 'pending');
-  } else if (type === 'approved') {
-    filteredLeaveRows = myLeaveRows.filter(item => item.status === 'approved');
-  } else if (type === 'cancel_requested') {
-    filteredLeaveRows = myLeaveRows.filter(item => item.status === 'cancel_requested');
-  } else if (type === 'rejected_cancelled') {
-    filteredLeaveRows = myLeaveRows.filter(item => item.status === 'rejected' || item.status === 'cancelled');
-  } else {
-    filteredLeaveRows = [...myLeaveRows];
-  }
-
-  renderRows();
-}
+  Swal.fire({
+    title: `<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:#0d9488;">event_note</span> ${typeName}</div>`,
+    html: `
+      <div style="text-align: left; font-size: 14px; line-height: 1.6; color: #334155; padding: 4px 8px;">
+        <div style="background: ${sla.isOverdue ? '#fff7ed' : '#f0fdf4'}; border: 1px solid ${sla.isOverdue ? '#fed7aa' : '#bbf7d0'}; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;">
+          <div style="font-weight: 700; color: ${sla.isOverdue ? '#c2410c' : '#15803d'}; display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">timer</span>
+            ${sla.isOverdue ? 'ใบลาไม่ได้รับการพิจารณาในเวลาที่กำหนด' : 'เวลานับถอยหลังกรอบเวลา 2 วัน'}
+          </div>
+          <div style="font-size: 13px; margin-top: 2px;">${sla.countdownText}</div>
+        </div>
+        <div style="margin-bottom: 8px;"><strong>ช่วงวันที่ลา:</strong> ${startStr} ถึง ${endStr}</div>
+        <div style="margin-bottom: 8px;"><strong>จำนวนวัน:</strong> ${duration}</div>
+        <div style="margin-bottom: 8px;"><strong>เหตุผลการลา:</strong> ${escapeHtml(item.reason || '-')}</div>
+        <div style="margin-bottom: 8px;"><strong>วันที่ยื่นคำขอ:</strong> ${item.created_at ? new Date(item.created_at).toLocaleString('th-TH') : '-'}</div>
+      </div>
+    `,
+    showCloseButton: true,
+    showConfirmButton: true,
+    confirmButtonText: 'ปิดหน้าต่าง',
+    confirmButtonColor: '#0d9488'
+  });
+};
 
 function setText(id, value) {
   const el = document.getElementById(id);

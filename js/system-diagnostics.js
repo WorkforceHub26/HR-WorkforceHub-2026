@@ -7,9 +7,10 @@
   'use strict';
 
   const SystemDiagnostics = {
-    version: '2.5.0',
+    version: '2.6.0',
     logs: [],
     testResults: [],
+    lastCameraResult: null,
 
     // 🚀 1. ฟังก์ชันสแกนตรวจสอบความถูกต้องของระบบครบทุกมิติ
     async runAllChecks() {
@@ -43,6 +44,14 @@
       // TEST 7: Business Logic Integrity (Deep Check)
       const logicResult = await this.checkBusinessLogic();
       this.testResults.push(logicResult);
+
+      // TEST 8: Biometric Camera & Hardware Support Check
+      const cameraResult = await this.checkBiometricCamera();
+      this.testResults.push(cameraResult);
+
+      // TEST 9: Login Activity Audit & Tracking Check
+      const loginAuditResult = await this.checkLoginAuditTracking();
+      this.testResults.push(loginAuditResult);
 
       this.log('INFO', 'Diagnostic sweep completed.', this.testResults);
       return this.testResults;
@@ -267,6 +276,362 @@
         message: isOnline 
           ? `เชื่อมต่ออินเทอร์เน็ตปกติ (${isMobile ? '📱 Mobile Device' : '💻 Desktop Device'})`
           : '⚠️ อุปกรณ์ของคุณไม่ได้เชื่อมต่ออินเทอร์เน็ต (Offline)'
+      };
+    },
+
+    // 🔍 Check 8: Biometric Camera & Browser Capability Check
+    async checkBiometricCamera() {
+      const ua = navigator.userAgent || '';
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const isSecure = Boolean(window.isSecureContext || window.location.protocol === 'https:' || isLocalhost);
+      
+      const hasMediaDevices = typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices);
+      const hasGetUserMedia = hasMediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function';
+      const hasLegacyGetUserMedia = typeof navigator !== 'undefined' && Boolean(navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
+
+      // Browser Detection
+      const isIE = /MSIE|Trident/i.test(ua);
+      
+      // Edge
+      const edgeMatch = ua.match(/Edg\/([0-9]+)/);
+      const edgeVer = edgeMatch ? parseInt(edgeMatch[1], 10) : null;
+      const isEdge = Boolean(edgeMatch);
+      
+      // Chrome
+      const chromeMatch = ua.match(/(?:Chrome|CriOS)\/([0-9]+)/);
+      const chromeVer = chromeMatch ? parseInt(chromeMatch[1], 10) : null;
+      const isChrome = !isEdge && Boolean(chromeMatch);
+      const isOutdatedChrome = isChrome && chromeVer !== null && chromeVer < 65;
+
+      // Safari / iOS
+      const isIOS = /iPhone|iPad|iPod/i.test(ua);
+      const iOSMatch = ua.match(/(?:OS|Version)[ /_](\d+)[._](\d+)/i);
+      const iOSVer = iOSMatch ? parseFloat(`${iOSMatch[1]}.${iOSMatch[2]}`) : null;
+      const isOutdatedIOS = isIOS && iOSVer !== null && iOSVer < 12.2;
+
+      const isSafari = /Safari/i.test(ua) && !isChrome && !isEdge && !/Android/i.test(ua);
+      const safariMatch = ua.match(/Version\/([0-9]+)(?:\.([0-9]+))?/);
+      const safariVer = safariMatch ? parseFloat(`${safariMatch[1]}.${safariMatch[2] || 0}`) : null;
+      const isOutdatedSafari = isSafari && safariVer !== null && safariVer < 12.0;
+
+      // Firefox
+      const isFirefox = /Firefox/i.test(ua);
+      const ffMatch = ua.match(/Firefox\/([0-9]+)/);
+      const ffVer = ffMatch ? parseInt(ffMatch[1], 10) : null;
+      const isOutdatedFirefox = isFirefox && ffVer !== null && ffVer < 55;
+
+      // In-App WebViews
+      const isLineApp = /Line\//i.test(ua);
+      const isFBApp = /FBAN|FBAV/i.test(ua);
+      const isInstagram = /Instagram/i.test(ua);
+      const isInApp = isLineApp || isFBApp || isInstagram;
+
+      let status = 'passed';
+      let isSupported = true;
+      let isOutdated = false;
+      let reason = '';
+      let recommendation = '';
+
+      if (isIE) {
+        status = 'failed';
+        isSupported = false;
+        isOutdated = true;
+        reason = 'Internet Explorer เป็นเบราว์เซอร์เก่าที่ไม่รองรับมาตรฐาน WebRTC และฟังก์ชันกล้องไบโอเมตริก';
+        recommendation = 'โปรดเปลี่ยนไปใช้งานเบราว์เซอร์สมัยใหม่ เช่น Google Chrome, Safari หรือ Microsoft Edge';
+      } else if (!isSecure) {
+        status = 'warning';
+        isSupported = false;
+        reason = 'หน้าเว็บไม่ได้ทำงานผ่านการเชื่อมต่อแบบปลอดภัย (HTTPS) ทำให้เบราว์เซอร์บล็อกการเปิดกล้องตามนโยบายความปลอดภัย';
+        recommendation = 'โปรดเปิดใช้งานผ่าน https:// หรือติดตั้ง SSL Certificate ให้ถูกต้อง';
+      } else if (!hasGetUserMedia) {
+        if (hasLegacyGetUserMedia) {
+          status = 'warning';
+          isOutdated = true;
+          isSupported = true;
+          reason = 'เบราว์เซอร์รองรับเฉพาะ API กล้องรุ่นเก่า (Legacy getUserMedia) ซึ่งอาจไม่เสถียร';
+          recommendation = 'แนะนำให้อัปเดตเบราว์เซอร์เป็นเวอร์ชันปัจจุบันเพื่อประสิทธิภาพการสแกนกล้องที่ดีที่สุด';
+        } else if (isInApp) {
+          status = 'warning';
+          isSupported = false;
+          reason = `กำลังเปิดผ่าน In-App Browser (${isLineApp ? 'LINE' : isFBApp ? 'Facebook' : 'In-App Webview'}) ซึ่งระบบอาจปิดกั้นการเข้าถึงกล้องสด`;
+          recommendation = 'กรุณากดที่เมนูจุดสามจุด (⋮ หรือ ...) แล้วเลือก "เปิดด้วยเบราว์เซอร์ภายนอก" (Open in Browser) หรือเลือกใช้วิธีอัปโหลดรูปภาพ';
+        } else {
+          status = 'failed';
+          isSupported = false;
+          reason = 'เบราว์เซอร์ของคุณไม่รองรับ API กล้อง (navigator.mediaDevices.getUserMedia) หรือถูกปิดกั้นสิทธิ์ในระดับระบบ';
+          recommendation = 'โปรดอัปเดตเบราว์เซอร์ หรือเปลี่ยนไปใช้งาน Google Chrome หรือ Safari';
+        }
+      } else if (isOutdatedChrome) {
+        status = 'warning';
+        isOutdated = true;
+        reason = `Google Chrome ของคุณเป็นเวอร์ชันเก่า (v${chromeVer}) ซึ่งต่ำกว่าเกณฑ์ความเข้ากันได้ขั้นต่ำ (v65+)`;
+        recommendation = 'โปรดอัปเดต Google Chrome ให้เป็นรุ่นล่าสุดเพื่อการประมวลผลกล้องที่รวดเร็ว';
+      } else if (isOutdatedIOS) {
+        status = 'warning';
+        isOutdated = true;
+        reason = `iOS เวอร์ชันของคุณ (v${iOSVer}) เก่ากว่ามาตรฐาน (ต้องการ iOS 12.2+ สำหรับสตรีมกล้องไบโอเมตริก)`;
+        recommendation = 'แนะนำให้อัปเดต iOS หรือใช้วิธีอัปโหลดรูปภาพบัตรพนักงานแทน';
+      } else if (isOutdatedSafari) {
+        status = 'warning';
+        isOutdated = true;
+        reason = `Apple Safari ของคุณเป็นเวอร์ชันเก่า (v${safariVer})`;
+        recommendation = 'โปรดอัปเดต Safari / macOS เป็นรุ่นปัจจุบัน';
+      } else if (isOutdatedFirefox) {
+        status = 'warning';
+        isOutdated = true;
+        reason = `Mozilla Firefox ของคุณเป็นเวอร์ชันเก่า (v${ffVer})`;
+        recommendation = 'โปรดอัปเดต Firefox เป็นรุ่นปัจจุบัน';
+      }
+
+      // Check available cameras if permissions permit
+      let cameraCount = 0;
+      let cameraLabels = [];
+      if (hasMediaDevices && navigator.mediaDevices.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoInputs = devices.filter(d => d.kind === 'videoinput');
+          cameraCount = videoInputs.length;
+          cameraLabels = videoInputs.map(d => d.label || 'กล้องตรวจพบในระบบ');
+        } catch (err) {
+          // Camera permission pending or blocked
+        }
+      }
+
+      const browserName = isIE ? 'Internet Explorer'
+        : isEdge ? `Microsoft Edge v${edgeVer || ''}`
+        : isChrome ? `Google Chrome v${chromeVer || ''}`
+        : isFirefox ? `Mozilla Firefox v${ffVer || ''}`
+        : isSafari ? `Apple Safari v${safariVer || ''}`
+        : isIOS ? `iOS WebKit v${iOSVer || ''}`
+        : 'Modern Browser';
+
+      const result = {
+        id: 'biometric_camera',
+        title: 'ระบบกล้องไบโอเมตริกและสแกนเนอร์ (Biometric Camera)',
+        status,
+        isSupported,
+        isOutdated,
+        reason,
+        recommendation,
+        browserName,
+        isSecure,
+        hasGetUserMedia,
+        hasMediaDevices,
+        cameraCount,
+        cameraLabels,
+        message: status === 'passed'
+          ? `เบราว์เซอร์และฮาร์ดแวร์รองรับกล้องไบโอเมตริกสมบูรณ์ 100% (${browserName}, WebRTC MediaStream พร้อมใช้งาน)`
+          : `${reason} — ${recommendation}`
+      };
+
+      this.lastCameraResult = result;
+      return result;
+    },
+
+    // 🖥️ Modal แสดงผลตรวจเชิงลึกสำหรับกล้องไบโอเมตริก
+    async showBiometricCameraDetailsModal(cameraResult = null) {
+      if (!cameraResult) {
+        cameraResult = this.lastCameraResult || await this.checkBiometricCamera();
+      }
+
+      if (!window.Swal) {
+        alert(`${cameraResult.title}\nสถานะ: ${cameraResult.status.toUpperCase()}\n${cameraResult.message}`);
+        return;
+      }
+
+      const r = cameraResult;
+      const isPassed = r.status === 'passed';
+      const isWarn = r.status === 'warning';
+      const badgeBg = isPassed ? '#dcfce7' : isWarn ? '#fef3c7' : '#ffe4e6';
+      const badgeColor = isPassed ? '#15803d' : isWarn ? '#b45309' : '#be123c';
+      const icon = isPassed ? 'check_circle' : isWarn ? 'warning' : 'cancel';
+
+      Swal.fire({
+        title: '📷 ผลวินิจฉัยความเข้ากันได้ของกล้องไบโอเมตริก',
+        html: `
+          <div style="font-family: 'Sarabun', sans-serif; text-align: left; font-size: 13.5px; color: #334155;">
+            <!-- Overall Status Header -->
+            <div style="background: ${isPassed ? '#f0fdf4' : isWarn ? '#fffbeb' : '#fef2f2'}; border: 1.5px solid ${isPassed ? '#bbf7d0' : isWarn ? '#fde68a' : '#fecaca'}; border-radius: 12px; padding: 14px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px;">
+              <span class="material-symbols-outlined" style="font-size: 26px; color: ${badgeColor}; flex-shrink: 0; margin-top: 2px;">${icon}</span>
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <strong style="font-size: 14.5px; color: #0f172a;">${isPassed ? 'เบราว์เซอร์รองรับกล้องสมบูรณ์' : r.isOutdated ? 'เบราว์เซอร์รุ่นเก่า / มีข้อจำกัด' : 'เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก'}</strong>
+                  <span style="font-size: 11px; font-weight: 700; background: ${badgeBg}; color: ${badgeColor}; padding: 3px 8px; border-radius: 9999px;">
+                    ${r.status.toUpperCase()}
+                  </span>
+                </div>
+                <div style="font-size: 12.5px; color: #475569; line-height: 1.45;">
+                  ${r.reason || 'พร้อมเปิดใช้งานระบบกล้องสำหรับสแกนใบหน้าและ QR Code บัตรพนักงาน'}
+                </div>
+              </div>
+            </div>
+
+            <!-- Technical Breakdown Table -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 16px;">
+              <div style="padding: 9px 12px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12.5px; color: #1e293b;">
+                📋 ข้อมูลตรวจสภาพแวดล้อมและฮาร์ดแวร์
+              </div>
+              <div style="padding: 10px 12px; display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 12.5px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px;">
+                  <span style="color: #64748b;">เบราว์เซอร์ที่ตรวจพบ:</span>
+                  <strong style="color: #0f172a;">${r.browserName}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px;">
+                  <span style="color: #64748b;">ความปลอดภัยการเชื่อมต่อ (HTTPS):</span>
+                  <span style="color: ${r.isSecure ? '#16a34a' : '#dc2626'}; font-weight: 600;">
+                    ${r.isSecure ? '✅ ปลอดภัย (Secure Context)' : '❌ ไม่ปลอดภัย (Insecure HTTP)'}
+                  </span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px;">
+                  <span style="color: #64748b;">API กล้อง (navigator.mediaDevices):</span>
+                  <span style="color: ${r.hasGetUserMedia ? '#16a34a' : '#dc2626'}; font-weight: 600;">
+                    ${r.hasGetUserMedia ? '✅ รองรับมาตรฐานใหม่' : '❌ ไม่รองรับ'}
+                  </span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #64748b;">ตรวจพบอุปกรณ์กล้องในเครื่อง:</span>
+                  <span style="color: ${r.cameraCount > 0 ? '#16a34a' : '#b45309'}; font-weight: 600;">
+                    ${r.cameraCount > 0 ? `📷 พบกล้อง ${r.cameraCount} ตัว` : '📷 พร้อมเชื่อมต่อ'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resolution Recommendations -->
+            ${!isPassed ? `
+              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px; margin-bottom: 6px;">
+                <strong style="color: #1d4ed8; font-size: 13px; display: block; margin-bottom: 6px;">💡 วิธีแก้ไขที่แนะนำ:</strong>
+                <ol style="margin: 0; padding-left: 18px; line-height: 1.6; font-size: 12.5px; color: #1e40af;">
+                  <li><b>อัปเดตเบราว์เซอร์:</b> อัปเดต Google Chrome, Safari หรือ Microsoft Edge เป็นเวอร์ชันล่าสุด</li>
+                  <li><b>กรณีเปิดในแอป LINE / Facebook:</b> แตะที่ปุ่มเมนู <b>(⋮ หรือ ...)</b> แล้วเลือก <i>"เปิดด้วยเบราว์เซอร์ภายนอก"</i></li>
+                  <li><b>ใช้รูปภาพแทนกล้องสด:</b> สามารถกดปุ่ม <b>"เลือกรูปภาพ"</b> เพื่ออัปโหลดภาพบัตรพนักงานหรือภาพ QR Code ได้โดยไม่ต้องใช้กล้องสด</li>
+                </ol>
+              </div>
+            ` : ''}
+          </div>
+        `,
+        width: 520,
+        confirmButtonText: 'รับทราบ',
+        confirmButtonColor: '#0d9488',
+        showCloseButton: true
+      });
+    },
+
+    // ⚡ ตรวจเช็คความเข้ากันได้ของกล้องเมื่อโหลดหน้าเว็บ (Page Load Diagnostic Check)
+    async runBiometricDiagnosticOnLoad() {
+      try {
+        const result = await this.checkBiometricCamera();
+        this.log('INFO', 'Biometric camera compatibility evaluated:', result);
+
+        // Dispatch an event for any listeners
+        window.dispatchEvent(new CustomEvent('pvt:camera-diagnostic-completed', { detail: result }));
+
+        if (result.status !== 'passed') {
+          console.warn(`%c[PVT-DIAGNOSTICS] ⚠️ Biometric Camera Compatibility Warning: ${result.message}`, 'color:#d97706; font-weight:bold;');
+          
+          // If banner exists on page (e.g. index.html)
+          const banner = document.getElementById('biometricCameraAlertBanner');
+          const titleEl = document.getElementById('biometricCameraAlertTitle');
+          const msgEl = document.getElementById('biometricCameraAlertMsg');
+          const dismissBtn = document.getElementById('btnDismissCameraAlert');
+          const detailsBtn = document.getElementById('btnCameraDetails');
+
+          const isDismissed = sessionStorage.getItem('pvt_dismiss_camera_compat_warn') === 'true';
+
+          if (banner) {
+            if (titleEl) {
+              titleEl.textContent = result.isOutdated 
+                ? '⚠️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า' 
+                : '⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก';
+            }
+            if (msgEl) {
+              msgEl.textContent = `${result.reason} ${result.recommendation}`;
+            }
+
+            if (!isDismissed) {
+              banner.style.display = 'flex';
+            }
+
+            if (dismissBtn && !dismissBtn.dataset.bound) {
+              dismissBtn.dataset.bound = 'true';
+              dismissBtn.addEventListener('click', (e) => {
+                if (e) e.preventDefault();
+                sessionStorage.setItem('pvt_dismiss_camera_compat_warn', 'true');
+                
+                // Add fade-out animation and transition for smooth collapse
+                banner.classList.add('dismissing');
+                banner.style.transition = 'opacity 0.3s ease, transform 0.3s ease, max-height 0.35s ease, margin 0.35s ease, padding 0.35s ease';
+                banner.style.opacity = '0';
+                banner.style.transform = 'translateY(-8px) scale(0.98)';
+                
+                setTimeout(() => {
+                  banner.style.display = 'none';
+                  banner.classList.remove('dismissing');
+                  banner.style.opacity = '';
+                  banner.style.transform = '';
+                  banner.style.transition = '';
+                }, 350);
+              });
+            }
+
+            if (detailsBtn && !detailsBtn.dataset.bound) {
+              detailsBtn.dataset.bound = 'true';
+              detailsBtn.addEventListener('click', () => {
+                this.showBiometricCameraDetailsModal(result);
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[PVT-DIAGNOSTICS] Camera diagnostic check error:', err);
+      }
+    },
+
+    // 🔍 Check 9: Login Activity Audit & Tracking Integrity
+    async checkLoginAuditTracking() {
+      const details = [];
+      let status = 'passed';
+
+      // 1. Check helper availability
+      const hasTracker = typeof window.recordLoginLog === 'function' || typeof window.PVTSDK?.loginAudit?.recordLoginLog === 'function';
+      if (hasTracker) {
+        details.push('✅ โมดูลบันทึก Login Audit พร้อมทำงาน (recordLoginLog)');
+      } else {
+        details.push('⚠️ ไม่พบฟังก์ชัน recordLoginLog ในขอบเขตส่วนกลาง');
+        status = 'warning';
+      }
+
+      // 2. Check Device Info Engine
+      try {
+        const devEngine = window.PVTSDK?.loginAudit?.getDeviceInfo?.();
+        if (devEngine && devEngine.os && devEngine.browser) {
+          details.push(`✅ ระบบตรวจจับอุปกรณ์: ${devEngine.browser} บน ${devEngine.os} (${devEngine.device_type})`);
+        }
+      } catch (e) {}
+
+      // 3. Check Supabase login_logs table connectivity
+      const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
+      if (sb) {
+        try {
+          const { data, error } = await sb.from('login_logs').select('id').limit(1);
+          if (!error) {
+            details.push('✅ ตาราง "login_logs" ใน Supabase พร้อมใช้งานสำหรับการตรวจสอบ');
+          } else {
+            details.push(`ℹ️ สถานะตาราง "login_logs" (${error.message || 'รอดำเนินการไมเกรชัน'}) มีระบบสำรอง hr_admin_management_logs รองรับ`);
+          }
+        } catch (e) {
+          details.push('ℹ️ รองรับการบันทึก Audit ผ่าน Server API & Local Cache');
+        }
+      }
+
+      return {
+        id: 'login_audit',
+        title: 'การบันทึกประวัติการเข้าใช้งาน (Login Activity Audit)',
+        status: status,
+        message: status === 'passed' 
+          ? 'ระบบติดตามประวัติการเข้าสู่ระบบพร้อมบันทึก User ID, เวลา (Timestamp) และ Device Info' 
+          : 'ระบบ Audit ทำงานแบบมีคำแนะนำ',
+        details: details
       };
     },
 
@@ -683,6 +1048,10 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     SystemDiagnostics.initHotkey();
+    
+    // 🩺 วินิจฉัยความเข้ากันได้ของกล้องไบโอเมตริกและเบราว์เซอร์ทันทีที่โหลดหน้าเว็บ
+    SystemDiagnostics.runBiometricDiagnosticOnLoad();
+
     // สร้างปุ่มช่วยเหลือหนึ่งเดียวที่มุมขวา
     setTimeout(() => {
       SystemDiagnostics.injectUnifiedHelpButton();

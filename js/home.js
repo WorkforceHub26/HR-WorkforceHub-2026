@@ -114,12 +114,12 @@ window.refreshDashboardData = async function() {
           *,
           employees (
             id, employee_code, full_name, first_name, last_name, nickname, role, image_url, department_id,
-            departments ( id, department_name ),
+            departments!department_id ( id, department_name ),
             positions ( position_name )
           ),
           leave_types ( id, leave_code, leave_name )
         `).order("created_at", { ascending: false }),
-        sb.from("employees").select("*, departments(id, department_name), positions(position_name)"),
+        sb.from("employees").select("*, departments!department_id(id, department_name), positions(position_name)"),
         sb.from("leave_types").select("*")
       ]);
       resRequests = results[0];
@@ -214,6 +214,7 @@ window.refreshDashboardData = async function() {
     renderCounters(pendingCount, todayLeaves.length, totalEmp, tomorrowLeaves.length);
     renderTodayLeavesDetail(todayLeaves);
     renderHomeDepartmentTeam(rawEmployees, sessionUser);
+    
     drawCharts();
     showToast(`✅ ซิงค์ข้อมูลระบบเรียบร้อยแล้ว`, "success");
 
@@ -589,6 +590,189 @@ window.switchTab = function(targetTab) {
   setTimeout(() => { tContainer.style.opacity = "1"; }, 20);
 };
 
+function computeSlaStats(requests) {
+  const SLA_HOURS = 48; // 2 วัน = 48 ชม.
+  const SLA_MS = SLA_HOURS * 3600 * 1000;
+  const now = Date.now();
+
+  const pendingList = (requests || []).filter(r => {
+    if (!r || !r.status) return false;
+    const st = String(r.status).toLowerCase();
+    return st === "pending" || st === "รออนุมัติ" || st === "cancel_pending" || st === "cancel_requested";
+  });
+
+  let overdueList = [];
+  let urgentList = [];
+  let normalList = [];
+
+  pendingList.forEach(r => {
+    const createdAt = r.created_at ? new Date(r.created_at).getTime() : now;
+    const diffMs = Math.max(0, now - createdAt);
+    const remainingMs = SLA_MS - diffMs;
+    const remainingHours = remainingMs / (3600 * 1000);
+    const isOverdue = diffMs >= SLA_MS;
+    const isUrgent = !isOverdue && remainingHours <= 24; // Approaching 2-day limit: <= 24h
+
+    let countdownText = "";
+    if (isOverdue) {
+      const overdueMs = Math.abs(remainingMs);
+      const days = Math.floor(overdueMs / (86400 * 1000));
+      const hours = Math.floor((overdueMs % (86400 * 1000)) / (3600 * 1000));
+      const mins = Math.floor((overdueMs % (3600 * 1000)) / (60 * 1000));
+      if (days > 0) {
+        countdownText = `เกินกำหนด ${days} วัน ${hours} ชม.`;
+      } else {
+        countdownText = `เกินกำหนด ${hours} ชม. ${mins} นาที`;
+      }
+      overdueList.push({ ...r, slaStatus: 'overdue', diffMs, remainingHours, countdownText });
+    } else if (isUrgent) {
+      const hours = Math.floor(remainingMs / (3600 * 1000));
+      const mins = Math.floor((remainingMs % (3600 * 1000)) / (60 * 1000));
+      countdownText = `เหลือ ${hours} ชม. ${mins} นาที`;
+      urgentList.push({ ...r, slaStatus: 'urgent', diffMs, remainingHours, countdownText });
+    } else {
+      const days = Math.floor(remainingMs / (86400 * 1000));
+      const hours = Math.floor((remainingMs % (86400 * 1000)) / (3600 * 1000));
+      countdownText = `เหลือ ${days} วัน ${hours} ชม.`;
+      normalList.push({ ...r, slaStatus: 'normal', diffMs, remainingHours, countdownText });
+    }
+  });
+
+  return {
+    totalPending: pendingList.length,
+    overdueCount: overdueList.length,
+    urgentCount: urgentList.length,
+    normalCount: normalList.length,
+    overdueList,
+    urgentList,
+    normalList,
+    allPendingWithSla: [...overdueList, ...urgentList, ...normalList]
+  };
+}
+
+function updateSlaBadges(slaStats) {
+  const { totalPending, overdueCount, urgentCount, normalCount } = slaStats;
+
+  // 1. 📌 Sidebar Badge บนเมนู "ตรวจใบลา"
+  const sidebarBadge = document.getElementById("sidebarSlaPendingBadge");
+  if (sidebarBadge) {
+    if (totalPending > 0) {
+      sidebarBadge.textContent = totalPending > 99 ? '99+' : totalPending;
+      sidebarBadge.style.display = 'inline-flex';
+      sidebarBadge.className = 'sidebar-badge';
+      if (overdueCount > 0) {
+        sidebarBadge.classList.add('overdue');
+        sidebarBadge.title = `มีคำขอลาเกินกำหนด SLA 2 วัน: ${overdueCount} รายการ`;
+      } else if (urgentCount > 0) {
+        sidebarBadge.classList.add('urgent');
+        sidebarBadge.title = `มีคำขอลาใกล้ครบกำหนด SLA 2 วัน: ${urgentCount} รายการ`;
+      } else {
+        sidebarBadge.classList.add('normal');
+        sidebarBadge.title = `มีคำขอลารอพิจารณา: ${totalPending} รายการ`;
+      }
+    } else {
+      sidebarBadge.style.display = 'none';
+    }
+  }
+
+  // 2. 📊 Stat Card "รอพิจารณา (L1/L2)" Warning Badge & Subpills
+  const statCard = document.getElementById("statCardPendingLeaves");
+  const statBadgeWarning = document.getElementById("statSlaBadgeWarning");
+  const statSubbadges = document.getElementById("statSlaSubbadges");
+  const subOverdue = document.getElementById("subStatOverdue");
+  const subUrgent = document.getElementById("subStatUrgent");
+
+  if (statBadgeWarning) {
+    if (overdueCount > 0) {
+      statBadgeWarning.textContent = `⚠️ เกิน SLA (${overdueCount})`;
+      statBadgeWarning.style.display = 'inline-block';
+      statBadgeWarning.className = 'stat-sla-badge';
+    } else if (urgentCount > 0) {
+      statBadgeWarning.textContent = `⏳ ใกล้ครบ (${urgentCount})`;
+      statBadgeWarning.style.display = 'inline-block';
+      statBadgeWarning.className = 'stat-sla-badge';
+      statBadgeWarning.style.background = '#fff7ed';
+      statBadgeWarning.style.color = '#c2410c';
+      statBadgeWarning.style.borderColor = '#fdba74';
+    } else {
+      statBadgeWarning.style.display = 'none';
+    }
+  }
+
+  if (statSubbadges && subOverdue && subUrgent) {
+    if (totalPending > 0 && (overdueCount > 0 || urgentCount > 0)) {
+      statSubbadges.style.display = 'flex';
+      subOverdue.textContent = `🔴 เกิน 2 วัน: ${overdueCount}`;
+      subOverdue.style.display = overdueCount > 0 ? 'inline-flex' : 'none';
+      subUrgent.textContent = `🟠 ใกล้ครบ: ${urgentCount}`;
+      subUrgent.style.display = urgentCount > 0 ? 'inline-flex' : 'none';
+    } else {
+      statSubbadges.style.display = 'none';
+    }
+  }
+
+  // 3. 🚨 Top SLA Alert Notification Banner
+  renderSlaAlertBanner(slaStats);
+}
+
+function renderSlaAlertBanner(slaStats) {
+  const banner = document.getElementById("slaAlertBanner");
+  if (!banner) return;
+
+  const { totalPending, overdueCount, urgentCount, normalCount } = slaStats;
+
+  if (totalPending === 0 || (overdueCount === 0 && urgentCount === 0)) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'flex';
+
+  const pill = document.getElementById("slaBannerOverallPill");
+  const msg = document.getElementById("slaBannerMessage");
+  const valOverdue = document.getElementById("slaBannerOverdueVal");
+  const valUrgent = document.getElementById("slaBannerUrgentVal");
+  const valSafe = document.getElementById("slaBannerSafeVal");
+
+  if (valOverdue) valOverdue.textContent = overdueCount;
+  if (valUrgent) valUrgent.textContent = urgentCount;
+  if (valSafe) valSafe.textContent = normalCount;
+
+  if (overdueCount > 0) {
+    banner.className = 'sla-alert-banner has-overdue';
+    if (pill) {
+      pill.textContent = `เกินกำหนด ${overdueCount} รายการ`;
+      pill.className = 'sla-banner-status-pill overdue';
+    }
+    if (msg) {
+      msg.textContent = `พบคำขอลาที่เกินกรอบเวลานโยบาย 2 วันทำการ (48 ชม.) จำนวน ${overdueCount} รายการ และใกล้ครบกำหนดอีก ${urgentCount} รายการ กรุณาเร่งอนุมัติทันที`;
+    }
+  } else {
+    banner.className = 'sla-alert-banner';
+    if (pill) {
+      pill.textContent = `ใกล้ครบกำหนด ${urgentCount} รายการ`;
+      pill.className = 'sla-banner-status-pill urgent';
+    }
+    if (msg) {
+      msg.textContent = `พบคำขอลาที่เหลือเวลาอนุมัติน้อยกว่า 24 ชั่วโมง จำนวน ${urgentCount} รายการ เพื่อให้ทันตามนโยบาย SLA ภายใน 2 วันทำการ`;
+    }
+  }
+}
+
+function focusSlaTrackerSection(filterType) {
+  const trackerEl = document.getElementById("homeLeaveSlaTrackerContainer") || document.getElementById("slaTrackerComponent");
+  if (trackerEl) {
+    trackerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // ถ้ามีฟิลเตอร์ใน Tracker ให้กดเลือกฟิลเตอร์นั้นให้อัตโนมัติ
+    if (filterType && filterType !== 'all') {
+      const filterBtn = document.querySelector(`.sla-filter-btn[data-filter="${filterType}"]`);
+      if (filterBtn) filterBtn.click();
+    }
+  } else {
+    window.location.href = "/pages/hr/hr.html";
+  }
+}
+
 function renderCounters(pending, todayLeaves, employees, tomorrowLeaves) {
   const setEl = (id, val) => {
     const el = document.getElementById(id);
@@ -598,6 +782,10 @@ function renderCounters(pending, todayLeaves, employees, tomorrowLeaves) {
   setEl("statTodayLeaves", todayLeaves);
   setEl("statTotalEmployees", employees);
   setEl("statTomorrowLeaves", tomorrowLeaves);
+
+  // คำนวณและอัปเดตระบบ SLA Badge ทั้งหมด
+  const slaStats = computeSlaStats(rawRequests);
+  updateSlaBadges(slaStats);
 }
 
 function renderTodayLeavesDetail(leaves) {
@@ -809,9 +997,9 @@ function applyHomeTeamRender() {
       : '<span title="ยังไม่ผูก LINE" style="font-size: 11.5px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px;height:6px;border-radius:50%;background:#cbd5e1;display:inline-block;"></span> ไม่ผูก</span>';
 
     return `
-      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; transition: all 0.15s;" onmouseover="this.style.borderColor='#0284c7'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.05)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
-        <img src="${avatar}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.src='/assets/img/default-avatar.jpg';">
-        <div style="flex: 1; min-width: 0;">
+      <div class="team-member-card">
+        <img src="${avatar}" class="team-member-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
+        <div style="flex: 1; min-width: 0; overflow: hidden;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
             <span style="font-weight: 700; font-size: 14px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtmlText(fullName)}">
               ${escapeHtmlText(fullName)} ${nickStr}
@@ -842,14 +1030,13 @@ window.filterHomeTeamByRole = function(role, btn) {
   homeTeamCurrentRoleFilter = role;
   const chips = document.querySelectorAll("#homeTeamRoleFilters .team-filter-chip");
   chips.forEach(c => {
-    c.style.background = "#fff";
-    c.style.color = "#64748b";
-    c.style.borderColor = "#e2e8f0";
+    c.classList.remove("active");
+    c.style.background = "";
+    c.style.color = "";
+    c.style.borderColor = "";
   });
   if (btn) {
-    btn.style.background = "#0284c7";
-    btn.style.color = "#fff";
-    btn.style.borderColor = "#0284c7";
+    btn.classList.add("active");
   }
   applyHomeTeamRender();
 };
@@ -863,10 +1050,12 @@ window.toggleHomeTeamScrollHeight = function() {
 
   homeTeamIsExpandedHeight = !homeTeamIsExpandedHeight;
   if (homeTeamIsExpandedHeight) {
+    scrollArea.classList.add("expanded");
     scrollArea.style.maxHeight = "none";
     if (txt) txt.textContent = "ย่อความสูง (ประหยัดพื้นที่)";
     if (ico) ico.textContent = "unfold_less";
   } else {
+    scrollArea.classList.remove("expanded");
     scrollArea.style.maxHeight = "380px";
     if (txt) txt.textContent = "ขยายดูทั้งหมด";
     if (ico) ico.textContent = "unfold_more";
@@ -878,12 +1067,9 @@ window.toggleHomeTeamContainer = function(btn) {
   const body = document.getElementById("homeTeamBodyWrapper");
   const icon = document.getElementById("homeTeamToggleIcon");
   if (!body) return;
-  if (body.style.display === "none") {
-    body.style.display = "flex";
-    if (icon) icon.textContent = "expand_less";
-  } else {
-    body.style.display = "none";
-    if (icon) icon.textContent = "expand_more";
+  const isHidden = body.classList.toggle("collapsed");
+  if (icon) {
+    icon.textContent = isHidden ? "expand_more" : "expand_less";
   }
 };
 
@@ -980,7 +1166,7 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
           id,
           employee_code,
           full_name,
-          departments ( department_name ),
+          departments!department_id ( department_name ),
           positions ( position_name )
         `)
         .order('employee_code', { ascending: true });
@@ -1493,176 +1679,92 @@ function getNotifTheme(type) {
   }
 }
 
-async function fetchRealNotifications() {
-  const client = sb || window.pvtSupabase?.getClient();
-  const container = document.getElementById('notifListContainer');
-  const badge = document.getElementById('notifBadge');
-  const unreadCountPill = document.getElementById('notifUnreadCount');
+let cachedAllNotifications = [];
+let currentDropdownNotifFilter = 'all';
 
+window.filterDropdownNotifs = function(filterType) {
+  currentDropdownNotifFilter = filterType || 'all';
+
+  // อัปเดต Active Tab UI
+  const tabBtns = document.querySelectorAll('.notif-filter-tab');
+  tabBtns.forEach(btn => {
+    if (btn.getAttribute('data-filter') === currentDropdownNotifFilter) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  renderDropdownNotifsList();
+};
+
+function renderDropdownNotifsList() {
+  const container = document.getElementById('notifListContainer');
   if (!container) return;
 
-  try {
-    const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
-    const sessionUser = savedSession ? JSON.parse(savedSession) : {};
-    const myProfile = window.currentUserProfile || sessionUser;
-    const myRole = (myProfile?.role || "").toLowerCase();
-    const myDeptId = myProfile?.department_id || myProfile?.employees?.department_id;
-    const myDeptName = myProfile?.department_name || myProfile?.departments?.department_name || myProfile?.departments?.id;
+  let filtered = cachedAllNotifications;
+  if (currentDropdownNotifFilter === 'overdue') {
+    filtered = cachedAllNotifications.filter(item => item.slaStatus === 'overdue');
+  } else if (currentDropdownNotifFilter === 'urgent') {
+    filtered = cachedAllNotifications.filter(item => item.slaStatus === 'urgent');
+  }
 
-    let dbNotifications = [];
+  if (filtered.length === 0) {
+    let emptyMsg = "🔕 ยังไม่มีการแจ้งเตือน";
+    if (currentDropdownNotifFilter === 'overdue') emptyMsg = "✨ ยอดเยี่ยม! ไม่มีรายการใบลาที่เกินกำหนด 2 วัน";
+    if (currentDropdownNotifFilter === 'urgent') emptyMsg = "✨ ไม่มีรายการใบลาที่ใกล้ครบกำหนดในขณะนี้";
 
-    // 1. ดึงข้อมูลการแจ้งเตือนจากตาราง notifications ใน Supabase
-    if (client) {
-      const myId = sessionUser?.id || myProfile?.id;
-      const { data, error } = await client
-        .from('notifications')
-        .select('*')
-        .or(`employee_id.eq.${myId},user_id.eq.${myId}`) // 👈 ดึงเฉพาะแจ้งเตือนส่วนบุคคลตาม employee_id
-        .order('created_at', { ascending: false })
-        .limit(30);
+    container.innerHTML = `
+      <div style="padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 13px;">
+        ${emptyMsg}
+      </div>`;
+    return;
+  }
 
-      if (!error && data) {
-        dbNotifications = data;
-      }
+  let html = '';
+  filtered.slice(0, 15).forEach(item => {
+    const theme = getNotifTheme(item.type);
+    const timeText = formatTimeAgo(item.created_at);
+    const isUnread = !item.is_read;
+    const formatted = formatCleanNotification(item.title, item.message);
+
+    let slaItemClass = '';
+    let slaBadgeHtml = '';
+    let slaTimeHtml = '';
+
+    if (item.slaStatus === 'overdue') {
+      slaItemClass = 'notif-sla-overdue';
+      slaBadgeHtml = `<span class="notif-sla-badge-tag overdue">🔴 เกิน 2 วัน</span>`;
+      slaTimeHtml = `<span class="notif-sla-time-highlight overdue">⚠️ ${item.countdownText || 'เกิน SLA'}</span>`;
+    } else if (item.slaStatus === 'urgent') {
+      slaItemClass = 'notif-sla-urgent';
+      slaBadgeHtml = `<span class="notif-sla-badge-tag urgent">🟠 ใกล้ครบ 2 วัน</span>`;
+      slaTimeHtml = `<span class="notif-sla-time-highlight urgent">⏳ ${item.countdownText || 'ใกล้ครบ'}</span>`;
     }
 
-    const readNotifIds = getReadNotifIds();
+    html += `
+      <div class="notif-item ${isUnread ? 'unread' : 'read'} ${slaItemClass}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer; opacity: ${isUnread ? '1' : '0.88'}; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; border-bottom: 1px solid #f1f5f9; transition: background 0.15s;">
+        <div class="notif-icon ${theme.bgClass}" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <span class="material-symbols-outlined" style="font-size: 20px;">${item.slaStatus === 'overdue' ? 'alarm_off' : item.slaStatus === 'urgent' ? 'hourglass_top' : theme.icon}</span>
+        </div>
+        <div class="notif-content" style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 2px;">
+            ${slaBadgeHtml}
+            <span style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.35;">${formatted.title}</span>
+          </div>
+          ${formatted.bodyHtml}
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; flex-wrap: wrap; gap: 4px;">
+            <span class="notif-time" style="font-size: 11px; color: #94a3b8;">🕒 ${timeText}</span>
+            ${slaTimeHtml}
+          </div>
+        </div>
+        ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: #0d9488; border-radius: 50%; flex-shrink: 0; margin-top: 6px;"></span>' : ''}
+      </div>
+    `;
+  });
 
-    // 2. แปลงรายการใบลาค้างอนุมัติ (rawRequests) เป็นรายการแจ้งเตือนตามบทบาท
-    let pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
-
-    if (myRole === "leader" || myRole === "manager" || myRole === "director" || myRole === "executive" || myRole === "owner") {
-      pendingLeaves = pendingLeaves.filter((req) => {
-        const reqEmp = req.employees;
-        if (!reqEmp) return false;
-
-        const reqDeptId = reqEmp.department_id;
-        const reqDeptName = reqEmp.departments?.department_name;
-        const reqEmpId = req.employee_id;
-        const reqEmpRole = String(reqEmp.role || 'user').toLowerCase();
-
-        const isNotSelf = sessionUser.id ? String(reqEmpId) !== String(sessionUser.id) : true;
-        
-        let isSameDept = true;
-        let isSubordinate = false;
-
-        if (myRole === "leader") {
-          isSameDept = (myDeptId || myDeptName) 
-            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
-            : true;
-          isSubordinate = (reqEmpRole === "user");
-        } else if (myRole === "manager") {
-          isSameDept = (myDeptId || myDeptName) 
-            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
-            : true;
-          isSubordinate = (reqEmpRole === "leader");
-        } else {
-          isSameDept = true;
-          isSubordinate = (reqEmpRole === "leader" || reqEmpRole === "manager");
-        }
-
-        return isSameDept && isNotSelf && isSubordinate;
-      });
-    } else if (myRole === "user") {
-      pendingLeaves = [];
-    }
-
-    const pendingNotifications = pendingLeaves.map(item => {
-      const empName = item.employees?.full_name || item.emp_name || 'พนักงาน';
-      const leaveType = item.leave_types?.leave_name || item.leave_type_name || 'ใบลา';
-      const notifId = `pending-${item.id}`;
-
-      return {
-        id: notifId,
-        title: `คำขอลาใหม่: ${empName}`,
-        message: `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) รอการพิจารณา`,
-        type: 'leave',
-        is_read: readNotifIds.includes(notifId),
-        created_at: item.created_at || new Date().toISOString(),
-        link: '/pages/hr/hr.html'
-      };
-    });
-
-      // 3. กรองและเชื่อมโยงลิงก์สำหรับ DB notifications
-      dbNotifications = dbNotifications.filter(n => {
-        const notifRecipient = n.employee_id || n.user_id;
-        if (notifRecipient && myProfile?.id) {
-          return String(notifRecipient) === String(myProfile.id);
-        }
-        
-        const titleLower = String(n.title).toLowerCase();
-        const msgLower = String(n.message).toLowerCase();
-        
-        if (myRole === "user") {
-          const myName = myProfile?.full_name || "";
-          if (myName && (msgLower.includes(myName.toLowerCase()) || titleLower.includes(myName.toLowerCase()))) {
-            return true;
-          }
-          return false;
-        }
-        
-        if (myRole === "leader" || myRole === "manager") {
-          const myDeptKeyword = String(myDeptName || "").toLowerCase();
-          if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
-            return true;
-          }
-          // ถ้าไม่มีข้อมูลแผนกในข้อความ หรือไม่ใช่ของแผนกตัวเอง ให้ข้ามไปเพื่อความเป็นส่วนตัว
-          return false;
-        }
-        
-        return true;
-      }).map(n => {
-      // จับคู่วาปไปยังหน้าที่เกี่ยวข้องตามเงื่อนไข
-      let resolvedLink = '/pages/user/leave-history.html';
-      const titleLower = String(n.title).toLowerCase();
-      const msgLower = String(n.message).toLowerCase();
-      
-      if (titleLower.includes('ใหม่') || titleLower.includes('ส่งถึงคุณ') || msgLower.includes('พิจารณาอนุมัติขั้นถัดไป') || titleLower.includes('รอหัวหน้า')) {
-        if (['leader', 'manager', 'director', 'executive', 'hr', 'admin'].includes(myRole)) {
-          resolvedLink = '/pages/hr/hr.html';
-        }
-      } else if (titleLower.includes('อนุมัติสมบูรณ์') || titleLower.includes('ได้รับการอนุมัติ') || titleLower.includes('ยืนยันใบลา')) {
-        resolvedLink = '/pages/user/leave-history.html';
-      }
-      
-      return {
-        ...n,
-        link: resolvedLink,
-        is_read: n.is_read || readNotifIds.includes(String(n.id))
-      };
-    });
-
-    // รวมการแจ้งเตือนทั้งหมด
-    const allNotifications = [
-      ...pendingNotifications, 
-      ...dbNotifications
-    ];
-
-    // คำนวณเฉพาะยอดที่ยังไม่ได้อ่าน
-    const unreadNotifications = allNotifications.filter(n => !n.is_read);
-    const unreadCount = unreadNotifications.length;
-
-    // อัปเดตตัวเลข Badge บนไอคอนกระดิ่ง
-    if (badge) {
-      if (unreadCount > 0) {
-        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-        badge.style.display = 'inline-block';
-      } else {
-        badge.style.display = 'none';
-      }
-    }
-
-    if (unreadCountPill) {
-      unreadCountPill.textContent = `${unreadCount} รายการใหม่`;
-    }
-
-    if (unreadNotifications.length === 0) {
-      container.innerHTML = `
-        <div style="padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 13px;">
-          🔕 ไม่มีแจ้งเตือนใหม่ในขณะนี้
-        </div>`;
-      return;
-    }
+  container.innerHTML = html;
+}
 
 // 🛠️ Helper function จัดแต่งข้อความแจ้งเตือนให้อ่านง่าย สะอาดตา และไม่ซ้ำซ้อน
 function formatCleanNotification(title, rawMessage) {
@@ -1708,40 +1810,241 @@ function formatCleanNotification(title, rawMessage) {
   };
 }
 
-    // แสดงผลใน Dropdown (แสดงทั้งหมดโดยเรียงลำดับเวลา ล่าสุดอยู่บน)
-    let html = '';
-    const displayList = allNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
-    
-    if (displayList.length === 0) {
-      container.innerHTML = `
-        <div style="padding: 32px 16px; text-align: center; color: var(--text-soft); font-size: 13px;">
-          🔕 ยังไม่มีการแจ้งเตือน
-        </div>`;
-      return;
+async function fetchRealNotifications() {
+  const client = sb || window.pvtSupabase?.getClient();
+  const container = document.getElementById('notifListContainer');
+  const badge = document.getElementById('notifBadge');
+  const unreadCountPill = document.getElementById('notifUnreadCount');
+
+  if (!container) return;
+
+  try {
+    const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+    const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+    const myProfile = window.currentUserProfile || sessionUser;
+    const myRole = (myProfile?.role || "").toLowerCase();
+    const myDeptId = myProfile?.department_id || myProfile?.employees?.department_id;
+    const myDeptName = myProfile?.department_name || myProfile?.departments?.department_name || myProfile?.departments?.id;
+
+    let dbNotifications = [];
+
+    // 1. ดึงข้อมูลการแจ้งเตือนจากตาราง notifications ใน Supabase
+    if (client) {
+      const myId = sessionUser?.id || myProfile?.id;
+      const { data, error } = await client
+        .from('notifications')
+        .select('*')
+        .or(`employee_id.eq.${myId},user_id.eq.${myId}`)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (!error && data) {
+        dbNotifications = data;
+      }
     }
 
-    displayList.forEach(item => {
-      const theme = getNotifTheme(item.type);
-      const timeText = formatTimeAgo(item.created_at);
-      const isUnread = !item.is_read;
-      const formatted = formatCleanNotification(item.title, item.message);
+    const readNotifIds = getReadNotifIds();
 
-      html += `
-        <div class="notif-item ${isUnread ? 'unread' : 'read'}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer; opacity: ${isUnread ? '1' : '0.85'}; border-left: 3px solid ${isUnread ? 'var(--primary)' : 'transparent'}; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; border-bottom: 1px solid #f1f5f9; background: ${isUnread ? '#ffffff' : '#fafafa'}; transition: background 0.15s;">
-          <div class="notif-icon ${theme.bgClass}" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <span class="material-symbols-outlined" style="font-size: 20px;">${theme.icon}</span>
-          </div>
-          <div class="notif-content" style="flex: 1; min-width: 0;">
-            <div style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.35; margin-bottom: 2px;">${formatted.title}</div>
-            ${formatted.bodyHtml}
-            <span class="notif-time" style="font-size: 11px; color: #94a3b8; margin-top: 5px; display: block;">🕒 ${timeText}</span>
-          </div>
-          ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: #0d9488; border-radius: 50%; flex-shrink: 0; margin-top: 6px;"></span>' : ''}
-        </div>
-      `;
+    // 2. แปลงรายการใบลาค้างอนุมัติ (rawRequests) เป็นรายการแจ้งเตือนตามบทบาท พร้อมคำนวณ SLA 2 วัน
+    const SLA_HOURS = 48; // 2 วัน
+    const SLA_MS = SLA_HOURS * 3600 * 1000;
+    const now = Date.now();
+
+    let pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ" || r.status === "cancel_pending"));
+
+    if (myRole === "leader" || myRole === "manager" || myRole === "director" || myRole === "executive" || myRole === "owner") {
+      pendingLeaves = pendingLeaves.filter((req) => {
+        const reqEmp = req.employees;
+        if (!reqEmp) return false;
+
+        const reqDeptId = reqEmp.department_id;
+        const reqDeptName = reqEmp.departments?.department_name;
+        const reqEmpId = req.employee_id;
+        const reqEmpRole = String(reqEmp.role || 'user').toLowerCase();
+
+        const isNotSelf = sessionUser.id ? String(reqEmpId) !== String(sessionUser.id) : true;
+        
+        let isSameDept = true;
+        let isSubordinate = false;
+
+        if (myRole === "leader") {
+          isSameDept = (myDeptId || myDeptName) 
+            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+            : true;
+          isSubordinate = (reqEmpRole === "user");
+        } else if (myRole === "manager") {
+          isSameDept = (myDeptId || myDeptName) 
+            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
+            : true;
+          isSubordinate = (reqEmpRole === "leader");
+        } else {
+          isSameDept = true;
+          isSubordinate = (reqEmpRole === "leader" || reqEmpRole === "manager");
+        }
+
+        return isSameDept && isNotSelf && isSubordinate;
+      });
+    } else if (myRole === "user") {
+      pendingLeaves = [];
+    }
+
+    const pendingNotifications = pendingLeaves.map(item => {
+      const emp = item.employees || {};
+      const empName = emp.full_name || item.emp_name || 'พนักงาน';
+      const empCode = emp.employee_code || '';
+      const deptName = emp.departments?.department_name || '';
+      const leaveType = item.leave_types?.leave_name || item.leave_type_name || 'ใบลา';
+      const notifId = `pending-${item.id}`;
+
+      // คำนวณ SLA รายการนี้
+      const createdAt = item.created_at ? new Date(item.created_at).getTime() : now;
+      const diffMs = Math.max(0, now - createdAt);
+      const remainingMs = SLA_MS - diffMs;
+      const remainingHours = remainingMs / (3600 * 1000);
+      const isOverdue = diffMs >= SLA_MS;
+      const isUrgent = !isOverdue && remainingHours <= 24;
+
+      let slaStatus = 'normal';
+      let countdownText = '';
+      let title = `คำขอลาใหม่: ${empName}`;
+      let message = `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) แผนก ${deptName || '-'}`;
+
+      if (isOverdue) {
+        slaStatus = 'overdue';
+        const overdueMs = Math.abs(remainingMs);
+        const days = Math.floor(overdueMs / (86400 * 1000));
+        const hours = Math.floor((overdueMs % (86400 * 1000)) / (3600 * 1000));
+        const mins = Math.floor((overdueMs % (3600 * 1000)) / (60 * 1000));
+        countdownText = days > 0 ? `เกินกำหนด ${days} วัน ${hours} ชม.` : `เกินกำหนด ${hours} ชม. ${mins} นาที`;
+        title = `⚠️ เกิน SLA 2 วัน: ${empName} ${empCode ? `(${empCode})` : ''}`;
+        message = `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) เกินกรอบ 48 ชม. แล้ว ${countdownText}`;
+      } else if (isUrgent) {
+        slaStatus = 'urgent';
+        const hours = Math.floor(remainingMs / (3600 * 1000));
+        const mins = Math.floor((remainingMs % (3600 * 1000)) / (60 * 1000));
+        countdownText = `เหลือ ${hours} ชม. ${mins} นาที`;
+        title = `🔥 ใกล้ครบกำหนด 2 วัน: ${empName} ${empCode ? `(${empCode})` : ''}`;
+        message = `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) เหลือเวลาอีก ${countdownText}`;
+      }
+
+      return {
+        id: notifId,
+        title,
+        message,
+        type: isOverdue ? 'alert' : isUrgent ? 'warning' : 'leave',
+        slaStatus,
+        countdownText,
+        is_read: readNotifIds.includes(notifId),
+        created_at: item.created_at || new Date().toISOString(),
+        link: '/pages/hr/hr.html'
+      };
     });
 
-    container.innerHTML = html;
+    // 3. กรอง DB Notifications
+    const mappedDbNotifications = dbNotifications.filter(n => {
+      const notifRecipient = n.employee_id || n.user_id;
+      if (notifRecipient && myProfile?.id) {
+        return String(notifRecipient) === String(myProfile.id);
+      }
+      
+      const titleLower = String(n.title).toLowerCase();
+      const msgLower = String(n.message).toLowerCase();
+      
+      if (myRole === "user") {
+        const myName = myProfile?.full_name || "";
+        if (myName && (msgLower.includes(myName.toLowerCase()) || titleLower.includes(myName.toLowerCase()))) {
+          return true;
+        }
+        return false;
+      }
+      
+      if (myRole === "leader" || myRole === "manager") {
+        const myDeptKeyword = String(myDeptName || "").toLowerCase();
+        if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
+          return true;
+        }
+        return false;
+      }
+      
+      return true;
+    }).map(n => {
+      let resolvedLink = '/pages/user/leave-history.html';
+      const titleLower = String(n.title).toLowerCase();
+      const msgLower = String(n.message).toLowerCase();
+      
+      if (titleLower.includes('ใหม่') || titleLower.includes('ส่งถึงคุณ') || msgLower.includes('พิจารณาอนุมัติขั้นถัดไป') || titleLower.includes('รอหัวหน้า')) {
+        if (['leader', 'manager', 'director', 'executive', 'hr', 'admin'].includes(myRole)) {
+          resolvedLink = '/pages/hr/hr.html';
+        }
+      } else if (titleLower.includes('อนุมัติสมบูรณ์') || titleLower.includes('ได้รับการอนุมัติ') || titleLower.includes('ยืนยันใบลา')) {
+        resolvedLink = '/pages/user/leave-history.html';
+      }
+      
+      return {
+        ...n,
+        slaStatus: 'normal',
+        link: resolvedLink,
+        is_read: n.is_read || readNotifIds.includes(String(n.id))
+      };
+    });
+
+    // 4. จัดเรียงลำดับการแจ้งเตือน: Overdue -> Urgent -> ล่าสุด
+    cachedAllNotifications = [
+      ...pendingNotifications,
+      ...mappedDbNotifications
+    ].sort((a, b) => {
+      const getPriority = (item) => {
+        if (item.slaStatus === 'overdue' && !item.is_read) return 3;
+        if (item.slaStatus === 'urgent' && !item.is_read) return 2;
+        if (!item.is_read) return 1;
+        return 0;
+      };
+
+      const priorityDiff = getPriority(b) - getPriority(a);
+      if (priorityDiff !== 0) return priorityDiff;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
+    // 5. คำนวณยอด Unread และอัปเดต Tab Badges
+    const unreadNotifications = cachedAllNotifications.filter(n => !n.is_read);
+    const unreadCount = unreadNotifications.length;
+
+    const overdueCount = cachedAllNotifications.filter(n => n.slaStatus === 'overdue' && !n.is_read).length;
+    const urgentCount = cachedAllNotifications.filter(n => n.slaStatus === 'urgent' && !n.is_read).length;
+
+    const tabCountAll = document.getElementById('tabCountAll');
+    const tabCountOverdue = document.getElementById('tabCountOverdue');
+    const tabCountUrgent = document.getElementById('tabCountUrgent');
+
+    if (tabCountAll) tabCountAll.textContent = unreadCount;
+    if (tabCountOverdue) tabCountOverdue.textContent = overdueCount;
+    if (tabCountUrgent) tabCountUrgent.textContent = urgentCount;
+
+    // อัปเดตตัวเลข Badge บนไอคอนกระดิ่ง
+    if (badge) {
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.style.display = 'inline-block';
+        if (overdueCount > 0) {
+          badge.style.background = '#ef4444';
+          badge.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.7)';
+        } else if (urgentCount > 0) {
+          badge.style.background = '#f97316';
+          badge.style.boxShadow = '0 0 10px rgba(249, 115, 22, 0.6)';
+        } else {
+          badge.style.background = 'var(--primary)';
+          badge.style.boxShadow = 'none';
+        }
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    if (unreadCountPill) {
+      unreadCountPill.textContent = `${unreadCount} รายการใหม่`;
+    }
+
+    renderDropdownNotifsList();
 
   } catch (err) {
     console.error('Error loading notifications:', err);

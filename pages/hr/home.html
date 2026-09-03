@@ -10,6 +10,7 @@
   
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
+  <link rel="stylesheet" href="/css/leave-sla-tracker.css" />
 </head>
 
 <body>
@@ -18,7 +19,7 @@
     <!-- 📌 SIDEBAR ด้านซ้าย (Fixed) -->
     <aside class="sidebar-light">
       <div class="brand-zone">
-        <img src="/assets/icons/logo-pvt.png" alt="PVT Logo" class="logo-mini" />
+        <img src="/assets/icons/Logo_PVT_2026_B.png" alt="PVT Logo" class="logo-mini" />
       </div>
 
       <nav class="nav-menu">
@@ -26,9 +27,10 @@
           <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
-        <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา">
+        <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
           <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">ตรวจใบลา</span>
+          <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
         <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง & ประวัติพนักงาน">
           <span class="material-symbols-outlined">manage_accounts</span>
@@ -41,6 +43,10 @@
         <a href="/pages/user/holidays.html" class="nav-item" title="วันหยุด">
           <span class="material-symbols-outlined">calendar_today</span>
           <span class="nav-label">วันหยุด</span>
+        </a>
+        <a href="/pages/user/full-guide.html" class="nav-item" title="คู่มือการใช้งาน">
+          <span class="material-symbols-outlined">menu_book</span>
+          <span class="nav-label">คู่มือการใช้งาน</span>
         </a>
 
         <!-- ปุ่มเปิดระบบจัดการบัตรพนักงาน ใน Sidebar -->
@@ -64,11 +70,11 @@
       <!-- TOPBAR -->
       <header class="topbar">
         <div class="topbar-left">
-          <button class="mobile-menu-btn" title="เปิดเมนู">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" title="เปิดเมนู" onclick="toggleMobileSidebar()">
             <span class="material-symbols-outlined">menu</span>
           </button>
           <div>
-            <h1>ภาพรวมระบบบริหารจัดการใบลา</h1>
+            <h1>ภาพรวมระบบ</h1>
             <p>PVT HR Live Tracking System</p>
           </div>
         </div>
@@ -81,7 +87,7 @@
               <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
             </button>
 
-            <div class="notif-dropdown" id="notifDropdown" style="position: absolute; top: calc(100% + 12px); right: 0; width: 360px; z-index: 1000; flex-direction: column; overflow: hidden;">
+            <div class="notif-dropdown" id="notifDropdown" style="position: absolute; top: calc(100% + 12px); right: 0; width: 380px; z-index: 1000; flex-direction: column; overflow: hidden;">
               <div class="notif-header">
                 <div class="notif-title">
                   <strong>การแจ้งเตือน</strong>
@@ -90,7 +96,20 @@
                 <button type="button" class="btn-mark-read" onclick="markAllNotificationsAsRead()">อ่านทั้งหมด</button>
               </div>
 
-              <!-- Container สำหรับแสดงรายการจริงจาก Supabase -->
+              <!-- 🎛️ SLA Quick Filter Tabs in Dropdown -->
+              <div class="notif-filter-tabs" id="notifFilterTabs">
+                <button type="button" class="notif-filter-tab active" data-filter="all" onclick="filterDropdownNotifs('all')">
+                  ทั้งหมด <span class="tab-badge" id="tabCountAll">0</span>
+                </button>
+                <button type="button" class="notif-filter-tab tab-overdue" data-filter="overdue" onclick="filterDropdownNotifs('overdue')">
+                  🔴 เกิน 2 วัน <span class="tab-badge" id="tabCountOverdue">0</span>
+                </button>
+                <button type="button" class="notif-filter-tab tab-urgent" data-filter="urgent" onclick="filterDropdownNotifs('urgent')">
+                  🟠 ใกล้ครบ <span class="tab-badge" id="tabCountUrgent">0</span>
+                </button>
+              </div>
+
+              <!-- Container สำหรับแสดงรายการจริงจาก Supabase & SLA -->
               <div class="notif-body" id="notifListContainer">
                 <div style="padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
                   ⌛ กำลังโหลดการแจ้งเตือน...
@@ -98,7 +117,7 @@
               </div>
 
               <div class="notif-footer">
-                <a href="#" onclick="openAllNotificationsModal(); return false;">ดูการแจ้งเตือนทั้งหมด</a>
+                <a href="/pages/hr/hr.html">📝 ไปหน้าตรวจใบลาทั้งหมด</a>
               </div>
             </div>
           </div>
@@ -113,6 +132,43 @@
         </div>
       </header>
 
+      <!-- 🚨 SLA ALERT NOTIFICATION BANNER (2-DAY POLICY) -->
+      <div id="slaAlertBanner" class="sla-alert-banner" style="display: none;">
+        <div class="sla-banner-left">
+          <div class="sla-banner-icon-box" id="slaBannerIconBox">
+            <span class="material-symbols-outlined sla-pulse-icon">notification_important</span>
+          </div>
+          <div class="sla-banner-text">
+            <div class="sla-banner-title-row">
+              <h4>แจ้งเตือนนโยบายอนุมัติ 2 วันทำการ (Approval SLA 48 Hours)</h4>
+              <span class="sla-banner-status-pill overdue" id="slaBannerOverallPill">ต้องเร่งดำเนินการ</span>
+            </div>
+            <p id="slaBannerMessage">
+              พบคำขอลาที่ใกล้ครบกำหนดหรือเกินกรอบเวลา 48 ชั่วโมง กรุณาเร่งตรวจสอบเพื่อรักษามาตรฐานการบริการขององค์กร
+            </p>
+            <div class="sla-badges-group">
+              <span class="sla-badge-item badge-overdue" id="slaBannerOverdueBadge" onclick="focusSlaTrackerSection('overdue')">
+                <span class="dot-pulse red"></span> เกิน 2 วัน (Overdue): <strong id="slaBannerOverdueVal">0</strong> รายการ
+              </span>
+              <span class="sla-badge-item badge-urgent" id="slaBannerUrgentBadge" onclick="focusSlaTrackerSection('urgent')">
+                <span class="dot-pulse orange"></span> ใกล้ครบ 2 วัน (&lt; 24 ชม.): <strong id="slaBannerUrgentVal">0</strong> รายการ
+              </span>
+              <span class="sla-badge-item badge-safe" id="slaBannerSafeBadge" onclick="focusSlaTrackerSection('all')">
+                <span class="dot-pulse green"></span> ปกติ: <strong id="slaBannerSafeVal">0</strong> รายการ
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="sla-banner-right">
+          <button type="button" class="btn-sla-action btn-sla-scroll" onclick="focusSlaTrackerSection('all')">
+            <span class="material-symbols-outlined">timer</span> ดูตัวนับถอยหลัง
+          </button>
+          <a href="/pages/hr/hr.html" class="btn-sla-action btn-sla-goto">
+            <span class="material-symbols-outlined">fact_check</span> ตรวจใบลาทันที
+          </a>
+        </div>
+      </div>
+
       <!--   KPI STATS CARDS -->
       <div class="stats-grid">
         <div class="stat-card border-blue">
@@ -122,11 +178,18 @@
             <span class="value" id="statTotalEmployees">0</span>
           </div>
         </div>
-        <div class="stat-card border-orange">
+        <div class="stat-card border-orange" id="statCardPendingLeaves">
           <div class="icon-box bg-orange"><span class="material-symbols-outlined">pending_actions</span></div>
           <div class="stat-info">
-            <span class="label">รอพิจารณา (L1/L2)</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%;">
+              <span class="label">รอพิจารณา (L1/L2)</span>
+              <span class="stat-sla-badge" id="statSlaBadgeWarning" style="display: none;">⚠️ เกิน SLA</span>
+            </div>
             <span class="value" id="statPendingLeaves">0</span>
+            <div class="stat-sla-subbadges" id="statSlaSubbadges" style="display: none;">
+              <span class="sub-pill red" id="subStatOverdue">🔴 เกิน 2 วัน: 0</span>
+              <span class="sub-pill orange" id="subStatUrgent">🟠 ใกล้ครบ: 0</span>
+            </div>
           </div>
         </div>
         <div class="stat-card border-green">
@@ -160,50 +223,50 @@
 
       <!-- 👥 PANEL: รายชื่อพนักงานในแผนก (สำหรับหัวหน้า / ผู้จัดการ / HR) -->
       <section class="panel mb-6 home-team-panel" id="homeDepartmentTeamSection">
-        <div class="panel-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #f1f5f9;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div class="panel-icon-circle" style="width: 42px; height: 42px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <span class="material-symbols-outlined" style="font-size: 24px;">group</span>
+        <div class="panel-header">
+          <div class="home-team-header-left">
+            <div class="panel-icon-circle">
+              <span class="material-symbols-outlined">group</span>
             </div>
             <div>
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <h2 id="homeTeamSectionTitle" style="margin: 0; font-size: 17px; font-weight: 700; color: #0f172a;">สมาชิกพนักงานในแผนก</h2>
-                <span id="homeTeamCountBadge" style="background: #e0f2fe; color: #0284c7; font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 20px;">0 คน</span>
+              <div class="home-team-title-wrap">
+                <h2 id="homeTeamSectionTitle">สมาชิกพนักงานในแผนก</h2>
+                <span id="homeTeamCountBadge">0 คน</span>
               </div>
-              <p id="homeTeamSectionSubtitle" style="margin: 2px 0 0 0; font-size: 13px; color: var(--text-soft);">รายชื่อพนักงานและตำแหน่งงานสังกัดแผนกของคุณ</p>
+              <p id="homeTeamSectionSubtitle">รายชื่อพนักงานและตำแหน่งงานสังกัดแผนกของคุณ</p>
             </div>
           </div>
           
-          <div class="home-team-controls" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div class="home-team-controls">
             <!-- ช่องค้นหา -->
-            <div class="home-team-search" style="position: relative; width: 240px;">
-              <span class="material-symbols-outlined" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 19px; color: #94a3b8; pointer-events: none;">search</span>
-              <input type="text" id="homeTeamSearchInput" placeholder="ค้นหาชื่อ, รหัส, ตำแหน่ง..." oninput="handleHomeTeamSearch(this.value)" style="width: 100%; padding: 8px 12px 8px 34px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13.5px; background: #f8fafc; outline: none; transition: all 0.2s;" onfocus="this.style.borderColor='#0284c7'; this.style.background='#fff';" onblur="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc';">
+            <div class="home-team-search">
+              <span class="material-symbols-outlined search-icon">search</span>
+              <input type="text" id="homeTeamSearchInput" placeholder="ค้นหาชื่อ, รหัส, ตำแหน่ง..." oninput="handleHomeTeamSearch(this.value)" autocomplete="off">
             </div>
 
             <!-- ปุ่มย้อนกลับ/ขยาย -->
-            <button type="button" class="btn-toggle-icon" onclick="toggleHomeTeamContainer(this)" title="ซ่อน/แสดง รายชื่อสมาชิก" style="background: #f8fafc; border: 1px solid #e2e8f0; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center;">
-              <span class="material-symbols-outlined" id="homeTeamToggleIcon" style="font-size: 22px;">expand_less</span>
+            <button type="button" class="btn-toggle-icon" onclick="toggleHomeTeamContainer(this)" title="ซ่อน/แสดง รายชื่อสมาชิก" aria-label="ซ่อน/แสดง รายชื่อสมาชิก">
+              <span class="material-symbols-outlined" id="homeTeamToggleIcon">expand_less</span>
             </button>
           </div>
         </div>
 
-        <div class="card-body" id="homeTeamBodyWrapper" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="card-body" id="homeTeamBodyWrapper">
           <!-- Filter chips -->
-          <div id="homeTeamRoleFilters" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-bottom: 2px;">
-            <button type="button" class="team-filter-chip active" onclick="filterHomeTeamByRole('all', this)" style="padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #0284c7; background: #0284c7; color: #fff; cursor: pointer; transition: all 0.15s;">
+          <div id="homeTeamRoleFilters">
+            <button type="button" class="team-filter-chip active" onclick="filterHomeTeamByRole('all', this)">
               ทั้งหมด (<span id="chipCountAll">0</span>)
             </button>
-            <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('leader', this)" style="padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer; transition: all 0.15s;">
+            <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('leader', this)">
               👑 หัวหน้า/ผจก. (<span id="chipCountLeader">0</span>)
             </button>
-            <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('staff', this)" style="padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer; transition: all 0.15s;">
+            <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('staff', this)">
               👤 พนักงาน (<span id="chipCountStaff">0</span>)
             </button>
           </div>
 
           <!-- Roster Grid Container (3-4 columns) -->
-          <div id="homeTeamScrollContainer" class="home-team-scroll-area" style="max-height: 420px; overflow-y: auto; padding-right: 4px;">
+          <div id="homeTeamScrollContainer" class="home-team-scroll-area">
             <div id="homeTeamMembersGrid" class="team-grid-4col">
               <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 14px;">
                 ⏳ กำลังโหลดข้อมูลสมาชิกในแผนก...
@@ -212,11 +275,11 @@
           </div>
 
           <!-- Footer summary -->
-          <div id="homeTeamFooterBar" style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">
+          <div id="homeTeamFooterBar">
             <span id="homeTeamShowingInfo">กำลังแสดง 0 คน</span>
-            <button type="button" id="btnToggleTeamHeight" onclick="toggleHomeTeamScrollHeight()" style="background: transparent; border: none; color: #0284c7; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <button type="button" id="btnToggleTeamHeight" onclick="toggleHomeTeamScrollHeight()">
               <span id="txtToggleTeamHeight">ขยายดูทั้งหมด</span>
-              <span class="material-symbols-outlined" id="icoToggleTeamHeight" style="font-size: 18px;">unfold_more</span>
+              <span class="material-symbols-outlined" id="icoToggleTeamHeight">unfold_more</span>
             </button>
           </div>
         </div>
@@ -264,6 +327,13 @@
               <div class="text">
                 <strong>บัตรพนักงาน & QR</strong>
                 <p>เปิดระบบจัดการบัตร</p>
+              </div>
+            </button>
+            <button type="button" onclick="window.openLoginLogsViewerModal ? window.openLoginLogsViewerModal() : (window.viewLoginAuditLogs ? window.viewLoginAuditLogs() : null)" class="quick-card hover-blue" style="border:none; cursor:pointer; text-align:left; width:100%;">
+              <div class="icon-circle" style="background: rgba(13, 148, 136, 0.15); color: #0d9488;"><span class="material-symbols-outlined">shield_person</span></div>
+              <div class="text">
+                <strong>ประวัติการเข้าสู่ระบบ</strong>
+                <p>ตรวจสอบ Login Logs</p>
               </div>
             </button>
           </div>
@@ -350,7 +420,6 @@
   <!-- Toast Notification -->
   <div id="statusToast" class="toast"></div>
 
-  <!-- Scripts -->
 <!-- 1. External Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -359,6 +428,8 @@
 <!-- 2. Your JS Files -->
 <script src="/js/supabase-config.js"></script>
 <script src="/js/auth-guard.js"></script>
+<script src="/js/components/leave-sla-tracker.js"></script>
+<script src="/js/components/login-logs-viewer.js"></script>
 <script src="/js/home.js"></script>
 <script src="/js/system-diagnostics.js"></script>
 </body>

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import tailwindcss from '@tailwindcss/vite';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine } from './api-handlers.js';
+import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs } from './api-handlers.js';
 
 export default defineConfig({
   plugins: [
@@ -23,6 +23,18 @@ export default defineConfig({
         });
         server.middlewares.use('/api/send-notification', (req, res) => {
           if (req.method === 'POST') handleSendNotification(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/record-login-log', (req, res) => {
+          if (req.method === 'POST') handleRecordLoginLog(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/login-logs', (req, res) => {
+          if (req.method === 'GET') handleGetLoginLogs(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/purge-login-logs', (req, res) => {
+          if (req.method === 'POST') handlePurgeLoginLogs(req, res);
           else res.end();
         });
       }

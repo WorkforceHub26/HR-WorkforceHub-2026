@@ -1324,6 +1324,13 @@
       line-height: 1.6;
     }
   </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css">
+  <style>
+    /* Custom Tom Select Styling to match theme */
+    .ts-control { border-radius: 10px !important; padding: 10px 12px !important; border: 1px solid #e2e8f0 !important; font-family: 'Kanit', sans-serif !important; }
+    .ts-dropdown { border-radius: 12px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; border: 1px solid #e2e8f0 !important; }
+    .ts-dropdown .optgroup-header { font-weight: 700; color: var(--primary); background: #f0fdfa; }
+  </style>
 </head>
 <body>
   <div class="app-layout">
@@ -1415,12 +1422,86 @@
         </div>
       </div>
       <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
-      <div class="flow-step s4" onclick="focusSection('approverSummarySection')" title="ฝ่ายบุคคล HR ดำเนินการขั้นสุดท้าย">
+      <div class="flow-step s4" onclick="focusSection('individualConfigSection')" title="ตั้งค่าสายอนุมัติรายบุคคล (พิเศษ)">
+        <div class="flow-step-icon">🎯</div>
+        <div class="flow-step-text">
+          <h4>5. รายบุคคล</h4>
+          <p>สายอนุมัติอิสระ</p>
+        </div>
+      </div>
+      <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
+      <div class="flow-step s5" onclick="focusSection('approverSummarySection')" title="ฝ่ายบุคคล HR ดำเนินการขั้นสุดท้าย">
         <div class="flow-step-icon">📋</div>
         <div class="flow-step-text">
-          <h4>5. ฝ่ายบุคคล (HR)</h4>
+          <h4>6. ฝ่ายบุคคล (HR)</h4>
           <p>ตัดยอดโควตา & บันทึก</p>
         </div>
+      </div>
+    </section>
+
+    <!-- Panel 3: Individual Override (New Section) -->
+    <section class="card-panel" id="individualConfigSection" style="margin-bottom: 32px; border-top: 4px solid var(--accent-purple);">
+      <div class="card-panel-header">
+        <h2 class="card-panel-title">
+          <span class="material-symbols-outlined" style="color: var(--accent-purple);">person_pin_circle</span>
+          3. ตั้งค่าสายอนุมัติรายบุคคล (Flexible Override)
+        </h2>
+        <span class="field-label-tag" style="background: #f3e8ff; color: #7e22ce;">กำหนดอิสระ</span>
+      </div>
+      <div class="card-panel-body">
+        <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px dashed #cbd5e1; margin-bottom: 8px;">
+          <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">tips_and_updates</span>
+            <strong>Tips:</strong> ใช้ส่วนนี้เมื่อต้องการให้พนักงานมีผู้อนุมัติ "นอกเหนือ" จากหัวหน้าแผนกปกติ เช่น พนักงานกะดึก, ทีมโปรเจกต์พิเศษ หรือผู้ช่วยเลขาฯ
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="form-field">
+            <label class="field-label">
+              <span>เลือกพนักงานที่ต้องการตั้งค่า <span style="color:#ef4444;">*</span></span>
+            </label>
+            <select id="individualEmployeeSelect" class="field-select">
+              <option value="">-- ค้นหา/เลือกพนักงาน --</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label">
+              <span>สถานะปัจจุบัน</span>
+            </label>
+            <div id="individualCurrentStatus" style="padding: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13px; color: #64748b;">
+              กรุณาเลือกพนักงานเพื่อดูสายอนุมัติปัจจุบัน
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+          <div class="form-field">
+            <label class="field-label">
+              <span>หัวหน้าสายตรง L1 (พิเศษ)</span>
+              <span class="field-label-tag">ระบุตัวตน</span>
+            </label>
+            <select id="individualL1Select" class="field-select">
+              <option value="">-- ไม่ระบุ (ใช้ตามแผนก) --</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="field-label">
+              <span>ผู้จัดการ L2 (พิเศษ)</span>
+              <span class="field-label-tag">ระบุตัวตน</span>
+            </label>
+            <select id="individualL2Select" class="field-select">
+              <option value="">-- ไม่ระบุ (ใช้ตามแผนก) --</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card-panel-footer">
+        <button type="button" class="btn-save" id="btnSaveIndividual" onclick="saveIndividualApprover()">
+          <span class="material-symbols-outlined">save</span>
+          บันทึกสายอนุมัติพิเศษ
+        </button>
       </div>
     </section>
 
@@ -1904,6 +1985,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/supabase-config.js"></script>

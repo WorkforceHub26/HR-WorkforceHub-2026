@@ -64,7 +64,10 @@
   <div class="rules-page-container">
     
     <header class="rules-top-bar">
-      <button class="btn-header-back" onclick="history.back()">⬅️ ย้อนกลับ</button>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <button class="btn-header-back" onclick="history.back()">⬅️ ย้อนกลับ</button>
+        <button class="btn-header-back" onclick="window.location.href='/pages/user/full-guide.html'" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">📘 คู่มือใช้งานฉบับเต็ม</button>
+      </div>
       
       <div class="rules-title-section" style="text-align: right;">
         <h1>หลักเกณฑ์และเงื่อนไขการลา</h1>
@@ -168,6 +171,17 @@
           <li>ลาเพื่อประโยชน์ต่อการจ้างงาน/สวัสดิการ หรือเพิ่มทักษะความชำนาญในตำแหน่งหน้าที่</li>
           <li class="rule-caution">การลาเพื่อการศึกษาต่อของพนักงานเอง ไม่สามารถใช้สิทธิการลาประเภทนี้ได้</li>
           <li>ต้องแจ้งล่วงหน้าไม่น้อยกว่า 7 วัน และต้องได้รับอนุมัติจากผู้บริหารก่อนทุกครั้ง</li>
+        </ul>
+      </article>
+
+      <article class="rule-box-card">
+        <div class="card-header-tag" style="background: #fff7ed; color: #c2410c; border-color: #fed7aa;">
+          <span class="material-symbols-outlined">schedule</span> 10. กรอบเวลาการพิจารณาอนุมัติใบลา (SLA 2 วัน)
+        </div>
+        <ul class="rule-list-item">
+          <li>หัวหน้างาน (L1) และ ผู้จัดการ (L2) ต้องพิจารณาอนุมัติใบลา <b>ภายใน 2 วันทำการ</b> นับจากวันที่ยื่นคำขอ</li>
+          <li class="rule-caution">หากเกิน 2 วัน ระบบจะขึ้นสถานะ <b>"เกินกำหนด"</b> และแสดงข้อความ <i>"ใบลาไม่ได้รับการพิจารณาในเวลาที่กำหนด"</i></li>
+          <li>พนักงานสามารถติดตามสถานะหรือประสานงานหัวหน้า/HR เพื่อเร่งรัดการพิจารณาได้</li>
         </ul>
       </article>
 
