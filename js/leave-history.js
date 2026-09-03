@@ -599,6 +599,9 @@ window.previewLeaveModalFromHistory = function(leaveId) {
             ${sla.isOverdue ? 'ใบลาไม่ได้รับการพิจารณาในเวลาที่กำหนด' : 'เวลานับถอยหลังกรอบเวลา 2 วัน'}
           </div>
           <div style="font-size: 13px; margin-top: 2px;">${sla.countdownText}</div>
+          <div style="font-size: 12px; font-weight: 600; color: #c2410c; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+            <span>⚠️ กำหนดกรอบเวลาพิจารณาอนุมัติภายใน 2 วันทำการ</span>
+          </div>
         </div>
         <div style="margin-bottom: 8px;"><strong>ช่วงวันที่ลา:</strong> ${startStr} ถึง ${endStr}</div>
         <div style="margin-bottom: 8px;"><strong>จำนวนวัน:</strong> ${duration}</div>

@@ -300,8 +300,8 @@ function applyRoleBasedUI() {
     navItems.forEach(item => {
       const href = item.getAttribute("href") || "";
       if (currentRole === "leader" || currentRole === "manager") {
-        // ซ่อนลิงก์ "หน้าหลัก" (Dashboard) และ "แก้ไข/เพิ่ม ประวัติ" (Management) สำหรับผู้อนุมัติทั่วไป
-        if (href.includes("home.html") || href.includes("management.html")) {
+        // ซ่อนลิงก์ "แก้ไข/เพิ่ม ประวัติ" (Management) สำหรับผู้อนุมัติทั่วไป แต่ยังคงแสดง "หน้าหลัก" (Dashboard) ไว้ให้ใช้งานได้ปกติ
+        if (href.includes("management.html")) {
           item.style.setProperty("display", "none", "important");
         } else {
           item.style.setProperty("display", "flex", "important");

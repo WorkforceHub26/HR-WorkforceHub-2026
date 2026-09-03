@@ -26,12 +26,24 @@ serve(async (req) => {
 
     const messages = [];
 
+    // Ensure 'pending approval deadline of 2 days' notice is explicitly appended to notifications
+    const deadlineNotice = "⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ";
+
     if (flexMessage) {
+      // If it is a flex message, ensure altText (the notification popup banner) has the notice
+      if (flexMessage.altText && !flexMessage.altText.includes("วันทำการ")) {
+        flexMessage.altText = `${flexMessage.altText} - ${deadlineNotice}`;
+      }
       messages.push(flexMessage);
     } else if (message) {
+      let finalMessage = message;
+      // If it's a request/approval message and doesn't have the notice yet, append it
+      if ((message.includes("คำขอ") || message.includes("อนุมัติ") || message.includes("ยกเลิก")) && !message.includes("ภายใน 2 วัน")) {
+        finalMessage = `${message}\n\n${deadlineNotice}`;
+      }
       messages.push({
         type: "text",
-        text: message
+        text: finalMessage
       });
     }
 
