@@ -140,8 +140,48 @@ async function autoSessionCheckAndRedirect() {
 
   const hasRedirectAttempt = sessionStorage.getItem("redirect_attempt");
 
+  // 🔐 Check WebAuthn API support on device startup & toggle 'Biometric Login' button
+  const checkAndToggleBiometricButton = async () => {
+    const bioBtn = document.getElementById("biometricLoginBtn");
+    if (!bioBtn) return;
+
+    try {
+      // 1. Check if browser supports WebAuthn API (PublicKeyCredential)
+      if (!window.PublicKeyCredential) {
+        console.log("ℹ️ [WebAuthn] WebAuthn API (PublicKeyCredential) not supported on this browser.");
+        bioBtn.style.display = "none";
+        return;
+      }
+
+      // 2. Check platform authenticator & registered local credentials
+      let isSupported = false;
+      if (window.PVTWebAuthn && typeof window.PVTWebAuthn.isBiometricAvailable === 'function') {
+        const bioCheck = await window.PVTWebAuthn.isBiometricAvailable();
+        const localCreds = (window.PVTWebAuthn.getLocalCredentials ? window.PVTWebAuthn.getLocalCredentials() : []).filter(c => c.status === 'active');
+        // Supported if WebAuthn API is available AND (platform authenticator is ready OR local credentials exist)
+        isSupported = !!(bioCheck && bioCheck.supported && (bioCheck.platformAuthenticator || localCreds.length > 0));
+      } else {
+        // Direct browser API fallback check
+        const isPlatformAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
+        isSupported = !!isPlatformAvailable;
+      }
+
+      if (isSupported) {
+        bioBtn.style.display = "flex";
+      } else {
+        bioBtn.style.display = "none";
+      }
+    } catch (err) {
+      console.warn("⚠️ [WebAuthn] Startup support check warning:", err);
+      bioBtn.style.display = "none";
+    }
+  };
+
+  window.checkAndToggleBiometricButton = checkAndToggleBiometricButton;
+
   const showSessionVerifyingUI = (show) => {
     const overlay = document.getElementById("sessionCheckOverlay");
+    const skeleton = document.getElementById("loginSkeleton");
     const loginForm = document.getElementById("loginForm");
     const qrOptions = document.querySelector(".qr-login-container");
     const divider = document.querySelector(".divider");
@@ -150,8 +190,11 @@ async function autoSessionCheckAndRedirect() {
     if (overlay) {
       overlay.style.display = show ? "flex" : "none";
     }
-    if (loginForm) {
-      loginForm.style.display = show ? "none" : "";
+    if (skeleton && show) {
+      skeleton.style.display = "none";
+    }
+    if (loginForm && show) {
+      loginForm.style.display = "none";
     }
     if (qrOptions) {
       qrOptions.style.display = show ? "none" : "";
@@ -159,8 +202,12 @@ async function autoSessionCheckAndRedirect() {
     if (divider) {
       divider.style.display = show ? "none" : "";
     }
-    if (bioBtn && show) {
-      bioBtn.style.display = "none";
+    if (bioBtn) {
+      if (show) {
+        bioBtn.style.display = "none";
+      } else {
+        checkAndToggleBiometricButton();
+      }
     }
   };
 
@@ -277,6 +324,7 @@ const loginTranslations = {
     loginBtn: "เข้าสู่ระบบ",
     loggingIn: "กำลังเข้าสู่ระบบ...",
     qrBtn: "สแกนคิวอาร์โค้ดบัตรพนักงาน",
+    qrGuideLink: "วิธีถือบัตรสแกน (How-to Guide)",
     biometricLoginBtn: "เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า",
     errEmptyBoth: "กรุณากรอกข้อมูลผู้ใช้งานและรหัสผ่านให้ครบถ้วน",
     errEmptyUser: "กรุณากรอกรหัสพนักงาน หรือชื่อผู้ใช้งาน",
@@ -301,6 +349,7 @@ const loginTranslations = {
     loginBtn: "ເຂົ້າສູ່ລະບົບ",
     loggingIn: "ກຳລັງເຂົ້າສູ່ລະບົບ...",
     qrBtn: "ສະແກນຄິວອ່າວໂຄດບັດພະນັກງານ",
+    qrGuideLink: "ວິທີຖືບັດສະແກນ (How-to Guide)",
     biometricLoginBtn: "ເຂົ້າສູ່ລະບົບດ້ວຍລາຍນິ້ວມື / ໃບໜ້າ",
     errEmptyBoth: "ກະລຸນາປ້ອນຊື່ຜູ້ໃຊ້ງານ ແລະ ລະຫັດຜ່ານໃຫ້ຄົບຖ້ວນ",
     errEmptyUser: "ກະລຸນາປ້ອນລະຫັດພະນັກງານ ຫຼື ຊື່ຜູ້ໃຊ້ງານ",
@@ -325,6 +374,7 @@ const loginTranslations = {
     loginBtn: "အကောင့်ဝင်ရန်",
     loggingIn: "အကောင့်ဝင်နေပါသည်...",
     qrBtn: "ဝန်ထမ်းကတ် QR ကုဒ်ကို စကန်ဖတ်ရန်",
+    qrGuideLink: "ကတ်စကင်န်ဖတ်နည်း လမ်းညွှန်",
     biometricLoginBtn: "လက်ဗွေ သို့မဟုတ် မျက်နှာဖြင့် အကောင့်ဝင်ရန်",
     errEmptyBoth: "အသုံးပြုသူအမည်နှင့် စကားဝှက်ကို အပြည့်အစုံ ဖြည့်သွင်းပါ",
     errEmptyUser: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်ကို ဖြည့်သွင်းပါ",
@@ -465,6 +515,7 @@ function setLanguage(lang) {
   const loginBtnEl = document.getElementById("i18nLoginBtn");
   const loggingInEl = document.getElementById("i18nLoggingInText");
   const qrBtnEl = document.getElementById("i18nQrBtn");
+  const qrGuideLinkEl = document.getElementById("i18nQrGuideLink");
   const biometricLoginBtnText = document.getElementById("i18nBiometricLoginBtn");
 
   if (badgeEl) badgeEl.textContent = t.badge;
@@ -476,6 +527,7 @@ function setLanguage(lang) {
   if (loginBtnEl) loginBtnEl.textContent = t.loginBtn;
   if (loggingInEl && t.loggingIn) loggingInEl.textContent = t.loggingIn;
   if (qrBtnEl) qrBtnEl.textContent = t.qrBtn;
+  if (qrGuideLinkEl && t.qrGuideLink) qrGuideLinkEl.textContent = t.qrGuideLink;
   if (biometricLoginBtnText && t.biometricLoginBtn) biometricLoginBtnText.textContent = t.biometricLoginBtn;
 
   const camTitleEl = document.getElementById("biometricCameraAlertTitle");
@@ -526,28 +578,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Helper function to smoothly transition from loading skeleton to active form
+  const hideLoginSkeleton = () => {
+    const skeleton = document.getElementById("loginSkeleton");
+    const loginForm = document.getElementById("loginForm");
+    if (skeleton && skeleton.style.display !== "none") {
+      skeleton.style.opacity = "0";
+      skeleton.style.transition = "opacity 0.18s ease";
+      setTimeout(() => {
+        skeleton.style.display = "none";
+        skeleton.classList.add("hidden");
+        if (loginForm) {
+          loginForm.style.display = "flex";
+          loginForm.classList.add("fade-in");
+        }
+      }, 160);
+    } else if (loginForm) {
+      loginForm.style.display = "flex";
+    }
+  };
+
+  // Safety fallback timeout to ensure skeleton never stays stuck if any script fails
+  setTimeout(() => {
+    const skeleton = document.getElementById("loginSkeleton");
+    if (skeleton && skeleton.style.display !== "none" && !skeleton.classList.contains("hidden")) {
+      hideLoginSkeleton();
+    }
+  }, 2500);
+
   // ⚡ Auto Session-Check & Instant Redirect
   const redirected = await autoSessionCheckAndRedirect();
   if (redirected) {
     return;
   }
 
-  // Check if WebAuthn is available and show the biometric button
-  try {
-    if (window.PVTWebAuthn) {
-      const bioCheck = await window.PVTWebAuthn.isBiometricAvailable();
-      const bioBtn = document.getElementById("biometricLoginBtn");
-      if (bioBtn) {
-        if (bioCheck.supported) {
-          bioBtn.style.display = "flex";
-        } else {
-          bioBtn.style.display = "none";
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("Error checking biometric availability on load:", err);
-  }
+  // Session check completed, show active login form and hide skeletons
+  hideLoginSkeleton();
+
+  // 🔐 Check for device support for WebAuthn API on startup and toggle 'Biometric Login' button
+  await checkAndToggleBiometricButton();
 
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("username");
@@ -1191,6 +1260,9 @@ function loginByQr() {
         </div>
         
         <div class="pvt-qr-header-actions">
+          <button type="button" id="pvtQrBtnGuide" class="pvt-qr-btn-circle" title="คำแนะนำการสแกนบัตร" onclick="showQrGuideModal()">
+            <span class="material-symbols-outlined" style="font-size: 20px;">help_outline</span>
+          </button>
           <button type="button" id="pvtQrBtnTorch" class="pvt-qr-btn-circle" title="${i18n.torchBtnTitle}" style="display: none;">
             <span class="material-symbols-outlined" style="font-size: 20px;">flashlight_on</span>
           </button>
@@ -1206,6 +1278,27 @@ function loginByQr() {
       <!-- 📷 Scanner Viewport / HUD Reticle -->
       <div id="pvtQrCamView" class="pvt-qr-viewport-container">
         <div id="pvt-qr-video-host"></div>
+
+        <!-- 🔍 Pinch-to-Zoom Visual Feedback Indicator Overlay -->
+        <div id="pvtQrZoomIndicator" class="pvt-qr-zoom-indicator" title="จีบนิ้วเพื่อย่อ/ขยายภาพ (Pinch to Zoom)">
+          <div class="pvt-zoom-level-badge">
+            <span class="material-symbols-outlined pvt-zoom-icon">zoom_in</span>
+            <span id="pvtZoomValText" class="pvt-zoom-value">1.0x</span>
+          </div>
+          <div class="pvt-zoom-quick-controls">
+            <button type="button" class="pvt-zoom-chip active" data-zoom="1">1x</button>
+            <button type="button" class="pvt-zoom-chip" data-zoom="1.5">1.5x</button>
+            <button type="button" class="pvt-zoom-chip" data-zoom="2">2x</button>
+            <button type="button" class="pvt-zoom-chip" data-zoom="2.5">2.5x</button>
+          </div>
+        </div>
+
+        <!-- ⚡ QR Code Detection Instant Visual Feedback Badge Overlay -->
+        <div id="pvtQrDetectBadge" class="pvt-qr-detect-badge">
+          <div class="pvt-qr-detect-pulse-ring"></div>
+          <span class="material-symbols-outlined pvt-qr-detect-icon">qr_code_scanner</span>
+          <span id="pvtQrDetectMsg">พบ QR Code แล้ว!</span>
+        </div>
 
         <!-- Scanner Reticle Frame -->
         <div id="pvtQrReticle" class="pvt-qr-reticle-box">
@@ -1385,20 +1478,25 @@ function loginByQr() {
     if (hasScannedSuccess) return;
     hasScannedSuccess = true;
 
-    // 1. ส่งเสียงแจ้งเตือน (Chime)
+    // ⚡ 1. Immediate visual detection highlight on .pvt-qr-viewport-container
+    if (camView) camView.classList.add("qr-detected");
+    const detectBadge = document.getElementById("pvtQrDetectBadge");
+    if (detectBadge) detectBadge.classList.add("show");
+
+    // 2. ส่งเสียงแจ้งเตือน (Chime)
     playBarcodeScanSuccessSound();
 
-    // 2. การสั่นแจ้งเตือน (Haptic)
+    // 3. การสั่นแจ้งเตือน (Haptic)
     if (navigator.vibrate) {
       try { navigator.vibrate([40, 30, 80]); } catch (e) {}
     }
 
-    // 3. แสดงผลตอบรับบน UI (Visual Feedback)
+    // 4. แสดงผลตอบรับบน UI (Visual Feedback)
     if (reticle) reticle.classList.add("scan-success");
     if (successOverlay) successOverlay.classList.add("show");
     if (guideMsg) guideMsg.textContent = i18n.guideSuccess;
 
-    // 4. หน่วงเวลาสั้นๆ เพื่อให้ผู้ใช้รับรู้ feedback ก่อนเปลี่ยนหน้า
+    // 5. หน่วงเวลาสั้นๆ เพื่อให้ผู้ใช้รับรู้ feedback ก่อนเปลี่ยนหน้า
     setTimeout(async () => {
       await closeModal();
       executeSecureQrLogin(decodedText);
@@ -1449,6 +1547,111 @@ function loginByQr() {
 
       isCamRunning = true;
       permCard.style.display = "none";
+
+      // 🔍 Pinch-to-Zoom Controller & Visual Feedback Logic for .pvt-qr-viewport-container
+      let currentZoom = 1.0;
+      const minZoom = 1.0;
+      const maxZoom = 3.0;
+      let initialPinchDist = 0;
+      let initialZoomOnPinch = 1.0;
+
+      const updateZoomUI = (zoomLevel) => {
+        currentZoom = Math.min(maxZoom, Math.max(minZoom, parseFloat(zoomLevel.toFixed(1))));
+        
+        const zoomValText = document.getElementById("pvtZoomValText");
+        if (zoomValText) zoomValText.textContent = `${currentZoom.toFixed(1)}x`;
+
+        // Highlight active zoom quick chip
+        document.querySelectorAll(".pvt-zoom-chip").forEach(chip => {
+          const chipVal = parseFloat(chip.dataset.zoom);
+          if (Math.abs(chipVal - currentZoom) < 0.25) {
+            chip.classList.add("active");
+          } else {
+            chip.classList.remove("active");
+          }
+        });
+
+        // Pulsing visual feedback on zoom indicator badge
+        const zoomIndicator = document.getElementById("pvtQrZoomIndicator");
+        if (zoomIndicator) {
+          zoomIndicator.classList.add("zooming");
+          clearTimeout(zoomIndicator._zoomTimer);
+          zoomIndicator._zoomTimer = setTimeout(() => {
+            zoomIndicator.classList.remove("zooming");
+          }, 350);
+        }
+
+        // Apply visual zoom via CSS transform scale on video track for universal device support
+        const videoEl = document.querySelector("#pvt-qr-video-host video");
+        if (videoEl) {
+          videoEl.style.transform = `scale(${currentZoom})`;
+          videoEl.style.transformOrigin = "center center";
+          videoEl.style.transition = "transform 0.12s cubic-bezier(0.16, 1, 0.3, 1)";
+        }
+
+        // Apply hardware zoom if supported by camera driver
+        if (videoTrack) {
+          try {
+            const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+            if (capabilities.zoom) {
+              const hwZoom = capabilities.zoom.min + (currentZoom - minZoom) / (maxZoom - minZoom) * (capabilities.zoom.max - capabilities.zoom.min);
+              videoTrack.applyConstraints({ advanced: [{ zoom: hwZoom }] }).catch(() => {});
+            }
+          } catch (e) {
+            // silent fallback to CSS zoom
+          }
+        }
+      };
+
+      // Reset zoom on camera start
+      updateZoomUI(1.0);
+
+      // Bind Pinch touch events on .pvt-qr-viewport-container
+      if (camView) {
+        camView.addEventListener("touchstart", (e) => {
+          if (e.touches.length === 2) {
+            initialPinchDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            initialZoomOnPinch = currentZoom;
+          }
+        }, { passive: true });
+
+        camView.addEventListener("touchmove", (e) => {
+          if (e.touches.length === 2 && initialPinchDist > 0) {
+            const currentDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            const scaleFactor = currentDist / initialPinchDist;
+            updateZoomUI(initialZoomOnPinch * scaleFactor);
+          }
+        }, { passive: true });
+
+        camView.addEventListener("touchend", (e) => {
+          if (e.touches.length < 2) {
+            initialPinchDist = 0;
+          }
+        }, { passive: true });
+
+        camView.addEventListener("wheel", (e) => {
+          if (isCamRunning) {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.2 : -0.2;
+            updateZoomUI(currentZoom + delta);
+          }
+        }, { passive: false });
+      }
+
+      // Bind quick zoom chips
+      document.querySelectorAll(".pvt-zoom-chip").forEach(chip => {
+        chip.onclick = (e) => {
+          e.stopPropagation();
+          const targetZoom = parseFloat(chip.dataset.zoom);
+          if (!isNaN(targetZoom)) updateZoomUI(targetZoom);
+        };
+      });
 
       // ตรวจสอบความสามารถของ Torch / Flashlight บนอุปกรณ์
       setTimeout(() => {
@@ -1535,6 +1738,218 @@ function loginByQr() {
   modalOverlay.classList.add("active");
   startCamera();
 }
+
+// 📖 หน้าต่างแสดงคู่มือวิธีแสดงบัตรพนักงานสำหรับสแกน (How-to Guide Modal)
+function showQrGuideModal() {
+  let guideModal = document.getElementById("pvtQrGuideModal");
+  if (!guideModal) {
+    guideModal = document.createElement("div");
+    guideModal.id = "pvtQrGuideModal";
+    guideModal.className = "pvt-guide-modal-overlay";
+    document.body.appendChild(guideModal);
+  }
+
+  const currentLang = typeof getGlobalLanguage === 'function' ? getGlobalLanguage() : (localStorage.getItem("preferred_lang") || "th");
+
+  const i18n = {
+    th: {
+      title: "วิธีแสดงบัตรพนักงานสำหรับสแกน",
+      subtitle: "คำแนะนำการสแกน QR Code & บาร์โค้ด ให้สำเร็จอย่างรวดเร็ว",
+      step1Title: "1. ถือบัตรตั้งตรงและขนานกับกล้อง",
+      step1Desc: "หันหน้าที่มี QR Code หรือบาร์โค้ดเข้าหาเลนส์กล้องโดยตรง ไม่เอียงบัตร",
+      step2Title: "2. รักษาระยะห่าง 15 - 20 ซม.",
+      step2Desc: "เว้นระยะบัตรให้อยู่กึ่งกลางกรอบสแกน ไม่ใกล้หรือไกลเกินไป",
+      step3Title: "3. ระวังแสงสะท้อนและเงามืด",
+      step3Desc: "หลีกเลี่ยงแสงสะท้อนบนซองพลาสติก สามารถเปิดไฟฉายช่วยส่องสว่างได้",
+      step4Title: "4. ถือนิ่งไว้ 1 - 2 วินาที",
+      step4Desc: "ถือบัตรรอนิ่งๆ ให้กล้องปรับโฟกัส ระบบจะส่งเสียงสัญญาณเมื่อสแกนผ่าน",
+      dosTitle: "ข้อควรทำ",
+      dosList: ["อยู่กึ่งกลางกรอบ", "ระยะห่าง 15-20 ซม.", "แสงสว่างพอเหมาะ"],
+      dontsTitle: "ข้อควรระวัง",
+      dontsList: ["ไม่ถือบัตรเอียง", "ไม่เอานิ้ว บัง QR Code", "ไม่สแกนในที่มืดเกินไป"],
+      btnGotIt: "เข้าใจแล้ว / เริ่มสแกนบัตร",
+      btnClose: "ปิดหน้าต่าง"
+    },
+    lo: {
+      title: "ວິທີສະແດງບັດພະນັກງານສຳລັບສະແກນ",
+      subtitle: "ຄຳແນະນຳການສະແກນ QR Code & ບາໂຄ້ດ ໃຫ້ສຳເລັດຢ່າງໄວວາ",
+      step1Title: "1. ຖືບັດຊື່ ແລະ ຂະໜານກັບກ້ອງ",
+      step1Desc: "ຫັນໜ້າທີ່ມີ QR Code ຫຼື ບາໂຄ້ດ ເຂົ້າຫາເລນກ້ອງໂດຍກົງ",
+      step2Title: "2. ຮັກສາໄລຍະຫ່າງ 15 - 20 ຊມ.",
+      step2Desc: "ວາງບັດໃຫ້ຢູ່ໃນກາງກອບສະແກນ ບໍ່ໃກ້ ຫຼື ໄກເກີນໄປ",
+      step3Title: "3. ລະວັງແສງສະທ້ອນ ແລະ ເງົາມືດ",
+      step3Desc: "ຫຼີກເວັ້ນແສງສະທ້ອນໃສ່ຊອງບັດ ສາມາດເປີດໄຟສາຍຊ່ວຍໄດ້",
+      step4Title: "4. ຖືນິ້ງໄວ້ 1 - 2 ວິນາທີ",
+      step4Desc: "ຖືບັດນິ້ງໆ ເພື່ອໃຫ້ກ້ອງປັບໂຟກັດ ມີສຽງສັນຍານເມື່ອສະແກນຜ່ານ",
+      dosTitle: "ຂໍ້ຄວນເຮັດ",
+      dosList: ["ຢູ່ໃນກາງກອບ", "ໄລຍະ 15-20 ຊມ.", "ແສງສະຫວ່າງພໍດີ"],
+      dontsTitle: "ຂໍ້ຄວນລະວັງ",
+      dontsList: ["ບໍ່ຖືບັດອຽງ", "ບໍ່ເອົານິ້ວ ບັງ QR Code", "ບໍ່ສະແກນໃນບ່ອນມືດ"],
+      btnGotIt: "ເຂົ້າໃຈແລ້ວ / ເລີ່ມສະແກນບັດ",
+      btnClose: "ປິດ"
+    },
+    my: {
+      title: "စကင်န်ဖတ်ရန် ဝန်ထမ်းကတ် ပြသနည်း",
+      subtitle: "QR Code & ဘားကုဒ် မြန်ဆန်စွာ စကင်န်ဖတ်နည်း လမ်းညွှန်",
+      step1Title: "၁။ ကတ်ကို တည့်တည့်နှင့် ကင်မရာရှေ့ ထားပါ",
+      step1Desc: "QR Code သို့မဟုတ် ဘားကုဒ်ပါသော ဘက်ကို ကင်မရာသို့ တိုက်ရိုက်ပြပါ",
+      step2Title: "၂။ ၁၅ - ၂၀ စင်တီမီတာ အကွာအဝေး ထားပါ",
+      step2Desc: "ကတ်ကို ဘောင်၏ အလယ်တွင် ထားပါ နီးလွန်း/ဝေးလွန်းခြင်း မရှိစေရ",
+      step3Title: "၃။ အလင်းပြန်ခြင်းမှ ရှောင်ကြဉ်ပါ",
+      step3Desc: "ကတ်အိတ်မှ အလင်းပြန်ခြင်းကို ရှောင်ပါ လိုအပ်ပါက ဓာတ်မီးဖွင့်ပါ",
+      step4Title: "၄။ ၁ - ၂ စက္ကန့် ငြိမ်ငြိမ်ထားပါ",
+      step4Desc: "ကင်မရာ ဖိုးကပ်စ်ချိန်ရန် ငြိမ်ငြိမ်ထားပါ အောင်မြင်ပါက အသံမြည်ပါမည်",
+      dosTitle: "ပြုလုပ်ရန်",
+      dosList: ["ဘောင်အလယ်တွင်ထားပါ", "၁၅-၂၀ စင်တီမီတာ အကွာ", "အလင်းရောင် လုံလောက်ပါစေ"],
+      dontsTitle: "ရှောင်ကြဉ်ရန်",
+      dontsList: ["ကတ်မစောင်းပါနှင့်", "လက်ချောင်းဖြင့် မကာပါနှင့်", "မှောင်လွန်းသောနေရာ မဖတ်ပါနှင့်"],
+      btnGotIt: "နားလည်ပါပြီ / စကင်န်စတင်ရန်",
+      btnClose: "ပိတ်ရန်"
+    }
+  }[currentLang] || {
+    title: "วิธีแสดงบัตรพนักงานสำหรับสแกน",
+    subtitle: "คำแนะนำการสแกน QR Code & บาร์โค้ด ให้สำเร็จอย่างรวดเร็ว",
+    step1Title: "1. ถือบัตรตั้งตรงและขนานกับกล้อง",
+    step1Desc: "หันหน้าที่มี QR Code หรือบาร์โค้ดเข้าหาเลนส์กล้องโดยตรง ไม่เอียงบัตร",
+    step2Title: "2. รักษาระยะห่าง 15 - 20 ซม.",
+    step2Desc: "เว้นระยะบัตรให้อยู่กึ่งกลางกรอบสแกน ไม่ใกล้หรือไกลเกินไป",
+    step3Title: "3. ระวังแสงสะท้อนและเงามืด",
+    step3Desc: "หลีกเลี่ยงแสงสะท้อนบนซองพลาสติก สามารถเปิดไฟฉายช่วยส่องสว่างได้",
+    step4Title: "4. ถือนิ่งไว้ 1 - 2 วินาที",
+    step4Desc: "ถือบัตรรอนิ่งๆ ให้กล้องปรับโฟกัส ระบบจะส่งเสียงสัญญาณเมื่อสแกนผ่าน",
+    dosTitle: "ข้อควรทำ",
+    dosList: ["อยู่กึ่งกลางกรอบ", "ระยะห่าง 15-20 ซม.", "แสงสว่างพอเหมาะ"],
+    dontsTitle: "ข้อควรระวัง",
+    dontsList: ["ไม่ถือบัตรเอียง", "ไม่เอานิ้ว บัง QR Code", "ไม่สแกนในที่มืดเกินไป"],
+    btnGotIt: "เข้าใจแล้ว / เริ่มสแกนบัตร",
+    btnClose: "ปิดหน้าต่าง"
+  };
+
+  guideModal.innerHTML = `
+    <div class="pvt-guide-modal-window" role="dialog" aria-modal="true" aria-labelledby="pvtGuideTitle">
+      <div class="pvt-guide-header">
+        <div class="pvt-guide-title-box">
+          <div class="pvt-guide-icon-badge">
+            <span class="material-symbols-outlined">badge</span>
+          </div>
+          <div>
+            <h3 id="pvtGuideTitle">${i18n.title}</h3>
+            <p>${i18n.subtitle}</p>
+          </div>
+        </div>
+        <button type="button" class="pvt-guide-close-btn" id="btnCloseQrGuide" title="${i18n.btnClose}">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="pvt-guide-body">
+        <!-- Step Grid (Icons + Text) -->
+        <div class="pvt-guide-steps-grid">
+          <div class="pvt-guide-step-card">
+            <div class="step-icon-box blue">
+              <span class="material-symbols-outlined">badge</span>
+            </div>
+            <div class="step-text-box">
+              <h4>${i18n.step1Title}</h4>
+              <p>${i18n.step1Desc}</p>
+            </div>
+          </div>
+
+          <div class="pvt-guide-step-card">
+            <div class="step-icon-box teal">
+              <span class="material-symbols-outlined">straighten</span>
+            </div>
+            <div class="step-text-box">
+              <h4>${i18n.step2Title}</h4>
+              <p>${i18n.step2Desc}</p>
+            </div>
+          </div>
+
+          <div class="pvt-guide-step-card">
+            <div class="step-icon-box amber">
+              <span class="material-symbols-outlined">light_mode</span>
+            </div>
+            <div class="step-text-box">
+              <h4>${i18n.step3Title}</h4>
+              <p>${i18n.step3Desc}</p>
+            </div>
+          </div>
+
+          <div class="pvt-guide-step-card">
+            <div class="step-icon-box green">
+              <span class="material-symbols-outlined">center_focus_strong</span>
+            </div>
+            <div class="step-text-box">
+              <h4>${i18n.step4Title}</h4>
+              <p>${i18n.step4Desc}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Do's & Don'ts Comparison Section -->
+        <div class="pvt-guide-dos-donts">
+          <div class="guide-dos-box">
+            <div class="guide-box-header green">
+              <span class="material-symbols-outlined">check_circle</span>
+              <span>${i18n.dosTitle}</span>
+            </div>
+            <ul>
+              ${i18n.dosList.map(item => `<li><span class="bullet">✓</span> ${item}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div class="guide-donts-box">
+            <div class="guide-box-header red">
+              <span class="material-symbols-outlined">cancel</span>
+              <span>${i18n.dontsTitle}</span>
+            </div>
+            <ul>
+              ${i18n.dontsList.map(item => `<li><span class="bullet">✕</span> ${item}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="pvt-guide-footer">
+        <button type="button" class="pvt-guide-btn-primary" id="btnGotItQrGuide">
+          <span class="material-symbols-outlined">qr_code_scanner</span>
+          <span>${i18n.btnGotIt}</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Display modal smoothly
+  requestAnimationFrame(() => {
+    guideModal.classList.add("active");
+  });
+
+  const closeGuide = () => {
+    guideModal.classList.remove("active");
+    setTimeout(() => {
+      if (guideModal && guideModal.parentNode) {
+        guideModal.parentNode.removeChild(guideModal);
+      }
+    }, 250);
+  };
+
+  document.getElementById("btnCloseQrGuide")?.addEventListener("click", closeGuide);
+  document.getElementById("btnGotItQrGuide")?.addEventListener("click", () => {
+    closeGuide();
+    const qrModal = document.getElementById("pvtQrScannerModal");
+    if (!qrModal || qrModal.style.visibility === "hidden" || !qrModal.classList.contains("active")) {
+      loginByQr();
+    }
+  });
+
+  guideModal.addEventListener("click", (e) => {
+    if (e.target === guideModal) {
+      closeGuide();
+    }
+  });
+}
+
+window.showQrGuideModal = showQrGuideModal;
 
 window.togglePassword = function () {
   const input = document.getElementById("password");

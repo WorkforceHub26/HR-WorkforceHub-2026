@@ -304,17 +304,23 @@ body {
 }
 
 /* ================== ฟอร์มและช่องกรอกข้อมูล ================== */
+#loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 0;
   text-align: left;
 }
 
 .form-group label {
   display: block;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: #334155;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .input-wrapper {
@@ -325,23 +331,24 @@ body {
 
 .input-icon {
   position: absolute;
-  left: 14px;
+  left: 16px;
   color: #94a3b8;
-  font-size: 20px;
+  font-size: 22px;
   pointer-events: none;
   transition: color 0.2s ease;
 }
 
 .input-field {
   width: 100%;
-  height: 48px;
-  padding: 0 16px 0 44px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 14.5px;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 16px 0 48px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  font-size: 16px;
   font-family: inherit;
   background: #ffffff;
-  color: #1e293b;
+  color: #0f172a;
   box-sizing: border-box;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -350,7 +357,7 @@ body {
   outline: none;
   border-color: #0d9488;
   background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.14);
 }
 
 .input-wrapper:focus-within .input-icon {
@@ -359,36 +366,77 @@ body {
 
 /* ================== กล่องรหัสผ่าน & ปุ่มดูรหัส ================== */
 .password-wrapper .input-field {
-  padding-right: 46px;
+  padding-right: 50px;
 }
 
 .toggle-password {
   position: absolute;
-  right: 14px;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #94a3b8;
   cursor: pointer;
   user-select: none;
-  font-size: 20px;
+  font-size: 22px;
+  border-radius: 10px;
   transition: all 0.2s ease;
 }
 
 .toggle-password:hover {
   color: #0d9488;
-  transform: scale(1.1);
+  background-color: rgba(13, 148, 136, 0.08);
 }
 
 .toggle-password:active {
-  transform: scale(0.9);
+  transform: translateY(-50%) scale(0.92);
+}
+
+/* ================== จดจำรหัสผ่าน (Remember Me) ================== */
+.remember-group {
+  margin-top: -2px;
+  margin-bottom: 2px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: 0;
+  min-height: 44px;
+  padding: 4px 0;
+  user-select: none;
+}
+
+.remember-checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  accent-color: #0d9488;
+  cursor: pointer;
+  border-radius: 4px;
 }
 
 /* ================== ปุ่มกดเข้าสู่ระบบ (Login Button) ================== */
 .login-btn {
   width: 100%;
-  height: 48px;
-  margin-top: 10px;
+  height: 52px;
+  min-height: 52px;
+  margin-top: 8px;
   border: none;
-  border-radius: 12px;
-  font-size: 15.5px;
+  border-radius: 14px;
+  font-size: 16px;
   font-family: inherit;
   font-weight: 600;
   color: #ffffff;
@@ -511,13 +559,131 @@ body {
   transform: translateY(0) scale(1);
 }
 
+/* ==========================================================================
+   ☠️ SKELETON LOADING STATES (For Login Inputs, Labels & Action Buttons)
+   ========================================================================== */
+.login-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  animation: fadeIn 0.25s ease forwards;
+}
+
+.login-skeleton.hidden {
+  display: none !important;
+}
+
+.skeleton-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.skeleton-line,
+.skeleton-box {
+  background: #e2e8f0;
+  background: linear-gradient(
+    90deg,
+    #f1f5f9 0%,
+    #cbd5e1 35%,
+    #f8fafc 50%,
+    #cbd5e1 65%,
+    #f1f5f9 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite linear;
+  border-radius: 12px;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-label {
+  height: 14px;
+  border-radius: 6px;
+}
+
+.skeleton-input {
+  width: 100%;
+  height: 52px;
+  border-radius: 14px;
+}
+
+.skeleton-remember {
+  height: 20px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  border-radius: 6px;
+}
+
+.skeleton-btn {
+  width: 100%;
+  height: 52px;
+  border-radius: 14px;
+}
+
+.skeleton-btn-primary {
+  margin-top: 4px;
+  background: linear-gradient(
+    90deg,
+    #ccfbf1 0%,
+    #5eead4 35%,
+    #f0fdfa 50%,
+    #5eead4 65%,
+    #ccfbf1 100%
+  );
+  background-size: 200% 100%;
+}
+
+.skeleton-alt-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.skeleton-btn-secondary {
+  height: 48px;
+  border-radius: 14px;
+}
+
+/* Fade In / Fade Out Transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* ================== กล่องปุ่มทางเลือกเข้าสู่ระบบ (Alt Login Actions) ================== */
+.alt-login-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 2px;
+}
+
 /* ================== ปุ่มสแกน QR Code ================== */
 .qr-btn {
   width: 100%;
-  height: 46px;
-  margin-top: 10px;
+  height: 50px;
+  min-height: 50px;
+  margin-top: 0;
   border: 1.5px solid #0d9488;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #f0fdfa;
   color: #0f766e;
   font-size: 14.5px;
@@ -556,10 +722,11 @@ body {
 /* ================== ปุ่มสแกน Biometrics ================== */
 .biometric-btn {
   width: 100%;
-  height: 46px;
-  margin-top: 10px;
+  height: 50px;
+  min-height: 50px;
+  margin-top: 0;
   border: 1.5px solid #16a34a;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #f0fdf4;
   color: #15803d;
   font-size: 14.5px;
@@ -812,50 +979,140 @@ body {
 
 @media screen and (max-width: 640px) {
   body {
-    padding: 16px 12px 28px 12px;
+    padding: 16px 12px 24px 12px;
     align-items: center;
   }
 
   .login-container {
     max-width: 100%;
     margin: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .login-card {
-    padding: 24px 18px;
-    border-radius: 20px;
+    padding: clamp(20px, 4vh, 28px) clamp(16px, 4vw, 24px);
+    border-radius: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(12px, 2.5vh, 18px);
   }
 
   .brand-logo {
-    height: 68px;
+    height: clamp(56px, 9vh, 72px);
   }
 
   .brand-area h1 {
-    font-size: 22px;
+    font-size: clamp(20px, 4.5vw, 22px);
+  }
+
+  #loginForm {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(12px, 2vh, 16px);
+  }
+
+  .alt-login-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
   }
 
   .input-field {
     font-size: 16px !important;
-    height: 48px;
+    height: clamp(48px, 6vh, 52px);
+    min-height: 48px;
+    border-radius: 14px;
   }
 
-  .login-btn, .qr-btn {
-    height: 48px;
-    font-size: 15px;
+  .login-btn {
+    height: clamp(48px, 6.5vh, 52px);
+    min-height: 48px;
+    font-size: 16px;
+    border-radius: 14px;
+  }
+
+  .qr-btn, .biometric-btn {
+    height: clamp(44px, 5.5vh, 50px);
+    min-height: 44px;
+    font-size: 14.5px;
+    border-radius: 14px;
+    padding: 0 12px;
   }
 
   .instructions-container {
-    margin-top: 14px;
+    margin-top: 16px;
     width: 100%;
   }
 
   .instructions-toggle-btn {
     width: auto;
-    padding: 8px 18px;
+    padding: 10px 20px;
+    min-height: 44px;
   }
 
   .instructions-content {
     width: 100%;
+  }
+}
+
+/* 📐 Compact Viewport Height Optimization (Landscape & Small Mobile Screens) */
+@media screen and (max-height: 740px) {
+  body {
+    padding-top: 10px;
+    padding-bottom: 14px;
+  }
+
+  .brand-area {
+    margin-bottom: 10px;
+  }
+
+  .brand-logo {
+    height: clamp(44px, 8vh, 56px);
+  }
+
+  .brand-area h1 {
+    font-size: 19px;
+  }
+
+  .brand-area p {
+    font-size: 12px;
+  }
+
+  .login-card {
+    padding: clamp(16px, 3vh, 22px) clamp(14px, 4vw, 20px);
+    border-radius: 18px;
+  }
+
+  #loginForm {
+    gap: 10px;
+  }
+
+  .alt-login-group {
+    gap: 8px;
+  }
+
+  .form-group label {
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+
+  .input-field, .login-btn {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .qr-btn, .biometric-btn {
+    height: 42px;
+    min-height: 42px;
+    font-size: 13.5px;
+  }
+
+  .login-footer-info {
+    margin-top: 12px;
   }
 }
 
@@ -1024,6 +1281,190 @@ body {
   overflow: hidden;
   background: #020617;
   padding: 16px;
+  touch-action: none; /* Allow custom pinch-to-zoom gestures without scrolling window */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 🔍 Pinch-to-Zoom Visual Feedback Indicator Overlay */
+.pvt-qr-zoom-indicator {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  padding: 4px 6px 4px 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pvt-zoom-level-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #2dd4bf;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding-right: 4px;
+}
+
+.pvt-zoom-icon {
+  font-size: 18px;
+  color: #38bdf8;
+  transition: transform 0.2s ease;
+}
+
+.pvt-zoom-value {
+  color: #ffffff;
+  min-width: 32px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.pvt-zoom-quick-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 2px;
+}
+
+.pvt-zoom-chip {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.pvt-zoom-chip:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.pvt-zoom-chip.active {
+  background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.4);
+}
+
+/* Pulsing Feedback Animation when Zooming */
+.pvt-qr-zoom-indicator.zooming {
+  transform: scale(1.06);
+  border-color: #2dd4bf;
+  box-shadow: 0 0 18px rgba(45, 212, 191, 0.55);
+}
+
+.pvt-qr-zoom-indicator.zooming .pvt-zoom-icon {
+  transform: scale(1.25);
+  color: #34d399;
+}
+
+/* ==========================================================================
+   ⚡ QR CODE DETECTION INSTANT FEEDBACK (.pvt-qr-viewport-container)
+   ========================================================================== */
+
+/* Instant Detection Badge Overlay inside .pvt-qr-viewport-container */
+.pvt-qr-detect-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.94), rgba(2, 132, 199, 0.94));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(13, 148, 136, 0.5);
+  opacity: 0;
+  transform: translateY(-10px) scale(0.9);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pvt-qr-detect-badge.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.pvt-qr-detect-icon {
+  font-size: 20px;
+  color: #a7f3d0;
+  animation: detectIconSpin 0.6s ease-out;
+}
+
+.pvt-qr-detect-pulse-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 24px;
+  border: 2px solid #34d399;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pvt-qr-detect-badge.show .pvt-qr-detect-pulse-ring {
+  animation: detectPulseRing 0.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes detectIconSpin {
+  0% { transform: scale(0.5) rotate(-45deg); }
+  70% { transform: scale(1.25) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes detectPulseRing {
+  0% { transform: scale(0.95); opacity: 0.9; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+/* Container Highlight Effect when QR Code is Detected */
+.pvt-qr-viewport-container.qr-detected {
+  box-shadow: inset 0 0 60px rgba(16, 185, 129, 0.55), inset 0 0 20px rgba(52, 211, 153, 0.85);
+  transition: box-shadow 0.2s ease;
+}
+
+.pvt-qr-viewport-container.qr-detected .pvt-qr-reticle-box {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65), 0 0 30px rgba(52, 211, 153, 0.6);
+}
+
+.pvt-qr-viewport-container.qr-detected .pvt-qr-corner {
+  border-color: #34d399 !important;
+  box-shadow: 0 0 14px #34d399, inset 0 0 8px #34d399;
+  animation: cornerGlowPulse 0.4s ease-in-out infinite alternate;
+}
+
+.pvt-qr-viewport-container.qr-detected .pvt-qr-laser {
+  background: linear-gradient(90deg, transparent 0%, #34d399 20%, #a7f3d0 50%, #34d399 80%, transparent 100%) !important;
+  box-shadow: 0 0 24px 4px #34d399, 0 0 8px 2px #ffffff !important;
+  height: 5px;
+}
+
+@keyframes cornerGlowPulse {
+  0% { filter: brightness(1); }
+  100% { filter: brightness(1.4); }
 }
 
 #pvt-qr-video-host {
@@ -1403,4 +1844,334 @@ body {
   font-size: 12.5px;
   color: #64748b;
   margin: -6px 0 0 0;
+}
+
+/* ==========================================================================
+   📖 HOW-TO QR SCANNER GUIDE MODAL WINDOW
+   ========================================================================== */
+.pvt-guide-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.pvt-guide-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.pvt-guide-modal-window {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  transform: scale(0.95) translateY(12px);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pvt-guide-modal-overlay.active .pvt-guide-modal-window {
+  transform: scale(1) translateY(0);
+}
+
+/* Header */
+.pvt-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+
+.pvt-guide-title-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pvt-guide-icon-badge {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
+  background: #f0fdfa;
+  border: 1.5px solid #ccfbf1;
+  color: #0d9488;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.pvt-guide-title-box h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pvt-guide-title-box p {
+  margin: 2px 0 0 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.pvt-guide-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pvt-guide-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Body */
+.pvt-guide-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Step Grid */
+.pvt-guide-steps-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pvt-guide-step-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.pvt-guide-step-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.step-icon-box {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.step-icon-box.blue {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.step-icon-box.teal {
+  background: #f0fdfa;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
+}
+
+.step-icon-box.amber {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.step-icon-box.green {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.step-text-box h4 {
+  margin: 0 0 3px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.step-text-box p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+/* Do's & Don'ts */
+.pvt-guide-dos-donts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.guide-dos-box,
+.guide-donts-box {
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 12px;
+}
+
+.guide-dos-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.guide-donts-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.guide-box-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.guide-box-header.green {
+  color: #15803d;
+}
+
+.guide-box-header.red {
+  color: #b91c1c;
+}
+
+.guide-dos-box ul,
+.guide-donts-box ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guide-dos-box li,
+.guide-donts-box li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
+  font-size: 12px;
+}
+
+.guide-dos-box .bullet {
+  color: #16a34a;
+  font-weight: bold;
+}
+
+.guide-donts-box .bullet {
+  color: #dc2626;
+  font-weight: bold;
+}
+
+/* Footer */
+.pvt-guide-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+
+.pvt-guide-btn-primary {
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  transition: all 0.2s ease;
+}
+
+.pvt-guide-btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.pvt-guide-btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Trigger Link Button on Login Card */
+.qr-guide-link-btn {
+  background: transparent;
+  border: none;
+  color: #0d9488;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  margin-top: -2px;
+}
+
+.qr-guide-link-btn:hover {
+  background: rgba(13, 148, 136, 0.08);
+  color: #0f766e;
+}
+
+@media screen and (max-width: 640px) {
+  .pvt-guide-dos-donts {
+    grid-template-columns: 1fr;
+  }
+  .pvt-guide-header, .pvt-guide-body, .pvt-guide-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
 }

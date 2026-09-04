@@ -37,7 +37,7 @@ async function loadProfile() {
       ];
 
       for (const key of possibleKeys) {
-        const raw = localStorage.getItem(key) || localStorage.getItem(key);
+        const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
         if (raw) {
           try {
             const parsed = JSON.parse(raw);
@@ -48,6 +48,11 @@ async function loadProfile() {
           } catch (e) { /* ignore parse error */ }
         }
       }
+    }
+
+    if (currentUserData) {
+      window.currentEmpProfile = currentUserData;
+      window.currentUserProfile = currentUserData;
     }
 
     // ⛔ หากค้นหาจากทุกจุดแล้วไม่พบข้อมูลจริงใดๆ
@@ -496,9 +501,60 @@ async function loadRegisteredBiometrics() {
 }
 
 async function registerCurrentBiometricDevice() {
-  const emp = window.currentEmpProfile;
-  if (!emp || !emp.id) {
-    Swal.fire('ข้อผิดพลาด', 'กรุณารอให้ระบบโหลดโปรไฟล์เสร็จสิ้น', 'warning');
+  let sessionCheck = null;
+  if (window.PVTWebAuthn?.verifyActiveSession) {
+    try {
+      sessionCheck = await window.PVTWebAuthn.verifyActiveSession();
+    } catch (e) {}
+  }
+
+  let resolvedEmp = sessionCheck?.valid ? sessionCheck.employee : null;
+
+  if (!resolvedEmp) {
+    if (window.PVTWebAuthn?.resolveEmployeeObject) {
+      try {
+        resolvedEmp = await window.PVTWebAuthn.resolveEmployeeObject(window.currentEmpProfile);
+      } catch (e) {}
+    }
+  }
+
+  if (!resolvedEmp || (!resolvedEmp.id && !resolvedEmp.employee_code)) {
+    // กวาดหาข้อมูลจาก session/localStorage สำรอง
+    try {
+      const keys = ["currentUser", "pvt_user", "employee_session", "hr_session", "profile", "loggedInUser"];
+      for (const k of keys) {
+        const raw = localStorage.getItem(k) || sessionStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && (parsed.id || parsed.employee_id || parsed.employee_code)) {
+            resolvedEmp = {
+              id: parsed.id || parsed.employee_id || parsed.employee_code,
+              employee_id: parsed.id || parsed.employee_id || parsed.employee_code,
+              employee_code: parsed.employee_code || parsed.id,
+              full_name: parsed.full_name || parsed.emp_name || 'พนักงาน'
+            };
+            window.currentEmpProfile = parsed;
+            break;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (!resolvedEmp || (!resolvedEmp.id && !resolvedEmp.employee_code)) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'ไม่พบข้อมูลการเข้าสู่ระบบ',
+      text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้งก่อนลงทะเบียนอุปกรณ์ไบโอเมตริก',
+      confirmButtonText: 'ไปหน้าเข้าสู่ระบบ',
+      confirmButtonColor: '#0d9488',
+      showCancelButton: true,
+      cancelButtonText: 'ปิด'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        window.location.href = '/index.html';
+      }
+    });
     return;
   }
 
@@ -522,23 +578,18 @@ async function registerCurrentBiometricDevice() {
       }
     });
 
-    const result = await window.PVTWebAuthn.registerBiometricCredential({
-      employeeId: emp.id,
-      employeeCode: emp.employee_code,
-      fullName: emp.full_name,
-      deviceName: nickname
-    });
+    const result = await window.PVTWebAuthn.registerBiometricCredential(resolvedEmp, { deviceName: nickname });
 
-    if (result.success) {
+    if (result && (result.success || result.id || result.credential_id)) {
       Swal.fire({
         icon: 'success',
         title: 'ลงทะเบียนสำเร็จ!',
-        text: `ลงทะเบียนอุปกรณ์ "${nickname}" สำหรับคุณ ${emp.full_name} เรียบร้อยแล้ว`,
+        text: `ลงทะเบียนอุปกรณ์ "${nickname}" สำหรับคุณ ${resolvedEmp.full_name || ''} เรียบร้อยแล้ว`,
         confirmButtonColor: '#0d9488'
       });
       await loadRegisteredBiometrics();
     } else {
-      throw new Error(result.error || 'การยืนยันสิทธิล้มเหลว');
+      throw new Error(result?.error || 'การยืนยันสิทธิล้มเหลว');
     }
   } catch (err) {
     console.error("Register device failure:", err);

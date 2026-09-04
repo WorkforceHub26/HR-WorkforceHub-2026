@@ -923,6 +923,27 @@ function loginByQr() {
       <div id="pvtQrCamView" class="pvt-qr-viewport-container">
         <div id="pvt-qr-video-host"></div>
 
+        <!-- 🔍 Pinch-to-Zoom Visual Feedback Indicator Overlay -->
+        <div id="pvtQrZoomIndicator" class="pvt-qr-zoom-indicator" title="จีบนิ้วเพื่อย่อ/ขยายภาพ (Pinch to Zoom)">
+          <div class="pvt-zoom-level-badge">
+            <span class="material-symbols-outlined pvt-zoom-icon">zoom_in</span>
+            <span id="pvtZoomValText" class="pvt-zoom-value">1.0x</span>
+          </div>
+          <div class="pvt-zoom-quick-controls">
+            <button type="button" class="pvt-zoom-chip active" data-zoom="1">1x</button>
+            <button type="button" class="pvt-zoom-chip" data-zoom="1.5">1.5x</button>
+            <button type="button" class="pvt-zoom-chip" data-zoom="2">2x</button>
+            <button type="button" class="pvt-zoom-chip" data-zoom="2.5">2.5x</button>
+          </div>
+        </div>
+
+        <!-- ⚡ QR Code Detection Instant Visual Feedback Badge Overlay -->
+        <div id="pvtQrDetectBadge" class="pvt-qr-detect-badge">
+          <div class="pvt-qr-detect-pulse-ring"></div>
+          <span class="material-symbols-outlined pvt-qr-detect-icon">qr_code_scanner</span>
+          <span id="pvtQrDetectMsg">พบ QR Code แล้ว!</span>
+        </div>
+
         <!-- Scanner Reticle Frame -->
         <div id="pvtQrReticle" class="pvt-qr-reticle-box">
           <span class="pvt-qr-corner top-left"></span>
@@ -1101,20 +1122,25 @@ function loginByQr() {
     if (hasScannedSuccess) return;
     hasScannedSuccess = true;
 
-    // 1. ส่งเสียงแจ้งเตือน (Chime)
+    // ⚡ 1. Immediate visual detection highlight on .pvt-qr-viewport-container
+    if (camView) camView.classList.add("qr-detected");
+    const detectBadge = document.getElementById("pvtQrDetectBadge");
+    if (detectBadge) detectBadge.classList.add("show");
+
+    // 2. ส่งเสียงแจ้งเตือน (Chime)
     playBarcodeScanSuccessSound();
 
-    // 2. การสั่นแจ้งเตือน (Haptic)
+    // 3. การสั่นแจ้งเตือน (Haptic)
     if (navigator.vibrate) {
       try { navigator.vibrate([40, 30, 80]); } catch (e) {}
     }
 
-    // 3. แสดงผลตอบรับบน UI (Visual Feedback)
+    // 4. แสดงผลตอบรับบน UI (Visual Feedback)
     if (reticle) reticle.classList.add("scan-success");
     if (successOverlay) successOverlay.classList.add("show");
     if (guideMsg) guideMsg.textContent = i18n.guideSuccess;
 
-    // 4. หน่วงเวลาสั้นๆ เพื่อให้ผู้ใช้รับรู้ feedback ก่อนเปลี่ยนหน้า
+    // 5. หน่วงเวลาสั้นๆ เพื่อให้ผู้ใช้รับรู้ feedback ก่อนเปลี่ยนหน้า
     setTimeout(async () => {
       await closeModal();
       executeSecureQrLogin(decodedText);
@@ -1165,6 +1191,111 @@ function loginByQr() {
 
       isCamRunning = true;
       permCard.style.display = "none";
+
+      // 🔍 Pinch-to-Zoom Controller & Visual Feedback Logic for .pvt-qr-viewport-container
+      let currentZoom = 1.0;
+      const minZoom = 1.0;
+      const maxZoom = 3.0;
+      let initialPinchDist = 0;
+      let initialZoomOnPinch = 1.0;
+
+      const updateZoomUI = (zoomLevel) => {
+        currentZoom = Math.min(maxZoom, Math.max(minZoom, parseFloat(zoomLevel.toFixed(1))));
+        
+        const zoomValText = document.getElementById("pvtZoomValText");
+        if (zoomValText) zoomValText.textContent = `${currentZoom.toFixed(1)}x`;
+
+        // Highlight active zoom quick chip
+        document.querySelectorAll(".pvt-zoom-chip").forEach(chip => {
+          const chipVal = parseFloat(chip.dataset.zoom);
+          if (Math.abs(chipVal - currentZoom) < 0.25) {
+            chip.classList.add("active");
+          } else {
+            chip.classList.remove("active");
+          }
+        });
+
+        // Pulsing visual feedback on zoom indicator badge
+        const zoomIndicator = document.getElementById("pvtQrZoomIndicator");
+        if (zoomIndicator) {
+          zoomIndicator.classList.add("zooming");
+          clearTimeout(zoomIndicator._zoomTimer);
+          zoomIndicator._zoomTimer = setTimeout(() => {
+            zoomIndicator.classList.remove("zooming");
+          }, 350);
+        }
+
+        // Apply visual zoom via CSS transform scale on video track for universal device support
+        const videoEl = document.querySelector("#pvt-qr-video-host video");
+        if (videoEl) {
+          videoEl.style.transform = `scale(${currentZoom})`;
+          videoEl.style.transformOrigin = "center center";
+          videoEl.style.transition = "transform 0.12s cubic-bezier(0.16, 1, 0.3, 1)";
+        }
+
+        // Apply hardware zoom if supported by camera driver
+        if (videoTrack) {
+          try {
+            const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+            if (capabilities.zoom) {
+              const hwZoom = capabilities.zoom.min + (currentZoom - minZoom) / (maxZoom - minZoom) * (capabilities.zoom.max - capabilities.zoom.min);
+              videoTrack.applyConstraints({ advanced: [{ zoom: hwZoom }] }).catch(() => {});
+            }
+          } catch (e) {
+            // silent fallback to CSS zoom
+          }
+        }
+      };
+
+      // Reset zoom on camera start
+      updateZoomUI(1.0);
+
+      // Bind Pinch touch events on .pvt-qr-viewport-container
+      if (camView) {
+        camView.addEventListener("touchstart", (e) => {
+          if (e.touches.length === 2) {
+            initialPinchDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            initialZoomOnPinch = currentZoom;
+          }
+        }, { passive: true });
+
+        camView.addEventListener("touchmove", (e) => {
+          if (e.touches.length === 2 && initialPinchDist > 0) {
+            const currentDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            const scaleFactor = currentDist / initialPinchDist;
+            updateZoomUI(initialZoomOnPinch * scaleFactor);
+          }
+        }, { passive: true });
+
+        camView.addEventListener("touchend", (e) => {
+          if (e.touches.length < 2) {
+            initialPinchDist = 0;
+          }
+        }, { passive: true });
+
+        camView.addEventListener("wheel", (e) => {
+          if (isCamRunning) {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.2 : -0.2;
+            updateZoomUI(currentZoom + delta);
+          }
+        }, { passive: false });
+      }
+
+      // Bind quick zoom chips
+      document.querySelectorAll(".pvt-zoom-chip").forEach(chip => {
+        chip.onclick = (e) => {
+          e.stopPropagation();
+          const targetZoom = parseFloat(chip.dataset.zoom);
+          if (!isNaN(targetZoom)) updateZoomUI(targetZoom);
+        };
+      });
 
       // ตรวจสอบความสามารถของ Torch / Flashlight บนอุปกรณ์
       setTimeout(() => {

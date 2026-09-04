@@ -2029,6 +2029,15 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
     // ดึงข้อมูล Custom Fields สำหรับพนักงานรายนี้
     const customFieldsHTML = await renderCustomFieldsHTMLForEdit(supabase, emp.employee_code);
 
+    // แยกชื่อจริง และ นามสกุล จาก full_name หรือข้อมูลเดิม
+    let empFirstName = emp.first_name || '';
+    let empLastName = emp.last_name || '';
+    if (!empFirstName && !empLastName && emp.full_name) {
+      const nameParts = (emp.full_name || '').trim().split(/\s+/);
+      empFirstName = nameParts[0] || '';
+      empLastName = nameParts.slice(1).join(' ') || '';
+    }
+
     if (body) {
       body.innerHTML = `
         <form id="inlineEditForm" onsubmit="event.preventDefault(); saveEmployeeInlineEdit('${emp.id}');" style="display:flex; flex-direction:column; gap:16px; font-family:'Sarabun', sans-serif;">
@@ -2058,9 +2067,13 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                 ${(emp.role === 'executive' || emp.role === 'admin' || emp.title === 'คุณ') ? `<option value="คุณ" ${emp.title === 'คุณ' ? 'selected' : ''}>คุณ</option>` : ''}
               </select>
             </div>
-            <div style="grid-column: span 2;">
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อ-นามสกุลจริง *</label>
-              <input id="inline-edit-fullName" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.full_name || '')}" required>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อจริง *</label>
+              <input id="inline-edit-firstName" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(empFirstName)}" placeholder="ชื่อจริง" required>
+            </div>
+            <div>
+              <label style="font-size:13px; font-weight:600; color: #1e293b;">นามสกุล *</label>
+              <input id="inline-edit-lastName" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(empLastName)}" placeholder="นามสกุล" required>
             </div>
             <div>
               <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อเล่น</label>
@@ -2174,7 +2187,9 @@ async function saveEmployeeInlineEdit(employeeId) {
   if (!emp) return;
 
   const code = document.getElementById('inline-edit-code')?.value.trim();
-  const name = document.getElementById('inline-edit-fullName')?.value.trim();
+  const firstName = document.getElementById('inline-edit-firstName')?.value.trim() || '';
+  const lastName = document.getElementById('inline-edit-lastName')?.value.trim() || '';
+  const name = [firstName, lastName].filter(Boolean).join(' ').trim();
   const dept = document.getElementById('inline-edit-dept')?.value;
   const role = document.getElementById('inline-edit-role')?.value;
   const empType = document.getElementById('inline-edit-type')?.value;
@@ -2182,8 +2197,8 @@ async function saveEmployeeInlineEdit(employeeId) {
   const system_role = document.getElementById('inline-edit-system-role')?.value || 'user';
   const isExec = system_role === 'executive' || system_role === 'admin' || system_role === 'hr';
   
-  if (!code || !name) {
-    showAppError("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลรหัส และชื่อ");
+  if (!code || !firstName || !lastName) {
+    showAppError("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลรหัส ชื่อจริง และนามสกุลให้ครบถ้วน");
     return;
   }
   
@@ -2798,9 +2813,13 @@ window.addNewEmployee = async function addNewEmployee() {
               <option value="นางสาว">นางสาว</option>
             </select>
           </div>
-          <div style="grid-column: span 2;">
-            <label style="font-size:13px; font-weight:600;">ชื่อ-นามสกุลจริง *</label>
-            <input id="swal-fullName" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="นาย / นางสาว ...">
+          <div>
+            <label style="font-size:13px; font-weight:600;">ชื่อจริง *</label>
+            <input id="swal-firstName" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="ชื่อจริง">
+          </div>
+          <div>
+            <label style="font-size:13px; font-weight:600;">นามสกุล *</label>
+            <input id="swal-lastName" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="นามสกุล">
           </div>
           <div>
             <label style="font-size:13px; font-weight:600;">ชื่อเล่น</label>
@@ -2899,7 +2918,9 @@ window.addNewEmployee = async function addNewEmployee() {
       preConfirm: () => {
         const code = document.getElementById('swal-empCode').value.trim();
         const password = document.getElementById('swal-password').value.trim();
-        const name = document.getElementById('swal-fullName').value.trim();
+        const firstName = document.getElementById('swal-firstName')?.value.trim() || '';
+        const lastName = document.getElementById('swal-lastName')?.value.trim() || '';
+        const name = [firstName, lastName].filter(Boolean).join(' ').trim();
         const dept = document.getElementById('swal-dept').value;
         const role = document.getElementById('swal-role').value;
         const system_role = document.getElementById('swal-system-role')?.value || 'user';
@@ -2909,8 +2930,8 @@ window.addNewEmployee = async function addNewEmployee() {
         const imageFile = document.getElementById('empImage').files[0];
 
         // Basic Check
-        if (!code || !password || !name) {
-          Swal.showValidationMessage('⚠️ กรุณากรอกข้อมูลรหัส, รหัสผ่าน และชื่อ');
+        if (!code || !password || !firstName || !lastName) {
+          Swal.showValidationMessage('⚠️ กรุณากรอกข้อมูลรหัส, รหัสผ่าน, ชื่อจริง และนามสกุลให้ครบถ้วน');
           return false;
         }
 

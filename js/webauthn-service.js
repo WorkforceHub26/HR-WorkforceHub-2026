@@ -167,13 +167,192 @@
         || window.sb;
   }
 
+  // 🌐 Verify Active User Session from Supabase & Storage
+  async function verifyActiveSession() {
+    const sb = getSbClient();
+    let verifiedEmp = null;
+
+    // 1. Supabase Auth Session Verification
+    if (sb?.auth?.getSession) {
+      try {
+        const { data: sessionData, error: sessionErr } = await sb.auth.getSession();
+        if (!sessionErr && sessionData?.session?.user) {
+          const u = sessionData.session.user;
+          // Fetch employee record
+          const { data: empDb } = await sb.from('employees')
+            .select('id, employee_code, full_name, role, status, email, departments(department_name), positions(position_name)')
+            .or(`id.eq.${u.id},email.eq.${u.email}`)
+            .maybeSingle();
+
+          if (empDb && String(empDb.status || '').toLowerCase() !== 'inactive') {
+            verifiedEmp = {
+              id: empDb.id,
+              employee_id: empDb.id,
+              employee_code: empDb.employee_code || empDb.id,
+              full_name: empDb.full_name || 'พนักงาน',
+              role: empDb.role || 'user',
+              email: empDb.email || u.email,
+              source: 'supabase_auth'
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Notice: Supabase getSession verification attempt:', e);
+      }
+    }
+
+    // 2. Fallback to cached profile / window objects
+    if (!verifiedEmp) {
+      verifiedEmp = await resolveEmployeeObject();
+    }
+
+    if (!verifiedEmp || (!verifiedEmp.id && !verifiedEmp.employee_code)) {
+      return {
+        valid: false,
+        employee: null,
+        reason: 'ไม่พบเซสชันการเข้าสู่ระบบที่ถูกต้อง กรุณาเข้าสู่ระบบใหม่อีกครั้ง'
+      };
+    }
+
+    return {
+      valid: true,
+      employee: verifiedEmp,
+      reason: 'เซสชันถูกต้องพร้อมลงทะเบียน'
+    };
+  }
+
+  // 🌐 Helper: Resolve Employee Identity from all possible runtime sources
+  async function resolveEmployeeObject(employee) {
+    // 1. Direct input validation
+    if (employee && typeof employee === 'object') {
+      const inner = employee.employees || employee.user || employee.employee || employee;
+      const id = inner.id || inner.employee_id || inner.employeeId || inner.userId || inner.user_id;
+      const code = inner.employee_code || inner.employeeCode || inner.code;
+      const name = inner.full_name || inner.fullName || inner.emp_name || inner.displayName || inner.name;
+      if (id || code) {
+        return {
+          id: String(id || code),
+          employee_id: String(id || code),
+          employee_code: String(code || id),
+          full_name: String(name || 'พนักงาน')
+        };
+      }
+    } else if (typeof employee === 'string' && employee.trim()) {
+      return {
+        id: employee.trim(),
+        employee_id: employee.trim(),
+        employee_code: employee.trim(),
+        full_name: 'พนักงาน'
+      };
+    }
+
+    // 2. Global window objects
+    const winCandidates = [
+      window.currentEmpProfile,
+      window.currentUserProfile,
+      window.currentUser,
+      window.state?.currentUserProfile,
+      window.state?.currentUser
+    ];
+    for (const cand of winCandidates) {
+      if (cand && typeof cand === 'object') {
+        const inner = cand.employees || cand.user || cand;
+        const id = inner.id || inner.employee_id || inner.employeeId;
+        const code = inner.employee_code || inner.employeeCode || inner.code;
+        const name = inner.full_name || inner.fullName || inner.emp_name || inner.displayName;
+        if (id || code) {
+          return {
+            id: String(id || code),
+            employee_id: String(id || code),
+            employee_code: String(code || id),
+            full_name: String(name || 'พนักงาน')
+          };
+        }
+      }
+    }
+
+    // 3. Storage check
+    const storageKeys = [
+      'currentUser', 'pvt_user', 'user', 'profile', 'employee_session',
+      'hr_session', 'loggedInUser', 'currentUserId', 'currentEmp'
+    ];
+    for (const k of storageKeys) {
+      const raw = localStorage.getItem(k) || sessionStorage.getItem(k);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            const inner = parsed.employees || parsed.user || parsed;
+            const id = inner.id || inner.employee_id || inner.employeeId || inner.userId;
+            const code = inner.employee_code || inner.employeeCode || inner.code;
+            const name = inner.full_name || inner.fullName || inner.emp_name || inner.displayName;
+            if (id || code) {
+              return {
+                id: String(id || code),
+                employee_id: String(id || code),
+                employee_code: String(code || id),
+                full_name: String(name || 'พนักงาน')
+              };
+            }
+          } else if (typeof parsed === 'string' && parsed.trim() && !parsed.startsWith('{')) {
+            return {
+              id: parsed.trim(),
+              employee_id: parsed.trim(),
+              employee_code: parsed.trim(),
+              full_name: 'พนักงาน'
+            };
+          }
+        } catch (e) {}
+      }
+    }
+
+    // 4. Supabase Auth Session
+    const sb = getSbClient();
+    if (sb) {
+      try {
+        if (sb.auth?.getSession) {
+          const { data } = await sb.auth.getSession();
+          if (data?.session?.user) {
+            const u = data.session.user;
+            const { data: empDb } = await sb.from('employees')
+              .select('id, employee_code, full_name')
+              .or(`id.eq.${u.id},email.eq.${u.email}`)
+              .maybeSingle();
+            if (empDb) {
+              return {
+                id: String(empDb.id),
+                employee_id: String(empDb.id),
+                employee_code: String(empDb.employee_code || empDb.id),
+                full_name: String(empDb.full_name || 'พนักงาน')
+              };
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    return null;
+  }
+
   // --------------------------------------------------------------------------
   // 1️⃣ REGISTER WEBAUTHN CREDENTIAL (สร้างกุญแจสแกนลายนิ้วมือ/ใบหน้า)
   // --------------------------------------------------------------------------
   async function registerBiometricCredential(employee, options = {}) {
-    if (!employee || (!employee.id && !employee.employee_code)) {
-      throw new Error('ไม่พบข้อมูลพนักงานสำหรับลงทะเบียนไบโอเมตริก');
+    // 🔒 Phase 1: Verify Current Active User Session First
+    const sessionCheck = await verifyActiveSession();
+    let normalizedEmp = null;
+
+    if (sessionCheck.valid && sessionCheck.employee) {
+      normalizedEmp = sessionCheck.employee;
+    } else {
+      normalizedEmp = await resolveEmployeeObject(employee);
     }
+
+    if (!normalizedEmp || (!normalizedEmp.id && !normalizedEmp.employee_code)) {
+      throw new Error('ไม่พบข้อมูลเซสชันการเข้าสู่ระบบที่ถูกต้อง กรุณาเข้าสู่ระบบก่อนลงทะเบียนอุปกรณ์ไบโอเมตริก');
+    }
+
+    const deviceName = options.deviceName || employee?.deviceName || getAutoDeviceNickname();
 
     const check = await isBiometricAvailable();
     if (!check.supported) {
@@ -183,9 +362,8 @@
     const rpName = options.rpName || 'PVT Workforce Hub';
     const rpId = window.location.hostname || 'localhost';
     const challengeBuffer = generateRandomChallenge(32);
-    const userIdBuffer = stringToBuffer(employee.id || employee.employee_code);
+    const userIdBuffer = stringToBuffer(normalizedEmp.id || normalizedEmp.employee_code);
 
-    const deviceName = options.deviceName || getAutoDeviceNickname();
     const biometricInfo = detectBiometricTypeName();
 
     const publicKeyCredentialCreationOptions = {
@@ -196,8 +374,8 @@
       },
       user: {
         id: userIdBuffer,
-        name: employee.employee_code || employee.email || 'user',
-        displayName: employee.full_name || employee.employee_code || 'Employee'
+        name: normalizedEmp.employee_code || normalizedEmp.email || 'user',
+        displayName: normalizedEmp.full_name || normalizedEmp.employee_code || 'Employee'
       },
       pubKeyCredParams: [
         { alg: -7, type: 'public-key' },   // ES256 (ECDSA w/ SHA-256)
@@ -241,12 +419,13 @@
     const transports = credential.response.getTransports ? credential.response.getTransports() : ['internal'];
 
     const newCredRecord = {
+      success: true,
       id: credentialId,
       credential_id: credentialId,
       raw_id: rawIdBase64,
-      employee_id: employee.id,
-      employee_code: employee.employee_code,
-      employee_name: employee.full_name || employee.emp_name,
+      employee_id: normalizedEmp.id,
+      employee_code: normalizedEmp.employee_code,
+      employee_name: normalizedEmp.full_name,
       device_name: deviceName,
       biometric_type: biometricInfo.name,
       icon: biometricInfo.icon,
@@ -275,15 +454,15 @@
       console.warn('Notice: Server API webauthn save skipped or offline:', apiErr);
     }
 
-    // 3. Try persisting to Supabase if table exists
+    // 3. Persist to Supabase webauthn_credentials table
     const sb = getSbClient();
     if (sb) {
       try {
-        await sb.from('webauthn_credentials').upsert({
+        const { error: upsertErr } = await sb.from('webauthn_credentials').upsert({
           id: credentialId,
           credential_id: credentialId,
-          employee_id: employee.id,
-          employee_code: employee.employee_code,
+          employee_id: normalizedEmp.id,
+          employee_code: normalizedEmp.employee_code,
           device_name: deviceName,
           biometric_type: biometricInfo.name,
           transports: transports,
@@ -292,12 +471,15 @@
           last_used_at: null,
           status: 'active'
         });
+        if (upsertErr) {
+          console.warn('Notice: Supabase webauthn upsert detail:', upsertErr.message);
+        }
       } catch (sbErr) {
         console.warn('Notice: Supabase webauthn table upsert notice:', sbErr.message);
       }
     }
 
-    console.log('✅ [WebAuthn] Successfully registered biometric credential:', newCredRecord);
+    console.log('✅ [WebAuthn] Successfully registered biometric credential with Supabase:', newCredRecord);
     return newCredRecord;
   }
 
@@ -444,16 +626,22 @@
   // 3️⃣ CREDENTIAL MANAGEMENT & QUERIES
   // --------------------------------------------------------------------------
   async function listEmployeeCredentials(employeeId) {
+    let targetId = employeeId;
+    if (!targetId) {
+      const resolved = await resolveEmployeeObject();
+      targetId = resolved?.id || resolved?.employee_code;
+    }
+
     const localList = getLocalCredentials();
-    let empCreds = employeeId 
-      ? localList.filter(c => String(c.employee_id) === String(employeeId) || String(c.employee_code) === String(employeeId))
+    let empCreds = targetId 
+      ? localList.filter(c => String(c.employee_id) === String(targetId) || String(c.employee_code) === String(targetId))
       : localList;
 
     // Try fetching from server or Supabase to merge
     const sb = getSbClient();
-    if (sb && employeeId) {
+    if (sb && targetId) {
       try {
-        const { data, error } = await sb.from('webauthn_credentials').select('*').eq('employee_id', employeeId);
+        const { data, error } = await sb.from('webauthn_credentials').select('*').or(`employee_id.eq.${targetId},employee_code.eq.${targetId}`);
         if (!error && data && data.length > 0) {
           const mergedMap = new Map();
           data.forEach(item => mergedMap.set(item.credential_id || item.id, item));
@@ -498,6 +686,8 @@
     isBiometricAvailable,
     detectBiometricTypeName,
     getAutoDeviceNickname,
+    resolveEmployeeObject,
+    verifyActiveSession,
     registerBiometricCredential,
     authenticateBiometric,
     listEmployeeCredentials,
