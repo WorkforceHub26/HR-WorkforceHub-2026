@@ -1471,16 +1471,16 @@ div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employee
   }
 
   .topbar-right .action-btn:nth-of-type(1) {
-    grid-column: 1 / 2 !important;
-    grid-row: 2 / 3 !important;
-    width: 100% !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    flex: 1 1 auto !important;
     margin: 0 !important;
   }
 
   .topbar-right .action-btn:nth-of-type(2) {
-    grid-column: 2 / 3 !important;
-    grid-row: 2 / 3 !important;
-    width: 100% !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    flex: 1 1 auto !important;
     margin: 0 !important;
   }
 

@@ -1004,3 +1004,39 @@ p, span, div, td, th, label, .card-title, .badge {
   }
 }
 
+/* ==========================================================================
+   🛠️ TOPBAR HEADER & LANGUAGE SWITCHER OVERLAP PREVENTION
+   ========================================================================== */
+div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2),
+.topbar-right {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#globalLangSwitcherContainer:nth-of-type(1) > div:nth-of-type(1),
+#globalLangSwitcherContainer,
+#globalLangSwitcherContainer .lang-switcher {
+  position: relative !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  z-index: 10 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1),
+.topbar-right > button:nth-of-type(1),
+.topbar-right .action-btn {
+  position: relative !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  z-index: 5 !important;
+}
+

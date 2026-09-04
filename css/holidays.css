@@ -651,14 +651,15 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
 /* CSS selector 4: Topbar Right Container */
 div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2),
 .topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-  justify-content: flex-end;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
 }
 
-/* CSS selector 2: Global Language Switcher */
+/* CSS selector 1: Global Language Switcher Inner Container */
 div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#globalLangSwitcherContainer:nth-of-type(1) > div:nth-of-type(1),
 #globalLangSwitcherContainer .lang-switcher {
   display: inline-flex !important;
@@ -669,6 +670,22 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   border-radius: 9999px !important;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06) !important;
   border: 1px solid #cbd5e1 !important;
+  position: relative !important;
+  z-index: 10 !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+}
+
+/* CSS selector 2: Header Button 1 */
+div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1) {
+  position: relative !important;
+  z-index: 5 !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
 }
 
 #globalLangSwitcherContainer .lang-btn {
