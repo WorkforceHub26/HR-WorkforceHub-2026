@@ -110,7 +110,9 @@ const LANG_CONFIG = {
     edit: 'แก้ไข',
     delete: 'ลบ',
     btnEditHoliday: 'แก้ไขวันหยุด',
-    btnDeleteHoliday: 'ลบวันหยุด'
+    btnDeleteHoliday: 'ลบวันหยุด',
+    btnViewDate: 'ดูวันที่',
+    btnApprovalInfo: 'หน้าอนุมัติ / ข้อมูล'
   },
   lo: {
     monthsShort: ['ມ.ກ.', 'ກ.ພ.', 'ມ.ນ.', 'ມ.ສ.', 'ພ.ພ.', 'ມິ.ຖ.', 'ກ.ລ.', 'ສ.ຫ.', 'ກ.ຍ.', 'ຕ.ລ.', 'ພ.ຈ.', 'ທ.ວ.'],
@@ -150,7 +152,9 @@ const LANG_CONFIG = {
     edit: 'ແກ້ໄຂ',
     delete: 'ລຶບ',
     btnEditHoliday: 'ແກ້ໄຂວັນພັກ',
-    btnDeleteHoliday: 'ລຶບວັນພັກ'
+    btnDeleteHoliday: 'ລຶບວັນພັກ',
+    btnViewDate: 'ເບິ່ງວັນທີ',
+    btnApprovalInfo: 'ໜ້າອະນຸມັດ / ຂໍ້ມູນ'
   },
   my: {
     monthsShort: ['ဇန်', 'ဖေ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်', 'ဇူ', 'သြ', 'စက်', 'အောက်', 'နို', 'ဒီ'],
@@ -190,7 +194,9 @@ const LANG_CONFIG = {
     edit: 'ပြင်ဆင်ရန်',
     delete: 'ဖျက်ရန်',
     btnEditHoliday: 'ရုံးပိတ်ရက် ပြင်ဆင်ရန်',
-    btnDeleteHoliday: 'ရုံးပိတ်ရက် ဖျက်ရန်'
+    btnDeleteHoliday: 'ရုံးပိတ်ရက် ဖျက်ရန်',
+    btnViewDate: 'ရက်စွဲ ကြည့်ရန်',
+    btnApprovalInfo: 'အတည်ပြုချက် / အချက်အလက်'
   }
 };
 
@@ -944,15 +950,21 @@ window.addEventListener('resize', () => {
   }
 });
 
+let isLoadingTeamLeaves = false;
 window.loadTeamLeavesForCalendar = async function() {
   const grid = document.getElementById('teamCalGrid');
   const listContainer = document.getElementById('teamLeavesList');
   if (!currentUserProfile || !grid || !listContainer) return;
+  if (isLoadingTeamLeaves) return;
   
+  isLoadingTeamLeaves = true;
   const strings = getLangStrings();
   const month = teamCalCurrentDate.getMonth();
   const year = teamCalCurrentDate.getFullYear();
-  document.getElementById('teamCalMonthYear').innerText = `${strings.monthsFull[month]} ${strings.formatYear(year)}`;
+  const monthYearEl = document.getElementById('teamCalMonthYear');
+  if (monthYearEl) {
+    monthYearEl.innerText = `${strings.monthsFull[month]} ${strings.formatYear(year)}`;
+  }
   
   grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #64748b;"><span class="material-symbols-outlined spinning-icon" style="font-size: 32px;">sync</span></div>`;
   listContainer.innerHTML = `<div class="loading-state-box" style="text-align: center; padding: 40px; color: #64748b;"><span class="material-symbols-outlined spinning-icon" style="font-size: 24px;">sync</span></div>`;
@@ -994,6 +1006,8 @@ window.loadTeamLeavesForCalendar = async function() {
   } catch (err) {
     console.error('Error loading team leaves:', err);
     grid.innerHTML = `<div style="grid-column: 1 / -1; padding: 20px; color: #ef4444; text-align: center; background: #fee2e2; border-radius: 8px;">ไม่สามารถโหลดข้อมูลได้</div>`;
+  } finally {
+    isLoadingTeamLeaves = false;
   }
 };
 
@@ -1085,6 +1099,152 @@ window.filterTeamLeaves = function() {
   renderTeamLeavesSidebar(filtered);
 };
 
+window.focusTeamLeaveDate = function(dateStr, leaveId = null) {
+  if (!dateStr) return;
+  const parts = dateStr.split('-');
+  if (parts.length < 3) return;
+  
+  const targetYear = parseInt(parts[0], 10);
+  const targetMonth = parseInt(parts[1], 10) - 1;
+  const targetDay = parseInt(parts[2], 10);
+
+  const currentYear = teamCalCurrentDate.getFullYear();
+  const currentMonth = teamCalCurrentDate.getMonth();
+
+  const applyHighlight = () => {
+    setTimeout(() => {
+      const cells = document.querySelectorAll('#teamCalGrid .cal-day-cell:not(.other-month)');
+      let matchedCell = null;
+      cells.forEach(cell => {
+        cell.classList.remove('highlight-day-active');
+        cell.style.outline = 'none';
+        const numEl = cell.querySelector('.cal-day-number');
+        if (numEl && parseInt(numEl.innerText.trim(), 10) === targetDay) {
+          matchedCell = cell;
+        }
+      });
+
+      if (matchedCell) {
+        matchedCell.classList.add('highlight-day-active');
+        matchedCell.style.outline = '2px solid #0fa472';
+        matchedCell.style.outlineOffset = '-2px';
+        matchedCell.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+
+      // Filter sidebar for this day
+      if (teamLeavesData && teamLeavesData.length > 0) {
+        const dayLeaves = teamLeavesData.filter(l => l.start_date <= dateStr && l.end_date >= dateStr);
+        renderTeamLeavesSidebar(dayLeaves, dateStr);
+      }
+    }, 100);
+  };
+
+  if (currentYear !== targetYear || currentMonth !== targetMonth) {
+    teamCalCurrentDate = new Date(targetYear, targetMonth, 1);
+    if (typeof loadTeamLeavesForCalendar === 'function') {
+      loadTeamLeavesForCalendar().then(() => {
+        applyHighlight();
+      });
+    }
+  } else {
+    applyHighlight();
+  }
+};
+
+window.openLeaveApprovalOrDetail = function(leaveId) {
+  const leave = (teamLeavesData || []).find(l => String(l.id) === String(leaveId));
+  if (!leave) return;
+
+  const modal = document.getElementById('leaveDetailModalOverlay');
+  const body = document.getElementById('leaveDetailModalBody');
+  const btnFocus = document.getElementById('btnDetailFocusDate');
+  const btnApproval = document.getElementById('btnDetailGoApproval');
+  if (!modal || !body) return;
+
+  const strings = getLangStrings();
+  const empName = leave.employees?.full_name || '-';
+  const deptName = leave.employees?.departments?.department_name || '-';
+  const rawLeaveName = leave.leave_types?.leave_name || 'Leave';
+  const leaveName = typeof window.localizeCategory === 'function' ? window.localizeCategory(rawLeaveName) : rawLeaveName;
+  const startDate = formatLocalDateShort(leave.start_date);
+  const endDate = formatLocalDateShort(leave.end_date);
+  const dateDisplay = (leave.start_date === leave.end_date) ? startDate : `${startDate} - ${endDate}`;
+  const statusBg = leave.status === 'approved' ? '#dcfce7' : '#fef08a';
+  const statusColor = leave.status === 'approved' ? '#166534' : '#854d0e';
+  const statusText = leave.status === 'approved' ? strings.approved : strings.pending;
+  const reasonText = leave.reason || 'ไม่ได้ระบุเหตุผล';
+
+  let userRole = 'employee';
+  try {
+    const saved = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+    const u = saved ? JSON.parse(saved) : {};
+    userRole = String(currentUserProfile?.role || u?.role || u?.employees?.role || '').toLowerCase();
+  } catch(e){}
+
+  const isApprover = ['hr', 'admin', 'director', 'manager', 'leader', 'executive', 'owner'].includes(userRole);
+
+  body.innerHTML = `
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 700;">${empName}</h3>
+          <span style="font-size: 12px; color: #64748b;">แผนก: ${deptName}</span>
+        </div>
+        <span class="status-badge" style="background: ${statusBg}; color: ${statusColor}; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;">${statusText}</span>
+      </div>
+      
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+        <div>
+          <span style="color: #64748b; font-size: 11px; display: block;">ประเภทการลา</span>
+          <strong style="color: #0d9488;">${leaveName}</strong>
+        </div>
+        <div>
+          <span style="color: #64748b; font-size: 11px; display: block;">จำนวนวันลา</span>
+          <strong style="color: #0f172a;">${leave.total_days} ${strings.daysUnit}</strong>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 13px;">
+        <span style="color: #64748b; font-size: 11px; display: block;">ช่วงเวลาที่ลา</span>
+        <strong style="color: #0f172a; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+          <span class="material-symbols-outlined" style="font-size: 16px; color: #0d9488;">calendar_month</span> ${dateDisplay}
+        </strong>
+      </div>
+
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 13px;">
+        <span style="color: #64748b; font-size: 11px; display: block;">เหตุผลการลา</span>
+        <p style="margin: 4px 0 0 0; color: #334155; line-height: 1.4; background: #ffffff; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0;">${reasonText}</p>
+      </div>
+    </div>
+  `;
+
+  if (btnFocus) {
+    btnFocus.onclick = () => {
+      closeLeaveDetailModal();
+      focusTeamLeaveDate(leave.start_date, leave.id);
+    };
+  }
+
+  if (btnApproval) {
+    if (isApprover) {
+      btnApproval.href = `/pages/hr/hr.html?search=${encodeURIComponent(empName)}&tab=${leave.status === 'pending' ? 'pending' : 'history'}`;
+      btnApproval.innerHTML = `<span class="material-symbols-outlined" style="font-size: 16px;">fact_check</span> ไปหน้าตรวจใบลา / อนุมัติ`;
+      btnApproval.title = 'ไปยังหน้าระบบอนุมัติใบลา';
+    } else {
+      btnApproval.href = `/pages/user/leave-history.html`;
+      btnApproval.innerHTML = `<span class="material-symbols-outlined" style="font-size: 16px;">history</span> ดูประวัติการลา`;
+      btnApproval.title = 'ดูประวัติการลาของคุณ';
+    }
+  }
+
+  modal.style.display = 'flex';
+};
+
+window.closeLeaveDetailModal = function() {
+  const modal = document.getElementById('leaveDetailModalOverlay');
+  if (modal) modal.style.display = 'none';
+};
+
 window.renderTeamLeavesSidebar = function(data, specificDay = null) {
   const container = document.getElementById('teamLeavesList');
   const title = document.getElementById('teamSummaryTitle');
@@ -1132,14 +1292,22 @@ window.renderTeamLeavesSidebar = function(data, specificDay = null) {
     const statusText = leave.status === 'approved' ? strings.approved : strings.pending;
     
     html += `
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <h4 style="margin: 0; font-size: 14px; color: #0f172a; line-height: 1.4;">${empName}</h4>
-          <span class="status-badge" data-raw-status="${leave.status}" style="background: ${statusBg}; color: ${statusColor}; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; margin-left: 8px;">${statusText}</span>
+      <div class="team-leave-item-card" onclick="window.focusTeamLeaveDate('${leave.start_date}', '${leave.id}')">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+          <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #0f172a; line-height: 1.4;">${empName}</h4>
+          <span class="status-badge" data-raw-status="${leave.status}" style="background: ${statusBg}; color: ${statusColor}; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">${statusText}</span>
         </div>
         <div style="font-size: 12px; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">event</span>${dateDisplay} (${leave.total_days} ${strings.daysUnit})</span>
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">category</span><span class="leave-type-title" data-raw-cat="${rawLeaveName}">${leaveName}</span></span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; color: #0fa472;">event</span><strong>${dateDisplay}</strong> (${leave.total_days} ${strings.daysUnit})</span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; color: #0284c7;">category</span><span class="leave-type-title" data-raw-cat="${rawLeaveName}">${leaveName}</span></span>
+        </div>
+        <div class="team-leave-actions-row" onclick="event.stopPropagation()">
+          <button type="button" class="btn-leave-action btn-action-primary" onclick="window.focusTeamLeaveDate('${leave.start_date}', '${leave.id}')" title="ดูตำแหน่งวันที่บนปฏิทิน">
+            <span class="material-symbols-outlined" style="font-size: 14px;">calendar_today</span> ${strings.btnViewDate || 'ดูวันที่'}
+          </button>
+          <button type="button" class="btn-leave-action btn-action-approval" onclick="window.openLeaveApprovalOrDetail('${leave.id}')" title="ดูรายละเอียดหรือไปหน้าอนุมัติ">
+            <span class="material-symbols-outlined" style="font-size: 14px;">fact_check</span> ${strings.btnApprovalInfo || 'หน้าอนุมัติ / ข้อมูล'}
+          </button>
         </div>
       </div>
     `;
@@ -1364,7 +1532,19 @@ window.addEventListener("pvt-lang-changed", () => {
   filterHolidays();
   
   const teamWrapper = document.getElementById('teamLeavesWrapper');
-  if (teamWrapper && teamWrapper.style.display !== 'none' && typeof window.loadTeamLeavesForCalendar === "function") {
-    window.loadTeamLeavesForCalendar();
+  if (teamWrapper && teamWrapper.style.display !== 'none') {
+    const month = teamCalCurrentDate.getMonth();
+    const year = teamCalCurrentDate.getFullYear();
+    const strings = getLangStrings();
+    const monthYearEl = document.getElementById('teamCalMonthYear');
+    if (monthYearEl) {
+      monthYearEl.innerText = `${strings.monthsFull[month]} ${strings.formatYear(year)}`;
+    }
+    if (teamLeavesData && teamLeavesData.length > 0) {
+      renderTeamCalendarGrid(year, month, teamLeavesData);
+      renderTeamLeavesSidebar(teamLeavesData);
+    } else if (typeof window.loadTeamLeavesForCalendar === "function") {
+      window.loadTeamLeavesForCalendar();
+    }
   }
 });

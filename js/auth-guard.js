@@ -614,131 +614,642 @@ async function executeSecureQrLogin(scannedData) {
   }
 }
 
-// เปิดกล้อง / เลือกรูปเพื่อสแกน QR
+// 🔊 Web Audio API: สังเคราะห์เสียงตอบรับเมื่อสแกนสำเร็จ (Harmonic Success Chime)
+function playBarcodeScanSuccessSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    const now = ctx.currentTime;
+    
+    // Primary chime (Sine tone)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(784, now); // G5
+    osc1.frequency.exponentialRampToValueAtTime(1174.66, now + 0.08); // D6
+    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    // Harmonic sparkle (Triangle tone)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(1568, now + 0.03); // G6
+    gain2.gain.setValueAtTime(0.12, now + 0.03);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.03);
+    osc2.stop(now + 0.24);
+  } catch (e) {
+    console.warn("Audio chime feedback note:", e);
+  }
+}
+
+// 📱 ฟังก์ชันสแกน QR Code & Barcode แบบ Full-screen Mobile Modal UI พร้อมระบบตอบสนองครบวงจร
 function loginByQr() {
   let html5QrCode = null;
+  let isCamRunning = false;
+  let isTorchOn = false;
+  let currentFacingMode = "environment";
+  let activeTab = "cam"; // "cam" | "file"
+  let videoTrack = null;
 
-  Swal.fire({
-    title: '📱 สแกน QR Code เข้าสู่ระบบ',
-    html: `
-      <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 15px;">
-        <button id="btn-tab-cam" type="button" class="swal2-styled" style="background:#2563eb; margin:0; padding:8px 16px; border-radius:8px; font-size:14px; transition:0.2s;">
-          📷 เปิดกล้อง
-        </button>
-        <button id="btn-tab-file" type="button" class="swal2-styled" style="background:#4b5563; margin:0; padding:8px 16px; border-radius:8px; font-size:14px; transition:0.2s;">
-          🖼️ เลือกรูปภาพ
-        </button>
-      </div>
-
-      <div id="qr-cam-box" style="width: 100%; max-width: 320px; height: 260px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #111827; position: relative;">
-        <div id="qr-reader" style="width:100%; height:100%;"></div>
-      </div>
-
-      <div id="qr-file-box" style="display:none; width: 100%; max-width: 320px; margin: 0 auto; padding: 25px 15px; border: 2px dashed #9ca3af; border-radius: 12px; background: #f9fafb; text-align: center;">
-        <div style="font-size: 32px; margin-bottom: 8px;">📁</div>
-        <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 13px;">เลือกรูปภาพ QR Code จากคลังภาพในเครื่องของคุณ</p>
-        <input type="file" id="qr-file-input" accept="image/*" style="display:none;" />
-        <button type="button" onclick="document.getElementById('qr-file-input').click()" class="swal2-styled" style="background:#059669; color:#fff; margin:0; padding:8px 18px; border-radius:8px;">
-          อัปโหลดรูปภาพ
-        </button>
-      </div>
-    `,
-    showConfirmButton: false,
-    showCloseButton: true,
-    didOpen: () => {
-      html5QrCode = new Html5Qrcode("qr-reader");
-      let isCamRunning = false;
-
-      const btnCam = document.getElementById('btn-tab-cam');
-      const btnFile = document.getElementById('btn-tab-file');
-      const camBox = document.getElementById('qr-cam-box');
-      const fileBox = document.getElementById('qr-file-box');
-
-      const camStatus = window.SystemDiagnostics?.lastCameraResult;
-
-      const startCamera = async () => {
-        if (camStatus && !camStatus.isSupported) {
-          Swal.showValidationMessage ? Swal.showValidationMessage('⚠️ เบราว์เซอร์นี้ไม่รองรับการเปิดกล้องโดยตรง โปรดใช้ปุ่มเลือกรูปภาพ') : null;
-          return;
+  // ตรวจสอบและแทรก CSS หากยังไม่มีในหน้า
+  if (!document.getElementById("pvt-qr-scanner-dynamic-css")) {
+    const styleEl = document.createElement("style");
+    styleEl.id = "pvt-qr-scanner-dynamic-css";
+    styleEl.textContent = `
+      .pvt-qr-modal-overlay {
+        position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh;
+        background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 0;
+        opacity: 0; visibility: hidden; transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+        box-sizing: border-box;
+      }
+      .pvt-qr-modal-overlay.active { opacity: 1; visibility: visible; }
+      .pvt-qr-modal-window {
+        width: 100%; height: 100%; max-width: 100%; background: #0f172a;
+        display: flex; flex-direction: column; position: relative; overflow: hidden;
+        box-sizing: border-box; color: #f8fafc; font-family: inherit;
+      }
+      @media (min-width: 641px) {
+        .pvt-qr-modal-overlay { padding: 24px; }
+        .pvt-qr-modal-window {
+          max-width: 460px; height: auto; min-height: 600px; max-height: 92vh;
+          border-radius: 28px; border: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
+      }
+      .pvt-qr-header {
+        display: flex; align-items: center; justify-content: space-between; padding: 16px 20px;
+        background: rgba(15, 23, 42, 0.85); border-bottom: 1px solid rgba(255, 255, 255, 0.08); z-index: 10; flex-shrink: 0;
+      }
+      .pvt-qr-title-box { display: flex; align-items: center; gap: 10px; }
+      .pvt-qr-icon-badge {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        display: flex; align-items: center; justify-content: center; color: #ffffff;
+      }
+      .pvt-qr-title-box h3 { margin: 0; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 1.2; }
+      .pvt-qr-title-box span { font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
+      .pvt-qr-status-indicator {
+        display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+        background: #10b981; box-shadow: 0 0 8px #10b981; animation: pulseScanner 1.5s infinite;
+      }
+      .pvt-qr-header-actions { display: flex; align-items: center; gap: 8px; }
+      .pvt-qr-btn-circle {
+        width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #f8fafc; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+      }
+      .pvt-qr-btn-circle:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.05); }
+      .pvt-qr-btn-circle.active { background: #f59e0b; color: #0f172a; box-shadow: 0 0 16px rgba(245, 158, 11, 0.6); }
+      .pvt-qr-btn-circle.close-btn:hover { background: #ef4444; color: #ffffff; }
+      .pvt-qr-viewport-container {
+        flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        position: relative; overflow: hidden; background: #020617; padding: 16px;
+      }
+      #pvt-qr-video-host { width: 100%; height: 100%; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+      #pvt-qr-video-host video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+      .pvt-qr-reticle-box {
+        width: min(280px, 75vw); height: min(280px, 75vw); position: relative; z-index: 5;
+        box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.72); border-radius: 20px; pointer-events: none; transition: 0.3s;
+      }
+      .pvt-qr-corner { position: absolute; width: 26px; height: 26px; border-color: #10b981; border-style: solid; pointer-events: none; }
+      .pvt-qr-corner.top-left { top: 0; left: 0; border-width: 4px 0 0 4px; border-top-left-radius: 16px; }
+      .pvt-qr-corner.top-right { top: 0; right: 0; border-width: 4px 4px 0 0; border-top-right-radius: 16px; }
+      .pvt-qr-corner.bottom-left { bottom: 0; left: 0; border-width: 0 0 4px 4px; border-bottom-left-radius: 16px; }
+      .pvt-qr-corner.bottom-right { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-bottom-right-radius: 16px; }
+      .pvt-qr-laser {
+        position: absolute; left: 5%; right: 5%; height: 3px;
+        background: linear-gradient(90deg, transparent 0%, #10b981 30%, #34d399 50%, #10b981 70%, transparent 100%);
+        box-shadow: 0 0 14px 2px #10b981, 0 0 4px 1px #a7f3d0; border-radius: 9999px; animation: pvtLaserSweep 2.2s ease-in-out infinite alternate;
+      }
+      @keyframes pvtLaserSweep { 0% { top: 6%; opacity: 0.9; } 50% { opacity: 1; } 100% { top: 92%; opacity: 0.9; } }
+      @keyframes pulseScanner { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
+      .pvt-qr-guide-text {
+        position: relative; z-index: 6; margin-top: 24px; font-size: 13.5px; color: #e2e8f0;
+        text-align: center; background: rgba(15, 23, 42, 0.75); padding: 8px 18px; border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px;
+      }
+      .pvt-qr-success-overlay {
+        position: absolute; inset: 0; background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%);
+        display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; opacity: 0; pointer-events: none; transition: 0.25s;
+      }
+      .pvt-qr-success-overlay.show { opacity: 1; }
+      .pvt-qr-success-badge {
+        width: 72px; height: 72px; border-radius: 50%; background: #10b981; color: #ffffff;
+        display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(16, 185, 129, 0.8);
+        animation: pvtPopSuccess 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+      .pvt-qr-reticle-box.scan-success { box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 30px #10b981 !important; }
+      .pvt-qr-reticle-box.scan-success .pvt-qr-corner { border-color: #34d399 !important; transform: scale(1.08); }
+      .pvt-qr-reticle-box.scan-success .pvt-qr-laser { animation: none; opacity: 0; }
+      @keyframes pvtPopSuccess { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+      .pvt-qr-permission-card {
+        position: absolute; inset: 20px; margin: auto; max-width: 360px; height: max-content;
+        background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px;
+        padding: 24px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; z-index: 8;
+      }
+      .pvt-qr-permission-icon-box {
+        width: 56px; height: 56px; border-radius: 16px; background: rgba(13, 148, 136, 0.15);
+        border: 1px solid rgba(13, 148, 136, 0.3); color: #2dd4bf; display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+      }
+      .pvt-qr-permission-icon-box.error { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; }
+      .pvt-qr-permission-card h4 { margin: 0 0 6px 0; font-size: 16px; color: #ffffff; font-weight: 700; }
+      .pvt-qr-permission-card p { margin: 0 0 16px 0; font-size: 13px; color: #94a3b8; line-height: 1.5; }
+      .pvt-qr-permission-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+      .pvt-qr-btn-primary {
+        width: 100%; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        color: #ffffff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      }
+      .pvt-qr-btn-secondary {
+        width: 100%; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1; font-size: 13px; font-weight: 600; border: 1px solid rgba(255, 255, 255, 0.12); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      }
+      .pvt-qr-file-container { display: none; width: 100%; height: 100%; padding: 24px; box-sizing: border-box; flex-direction: column; align-items: center; justify-content: center; background: #020617; }
+      .pvt-qr-file-dropzone {
+        width: 100%; max-width: 360px; padding: 36px 20px; border: 2px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 20px; background: rgba(30, 41, 59, 0.6); display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer;
+      }
+      .pvt-qr-tabs-bar {
+        display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 18px;
+        background: rgba(15, 23, 42, 0.92); border-top: 1px solid rgba(255, 255, 255, 0.08); flex-shrink: 0; z-index: 10;
+      }
+      .pvt-qr-tab-btn {
+        flex: 1; max-width: 200px; padding: 10px 16px; border-radius: 12px; border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.06); color: #94a3b8; font-size: 13.5px; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;
+      }
+      .pvt-qr-tab-btn.active {
+        background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: #ffffff; border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
 
-        try {
-          await html5QrCode.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 200, height: 200 } },
-            (decodedText) => {
-              stopCamera().then(() => {
-                Swal.close();
-                executeSecureQrLogin(decodedText);
-              });
-            },
-            () => {}
-          );
-          isCamRunning = true;
-        } catch (err) {
-          console.error("Camera access error:", err);
-          // If camera failed, advise switching to file upload
-          if (btnFile) btnFile.click();
-        }
-      };
+  // ค้นหาหรือสร้าง DOM สำหรับ Modal แบบ Full-Screen
+  let modalOverlay = document.getElementById("pvtQrScannerModal");
+  if (!modalOverlay) {
+    modalOverlay = document.createElement("div");
+    modalOverlay.id = "pvtQrScannerModal";
+    modalOverlay.className = "pvt-qr-modal-overlay";
+    document.body.appendChild(modalOverlay);
+  }
 
-      const stopCamera = async () => {
+  // กำหนดภาษาสำหรับข้อความใน UI
+  const currentLang = typeof getGlobalLanguage === 'function' ? getGlobalLanguage() : (localStorage.getItem("preferred_lang") || "th");
+  const i18n = {
+    th: {
+      title: "สแกนบัตรพนักงาน",
+      subTitle: "QR Code & บาร์โค้ด",
+      guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
+      guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
+      guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
+      tabCam: "กล้องสด",
+      tabFile: "เลือกรูปภาพ",
+      reqPerm: "กำลังเปิดกล้องและขอสิทธิ์เข้าถึง...",
+      errCamTitle: "ไม่สามารถเปิดกล้องได้",
+      errCamDesc: "กรุณาอนุญาตการเข้าถึงกล้องในเบราว์เซอร์ หรือเลือกสแกนจากรูปภาพแทน",
+      btnRetry: "ลองใหม่อีกครั้ง",
+      btnSwitchFile: "เลือกรูปภาพแทน",
+      dropTitle: "เลือกไฟล์รูปภาพ QR Code / บาร์โค้ด",
+      dropDesc: "คลิกเพื่อเลือกไฟล์ หรือลากรูปภาพมาวางที่นี่",
+      btnChooseFile: "เลือกไฟล์รูปภาพ",
+      closeBtnTitle: "ปิดหน้าต่างสแกน",
+      torchBtnTitle: "เปิด/ปิด ไฟฉาย",
+      flipBtnTitle: "สลับกล้องหน้า/หลัง"
+    },
+    lo: {
+      title: "ສະແກນບັດພະນັກງານ",
+      subTitle: "QR Code & ບາໂຄ້ດ",
+      guideLive: "ວາງ QR ຫຼື ບາໂຄ້ດ ໃຫ້ຢູ່ໃນກອບ",
+      guideScanning: "ກຳລັງກວດສອບລະຫັດພະນັກງານ...",
+      guideSuccess: "ສະແກນສຳເລັດ! ກຳລັງຢືນຢັນຕົວຕົນ...",
+      tabCam: "ກ້ອງສົດ",
+      tabFile: "ເລືອກຮູບພາບ",
+      reqPerm: "ກຳລັງເປີດກ້ອງ ແລະ ຂໍສິດການເຂົ້າເຖິງ...",
+      errCamTitle: "ບໍ່ສາມາດເປີດກ້ອງໄດ້",
+      errCamDesc: "ກະລຸນາອະນຸຍາດສິດການໃຊ້ກ້ອງ ຫຼື ເລືອກຮູບພາບແທນ",
+      btnRetry: "ລອງໃໝ່ອີກຄັ້ງ",
+      btnSwitchFile: "ເລືອກຮູບພາບແທນ",
+      dropTitle: "ເລືອກໄຟລ໌ຮູບພາບ QR / ບາໂຄ້ດ",
+      dropDesc: "ຄລິກເພື່ອເລືອກໄຟລ໌ ຫຼື ລາກຮູບພາບມາວາງທີ່ນີ້",
+      btnChooseFile: "ເລືອກໄຟລ໌ຮູບ",
+      closeBtnTitle: "ປິດ",
+      torchBtnTitle: "ເປີດ/ປິດ ໄຟສາຍ",
+      flipBtnTitle: "ປ່ຽນກ້ອງໜ້າ/ຫຼັງ"
+    },
+    my: {
+      title: "ဝန်ထမ်းကတ် စကင်န်ဖတ်ရန်",
+      subTitle: "QR Code & ဘားကုဒ်",
+      guideLive: "QR သို့မဟုတ် ဘားကုဒ်ကို ဘောင်အတွင်း ထားပါ",
+      guideScanning: "ဝန်ထမ်းကုဒ်ကို စစ်ဆေးနေသည်...",
+      guideSuccess: "စကင်န်အောင်မြင်ပါသည်!",
+      tabCam: "ကင်မရာ",
+      tabFile: "ပုံရွေးပါ",
+      reqPerm: "ကင်မရာ ဖွင့်နေသည်...",
+      errCamTitle: "ကင်မရာ ဖွင့်၍မရပါ",
+      errCamDesc: "ကင်မရာခွင့်ပြုချက် ပေးပါ သို့မဟုတ် ပုံတင်ပါ",
+      btnRetry: "ပြန်လည်ကြိုးစားရန်",
+      btnSwitchFile: "ပုံရွေးချယ်ရန်",
+      dropTitle: "QR / ဘားကုဒ် ပုံရွေးပါ",
+      dropDesc: "ဖိုင်ရွေးရန် နှိပ်ပါ သို့မဟုတ် ဖိုင်ဆွဲထည့်ပါ",
+      btnChooseFile: "ဖိုင်ရွေးရန်",
+      closeBtnTitle: "ပိတ်ရန်",
+      torchBtnTitle: "ဓာတ်မီး ဖွင့်/ပိတ်",
+      flipBtnTitle: "ကင်မရာပြောင်းရန်"
+    }
+  }[currentLang] || {
+    title: "สแกนบัตรพนักงาน",
+    subTitle: "QR Code & บาร์โค้ด",
+    guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
+    guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
+    guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
+    tabCam: "กล้องสด",
+    tabFile: "เลือกรูปภาพ",
+    reqPerm: "กำลังเปิดกล้องและขอสิทธิ์เข้าถึง...",
+    errCamTitle: "ไม่สามารถเปิดกล้องได้",
+    errCamDesc: "กรุณาอนุญาตการเข้าถึงกล้องในเบราว์เซอร์ หรือเลือกสแกนจากรูปภาพแทน",
+    btnRetry: "ลองใหม่อีกครั้ง",
+    btnSwitchFile: "เลือกรูปภาพแทน",
+    dropTitle: "เลือกไฟล์รูปภาพ QR Code / บาร์โค้ด",
+    dropDesc: "คลิกเพื่อเลือกไฟล์ หรือลากรูปภาพมาวางที่นี่",
+    btnChooseFile: "เลือกไฟล์รูปภาพ",
+    closeBtnTitle: "ปิดหน้าต่างสแกน",
+    torchBtnTitle: "เปิด/ปิด ไฟฉาย",
+    flipBtnTitle: "สลับกล้องหน้า/หลัง"
+  };
+
+  // สร้างโครงสร้าง UI ของ Modal
+  modalOverlay.innerHTML = `
+    <div class="pvt-qr-modal-window" role="dialog" aria-modal="true">
+      <!-- 🔝 Header Bar -->
+      <div class="pvt-qr-header">
+        <div class="pvt-qr-title-box">
+          <div class="pvt-qr-icon-badge">
+            <span class="material-symbols-outlined" style="font-size: 22px;">qr_code_scanner</span>
+          </div>
+          <div>
+            <h3>${i18n.title}</h3>
+            <span><span class="pvt-qr-status-indicator"></span> ${i18n.subTitle}</span>
+          </div>
+        </div>
+        
+        <div class="pvt-qr-header-actions">
+          <button type="button" id="pvtQrBtnTorch" class="pvt-qr-btn-circle" title="${i18n.torchBtnTitle}" style="display: none;">
+            <span class="material-symbols-outlined" style="font-size: 20px;">flashlight_on</span>
+          </button>
+          <button type="button" id="pvtQrBtnFlip" class="pvt-qr-btn-circle" title="${i18n.flipBtnTitle}">
+            <span class="material-symbols-outlined" style="font-size: 20px;">flip_camera_ios</span>
+          </button>
+          <button type="button" id="pvtQrBtnClose" class="pvt-qr-btn-circle close-btn" title="${i18n.closeBtnTitle}">
+            <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 📷 Scanner Viewport / HUD Reticle -->
+      <div id="pvtQrCamView" class="pvt-qr-viewport-container">
+        <div id="pvt-qr-video-host"></div>
+
+        <!-- Scanner Reticle Frame -->
+        <div id="pvtQrReticle" class="pvt-qr-reticle-box">
+          <span class="pvt-qr-corner top-left"></span>
+          <span class="pvt-qr-corner top-right"></span>
+          <span class="pvt-qr-corner bottom-left"></span>
+          <span class="pvt-qr-corner bottom-right"></span>
+          <div id="pvtQrLaser" class="pvt-qr-laser"></div>
+        </div>
+
+        <!-- Guide Caption -->
+        <div id="pvtQrGuideText" class="pvt-qr-guide-text">
+          <span class="material-symbols-outlined" style="font-size: 16px; color: #34d399;">center_focus_strong</span>
+          <span id="pvtQrGuideMsg">${i18n.guideLive}</span>
+        </div>
+
+        <!-- Success Visual Feedback Overlay -->
+        <div id="pvtQrSuccessOverlay" class="pvt-qr-success-overlay">
+          <div class="pvt-qr-success-badge">
+            <span class="material-symbols-outlined" style="font-size: 40px;">check_circle</span>
+          </div>
+        </div>
+
+        <!-- Camera Permission & Loading State Card -->
+        <div id="pvtQrPermissionCard" class="pvt-qr-permission-card" style="display: none;">
+          <div id="pvtQrPermIconBox" class="pvt-qr-permission-icon-box">
+            <span id="pvtQrPermIcon" class="material-symbols-outlined" style="font-size: 28px;">photo_camera</span>
+          </div>
+          <h4 id="pvtQrPermTitle">${i18n.reqPerm}</h4>
+          <p id="pvtQrPermDesc">กรุณากด 'อนุญาต' เพื่อเข้าถึงกล้องและสแกนบัตร</p>
+          <div class="pvt-qr-permission-actions" id="pvtQrPermActions" style="display: none;">
+            <button type="button" id="pvtQrPermRetryBtn" class="pvt-qr-btn-primary">
+              <span class="material-symbols-outlined">refresh</span> ${i18n.btnRetry}
+            </button>
+            <button type="button" id="pvtQrPermFileBtn" class="pvt-qr-btn-secondary">
+              <span class="material-symbols-outlined">image</span> ${i18n.btnSwitchFile}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🖼️ File Upload View -->
+      <div id="pvtQrFileView" class="pvt-qr-file-container">
+        <div class="pvt-qr-file-dropzone" id="pvtQrDropzone">
+          <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(13, 148, 136, 0.15); border: 1px solid rgba(13, 148, 136, 0.3); color: #2dd4bf; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+            <span class="material-symbols-outlined" style="font-size: 32px;">add_photo_alternate</span>
+          </div>
+          <h4 style="margin: 0 0 6px 0; font-size: 16px; color: #ffffff;">${i18n.dropTitle}</h4>
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: #94a3b8; max-width: 260px;">${i18n.dropDesc}</p>
+          <input type="file" id="pvtQrFileInput" accept="image/*" style="display: none;" />
+          <button type="button" class="pvt-qr-btn-primary" onclick="document.getElementById('pvtQrFileInput').click()" style="width: auto; padding: 10px 24px;">
+            <span class="material-symbols-outlined">upload_file</span> ${i18n.btnChooseFile}
+          </button>
+        </div>
+      </div>
+
+      <!-- 🔘 Bottom Tab Segmented Bar -->
+      <div class="pvt-qr-tabs-bar">
+        <button type="button" id="pvtQrTabCam" class="pvt-qr-tab-btn active">
+          <span class="material-symbols-outlined" style="font-size: 18px;">videocam</span> ${i18n.tabCam}
+        </button>
+        <button type="button" id="pvtQrTabFile" class="pvt-qr-tab-btn">
+          <span class="material-symbols-outlined" style="font-size: 18px;">image</span> ${i18n.tabFile}
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Elements Binding
+  const btnClose = document.getElementById("pvtQrBtnClose");
+  const btnTorch = document.getElementById("pvtQrBtnTorch");
+  const btnFlip = document.getElementById("pvtQrBtnFlip");
+  const tabCam = document.getElementById("pvtQrTabCam");
+  const tabFile = document.getElementById("pvtQrTabFile");
+  const camView = document.getElementById("pvtQrCamView");
+  const fileView = document.getElementById("pvtQrFileView");
+  const fileInput = document.getElementById("pvtQrFileInput");
+  const dropzone = document.getElementById("pvtQrDropzone");
+  const permCard = document.getElementById("pvtQrPermissionCard");
+  const permIconBox = document.getElementById("pvtQrPermIconBox");
+  const permIcon = document.getElementById("pvtQrPermIcon");
+  const permTitle = document.getElementById("pvtQrPermTitle");
+  const permDesc = document.getElementById("pvtQrPermDesc");
+  const permActions = document.getElementById("pvtQrPermActions");
+  const permRetryBtn = document.getElementById("pvtQrPermRetryBtn");
+  const permFileBtn = document.getElementById("pvtQrPermFileBtn");
+  const reticle = document.getElementById("pvtQrReticle");
+  const successOverlay = document.getElementById("pvtQrSuccessOverlay");
+  const guideMsg = document.getElementById("pvtQrGuideMsg");
+
+  // 🚪 ปิด Modal และเคลียร์กล้องอย่างปลอดภัย
+  const closeModal = async () => {
+    document.removeEventListener("keydown", handleKeyDown);
+    if (html5QrCode) {
+      try {
         if (isCamRunning) {
           await html5QrCode.stop();
           isCamRunning = false;
         }
-      };
-
-      if (camStatus && !camStatus.isSupported) {
-        btnFile.style.background = '#2563eb';
-        btnCam.style.background = '#4b5563';
-        camBox.style.display = 'none';
-        fileBox.style.display = 'block';
-      } else {
-        startCamera();
-      }
-
-      btnCam.addEventListener('click', async () => {
-        btnCam.style.background = '#2563eb';
-        btnFile.style.background = '#4b5563';
-        fileBox.style.display = 'none';
-        camBox.style.display = 'block';
-        if (!isCamRunning) await startCamera();
-      });
-
-      btnFile.addEventListener('click', async () => {
-        btnFile.style.background = '#2563eb';
-        btnCam.style.background = '#4b5563';
-        camBox.style.display = 'none';
-        fileBox.style.display = 'block';
-        await stopCamera();
-      });
-
-      const fileInput = document.getElementById('qr-file-input');
-      fileInput.addEventListener('change', async (e) => {
-        if (e.target.files.length === 0) return;
-        const imageFile = e.target.files[0];
-
-        try {
-          const decodedText = await html5QrCode.scanFile(imageFile, true);
-          Swal.close();
-          executeSecureQrLogin(decodedText);
-        } catch (err) {
-          Swal.fire({
-            icon: 'error',
-            title: 'อ่าน QR Code ไม่สำเร็จ',
-            text: 'ไม่พบ QR Code ในรูปภาพนี้ กรุณาลองใชักล้องสแกนหรือเปลี่ยนรูปใหม่',
-            confirmButtonColor: '#ef4444'
-          });
-        }
-      });
-    },
-    willClose: () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(err => console.error(err));
+        html5QrCode.clear();
+      } catch (e) {
+        console.warn("QR cleanup error:", e);
       }
     }
-  });
+    videoTrack = null;
+    modalOverlay.classList.remove("active");
+    setTimeout(() => {
+      if (modalOverlay.parentElement) {
+        modalOverlay.innerHTML = "";
+      }
+    }, 300);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") closeModal();
+  };
+  document.addEventListener("keydown", handleKeyDown);
+
+  btnClose.onclick = closeModal;
+
+  // 🔦 สลับการใช้งานไฟฉาย (Torch)
+  btnTorch.onclick = async () => {
+    if (!videoTrack) return;
+    try {
+      isTorchOn = !isTorchOn;
+      await videoTrack.applyConstraints({
+        advanced: [{ torch: isTorchOn }]
+      });
+      btnTorch.classList.toggle("active", isTorchOn);
+      btnTorch.innerHTML = `<span class="material-symbols-outlined" style="font-size: 20px;">${isTorchOn ? 'flashlight_off' : 'flashlight_on'}</span>`;
+    } catch (err) {
+      console.warn("Torch toggle not supported:", err);
+    }
+  };
+
+  // 🔄 สลับกล้องหน้า / กล้องหลัง
+  btnFlip.onclick = async () => {
+    currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+    if (isCamRunning) {
+      try {
+        await html5QrCode.stop();
+        isCamRunning = false;
+      } catch (e) {}
+      await startCamera();
+    }
+  };
+
+  // 📑 การสลับแท็บ กล้องสด <-> เลือกรูปภาพ
+  tabCam.onclick = async () => {
+    if (activeTab === "cam") return;
+    activeTab = "cam";
+    tabCam.classList.add("active");
+    tabFile.classList.remove("active");
+    fileView.style.display = "none";
+    camView.style.display = "flex";
+    if (!isCamRunning) await startCamera();
+  };
+
+  tabFile.onclick = async () => {
+    if (activeTab === "file") return;
+    activeTab = "file";
+    tabFile.classList.add("active");
+    tabCam.classList.remove("active");
+    camView.style.display = "none";
+    fileView.style.display = "flex";
+    if (isCamRunning) {
+      try {
+        await html5QrCode.stop();
+        isCamRunning = false;
+      } catch (e) {}
+    }
+  };
+
+  // 🎯 Callback เมื่อสแกนพบ Barcode / QR Code สำเร็จ
+  let hasScannedSuccess = false;
+  const onScanSuccess = (decodedText) => {
+    if (hasScannedSuccess) return;
+    hasScannedSuccess = true;
+
+    // 1. ส่งเสียงแจ้งเตือน (Chime)
+    playBarcodeScanSuccessSound();
+
+    // 2. การสั่นแจ้งเตือน (Haptic)
+    if (navigator.vibrate) {
+      try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+    }
+
+    // 3. แสดงผลตอบรับบน UI (Visual Feedback)
+    if (reticle) reticle.classList.add("scan-success");
+    if (successOverlay) successOverlay.classList.add("show");
+    if (guideMsg) guideMsg.textContent = i18n.guideSuccess;
+
+    // 4. หน่วงเวลาสั้นๆ เพื่อให้ผู้ใช้รับรู้ feedback ก่อนเปลี่ยนหน้า
+    setTimeout(async () => {
+      await closeModal();
+      executeSecureQrLogin(decodedText);
+    }, 450);
+  };
+
+  // 📷 เริ่มการทำงานของกล้อง
+  const startCamera = async () => {
+    if (typeof Html5Qrcode === "undefined") {
+      console.error("Html5Qrcode library is missing");
+      showCameraError("ไม่พบไลบรารีสแกน QR Code", "กรุณารีเฟรชหน้าเว็บหรือใช้การล็อกอินด้วยรหัสผ่าน");
+      return;
+    }
+
+    const camStatus = window.SystemDiagnostics?.lastCameraResult;
+    if (camStatus && !camStatus.isSupported) {
+      showCameraError(i18n.errCamTitle, camStatus.reason || i18n.errCamDesc);
+      return;
+    }
+
+    permCard.style.display = "flex";
+    permIconBox.className = "pvt-qr-permission-icon-box";
+    permIcon.textContent = "photo_camera";
+    permTitle.textContent = i18n.reqPerm;
+    permDesc.textContent = "กรุณากด 'อนุญาต' เพื่อเข้าถึงกล้องและสแกนบัตร";
+    permActions.style.display = "none";
+
+    try {
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("pvt-qr-video-host");
+      }
+
+      const qrConfig = {
+        fps: 20,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const edge = Math.min(viewfinderWidth, viewfinderHeight) * 0.72;
+          return { width: Math.floor(edge), height: Math.floor(edge) };
+        },
+        aspectRatio: 1.0
+      };
+
+      await html5QrCode.start(
+        { facingMode: currentFacingMode },
+        qrConfig,
+        onScanSuccess,
+        () => {} // silent on frame pass
+      );
+
+      isCamRunning = true;
+      permCard.style.display = "none";
+
+      // ตรวจสอบความสามารถของ Torch / Flashlight บนอุปกรณ์
+      setTimeout(() => {
+        try {
+          const videoEl = document.querySelector("#pvt-qr-video-host video");
+          if (videoEl && videoEl.srcObject) {
+            const tracks = videoEl.srcObject.getVideoTracks();
+            if (tracks && tracks.length > 0) {
+              videoTrack = tracks[0];
+              const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+              if (capabilities.torch) {
+                btnTorch.style.display = "flex";
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Torch capability check:", e);
+        }
+      }, 500);
+
+    } catch (err) {
+      console.error("Camera access failed:", err);
+      showCameraError(i18n.errCamTitle, err.message || i18n.errCamDesc);
+    }
+  };
+
+  const showCameraError = (title, message) => {
+    permCard.style.display = "flex";
+    permIconBox.className = "pvt-qr-permission-icon-box error";
+    permIcon.textContent = "videocam_off";
+    permTitle.textContent = title;
+    permDesc.textContent = message;
+    permActions.style.display = "flex";
+  };
+
+  permRetryBtn.onclick = () => startCamera();
+  permFileBtn.onclick = () => tabFile.click();
+
+  // 📂 รองรับการอัปโหลดและ Drag & Drop รูปภาพ
+  fileInput.onchange = async (e) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    await processImageFile(file);
+  };
+
+  dropzone.ondragover = (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = "#10b981";
+  };
+  dropzone.ondragleave = () => {
+    dropzone.style.borderColor = "rgba(255, 255, 255, 0.2)";
+  };
+  dropzone.ondrop = async (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = "rgba(255, 255, 255, 0.2)";
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await processImageFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const processImageFile = async (file) => {
+    try {
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("pvt-qr-video-host");
+      }
+      const decodedText = await html5QrCode.scanFile(file, true);
+      playBarcodeScanSuccessSound();
+      if (navigator.vibrate) {
+        try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+      }
+      await closeModal();
+      executeSecureQrLogin(decodedText);
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'อ่าน QR / บาร์โค้ดไม่สำเร็จ',
+        text: 'ไม่พบ QR Code หรือบาร์โค้ดในรูปภาพนี้ กรุณาลองใช้กล้องสแกนสดหรือเลือกรูปใหม่อีกครั้ง',
+        confirmButtonColor: '#ef4444'
+      });
+    }
+  };
+
+  // แสดงผล Modal ด้วยแอนิเมชัน Fade-in
+  modalOverlay.classList.add("active");
+  startCamera();
 }
 
 /* ==========================================================================
@@ -971,13 +1482,17 @@ async function openChangePasswordModal(user) {
 // =========================================================================
 
 async function renderGlobalUserProfile() {
-  const sessionUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-  if (!sessionUser || !sessionUser.id) return;
+  let sessionUser = {};
+  try {
+    sessionUser = JSON.parse(localStorage.getItem("currentUser") || "{}") || {};
+  } catch (e) {
+    sessionUser = {};
+  }
   
-  let profileData = window.currentProfile || window.currentUserProfile || sessionUser;
+  let profileData = window.currentProfile || window.currentUserProfile || sessionUser || {};
   
   // พยายามดึงข้อมูลฉบับเต็มจาก DB ถ้าขาดรูปหรือแผนก
-  if (!profileData.image_url || !profileData.department_name) {
+  if (sessionUser && sessionUser.id && (!profileData.image_url || !profileData.department_name)) {
     const sb = getSbClient();
     if (sb) {
       try {
@@ -994,19 +1509,20 @@ async function renderGlobalUserProfile() {
     }
   }
 
-  const fullName = profileData.full_name || sessionUser.full_name || "ผู้ใช้งาน";
+  const fullName = profileData.full_name || sessionUser.full_name || "ผู้ดูแลระบบ";
   
   // ตำแหน่งและแผนก
-  let rawRole = (profileData.role || sessionUser.role || "user").toLowerCase();
-  let roleName = "พนักงาน";
-  if (rawRole === "admin" || rawRole === "hr") roleName = "ผู้ดูแลระบบ";
-  else if (rawRole === "manager") roleName = "ผู้จัดการฝ่าย";
-  else if (rawRole === "leader") roleName = "หัวหน้างาน";
-  else if (rawRole === "executive" || rawRole === "director" || rawRole === "owner") roleName = "ผู้บริหาร";
+  let rawRole = (profileData.role || sessionUser.role || "hr").toLowerCase();
+  let roleName = profileData.position_name || profileData.positions?.position_name;
+  if (!roleName) {
+    if (rawRole === "admin" || rawRole === "hr") roleName = "ผู้ดูแลระบบ";
+    else if (rawRole === "manager") roleName = "ผู้จัดการฝ่าย";
+    else if (rawRole === "leader") roleName = "หัวหน้างาน";
+    else if (rawRole === "executive" || rawRole === "director" || rawRole === "owner") roleName = "ผู้บริหาร";
+    else roleName = "เจ้าหน้าที่ HR";
+  }
 
-  let deptName = profileData.department_name || profileData.departments?.department_name || sessionUser.department_name || "PVT Group";
-  if (profileData.position_name) roleName = profileData.position_name;
-  else if (profileData.positions?.position_name) roleName = profileData.positions.position_name;
+  let deptName = profileData.department_name || profileData.departments?.department_name || sessionUser.department_name || "ฝ่ายทรัพยากรบุคคล";
   
   // ดึงรูปโปรไฟล์ (ถ้ามี)
   let avatarUrl = profileData.image_url || profileData.avatar_url || profileData.employees?.image_url || sessionUser.image_url || null;
@@ -2045,6 +2561,7 @@ window.getPVTTranslation = function(key) {
 
 // Global translation lock to prevent MutationObserver storms & race conditions
 window.__pvtIsTranslating = false;
+window.__lastBroadcastLang = null;
 
 // =========================================================================
 // 🌐 Real-Time Database Category & Dynamic Data String Mapping Engine
@@ -2416,11 +2933,12 @@ window.CANONICAL_PHRASE_MAP = window.CANONICAL_PHRASE_MAP || {
   "นาที": "unitMinutes", "ນາທີ": "unitMinutes", "မိနစ်": "unitMinutes"
 };
 
-window.setGlobalLanguage = function(lang, reload = false) {
+window.setGlobalLanguage = function(lang, reload = false, options = {}) {
   if (!window.globalAppTranslations[lang]) lang = "th";
   localStorage.setItem("pvt_login_lang", lang);
   localStorage.setItem("pvt_language", lang); // Keep in sync for compatibility
   
+  const isLanguageChanged = (window.__lastBroadcastLang !== lang);
   window.__pvtIsTranslating = true;
   const t = window.globalAppTranslations[lang] || window.globalAppTranslations.th;
 
@@ -2428,10 +2946,12 @@ window.setGlobalLanguage = function(lang, reload = false) {
     // 1. Highlight active buttons across switchers
     const allLangBtns = document.querySelectorAll("#langThBtn, #globalLangTh, #langLoBtn, #globalLangLo, #langMyBtn, #globalLangMy");
     allLangBtns.forEach(b => {
+      b.classList.remove("active");
       b.style.backgroundColor = "transparent";
       b.style.color = "#64748b";
       b.style.boxShadow = "none";
       b.style.fontWeight = "600";
+      b.style.borderRadius = "9999px";
     });
 
     const activeTh = document.querySelectorAll("#langThBtn, #globalLangTh");
@@ -2440,10 +2960,12 @@ window.setGlobalLanguage = function(lang, reload = false) {
 
     const targets = lang === 'th' ? activeTh : (lang === 'lo' ? activeLo : activeMy);
     targets.forEach(btn => {
+      btn.classList.add("active");
       btn.style.backgroundColor = "#ffffff";
       btn.style.color = "#0d9488";
       btn.style.boxShadow = "0 1px 3px rgba(0,0,0,0.12)";
       btn.style.fontWeight = "700";
+      btn.style.borderRadius = "9999px";
     });
 
     // 2. Translate Top Navigation & Back / Logout buttons
@@ -2841,9 +3363,17 @@ window.setGlobalLanguage = function(lang, reload = false) {
       }
 
       const companyCalH3 = document.querySelector("#companyCalendarLayout .team-calendar-main h3");
-      if (companyCalH3) companyCalH3.textContent = t.calMonthlyTitle;
+      if (companyCalH3) {
+        const textSpan = companyCalH3.querySelector(".cal-title-text");
+        if (textSpan) textSpan.textContent = t.calMonthlyTitle;
+        else companyCalH3.textContent = t.calMonthlyTitle;
+      }
       const teamCalH3 = document.querySelector("#teamCalendarLayout .team-calendar-main h3");
-      if (teamCalH3) teamCalH3.textContent = t.teamCalTitle;
+      if (teamCalH3) {
+        const textSpan = teamCalH3.querySelector(".cal-title-text");
+        if (textSpan) textSpan.textContent = t.teamCalTitle;
+        else teamCalH3.textContent = t.teamCalTitle;
+      }
 
       const dayHeaders = document.querySelectorAll(".calendar-days-header");
       dayHeaders.forEach(dh => {
@@ -2944,8 +3474,12 @@ window.setGlobalLanguage = function(lang, reload = false) {
       window.deepScanTranslateDynamicContent(document.body, lang);
     }
 
-    // 12. Broadcast event for custom JS controllers (holidays.js, leave-history.js, index-user.js, etc.)
-    window.dispatchEvent(new CustomEvent("pvt-lang-changed", { detail: { lang, t } }));
+    // 12. Broadcast event for custom JS controllers (ONLY if language actually changed or explicitly requested)
+    const shouldBroadcast = (isLanguageChanged || options.forceBroadcast === true) && !options.fromObserver;
+    if (shouldBroadcast) {
+      window.__lastBroadcastLang = lang;
+      window.dispatchEvent(new CustomEvent("pvt-lang-changed", { detail: { lang, t } }));
+    }
 
     // Re-scan after listeners execute (in case components re-rendered synchronously)
     if (typeof window.deepScanTranslateDynamicContent === "function") {
@@ -2981,9 +3515,9 @@ function injectGlobalLangSwitcher() {
   
   container.innerHTML = `
     <div class="lang-switcher" style="display: flex; gap: 2px; align-items: center; background: #f1f5f9; padding: 3px; border-radius: 9999px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); border: 1px solid #cbd5e1; z-index: 99; position: relative;">
-      <button type="button" id="globalLangTh" onclick="window.setGlobalLanguage('th')" style="background: transparent; border: none; padding: 4px 8px; border-radius: 9999px; cursor: pointer; font-size: 11px; font-weight: 600; color: #64748b; transition: all 0.25s;">🇹🇭 TH</button>
-      <button type="button" id="globalLangLo" onclick="window.setGlobalLanguage('lo')" style="background: transparent; border: none; padding: 4px 8px; border-radius: 9999px; cursor: pointer; font-size: 11px; font-weight: 600; color: #64748b; transition: all 0.25s;">🇱🇦 LO</button>
-      <button type="button" id="globalLangMy" onclick="window.setGlobalLanguage('my')" style="background: transparent; border: none; padding: 4px 8px; border-radius: 9999px; cursor: pointer; font-size: 11px; font-weight: 600; color: #64748b; transition: all 0.25s;">🇲🇲 MY</button>
+      <button type="button" class="lang-btn" id="globalLangTh" onclick="window.setGlobalLanguage('th', false, { forceBroadcast: true })" title="ภาษาไทย">TH</button>
+      <button type="button" class="lang-btn" id="globalLangLo" onclick="window.setGlobalLanguage('lo', false, { forceBroadcast: true })" title="ພາສາລາວ">LO</button>
+      <button type="button" class="lang-btn" id="globalLangMy" onclick="window.setGlobalLanguage('my', false, { forceBroadcast: true })" title="မြန်မာစာ">MY</button>
     </div>
   `;
 
@@ -3001,11 +3535,113 @@ function injectGlobalLangSwitcher() {
   }
   
   const savedLang = localStorage.getItem("pvt_login_lang") || 'th';
-  window.setGlobalLanguage(savedLang, false);
+  window.setGlobalLanguage(savedLang, false, { forceBroadcast: true });
+}
+
+// =========================================================================
+// 📱 GLOBAL MOBILE & DESKTOP SIDEBAR DRAWER CONTROLLER
+// =========================================================================
+window.toggleMobileSidebar = function(e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
+  if (!sidebar) return;
+
+  const isMobile = window.innerWidth <= 1024;
+  if (isMobile) {
+    const isOpening = !sidebar.classList.contains("mobile-open");
+    if (isOpening) {
+      window.openMobileSidebar();
+    } else {
+      window.closeMobileSidebar();
+    }
+  } else {
+    // Desktop Collapse / Expand Toggle
+    sidebar.classList.toggle("collapsed");
+    const mainContent = document.querySelector(".main-content");
+    if (mainContent) {
+      mainContent.classList.toggle("expanded");
+    }
+  }
+};
+
+window.openMobileSidebar = function() {
+  const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
+  if (!sidebar) return;
+
+  sidebar.classList.add("mobile-open");
+  document.body.classList.add("sidebar-open");
+
+  let backdrop = document.getElementById("mobileSidebarBackdrop");
+  if (!backdrop) {
+    backdrop = document.createElement("div");
+    backdrop.id = "mobileSidebarBackdrop";
+    backdrop.className = "mobile-sidebar-backdrop";
+    backdrop.onclick = window.closeMobileSidebar;
+    document.body.appendChild(backdrop);
+  }
+  // Force reflow and activate
+  void backdrop.offsetWidth;
+  backdrop.classList.add("active");
+
+  // Ensure close button exists in sidebar brand zone
+  const brandZone = sidebar.querySelector(".brand-zone");
+  if (brandZone && !brandZone.querySelector(".btn-close-sidebar")) {
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "btn-close-sidebar";
+    closeBtn.title = "ปิดเมนู";
+    closeBtn.innerHTML = '<span class="material-symbols-outlined" style="pointer-events: none;">close</span>';
+    closeBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      window.closeMobileSidebar();
+    };
+    brandZone.appendChild(closeBtn);
+  }
+};
+
+window.closeMobileSidebar = function() {
+  const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
+  if (sidebar) {
+    sidebar.classList.remove("mobile-open");
+  }
+  document.body.classList.remove("sidebar-open");
+
+  const backdrop = document.getElementById("mobileSidebarBackdrop") || document.querySelector(".mobile-sidebar-backdrop");
+  if (backdrop) {
+    backdrop.classList.remove("active");
+  }
+};
+
+function setupGlobalSidebarHandlers() {
+  document.querySelectorAll(".mobile-menu-btn, #mobileMenuBtn").forEach(btn => {
+    btn.removeEventListener("click", window.toggleMobileSidebar);
+    btn.addEventListener("click", window.toggleMobileSidebar);
+  });
+
+  const backdrop = document.getElementById("mobileSidebarBackdrop") || document.querySelector(".mobile-sidebar-backdrop");
+  if (backdrop) {
+    backdrop.removeEventListener("click", window.closeMobileSidebar);
+    backdrop.addEventListener("click", window.closeMobileSidebar);
+  }
+
+  document.querySelectorAll(".sidebar-light .nav-item, .sidebar .nav-item, aside .nav-item").forEach(item => {
+    item.addEventListener("click", () => {
+      if (window.innerWidth <= 1024) {
+        window.closeMobileSidebar();
+      }
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      window.closeMobileSidebar();
+    }
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   renderGlobalUserProfile();
+  setupGlobalSidebarHandlers();
   setTimeout(injectGlobalLangSwitcher, 150);
 
   // Set up MutationObserver to automatically translate newly added DOM elements safely
@@ -3017,7 +3653,18 @@ document.addEventListener("DOMContentLoaded", () => {
       if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            if (node.id === "globalLangSwitcherContainer" || node.classList.contains("lang-switcher")) continue;
+            if (
+              node.id === "globalLangSwitcherContainer" || 
+              node.classList.contains("lang-switcher") ||
+              node.classList.contains("cal-day-cell") ||
+              node.classList.contains("spinning-icon") ||
+              node.closest?.("#teamCalGrid") ||
+              node.closest?.("#companyCalGrid") ||
+              node.closest?.("#teamLeavesList") ||
+              node.closest?.("#companySummaryList")
+            ) {
+              continue;
+            }
             shouldTranslate = true;
             break;
           }
@@ -3031,9 +3678,9 @@ document.addEventListener("DOMContentLoaded", () => {
       mutationDebounceTimer = setTimeout(() => {
         if (!window.__pvtIsTranslating) {
           const currentLang = window.getGlobalLanguage();
-          window.setGlobalLanguage(currentLang, false);
+          window.setGlobalLanguage(currentLang, false, { fromObserver: true });
         }
-      }, 150);
+      }, 250);
     }
   });
 

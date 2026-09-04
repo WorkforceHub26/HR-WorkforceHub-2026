@@ -533,10 +533,32 @@ async function viewLoginAuditLogs() {
     } else if (window.PVTSDK?.loginAudit?.getLoginLogs) {
       logs = await window.PVTSDK.loginAudit.getLoginLogs(100);
     } else {
-      const res = await fetch('/api/login-logs?limit=100');
-      if (res.ok) {
-        const json = await res.json();
-        logs = json.data || [];
+      try {
+        const res = await fetch('/api/login-logs?limit=100');
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const json = await res.json();
+            logs = json.data || [];
+          }
+        }
+      } catch (fetchErr) {
+        console.warn('API login-logs fetch fallback:', fetchErr);
+      }
+
+      if ((!logs || logs.length === 0) && window.supabaseClient) {
+        try {
+          const { data, error } = await window.supabaseClient
+            .from('login_logs')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(100);
+          if (!error && Array.isArray(data)) {
+            logs = data;
+          }
+        } catch (sdkErr) {
+          console.warn('Supabase SDK login_logs fallback:', sdkErr);
+        }
       }
     }
 

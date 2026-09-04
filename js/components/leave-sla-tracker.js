@@ -282,7 +282,7 @@
             <div class="sla-tracker-title-text">
               <h3>
                 ระบบติดตามกรอบเวลาอนุมัติใบลา (2-Day SLA Countdown)
-                ${overdueCount > 0 ? `<span style="background: #ef4444; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 700;">เกินกำหนด ${overdueCount} รายการ</span>` : ''}
+                ${overdueCount > 0 ? `<span class="sla-overdue-badge" style="background: #ef4444; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 700; white-space: nowrap;">เกินกำหนด ${overdueCount} รายการ</span>` : ''}
               </h3>
               <p>นโยบายกำหนดให้หัวหน้า (L1) และผู้จัดการ (L2) พิจารณาอนุมัติภายใน 48 ชั่วโมง (2 วันทำการ)</p>
             </div>
@@ -316,13 +316,17 @@
               <span class="material-symbols-outlined">search</span>
               <input type="text" id="slaSearchInput" placeholder="ค้นหาชื่อพนักงาน, รหัส, แผนก, ประเภท..." value="${escapeHtml(currentSearch)}" oninput="window.handleSlaSearch(this.value)">
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <label for="slaSortSelect" style="font-size: 12.5px; color: #64748b; font-weight: 500;">เรียงตาม:</label>
               <select id="slaSortSelect" class="sla-sort-select" onchange="window.handleSlaSort(this.value)">
                 <option value="urgent_first" ${currentSort === 'urgent_first' ? 'selected' : ''}>⏳ ใกล้ครบกำหนดที่สุดก่อน</option>
                 <option value="newest" ${currentSort === 'newest' ? 'selected' : ''}>📅 ยื่นใหม่ล่าสุด</option>
                 <option value="oldest" ${currentSort === 'oldest' ? 'selected' : ''}>📜 ยื่นเก่าที่สุด</option>
               </select>
+              <button type="button" class="btn-sla-refresh" onclick="typeof window.loadPendingLeavesHR === 'function' ? window.loadPendingLeavesHR() : window.renderLeaveSlaTracker()" title="รีเฟรชข้อมูลคำขอลา">
+                <span class="material-symbols-outlined" style="font-size: 15px;">sync</span>
+                <span>รีเฟรช</span>
+              </button>
             </div>
           </div>
 
@@ -353,6 +357,8 @@
         const reason = req.reason || 'ไม่ได้ระบุเหตุผล';
 
         const displayName = emp.nickname ? `${emp.name} (${emp.nickname})` : emp.name;
+        const attachUrl = req.file_url || req.attachment_url || req.document_url || req.image_url || '';
+        const isImg = attachUrl && (/\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(attachUrl) || attachUrl.startsWith('data:image/'));
 
         // Circumference for SVG progress ring (radius = 18, circumference = 2 * PI * 18 = 113.1)
         const radius = 18;
@@ -452,15 +458,31 @@
               </span>
             </div>
 
-            <!-- 🔘 Action Buttons -->
+            <!-- 🔘 Action Buttons (พิจารณา, รายละเอียด, ปริ้น, ดูรูป) -->
             <div class="sla-actions-row">
-              <button type="button" class="btn-sla-action btn-sla-review" onclick="window.triggerSlaReview('${req.id}')" title="เปิดหน้าต่างพิจารณาอนุมัติใบลา">
-                <span class="material-symbols-outlined" style="font-size: 16px;">gavel</span>
-                พิจารณาอนุมัติ
+              <button type="button" class="btn-sla-action btn-sla-review" onclick="window.triggerSlaReview('${req.id}')" title="พิจารณาอนุมัติหรือไม่อนุมัติคำขอลา">
+                <span class="material-symbols-outlined" style="font-size: 15px;">gavel</span>
+                <span>พิจารณา</span>
               </button>
-              <button type="button" class="btn-sla-action btn-sla-preview" onclick="window.showSlaLeaveDetails('${req.id}')" title="ดูรายละเอียดแบบเต็ม">
-                <span class="material-symbols-outlined" style="font-size: 18px;">visibility</span>
+              <button type="button" class="btn-sla-action btn-sla-details" onclick="window.showSlaLeaveDetails('${req.id}')" title="ดูรายละเอียดใบลาฉบับเต็ม">
+                <span class="material-symbols-outlined" style="font-size: 15px;">visibility</span>
+                <span>รายละเอียด</span>
               </button>
+              <button type="button" class="btn-sla-action btn-sla-print" onclick="typeof window.printLeaveA4 === 'function' ? window.printLeaveA4('${req.id}') : (window.location.href='/pages/hr/hr.html?id=${req.id}&action=print')" title="พิมพ์ใบลา A4">
+                <span class="material-symbols-outlined" style="font-size: 15px;">print</span>
+                <span>ปริ้น</span>
+              </button>
+              ${attachUrl ? `
+                <button type="button" class="btn-sla-action btn-sla-image" onclick="${isImg ? `typeof window.openImageLightbox === 'function' ? window.openImageLightbox('${attachUrl}', 'หลักฐาน #${req.id}') : window.open('${attachUrl}', '_blank')` : `window.open('${attachUrl}', '_blank')`}" title="${isImg ? 'ดูรูปภาพหลักฐาน' : 'เปิดดูไฟล์แนบ'}">
+                  <span class="material-symbols-outlined" style="font-size: 15px;">${isImg ? 'image' : 'attach_file'}</span>
+                  <span>${isImg ? 'ดูรูป' : 'ไฟล์แนบ'}</span>
+                </button>
+              ` : `
+                <button type="button" class="btn-sla-action btn-sla-image btn-sla-image-disabled" disabled title="ไม่มีไฟล์หรือรูปภาพแนบ">
+                  <span class="material-symbols-outlined" style="font-size: 15px;">hide_image</span>
+                  <span>ไม่มีรูป</span>
+                </button>
+              `}
             </div>
           </div>
         `;
@@ -766,19 +788,19 @@
   window.triggerSlaReview = function(leaveId) {
     const existingHrModal = document.getElementById("leavePreviewModal");
     if (existingHrModal && typeof window.previewLeaveModal === 'function') {
-      window.previewLeaveModal(leaveId);
+      window.previewLeaveModal(leaveId, true);
       return;
     }
 
     if (window.location.pathname.includes('/pages/hr/hr.html')) {
       if (typeof window.previewLeaveModal === 'function') {
-        window.previewLeaveModal(leaveId);
+        window.previewLeaveModal(leaveId, true);
       } else {
         window.showSlaLeaveDetails(leaveId);
       }
     } else {
-      // หน้า home.html หรือหน้าอื่นๆ -> ส่งต่อไปยังหน้าตรวจใบลาพร้อม Focus รายการ
-      window.location.href = `/pages/hr/hr.html?id=${leaveId}`;
+      // หน้า home.html หรือหน้าอื่นๆ -> ส่งต่อไปยังหน้าตรวจใบลาพร้อมเปิดพิจารณา
+      window.location.href = `/pages/hr/hr.html?id=${leaveId}&action=review`;
     }
   };
 

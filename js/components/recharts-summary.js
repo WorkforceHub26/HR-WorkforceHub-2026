@@ -32,16 +32,51 @@
       const endDate = `${year}-${monthStr}-${String(daysInMonth).padStart(2, '0')}`;
 
       try {
-        // Fetch up to 500 login logs for the current month
-        const res = await fetch(`/api/login-logs?startDate=${startDate}&endDate=${endDate}&limit=500`);
-        if (!res.ok) {
-          throw new Error("ไม่สามารถเรียกดูข้อมูลประวัติการล็อกอินได้");
+        let logs = [];
+
+        // 1. Try server-side API first with safe JSON header verification
+        try {
+          const res = await fetch(`/api/login-logs?startDate=${startDate}&endDate=${endDate}&limit=500`);
+          if (res.ok) {
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+              const json = await res.json();
+              if (Array.isArray(json?.data)) {
+                logs = json.data;
+              }
+            }
+          }
+        } catch (apiErr) {
+          console.warn("Recharts server API fetch notice:", apiErr);
         }
-        const json = await res.json();
-        this.setState({ loginLogs: json.data || [], loading: false });
+
+        // 2. Client-side Supabase fallback if server API returned empty
+        if (logs.length === 0) {
+          try {
+            const client = window.supabaseClient || window.pvtSupabase?.client || window.pvtSupabase?.getClient?.();
+            if (client) {
+              const { data, error } = await client
+                .from('login_logs')
+                .select('*')
+                .gte('timestamp', `${startDate}T00:00:00.000Z`)
+                .lte('timestamp', `${endDate}T23:59:59.999Z`)
+                .order('timestamp', { ascending: false })
+                .limit(500);
+
+              if (!error && Array.isArray(data) && data.length > 0) {
+                logs = data;
+              }
+            }
+          } catch (sdkErr) {
+            console.warn("Recharts Supabase fallback notice:", sdkErr);
+          }
+        }
+
+        this.setState({ loginLogs: logs, loading: false });
       } catch (err) {
         console.error("Recharts logs fetch error:", err);
-        this.setState({ error: err.message, loading: false });
+        // Display chart with clean zero baselines rather than a broken screen
+        this.setState({ loginLogs: [], loading: false, error: null });
       }
     }
 
@@ -153,10 +188,14 @@
       },
         // Stat counters bar
         e('div', {
+          className: 'recharts-stats-bar',
           style: {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '16px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+            gap: '14px',
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
           }
         },
           e('div', {
@@ -168,7 +207,9 @@
               boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px'
+              gap: '12px',
+              minWidth: 0,
+              boxSizing: 'border-box'
             }
           },
             e('div', {
@@ -180,11 +221,12 @@
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
               }
             }, e('span', { className: 'material-symbols-outlined' }, 'login')),
-            e('div', null,
-              e('div', { style: { fontSize: '12px', color: '#64748b', fontWeight: 600 } }, 'ประวัติเข้าใช้งานในเดือนนี้'),
+            e('div', { style: { minWidth: 0 } },
+              e('div', { style: { fontSize: '12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, 'ประวัติเข้าใช้งานในเดือนนี้'),
               e('div', { style: { fontSize: '20px', fontWeight: 700, color: '#1e293b' } }, `${totalLogins} ครั้ง`),
               e('div', { style: { fontSize: '11px', color: '#10b981', marginTop: '2px' } }, `เฉลี่ย ${avgLogins} ครั้ง/วัน`)
             )
@@ -198,7 +240,9 @@
               boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px'
+              gap: '12px',
+              minWidth: 0,
+              boxSizing: 'border-box'
             }
           },
             e('div', {
@@ -210,11 +254,12 @@
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
               }
             }, e('span', { className: 'material-symbols-outlined' }, 'rate_review')),
-            e('div', null,
-              e('div', { style: { fontSize: '12px', color: '#64748b', fontWeight: 600 } }, `ใบลาสะสมเดือน ${currentMonthName}`),
+            e('div', { style: { minWidth: 0 } },
+              e('div', { style: { fontSize: '12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, `ใบลาสะสมเดือน ${currentMonthName}`),
               e('div', { style: { fontSize: '20px', fontWeight: 700, color: '#1e293b' } }, `${totalLeaves} ใบ`),
               e('div', { style: { fontSize: '11px', color: '#64748b', marginTop: '2px' } }, `จากคำขอทั้งหมดที่มีอยู่ในระบบ`)
             )
@@ -223,20 +268,30 @@
 
         // Grid charts container
         e('div', {
+          className: 'recharts-charts-grid',
           style: {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: '16px',
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
           }
         },
           // Login counts Area Chart
           e('div', {
+            className: 'recharts-chart-card',
             style: {
               background: '#ffffff',
               border: '1px solid #e2e8f0',
               borderRadius: '16px',
-              padding: '20px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+              padding: '18px 16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              minWidth: 0,
+              maxWidth: '100%',
+              width: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
             }
           },
             e('div', {
@@ -247,13 +302,14 @@
                 marginBottom: '16px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                minWidth: 0
               }
             },
-              e('span', { className: 'material-symbols-outlined', style: { color: '#0ea5e9', fontSize: '20px' } }, 'trending_up'),
-              e('span', null, 'สถิติจำนวนผู้ล็อกอินเข้าระบบรายวัน')
+              e('span', { className: 'material-symbols-outlined', style: { color: '#0ea5e9', fontSize: '20px', flexShrink: 0 } }, 'trending_up'),
+              e('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, 'สถิติจำนวนผู้ล็อกอินเข้าระบบรายวัน')
             ),
-            e('div', { style: { width: '100%', height: 260 } },
+            e('div', { style: { width: '100%', maxWidth: '100%', height: 260, minWidth: 0 } },
               e(ResponsiveContainer, { width: '100%', height: '100%' },
                 e(AreaChart, { data: chartData, margin: { top: 10, right: 10, left: -25, bottom: 0 } },
                   e('defs', null,
@@ -290,12 +346,18 @@
 
           // Leave requests trend Area Chart
           e('div', {
+            className: 'recharts-chart-card',
             style: {
               background: '#ffffff',
               border: '1px solid #e2e8f0',
               borderRadius: '16px',
-              padding: '20px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+              padding: '18px 16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              minWidth: 0,
+              maxWidth: '100%',
+              width: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
             }
           },
             e('div', {
@@ -306,13 +368,14 @@
                 marginBottom: '16px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                minWidth: 0
               }
             },
-              e('span', { className: 'material-symbols-outlined', style: { color: '#10b981', fontSize: '20px' } }, 'stacked_line_chart'),
-              e('span', null, 'แนวโน้มการยื่นคำขอลาประจำวัน')
+              e('span', { className: 'material-symbols-outlined', style: { color: '#10b981', fontSize: '20px', flexShrink: 0 } }, 'stacked_line_chart'),
+              e('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, 'แนวโน้มการยื่นคำขอลาประจำวัน')
             ),
-            e('div', { style: { width: '100%', height: 260 } },
+            e('div', { style: { width: '100%', maxWidth: '100%', height: 260, minWidth: 0 } },
               e(ResponsiveContainer, { width: '100%', height: '100%' },
                 e(AreaChart, { data: chartData, margin: { top: 10, right: 10, left: -25, bottom: 0 } },
                   e('defs', null,

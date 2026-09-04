@@ -13,6 +13,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1),
 .sla-tracker-header {
   padding: 16px 20px;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -69,6 +70,24 @@
   align-items: center;
   gap: 8px;
   letter-spacing: -0.01em;
+}
+
+div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > h3:nth-of-type(1) > span:nth-of-type(1),
+.sla-tracker-title-text h3 > span,
+.sla-overdue-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #ffffff;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4);
+  line-height: 1.2;
+  flex-shrink: 0;
 }
 
 .sla-tracker-title-text p {
@@ -526,50 +545,102 @@
 
 /* 🔘 Card Action Buttons */
 .sla-actions-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.9fr 0.9fr;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .btn-sla-action {
-  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 4px;
+  padding: 7px 8px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
+  white-space: nowrap;
 }
 
 .btn-sla-review {
   background: #0d9488;
   color: #ffffff;
+  border-color: #0f766e;
+  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
 }
 
 .btn-sla-review:hover {
   background: #0f766e;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
 }
 
-.btn-sla-preview {
+.btn-sla-details {
   background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
-  width: 36px;
-  padding: 0;
-  flex: none;
+  color: #334155;
+  border-color: #cbd5e1;
 }
 
-.btn-sla-preview:hover {
+.btn-sla-details:hover {
   background: #e2e8f0;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.btn-sla-print {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.btn-sla-print:hover {
+  background: #f1f5f9;
   color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+.btn-sla-image {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.btn-sla-image:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.btn-sla-image-disabled {
+  background: #f8fafc !important;
+  color: #94a3b8 !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
+/* 🔄 SLA Refresh Button */
+.btn-sla-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  color: #0d9488;
+  border: 1px solid #ccfbf1;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-sla-refresh:hover {
+  background: #f0fdfa;
+  border-color: #99f6e4;
 }
 
 /* 📭 Empty State inside SLA Tracker */
@@ -594,4 +665,173 @@
   justify-content: center;
   font-size: 28px;
   margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   📱 MOBILE RESPONSIVE ADAPTATIONS (768px and down)
+   Fix cramped lump layout in mobile phone view
+   ========================================================================== */
+@media screen and (max-width: 768px) {
+  div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1),
+  .sla-tracker-wrapper {
+    border-radius: 16px !important;
+    margin-bottom: 20px !important;
+    border: 1px solid #e2e8f0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Target Selector 2: Header Section */
+  div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1),
+  .sla-tracker-header {
+    padding: 14px 14px 16px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    border-radius: 15px 15px 0 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .sla-tracker-title-group {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .sla-tracker-icon-pulse {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 10px !important;
+    flex-shrink: 0 !important;
+    margin-top: 2px !important;
+  }
+
+  .sla-tracker-title-text {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .sla-tracker-title-text h3 {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px 8px !important;
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: #f8fafc !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+  }
+
+  /* Target Selector 1: Overdue Count Badge inside h3 */
+  div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > h3:nth-of-type(1) > span:nth-of-type(1),
+  .sla-tracker-title-text h3 > span,
+  .sla-overdue-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 3px 9px !important;
+    border-radius: 9999px !important;
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    white-space: nowrap !important;
+    box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4) !important;
+    line-height: 1.2 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sla-tracker-title-text p {
+    font-size: 11px !important;
+    color: #94a3b8 !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    word-break: break-word !important;
+  }
+
+  /* Metric Pills Bar -> Balanced 2x2 Grid */
+  .sla-tracker-metrics-bar {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-top: 2px !important;
+    box-sizing: border-box !important;
+  }
+
+  .sla-metric-pill {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 8px 6px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    min-height: 38px !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .sla-tracker-body {
+    padding: 14px 12px !important;
+  }
+
+  .sla-filter-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .sla-search-input-wrap {
+    max-width: 100% !important;
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .sla-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .sla-actions-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .btn-sla-action {
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1),
+  .sla-tracker-header {
+    padding: 12px 10px 14px 10px !important;
+    gap: 10px !important;
+  }
+
+  .sla-tracker-title-text h3 {
+    font-size: 13.5px !important;
+  }
+
+  .sla-tracker-metrics-bar {
+    gap: 6px !important;
+  }
+
+  .sla-metric-pill {
+    padding: 6px 4px !important;
+    font-size: 10px !important;
+    min-height: 36px !important;
+  }
 }

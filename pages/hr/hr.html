@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>ระบบพิจารณาอนุมัติใบลา | PVT HR Hub</title>
   
   <!-- Preconnect สำหรับ Google Fonts -->
@@ -162,8 +162,8 @@
       <!-- ⏱️ 2-DAY APPROVAL SLA COUNTDOWN TRACKER WIDGET -->
       <div id="leaveSlaTrackerContainer"></div>
 
-      <!-- PANEL ตารางข้อมูล -->
-      <section class="panel">
+      <!-- PANEL ตารางข้อมูล (ยุบซ่อนเมื่ออยู่ในแท็บ 'รออนุมัติ' และแสดงเมื่อเปลี่ยนไปแท็บยกเลิก/ประวัติ) -->
+      <section class="panel" id="leaveTablePanel" style="display: none;">
         <div class="panel-header">
           <div class="panel-header-title">
             <span class="material-symbols-outlined" id="sectionHeaderIcon">hourglass_top</span>

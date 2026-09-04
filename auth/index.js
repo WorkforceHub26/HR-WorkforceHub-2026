@@ -9,8 +9,83 @@ function getSbClient() {
       || window.supabase;
 }
 
+// ==========================================================================
+// 🛡️ User Role Categorization Engine (Self-contained for Login & Redirect)
+// ==========================================================================
+window.getUserRoleCategory = window.getUserRoleCategory || function(userSession) {
+  if (!userSession || (!userSession.id && !userSession.employee_code)) return { isAuth: false, category: 'guest' };
+
+  const emp = userSession.employees || userSession;
+  const role = String(userSession.role || emp.role || '').toLowerCase().trim();
+  const position = String(
+    userSession.position_name || 
+    userSession.position || 
+    userSession.positions?.position_name || 
+    emp.position_name || 
+    emp.positions?.position_name || ''
+  ).toLowerCase().trim();
+  const dept = String(
+    userSession.department_name || 
+    userSession.departments?.department_name || 
+    emp.department_name || 
+    emp.departments?.department_name || ''
+  ).toLowerCase().trim();
+  const deptId = String(userSession.department_id || emp.department_id || '');
+  const duty = String(userSession.duty_name || emp.duty_name || userSession.positions?.duty_name || emp.positions?.duty_name || '').toLowerCase().trim();
+  const code = String(userSession.employee_code || emp.employee_code || '').trim();
+
+  // 0. พนักงานบริการ / แม่บ้าน / พ่อบ้าน / คนสวน -> Employee
+  const isServiceStaff = position.includes('แม่บ้าน') || position.includes('พ่อบ้าน') || position.includes('คนสวน') ||
+                         duty.includes('แม่บ้าน') || duty.includes('พ่อบ้าน') || duty.includes('คนสวน');
+  if (isServiceStaff) {
+    return { isAuth: true, category: 'employee', role, position, dept };
+  }
+
+  // 1. HR และผู้บริหารระดับสูง -> เข้าถึงระบบบริหารจัดการทั้งหมด
+  const isHrOrExecutive = 
+    role === 'hr' || role === 'admin' || role === 'superadmin' || role === 'executive' || role === 'director' || role === 'owner' || role === 'hr_manager' ||
+    role.includes('hr') || role.includes('admin') || role.includes('superadmin') || role.includes('executive') || role.includes('director') || role.includes('owner') ||
+    role === 'ผู้บริหาร' || role === 'ผู้อำนวยการ' || role === 'เจ้าของ' || role.includes('บุคคล') ||
+    code === '19122' || code === '19128' || code === '10001' ||
+    dept.includes('บุคคล') || dept.includes('ธุรการ') || dept.includes('hr') || dept.includes('human') ||
+    position.includes('บุคคล') || position.includes('hr') || position.includes('ธุรการ') ||
+    duty.includes('บุคคล') || duty.includes('ธุรการ') || duty.includes('hr') ||
+    deptId === 'e494e865-689d-432b-9dd4-1ab32125105f' ||
+    position.includes('ผู้บริหาร') || position.includes('ผู้อำนวยการ') || position.includes('เจ้าของ') || position.includes('director') || position.includes('executive') || position.includes('owner');
+
+  if (isHrOrExecutive) {
+    return { isAuth: true, category: 'hr_exec', role, position, dept };
+  }
+
+  // 2. หัวหน้างาน / ผู้จัดการ
+  const isManagerOrLeader = 
+    role === 'manager' || role === 'leader' || role === 'supervisor' || role === 'head' ||
+    role.includes('manager') || role.includes('leader') || role.includes('supervisor') ||
+    role.includes('หัวหน้า') || role.includes('ผู้จัดการ') ||
+    position.includes('manager') || position.includes('leader') || position.includes('supervisor') ||
+    position.includes('หัวหน้า') || position.includes('ผู้จัดการ');
+
+  if (isManagerOrLeader) {
+    return { isAuth: true, category: 'leader_manager', role, position, dept };
+  }
+
+  // 3. พนักงานทั่วไป
+  return { isAuth: true, category: 'employee', role, position, dept };
+};
+
 // 🚀 1. ฟังก์ชันย้ายหน้าจอตามสิทธิ์การใช้งาน (Role Routing)
 function redirectToDashboard(role, userObj) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectUrl = urlParams.get("redirect");
+  if (redirectUrl) {
+    const decodedRedirect = decodeURIComponent(redirectUrl);
+    if (decodedRedirect.startsWith("/") && !decodedRedirect.startsWith("//")) {
+      sessionStorage.removeItem("redirect_attempt");
+      window.location.replace(decodedRedirect);
+      return;
+    }
+  }
+
   const cleanRole = String(role || '').toLowerCase().trim();
   let targetPath = "/pages/user/index-user.html";
   
@@ -37,6 +112,158 @@ function redirectToDashboard(role, userObj) {
   const targetUrl = new URL(targetPath, window.location.origin).href;
   window.location.replace(targetUrl);
 }
+
+/**
+ * ⚡ ตรวจสอบ Session และ Supabase Token อัตโนมัติ (Seamless Auto-Redirect)
+ * หากผู้ใช้มี Token / Session ที่ยังไม่หมดอายุ จะทำการข้ามหน้า Login และตรงเข้าสู่ Dashboard ทันที
+ */
+async function autoSessionCheckAndRedirect() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isLogoutRequested = urlParams.get("logout") === "true" || urlParams.get("logout") === "1" || urlParams.get("action") === "logout" || urlParams.get("logged_out") === "1";
+
+  // 1. กรณีผู้ใช้กดออกจากระบบอย่างชัดเจน (Explicit Logout)
+  if (isLogoutRequested) {
+    localStorage.removeItem("currentUser");
+    sessionStorage.removeItem("redirect_attempt");
+    try {
+      const sb = getSbClient();
+      if (sb?.auth?.signOut) {
+        sb.auth.signOut().catch(() => {});
+      }
+    } catch (e) {}
+    // ล้าง query string ?logout ออกจาก address bar ให้เรียบร้อย
+    if (window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    return false;
+  }
+
+  const hasRedirectAttempt = sessionStorage.getItem("redirect_attempt");
+
+  const showSessionVerifyingUI = (show) => {
+    const overlay = document.getElementById("sessionCheckOverlay");
+    const loginForm = document.getElementById("loginForm");
+    const qrOptions = document.querySelector(".qr-login-container");
+    const divider = document.querySelector(".divider");
+    const bioBtn = document.getElementById("biometricLoginBtn");
+
+    if (overlay) {
+      overlay.style.display = show ? "flex" : "none";
+    }
+    if (loginForm) {
+      loginForm.style.display = show ? "none" : "";
+    }
+    if (qrOptions) {
+      qrOptions.style.display = show ? "none" : "";
+    }
+    if (divider) {
+      divider.style.display = show ? "none" : "";
+    }
+    if (bioBtn && show) {
+      bioBtn.style.display = "none";
+    }
+  };
+
+  // 2. ⚡ Fast-Path A: ตรวจสอบ Session ใน localStorage ก่อน (เร็วที่สุด < 5ms)
+  try {
+    const rawSession = localStorage.getItem("currentUser");
+    if (rawSession && !hasRedirectAttempt) {
+      const session = JSON.parse(rawSession);
+      const isNotExpired = !session.expireAt || (Date.now() < session.expireAt);
+      const isStatusActive = String(session.status || "active").toLowerCase() === "active";
+
+      if (session && (session.id || session.employee_code) && isNotExpired && isStatusActive) {
+        showSessionVerifyingUI(true);
+        sessionStorage.setItem("redirect_attempt", "true");
+        
+        // ตรวจสอบความถูกต้องกับ Supabase เพิ่มเติมใน Background ถ้าออนไลน์
+        const sb = getSbClient();
+        if (sb && navigator.onLine) {
+          try {
+            const { data: dbUser } = await sb
+              .from('employees')
+              .select('id, employee_code, full_name, role, status, department_id, position_id, image_url, departments(department_name), positions(position_name, level_type, duty_name)')
+              .eq('id', session.id)
+              .maybeSingle();
+
+            if (dbUser) {
+              if (String(dbUser.status || "").toLowerCase() === "inactive") {
+                // บัญชีถูกระงับสิทธิ์
+                localStorage.removeItem("currentUser");
+                sessionStorage.removeItem("redirect_attempt");
+                showSessionVerifyingUI(false);
+                const i18n = getActiveLoginI18n();
+                showLoginValidationError(i18n.errInactive, { type: 'error' });
+                return false;
+              }
+              saveUserSession(dbUser);
+              redirectToDashboard(dbUser.role, dbUser);
+              return true;
+            }
+          } catch (verifyErr) {
+            console.warn("Background session verification warning:", verifyErr);
+          }
+        }
+
+        // หากออฟไลน์หรือ Fast path สมบูรณ์ นำทางทันที
+        redirectToDashboard(session.role, session);
+        return true;
+      } else if (!isStatusActive) {
+        localStorage.removeItem("currentUser");
+      }
+    }
+  } catch (err) {
+    console.warn("Fast-path session check error:", err);
+    localStorage.removeItem("currentUser");
+  }
+
+  // 3. ⚡ Fast-Path B: ตรวจสอบ Supabase Auth Session (Native Supabase Token)
+  try {
+    const sb = getSbClient();
+    if (sb?.auth?.getSession && !hasRedirectAttempt) {
+      const { data: authData, error: authErr } = await sb.auth.getSession();
+      const sbSession = authData?.session;
+
+      if (!authErr && sbSession && sbSession.user) {
+        showSessionVerifyingUI(true);
+        sessionStorage.setItem("redirect_attempt", "true");
+
+        // ค้นหาข้อมูลพนักงานที่ตรงกับ Supabase Auth User
+        const sbUser = sbSession.user;
+        const lookupFilter = sbUser.email 
+          ? `id.eq.${sbUser.id},email.eq.${sbUser.email}` 
+          : `id.eq.${sbUser.id}`;
+
+        const { data: empData, error: empErr } = await sb
+          .from('employees')
+          .select('id, employee_code, full_name, role, status, department_id, position_id, image_url, departments(department_name), positions(position_name, level_type, duty_name)')
+          .or(lookupFilter)
+          .maybeSingle();
+
+        if (empData && String(empData.status || "").toLowerCase() === "active") {
+          saveUserSession(empData);
+          redirectToDashboard(empData.role, empData);
+          return true;
+        } else if (empData && String(empData.status || "").toLowerCase() === "inactive") {
+          localStorage.removeItem("currentUser");
+          sessionStorage.removeItem("redirect_attempt");
+          showSessionVerifyingUI(false);
+          const i18n = getActiveLoginI18n();
+          showLoginValidationError(i18n.errInactive, { type: 'error' });
+          return false;
+        }
+      }
+    }
+  } catch (sbSessionErr) {
+    console.warn("Supabase auth session check warning:", sbSessionErr);
+  }
+
+  // ล้าง Flag redirect เมื่อการตรวจสอบสิ้นสุดลงโดยไม่มีการ Redirect
+  sessionStorage.removeItem("redirect_attempt");
+  showSessionVerifyingUI(false);
+  return false;
+}
+
 
 /// 🌐 Language Switcher Translations (TH, LO, MY)
 const loginTranslations = {
@@ -298,25 +525,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.log('Service Worker not registered:', swErr);
     }
   }
-  // เช็กว่ามาจาก Redirect ซ้ำหรือไม่ ป้องกัน Infinite Loop
-  const hasRedirected = sessionStorage.getItem("redirect_attempt");
-  
-  try {
-    const rawSession = localStorage.getItem("currentUser");
-    if (rawSession && !hasRedirected) {
-      const session = JSON.parse(rawSession);
-      if (session.expireAt && Date.now() < session.expireAt) {
-        sessionStorage.setItem("redirect_attempt", "true");
-        redirectToDashboard(session.role);
-        return;
-      }
-    }
-  } catch (e) {
-    localStorage.removeItem("currentUser");
-  }
 
-  // ล้าง Flag เมื่ออยู่หน้า Login สำเร็จ
-  sessionStorage.removeItem("redirect_attempt");
+  // ⚡ Auto Session-Check & Instant Redirect
+  const redirected = await autoSessionCheckAndRedirect();
+  if (redirected) {
+    return;
+  }
 
   // Check if WebAuthn is available and show the biometric button
   try {
@@ -815,174 +1029,511 @@ async function executeSecureQrLogin(scannedData) {
   }
 }
 
-// เปิดกล้อง / อัปโหลดรูปเพื่อสแกน QR
+// 🔊 Web Audio API: สังเคราะห์เสียงตอบรับเมื่อสแกนสำเร็จ (Harmonic Success Chime)
+function playBarcodeScanSuccessSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    const now = ctx.currentTime;
+    
+    // Primary chime (Sine tone)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(784, now); // G5
+    osc1.frequency.exponentialRampToValueAtTime(1174.66, now + 0.08); // D6
+    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    // Harmonic sparkle (Triangle tone)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(1568, now + 0.03); // G6
+    gain2.gain.setValueAtTime(0.12, now + 0.03);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.03);
+    osc2.stop(now + 0.24);
+  } catch (e) {
+    console.warn("Audio chime feedback note:", e);
+  }
+}
+
+// 📱 ฟังก์ชันสแกน QR Code & Barcode แบบ Full-screen Mobile Modal UI พร้อมระบบตอบสนองครบวงจร
 function loginByQr() {
   let html5QrCode = null;
   let isCamRunning = false;
+  let isTorchOn = false;
+  let currentFacingMode = "environment";
+  let activeTab = "cam"; // "cam" | "file"
+  let videoTrack = null;
 
-  Swal.fire({
-    title: '📱 สแกน QR Code เข้าสู่ระบบ',
-    html: `
-      <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 15px;">
-        <button id="btn-tab-cam" type="button" class="swal2-styled" style="background:#2563eb; color:#fff; margin:0; padding:8px 16px; border-radius:8px; font-size:14px; cursor:pointer;">📷 เปิดกล้อง</button>
-        <button id="btn-tab-file" type="button" class="swal2-styled" style="background:#4b5563; color:#fff; margin:0; padding:8px 16px; border-radius:8px; font-size:14px; cursor:pointer;">🖼️ เลือกรูปภาพ</button>
-      </div>
+  // ค้นหาหรือสร้าง DOM สำหรับ Modal แบบ Full-Screen
+  let modalOverlay = document.getElementById("pvtQrScannerModal");
+  if (!modalOverlay) {
+    modalOverlay = document.createElement("div");
+    modalOverlay.id = "pvtQrScannerModal";
+    modalOverlay.className = "pvt-qr-modal-overlay";
+    document.body.appendChild(modalOverlay);
+  }
 
-      <div id="qr-cam-box" style="width: 100%; max-width: 320px; height: 260px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #0f172a; position: relative; display: flex; align-items: center; justify-content: center;">
-        <div id="qr-reader" style="width:100%; height:100%;"></div>
-        <div id="qr-cam-loading" style="position: absolute; color: #94a3b8; font-size: 13px; text-align: center; padding: 12px;">
-          ⏳ กำลังเปิดกล้อง กรุณาอนุญาตการเข้าถึง...
+  // กำหนดภาษาสำหรับข้อความใน UI
+  const currentLang = typeof getGlobalLanguage === 'function' ? getGlobalLanguage() : (localStorage.getItem("preferred_lang") || "th");
+  const i18n = {
+    th: {
+      title: "สแกนบัตรพนักงาน",
+      subTitle: "QR Code & บาร์โค้ด",
+      guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
+      guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
+      guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
+      tabCam: "กล้องสด",
+      tabFile: "เลือกรูปภาพ",
+      reqPerm: "กำลังเปิดกล้องและขอสิทธิ์เข้าถึง...",
+      errCamTitle: "ไม่สามารถเปิดกล้องได้",
+      errCamDesc: "กรุณาอนุญาตการเข้าถึงกล้องในเบราว์เซอร์ หรือเลือกสแกนจากรูปภาพแทน",
+      btnRetry: "ลองใหม่อีกครั้ง",
+      btnSwitchFile: "เลือกรูปภาพแทน",
+      btnDiag: "ผลตรวจระบบ",
+      dropTitle: "เลือกไฟล์รูปภาพ QR Code / บาร์โค้ด",
+      dropDesc: "คลิกเพื่อเลือกไฟล์ หรือลากรูปภาพมาวางที่นี่",
+      btnChooseFile: "เลือกไฟล์รูปภาพ",
+      closeBtnTitle: "ปิดหน้าต่างสแกน",
+      torchBtnTitle: "เปิด/ปิด ไฟฉาย",
+      flipBtnTitle: "สลับกล้องหน้า/หลัง"
+    },
+    lo: {
+      title: "ສະແກນບັດພະນັກງານ",
+      subTitle: "QR Code & ບາໂຄ້ດ",
+      guideLive: "ວາງ QR ຫຼື ບາໂຄ້ດ ໃຫ້ຢູ່ໃນກອບ",
+      guideScanning: "ກຳລັງກວດສອບລະຫັດພະນັກງານ...",
+      guideSuccess: "ສະແກນສຳເລັດ! ກຳລັງຢືນຢັນຕົວຕົນ...",
+      tabCam: "ກ້ອງສົດ",
+      tabFile: "ເລືອກຮູບພາບ",
+      reqPerm: "ກຳລັງເປີດກ້ອງ ແລະ ຂໍສິດການເຂົ້າເຖິງ...",
+      errCamTitle: "ບໍ່ສາມາດເປີດກ້ອງໄດ້",
+      errCamDesc: "ກະລຸນາອະນຸຍາດສິດການໃຊ້ກ້ອງ ຫຼື ເລືອກຮູບພາບແທນ",
+      btnRetry: "ລອງໃໝ່ອີກຄັ້ງ",
+      btnSwitchFile: "ເລືອກຮູບພາບແທນ",
+      btnDiag: "ກວດສອບລະບົບ",
+      dropTitle: "ເລືອກໄຟລ໌ຮູບພາບ QR / ບາໂຄ້ດ",
+      dropDesc: "ຄລິກເພື່ອເລືອກໄຟລ໌ ຫຼື ລາກຮູບພາບມາວາງທີ່ນີ້",
+      btnChooseFile: "ເລືອກໄຟລ໌ຮູບ",
+      closeBtnTitle: "ປິດ",
+      torchBtnTitle: "ເປີດ/ປິດ ໄຟສາຍ",
+      flipBtnTitle: "ປ່ຽນກ້ອງໜ້າ/ຫຼັງ"
+    },
+    my: {
+      title: "ဝန်ထမ်းကတ် စကင်န်ဖတ်ရန်",
+      subTitle: "QR Code & ဘားကုဒ်",
+      guideLive: "QR သို့မဟုတ် ဘားကုဒ်ကို ဘောင်အတွင်း ထားပါ",
+      guideScanning: "ဝန်ထမ်းကုဒ်ကို စစ်ဆေးနေသည်...",
+      guideSuccess: "စကင်န်အောင်မြင်ပါသည်!",
+      tabCam: "ကင်မရာ",
+      tabFile: "ပုံရွေးပါ",
+      reqPerm: "ကင်မရာ ဖွင့်နေသည်...",
+      errCamTitle: "ကင်မရာ ဖွင့်၍မရပါ",
+      errCamDesc: "ကင်မရာခွင့်ပြုချက် ပေးပါ သို့မဟုတ် ပုံတင်ပါ",
+      btnRetry: "ပြန်လည်ကြိုးစားရန်",
+      btnSwitchFile: "ပုံရွေးချယ်ရန်",
+      btnDiag: "စနစ်စစ်ဆေးရန်",
+      dropTitle: "QR / ဘားကုဒ် ပုံရွေးပါ",
+      dropDesc: "ဖိုင်ရွေးရန် နှိပ်ပါ သို့မဟုတ် ဖိုင်ဆွဲထည့်ပါ",
+      btnChooseFile: "ဖိုင်ရွေးရန်",
+      closeBtnTitle: "ပိတ်ရန်",
+      torchBtnTitle: "ဓာတ်မီး ဖွင့်/ပိတ်",
+      flipBtnTitle: "ကင်မရာပြောင်းရန်"
+    }
+  }[currentLang] || {
+    title: "สแกนบัตรพนักงาน",
+    subTitle: "QR Code & บาร์โค้ด",
+    guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
+    guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
+    guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
+    tabCam: "กล้องสด",
+    tabFile: "เลือกรูปภาพ",
+    reqPerm: "กำลังเปิดกล้องและขอสิทธิ์เข้าถึง...",
+    errCamTitle: "ไม่สามารถเปิดกล้องได้",
+    errCamDesc: "กรุณาอนุญาตการเข้าถึงกล้องในเบราว์เซอร์ หรือเลือกสแกนจากรูปภาพแทน",
+    btnRetry: "ลองใหม่อีกครั้ง",
+    btnSwitchFile: "เลือกรูปภาพแทน",
+    btnDiag: "ผลตรวจระบบ",
+    dropTitle: "เลือกไฟล์รูปภาพ QR Code / บาร์โค้ด",
+    dropDesc: "คลิกเพื่อเลือกไฟล์ หรือลากรูปภาพมาวางที่นี่",
+    btnChooseFile: "เลือกไฟล์รูปภาพ",
+    closeBtnTitle: "ปิดหน้าต่างสแกน",
+    torchBtnTitle: "เปิด/ปิด ไฟฉาย",
+    flipBtnTitle: "สลับกล้องหน้า/หลัง"
+  };
+
+  // สร้างโครงสร้าง UI ของ Modal
+  modalOverlay.innerHTML = `
+    <div class="pvt-qr-modal-window" role="dialog" aria-modal="true">
+      <!-- 🔝 Header Bar -->
+      <div class="pvt-qr-header">
+        <div class="pvt-qr-title-box">
+          <div class="pvt-qr-icon-badge">
+            <span class="material-symbols-outlined" style="font-size: 22px;">qr_code_scanner</span>
+          </div>
+          <div>
+            <h3>${i18n.title}</h3>
+            <span><span class="pvt-qr-status-indicator"></span> ${i18n.subTitle}</span>
+          </div>
+        </div>
+        
+        <div class="pvt-qr-header-actions">
+          <button type="button" id="pvtQrBtnTorch" class="pvt-qr-btn-circle" title="${i18n.torchBtnTitle}" style="display: none;">
+            <span class="material-symbols-outlined" style="font-size: 20px;">flashlight_on</span>
+          </button>
+          <button type="button" id="pvtQrBtnFlip" class="pvt-qr-btn-circle" title="${i18n.flipBtnTitle}">
+            <span class="material-symbols-outlined" style="font-size: 20px;">flip_camera_ios</span>
+          </button>
+          <button type="button" id="pvtQrBtnClose" class="pvt-qr-btn-circle close-btn" title="${i18n.closeBtnTitle}">
+            <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+          </button>
         </div>
       </div>
 
-      <div id="qr-file-box" style="display:none; width: 100%; max-width: 320px; margin: 0 auto; padding: 25px 15px; border: 2px dashed #9ca3af; border-radius: 12px; background: #f9fafb; text-align: center;">
-        <div style="font-size: 36px; margin-bottom: 8px;">📸</div>
-        <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 13px;">เลือกหรืออัปโหลดรูปภาพบัตรพนักงาน / QR Code</p>
-        <input type="file" id="qr-file-input" accept="image/*" style="display:none;" />
-        <button type="button" onclick="document.getElementById('qr-file-input').click()" class="swal2-styled" style="background:#059669; color:#fff; margin:0; padding:8px 18px; border-radius:8px; cursor:pointer;">เลือกไฟล์รูปภาพ</button>
+      <!-- 📷 Scanner Viewport / HUD Reticle -->
+      <div id="pvtQrCamView" class="pvt-qr-viewport-container">
+        <div id="pvt-qr-video-host"></div>
+
+        <!-- Scanner Reticle Frame -->
+        <div id="pvtQrReticle" class="pvt-qr-reticle-box">
+          <span class="pvt-qr-corner top-left"></span>
+          <span class="pvt-qr-corner top-right"></span>
+          <span class="pvt-qr-corner bottom-left"></span>
+          <span class="pvt-qr-corner bottom-right"></span>
+          <div id="pvtQrLaser" class="pvt-qr-laser"></div>
+        </div>
+
+        <!-- Guide Caption -->
+        <div id="pvtQrGuideText" class="pvt-qr-guide-text">
+          <span class="material-symbols-outlined" style="font-size: 16px; color: #34d399;">center_focus_strong</span>
+          <span id="pvtQrGuideMsg">${i18n.guideLive}</span>
+        </div>
+
+        <!-- Success Visual Feedback Overlay -->
+        <div id="pvtQrSuccessOverlay" class="pvt-qr-success-overlay">
+          <div class="pvt-qr-success-badge">
+            <span class="material-symbols-outlined" style="font-size: 40px;">check_circle</span>
+          </div>
+        </div>
+
+        <!-- Camera Permission & Loading State Card -->
+        <div id="pvtQrPermissionCard" class="pvt-qr-permission-card" style="display: none;">
+          <div id="pvtQrPermIconBox" class="pvt-qr-permission-icon-box">
+            <span id="pvtQrPermIcon" class="material-symbols-outlined" style="font-size: 28px;">photo_camera</span>
+          </div>
+          <h4 id="pvtQrPermTitle">${i18n.reqPerm}</h4>
+          <p id="pvtQrPermDesc">กรุณากด 'อนุญาต' เพื่อเข้าถึงกล้องและสแกนบัตร</p>
+          <div class="pvt-qr-permission-actions" id="pvtQrPermActions" style="display: none;">
+            <button type="button" id="pvtQrPermRetryBtn" class="pvt-qr-btn-primary">
+              <span class="material-symbols-outlined">refresh</span> ${i18n.btnRetry}
+            </button>
+            <button type="button" id="pvtQrPermFileBtn" class="pvt-qr-btn-secondary">
+              <span class="material-symbols-outlined">image</span> ${i18n.btnSwitchFile}
+            </button>
+          </div>
+        </div>
       </div>
-    `,
-    showConfirmButton: false,
-    showCloseButton: true,
-    didOpen: () => {
-      const camLoading = document.getElementById('qr-cam-loading');
-      html5QrCode = new Html5Qrcode("qr-reader");
 
-      const btnCam = document.getElementById('btn-tab-cam');
-      const btnFile = document.getElementById('btn-tab-file');
-      const camBox = document.getElementById('qr-cam-box');
-      const fileBox = document.getElementById('qr-file-box');
+      <!-- 🖼️ File Upload View -->
+      <div id="pvtQrFileView" class="pvt-qr-file-container">
+        <div class="pvt-qr-file-dropzone" id="pvtQrDropzone">
+          <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(13, 148, 136, 0.15); border: 1px solid rgba(13, 148, 136, 0.3); color: #2dd4bf; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+            <span class="material-symbols-outlined" style="font-size: 32px;">add_photo_alternate</span>
+          </div>
+          <h4 style="margin: 0 0 6px 0; font-size: 16px; color: #ffffff;">${i18n.dropTitle}</h4>
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: #94a3b8; max-width: 260px;">${i18n.dropDesc}</p>
+          <input type="file" id="pvtQrFileInput" accept="image/*" style="display: none;" />
+          <button type="button" class="pvt-qr-btn-primary" onclick="document.getElementById('pvtQrFileInput').click()" style="width: auto; padding: 10px 24px;">
+            <span class="material-symbols-outlined">upload_file</span> ${i18n.btnChooseFile}
+          </button>
+        </div>
+      </div>
 
-      const camStatus = window.SystemDiagnostics?.lastCameraResult;
+      <!-- 🔘 Bottom Tab Segmented Bar -->
+      <div class="pvt-qr-tabs-bar">
+        <button type="button" id="pvtQrTabCam" class="pvt-qr-tab-btn active">
+          <span class="material-symbols-outlined" style="font-size: 18px;">videocam</span> ${i18n.tabCam}
+        </button>
+        <button type="button" id="pvtQrTabFile" class="pvt-qr-tab-btn">
+          <span class="material-symbols-outlined" style="font-size: 18px;">image</span> ${i18n.tabFile}
+        </button>
+      </div>
+    </div>
+  `;
 
-      const onScanSuccess = (decodedText) => {
-        if (html5QrCode && isCamRunning) {
-          html5QrCode.stop().then(() => {
-            isCamRunning = false;
-            Swal.close();
-            executeSecureQrLogin(decodedText);
-          }).catch(() => {
-            Swal.close();
-            executeSecureQrLogin(decodedText);
-          });
-        } else {
-          Swal.close();
-          executeSecureQrLogin(decodedText);
-        }
-      };
+  // Elements Binding
+  const btnClose = document.getElementById("pvtQrBtnClose");
+  const btnTorch = document.getElementById("pvtQrBtnTorch");
+  const btnFlip = document.getElementById("pvtQrBtnFlip");
+  const tabCam = document.getElementById("pvtQrTabCam");
+  const tabFile = document.getElementById("pvtQrTabFile");
+  const camView = document.getElementById("pvtQrCamView");
+  const fileView = document.getElementById("pvtQrFileView");
+  const fileInput = document.getElementById("pvtQrFileInput");
+  const dropzone = document.getElementById("pvtQrDropzone");
+  const permCard = document.getElementById("pvtQrPermissionCard");
+  const permIconBox = document.getElementById("pvtQrPermIconBox");
+  const permIcon = document.getElementById("pvtQrPermIcon");
+  const permTitle = document.getElementById("pvtQrPermTitle");
+  const permDesc = document.getElementById("pvtQrPermDesc");
+  const permActions = document.getElementById("pvtQrPermActions");
+  const permRetryBtn = document.getElementById("pvtQrPermRetryBtn");
+  const permFileBtn = document.getElementById("pvtQrPermFileBtn");
+  const reticle = document.getElementById("pvtQrReticle");
+  const successOverlay = document.getElementById("pvtQrSuccessOverlay");
+  const guideMsg = document.getElementById("pvtQrGuideMsg");
 
-      const startCamera = async () => {
-        // If browser is detected as completely unsupported, warn immediately and switch
-        if (camStatus && !camStatus.isSupported) {
-          if (camLoading) {
-            camLoading.innerHTML = `
-              <div style="padding: 12px; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 10px; text-align: left; margin: 10px 0;">
-                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                  <span class="material-symbols-outlined" style="color: #dc2626; font-size: 20px;">videocam_off</span>
-                  <strong style="color: #991b1b; font-size: 13.5px;">เบราว์เซอร์ไม่รองรับกล้องสด</strong>
-                </div>
-                <p style="color: #7f1d1d; font-size: 12px; margin: 0 0 8px 0; line-height: 1.4;">${camStatus.reason || 'กรุณาใช้ฟังก์ชันอัปโหลดรูปภาพบัตรพนักงานแทน'}</p>
-                <div style="display: flex; gap: 8px;">
-                  <button type="button" onclick="document.getElementById('btn-tab-file').click()" style="background: #059669; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer;">📸 สลับไปเลือกรูปภาพ</button>
-                  <button type="button" onclick="window.SystemDiagnostics?.showBiometricCameraDetailsModal()" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer;">🔍 ผลตรวจระบบ</button>
-                </div>
-              </div>
-            `;
-          }
-          return;
-        }
-
-        try {
-          if (camLoading) {
-            camLoading.style.display = "block";
-            camLoading.innerHTML = `
-              ⏳ กำลังเปิดกล้อง กรุณาอนุญาตการเข้าถึง...
-              ${camStatus && camStatus.isOutdated ? '<br><small style="color:#d97706;">⚠️ เบราว์เซอร์รุ่นเก่า อาจใช้เวลาเปิดกล้องสักครู่</small>' : ''}
-            `;
-          }
-          const config = { fps: 15, qrbox: { width: 220, height: 220 } };
-
-          try {
-            await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
-          } catch (e) {
-            await html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, () => {});
-          }
-          isCamRunning = true;
-          if (camLoading) camLoading.style.display = "none";
-        } catch (err) {
-          console.error("Camera access error:", err);
-          if (camLoading) {
-            camLoading.innerHTML = `
-              <div style="padding: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; text-align: center; margin: 8px 0;">
-                <span style="color:#d97706; font-weight:bold; display:block; margin-bottom:4px;">⚠️ ไม่สามารถเปิดกล้องได้</span>
-                <p style="color:#92400e; font-size:12px; margin:0 0 6px 0;">โปรดอนุญาตสิทธิ์กล้อง หรือกดปุ่ม <b>"เลือกรูปภาพ"</b> ด้านบน</p>
-                <button type="button" onclick="window.SystemDiagnostics?.showBiometricCameraDetailsModal()" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;">🔍 วินิจฉัยข้อผิดพลาด</button>
-              </div>
-            `;
-          }
-        }
-      };
-
-      // Auto-fallback to file tab if browser is unsupported
-      if (camStatus && !camStatus.isSupported) {
-        btnFile.style.background = '#2563eb';
-        btnCam.style.background = '#4b5563';
-        camBox.style.display = 'none';
-        fileBox.style.display = 'block';
-        startCamera(); // will populate helpful error in camBox
-      } else {
-        startCamera();
-      }
-
-      btnCam.addEventListener('click', async () => {
-        btnCam.style.background = '#2563eb';
-        btnFile.style.background = '#4b5563';
-        fileBox.style.display = 'none';
-        camBox.style.display = 'flex';
-        if (!isCamRunning) await startCamera();
-      });
-
-      btnFile.addEventListener('click', async () => {
-        btnFile.style.background = '#2563eb';
-        btnCam.style.background = '#4b5563';
-        camBox.style.display = 'none';
-        fileBox.style.display = 'block';
+  // 🚪 ปิด Modal และเคลียร์กล้องอย่างปลอดภัย
+  const closeModal = async () => {
+    document.removeEventListener("keydown", handleKeyDown);
+    if (html5QrCode) {
+      try {
         if (isCamRunning) {
-          try {
-            await html5QrCode.stop();
-            isCamRunning = false;
-          } catch (e) {}
+          await html5QrCode.stop();
+          isCamRunning = false;
         }
-      });
-
-      document.getElementById('qr-file-input')?.addEventListener('change', async (e) => {
-        if (!e.target.files || e.target.files.length === 0) return;
-        const imageFile = e.target.files[0];
-        try {
-          const decodedText = await html5QrCode.scanFile(imageFile, true);
-          Swal.close();
-          executeSecureQrLogin(decodedText);
-        } catch (err) {
-          Swal.fire({
-            icon: 'error',
-            title: 'อ่าน QR Code ไม่สำเร็จ',
-            text: 'ไม่พบ QR Code ในรูปภาพนี้ กรุณาลองใช้กล้องสแกนหรือเลือกรูปใหม่',
-            confirmButtonColor: '#ef4444'
-          });
-        }
-      });
-    },
-    willClose: () => {
-      if (html5QrCode) {
-        try {
-          if (html5QrCode.isScanning) {
-            html5QrCode.stop().catch(err => console.error(err));
-          }
-          html5QrCode.clear();
-        } catch (e) {}
+        html5QrCode.clear();
+      } catch (e) {
+        console.warn("QR cleanup error:", e);
       }
     }
-  });
+    videoTrack = null;
+    modalOverlay.classList.remove("active");
+    setTimeout(() => {
+      if (modalOverlay.parentElement) {
+        modalOverlay.innerHTML = "";
+      }
+    }, 300);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") closeModal();
+  };
+  document.addEventListener("keydown", handleKeyDown);
+
+  btnClose.onclick = closeModal;
+
+  // 🔦 สลับการใช้งานไฟฉาย (Torch)
+  btnTorch.onclick = async () => {
+    if (!videoTrack) return;
+    try {
+      isTorchOn = !isTorchOn;
+      await videoTrack.applyConstraints({
+        advanced: [{ torch: isTorchOn }]
+      });
+      btnTorch.classList.toggle("active", isTorchOn);
+      btnTorch.innerHTML = `<span class="material-symbols-outlined" style="font-size: 20px;">${isTorchOn ? 'flashlight_off' : 'flashlight_on'}</span>`;
+    } catch (err) {
+      console.warn("Torch toggle not supported:", err);
+    }
+  };
+
+  // 🔄 สลับกล้องหน้า / กล้องหลัง
+  btnFlip.onclick = async () => {
+    currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+    if (isCamRunning) {
+      try {
+        await html5QrCode.stop();
+        isCamRunning = false;
+      } catch (e) {}
+      await startCamera();
+    }
+  };
+
+  // 📑 การสลับแท็บ กล้องสด <-> เลือกรูปภาพ
+  tabCam.onclick = async () => {
+    if (activeTab === "cam") return;
+    activeTab = "cam";
+    tabCam.classList.add("active");
+    tabFile.classList.remove("active");
+    fileView.style.display = "none";
+    camView.style.display = "flex";
+    if (!isCamRunning) await startCamera();
+  };
+
+  tabFile.onclick = async () => {
+    if (activeTab === "file") return;
+    activeTab = "file";
+    tabFile.classList.add("active");
+    tabCam.classList.remove("active");
+    camView.style.display = "none";
+    fileView.style.display = "flex";
+    if (isCamRunning) {
+      try {
+        await html5QrCode.stop();
+        isCamRunning = false;
+      } catch (e) {}
+    }
+  };
+
+  // 🎯 Callback เมื่อสแกนพบ Barcode / QR Code สำเร็จ
+  let hasScannedSuccess = false;
+  const onScanSuccess = (decodedText) => {
+    if (hasScannedSuccess) return;
+    hasScannedSuccess = true;
+
+    // 1. ส่งเสียงแจ้งเตือน (Chime)
+    playBarcodeScanSuccessSound();
+
+    // 2. การสั่นแจ้งเตือน (Haptic)
+    if (navigator.vibrate) {
+      try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+    }
+
+    // 3. แสดงผลตอบรับบน UI (Visual Feedback)
+    if (reticle) reticle.classList.add("scan-success");
+    if (successOverlay) successOverlay.classList.add("show");
+    if (guideMsg) guideMsg.textContent = i18n.guideSuccess;
+
+    // 4. หน่วงเวลาสั้นๆ เพื่อให้ผู้ใช้รับรู้ feedback ก่อนเปลี่ยนหน้า
+    setTimeout(async () => {
+      await closeModal();
+      executeSecureQrLogin(decodedText);
+    }, 450);
+  };
+
+  // 📷 เริ่มการทำงานของกล้อง
+  const startCamera = async () => {
+    if (typeof Html5Qrcode === "undefined") {
+      console.error("Html5Qrcode library is missing");
+      showCameraError("ไม่พบไลบรารีสแกน QR Code", "กรุณารีเฟรชหน้าเว็บหรือใช้การล็อกอินด้วยรหัสผ่าน");
+      return;
+    }
+
+    const camStatus = window.SystemDiagnostics?.lastCameraResult;
+    if (camStatus && !camStatus.isSupported) {
+      showCameraError(i18n.errCamTitle, camStatus.reason || i18n.errCamDesc);
+      return;
+    }
+
+    permCard.style.display = "flex";
+    permIconBox.className = "pvt-qr-permission-icon-box";
+    permIcon.textContent = "photo_camera";
+    permTitle.textContent = i18n.reqPerm;
+    permDesc.textContent = "กรุณากด 'อนุญาต' เพื่อเข้าถึงกล้องและสแกนบัตร";
+    permActions.style.display = "none";
+
+    try {
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("pvt-qr-video-host");
+      }
+
+      const qrConfig = {
+        fps: 20,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const edge = Math.min(viewfinderWidth, viewfinderHeight) * 0.72;
+          return { width: Math.floor(edge), height: Math.floor(edge) };
+        },
+        aspectRatio: 1.0
+      };
+
+      await html5QrCode.start(
+        { facingMode: currentFacingMode },
+        qrConfig,
+        onScanSuccess,
+        () => {} // silent on frame pass
+      );
+
+      isCamRunning = true;
+      permCard.style.display = "none";
+
+      // ตรวจสอบความสามารถของ Torch / Flashlight บนอุปกรณ์
+      setTimeout(() => {
+        try {
+          const videoEl = document.querySelector("#pvt-qr-video-host video");
+          if (videoEl && videoEl.srcObject) {
+            const tracks = videoEl.srcObject.getVideoTracks();
+            if (tracks && tracks.length > 0) {
+              videoTrack = tracks[0];
+              const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+              if (capabilities.torch) {
+                btnTorch.style.display = "flex";
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Torch capability check:", e);
+        }
+      }, 500);
+
+    } catch (err) {
+      console.error("Camera access failed:", err);
+      showCameraError(i18n.errCamTitle, err.message || i18n.errCamDesc);
+    }
+  };
+
+  const showCameraError = (title, message) => {
+    permCard.style.display = "flex";
+    permIconBox.className = "pvt-qr-permission-icon-box error";
+    permIcon.textContent = "videocam_off";
+    permTitle.textContent = title;
+    permDesc.textContent = message;
+    permActions.style.display = "flex";
+  };
+
+  permRetryBtn.onclick = () => startCamera();
+  permFileBtn.onclick = () => tabFile.click();
+
+  // 📂 รองรับการอัปโหลดและ Drag & Drop รูปภาพ
+  fileInput.onchange = async (e) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    await processImageFile(file);
+  };
+
+  dropzone.ondragover = (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = "#10b981";
+  };
+  dropzone.ondragleave = () => {
+    dropzone.style.borderColor = "rgba(255, 255, 255, 0.2)";
+  };
+  dropzone.ondrop = async (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = "rgba(255, 255, 255, 0.2)";
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await processImageFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const processImageFile = async (file) => {
+    try {
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("pvt-qr-video-host");
+      }
+      const decodedText = await html5QrCode.scanFile(file, true);
+      playBarcodeScanSuccessSound();
+      if (navigator.vibrate) {
+        try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+      }
+      await closeModal();
+      executeSecureQrLogin(decodedText);
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'อ่าน QR / บาร์โค้ดไม่สำเร็จ',
+        text: 'ไม่พบ QR Code หรือบาร์โค้ดในรูปภาพนี้ กรุณาลองใช้กล้องสแกนสดหรือเลือกรูปใหม่อีกครั้ง',
+        confirmButtonColor: '#ef4444'
+      });
+    }
+  };
+
+  // แสดงผล Modal ด้วยแอนิเมชัน Fade-in
+  modalOverlay.classList.add("active");
+  startCamera();
 }
 
 window.togglePassword = function () {

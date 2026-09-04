@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>ระบบจัดการ HR & ประวัติพนักงาน | PVT System</title>
   
   <!-- Fonts & Icons -->
@@ -82,14 +82,18 @@
         <div class="topbar-right">
           <button class="action-btn" onclick="handleFetchDataClick()">
             <span class="material-symbols-outlined">sync</span>
-            <span class="hidden-mobile">ดึงข้อมูลล่าสุด</span>
+            <span>ดึงข้อมูลล่าสุด</span>
           </button>
           <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()">
             <span class="material-symbols-outlined">download</span>
             <span>Excel ประวัติลา</span>
           </button>
-          <div class="user-profile">
+          <div class="user-profile" id="headerUserProfile">
             <div class="avatar avatar-badge">HR</div>
+            <div class="info">
+              <strong id="headerUserName">ผู้ดูแลระบบ</strong>
+              <span id="headerUserRoleDept">เจ้าหน้าที่ HR | ฝ่ายทรัพยากรบุคคล</span>
+            </div>
           </div>
         </div>
       </header>
@@ -221,29 +225,29 @@
           </div>
 
           <!-- แถบเลือกแยกประเภทตำแหน่งงาน (ผู้จัดการ, หัวหน้าแผนก, เจ้าหน้าที่/ผู้ช่วย, พนักงานทั่วไป) -->
-          <div class="pos-category-tabs" id="posCategoryTabs" style="overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 8px; margin-bottom: 16px;">
-            <button type="button" class="pos-tab active" data-pos-cat="all" onclick="filterByPosCategory('all')" style="display: inline-flex; flex-shrink: 0;">
+          <div class="pos-category-tabs" id="posCategoryTabs">
+            <button type="button" class="pos-tab active" data-pos-cat="all" onclick="filterByPosCategory('all')">
               <span class="material-symbols-outlined" style="font-size: 16px;">groups</span>
               <span>ทุกตำแหน่ง</span>
               <span class="pos-tab-count" id="count-all">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="executive" onclick="filterByPosCategory('executive')" style="display: inline-flex; flex-shrink: 0;">
+            <button type="button" class="pos-tab" data-pos-cat="executive" onclick="filterByPosCategory('executive')">
               <span>👑 ผู้บริหาร</span>
               <span class="pos-tab-count" id="count-executive">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="manager" onclick="filterByPosCategory('manager')" style="display: inline-flex; flex-shrink: 0;">
+            <button type="button" class="pos-tab" data-pos-cat="manager" onclick="filterByPosCategory('manager')">
               <span>👔 ผู้จัดการ</span>
               <span class="pos-tab-count" id="count-manager">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="supervisor" onclick="filterByPosCategory('supervisor')" style="display: inline-flex; flex-shrink: 0;">
+            <button type="button" class="pos-tab" data-pos-cat="supervisor" onclick="filterByPosCategory('supervisor')">
               <span>🎖️ หัวหน้างาน</span>
               <span class="pos-tab-count" id="count-supervisor">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="officer" onclick="filterByPosCategory('officer')" style="display: inline-flex; flex-shrink: 0;">
+            <button type="button" class="pos-tab" data-pos-cat="officer" onclick="filterByPosCategory('officer')">
               <span>📋 เจ้าหน้าที่</span>
               <span class="pos-tab-count" id="count-officer">0</span>
             </button>
-            <button type="button" class="pos-tab" data-pos-cat="staff" onclick="filterByPosCategory('staff')" style="display: inline-flex; flex-shrink: 0;">
+            <button type="button" class="pos-tab" data-pos-cat="staff" onclick="filterByPosCategory('staff')">
               <span>👤 พนักงาน</span>
               <span class="pos-tab-count" id="count-staff">0</span>
             </button>

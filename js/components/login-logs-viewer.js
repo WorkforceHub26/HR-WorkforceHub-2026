@@ -46,9 +46,12 @@
 
           const res = await fetch(url);
           if (res.ok) {
-            const json = await res.json();
-            if (Array.isArray(json.data) && json.data.length > 0) {
-              fetchedData = json.data;
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+              const json = await res.json();
+              if (Array.isArray(json?.data) && json.data.length > 0) {
+                fetchedData = json.data;
+              }
             }
           }
         } catch (apiErr) {

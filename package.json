@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
-    "build": "vite build && mkdir -p dist/js dist/auth dist/css && cp -r js/* dist/js/ && cp -r auth/* dist/auth/ && cp -r css/* dist/css/ && cp favicon.ico dist/",
+    "build": "vite build && mkdir -p dist/js dist/auth dist/css dist/assets && cp -r js/* dist/js/ && cp -r auth/* dist/auth/ && cp -r css/* dist/css/ && cp -r assets/* dist/assets/ && cp favicon.ico manifest.json sw.js metadata.json dist/",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "start": "node server.js",
     "lint": "node -e \"console.log('Lint passed')\""

@@ -60,7 +60,11 @@ function initializeSupabaseConnection() {
 }
 
 function setupSidebarToggle() {
-  // Handled globally by auth-guard.js
+  const btn = document.getElementById("mobileMenuBtn") || document.querySelector(".mobile-menu-btn");
+  if (btn && typeof window.toggleMobileSidebar === "function") {
+    btn.removeEventListener("click", window.toggleMobileSidebar);
+    btn.addEventListener("click", window.toggleMobileSidebar);
+  }
 }
 
 function setupBellNotificationToggle() {

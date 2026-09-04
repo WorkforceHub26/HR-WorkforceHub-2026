@@ -211,21 +211,24 @@ async function initSystemAndPermissions() {
       // Update header titles based on tab
       const headerTitle = document.getElementById("sectionHeaderTitle");
       const headerIcon = document.getElementById("sectionHeaderIcon");
+      const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+      const leaveTablePanel = document.getElementById("leaveTablePanel");
+
       if (tabParam === 'pending') {
         if (headerTitle) headerTitle.textContent = "คำขออนุมัติลาค้างพิจารณา";
         if (headerIcon) headerIcon.textContent = "hourglass_top";
-        const slaContainer = document.getElementById("leaveSlaTrackerContainer");
         if (slaContainer) slaContainer.style.display = "block";
+        if (leaveTablePanel) leaveTablePanel.style.display = "none";
       } else if (tabParam === 'cancellation') {
         if (headerTitle) headerTitle.textContent = "คำร้องขอยกเลิกใบลาหยุดงาน";
         if (headerIcon) headerIcon.textContent = "published_with_changes";
-        const slaContainer = document.getElementById("leaveSlaTrackerContainer");
         if (slaContainer) slaContainer.style.display = "none";
+        if (leaveTablePanel) leaveTablePanel.style.display = "block";
       } else {
         if (headerTitle) headerTitle.textContent = "ประวัติการพิจารณาใบลาทั้งหมด";
         if (headerIcon) headerIcon.textContent = "history";
-        const slaContainer = document.getElementById("leaveSlaTrackerContainer");
         if (slaContainer) slaContainer.style.display = "none";
+        if (leaveTablePanel) leaveTablePanel.style.display = "block";
       }
     }
 
@@ -762,6 +765,17 @@ async function loadPendingLeavesHR() {
       window.renderLeaveSlaTracker("leaveSlaTrackerContainer", allLeaveRequests);
     }
 
+    // 💡 จัดการการแสดงผลตาราง: ยุบตารางล่างเมื่ออยู่ในแท็บ 'รออนุมัติ' (SLA Tracker ทำหน้าที่แทน)
+    const leaveTablePanel = document.getElementById("leaveTablePanel");
+    const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+    if (currentLeaveTab === 'pending') {
+      if (slaContainer) slaContainer.style.display = "block";
+      if (leaveTablePanel) leaveTablePanel.style.display = "none";
+    } else {
+      if (slaContainer) slaContainer.style.display = "none";
+      if (leaveTablePanel) leaveTablePanel.style.display = "block";
+    }
+
   } catch (err) {
     console.error("💥 Critical Failure in loadPendingLeavesHR:", err);
     if (container) {
@@ -804,25 +818,28 @@ window.switchLeaveTab = function(tabName, btnEl) {
 
   const headerTitle = document.getElementById("sectionHeaderTitle");
   const headerIcon = document.getElementById("sectionHeaderIcon");
+  const slaContainer = document.getElementById("leaveSlaTrackerContainer");
+  const leaveTablePanel = document.getElementById("leaveTablePanel");
 
   if (tabName === 'pending') {
     if (headerTitle) headerTitle.textContent = "คำขออนุมัติลาค้างพิจารณา";
     if (headerIcon) headerIcon.textContent = "hourglass_top";
-    const slaContainer = document.getElementById("leaveSlaTrackerContainer");
     if (slaContainer) slaContainer.style.display = "block";
+    // 💡 ยุบตารางล่างเมื่ออยู่ในแท็บ 'รออนุมัติ' (SLA Tracker ทำหน้าที่แทน)
+    if (leaveTablePanel) leaveTablePanel.style.display = "none";
   } else if (tabName === 'cancellation') {
     if (headerTitle) headerTitle.textContent = "คำร้องขอยกเลิกใบลาหยุดงาน";
     if (headerIcon) headerIcon.textContent = "published_with_changes";
-    const slaContainer = document.getElementById("leaveSlaTrackerContainer");
     if (slaContainer) slaContainer.style.display = "none";
+    if (leaveTablePanel) leaveTablePanel.style.display = "block";
+    renderLeaveTable();
   } else {
     if (headerTitle) headerTitle.textContent = "ประวัติการพิจารณาใบลาทั้งหมด";
     if (headerIcon) headerIcon.textContent = "history";
-    const slaContainer = document.getElementById("leaveSlaTrackerContainer");
     if (slaContainer) slaContainer.style.display = "none";
+    if (leaveTablePanel) leaveTablePanel.style.display = "block";
+    renderLeaveTable();
   }
-
-  renderLeaveTable();
 };
 
 /* ==========================================================================
@@ -1266,15 +1283,22 @@ function handleEscKey(e) {
    👁️ 5. MODAL PREVIEW & LEAVE DETAILS
    ========================================================================== */
 
-function previewLeaveModal(leaveId) {
-  const req = allLeaveRequests.find(r => r.id === leaveId);
+function previewLeaveModal(leaveId, isReviewMode = false) {
+  const req = allLeaveRequests.find(r => String(r.id) === String(leaveId));
   if (!req) return;
 
   const modal = document.getElementById("leavePreviewModal");
   const modalBody = document.getElementById("leavePreviewModalBody");
-  const btnPrint = document.getElementById("btnModalPrint");
+  const modalFooter = document.getElementById("leavePreviewModalFooter");
+  const modalHeaderTitle = document.querySelector("#leavePreviewModal .modal-header h3");
 
   if (!modal || !modalBody) return;
+
+  if (modalHeaderTitle) {
+    modalHeaderTitle.innerHTML = isReviewMode
+      ? '<span class="material-symbols-outlined" style="color: #0d9488;">gavel</span> พิจารณาอนุมัติคำขอลาหยุดงาน'
+      : '<span class="material-symbols-outlined">description</span> ตรวจสอบรายละเอียดใบขออนุมัติลา';
+  }
 
   const emp = req.employees || {};
   const avatarUrl = getAvatarUrl(emp.image_url);
@@ -1286,6 +1310,7 @@ function previewLeaveModal(leaveId) {
 
   const sla = getLeaveApprovalSLA(req);
   const isOverdue = sla.isOverdue;
+  const isPending = !req.status || req.status === 'pending' || req.status === 'รออนุมัติ';
 
   modalBody.innerHTML = `
     <div class="preview-user-card">
@@ -1391,11 +1416,70 @@ function previewLeaveModal(leaveId) {
     </div>
   `;
 
-  if (btnPrint) {
-    btnPrint.onclick = () => {
-      closePreviewModal();
-      printLeaveA4(req.id);
-    };
+  // 🔘 Footer Action Buttons
+  if (modalFooter) {
+    modalFooter.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-act btn-act-print" id="btnModalPrint" style="background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; padding: 7px 14px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">print</span> พิมพ์ใบลา A4
+          </button>
+          ${attachUrl ? `
+            <button type="button" class="btn-act btn-act-preview" id="btnModalAttach" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 7px 14px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">${isImage ? 'image' : 'attach_file'}</span> ${isImage ? 'ดูรูปหลักฐาน' : 'เปิดไฟล์แนบ'}
+            </button>
+          ` : ''}
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          ${isPending ? `
+            <button type="button" class="btn-act btn-act-approve" id="btnModalApprove" style="background: #10b981; color: #ffffff; border: none; padding: 7px 18px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);">
+              <span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span> อนุมัติ
+            </button>
+            <button type="button" class="btn-act btn-act-reject" id="btnModalReject" style="background: #ef4444; color: #ffffff; border: none; padding: 7px 18px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);">
+              <span class="material-symbols-outlined" style="font-size: 18px;">cancel</span> ไม่อนุมัติ
+            </button>
+          ` : ''}
+          <button type="button" class="tab-btn" onclick="closePreviewModal()" style="padding: 7px 16px; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #64748b; font-weight: 600; cursor: pointer;">
+            ปิดหน้าต่าง
+          </button>
+        </div>
+      </div>
+    `;
+
+    const btnModalPrintEl = document.getElementById("btnModalPrint");
+    if (btnModalPrintEl) {
+      btnModalPrintEl.onclick = () => {
+        closePreviewModal();
+        printLeaveA4(req.id);
+      };
+    }
+
+    const btnModalAttachEl = document.getElementById("btnModalAttach");
+    if (btnModalAttachEl) {
+      btnModalAttachEl.onclick = () => {
+        if (isImage) {
+          openImageLightbox(attachUrl, `หลักฐานการลา #${req.id}`);
+        } else {
+          window.open(attachUrl, '_blank');
+        }
+      };
+    }
+
+    const btnModalApproveEl = document.getElementById("btnModalApprove");
+    if (btnModalApproveEl) {
+      btnModalApproveEl.onclick = () => {
+        closePreviewModal();
+        approveLeave(req.id);
+      };
+    }
+
+    const btnModalRejectEl = document.getElementById("btnModalReject");
+    if (btnModalRejectEl) {
+      btnModalRejectEl.onclick = () => {
+        closePreviewModal();
+        rejectLeave(req.id);
+      };
+    }
   }
 
   modal.classList.add("active");
