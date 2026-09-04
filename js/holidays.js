@@ -1408,28 +1408,43 @@ window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
     if (isCurrentMonth && i === todayDate) cell.classList.add('today');
     
     const dayStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    cell.setAttribute('data-date', dayStr);
     const dayHolidays = holidaysList.filter(h => h.holiday_date === dayStr);
     
-    let dotsHtml = '';
     if (dayHolidays.length > 0) {
-      dotsHtml = `<div class="cal-leave-dots">`;
-      for(let j=0; j<Math.min(dayHolidays.length, 3); j++) {
-        let bg = '#3b82f6';
-        if(dayHolidays[j].holiday_type === 'official') bg = '#ef4444';
-        if(dayHolidays[j].holiday_type === 'substitution') bg = '#f59e0b';
-        const locName = getLocalizedHolidayName(dayHolidays[j].holiday_name);
-        dotsHtml += `<div class="cal-leave-dot" style="background:${bg};" title="${locName}"></div>`;
+      const primaryH = dayHolidays[0];
+      cell.classList.add('is-company-holiday');
+      
+      let typeClass = 'holiday-official';
+      let badgeLabel = 'หยุด';
+      if (primaryH.holiday_type === 'company') {
+        typeClass = 'holiday-company';
+        badgeLabel = 'บริษัท';
+      } else if (primaryH.holiday_type === 'substitution') {
+        typeClass = 'holiday-substitution';
+        badgeLabel = 'ชดเชย';
       }
-      dotsHtml += `</div>`;
-      cell.style.background = '#f0f9ff';
-      cell.style.borderColor = '#bae6fd';
+      cell.classList.add(typeClass);
+
+      const locName = getLocalizedHolidayName(primaryH.holiday_name);
+      
+      cell.innerHTML = `
+        <div class="cal-day-header-row">
+          <span class="cal-day-number">${i}</span>
+          <span class="cal-holiday-badge-type">${badgeLabel}</span>
+        </div>
+        <div class="cal-holiday-full-label" title="${locName}">${locName}</div>
+      `;
+    } else {
+      cell.innerHTML = `<span class="cal-day-number">${i}</span>`;
     }
-    
-    cell.innerHTML = `<span class="cal-day-number">${i}</span>${dotsHtml}`;
+
     cell.onclick = () => {
-      document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => c.style.outline = 'none');
-      cell.style.outline = '2px solid #0ea5e9';
-      cell.style.outlineOffset = '-2px';
+      document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => {
+        c.classList.remove('highlight-day-active');
+        c.style.outline = 'none';
+      });
+      cell.classList.add('highlight-day-active');
       
       if(dayHolidays.length > 0) {
         renderCompanySummarySidebar(dayHolidays, dayStr);
@@ -1448,6 +1463,55 @@ window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
     cell.innerHTML = `<span class="cal-day-number">${i}</span>`;
     grid.appendChild(cell);
   }
+};
+
+window.focusHolidayDateOnCalendar = function(dateStr) {
+  if (!dateStr) return;
+
+  const parts = dateStr.split('-');
+  if (parts.length < 3) return;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1; // 0-indexed
+
+  // Ensure calendar displays the targeted month & year
+  const currYear = companyCalCurrentDate.getFullYear();
+  const currMonth = companyCalCurrentDate.getMonth();
+
+  if (currYear !== year || currMonth !== month) {
+    companyCalCurrentDate = new Date(year, month, 1);
+    
+    const monthSelect = document.getElementById('monthSelect');
+    if (monthSelect) monthSelect.value = month.toString();
+    const yearSelect = document.getElementById('yearSelect');
+    if (yearSelect) yearSelect.value = year.toString();
+
+    filterHolidays();
+  }
+
+  // Highlight date cell and scroll smooth into view
+  setTimeout(() => {
+    const grid = document.getElementById('companyCalGrid');
+    if (!grid) return;
+
+    grid.querySelectorAll('.cal-day-cell').forEach(c => {
+      c.classList.remove('highlight-day-active');
+      c.style.outline = 'none';
+    });
+
+    const targetCell = grid.querySelector(`.cal-day-cell[data-date="${dateStr}"]`);
+    if (targetCell) {
+      targetCell.classList.add('highlight-day-active');
+
+      targetCell.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center'
+      });
+
+      const dayHolidays = allCompanyHolidays ? allCompanyHolidays.filter(h => h.holiday_date === dateStr) : [];
+      renderCompanySummarySidebar(dayHolidays, dateStr);
+    }
+  }, 100);
 };
 
 window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly = false) {
@@ -1474,7 +1538,10 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
         <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${strings.summaryYearTitle(currentY)}</span>
         <span style="font-size: 11px; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${strings.totalDaysLabel(list ? list.length : 0)}</span>
       </div>`;
-    document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => c.style.outline = 'none');
+    document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => {
+      c.classList.remove('highlight-day-active');
+      c.style.outline = 'none';
+    });
   } else {
     const currentM = companyCalCurrentDate.getMonth();
     const currentY = strings.formatYear(companyCalCurrentDate.getFullYear());
@@ -1485,7 +1552,10 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
           <span class="material-symbols-outlined" style="font-size: 13px;">calendar_today</span> ${strings.btnViewWholeYear}
         </button>
       </div>`;
-    document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => c.style.outline = 'none');
+    document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => {
+      c.classList.remove('highlight-day-active');
+      c.style.outline = 'none';
+    });
   }
   
   if (!list || list.length === 0) {
@@ -1502,22 +1572,25 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
   let html = ``;
   list.forEach(item => {
     let tagText = item.holiday_type === 'company' ? strings.tagCompany : (item.holiday_type === 'substitution' ? strings.tagSubstitution : strings.tagOfficial);
-    let color = item.holiday_type === 'company' ? '#3b82f6' : (item.holiday_type === 'substitution' ? '#f59e0b' : '#ef4444');
+    let color = item.holiday_type === 'company' ? '#3b82f6' : (item.holiday_type === 'substitution' ? '#d97706' : '#ef4444');
     const locName = getLocalizedHolidayName(item.holiday_name);
     
     html += `
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid ${color}; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+      <div class="company-summary-card-item" onclick="focusHolidayDateOnCalendar('${item.holiday_date}')" style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid ${color}; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.04);" title="กดเพื่อดูบนปฏิทิน">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <h4 style="margin: 0; font-size: 14px; color: #0f172a; line-height: 1.4;">${locName}</h4>
+          <h4 style="margin: 0; font-size: 14px; color: #0f172a; line-height: 1.4; font-weight: 700;">${locName}</h4>
+          <span style="font-size: 10.5px; background: ${color}15; color: ${color}; padding: 2px 8px; border-radius: 12px; font-weight: 700; border: 1px solid ${color}30; white-space: nowrap;">${tagText}</span>
         </div>
-        <div style="font-size: 12px; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; color: ${color}">event</span>${formatLocalDateShort(item.holiday_date)}</span>
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px;">category</span>${tagText}</span>
+        <div style="font-size: 12px; color: #64748b; display: flex; align-items: center; justify-content: space-between;">
+          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 15px; color: ${color}">event</span>${formatLocalDateShort(item.holiday_date)}</span>
+          <span style="font-size: 11px; color: #0d9488; font-weight: 600; display: flex; align-items: center; gap: 2px;">
+            <span class="material-symbols-outlined" style="font-size: 14px;">near_me</span> ดูบนปฏิทิน
+          </span>
         </div>
         ${isPowerUser ? `
-        <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end;">
-          <button type="button" onclick="openEditHolidayModal('${item.id}')" style="background: none; border: none; cursor: pointer; color: #3b82f6; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px;"><span class="material-symbols-outlined" style="font-size: 16px;">edit</span></button>
-          <button type="button" onclick="deleteHoliday('${item.id}')" style="background: none; border: none; cursor: pointer; color: #ef4444; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px;"><span class="material-symbols-outlined" style="font-size: 16px;">delete</span></button>
+        <div style="margin-top: 4px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px dashed #f1f5f9; padding-top: 6px;" onclick="event.stopPropagation()">
+          <button type="button" onclick="openEditHolidayModal('${item.id}')" style="background: #eff6ff; border: 1px solid #bfdbfe; cursor: pointer; color: #2563eb; display: flex; align-items: center; justify-content: center; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 14px;">edit</span>แก้ไข</button>
+          <button type="button" onclick="deleteHoliday('${item.id}')" style="background: #fef2f2; border: 1px solid #fecaca; cursor: pointer; color: #ef4444; display: flex; align-items: center; justify-content: center; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 14px;">delete</span>ลบ</button>
         </div>` : ''}
       </div>
     `;
