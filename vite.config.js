@@ -57,6 +57,7 @@ export default defineConfig({
         userLeave: resolve(__dirname, 'pages/user/leave-user.html'),
         userLeaveHistory: resolve(__dirname, 'pages/user/leave-history.html'),
         userLeaveRules: resolve(__dirname, 'pages/user/leave-rules.html'),
+        userFullGuide: resolve(__dirname, 'pages/user/full-guide.html'),
         userHolidays: resolve(__dirname, 'pages/user/holidays.html'),
         hrHome: resolve(__dirname, 'pages/hr/home.html'),
         hrLeave: resolve(__dirname, 'pages/hr/hr.html'),

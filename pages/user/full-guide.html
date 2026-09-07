@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="/css/system-settings.css" />
   <script src="/js/auth-guard.js"></script>
+  <script src="/js/system-settings.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import "tailwindcss";
@@ -155,10 +157,16 @@
           <p class="text-xs text-cyan-600 font-medium">คู่มือการใช้งานระบบพนักงาน (ฉบับสมบูรณ์)</p>
         </div>
       </div>
-      <button type="button" onclick="history.back()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-sm transition-all border border-slate-200 cursor-pointer">
-        <span class="material-symbols-outlined text-lg">arrow_back</span>
-        ย้อนกลับ
-      </button>
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, เชื่อมต่อ LINE)" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-cyan-50 text-slate-700 font-bold text-sm transition-all border border-slate-200 cursor-pointer shadow-sm">
+          <span class="material-symbols-outlined text-lg text-cyan-600">settings</span>
+          ตั้งค่า
+        </button>
+        <button type="button" onclick="history.back()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-sm transition-all border border-slate-200 cursor-pointer">
+          <span class="material-symbols-outlined text-lg">arrow_back</span>
+          ย้อนกลับ
+        </button>
+      </div>
     </div>
   </header>
 
@@ -832,7 +840,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-10">
     <div class="max-w-7xl mx-auto px-6 text-center text-slate-400 text-sm">
-      <p>© 2026 PVT&T Workforce Management System · Ver 2.5</p>
+      <p>© 2026 PVT Workforce Management System · Ver 2.5</p>
       <p class="mt-2 text-xs">พัฒนาเพื่อยกระดับการทำงานอย่างมืออาชีพ</p>
     </div>
   </footer>

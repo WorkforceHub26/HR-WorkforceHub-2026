@@ -1704,11 +1704,13 @@ window.globalAppTranslations = window.globalAppTranslations || {
     // Navigation & App Shell
     home: "หน้าหลัก",
     leaveCheck: "ตรวจใบลา",
-    employeeManagement: "ระบบจัดการส่วนกลาง & ประวัติพนักงาน",
+    employeeManagement: "ระบบจัดการส่วนกลาง",
     employees: "พนักงาน",
     userView: "หน้าพนักงาน",
     holidays: "วันหยุด",
-    cardSystem: "ระบบบัตรพนักงาน & QR",
+    cardSystem: "บัตรพนักงาน",
+    news: "ข่าวสาร",
+    settings: "ตั้งค่า",
     logout: "ออกจากระบบ",
     logoutShort: "ออก",
     back: "ย้อนกลับ",
@@ -1921,11 +1923,13 @@ window.globalAppTranslations = window.globalAppTranslations || {
     // Navigation & App Shell
     home: "ໜ້າຫຼັກ",
     leaveCheck: "ກວດສອບໃບລາ",
-    employeeManagement: "ລະບົບຈັດການສ່ວນກາງ & ປະຫວັດພະນັກງານ",
+    employeeManagement: "ລະບົບຈັດການສ່ວນກາງ",
     employees: "ພະນັກງານ",
     userView: "ໜ້າພະນັກງານ",
     holidays: "ວັນພັກ",
-    cardSystem: "ລະບົບັດພະນັກງານ & QR",
+    cardSystem: "ບັດພະນັກງານ",
+    news: "ຂ່າວສານ",
+    settings: "ຕັ້ງຄ່າ",
     logout: "ອອກຈາກລະບົບ",
     logoutShort: "ອອກ",
     back: "ກັບຄືນ",
@@ -2138,11 +2142,13 @@ window.globalAppTranslations = window.globalAppTranslations || {
     // Navigation & App Shell
     home: "ပင်မစာမျက်နှာ",
     leaveCheck: "ခွင့်စစ်ဆေးရန်",
-    employeeManagement: "ဗဟိုစီမံခန့်ခွဲမှု & ဝန်ထမ်းမှတ်တမ်း",
+    employeeManagement: "ဗဟိုစီမံခန့်ခွဲမှု",
     employees: "ဝန်ထမ်းများ",
     userView: "ဝန်ထမ်းမြင်ကွင်း",
     holidays: "အားလပ်ရက်များ",
-    cardSystem: "ဝန်ထမ်းကတ် & QR စနစ်",
+    cardSystem: "ဝန်ထမ်းကတ်",
+    news: "သတင်းအချက်အလက်",
+    settings: "ဆက်တင်များ",
     logout: "ထွက်ရန်",
     logoutShort: "ထွက်",
     back: "နောက်သို့",
@@ -2377,7 +2383,7 @@ window.leaveRulesData = {
       title: "3. วันหยุดพักผ่อนประจำปี",
       icon: "flight_takeoff",
       items: [
-        { text: "พนักงานที่ทำงานครบ 1 ปี มีสิทธิลาพักร้อนได้ <b>ไม่น้อยกว่า 6 วันทำการ/ปี</b>", isCaution: false },
+        { text: "พนักงานที่ทำงานครบ 1 ปี (นับตามรอบปีบริษัท 1 ธ.ค. – 30 พ.ย.) มีสิทธิลาพักร้อนได้ <b>ไม่น้อยกว่า 6 วันทำการ/ปี</b>", isCaution: false },
         { text: "ต้องส่งล่วงหน้าเพื่อให้หัวหน้างานจัดสรรกำลังพลและอนุมัติก่อนเสมอ", isCaution: false }
       ]
     },
@@ -3124,16 +3130,20 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       const iconSpan = item.querySelector(".material-symbols-outlined");
       const iconName = iconSpan ? iconSpan.textContent.trim().toLowerCase() : "";
       const href = (item.getAttribute("href") || "").toLowerCase();
+      const onclickAttr = (item.getAttribute("onclick") || "").toLowerCase();
 
-      if (iconName.includes("home") || href.includes("home")) {
+      if (iconName.includes("home") || href.includes("home.html")) {
         labelSpan.textContent = t.home;
         item.setAttribute("title", t.home);
-      } else if (iconName.includes("fact_check") || href.includes("approval") || href.includes("leave-check")) {
+      } else if (iconName.includes("fact_check") || href.includes("approval") || href.includes("leave-check") || href.includes("hr.html")) {
         labelSpan.textContent = t.leaveCheck;
         item.setAttribute("title", t.leaveCheck);
-      } else if (iconName.includes("manage_accounts") || href.includes("management")) {
-        labelSpan.textContent = t.employeeManagement || "ระบบจัดการส่วนกลาง & ประวัติพนักงาน";
-        item.setAttribute("title", t.employeeManagement || "ระบบจัดการส่วนกลาง & ประวัติพนักงาน");
+      } else if (iconName.includes("campaign") || href.includes("news")) {
+        labelSpan.textContent = t.news || "ข่าวสาร";
+        item.setAttribute("title", t.news || "ข่าวสาร");
+      } else if (iconName.includes("manage_accounts") || href.endsWith("management.html") || href.includes("/hr/management")) {
+        labelSpan.textContent = t.employeeManagement || "ระบบจัดการส่วนกลาง";
+        item.setAttribute("title", t.employeeManagement || "ระบบจัดการส่วนกลาง");
       } else if (href.includes("index-user") || (iconName === "person" && href.includes("/user/"))) {
         labelSpan.textContent = t.userView;
         item.setAttribute("title", t.userView);
@@ -3143,9 +3153,12 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       } else if (iconName.includes("event") || iconName.includes("calendar") || href.includes("holiday")) {
         labelSpan.textContent = t.holidays;
         item.setAttribute("title", t.holidays);
-      } else if (iconName.includes("badge") || iconName.includes("card") || href.includes("card")) {
+      } else if (iconName.includes("badge") || iconName.includes("card") || href.includes("card") || onclickAttr.includes("card")) {
         labelSpan.textContent = t.cardSystem;
         item.setAttribute("title", t.cardSystem);
+      } else if (iconName.includes("settings") || onclickAttr.includes("settings")) {
+        labelSpan.textContent = t.settings || "ตั้งค่า";
+        item.setAttribute("title", t.settings || "ตั้งค่า");
       }
     });
 
@@ -3626,6 +3639,12 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
 
 function injectGlobalLangSwitcher() {
   if (document.getElementById("globalLangSwitcherContainer")) return;
+
+  // 🚫 Do not show language switcher on HR Administration pages
+  const isHrPage = window.location.pathname.includes('/pages/hr/') || 
+                   document.querySelector('aside.sidebar-light') !== null ||
+                   document.body.classList.contains('hr-layout');
+  if (isHrPage) return;
   
   const targetContainer = document.querySelector(".topbar-right") || 
                           document.querySelector(".topbar-actions") || 

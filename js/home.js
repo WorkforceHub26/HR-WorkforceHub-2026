@@ -88,9 +88,106 @@ function setupBellNotificationToggle() {
 /* ==========================================================================
    4. 🔄 DATA SYNC & FETCHING
    ========================================================================== */
-window.refreshDashboardData = async function() {
+window.showSyncSuccessPopup = function(stats, isManualClick = false) {
+  const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+  
+  const titleText = isManualClick ? 'ซิงค์ข้อมูลระบบเรียบร้อยแล้ว' : 'สรุปภาพรวมข้อมูลล่าสุด';
+
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: `<div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:18px; font-weight:700; color:#0f766e;">
+        <span class="material-symbols-outlined" style="font-size:26px; color:#0d9488;">cloud_done</span>
+        ${titleText}
+      </div>`,
+      html: `
+        <div style="margin-top:10px; text-align:left; font-family:var(--font-sans, sans-serif);">
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-size:11px; color:#166534; font-weight:600;">สถานะการเชื่อมต่อฐานข้อมูล</div>
+              <div style="font-size:13px; color:#15803d; font-weight:700; display:flex; align-items:center; gap:6px; margin-top:2px;">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e;"></span>
+                Supabase Live Cloud Connected
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px; color:#166534;">เวลาที่ซิงค์ล่าสุด</div>
+              <div style="font-size:13px; color:#15803d; font-weight:700;">${timeStr} น.</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; margin-bottom:12px;">
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 12px;">
+              <div style="font-size:11px; color:#92400e; font-weight:600; display:flex; align-items:center; gap:4px;">
+                <span class="material-symbols-outlined" style="font-size:16px; color:#d97706;">hourglass_top</span>
+                ใบลารออนุมัติ
+              </div>
+              <div style="font-size:22px; font-weight:800; color:#d97706; margin-top:4px;">${stats.pendingCount || 0} <span style="font-size:12px; font-weight:600; color:#92400e;">รายการ</span></div>
+            </div>
+
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 12px;">
+              <div style="font-size:11px; color:#1e40af; font-weight:600; display:flex; align-items:center; gap:4px;">
+                <span class="material-symbols-outlined" style="font-size:16px; color:#2563eb;">event_available</span>
+                ผู้ลาวันนี้
+              </div>
+              <div style="font-size:22px; font-weight:800; color:#2563eb; margin-top:4px;">${stats.todayCount || 0} <span style="font-size:12px; font-weight:600; color:#1e40af;">คน</span></div>
+            </div>
+
+            <div style="background:#f0fdfa; border:1px solid #99f6e4; border-radius:10px; padding:10px 12px;">
+              <div style="font-size:11px; color:#115e59; font-weight:600; display:flex; align-items:center; gap:4px;">
+                <span class="material-symbols-outlined" style="font-size:16px; color:#0f766e;">groups</span>
+                บุคลากรทั้งหมด
+              </div>
+              <div style="font-size:22px; font-weight:800; color:#0f766e; margin-top:4px;">${stats.totalEmp || 0} <span style="font-size:12px; font-weight:600; color:#115e59;">คน</span></div>
+            </div>
+
+            <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:10px 12px;">
+              <div style="font-size:11px; color:#5b21b6; font-weight:600; display:flex; align-items:center; gap:4px;">
+                <span class="material-symbols-outlined" style="font-size:16px; color:#7c3aed;">today</span>
+                ผู้ลาพรุ่งนี้
+              </div>
+              <div style="font-size:22px; font-weight:800; color:#7c3aed; margin-top:4px;">${stats.tomorrowCount || 0} <span style="font-size:12px; font-weight:600; color:#5b21b6;">คน</span></div>
+            </div>
+          </div>
+
+          <div style="font-size:11px; color:#94a3b8; text-align:center;">
+            อัปเดตข้อมูลระบบล่าสุดเรียบร้อยแล้ว (${dateStr})
+          </div>
+        </div>
+      `,
+      showConfirmButton: true,
+      confirmButtonText: '<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;font-size:14px;font-weight:700;"><span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> รับทราบ</span>',
+      confirmButtonColor: '#0d9488',
+      showDenyButton: false,
+      showCancelButton: false,
+      timer: 15000,
+      timerProgressBar: true,
+      showCloseButton: true,
+      allowOutsideClick: true,
+      allowEscapeKey: true,
+      focusConfirm: true,
+      customClass: {
+        popup: 'pvt-sync-popup'
+      },
+      didOpen: (popup) => {
+        const container = popup.closest('.swal2-container') || document.querySelector('.swal2-container');
+        if (container) {
+          container.style.zIndex = '2147483647';
+          container.style.pointerEvents = 'auto';
+        }
+      }
+    });
+  } else {
+    showToast('✅ ซิงค์ข้อมูลระบบเรียบร้อยแล้ว', 'success');
+  }
+};
+
+window.refreshDashboardData = async function(isManualClick = false) {
   console.log("🔄 [Process]: ฟังก์ชัน refreshDashboardData() เริ่มซิงค์ข้อมูล...");
   
+  const syncBtn = document.getElementById("btnSyncData");
+  if (syncBtn) syncBtn.classList.add("refresh-spin-active");
+
   const mockRequests = [
     { id: 1, emp_name: "คุณ สมศักดิ์ ผลดี", department: "ฝ่ายผลิต", leave_type_name: "ลาป่วย", total_days: 2, status: "pending", start_date: "2026-07-08", end_date: "2026-07-09", reason: "ไข้ขึ้นสูง" },
     { id: 2, emp_name: "คุณ เจนจิรา มีสุข", department: "ฝ่ายออฟฟิศ", leave_type_name: "ลาพักร้อน", total_days: 3, status: "approved", start_date: "2026-07-10", end_date: "2026-07-12", reason: "พักผ่อนประจำปี" },
@@ -103,6 +200,7 @@ window.refreshDashboardData = async function() {
     rawEmployees = mockEmployees;
     renderCounters(1, 1, 1);
     drawCharts();
+    if (syncBtn) syncBtn.classList.remove("refresh-spin-active");
     return;
   }
 
@@ -220,11 +318,24 @@ window.refreshDashboardData = async function() {
     renderHomeDepartmentTeam(rawEmployees, sessionUser);
     
     drawCharts();
-    showToast(`✅ ซิงค์ข้อมูลระบบเรียบร้อยแล้ว`, "success");
+    
+    // 🟢 แสดง SweetAlert2 Sync Popup Modal รายละเอียดสมบูรณ์
+    showSyncSuccessPopup({
+      pendingCount,
+      todayCount: todayLeaves.length,
+      totalEmp,
+      tomorrowCount: tomorrowLeaves.length
+    }, isManualClick);
 
   } catch (error) {
     console.error("❌ [Catch Error]: เกิดข้อผิดพลาดระหว่างคิวรีข้อมูล:", error);
     renderCounters(0, 0, 0, 0);
+  } finally {
+    if (syncBtn) {
+      setTimeout(() => {
+        syncBtn.classList.remove("refresh-spin-active");
+      }, 500);
+    }
   }
 };
 

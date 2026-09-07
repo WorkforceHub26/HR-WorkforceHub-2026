@@ -1353,14 +1353,34 @@ async function saveLeave() {
       hasError = true; break;
     }
 
-    if (isVacationLeave && totalDays < 0.5) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'เงื่อนไขการลาพักผ่อน',
-        text: `รายการที่ ${index + 1} การลาพักผ่อนสามารถลาขั้นต่ำได้น้อยสุด 0.5 วัน (ครึ่งวัน) ครับ`,
-        confirmButtonColor: '#f59e0b'
-      });
-      hasError = true; break;
+    if (isVacationLeave) {
+      if (totalDays < 0.5) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'เงื่อนไขการลาพักผ่อน',
+          text: `รายการที่ ${index + 1} การลาพักผ่อนสามารถลาขั้นต่ำได้น้อยสุด 0.5 วัน (ครึ่งวัน) ครับ`,
+          confirmButtonColor: '#f59e0b'
+        });
+        hasError = true; break;
+      }
+
+      // 🛡️ ตรวจสอบอายุงานพนักงาน (ต้องทำงานครบ 1 ปี / 365 วันขึ้นไป จึงจะมีสิทธิลาพักร้อน/พักผ่อน)
+      const empStartStr = currentProfile?.start_date || currentProfile?.join_date || currentProfile?.created_at;
+      if (empStartStr) {
+        const empStartObj = parseLocalDate(empStartStr);
+        const reqStartObj = parseLocalDate(startDate);
+        const diffMs = reqStartObj.getTime() - empStartObj.getTime();
+        const diffDays = diffMs / (1000 * 3600 * 24);
+        if (diffDays < 365) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'ยังไม่มีสิทธิลาพักผ่อนประจำปี',
+            html: `รายการที่ ${index + 1}: พนักงานที่ทำงานยังไม่ครบ <b>1 ปี (365 วัน)</b> ตามรอบปีบริษัท (1 ธ.ค. – 30 พ.ย.) จะยังไม่มีสิทธิลาพักผ่อนประจำปี (ลาพักร้อน) ครับ<br><span style="color: #64748b; font-size: 13px;">(วันที่เริ่มงานของคุณ: ${formatThaiDate(empStartStr)})</span>`,
+            confirmButtonColor: '#f59e0b'
+          });
+          hasError = true; break;
+        }
+      }
     }
 
     const isOverlapped = await checkOverlappingLeave(currentEmpId, startDate, endDate);

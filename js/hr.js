@@ -422,10 +422,25 @@ function isHistoryForRole(r, role) {
 }
 
 function getADYear(dateStr) {
-  if (!dateStr) return new Date().getFullYear();
-  const yearPart = parseInt(String(dateStr).split('-')[0], 10);
-  if (isNaN(yearPart)) return new Date().getFullYear();
-  return yearPart > 2400 ? yearPart - 543 : yearPart;
+  if (typeof window.getADYear === 'function') {
+    return window.getADYear(dateStr);
+  }
+  if (!dateStr) {
+    const now = new Date();
+    return now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+  }
+  const str = String(dateStr).trim();
+  const parts = str.split('T')[0].split('-');
+  let yearPart = parseInt(parts[0], 10);
+  if (isNaN(yearPart)) {
+    const now = new Date();
+    return now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+  }
+  if (yearPart > 2400) yearPart -= 543;
+  if (parts.length >= 2 && parseInt(parts[1], 10) === 12) {
+    yearPart += 1;
+  }
+  return yearPart;
 }
 
 async function calculateActualLeaveDays(startDateStr, endDateStr) {
@@ -2872,7 +2887,11 @@ async function exportLeaveReportExcel() {
       title: 'ดาวน์โหลดสำเร็จ!',
       text: 'รายงานสรุปภาพรวมและข้อมูลการลาถูกสร้างเรียบร้อยแล้ว',
       icon: 'success',
-      confirmButtonColor: '#0fa472'
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#0fa472',
+      showDenyButton: false,
+      showCancelButton: false,
+      showCloseButton: false
     });
 
   } catch (err) {

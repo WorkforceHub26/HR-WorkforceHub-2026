@@ -143,19 +143,23 @@ async function autoSessionCheckAndRedirect() {
   // 🔐 Check WebAuthn API support on device startup & ensure 'Biometric Login' button is visible
   const checkAndToggleBiometricButton = async () => {
     const bioBtn = document.getElementById("biometricLoginBtn");
+    const bioGuideBtn = document.getElementById("biometricGuideBtn");
     if (!bioBtn) return;
 
     try {
       // Keep biometric button visible on modern browsers supporting WebAuthn or touch/face APIs
       if (window.PublicKeyCredential || (navigator.credentials && navigator.credentials.get)) {
         bioBtn.style.display = "flex";
+        if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
       } else {
         // Fallback display for demo and universal access
         bioBtn.style.display = "flex";
+        if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
       }
     } catch (err) {
       console.warn("⚠️ [WebAuthn] Startup support check warning:", err);
       bioBtn.style.display = "flex";
+      if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
     }
   };
 
@@ -168,6 +172,7 @@ async function autoSessionCheckAndRedirect() {
     const qrOptions = document.querySelector(".qr-login-container");
     const divider = document.querySelector(".divider");
     const bioBtn = document.getElementById("biometricLoginBtn");
+    const bioGuideBtn = document.getElementById("biometricGuideBtn");
 
     if (overlay) {
       overlay.style.display = show ? "flex" : "none";
@@ -190,6 +195,9 @@ async function autoSessionCheckAndRedirect() {
       } else {
         checkAndToggleBiometricButton();
       }
+    }
+    if (bioGuideBtn && show) {
+      bioGuideBtn.style.display = "none";
     }
   };
 
@@ -308,6 +316,7 @@ const loginTranslations = {
     qrBtn: "สแกนคิวอาร์โค้ดบัตรพนักงาน",
     qrGuideLink: "วิธีถือบัตรสแกน (How-to Guide)",
     biometricLoginBtn: "เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า",
+    biometricGuideLink: "วิธีใช้สแกนนิ้ว/ใบหน้า (Biometric Guide)",
     errEmptyBoth: "กรุณากรอกข้อมูลผู้ใช้งานและรหัสผ่านให้ครบถ้วน",
     errEmptyUser: "กรุณากรอกรหัสพนักงาน หรือชื่อผู้ใช้งาน",
     errEmptyPass: "กรุณากรอกรหัสผ่าน",
@@ -332,6 +341,7 @@ const loginTranslations = {
     loggingIn: "ກຳລັງເຂົ້າສູ່ລະບົບ...",
     qrBtn: "ສະແກນຄິວອ່າວໂຄດບັດພະນັກງານ",
     qrGuideLink: "ວິທີຖືບັດສະແກນ (How-to Guide)",
+    biometricGuideLink: "ວິທີໃຊ້ສະແກນນິ້ວ/ໃບໜ້າ (Biometric Guide)",
     biometricLoginBtn: "ເຂົ້າສູ່ລະບົບດ້ວຍລາຍນິ້ວມື / ໃບໜ້າ",
     errEmptyBoth: "ກະລຸນາປ້ອນຊື່ຜູ້ໃຊ້ງານ ແລະ ລະຫັດຜ່ານໃຫ້ຄົບຖ້ວນ",
     errEmptyUser: "ກະລຸນາປ້ອນລະຫັດພະນັກງານ ຫຼື ຊື່ຜູ້ໃຊ້ງານ",
@@ -358,6 +368,7 @@ const loginTranslations = {
     qrBtn: "ဝန်ထမ်းကတ် QR ကုဒ်ကို စကန်ဖတ်ရန်",
     qrGuideLink: "ကတ်စကင်န်ဖတ်နည်း လမ်းညွှန်",
     biometricLoginBtn: "လက်ဗွေ သို့မဟုတ် မျက်နှာဖြင့် အကောင့်ဝင်ရန်",
+    biometricGuideLink: "စကင်န်ဖတ်နည်းလမ်းညွှန် (Biometric Guide)",
     errEmptyBoth: "အသုံးပြုသူအမည်နှင့် စကားဝှက်ကို အပြည့်အစုံ ဖြည့်သွင်းပါ",
     errEmptyUser: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်ကို ဖြည့်သွင်းပါ",
     errEmptyPass: "စကားဝှက်ကို ဖြည့်သွင်းပါ",
@@ -499,6 +510,7 @@ function setLanguage(lang) {
   const qrBtnEl = document.getElementById("i18nQrBtn");
   const qrGuideLinkEl = document.getElementById("i18nQrGuideLink");
   const biometricLoginBtnText = document.getElementById("i18nBiometricLoginBtn");
+  const biometricGuideLinkEl = document.getElementById("i18nBiometricGuideLink");
 
   if (badgeEl) badgeEl.textContent = t.badge;
   if (userLabelEl) userLabelEl.textContent = t.userLabel;
@@ -511,6 +523,7 @@ function setLanguage(lang) {
   if (qrBtnEl) qrBtnEl.textContent = t.qrBtn;
   if (qrGuideLinkEl && t.qrGuideLink) qrGuideLinkEl.textContent = t.qrGuideLink;
   if (biometricLoginBtnText && t.biometricLoginBtn) biometricLoginBtnText.textContent = t.biometricLoginBtn;
+  if (biometricGuideLinkEl && t.biometricGuideLink) biometricGuideLinkEl.textContent = t.biometricGuideLink;
 
   const camTitleEl = document.getElementById("biometricCameraAlertTitle");
   const camBtnEl = document.getElementById("i18nCamDiagBtn");

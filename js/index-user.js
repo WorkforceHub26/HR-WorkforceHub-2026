@@ -103,6 +103,19 @@ async function initUserHome() {
     checkApproverPermission(window.currentProfile);
     initUserNotifications(window.currentProfile);
 
+    // 🔗 Auto-trigger sidebar actions from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetAction = urlParams.get("action");
+    if (targetAction === "digital_card" || targetAction === "card") {
+      setTimeout(() => {
+        if (typeof window.viewMyDigitalCard === "function") window.viewMyDigitalCard();
+      }, 500);
+    } else if (targetAction === "line_link" || targetAction === "line") {
+      setTimeout(() => {
+        if (typeof window.generateLineLinkToken === "function") window.generateLineLinkToken();
+      }, 500);
+    }
+
   } catch (err) {
     console.error("❌ [SAFEGUARD] เกิดข้อผิดพลาดใน initUserHome:", err);
   }
@@ -1222,7 +1235,7 @@ function initQuotaSystem() {
   const yearSelect = document.getElementById('yearFilter');
   if (!yearSelect) return;
 
-  const now = new Date().getFullYear();
+  const now = typeof window.getCurrentLeaveYear === 'function' ? window.getCurrentLeaveYear() : new Date().getFullYear();
   
   yearSelect.innerHTML = `
     <option value="${now}">ปี ${now + 543} (ปัจจุบัน)</option>
@@ -1319,7 +1332,7 @@ async function loadQuotaData(targetYear) {
     (requests || []).forEach(r => {
       const typeIdStr = String(r.leave_type_id);
       if (r.status === 'approved') {
-        const reqYear = r.start_date ? new Date(r.start_date).getFullYear() : targetYearAD;
+        const reqYear = r.start_date ? (typeof window.getADYear === 'function' ? window.getADYear(r.start_date) : new Date(r.start_date).getFullYear()) : targetYearAD;
         if (reqYear === targetYearAD) {
           approvedTimesMap[typeIdStr] = (approvedTimesMap[typeIdStr] || 0) + 1;
           approvedDaysMap[typeIdStr] = (approvedDaysMap[typeIdStr] || 0) + (parseFloat(r.total_days) || 0);
@@ -1352,6 +1365,18 @@ async function loadQuotaData(targetYear) {
       };
     });
 
+    const empStartStr = window.currentProfile?.start_date || window.currentProfile?.join_date || window.currentProfile?.created_at;
+    let isEmpUnder1Year = false;
+    if (empStartStr) {
+      const empStart = new Date(empStartStr);
+      const now = new Date();
+      const diffMs = now.getTime() - empStart.getTime();
+      const diffDays = diffMs / (1000 * 3600 * 24);
+      if (diffDays < 365) {
+        isEmpUnder1Year = true;
+      }
+    }
+
     const deduplicatedQuotas = [];
     if (types && types.length > 0) {
       types.forEach((t, idx) => {
@@ -1359,11 +1384,18 @@ async function loadQuotaData(targetYear) {
         const q = quotaMap.get(typeIdStr);
         const typeInfo = typeMap[typeIdStr] || {};
         const leaveName = typeInfo.name || t.leave_name || "สิทธิ์การลา";
-        const totalEntitlement = q ? (parseFloat(q.entitlement_days) || parseFloat(q.quota) || typeInfo.defaultQuota || 0) : (typeInfo.defaultQuota || 0);
-        const usedDays = q ? (parseFloat(q.used_days) || 0) : (approvedDaysMap[typeIdStr] || 0);
-        const remainingDays = q && q.remaining_days !== null && q.remaining_days !== undefined
+        const isVacation = leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน") || String(t.leave_code || '').toUpperCase() === 'VACATION';
+
+        let totalEntitlement = q ? (parseFloat(q.entitlement_days) || parseFloat(q.quota) || typeInfo.defaultQuota || 0) : (typeInfo.defaultQuota || 0);
+        let usedDays = q ? (parseFloat(q.used_days) || 0) : (approvedDaysMap[typeIdStr] || 0);
+        let remainingDays = q && q.remaining_days !== null && q.remaining_days !== undefined
           ? parseFloat(q.remaining_days)
           : Math.max(0, totalEntitlement - usedDays);
+
+        if (isVacation && isEmpUnder1Year) {
+          totalEntitlement = 0;
+          remainingDays = 0;
+        }
 
         deduplicatedQuotas.push({
           ...(q || {}),
@@ -1373,7 +1405,8 @@ async function loadQuotaData(targetYear) {
           used_days: usedDays,
           remaining_days: remainingDays,
           card_color: typeInfo.color || getLeaveTypeColor(leaveName, idx),
-          approved_times: approvedTimesMap[typeIdStr] || 0
+          approved_times: approvedTimesMap[typeIdStr] || 0,
+          is_under_1_year: isVacation && isEmpUnder1Year
         });
       });
     }
@@ -1413,7 +1446,7 @@ async function loadQuotaData(targetYear) {
 window.resetLeaveQuotaWithDoubleConfirm = async function() {
   const sb = getSafeSupabaseClient();
   const employeeId = window.currentProfile?.id || window.currentProfile?.employee_id;
-  const currentYear = new Date().getFullYear();
+  const currentYear = typeof window.getCurrentLeaveYear === 'function' ? window.getCurrentLeaveYear() : new Date().getFullYear();
   const thaiYear = currentYear + 543;
 
   if (!sb || !employeeId) {
@@ -1498,7 +1531,7 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
     // รวมยอดวันลาที่ใช้ไปจริงแยกตามประเภทในปีนี้
     const usedMap = {};
     (approvedLeaves || []).forEach(r => {
-      const reqYear = r.start_date ? new Date(r.start_date).getFullYear() : currentYear;
+      const reqYear = r.start_date ? (typeof window.getADYear === 'function' ? window.getADYear(r.start_date) : new Date(r.start_date).getFullYear()) : currentYear;
       if (reqYear === currentYear) {
         const typeIdStr = String(r.leave_type_id);
         usedMap[typeIdStr] = (usedMap[typeIdStr] || 0) + (parseFloat(r.total_days) || 0);
@@ -1643,14 +1676,17 @@ function renderQuotaCards(quotas) {
     const leaveTypeId = item.leave_type_id || "";
     const approvedTimes = item.approved_times || 0;
 
+    const isUnder1Year = Boolean(item.is_under_1_year);
+    const tenureBadge = isUnder1Year ? `<span title="รอบปีการลาบริษัท: 1 ธ.ค. - 30 พ.ย." style="font-size: 11px; color: #e11d48; font-weight: 600; background: #fff1f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecdd3; margin-left: 6px;">อายุงานไม่ถึง 1 ปี (รอบ 1 ธ.ค. - 30 พ.ย.)</span>` : '';
+
     return `
       <div class="quota-card" 
            onclick="showLeaveTypeHistory('${leaveTypeId}', '${typeName}')"
            style="border-top: 4px solid ${cardColor}; cursor: pointer; transition: transform 0.15s ease;"
            title="คลิกเพื่อดูประวัติ ${typeName}">
-        <div class="quota-header-row">
-          <div class="quota-type-title">${typeName}</div>
-          <span class="quota-approved-badge" style="background: ${cardColor}15; color: ${cardColor}; border: 1px solid ${cardColor}30;">
+        <div class="quota-header-row" style="flex-wrap: wrap; gap: 4px; align-items: center;">
+          <div class="quota-type-title">${typeName} ${tenureBadge}</div>
+          <span class="quota-approved-badge" style="background: ${cardColor}15; color: ${cardColor}; border: 1px solid ${cardColor}30; margin-left: auto;">
             อนุมัติ ${approvedTimes} ครั้ง
           </span>
         </div>
@@ -1786,6 +1822,38 @@ window.refreshUserData = async function() {
     await initUserHome();
     if (typeof loadQuotaData === "function") {
       await loadQuotaData(window.currentSelectedYear);
+    }
+
+    if (typeof Swal !== 'undefined') {
+      const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      Swal.fire({
+        title: `<div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:17px; font-weight:700; color:#0f766e;">
+          <span class="material-symbols-outlined" style="font-size:24px; color:#0d9488;">cloud_done</span>
+          อัปเดตข้อมูลล่าสุดเรียบร้อยแล้ว
+        </div>`,
+        html: `
+          <div style="font-size:13px; color:#475569; margin-top:8px;">
+            ซิงค์ยอดวันลาคงเหลือและสถิติข้อมูลส่วนบุคคลล่าสุดเรียบร้อย (${timeStr} น.)
+          </div>
+        `,
+        showConfirmButton: true,
+        confirmButtonText: '<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;font-size:13.5px;font-weight:700;"><span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> ตกลง</span>',
+        confirmButtonColor: '#0d9488',
+        showDenyButton: false,
+        showCancelButton: false,
+        timer: 15000,
+        timerProgressBar: true,
+        showCloseButton: true,
+        allowOutsideClick: true,
+        allowEscapeKey: true,
+        didOpen: (popup) => {
+          const container = popup.closest('.swal2-container') || document.querySelector('.swal2-container');
+          if (container) {
+            container.style.zIndex = '2147483647';
+            container.style.pointerEvents = 'auto';
+          }
+        }
+      });
     }
   } catch (err) {
     console.error("❌ เกิดข้อผิดพลาดในการรีเฟรชข้อมูล:", err);

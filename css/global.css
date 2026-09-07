@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./system-settings.css";
 
 /* ==========================================================================
    PVT WORKFORCE HUB - GLOBAL RESPONSIVE & SHARED UTILITIES
@@ -40,24 +41,53 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 🌫️ ฉากหลังเบลอสำหรับ SweetAlert2 */
+/* 🌫️ ฉากหลังสำหรับ SweetAlert2 - z-index สูงสุดเหนือทุกเลเยอร์ */
 .swal2-container {
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  background-color: rgba(15, 23, 42, 0.45) !important;
-  z-index: 10000 !important;
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
 }
 
-/* กล่องป๊อปอัปสไตล์ Glassmorphism */
-.pvt-guard-popup, .swal2-popup {
+/* กล่องป๊อปอัป SweetAlert2 */
+.pvt-guard-popup, .swal2-popup, .pvt-sync-popup {
   border-radius: 20px !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35) !important;
   font-family: 'Sarabun', 'Kanit', sans-serif !important;
   max-width: 95vw !important;
+  pointer-events: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* บังคับซ่อนปุ่ม Deny / Cancel และปุ่ม X ปิด ในป๊อปอัปแจ้งผลการทำงาน / ดาวน์โหลด / ซิงค์ */
+.pvt-sync-popup .swal2-deny,
+.pvt-sync-popup .swal2-cancel,
+.swal2-icon-success .swal2-deny,
+.swal2-icon-success .swal2-cancel,
+.swal2-icon-success .swal2-close,
+.swal2-icon-info .swal2-deny,
+.swal2-icon-info .swal2-cancel,
+.swal2-icon-info .swal2-close {
+  display: none !important;
+}
+
+.swal2-html-container {
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.swal2-close {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.swal2-confirm,
+.swal2-cancel,
+.swal2-deny,
+.swal2-actions button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
 /* 📱 Responsive Mobile Drawer Backdrop */
@@ -450,7 +480,7 @@ html, body {
   }
 
   /* ปรับปรุงขนาด Modal ของจอมือถือแบบยืดหยุ่นตามความสูงหน้าจอ (Dynamic Viewport Height) */
-  .modal-dialog, .pvt-guard-popup, .swal2-popup {
+  .modal-dialog, .pvt-guard-popup {
     width: min(96vw, 760px) !important;
     max-width: 96vw !important;
     max-height: min(92dvh, calc(100dvh - 16px)) !important;
@@ -666,12 +696,258 @@ html, body {
 .stat-card:nth-child(3) { animation-delay: 0.3s; opacity: 0; }
 .stat-card:nth-child(4) { animation-delay: 0.4s; opacity: 0; }
 
-.btn, button, .action-btn {
-  transition: all 0.25s ease !important;
+/* ==========================================================================
+   ✨ HIGH-CRAFT PREMIUM GLOBAL BUTTON DESIGN SYSTEM
+   ========================================================================== */
+.btn, 
+button, 
+.action-btn, 
+.btn-primary, 
+.btn-light, 
+.btn-secondary, 
+.btn-act,
+.btn-sm,
+.btn-table-act,
+.filter-btn,
+.btn-header-back {
+  font-family: 'Sarabun', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.015em !important;
+  border-radius: 10px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  user-select: none !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  cursor: pointer !important;
+  outline: none !important;
 }
 
-.btn:active, button:active, .action-btn:active {
-  transform: scale(0.96) !important;
+/* 🎯 Universal Micro-Interactions (Hover Lift & Tactile Click) */
+.btn:hover, 
+button:hover, 
+.action-btn:hover, 
+.btn-primary:hover, 
+.btn-light:hover,
+.btn-act:hover {
+  transform: translateY(-2px) !important;
+}
+
+.btn:active, 
+button:active, 
+.action-btn:active, 
+.btn-primary:active, 
+.btn-light:active,
+.btn-act:active {
+  transform: translateY(0) scale(0.97) !important;
+}
+
+.btn:focus-visible,
+button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.28) !important;
+}
+
+/* 🟢 1. Primary Action Buttons (Emerald Teal Gradient with Shimmer Highlight) */
+.btn-primary,
+button.btn-primary,
+.btn-pvt-refresh,
+.swal2-styled.swal2-confirm,
+.btn-settings-done,
+.btn-submit,
+.btn-save,
+.btn-create,
+.btn-line-cta,
+#btnSyncData {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 100%),
+              linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 4px 14px -1px rgba(13, 148, 136, 0.35), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-primary:hover,
+button.btn-primary:hover,
+.btn-pvt-refresh:hover,
+.swal2-styled.swal2-confirm:hover,
+.btn-settings-done:hover,
+.btn-submit:hover,
+.btn-save:hover,
+.btn-create:hover,
+.btn-line-cta:hover,
+#btnSyncData:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%),
+              linear-gradient(135deg, #0f766e 0%, #115e59 100%) !important;
+  box-shadow: 0 8px 22px -2px rgba(13, 148, 136, 0.48), 0 3px 6px -1px rgba(0, 0, 0, 0.08) !important;
+  color: #ffffff !important;
+}
+
+/* ⚪ 2. Secondary & Light Buttons (Clean White Slate Card) */
+.btn-light,
+.btn-secondary,
+.btn-ghost,
+.btn-header-back,
+.btn-cancel,
+.btn-close,
+.btn-back,
+.btn-settings-reset {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+}
+
+.btn-light:hover,
+.btn-secondary:hover,
+.btn-ghost:hover,
+.btn-header-back:hover,
+.btn-cancel:hover,
+.btn-close:hover,
+.btn-back:hover,
+.btn-settings-reset:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* 🟢 3. Approve & Success Buttons (Emerald Green Glow) */
+.btn-act-approve,
+.btn-green,
+.btn-success,
+.btn-approve {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 100%),
+              linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 14px -1px rgba(16, 185, 129, 0.35) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-act-approve:hover,
+.btn-green:hover,
+.btn-success:hover,
+.btn-approve:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%),
+              linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 8px 20px -2px rgba(16, 185, 129, 0.48) !important;
+  color: #ffffff !important;
+}
+
+/* 🔴 4. Danger, Reject & Logout Buttons (Rose Crimson Glow) */
+.btn-logout,
+.btn-danger,
+.btn-act-reject,
+.btn-reject,
+.btn-delete {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 100%),
+              linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 14px -1px rgba(225, 29, 72, 0.32) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-logout:hover,
+.btn-danger:hover,
+.btn-act-reject:hover,
+.btn-reject:hover,
+.btn-delete:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%),
+              linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
+  box-shadow: 0 8px 20px -2px rgba(225, 29, 72, 0.45) !important;
+  color: #ffffff !important;
+}
+
+/* 🟦 5. Info, Preview & Print Buttons (Sky Blue Elegance) */
+.btn-act-preview,
+.btn-act-print,
+.btn-info,
+.btn-view {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  color: #0369a1 !important;
+  border: 1px solid #7dd3fc !important;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.08) !important;
+}
+
+.btn-act-preview:hover,
+.btn-act-print:hover,
+.btn-info:hover,
+.btn-view:hover {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
+  color: #0284c7 !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2) !important;
+}
+
+/* 🟧 6. Warning & Pending Cancel Buttons (Amber Soft Warmth) */
+.btn-act-cancel,
+.btn-warning {
+  background: linear-gradient(135deg, #fffbe3 0%, #fef3c7 100%) !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.08) !important;
+}
+
+.btn-act-cancel:hover,
+.btn-warning:hover {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  color: #78350f !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.18) !important;
+}
+
+/* 🏷️ 7. Filter Pills & Category Tabs */
+.filter-btn,
+.tab-btn,
+.rule-tab,
+.notif-tab {
+  border-radius: 9999px !important;
+  padding: 6px 16px !important;
+  font-size: 13px !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.filter-btn:hover,
+.tab-btn:hover,
+.rule-tab:hover,
+.notif-tab:hover {
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+.filter-btn.active,
+.tab-btn.active,
+.rule-tab.active,
+.notif-tab.active {
+  background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 3px 10px rgba(13, 148, 136, 0.25) !important;
+}
+
+/* 🔔 8. Header Action & Bell Buttons */
+.notif-btn,
+.mobile-menu-btn {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+  border-radius: 12px !important;
+}
+
+.notif-btn:hover,
+.mobile-menu-btn:hover {
+  background: #f0fdfa !important;
+  border-color: #0d9488 !important;
+  color: #0f766e !important;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.18) !important;
 }
 
 /* Make icons larger and more prominent for universal design */
@@ -679,66 +955,119 @@ html, body {
   vertical-align: middle;
 }
 
-/* Desktop Sidebar Toggle */
+/* Desktop Sidebar Toggle & Collapsed State Fix */
 @media (min-width: 1025px) {
+  .btn-close-sidebar {
+    display: none !important;
+  }
+
   .sidebar, .sidebar-light, aside {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
   body.desktop-sidebar-collapsed .sidebar,
   body.desktop-sidebar-collapsed .sidebar-light,
   body.desktop-sidebar-collapsed aside {
-    width: 80px !important;
-    min-width: 80px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    overflow-x: hidden !important;
   }
-  body.desktop-sidebar-collapsed .sidebar-light .brand-zone {
-    padding: 16px 8px !important;
-  }
-  body.desktop-sidebar-collapsed .sidebar-light .logo-mini {
-    max-height: 36px !important;
-  }
-  body.desktop-sidebar-collapsed .sidebar-light .nav-menu {
-    padding: 16px 8px !important;
-    align-items: center !important;
-  }
-  body.desktop-sidebar-collapsed .sidebar-light .nav-item {
-    justify-content: center !important;
-    padding: 12px !important;
-    width: 48px !important;
-    height: 48px !important;
-    border-radius: 50% !important;
-    gap: 0 !important;
-  }
-  body.desktop-sidebar-collapsed .sidebar-light .nav-item .nav-label {
+
+  /* 🚫 Hide all text labels when collapsed */
+  body.desktop-sidebar-collapsed .brand-name,
+  body.desktop-sidebar-collapsed .sidebar-brand-text,
+  body.desktop-sidebar-collapsed .sidebar-cta-label,
+  body.desktop-sidebar-collapsed .sidebar-section-title,
+  body.desktop-sidebar-collapsed .user-info,
+  body.desktop-sidebar-collapsed .nav-item span:not(.material-symbols-outlined),
+  body.desktop-sidebar-collapsed .menu-item span:not(.material-symbols-outlined),
+  body.desktop-sidebar-collapsed .btn-logout span:not(.material-symbols-outlined),
+  body.desktop-sidebar-collapsed .nav-label,
+  body.desktop-sidebar-collapsed .logout-text,
+  body.desktop-sidebar-collapsed .logo-text,
+  body.desktop-sidebar-collapsed .menu-text,
+  body.desktop-sidebar-collapsed .badge {
     display: none !important;
-  }
-  body.desktop-sidebar-collapsed .sidebar-light .sidebar-footer {
-    padding: 16px 8px !important;
-    display: flex !important;
-    justify-content: center !important;
-  }
-  body.desktop-sidebar-collapsed .sidebar-light .btn-logout {
-    width: 48px !important;
-    height: 48px !important;
-    border-radius: 50% !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
     padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
+  }
+
+  /* 🏢 Brand Zone Collapsed */
+  body.desktop-sidebar-collapsed .sidebar-brand,
+  body.desktop-sidebar-collapsed .brand-zone {
+    padding: 14px 0 !important;
     justify-content: center !important;
     gap: 0 !important;
   }
-  body.desktop-sidebar-collapsed .sidebar-light .btn-logout span:not(.material-symbols-outlined) {
-    display: none !important;
+
+  /* 🚀 Primary CTA Collapsed */
+  body.desktop-sidebar-collapsed .sidebar-cta-wrap {
+    padding: 8px 0 !important;
+    display: flex !important;
+    justify-content: center !important;
   }
-  body.desktop-sidebar-collapsed .sidebar .logo-text,
-  body.desktop-sidebar-collapsed .sidebar .menu-text,
-  body.desktop-sidebar-collapsed .sidebar .badge,
-  body.desktop-sidebar-collapsed .sidebar .logout-text,
-  body.desktop-sidebar-collapsed .sidebar .user-info {
-    display: none !important;
+
+  body.desktop-sidebar-collapsed .sidebar-cta-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    gap: 0 !important;
   }
+
+  /* 🧭 Menu Items Collapsed */
+  body.desktop-sidebar-collapsed .sidebar-menu,
+  body.desktop-sidebar-collapsed .nav-menu {
+    padding: 8px 0 !important;
+    align-items: center !important;
+  }
+
+  body.desktop-sidebar-collapsed .nav-item,
+  body.desktop-sidebar-collapsed .menu-item {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    justify-content: center !important;
+    margin: 3px auto !important;
+    gap: 0 !important;
+  }
+
+  body.desktop-sidebar-collapsed .nav-item .material-symbols-outlined,
+  body.desktop-sidebar-collapsed .menu-item .material-symbols-outlined {
+    font-size: 22px !important;
+    margin: 0 !important;
+  }
+
+  /* 🚪 Footer & Logout Collapsed */
+  body.desktop-sidebar-collapsed .sidebar-footer {
+    padding: 12px 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  body.desktop-sidebar-collapsed .btn-logout {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    gap: 0 !important;
+  }
+
   body.desktop-sidebar-collapsed .main-content {
-    margin-left: 80px !important;
-    width: calc(100% - 80px) !important;
+    margin-left: 72px !important;
+    width: calc(100% - 72px) !important;
   }
   
   .desktop-menu-toggle {
@@ -1039,4 +1368,666 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   margin: 0 !important;
   z-index: 5 !important;
 }
+
+/* ==========================================================================
+   ✨ LUXURY SLEEK MODERN SCROLLBAR (Ultra-smooth & minimalist)
+   ========================================================================== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(13, 148, 136, 0.28) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(13, 148, 136, 0.25);
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 148, 136, 0.55);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #0f766e;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ==========================================================================
+   🧭 COMPACT UNIFIED LUXURY SIDEBAR (Fit 100% Screen Height Without Overflow)
+   ========================================================================== */
+.sidebar,
+.sidebar-light {
+  width: 250px;
+  min-width: 250px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+/* 🏷️ BRAND ZONE */
+.sidebar-brand,
+.brand-zone {
+  padding: 16px 16px 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  background: linear-gradient(135deg, #0f766e, #2dd4bf);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(15, 118, 110, 0.2);
+}
+
+.brand-icon .material-symbols-outlined {
+  font-size: 19px;
+  color: #ffffff;
+}
+
+.brand-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: #0f766e;
+  text-transform: uppercase;
+  white-space: nowrap !important;
+  line-height: 1.2;
+}
+
+/* 🚀 SIDEBAR PRIMARY ACTION (CTA) */
+.sidebar-cta-wrap {
+  padding: 10px 12px 6px 12px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.sidebar-cta-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #0d9488, #0891b2);
+  color: #ffffff !important;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(13, 148, 136, 0.22);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.sidebar-cta-btn:hover {
+  background: linear-gradient(135deg, #0f766e, #0e7490);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(13, 148, 136, 0.32);
+  color: #ffffff !important;
+}
+
+.sidebar-cta-btn:active {
+  transform: translateY(0);
+}
+
+.sidebar-cta-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.sidebar-cta-label {
+  white-space: nowrap !important;
+}
+
+/* 🧭 NAVIGATION MENU LIST */
+.sidebar-menu,
+.nav-menu {
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+/* 🔘 MENU ITEMS */
+.menu-item,
+.nav-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  color: #475569 !important;
+  text-decoration: none !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  border: none !important;
+  background: transparent !important;
+  width: 100% !important;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+.menu-item span,
+.nav-item span {
+  white-space: nowrap !important;
+  text-align: left !important;
+}
+
+.menu-item .material-symbols-outlined,
+.nav-item .material-symbols-outlined {
+  font-size: 20px !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.18s ease, color 0.18s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.menu-item:hover,
+.nav-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  transform: translateX(2px);
+}
+
+.menu-item:hover .material-symbols-outlined,
+.nav-item:hover .material-symbols-outlined {
+  transform: scale(1.08);
+}
+
+/* ==========================================================================
+   🚫 HIDE DUPLICATE HEADER BUTTON (FOCUS MODE DIRECTIVE)
+   ========================================================================== */
+div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(2),
+.topbar-left > button:nth-of-type(2) {
+  display: none !important;
+}
+
+/* 1. Colorful Accent Icons inside Light / Secondary / Back Buttons */
+.btn-light .material-symbols-outlined,
+.btn-secondary .material-symbols-outlined,
+.btn-ghost .material-symbols-outlined,
+.btn-header-back .material-symbols-outlined,
+.btn-back .material-symbols-outlined {
+  color: #0d9488 !important; /* Teal default accent */
+  transition: transform 0.2s ease, color 0.2s ease !important;
+}
+
+/* Specific Action Icon Accents */
+.btn-act-preview .material-symbols-outlined,
+.btn-view .material-symbols-outlined,
+.btn-info .material-symbols-outlined {
+  color: #0284c7 !important; /* Sky Blue */
+}
+
+.btn-act-print .material-symbols-outlined {
+  color: #7c3aed !important; /* Royal Purple */
+}
+
+.btn-act-cancel .material-symbols-outlined,
+.btn-warning .material-symbols-outlined {
+  color: #d97706 !important; /* Amber Orange */
+}
+
+.btn-pvt-refresh .material-symbols-outlined,
+.btn-refresh-data .material-symbols-outlined {
+  color: #ffffff !important;
+}
+
+/* 2. Enhanced Button Borders & Hover Ring Highlights */
+.btn-light:hover,
+.btn-secondary:hover,
+.btn-ghost:hover,
+.btn-header-back:hover,
+.btn-back:hover {
+  border-color: #0d9488 !important;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.15) !important;
+  background: #f0fdfa !important;
+  color: #0f766e !important;
+}
+
+.btn-light:hover .material-symbols-outlined,
+.btn-secondary:hover .material-symbols-outlined,
+.btn-header-back:hover .material-symbols-outlined {
+  transform: scale(1.15) rotate(-4deg) !important;
+}
+
+/* 3. Colorful Card Header Icon Badges */
+.panel-header .material-symbols-outlined,
+.card-header .material-symbols-outlined,
+.section-header .material-symbols-outlined {
+  background: rgba(13, 148, 136, 0.1) !important;
+  color: #0d9488 !important;
+  padding: 6px !important;
+  border-radius: 10px !important;
+  font-size: 22px !important;
+  box-shadow: inset 0 0 0 1px rgba(13, 148, 136, 0.18) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* 4. Distinct Sidebar Menu Icon Accents */
+.nav-item[href*="home"] .material-symbols-outlined,
+.menu-item[href*="home"] .material-symbols-outlined {
+  color: #0d9488 !important; /* Home - Emerald Teal */
+}
+
+.nav-item[href*="news"] .material-symbols-outlined,
+.menu-item[href*="news"] .material-symbols-outlined {
+  color: #d97706 !important; /* News - Warm Amber */
+}
+
+.nav-item[href*="user"] .material-symbols-outlined,
+.menu-item[href*="user"] .material-symbols-outlined {
+  color: #2563eb !important; /* Personnel - Royal Blue */
+}
+
+.nav-item[href*="settings"] .material-symbols-outlined,
+.menu-item[href*="settings"] .material-symbols-outlined {
+  color: #7c3aed !important; /* Settings - Vibrant Purple */
+}
+
+.nav-item[href*="leave"] .material-symbols-outlined,
+.menu-item[href*="leave"] .material-symbols-outlined {
+  color: #059669 !important; /* Leave Hub - Forest Green */
+}
+
+.menu-item.active .material-symbols-outlined,
+.nav-item.active .material-symbols-outlined {
+  color: #0f766e !important;
+}
+
+/* ✂️ DIVIDER & SECTION TITLE */
+.sidebar-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 4px;
+  flex-shrink: 0;
+}
+
+.sidebar-section-title {
+  padding: 4px 10px 2px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  white-space: nowrap !important;
+}
+
+/* 🔴 SIDEBAR BADGE */
+.sidebar-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-weight: 700;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
+}
+
+/* 🦶 SIDEBAR FOOTER */
+.sidebar-footer {
+  padding: 10px 10px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.btn-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid #fee2e2;
+  background: #fff5f5;
+  color: #ef4444;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-logout:hover {
+  background: #ef4444;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(239, 68, 68, 0.2);
+}
+
+.btn-logout .material-symbols-outlined {
+  font-size: 17px;
+}
+
+/* 🌟 ADMIN DASHBOARD POPUP MODAL */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.25s ease;
+}
+
+.admin-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.admin-modal-content {
+  background: #ffffff;
+  width: 100%;
+  max-width: 1280px;
+  height: 90vh;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  transform: scale(0.96);
+  transition: transform 0.25s ease;
+}
+
+.admin-modal-overlay.active .admin-modal-content {
+  transform: scale(1);
+}
+
+.admin-modal-header {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.admin-modal-iframe {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ==========================================================================
+   ✨ PREMIUM ANIMATIONS & MICRO-INTERACTIONS
+   ========================================================================== */
+
+/* 1️⃣ Keyframe Definitions */
+@keyframes pvtFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pvtFadeInDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pvtFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pvtPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pvtBadgeGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes pvtSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pvtBellWiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-4deg); }
+}
+
+@keyframes pvtFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* 2️⃣ Page & Layout Entrance Transitions */
+.main-content, 
+.dashboard-container, 
+.content-wrapper,
+.home-container,
+.management-container,
+.approval-page-container {
+  animation: pvtFadeIn 0.28s ease-out forwards;
+}
+
+.top-bar, 
+.page-header {
+  animation: pvtFadeInDown 0.3s ease-out forwards;
+}
+
+/* 3️⃣ Card & Button Micro-Interactions (Non-destructive) */
+.stat-card,
+.quick-card,
+.manage-card,
+.action-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease !important;
+}
+
+.stat-card:hover,
+.quick-card:hover,
+.manage-card:hover,
+.action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.08) !important;
+}
+
+button:active, 
+.btn:active, 
+.action-btn:active {
+  transform: scale(0.97);
+}
+
+.nav-item {
+  transition: background-color 0.2s ease, transform 0.18s ease;
+}
+
+.nav-item:hover {
+  transform: translateX(2px);
+}
+
+/* 4️⃣ Notification Bell & Floating Badge */
+.notif-btn,
+#notifBellBtn {
+  position: relative !important;
+}
+
+.notif-btn:hover .material-symbols-outlined,
+#notifBellBtn:hover .material-symbols-outlined {
+  animation: pvtBellWiggle 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.notif-badge,
+#notifBadge,
+span#notifBadge {
+  position: absolute !important;
+  top: -4px !important;
+  right: -4px !important;
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  line-height: 18px !important;
+  padding: 0 4px !important;
+  border-radius: 999px !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4) !important;
+  z-index: 10 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  box-sizing: content-box !important;
+  pointer-events: none;
+}
+
+/* 5️⃣ Modal & Dialog Transitions */
+.modal.active .modal-content,
+.pvt-modal.active .pvt-modal-content,
+.dialog-content {
+  animation: pvtPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* 6️⃣ Focus & Form Interactions */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+select:focus,
+textarea:focus {
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15) !important;
+  outline: none;
+}
+
+/* 7️⃣ Smooth Refresh Icon Spin */
+.btn-refresh-data:hover .material-symbols-outlined,
+.refresh-spin-active .material-symbols-outlined {
+  animation: pvtSpin 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 8️⃣ Smooth Scrollbar */
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0d9488;
+}
+
+
+
+
+
 

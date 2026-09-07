@@ -248,9 +248,29 @@ body {
 }
 
 .menu-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  display: flex !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  scroll-behavior: smooth !important;
+  gap: 16px !important;
+  padding: 8px 4px 20px 4px !important;
+  -webkit-overflow-scrolling: touch !important;
+  grid-template-columns: none !important;
+}
+.menu-grid::-webkit-scrollbar {
+  height: 6px !important;
+  display: block !important;
+}
+.menu-grid::-webkit-scrollbar-track {
+  background: rgba(6, 182, 212, 0.05) !important;
+  border-radius: 10px !important;
+}
+.menu-grid::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.25) !important;
+  border-radius: 10px !important;
+}
+.menu-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.4) !important;
 }
 
 .menu-card {
@@ -266,7 +286,8 @@ body {
   align-items: center;
   gap: 16px;
   transition: all 0.25s ease;
-  width: 100%;
+  flex: 0 0 240px !important; /* Universal desktop width */
+  scroll-snap-align: start !important;
   box-shadow: var(--shadow-card);
 }
 
@@ -344,9 +365,54 @@ body {
   .stat-box h3 { font-size: 24px; }
   .stat-box p { font-size: 12px; }
   
-  .menu-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .menu-card { flex-direction: column; text-align: center; padding: 16px 12px; gap: 10px; }
-  .menu-icon { margin: 0 auto; }
+  .menu-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    scroll-behavior: smooth !important;
+    gap: 14px !important;
+    padding: 8px 16px 20px 16px !important;
+    margin: 0 -16px !important; /* Spans edge-to-edge of the mobile screen */
+    -webkit-overflow-scrolling: touch !important;
+    grid-template-columns: none !important;
+  }
+  .menu-grid::-webkit-scrollbar {
+    display: none !important; /* Hide scrollbar for clear glass look */
+  }
+  .menu-card {
+    flex: 0 0 170px !important; /* Ideal width so the next item peeks beautifully */
+    scroll-snap-align: start !important;
+    flex-direction: column !important;
+    text-align: center !important;
+    padding: 18px 12px !important;
+    gap: 12px !important;
+    margin: 0 !important;
+  }
+  .menu-icon {
+    margin: 0 auto !important;
+  }
+  
+  /* Slide helper indicator row */
+  .menu-slider-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: -4px;
+    margin-bottom: 16px;
+  }
+  .menu-slider-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(6, 182, 212, 0.2);
+    transition: all 0.3s ease;
+  }
+  .menu-slider-dot.active {
+    width: 18px;
+    border-radius: 10px;
+    background: var(--primary);
+  }
   
   .contact-fab { left: 16px; right: 16px; bottom: 16px; width: calc(100% - 32px); text-align: center; }
 }
@@ -1103,7 +1169,7 @@ select.year-select option {
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 480px) {
   #leaveBalancesContainer {
     grid-template-columns: 1fr;
   }

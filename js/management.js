@@ -9,11 +9,11 @@
 // 0. CONFIGURATION & REAL CREDENTIALS
 // ==========================================
 var SUPABASE_URL = window.SUPABASE_URL || "https://pgogmhqjdchakcytsomx.supabase.co";
-var SUPABASE_KEY = window.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRsomxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
+var SUPABASE_KEY = window.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
 
 window.PVT_SUPABASE_URL = SUPABASE_URL;
 window.PVT_SUPABASE_ANON_KEY = SUPABASE_KEY;
-var supabaseClient = window.supabaseClient || PVTSDK.getClient();
+var supabaseClient = (window.PVTSDK && typeof window.PVTSDK.getClient === 'function') ? window.PVTSDK.getClient() : window.supabaseClient;
 
 function showAppError(title, message) {
   console.error(`❌ [${title}]:`, message);
@@ -833,8 +833,8 @@ async function resetYearlyLeave(isForce = false) {
 
     // ดึงข้อมูลในครั้งเดียวเพื่อประสิทธิภาพสูงสุด (Parallel queries)
     const [empRes, ltRes, leavesRes, balRes] = await Promise.all([
-      supabaseClient.from('employees').select('id, employee_code, full_name').eq('status', 'active'),
-      supabaseClient.from('leave_types').select('id, yearly_quota, default_days'),
+      supabaseClient.from('employees').select('id, employee_code, full_name, start_date, created_at').eq('status', 'active'),
+      supabaseClient.from('leave_types').select('id, leave_code, leave_name, yearly_quota, default_days'),
       supabaseClient.from('leave_requests')
         .select('employee_id, leave_type_id, total_days, start_date')
         .eq('status', 'approved')
@@ -877,7 +877,23 @@ async function resetYearlyLeave(isForce = false) {
     for (const emp of employeesList) {
       for (const yr of yearsToCreate) {
         for (const lt of typesList) {
-          const quota = Number(lt.yearly_quota || lt.default_days || 30);
+          let quota = Number(lt.yearly_quota || lt.default_days || 30);
+          const leaveName = String(lt.leave_name || '').toLowerCase();
+          const leaveCode = String(lt.leave_code || '').toUpperCase();
+          const isVacation = leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน") || leaveCode === 'VACATION';
+
+          if (isVacation) {
+            const empStartStr = emp.start_date || emp.created_at;
+            if (empStartStr) {
+              const empStart = new Date(empStartStr);
+              const now = new Date();
+              const diffMs = now.getTime() - empStart.getTime();
+              const diffDays = diffMs / (1000 * 3600 * 24);
+              if (diffDays < 365) {
+                quota = 0;
+              }
+            }
+          }
           const key = `${emp.id}_${lt.id}_${yr}`;
           const existing = balanceMap[key];
 
@@ -969,6 +985,15 @@ async function refreshDashboard() {
   if (status) {
     status.textContent = "กำลังโหลด";
     status.className = "status pending";
+  }
+
+  // เคลียร์แคชเพื่อดึงข้อมูลสดใหม่ล่าสุดจาก Supabase เสมอ
+  try {
+    if (window.PVTSDK?.cache?.clearAll) {
+      window.PVTSDK.cache.clearAll();
+    }
+  } catch (e) {
+    console.warn("Cache clear error:", e);
   }
 
   try {
@@ -4824,7 +4849,10 @@ async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees') {
         </div>
       `,
       confirmButtonText: 'ตกลง',
-      confirmButtonColor: '#0d9488'
+      confirmButtonColor: '#0d9488',
+      showDenyButton: false,
+      showCancelButton: false,
+      showCloseButton: false
     });
 
   } catch (err) {
@@ -5347,11 +5375,34 @@ async function handleFetchDataClick() {
   }
   
   if (window.Swal) {
+    const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     Swal.fire({
-      icon: 'success',
-      title: 'อัปเดตข้อมูลสำเร็จ',
-      timer: 1200,
-      showConfirmButton: false
+      title: `<div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:18px; font-weight:700; color:#0f766e;">
+        <span class="material-symbols-outlined" style="font-size:26px; color:#0d9488;">cloud_done</span>
+        ซิงค์และอัปเดตข้อมูลสำเร็จ
+      </div>`,
+      html: `
+        <div style="font-size:13.5px; color:#334155; margin-top:8px; text-align:center;">
+          ดึงและซิงค์ข้อมูลรายชื่อพนักงาน ยอดโควตาวันลา และผังองค์กรล่าสุดเรียบร้อยแล้ว (${timeStr} น.)
+        </div>
+      `,
+      showConfirmButton: true,
+      confirmButtonText: '<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;font-size:14px;font-weight:700;"><span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> ตกลง</span>',
+      confirmButtonColor: '#0d9488',
+      showDenyButton: false,
+      showCancelButton: false,
+      timer: 15000,
+      timerProgressBar: true,
+      showCloseButton: true,
+      allowOutsideClick: true,
+      allowEscapeKey: true,
+      didOpen: (popup) => {
+        const container = popup.closest('.swal2-container') || document.querySelector('.swal2-container');
+        if (container) {
+          container.style.zIndex = '2147483647';
+          container.style.pointerEvents = 'auto';
+        }
+      }
     });
   }
 }

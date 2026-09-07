@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>ปฏิทินวันหยุดประจำปี | PVT&T HR Management</title>
+  <title>ปฏิทินวันหยุดประจำปี | PVT HR Management</title>
   
   <!-- Fonts & Material Symbols -->
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
   <link rel="stylesheet" href="/css/holidays.css" />
+  <link rel="stylesheet" href="/css/system-settings.css" />
   
   <!-- Third Party Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -20,23 +21,98 @@
 </head>
 
 <body>
-  <div class="app-shell">
+  <div class="app-container" id="appLayout">
+    <!-- 🧭 1. LEFT SIDEBAR MENU (UNIFIED ADAPTIVE SIDEBAR) -->
+    <aside class="sidebar sidebar-light" id="sidebarMenu">
+      <div class="sidebar-brand brand-zone">
+        <div class="brand-icon">
+          <span class="material-symbols-outlined">groups</span>
+        </div>
+        <div class="brand-name">PVT WORKFORCE HUB</div>
+        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}" style="display: none;" title="ปิดเมนู">
+          <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+        </button>
+      </div>
+
+      <!-- 🚀 ปุ่มกดยื่นใบลา (Action CTA) -->
+      <div class="sidebar-cta-wrap" id="sidebarCtaZone">
+        <button type="button" class="sidebar-cta-btn" onclick="goToLeaveForm()" title="ยื่นใบลาออนไลน์">
+          <span class="material-symbols-outlined">edit_document</span>
+          <span class="sidebar-cta-label">ยื่นใบลาออนไลน์</span>
+        </button>
+      </div>
+      
+      <nav class="sidebar-menu nav-menu" id="sidebarNavMenu">
+        <a href="/pages/user/index-user.html" class="menu-item nav-item">
+          <span class="material-symbols-outlined">home</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/user/profile-user.html" class="menu-item nav-item">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">ข้อมูลส่วนตัว</span>
+        </a>
+        <a href="/pages/user/leave-history.html" class="menu-item nav-item">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span class="nav-label">ประวัติการลา</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="menu-item nav-item active">
+          <span class="material-symbols-outlined">date_range</span>
+          <span class="nav-label">วันหยุด</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-title">บริการด่วน</div>
+
+        <!-- 🪪 ปุ่มบัตรพนักงานดิจิทัล -->
+        <button type="button" class="menu-item nav-item" onclick="viewMyDigitalCard()" title="บัตรพนักงานดิจิทัล">
+          <span class="material-symbols-outlined" style="color: #0284c7;">badge</span>
+          <span class="nav-label">บัตรพนักงาน</span>
+        </button>
+
+        <!-- 💬 ปุ่มเชื่อมต่อ LINE -->
+        <button type="button" class="menu-item nav-item" onclick="generateLineLinkToken()" title="เชื่อมต่อ LINE แจ้งเตือน">
+          <span class="material-symbols-outlined" style="color: #16a34a;">chat</span>
+          <span class="nav-label">LINE</span>
+        </button>
+
+        <!-- 📘 ปุ่มคู่มือการใช้งาน -->
+        <a href="/pages/user/full-guide.html" class="menu-item nav-item" title="คู่มือการใช้งาน">
+          <span class="material-symbols-outlined" style="color: #0d9488;">menu_book</span>
+          <span class="nav-label">คู่มือ</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <a href="/pages/user/news.html" class="menu-item nav-item">
+          <span class="material-symbols-outlined">campaign</span>
+          <span class="nav-label">ข่าวสาร</span>
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer" id="sidebarFooterZone">
+        <button type="button" class="menu-item nav-item" onclick="triggerBiometricHelp()" style="color: var(--primary);">
+          <span class="material-symbols-outlined">help_outline</span>
+          <span class="nav-label">ช่วยเหลือ</span>
+        </button>
+      </div>
+    </aside>
+
     <!-- 💻 MAIN CONTENT -->
     <main class="main-content">
       <!-- TOPBAR -->
       <header class="topbar">
-        <div class="topbar-left">
-          <button type="button" class="btn-back" onclick="smartGoBack()">
-            <span class="material-symbols-outlined">arrow_back</span>
-            <span>ย้อนกลับ</span>
+        <div class="topbar-left" style="display: flex; align-items: center; gap: 12px;">
+          <!-- Mobile Hamburger Menu Button -->
+          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิดเมนู">
+            <span class="material-symbols-outlined">menu</span>
           </button>
           <div class="title-wrap">
             <h1>ปฏิทินวันหยุดประจำปี</h1>
-            <p>PVT&T HR HOLIDAY MANAGEMENT SYSTEM</p>
+            <p>PVT HR HOLIDAY MANAGEMENT SYSTEM</p>
           </div>
         </div>
 
-        <div class="topbar-right">
+        <div class="topbar-right" style="display: flex; align-items: center; gap: 8px;">
           <div class="user-profile-badge">
             <div class="user-avatar" id="userAvatar">HR</div>
             <div class="user-info">
@@ -391,6 +467,30 @@
   <!-- Scripts -->
   <script src="/js/supabase-config.js"></script>
   <script src="/js/auth-guard.js"></script>
+  <script src="/js/system-settings.js"></script>
   <script src="/js/holidays.js"></script>
+  <script>
+    function goToLeaveForm() {
+      window.location.href = "/pages/user/leave-user.html";
+    }
+    function viewMyDigitalCard() {
+      window.location.href = "/pages/user/index-user.html?action=digital_card";
+    }
+    function generateLineLinkToken() {
+      window.location.href = "/pages/user/index-user.html?action=line_link";
+    }
+    function triggerBiometricHelp() {
+      if (window.SystemDiagnostics && typeof window.SystemDiagnostics.showUnifiedHelpPopup === 'function') {
+        window.SystemDiagnostics.showUnifiedHelpPopup();
+      } else {
+        Swal.fire({
+          icon: 'info',
+          title: 'คู่มือความปลอดภัยชีวมาตร',
+          text: 'สามารถตั้งค่าการลงทะเบียน Face/Fingerprint สแกนเพื่อเข้าใช้งานได้อย่างรวดเร็วในหน้าข้อมูลส่วนตัวค่ะ',
+          confirmButtonColor: '#0f766e'
+        });
+      }
+    }
+  </script>
 </body>
 </html>

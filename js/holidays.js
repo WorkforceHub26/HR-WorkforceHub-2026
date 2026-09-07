@@ -263,8 +263,11 @@ async function loadUserProfile() {
     if (elAvatar) elAvatar.innerText = (sessionUser.full_name || 'HR').substring(0, 2).toUpperCase();
 
     const role = sessionUser.role ? sessionUser.role.toLowerCase() : '';
-    const isPowerUser = ['admin', 'hr', 'executive', 'director'].includes(role);
+    const isPowerUser = ['admin', 'hr', 'executive', 'director', 'manager', 'supervisor', 'leader'].includes(role) || Boolean(sessionUser.is_hr) || Boolean(sessionUser.is_admin);
     
+    // 🧭 ปรับเมนูแถบข้าง (Sidebar) ให้ตรงตามสิทธิ์ของผู้ใช้งาน (HR/ผู้บริหาร vs พนักงาน)
+    updateSidebarForRole(role, isPowerUser);
+
     // Show team leaves tab for non-normal users (leader, manager, hr, executive, admin, etc.)
     if (role !== 'user' && role !== '') {
       const tabTeamLeaves = document.getElementById('tabTeamLeaves');
@@ -282,6 +285,103 @@ async function loadUserProfile() {
     console.warn('Profile error:', err.message);
   }
 }
+
+// 🧭 จัดการโครงสร้าง Sidebar ตามบทบาทผู้ใช้
+function updateSidebarForRole(role, isPowerUser) {
+  const ctaZone = document.getElementById('sidebarCtaZone');
+  const navMenu = document.getElementById('sidebarNavMenu');
+  const footerZone = document.getElementById('sidebarFooterZone');
+
+  if (isPowerUser) {
+    // 🌟 HR / Admin / Executive Sidebar
+    if (ctaZone) {
+      ctaZone.innerHTML = `
+        <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
+        </a>
+      `;
+    }
+
+    if (navMenu) {
+      navMenu.innerHTML = `
+        <a href="/pages/hr/home.html" class="nav-item menu-item" title="ภาพรวมระบบ">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/hr.html" class="nav-item menu-item" title="ตรวจใบลา" id="navItemLeaveCheck">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">ตรวจใบลา</span>
+          <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
+        </a>
+        <a href="/pages/hr/management.html" class="nav-item menu-item" title="ระบบจัดการส่วนกลาง">
+          <span class="material-symbols-outlined">manage_accounts</span>
+          <span class="nav-label">ระบบจัดการส่วนกลาง</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="nav-item menu-item active" title="ปฏิทินวันหยุด">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span class="nav-label">วันหยุด</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-title">บริการด่วน</div>
+
+        <!-- 📢 จัดการข่าวสารองค์กร -->
+        <a href="/pages/hr/news-management.html" class="nav-item menu-item" title="จัดการข่าวสารองค์กร">
+          <span class="material-symbols-outlined" style="color: #f59e0b;">campaign</span>
+          <span class="nav-label">ข่าวสาร</span>
+        </a>
+
+        <!-- 🪪 ระบบจัดการบัตรพนักงาน -->
+        <button type="button" class="nav-item menu-item" onclick="if(typeof openEmployeeCardManagerPopup==='function'){openEmployeeCardManagerPopup();}else{window.location.href='/pages/user/index-user.html?action=digital_card';} return false;" title="ระบบบัตรพนักงาน">
+          <span class="material-symbols-outlined" style="color: #0284c7;">badge</span>
+          <span class="nav-label">บัตรพนักงาน</span>
+        </button>
+
+        <!-- 🔄 สลับไปหน้าพนักงาน -->
+        <a href="/pages/user/index-user.html" class="nav-item menu-item" title="สลับไปหน้าพนักงาน">
+          <span class="material-symbols-outlined" style="color: #6366f1;">person</span>
+          <span class="nav-label">หน้าพนักงาน</span>
+        </a>
+      `;
+    }
+
+    if (footerZone) {
+      footerZone.innerHTML = `
+        <button type="button" class="btn-logout nav-item menu-item" onclick="handleLogout()" title="ออกจากระบบ" style="color: #ef4444; width: 100%; justify-content: flex-start;">
+          <span class="material-symbols-outlined">logout</span>
+          <span class="nav-label">ออกจากระบบ</span>
+        </button>
+      `;
+    }
+  }
+}
+
+// 🚪 ฟังก์ชันออกจากระบบสากล
+window.handleLogout = function() {
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: 'ยืนยันออกจากระบบ?',
+      text: 'คุณต้องการออกจากระบบการทำงานใช่หรือไม่',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'ออกจากระบบ',
+      cancelButtonText: 'ยกเลิก'
+    }).then((res) => {
+      if (res.isConfirmed) {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('token');
+        window.location.href = '/index.html';
+      }
+    });
+  } else {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
+    window.location.href = '/index.html';
+  }
+};
 
 // 📥 โหลดข้อมูลวันหยุดจาก Supabase
 async function fetchHolidays() {

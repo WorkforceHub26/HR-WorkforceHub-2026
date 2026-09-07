@@ -14,7 +14,7 @@
     ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8",
     CACHE_PREFIX: "pvt_hr_cache_",
     OFFLINE_QUEUE_KEY: "pvt_offline_queue",
-    DEFAULT_TTL: 30 * 60 * 1000, // 30 นาที
+    DEFAULT_TTL: 5 * 1000, // 5 วินาที เพื่อให้ข้อมูลสดใหม่อยู่เสมอและไม่อมแคชเก่า
     MAX_RETRIES: 3,
     RETRY_DELAY: 1000,
   };
@@ -294,19 +294,49 @@
   // ==========================================================================
   // 5. LEAVE & THAI DATE ENGINE
   // ==========================================================================
+  window.getCurrentLeaveYear = function() {
+    const d = new Date();
+    const y = d.getFullYear();
+    return d.getMonth() === 11 ? y + 1 : y; // เดือนธันวาคม (1 ธ.ค. เป็นต้นไป) นับเป็นรอบปีการลาถัดไป (1 ธ.ค. – 30 พ.ย.)
+  };
+
+  window.getADYear = function(dateOrYear) {
+    if (!dateOrYear) {
+      return window.getCurrentLeaveYear();
+    }
+    if (typeof dateOrYear === 'number') {
+      return dateOrYear > 2400 ? dateOrYear - 543 : dateOrYear;
+    }
+    const str = String(dateOrYear).trim();
+    const parts = str.split('T')[0].split('-');
+    let yearPart = parseInt(parts[0], 10);
+    if (isNaN(yearPart)) {
+      return window.getCurrentLeaveYear();
+    }
+    if (yearPart > 2400) yearPart -= 543;
+    if (parts.length >= 2) {
+      const monthPart = parseInt(parts[1], 10);
+      if (monthPart === 12) {
+        yearPart += 1; // 1 ธันวาคม เป็นต้นไป เป็นรอบปีการลาถัดไป (1 ธ.ค. – 30 พ.ย.)
+      }
+    }
+    return yearPart;
+  };
+
   class LeaveEngine {
     constructor(client, cache) {
       this.client = client;
       this.cache = cache;
     }
 
-    async getDashboardData(targetYear = new Date().getFullYear()) {
-      const cacheKey = `dashboard_data_${targetYear}`;
+    async getDashboardData(targetYear = window.getCurrentLeaveYear()) {
+      const yearAD = window.getADYear(targetYear);
+      const cacheKey = `dashboard_data_${yearAD}`;
       const cached = this.cache.get(cacheKey);
       if (cached) return cached;
 
       try {
-        const { data, error } = await this.client.rpc("get_my_dashboard_data", { p_year: targetYear });
+        const { data, error } = await this.client.rpc("get_my_dashboard_data", { p_year: yearAD });
         if (!error && data) {
           this.cache.set(cacheKey, data, CONFIG.DEFAULT_TTL, ["leaves", "profile"]);
           return data;
@@ -317,12 +347,12 @@
       const profile = await global.PVTSDK.hr.getProfile();
       if (!profile) return null;
 
-      const leaveBalances = await this.getLeaveBalances(profile.id, targetYear);
+      const leaveBalances = await this.getLeaveBalances(profile.id, yearAD);
 
       const result = {
         profile,
         leave_balances: leaveBalances || [],
-        year: targetYear,
+        year: yearAD,
       };
 
       this.cache.set(cacheKey, result, CONFIG.DEFAULT_TTL, ["leaves"]);
@@ -748,9 +778,8 @@
     }
 
     // ดึงวันลาคงเหลือ
-    async getLeaveBalances(employeeId, year = new Date().getFullYear()) {
-      let yearNum = parseInt(year, 10) || new Date().getFullYear();
-      const yearAD = yearNum > 2400 ? yearNum - 543 : yearNum;
+    async getLeaveBalances(employeeId, year = window.getCurrentLeaveYear()) {
+      const yearAD = window.getADYear(year);
       const thaiYear = yearAD + 543;
 
       const cacheKey = `user_leave_balances_${employeeId}_${yearAD}`;
@@ -824,18 +853,10 @@
     }
 
     // ตรวจสอบและสร้างโควตาวันลาอัตโนมัติหากยังไม่มีในปีนั้นๆ (ใช้ AD เป็นมาตรฐาน)
-    async ensureLeaveBalances(employeeId, yearOrDate = new Date().getFullYear()) {
+    async ensureLeaveBalances(employeeId, yearOrDate = window.getCurrentLeaveYear()) {
       if (!this.client || !employeeId) return;
       try {
-        let yearAD = new Date().getFullYear();
-        if (typeof yearOrDate === 'number') {
-          yearAD = yearOrDate > 2400 ? yearOrDate - 543 : yearOrDate;
-        } else if (typeof yearOrDate === 'string' && yearOrDate.trim()) {
-          const parsedYear = parseInt(yearOrDate.split('-')[0], 10);
-          if (!isNaN(parsedYear)) {
-            yearAD = parsedYear > 2400 ? parsedYear - 543 : parsedYear;
-          }
-        }
+        const yearAD = window.getADYear(yearOrDate);
         const thaiYear = yearAD + 543;
         
         // 1. ตรวจสอบตารางหลัก employee_leave_balances
@@ -851,6 +872,29 @@
           return { status: 'existed', message: 'มีข้อมูลแล้ว', id: empBalList[0].id };
         }
 
+        // 🎯 เช็กอายุงานของพนักงาน (ถ้าทำงานไม่ถึง 1 ปี / 365 วัน ให้ vacation_total = 0.0)
+        let vacationTotalDays = 6.0;
+        try {
+          const { data: empData } = await this.client
+            .from('employees')
+            .select('start_date, created_at')
+            .eq('id', employeeId)
+            .maybeSingle();
+
+          if (empData) {
+            const startDateStr = empData.start_date || empData.created_at;
+            if (startDateStr) {
+              const startDate = new Date(startDateStr);
+              const now = new Date();
+              const diffMs = now.getTime() - startDate.getTime();
+              const diffDays = diffMs / (1000 * 3600 * 24);
+              if (diffDays < 365) {
+                vacationTotalDays = 0.0;
+              }
+            }
+          }
+        } catch(e) {}
+
         await this.client
           .from('employee_leave_balances')
           .insert([{
@@ -860,7 +904,7 @@
             sick_used: 0.0,
             personal_total: 6.0,
             personal_used: 0.0,
-            vacation_total: 6.0,
+            vacation_total: vacationTotalDays,
             vacation_used: 0.0,
             maternity_total: 98.0,
             maternity_used: 0.0,

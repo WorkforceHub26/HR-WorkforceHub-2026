@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Workforce Hub | PVT&T HR Dashboard</title>
+  <title>Workforce Hub | PVT HR Dashboard</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
@@ -11,19 +11,34 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/home.css" />
   <link rel="stylesheet" href="/css/leave-sla-tracker.css" />
+  <link rel="stylesheet" href="/css/system-settings.css" />
 </head>
 
 <body>
   <div class="app-shell">
     
-    <!-- 📌 SIDEBAR ด้านซ้าย (Fixed) -->
-    <aside class="sidebar-light">
-      <div class="brand-zone">
-        <img src="/assets/icons/Logo_PVT_2026_B.png" alt="PVT Logo" class="logo-mini" />
+    <!-- 📌 SIDEBAR ด้านซ้าย (Unified Luxury Sidebar) -->
+    <aside class="sidebar-light" id="mainSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <span class="material-symbols-outlined">groups</span>
+        </div>
+        <div class="brand-name">PVT WORKFORCE HUB</div>
+        <button class="btn-close-sidebar" onclick="toggleMobileSidebar()" style="display: none;" title="ปิดเมนู">
+          <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+        </button>
+      </div>
+
+      <!-- 🚀 ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
+      <div class="sidebar-cta-wrap">
+        <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
+        </a>
       </div>
 
       <nav class="nav-menu">
-        <a href="/pages/hr/home.html" class="nav-item active" title="หน้าหลัก">
+        <a href="/pages/hr/home.html" class="nav-item active" title="ภาพรวมระบบ">
           <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
@@ -32,28 +47,41 @@
           <span class="nav-label">ตรวจใบลา</span>
           <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
-        <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง & ประวัติพนักงาน">
+        <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
           <span class="material-symbols-outlined">manage_accounts</span>
-          <span class="nav-label">ระบบจัดการส่วนกลาง & ประวัติพนักงาน</span>
+          <span class="nav-label">ระบบจัดการส่วนกลาง</span>
         </a>
-        <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
-          <span class="material-symbols-outlined">person</span>
-          <span class="nav-label">หน้าพนักงาน</span>
-        </a>
-        <a href="/pages/user/holidays.html" class="nav-item" title="วันหยุด">
+        <a href="/pages/user/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
           <span class="material-symbols-outlined">calendar_today</span>
           <span class="nav-label">วันหยุด</span>
         </a>
-        <a href="/pages/user/full-guide.html" class="nav-item" title="คู่มือการใช้งาน">
-          <span class="material-symbols-outlined">menu_book</span>
-          <span class="nav-label">คู่มือการใช้งาน</span>
+
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-title">บริการด่วน</div>
+
+        <!-- 📢 ปุ่มจัดการข่าวสารองค์กร -->
+        <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
+          <span class="material-symbols-outlined" style="color: #f59e0b;">campaign</span>
+          <span class="nav-label">ข่าวสาร</span>
         </a>
 
-        <!-- ปุ่มเปิดระบบจัดการบัตรพนักงาน ใน Sidebar -->
-        <a href="#" onclick="openEmployeeCardManagerPopup(); return false;" class="nav-item btn-card-nav" title="ระบบบัตรพนักงาน">
-          <span class="material-symbols-outlined">badge</span>
-          <span class="nav-label">ระบบบัตรพนักงาน & QR</span>
+        <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
+        <button type="button" class="nav-item" onclick="openEmployeeCardManagerPopup(); return false;" title="ระบบบัตรพนักงาน">
+          <span class="material-symbols-outlined" style="color: #0284c7;">badge</span>
+          <span class="nav-label">บัตรพนักงาน</span>
+        </button>
+
+        <!-- 🔄 สลับไปหน้าพนักงาน -->
+        <a href="/pages/user/index-user.html" class="nav-item" title="สลับไปหน้าพนักงาน">
+          <span class="material-symbols-outlined" style="color: #6366f1;">person</span>
+          <span class="nav-label">หน้าพนักงาน</span>
         </a>
+
+        <!-- ⚙️ ตั้งค่า -->
+        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
+          <span class="material-symbols-outlined">settings</span>
+          <span class="nav-label">ตั้งค่า</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -75,11 +103,16 @@
           </button>
           <div>
             <h1>ภาพรวมระบบ</h1>
-            <p>PVT&T HR Live Tracking System</p>
+            <p>PVT HR Live Tracking System</p>
           </div>
         </div>
 
         <div class="topbar-right">
+          <!-- 🔄 SYNC DATA BUTTON -->
+          <button type="button" class="notif-btn" id="btnSyncData" onclick="refreshDashboardData(true)" title="ซิงค์ข้อมูลระบบล่าสุด">
+            <span class="material-symbols-outlined" id="btnSyncIcon">sync</span>
+          </button>
+
           <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA) -->
           <div class="notif-wrapper" style="position: relative; display: inline-block;">
             <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน">
@@ -325,7 +358,7 @@
             <button type="button" onclick="openEmployeeCardManagerPopup()" class="quick-card hover-card-qr" style="border:none; cursor:pointer; text-align:left; width:100%;">
               <div class="icon-circle bg-teal"><span class="material-symbols-outlined">badge</span></div>
               <div class="text">
-                <strong>บัตรพนักงาน & QR</strong>
+                <strong>บัตรพนักงาน</strong>
                 <p>เปิดระบบจัดการบัตร</p>
               </div>
             </button>
@@ -428,6 +461,8 @@
 <!-- 2. Your JS Files -->
 <script src="/js/supabase-config.js"></script>
 <script src="/js/auth-guard.js"></script>
+<script src="/js/system-settings.js"></script>
+<script src="/js/company-news.js"></script>
 <script src="/js/components/leave-sla-tracker.js"></script>
 <script src="/js/components/login-logs-viewer.js"></script>
 <script src="/js/home.js"></script>

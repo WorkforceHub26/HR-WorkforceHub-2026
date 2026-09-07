@@ -830,6 +830,11 @@
     injectUnifiedHelpButton() {
       if (document.getElementById('pvt-unified-help-btn')) return;
 
+      // หากหน้านี้มีแถบนำทางด้านข้าง (Sidebar) อยู่แล้ว ไม่ต้องป้อนปุ่มลอยซ้อนกันเพื่อป้องกันหน้าจอรกรุงรัง
+      if (document.getElementById('sidebarMenu') || document.querySelector('.sidebar') || document.querySelector('aside')) {
+        return;
+      }
+
       const btn = document.createElement('button');
       btn.id = 'pvt-unified-help-btn';
       btn.title = 'คู่มือการใช้งานและการช่วยเหลือ';
@@ -992,6 +997,9 @@
               <button id="pvt-btn-full-guide" class="swal2-styled" style="background: #ffffff; color: #1e293b; border: 1.5px solid #cbd5e1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
                 <span class="material-symbols-outlined" style="font-size: 20px; color: #0d9488;">library_books</span> อ่านคู่มือการใช้งานฉบับเต็ม
               </button>
+              <button id="pvt-btn-biometric-guide" class="swal2-styled" style="background: #ffffff; color: #0f766e; border: 1.5px solid #ccfbf1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 20px; color: #0d9488;">fingerprint</span> คู่มือสแกนใบหน้า / นิ้วมือ
+              </button>
               <button id="pvt-btn-diagnostics" class="swal2-styled" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
                 <span class="material-symbols-outlined" style="font-size: 20px; color: #64748b;">healing</span> ตรวจเช็ค & ซ่อมแซมระบบ
               </button>
@@ -1005,10 +1013,14 @@
         didOpen: () => {
           // Add soft hover effects
           const btnFull = document.getElementById('pvt-btn-full-guide');
+          const btnBio = document.getElementById('pvt-btn-biometric-guide');
           const btnDiag = document.getElementById('pvt-btn-diagnostics');
           
           btnFull.onmouseenter = () => { btnFull.style.borderColor = '#0d9488'; btnFull.style.background = '#f0fdfa'; };
           btnFull.onmouseleave = () => { btnFull.style.borderColor = '#cbd5e1'; btnFull.style.background = '#ffffff'; };
+
+          btnBio.onmouseenter = () => { btnBio.style.borderColor = '#0d9488'; btnBio.style.background = '#f0fdfa'; };
+          btnBio.onmouseleave = () => { btnBio.style.borderColor = '#ccfbf1'; btnBio.style.background = '#ffffff'; };
           
           btnDiag.onmouseenter = () => { btnDiag.style.borderColor = '#64748b'; btnDiag.style.background = '#f1f5f9'; };
           btnDiag.onmouseleave = () => { btnDiag.style.borderColor = '#cbd5e1'; btnDiag.style.background = '#f8fafc'; };
@@ -1023,6 +1035,20 @@
             }).then(() => {
                window.location.href = '/pages/user/full-guide.html';
             });
+          };
+
+          btnBio.onclick = () => {
+            if (typeof window.showBiometricGuideModal === 'function') {
+              window.showBiometricGuideModal();
+            } else {
+              Swal.fire({
+                icon: 'info',
+                title: 'คู่มือชีวมาตร',
+                text: 'กำลังโหลดระบบสแกนลายนิ้วมือ/ใบหน้า...',
+                timer: 1500,
+                showConfirmButton: false
+              });
+            }
           };
 
           btnDiag.onclick = () => {
