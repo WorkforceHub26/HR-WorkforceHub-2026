@@ -811,6 +811,37 @@ function loginByQr() {
   const currentLang = typeof getGlobalLanguage === 'function' ? getGlobalLanguage() : (localStorage.getItem("preferred_lang") || "th");
   const i18n = {
     th: {
+    deleteBtn: "ลบ",
+    submitOneClick: "ส่งคำขอลาทันที (1-Click Submit)",
+    leaveBalanceTitle: "สิทธิ์วันลาคงเหลือ",
+    loadingLeaveBalance: "กำลังโหลดข้อมูลสิทธิ์วันลา...",
+    recentItems: "รายการล่าสุด",
+    viewAll: "ดูทั้งหมด",
+    loadingRecentLeaves: "กำลังโหลดรายการลา...",
+    teamMembers: "สมาชิกพนักงานในแผนก",
+    teamSubTitle: "เพื่อนร่วมงานในแผนกของคุณ",
+    loadingTeam: "กำลังโหลดข้อมูลสมาชิกในแผนก...",
+    companyNews: "ข่าวสาร & ประกาศองค์กร",
+    companyNewsSub: "ข้อมูลอัปเดต สวัสดิการ และข่าวสารล่าสุดจากฝ่ายบุคคล",
+    all: "ทั้งหมด",
+    urgentNews: "🚨 ด่วน",
+    prNews: "📢 ประชาสัมพันธ์",
+    holidayNews: "📅 วันหยุด",
+    welfareNews: "🎁 สวัสดิการ",
+    loadingNews: "กำลังโหลดข่าวสารองค์กร...",
+    leaveTracker: "ติดตามสถานะใบลา (Visual Progress Tracker)",
+    leaveTrackerSub: "ตรวจสอบขั้นตอนการพิจารณาตามลำดับสายงาน",
+    loadingTracker: "กำลังโหลดข้อมูลขั้นตอนการอนุมัติ...",
+    closeWin: "ปิดหน้าต่าง",
+    askHr: "ถาม HR AI (24 ชม.)",
+    askHrDesc: "ตอบข้อสงสัยนโยบายและสิทธิประโยชน์ 24 ชม.",
+    qSick: "🩺 ใบรับรองแพทย์ลาป่วย?",
+    qAnnual: "🏖️ สะสมวันลาพักร้อน?",
+    qMat: "👶 สิทธิลาคลอดบุตร?",
+    qClaim: "💰 เบิกค่ารักษา & เบี้ยเลี้ยง?",
+    hrGreeting: "สวัสดีครับ! ผมเป็นผู้ช่วยตอบคำถามอัตโนมัติประจำฝ่ายทรัพยากรบุคคล ยินดีช่วยเหลือพนักงานทุกท่านเกี่ยวกับ <strong>นโยบายวันลา สิทธิสวัสดิการ กฎระเบียบบริษัท และการเบิกเงิน</strong> สามารถพิมพ์สอบถามได้ตลอด 24 ชั่วโมงเลยครับ 😊",
+    bioGuideTitle: "คู่มือความปลอดภัยชีวมาตร",
+    bioGuideText: "ท่านสามารถตั้งค่าการลงทะเบียน Face/Fingerprint สแกนเพื่อเข้าใช้งานได้อย่างรวดเร็วในหน้าข้อมูลส่วนตัวค่ะ",
       title: "สแกนบัตรพนักงาน",
       subTitle: "QR Code & บาร์โค้ด",
       guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
@@ -831,6 +862,37 @@ function loginByQr() {
       flipBtnTitle: "สลับกล้องหน้า/หลัง"
     },
     lo: {
+    deleteBtn: "ລຶບ",
+    submitOneClick: "ສົ່ງຄຳຂໍລາທັນທີ (1-Click Submit)",
+    leaveBalanceTitle: "ສິດວັນລາຄົງເຫຼືອ",
+    loadingLeaveBalance: "ກຳລັງໂຫຼດຂໍ້ມູນສິດວັນລາ...",
+    recentItems: "ລາຍການລ່າສຸດ",
+    viewAll: "ເບິ່ງທັງໝົດ",
+    loadingRecentLeaves: "ກຳລັງໂຫຼດລາຍການລາ...",
+    teamMembers: "ສະມາຊິກພະນັກງານໃນພະແນກ",
+    teamSubTitle: "ເພື່ອນຮ່ວມງານໃນພະແນກຂອງທ່ານ",
+    loadingTeam: "ກຳລັງໂຫຼດຂໍ້ມູນສະມາຊິກໃນພະແນກ...",
+    companyNews: "ຂ່າວສານ & ປະກາດອົງກອນ",
+    companyNewsSub: "ຂໍ້ມູນອັບເດດ ສະຫວັດດີການ ແລະຂ່າວສານລ່າສຸດຈາກຝ່າຍບຸກຄົນ",
+    all: "ທັງໝົດ",
+    urgentNews: "🚨 ດ່ວນ",
+    prNews: "📢 ປະຊາສຳພັນ",
+    holidayNews: "📅 ວັນພັກ",
+    welfareNews: "🎁 ສະຫວັດດີການ",
+    loadingNews: "ກຳລັງໂຫຼດຂ່າວສານອົງກອນ...",
+    leaveTracker: "ຕິດຕາມສະຖານະໃບລາ (Visual Progress Tracker)",
+    leaveTrackerSub: "ກວດສອບຂັ້ນຕອນການພິຈາລະນາຕາມລຳດັບສາຍງານ",
+    loadingTracker: "ກຳລັງໂຫຼດຂໍ້ມູນຂັ້ນຕອນການອະນຸມັດ...",
+    closeWin: "ປິດໜ້າຕ່າງ",
+    askHr: "ຖາມ HR AI (24 ຊມ.)",
+    askHrDesc: "ຕອບຂໍ້ສົງໄສນະໂຍບາຍແລະສິດທິປະໂຫຍດ 24 ຊມ.",
+    qSick: "🩺 ໃບຮັບຮອງແພດລາປ່ວຍ?",
+    qAnnual: "🏖️ ສະສົມວັນລາພັກຮ້ອນ?",
+    qMat: "👶 ສິດລາຄອດບຸດ?",
+    qClaim: "💰 ເບີກຄ່າຮັກສາ & ເບ້ຍລ້ຽງ?",
+    hrGreeting: "ສະບາຍດີ! ຂ້ອຍແມ່ນຜູ້ຊ່ວຍຕອບຄຳຖາມອັດຕະໂນມັດປະຈຳຝ່າຍຊັບພະຍາກອນບຸກຄົນ ຍິນດີຊ່ວຍເຫຼືອພະນັກງານທຸກທ່ານກ່ຽວກັບ <strong>ນະໂຍບາຍວັນລາ ສິດທິສະຫວັດດີການ ກົດລະບຽບບໍລິສັດ ແລະການເບີກເງິນ</strong> ສາມາດພິມສອບຖາມໄດ້ຕະຫຼອດ 24 ຊົ່ວໂມງເລີຍครับ 😊",
+    bioGuideTitle: "ຄູ່ມືຄວາມປອດໄພຊີວະມາດ",
+    bioGuideText: "ທ່ານສາມາດຕັ້ງຄ່າການລົງທະບຽນ Face/Fingerprint ສະແກນເພື່ອເຂົ້າໃຊ້ງານໄດ້ຢ່າງວ່ອງໄວໃນໜ້າຂໍ້ມູນສ່ວນຕົວຄ่ะ",
       title: "ສະແກນບັດພະນັກງານ",
       subTitle: "QR Code & ບາໂຄ້ດ",
       guideLive: "ວາງ QR ຫຼື ບາໂຄ້ດ ໃຫ້ຢູ່ໃນກອບ",
@@ -851,6 +913,37 @@ function loginByQr() {
       flipBtnTitle: "ປ່ຽນກ້ອງໜ້າ/ຫຼັງ"
     },
     my: {
+    deleteBtn: "ဖျက်မည်",
+    submitOneClick: "ခွင့်တောင်းခံရန် (1-Click Submit)",
+    leaveBalanceTitle: "ကျန်ရှိသော ခွင့်ရက်များ",
+    loadingLeaveBalance: "ခွင့်ရက်များအား တင်နေပါသည်...",
+    recentItems: "လတ်တလောစာရင်း",
+    viewAll: "အားလုံးကြည့်မည်",
+    loadingRecentLeaves: "ခွင့်မှတ်တမ်းများကို တင်နေပါသည်...",
+    teamMembers: "ဌာနတွင်း ဝန်ထမ်းများ",
+    teamSubTitle: "သင်၏ လုပ်ဖော်ကိုင်ဖက်များ",
+    loadingTeam: "ဝန်ထမ်းများကို တင်နေပါသည်...",
+    companyNews: "ကုမ္ပဏီ သတင်းနှင့် ကြေညာချက်များ",
+    companyNewsSub: "နောက်ဆုံးရသတင်းများ နှင့် အကျိုးခံစားခွင့်များ",
+    all: "အားလုံး",
+    urgentNews: "🚨 အရေးကြီး",
+    prNews: "📢 ကြေညာချက်",
+    holidayNews: "📅 အားလပ်ရက်",
+    welfareNews: "🎁 အကျိုးခံစားခွင့်",
+    loadingNews: "သတင်းများကို တင်နေပါသည်...",
+    leaveTracker: "ခွင့်တောင်းခံမှု အခြေအနေ",
+    leaveTrackerSub: "အဆင့်ဆင့်အတည်ပြုမှုကို စစ်ဆေးရန်",
+    loadingTracker: "အတည်ပြုမှု အဆင့်များကို တင်နေပါသည်...",
+    closeWin: "ပြတင်းပေါက်ပိတ်ရန်",
+    askHr: "HR AI ကို မေးရန် (24/7)",
+    askHrDesc: "မူဝါဒနှင့် အကျိုးခံစားခွင့်များကို 24 နာရီ မေးမြန်းနိုင်သည်",
+    qSick: "🩺 ဆေးလက်မှတ်?",
+    qAnnual: "🏖️ ခွင့်ရက်စုဆောင်းခြင်း?",
+    qMat: "👶 မီးဖွားခွင့်?",
+    qClaim: "💰 ဆေးဖိုးနှင့် ထောက်ပံ့ကြေး?",
+    hrGreeting: "မင်္ဂလာပါ! ကျွန်ုပ်သည် သင်၏ HR အလိုအလျောက်လက်ထောက်ဖြစ်ပါသည်။ <strong>ခွင့်မူဝါဒများ၊ အကျိုးခံစားခွင့်များ၊ ကုမ္ပဏီစည်းကမ်းများနှင့် ငွေတောင်းခံမှုများ</strong>နှင့် ပတ်သက်၍ အချိန်မရွေး မေးမြန်းနိုင်ပါသည်။ 😊",
+    bioGuideTitle: "ဇီဝမက်ထရစ် လုံခြုံရေး လမ်းညွှန်",
+    bioGuideText: "သင်၏ ပရိုဖိုင်စာမျက်နှာတွင် လျင်မြန်စွာ ဝင်ရောက်နိုင်ရန် မျက်နှာ/လက်ဗွေ စကင်ဖတ်ခြင်းကို သတ်မှတ်နိုင်သည်။",
       title: "ဝန်ထမ်းကတ် စကင်န်ဖတ်ရန်",
       subTitle: "QR Code & ဘားကုဒ်",
       guideLive: "QR သို့မဟုတ် ဘားကုဒ်ကို ဘောင်အတွင်း ထားပါ",
@@ -2356,6 +2449,235 @@ window.globalAppTranslations = window.globalAppTranslations || {
     statusCancelReq: "HR ပယ်ဖျက်ရန် စောင့်ဆိုင်းဆဲ",
     statusCancelled: "ပယ်ဖျက်ပြီး",
     statusWaitingReview: "စိစစ်ဆဲ"
+  },
+  en: {
+    deleteBtn: "Delete",
+    submitOneClick: "Submit Leave Request (1-Click)",
+    leaveBalanceTitle: "Leave Balance",
+    loadingLeaveBalance: "Loading leave balance...",
+    recentItems: "Recent Requests",
+    viewAll: "View All",
+    loadingRecentLeaves: "Loading recent requests...",
+    teamMembers: "Team Members",
+    teamSubTitle: "Your department colleagues",
+    loadingTeam: "Loading team members...",
+    companyNews: "Company Announcements",
+    companyNewsSub: "Latest updates, benefits, and HR news",
+    all: "All",
+    urgentNews: "🚨 Urgent",
+    prNews: "📢 Announcement",
+    holidayNews: "📅 Holiday",
+    welfareNews: "🎁 Welfare",
+    loadingNews: "Loading announcements...",
+    leaveTracker: "Leave Status Tracker",
+    leaveTrackerSub: "Track approval progress",
+    loadingTracker: "Loading approval steps...",
+    closeWin: "Close Window",
+    askHr: "Ask HR AI (24/7)",
+    askHrDesc: "Answer policy questions 24/7",
+    qSick: "🩺 Sick leave cert?",
+    qAnnual: "🏖️ Roll over annual leave?",
+    qMat: "👶 Maternity leave rights?",
+    qClaim: "💰 Medical claims & allowance?",
+    hrGreeting: "Hello! I am your automated HR assistant. I can help with <strong>leave policies, benefits, company rules, and claims</strong>. You can ask me questions 24/7. 😊",
+    bioGuideTitle: "Biometric Security Guide",
+    bioGuideText: "You can set up Face/Fingerprint login for fast access in your profile page.",
+    home: "Home",
+    leaveCheck: "Leave Approval",
+    employeeManagement: "Central Management System",
+    employees: "Employees",
+    userView: "Employee View",
+    holidays: "Holidays",
+    cardSystem: "Employee ID Card",
+    news: "Announcements",
+    settings: "Settings",
+    logout: "Log Out",
+    logoutShort: "Exit",
+    back: "Back",
+    backShort: "Back",
+    save: "Save",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    close: "Close",
+    delete: "Delete",
+    edit: "Edit",
+    refresh: "Refresh Data",
+    loading: "Loading data...",
+    all: "All",
+    notifications: "Notifications",
+    markAllRead: "Mark All as Read",
+    unreadSuffix: "new items",
+    viewAllNotif: "View All Notifications",
+    loadingNotif: "Loading notifications...",
+    hello: "Hello",
+    approverModeTitle: "Supervisor / HR System",
+    approverModeSub: "Switch to Leave Approvals and Data Management ➜",
+    heroLeaveTitle: "Submit Leave Request Online",
+    heroLeaveSub: "Fill out the leave request form for fast multi-level approval",
+    leaveBalanceTitle: "Remaining Leave Entitlement",
+    quickMenuTitle: "Select Action",
+    ruleTitle: "Leave Policy",
+    ruleSub: "Read company terms and conditions",
+    historyTitle: "Leave History",
+    historySub: "Check leave request status",
+    profileTitle: "Employee Profile",
+    profileSub: "View employee ID, name, and start date",
+    holidayTitle: "Holiday Calendar",
+    holidaySub: "Company annual public holidays",
+    cardTitle: "Digital Employee ID Card",
+    cardSub: "Display your personal QR Code",
+    guideTitle: "User Guide",
+    guideSub: "How to use the online leave system",
+    lineConnect: "Connect LINE",
+    lineNotif: "Receive mobile notifications",
+    viewCard: "View ID Card",
+    recentListHeading: "Recent Requests",
+    viewAll: "View All",
+    loadingLeave: "Loading leave requests...",
+    teamTitle: "Department Team Members",
+    teamSub: "Colleagues in your department",
+    leaveFormTitle: "Online Leave Application",
+    companySubtitle: "P.V.T. & T.Plast Co., Ltd. · Year 2026",
+    periodSubtitle: "December 1 – November 30",
+    ruleBtnText: "📘 Guidelines",
+    applicantInfoTitle: "Applicant Information",
+    autofillBadge: "Auto-filled by system",
+    empCodeLabel: "Employee ID",
+    empNameLabel: "Employee Name",
+    empPosLabel: "Position",
+    empDeptLabel: "Department / Division",
+    empStartLabel: "Start Date",
+    leaveBalanceLabel: "Remaining Balance",
+    leaveBalanceSelectFirst: "Please select a leave type first",
+    socialSecurityLabel: "Social Security Rights",
+    socialSecurityNote: "(Please contact HR to update coverage)",
+    lineAlertNotice: "LINE Notification: The system will send status notifications to your LINE account and your supervisor immediately upon submission and approval/rejection.",
+    checkBeforeSaveNotice: "Notice before saving: Annual leave requires at least 3 days advance notice · Personal leave requires 1 day advance notice · Sick leave requires notification within the first 4 hours along with a medical certificate.",
+    leaveCardContainerTitle: "Leave Request Form",
+    btnAddLeaveItem: "＋ Add Leave Item",
+    btnSaveLeave: "💾 Submit Request",
+    sec1Divider: "Section 1: Leave Dates and Timeframe",
+    sec2Divider: "Section 2: Leave Type Details and Supporting Documents",
+    sec3Divider: "Section 3: Requested Duration and Hours",
+    sec4Divider: "Section 4: Approval Status and Decision",
+    writeDateLabel: "Application Date",
+    startDateLabel: "Start Date",
+    endDateLabel: "End Date",
+    leaveTypeLabel: "Leave Type",
+    leaveTypePlaceholder: "-- Select Leave Type --",
+    reasonLabel: "Reason for Leave",
+    reasonPlaceholder: "Specify reason or details...",
+    attachProofLabel: "Attach Supporting Document",
+    selectProofBtn: "📁 Select Image/File",
+    hoursMorningLabel: "Morning Hours (0-4)",
+    hoursAfternoonLabel: "Afternoon Hours (0-4)",
+    totalDurationLabel: "Total Requested Duration",
+    deptHeadLabel: "Department Head",
+    deptManagerLabel: "Department Manager",
+    hrDeptLabel: "Human Resources",
+    btnRemoveItem: "Remove This Item",
+    formGuideTitle: "How to Fill Out the Form",
+    formGuideFab: "Form Guide",
+    historyPageTitle: "My Leave History",
+    statAll: "All",
+    statPending: "Pending Approval",
+    statApproved: "Approved",
+    statCancelReq: "Pending HR Cancellation",
+    statTotalDays: "Total Leave Days Used",
+    filterTitle: "Filter Requests:",
+    chipAll: "All",
+    chipPending: "Pending Approval",
+    chipApproved: "Approved",
+    chipCancelReq: "🔄 Pending HR Cancellation",
+    chipRejectedCancelled: "❌ Rejected / Cancelled",
+    thLeaveType: "Leave Type",
+    thDateRange: "Date Range",
+    thDays: "Days",
+    thReason: "Reason",
+    thStatus: "Status",
+    thAction: "Action",
+    btnDirectCancel: "Cancel Request",
+    btnRequestCancel: "Request Cancellation",
+    badgeWaitingHr: "Submitted",
+    reasonCancelPrefix: "Cancellation Reason:",
+    reasonRejectPrefix: "Rejection Reason:",
+    emptyHistory: "No leave requests found matching the selected criteria",
+    emptyHistoryLogin: "Please log in to view your leave history",
+    profilePageTitle: "Employee Profile",
+    profilePageSub: "Check profile information and LINE notifications",
+    profileDetailsHeading: "Profile Details",
+    lblFullName: "Full Name",
+    lblEmpCode: "Employee ID",
+    lblDept: "Department / Division",
+    lblPos: "Position",
+    lblEmail: "Email / Account",
+    lblRole: "Permissions / Role",
+    lblStartDate: "Start Date",
+    lineSectionHeading: "LINE Leave Notifications",
+    lineAutoLinkTitle: "Auto-link LINE Account (Recommended)",
+    lineAutoLinkSub: "Get a connection code and send it to LINE Official Account to link instantly without manually entering your User ID",
+    btnGetLineCode: "Get LINE Connection Code",
+    lineManualTitle: "Or manually enter LINE User ID",
+    btnSaveLine: "💾 Save",
+    holidayPageTitle: "Annual Holiday Calendar",
+    holidayPageSub: "PVT HR HOLIDAY MANAGEMENT SYSTEM",
+    tabCompanyHolidays: "Company Holidays",
+    tabTeamLeaves: "Department Leave Schedule",
+    statTotalHolidays: "Total Holidays (This Year)",
+    statNextHoliday: "Next Holiday",
+    statRemainingHolidays: "Remaining Holidays This Year",
+    heroNextHolidayTitle: "Upcoming Holiday",
+    heroDaysAhead: "Days Away",
+    heroNoUpcoming: "No upcoming holidays left this year",
+    heroNoUpcomingDesc: "All company holidays for this year have passed",
+    searchHolidayPlaceholder: "Search holiday name or date...",
+    btnAddHoliday: "Add New Holiday",
+    typeOfficial: "Public Holiday",
+    typeCompany: "Company Holiday",
+    typeSubstitution: "Substitute Holiday",
+    optAllYear: "📅 Display Entire Year (Annual Summary)",
+    optAllCategories: "All Holiday Types",
+    optOfficial: "Public / Traditional Holidays",
+    optCompany: "Company Special Holidays",
+    optSubstitution: "Substitute Holidays",
+    calMonthlyTitle: "Monthly Holiday Calendar",
+    teamCalTitle: "Team Leave Calendar",
+    companySummaryMonth: "Holiday Summary for This Month",
+    teamSummaryTitle: "Leave Summary by Employee",
+    searchTeamPlaceholder: "Search name...",
+    thNo: "No.",
+    thDate: "Date",
+    thDayOfWeek: "Day of Week",
+    thHolidayName: "Holiday Name",
+    thCategory: "Category",
+    thCountdown: "Countdown",
+    thDesc: "Remarks / Details",
+    thManage: "Action",
+    modalAddTitle: "Add New Holiday",
+    modalEditTitle: "Edit Holiday Information",
+    modalBtnSave: "Save Holiday",
+    rulesPageTitle: "Leave Regulations and Terms",
+    rulesPageSub: "PVT Employee Benefits and Disciplinary Regulations",
+    guidePageTitle: "Employee System User Manual (Complete Edition)",
+    guideTopicHeading: "Recommended Topics",
+    unitDays: "days",
+    unitHours: "hrs",
+    unitMinutes: "mins",
+    leaveSick: "Sick Leave",
+    leaveAnnual: "Annual Leave",
+    leaveBusiness: "Personal Leave",
+    leaveSterilization: "Sterilization Leave",
+    leaveMilitary: "Military Service Leave",
+    leaveOrdination: "Ordination Leave",
+    leaveFuneral: "Bereavement Leave",
+    leaveOther: "Other Leave",
+    leaveMaternity: "Maternity Leave",
+    statusApproved: "Approved",
+    statusPending: "Pending Approval",
+    statusRejected: "Rejected",
+    statusCancelReq: "Pending HR Cancellation Approval",
+    statusCancelled: "Cancelled",
+    statusWaitingReview: "Under Review",
   }
 };
 
@@ -2632,6 +2954,97 @@ window.leaveRulesData = {
         { text: "ခိုင်လုံသော အကြောင်းပြချက်မရှိဘဲ အလုပ်လုပ်ရက် <b>၃ ရက် ဆက်တိုက်</b> အလုပ်ပျက်ကွက်ပါက ကုမ္ပဏီသည် လျော်ကြေးမပေးဘဲ ချက်ချင်း အလုပ်ထုတ်ပိုင်ခွင့်ရှိသည်", isCaution: true }
       ]
     }
+  ],
+  en: [
+    {
+      title: "1. Sick Leave",
+      icon: "medical_services",
+      items: [
+        { text: "Eligible for actual days ill with full normal wage <b>up to 30 working days/year</b>", isCaution: false },
+        { text: "Sick leave of 1 working day or more requires a modern medical certificate", isCaution: true },
+        { text: "Falsifying sick leave is considered a severe disciplinary violation", isCaution: false }
+      ]
+    },
+    {
+      title: "2. Personal / Business Leave",
+      icon: "assignment_ind",
+      items: [
+        { text: "Granted paid business leave <b>up to 3 working days/year</b>", isCaution: false },
+        { text: "Must be necessary personal business that cannot be done outside working hours", isCaution: false },
+        { text: "Must submit request at least 1 working day in advance (except emergencies)", isCaution: false }
+      ]
+    },
+    {
+      title: "3. Annual Vacation Leave",
+      icon: "flight_takeoff",
+      items: [
+        { text: "Employees with 1 full year of service (Dec 1 – Nov 30 cycle) receive <b>at least 6 working days/year</b>", isCaution: false },
+        { text: "Must submit in advance for supervisor workforce scheduling and prior approval", isCaution: false }
+      ]
+    },
+    {
+      title: "4. Maternity Leave",
+      icon: "child_care",
+      items: [
+        { text: "Female employees are entitled to maternity leave <b>up to 120 days</b> (including weekly holidays)", isCaution: false },
+        { text: "Company pays normal wages for 60 days, and Social Security subsidizes the remaining 60 days", isCaution: false },
+        { text: "May submit request prior to the actual delivery date as appropriate", isCaution: false }
+      ]
+    },
+    {
+      title: "5. Sterilization Leave",
+      icon: "vaccines",
+      items: [
+        { text: "Entitled to leave for the duration certified by a modern licensed physician", isCaution: false },
+        { text: "Receives full wages for leave days as stated on medical certificate", isCaution: false },
+        { text: "Must notify and submit leave form with physician appointment documentation", isCaution: false }
+      ]
+    },
+    {
+      title: "6. Military Service Leave",
+      icon: "military_tech",
+      items: [
+        { text: "Leave for military muster call, inspection, or field training per government notice", isCaution: false },
+        { text: "Receives normal wage during leave <b>up to 60 days/year</b>", isCaution: false },
+        { text: "Must attach official call-up notice upon receiving documents", isCaution: false }
+      ]
+    },
+    {
+      title: "7. Funeral Leave",
+      icon: "heart_broken",
+      items: [
+        { text: "Entitled to appropriate leave upon passing of spouse, child, or biological parents", isCaution: false },
+        { text: "Company grants paid compassionate leave according to company welfare policy", isCaution: false },
+        { text: "Proof (e.g. death certificate) can be submitted retroactively within 7 days of return", isCaution: false }
+      ]
+    },
+    {
+      title: "8. Buddhist Ordination Leave",
+      icon: "temple_buddhist",
+      items: [
+        { text: "Receives paid leave <b>up to 15 days</b> (granted once during total employment)", isCaution: false },
+        { text: "Must request approval at least 15 days in advance and report back within 3 days of disrobing", isCaution: false }
+      ]
+    },
+    {
+      title: "9. Training & Knowledge Development Leave",
+      icon: "school",
+      items: [
+        { text: "Leave to attend courses related to labor welfare or professional skill enhancement", isCaution: false },
+        { text: "Personal self-study/degree education is excluded from this leave category", isCaution: true },
+        { text: "Must notify at least 7 days in advance with supervisor approval", isCaution: false }
+      ]
+    },
+    {
+      title: "Cautions & Disciplinary Policies",
+      icon: "warning",
+      isCautionBox: true,
+      items: [
+        { text: "Employees late <b>3 times within a month</b> will receive a formal written warning", isCaution: true },
+        { text: "Absence without notice or unapproved leave is classified as unauthorized absence", isCaution: true },
+        { text: "Unexcused absence for <b>3 consecutive working days</b> may result in immediate termination without severance", isCaution: true }
+      ]
+    }
   ]
 };
 
@@ -2707,105 +3120,105 @@ window.PVT_DATABASE_CATEGORY_DICTIONARY = window.PVT_DATABASE_CATEGORY_DICTIONAR
   // 1. Leave Categories
   leaveSick: {
     keys: ["sick", "leave_sick", "sl", "ลาป่วย", "ລາປ່ວຍ", "နာမကျန်းခွင့်", "sick leave"],
-    translations: { th: "ลาป่วย", lo: "ລາປ່ວຍ", my: "နာမကျန်းခွင့်" }
+    translations: { th: "ลาป่วย", lo: "ລາປ່ວຍ", my: "နာမကျန်းခွင့်", en: "Sick Leave" }
   },
   leaveAnnual: {
     keys: ["annual", "leave_annual", "al", "วันหยุดพักผ่อนประจำปี", "ลาพักร้อน", "ວັນພັກຜ່ອນປະຈຳປີ", "နှစ်ပတ်လည် ခွင့်ရက်", "annual leave", "annual vacation"],
-    translations: { th: "วันหยุดพักผ่อนประจำปี", lo: "ວັນພັກຜ່ອນປະຈຳປີ", my: "နှစ်ပတ်လည် ခွင့်ရက်" }
+    translations: { th: "วันหยุดพักผ่อนประจำปี", lo: "ວັນພັກຜ່ອນປະຈຳປີ", my: "နှစ်ပတ်လည် ခွင့်ရက်", en: "Annual Leave" }
   },
   leaveBusiness: {
     keys: ["business", "leave_business", "bl", "การลากิจเพื่อธุรกิจอันจำเป็น", "ลากิจ", "ลากิจธุระ", "ລາທຸລະກິດທີ່ຈຳເປັນ", "ລາທຸລະກິດ", "ကိုယ်ရေးကိုယ်တာ ခွင့်", "business leave", "personal leave"],
-    translations: { th: "การลากิจเพื่อธุรกิจอันจำเป็น", lo: "ລາທຸລະກິດທີ່ຈຳເປັນ", my: "ကိုယ်ရေးကိုယ်တာ ခွင့်" }
+    translations: { th: "การลากิจเพื่อธุรกิจอันจำเป็น", lo: "ລາທຸລະກິດທີ່ຈຳເປັນ", my: "ကိုယ်ရေးကိုယ်တာ ခွင့်", en: "Business Leave" }
   },
   leaveSterilization: {
     keys: ["sterilization", "leave_sterilization", "stl", "การลาเพื่อทำหมัน", "ลาทำหมัน", "ລາເພື່ອທຳໝັນ", "မျိုးအောင်ရန်ခွင့်", "sterilization leave"],
-    translations: { th: "การลาเพื่อทำหมัน", lo: "ລາເພື່ອທຳໝັນ", my: "မျိုးအောင်ရန်ခွင့်" }
+    translations: { th: "การลาเพื่อทำหมัน", lo: "ລາເພື່ອທຳໝັນ", my: "မျိုးအောင်ရန်ခွင့်", en: "Sterilization Leave" }
   },
   leaveMilitary: {
     keys: ["military", "leave_military", "ml", "การลาเพื่อรับราชการทหาร", "ลาทหาร", "ລາເພື່ອຮັບລາຊະການທະຫານ", "စစ်မှုထမ်းခွင့်", "military leave"],
-    translations: { th: "การลาเพื่อรับราชการทหาร", lo: "ລາເພື່ອຮັບລາຊະການທະຫານ", my: "စစ်မှုထမ်းခွင့်" }
+    translations: { th: "การลาเพื่อรับราชการทหาร", lo: "ລາເພື່ອຮັບລາຊະການທະຫານ", my: "စစ်မှုထမ်းခွင့်", en: "Military Service Leave" }
   },
   leaveOrdination: {
     keys: ["ordination", "leave_ordination", "ol", "การลาเพื่ออุปสมบท", "ลาบวช", "ລາເພື່ອບວດ", "ရဟန်းဝတ်ခွင့်", "ရဟန်း/သီလရှင် ဝတ်ရန် ခွင့်", "ordination leave"],
-    translations: { th: "การลาเพื่ออุปสมบท", lo: "ລາເພື່ອບວດ", my: "ရဟန်း/သီလရှင် ဝတ်ရန် ခွင့်" }
+    translations: { th: "การลาเพื่ออุปสมบท", lo: "ລາเพื่อບວດ", my: "ရဟန်း/သီလရှင် ဝတ်ရန် ခွင့်", en: "Ordination Leave" }
   },
   leaveFuneral: {
     keys: ["funeral", "leave_funeral", "fl", "การลาเพื่อฌาปนกิจศพ", "ลาฌาปนกิจศพ", "ລາເພື່ອຊາປນາກິດສົບ", "ဈာပနခွင့်", "funeral leave"],
-    translations: { th: "การลาเพื่อฌาปนกิจศพ", lo: "ລາເພື່ອຊາປນາກິດສົບ", my: "ဈာပနခွင့်" }
+    translations: { th: "การลาเพื่อฌาปนกิจศพ", lo: "ລາເພື່ອຊາປນາກິດສົບ", my: "ဈာပနခွင့်", en: "Funeral Leave" }
   },
   leaveMaternity: {
     keys: ["maternity", "leave_maternity", "mtl", "การลาเพื่อคลอดบุตร", "ลาคลอด", "ລາເພື່ອຄອດບຸດ", "မီးဖွားခွင့်", "maternity leave"],
-    translations: { th: "การลาเพื่อคลอดบุตร", lo: "ລາເພື່ອຄອດບຸດ", my: "မီးဖွားခွင့်" }
+    translations: { th: "การลาเพื่อคลอดบุตร", lo: "ລາເພື່ອຄອດບຸດ", my: "မီးဖွားခွင့်", en: "Maternity Leave" }
   },
   leaveTraining: {
     keys: ["training", "leave_training", "tl", "การลาเพื่อฝึกอบรมพัฒนาความรู้", "ລາເພື່ອຝຶກອົບຮົມ", "လေ့ကျင့်ရေး ခွင့်", "training leave"],
-    translations: { th: "การลาเพื่อฝึกอบรมพัฒนาความรู้", lo: "ການລາເພື່ອຝຶກອົບຮົມ", my: "လေ့ကျင့်ရေး ခွင့်" }
+    translations: { th: "การลาเพื่อฝึกอบรมพัฒนาความรู้", lo: "ການລາเพื่อຝຶກອົບຮົມ", my: "လေ့ကျင့်ရေး ခွင့်", en: "Training Leave" }
   },
   leaveOther: {
     keys: ["other", "leave_other", "ot", "ลาอื่น ๆ", "ลาอื่นๆ", "ລາອື່ນໆ", "အခြားခွင့်များ", "other leave"],
-    translations: { th: "ลาอื่น ๆ", lo: "ລາອື່ນໆ", my: "အခြားခွင့်များ" }
+    translations: { th: "ลาอื่น ๆ", lo: "ລາອື່ນໆ", my: "အခြားခွင့်များ", en: "Other Leave" }
   },
 
   // 2. Holiday Categories
   optOfficial: {
     keys: ["official", "วันหยุดตามประเพณี", "วันหยุดราชการ", "ວັນພັກລັດຖະການ", "ວັນພັກລັດຖະການ / ປະເພນີ", "အစိုးရရုံးပိတ်ရက်", "public holiday", "official holiday"],
-    translations: { th: "วันหยุดตามประเพณี", lo: "ວັນພັກລັດຖະການ", my: "အစိုးရရုံးပိတ်ရက်" }
+    translations: { th: "วันหยุดตามประเพณี", lo: "ວັນພັກລັດຖະການ", my: "အစိုးရရုံးပိတ်ရက်", en: "Public Holiday" }
   },
   optCompany: {
     keys: ["company", "วันหยุดบริษัท", "วันหยุดพิเศษบริษัท", "ວັນພັກບໍລິສັດ", "ວັນພັກພິເສດບໍລິສັດ", "ကုမ္ပဏီပိတ်ရက်", "company holiday"],
-    translations: { th: "วันหยุดบริษัท", lo: "ວັນພັກບໍລິສັດ", my: "ကုမ္ပဏီပိတ်ရက်" }
+    translations: { th: "วันหยุดบริษัท", lo: "ວັນພັກບໍລິສັດ", my: "ကုမ္ပဏီပိတ်ရက်", en: "Company Holiday" }
   },
   optSubstitution: {
     keys: ["substitution", "substitute", "วันหยุดชดเชย", "ວັນພັກຊົດເຊີຍ", "အစားထိုး ပိတ်ရက်", "substitution holiday"],
-    translations: { th: "วันหยุดชดเชย", lo: "ວັນພັກຊົດເຊີຍ", my: "အစားထိုး ပိတ်ရက်" }
+    translations: { th: "วันหยุดชดเชย", lo: "ວັນພັກຊົດເຊີຍ", my: "အစားထိုး ပိတ်ရက်", en: "Substitution Holiday" }
   },
 
   // 3. Approval & Request Statuses
   statusPending: {
     keys: ["pending", "waiting", "รออนุมัติ", "รอการอนุมัติ", "ຖ້າອະນຸມັດ", "စောင့်ဆိုင်းဆဲ", "pending approval"],
-    translations: { th: "รออนุมัติ", lo: "ຖ້າອະນຸມັດ", my: "စောင့်ဆိုင်းဆဲ" }
+    translations: { th: "รออนุมัติ", lo: "ຖ້າອະນຸມັດ", my: "စောင့်ဆိုင်းဆဲ", en: "Pending Approval" }
   },
   statusApproved: {
     keys: ["approved", "อนุมัติ", "อนุมัติแล้ว", "ອະນຸມັດ", "ອະນຸມັດແລ້ວ", "အတည်ပြုပြီး", "approved"],
-    translations: { th: "อนุมัติแล้ว", lo: "ອະນຸມັດແລ້ວ", my: "အတည်ပြုပြီး" }
+    translations: { th: "อนุมัติแล้ว", lo: "ອະນຸມັດແລ້ວ", my: "အတည်ပြုပြီး", en: "Approved" }
   },
   statusRejected: {
     keys: ["rejected", "disapproved", "ไม่อนุมัติ", "ปฏิเสธ", "ບໍ່ອະນຸມັດ", "ငြင်းပယ်သည်", "rejected"],
-    translations: { th: "ไม่อนุมัติ", lo: "ບໍ່ອະນຸມັດ", my: "ငြင်းပယ်သည်" }
+    translations: { th: "ไม่อนุมัติ", lo: "ບໍ່ອະນຸມັດ", my: "ငြင်းပယ်သည်", en: "Rejected" }
   },
   statusCancelled: {
     keys: ["cancelled", "cancelled_by_user", "canceled", "ยกเลิกแล้ว", "ยกเลิก", "ຍົກເລີກແລ້ວ", "ຍົກເລີກ", "ပယ်ဖျက်ပြီး", "cancelled"],
-    translations: { th: "ยกเลิกแล้ว", lo: "ຍົກເລີກແລ້ວ", my: "ပယ်ဖျက်ပြီး" }
+    translations: { th: "ยกเลิกแล้ว", lo: "ຍົກເລີກແລ້ວ", my: "ပယ်ဖျက်ပြီး", en: "Cancelled" }
   },
   statusCancelReq: {
     keys: ["cancel_requested", "cancel_pending", "รอ hr อนุมัติยกเลิก", "รอ hr ຍົກເລີກ", "ขอยกเลิก", "ຖ້າ hr ອະນຸມັດຍົກເລີກ", "hr ပယ်ဖျက်ရန် စောင့်ဆိုင်းဆဲ", "cancel requested"],
-    translations: { th: "รอ HR อนุมัติยกเลิก", lo: "ຖ້າ HR ອະນຸມັດຍົກເລີກ", my: "HR ပယ်ဖျက်ရန် စောင့်ဆိုင်းဆဲ" }
+    translations: { th: "รอ HR อนุมัติยกเลิก", lo: "ຖ້າ HR ອະນຸມັດຍົກເລີກ", my: "HR ပယ်ဖျက်ရန် စောင့်ဆိုင်းဆဲ", en: "Cancellation Requested" }
   },
   statusWaitingReview: {
     keys: ["waiting_review", "under_review", "รอพิจารณา", "ຖ້າພິຈາລະນາ", "စိစစ်ဆဲ"],
-    translations: { th: "รอพิจารณา", lo: "ຖ້າພິຈາລະນາ", my: "စိစစ်ဆဲ" }
+    translations: { th: "รอพิจารณา", lo: "ຖ້າພິຈາລະນາ", my: "စိစစ်ဆဲ", en: "Under Review" }
   },
   badgeWaitingHr: {
     keys: ["submitted", "sending", "ส่งเรื่องแล้ว", "ສົ່ງເລື່ອງແລ້ວ", "တင်ပြပြီး"],
-    translations: { th: "ส่งเรื่องแล้ว", lo: "ສົ່ງເລື່ອງແລ້ວ", my: "တင်ပြပြီး" }
+    translations: { th: "ส่งเรื่องแล้ว", lo: "ສົ່ງເລື່ອງແລ້ว", my: "တင်ပြပြီး", en: "Submitted" }
   },
 
   // 4. Units & Shorthands
   unitDays: {
     keys: ["day", "days", "วัน", "ວັນ", "ရက်"],
-    translations: { th: "วัน", lo: "ວັນ", my: "ရက်" }
+    translations: { th: "วัน", lo: "ວັນ", my: "ရက်", en: "day(s)" }
   },
   unitHours: {
     keys: ["hour", "hours", "ชม.", "ชั่วโมง", "ຊມ.", "နာရီ"],
-    translations: { th: "ชม.", lo: "ຊມ.", my: "နာရီ" }
+    translations: { th: "ชม.", lo: "ຊມ.", my: "နာရီ", en: "hr(s)" }
   },
   unitMinutes: {
     keys: ["minute", "minutes", "นาที", "ນາທີ", "မိနစ်"],
-    translations: { th: "นาที", lo: "ນາທີ", my: "မိနစ်" }
+    translations: { th: "นาที", lo: "ນາທີ", my: "မိနစ်", en: "min(s)" }
   },
   unitItems: {
     keys: ["item", "items", "รายการ", "ລາຍການ", "ခု"],
-    translations: { th: "รายการ", lo: "ລາຍການ", my: "ခု" }
+    translations: { th: "รายการ", lo: "ລາຍການ", my: "ခု", en: "item(s)" }
   }
 };
 
@@ -3038,50 +3451,118 @@ window.deepScanTranslateDynamicContent = function(containerRoot, targetLang) {
 
 // Universal canonical phrase mapping (Bidirectional translation support)
 window.CANONICAL_PHRASE_MAP = window.CANONICAL_PHRASE_MAP || {
+  "ลบ": "deleteBtn", "ລຶບ": "deleteBtn", "ဖျက်မည်": "deleteBtn", "Delete": "deleteBtn",
+  "ส่งคำขอลาทันที (1-Click Submit)": "submitOneClick", "ສົ່ງຄຳຂໍລາທັນທີ (1-Click Submit)": "submitOneClick", "ခွင့်တောင်းခံရန် (1-Click Submit)": "submitOneClick", "Submit Leave Request (1-Click)": "submitOneClick",
+  "สิทธิ์วันลาคงเหลือ": "leaveBalanceTitle", "ສິດວັນລາຄົງເຫຼືອ": "leaveBalanceTitle", "ကျန်ရှိသော ခွင့်ရက်များ": "leaveBalanceTitle", "Leave Balance": "leaveBalanceTitle",
+  "กำลังโหลดข้อมูลสิทธิ์วันลา...": "loadingLeaveBalance", "ກຳລັງໂຫຼດຂໍ້ມູນສິດວັນລາ...": "loadingLeaveBalance", "ခွင့်ရက်များအား တင်နေပါသည်...": "loadingLeaveBalance", "Loading leave balance...": "loadingLeaveBalance",
+  "รายการล่าสุด": "recentItems", "ລາຍການລ່າສຸດ": "recentItems", "လတ်တလောစာရင်း": "recentItems", "Recent Requests": "recentItems",
+  "ดูทั้งหมด": "viewAll", "ເບິ່ງທັງໝົດ": "viewAll", "အားလုံးကြည့်မည်": "viewAll", "View All": "viewAll",
+  "กำลังโหลดรายการลา...": "loadingRecentLeaves", "ກຳລັງໂຫຼດລາຍການລາ...": "loadingRecentLeaves", "ခွင့်မှတ်တမ်းများကို တင်နေပါသည်...": "loadingRecentLeaves", "Loading recent requests...": "loadingRecentLeaves",
+  "สมาชิกพนักงานในแผนก": "teamMembers", "ສະມາຊິກພະນັກງານໃນພະແນກ": "teamMembers", "ဌာနတွင်း ဝန်ထမ်းများ": "teamMembers", "Team Members": "teamMembers",
+  "เพื่อนร่วมงานในแผนกของคุณ": "teamSubTitle", "ເພື່ອນຮ່ວມງານໃນພະແນກຂອງທ່ານ": "teamSubTitle", "သင်၏ လုပ်ဖော်ကိုင်ဖက်များ": "teamSubTitle", "Your department colleagues": "teamSubTitle",
+  "กำลังโหลดข้อมูลสมาชิกในแผนก...": "loadingTeam", "ກຳລັງໂຫຼດຂໍ້ມູນສະມາຊິກໃນພະແນກ...": "loadingTeam", "ဝန်ထမ်းများကို တင်နေပါသည်...": "loadingTeam", "Loading team members...": "loadingTeam",
+  "ข่าวสาร & ประกาศองค์กร": "companyNews", "ຂ່າວສານ & ປະກາດອົງກອນ": "companyNews", "ကုမ္ပဏီ သတင်းနှင့် ကြေညာချက်များ": "companyNews", "Company Announcements": "companyNews",
+  "ข้อมูลอัปเดต สวัสดิการ และข่าวสารล่าสุดจากฝ่ายบุคคล": "companyNewsSub", "ຂໍ້ມູນອັບເດດ ສະຫວັດດີການ ແລະຂ່າວສານລ່າສຸດຈາກຝ່າຍບຸກຄົນ": "companyNewsSub", "နောက်ဆုံးရသတင်းများ နှင့် အကျိုးခံစားခွင့်များ": "companyNewsSub", "Latest updates, benefits, and HR news": "companyNewsSub",
+  "ทั้งหมด": "all", "ທັງໝົດ": "all", "အားလုံး": "all", "All": "all",
+  "🚨 ด่วน": "urgentNews", "🚨 ດ່ວນ": "urgentNews", "🚨 အရေးကြီး": "urgentNews", "🚨 Urgent": "urgentNews",
+  "📢 ประชาสัมพันธ์": "prNews", "📢 ປະຊາສຳພັນ": "prNews", "📢 ကြေညာချက်": "prNews", "📢 Announcement": "prNews",
+  "📅 วันหยุด": "holidayNews", "📅 ວັນພັກ": "holidayNews", "📅 အားလပ်ရက်": "holidayNews", "📅 Holiday": "holidayNews",
+  "🎁 สวัสดิการ": "welfareNews", "🎁 ສະຫວັດດີການ": "welfareNews", "🎁 အကျိုးခံစားခွင့်": "welfareNews", "🎁 Welfare": "welfareNews",
+  "กำลังโหลดข่าวสารองค์กร...": "loadingNews", "ກຳລັງໂຫຼດຂ່າວສານອົງກອນ...": "loadingNews", "သတင်းများကို တင်နေပါသည်...": "loadingNews", "Loading announcements...": "loadingNews",
+  "ติดตามสถานะใบลา (Visual Progress Tracker)": "leaveTracker", "ຕິດຕາມສະຖານະໃບລາ (Visual Progress Tracker)": "leaveTracker", "ခွင့်တောင်းခံမှု အခြေအနေ": "leaveTracker", "Leave Status Tracker": "leaveTracker",
+  "ตรวจสอบขั้นตอนการพิจารณาตามลำดับสายงาน": "leaveTrackerSub", "ກວດສອບຂັ້ນຕອນການພິຈາລະນາຕາມລຳດັບສາຍງານ": "leaveTrackerSub", "အဆင့်ဆင့်အတည်ပြုမှုကို စစ်ဆေးရန်": "leaveTrackerSub", "Track approval progress": "leaveTrackerSub",
+  "กำลังโหลดข้อมูลขั้นตอนการอนุมัติ...": "loadingTracker", "ກຳລັງໂຫຼດຂໍ້ມູນຂັ້ນຕອນການອະນຸມັດ...": "loadingTracker", "အတည်ပြုမှု အဆင့်များကို တင်နေပါသည်...": "loadingTracker", "Loading approval steps...": "loadingTracker",
+  "ปิดหน้าต่าง": "closeWin", "ປິດໜ້າຕ່າງ": "closeWin", "ပြတင်းပေါက်ပိတ်ရန်": "closeWin", "Close Window": "closeWin",
+  "ถาม HR AI (24 ชม.)": "askHr", "ຖາມ HR AI (24 ຊມ.)": "askHr", "HR AI ကို မေးရန် (24/7)": "askHr", "Ask HR AI (24/7)": "askHr",
+  "ตอบข้อสงสัยนโยบายและสิทธิประโยชน์ 24 ชม.": "askHrDesc", "ຕອບຂໍ້ສົງໄສນະໂຍບາຍແລະສິດທິປະໂຫຍດ 24 ຊມ.": "askHrDesc", "မူဝါဒနှင့် အကျိုးခံစားခွင့်များကို 24 နာရီ မေးမြန်းနိုင်သည်": "askHrDesc", "Answer policy questions 24/7": "askHrDesc",
+  "🩺 ใบรับรองแพทย์ลาป่วย?": "qSick", "🩺 ໃບຮັບຮອງແພດລາປ່ວຍ?": "qSick", "🩺 ဆေးလက်မှတ်?": "qSick", "🩺 Sick leave cert?": "qSick",
+  "🏖️ สะสมวันลาพักร้อน?": "qAnnual", "🏖️ ສະສົມວັນລາພັກຮ້ອນ?": "qAnnual", "🏖️ ခွင့်ရက်စုဆောင်းခြင်း?": "qAnnual", "🏖️ Roll over annual leave?": "qAnnual",
+  "👶 สิทธิลาคลอดบุตร?": "qMat", "👶 ສິດລາຄອດບຸດ?": "qMat", "👶 မီးဖွားခွင့်?": "qMat", "👶 Maternity leave rights?": "qMat",
+  "💰 เบิกค่ารักษา & เบี้ยเลี้ยง?": "qClaim", "💰 ເບີກຄ່າຮັກສາ & ເບ້ຍລ້ຽງ?": "qClaim", "💰 ဆေးဖိုးနှင့် ထောက်ပံ့ကြေး?": "qClaim", "💰 Medical claims & allowance?": "qClaim",
+  "สวัสดีครับ! ผมเป็นผู้ช่วยตอบคำถามอัตโนมัติประจำฝ่ายทรัพยากรบุคคล ยินดีช่วยเหลือพนักงานทุกท่านเกี่ยวกับ <strong>นโยบายวันลา สิทธิสวัสดิการ กฎระเบียบบริษัท และการเบิกเงิน</strong> สามารถพิมพ์สอบถามได้ตลอด 24 ชั่วโมงเลยครับ 😊": "hrGreeting", "ສະບາຍດີ! ຂ້ອຍແມ່ນຜູ້ຊ່ວຍຕອບຄຳຖາມອັດຕະໂນມັດປະຈຳຝ່າຍຊັບພະຍາກອນບຸກຄົນ ຍິນດີຊ່ວຍເຫຼືອພະນັກງານທຸກທ່ານກ່ຽວກັບ <strong>ນະໂຍບາຍວັນລາ ສິດທິສະຫວັດດີການ ກົດລະບຽບບໍລິສັດ ແລະການເບີກເງິນ</strong> ສາມາດພິມສອບຖາມໄດ້ຕະຫຼອດ 24 ຊົ່ວໂມງເລີຍครับ 😊": "hrGreeting", "မင်္ဂလာပါ! ကျွန်ုပ်သည် သင်၏ HR အလိုအလျောက်လက်ထောက်ဖြစ်ပါသည်။ <strong>ခွင့်မူဝါဒများ၊ အကျိုးခံစားခွင့်များ၊ ကုမ္ပဏီစည်းကမ်းများနှင့် ငွေတောင်းခံမှုများ</strong>နှင့် ပတ်သက်၍ အချိန်မရွေး မေးမြန်းနိုင်ပါသည်။ 😊": "hrGreeting", "Hello! I am your automated HR assistant. I can help with <strong>leave policies, benefits, company rules, and claims</strong>. You can ask me questions 24/7. 😊": "hrGreeting",
+  "คู่มือความปลอดภัยชีวมาตร": "bioGuideTitle", "ຄູ່ມືຄວາມປອດໄພຊີວະມາດ": "bioGuideTitle", "ဇီဝမက်ထရစ် လုံခြုံရေး လမ်းညွှန်": "bioGuideTitle", "Biometric Security Guide": "bioGuideTitle",
+  "ท่านสามารถตั้งค่าการลงทะเบียน Face/Fingerprint สแกนเพื่อเข้าใช้งานได้อย่างรวดเร็วในหน้าข้อมูลส่วนตัวค่ะ": "bioGuideText", "ທ່ານສາມາດຕັ້ງຄ່າການລົງທະບຽນ Face/Fingerprint ສະແກນເພື່ອເຂົ້າໃຊ້ງານໄດ້ຢ່າງວ່ອງໄວໃນໜ້າຂໍ້ມູນສ່ວນຕົວຄ่ะ": "bioGuideText", "သင်၏ ပရိုဖိုင်စာမျက်နှာတွင် လျင်မြန်စွာ ဝင်ရောက်နိုင်ရန် မျက်နှာ/လက်ဗွေ စကင်ဖတ်ခြင်းကို သတ်မှတ်နိုင်သည်။": "bioGuideText", "You can set up Face/Fingerprint login for fast access in your profile page.": "bioGuideText",
+
   // Leave Types
-  "ลาป่วย": "leaveSick", "ລາປ່ວຍ": "leaveSick", "နာမကျန်းခွင့်": "leaveSick",
-  "วันหยุดพักผ่อนประจำปี": "leaveAnnual", "ลาพักร้อน": "leaveAnnual", "ວັນພັກຜ່ອນປະຈຳປີ": "leaveAnnual", "နှစ်ပတ်လည် ခွင့်ရက်": "leaveAnnual",
-  "ลากิจ": "leaveBusiness", "ลากิจธุระ": "leaveBusiness", "การลากิจเพื่อธุรกิจอันจำเป็น": "leaveBusiness", "ລາທຸລະກິດ": "leaveBusiness", "ລາທຸລະກິດທີ່ຈຳເປັນ": "leaveBusiness", "ကိုယ်ရေးကိုယ်တာ ခွင့်": "leaveBusiness",
-  "การลาเพื่อทำหมัน": "leaveSterilization", "ลาทำหมัน": "leaveSterilization", "ລາເພື່ອທຳໝັນ": "leaveSterilization", "မျိုးအောင်ရန်ခွင့်": "leaveSterilization",
-  "การลาเพื่อรับราชการทหาร": "leaveMilitary", "ลาทหาร": "leaveMilitary", "ລາເພື່ອຮັບລາຊະການທະຫານ": "leaveMilitary", "စစ်မှုထမ်းခွင့်": "leaveMilitary",
-  "การลาเพื่ออุปสมบท": "leaveOrdination", "ลาบวช": "leaveOrdination", "ລາເພື່ອບວດ": "leaveOrdination", "ရဟန်းဝတ်ခွင့်": "leaveOrdination", "ရဟန်း/သီလရှင် ဝတ်ရန် ခွင့်": "leaveOrdination",
-  "การลาเพื่อฌาปนกิจศพ": "leaveFuneral", "ลาฌาปนกิจศพ": "leaveFuneral", "ລາເພື່ອຊາປນາກິດສົບ": "leaveFuneral", "ဈာပနခွင့်": "leaveFuneral",
-  "การลาเพื่อคลอดบุตร": "leaveMaternity", "ลาคลอด": "leaveMaternity", "ລາເພື່ອຄອດບຸດ": "leaveMaternity", "မီးဖွားခွင့်": "leaveMaternity",
-  "ลาอื่น ๆ": "leaveOther", "ลาอื่นๆ": "leaveOther", "ລາອື່ນໆ": "leaveOther", "အခြားခွင့်များ": "leaveOther",
-  "การลาเพื่อฝึกอบรมพัฒนาความรู้": "guideTitle",
+  "ลาป่วย": "leaveSick", "ລາປ່ວຍ": "leaveSick", "နာမကျန်းခွင့်": "leaveSick", "Sick Leave": "leaveSick",
+  "วันหยุดพักผ่อนประจำปี": "leaveAnnual", "ลาพักร้อน": "leaveAnnual", "ວັນພັກຜ່ອນປະຈຳປີ": "leaveAnnual", "နှစ်ပတ်လည် ခွင့်ရက်": "leaveAnnual", "Annual Leave": "leaveAnnual", "Annual Vacation Leave": "leaveAnnual",
+  "ลากิจ": "leaveBusiness", "ลากิจธุระ": "leaveBusiness", "การลากิจเพื่อธุรกิจอันจำเป็น": "leaveBusiness", "ລາທຸລະກິດ": "leaveBusiness", "ລາທຸລະກິດທີ່ຈຳເປັນ": "leaveBusiness", "ကိုယ်ရေးကိုယ်တာ ခွင့်": "leaveBusiness", "Business Leave": "leaveBusiness", "Personal / Business Leave": "leaveBusiness",
+  "การลาเพื่อทำหมัน": "leaveSterilization", "ลาทำหมัน": "leaveSterilization", "ລາເພື່ອທຳໝັນ": "leaveSterilization", "မျိုးအောင်ရန်ခွင့်": "leaveSterilization", "Sterilization Leave": "leaveSterilization",
+  "การลาเพื่อรับราชการทหาร": "leaveMilitary", "ลาทหาร": "leaveMilitary", "ລາເພື່ອຮັບລາຊະການທະຫານ": "leaveMilitary", "စစ်မှုထမ်းခွင့်": "leaveMilitary", "Military Service Leave": "leaveMilitary", "Military Leave": "leaveMilitary",
+  "การลาเพื่ออุปสมบท": "leaveOrdination", "ลาบวช": "leaveOrdination", "ລາເພື່ອບວດ": "leaveOrdination", "ရဟန်းဝတ်ခွင့်": "leaveOrdination", "ရဟန်း/သီလရှင် ဝတ်ရန် ခွင့်": "leaveOrdination", "Ordination Leave": "leaveOrdination", "Buddhist Ordination Leave": "leaveOrdination",
+  "การลาเพื่อฌาปนกิจศพ": "leaveFuneral", "ลาฌาปนกิจศพ": "leaveFuneral", "ລາເພື່ອຊາປນາກິດສົບ": "leaveFuneral", "ဈာပနခွင့်": "leaveFuneral", "Funeral Leave": "leaveFuneral",
+  "การลาเพื่อคลอดบุตร": "leaveMaternity", "ลาคลอด": "leaveMaternity", "ລາເພື່ອຄອດບຸດ": "leaveMaternity", "မီးဖွားခွင့်": "leaveMaternity", "Maternity Leave": "leaveMaternity",
+  "ลาอื่น ๆ": "leaveOther", "ลาอื่นๆ": "leaveOther", "ລາອື່ນໆ": "leaveOther", "အခြားခွင့်များ": "leaveOther", "Other Leave": "leaveOther",
+  "การลาเพื่อฝึกอบรมพัฒนาความรู้": "guideTitle", "Training & Knowledge Development Leave": "guideTitle", "Training Leave": "guideTitle",
   
   // Statuses
-  "อนุมัติ": "statusApproved", "อนุมัติแล้ว": "statusApproved", "ອະນຸມັດ": "statusApproved", "ອະນຸມັດແລ້ວ": "statusApproved", "အတည်ပြုပြီး": "statusApproved",
-  "รออนุมัติ": "statusPending", "ຖ້າອະນຸມັດ": "statusPending", "စောင့်ဆိုင်းဆဲ": "statusPending",
-  "ไม่อนุมัติ": "statusRejected", "ບໍ່ອະນຸມັດ": "statusRejected", "ငြင်းပယ်သည်": "statusRejected",
-  "ยกเลิกแล้ว": "statusCancelled", "ຍົກເລີກແລ້ວ": "statusCancelled", "ပယ်ဖျက်ပြီး": "statusCancelled",
-  "รอ HR อนุมัติยกเลิก": "statusCancelReq", "ຖ້າ HR ອະນຸມັດຍົກເລີກ": "statusCancelReq", "HR ပယ်ဖျက်ရန် စောင့်ဆိုင်းဆဲ": "statusCancelReq",
-  "รอพิจารณา": "statusWaitingReview", "ຖ້າພິຈາລະນາ": "statusWaitingReview", "စိစစ်ဆဲ": "statusWaitingReview",
-  "ส่งเรื่องแล้ว": "badgeWaitingHr", "ສົ່ງເລື່ອງແລ້ວ": "badgeWaitingHr",
+  "อนุมัติ": "statusApproved", "อนุมัติแล้ว": "statusApproved", "ອະນຸມັດ": "statusApproved", "ອະນຸມັດແລ້ວ": "statusApproved", "အတည်ပြုပြီး": "statusApproved", "Approved": "statusApproved",
+  "รออนุมัติ": "statusPending", "ຖ້າອະນຸມັດ": "statusPending", "စောင့်ဆိုင်းဆဲ": "statusPending", "Pending Approval": "statusPending", "Pending": "statusPending",
+  "ไม่อนุมัติ": "statusRejected", "ບໍ່ອະນຸມັດ": "statusRejected", "ငြင်းပယ်သည်": "statusRejected", "Rejected": "statusRejected", "Rejected / Cancelled": "statusRejected",
+  "ยกเลิกแล้ว": "statusCancelled", "ຍົກເລີກແລ້ວ": "statusCancelled", "ပယ်ဖျက်ပြီး": "statusCancelled", "Cancelled": "statusCancelled",
+  "รอ HR อนุมัติยกเลิก": "statusCancelReq", "ຖ້າ HR ອະນຸມັດຍົກເລີກ": "statusCancelReq", "HR ပယ်ဖျက်ရန် စောင့်ဆိုင်းဆဲ": "statusCancelReq", "Cancellation Requested": "statusCancelReq",
+  "รอพิจารณา": "statusWaitingReview", "ຖ້າພິຈາລະນາ": "statusWaitingReview", "စိစစ်ဆဲ": "statusWaitingReview", "Under Review": "statusWaitingReview",
+  "ส่งเรื่องแล้ว": "badgeWaitingHr", "ສົ່ງເລື່ອງແລ້ວ": "badgeWaitingHr", "Submitted": "badgeWaitingHr",
   
   // System messages & loadings
-  "กำลังโหลดรายการลา...": "loadingLeave", "ກຳລັງໂຫຼດລາຍການລາ...": "loadingLeave", "ခွင့်စာရင်းများကို တင်နေသည်...": "loadingLeave",
-  "กำลังโหลดข้อมูล...": "loading", "ກຳລັງໂຫຼດຂໍ້ມູນ...": "loading", "အချက်အလက်များ တင်နေသည်...": "loading",
-  "ยังไม่มีรายการยื่นใบลาในระบบ": "statAll",
+  "กำลังโหลดรายการลา...": "loadingLeave", "ກຳລັງໂຫຼດລາຍການລາ...": "loadingLeave", "ခွင့်စာရင်းများကို တင်နေသည်...": "loadingLeave", "Loading leave records...": "loadingLeave",
+  "กำลังโหลดข้อมูล...": "loading", "ກຳລັງໂຫຼດຂໍ້ມູນ...": "loading", "အချက်အလက်များ တင်နေသည်...": "loading", "Loading information...": "loading",
+  "ยังไม่มีรายการยื่นใบลาในระบบ": "statAll", "Total Requests": "statAll",
   
   // Units
-  "วัน": "unitDays", "ວັນ": "unitDays", "ရက်": "unitDays",
-  "ชม.": "unitHours", "ຊມ.": "unitHours", "နာရီ": "unitHours",
-  "นาที": "unitMinutes", "ນາທີ": "unitMinutes", "မိနစ်": "unitMinutes"
+  "วัน": "unitDays", "ວັນ": "unitDays", "ရက်": "unitDays", "day(s)": "unitDays", "days": "unitDays",
+  "ชม.": "unitHours", "ຊມ.": "unitHours", "နာရီ": "unitHours", "hr(s)": "unitHours", "hours": "unitHours",
+  "นาที": "unitMinutes", "ນາທີ": "unitMinutes", "မိနစ်": "unitMinutes", "min(s)": "unitMinutes", "minutes": "unitMinutes"
+};
+
+// 🪄 [MAGIC TRANSLATE HELPER]: ควบคุม Google Translate Widget โปรแกรมมิก
+window.triggerMagicTranslate = function(lang, retries = 3) {
+  try {
+    const combo = document.querySelector('select.goog-te-combo');
+    if (combo) {
+      let googleLang = lang;
+      if (lang === 'zh') googleLang = 'zh-CN';
+      
+      if (lang === 'th') {
+        combo.value = ''; 
+        if (!combo.value) combo.value = 'th';
+      } else {
+        combo.value = googleLang;
+      }
+      
+      combo.dispatchEvent(new Event('change'));
+      console.log(`[Magic Translate] Triggered Google Translate to: ${googleLang}`);
+    } else if (retries > 0) {
+      // ลองใหม่ใน 500ms (รอ Widget โหลด)
+      setTimeout(() => window.triggerMagicTranslate(lang, retries - 1), 500);
+    }
+  } catch (err) {
+    console.error("[Magic Translate] Error triggering translate:", err);
+  }
 };
 
 window.setGlobalLanguage = function(lang, reload = false, options = {}) {
+  // Special redirect for the Guide page to use the fully translated static file
+  if (lang === 'en' && window.location.pathname.endsWith('full-guide.html')) {
+     window.location.replace('/pages/user/full-guide-en.html');
+     return;
+  }
+  if (lang !== 'en' && window.location.pathname.endsWith('full-guide-en.html')) {
+     window.location.replace('/pages/user/full-guide.html');
+     return;
+  }
+
   if (!window.globalAppTranslations[lang]) lang = "th";
   localStorage.setItem("pvt_login_lang", lang);
   localStorage.setItem("pvt_language", lang); // Keep in sync for compatibility
   
   const isLanguageChanged = (window.__lastBroadcastLang !== lang);
   window.__pvtIsTranslating = true;
-  const t = window.globalAppTranslations[lang] || window.globalAppTranslations.th;
+  const t = { ...window.globalAppTranslations.th, ...(window.globalAppTranslations[lang] || {}) };
 
   try {
     // 1. Highlight active buttons across switchers
-    const allLangBtns = document.querySelectorAll("#langThBtn, #globalLangTh, #langLoBtn, #globalLangLo, #langMyBtn, #globalLangMy");
+    const allLangBtns = document.querySelectorAll("#langThBtn, #globalLangTh, #langLoBtn, #globalLangLo, #langMyBtn, #globalLangMy, #langEnBtn, #globalLangEn");
     allLangBtns.forEach(b => {
       b.classList.remove("active");
       b.style.backgroundColor = "transparent";
@@ -3094,8 +3575,9 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
     const activeTh = document.querySelectorAll("#langThBtn, #globalLangTh");
     const activeLo = document.querySelectorAll("#langLoBtn, #globalLangLo");
     const activeMy = document.querySelectorAll("#langMyBtn, #globalLangMy");
+    const activeEn = document.querySelectorAll("#langEnBtn, #globalLangEn");
 
-    const targets = lang === 'th' ? activeTh : (lang === 'lo' ? activeLo : activeMy);
+    const targets = lang === 'th' ? activeTh : (lang === 'lo' ? activeLo : (lang === 'en' ? activeEn : activeMy));
     targets.forEach(btn => {
       btn.classList.add("active");
       btn.style.backgroundColor = "#ffffff";
@@ -3105,8 +3587,26 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       btn.style.borderRadius = "9999px";
     });
 
-    // 2. Translate Top Navigation & Back / Logout buttons
+    
+    // Extra Attribute Translations for User View
+    const phInputs = document.querySelectorAll("input[placeholder]");
+    phInputs.forEach(input => {
+      if (input.placeholder === "พิมพ์คำถามนโยบายหรือสวัสดิการ..." || input.id === "hrChatInput") {
+        input.placeholder = t.askHrDesc || "Type policy or benefit question...";
+      }
+    });
+    
+    const titleBtns = document.querySelectorAll("[title]");
+    titleBtns.forEach(btn => {
+      if (btn.title === "ถามผู้ช่วย HR AI เกี่ยวกับนโยบายและสิทธิวันลา" || btn.id === "hrChatbotFab") {
+        btn.title = t.askHrDesc || "Ask HR AI about policies and benefits";
+      }
+    });
+// 2. Translate Top Navigation & Back / Logout buttons
     document.querySelectorAll(".btn-back, .btn-back-home, .btn-header-back, .back-btn").forEach(btn => {
+      if (btn.classList.contains("btn-header-action") || (btn.hasAttribute("onclick") && (btn.getAttribute("onclick").includes("Settings") || btn.getAttribute("onclick").includes("full-guide")))) {
+        return;
+      }
       const icon = btn.querySelector(".material-symbols-outlined");
       const iconHtml = icon ? icon.outerHTML : '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">arrow_back</span>';
       const img = btn.querySelector("img");
@@ -3124,15 +3624,15 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
     });
 
     // 3. Translate Sidebar Menu Items deterministically by icon or href
-    document.querySelectorAll(".nav-menu .nav-item").forEach(item => {
-      const labelSpan = item.querySelector(".nav-label");
+    document.querySelectorAll(".nav-menu .nav-item, .sidebar-menu .menu-item, .sidebar-footer .menu-item").forEach(item => {
+      const labelSpan = item.querySelector(".nav-label, span:not(.material-symbols-outlined)");
       if (!labelSpan) return;
       const iconSpan = item.querySelector(".material-symbols-outlined");
       const iconName = iconSpan ? iconSpan.textContent.trim().toLowerCase() : "";
       const href = (item.getAttribute("href") || "").toLowerCase();
       const onclickAttr = (item.getAttribute("onclick") || "").toLowerCase();
 
-      if (iconName.includes("home") || href.includes("home.html")) {
+      if (iconName.includes("home") || href.includes("home.html") || (href.includes("index-user") && iconName.includes("home"))) {
         labelSpan.textContent = t.home;
         item.setAttribute("title", t.home);
       } else if (iconName.includes("fact_check") || href.includes("approval") || href.includes("leave-check") || href.includes("hr.html")) {
@@ -3144,21 +3644,33 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       } else if (iconName.includes("manage_accounts") || href.endsWith("management.html") || href.includes("/hr/management")) {
         labelSpan.textContent = t.employeeManagement || "ระบบจัดการส่วนกลาง";
         item.setAttribute("title", t.employeeManagement || "ระบบจัดการส่วนกลาง");
-      } else if (href.includes("index-user") || (iconName === "person" && href.includes("/user/"))) {
-        labelSpan.textContent = t.userView;
-        item.setAttribute("title", t.userView);
+      } else if (href.includes("leave-rules") || iconName.includes("policy") || onclickAttr.includes("rules")) {
+        labelSpan.textContent = t.ruleTitle || "กฎระเบียบ";
+        item.setAttribute("title", t.ruleTitle || "กฎระเบียบ");
+      } else if (href.includes("full-guide") || iconName.includes("help_center") || (iconName.includes("menu_book") && href.includes("guide"))) {
+        labelSpan.textContent = t.guideTitle ? "คู่มือ" : "คู่มือ";
+        item.setAttribute("title", t.guideTitle || "คู่มือการใช้งาน");
+      } else if (href.includes("profile") || (iconName === "person" && href.includes("/user/"))) {
+        labelSpan.textContent = t.profileTitle || "ข้อมูลส่วนตัว";
+        item.setAttribute("title", t.profileTitle || "ข้อมูลส่วนตัว");
+      } else if (href.includes("leave-history") || iconName.includes("calendar_today")) {
+        labelSpan.textContent = t.historyTitle || "ประวัติการลา";
+        item.setAttribute("title", t.historyTitle || "ประวัติการลา");
       } else if (iconName.includes("group") || iconName.includes("people") || href.includes("employee")) {
         labelSpan.textContent = t.employees;
         item.setAttribute("title", t.employees);
-      } else if (iconName.includes("event") || iconName.includes("calendar") || href.includes("holiday")) {
+      } else if (iconName.includes("event") || iconName.includes("calendar") || href.includes("holiday") || iconName.includes("date_range")) {
         labelSpan.textContent = t.holidays;
         item.setAttribute("title", t.holidays);
       } else if (iconName.includes("badge") || iconName.includes("card") || href.includes("card") || onclickAttr.includes("card")) {
-        labelSpan.textContent = t.cardSystem;
-        item.setAttribute("title", t.cardSystem);
+        labelSpan.textContent = t.cardSystem || "บัตรพนักงาน";
+        item.setAttribute("title", t.cardSystem || "บัตรพนักงาน");
       } else if (iconName.includes("settings") || onclickAttr.includes("settings")) {
         labelSpan.textContent = t.settings || "ตั้งค่า";
         item.setAttribute("title", t.settings || "ตั้งค่า");
+      } else if (iconName.includes("help") || onclickAttr.includes("help")) {
+        labelSpan.textContent = t.help || "ช่วยเหลือ";
+        item.setAttribute("title", t.help || "ช่วยเหลือ");
       }
     });
 
@@ -3256,7 +3768,7 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       if (topbarSubs.length >= 1) topbarSubs[0].textContent = t.companySubtitle;
       if (topbarSubs.length >= 2) topbarSubs[1].textContent = t.periodSubtitle;
 
-      const btnRules = document.querySelector(".topbar-actions .btn-ghost, a[href*='leave-rules']");
+      const btnRules = document.querySelector(".btn-rules-action, a[href*='leave-rules'], button[onclick*='leave-rules']");
       if (btnRules && !btnRules.classList.contains("btn-back")) btnRules.textContent = t.ruleBtnText;
 
       const infoCardHeadH2 = document.querySelector(".info-card-head h2");
@@ -3618,6 +4130,14 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       window.deepScanTranslateDynamicContent(document.body, lang);
     }
 
+    // 🪄 [MAGIC TRANSLATE INTEGRATION]: เมื่อเปลี่ยนภาษา ให้สั่ง Google Translate ทำงานควบคู่ไปด้วย
+    if (typeof window.triggerMagicTranslate === 'function' && !options.fromObserver) {
+      // Delay เล็กน้อยเพื่อให้ DOM อัปเดตจากการแปล Manual ก่อน
+      setTimeout(() => {
+        window.triggerMagicTranslate(lang);
+      }, 150);
+    }
+
     // 12. Broadcast event for custom JS controllers (ONLY if language actually changed or explicitly requested)
     const shouldBroadcast = (isLanguageChanged || options.forceBroadcast === true) && !options.fromObserver;
     if (shouldBroadcast) {
@@ -3664,10 +4184,11 @@ function injectGlobalLangSwitcher() {
   container.style.cssText = "display: flex; align-items: center; margin-left: 8px; margin-right: 8px;";
   
   container.innerHTML = `
-    <div class="lang-switcher" style="display: flex; gap: 2px; align-items: center; background: #f1f5f9; padding: 3px; border-radius: 9999px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); border: 1px solid #cbd5e1; z-index: 99; position: relative;">
+    <div class="lang-switcher">
       <button type="button" class="lang-btn" id="globalLangTh" onclick="window.setGlobalLanguage('th', false, { forceBroadcast: true })" title="ภาษาไทย">TH</button>
       <button type="button" class="lang-btn" id="globalLangLo" onclick="window.setGlobalLanguage('lo', false, { forceBroadcast: true })" title="ພາສາລາວ">LO</button>
       <button type="button" class="lang-btn" id="globalLangMy" onclick="window.setGlobalLanguage('my', false, { forceBroadcast: true })" title="မြန်မာစာ">MY</button>
+      <button type="button" class="lang-btn" id="globalLangEn" onclick="window.setGlobalLanguage('en', false, { forceBroadcast: true })" title="English">EN</button>
     </div>
   `;
 

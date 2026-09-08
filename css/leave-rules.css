@@ -12,8 +12,9 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── 2. HEADER BACK BUTTON ─── */
-.btn-header-back {
+/* ─── 2. HEADER BUTTONS ─── */
+.btn-header-back,
+.btn-header-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -29,14 +30,16 @@ body {
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
-.btn-header-back:hover {
+.btn-header-back:hover,
+.btn-header-action:hover {
   background: var(--primary, #1e3a8a);
   border-color: var(--primary, #1e3a8a);
   color: #ffffff; 
-  transform: translateX(-4px); 
+  transform: translateY(-2px); 
   box-shadow: 0 4px 10px rgba(30,58,138,0.2);
 }
-.btn-header-back .material-symbols-outlined { font-size: 18px; }
+.btn-header-back .material-symbols-outlined,
+.btn-header-action .material-symbols-outlined { font-size: 18px; }
 
 /* ─── 3. LAYOUT STRUCTURE ─── */
 .rules-grid-layout {

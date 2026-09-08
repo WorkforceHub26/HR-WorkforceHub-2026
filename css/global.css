@@ -452,13 +452,31 @@ html, body {
     box-sizing: border-box !important;
   }
 
+  .topbar-left > div,
+  .topbar-left-text {
+    min-width: 0 !important;
+  }
+
+  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1),
   .topbar-left h1,
+  .topbar-left-text h1,
   .page-title {
-    font-size: 18px !important;
+    font-family: 'Kanit', 'Sarabun', -apple-system, sans-serif !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
     text-align: left !important;
-    width: auto !important;
+    max-width: 280px !important;
     white-space: nowrap !important;
     word-break: keep-all !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    line-height: 1.4 !important;
+    padding: 3px 0 !important;
+    margin: 0 !important;
+    letter-spacing: -0.3px !important;
   }
 
   /* ตารางแบบเลื่อนแนวนอนได้ ไม่ดันจอเบี้ยว */
@@ -700,7 +718,7 @@ html, body {
    ✨ HIGH-CRAFT PREMIUM GLOBAL BUTTON DESIGN SYSTEM
    ========================================================================== */
 .btn, 
-button, 
+button:not([class^="swal2-"]):not(.menu-item):not(.nav-item):not(.sidebar-cta-btn):not(.btn-close-sidebar):not(.mobile-menu-btn):not(.notif-btn), 
 .action-btn, 
 .btn-primary, 
 .btn-light, 
@@ -729,7 +747,7 @@ button,
 
 /* 🎯 Universal Micro-Interactions (Hover Lift & Tactile Click) */
 .btn:hover, 
-button:hover, 
+button:not([class^="swal2-"]):not(.menu-item):not(.nav-item):not(.sidebar-cta-btn):not(.btn-close-sidebar):not(.mobile-menu-btn):not(.notif-btn):hover, 
 .action-btn:hover, 
 .btn-primary:hover, 
 .btn-light:hover,
@@ -738,7 +756,7 @@ button:hover,
 }
 
 .btn:active, 
-button:active, 
+button:not([class^="swal2-"]):not(.menu-item):not(.nav-item):not(.sidebar-cta-btn):not(.btn-close-sidebar):not(.mobile-menu-btn):not(.notif-btn):active, 
 .action-btn:active, 
 .btn-primary:active, 
 .btn-light:active,
@@ -747,7 +765,7 @@ button:active,
 }
 
 .btn:focus-visible,
-button:focus-visible {
+button:not([class^="swal2-"]):not(.menu-item):not(.nav-item):not(.sidebar-cta-btn):not(.btn-close-sidebar):not(.mobile-menu-btn):not(.notif-btn):focus-visible {
   box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.28) !important;
 }
 
@@ -1441,28 +1459,28 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
 }
 
 .brand-icon {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  min-height: 38px;
+  width: 52px;
+  height: 36px;
+  min-width: 52px;
+  min-height: 36px;
   background-color: #ffffff;
   background-image: url('/assets/icons/Logo_PVT_2026_B.png');
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 10px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.12), 0 1px 3px rgba(15, 23, 42, 0.05);
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  mix-blend-mode: multiply;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+  transition: all 0.25s ease;
+  padding: 2px 4px;
 }
 
 .brand-icon:hover {
-  transform: scale(1.08) rotate(-2deg);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
+  transform: scale(1.04);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .brand-icon .material-symbols-outlined {
@@ -1541,7 +1559,13 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
 
 /* 🔘 MENU ITEMS */
 .menu-item,
-.nav-item {
+.nav-item,
+button.menu-item,
+button.nav-item,
+.sidebar .menu-item,
+aside .menu-item,
+.sidebar-menu button,
+.sidebar-footer button {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
@@ -1561,16 +1585,22 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   font-family: inherit !important;
   box-sizing: border-box !important;
   position: relative !important;
+  box-shadow: none !important;
+  letter-spacing: normal !important;
 }
 
 .menu-item span,
-.nav-item span {
+.nav-item span,
+button.menu-item span,
+button.nav-item span {
   white-space: nowrap !important;
   text-align: left !important;
 }
 
 .menu-item .material-symbols-outlined,
-.nav-item .material-symbols-outlined {
+.nav-item .material-symbols-outlined,
+button.menu-item .material-symbols-outlined,
+button.nav-item .material-symbols-outlined {
   font-size: 20px !important;
   width: 24px !important;
   min-width: 24px !important;
@@ -1583,15 +1613,30 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
 }
 
 .menu-item:hover,
-.nav-item:hover {
-  background: #f8fafc;
-  color: #0f172a;
-  transform: translateX(2px);
+.nav-item:hover,
+button.menu-item:hover,
+button.nav-item:hover,
+.sidebar-menu button:hover,
+.sidebar-footer button:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  transform: translateX(2px) !important;
+}
+
+.menu-item:active,
+.nav-item:active,
+button.menu-item:active,
+button.nav-item:active,
+.sidebar-menu button:active,
+.sidebar-footer button:active {
+  transform: translateX(2px) scale(0.98) !important;
 }
 
 .menu-item:hover .material-symbols-outlined,
-.nav-item:hover .material-symbols-outlined {
-  transform: scale(1.08);
+.nav-item:hover .material-symbols-outlined,
+button.menu-item:hover .material-symbols-outlined,
+button.nav-item:hover .material-symbols-outlined {
+  transform: scale(1.08) !important;
 }
 
 /* ==========================================================================
@@ -1600,6 +1645,66 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
 div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(2),
 .topbar-left > button:nth-of-type(2) {
   display: none !important;
+}
+
+/* 🧭 FOCUS MODE: ALIGN SIDEBAR NAV BUTTONS TO THE LEFT */
+div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+
+div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) > button:nth-of-type(1),
+div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) > button:nth-of-type(2) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  width: 100% !important;
+  padding: 10px 14px !important;
+  box-sizing: border-box !important;
+  border-radius: 10px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #475569 !important;
+}
+
+div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) > button:nth-of-type(1):hover,
+div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) > button:nth-of-type(2):hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* 🧭 FOCUS MODE: ALIGN SECTION 1 BUTTONS TO THE LEFT & OPTIMIZE TOPBAR SPACING */
+div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1),
+div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(2),
+div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(3),
+div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(4),
+div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(5),
+.card-btn-group .action-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important; /* Forces Left Alignment! */
+  text-align: left !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 13px 18px !important;
+  border-radius: 14px !important;
+  box-sizing: border-box !important;
+}
+
+/* Optimize space on mobile under 540px to prevent title truncation */
+@media screen and (max-width: 540px) {
+  .topbar-right .user-profile .info span,
+  .user-header .user-profile .info span,
+  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile .info span {
+    display: none !important;
+  }
+  .topbar-right .user-profile .info,
+  .user-header .user-profile .info {
+    max-width: 70px !important;
+  }
 }
 
 /* 1. Colorful Accent Icons inside Light / Secondary / Back Buttons */
@@ -2034,6 +2139,30 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #0d9488;
+}
+
+/* 🧭 COMPACT VIEW MODE OVERRIDES */
+html[data-compact-mode="true"] table th,
+html[data-compact-mode="true"] table td,
+html[data-compact-mode="true"] .table-responsive table th,
+html[data-compact-mode="true"] .table-responsive table td,
+body.compact-mode table th,
+body.compact-mode table td {
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+}
+
+html[data-compact-mode="true"] .nav-item,
+body.compact-mode .nav-item,
+html[data-compact-mode="true"] .menu-item,
+body.compact-mode .menu-item {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+html[data-compact-mode="true"] .card-btn-group .action-btn,
+body.compact-mode .card-btn-group .action-btn {
+  padding: 8px 12px !important;
 }
 
 

@@ -97,6 +97,7 @@ async function loadAllData() {
     renderApproverTable();
     renderEmployeeLineTable();
     await loadLineNotificationSettings();
+    await loadAutoDelegationData();
   } catch (err) {
     console.error("loadAllData:", err);
     Swal.fire("โหลดข้อมูลไม่สำเร็จ", err.message || "กรุณาลองใหม่", "error");
@@ -2066,7 +2067,9 @@ function initTomSelect() {
     '#individualL2Select',
     '#modalSupervisorSelect',
     '#modalManagerSelect',
-    '#executiveSelect'
+    '#executiveSelect',
+    '#delApproverSelect',
+    '#delProxySelect'
   ];
 
   selects.forEach(id => {
@@ -2099,3 +2102,391 @@ function initTomSelect() {
     }
   });
 }
+
+/* ==========================================================================
+   🔄 AUTO-DELEGATION (ระบบโอนสิทธิ์อนุมัติอัตโนมัติเมื่อหัวหน้างานลาพักร้อน)
+   ========================================================================== */
+
+let currentAutoDelConfig = null;
+let currentDelegationRules = [];
+
+/**
+ * โหลดข้อมูลระบบ Auto-Delegation ทั้งหมด
+ */
+window.loadAutoDelegationData = async function() {
+  try {
+    if (!window.AutoDelegationService) return;
+
+    currentAutoDelConfig = await window.AutoDelegationService.getConfig();
+    currentDelegationRules = await window.AutoDelegationService.getDelegationRules();
+
+    // Render Global Toggles
+    const masterSw = document.getElementById("autodel-master");
+    const annualSw = document.getElementById("autodel-annual");
+    const fallbackSw = document.getElementById("autodel-fallback");
+
+    if (masterSw) {
+      masterSw.checked = currentAutoDelConfig.enabled !== false;
+      updateToggleTagUI("autodel-master", masterSw.checked);
+    }
+    if (annualSw) {
+      annualSw.checked = currentAutoDelConfig.autoTriggerOnAnnualLeave !== false;
+      updateToggleTagUI("autodel-annual", annualSw.checked);
+    }
+    if (fallbackSw) {
+      fallbackSw.checked = currentAutoDelConfig.allowL2Fallback !== false;
+      updateToggleTagUI("autodel-fallback", fallbackSw.checked);
+    }
+
+    renderDelegationDropdowns();
+    renderSavedDelegationRules();
+    await refreshActiveDelegationsList();
+
+  } catch (err) {
+    console.warn("loadAutoDelegationData error:", err);
+  }
+};
+
+function updateToggleTagUI(id, isChecked) {
+  const tag = document.getElementById(`tag-${id}`);
+  const row = document.getElementById(`row-${id}`);
+  if (tag) {
+    tag.textContent = isChecked ? "เปิด" : "ปิด";
+    tag.className = `switch-status-tag ${isChecked ? 'on' : 'off'}`;
+  }
+  if (row) {
+    row.className = `notif-step-row ${isChecked ? 'is-active' : 'is-inactive'}`;
+  }
+}
+
+/**
+ * จัดการ Master Switch เปิด/ปิด Auto-Delegation
+ */
+window.handleAutoDelegationMasterToggle = async function() {
+  const masterSw = document.getElementById("autodel-master");
+  const isChecked = masterSw ? masterSw.checked : true;
+  updateToggleTagUI("autodel-master", isChecked);
+
+  const badge = document.getElementById("activeDelegationsBadge");
+  if (badge) {
+    if (isChecked) {
+      badge.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">bolt</span> ระบบเปิดใช้งาน';
+      badge.style.background = '#e0f2fe';
+      badge.style.color = '#0284c7';
+      badge.style.borderColor = '#bae6fd';
+    } else {
+      badge.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">pause_circle</span> ปิดการทำงาน';
+      badge.style.background = '#f1f5f9';
+      badge.style.color = '#64748b';
+      badge.style.borderColor = '#cbd5e1';
+    }
+  }
+
+  await saveAutoDelegationGlobalConfig();
+};
+
+/**
+ * บันทึกการตั้งค่า Global Config
+ */
+window.saveAutoDelegationGlobalConfig = async function() {
+  if (!window.AutoDelegationService) return;
+
+  const masterSw = document.getElementById("autodel-master");
+  const annualSw = document.getElementById("autodel-annual");
+  const fallbackSw = document.getElementById("autodel-fallback");
+
+  const newConfig = {
+    enabled: masterSw ? masterSw.checked : true,
+    autoTriggerOnAnnualLeave: annualSw ? annualSw.checked : true,
+    allowL2Fallback: fallbackSw ? fallbackSw.checked : true,
+    autoTriggerOnAllLeaves: false,
+    notifyDelegateViaLine: true,
+    notifyDelegateInApp: true
+  };
+
+  updateToggleTagUI("autodel-annual", newConfig.autoTriggerOnAnnualLeave);
+  updateToggleTagUI("autodel-fallback", newConfig.allowL2Fallback);
+
+  await window.AutoDelegationService.saveConfig(newConfig);
+};
+
+/**
+ * เติมข้อมูลใน Dropdowns ของฟอร์มกำหนดตัวแทน
+ */
+function renderDelegationDropdowns() {
+  const approverSel = document.getElementById("delApproverSelect");
+  const proxySel = document.getElementById("delProxySelect");
+  if (!approverSel || !proxySel) return;
+
+  // กรองเฉพาะพนักงานที่เป็นหัวหน้า, ผู้จัดการ หรือระดับบริหาร
+  const leadersAndManagers = employees.filter(e => {
+    const role = (e.role || '').toLowerCase();
+    const pos = (e.positions?.position_name || '').toLowerCase();
+    return role === 'leader' || role === 'manager' || role === 'director' || role === 'executive' || 
+           pos.includes('หัวหน้า') || pos.includes('ผู้จัดการ') || pos.includes('ผู้อำนวยการ') || pos.includes('lead');
+  });
+
+  // ผู้อนุมัติหลัก (Primary Approvers)
+  let appHtml = '<option value="">-- เลือกหัวหน้างาน/ผู้จัดการหลัก --</option>';
+  leadersAndManagers.forEach(e => {
+    const dept = e.departments?.department_name || '-';
+    const pos = e.positions?.position_name || e.role || '-';
+    appHtml += `<option value="${e.id}">[${e.employee_code || '-'}] ${e.full_name} (${pos} - แผนก ${dept})</option>`;
+  });
+  approverSel.innerHTML = appHtml;
+
+  // ผู้รักษาการแทน (Delegates) - สามารถเลือกได้จากพนักงานทุกคน หรือหัวหน้าคนอื่น
+  let proxyHtml = '<option value="">-- เลือกผู้ปฏิบัติหน้าที่แทน --</option>';
+  employees.forEach(e => {
+    const dept = e.departments?.department_name || '-';
+    const pos = e.positions?.position_name || e.role || '-';
+    proxyHtml += `<option value="${e.id}">[${e.employee_code || '-'}] ${e.full_name} (${pos} - แผนก ${dept})</option>`;
+  });
+  proxySel.innerHTML = proxyHtml;
+}
+
+window.handleDelConditionChange = function() {
+  const cond = document.getElementById("delConditionSelect")?.value;
+  const customRow = document.getElementById("delCustomDateRow");
+  if (customRow) {
+    customRow.style.display = cond === 'custom_date' ? 'grid' : 'none';
+  }
+};
+
+/**
+ * บันทึกกฎการโอนสิทธิ์จากฟอร์ม
+ */
+window.saveDelegationRuleFromForm = async function() {
+  const approverId = document.getElementById("delApproverSelect")?.value;
+  const delegateId = document.getElementById("delProxySelect")?.value;
+  const condition = document.getElementById("delConditionSelect")?.value || 'on_annual_leave';
+  const startDate = document.getElementById("delStartDate")?.value || null;
+  const endDate = document.getElementById("delEndDate")?.value || null;
+  const note = document.getElementById("delNoteInput")?.value || '';
+
+  if (!approverId) {
+    Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณาเลือกผู้อนุมัติหลักที่ต้องการตั้งค่า', 'warning');
+    return;
+  }
+  if (!delegateId) {
+    Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณาเลือกผู้รักษาการแทนที่ต้องการมอบหมาย', 'warning');
+    return;
+  }
+  if (String(approverId) === String(delegateId)) {
+    Swal.fire('ไม่สามารถดำเนินการได้', 'ผู้อนุมัติหลักและผู้รักษาการแทนต้องไม่เป็นบุคคลเดียวกัน', 'error');
+    return;
+  }
+
+  const approverEmp = employees.find(e => String(e.id) === String(approverId));
+  const delegateEmp = employees.find(e => String(e.id) === String(delegateId));
+
+  const rule = {
+    approver_id: approverId,
+    approver_name: approverEmp?.full_name || 'ผู้อนุมัติหลัก',
+    delegate_id: delegateId,
+    delegate_name: delegateEmp?.full_name || 'ผู้รักษาการแทน',
+    department_id: approverEmp?.department_id || null,
+    department_name: approverEmp?.departments?.department_name || '',
+    role_type: approverEmp?.role || 'L1',
+    condition: condition,
+    start_date: startDate,
+    end_date: endDate,
+    note: note,
+    is_active: true
+  };
+
+  Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  try {
+    await window.AutoDelegationService.setDelegationRule(rule);
+    Swal.fire({
+      title: 'บันทึกสำเร็จ!',
+      text: `มอบหมายให้ ${rule.delegate_name} รักษาการแทน ${rule.approver_name} เรียบร้อยแล้ว`,
+      icon: 'success',
+      timer: 2000,
+      showConfirmButton: false
+    });
+
+    // Reset Form
+    if (document.getElementById("delNoteInput")) document.getElementById("delNoteInput").value = "";
+    
+    // Refresh tables
+    currentDelegationRules = await window.AutoDelegationService.getDelegationRules();
+    renderSavedDelegationRules();
+    await refreshActiveDelegationsList();
+
+  } catch (err) {
+    console.error("Save delegation rule error:", err);
+    Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถบันทึกได้', 'error');
+  }
+};
+
+/**
+ * แสดงตารางผู้รักษาการแทนที่ตั้งค่าไว้ (Configured Rules Table)
+ */
+function renderSavedDelegationRules() {
+  const container = document.getElementById("savedDelegationRulesContainer");
+  if (!container) return;
+
+  if (!currentDelegationRules || currentDelegationRules.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 24px; text-align: center; color: #64748b; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1; font-size: 13.5px;">
+        <span class="material-symbols-outlined" style="font-size: 36px; color: #94a3b8; display: block; margin-bottom: 6px;">manage_accounts</span>
+        ยังไม่มีการตั้งค่าผู้รักษาการแทนเฉพาะบุคคล (ระบบจะใช้สิทธิ์ Fallback ส่งเรื่องให้ L2/HR อัตโนมัติเมื่อหัวหน้าลาพักร้อน)
+      </div>
+    `;
+    return;
+  }
+
+  let html = `
+    <div style="overflow-x: auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 1px solid #e2e8f0; color: #334155; font-weight: 700;">
+            <th style="padding: 12px 16px;">ผู้อนุมัติหลัก (Primary)</th>
+            <th style="padding: 12px 16px;">ผู้รักษาการแทน (Delegate)</th>
+            <th style="padding: 12px 16px;">เงื่อนไขการโอนสิทธิ์</th>
+            <th style="padding: 12px 16px;">หมายเหตุ</th>
+            <th style="padding: 12px 16px; text-align: center;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  currentDelegationRules.forEach(r => {
+    let condBadge = '<span class="status-badge" style="background:#e0f2fe; color:#0369a1; font-size:11.5px;">🌴 อัตโนมัติเมื่อลาพักร้อน</span>';
+    if (r.condition === 'always') {
+      condBadge = '<span class="status-badge" style="background:#fef3c7; color:#b45309; font-size:11.5px;">🔄 โอนสิทธิ์ถาวร</span>';
+    } else if (r.condition === 'custom_date') {
+      condBadge = `<span class="status-badge" style="background:#f3e8ff; color:#7e22ce; font-size:11.5px;">📅 ${r.start_date || '-'} ถึง ${r.end_date || '-'}</span>`;
+    }
+
+    html += `
+      <tr style="border-bottom: 1px solid #f1f5f9;">
+        <td style="padding: 12px 16px;">
+          <div style="font-weight: 700; color: #1e293b;">${r.approver_name}</div>
+          <div style="font-size: 11.5px; color: #64748b;">${r.department_name ? `แผนก ${r.department_name}` : ''}</div>
+        </td>
+        <td style="padding: 12px 16px;">
+          <div style="font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 4px;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">verified</span>
+            ${r.delegate_name}
+          </div>
+        </td>
+        <td style="padding: 12px 16px;">${condBadge}</td>
+        <td style="padding: 12px 16px; color: #64748b; font-size: 12.5px;">${r.note || '-'}</td>
+        <td style="padding: 12px 16px; text-align: center;">
+          <button type="button" onclick="deleteDelegationRuleHandler('${r.id}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.2s;" title="ลบกฎนี้">
+            <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table></div>`;
+  container.innerHTML = html;
+}
+
+/**
+ * ลบกฎการโอนสิทธิ์
+ */
+window.deleteDelegationRuleHandler = async function(ruleId) {
+  const result = await Swal.fire({
+    title: 'ยืนยันการลบ?',
+    text: 'คุณต้องการยกเลิกการตั้งค่าผู้รักษาการแทนสำหรับรายการนี้หรือไม่?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'ลบรายการ',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (result.isConfirmed) {
+    await window.AutoDelegationService.deleteDelegationRule(ruleId);
+    currentDelegationRules = await window.AutoDelegationService.getDelegationRules();
+    renderSavedDelegationRules();
+    await refreshActiveDelegationsList();
+    Swal.fire('ลบเรียบร้อย', 'ยกเลิกการตั้งค่าผู้แทนแล้ว', 'success');
+  }
+};
+
+/**
+ * ตรวจสอบและแสดงรายชื่อหัวหน้าที่ลาพักร้อนวันนี้ & ผู้แทนสด
+ */
+window.refreshActiveDelegationsList = async function() {
+  const container = document.getElementById("activeDelegationsListContainer");
+  if (!container || !window.AutoDelegationService) return;
+
+  container.innerHTML = `
+    <div style="padding: 16px; text-align: center; color: #64748b; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 13px;">
+      <span class="material-symbols-outlined spin" style="font-size: 20px; vertical-align: middle; margin-right: 6px;">sync</span>
+      กำลังตรวจสอบข้อมูลการลาพักร้อนสด...
+    </div>
+  `;
+
+  try {
+    const activeList = await window.AutoDelegationService.getActiveDelegationsSummary();
+
+    if (!activeList || activeList.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 16px 20px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 12px;">
+          <span class="material-symbols-outlined" style="color: #16a34a; font-size: 24px;">check_circle</span>
+          <div>
+            <div style="font-weight: 700; color: #15803d; font-size: 13.5px;">ไม่มีหัวหน้างานลาพักร้อนในวันนี้</div>
+            <div style="font-size: 12px; color: #166534;">ผู้อนุมัติหลักทุกคนพร้อมปฏิบัติหน้าที่ตามกรอบเวลา SLA 48 ชั่วโมง</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    let html = `
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+    `;
+
+    activeList.forEach(item => {
+      html += `
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-symbols-outlined" style="color: #d97706; font-size: 28px;">beach_access</span>
+            <div>
+              <div style="font-weight: 700; color: #92400e; font-size: 14px;">
+                ${item.approverName} <span style="font-size: 12px; font-weight: 400; color: #78350f;">(${item.position} - แผนก ${item.department})</span>
+              </div>
+              <div style="font-size: 12px; color: #b45309; margin-top: 2px;">
+                🌴 ${item.leaveType} (${item.startDate} ถึง ${item.endDate})
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="text-align: right;">
+              <span style="font-size: 11px; color: #92400e; font-weight: 600; display: block;">โอนสิทธิ์การอนุมัติให้:</span>
+              <strong style="color: #0284c7; font-size: 13.5px; display: flex; align-items: center; gap: 4px; justify-content: flex-end;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">swap_calls</span>
+                ${item.delegateName}
+              </strong>
+            </div>
+            <span class="line-badge line-ok" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-size: 11px; padding: 4px 8px;">
+              รักษาการแทนสด
+            </span>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+
+  } catch (err) {
+    console.warn("refreshActiveDelegationsList error:", err);
+    container.innerHTML = `
+      <div style="padding: 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; font-size: 13px;">
+        เกิดข้อผิดพลาดในการตรวจสอบสถานะ: ${err.message}
+      </div>
+    `;
+  }
+};
+

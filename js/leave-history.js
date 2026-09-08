@@ -820,6 +820,58 @@ window.previewLeaveModalFromHistory = function(leaveId) {
           <strong>วันที่ยื่นคำขอ:</strong>
           <span>${item.created_at ? new Date(item.created_at).toLocaleString('th-TH') : '-'}</span>
         </div>
+
+        <!-- 📍 VISUAL PROGRESS TRACKER (STEPPER) -->
+        <div style="margin-top: 18px; margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px;">
+          <div style="font-weight: 700; color: #0f766e; font-size: 13px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">timeline</span> ขั้นตอนการอนุมัติ (Visual Stepper)
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="color: #10b981; font-size: 16px;">check_circle</span> 1. ยื่นคำขอลา
+              </span>
+              <span style="color: #15803d; font-weight: 600;">สำเร็จ</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="color: ${item.manager_status === 'approved' ? '#10b981' : item.manager_status === 'rejected' ? '#ef4444' : '#f59e0b'}; font-size: 16px;">
+                  ${item.manager_status === 'approved' ? 'check_circle' : item.manager_status === 'rejected' ? 'cancel' : 'hourglass_top'}
+                </span>
+                2. หัวหน้างาน (L1)
+              </span>
+              <span style="font-weight: 600; color: ${item.manager_status === 'approved' ? '#15803d' : item.manager_status === 'rejected' ? '#b91c1c' : '#b45309'};">
+                ${item.manager_status === 'approved' ? 'อนุมัติแล้ว' : item.manager_status === 'rejected' ? 'ไม่อนุมัติ' : 'รอพิจารณา (48 ชม.)'}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="color: ${item.director_status === 'approved' ? '#10b981' : item.director_status === 'rejected' ? '#ef4444' : item.manager_status === 'approved' ? '#f59e0b' : '#94a3b8'}; font-size: 16px;">
+                  ${item.director_status === 'approved' ? 'check_circle' : item.director_status === 'rejected' ? 'cancel' : item.manager_status === 'approved' ? 'hourglass_top' : 'schedule'}
+                </span>
+                3. ผู้จัดการฝ่าย (L2)
+              </span>
+              <span style="font-weight: 600; color: ${item.director_status === 'approved' ? '#15803d' : item.director_status === 'rejected' ? '#b91c1c' : '#94a3b8'};">
+                ${item.director_status === 'approved' ? 'อนุมัติแล้ว' : item.director_status === 'rejected' ? 'ไม่อนุมัติ' : item.manager_status === 'approved' ? 'รอพิจารณา' : 'รอดำเนินการ'}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="color: ${item.status === 'approved' ? '#10b981' : item.status === 'rejected' ? '#ef4444' : '#94a3b8'}; font-size: 16px;">
+                  ${item.status === 'approved' ? 'verified' : item.status === 'rejected' ? 'cancel' : 'pending'}
+                </span>
+                4. ฝ่ายบุคคล (HR Final)
+              </span>
+              <span style="font-weight: 600; color: ${item.status === 'approved' ? '#15803d' : item.status === 'rejected' ? '#b91c1c' : '#94a3b8'};">
+                ${item.status === 'approved' ? 'อนุมัติสมบูรณ์' : item.status === 'rejected' ? 'ไม่อนุมัติ' : 'รอดำเนินการ'}
+              </span>
+            </div>
+          </div>
+          <div style="margin-top: 10px; font-size: 11px; color: #0f766e; background: #f0fdfa; padding: 6px 10px; border-radius: 8px;">
+            💡 ติดตามสถานะผ่านระบบได้โดยตรง ไม่ต้องทักไลน์สอบถามหัวหน้างาน
+          </div>
+        </div>
+
         ${item.cancel_reason ? `
           <div style="margin-top: 12px; background: #fff1f2; border: 1px solid #fecdd3; padding: 10px; border-radius: 8px; color: #991b1b;">
             <strong>เหตุผลขอยกเลิก:</strong> ${escapeHtml(item.cancel_reason)}

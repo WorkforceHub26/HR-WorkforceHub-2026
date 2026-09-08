@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Manual - PVT Workforce Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="/css/system-settings.css" />
+  <script src="/js/auth-guard.js"></script>
+  <script src="/js/system-settings.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import "tailwindcss";
+    
+    :root {
+      --primary: #06b6d4;
+      --primary-dark: #0891b2;
+      --primary-soft: #ecfeff;
+      --bg: #f0fdfa;
+      --card-bg: rgba(255, 255, 255, 0.55);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border-light: rgba(255, 255, 255, 0.8);
+    }
+    
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
+        radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
+        radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
+        radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text);
+    }
+
+    .heading-font {
+      font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    }
+
+    .sidebar-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 16px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    }
+
+    .content-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 32px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: slideUp 0.6s ease-out backwards;
+    }
+
+    .content-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 36px rgba(6, 182, 212, 0.15);
+      border-color: var(--primary);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      color: white;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+    }
+
+    .nav-link {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 4px solid transparent;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .nav-link:hover {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--primary);
+      padding-left: 20px;
+    }
+
+    .nav-link.active {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--primary-dark);
+      border-left-color: var(--primary);
+      font-weight: 700;
+      padding-left: 24px;
+    }
+
+    .sub-card {
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 16px;
+    }
+
+    /* Staggered animation for cards */
+    section:nth-child(1) .content-card { animation-delay: 0.1s; }
+    section:nth-child(2) .content-card { animation-delay: 0.2s; }
+    section:nth-child(3) .content-card { animation-delay: 0.3s; }
+    section:nth-child(4) .content-card { animation-delay: 0.4s; }
+    section:nth-child(5) .content-card { animation-delay: 0.5s; }
+    section:nth-child(6) .content-card { animation-delay: 0.6s; }
+
+    pre {
+      font-family: monospace;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass-card px-6 py-4">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-200">
+          <span class="material-symbols-outlined">menu_book</span>
+        </div>
+        <div>
+          <h1 class="heading-font text-lg font-bold text-slate-800 leading-tight">PVT User Manual</h1>
+          <p class="text-xs text-cyan-600 font-medium">Employee System User Manual (Complete)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="openSystemSettingsModal()" title="System Settings (Font, Theme, LINE)" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-cyan-50 text-slate-700 font-bold text-sm transition-all border border-slate-200 cursor-pointer shadow-sm">
+          <span class="material-symbols-outlined text-lg text-cyan-600">settings</span>
+          Settings
+        </button>
+        <button type="button" onclick="history.back()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-sm transition-all border border-slate-200 cursor-pointer">
+          <span class="material-symbols-outlined text-lg">arrow_back</span>
+          Back
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-10">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="hidden lg:block sticky top-28 h-fit">
+      <div class="sidebar-card space-y-1">
+        <h3 class="text-[10px] font-black text-cyan-600 uppercase tracking-[0.2em] px-4 pt-2 mb-4">Recommended Topics</h3>
+        <a href="#login" class="nav-link block px-4 py-2.5 rounded-xl font-medium active">Login / Authentication</a>
+        <a href="#dashboard" class="nav-link block px-4 py-2.5 rounded-xl font-medium">Dashboard</a>
+        <a href="#leave-request" class="nav-link block px-4 py-2.5 rounded-xl font-medium">Leave Submission Steps</a>
+        <a href="#sla-tracker" class="nav-link block px-4 py-2.5 rounded-xl font-medium flex items-center justify-between">
+          <span>SLA 2-Day Tracking System</span>
+          <span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded">NEW</span>
+        </a>
+        <a href="#leave-history" class="nav-link block px-4 py-2.5 rounded-xl font-medium">Check Status & History</a>
+        <a href="#line-link" class="nav-link block px-4 py-2.5 rounded-xl font-medium">LINE Integration</a>
+        <a href="#calendar" class="nav-link block px-4 py-2.5 rounded-xl font-medium">Calendar Usage</a>
+        
+        <!-- Manager/HR sections (Hidden by default) -->
+        <div id="sidebar-manager-section" style="display: none;">
+          <a href="#manager" class="nav-link block px-4 py-2.5 rounded-xl font-medium">For Department Head (L1)</a>
+        </div>
+        <div id="sidebar-hr-section" style="display: none;">
+          <a href="#hr" class="nav-link block px-4 py-2.5 rounded-xl font-medium">For Human Resources (HR L2)</a>
+        </div>
+
+        <a href="#faq" class="nav-link block px-4 py-2.5 rounded-xl font-medium">Frequently Asked Questions (FAQ)</a>
+        <a href="#pwa" class="nav-link block px-4 py-2.5 rounded-xl font-medium">Install Mobile App</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="lg:col-span-3 space-y-12">
+
+      <!-- Section: Login -->
+      <section id="login" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">login</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">Login / Authentication (Authentication)</h2>
+        </div>
+        <div class="content-card space-y-6" style="animation-delay: 0.1s">
+          <p class="text-slate-600 leading-relaxed text-sm md:text-base">
+            The <strong class="text-cyan-700 font-semibold">PVT Workforce Hub</strong> allocation system<span class="px-2.5 py-0.5 bg-cyan-100 text-cyan-800 rounded-full text-xs font-bold">2 Main Login Channels</span> ดังนี้:
+          </p>
+          
+          <div class="grid md:grid-cols-2 gap-6">
+            <!-- Method 1 -->
+            <div class="p-6 rounded-2xl sub-card border-t-4 border-cyan-500 bg-white shadow-md space-y-3">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-cyan-600 font-bold">keyboard</span>
+                <strong class="text-slate-800 text-sm md:text-base">Method 1: Search by Name</strong>
+              </div>
+              <ul class="text-xs md:text-sm text-slate-600 space-y-2 leading-relaxed">
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 font-bold">✓</span>
+                  <span>Type your <strong class="text-cyan-700">First & Last Name</strong> or <strong class="text-cyan-700">Employee Code</strong> into the search box to find your account.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 font-bold">✓</span>
+                  <span>Smart search supported. Type partially to see results instantly.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-cyan-500 font-bold">✓</span>
+                  <span>Click your name and enter your 4-digit PIN to log in.</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Method 2 -->
+            <div class="p-6 rounded-2xl sub-card border-t-4 border-emerald-500 bg-white shadow-md space-y-3">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-600 font-bold">qr_code_scanner</span>
+                <strong class="text-slate-800 text-sm md:text-base">Method 2: Scan QR Code ID Card</strong>
+              </div>
+              <ul class="text-xs md:text-sm text-slate-600 space-y-2 leading-relaxed">
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span>กดปุ่มสแกนด่วน และ <strong class="text-emerald-600">Allow camera access</strong> ของเว็บบราวเซอร์</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span>Place your personal ID card with QR code in front of the camera.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="text-emerald-500 font-bold">✓</span>
+                  <span>The system will verify securely and log you in within 1 second.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="p-5 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl">
+            <h5 class="font-bold text-amber-800 text-xs md:text-sm flex items-center gap-2 mb-1">
+              <span class="material-symbols-outlined text-lg">info</span>
+              HR Notification:
+            </h5>
+            <p class="text-[11px] md:text-xs text-amber-700 leading-relaxed">
+              If new employees cannot find their names or scan QR codes, please contact HR to update the database.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Dashboard -->
+      <section id="dashboard" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">dashboard</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">Employee Main Dashboard</h2>
+        </div>
+        <div class="content-card space-y-6" style="animation-delay: 0.2s">
+          <p class="text-slate-600 leading-relaxed text-sm">
+            Once logged in, the dashboard displays your leave summaries and real-time work status:
+          </p>
+
+          <div class="grid md:grid-cols-2 gap-8">
+            <div class="space-y-4">
+              <h4 class="font-bold text-cyan-700 border-b border-cyan-100 pb-2 mb-4 text-xs md:text-sm flex items-center gap-2 uppercase tracking-wider">
+                <span class="material-symbols-outlined text-lg">list_alt</span> Key Elements and Menus:
+              </h4>
+              <ul class="space-y-4">
+                <li class="flex gap-4 text-xs md:text-sm items-start">
+                  <span class="material-symbols-outlined text-cyan-600 font-bold p-2 bg-cyan-500/10 rounded-xl flex-shrink-0">donut_large</span>
+                  <div>
+                    <strong class="text-slate-800 block mb-0.5">Leave Balance Circular Charts</strong>
+                    <span class="text-slate-500 leading-relaxed">แสดงสถิติวันลาสะสมประจำปีที่จัดสรรตามตำแหน่งงานของคุณ แยกประเภทชัดเจน: <span class="text-red-500 font-bold">Sick Leave</span>, <span class="text-blue-500 font-bold">Personal Leave</span>, และ <span class="text-emerald-500 font-bold">Annual Leave</span></span>
+                  </div>
+                </li>
+                <li class="flex gap-4 text-xs md:text-sm items-start">
+                  <span class="material-symbols-outlined text-cyan-600 font-bold p-2 bg-cyan-500/10 rounded-xl flex-shrink-0">edit_document</span>
+                  <div>
+                    <strong class="text-slate-800 block mb-0.5">Quick Online Leave Button</strong>
+                    <span class="text-slate-500 leading-relaxed">ปุ่มหลักสีเขียว <strong class="text-emerald-600 font-bold">"Submit Leave Request"</strong> เด่นชัดเจน กดปุ่มนี้เพื่อเปิดแบบฟอร์มส่งคำขอในทันที</span>
+                  </div>
+                </li>
+                <li class="flex gap-4 text-xs md:text-sm items-start">
+                  <span class="material-symbols-outlined text-cyan-600 font-bold p-2 bg-cyan-500/10 rounded-xl flex-shrink-0">groups</span>
+                  <div>
+                    <strong class="text-slate-800 block mb-0.5">Colleague Work Status Table</strong>
+                    <span class="text-slate-500 leading-relaxed">Shows names and leaves of people in the same department to avoid overlapping absences and seamless planning.</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="space-y-4 bg-teal-50/50 p-6 rounded-2xl border border-teal-100/60">
+              <h4 class="font-bold text-teal-800 text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg">lightbulb</span>
+                How are entitlements calculated?
+              </h4>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                The system deducts quotas automatically upon HR approval, excluding weekends and company holidays.
+              </p>
+              <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-[11px] text-red-700 leading-relaxed">
+                🚨 <strong class="font-bold">Good to Know:</strong> หากโควตาขึ้นเป็น <strong class="font-bold">Negative Sign (-)</strong> หมายถึงพนักงานใช้โควตาลาเกินข้อกำหนด โปรดติดต่อหัวหน้างาน L1 เพื่อตรวจสอบและปรับสมดุลสิทธิ์
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Leave Request -->
+      <section id="leave-request" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">edit_document</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">Leave Submission Steps</h2>
+        </div>
+        <div class="content-card space-y-8" style="animation-delay: 0.3s">
+          <p class="text-slate-600 leading-relaxed text-sm">
+            Steps to open and submit a leave request online:
+          </p>
+
+          <!-- Step 1 -->
+          <div class="flex gap-6 items-start">
+            <div class="step-number" style="background: #0f766e; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2)">1</div>
+            <div class="space-y-1">
+              <h4 class="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
+                Select the correct leave type
+                <span class="px-2 py-0.5 bg-red-100 text-red-800 rounded text-[10px] font-bold">Auto Quota Deduction</span>
+              </h4>
+              <p class="text-xs md:text-sm text-slate-500 leading-relaxed">
+                Click the leave type menu, e.g., <strong class="text-red-600">Sick Leave</strong>, to configure the request form automatically.<strong class="text-blue-600">Personal Leave</strong>, หรือ <strong class="text-emerald-600">Annual Leave</strong> ระบบจะแสดงวันคงเหลือที่ใช้ได้ด้านข้างเพื่อให้คุณตรวจสอบก่อนกดยื่นทุกครั้ง
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="flex gap-6 items-start">
+            <div class="step-number" style="background: #0f766e; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2)">2</div>
+            <div class="space-y-1">
+              <h4 class="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
+                Specify the time and dates for the leave
+                <span class="px-2 py-0.5 bg-cyan-100 text-cyan-800 rounded text-[10px] font-bold">Supports Half-Day/Hourly</span>
+              </h4>
+              <p class="text-xs md:text-sm text-slate-500 leading-relaxed">
+                Select start and end dates on the calendar. You can configure short-term leaves flexibly:</p>
+              <div class="grid md:grid-cols-2 gap-4 mt-2">
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-[11px] md:text-xs text-slate-600 space-y-1">
+                  <strong class="text-cyan-700 block">🌗 Half-Day Leave:</strong>
+                  <span>ติ๊กที่ช่อง "ครึ่งวัน" และเลือกว่าต้องการลาหยุดในช่วงเช้า <strong class="text-slate-800">(08:00 - 12:00)</strong> หรือช่วงบ่าย <strong class="text-slate-800">(13:00 - 17:00)</strong></span>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-[11px] md:text-xs text-slate-600 space-y-1">
+                  <strong class="text-cyan-700 block">⏱️ Hourly Leave:</strong>
+                  <span>Check "Hourly Leave" to show a slider specifying hours. Ideal for short errands.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex gap-6 items-start">
+            <div class="step-number" style="background: #0f766e; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2)">3</div>
+            <div class="space-y-1">
+              <h4 class="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
+                Enter a reason and attach evidence
+                <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[10px] font-bold">HR Recommendation</span>
+              </h4>
+              <p class="text-xs md:text-sm text-slate-500 leading-relaxed">
+                Enter a necessary reason. For leaves requiring proof per company rules:
+              </p>
+              <div class="p-4 rounded-xl bg-amber-50 border border-amber-100 text-[11px] text-amber-800">
+                💡 <strong class="font-bold">Attaching Medical Certificates:</strong> For consecutive Sick Leaves, attach a medical certificate image.</div>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="flex gap-6 items-start">
+            <div class="step-number" style="background: #0f766e; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2)">4</div>
+            <div class="space-y-1">
+              <h4 class="font-bold text-slate-800 text-sm md:text-base">Confirm Approver Line & Submit</h4>
+              <p class="text-xs md:text-sm text-slate-500 leading-relaxed">
+                Verify accuracy including the list of L1 (Manager) and L2 (HR) approvers before submitting.<strong class="text-emerald-600">"Submit Request"</strong> เพื่อเดินเอกสารในระบบและส่งข้อความแจ้งเตือนทันที
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: SLA Tracker -->
+      <section id="sla-tracker" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-amber-500 font-bold">timer</span>
+          <div class="flex items-center gap-2">
+            <h2 class="heading-font text-2xl font-bold text-slate-800">2-Day SLA Approval Tracker</h2>
+            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">New Feature</span>
+          </div>
+        </div>
+        <div class="content-card space-y-6" style="animation-delay: 0.35s">
+          <p class="text-slate-600 leading-relaxed text-sm">
+            To create transparent and fast standards, PVT sets a <strong>Leave Approval SLA Policy within 48 Hours</strong>.</p>
+
+          <!-- 3 SLA Status Levels -->
+          <div class="space-y-3">
+            <h4 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-2">
+              <span class="material-symbols-outlined text-cyan-600 text-lg">traffic</span>
+              3 Alert Levels of SLA Tracker:
+            </h4>
+            <div class="grid md:grid-cols-3 gap-5">
+              <!-- Safe Level -->
+              <div class="p-5 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-left space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">schedule</span> Safe
+                  </span>
+                  <span class="text-xs font-semibold text-emerald-700">More than 24 Hrs left</span>
+                </div>
+                <strong class="block text-slate-800 text-sm">Status: Within Standard</strong>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                  Green border and countdown indicate the request was recently submitted.
+                </p>
+              </div>
+
+              <!-- Urgent Level -->
+              <div class="p-5 rounded-2xl bg-amber-50/80 border border-amber-300 text-left space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-1 bg-amber-500 text-white rounded-lg text-xs font-bold flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">hourglass_top</span> Urgent
+                  </span>
+                  <span class="text-xs font-semibold text-amber-700">Less than 24 Hrs left</span>
+                </div>
+                <strong class="block text-slate-800 text-sm">Status: Approaching SLA</strong>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                  Orange card warns L1 and HR to expedite approval before time expires.
+                </p>
+              </div>
+
+              <!-- Overdue Level -->
+              <div class="p-5 rounded-2xl bg-rose-50/80 border border-rose-300 text-left space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">alarm_off</span> Overdue
+                  </span>
+                  <span class="text-xs font-semibold text-rose-700">Over 48 Hrs Passed</span>
+                </div>
+                <strong class="block text-slate-800 text-sm">Status: Overdue</strong>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                  The card turns red showing the exact overdue time, prompting management to investigate the cause.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Breakdown: Employee Details & Modal -->
+          <div class="grid md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+            <div class="p-5 bg-white rounded-2xl border border-slate-200/80 space-y-2.5 shadow-sm">
+              <h5 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-2 text-cyan-700">
+                <span class="material-symbols-outlined text-lg">badge</span>
+                Complete Submitter Info on Cards:
+              </h5>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Each SLA card displays the profile picture, <strong>First/Last Name</strong>, nickname, <strong>Employee Code</strong>, department, and leave type.</p>
+            </div>
+
+            <div class="p-5 bg-white rounded-2xl border border-slate-200/80 space-y-2.5 shadow-sm">
+              <h5 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-2 text-teal-700">
+                <span class="material-symbols-outlined text-lg">visibility</span>
+                "View Details" Button (Unified Preview Modal):
+              </h5>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Click the <strong class="text-teal-700">"View Details"</strong> or <strong class="text-cyan-700">"Check Leave"</strong> button to open a SweetAlert2 popup showing the full reason, dates, medical certificates, and L1/L2 approval status instantly.
+              </p>
+            </div>
+          </div>
+
+          <!-- Where is it visible? -->
+          <div class="p-5 bg-cyan-50/60 rounded-2xl border border-cyan-100 space-y-2">
+            <h5 class="font-bold text-cyan-900 text-xs md:text-sm flex items-center gap-2">
+              <span class="material-symbols-outlined text-cyan-700">location_on</span>
+              SLA Tracker Locations:
+            </h5>
+            <ul class="text-xs text-slate-600 space-y-1.5 list-disc list-inside leading-relaxed">
+              <li><strong>HR Dashboard (home.html):</strong> Displays all pending leave requests across the organization, helping HR track the overall SLA.</li>
+              <li><strong>Leave Approval (hr.html):</strong> Shows countdown cards with quick-access buttons for reviewing and approving L2 instantly.</li>
+              <li><strong>Employee Leave History (leave-history.html):</strong> Shows only the employee's own pending requests, letting them know how many hours remain in the queue.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Leave History -->
+      <section id="leave-history" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">history</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">Leave Status Tracking, Printing, and Cancellation</h2>
+        </div>
+        <div class="content-card space-y-6" style="animation-delay: 0.4s">
+          <p class="text-slate-600 leading-relaxed text-sm">
+            Track submitted leaves via the main menu table, sorted by intuitive color codes:
+          </p>
+          
+          <div class="grid md:grid-cols-3 gap-6">
+            <!-- Pending -->
+            <div class="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-center shadow-sm">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-700 mb-2">
+                <span class="material-symbols-outlined text-lg">pending</span>
+              </span>
+              <strong class="block font-bold text-amber-700 text-sm md:text-base">Pending Approval</strong>
+              <span class="text-[11px] text-amber-600 mt-1 block">Document is undergoing L1 or L2 review</span>
+            </div>
+
+            <!-- Approved -->
+            <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center shadow-sm">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 mb-2">
+                <span class="material-symbols-outlined text-lg">check_circle</span>
+              </span>
+              <strong class="block font-bold text-emerald-700 text-sm md:text-base">Approved</strong>
+              <span class="text-[11px] text-emerald-600 mt-1 block">Fully signed and approved through the system.</span>
+            </div>
+
+            <!-- Rejected -->
+            <div class="p-5 rounded-2xl bg-rose-50 border border-rose-200 text-center shadow-sm">
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-rose-100 text-rose-700 mb-2">
+                <span class="material-symbols-outlined text-lg">cancel</span>
+              </span>
+              <strong class="block font-bold text-rose-700 text-sm md:text-base">Rejected</strong>
+              <span class="text-[11px] text-rose-600 mt-1 block">Leave denied. Click the "eye" icon to view the reason.</span>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+            <!-- Print A4 -->
+            <div class="space-y-1">
+              <h5 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-cyan-600">print</span>
+                Printing Official A4 PDF Documents:
+              </h5>
+              <p class="text-[11px] md:text-xs text-slate-500 leading-relaxed">
+                Click the printer icon at the row's end to generate an official digital watermarked PDF.
+              </p>
+            </div>
+            
+            <!-- Cancel Leave -->
+            <div class="space-y-1">
+              <h5 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-rose-600">delete_sweep</span>
+                Canceling an Approved Leave Request:
+              </h5>
+              <p class="text-[11px] md:text-xs text-slate-500 leading-relaxed">
+                If you need to cancel, click the <strong class="text-rose-600">"Request Cancellation"</strong> icon in your history table. Once approved, the system automatically transfers the quota back to your profile.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: LINE Linking -->
+      <section id="line-link" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" class="w-8 h-8" alt="LINE" />
+          <h2 class="heading-font text-2xl font-bold text-slate-800">LINE Notify Integration</h2>
+        </div>
+        <div class="content-card space-y-4" style="animation-delay: 0.5s">
+          <p class="text-slate-600 leading-relaxed text-sm">
+            Connect your account to the notification bot to receive instant alerts upon approval/rejection:
+          </p>
+          
+          <div class="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col md:flex-row items-center gap-6 justify-between">
+            <div class="space-y-2">
+              <strong class="text-emerald-800 text-sm block">💡 4 Quick Integration Steps:</strong>
+              <ol class="list-decimal list-inside text-[11px] md:text-xs text-slate-600 space-y-1.5 leading-relaxed">
+                <li>Go to the employee details page <strong class="text-emerald-700">"Profile"</strong></li>
+                <li>Click the green <strong class="text-emerald-700">"Request LINE Code"</strong> button, and the system will provide a 6-digit code.</li>
+                <li>Add the PVT Official LINE account and type the 6-digit code in the chat.</li>
+                <li>Once confirmed, the bot starts working and notifies you when the leave is reviewed.</li>
+              </ol>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-emerald-100 text-center flex-shrink-0 flex flex-col items-center">
+              <span class="material-symbols-outlined text-emerald-500 text-3xl mb-1">notifications_active</span>
+              <span class="text-xs font-bold text-emerald-800">100% Free Notifications</span>
+              <span class="text-[10px] text-slate-400 mt-0.5">Runs on the highest random-safe system</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Calendar -->
+      <section id="calendar" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">calendar_month</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">Company Holiday & Team Leave Calendar</h2>
+        </div>
+        <div class="content-card space-y-8" style="animation-delay: 0.6s">
+          <p class="text-slate-600 leading-relaxed text-sm">
+            The calendar is a vital tool to check team schedules and plan benefits in advance.</p>
+          
+          <div class="grid md:grid-cols-2 gap-8">
+            <!-- Company Holidays -->
+            <div class="p-6 rounded-2xl border border-slate-100 bg-cyan-50/20 relative overflow-hidden flex flex-col justify-between space-y-3">
+              <div class="space-y-2">
+                <h4 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-2">
+                  <span class="material-symbols-outlined text-cyan-600 p-1 bg-cyan-100 rounded-lg">event</span> ปฏิทินหยุดประจำปี (Company Holidays)
+                </h4>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  Gathers annual public holidays and special days, displaying them as markers on the calendar.</p>
+              </div>
+              <span class="material-symbols-outlined absolute -right-6 -bottom-6 text-[100px] text-cyan-500 opacity-5">calendar_view_day</span>
+            </div>
+
+            <!-- Team Leaves -->
+            <div class="p-6 rounded-2xl border border-slate-100 bg-teal-50/20 relative overflow-hidden flex flex-col justify-between space-y-3">
+              <div class="space-y-2">
+                <h4 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-2">
+                  <span class="material-symbols-outlined text-teal-600 p-1 bg-teal-100 rounded-lg">groups</span> กระดานเช็ควันลาทีม (Team Attendance)
+                </h4>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  If colleagues in the same department get leaves approved, colored dots appear under the calendar dates.</p>
+              </div>
+              <span class="material-symbols-outlined absolute -right-6 -bottom-6 text-[100px] text-teal-500 opacity-5">diversity_3</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Manager Guide -->
+      <section id="manager" class="scroll-mt-32" style="display: none;">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">admin_panel_settings</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">L1 Approver Guide (Manager Portal)</h2>
+        </div>
+        <div class="content-card space-y-6" style="animation-delay: 0.7s">
+          <p class="text-slate-600 leading-relaxed text-sm">
+            When appointed as Department Head (L1), your account gains team management capabilities.</p>
+
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="p-5 rounded-2xl bg-cyan-50/50 border border-cyan-100 space-y-2 text-xs text-slate-600">
+              <strong class="text-cyan-800 block text-sm font-bold flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-lg">fact_check</span> 1. Verify Accuracy
+              </strong>
+              <span>Review submitter name, leave type, dates, and view medical certificates.</span>
+            </div>
+            <div class="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-100 space-y-2 text-xs text-slate-600">
+              <strong class="text-emerald-800 block text-sm font-bold flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-lg">check_circle</span> 2. Approve / Reject (L1)
+              </strong>
+              <span>Click approve to forward to HR (L2), or specify a rejection reason.</span>
+            </div>
+            <div class="p-5 rounded-2xl bg-amber-50/50 border border-amber-100 space-y-2 text-xs text-slate-600">
+              <strong class="text-amber-800 block text-sm font-bold flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-lg">timer</span> 3. Monitor 2-Day SLA
+              </strong>
+              <span>Monitor the SLA countdown color. Expedite review if orange or red.</span>
+            </div>
+          </div>
+
+          <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+            <h5 class="font-bold text-slate-800 text-xs md:text-sm flex items-center gap-2">
+              <span class="material-symbols-outlined text-slate-700">calendar_month</span>
+              Checking Team Readiness Before Approving:
+            </h5>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Before confirming, check the Team Attendance calendar to avoid overlapping absences.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: HR Guide -->
+      <section id="hr" class="scroll-mt-32" style="display: none;">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">manage_accounts</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">HR L2 / Admin Management Guide</h2>
+        </div>
+        <div class="content-card space-y-8" style="animation-delay: 0.8s">
+          <p class="text-slate-600 leading-relaxed text-sm">
+            HR L2 / Admin has the highest authority to control and manage the leave system.</p>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div class="p-6 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-2.5">
+              <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2 text-cyan-700">
+                <span class="material-symbols-outlined text-xl">fact_check</span> 1. Final Review and Approval (HR Final Approval - hr.html)
+              </h4>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                Review leaves approved by L1, or direct HR leaves, to finalize and deduct quotas.</p>
+            </div>
+
+            <div class="p-6 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-2.5">
+              <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2 text-blue-700">
+                <span class="material-symbols-outlined text-xl">person_add</span> 2. Manage Employee Data</h4>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                Add, edit, or suspend employees. Set positions, departments, and supervisor roles.</p>
+            </div>
+
+            <div class="p-6 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-2.5">
+              <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2 text-emerald-700">
+                <span class="material-symbols-outlined text-xl">edit_calendar</span> 3. Set Quotas & Holidays</h4>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                Configure individual leave quotas based on contracts, and set up annual company holidays.</p>
+            </div>
+
+            <div class="p-6 bg-white border border-slate-200/80 rounded-2xl shadow-sm space-y-2.5">
+              <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2 text-purple-700">
+                <span class="material-symbols-outlined text-xl">badge</span> 4. Employee ID Card</h4>
+              <p class="text-xs text-slate-500 leading-relaxed">
+                Generate employee ID cards with personal QR Codes for secure logins.</p>
+            </div>
+          </div>
+
+          <!-- HR SLA Monitor -->
+          <div class="p-5 bg-amber-50 rounded-2xl border border-amber-200 space-y-2">
+            <h5 class="font-bold text-amber-900 text-xs md:text-sm flex items-center gap-2">
+              <span class="material-symbols-outlined text-amber-700">speed</span>
+              System-wide SLA Monitoring on HR Home (Dashboard SLA Hub):
+            </h5>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              HR can open <strong>/pages/hr/home.html</strong> to view SLA Tracker cards for all employees across all departments pending approval. If any item turns red (>48 Hrs), HR can coordinate with the responsible department head to expedite signing.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: FAQ -->
+      <section id="faq" class="scroll-mt-32">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">help</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">Frequently Asked Questions (FAQ)</h2>
+        </div>
+        <div class="content-card space-y-4" style="animation-delay: 0.85s">
+          <div class="space-y-4">
+            <!-- Q1 -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm space-y-1.5">
+              <strong class="text-slate-800 text-xs md:text-sm block flex items-center gap-2 text-cyan-700">
+                <span class="material-symbols-outlined text-lg">help_outline</span> Q: Submitted, but waiting > 48 hrs?</strong>
+              <p class="text-xs text-slate-600 leading-relaxed pl-6">
+                <strong>A:</strong> The system displays a 48-hour SLA countdown with Red status alerts for both managers and HR. Employees can contact supervisors or HR to coordinate.
+              </p>
+            </div>
+
+            <!-- Q2 -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm space-y-1.5">
+              <strong class="text-slate-800 text-xs md:text-sm block flex items-center gap-2 text-cyan-700">
+                <span class="material-symbols-outlined text-lg">help_outline</span> Q: How to cancel an approved leave?</strong>
+              <p class="text-xs text-slate-600 leading-relaxed pl-6">
+                <strong>A:</strong> Click "Request Cancellation" in your leave history. Once the manager/HR approves it, the system will automatically refund your quota.
+              </p>
+            </div>
+
+            <!-- Q3 -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm space-y-1.5">
+              <strong class="text-slate-800 text-xs md:text-sm block flex items-center gap-2 text-cyan-700">
+                <span class="material-symbols-outlined text-lg">help_outline</span> Q: Sick Leave requiring medical certificate?</strong>
+              <p class="text-xs text-slate-600 leading-relaxed pl-6">
+                <strong>A:</strong> Per company policy, taking Sick Leave for 3 or more consecutive working days requires uploading a certified medical certificate photo.
+              </p>
+            </div>
+
+            <!-- Q4 -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm space-y-1.5">
+              <strong class="text-slate-800 text-xs md:text-sm block flex items-center gap-2 text-cyan-700">
+                <span class="material-symbols-outlined text-lg">help_outline</span> Q: Not receiving LINE alerts?</strong>
+              <p class="text-xs text-slate-600 leading-relaxed pl-6">
+                <strong>A:</strong> Verify you requested the 6-digit code and linked with the company LINE Official account.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: PWA -->
+      <section id="pwa" class="scroll-mt-32 pb-20">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="material-symbols-outlined text-3xl text-cyan-600">install_mobile</span>
+          <h2 class="heading-font text-2xl font-bold text-slate-800">Install Mobile App (PWA)</h2>
+        </div>
+        <div class="rounded-[24px] p-10 text-white shadow-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #0f766e 0%, #115e59 100%); border: 1px solid rgba(255, 255, 255, 0.15); animation: slideUp 0.6s ease-out backwards; animation-delay: 0.9s">
+          <div class="relative z-10 space-y-8">
+            <p class="text-white text-lg font-medium leading-relaxed" style="color: #ffffff;">The smart Workforce Hub reduces paperwork steps, giving you more time to focus on important tasks.</p>
+            <div class="grid md:grid-cols-2 gap-8">
+              <div class="space-y-4 p-6 rounded-2xl" style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25); backdrop-filter: blur(8px);">
+                <div class="flex items-center gap-3 font-black uppercase tracking-widest text-xs" style="color: #e2fbf5;">
+                  <span class="material-symbols-outlined text-xl" style="color: #e2fbf5;">apple</span> iOS (Safari)
+                </div>
+                <p class="text-sm leading-relaxed" style="color: #ffffff;">Tap the <strong style="color: #6ee7b7; font-weight: 800;">Share</strong> button at the bottom and select <strong style="color: #6ee7b7; font-weight: 800;">"Add to Home Screen"</strong></p>
+              </div>
+              <div class="space-y-4 p-6 rounded-2xl" style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25); backdrop-filter: blur(8px);">
+                <div class="flex items-center gap-3 font-black uppercase tracking-widest text-xs" style="color: #e2fbf5;">
+                  <span class="material-symbols-outlined text-xl" style="color: #e2fbf5;">android</span> Android (Chrome)
+                </div>
+                <p class="text-sm leading-relaxed" style="color: #ffffff;">Tap the <strong style="color: #6ee7b7; font-weight: 800;">3 Dots</strong> at the top right and select <strong style="color: #6ee7b7; font-weight: 800;">"Install App"</strong></p>
+              </div>
+            </div>
+          </div>
+          <!-- Background Decoration -->
+          <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-white rounded-full blur-[120px] opacity-10"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-10">
+    <div class="max-w-7xl mx-auto px-6 text-center text-slate-400 text-sm">
+      <p>© 2026 PVT Workforce Management System · Ver 2.5</p>
+      <p class="mt-2 text-xs">Developed to elevate professional operations</p>
+    </div>
+  </footer>
+
+  <script>
+    // Role-based visibility logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const userRole = localStorage.getItem('pvt_user_role') || 'employee';
+      
+      if (userRole === 'manager' || userRole === 'admin' || userRole === 'hr') {
+        const sidebarManager = document.getElementById('sidebar-manager-section');
+        const contentManager = document.getElementById('manager');
+        if(sidebarManager) sidebarManager.style.display = 'block';
+        if(contentManager) contentManager.style.display = 'block';
+      }
+      
+      if (userRole === 'hr' || userRole === 'admin') {
+        const sidebarHR = document.getElementById('sidebar-hr-section');
+        const contentHR = document.getElementById('hr');
+        if(sidebarHR) sidebarHR.style.display = 'block';
+        if(contentHR) contentHR.style.display = 'block';
+      }
+    });
+
+    // Simple Active Nav Highlighting
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        // Only consider sections that are actually visible
+        if (section.style.display !== 'none') {
+          const sectionTop = section.offsetTop;
+          if (window.pageYOffset >= sectionTop - 150) {
+            current = section.getAttribute('id');
+          }
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href').includes('#' + current)) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+
+
+
+
+
+
+</body>
+</html>

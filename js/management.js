@@ -366,6 +366,18 @@ async function initManagementSystem() {
     // 🎯 1. แสดงโปรไฟล์บน Header ตรงนี้ได้เลยครับ!
     renderHeaderProfile();
 
+    // 🏢 2. เชื่อมต่อการสลับบริษัทในเครือ (Multi-Entity Switcher Event)
+    if (!window._entityListenerAttached) {
+      window._entityListenerAttached = true;
+      window.addEventListener('pvt_entity_changed', () => {
+        renderSummary();
+        renderEmployeeTable();
+        if (typeof window.renderRechartsDashboard === 'function') {
+          window.renderRechartsDashboard();
+        }
+      });
+    }
+
     return true;
   } catch (err) {
     showAppError("เกิดข้อผิดพลาดในการตรวจสอบระบบเริ่มต้น", err.message);
@@ -1789,6 +1801,12 @@ function renderEmployeeTable() {
           <button class="btn-table-act primary" onclick="openEmployeeDetail('${emp.id}')" title="ดูรายละเอียดพนักงาน">
             <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
             <span>รายละเอียด</span>
+          </button>
+          <button class="btn-table-act" 
+                  style="color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0;" 
+                  onclick="window.HealthWellness.openHealthManagerModal('${escapeHtml(emp.employee_code)}')" 
+                  title="ข้อมูลสุขภาพ & ประกันกลุ่ม">
+            <span class="material-symbols-outlined" style="font-size: 16px;">health_and_safety</span>
           </button>
           <button class="btn-table-act danger" 
                   onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 

@@ -70,6 +70,12 @@
           <span>LINE</span>
         </button>
 
+        <!-- 📜 ปุ่มดูกฎระเบียบบริษัท -->
+        <a href="/pages/user/leave-rules.html" class="menu-item" title="กฎระเบียบและเงื่อนไขการลา">
+          <span class="material-symbols-outlined" style="color: #6366f1;">policy</span>
+          <span>กฎระเบียบ</span>
+        </a>
+
         <!-- 📘 ปุ่มคู่มือการใช้งาน -->
         <a href="/pages/user/full-guide.html" class="menu-item" title="คู่มือการใช้งาน">
           <span class="material-symbols-outlined" style="color: #0d9488;">menu_book</span>
@@ -167,6 +173,11 @@
           </div>
         </header>
 
+        <!-- 🔔 SMART PROACTIVE NUDGES -->
+        <div id="smartNudgeContainer" style="display: none; margin-bottom: 20px;">
+          <!-- Rendered dynamically by checkSmartNudges() -->
+        </div>
+
         <!-- 🟢 ปุ่มใหญ่สำหรับยื่นใบลา (แยกออกมาเดี่ยวๆ) -->
         <div class="hero-leave-container" style="margin-bottom: 24px;">
           <button class="btn-hero-leave" onclick="goToLeaveForm()">
@@ -179,6 +190,149 @@
             </div>
             <span class="material-symbols-outlined btn-hero-arrow">chevron_right</span>
           </button>
+        </div>
+
+        <!-- 🌟 เมนูด่วน (Quick Menu) -->
+        <section class="quick-menu-section" style="margin-bottom: 24px;">
+          <div class="section-header" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <h2 style="font-size: 16px; font-weight: 700; color: #1e293b; margin: 0;">เมนูด่วน</h2>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+            <div class="menu-card" onclick="goToLeaveHistory()" style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="background: #eff6ff; padding: 10px; border-radius: 10px; color: #3b82f6; display: flex;">
+                <span class="material-symbols-outlined">history</span>
+              </div>
+              <div>
+                <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">ประวัติการลา</h3>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">ดูสถานะใบลา</p>
+              </div>
+            </div>
+            
+            <div class="menu-card" onclick="location.href='/pages/user/leave-rules.html'" style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="background: #eef2ff; padding: 10px; border-radius: 10px; color: #6366f1; display: flex;">
+                <span class="material-symbols-outlined">menu_book</span>
+              </div>
+              <div>
+                <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">กฎระเบียบ</h3>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">เงื่อนไขการลา</p>
+              </div>
+            </div>
+            
+            <div class="menu-card" onclick="location.href='/pages/user/holidays.html'" style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="background: #fef3c7; padding: 10px; border-radius: 10px; color: #d97706; display: flex;">
+                <span class="material-symbols-outlined">event</span>
+              </div>
+              <div>
+                <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">ปฏิทินวันหยุด</h3>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">วันหยุดบริษัท</p>
+              </div>
+            </div>
+            
+            <div class="menu-card" onclick="showStaffCard()" style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="background: #fdf4ff; padding: 10px; border-radius: 10px; color: #c026d3; display: flex;">
+                <span class="material-symbols-outlined">badge</span>
+              </div>
+              <div>
+                <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">บัตรพนักงาน</h3>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">สแกนเข้างาน</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ⚡ QUICK FORM (1-CLICK REQUEST) -->
+        <div class="panel quick-form-panel" style="margin-bottom: 24px; border: 1.5px dashed #0d9488; background: #f0fdfa; border-radius: 16px; padding: 20px;">
+          <div class="panel-header" onclick="toggleQuickForm()" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: none; padding-bottom: 0; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="material-symbols-outlined" style="color: #0d9488; font-size: 28px;">bolt</span>
+              <div style="text-align: left;">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #0f766e; line-height: 1.2;">⚡ Quick Form (ส่งใบลาเร่งด่วนใน 1 คลิก)</h3>
+                <p style="margin: 2px 0 0 0; font-size: 11.5px; color: #0d9488; line-height: 1.2;">ดึงสิทธิ์คงเหลือ ตำแหน่ง และหัวหน้าอนุมัติมาให้อัตโนมัติ</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined" id="quickFormArrow" style="color: #0d9488; font-size: 24px; transition: transform 0.2s;">expand_more</span>
+          </div>
+
+          <div id="quickFormBody" style="display: none; margin-top: 16px; border-top: 1px solid #ccfbf1; padding-top: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">ตำแหน่งและฝ่าย</label>
+                <input type="text" id="qPosition" readonly style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #f1f5f9; color: #64748b;" placeholder="กำลังดึงข้อมูล...">
+              </div>
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">หัวหน้าผู้อนุมัติ (L1/L2)</label>
+                <input type="text" id="qApprover" readonly style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #f1f5f9; color: #64748b;" placeholder="กำลังดึงข้อมูล...">
+                <p id="qApproverNote" style="margin: 4px 0 0 0; font-size: 11px; color: #0d9488; font-weight: 500; display: none; line-height: 1.3;"></p>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 6px;">เลือกประเภทการลาที่คงเหลือ</label>
+              <div id="qLeaveTypesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">
+                <!-- Generated Dynamically -->
+                <span style="font-size: 12px; color: #64748b; font-style: italic;">กำลังสแกนสิทธิ์คงเหลือของคุณ...</span>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
+                <input type="date" id="qStartDate" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #ffffff;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">สิ้นสุดวันที่ลา <span style="color:#ef4444;">*</span></label>
+                <input type="date" id="qEndDate" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #ffffff;">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">ระบุเหตุผลการลา <span style="color:#ef4444;">*</span></label>
+              <input type="text" id="qReason" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #ffffff;" placeholder="เช่น ลาป่วยเป็นไข้หวัดใหญ่, มีธุระครอบครัว">
+            </div>
+
+            <!-- 📎 แนบเอกสาร/หลักฐาน (ใบรับรองแพทย์ หรือ เอกสารประกอบ) -->
+            <div style="margin-bottom: 20px;">
+              <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 6px;">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <span class="material-symbols-outlined" style="font-size: 17px; color: #0d9488;">attach_file</span>
+                  แนบเอกสาร / ใบรับรองแพทย์ (ถ้ามี)
+                </span>
+                <span style="font-size: 11px; color: #64748b; font-weight: 400;">รองรับรูปภาพ (JPG, PNG) หรือ PDF</span>
+              </label>
+              
+              <div id="qAttachmentBox" style="border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 14px; background: #ffffff; text-align: center; transition: all 0.2s;">
+                <input type="file" id="qAttachmentInput" accept="image/*,application/pdf" style="display: none;" onchange="handleQuickFileSelect(this)">
+                
+                <div id="qUploadPrompt">
+                  <button type="button" onclick="document.getElementById('qAttachmentInput').click()" style="background: #f0fdfa; border: 1px solid #99f6e4; color: #0f766e; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">cloud_upload</span>
+                    <span>เลือกไฟล์เอกสาร / ถ่ายรูป</span>
+                  </button>
+                  <p style="margin: 6px 0 0 0; font-size: 11px; color: #94a3b8;">ไฟล์ขนาดสูงสุด 10MB</p>
+                </div>
+
+                <div id="qFilePreview" style="display: none; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; text-align: left;">
+                  <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                    <img id="qFileThumb" src="" alt="Thumbnail" style="display: none; width: 36px; height: 36px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; flex-shrink: 0;" />
+                    <span class="material-symbols-outlined" id="qFileIcon" style="color: #0d9488; font-size: 26px; flex-shrink: 0;">description</span>
+                    <div style="overflow: hidden;">
+                      <div id="qFileName" style="font-size: 12.5px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;"></div>
+                      <div id="qFileSize" style="font-size: 11px; color: #64748b;"></div>
+                    </div>
+                  </div>
+                  <button type="button" onclick="clearQuickFile()" style="background: #fee2e2; border: none; color: #ef4444; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;" title="ลบไฟล์แนบ">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+                    <span>ลบ</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" onclick="submitQuickLeave()" style="width: 100%; background: #0d9488; color: #ffffff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2); transition: background 0.2s;">
+              <span class="material-symbols-outlined" style="font-size: 20px;">bolt</span>
+              ส่งคำขอลาทันที (1-Click Submit)
+            </button>
+          </div>
         </div>
 
         <!-- ส่วนแสดงสิทธิ์วันลาคงเหลือ -->
@@ -276,6 +430,107 @@
     </main>
   </div>
 
+  <!-- 📍 VISUAL PROGRESS TRACKER MODAL (STEPPER TIMELINE) -->
+  <div class="pvt-modal-overlay" id="visualTimelineModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px;">
+    <div class="pvt-modal-card" style="background: #ffffff; width: 100%; max-width: 580px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+      <div class="modal-header" style="padding: 18px 24px; background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="material-symbols-outlined" style="font-size: 26px;">timeline</span>
+          <div>
+            <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #ffffff;">ติดตามสถานะใบลา (Visual Progress Tracker)</h3>
+            <span style="font-size: 12px; opacity: 0.85;">ตรวจสอบขั้นตอนการพิจารณาตามลำดับสายงาน</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeVisualTimelineModal()" style="background: rgba(255,255,255,0.2); border: none; color: #ffffff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="modal-body" id="visualTimelineBody" style="padding: 24px; overflow-y: auto;">
+        <!-- Loading state -->
+        <div style="text-align: center; padding: 40px; color: #64748b;">
+          <span class="material-symbols-outlined" style="font-size: 36px; animation: spin 1s linear infinite;">sync</span>
+          <p style="margin-top: 8px;">กำลังโหลดข้อมูลขั้นตอนการอนุมัติ...</p>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 14px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+        <button type="button" onclick="closeVisualTimelineModal()" style="padding: 8px 20px; background: #0d9488; color: #ffffff; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🤖 HR AI CHATBOT WIDGET (POLICY Q&A 24 HRS) -->
+  <div id="hrChatbotWidget">
+    <!-- Floating Action Button -->
+    <button id="hrChatbotFab" onclick="toggleHrChatbot()" title="ถามผู้ช่วย HR AI เกี่ยวกับนโยบายและสิทธิวันลา" style="position: fixed; bottom: 24px; right: 24px; z-index: 9998; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: #ffffff; border: none; border-radius: 50px; padding: 12px 20px; display: flex; align-items: center; gap: 8px; box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.4), 0 8px 10px -6px rgba(13, 148, 136, 0.2); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+      <span class="material-symbols-outlined" style="font-size: 24px;">smart_toy</span>
+      <span style="font-size: 13px; font-weight: 700;">ถาม HR AI (24 ชม.)</span>
+      <span style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,0.6);"></span>
+    </button>
+
+    <!-- Chat Modal Window -->
+    <div id="hrChatbotModal" style="display: none; position: fixed; bottom: 84px; right: 24px; width: 390px; max-width: calc(100vw - 32px); height: 530px; max-height: calc(100vh - 110px); background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; z-index: 9999; flex-direction: column; overflow: hidden; animation: popIn 0.2s ease;">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); color: #ffffff; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 38px; height: 38px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <span class="material-symbols-outlined" style="font-size: 22px;">support_agent</span>
+          </div>
+          <div>
+            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #ffffff;">HR Policy & Welfare AI</h4>
+            <span style="font-size: 11px; opacity: 0.9; display: flex; align-items: center; gap: 4px;">
+              <span style="width: 6px; height: 6px; background: #4ade80; border-radius: 50%;"></span>
+              ตอบข้อสงสัยนโยบายและสิทธิประโยชน์ 24 ชม.
+            </span>
+          </div>
+        </div>
+        <button type="button" onclick="toggleHrChatbot()" style="background: rgba(255,255,255,0.2); border: none; color: #ffffff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+        </button>
+      </div>
+
+      <!-- Suggested Question Chips -->
+      <div id="hrChatbotChips" style="padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #f1f5f9; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;">
+        <button type="button" onclick="askHrQuestion('ลาป่วยกี่วันต้องใช้ใบรับรองแพทย์?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
+          🩺 ใบรับรองแพทย์ลาป่วย?
+        </button>
+        <button type="button" onclick="askHrQuestion('วันลาพักร้อนสะสมไปปีหน้าได้ไหม?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
+          🏖️ สะสมวันลาพักร้อน?
+        </button>
+        <button type="button" onclick="askHrQuestion('สิทธิการลาคลอดบุตรและการรับเงินสงเคราะห์เป็นอย่างไร?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
+          👶 สิทธิลาคลอดบุตร?
+        </button>
+        <button type="button" onclick="askHrQuestion('เงื่อนไขการเบิกค่ารักษาพยาบาลและเบี้ยเลี้ยงปฏิบัติงานนอกสถานที่?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
+          💰 เบิกค่ารักษา & เบี้ยเลี้ยง?
+        </button>
+      </div>
+
+      <!-- Messages Stream Body -->
+      <div id="hrChatMessages" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #fcfdfd;">
+        <!-- Initial Bot Greeting -->
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0f2fe; color: #0369a1; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">smart_toy</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0 14px 14px 14px; padding: 12px 14px; font-size: 13px; color: #1e293b; line-height: 1.5; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            สวัสดีครับ! ผมเป็นผู้ช่วยตอบคำถามอัตโนมัติประจำฝ่ายทรัพยากรบุคคล ยินดีช่วยเหลือพนักงานทุกท่านเกี่ยวกับ <strong>นโยบายวันลา สิทธิสวัสดิการ กฎระเบียบบริษัท และการเบิกเงิน</strong> สามารถพิมพ์สอบถามได้ตลอด 24 ชั่วโมงเลยครับ 😊
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Bar -->
+      <div style="padding: 12px 14px; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; align-items: center;">
+        <input type="text" id="hrChatInput" placeholder="พิมพ์คำถามนโยบายหรือสวัสดิการ..." onkeydown="if(event.key==='Enter') sendHrChatMessage()" style="flex: 1; padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; outline: none; transition: border-color 0.2s;">
+        <button type="button" id="hrChatSendBtn" onclick="sendHrChatMessage()" style="width: 38px; height: 38px; border-radius: 50%; background: #0d9488; color: #ffffff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 6px rgba(13, 148, 136, 0.3);">
+          <span class="material-symbols-outlined" style="font-size: 18px;">send</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 1. สคริปต์ภายนอก -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
@@ -291,6 +546,7 @@
   <script src="/js/auth-guard.js"></script>
   <script src="/js/system-settings.js"></script>
   <script src="/js/company-news.js"></script>
+  <script src="/js/delegation-service.js"></script>
   <script src="/js/index-user.js"></script>
   <script src="/js/system-diagnostics.js"></script>
 

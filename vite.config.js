@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import tailwindcss from '@tailwindcss/vite';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs } from './api-handlers.js';
+import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot } from './api-handlers.js';
 
 export default defineConfig({
   plugins: [
@@ -35,6 +35,14 @@ export default defineConfig({
         });
         server.middlewares.use('/api/purge-login-logs', (req, res) => {
           if (req.method === 'POST') handlePurgeLoginLogs(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/ocr-scan', (req, res) => {
+          if (req.method === 'POST') handleOcrScan(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/hr-chatbot', (req, res) => {
+          if (req.method === 'POST') handleHrChatbot(req, res);
           else res.end();
         });
       }

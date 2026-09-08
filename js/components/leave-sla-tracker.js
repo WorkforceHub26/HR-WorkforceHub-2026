@@ -458,6 +458,15 @@
               </span>
             </div>
 
+            ${req.delegationInfo ? `
+              <div style="margin-top: 8px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #0369a1; display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 16px; color: #0284c7; flex-shrink: 0;">swap_calls</span>
+                <div style="line-height: 1.3;">
+                  <strong>โอนสิทธิ์อัตโนมัติ:</strong> คุณ ${escapeHtml(req.delegationInfo.delegateName)} รักษาการแทน (${escapeHtml(req.delegationInfo.reason)})
+                </div>
+              </div>
+            ` : ''}
+
             <!-- 🔘 Action Buttons (พิจารณา, รายละเอียด, ปริ้น, ดูรูป) -->
             <div class="sla-actions-row">
               <button type="button" class="btn-sla-action btn-sla-review" onclick="window.triggerSlaReview('${req.id}')" title="พิจารณาอนุมัติหรือไม่อนุมัติคำขอลา">

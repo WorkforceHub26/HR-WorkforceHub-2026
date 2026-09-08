@@ -357,7 +357,7 @@ const loginTranslations = {
     camDiagBtn: "ຜົນກວດວິເຄາະ & ວິທີແກ້ໄຂ"
   },
   my: {
-    badge: "အွန်လိုင်းခွင့်တောင်းခံလွှาစနစ်",
+    badge: "အွန်လိုင်းခွင့်တောင်းခံလွှာစနစ်",
     userLabel: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်",
     userInputPlaceholder: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်ကို ထည့်ပါ",
     passLabel: "စကားဝှက် (Password)",
@@ -372,7 +372,7 @@ const loginTranslations = {
     errEmptyBoth: "အသုံးပြုသူအမည်နှင့် စကားဝှက်ကို အပြည့်အစုံ ဖြည့်သွင်းပါ",
     errEmptyUser: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် အမည်ကို ဖြည့်သွင်းပါ",
     errEmptyPass: "စကားဝှက်ကို ဖြည့်သွင်းပါ",
-    errInvalidCreds: "ဝန်ถမ်းနံပါတ် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်",
+    errInvalidCreds: "ဝန်ထမ်းနံပါတ် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်",
     errUserNotFound: "အသုံးပြုသူအချက်အလက်ကို ရှာမတွေ့ပါ စစ်ဆေးပြီး ပြန်လည်ကြိုးစားပါ",
     errPassWrong: "စကားဝှက် မှားယွင်းနေပါသည် ထပ်မံကြိုးစားပါ",
     errInactive: "သင့်အကောင့်ကို ရပ်ဆိုင်းထားပါသည် HR သို့ ဆက်သွယ်ပါ",
@@ -380,7 +380,33 @@ const loginTranslations = {
     errMultipleUsers: "နာမည်တူ ဝန်ထမ်းများ ရှိနေပါသဖြင့် ဝန်ထမ်းနံပါတ်ဖြင့် အကောင့်ဝင်ပါ",
     camWarnTitleOutdated: "⚠️ သတိပေးချက်: သင့်ဘရောက်ဆာသည် ဗားရှင်းဟောင်းဖြစ်နေပါသည်",
     camWarnTitleUnsupported: "⚠️ သတိပေးချက်: ဤဘရောက်ဆာသည် ဘာရိုမက်ထရစ်ကင်မရာကို မထောက်ပံ့ပါ",
-    camDiagBtn: "ရောဂါရှาဖွေမှုရလဒ် & နည်းလမ်းများ"
+    camDiagBtn: "ရောဂါရှာဖွေမှုရလဒ် & နည်းလမ်းများ"
+  },
+  en: {
+    badge: "Online Leave & Workforce Management System",
+    userLabel: "Employee ID or Full Name",
+    userInputPlaceholder: "Enter employee ID or name",
+    passLabel: "Password",
+    passInputPlaceholder: "Enter your password",
+    remember: "Remember Me",
+    loginBtn: "Sign In",
+    loggingIn: "Signing in...",
+    qrBtn: "Scan Employee Card QR Code",
+    qrGuideLink: "How to scan employee card (Guide)",
+    biometricLoginBtn: "Sign in with Fingerprint / Face ID",
+    biometricGuideLink: "Biometric Login Guide",
+    errEmptyBoth: "Please enter both employee ID / username and password.",
+    errEmptyUser: "Please enter your employee ID or name.",
+    errEmptyPass: "Please enter your password.",
+    errInvalidCreds: "Invalid employee credentials. Please check and try again.",
+    errUserNotFound: "Employee account not found. Please verify your employee ID.",
+    errPassWrong: "Incorrect password. Please try again.",
+    errInactive: "Your account is inactive. Please contact the HR department.",
+    errDbConn: "Unable to connect to database. Please try again later.",
+    errMultipleUsers: "Multiple accounts found with this name. Please use your employee ID.",
+    camWarnTitleOutdated: "⚠️ Warning: Your browser is outdated",
+    camWarnTitleUnsupported: "⚠️ Warning: Browser does not support biometric camera",
+    camDiagBtn: "Diagnostics & Resolution"
   }
 };
 
@@ -536,8 +562,9 @@ function setLanguage(lang) {
   const btnTh = document.getElementById("langThBtn");
   const btnLo = document.getElementById("langLoBtn");
   const btnMy = document.getElementById("langMyBtn");
+  const btnEn = document.getElementById("langEnBtn");
 
-  [btnTh, btnLo, btnMy].forEach(b => {
+  [btnTh, btnLo, btnMy, btnEn].forEach(b => {
     if (b) {
       b.style.backgroundColor = "transparent";
       b.style.color = "#64748b";
@@ -547,7 +574,7 @@ function setLanguage(lang) {
     }
   });
 
-  const activeBtn = lang === 'th' ? btnTh : lang === 'lo' ? btnLo : btnMy;
+  const activeBtn = lang === 'th' ? btnTh : lang === 'lo' ? btnLo : lang === 'en' ? btnEn : btnMy;
   if (activeBtn) {
     activeBtn.style.backgroundColor = "#ffffff";
     activeBtn.style.color = "#0d9488";

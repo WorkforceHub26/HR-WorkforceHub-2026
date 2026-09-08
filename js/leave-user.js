@@ -1070,6 +1070,7 @@ function calculateLeaveDays(element) {
 function handleFileChange(input, labelId) {
   const label = document.getElementById(labelId);
   if (!label) return;
+  const boxItem = input.closest('.leave-box-item');
   
   if (input.files && input.files.length > 0) {
     const file = input.files[0];
@@ -1092,6 +1093,91 @@ function handleFileChange(input, labelId) {
     label.innerText = '✅ ' + file.name;
     label.style.borderColor = 'var(--green)';
     label.style.color = 'var(--green-dark)';
+
+    // 🔍 Auto OCR Scanning for Medical Certificates / Attachments
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const base64Data = e.target.result;
+      
+      Swal.fire({
+        title: '🔍 AI กำลังอ่านและวิเคราะห์เอกสาร...',
+        html: 'ระบบกำลังดึงข้อมูล วันที่เริ่มลา, วันที่สิ้นสุด, และเหตุผลการลาจากเอกสารเพื่อบันทึกข้อมูลให้อัตโนมัติ โปรดรอสักครู่...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      try {
+        const response = await fetch('/api/ocr-scan', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            base64Data: base64Data,
+            mimeType: file.type
+          })
+        });
+
+        const ocrResult = await response.json();
+        
+        if (ocrResult.error) {
+          throw new Error(ocrResult.error);
+        }
+
+        if (boxItem) {
+          const startDateInput = boxItem.querySelector('input[name="start_date"]');
+          const endDateInput = boxItem.querySelector('input[name="end_date"]');
+          const reasonInput = boxItem.querySelector('input[name="reason"]');
+
+          let fieldsUpdatedText = [];
+
+          if (ocrResult.startDate && startDateInput) {
+            startDateInput.value = ocrResult.startDate;
+            if (startDateInput._flatpickr) {
+              startDateInput._flatpickr.setDate(ocrResult.startDate, true);
+            }
+            fieldsUpdatedText.push('เริ่มวันที่ลา');
+          }
+          if (ocrResult.endDate && endDateInput) {
+            endDateInput.value = ocrResult.endDate;
+            if (endDateInput._flatpickr) {
+              endDateInput._flatpickr.setDate(ocrResult.endDate, true);
+            }
+            fieldsUpdatedText.push('สิ้นสุดวันที่ลา');
+          }
+          if (ocrResult.reason && reasonInput) {
+            reasonInput.value = ocrResult.reason;
+            fieldsUpdatedText.push('สาเหตุการลา');
+          }
+
+          // Trigger calculations
+          if (typeof calculateLeaveDays === 'function') {
+            const anyInput = startDateInput || endDateInput || reasonInput;
+            if (anyInput) calculateLeaveDays(anyInput);
+          }
+
+          Swal.fire({
+            icon: 'success',
+            title: '✨ สแกนและกรอกข้อมูลสำเร็จ!',
+            html: `ระบบ AI ของเราได้ดึงข้อมูลและระบุค่าให้คุณโดยอัตโนมัติเรียบร้อย:<br><strong>${fieldsUpdatedText.join(', ') || 'ไม่มีข้อมูลเพิ่มเติม'}</strong>`,
+            timer: 2500,
+            showConfirmButton: false
+          });
+        }
+      } catch (err) {
+        console.error("OCR Scan Failure:", err);
+        Swal.fire({
+          icon: 'info',
+          title: 'อัปโหลดหลักฐานเรียบร้อย',
+          text: 'บันทึกไฟล์หลักฐานแล้วเรียบร้อย คุณสามารถกรอกหรือปรับปรุงรายละเอียดใบลาเพิ่มเติมได้เลยครับ',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#0d9488'
+        });
+      }
+    };
+    reader.readAsDataURL(file);
   } else {
     label.innerText = '📁 เลือกรูปภาพหลักฐาน';
     label.style.borderColor = 'var(--border)';

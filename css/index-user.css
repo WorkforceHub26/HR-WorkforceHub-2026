@@ -1270,3 +1270,41 @@ select.year-select option {
     padding: 16px 12px;
   }
 }
+
+/* 🧭 SIDEBAR MENU ITEMS ALIGNMENT & BUTTON RESET */
+.sidebar .menu-item,
+.sidebar button.menu-item,
+.sidebar a.menu-item,
+.sidebar-menu .menu-item,
+.sidebar-footer .menu-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  letter-spacing: normal !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  color: #475569 !important;
+  text-decoration: none !important;
+}
+
+.sidebar .menu-item span,
+.sidebar-footer .menu-item span {
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+
+.sidebar .menu-item:hover,
+.sidebar-footer .menu-item:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  transform: translateX(2px) !important;
+}

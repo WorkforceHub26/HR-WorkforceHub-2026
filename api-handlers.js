@@ -1,4 +1,5 @@
 import { URL } from 'url';
+import { GoogleGenAI } from '@google/genai';
 
 // Shared in-memory token store for LINE linking
 const memoryLineTokens = new Map();
@@ -704,6 +705,194 @@ export async function handlePurgeLoginLogs(req, res) {
   } catch (err) {
     console.error("Error in handlePurgeLoginLogs:", err);
     return sendJson(res, 500, { success: false, error: err.message });
+  }
+}
+
+// 🩺 10. AI OCR Scan for Medical Certificates or Attachments
+export async function handleOcrScan(req, res) {
+  try {
+    let bodyData = {};
+    if (typeof req.body === 'object' && req.body !== null) {
+      bodyData = req.body;
+    } else if (typeof req.body === 'string') {
+      try { bodyData = JSON.parse(req.body); } catch (e) {}
+    } else {
+      bodyData = await parseJsonBody(req);
+    }
+
+    const { base64Data, mimeType } = bodyData;
+    if (!base64Data) {
+      return sendJson(res, 400, { error: 'Missing base64Data' });
+    }
+
+    // Clean up base64 string if it contains the prefix
+    const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const cleanMimeType = mimeType || 'image/jpeg';
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return sendJson(res, 500, { error: 'GEMINI_API_KEY is not configured on the server. Please add it in settings.' });
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+    let response = null;
+    const candidateModels = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    
+    for (const modelName of candidateModels) {
+      try {
+        response = await ai.models.generateContent({
+          model: modelName,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: cleanMimeType,
+                    data: cleanBase64
+                  }
+                },
+                {
+                  text: `คุณคือระบบปัญญาประดิษฐ์สแกนใบรับรองแพทย์ของบริษัทเพื่อกรอกฟอร์มอัตโนมัติ (Medical Certificate Document OCR)
+กรุณาอ่านข้อมูลจากรูปใบรับรองแพทย์/เอกสารนี้ แล้ววิเคราะห์เพื่อส่งข้อมูลผลลัพธ์กลับมาในรูปแบบ JSON เท่านั้น โดยมีโครงสร้างดังนี้:
+{
+  "startDate": "วันที่เริ่มแนะนำให้หยุดงานหรือวันที่ตรวจรักษา (รูปแบบ YYYY-MM-DD)",
+  "endDate": "วันที่สิ้นสุดแนะนำให้หยุดงาน (รูปแบบ YYYY-MM-DD, หากพักฟื้น 1 วัน สามารถใช้ค่าเดียวกันกับ startDate ได้)",
+  "reason": "สรุปอาการเจ็บป่วยหรือคำแนะนำภาษาไทยแบบสั้นๆ กระชับที่สุด (เช่น 'ลาป่วยเป็นไข้หวัดใหญ่' หรือ 'พักฟื้นหลังการตรวจฟัน' หรือระบุคำวิเคราะห์โรคสั้นๆ)"
+}
+
+คำชี้แจงสำคัญ:
+- วันที่ในเอกสารอาจเป็นปี พ.ศ. ของไทย เช่น 2569 ให้แปลงเป็นปี ค.ศ. คริสตศักราช เช่น 2026 เสมอ (ลบด้วย 543)
+- ส่งคืนผลลัพธ์ที่เป็นข้อความ JSON ดิบเท่านั้น ไม่มีโค้ดบล็อกประสาน Markdown (ไม่มี \`\`\`json หรือ \`\`\`) ไม่มีประโยคเกริ่นนำหรือลงท้ายใดๆ ทั้งสิ้น`
+                }
+              ]
+            }
+          ]
+        });
+        if (response && response.text) {
+          console.log(`🤖 [Gemini OCR Success with ${modelName}]`);
+          break;
+        }
+      } catch (genErr) {
+        console.warn(`⚠️ [Gemini OCR Model ${modelName} failed]:`, genErr.message);
+        // Small pause before trying fallback model
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+
+    if (!response || !response.text) {
+      throw new Error("ไม่สามารถประมวลผล OCR จากรูปภาพด้วย AI ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง");
+    }
+
+    const responseText = response.text || '';
+    console.log("🤖 [Gemini OCR Raw Response]:", responseText);
+
+    // Clean up any potential markdown decoration
+    const cleanJsonText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    let resultJson = {};
+    try {
+      resultJson = JSON.parse(cleanJsonText);
+    } catch (parseErr) {
+      console.warn("⚠️ [Gemini OCR JSON Parse Failure]:", parseErr, "Text was:", cleanJsonText);
+      // Fallback regex parsing
+      const startMatch = cleanJsonText.match(/"startDate"\s*:\s*"([^"]+)"/);
+      const endMatch = cleanJsonText.match(/"endDate"\s*:\s*"([^"]+)"/);
+      const reasonMatch = cleanJsonText.match(/"reason"\s*:\s*"([^"]+)"/);
+      resultJson = {
+        startDate: startMatch ? startMatch[1] : null,
+        endDate: endMatch ? endMatch[1] : null,
+        reason: reasonMatch ? reasonMatch[1] : 'เอกสารใบรับรองแพทย์'
+      };
+    }
+
+    return sendJson(res, 200, { success: true, ...resultJson });
+  } catch (err) {
+    console.error("❌ OCR Scan Error:", err);
+    return sendJson(res, 500, { error: err.message });
+  }
+}
+
+/* ==========================================================================
+   🤖 HR POLICY & WELFARE AI CHATBOT HANDLER
+   ========================================================================== */
+export async function handleHrChatbot(req, res) {
+  try {
+    let bodyData = {};
+    if (typeof req.body === 'object' && req.body !== null) {
+      bodyData = req.body;
+    } else if (typeof req.body === 'string') {
+      try { bodyData = JSON.parse(req.body); } catch (e) {}
+    } else {
+      bodyData = await parseJsonBody(req);
+    }
+
+    const { message } = bodyData;
+    if (!message || typeof message !== 'string') {
+      return sendJson(res, 400, { error: 'กรุณาระบุข้อความคำถาม' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return sendJson(res, 500, { error: 'GEMINI_API_KEY is not configured on the server.' });
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+    const systemInstruction = `คุณคือ "HR Smart Assistant" ผู้ช่วยตอบคำถามอัตโนมัติประจำฝ่ายทรัพยากรบุคคลของบริษัท PVT Workforce Hub
+คุณมีหน้าที่ตอบคำถามพนักงานเกี่ยวกับ นโยบายวันลา สิทธิสวัสดิการ กฎระเบียบบริษัท และเงื่อนไขการเบิกเงิน
+
+⚡ กฎสำคัญในการตอบ (Concise & Direct):
+1. ตอบให้ "สั้น กระชับ ตรงประเด็นทันที" ความยาวประมาณ 1-3 บรรทัด (ไม่เกิน 1-2 ประโยคหลัก หรือใช้หัวข้อย่อยสั้นๆ)
+2. ห้ามเกริ่นนำเยิ่นเย้อ ห้ามทวนคำถาม และไม่ต้องใส่คำลงท้ายยาวๆ
+3. เน้นตัวเลข วัน สิทธิ์ และเงื่อนไขสำคัญด้วยตัวหนา เพื่อให้อ่านเข้าใจได้ทันทีใน 3 วินาที
+4. สุภาพ เป็นมิตร และถูกต้องตามกฎระเบียบบริษัท 100%
+
+คู่มือนโยบายและสิทธิประโยชน์สำคัญของบริษัท:
+1. การลาป่วย: ลาได้เท่าที่ป่วยจริง ได้รับค่าจ้างไม่เกิน 30 วันทำงาน/ปี (ลาป่วยตั้งแต่ 1 วันทำงานขึ้นไปต้องแนบใบรับรองแพทย์)
+2. การลาพักร้อน (Annual Leave): อายุงานครบ 1 ปี ได้สิทธิ์ลาพักร้อนไม่น้อยกว่า 6 วันทำงาน/ปี (ต้องส่งล่วงหน้าเพื่อให้หัวหน้างานอนุมัติก่อนเสมอ) **ไม่สามารถสะสมหรือยกยอดไปปีถัดไปได้**
+3. การลากิจธุระจำเป็น: ได้รับอนุมัติสิทธิลากิจโดยได้รับค่าจ้าง ไม่เกิน 3 วันทำงาน/ปี (ยื่นล่วงหน้าอย่างน้อย 1 วันทำการ ยกเว้นฉุกเฉิน)
+4. การลาคลอดบุตร: ลาได้ไม่เกิน 120 วัน (รวมวันหยุดประจำสัปดาห์) โดยบริษัทจ่ายค่าจ้าง 60 วัน และประกันสังคม 60 วัน
+5. การลาทำหมัน: ลาได้ตามใบรับรองแพทย์โดยได้รับค่าจ้าง
+6. การลารับราชการทหาร: ลาได้ไม่เกิน 60 วัน/ปี โดยได้รับค่าจ้าง
+7. การลาฌาปนกิจศพ: บริษัทมอบสิทธิลาพิเศษโดยได้รับค่าจ้าง
+8. การลาอุปสมบท: ได้รับค่าจ้างไม่เกิน 15 วัน (ขออนุมัติล่วงหน้าไม่น้อยกว่า 15 วัน) ใช้สิทธิได้ 1 ครั้งตลอดอายุงาน
+9. ข้อควรระวังและบทลงโทษ: มาสาย 3 ครั้งภายในรอบเดือน จะได้รับหนังสือเตือนเป็นลายลักษณ์อักษร, ขาดงานติดต่อกัน 3 วันทำงาน โดยไม่มีเหตุอันสมควร บริษัทมีสิทธิ์เลิกจ้างทันทีโดยไม่จ่ายค่าชดเชย
+
+หากอยู่นอกเหนือจากระเบียบ ให้ตอบสั้นๆ ว่า "ติดต่อ HR เพิ่มเติมที่ อีเมล hr@pvt-workforce.com หรือโทรภายใน 101-104 ครับ"`;
+
+    const candidateModels = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    let responseText = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: `${systemInstruction}\n\nคำถามจากพนักงาน: ${message}` }]
+            }
+          ]
+        });
+        if (response && response.text) {
+          responseText = response.text;
+          console.log(`🤖 [HR Chatbot Success with ${modelName}]`);
+          break;
+        }
+      } catch (genErr) {
+        console.warn(`⚠️ [HR Chatbot Model ${modelName} failed]:`, genErr.message);
+        // Pause briefly before trying fallback model
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+
+    if (!responseText) {
+      throw new Error("ขออภัยครับ ขณะนี้ระบบ AI มีผู้ใช้งานจำนวนมาก กรุณาลองใหม่อีกครั้ง หรือสอบถามฝ่ายบุคคลโดยตรงครับ");
+    }
+
+    return sendJson(res, 200, { success: true, reply: responseText });
+  } catch (err) {
+    console.error("❌ HR Chatbot Error:", err);
+    return sendJson(res, 500, { error: err.message || 'เกิดข้อผิดพลาดในการประมวลผลคำตอบ' });
   }
 }
 

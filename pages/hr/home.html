@@ -202,6 +202,29 @@
         </div>
       </div>
 
+      <!-- 🎯 ACTION-FIRST: รายการที่ฉันต้องจัดการทันที (Pending Approvals needing immediate action) -->
+      <section class="panel mb-6" id="myActionRequiredPanel" style="display: none; border-left: 4px solid #ef4444; background: #fffdfd;">
+        <div class="panel-header" style="justify-content: space-between; align-items: center; border-bottom: 1px solid #fee2e2; padding-bottom: 12px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined" style="color: #ef4444; font-size: 24px; font-weight: bold;">notification_important</span>
+            <h2 style="color: #991b1b; font-weight: 800; margin: 0; font-size: 16px;">รายการที่คุณต้องจัดการทันที (My Action Items)</h2>
+            <span class="tab-count-badge" id="myActionCountBadge" style="background: #ef4444; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 9999px; font-weight: 700;">0</span>
+          </div>
+          <span style="font-size: 12px; color: #7f1d1d; font-weight: 600; background: #fee2e2; padding: 4px 10px; border-radius: 6px;">อนุมัติ/ปฏิเสธด่วนใน 1 คลิก</span>
+        </div>
+        <div class="my-action-card-body" style="width: 100%; display: block;">
+          <div id="myActionRequiredList">
+            <div style="padding: 20px; text-align: center; color: #94a3b8;">กำลังตรวจสอบรายการที่ต้องจัดการ...</div>
+          </div>
+          <div id="myActionToggleContainer" style="display: none; margin-top: 14px; text-align: center;">
+            <button type="button" id="btnToggleMyActions" onclick="toggleMyActionItemsExpand()" style="background: #ffffff; border: 1.5px solid #fecaca; color: #dc2626; border-radius: 9999px; padding: 6px 18px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(239,68,68,0.08); transition: all 0.2s;">
+              <span class="material-symbols-outlined" id="toggleMyActionsIcon" style="font-size: 18px;">expand_more</span>
+              <span id="toggleMyActionsText">ดูคำขอทั้งหมด</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!--   KPI STATS CARDS -->
       <div class="stats-grid">
         <div class="stat-card border-blue">
@@ -463,6 +486,7 @@
 <script src="/js/auth-guard.js"></script>
 <script src="/js/system-settings.js"></script>
 <script src="/js/company-news.js"></script>
+<script src="/js/delegation-service.js"></script>
 <script src="/js/components/leave-sla-tracker.js"></script>
 <script src="/js/components/login-logs-viewer.js"></script>
 <script src="/js/home.js"></script>

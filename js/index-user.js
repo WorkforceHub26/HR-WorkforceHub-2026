@@ -243,6 +243,7 @@ window.loadRecentLeaves = async function(profile) {
     }
 
     if (recentList) {
+      window.recentLeaveRequestsCache = rows;
       const listHtml = rows.map((item) => {
         const rawName = typeMap[item.leave_type_id] || item.leave_types?.leave_name || "การลา";
         let leaveName = safeEscapeHtml(rawName);
@@ -287,6 +288,12 @@ window.loadRecentLeaves = async function(profile) {
             <div style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #64748b;">
               <div>📅 ${labelDates} <span style="color: #334155; font-weight: 500;">${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span></div>
               <div>⏱️ ${labelDuration} <span style="color: #0fa472; font-weight: 600;">${item.total_days} ${unitDays}</span></div>
+            </div>
+            <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
+              <button type="button" class="btn-timeline-stepper" onclick="openVisualTimelineModal('${item.id}')" style="padding: 5px 12px; background: #f0fdfa; border: 1px solid #99f6e4; color: #0d9488; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">timeline</span>
+                ติดตามขั้นตอน (Stepper)
+              </button>
             </div>
           </article>
         `;
@@ -1435,6 +1442,12 @@ async function loadQuotaData(targetYear) {
     }
 
     renderQuotaCards(deduplicatedQuotas);
+    if (typeof initQuickForm === 'function') {
+      initQuickForm(window.currentProfile, deduplicatedQuotas);
+    }
+    if (typeof checkSmartNudges === 'function') {
+      checkSmartNudges(window.currentProfile, deduplicatedQuotas);
+    }
   } catch (err) {
     console.error('❌ เกิดข้อผิดพลาดใน loadQuotaData:', err);
   }
@@ -1927,3 +1940,909 @@ window.goToProfile = typeof goToProfile !== 'undefined' ? goToProfile : window.g
 window.goToHolidays = typeof goToHolidays !== 'undefined' ? goToHolidays : window.goToHolidays;
 window.logout = typeof logout !== 'undefined' ? logout : window.logout;
 window.resetLeaveQuotaWithDoubleConfirm = typeof resetLeaveQuotaWithDoubleConfirm !== 'undefined' ? resetLeaveQuotaWithDoubleConfirm : window.resetLeaveQuotaWithDoubleConfirm;
+
+/* ==========================================================================
+   ⚡ 15. Quick Form (1-Click Request) Functionality
+   ========================================================================== */
+window.selectedQuickLeaveTypeId = null;
+
+window.toggleQuickForm = function() {
+  const body = document.getElementById('quickFormBody');
+  const arrow = document.getElementById('quickFormArrow');
+  if (!body) return;
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+    
+    // Set default dates to today
+    const today = new Date().toLocaleDateString('en-CA');
+    const startInput = document.getElementById('qStartDate');
+    const endInput = document.getElementById('qEndDate');
+    if (startInput) startInput.value = today;
+    if (endInput) endInput.value = today;
+  } else {
+    body.style.display = 'none';
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+  }
+};
+
+window.selectedQuickFile = null;
+
+// 📎 จัดการการเลือกไฟล์แนบใน Quick Form
+window.handleQuickFileSelect = function(input) {
+  if (!input.files || input.files.length === 0) return;
+  const file = input.files[0];
+  
+  // ตรวจสอบขนาดไฟล์ (สูงสุด 10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'ขนาดไฟล์เกินกำหนด',
+      text: 'กรุณาเลือกไฟล์ขนาดไม่เกิน 10 MB ครับ',
+      confirmButtonColor: '#0d9488'
+    });
+    input.value = '';
+    return;
+  }
+
+  window.selectedQuickFile = file;
+
+  const uploadPrompt = document.getElementById('qUploadPrompt');
+  const filePreview = document.getElementById('qFilePreview');
+  const fileNameEl = document.getElementById('qFileName');
+  const fileSizeEl = document.getElementById('qFileSize');
+  const fileIconEl = document.getElementById('qFileIcon');
+  const fileThumbEl = document.getElementById('qFileThumb');
+
+  if (uploadPrompt) uploadPrompt.style.display = 'none';
+  if (filePreview) filePreview.style.display = 'flex';
+
+  if (fileNameEl) fileNameEl.textContent = file.name;
+  if (fileSizeEl) {
+    const sizeKB = (file.size / 1024).toFixed(1);
+    const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(2)} MB` : `${sizeKB} KB`;
+    fileSizeEl.textContent = `${sizeStr} • พร้อมแนบส่ง`;
+  }
+
+  const isImage = file.type.startsWith('image/');
+  if (isImage && fileThumbEl) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      fileThumbEl.src = e.target.result;
+      fileThumbEl.style.display = 'block';
+      if (fileIconEl) fileIconEl.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  } else {
+    if (fileThumbEl) fileThumbEl.style.display = 'none';
+    if (fileIconEl) {
+      fileIconEl.style.display = 'block';
+      fileIconEl.textContent = file.type.includes('pdf') ? 'picture_as_pdf' : 'description';
+    }
+  }
+};
+
+window.clearQuickFile = function() {
+  window.selectedQuickFile = null;
+  const input = document.getElementById('qAttachmentInput');
+  if (input) input.value = '';
+
+  const uploadPrompt = document.getElementById('qUploadPrompt');
+  const filePreview = document.getElementById('qFilePreview');
+  const fileThumbEl = document.getElementById('qFileThumb');
+  const fileIconEl = document.getElementById('qFileIcon');
+
+  if (uploadPrompt) uploadPrompt.style.display = 'block';
+  if (filePreview) filePreview.style.display = 'none';
+  if (fileThumbEl) {
+    fileThumbEl.src = '';
+    fileThumbEl.style.display = 'none';
+  }
+  if (fileIconEl) {
+    fileIconEl.style.display = 'block';
+    fileIconEl.textContent = 'description';
+  }
+};
+
+// ⚡ ฟังก์ชันอัปโหลดเอกสารแนบขึ้น Supabase Storage (leave-attachments)
+async function uploadQuickAttachment(file, employeeId, sb) {
+  if (!file || !sb) return null;
+  try {
+    let fileToUpload = file;
+    // บีบอัดภาพหากขนาดเกิน 500KB เพื่อประหยัดพื้นที่และส่งเร็ว
+    if (file.type.startsWith('image/') && file.size > 500 * 1024) {
+      try {
+        fileToUpload = await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 1600;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+              } else {
+                resolve(file);
+              }
+            }, 'image/jpeg', 0.82);
+          };
+          img.onerror = () => resolve(file);
+          img.src = URL.createObjectURL(file);
+        });
+      } catch (cErr) {
+        console.warn("Could not compress image:", cErr);
+        fileToUpload = file;
+      }
+    }
+
+    const fileExt = fileToUpload.name.split('.').pop() || 'jpg';
+    const fileName = `${employeeId}/quick_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+    const { error } = await sb.storage
+      .from('leave-attachments')
+      .upload(fileName, fileToUpload, { cacheControl: '3600', upsert: false });
+
+    if (error) throw error;
+
+    const { data: pubData } = sb.storage
+      .from('leave-attachments')
+      .getPublicUrl(fileName);
+
+    return pubData?.publicUrl || null;
+  } catch (err) {
+    console.error("Upload quick attachment error:", err);
+    throw err;
+  }
+}
+
+window.initQuickForm = async function(profile, quotas) {
+  if (!profile) return;
+  
+  // Populate Position and department
+  const employee = profile.employees || profile;
+  const deptName = employee?.departments?.department_name || employee?.department_name || "ทั่วไป";
+  const posName = employee?.positions?.position_name || employee?.position_name || "พนักงาน";
+  const posInput = document.getElementById('qPosition');
+  if (posInput) {
+    posInput.value = `${posName} / ฝ่าย ${deptName}`;
+  }
+  
+  // ⚡ ตรวจสอบหาหัวหน้างาน (L1) หากไม่มีหัวหน้ากะ/หัวหน้าธรรมดา ให้ค้นหาผู้จัดการ (Manager) เลยทันที
+  let approverText = "กำลังค้นหาผู้อนุมัติ...";
+  let approverNote = "";
+  let resolvedApprover = {
+    id: null,
+    name: "",
+    role: "leader",
+    hasLeader: false,
+    hasManager: false
+  };
+
+  const sb = getSafeSupabaseClient();
+  if (sb) {
+    try {
+      const deptId = employee?.department_id || null;
+      let approverEmpId = employee?.l1_approver_id || null;
+      let isLeaderFound = false;
+
+      // 1. ตรวจสอบหัวหน้างาน / หัวหน้ากะ (L1) ประจำตัวหรือของแผนก
+      if (!approverEmpId && deptId) {
+        const { data: deptApprover } = await sb
+          .from('department_approvers')
+          .select('supervisor_id, manager_id')
+          .eq('department_id', deptId)
+          .maybeSingle();
+        approverEmpId = deptApprover?.supervisor_id || null;
+      }
+
+      // ถ้ายังไม่พบ ตรวจสอบพนักงานในแผนกที่มี role leader/supervisor หรือตำแหน่งหัวหน้า/กะ
+      if (!approverEmpId && deptId) {
+        const { data: deptEmps } = await sb
+          .from('employees')
+          .select('id, full_name, role, positions!position_id(position_name), status')
+          .eq('department_id', deptId)
+          .neq('id', employee.id);
+
+        const leader = (deptEmps || []).find(e => {
+          if (e.status && e.status !== 'active') return false;
+          const r = String(e.role || '').toLowerCase();
+          const p = String(e.positions?.position_name || '').toLowerCase();
+          return r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า') || p.includes('กะ');
+        });
+        if (leader) approverEmpId = leader.id;
+      }
+
+      if (approverEmpId) {
+        const { data: appEmp } = await sb
+          .from('employees')
+          .select('id, full_name, role, positions!position_id(position_name)')
+          .eq('id', approverEmpId)
+          .maybeSingle();
+        if (appEmp) {
+          const pName = appEmp.positions?.position_name || 'หัวหน้างาน/หัวหน้ากะ';
+          approverText = `${appEmp.full_name} (${pName})`;
+          approverNote = '✓ สายอนุมัติ: ส่งคำขอให้หัวหน้างาน/หัวหน้ากะพิจารณา (L1)';
+          resolvedApprover = {
+            id: appEmp.id,
+            name: appEmp.full_name,
+            role: 'leader',
+            hasLeader: true,
+            hasManager: false
+          };
+          isLeaderFound = true;
+        }
+      }
+
+      // 2. ⚡ เงื่อนไขเพิ่ม: ถ้าไม่มีหัวหน้ากะ หรือหัวหน้าธรรมดา -> ให้หาผู้จัดการ (Manager) เลย!
+      if (!isLeaderFound) {
+        let managerEmpId = employee?.l2_approver_id || null;
+
+        if (!managerEmpId && deptId) {
+          const { data: deptApprover } = await sb
+            .from('department_approvers')
+            .select('manager_id')
+            .eq('department_id', deptId)
+            .maybeSingle();
+          managerEmpId = deptApprover?.manager_id || null;
+        }
+
+        if (!managerEmpId && deptId) {
+          const { data: deptData } = await sb
+            .from('departments')
+            .select('approver_id')
+            .eq('id', deptId)
+            .maybeSingle();
+          managerEmpId = deptData?.approver_id || null;
+        }
+
+        if (!managerEmpId && deptId) {
+          const { data: deptEmps } = await sb
+            .from('employees')
+            .select('id, full_name, role, positions!position_id(position_name), status')
+            .eq('department_id', deptId)
+            .neq('id', employee.id);
+
+          const mgr = (deptEmps || []).find(e => {
+            if (e.status && e.status !== 'active') return false;
+            const r = String(e.role || '').toLowerCase();
+            const p = String(e.positions?.position_name || '').toLowerCase();
+            return r.includes('manager') || p.includes('ผู้จัดการ');
+          });
+          if (mgr) managerEmpId = mgr.id;
+        }
+
+        // ค้นหาผู้จัดการระดับองค์กร/ผู้บริหารส่วนกลาง
+        if (!managerEmpId) {
+          const { data: anyMgr } = await sb
+            .from('employees')
+            .select('id, full_name, role, positions!position_id(position_name)')
+            .in('role', ['manager', 'director', 'executive', 'owner'])
+            .limit(1)
+            .maybeSingle();
+          if (anyMgr) managerEmpId = anyMgr.id;
+        }
+
+        if (managerEmpId) {
+          const { data: mgrEmp } = await sb
+            .from('employees')
+            .select('id, full_name, role, positions!position_id(position_name)')
+            .eq('id', managerEmpId)
+            .maybeSingle();
+          if (mgrEmp) {
+            const mPos = mgrEmp.positions?.position_name || 'ผู้จัดการฝ่าย';
+            approverText = `${mgrEmp.full_name} (${mPos})`;
+            approverNote = '⚡ ไม่มีหัวหน้ากะ/หัวหน้างานประจำแผนก: ระบบส่งต่อให้ผู้จัดการฝ่ายพิจารณาอนุมัติโดยตรง';
+            resolvedApprover = {
+              id: mgrEmp.id,
+              name: mgrEmp.full_name,
+              role: 'manager',
+              hasLeader: false,
+              hasManager: true
+            };
+          }
+        } else {
+          // หากไม่มีทั้งหัวหน้าและผู้จัดการ ส่งต่อ HR
+          const { data: hrEmp } = await sb
+            .from('employees')
+            .select('id, full_name, role')
+            .in('role', ['hr', 'admin'])
+            .limit(1)
+            .maybeSingle();
+          approverText = hrEmp ? `${hrEmp.full_name} (ฝ่ายบุคคล HR)` : 'ฝ่ายบุคคล (HR)';
+          approverNote = '⚡ ส่งต่อฝ่ายบุคคล (HR) พิจารณาอนุมัติโดยตรง';
+          resolvedApprover = {
+            id: hrEmp?.id || null,
+            name: hrEmp?.full_name || 'HR',
+            role: 'hr',
+            hasLeader: false,
+            hasManager: false
+          };
+        }
+      }
+    } catch (e) {
+      console.error("Error loading quick form approver:", e);
+      approverText = "ส่งต่อฝ่ายบุคคล (HR)";
+      approverNote = "ส่งคำขอไปยังฝ่ายทรัพยากรบุคคล";
+    }
+  }
+
+  window.quickFormApproverInfo = resolvedApprover;
+
+  const approverInput = document.getElementById('qApprover');
+  if (approverInput) {
+    approverInput.value = approverText;
+  }
+  const noteEl = document.getElementById('qApproverNote');
+  if (noteEl) {
+    noteEl.textContent = approverNote;
+    noteEl.style.display = 'block';
+    if (!resolvedApprover.hasLeader && resolvedApprover.hasManager) {
+      noteEl.style.color = '#d97706';
+      noteEl.style.fontWeight = '600';
+    } else {
+      noteEl.style.color = '#0d9488';
+      noteEl.style.fontWeight = '500';
+    }
+  }
+
+  // Generate Leave type buttons from quotas
+  const grid = document.getElementById('qLeaveTypesGrid');
+  if (grid) {
+    if (quotas && quotas.length > 0) {
+      grid.innerHTML = quotas.map((item, idx) => {
+        const name = item.leave_type_name || "วันลา";
+        const remaining = item.remaining_days ?? 0;
+        const cardColor = item.card_color || "#0d9488";
+        
+        return `
+          <button type="button" 
+                  class="q-leave-btn" 
+                  data-id="${item.leave_type_id}"
+                  onclick="selectQuickLeaveType('${item.leave_type_id}', this)"
+                  style="border: 1.5px solid ${cardColor}40; background: #ffffff; border-radius: 8px; padding: 10px; text-align: left; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 4px; outline: none;">
+            <span style="font-size: 13px; font-weight: 600; color: #1e293b;">${name}</span>
+            <span style="font-size: 11px; color: ${cardColor}; font-weight: 700;">เหลือ ${remaining} วัน</span>
+          </button>
+        `;
+      }).join('');
+    } else {
+      grid.innerHTML = `<span style="font-size: 12px; color: #64748b; font-style: italic;">ไม่พบประเภทการลาของคุณ</span>`;
+    }
+  }
+};
+
+window.selectQuickLeaveType = function(leaveTypeId, element) {
+  window.selectedQuickLeaveTypeId = leaveTypeId;
+  
+  // Clear other active buttons
+  const btns = document.querySelectorAll('.q-leave-btn');
+  btns.forEach(btn => {
+    btn.style.background = '#ffffff';
+    btn.style.borderColor = '#cbd5e1';
+    btn.style.boxShadow = 'none';
+  });
+  
+  // Highlight selected button
+  element.style.background = '#f0fdfa';
+  element.style.borderColor = '#0d9488';
+  element.style.boxShadow = '0 0 0 2px rgba(13, 148, 136, 0.15)';
+};
+
+window.submitQuickLeave = async function() {
+  const sb = getSafeSupabaseClient();
+  if (!sb) return;
+  
+  const leaveTypeId = window.selectedQuickLeaveTypeId;
+  const startDate = document.getElementById('qStartDate')?.value;
+  const endDate = document.getElementById('qEndDate')?.value;
+  const reason = document.getElementById('qReason')?.value?.trim();
+  const file = window.selectedQuickFile;
+  
+  if (!leaveTypeId) {
+    return Swal.fire({ icon: 'warning', title: 'กรุณาเลือกประเภทการลา', text: 'เลือกประเภทการลาโดยคลิกที่ปุ่มตัวเลือกสิทธิ์วันลาคงเหลือด้านบนครับ', confirmButtonColor: '#0d9488' });
+  }
+  if (!startDate || !endDate) {
+    return Swal.fire({ icon: 'warning', title: 'ระบุวันที่ลาให้ครบถ้วน', text: 'กรุณากรอกวันที่เริ่มและสิ้นสุดการลาด้วยครับ', confirmButtonColor: '#0d9488' });
+  }
+  if (!reason) {
+    return Swal.fire({ icon: 'warning', title: 'ระบุเหตุผลการลา', text: 'กรุณาระบุเหตุผลในการลาพักในช่องข้อความด้วยครับ', confirmButtonColor: '#0d9488' });
+  }
+  
+  // Check date order
+  const startD = new Date(startDate);
+  const endD = new Date(endDate);
+  if (startD > endD) {
+    return Swal.fire({ icon: 'warning', title: 'วันที่เริ่มต้นผิดพลาด', text: 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุดการลาครับ', confirmButtonColor: '#0d9488' });
+  }
+
+  // Calculate total days
+  const diffTime = Math.abs(endD - startD);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  Swal.fire({
+    title: 'กำลังส่งคำขอลาของคุณ...',
+    text: file ? 'กำลังอัปโหลดเอกสารแนบและบันทึกข้อมูลเข้าระบบ...' : 'ระบบกำลังดึงสิทธิ์ คงเหลือ และตรวจสอบลำดับการอนุมัติโปรดรอสักครู่...',
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    const employeeId = window.currentProfile?.id || window.currentProfile?.employee_id;
+    const todayStr = new Date().toLocaleDateString('en-CA');
+
+    // 📎 อัปโหลดไฟล์เอกสารแนบ (ถ้ามี)
+    let attachmentUrl = null;
+    if (file) {
+      attachmentUrl = await uploadQuickAttachment(file, employeeId, sb);
+    }
+
+    const hasLeader = window.quickFormApproverInfo?.hasLeader ?? true;
+    const hasManager = window.quickFormApproverInfo?.hasManager ?? false;
+
+    // Create the leave request object
+    // ถ้าไม่มีหัวหน้ากะ/หัวหน้างาน ให้ข้าม L1 (manager_status = 'approved') และส่งให้ผู้จัดการฝ่าย (director_status = 'pending') พิจารณา
+    const leaveRequest = {
+      employee_id: employeeId,
+      leave_type_id: leaveTypeId,
+      start_date: startDate,
+      end_date: endDate,
+      total_days: diffDays,
+      reason: reason,
+      attachment_url: attachmentUrl,
+      status: 'pending',
+      manager_status: hasLeader ? 'pending' : 'approved',
+      director_status: 'pending',
+      write_date: todayStr
+    };
+
+    const { data: insertedData, error } = await sb
+      .from('leave_requests')
+      .insert([leaveRequest])
+      .select();
+
+    if (error) throw error;
+
+    // 🔔 บันทึกการแจ้งเตือนลงตาราง notifications ให้ผู้อนุมัติ
+    try {
+      const approverId = window.quickFormApproverInfo?.id;
+      const approverRole = window.quickFormApproverInfo?.role || 'leader';
+      const applicantName = window.currentProfile?.full_name || 'พนักงาน';
+
+      if (approverId) {
+        const notifTitle = hasLeader 
+          ? '📌 มีคำขอลาใหม่แบบเร่งด่วน (รอหัวหน้างานอนุมัติ)'
+          : '⚡ มีคำขอลาใหม่แบบเร่งด่วน (ส่งถึงผู้จัดการโดยตรง)';
+        const notifMsg = hasLeader
+          ? `${applicantName} ได้ยื่นคำขอลาแบบด่วน วันที่ ${startDate} ถึง ${endDate} กรุณาตรวจสอบ`
+          : `${applicantName} ได้ยื่นคำขอลาแบบด่วน (ไม่มีหัวหน้างานประจำแผนก) ส่งตรงให้ผู้จัดการพิจารณา วันที่ ${startDate} ถึง ${endDate}`;
+        
+        await sb.from('notifications').insert([{
+          employee_id: approverId,
+          title: notifTitle,
+          message: notifMsg,
+          type: 'leave',
+          link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
+          is_read: false
+        }]);
+      }
+    } catch (notifErr) {
+      console.warn("Could not insert notification:", notifErr);
+    }
+
+    // Trigger Line notification if PVTSDK is configured
+    try {
+      if (window.PVTSDK?.line?.notifyLeaveRequest) {
+        await window.PVTSDK.line.notifyLeaveRequest({
+          ...leaveRequest,
+          approver_name: window.quickFormApproverInfo?.name,
+          approver_role: window.quickFormApproverInfo?.role
+        });
+      }
+    } catch (lineErr) {
+      console.warn("Line notify warning:", lineErr);
+    }
+
+    let successHtml = 'คำขอลาแบบด่วน (1-Click) ถูกส่งไปยังหัวหน้างานและฝ่าย HR เพื่อตรวจสอบเรียบร้อยแล้ว';
+    if (!hasLeader && hasManager) {
+      successHtml = `แผนกของคุณไม่มีหัวหน้างาน/หัวหน้ากะ ระบบจึงได้ส่งคำขอตรงถึง <b>คุณ${window.quickFormApproverInfo?.name} (ผู้จัดการฝ่าย)</b> เพื่อพิจารณาอนุมัติเรียบร้อยแล้ว${attachmentUrl ? '<br><span style="color:#0d9488; font-size:13px; font-weight:600; display:inline-block; margin-top:6px;">✓ แนบไฟล์เอกสารเรียบร้อย</span>' : ''}`;
+    } else if (attachmentUrl) {
+      successHtml += '<br><span style="color:#0d9488; font-size:13px; font-weight:600; display:inline-block; margin-top:6px;">✓ แนบไฟล์เอกสารเรียบร้อย</span>';
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: '⚡ ยื่นคำขอลาสำเร็จ!',
+      html: successHtml,
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#0d9488'
+    }).then(() => {
+      // Refresh page data
+      location.reload();
+    });
+
+  } catch (err) {
+    console.error("Quick Leave submission failed:", err);
+    Swal.fire({
+      icon: 'error',
+      title: 'เกิดข้อผิดพลาด',
+      text: err.message || 'ไม่สามารถบันทึกข้อมูลได้',
+      confirmButtonColor: '#ef4444'
+    });
+  }
+};
+
+/* ==========================================================================
+   🔔 16. Smart Proactive Nudges (การเตือนเชิงรุก)
+   ========================================================================== */
+window.checkSmartNudges = async function(profile, quotas) {
+  const container = document.getElementById('smartNudgeContainer');
+  if (!container) return;
+
+  let nudges = [];
+
+  // 1. Nudge for Annual Leave Planning (เตือนใช้วันลาพักร้อนก่อนหมดปีงบประมาณ)
+  if (quotas && quotas.length > 0) {
+    const annualLeave = quotas.find(q => {
+      const name = (q.leave_type_name || '').toLowerCase();
+      return name.includes('พักร้อน') || name.includes('พักผ่อน') || name.includes('annual');
+    });
+
+    if (annualLeave && annualLeave.remaining_days > 0) {
+      nudges.push(`
+        <div class="smart-nudge-card" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1.5px solid #fde68a; border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.08); margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: #fbbf24; color: #78350f; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <span class="material-symbols-outlined" style="font-size: 24px;">beach_access</span>
+            </div>
+            <div>
+              <strong style="color: #92400e; font-size: 14px; display: block;">🏖️ วางแผนใช้วันหยุดพักร้อนประจำปี</strong>
+              <span style="font-size: 12px; color: #b45309;">
+                คุณมีสิทธิ์ลาพักร้อนคงเหลือ <strong>${annualLeave.remaining_days} วัน</strong> อย่าลืมวางแผนใช้วันหยุดก่อนสิ้นรอบปีงบประมาณ (30 พ.ย.) เพื่อรักษาสิทธิ์ของท่าน
+              </span>
+            </div>
+          </div>
+          <button type="button" onclick="toggleQuickForm()" style="background: #d97706; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">bolt</span> ยื่นคำขอด่วน
+          </button>
+        </div>
+      `);
+    }
+  }
+
+  // 2. Nudge for Approvers (เตือนหัวหน้างานเรื่อง SLA 48 ชั่วโมง)
+  const role = (profile?.role || profile?.employees?.role || '').toLowerCase();
+  const isApproverRole = ['leader', 'manager', 'director', 'executive', 'hr', 'admin'].includes(role);
+
+  if (isApproverRole) {
+    const sb = getSafeSupabaseClient();
+    if (sb) {
+      try {
+        const { count } = await sb
+          .from('leave_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending');
+
+        if (count && count > 0) {
+          nudges.push(`
+            <div class="smart-nudge-card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08); margin-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 42px; height: 42px; border-radius: 12px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <span class="material-symbols-outlined" style="font-size: 24px;">alarm_on</span>
+                </div>
+                <div>
+                  <strong style="color: #1e40af; font-size: 14px; display: block;">⚡ การเตือนความเร็ว SLA (48 ชม.)</strong>
+                  <span style="font-size: 12px; color: #1d4ed8;">
+                    มีคำขอลาที่รอการพิจารณาในระบบ <strong>${count} รายการ</strong> โปรดพิจารณาอนุมัติให้เสร็จสิ้นภายใน 48 ชม. เพื่อไม่ให้หลุดกรอบเวลา
+                  </span>
+                </div>
+              </div>
+              <a href="/pages/hr/home.html" style="text-decoration: none; background: #2563eb; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">checklist</span> ตรวจสอบทันที
+              </a>
+            </div>
+          `);
+        }
+      } catch (err) {
+        console.warn("Approver nudge check err:", err);
+      }
+    }
+  }
+
+  if (nudges.length > 0) {
+    container.innerHTML = nudges.join('');
+    container.style.display = 'block';
+  } else {
+    container.style.display = 'none';
+  }
+};
+
+/* ==========================================================================
+   📍 17. Visual Progress Tracker Modal (Timeline Stepper)
+   ========================================================================== */
+window.openVisualTimelineModal = async function(leaveId) {
+  const modal = document.getElementById('visualTimelineModal');
+  const body = document.getElementById('visualTimelineBody');
+  if (!modal || !body) return;
+
+  modal.style.display = 'flex';
+  body.innerHTML = `
+    <div style="text-align: center; padding: 40px; color: #64748b;">
+      <span class="material-symbols-outlined" style="font-size: 36px; animation: spin 1s linear infinite;">sync</span>
+      <p style="margin-top: 8px;">กำลังโหลดข้อมูลขั้นตอนการอนุมัติ...</p>
+    </div>
+  `;
+
+  let req = (window.recentLeaveRequestsCache || []).find(r => String(r.id) === String(leaveId));
+
+  if (!req) {
+    const sb = getSafeSupabaseClient();
+    if (sb) {
+      try {
+        const { data } = await sb
+          .from('leave_requests')
+          .select('*, leave_types(leave_name), employees(full_name, employee_code, role, department_id, departments(department_name), positions(position_name))')
+          .eq('id', leaveId)
+          .single();
+        req = data;
+      } catch (e) {
+        console.error("Fetch leave detail failed:", e);
+      }
+    }
+  }
+
+  if (!req) {
+    body.innerHTML = `<div style="padding: 30px; text-align: center; color: #ef4444;">ไม่พบข้อมูลใบลาที่ต้องการตรวจสอบ</div>`;
+    return;
+  }
+
+  const leaveName = req.leave_types?.leave_name || "วันลา";
+  const startDate = formatThaiDate(req.start_date);
+  const endDate = formatThaiDate(req.end_date);
+  const days = req.total_days || 0;
+  const reason = req.reason || "-";
+
+  // Step calculations
+  // Step 1: Submission (Always complete)
+  // Step 2: L1 (Manager/Leader)
+  const l1Status = req.manager_status || 'pending';
+  // Step 3: L2 (Director)
+  const l2Status = req.director_status || 'pending';
+  // Step 4: Final HR
+  const finalStatus = req.status || 'pending';
+
+  const getStepBadge = (status) => {
+    if (status === 'approved') return `<span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 2px;"><span class="material-symbols-outlined" style="font-size: 13px;">check_circle</span> อนุมัติแล้ว</span>`;
+    if (status === 'rejected') return `<span style="background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 2px;"><span class="material-symbols-outlined" style="font-size: 13px;">cancel</span> ไม่อนุมัติ</span>`;
+    return `<span style="background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 2px;"><span class="material-symbols-outlined" style="font-size: 13px;">hourglass_top</span> กำลังรอพิจารณา</span>`;
+  };
+
+  const getCircleIcon = (status) => {
+    if (status === 'approved') return { bg: '#10b981', color: '#fff', icon: 'check' };
+    if (status === 'rejected') return { bg: '#ef4444', color: '#fff', icon: 'close' };
+    return { bg: '#f59e0b', color: '#fff', icon: 'hourglass_empty' };
+  };
+
+  const c1 = { bg: '#10b981', color: '#fff', icon: 'check' };
+  const c2 = getCircleIcon(l1Status);
+  const c3 = (l1Status === 'approved') ? getCircleIcon(l2Status) : { bg: '#e2e8f0', color: '#94a3b8', icon: 'schedule' };
+  const c4 = (finalStatus === 'approved') ? { bg: '#10b981', color: '#fff', icon: 'check_circle' } : (finalStatus === 'rejected') ? { bg: '#ef4444', color: '#fff', icon: 'cancel' } : { bg: '#e2e8f0', color: '#94a3b8', icon: 'verified' };
+
+  body.innerHTML = `
+    <!-- Card Summary Header -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <strong style="font-size: 16px; color: #0f172a;">${leaveName} (${days} วัน)</strong>
+        <span style="font-size: 12px; color: #0d9488; font-weight: 600; background: #f0fdfa; padding: 3px 10px; border-radius: 12px; border: 1px solid #99f6e4;">
+          ${startDate} ถึง ${endDate}
+        </span>
+      </div>
+      <div style="font-size: 13px; color: #475569; display: flex; gap: 6px;">
+        <span style="color: #64748b;">เหตุผล:</span>
+        <span style="color: #1e293b; font-weight: 500;">${reason}</span>
+      </div>
+    </div>
+
+    <!-- Stepper Vertical Timeline -->
+    <div style="position: relative; padding-left: 36px; display: flex; flex-direction: column; gap: 24px;">
+      <!-- Vertical connecting line -->
+      <div style="position: absolute; left: 15px; top: 12px; bottom: 20px; width: 2px; background: #e2e8f0; z-index: 1;"></div>
+
+      <!-- Step 1: Submit -->
+      <div style="position: relative; z-index: 2;">
+        <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${c1.bg}; color: ${c1.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">${c1.icon}</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <strong style="font-size: 14px; color: #0f172a;">1. ยื่นคำขอลาสำเร็จ</strong>
+          <span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">สำเร็จแล้ว</span>
+        </div>
+        <div style="font-size: 12px; color: #64748b;">คำขอลาถูกส่งเข้าระบบ PVT Workforce Hub เรียบร้อยแล้ว</div>
+      </div>
+
+      <!-- Step 2: L1 Leader -->
+      <div style="position: relative; z-index: 2;">
+        <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${c2.bg}; color: ${c2.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">${c2.icon}</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <strong style="font-size: 14px; color: #0f172a;">2. หัวหน้างานชั้นต้น (L1: Leader / Supervisor)</strong>
+          ${getStepBadge(l1Status)}
+        </div>
+        <div style="font-size: 12px; color: #64748b;">
+          ${l1Status === 'approved' ? 'หัวหน้างานอนุมัติแล้ว และส่งต่อไปยังลำดับถัดไป' : l1Status === 'rejected' ? 'หัวหน้างานไม่อนุมัติคำขอนี้' : 'กำลังรอหัวหน้างานตรวจสอบและอนุมัติ (กรอบเวลา 48 ชม.)'}
+        </div>
+      </div>
+
+      <!-- Step 3: L2 Director -->
+      <div style="position: relative; z-index: 2;">
+        <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${c3.bg}; color: ${c3.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">${c3.icon}</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <strong style="font-size: 14px; color: #0f172a;">3. ผู้จัดการฝ่าย (L2: Director / Manager)</strong>
+          ${(l1Status === 'approved') ? getStepBadge(l2Status) : '<span style="color: #94a3b8; font-size: 11px;">รอดำเนินการ</span>'}
+        </div>
+        <div style="font-size: 12px; color: #64748b;">
+          ${l2Status === 'approved' ? 'ผู้จัดการฝ่ายลงนามอนุมัติเรียบร้อยแล้ว' : l2Status === 'rejected' ? 'ผู้จัดการฝ่ายไม่อนุมัติ' : 'รอการพิจารณาจากผู้จัดการฝ่าย'}
+        </div>
+      </div>
+
+      <!-- Step 4: HR Final -->
+      <div style="position: relative; z-index: 2;">
+        <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${c4.bg}; color: ${c4.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">${c4.icon}</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <strong style="font-size: 14px; color: #0f172a;">4. ฝ่ายทรัพยากรบุคคล (HR Final & ตัดยอดสิทธิ์)</strong>
+          ${finalStatus === 'approved' ? getStepBadge('approved') : finalStatus === 'rejected' ? getStepBadge('rejected') : '<span style="color: #94a3b8; font-size: 11px;">รอดำเนินการ</span>'}
+        </div>
+        <div style="font-size: 12px; color: #64748b;">
+          ${finalStatus === 'approved' ? 'อนุมัติสมบูรณ์ ตัดยอดวันลาในระบบ และบันทึกประวัติเรียบร้อย' : 'ตรวจสอบสิทธิ์คงเหลือและความถูกต้องขั้นสุดท้าย'}
+        </div>
+      </div>
+    </div>
+
+    <!-- Helpful reassurance note -->
+    <div style="margin-top: 24px; padding: 12px 16px; background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 12px; font-size: 12px; color: #0f766e; display: flex; gap: 8px; align-items: flex-start;">
+      <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488; flex-shrink: 0; margin-top: 1px;">info</span>
+      <span>
+        <strong>คำแนะนำ:</strong> พนักงานสามารถเปิดดูสถานะและขั้นตอนแบบ Stepper จากหน้านี้ได้ตลอดเวลา โดยระบบจะอัปเดตแบบเรียลไทม์ทันทีที่ผู้มีอำนาจกดอนุมัติ จึงไม่ต้องทักข้อความติดตามเป็นการส่วนตัวครับ
+      </span>
+    </div>
+  `;
+};
+
+window.closeVisualTimelineModal = function() {
+  const modal = document.getElementById('visualTimelineModal');
+  if (modal) modal.style.display = 'none';
+};
+
+/* ==========================================================================
+   🤖 18. HR AI Chatbot (Policy Q&A 24 Hours)
+   ========================================================================== */
+window.toggleHrChatbot = function() {
+  const modal = document.getElementById('hrChatbotModal');
+  if (!modal) return;
+  const isHidden = modal.style.display === 'none' || modal.style.display === '';
+  modal.style.display = isHidden ? 'flex' : 'none';
+  if (isHidden) {
+    const input = document.getElementById('hrChatInput');
+    if (input) input.focus();
+  }
+};
+
+window.askHrQuestion = function(questionText) {
+  const input = document.getElementById('hrChatInput');
+  if (input) {
+    input.value = questionText;
+    sendHrChatMessage();
+  }
+};
+
+window.sendHrChatMessage = async function() {
+  const input = document.getElementById('hrChatInput');
+  const chatContainer = document.getElementById('hrChatMessages');
+  if (!input || !chatContainer) return;
+
+  const text = input.value.trim();
+  if (!text) return;
+
+  // Append user bubble
+  chatContainer.innerHTML += `
+    <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+      <div style="background: #0d9488; color: #ffffff; border-radius: 14px 14px 0 14px; padding: 10px 14px; font-size: 13px; max-width: 85%; line-height: 1.4; box-shadow: 0 1px 3px rgba(13,148,136,0.2);">
+        ${safeEscapeHtml(text)}
+      </div>
+    </div>
+  `;
+  input.value = '';
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+
+  // Append loading bubble
+  const loadingId = `bot-loading-${Date.now()}`;
+  chatContainer.innerHTML += `
+    <div id="${loadingId}" style="display: flex; gap: 10px; align-items: flex-start;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0f2fe; color: #0369a1; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <span class="material-symbols-outlined" style="font-size: 18px;">smart_toy</span>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0 14px 14px 14px; padding: 12px 14px; font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 6px;">
+        <span class="material-symbols-outlined" style="font-size: 16px; animation: spin 1s linear infinite;">sync</span>
+        กำลังค้นหานโยบายและประมวลผลคำตอบ...
+      </div>
+    </div>
+  `;
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+
+  try {
+    const res = await fetch('/api/hr-chatbot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+
+    const data = await res.json();
+    const loadingElem = document.getElementById(loadingId);
+    if (loadingElem) loadingElem.remove();
+
+    if (data.success && data.reply) {
+      // Format reply with line breaks and markdown boldness
+      const formattedReply = data.reply
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+
+      chatContainer.innerHTML += `
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0f2fe; color: #0369a1; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">smart_toy</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0 14px 14px 14px; padding: 12px 14px; font-size: 13px; color: #1e293b; line-height: 1.5; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            ${formattedReply}
+          </div>
+        </div>
+      `;
+    } else {
+      chatContainer.innerHTML += `
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">error</span>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #fee2e2; border-radius: 0 14px 14px 14px; padding: 12px 14px; font-size: 13px; color: #b91c1c; line-height: 1.5; max-width: 85%;">
+            ${data.error || 'ขออภัยครับ ไม่สามารถค้นหาข้อมูลได้ในขณะนี้ กรุณาลองใหม่อีกครั้งครับ'}
+          </div>
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error("Chatbot request failed:", err);
+    const loadingElem = document.getElementById(loadingId);
+    if (loadingElem) loadingElem.remove();
+    chatContainer.innerHTML += `
+      <div style="display: flex; gap: 10px; align-items: flex-start;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">wifi_off</span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #fee2e2; border-radius: 0 14px 14px 14px; padding: 12px 14px; font-size: 13px; color: #b91c1c; line-height: 1.5; max-width: 85%;">
+          เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง หรือสอบถามฝ่าย HR โดยตรงครับ
+        </div>
+      </div>
+    `;
+  }
+
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+};

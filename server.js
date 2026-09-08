@@ -2,7 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs } from './api-handlers.js';
+import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot } from './api-handlers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,6 +20,8 @@ app.post('/api/send-notification', handleSendNotification);
 app.post('/api/record-login-log', handleRecordLoginLog);
 app.get('/api/login-logs', handleGetLoginLogs);
 app.post('/api/purge-login-logs', handlePurgeLoginLogs);
+app.post('/api/ocr-scan', handleOcrScan);
+app.post('/api/hr-chatbot', handleHrChatbot);
 
 // PWA & Static file explicit routes
 app.get('/manifest.json', (req, res) => {

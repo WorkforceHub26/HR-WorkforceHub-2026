@@ -231,6 +231,26 @@
           </div>
         </div>
 
+        <!-- ⚡ BULK ACTION HEADER BAR -->
+        <div id="bulkActionBar" style="display: none; background: #f0fdfa; border: 1.5px solid #5eead4; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="selectAllBulk" onclick="toggleSelectAllBulk(this)" style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
+            <div style="text-align: left;">
+              <strong style="color: #0f766e; font-size: 14px; display: block;">⚡ จัดการกลุ่ม (Bulk Actions)</strong>
+              <span id="bulkSelectedCount" style="color: #0d9488; font-size: 12px; font-weight: 600;">เลือกแล้ว 0 รายการ</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="btn btn-sm" onclick="submitBulkApproval()" style="background: #0d9488; color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(13, 148, 136, 0.15);">
+              <span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span>
+              อนุมัติกลุ่มที่เลือก
+            </button>
+            <button type="button" class="btn btn-sm" onclick="cancelBulkSelection()" style="background: #ffffff; color: #64748b; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+              ยกเลิกเลือก
+            </button>
+          </div>
+        </div>
+
         <div class="table-container" id="leaveListContainer">
           <!-- ข้อมูลจะถูก Render เป็น Card List โดย js/hr.js -->
           <div class="loading-state" style="padding: 60px; text-align: center; color: var(--text-soft);">
@@ -269,6 +289,7 @@
   <script src="/js/auth-guard.js"></script>
   <script src="/js/system-settings.js"></script>
   <script src="/js/company-news.js"></script>
+  <script src="/js/delegation-service.js"></script>
   <script src="/js/components/leave-sla-tracker.js"></script>
   <script src="/js/hr.js"></script>
   <script src="/js/system-diagnostics.js"></script>

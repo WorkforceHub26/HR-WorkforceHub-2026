@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupBellNotificationToggle();
 
     await refreshDashboardData();
-    
+
     switchTab(currentTabState);
     setupTableSearch();
     fetchRealNotifications();
@@ -317,6 +317,9 @@ window.refreshDashboardData = async function(isManualClick = false) {
     renderTodayLeavesDetail(todayLeaves);
     renderHomeDepartmentTeam(rawEmployees, sessionUser);
     
+    // --- 🎯 Render "My Action Required" items (Action-First Dashboard) ---
+    renderMyActionRequiredSection(rawRequests, sessionUser);
+
     drawCharts();
     
     // 🟢 แสดง SweetAlert2 Sync Popup Modal รายละเอียดสมบูรณ์
@@ -2474,3 +2477,414 @@ window.markAllNotificationsAsRead = typeof markAllNotificationsAsRead !== 'undef
 window.openAllNotificationsModal = typeof openAllNotificationsModal !== 'undefined' ? openAllNotificationsModal : window.openAllNotificationsModal;
 window.handlePrintSelectedCardsFromPopup = typeof handlePrintSelectedCardsFromPopup !== 'undefined' ? handlePrintSelectedCardsFromPopup : window.handlePrintSelectedCardsFromPopup;
 window.toggleSelectAllCards = typeof toggleSelectAllCards !== 'undefined' ? toggleSelectAllCards : window.toggleSelectAllCards;
+
+/* ==========================================================================
+   7. 🎯 ACTION-FIRST DASHBOARD ENGINE
+   ========================================================================== */
+function isPendingForRoleHome(r, role) {
+  const s = String(r.status || '').trim().toLowerCase();
+  const isPending = s === 'pending' || s === 'รออนุมัติ' || s === 'wait';
+  if (!isPending) return false;
+  
+  const userRole = String(role || '').toLowerCase();
+  if (userRole === 'leader') {
+    return (r.manager_status || 'pending') === 'pending';
+  }
+  if (userRole === 'manager') {
+    return (r.director_status || 'pending') === 'pending';
+  }
+  if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
+    return (r.executive_status || 'pending') === 'pending';
+  }
+  return true; // HR/Admin can act on any pending
+}
+
+function renderMyActionRequiredSection(requests, sessionUser) {
+  const panel = document.getElementById("myActionRequiredPanel");
+  const listContainer = document.getElementById("myActionRequiredList");
+  const countBadge = document.getElementById("myActionCountBadge");
+  if (!panel || !listContainer) return;
+
+  const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
+  const myEmpId = sessionUser?.id || sessionUser?.employee_id;
+
+  // Filter requests that are pending and require current user's role approval
+  const myPendingActionItems = (requests || []).filter(r => {
+    if (!r) return false;
+    const isSelf = myEmpId ? String(r.employee_id) === String(myEmpId) : false;
+    if (isSelf) return false; // Can't approve own leaves
+
+    return isPendingForRoleHome(r, myRole);
+  });
+
+  if (myPendingActionItems.length === 0) {
+    panel.style.display = "none";
+    return;
+  }
+
+  // Display the panel!
+  panel.style.display = "block";
+  if (countBadge) {
+    countBadge.innerText = myPendingActionItems.length;
+  }
+
+  let html = "";
+  const toggleContainer = document.getElementById("myActionToggleContainer");
+  const toggleText = document.getElementById("toggleMyActionsText");
+  const toggleIcon = document.getElementById("toggleMyActionsIcon");
+
+  window._myActionExpanded = window._myActionExpanded || false;
+
+  myPendingActionItems.forEach((item, idx) => {
+    const safeEmp = item.employees || {};
+    const safeType = item.leave_types || {};
+
+    const name = safeEmp.full_name || safeEmp.name || item.emp_name || "ไม่ระบุชื่อ";
+    const code = safeEmp.employee_code || item.emp_code || "";
+    const typeName = safeType.leave_name || item.leave_type_name || "ไม่ระบุประเภท";
+    const deptName = safeEmp.departments?.department_name || item.department || "ไม่ระบุแผนก";
+    
+    const startDate = formatThaiDate(item.start_date);
+    const endDate = item.end_date ? formatThaiDate(item.end_date) : startDate;
+    const durationDays = item.actual_days || item.days_requested || item.total_days || 0;
+    const reason = item.reason || "-";
+
+    const isHiddenOnMobile = (!window._myActionExpanded && idx >= 4) ? "mobile-hidden" : "";
+
+    html += `
+      <div class="my-action-item-card ${isHiddenOnMobile}">
+        <div class="my-action-card-header">
+          <div class="my-action-card-avatar">
+            <span class="material-symbols-outlined">person</span>
+          </div>
+          <div class="my-action-card-userinfo">
+            <div class="my-action-card-name" title="${name}">${name}</div>
+            <div class="my-action-card-badges">
+              <span style="font-size: 11px; color: #64748b; background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-weight: 600;">#${code}</span>
+              <span style="font-size: 11px; color: #ef4444; font-weight: 700; background: #fee2e2; padding: 1px 6px; border-radius: 4px;">${typeName}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div class="my-action-card-dept" title="${deptName}">
+            <span class="material-symbols-outlined" style="font-size: 14px; color: #64748b; flex-shrink: 0;">apartment</span>
+            <span>${deptName}</span>
+          </div>
+          <div class="my-action-card-time">
+            <span class="material-symbols-outlined" style="font-size: 14px; flex-shrink: 0;">calendar_month</span>
+            <span>${startDate} - ${endDate} (<strong>${durationDays} วัน</strong>)</span>
+          </div>
+          <div class="my-action-card-reason" title="${reason}">
+            💬 ${reason}
+          </div>
+        </div>
+
+        <div class="my-action-card-actions">
+          <button type="button" class="my-action-btn-approve" onclick="quickApproveFromDashboard('${item.id}')" title="อนุมัติคำขอลาทันที">
+            <span class="material-symbols-outlined">check_circle</span> อนุมัติ
+          </button>
+          <button type="button" class="my-action-btn-reject" onclick="quickRejectFromDashboard('${item.id}')" title="ปฏิเสธคำขอลา">
+            <span class="material-symbols-outlined">cancel</span> ปฏิเสธ
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  listContainer.innerHTML = html;
+
+  if (toggleContainer) {
+    if (myPendingActionItems.length > 4) {
+      toggleContainer.style.display = "block";
+      if (toggleText) {
+        toggleText.innerText = window._myActionExpanded 
+          ? "ย่อเหลือ 2 แถว" 
+          : `ดูคำขอทั้งหมด (${myPendingActionItems.length} รายการ)`;
+      }
+      if (toggleIcon) {
+        toggleIcon.innerText = window._myActionExpanded ? "expand_less" : "expand_more";
+      }
+    } else {
+      toggleContainer.style.display = "none";
+    }
+  }
+}
+
+window.toggleMyActionItemsExpand = function() {
+  window._myActionExpanded = !window._myActionExpanded;
+  const cards = document.querySelectorAll("#myActionRequiredList .my-action-item-card");
+  cards.forEach((card, idx) => {
+    if (idx >= 4) {
+      if (window._myActionExpanded) {
+        card.classList.remove("mobile-hidden");
+      } else {
+        card.classList.add("mobile-hidden");
+      }
+    }
+  });
+
+  const toggleText = document.getElementById("toggleMyActionsText");
+  const toggleIcon = document.getElementById("toggleMyActionsIcon");
+  const badge = document.getElementById("myActionCountBadge");
+  const count = badge ? badge.innerText : "";
+
+  if (toggleText) {
+    toggleText.innerText = window._myActionExpanded ? "ย่อเหลือ 2 แถว" : `ดูคำขอทั้งหมด (${count} รายการ)`;
+  }
+  if (toggleIcon) {
+    toggleIcon.innerText = window._myActionExpanded ? "expand_less" : "expand_more";
+  }
+};
+
+window.quickApproveFromDashboard = async function(leaveId) {
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) return;
+
+  const reqData = rawRequests.find(r => String(r.id) === String(leaveId));
+  if (!reqData) return;
+
+  const savedSession = localStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
+
+  const isQuickMode = localStorage.getItem("pvt_double_confirm") === "false";
+  if (!isQuickMode) {
+    const result = await Swal.fire({
+      title: 'ยืนยันอนุมัติใบลา?',
+      text: 'คุณต้องการอนุมัติคำขอลาพักของพนักงานรายนี้ทันทีหรือไม่',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: '✔️ ยืนยันอนุมัติ',
+      cancelButtonText: 'ยกเลิก'
+    });
+    if (!result.isConfirmed) return;
+  }
+
+  Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  try {
+    let updateFields = {};
+
+    if (window.PVTSDK?.user?.ensureLeaveBalances) {
+      await window.PVTSDK.user.ensureLeaveBalances(reqData.employee_id, reqData.start_date);
+    }
+
+    if (myRole === 'leader') {
+      updateFields.manager_status = 'approved';
+      const deptId = reqData.employees?.department_id || null;
+      const { data: deptInfo } = await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle();
+      const hasManagerInDept = deptInfo?.manager_id || Boolean(reqData.employees?.l2_approver_id);
+      if (!hasManagerInDept) {
+        updateFields.director_status = 'approved';
+      }
+    } else if (myRole === 'manager') {
+      updateFields.director_status = 'approved';
+      if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+    } else if (myRole === 'executive' || myRole === 'director' || myRole === 'owner') {
+      if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+      if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
+      updateFields.status = 'approved';
+      updateFields.approved_at = new Date().toISOString();
+    } else {
+      // HR / Admin
+      if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+      if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
+      updateFields.status = 'approved';
+      updateFields.approved_at = new Date().toISOString();
+    }
+
+    // หักยอดวันลาหากได้รับการอนุมัติขั้นสุดท้ายเรียบร้อยแล้ว
+    if (updateFields.status === 'approved') {
+      const leaveDays = reqData.actual_days || reqData.days_requested || reqData.total_days || 0;
+      const currentYear = new Date(reqData.start_date).getFullYear();
+
+      if (window.PVTSDK?.user?.updateLeaveBalance) {
+        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, leaveDays);
+      } else {
+        const { data: balDataList } = await sb
+          .from('leave_balances')
+          .select('id, remaining_days, used_days')
+          .eq('employee_id', reqData.employee_id)
+          .eq('leave_type_id', reqData.leave_type_id)
+          .in('year', [currentYear, currentYear + 543]);
+
+        if (balDataList && balDataList.length > 0) {
+          for (const balData of balDataList) {
+            const newUsed = Math.round(((balData.used_days || 0) + leaveDays) * 100) / 100;
+            const newRemaining = Math.max(0, Math.round(((balData.remaining_days || 0) - leaveDays) * 100) / 100);
+
+            await sb
+              .from('leave_balances')
+              .update({ remaining_days: newRemaining, used_days: newUsed })
+              .eq('id', balData.id);
+          }
+        }
+      }
+    }
+
+    // 🔄 ตรวจสอบว่าเป็นการอนุมัติแทนตามระบบ Auto-Delegation หรือไม่ (เมื่อหัวหน้าลาพักร้อน)
+    if (window.AutoDelegationService) {
+      try {
+        const delegation = await window.AutoDelegationService.resolveDelegationForRequest(reqData);
+        if (delegation && delegation.isDelegated) {
+          const actorName = sessionUser?.full_name || 'ผู้รักษาการแทน';
+          updateFields.approval_comment = `[Auto-Delegation] อนุมัติโดย ${actorName} รักษาการแทน ${delegation.originalApproverName} (${delegation.reason})`;
+        }
+      } catch (delErr) {
+        console.warn("[Auto-Delegation] Audit resolution error in dashboard:", delErr);
+      }
+    }
+
+    const { error: updateErr } = await sb
+      .from('leave_requests')
+      .update(updateFields)
+      .eq('id', leaveId);
+
+    if (updateErr) throw updateErr;
+
+    // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล
+    await sb.from('notifications').insert({
+      employee_id: reqData.employee_id,
+      title: `ใบลาได้รับการอนุมัติ`,
+      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
+      type: 'leave',
+      link_url: '/pages/user/index-user.html'
+    });
+
+    if (updateFields.status === 'approved' || reqData.status === 'approved') {
+      const subject = `[วันลาพัก] ${reqData.employees?.full_name || 'พนักงาน'} (${reqData.leave_types?.leave_name || 'ลากิจ'})`;
+      
+      const formatGCalDate = (dateStr, addDays = 0) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (addDays > 0) d.setDate(d.getDate() + addDays);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const r = String(d.getDate()).padStart(2, '0');
+        return `${y}${m}${r}`;
+      };
+
+      const sDateStr = formatGCalDate(reqData.start_date);
+      const eDateStr = formatGCalDate(reqData.end_date, 1);
+      
+      const details = `ประเภทการลา: ${reqData.leave_types?.leave_name || 'ใบลา'}\nเหตุผลการลา: ${reqData.reason || '-'}\nจำนวนวันลา: ${reqData.total_days || 0} วัน\nอนุมัติโดยระบบ PVT Workforce Hub`;
+      const location = `PVT Workforce Hub`;
+
+      const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(subject)}&dates=${sDateStr}/${eDateStr}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+      const ocalLink = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${encodeURIComponent(subject)}&startdt=${reqData.start_date}&enddt=${reqData.end_date}&body=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}&allday=true`;
+
+      await Swal.fire({
+        icon: 'success',
+        title: '🎉 อนุมัติใบลาเสร็จสิ้น!',
+        html: `
+          <div style="font-family: var(--font-sans, sans-serif); text-align: left; padding: 10px 0;">
+            <p style="color: var(--text-soft); font-size: 14.5px; margin-bottom: 16px;">
+              ใบลาของ <strong>${reqData.employees?.full_name || 'พนักงาน'}</strong> ได้รับการอนุมัติขั้นสุดท้ายเรียบร้อยแล้ว
+            </p>
+            
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #0d9488; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">calendar_month</span>
+                Auto-Sync Calendar (ซิงค์ปฏิทินทีม)
+              </h4>
+              <p style="font-size: 12px; color: #64748b; margin: 0 0 12px 0;">
+                เลือกช่องทางที่ต้องการนำวันลาที่อนุมัตินี้ ไปบันทึกลงในปฏิทินส่วนกลางของทีมโดยอัตโนมัติ
+              </p>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <a href="${gcalLink}" target="_blank" style="background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: #3c4043; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: background 0.2s;">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" style="width:16px; height:16px;">
+                  Google Calendar
+                </a>
+                <a href="${ocalLink}" target="_blank" style="background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: #3c4043; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: background 0.2s;">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" style="width:16px; height:16px;">
+                  Outlook Calendar
+                </a>
+              </div>
+            </div>
+          </div>
+        `,
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#0d9488'
+      });
+    } else {
+      await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
+    }
+    await refreshDashboardData();
+
+  } catch (err) {
+    console.error("❌ Quick Approve Error:", err);
+    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, confirmButtonColor: '#ef4444' });
+  }
+};
+
+window.quickRejectFromDashboard = async function(leaveId) {
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) return;
+
+  const reqData = rawRequests.find(r => String(r.id) === String(leaveId));
+  if (!reqData) return;
+
+  const savedSession = localStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
+
+  const { value: rejectComment } = await Swal.fire({
+    title: 'ปฏิเสธคำขออนุมัติ?',
+    input: 'text',
+    inputLabel: 'ระบุเหตุผลที่ไม่พิจารณาอนุมัติ',
+    inputPlaceholder: 'เช่น เอกสารไม่สมบูรณ์...',
+    inputValidator: (value) => {
+      if (!value) return 'กรุณาระบุเหตุผลในการปฏิเสธการลาด้วยครับ'
+    },
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: '❌ ยืนยันปฏิเสธ',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (!rejectComment) return;
+
+  Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  try {
+    let updateFields = {
+      approval_comment: rejectComment
+    };
+
+    if (myRole === 'leader') {
+      updateFields.manager_status = 'rejected';
+    } else if (myRole === 'manager') {
+      updateFields.director_status = 'rejected';
+    } else {
+      updateFields.status = 'rejected';
+    }
+
+    const { error: updateErr } = await sb
+      .from('leave_requests')
+      .update(updateFields)
+      .eq('id', leaveId);
+
+    if (updateErr) throw updateErr;
+
+    // 🔔 แจ้งเตือนพนักงาน
+    await sb.from('notifications').insert({
+      employee_id: reqData.employee_id,
+      title: `ใบลาได้รับการปฏิเสธ`,
+      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${rejectComment}`,
+      type: 'leave',
+      link_url: '/pages/user/index-user.html'
+    });
+
+    Swal.fire({ icon: 'success', title: 'ปฏิเสธใบลาเรียบร้อย', showConfirmButton: false, timer: 1500 });
+    await refreshDashboardData();
+
+  } catch (err) {
+    console.error("❌ Quick Reject Error:", err);
+    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, confirmButtonColor: '#ef4444' });
+  }
+};

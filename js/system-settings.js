@@ -70,12 +70,187 @@
 
   // 🚀 1. Immediate Application on script execution
   function applySavedPreferences() {
+    // Dynamically inject Google Translate script and placeholder if not present
+    if (!document.getElementById('google_translate_element_hidden')) {
+      const div = document.createElement('div');
+      div.id = 'google_translate_element_hidden';
+      div.style.display = 'none';
+      document.body.appendChild(div);
+      
+      window.googleTranslateElementInit = function() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'th',
+          includedLanguages: 'en,lo,my,th,zh-CN,ja,ko',
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
+        }, 'google_translate_element_hidden');
+      };
+      
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      document.head.appendChild(script);
+    }
+
     const savedFontSize = localStorage.getItem("pvt_user_font_size") || "normal";
     const savedTheme = localStorage.getItem("pvt_user_theme") || "teal";
+    const savedCompact = localStorage.getItem("pvt_compact_mode") === "true";
+    const savedEyeCare = localStorage.getItem("pvt_eyecare_mode") === "true";
+    const savedPrivacy = localStorage.getItem("pvt_privacy_shield") === "true";
+    const savedMotion = localStorage.getItem("pvt_reduced_motion") === "true";
+    const savedContrast = localStorage.getItem("pvt_high_contrast") === "true";
 
     applyFontSizeToDoc(savedFontSize);
     applyThemeToDoc(savedTheme);
+    applyCompactModeToDoc(savedCompact);
+    applyEyeCareToDoc(savedEyeCare);
+    applyPrivacyShieldToDoc(savedPrivacy);
+    applyReducedMotionToDoc(savedMotion);
+    applyHighContrastToDoc(savedContrast);
+    initAutoRefreshTimer();
   }
+
+  function applyCompactModeToDoc(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+      root.setAttribute("data-compact-mode", "true");
+      document.body?.classList?.add("compact-mode");
+    } else {
+      root.removeAttribute("data-compact-mode");
+      document.body?.classList?.remove("compact-mode");
+    }
+  }
+
+  function applyEyeCareToDoc(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+      root.setAttribute("data-eyecare-mode", "true");
+    } else {
+      root.removeAttribute("data-eyecare-mode");
+    }
+  }
+
+  function applyPrivacyShieldToDoc(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+      root.setAttribute("data-privacy-shield", "true");
+    } else {
+      root.removeAttribute("data-privacy-shield");
+    }
+  }
+
+  function applyReducedMotionToDoc(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+      root.setAttribute("data-reduced-motion", "true");
+    } else {
+      root.removeAttribute("data-reduced-motion");
+    }
+  }
+
+  function applyHighContrastToDoc(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+      root.setAttribute("data-high-contrast", "true");
+    } else {
+      root.removeAttribute("data-high-contrast");
+    }
+  }
+
+  // Auto-refresh interval initialization
+  let globalRefreshIntervalId = null;
+  function initAutoRefreshTimer() {
+    if (globalRefreshIntervalId) {
+      clearInterval(globalRefreshIntervalId);
+      globalRefreshIntervalId = null;
+    }
+    const val = localStorage.getItem("pvt_auto_refresh") || "off";
+    if (val === "off") return;
+    
+    const seconds = parseInt(val, 10);
+    if (isNaN(seconds)) return;
+
+    globalRefreshIntervalId = setInterval(() => {
+      console.log(`[Auto-Refresh] Quietly checking feed updates at ${seconds}s interval...`);
+      if (typeof window.reloadLeavesTable === "function") {
+        window.reloadLeavesTable();
+      } else if (typeof window.loadLeaveHistory === "function") {
+        window.loadLeaveHistory();
+      } else if (typeof window.fetchPendingRequests === "function") {
+        window.fetchPendingRequests();
+      } else if (typeof window.loadPendingLeaves === "function") {
+        window.loadPendingLeaves();
+      }
+    }, seconds * 1000);
+  }
+
+  // 🔔 Web Audio Synthesized Sound Effects (100% Real client-side audio!)
+  window.playSystemChime = function(type = "click") {
+    const savedSound = localStorage.getItem("pvt_sound_enabled") !== "false";
+    if (!savedSound) return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      if (type === "success") {
+        // High-quality bright triple-tone confirmation chord
+        const playTone = (freq, start, duration) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, start);
+          gain.gain.setValueAtTime(0.06, start);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(start);
+          osc.stop(start + duration);
+        };
+        playTone(523.25, ctx.currentTime, 0.4); // C5
+        playTone(659.25, ctx.currentTime + 0.1, 0.4); // E5
+        playTone(783.99, ctx.currentTime + 0.2, 0.5); // G5
+      } else if (type === "toggle_on") {
+        // Soft positive high blip
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+      } else if (type === "toggle_off") {
+        // Gentle descending click
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+      } else {
+        // Modern UI bubble click
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      }
+    } catch (err) {
+      console.warn("Audio not initialized or allowed", err);
+    }
+  };
 
   function applyFontSizeToDoc(sizeKey) {
     const root = document.documentElement;
@@ -228,6 +403,197 @@
             </div>
           </div>
 
+          <!-- Card 4.5: Google Magic Translate (ช่วยแปลอัตโนมัติ) -->
+          <div class="setting-card-item magic-translate-card" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-left: 4px solid #3b82f6;">
+            <div class="setting-item-head">
+              <span class="setting-item-icon">🪄</span>
+              <div class="setting-item-info">
+                <h4 style="color: #1e293b;">ตัวช่วยแปลภาษาอัตโนมัติ (Google Magic Translate)</h4>
+                <p>หากภาษาในระบบยังไม่ครอบคลุม คุณสามารถใช้ระบบแปลอัตโนมัติของ Google แทนได้ทันที</p>
+              </div>
+            </div>
+            <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 10px; border: 1px dashed #94a3b8; display: flex; align-items: center; justify-content: space-between;">
+              <div style="font-size: 13px; color: #475569;">
+                <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; color: #3b82f6;">tips_and_updates</span>
+                เลือกภาษาที่ต้องการแปล:
+              </div>
+              <div id="google_translate_element_visible"></div>
+            </div>
+            <p style="font-size: 11px; color: #64748b; margin-top: 8px; line-height: 1.4;">
+              💡 <b>คำแนะนำ:</b> เพื่อผลลัพธ์ที่ดีที่สุด ควรตั้งค่า "ภาษาที่ใช้งานในระบบ" เป็น <b>ภาษาไทย</b> ก่อนใช้ตัวช่วยแปลนี้
+            </p>
+          </div>
+
+          <!-- Card 4: ภาษาที่ใช้งานในระบบ (Language) -->
+          <div class="setting-card-item">
+            <div class="setting-item-head">
+              <span class="setting-item-icon">🌐</span>
+              <div class="setting-item-info">
+                <h4>ภาษาที่ใช้งานในระบบ (System Language)</h4>
+                <p>เลือกภาษาหลักสำหรับเมนูและแบบฟอร์มการทำเรื่องขอลา</p>
+              </div>
+            </div>
+
+            <div class="lang-options-grid" style="grid-template-columns: repeat(4, 1fr);">
+              <button type="button" class="lang-pills-btn" id="langBtnTh" onclick="changeSystemLanguage('th')">
+                <span class="lang-flag">🇹🇭</span>
+                <span>ภาษาไทย</span>
+              </button>
+              <button type="button" class="lang-pills-btn" id="langBtnLo" onclick="changeSystemLanguage('lo')">
+                <span class="lang-flag">🇱🇦</span>
+                <span>ພາສາລາວ</span>
+              </button>
+              <button type="button" class="lang-pills-btn" id="langBtnMy" onclick="changeSystemLanguage('my')">
+                <span class="lang-flag">🇲🇲</span>
+                <span>မြန်မာစာ</span>
+              </button>
+              <button type="button" class="lang-pills-btn" id="langBtnEn" onclick="changeSystemLanguage('en')">
+                <span class="lang-flag">🇬🇧</span>
+                <span>English</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Card 5: เอฟเฟกต์เสียงและระบบเตือน (Sound & Accessibility) -->
+          <div class="setting-card-item">
+            <div class="setting-item-head">
+              <span class="setting-item-icon">🔔</span>
+              <div class="setting-item-info">
+                <h4>การเข้าถึงและเสียงแจ้งเตือน (Accessibility & Sound)</h4>
+                <p>เปิด/ปิดเสียงตอบสนองและเอฟเฟกต์เมื่อกดปุ่มตอบรับหรือยื่นเรื่อง</p>
+              </div>
+            </div>
+
+            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 4px;">
+              <div class="setting-toggle-info">
+                <h5>เสียงตอบสนองระบบ (System Audio Chimes)</h5>
+                <p>เล่นเสียงสั้นตอบรับเมื่อกดปุ่มหรือบันทึกข้อมูลสำเร็จ</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsSoundToggle" onchange="toggleSystemSound(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-toggle-row">
+              <div class="setting-toggle-info">
+                <h5>โหมดแสดงตารางแบบกระชับ (Compact Table Layout)</h5>
+                <p>ลดขนาดพิกเซลพาร์ติชันช่องว่างเพื่อแสดงข้อมูลรายชื่อตารางได้หนาแน่นขึ้น</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsCompactToggle" onchange="toggleSystemCompactMode(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Card 6: โหมดสุขภาพและการทำงาน (Health & Live Performance) -->
+          <div class="setting-card-item">
+            <div class="setting-item-head">
+              <span class="setting-item-icon">👁️</span>
+              <div class="setting-item-info">
+                <h4>สุขภาพและประสิทธิภาพเรียลไทม์ (Eye Care & Real-time Feed)</h4>
+                <p>ควบคุมการกรองแสงและอัตราการรีเฟรชข้อมูลหน้าจอของระบบ</p>
+              </div>
+            </div>
+
+            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 8px;">
+              <div class="setting-toggle-info">
+                <h5>โหมดถนอมสายตา (Eye-Care Amber Filter)</h5>
+                <p>กรองแสงสีฟ้าเพื่อถนอมสายตาเมื่อทำงานช่วงเย็นหรือกะดึก</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsEyeCareToggle" onchange="toggleSystemEyeCare(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-toggle-info" style="margin-top: 4px;">
+              <h5>ระบบดึงข้อมูลอัปเดตอัตโนมัติ (Auto-Refresh Interval)</h5>
+              <p>ดึงความเคลื่อนไหวคำขอและสถิติล่าสุดโดยอัตโนมัติ (ไม่ต้องรีเฟรชทั้งหน้า)</p>
+            </div>
+
+            <div class="lang-options-grid" style="margin-top: 8px;">
+              <button type="button" class="lang-pills-btn" id="refreshBtnOff" onclick="changeAutoRefresh('off')">
+                <span>ปิดระบบ</span>
+              </button>
+              <button type="button" class="lang-pills-btn" id="refreshBtn30" onclick="changeAutoRefresh('30')">
+                <span class="live-indicator-dot"></span>
+                <span>ทุก 30 วินาที</span>
+              </button>
+              <button type="button" class="lang-pills-btn" id="refreshBtn60" onclick="changeAutoRefresh('60')">
+                <span class="live-indicator-dot" style="background-color: #3b82f6; box-shadow: 0 0 6px #3b82f6;"></span>
+                <span>ทุก 1 นาที</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Card 7: ความเป็นส่วนตัวและความเร็ว (Privacy & Power Saver) -->
+          <div class="setting-card-item">
+            <div class="setting-item-head">
+              <span class="setting-item-icon">🛡️</span>
+              <div class="setting-item-info">
+                <h4>ความปลอดภัยและการประหยัดพลังงาน (Privacy & Battery)</h4>
+                <p>ตั้งค่าการอำพรางสายตาและควบคุมแอนิเมชันเพื่อประหยัดทรัพยากรเครื่อง</p>
+              </div>
+            </div>
+
+            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 4px;">
+              <div class="setting-toggle-info">
+                <h5>โหมดเกราะป้องกันความเป็นส่วนตัว (Privacy Shield Blur)</h5>
+                <p>เบลอตัวเลขสถิติจำนวนวันลาและข้อมูลเงินเดือนจนกว่าจะนำเมาส์ไปชี้</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsPrivacyToggle" onchange="toggleSystemPrivacyShield(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-toggle-row">
+              <div class="setting-toggle-info">
+                <h5>โหมดประหยัดพลังงานเคลื่อนไหว (Reduced Motion)</h5>
+                <p>ปิดการเคลื่อนไหวแอนิเมชันและสลับเมนูอย่างรวดเร็วเพื่อประหยัดแบตเตอรี่มือถือ</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsMotionToggle" onchange="toggleSystemReducedMotion(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Card 8: ระบบจัดการสำหรับผู้อนุมัติและการเข้าถึง (Approver & Accessibility) -->
+          <div class="setting-card-item">
+            <div class="setting-item-head">
+              <span class="setting-item-icon">⚖️</span>
+              <div class="setting-item-info">
+                <h4>ขั้นตอนอนุมัติและการเข้าถึงง่าย (Approver Flow & High Contrast)</h4>
+                <p>กำหนดการถามยืนยันและการเพิ่มความหนาตัวอักษรเพื่อการอ่านที่ง่ายขึ้น</p>
+              </div>
+            </div>
+
+            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 4px;">
+              <div class="setting-toggle-info">
+                <h5>ระบบอนุมัติเร็วแบบคลิกเดียว (One-Click Quick Approval)</h5>
+                <p>ข้ามกล่องข้อความถามย้ำเตือนของหัวหน้างานเพื่อการอนุมัติแบบทันทีด่วน</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsConfirmToggle" onchange="toggleSystemDoubleConfirm(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-toggle-row">
+              <div class="setting-toggle-info">
+                <h5>โหมดสีความคมชัดสูงพิเศษ (High Contrast Mode)</h5>
+                <p>เพิ่มน้ำหนักเส้นขอบ ตัวอักษรสีดำเข้ม และตัดสีพาสเทลเพื่อการมองเห็นที่เด่นชัด</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsHighContrastToggle" onchange="toggleSystemHighContrast(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
+            </div>
+          </div>
+
         </div>
 
         <!-- Footer -->
@@ -269,9 +635,39 @@
     populateThemeButtons();
     updateFontSizeButtonsUI();
     updateLineStatusUI();
+    updateSoundSwitchUI();
+    updateCompactSwitchUI();
+    updateLanguageButtonsUI();
+    updateEyeCareSwitchUI();
+    updateAutoRefreshButtonsUI();
+    updatePrivacySwitchUI();
+    updateMotionSwitchUI();
+    updateConfirmSwitchUI();
+    updateHighContrastSwitchUI();
 
     backdrop.classList.add("active");
     document.body.style.overflow = "hidden";
+    
+    // Move Google Translate widget to the modal placeholder
+    setTimeout(() => {
+      const source = document.getElementById('google_translate_element_hidden');
+      const target = document.getElementById('google_translate_element_visible');
+      if (source && target) {
+        // Find the actual widget inside source (it's usually the first child after init)
+        const widget = source.querySelector('.skiptranslate');
+        if (widget) {
+          target.appendChild(widget);
+        } else {
+          // If not initialized yet, try to init or just move everything
+          target.appendChild(source);
+          source.style.display = 'block';
+        }
+      }
+    }, 300);
+
+    if (window.playSystemChime) {
+      window.playSystemChime("click");
+    }
   };
 
   // ❌ 4. Close Modal Handler
@@ -281,6 +677,9 @@
       backdrop.classList.remove("active");
     }
     document.body.style.overflow = "";
+    if (window.playSystemChime) {
+      window.playSystemChime("click");
+    }
   };
 
   // 🔤 5. Font Size Functions
@@ -299,6 +698,9 @@
       } else {
         preview.style.fontSize = "13px";
       }
+    }
+    if (window.playSystemChime) {
+      window.playSystemChime("click");
     }
   };
 
@@ -338,6 +740,190 @@
     localStorage.setItem("pvt_user_theme", themeKey);
     applyThemeToDoc(themeKey);
     populateThemeButtons();
+    if (window.playSystemChime) {
+      window.playSystemChime("click");
+    }
+  };
+
+  // 🌐 6.5. System Language Functions
+  window.changeSystemLanguage = function(langKey) {
+    if (typeof window.setGlobalLanguage === "function") {
+      window.setGlobalLanguage(langKey, false, { forceBroadcast: true });
+      updateLanguageButtonsUI();
+      if (window.playSystemChime) {
+        window.playSystemChime("success");
+      }
+    } else {
+      console.warn("setGlobalLanguage not found");
+    }
+  };
+
+  function updateLanguageButtonsUI() {
+    const currentLang = localStorage.getItem("pvt_login_lang") || localStorage.getItem("pvt_language") || "th";
+    ["Th", "Lo", "My", "En"].forEach(l => {
+      const btn = document.getElementById(`langBtn${l}`);
+      if (btn) {
+        if (l.toLowerCase() === currentLang.toLowerCase()) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      }
+    });
+  }
+
+  // 🔔 6.6. Sound Settings Functions
+  window.toggleSystemSound = function(enabled) {
+    localStorage.setItem("pvt_sound_enabled", enabled ? "true" : "false");
+    updateSoundSwitchUI();
+    if (enabled && window.playSystemChime) {
+      window.playSystemChime("toggle_on");
+    } else if (window.playSystemChime) {
+      // Just a small click before turning off completely
+      window.playSystemChime("toggle_off");
+    }
+  };
+
+  function updateSoundSwitchUI() {
+    const isSoundEnabled = localStorage.getItem("pvt_sound_enabled") !== "false";
+    const toggle = document.getElementById("settingsSoundToggle");
+    if (toggle) {
+      toggle.checked = isSoundEnabled;
+    }
+  }
+
+  // 📐 6.7. Compact Table Layout Functions
+  window.toggleSystemCompactMode = function(enabled) {
+    localStorage.setItem("pvt_compact_mode", enabled ? "true" : "false");
+    applyCompactModeToDoc(enabled);
+    updateCompactSwitchUI();
+    if (window.playSystemChime) {
+      window.playSystemChime(enabled ? "toggle_on" : "toggle_off");
+    }
+  };
+
+  function updateCompactSwitchUI() {
+    const isCompactEnabled = localStorage.getItem("pvt_compact_mode") === "true";
+    const toggle = document.getElementById("settingsCompactToggle");
+    if (toggle) {
+      toggle.checked = isCompactEnabled;
+    }
+  }
+
+  // 👁️ 6.8. Eye-Care Filter Functions
+  window.toggleSystemEyeCare = function(enabled) {
+    localStorage.setItem("pvt_eyecare_mode", enabled ? "true" : "false");
+    applyEyeCareToDoc(enabled);
+    updateEyeCareSwitchUI();
+    if (window.playSystemChime) {
+      window.playSystemChime(enabled ? "toggle_on" : "toggle_off");
+    }
+  };
+
+  window.updateEyeCareSwitchUI = function() {
+    const isEyeCareEnabled = localStorage.getItem("pvt_eyecare_mode") === "true";
+    const toggle = document.getElementById("settingsEyeCareToggle");
+    if (toggle) {
+      toggle.checked = isEyeCareEnabled;
+    }
+  };
+
+  // 🔄 6.9. Auto-Refresh Functions
+  window.changeAutoRefresh = function(val) {
+    localStorage.setItem("pvt_auto_refresh", val);
+    initAutoRefreshTimer();
+    updateAutoRefreshButtonsUI();
+    if (window.playSystemChime) {
+      window.playSystemChime("success");
+    }
+  };
+
+  window.updateAutoRefreshButtonsUI = function() {
+    const currentVal = localStorage.getItem("pvt_auto_refresh") || "off";
+    ["off", "30", "60"].forEach(v => {
+      const id = v === "off" ? "refreshBtnOff" : `refreshBtn${v}`;
+      const btn = document.getElementById(id);
+      if (btn) {
+        if (v === currentVal) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      }
+    });
+  };
+
+  // 🛡️ 6.10. Privacy Shield Functions
+  window.toggleSystemPrivacyShield = function(enabled) {
+    localStorage.setItem("pvt_privacy_shield", enabled ? "true" : "false");
+    applyPrivacyShieldToDoc(enabled);
+    updatePrivacySwitchUI();
+    if (window.playSystemChime) {
+      window.playSystemChime(enabled ? "toggle_on" : "toggle_off");
+    }
+  };
+
+  window.updatePrivacySwitchUI = function() {
+    const isPrivacyEnabled = localStorage.getItem("pvt_privacy_shield") === "true";
+    const toggle = document.getElementById("settingsPrivacyToggle");
+    if (toggle) {
+      toggle.checked = isPrivacyEnabled;
+    }
+  };
+
+  // ⚡ 6.11. Reduced Motion Functions
+  window.toggleSystemReducedMotion = function(enabled) {
+    localStorage.setItem("pvt_reduced_motion", enabled ? "true" : "false");
+    applyReducedMotionToDoc(enabled);
+    updateMotionSwitchUI();
+    if (window.playSystemChime) {
+      window.playSystemChime(enabled ? "toggle_on" : "toggle_off");
+    }
+  };
+
+  window.updateMotionSwitchUI = function() {
+    const isMotionEnabled = localStorage.getItem("pvt_reduced_motion") === "true";
+    const toggle = document.getElementById("settingsMotionToggle");
+    if (toggle) {
+      toggle.checked = isMotionEnabled;
+    }
+  };
+
+  // 🤝 6.12. Double Confirm (Skip confirmation dialog if false, default to true)
+  window.toggleSystemDoubleConfirm = function(enabled) {
+    // Note: enabled means ONE-CLICK QUICK mode is ON, so double confirm is FALSE!
+    localStorage.setItem("pvt_double_confirm", enabled ? "false" : "true");
+    updateConfirmSwitchUI();
+    if (window.playSystemChime) {
+      window.playSystemChime(enabled ? "toggle_on" : "toggle_off");
+    }
+  };
+
+  window.updateConfirmSwitchUI = function() {
+    // checked = is One-click Quick Mode active (which is pvt_double_confirm === "false")
+    const isQuickModeActive = localStorage.getItem("pvt_double_confirm") === "false";
+    const toggle = document.getElementById("settingsConfirmToggle");
+    if (toggle) {
+      toggle.checked = isQuickModeActive;
+    }
+  };
+
+  // 🌓 6.13. High Contrast Functions
+  window.toggleSystemHighContrast = function(enabled) {
+    localStorage.setItem("pvt_high_contrast", enabled ? "true" : "false");
+    applyHighContrastToDoc(enabled);
+    updateHighContrastSwitchUI();
+    if (window.playSystemChime) {
+      window.playSystemChime(enabled ? "toggle_on" : "toggle_off");
+    }
+  };
+
+  window.updateHighContrastSwitchUI = function() {
+    const isContrastEnabled = localStorage.getItem("pvt_high_contrast") === "true";
+    const toggle = document.getElementById("settingsHighContrastToggle");
+    if (toggle) {
+      toggle.checked = isContrastEnabled;
+    }
   };
 
   // 💬 7. LINE Notification Status & Actions
@@ -433,21 +1019,53 @@
   window.resetSystemSettingsToDefault = function() {
     localStorage.removeItem("pvt_user_font_size");
     localStorage.removeItem("pvt_user_theme");
+    localStorage.removeItem("pvt_sound_enabled");
+    localStorage.removeItem("pvt_compact_mode");
+    localStorage.removeItem("pvt_eyecare_mode");
+    localStorage.removeItem("pvt_auto_refresh");
+    localStorage.removeItem("pvt_privacy_shield");
+    localStorage.removeItem("pvt_reduced_motion");
+    localStorage.removeItem("pvt_double_confirm");
+    localStorage.removeItem("pvt_high_contrast");
+    localStorage.setItem("pvt_login_lang", "th");
+    localStorage.setItem("pvt_language", "th");
 
     applyFontSizeToDoc("normal");
     applyThemeToDoc("teal");
+    applyCompactModeToDoc(false);
+    applyEyeCareToDoc(false);
+    applyPrivacyShieldToDoc(false);
+    applyReducedMotionToDoc(false);
+    applyHighContrastToDoc(false);
+    initAutoRefreshTimer();
+    if (typeof window.setGlobalLanguage === "function") {
+      window.setGlobalLanguage("th", false, { forceBroadcast: true });
+    }
 
     updateFontSizeButtonsUI();
     populateThemeButtons();
+    updateSoundSwitchUI();
+    updateCompactSwitchUI();
+    updateLanguageButtonsUI();
+    updateEyeCareSwitchUI();
+    updateAutoRefreshButtonsUI();
+    updatePrivacySwitchUI();
+    updateMotionSwitchUI();
+    updateConfirmSwitchUI();
+    updateHighContrastSwitchUI();
 
     const preview = document.getElementById("fontPreviewBox");
     if (preview) preview.style.fontSize = "13px";
+
+    if (window.playSystemChime) {
+      window.playSystemChime("success");
+    }
 
     if (window.Swal) {
       Swal.fire({
         icon: "info",
         title: "รีเซ็ตค่าเริ่มต้นเรียบร้อย",
-        text: "ขนาดตัวอักษรและธีมสีกลับเป็นค่ามาตรฐานแล้ว",
+        text: "คืนค่าขนาดตัวอักษร ธีมสี ภาษา ความเป็นส่วนตัว และโหมดการเข้าถึงทั้งหมดกลับเป็นค่ามาตรฐานแล้ว",
         timer: 1500,
         showConfirmButton: false
       });

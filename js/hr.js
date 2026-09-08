@@ -1132,10 +1132,18 @@ function renderLeaveTable() {
       executiveStatusHTML = getStatusBadgeHTML(req.executive_status);
     }
 
+    const isPendingTab = (currentLeaveTab === "pending");
+    const checkboxHTML = isPendingTab ? `
+      <div class="bulk-check-wrapper" style="display: flex; align-items: center; justify-content: center; padding-right: 12px; margin-right: 4px;">
+        <input type="checkbox" class="bulk-item-check" data-id="${req.id}" onclick="handleBulkItemCheckChange()" style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
+      </div>
+    ` : '';
+
     cardsContent += `
       <div class="leave-card-item ${isOverdue ? 'is-overdue' : ''}">
         <!-- Zone 1: Profile & Emp Info -->
-        <div class="card-zone profile-zone">
+        <div class="card-zone profile-zone" style="display: flex; align-items: center;">
+          ${checkboxHTML}
           <img src="${avatarUrl}" class="card-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
           <div class="profile-info">
             <span class="emp-code">#${empCode}</span>
@@ -1232,6 +1240,20 @@ function renderLeaveTable() {
     </div>
   `;
   container.innerHTML = listHeader + `<div class="leave-cards-container">${cardsContent}</div>`;
+
+  // Update Bulk Action Bar visibility
+  const bulkBar = document.getElementById("bulkActionBar");
+  if (bulkBar) {
+    if (currentLeaveTab === "pending" && filteredRequests.length > 0) {
+      bulkBar.style.display = "flex";
+      // Reset select all checkbox
+      const selectAllCheckbox = document.getElementById("selectAllBulk");
+      if (selectAllCheckbox) selectAllCheckbox.checked = false;
+      document.getElementById("bulkSelectedCount").innerText = "เลือกแล้ว 0 รายการ";
+    } else {
+      bulkBar.style.display = "none";
+    }
+  }
 }
 
 /* ==========================================================================
@@ -1523,18 +1545,23 @@ async function approveLeave(leaveId) {
     ? 'ผู้บริหาร (L3)'
     : 'ฝ่ายบุคคล HR / Admin';
 
-  const result = await Swal.fire({
-    title: 'ยืนยันอนุมัติใบลา?',
-    text: `คุณกำลังอนุมัติในฐานะ ${roleTitle}`,
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonColor: '#10b981',
-    cancelButtonColor: '#64748b',
-    confirmButtonText: '✔️ ยืนยันอนุมัติ',
-    cancelButtonText: 'ยกเลิก'
-  });
+  let isConfirmed = true;
+  const isQuickMode = localStorage.getItem("pvt_double_confirm") === "false";
+  if (!isQuickMode) {
+    const result = await Swal.fire({
+      title: 'ยืนยันอนุมัติใบลา?',
+      text: `คุณกำลังอนุมัติในฐานะ ${roleTitle}`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: '✔️ ยืนยันอนุมัติ',
+      cancelButtonText: 'ยกเลิก'
+    });
+    isConfirmed = result.isConfirmed;
+  }
 
-  if (!result.isConfirmed) return;
+  if (!isConfirmed) return;
 
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
@@ -1621,6 +1648,19 @@ async function approveLeave(leaveId) {
               .eq('id', balData.id);
           }
         }
+      }
+    }
+
+    // 🔄 ตรวจสอบว่าเป็นการอนุมัติแทนตามระบบ Auto-Delegation หรือไม่ (เมื่อหัวหน้าลาพักร้อน)
+    if (window.AutoDelegationService) {
+      try {
+        const delegation = await window.AutoDelegationService.resolveDelegationForRequest(reqData);
+        if (delegation && delegation.isDelegated) {
+          const actorName = currentUserProfile?.full_name || 'ผู้รักษาการแทน';
+          updateFields.approval_comment = `[Auto-Delegation] อนุมัติโดย ${actorName} รักษาการแทน ${delegation.originalApproverName} (${delegation.reason})`;
+        }
+      } catch (delErr) {
+        console.warn("[Auto-Delegation] Audit resolution error:", delErr);
       }
     }
 
@@ -1833,7 +1873,65 @@ async function approveLeave(leaveId) {
       }
     }
 
-    await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
+    if (updateFields.status === 'approved' || reqData.status === 'approved') {
+      const subject = `[วันลาพัก] ${reqData.employees?.full_name || 'พนักงาน'} (${reqData.leave_types?.leave_name || 'ลากิจ'})`;
+      
+      const formatGCalDate = (dateStr, addDays = 0) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (addDays > 0) d.setDate(d.getDate() + addDays);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const r = String(d.getDate()).padStart(2, '0');
+        return `${y}${m}${r}`;
+      };
+
+      const sDateStr = formatGCalDate(reqData.start_date);
+      const eDateStr = formatGCalDate(reqData.end_date, 1);
+      
+      const details = `ประเภทการลา: ${reqData.leave_types?.leave_name || 'ใบลา'}\nเหตุผลการลา: ${reqData.reason || '-'}\nจำนวนวันลา: ${reqData.total_days || 0} วัน\nอนุมัติโดยระบบ PVT Workforce Hub`;
+      const location = `PVT Workforce Hub`;
+
+      const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(subject)}&dates=${sDateStr}/${eDateStr}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+      const ocalLink = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${encodeURIComponent(subject)}&startdt=${reqData.start_date}&enddt=${reqData.end_date}&body=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}&allday=true`;
+
+      await Swal.fire({
+        icon: 'success',
+        title: '🎉 อนุมัติใบลาเสร็จสิ้น!',
+        html: `
+          <div style="font-family: var(--font-sans, sans-serif); text-align: left; padding: 10px 0;">
+            <p style="color: var(--text-soft); font-size: 14.5px; margin-bottom: 16px;">
+              ใบลาของ <strong>${reqData.employees?.full_name || 'พนักงาน'}</strong> ได้รับการอนุมัติขั้นสุดท้ายเรียบร้อยแล้ว
+            </p>
+            
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #0d9488; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">calendar_month</span>
+                Auto-Sync Calendar (ซิงค์ปฏิทินทีม)
+              </h4>
+              <p style="font-size: 12px; color: #64748b; margin: 0 0 12px 0;">
+                เลือกช่องทางที่ต้องการนำวันลาที่อนุมัตินี้ ไปบันทึกลงในปฏิทินส่วนกลางของทีมโดยอัตโนมัติ
+              </p>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <a href="${gcalLink}" target="_blank" style="background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: #3c4043; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: background 0.2s;">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" style="width:16px; height:16px;">
+                  Google Calendar
+                </a>
+                <a href="${ocalLink}" target="_blank" style="background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: #3c4043; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: background 0.2s;">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" style="width:16px; height:16px;">
+                  Outlook Calendar
+                </a>
+              </div>
+            </div>
+          </div>
+        `,
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#0d9488'
+      });
+    } else {
+      await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
+    }
     loadPendingLeavesHR();
 
   } catch (err) {
@@ -2921,6 +3019,181 @@ window.closePreviewModal = closePreviewModal;
 window.openImageLightbox = openImageLightbox;
 window.closeImageLightbox = closeImageLightbox;
 window.exportLeaveReportExcel = exportLeaveReportExcel;
+
+/* ==========================================================================
+   ⚡ BULK ACTION WORKFLOW (อนุมัติหลายรายการพร้อมกัน)
+   ========================================================================== */
+window.toggleSelectAllBulk = function(sourceCheckbox) {
+  const checkboxes = document.querySelectorAll(".bulk-item-check");
+  checkboxes.forEach(cb => {
+    cb.checked = sourceCheckbox.checked;
+  });
+  handleBulkItemCheckChange();
+};
+
+window.handleBulkItemCheckChange = function() {
+  const checkboxes = document.querySelectorAll(".bulk-item-check");
+  const checkedBoxes = document.querySelectorAll(".bulk-item-check:checked");
+  const countSpan = document.getElementById("bulkSelectedCount");
+  const selectAll = document.getElementById("selectAllBulk");
+  
+  if (countSpan) {
+    countSpan.innerText = `เลือกแล้ว ${checkedBoxes.length} รายการ`;
+  }
+  if (selectAll) {
+    selectAll.checked = checkboxes.length > 0 && checkedBoxes.length === checkboxes.length;
+  }
+};
+
+window.cancelBulkSelection = function() {
+  const checkboxes = document.querySelectorAll(".bulk-item-check");
+  checkboxes.forEach(cb => cb.checked = false);
+  const selectAll = document.getElementById("selectAllBulk");
+  if (selectAll) selectAll.checked = false;
+  const countSpan = document.getElementById("bulkSelectedCount");
+  if (countSpan) countSpan.innerText = "เลือกแล้ว 0 รายการ";
+};
+
+window.submitBulkApproval = async function() {
+  const checkedBoxes = Array.from(document.querySelectorAll(".bulk-item-check:checked"));
+  if (checkedBoxes.length === 0) {
+    return Swal.fire({
+      icon: 'warning',
+      title: 'ยังไม่ได้เลือกรายการ',
+      text: 'กรุณาทำเครื่องหมายถูกที่ช่องหน้ารายการใบลาที่ต้องการอนุมัติครับ',
+      confirmButtonColor: '#0d9488'
+    });
+  }
+
+  const result = await Swal.fire({
+    title: 'ยืนยันอนุมัติกลุ่ม?',
+    html: `คุณต้องการอนุมัติใบลาทั้งหมด <strong>${checkedBoxes.length} รายการ</strong> ที่เลือกพร้อมกันทันทีหรือไม่?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#0d9488',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: `✔️ ยืนยันอนุมัติ (${checkedBoxes.length} รายการ)`,
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (!result.isConfirmed) return;
+
+  const total = checkedBoxes.length;
+  let successCount = 0;
+  let failCount = 0;
+
+  Swal.fire({
+    title: 'กำลังอนุมัติกลุ่ม...',
+    html: `ระบบกำลังประมวลผล <strong>0</strong> จาก ${total} รายการ`,
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
+
+  for (let i = 0; i < total; i++) {
+    const leaveId = checkedBoxes[i].dataset.id;
+    try {
+      const reqData = allLeaveRequests.find(r => String(r.id) === String(leaveId));
+      if (!reqData) continue;
+
+      if (window.PVTSDK?.user?.ensureLeaveBalances) {
+        await window.PVTSDK.user.ensureLeaveBalances(reqData.employee_id, reqData.start_date);
+      }
+
+      let updateFields = {};
+      if (currentRole === 'leader') {
+        updateFields.manager_status = 'approved';
+        const deptId = reqData.employees?.department_id || null;
+        const deptInfo = deptApproversMap[deptId] || {};
+        const hasManagerInDept = deptInfo.hasManager || Boolean(reqData.employees?.l2_approver_id);
+        if (!hasManagerInDept) {
+          updateFields.director_status = 'approved';
+        }
+      } else if (currentRole === 'manager') {
+        updateFields.director_status = 'approved';
+        if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+        if (hasExecutiveColumn) {
+          const applicantRole = String(reqData.employees?.role || '').toLowerCase();
+          const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+          if (!isApplicantLeaderOrManager) updateFields.executive_status = 'approved';
+        }
+      } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
+        if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+        if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
+        if (hasExecutiveColumn) {
+          updateFields.executive_status = 'approved';
+        } else {
+          updateFields.status = 'approved';
+          updateFields.approved_at = new Date().toISOString();
+        }
+      } else {
+        if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+        if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
+        if (hasExecutiveColumn) updateFields.executive_status = 'approved';
+        updateFields.status = 'approved';
+        updateFields.approved_at = new Date().toISOString();
+      }
+
+      if (updateFields.status === 'approved') {
+        const leaveDays = await getEffectiveLeaveDays(reqData);
+        const currentYear = getADYear(reqData.start_date);
+        if (window.PVTSDK?.user?.updateLeaveBalance) {
+          await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, leaveDays);
+        } else {
+          const { data: balDataList } = await sb
+            .from('leave_balances')
+            .select('id, remaining_days, used_days')
+            .eq('employee_id', reqData.employee_id)
+            .eq('leave_type_id', reqData.leave_type_id)
+            .in('year', [currentYear, currentYear + 543]);
+          if (balDataList && balDataList.length > 0) {
+            for (const balData of balDataList) {
+              const newUsed = Math.round(((balData.used_days || 0) + leaveDays) * 100) / 100;
+              const newRemaining = Math.max(0, Math.round(((balData.remaining_days || 0) - leaveDays) * 100) / 100);
+              await sb.from('leave_balances').update({ remaining_days: newRemaining, used_days: newUsed }).eq('id', balData.id);
+            }
+          }
+        }
+      }
+
+      const { error: updateErr } = await sb
+        .from('leave_requests')
+        .update(updateFields)
+        .eq('id', leaveId);
+
+      if (updateErr) throw updateErr;
+
+      // In-app Notification
+      await sb.from('notifications').insert({
+        employee_id: reqData.employee_id,
+        title: `ใบลาของคุณได้รับการอนุมัติ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      });
+
+      successCount++;
+    } catch (err) {
+      console.error(`Bulk item ${leaveId} failed:`, err);
+      failCount++;
+    }
+
+    const htmlContent = `ระบบกำลังประมวลผล <strong>${i + 1}</strong> จาก ${total} รายการ`;
+    const popup = Swal.getHtmlContainer();
+    if (popup) popup.innerHTML = htmlContent;
+  }
+
+  Swal.fire({
+    icon: 'success',
+    title: 'อนุมัติกลุ่มสำเร็จ!',
+    html: `ระบบดำเนินการอนุมัติเรียบร้อยทั้งหมด <strong>${successCount}</strong> รายการ${failCount > 0 ? `<br><small style="color:red">ไม่สำเร็จ ${failCount} รายการ</small>` : ''}`,
+    confirmButtonColor: '#0d9488',
+    confirmButtonText: 'ตกลง'
+  }).then(() => {
+    loadPendingLeavesHR();
+  });
+};
 
 window.handleLogout = function() {
   Swal.fire({

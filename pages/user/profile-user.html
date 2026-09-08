@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/css/profile-user.css" />
   <link rel="stylesheet" href="/css/leave-history.css" />
   <link rel="stylesheet" href="/css/system-settings.css" />
+  <link rel="stylesheet" href="/css/health-wellness.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -69,6 +70,12 @@
           <span class="material-symbols-outlined" style="color: #16a34a;">chat</span>
           <span>LINE</span>
         </button>
+
+        <!-- 📜 ปุ่มดูกฎระเบียบบริษัท -->
+        <a href="/pages/user/leave-rules.html" class="menu-item" title="กฎระเบียบและเงื่อนไขการลา">
+          <span class="material-symbols-outlined" style="color: #6366f1;">policy</span>
+          <span>กฎระเบียบ</span>
+        </a>
 
         <!-- 📘 ปุ่มคู่มือการใช้งาน -->
         <a href="/pages/user/full-guide.html" class="menu-item" title="คู่มือการใช้งาน">
@@ -131,6 +138,9 @@
         <div class="empty-state">กำลังโหลดข้อมูลพนักงาน...</div>
       </div>
     </section>
+
+    <!-- 🏥 สุขภาวะและการดูแลพนักงาน (Corporate Health & Wellness) -->
+    <div id="userProfileHealthContainer" style="margin-top: 20px;"></div>
 
     <!-- 💬 ตั้งค่าระบบแจ้งเตือน LINE สำหรับใบลานี้ -->
     <section class="recent-card" style="margin-top: 20px;">
@@ -233,6 +243,7 @@
   <script src="/js/supabase-config.js"></script>
   <script src="/js/auth-guard.js"></script>
   <script src="/js/system-settings.js"></script>
+  <script src="/js/health-wellness.js"></script>
   <script src="/js/webauthn-service.js"></script>
   <script src="/js/profile-user.js"></script>
 
