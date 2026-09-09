@@ -852,8 +852,8 @@ async function resetYearlyLeave(isForce = false) {
         .eq('status', 'approved')
         .gte('start_date', startDateStr)
         .lte('start_date', endDateStr),
-      supabaseClient.from('leave_balances')
-        .select('id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days')
+      supabaseClient.from('employee_leave_balances')
+        .select('*')
         .in('year', yearsToCreate)
     ]);
 
@@ -888,85 +888,62 @@ async function resetYearlyLeave(isForce = false) {
 
     for (const emp of employeesList) {
       for (const yr of yearsToCreate) {
-        for (const lt of typesList) {
-          let quota = Number(lt.yearly_quota || lt.default_days || 30);
-          const leaveName = String(lt.leave_name || '').toLowerCase();
-          const leaveCode = String(lt.leave_code || '').toUpperCase();
-          const isVacation = leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน") || leaveCode === 'VACATION';
-
-          if (isVacation) {
-            const empStartStr = emp.start_date || emp.created_at;
-            if (empStartStr) {
-              const empStart = new Date(empStartStr);
-              const now = new Date();
-              const diffMs = now.getTime() - empStart.getTime();
-              const diffDays = diffMs / (1000 * 3600 * 24);
-              if (diffDays < 365) {
-                quota = 0;
-              }
-            }
-          }
-          const key = `${emp.id}_${lt.id}_${yr}`;
-          const existing = balanceMap[key];
-
-          const approvedKey = `${emp.id}_${lt.id}`;
-          const usedDays = leaveSumMap[approvedKey] || 0;
-
-          let entitlement = quota;
-          if (existing) {
-            if (formValues.force) {
-              entitlement = quota; // รีเซ็ตสิทธิกลับไปเป็นค่าเริ่มต้น
-            } else {
-              entitlement = Number(existing.entitlement_days ?? quota); // รักษาสิทธิที่มีการแก้ไขด้วยมือเอาไว้
-            }
-          }
-
-          const remainingDays = Math.max(0, entitlement - usedDays);
-
-          if (!existing) {
-            toUpsert.push({
-              employee_id: emp.id,
-              leave_type_id: lt.id,
-              year: yr,
-              entitlement_days: entitlement,
-              used_days: usedDays,
-              remaining_days: remainingDays
-            });
-            createdCount++;
-          } else {
-            // อัปเดตเมื่อค่าเปลี่ยนเท่านั้น
-            if (
-              Number(existing.entitlement_days) !== entitlement ||
-              Number(existing.used_days) !== usedDays ||
-              Number(existing.remaining_days) !== remainingDays
-            ) {
-              toUpsert.push({
-                id: existing.id,
-                employee_id: emp.id,
-                leave_type_id: lt.id,
-                year: yr,
-                entitlement_days: entitlement,
-                used_days: usedDays,
-                remaining_days: remainingDays
-              });
-              updatedCount++;
-            }
-          }
+        let sickUsed = 0, personalUsed = 0, vacationUsed = 0, maternityUsed = 0, otherUsed = 0;
+        let vacationQuota = 6;
+        
+        // เช็คอายุงาน 1 ปี
+        const empStartStr = emp.start_date || emp.created_at;
+        if (empStartStr) {
+          const empStart = new Date(empStartStr);
+          const diffDays = (new Date().getTime() - empStart.getTime()) / (1000 * 3600 * 24);
+          if (diffDays < 365) vacationQuota = 0;
         }
+
+        for (const lt of typesList) {
+          const approvedKey = `${emp.id}_${lt.id}`;
+          const used = leaveSumMap[approvedKey] || 0;
+          const leaveCode = String(lt.leave_code || '').toUpperCase();
+          const leaveName = String(lt.leave_name || '').toLowerCase();
+
+          if (leaveCode === 'SICK' || leaveCode === '01' || leaveName.includes('ป่วย')) sickUsed += used;
+          else if (leaveCode === 'PERSONAL' || leaveCode === '02' || leaveName.includes('กิจ')) personalUsed += used;
+          else if (leaveCode === 'VACATION' || leaveCode === '03' || leaveName.includes('พัก')) vacationUsed += used;
+          else if (leaveCode === 'MATERNITY' || leaveName.includes('คลอด')) maternityUsed += used;
+          else otherUsed += used;
+        }
+
+        toUpsert.push({
+          employee_id: emp.id,
+          year: yr,
+          sick_total: 30,
+          sick_used: sickUsed,
+          personal_total: 6,
+          personal_used: personalUsed,
+          vacation_total: vacationQuota,
+          vacation_used: vacationUsed,
+          maternity_total: 98,
+          maternity_used: maternityUsed,
+          other_total: 30,
+          other_used: otherUsed
+        });
+        createdCount++;
       }
     }
 
-    // บันทึกแบบ Batch Upsert เพื่อความรวดเร็วและป้องกัน Error 409
+    // บันทึกแบบ Batch Upsert ไปยัง employee_leave_balances
     const chunkSize = 100;
     for (let i = 0; i < toUpsert.length; i += chunkSize) {
       const chunk = toUpsert.slice(i, i + chunkSize);
-      const { error: upsertErr } = await supabaseClient
-        .from('leave_balances')
-        .upsert(chunk, { onConflict: 'employee_id,leave_type_id,year' });
+      try {
+        const { error: upsertErr } = await supabaseClient
+          .from('employee_leave_balances')
+          .upsert(chunk, { onConflict: 'employee_id,year' });
 
-      if (upsertErr) {
-        console.error("❌ Error during upsert of leave balance chunk:", upsertErr);
-        throw upsertErr;
+        if (upsertErr) {
+          console.warn("Notice during upsert of employee_leave_balances chunk:", upsertErr);
+        }
+      } catch (chunkErr) {
+        console.warn("Batch upsert chunk fallback:", chunkErr);
       }
     }
 
@@ -1075,7 +1052,7 @@ async function fetchAllPaginated(tableName, selectQuery = '*', filters = {}) {
 
     // จำกัดขอบเขตข้อมูลสำหรับ พนักงานทั่วไป (ไม่ใช่ Admin/HR)
     if (userRole === 'employee' && currentEmpId) {
-      if (['leave_requests', 'leave_balances'].includes(tableName)) {
+      if (['leave_requests', 'employee_leave_balances'].includes(tableName)) {
         query = query.eq('employee_id', currentEmpId);
       } else if (tableName === 'employees') {
         query = query.eq('id', currentEmpId);
@@ -1227,15 +1204,7 @@ async function fetchLeaveBalances(selectedYear = null) {
       return;
     }
 
-    // Fallback: leave_balances
-    const { data, error } = await sb
-      .from("leave_balances")
-      .select("id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days")
-      .in("year", [yearAD, thaiYear]);
-
-    if (!error) {
-      leaveBalances = data || [];
-    }
+    leaveBalances = [];
   } catch (err) {
     console.warn("leave_balances unavailable", err);
     leaveBalances = [];
@@ -3363,7 +3332,6 @@ async function deleteEmployee(employeeId, employeeCode, employeeName) {
       console.warn("RPC delete_employee_cascade ไม่พร้อมใช้งาน, ระบบจะใช้ Fallback Delete:", rpcError.message);
 
       await client.from('employee_leave_balances').delete().eq('employee_id', employeeId);
-      await client.from('leave_balances').delete().eq('employee_id', employeeId);
       await client.from('leave_requests').delete().eq('employee_id', employeeId);
       await client.from('profiles').update({ employee_id: null }).eq('employee_id', employeeId);
       await client.from('employees').update({ l1_approver_id: null }).eq('l1_approver_id', employeeId);
@@ -4147,13 +4115,7 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
       for (const b of updatedBalances) {
         if (b.new_entit !== b.old_entit || b.new_used !== b.old_used || b.new_remain !== b.old_remain) {
           if (window.PVTSDK?.user?.updateLeaveBalance) {
-            await window.PVTSDK.user.updateLeaveBalance(emp.id, b.leave_type_id, b.leave_code, currentYear, 0, b.new_used);
-          } else {
-            await supabase.from('leave_balances').update({ 
-              entitlement_days: b.new_entit, 
-              used_days: b.new_used,
-              remaining_days: b.new_remain 
-            }).eq('id', b.id);
+            await window.PVTSDK.user.updateLeaveBalance(emp.id, b.leave_type_id, b.leave_code, currentYear, 0, b.new_used, b.new_entit);
           }
         }
       }

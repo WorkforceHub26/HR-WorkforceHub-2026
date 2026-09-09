@@ -304,8 +304,22 @@ function updateSidebarForRole(role, isPowerUser) {
     }
 
     if (navMenu) {
+      let homeHref = '/pages/hr/home.html';
+      if (document.referrer && document.referrer.includes('/pages/user/index-user.html')) {
+        homeHref = '/pages/user/index-user.html';
+        sessionStorage.setItem('holidays_came_from', 'user');
+      } else if (document.referrer && document.referrer.includes('/pages/hr/')) {
+        homeHref = '/pages/hr/home.html';
+        sessionStorage.setItem('holidays_came_from', 'hr');
+      } else {
+        const savedFrom = sessionStorage.getItem('holidays_came_from');
+        if (savedFrom === 'user') {
+          homeHref = '/pages/user/index-user.html';
+        }
+      }
+
       navMenu.innerHTML = `
-        <a href="/pages/hr/home.html" class="nav-item menu-item" title="ภาพรวมระบบ">
+        <a href="${homeHref}" class="nav-item menu-item" title="ภาพรวมระบบ">
           <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
@@ -338,10 +352,10 @@ function updateSidebarForRole(role, isPowerUser) {
           <span class="nav-label">บัตรพนักงาน</span>
         </button>
 
-        <!-- 🔄 สลับไปหน้าพนักงาน -->
-        <a href="/pages/user/index-user.html" class="nav-item menu-item" title="สลับไปหน้าพนักงาน">
-          <span class="material-symbols-outlined" style="color: #6366f1;">person</span>
-          <span class="nav-label">หน้าพนักงาน</span>
+        <!-- 🔄 สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
+        <a href="/pages/user/index-user.html" class="nav-item menu-item" title="กลับหน้าหลักของพนักงาน">
+          <span class="material-symbols-outlined" style="color: #10b981;">home</span>
+          <span class="nav-label">หน้าหลักของพนักงาน</span>
         </a>
       `;
     }

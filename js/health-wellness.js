@@ -247,42 +247,6 @@
       const latestCheck = checks[0] || null;
 
       container.innerHTML = `
-        <!-- 1. Digital Group Insurance Card -->
-        <div class="digital-insurance-card">
-          <div class="insurance-card-header">
-            <div class="insurance-logo-wrap">
-              <span class="material-symbols-outlined insurance-chip-icon">health_and_safety</span>
-              <div>
-                <div class="insurance-provider-title">${ins.provider || 'สวัสดิการประกันสุขภาพกลุ่ม'}</div>
-                <div style="font-size: 11px; opacity: 0.85;">เลขที่กรมธรรม์: ${ins.policy_number || '-'}</div>
-              </div>
-            </div>
-            <span class="insurance-plan-tag">${ins.plan_name || 'Group Plan'}</span>
-          </div>
-
-          <div class="insurance-card-body">
-            <div class="insurance-holder-name">${employee.full_name || health.employee_name}</div>
-            <div class="insurance-holder-meta">
-              รหัสบัตร: ${ins.card_number || '-'} | สังกัด: ${employee.departments?.department_name || 'PVT Group'}
-            </div>
-          </div>
-
-          <div class="insurance-card-footer">
-            <div class="insurance-limit-item">
-              <span class="insurance-limit-label">ผู้ป่วยนอก (OPD)</span>
-              <span class="insurance-limit-val">${ins.coverage_opd || '2,000 บ./ครั้ง'}</span>
-            </div>
-            <div class="insurance-limit-item">
-              <span class="insurance-limit-label">ผู้ป่วยใน (IPD)</span>
-              <span class="insurance-limit-val">${ins.coverage_ipd || '50,000 บ.'}</span>
-            </div>
-            <div class="insurance-limit-item" style="text-align: right;">
-              <span class="insurance-limit-label">วันหมดอายุ</span>
-              <span class="insurance-limit-val">${ins.expiry_date || '31/12/2026'}</span>
-            </div>
-          </div>
-        </div>
-
         <!-- 2. Beneficiaries Section -->
         <div class="beneficiaries-wrap">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -302,56 +266,6 @@
               <span class="beneficiary-percent-badge">${b.percentage}%</span>
             </div>
           `).join('') : '<div style="font-size: 12px; color: #94a3b8;">ยังไม่ได้ระบุผู้รับผลประโยชน์</div>'}
-        </div>
-
-        <!-- 3. Annual Health Checkup History -->
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <div style="font-size: 13.5px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
-              <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488;">medical_services</span>
-              ประวัติการตรวจสุขภาพประจำปี (Annual Health Checkup)
-            </div>
-            <span style="font-size: 12px; color: #0d9488; font-weight: 600;">ตรวจล่าสุดปี ${latestCheck ? latestCheck.year : '-'}</span>
-          </div>
-
-          <div class="health-checkup-timeline">
-            ${checks.map(check => `
-              <div class="health-checkup-card">
-                <div class="health-card-top">
-                  <div>
-                    <span class="health-year-badge">ปี ${check.year}</span>
-                    <strong style="margin-left: 8px; font-size: 13px; color: #1e293b;">${check.hospital || 'โรงพยาบาลคู่สัญญา'}</strong>
-                  </div>
-                  <span style="font-size: 12px; color: #64748b;">วันที่ตรวจ: ${check.check_date || '-'}</span>
-                </div>
-
-                <div class="health-vitals-grid">
-                  <div class="vital-stat-box">
-                    <div class="vital-stat-label">ความดันโลหิต (BP)</div>
-                    <div class="vital-stat-val">${check.blood_pressure || '-'}</div>
-                  </div>
-                  <div class="vital-stat-box">
-                    <div class="vital-stat-label">น้ำตาลในเลือด (FBS)</div>
-                    <div class="vital-stat-val">${check.blood_sugar_fbs || '-'}</div>
-                  </div>
-                  <div class="vital-stat-box">
-                    <div class="vital-stat-label">คอเลสเตอรอล</div>
-                    <div class="vital-stat-val">${check.cholesterol || '-'}</div>
-                  </div>
-                  <div class="vital-stat-box">
-                    <div class="vital-stat-label">ดัชนีมวลกาย (BMI)</div>
-                    <div class="vital-stat-val">${check.bmi || '-'}</div>
-                  </div>
-                </div>
-
-                ${check.doctor_notes ? `
-                  <div class="health-notes-box">
-                    <strong>คำแนะนำจากแพทย์:</strong> ${check.doctor_notes}
-                  </div>
-                ` : ''}
-              </div>
-            `).join('')}
-          </div>
         </div>
       `;
     }

@@ -65,10 +65,13 @@
       try {
         const issues = [];
         
-        // Check for negative balances
-        const { data: quotas } = await sb.from('leave_quotas').select('id, employee_id, leave_type_id, remaining_days').lt('remaining_days', 0);
+        // Check for negative balances or data anomalies
+        const { data: quotas } = await sb.from('employee_leave_balances').select('id, employee_id, sick_used, personal_used, vacation_used');
         if (quotas?.length > 0) {
-          issues.push(`พบพนักงาน ${quotas.length} รายที่มีวันลาติดลบ (Negative Balance)`);
+          const negativeList = quotas.filter(q => (q.sick_used < 0 || q.personal_used < 0 || q.vacation_used < 0));
+          if (negativeList.length > 0) {
+            issues.push(`พบพนักงาน ${negativeList.length} รายที่มีวันลาติดลบ (Negative Balance)`);
+          }
         }
 
         // Check for pending leaves with past dates (stale requests)

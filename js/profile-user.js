@@ -165,10 +165,7 @@ async function loadProfile() {
     }
     window.currentEmpProfile = emp;
 
-    // 🏥 Render Corporate Health & Wellness (Insurance, Health Check, Beneficiaries)
-    if (window.HealthWellness && typeof window.HealthWellness.renderProfileHealthSection === 'function') {
-      window.HealthWellness.renderProfileHealthSection('userProfileHealthContainer', emp?.employee_code || currentUserData?.employee_code);
-    }
+
 
     // Initialize WebAuthn biometric settings
     try {

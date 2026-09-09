@@ -287,66 +287,6 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
   background: #f8fafc;
 }
 
-/* 💻 Desktop Sidebar Collapsed state */
-@media (min-width: 1025px) {
-  .sidebar-light.collapsed, .sidebar.collapsed {
-    transform: translateX(-100%);
-  }
-  .main-content.expanded {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-}
-
-/* 📱 Responsive Drawer for Mobile & Tablet */
-@media (max-width: 1024px) {
-  .mobile-menu-btn {
-    display: inline-flex !important;
-  }
-
-  .sidebar-light, .sidebar, aside.sidebar-light, aside {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    bottom: 0 !important;
-    height: 100vh !important;
-    height: 100dvh !important;
-    width: 280px !important;
-    max-width: 86vw !important;
-    z-index: 9999 !important;
-    transform: translateX(-100%) !important;
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 6px 0 28px rgba(15, 23, 42, 0.22) !important;
-    background: #ffffff !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain !important;
-    -webkit-overflow-scrolling: touch !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-  }
-
-  .sidebar-light.mobile-open, .sidebar.mobile-open, aside.sidebar-light.mobile-open, aside.mobile-open {
-    transform: translateX(0) !important;
-  }
-
-  .sidebar-light .brand-zone, .sidebar .brand-zone, aside .brand-zone {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    padding: 16px 18px !important;
-  }
-
-  .btn-close-sidebar {
-    display: inline-flex !important;
-  }
-
-  .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    padding: 1.25rem 1rem 4rem 1rem !important;
-  }
-}
 
 /* --------------------------------------------------------------------------
    GLOBAL USER PROFILE (TOPBAR)
@@ -443,7 +383,6 @@ html, body {
     box-sizing: border-box !important;
   }
 
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
   .topbar {
     padding: 12px 14px !important;
     margin-bottom: 16px !important;
@@ -457,7 +396,6 @@ html, body {
     min-width: 0 !important;
   }
 
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1),
   .topbar-left h1,
   .topbar-left-text h1,
   .page-title {
@@ -610,12 +548,12 @@ html, body {
 .lang-switcher {
   display: inline-flex !important;
   align-items: center !important;
-  background: #f1f5f9 !important;
+  background: #f8fafc !important; /* Premium clean background */
   padding: 3px !important;
   border-radius: 9999px !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06) !important;
-  border: 1px solid #cbd5e1 !important;
-  gap: 2px !important;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+  border: 1px solid #e2e8f0 !important; /* Soft slate-200 border */
+  gap: 3px !important;
   box-sizing: border-box !important;
   z-index: 99 !important;
   position: relative !important;
@@ -626,14 +564,14 @@ html, body {
 #globalLangTh, #globalLangLo, #globalLangMy,
 #langThBtn, #langLoBtn, #langMyBtn {
   border: none !important;
-  padding: 4px 10px !important;
+  padding: 4px 14px !important; /* Spacious padding for beautiful readability */
   border-radius: 9999px !important; /* Always fully rounded pill matching container */
   cursor: pointer !important;
   font-size: 11.5px !important;
   font-weight: 600 !important;
   color: #64748b !important;
   background: transparent !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -642,7 +580,7 @@ html, body {
   min-height: 26px !important;
   box-sizing: border-box !important;
   white-space: nowrap !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 0.3px !important;
   outline: none !important;
 }
 
@@ -654,14 +592,15 @@ html, body {
 .lang-switcher button[style*="rgb(255, 255, 255)"] {
   background: #ffffff !important;
   background-color: #ffffff !important;
-  color: #0d9488 !important;
+  color: #0d9488 !important; /* Main Teal branding */
   border-radius: 9999px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
   font-weight: 700 !important;
 }
 
 .lang-switcher button:hover:not(.active) {
-  color: #1e293b !important;
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.03) !important;
 }
 
 /* ==========================================================================
@@ -1354,7 +1293,6 @@ p, span, div, td, th, label, .card-title, .badge {
 /* ==========================================================================
    🛠️ TOPBAR HEADER & LANGUAGE SWITCHER OVERLAP PREVENTION
    ========================================================================== */
-div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2),
 .topbar-right {
   display: flex !important;
   align-items: center !important;
@@ -1363,7 +1301,6 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   flex-wrap: wrap !important;
 }
 
-div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#globalLangSwitcherContainer:nth-of-type(1) > div:nth-of-type(1),
 #globalLangSwitcherContainer,
 #globalLangSwitcherContainer .lang-switcher {
   position: relative !important;
@@ -1376,8 +1313,6 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   align-items: center !important;
 }
 
-div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1),
-.topbar-right > button:nth-of-type(1),
 .topbar-right .action-btn {
   position: relative !important;
   grid-column: auto !important;
@@ -1423,282 +1358,16 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   background: transparent;
 }
 
-/* ==========================================================================
-   🧭 COMPACT UNIFIED LUXURY SIDEBAR (Fit 100% Screen Height Without Overflow)
-   ========================================================================== */
-.sidebar,
-.sidebar-light {
-  width: 250px;
-  min-width: 250px;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 100;
-  background: #ffffff;
-  border-right: 1px solid #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
-  overflow: hidden;
-}
 
-/* 🏷️ BRAND ZONE */
-.sidebar-brand,
-.brand-zone {
-  padding: 16px 16px 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #ffffff;
-  flex-shrink: 0;
-}
-
-.brand-icon {
-  width: 52px;
-  height: 36px;
-  min-width: 52px;
-  min-height: 36px;
-  background-color: #ffffff;
-  background-image: url('/assets/icons/Logo_PVT_2026_B.png');
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
-  transition: all 0.25s ease;
-  padding: 2px 4px;
-}
-
-.brand-icon:hover {
-  transform: scale(1.04);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
-}
-
-.brand-icon .material-symbols-outlined {
-  display: none !important;
-}
-
-.brand-name {
-  font-size: 13.5px;
-  font-weight: 800;
-  letter-spacing: 0.3px;
-  color: #0f766e;
-  text-transform: uppercase;
-  white-space: nowrap !important;
-  line-height: 1.2;
-}
-
-/* 🚀 SIDEBAR PRIMARY ACTION (CTA) */
-.sidebar-cta-wrap {
-  padding: 10px 12px 6px 12px;
-  width: 100%;
-  flex-shrink: 0;
-}
-
-.sidebar-cta-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  background: linear-gradient(135deg, #0d9488, #0891b2);
-  color: #ffffff !important;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 12.5px;
-  cursor: pointer;
-  box-shadow: 0 3px 10px rgba(13, 148, 136, 0.22);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  text-decoration: none;
-  box-sizing: border-box;
-}
-
-.sidebar-cta-btn:hover {
-  background: linear-gradient(135deg, #0f766e, #0e7490);
-  transform: translateY(-1px);
-  box-shadow: 0 5px 14px rgba(13, 148, 136, 0.32);
-  color: #ffffff !important;
-}
-
-.sidebar-cta-btn:active {
-  transform: translateY(0);
-}
-
-.sidebar-cta-btn .material-symbols-outlined {
-  font-size: 18px;
-}
-
-.sidebar-cta-label {
-  white-space: nowrap !important;
-}
-
-/* 🧭 NAVIGATION MENU LIST */
-.sidebar-menu,
-.nav-menu {
-  padding: 6px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-}
-
-/* 🔘 MENU ITEMS */
-.menu-item,
-.nav-item,
-button.menu-item,
-button.nav-item,
-.sidebar .menu-item,
-aside .menu-item,
-.sidebar-menu button,
-.sidebar-footer button {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  text-align: left !important;
-  gap: 12px !important;
-  padding: 10px 14px !important;
-  border-radius: 10px !important;
-  color: #475569 !important;
-  text-decoration: none !important;
-  font-size: 13.5px !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  border: none !important;
-  background: transparent !important;
-  width: 100% !important;
-  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  font-family: inherit !important;
-  box-sizing: border-box !important;
-  position: relative !important;
-  box-shadow: none !important;
-  letter-spacing: normal !important;
-}
-
-.menu-item span,
-.nav-item span,
-button.menu-item span,
-button.nav-item span {
-  white-space: nowrap !important;
-  text-align: left !important;
-}
-
-.menu-item .material-symbols-outlined,
-.nav-item .material-symbols-outlined,
-button.menu-item .material-symbols-outlined,
-button.nav-item .material-symbols-outlined {
-  font-size: 20px !important;
-  width: 24px !important;
-  min-width: 24px !important;
-  height: 24px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: transform 0.18s ease, color 0.18s ease !important;
-  flex-shrink: 0 !important;
-}
-
-.menu-item:hover,
-.nav-item:hover,
-button.menu-item:hover,
-button.nav-item:hover,
-.sidebar-menu button:hover,
-.sidebar-footer button:hover {
-  background: #f8fafc !important;
-  color: #0f172a !important;
-  transform: translateX(2px) !important;
-}
-
-.menu-item:active,
-.nav-item:active,
-button.menu-item:active,
-button.nav-item:active,
-.sidebar-menu button:active,
-.sidebar-footer button:active {
-  transform: translateX(2px) scale(0.98) !important;
-}
-
-.menu-item:hover .material-symbols-outlined,
-.nav-item:hover .material-symbols-outlined,
-button.menu-item:hover .material-symbols-outlined,
-button.nav-item:hover .material-symbols-outlined {
-  transform: scale(1.08) !important;
-}
 
 /* ==========================================================================
-   🚫 HIDE DUPLICATE HEADER BUTTON (FOCUS MODE DIRECTIVE)
+   🚫 CLEANED UNWANTED FOCUS FORCE RULES
    ========================================================================== */
-div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(2),
-.topbar-left > button:nth-of-type(2) {
-  display: none !important;
-}
-
-/* 🧭 FOCUS MODE: ALIGN SIDEBAR NAV BUTTONS TO THE LEFT */
-div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  justify-content: flex-start !important;
-}
-
-div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) > button:nth-of-type(1),
-div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) > button:nth-of-type(2) {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  text-align: left !important;
-  width: 100% !important;
-  padding: 10px 14px !important;
-  box-sizing: border-box !important;
-  border-radius: 10px !important;
-  border: none !important;
-  background: transparent !important;
-  color: #475569 !important;
-}
-
-div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) > button:nth-of-type(1):hover,
-div:nth-of-type(1) > aside#mainSidebar:nth-of-type(1) > nav:nth-of-type(1) > button:nth-of-type(2):hover {
-  background: #f8fafc !important;
-  color: #0f172a !important;
-}
-
-/* 🧭 FOCUS MODE: ALIGN SECTION 1 BUTTONS TO THE LEFT & OPTIMIZE TOPBAR SPACING */
-div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1),
-div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(2),
-div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(3),
-div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(4),
-div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(5),
-.card-btn-group .action-btn {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important; /* Forces Left Alignment! */
-  text-align: left !important;
-  gap: 12px !important;
-  width: 100% !important;
-  padding: 13px 18px !important;
-  border-radius: 14px !important;
-  box-sizing: border-box !important;
-}
 
 /* Optimize space on mobile under 540px to prevent title truncation */
 @media screen and (max-width: 540px) {
   .topbar-right .user-profile .info span,
-  .user-header .user-profile .info span,
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile .info span {
+  .user-header .user-profile .info span {
     display: none !important;
   }
   .topbar-right .user-profile .info,

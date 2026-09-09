@@ -11,6 +11,7 @@
   
   <!-- Style Sheets -->
   <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
   <link rel="stylesheet" href="/css/home.css" />
   <link rel="stylesheet" href="/css/holidays.css" />
   <link rel="stylesheet" href="/css/system-settings.css" />
@@ -42,63 +43,63 @@
         </button>
       </div>
       
-      <nav class="sidebar-menu nav-menu" id="sidebarNavMenu">
-        <a href="/pages/user/index-user.html" class="menu-item nav-item">
+      <nav class="sidebar-menu" id="sidebarNavMenu">
+        <a href="/pages/user/index-user.html" class="menu-item">
           <span class="material-symbols-outlined">home</span>
-          <span class="nav-label">หน้าหลัก</span>
+          <span>หน้าหลัก</span>
         </a>
-        <a href="/pages/user/profile-user.html" class="menu-item nav-item">
+        <a href="/pages/user/profile-user.html" class="menu-item">
           <span class="material-symbols-outlined">person</span>
-          <span class="nav-label">ข้อมูลส่วนตัว</span>
+          <span>ข้อมูลส่วนตัว</span>
         </a>
-        <a href="/pages/user/leave-history.html" class="menu-item nav-item">
+        <a href="/pages/user/leave-history.html" class="menu-item">
+          <span class="material-symbols-outlined">history</span>
+          <span>ประวัติการลา</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="menu-item active">
           <span class="material-symbols-outlined">calendar_today</span>
-          <span class="nav-label">ประวัติการลา</span>
-        </a>
-        <a href="/pages/user/holidays.html" class="menu-item nav-item active">
-          <span class="material-symbols-outlined">date_range</span>
-          <span class="nav-label">วันหยุด</span>
+          <span>ปฏิทิน</span>
         </a>
 
         <div class="sidebar-divider"></div>
         <div class="sidebar-section-title">บริการด่วน</div>
 
         <!-- 🪪 ปุ่มบัตรพนักงานดิจิทัล -->
-        <button type="button" class="menu-item nav-item" onclick="viewMyDigitalCard()" title="บัตรพนักงานดิจิทัล">
+        <button type="button" class="menu-item" onclick="viewMyDigitalCard()" title="บัตรพนักงานดิจิทัล">
           <span class="material-symbols-outlined" style="color: #0284c7;">badge</span>
-          <span class="nav-label">บัตรพนักงาน</span>
+          <span>บัตรพนักงาน</span>
         </button>
 
         <!-- 💬 ปุ่มเชื่อมต่อ LINE -->
-        <button type="button" class="menu-item nav-item" onclick="generateLineLinkToken()" title="เชื่อมต่อ LINE แจ้งเตือน">
+        <button type="button" class="menu-item" onclick="generateLineLinkToken()" title="เชื่อมต่อ LINE แจ้งเตือน">
           <span class="material-symbols-outlined" style="color: #16a34a;">chat</span>
-          <span class="nav-label">LINE</span>
+          <span>LINE</span>
         </button>
 
         <!-- 📜 ปุ่มดูกฎระเบียบบริษัท -->
-        <a href="/pages/user/leave-rules.html" class="menu-item nav-item" title="กฎระเบียบและเงื่อนไขการลา">
+        <a href="/pages/user/leave-rules.html" class="menu-item" title="กฎระเบียบและเงื่อนไขการลา">
           <span class="material-symbols-outlined" style="color: #6366f1;">policy</span>
-          <span class="nav-label">กฎระเบียบ</span>
+          <span>กฎระเบียบ</span>
         </a>
 
         <!-- 📘 ปุ่มคู่มือการใช้งาน -->
-        <a href="/pages/user/full-guide.html" class="menu-item nav-item" title="คู่มือการใช้งาน">
+        <a href="/pages/user/full-guide.html" class="menu-item" title="คู่มือการใช้งาน">
           <span class="material-symbols-outlined" style="color: #0d9488;">menu_book</span>
-          <span class="nav-label">คู่มือ</span>
+          <span>คู่มือ</span>
         </a>
 
         <div class="sidebar-divider"></div>
 
-        <a href="/pages/user/news.html" class="menu-item nav-item">
+        <a href="/pages/user/news.html" class="menu-item">
           <span class="material-symbols-outlined">campaign</span>
-          <span class="nav-label">ข่าวสาร</span>
+          <span>ข่าวสาร</span>
         </a>
       </nav>
       
       <div class="sidebar-footer" id="sidebarFooterZone">
-        <button type="button" class="menu-item nav-item" onclick="triggerBiometricHelp()" style="color: var(--primary);">
+        <button type="button" class="menu-item" onclick="triggerBiometricHelp()" style="color: var(--primary);">
           <span class="material-symbols-outlined">help_outline</span>
-          <span class="nav-label">ช่วยเหลือ</span>
+          <span>ช่วยเหลือ</span>
         </button>
       </div>
     </aside>

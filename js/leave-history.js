@@ -5,6 +5,10 @@ let currentFilter = 'all';
 let selectedYear = "2025"; // Standard default year matching the user screenshot
 
 function formatDuration(totalDays, leaveHours = null) {
+  if (window.PVTSDK?.formatLeaveDurationFriendly) {
+    return window.PVTSDK.formatLeaveDurationFriendly(totalDays, leaveHours, { compact: true });
+  }
+
   const days = parseFloat(totalDays) || 0;
   const hours = parseFloat(leaveHours) || 0;
   const uDays = window.getPVTTranslation ? window.getPVTTranslation("unitDays") : "วัน";
@@ -12,10 +16,11 @@ function formatDuration(totalDays, leaveHours = null) {
   const uMins = window.getPVTTranslation ? window.getPVTTranslation("unitMinutes") : "นาที";
 
   if (hours > 0) {
-    const d = Math.floor(hours / 8);
-    const remH = hours % 8;
-    const wholeH = Math.floor(remH);
-    const mins = Math.round((remH - wholeH) * 60);
+    const totalMinutes = Math.round(hours * 60);
+    const d = Math.floor(totalMinutes / 480);
+    const remM = totalMinutes % 480;
+    const wholeH = Math.floor(remM / 60);
+    const mins = remM % 60;
 
     let parts = [];
     if (d > 0) parts.push(`${d} ${uDays}`);
@@ -26,18 +31,29 @@ function formatDuration(totalDays, leaveHours = null) {
 
   if (days <= 0) return `0 ${uDays}`;
 
-  const wholeDays = Math.floor(days);
-  const fracDay = days - wholeDays;
-  const totalH = fracDay * 8;
-  const wholeH = Math.floor(totalH);
-  const mins = Math.round((totalH - wholeH) * 60);
+  const totalMinutes = Math.round(days * 480);
+  const wholeDays = Math.floor(totalMinutes / 480);
+  const remainingMinutes = totalMinutes % 480;
+  const wholeH = Math.floor(remainingMinutes / 60);
+  const mins = remainingMinutes % 60;
 
-  let parts = [];
-  if (wholeDays > 0) parts.push(`${wholeDays} ${uDays}`);
-  if (wholeH > 0) parts.push(`${wholeH} ${uHours}`);
-  if (mins > 0) parts.push(`${mins} ${uMins}`);
+  if (wholeDays === 0) {
+    if (wholeH === 4 && mins === 0) return `4 ${uHours} (ครึ่งวัน)`;
+    if (wholeH === 0 && mins > 0) return `${mins} ${uMins}`;
+    if (wholeH > 0 && mins === 0) return `${wholeH} ${uHours}`;
+    if (wholeH > 0 && mins > 0) return `${wholeH} ${uHours} ${mins} ${uMins}`;
+    return `${Number(days.toFixed(2))} ${uDays}`;
+  }
 
-  return parts.length > 0 ? parts.join(" ") : `${days} ${uDays}`;
+  let parts = [`${wholeDays} ${uDays}`];
+  if (wholeH === 4 && mins === 0) {
+    parts.push(`4 ${uHours} (ครึ่งวัน)`);
+  } else {
+    if (wholeH > 0) parts.push(`${wholeH} ${uHours}`);
+    if (mins > 0) parts.push(`${mins} ${uMins}`);
+  }
+
+  return parts.join(" ");
 }
 
 // Simple fallback date helper to format dates in Thai format (e.g. 20 พ.ค. 2025)

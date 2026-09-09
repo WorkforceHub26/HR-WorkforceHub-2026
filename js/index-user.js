@@ -177,7 +177,8 @@ window.loadRecentLeaves = async function(profile) {
   const pendingCount = document.getElementById("pendingCount");
   
   const sb = getSafeSupabaseClient();
-  const employeeId = profile?.id || profile?.employee_id;
+  const targetProfile = profile || window.currentProfile;
+  const employeeId = targetProfile?.id || targetProfile?.employee_id;
 
   if (!sb || !employeeId) {
     if (recentList) recentList.innerHTML = `<div class="empty-state">ไม่พบไอดีผู้ใช้งานระบบ</div>`;
@@ -279,6 +280,10 @@ window.loadRecentLeaves = async function(profile) {
           displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusPending") : "รออนุมัติ";
         }
 
+        const durationDisplay = window.PVTSDK?.formatLeaveDurationFriendly
+          ? window.PVTSDK.formatLeaveDurationFriendly(item.total_days, item.leave_hours)
+          : `${item.total_days} ${unitDays}`;
+
         return `
           <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -287,7 +292,7 @@ window.loadRecentLeaves = async function(profile) {
             </div>
             <div style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #64748b;">
               <div>📅 ${labelDates} <span style="color: #334155; font-weight: 500;">${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span></div>
-              <div>⏱️ ${labelDuration} <span style="color: #0fa472; font-weight: 600;">${item.total_days} ${unitDays}</span></div>
+              <div>⏱️ ${labelDuration} <span style="color: #0fa472; font-weight: 600;">${durationDisplay}</span></div>
             </div>
             <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
               <button type="button" class="btn-timeline-stepper" onclick="openVisualTimelineModal('${item.id}')" style="padding: 5px 12px; background: #f0fdfa; border: 1px solid #99f6e4; color: #0d9488; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
@@ -308,7 +313,7 @@ window.loadRecentLeaves = async function(profile) {
 
 window.addEventListener("pvt-lang-changed", () => {
   if (typeof loadRecentLeaves === "function") {
-    loadRecentLeaves();
+    loadRecentLeaves(window.currentProfile);
   }
 });
 
@@ -682,14 +687,14 @@ async function fetchUserNotifications() {
     const { data: dbNotifs } = await sb
       .from("notifications")
       .select("*")
-      .or(`employee_id.eq.${myId},user_id.eq.${myId}`) // 👈 ดึงแจ้งเตือนส่วนบุคคลตาม employee_id
+      .eq("employee_id", myId) // 👈 ดึงแจ้งเตือนส่วนบุคคลตาม employee_id
       .order("created_at", { ascending: false })
       .limit(50);
 
     let filteredDbNotifs = [];
     if (dbNotifs) {
       filteredDbNotifs = dbNotifs.filter(n => {
-        const notifRecipient = n.employee_id || n.user_id;
+        const notifRecipient = n.employee_id;
         if (notifRecipient) {
           return String(notifRecipient) === String(myId);
         }
@@ -977,7 +982,7 @@ async function markAllUserNotificationsAsRead(event) {
     const { data: dbNotifs } = await sb
       .from("notifications")
       .select("id")
-      .eq("user_id", myId)
+      .eq("employee_id", myId)
       .eq("is_read", false);
 
     if (dbNotifs) {
@@ -986,7 +991,7 @@ async function markAllUserNotificationsAsRead(event) {
 
     // มาร์กใน DB
     if (sb) {
-      await sb.from("notifications").update({ is_read: true }).or(`employee_id.eq.${myId},user_id.eq.${myId}`);
+      await sb.from("notifications").update({ is_read: true }).eq("employee_id", myId);
     }
 
     // กวาดรายการค้างอ่านที่ปรากฏทั้งหมด
@@ -1307,18 +1312,10 @@ async function loadQuotaData(targetYear) {
     const targetYearAD = yearNum > 2400 ? yearNum - 543 : yearNum;
     const thaiYear = targetYearAD + 543;
 
-    // 1. ดึงโควตาประจำปี (ใช้ getLeaveBalances จาก SDK หรือดึงจากทั้งสองตาราง)
+    // 1. ดึงโควตาประจำปี (ใช้ getLeaveBalances จาก SDK ที่เชื่อมโยง employee_leave_balances)
     let quotas = [];
     if (window.PVTSDK?.user?.getLeaveBalances) {
       quotas = await window.PVTSDK.user.getLeaveBalances(employeeId, targetYearAD);
-    }
-    if (!quotas || quotas.length === 0) {
-      const { data: qData } = await sb
-        .from('leave_balances')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .in('year', [targetYearAD, thaiYear]);
-      quotas = qData || [];
     }
 
     // 2. ดึงประเภทการลาทั้งหมดที่เปิดใช้งาน
@@ -1692,6 +1689,15 @@ function renderQuotaCards(quotas) {
     const isUnder1Year = Boolean(item.is_under_1_year);
     const tenureBadge = isUnder1Year ? `<span title="รอบปีการลาบริษัท: 1 ธ.ค. - 30 พ.ย." style="font-size: 11px; color: #e11d48; font-weight: 600; background: #fff1f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecdd3; margin-left: 6px;">อายุงานไม่ถึง 1 ปี (รอบ 1 ธ.ค. - 30 พ.ย.)</span>` : '';
 
+    const remainingFriendly = window.PVTSDK?.formatLeaveDurationFriendly
+      ? window.PVTSDK.formatLeaveDurationFriendly(remaining, 0, { compact: true })
+      : `${remaining} วัน`;
+    const usedFriendly = window.PVTSDK?.formatLeaveDurationFriendly
+      ? window.PVTSDK.formatLeaveDurationFriendly(used, 0, { compact: true })
+      : `${used} วัน`;
+    const remainingDisplay = Number.isInteger(remaining) ? remaining : remainingFriendly;
+    const remainingSubtext = Number.isInteger(remaining) ? '' : `<span style="font-size: 11px; color: #64748b; margin-left: 4px;">(${remaining} วัน)</span>`;
+
     return `
       <div class="quota-card" 
            onclick="showLeaveTypeHistory('${leaveTypeId}', '${typeName}')"
@@ -1705,8 +1711,9 @@ function renderQuotaCards(quotas) {
         </div>
         
         <div class="quota-days">
-          <span class="num-highlight" style="color: ${cardColor};">${remaining}</span>
+          <span class="num-highlight" style="color: ${cardColor};">${remainingDisplay}</span>
           <span class="num-total">/ ${total} วัน</span>
+          ${remainingSubtext}
         </div>
         
         <div class="quota-progress-track">
@@ -1714,7 +1721,7 @@ function renderQuotaCards(quotas) {
         </div>
 
         <div class="quota-footer">
-          <span>ใช้ไป ${used} วัน (${approvedTimes} ครั้ง)</span>
+          <span>ใช้ไป ${usedFriendly} (${approvedTimes} ครั้ง)</span>
           <span>${usedPercent}%</span>
         </div>
       </div>
@@ -1767,6 +1774,10 @@ window.showLeaveTypeHistory = async function(leaveTypeId, leaveTypeName) {
       else if (item.status === 'rejected') badge = `<span style="background:#f8d7da; color:#842029; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">❌ ไม่อนุมัติ</span>`;
       else if (item.status === 'cancelled' || item.status === 'cancelled_by_user') badge = `<span style="background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600;">🚫 ยกเลิก</span>`;
 
+      const formattedDuration = window.PVTSDK?.formatLeaveDurationFriendly
+        ? window.PVTSDK.formatLeaveDurationFriendly(item.total_days, item.leave_hours)
+        : `${item.total_days} วัน`;
+
       return `
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; margin-bottom:8px; text-align:left;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -1774,7 +1785,7 @@ window.showLeaveTypeHistory = async function(leaveTypeId, leaveTypeName) {
             ${badge}
           </div>
           <div style="font-size:12px; color:#64748b; line-height: 1.5;">
-            ⏱️ จำนวน: <strong style="color:#0f172a;">${item.total_days} วัน</strong>
+            ⏱️ จำนวน: <strong style="color:#0f172a;">${formattedDuration}</strong>
             ${item.reason ? `<br>💬 เหตุผล: ${safeEscapeHtml(item.reason)}` : ''}
           </div>
         </div>
@@ -1949,7 +1960,14 @@ window.selectedQuickLeaveTypeId = null;
 window.toggleQuickForm = function() {
   const body = document.getElementById('quickFormBody');
   const arrow = document.getElementById('quickFormArrow');
-  if (!body) return;
+  if (!body) {
+    if (typeof window.goToLeaveForm === 'function') {
+      window.goToLeaveForm();
+    } else {
+      window.location.href = "/pages/user/leave-user.html";
+    }
+    return;
+  }
   if (body.style.display === 'none') {
     body.style.display = 'block';
     if (arrow) arrow.style.transform = 'rotate(180deg)';
@@ -2307,6 +2325,9 @@ window.initQuickForm = async function(profile, quotas) {
         const name = item.leave_type_name || "วันลา";
         const remaining = item.remaining_days ?? 0;
         const cardColor = item.card_color || "#0d9488";
+        const remainingText = window.PVTSDK?.formatLeaveQuotaFriendly
+          ? window.PVTSDK.formatLeaveQuotaFriendly(remaining)
+          : `${remaining} วัน`;
         
         return `
           <button type="button" 
@@ -2315,7 +2336,7 @@ window.initQuickForm = async function(profile, quotas) {
                   onclick="selectQuickLeaveType('${item.leave_type_id}', this)"
                   style="border: 1.5px solid ${cardColor}40; background: #ffffff; border-radius: 8px; padding: 10px; text-align: left; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 4px; outline: none;">
             <span style="font-size: 13px; font-weight: 600; color: #1e293b;">${name}</span>
-            <span style="font-size: 11px; color: ${cardColor}; font-weight: 700;">เหลือ ${remaining} วัน</span>
+            <span style="font-size: 11px; color: ${cardColor}; font-weight: 700;">เหลือ ${remainingText}</span>
           </button>
         `;
       }).join('');
@@ -2395,6 +2416,8 @@ window.submitQuickLeave = async function() {
     const hasLeader = window.quickFormApproverInfo?.hasLeader ?? true;
     const hasManager = window.quickFormApproverInfo?.hasManager ?? false;
 
+    const isAutoReject = diffDays > 2;
+
     // Create the leave request object
     // ถ้าไม่มีหัวหน้ากะ/หัวหน้างาน ให้ข้าม L1 (manager_status = 'approved') และส่งให้ผู้จัดการฝ่าย (director_status = 'pending') พิจารณา
     const leaveRequest = {
@@ -2403,11 +2426,11 @@ window.submitQuickLeave = async function() {
       start_date: startDate,
       end_date: endDate,
       total_days: diffDays,
-      reason: reason,
+      reason: isAutoReject ? `${reason.trim()} (ปฏิเสธอัตโนมัติ: ลาเกิน 2 วัน)` : reason,
       attachment_url: attachmentUrl,
-      status: 'pending',
-      manager_status: hasLeader ? 'pending' : 'approved',
-      director_status: 'pending',
+      status: isAutoReject ? 'rejected' : 'pending',
+      manager_status: isAutoReject ? 'rejected' : (hasLeader ? 'pending' : 'approved'),
+      director_status: isAutoReject ? 'rejected' : 'pending',
       write_date: todayStr
     };
 
@@ -2465,16 +2488,28 @@ window.submitQuickLeave = async function() {
       successHtml += '<br><span style="color:#0d9488; font-size:13px; font-weight:600; display:inline-block; margin-top:6px;">✓ แนบไฟล์เอกสารเรียบร้อย</span>';
     }
 
-    Swal.fire({
-      icon: 'success',
-      title: '⚡ ยื่นคำขอลาสำเร็จ!',
-      html: successHtml,
-      confirmButtonText: 'ตกลง',
-      confirmButtonColor: '#0d9488'
-    }).then(() => {
-      // Refresh page data
-      location.reload();
-    });
+    if (diffDays > 2) {
+      successHtml = `ใบลาของคุณมีจำนวน<b>วันลาเกิน 2 วัน</b> ระบบจึงทำการปฏิเสธคำขอนี้โดยอัตโนมัติตามนโยบายบริษัท`;
+      Swal.fire({
+        icon: 'warning',
+        title: 'ยื่นคำขอลาเรียบร้อย (ระบบปฏิเสธ)',
+        html: successHtml,
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#ef4444'
+      }).then(() => {
+        location.reload();
+      });
+    } else {
+      Swal.fire({
+        icon: 'success',
+        title: '⚡ ยื่นคำขอลาสำเร็จ!',
+        html: successHtml,
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#0d9488'
+      }).then(() => {
+        location.reload();
+      });
+    }
 
   } catch (err) {
     console.error("Quick Leave submission failed:", err);
@@ -2596,7 +2631,7 @@ window.openVisualTimelineModal = async function(leaveId) {
       try {
         const { data } = await sb
           .from('leave_requests')
-          .select('*, leave_types(leave_name), employees(full_name, employee_code, role, department_id, departments(department_name), positions(position_name))')
+          .select('*, leave_types(leave_name), employees(full_name, employee_code, role, department_id, departments!department_id(department_name), positions(position_name))')
           .eq('id', leaveId)
           .single();
         req = data;

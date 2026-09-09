@@ -382,6 +382,10 @@
           centerIcon = "warning";
         }
 
+        const durationFriendly = window.PVTSDK?.formatLeaveDurationFriendly
+          ? window.PVTSDK.formatLeaveDurationFriendly(totalDays, req.leave_hours, { compact: true })
+          : `${totalDays} วัน${leaveHours}`;
+
         html += `
           <div class="sla-card ${cardClass}" id="sla-card-${req.id}" data-created-at="${req.created_at || ''}" data-leave-id="${req.id}">
             <!-- Card Top: User Info -->
@@ -438,7 +442,7 @@
                   <span class="material-symbols-outlined" style="font-size: 16px; color: #0d9488;">event_note</span>
                   ${escapeHtml(leaveTypeName)}
                 </span>
-                <span class="sla-duration-badge">${totalDays} วัน${leaveHours}</span>
+                <span class="sla-duration-badge">${durationFriendly}</span>
               </div>
               <div class="sla-dates-row">
                 <span class="material-symbols-outlined" style="font-size: 14px;">calendar_month</span>
@@ -467,31 +471,20 @@
               </div>
             ` : ''}
 
-            <!-- 🔘 Action Buttons (พิจารณา, รายละเอียด, ปริ้น, ดูรูป) -->
-            <div class="sla-actions-row">
-              <button type="button" class="btn-sla-action btn-sla-review" onclick="window.triggerSlaReview('${req.id}')" title="พิจารณาอนุมัติหรือไม่อนุมัติคำขอลา">
-                <span class="material-symbols-outlined" style="font-size: 15px;">gavel</span>
-                <span>พิจารณา</span>
+            <!-- 🔘 Action Buttons (อนุมัติ, ไม่อนุมัติ, รายละเอียด) -->
+            <div class="sla-actions-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+              <button type="button" class="btn-sla-action btn-sla-approve" onclick="window.slaApproveLeave('${req.id}')" title="อนุมัติคำขอลาทันที" style="background: #10b981; color: white; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 4px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
+                <span>อนุมัติ</span>
               </button>
-              <button type="button" class="btn-sla-action btn-sla-details" onclick="window.showSlaLeaveDetails('${req.id}')" title="ดูรายละเอียดใบลาฉบับเต็ม">
-                <span class="material-symbols-outlined" style="font-size: 15px;">visibility</span>
+              <button type="button" class="btn-sla-action btn-sla-reject" onclick="window.slaRejectLeave('${req.id}')" title="ไม่อนุมัติ / ปฏิเสธคำขอลา" style="background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 4px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">cancel</span>
+                <span>ไม่อนุมัติ</span>
+              </button>
+              <button type="button" class="btn-sla-action btn-sla-details" onclick="window.showSlaLeaveDetails('${req.id}')" title="ดูรายละเอียดใบลาฉบับเต็ม" style="background: #f1f5f9; color: #334155; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 4px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
                 <span>รายละเอียด</span>
               </button>
-              <button type="button" class="btn-sla-action btn-sla-print" onclick="typeof window.printLeaveA4 === 'function' ? window.printLeaveA4('${req.id}') : (window.location.href='/pages/hr/hr.html?id=${req.id}&action=print')" title="พิมพ์ใบลา A4">
-                <span class="material-symbols-outlined" style="font-size: 15px;">print</span>
-                <span>ปริ้น</span>
-              </button>
-              ${attachUrl ? `
-                <button type="button" class="btn-sla-action btn-sla-image" onclick="${isImg ? `typeof window.openImageLightbox === 'function' ? window.openImageLightbox('${attachUrl}', 'หลักฐาน #${req.id}') : window.open('${attachUrl}', '_blank')` : `window.open('${attachUrl}', '_blank')`}" title="${isImg ? 'ดูรูปภาพหลักฐาน' : 'เปิดดูไฟล์แนบ'}">
-                  <span class="material-symbols-outlined" style="font-size: 15px;">${isImg ? 'image' : 'attach_file'}</span>
-                  <span>${isImg ? 'ดูรูป' : 'ไฟล์แนบ'}</span>
-                </button>
-              ` : `
-                <button type="button" class="btn-sla-action btn-sla-image btn-sla-image-disabled" disabled title="ไม่มีไฟล์หรือรูปภาพแนบ">
-                  <span class="material-symbols-outlined" style="font-size: 15px;">hide_image</span>
-                  <span>ไม่มีรูป</span>
-                </button>
-              `}
             </div>
           </div>
         `;
@@ -655,6 +648,10 @@
     const reason = req.reason || 'ไม่ได้ระบุเหตุผล';
     const createdAtStr = req.created_at ? new Date(req.created_at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
 
+    const modalDurationFriendly = window.PVTSDK?.formatLeaveDurationFriendly
+      ? window.PVTSDK.formatLeaveDurationFriendly(totalDays, req.leave_hours)
+      : `${totalDays} วัน${leaveHours}`;
+
     // ตรวจสอบไฟล์แนบ
     let attachHtml = '';
     const fileUrl = req.file_url || req.attachment_url || req.document_url || '';
@@ -732,7 +729,7 @@
           <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #f1f5f9;">
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ระยะเวลาที่ขอลา</span>
             <strong style="color: #0f172a; font-size: 14px; display: flex; align-items: center; gap: 4px;">
-              <span class="material-symbols-outlined" style="font-size: 16px;">timelapse</span> ${totalDays} วัน${leaveHours}
+              <span class="material-symbols-outlined" style="font-size: 16px;">timelapse</span> ${modalDurationFriendly}
             </strong>
           </div>
 
@@ -766,7 +763,30 @@
           ยื่นคำขอเมื่อ: ${createdAtStr}
         </div>
 
-        ${attachHtml}
+         ${attachHtml}
+
+        <!-- Actions moved here: ปริ้นเอกสาร และดูรูปภาพแนบ -->
+        <div style="display: flex; gap: 10px; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+          <button type="button" class="btn-sla-action btn-sla-print" onclick="typeof window.printLeaveA4 === 'function' ? window.printLeaveA4('${req.id}') : (window.location.href='/pages/hr/hr.html?id=${req.id}&action=print')" 
+                  style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #0284c7; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13.5px; font-family: inherit; transition: background 0.2s;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">print</span>
+            <span>ปริ้นเอกสาร</span>
+          </button>
+          
+          ${fileUrl ? `
+            <button type="button" class="btn-sla-action btn-sla-image" onclick="${isImg ? `typeof window.openImageLightbox === 'function' ? window.openImageLightbox('${fileUrl}', 'หลักฐาน #${req.id}') : window.open('${fileUrl}', '_blank')` : `window.open('${fileUrl}', '_blank')`}" 
+                    style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #475569; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13.5px; font-family: inherit; transition: background 0.2s;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">${isImg ? 'image' : 'attach_file'}</span>
+              <span>${isImg ? 'ดูรูปภาพ' : 'เปิดไฟล์แนบ'}</span>
+            </button>
+          ` : `
+            <button type="button" class="btn-sla-action btn-sla-image btn-sla-image-disabled" disabled 
+                    style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #f8fafc; color: #94a3b8; border: 1px dashed #cbd5e1; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: not-allowed; font-size: 13.5px; font-family: inherit;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">hide_image</span>
+              <span>ไม่มีรูปภาพแนบ</span>
+            </button>
+          `}
+        </div>
       </div>
     `;
 
@@ -810,6 +830,132 @@
     } else {
       // หน้า home.html หรือหน้าอื่นๆ -> ส่งต่อไปยังหน้าตรวจใบลาพร้อมเปิดพิจารณา
       window.location.href = `/pages/hr/hr.html?id=${leaveId}&action=review`;
+    }
+  };
+
+  /**
+   * ดำเนินการอนุมัติใบลาโดยตรงจากตาราง SLA Tracker
+   */
+  window.slaApproveLeave = async function(leaveId) {
+    if (typeof window.approveLeave === 'function') {
+      await window.approveLeave(leaveId);
+    } else if (typeof window.quickApproveFromDashboard === 'function') {
+      await window.quickApproveFromDashboard(leaveId);
+    } else {
+      try {
+        const { isConfirmed } = await Swal.fire({
+          title: 'ยืนยันอนุมัติคำขอลา',
+          text: 'คุณแน่ใจหรือไม่ที่จะอนุมัติคำขอนี้ทันที?',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'อนุมัติ',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#10b981',
+          cancelButtonColor: '#94a3b8'
+        });
+        if (!isConfirmed) return;
+
+        Swal.fire({
+          title: 'กำลังบันทึกข้อมูล...',
+          allowOutsideClick: false,
+          didOpen: () => { Swal.showLoading(); }
+        });
+
+        const sb = window.PVTSDK?.client || window.pvtSupabase?.client;
+        if (!sb) throw new Error("ไม่พบระบบฐานข้อมูลหลัก");
+
+        const { error } = await sb.from('leave_requests').update({
+          status: 'approved',
+          approved_at: new Date().toISOString()
+        }).eq('id', leaveId);
+
+        if (error) throw error;
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'อนุมัติเรียบร้อย',
+          showConfirmButton: false,
+          timer: 1500
+        });
+
+        if (typeof window.loadPendingLeavesHR === 'function') {
+          await window.loadPendingLeavesHR();
+        } else if (typeof window.renderLeaveSlaTracker === 'function') {
+          await window.renderLeaveSlaTracker();
+        }
+      } catch (err) {
+        console.error("SLA Direct Approve Error:", err);
+        Swal.fire({
+          icon: 'error',
+          title: 'ไม่สามารถทำรายการได้',
+          text: err.message
+        });
+      }
+    }
+  };
+
+  /**
+   * ดำเนินการปฏิเสธ/ไม่อนุมัติใบลาโดยตรงจากตาราง SLA Tracker
+   */
+  window.slaRejectLeave = async function(leaveId) {
+    if (typeof window.rejectLeave === 'function') {
+      await window.rejectLeave(leaveId);
+    } else if (typeof window.quickRejectFromDashboard === 'function') {
+      await window.quickRejectFromDashboard(leaveId);
+    } else {
+      try {
+        const { value: rejectComment } = await Swal.fire({
+          title: 'ไม่อนุมัติคำขอลา',
+          input: 'text',
+          inputLabel: 'ระบุเหตุผลการไม่อนุมัติ',
+          inputPlaceholder: 'กรอกเหตุผล...',
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยันไม่อนุมัติ',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#ef4444',
+          cancelButtonColor: '#94a3b8',
+          inputValidator: (value) => {
+            if (!value) return 'กรุณาระบุเหตุผลการไม่อนุมัติ';
+          }
+        });
+        if (!rejectComment) return;
+
+        Swal.fire({
+          title: 'กำลังบันทึกข้อมูล...',
+          allowOutsideClick: false,
+          didOpen: () => { Swal.showLoading(); }
+        });
+
+        const sb = window.PVTSDK?.client || window.pvtSupabase?.client;
+        if (!sb) throw new Error("ไม่พบระบบฐานข้อมูลหลัก");
+
+        const { error } = await sb.from('leave_requests').update({
+          status: 'rejected',
+          approval_comment: rejectComment
+        }).eq('id', leaveId);
+
+        if (error) throw error;
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'ปฏิเสธเรียบร้อย',
+          showConfirmButton: false,
+          timer: 1500
+        });
+
+        if (typeof window.loadPendingLeavesHR === 'function') {
+          await window.loadPendingLeavesHR();
+        } else if (typeof window.renderLeaveSlaTracker === 'function') {
+          await window.renderLeaveSlaTracker();
+        }
+      } catch (err) {
+        console.error("SLA Direct Reject Error:", err);
+        Swal.fire({
+          icon: 'error',
+          title: 'ไม่สามารถทำรายการได้',
+          text: err.message
+        });
+      }
     }
   };
 

@@ -1277,34 +1277,46 @@ select.year-select option {
 .sidebar a.menu-item,
 .sidebar-menu .menu-item,
 .sidebar-footer .menu-item {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  text-align: left !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  gap: 12px !important;
-  padding: 10px 14px !important;
-  border-radius: 10px !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  letter-spacing: normal !important;
-  font-family: inherit !important;
-  cursor: pointer !important;
-  color: #475569 !important;
-  text-decoration: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  letter-spacing: normal;
+  font-family: inherit;
+  cursor: pointer;
+  color: #475569;
+  text-decoration: none;
 }
 
 .sidebar .menu-item span,
 .sidebar-footer .menu-item span {
-  text-align: left !important;
-  white-space: nowrap !important;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .sidebar .menu-item:hover,
 .sidebar-footer .menu-item:hover {
-  background: #f8fafc !important;
-  color: #0f172a !important;
-  transform: translateX(2px) !important;
+  background: #f8fafc;
+  color: #0f172a;
+  transform: translateX(2px);
+}
+
+.sidebar .menu-item.active,
+.sidebar-menu .menu-item.active {
+  background: #ecfeff;
+  color: #0891b2;
+  font-weight: 600;
+}
+
+.sidebar .menu-item.active .material-symbols-outlined,
+.sidebar-menu .menu-item.active .material-symbols-outlined {
+  color: #0891b2;
 }

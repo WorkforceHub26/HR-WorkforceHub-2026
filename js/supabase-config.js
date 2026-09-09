@@ -808,26 +808,6 @@
         console.warn("employee_leave_balances fetch error:", e);
       }
 
-      if (!result || result.length === 0) {
-        try {
-          const { data, error } = await this.client
-            .from('leave_balances')
-            .select(`
-              id, employee_id, leave_type_id, year, entitlement_days, used_days, remaining_days, quota, created_at,
-              leave_types ( 
-                id, leave_code, leave_name, yearly_quota, status, allow_after_months, 
-                requires_attachment, require_advance_days, max_days_per_request, paid_leave, default_days, created_at 
-              )
-            `)
-            .eq('employee_id', employeeId)
-            .in('year', [yearAD, thaiYear]);
-
-          if (!error && data && data.length > 0) {
-            result = data;
-          }
-        } catch(e) {}
-      }
-
       // 🛡️ หากยังไม่มีข้อมูลโควตา ให้สร้างอัตโนมัติแล้วลองดึงอีกครั้ง
       if (!result || result.length === 0) {
         try {
@@ -912,41 +892,6 @@
             other_used: 0.0
           }]);
         console.log("✅ Auto-created missing employee_leave_balances for year", yearAD);
-
-        // 2. ลองสร้างในตารางเก่า leave_balances หากมีตาราง
-        try {
-          const { data: leaveTypes } = await this.client
-            .from('leave_types')
-            .select('id, yearly_quota, default_days');
-
-          if (leaveTypes && leaveTypes.length > 0) {
-            const { data: existingBalances } = await this.client
-              .from('leave_balances')
-              .select('leave_type_id')
-              .eq('employee_id', employeeId)
-              .in('year', [yearAD, thaiYear]);
-
-            const existingKeys = new Set((existingBalances || []).map(b => b.leave_type_id));
-            const newBalances = [];
-            for (const lt of leaveTypes) {
-              if (!existingKeys.has(lt.id)) {
-                const quota = Number(lt.yearly_quota || lt.default_days || 30);
-                newBalances.push({
-                  employee_id: employeeId,
-                  leave_type_id: lt.id,
-                  year: yearAD,
-                  entitlement_days: quota,
-                  used_days: 0,
-                  remaining_days: quota
-                });
-              }
-            }
-            if (newBalances.length > 0) {
-              await this.client.from('leave_balances').insert(newBalances);
-            }
-          }
-        } catch (e) {}
-
         return { status: 'created', message: 'สร้างข้อมูลเรียบร้อยแล้ว' };
       } catch (err) {
         console.warn("⚠️ [ensureLeaveBalances] Warning:", err);
@@ -1018,27 +963,6 @@
               [totalCol]: initialTotal
             }]);
         }
-
-        // ลองอัปเดตตารางเก่า leave_balances หากมี
-        try {
-          if (leaveTypeId) {
-            const { data: balData } = await this.client
-              .from('leave_balances')
-              .select('id, remaining_days, used_days, entitlement_days')
-              .eq('employee_id', employeeId)
-              .eq('leave_type_id', leaveTypeId)
-              .eq('year', yearAD)
-              .maybeSingle();
-
-            if (balData) {
-              const ent = Number(balData.entitlement_days || 30);
-              const curUsed = Number(balData.used_days || 0);
-              const nUsed = absoluteUsedDays !== null ? absoluteUsedDays : Math.max(0, curUsed + deltaUsedDays);
-              const nRem = Math.max(0, ent - nUsed);
-              await this.client.from('leave_balances').update({ used_days: nUsed, remaining_days: nRem }).eq('id', balData.id);
-            }
-          }
-        } catch(e) {}
       } catch(err) {
         console.warn("⚠️ updateLeaveBalance error:", err);
       }
@@ -1538,52 +1462,77 @@ class LineOAEngine {
     }
   }
 
-  formatLeaveDurationFriendly(totalDays, totalHours = 0) {
+  /**
+   * แปลงจำนวนวัน/ชั่วโมงให้เป็นข้อความภาษาไทยที่อ่านเข้าใจง่าย
+   * เช่น 0.0625 วัน -> 30 นาที, 0.125 วัน -> 1 ชั่วโมง, 5.875 วัน -> 5 วัน 7 ชั่วโมง
+   */
+  formatLeaveDurationFriendly(totalDays, totalHours = 0, options = {}) {
     const d = parseFloat(totalDays) || 0;
     const h = parseFloat(totalHours) || 0;
+    const isCompact = Boolean(options.compact);
 
+    const uDays = isCompact ? "วัน" : "วัน";
+    const uHours = isCompact ? "ชม." : "ชั่วโมง";
+    const uMins = "นาที";
+
+    // 1) กรณีระบุ totalHours ชัดเจน
     if (h > 0) {
-      const daysFromHours = Math.floor(h / 8);
-      const remHours = h % 8;
-      const wholeH = Math.floor(remHours);
-      const mins = Math.round((remHours - wholeH) * 60);
+      const totalMinutes = Math.round(h * 60);
+      const daysFromHours = Math.floor(totalMinutes / 480);
+      const remMinutes = totalMinutes % 480;
+      const wholeH = Math.floor(remMinutes / 60);
+      const mins = remMinutes % 60;
 
       let parts = [];
-      if (daysFromHours > 0) parts.push(`${daysFromHours} วัน`);
-      if (wholeH > 0) parts.push(`${wholeH} ชั่วโมง`);
-      if (mins > 0) parts.push(`${mins} นาที`);
+      if (daysFromHours > 0) parts.push(`${daysFromHours} ${uDays}`);
+      if (wholeH > 0) parts.push(`${wholeH} ${uHours}`);
+      if (mins > 0) parts.push(`${mins} ${uMins}`);
 
-      return parts.length > 0 ? parts.join(" ") : `${h} ชั่วโมง`;
+      return parts.length > 0 ? parts.join(" ") : `${h} ${uHours}`;
     }
 
-    if (d <= 0) return "0 วัน";
+    if (d <= 0) return `0 ${uDays}`;
 
-    const wholeDays = Math.floor(d);
-    const fracDay = d - wholeDays;
-    const totalH = fracDay * 8;
-    const wholeH = Math.floor(totalH + 0.0001);
-    const mins = Math.round((totalH - wholeH) * 60);
+    // 2) คำนวณตามสูตร 1 วันทำงาน = 8 ชั่วโมง = 480 นาที (เพื่อความแม่นยำ 100% ป้องกันทศนิยมลอยน้ำ)
+    const totalMinutes = Math.round(d * 480);
+    const wholeDays = Math.floor(totalMinutes / 480);
+    const remainingMinutes = totalMinutes % 480;
+    const wholeH = Math.floor(remainingMinutes / 60);
+    const mins = remainingMinutes % 60;
 
     // กรณีค่าน้อยกว่า 1 วัน
     if (wholeDays === 0) {
-      if (wholeH === 4 && mins === 0) return "0.5 วัน (ลาครึ่งวัน)";
+      if (wholeH === 4 && mins === 0) {
+        return isCompact ? "4 ชม. (ครึ่งวัน)" : "4 ชั่วโมง (ลาครึ่งวัน)";
+      }
       if (wholeH === 0 && mins === 30) return "30 นาที";
       if (wholeH === 0 && mins > 0) return `${mins} นาที`;
-      if (wholeH > 0 && mins > 0) return `${wholeH} ชั่วโมง ${mins} นาที`;
-      if (wholeH > 0) return `${wholeH} ชั่วโมง`;
-      return `${Number(d.toFixed(2))} วัน`;
+      if (wholeH > 0 && mins === 0) return `${wholeH} ${uHours}`;
+      if (wholeH > 0 && mins > 0) return `${wholeH} ${uHours} ${mins} ${uMins}`;
+      return `${Number(d.toFixed(2))} ${uDays}`;
     }
 
-    // กรณีตั้งแต่ 1 วันขึ้นไป
-    let parts = [`${wholeDays} วัน`];
+    // กรณีตั้งแต่ 1 วันขึ้นไป (เช่น 5.875 วัน -> 5 วัน 7 ชั่วโมง)
+    let parts = [`${wholeDays} ${uDays}`];
     if (wholeH === 4 && mins === 0) {
-      parts.push(`4 ชั่วโมง (ลาครึ่งวัน)`);
+      parts.push(isCompact ? `4 ชม. (ครึ่งวัน)` : `4 ชั่วโมง (ลาครึ่งวัน)`);
     } else {
-      if (wholeH > 0) parts.push(`${wholeH} ชั่วโมง`);
-      if (mins > 0) parts.push(`${mins} นาที`);
+      if (wholeH > 0) parts.push(`${wholeH} ${uHours}`);
+      if (mins > 0) parts.push(`${mins} ${uMins}`);
     }
 
     return parts.join(" ");
+  }
+
+  /**
+   * แปลงโควต้าวันลาคงเหลือให้มนุษย์เข้าใจง่ายทันที
+   * เช่น 5.875 -> '5 วัน 7 ชม.'
+   */
+  formatLeaveQuotaFriendly(days) {
+    const num = parseFloat(days) || 0;
+    if (num <= 0) return "0 วัน";
+    if (Number.isInteger(num)) return `${num} วัน`;
+    return this.formatLeaveDurationFriendly(num, 0, { compact: true });
   }
 
   formatThaiDateShort(dateStr) {
@@ -2488,5 +2437,20 @@ class LineOAEngine {
     }
     return [];
   };
+
+  // Global Helpers for Friendly Leave Duration & Quotas
+  global.formatLeaveDurationFriendly = function(totalDays, totalHours = 0, options = {}) {
+    return global.PVTSDK?.formatLeaveDurationFriendly
+      ? global.PVTSDK.formatLeaveDurationFriendly(totalDays, totalHours, options)
+      : `${totalDays} วัน`;
+  };
+
+  global.formatLeaveQuotaFriendly = function(days) {
+    return global.PVTSDK?.formatLeaveQuotaFriendly
+      ? global.PVTSDK.formatLeaveQuotaFriendly(days)
+      : `${days} วัน`;
+  };
+
+  global.formatLeaveDurationText = global.formatLeaveDurationFriendly;
 
 })(typeof window !== "undefined" ? window : this);

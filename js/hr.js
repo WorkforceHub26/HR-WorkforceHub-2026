@@ -422,7 +422,7 @@ function isHistoryForRole(r, role) {
 }
 
 function getADYear(dateStr) {
-  if (typeof window.getADYear === 'function') {
+  if (typeof window.getADYear === 'function' && window.getADYear !== getADYear) {
     return window.getADYear(dateStr);
   }
   if (!dateStr) {
@@ -1629,25 +1629,6 @@ async function approveLeave(leaveId) {
 
       if (window.PVTSDK?.user?.updateLeaveBalance) {
         await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, leaveDays);
-      } else {
-        const { data: balDataList } = await sb
-          .from('leave_balances')
-          .select('id, remaining_days, used_days')
-          .eq('employee_id', reqData.employee_id)
-          .eq('leave_type_id', reqData.leave_type_id)
-          .in('year', [currentYear, currentYear + 543]);
-
-        if (balDataList && balDataList.length > 0) {
-          for (const balData of balDataList) {
-            const newUsed = Math.round(((balData.used_days || 0) + leaveDays) * 100) / 100;
-            const newRemaining = Math.max(0, Math.round(((balData.remaining_days || 0) - leaveDays) * 100) / 100);
-
-            await sb
-              .from('leave_balances')
-              .update({ remaining_days: newRemaining, used_days: newUsed })
-              .eq('id', balData.id);
-          }
-        }
       }
     }
 
@@ -1889,7 +1870,11 @@ async function approveLeave(leaveId) {
       const sDateStr = formatGCalDate(reqData.start_date);
       const eDateStr = formatGCalDate(reqData.end_date, 1);
       
-      const details = `ประเภทการลา: ${reqData.leave_types?.leave_name || 'ใบลา'}\nเหตุผลการลา: ${reqData.reason || '-'}\nจำนวนวันลา: ${reqData.total_days || 0} วัน\nอนุมัติโดยระบบ PVT Workforce Hub`;
+      const durationFriendly = window.PVTSDK?.formatLeaveDurationFriendly 
+        ? window.PVTSDK.formatLeaveDurationFriendly(reqData.total_days, reqData.leave_hours || 0)
+        : (reqData.total_days ? `${reqData.total_days} วัน` : '1 วัน');
+
+      const details = `ประเภทการลา: ${reqData.leave_types?.leave_name || 'ใบลา'}\nเหตุผลการลา: ${reqData.reason || '-'}\nจำนวนวันลา: ${durationFriendly}\nอนุมัติโดยระบบ PVT Workforce Hub`;
       const location = `PVT Workforce Hub`;
 
       const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(subject)}&dates=${sDateStr}/${eDateStr}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
@@ -2070,21 +2055,6 @@ async function forceCancelLeave(leaveId) {
 
       if (window.PVTSDK?.user?.updateLeaveBalance) {
         await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, -daysToReturn);
-      } else {
-        const { data: balData } = await sb
-          .from('leave_balances')
-          .select('id, remaining_days, used_days')
-          .eq('employee_id', reqData.employee_id)
-          .eq('leave_type_id', reqData.leave_type_id)
-          .eq('year', currentYear)
-          .maybeSingle();
-
-        if (balData) {
-          await sb.from('leave_balances').update({
-            remaining_days: Math.round(((balData.remaining_days || 0) + daysToReturn) * 100) / 100,
-            used_days: Math.max(0, Math.round(((balData.used_days || 0) - daysToReturn) * 100) / 100)
-          }).eq('id', balData.id);
-        }
       }
     }
 
@@ -2144,24 +2114,6 @@ async function approveCancellation(leaveId) {
 
     if (window.PVTSDK?.user?.updateLeaveBalance) {
       await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, -daysToReturn);
-    } else {
-      const { data: balData } = await sb
-        .from('leave_balances')
-        .select('id, remaining_days, used_days')
-        .eq('employee_id', reqData.employee_id)
-        .eq('leave_type_id', reqData.leave_type_id)
-        .eq('year', currentYear)
-        .maybeSingle();
-
-      if (balData) {
-        const newUsed = Math.max(0, Math.round(((balData.used_days || 0) - daysToReturn) * 100) / 100);
-        const newRemaining = Math.round(((balData.remaining_days || 0) + daysToReturn) * 100) / 100;
-
-        await sb
-          .from('leave_balances')
-          .update({ remaining_days: newRemaining, used_days: newUsed })
-          .eq('id', balData.id);
-      }
     }
 
     const { error: updateErr } = await sb
@@ -3140,20 +3092,6 @@ window.submitBulkApproval = async function() {
         const currentYear = getADYear(reqData.start_date);
         if (window.PVTSDK?.user?.updateLeaveBalance) {
           await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, leaveDays);
-        } else {
-          const { data: balDataList } = await sb
-            .from('leave_balances')
-            .select('id, remaining_days, used_days')
-            .eq('employee_id', reqData.employee_id)
-            .eq('leave_type_id', reqData.leave_type_id)
-            .in('year', [currentYear, currentYear + 543]);
-          if (balDataList && balDataList.length > 0) {
-            for (const balData of balDataList) {
-              const newUsed = Math.round(((balData.used_days || 0) + leaveDays) * 100) / 100;
-              const newRemaining = Math.max(0, Math.round(((balData.remaining_days || 0) - leaveDays) * 100) / 100);
-              await sb.from('leave_balances').update({ remaining_days: newRemaining, used_days: newUsed }).eq('id', balData.id);
-            }
-          }
         }
       }
 

@@ -43,7 +43,7 @@ window.globalAppTranslations = window.globalAppTranslations || {
     ruleSub: "เปิดอ่านเงื่อนไขบริษัท",
     historyTitle: "ประวัติการลา",
     historySub: "ตรวจสอบสถานะใบลา",
-    profileTitle: "ข้อมูลพนักงาน",
+    profileTitle: "ข้อมูลส่วนตัว",
     profileSub: "ตรวจสอบรหัส ชื่อ และวันเริ่มงาน",
     holidayTitle: "ปฏิทินวันหยุด",
     holidaySub: "วันหยุดประจำปีบริษัท",

@@ -180,7 +180,7 @@
           const u = sessionData.session.user;
           // Fetch employee record
           const { data: empDb } = await sb.from('employees')
-            .select('id, employee_code, full_name, role, status, email, departments(department_name), positions(position_name)')
+            .select('id, employee_code, full_name, role, status, email, departments!department_id(department_name), positions(position_name)')
             .or(`id.eq.${u.id},email.eq.${u.email}`)
             .maybeSingle();
 
@@ -557,12 +557,12 @@
       try {
         let empQuery = null;
         if (matchedCred && matchedCred.employee_id) {
-          empQuery = await sb.from('employees').select('*, departments(department_name), positions(position_name, duty_name)').eq('id', matchedCred.employee_id).maybeSingle();
+          empQuery = await sb.from('employees').select('*, departments!department_id(department_name), positions(position_name, duty_name)').eq('id', matchedCred.employee_id).maybeSingle();
         } else if (matchedCred && matchedCred.employee_code) {
-          empQuery = await sb.from('employees').select('*, departments(department_name), positions(position_name, duty_name)').eq('employee_code', matchedCred.employee_code).maybeSingle();
+          empQuery = await sb.from('employees').select('*, departments!department_id(department_name), positions(position_name, duty_name)').eq('employee_code', matchedCred.employee_code).maybeSingle();
         } else {
           // Query by webauthn_credentials table
-          const { data: dbCred } = await sb.from('webauthn_credentials').select('*, employees(*, departments(department_name), positions(position_name))').eq('credential_id', credentialId).maybeSingle();
+          const { data: dbCred } = await sb.from('webauthn_credentials').select('*, employees(*, departments!department_id(department_name), positions(position_name))').eq('credential_id', credentialId).maybeSingle();
           if (dbCred && dbCred.employees) {
             employee = dbCred.employees;
             matchedCred = dbCred;

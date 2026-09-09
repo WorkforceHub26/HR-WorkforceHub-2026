@@ -69,7 +69,89 @@
   };
 
   // 🚀 1. Immediate Application on script execution
+  const NATIVE_LANGUAGE_NAMES = {
+    'th': 'ไทย (Thai)',
+    'en': 'English',
+    'lo': 'ພາສາລາວ (Lao)',
+    'my': 'မြန်မာစာ (Burmese)',
+    'ja': '日本語 (Japanese)',
+    'zh-CN': '简体中文 (Chinese)',
+    'ko': '한국어 (Korean)'
+  };
+
+  function startNativeLanguageObserver() {
+    if (window.nativeLanguageObserverStarted) return;
+    window.nativeLanguageObserverStarted = true;
+
+    setInterval(() => {
+      const combo = document.querySelector('.goog-te-combo');
+      if (combo) {
+        // Change default option text (usually "เลือกภาษา" or "Select Language")
+        const firstOption = combo.options[0];
+        if (firstOption && firstOption.value === "" && firstOption.textContent !== "เลือกภาษา / Select Language") {
+          firstOption.textContent = "เลือกภาษา / Select Language";
+        }
+
+        const options = combo.querySelectorAll('option');
+        options.forEach(option => {
+          const val = option.value;
+          if (NATIVE_LANGUAGE_NAMES[val] && option.textContent !== NATIVE_LANGUAGE_NAMES[val]) {
+            option.textContent = NATIVE_LANGUAGE_NAMES[val];
+          }
+        });
+      }
+    }, 300);
+  }
+
+  function startGoogleBannerKiller() {
+    if (window.googleBannerKillerStarted) return;
+    window.googleBannerKillerStarted = true;
+
+    setInterval(() => {
+      const selectors = [
+        'iframe.goog-te-banner-frame',
+        'iframe.goog-te-banner-frame-escaped',
+        'iframe[src*="translate.google.com"]',
+        'iframe[id*="google_translate"]',
+        'iframe[class*="goog-te-banner-frame"]',
+        '.goog-te-banner-frame',
+        '.goog-te-banner',
+        '#goog-gt-tt',
+        '.goog-te-balloon-frame',
+        '.goog-te-banner-frame-escaped'
+      ];
+      
+      selectors.forEach(sel => {
+        const els = document.querySelectorAll(sel);
+        els.forEach(el => {
+          if (el.style.display !== 'none' || el.style.visibility !== 'hidden' || el.style.height !== '0px') {
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+            el.style.setProperty('opacity', '0', 'important');
+            el.style.setProperty('height', '0px', 'important');
+            el.style.setProperty('width', '0px', 'important');
+            el.style.setProperty('pointer-events', 'none', 'important');
+          }
+        });
+      });
+
+      if (document.body) {
+        if (document.body.style.top !== '0px' || document.body.style.marginTop !== '0px') {
+          document.body.style.setProperty('top', '0px', 'important');
+          document.body.style.setProperty('margin-top', '0px', 'important');
+        }
+      }
+      if (document.documentElement) {
+        if (document.documentElement.style.top !== '0px' || document.documentElement.style.marginTop !== '0px') {
+          document.documentElement.style.setProperty('top', '0px', 'important');
+          document.documentElement.style.setProperty('margin-top', '0px', 'important');
+        }
+      }
+    }, 100);
+  }
+
   function applySavedPreferences() {
+    startGoogleBannerKiller();
     // Dynamically inject Google Translate script and placeholder if not present
     if (!document.getElementById('google_translate_element_hidden')) {
       const div = document.createElement('div');
@@ -81,7 +163,6 @@
         new google.translate.TranslateElement({
           pageLanguage: 'th',
           includedLanguages: 'en,lo,my,th,zh-CN,ja,ko',
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
           autoDisplay: false
         }, 'google_translate_element_hidden');
       };
@@ -91,6 +172,8 @@
       script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
       document.head.appendChild(script);
     }
+
+    startNativeLanguageObserver();
 
     const savedFontSize = localStorage.getItem("pvt_user_font_size") || "normal";
     const savedTheme = localStorage.getItem("pvt_user_theme") || "teal";
@@ -412,12 +495,12 @@
                 <p>หากภาษาในระบบยังไม่ครอบคลุม คุณสามารถใช้ระบบแปลอัตโนมัติของ Google แทนได้ทันที</p>
               </div>
             </div>
-            <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 10px; border: 1px dashed #94a3b8; display: flex; align-items: center; justify-content: space-between;">
-              <div style="font-size: 13px; color: #475569;">
-                <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; color: #3b82f6;">tips_and_updates</span>
+            <div style="margin-top: 10px; padding: 12px; background: white; border-radius: 10px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-height: 52px;">
+              <div style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px; min-width: 150px;">
+                <span class="material-symbols-outlined" style="font-size: 18px; color: #3b82f6;">tips_and_updates</span>
                 เลือกภาษาที่ต้องการแปล:
               </div>
-              <div id="google_translate_element_visible"></div>
+              <div id="google_translate_element_visible" style="display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; min-height: 36px;"></div>
             </div>
             <p style="font-size: 11px; color: #64748b; margin-top: 8px; line-height: 1.4;">
               💡 <b>คำแนะนำ:</b> เพื่อผลลัพธ์ที่ดีที่สุด ควรตั้งค่า "ภาษาที่ใช้งานในระบบ" เป็น <b>ภาษาไทย</b> ก่อนใช้ตัวช่วยแปลนี้

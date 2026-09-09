@@ -13,7 +13,6 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1),
 .sla-tracker-header {
   padding: 16px 20px;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -72,7 +71,6 @@ div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrac
   letter-spacing: -0.01em;
 }
 
-div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > h3:nth-of-type(1) > span:nth-of-type(1),
 .sla-tracker-title-text h3 > span,
 .sla-overdue-badge {
   display: inline-flex;
@@ -672,7 +670,6 @@ div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrac
    Fix cramped lump layout in mobile phone view
    ========================================================================== */
 @media screen and (max-width: 768px) {
-  div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1),
   .sla-tracker-wrapper {
     border-radius: 16px !important;
     margin-bottom: 20px !important;
@@ -681,7 +678,6 @@ div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrac
   }
 
   /* Target Selector 2: Header Section */
-  div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1),
   .sla-tracker-header {
     padding: 14px 14px 16px 14px !important;
     display: flex !important;
@@ -730,7 +726,6 @@ div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrac
   }
 
   /* Target Selector 1: Overdue Count Badge inside h3 */
-  div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > h3:nth-of-type(1) > span:nth-of-type(1),
   .sla-tracker-title-text h3 > span,
   .sla-overdue-badge {
     display: inline-flex !important;
@@ -815,7 +810,6 @@ div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrac
 }
 
 @media screen and (max-width: 480px) {
-  div#appShell:nth-of-type(1) > main#mainContent:nth-of-type(1) > div#leaveSlaTrackerContainer:nth-of-type(2) > section#slaTrackerComponent:nth-of-type(1) > div:nth-of-type(1),
   .sla-tracker-header {
     padding: 12px 10px 14px 10px !important;
     gap: 10px !important;

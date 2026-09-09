@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
   <link rel="stylesheet" href="/css/index-user.css" />
   <link rel="stylesheet" href="/css/leave-history.css" />
   <link rel="stylesheet" href="/css/system-settings.css" />
@@ -47,12 +48,12 @@
           <span>ข้อมูลส่วนตัว</span>
         </a>
         <a href="/pages/user/leave-history.html" class="menu-item">
-          <span class="material-symbols-outlined">calendar_today</span>
+          <span class="material-symbols-outlined">history</span>
           <span>ประวัติการลา</span>
         </a>
         <a href="/pages/user/holidays.html" class="menu-item">
-          <span class="material-symbols-outlined">date_range</span>
-          <span>วันหยุด</span>
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span>ปฏิทิน</span>
         </a>
 
         <div class="sidebar-divider"></div>
@@ -240,100 +241,7 @@
           </div>
         </section>
 
-        <!-- ⚡ QUICK FORM (1-CLICK REQUEST) -->
-        <div class="panel quick-form-panel" style="margin-bottom: 24px; border: 1.5px dashed #0d9488; background: #f0fdfa; border-radius: 16px; padding: 20px;">
-          <div class="panel-header" onclick="toggleQuickForm()" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: none; padding-bottom: 0; user-select: none;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span class="material-symbols-outlined" style="color: #0d9488; font-size: 28px;">bolt</span>
-              <div style="text-align: left;">
-                <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #0f766e; line-height: 1.2;">⚡ Quick Form (ส่งใบลาเร่งด่วนใน 1 คลิก)</h3>
-                <p style="margin: 2px 0 0 0; font-size: 11.5px; color: #0d9488; line-height: 1.2;">ดึงสิทธิ์คงเหลือ ตำแหน่ง และหัวหน้าอนุมัติมาให้อัตโนมัติ</p>
-              </div>
-            </div>
-            <span class="material-symbols-outlined" id="quickFormArrow" style="color: #0d9488; font-size: 24px; transition: transform 0.2s;">expand_more</span>
-          </div>
 
-          <div id="quickFormBody" style="display: none; margin-top: 16px; border-top: 1px solid #ccfbf1; padding-top: 16px;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
-              <div>
-                <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">ตำแหน่งและฝ่าย</label>
-                <input type="text" id="qPosition" readonly style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #f1f5f9; color: #64748b;" placeholder="กำลังดึงข้อมูล...">
-              </div>
-              <div>
-                <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">หัวหน้าผู้อนุมัติ (L1/L2)</label>
-                <input type="text" id="qApprover" readonly style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #f1f5f9; color: #64748b;" placeholder="กำลังดึงข้อมูล...">
-                <p id="qApproverNote" style="margin: 4px 0 0 0; font-size: 11px; color: #0d9488; font-weight: 500; display: none; line-height: 1.3;"></p>
-              </div>
-            </div>
-
-            <div style="margin-bottom: 16px;">
-              <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 6px;">เลือกประเภทการลาที่คงเหลือ</label>
-              <div id="qLeaveTypesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">
-                <!-- Generated Dynamically -->
-                <span style="font-size: 12px; color: #64748b; font-style: italic;">กำลังสแกนสิทธิ์คงเหลือของคุณ...</span>
-              </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
-              <div>
-                <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
-                <input type="date" id="qStartDate" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #ffffff;">
-              </div>
-              <div>
-                <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">สิ้นสุดวันที่ลา <span style="color:#ef4444;">*</span></label>
-                <input type="date" id="qEndDate" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #ffffff;">
-              </div>
-            </div>
-
-            <div style="margin-bottom: 16px;">
-              <label style="display: block; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 4px;">ระบุเหตุผลการลา <span style="color:#ef4444;">*</span></label>
-              <input type="text" id="qReason" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: #ffffff;" placeholder="เช่น ลาป่วยเป็นไข้หวัดใหญ่, มีธุระครอบครัว">
-            </div>
-
-            <!-- 📎 แนบเอกสาร/หลักฐาน (ใบรับรองแพทย์ หรือ เอกสารประกอบ) -->
-            <div style="margin-bottom: 20px;">
-              <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 6px;">
-                <span style="display: flex; align-items: center; gap: 4px;">
-                  <span class="material-symbols-outlined" style="font-size: 17px; color: #0d9488;">attach_file</span>
-                  แนบเอกสาร / ใบรับรองแพทย์ (ถ้ามี)
-                </span>
-                <span style="font-size: 11px; color: #64748b; font-weight: 400;">รองรับรูปภาพ (JPG, PNG) หรือ PDF</span>
-              </label>
-              
-              <div id="qAttachmentBox" style="border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 14px; background: #ffffff; text-align: center; transition: all 0.2s;">
-                <input type="file" id="qAttachmentInput" accept="image/*,application/pdf" style="display: none;" onchange="handleQuickFileSelect(this)">
-                
-                <div id="qUploadPrompt">
-                  <button type="button" onclick="document.getElementById('qAttachmentInput').click()" style="background: #f0fdfa; border: 1px solid #99f6e4; color: #0f766e; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
-                    <span class="material-symbols-outlined" style="font-size: 18px;">cloud_upload</span>
-                    <span>เลือกไฟล์เอกสาร / ถ่ายรูป</span>
-                  </button>
-                  <p style="margin: 6px 0 0 0; font-size: 11px; color: #94a3b8;">ไฟล์ขนาดสูงสุด 10MB</p>
-                </div>
-
-                <div id="qFilePreview" style="display: none; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; text-align: left;">
-                  <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
-                    <img id="qFileThumb" src="" alt="Thumbnail" style="display: none; width: 36px; height: 36px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; flex-shrink: 0;" />
-                    <span class="material-symbols-outlined" id="qFileIcon" style="color: #0d9488; font-size: 26px; flex-shrink: 0;">description</span>
-                    <div style="overflow: hidden;">
-                      <div id="qFileName" style="font-size: 12.5px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;"></div>
-                      <div id="qFileSize" style="font-size: 11px; color: #64748b;"></div>
-                    </div>
-                  </div>
-                  <button type="button" onclick="clearQuickFile()" style="background: #fee2e2; border: none; color: #ef4444; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;" title="ลบไฟล์แนบ">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
-                    <span>ลบ</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button type="button" onclick="submitQuickLeave()" style="width: 100%; background: #0d9488; color: #ffffff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2); transition: background 0.2s;">
-              <span class="material-symbols-outlined" style="font-size: 20px;">bolt</span>
-              ส่งคำขอลาทันที (1-Click Submit)
-            </button>
-          </div>
-        </div>
 
         <!-- ส่วนแสดงสิทธิ์วันลาคงเหลือ -->
         <div class="leave-section">

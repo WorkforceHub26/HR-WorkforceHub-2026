@@ -144,12 +144,13 @@ function formatLeaveDurationText(totalDays, totalHours = 0) {
 
   if (daysNum <= 0 && hoursNum <= 0) return "0 วัน";
 
-  // กรณีมี totalHours ระบุชัดเจน
+  // 1) กรณีมี totalHours ระบุชัดเจน
   if (hoursNum > 0) {
-    const daysFromHours = Math.floor(hoursNum / 8);
-    const remHours = hoursNum % 8;
-    const wholeH = Math.floor(remHours);
-    const mins = Math.round((remHours - wholeH) * 60);
+    const totalMinutes = Math.round(hoursNum * 60);
+    const daysFromHours = Math.floor(totalMinutes / 480);
+    const remMinutes = totalMinutes % 480;
+    const wholeH = Math.floor(remMinutes / 60);
+    const mins = remMinutes % 60;
 
     let parts = [];
     if (daysFromHours > 0) parts.push(`${daysFromHours} วัน`);
@@ -159,19 +160,31 @@ function formatLeaveDurationText(totalDays, totalHours = 0) {
     return parts.length > 0 ? parts.join(" ") : `${hoursNum} ชั่วโมง`;
   }
 
-  // กรณีคำนวณจาก totalDays ที่เป็นทศนิยม
-  const wholeDays = Math.floor(daysNum);
-  const fracDay = daysNum - wholeDays;
-  const totalH = fracDay * 8;
-  const wholeH = Math.floor(totalH);
-  const mins = Math.round((totalH - wholeH) * 60);
+  // 2) คำนวณจาก totalDays ที่เป็นทศนิยม (1 วันทำงาน = 8 ชม. = 480 นาที)
+  const totalMinutes = Math.round(daysNum * 480);
+  const wholeDays = Math.floor(totalMinutes / 480);
+  const remainingMinutes = totalMinutes % 480;
+  const wholeH = Math.floor(remainingMinutes / 60);
+  const mins = remainingMinutes % 60;
 
-  let parts = [];
-  if (wholeDays > 0) parts.push(`${wholeDays} วัน`);
-  if (wholeH > 0) parts.push(`${wholeH} ชั่วโมง`);
-  if (mins > 0) parts.push(`${mins} นาที`);
+  if (wholeDays === 0) {
+    if (wholeH === 4 && mins === 0) return "4 ชั่วโมง (ลาครึ่งวัน)";
+    if (wholeH === 0 && mins === 30) return "30 นาที";
+    if (wholeH === 0 && mins > 0) return `${mins} นาที`;
+    if (wholeH > 0 && mins === 0) return `${wholeH} ชั่วโมง`;
+    if (wholeH > 0 && mins > 0) return `${wholeH} ชั่วโมง ${mins} นาที`;
+    return `${Number(daysNum.toFixed(2))} วัน`;
+  }
 
-  return parts.length > 0 ? parts.join(" ") : `${daysNum} วัน`;
+  let parts = [`${wholeDays} วัน`];
+  if (wholeH === 4 && mins === 0) {
+    parts.push(`4 ชั่วโมง (ลาครึ่งวัน)`);
+  } else {
+    if (wholeH > 0) parts.push(`${wholeH} ชั่วโมง`);
+    if (mins > 0) parts.push(`${mins} นาที`);
+  }
+
+  return parts.join(" ");
 }
 
 async function checkOverlappingLeave(employeeId, startDate, endDate) {
@@ -794,9 +807,10 @@ window.renderAllLeaveBalances = function() {
 
     const box = document.createElement("div");
     box.className = `leave-quota-box ${colorClass}`;
+    const formattedQuota = formatLeaveDurationText(remaining);
     box.innerHTML = `
       <div class="leave-quota-name">${typeName}</div>
-      <div class="leave-quota-days">${remaining} <span class="unit">${uDays}</span></div>
+      <div class="leave-quota-days" title="คงเหลือ: ${remaining} วัน">${formattedQuota}</div>
     `;
     container.appendChild(box);
   });
@@ -859,7 +873,8 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
   }
 
   if (balanceInput) {
-    balanceInput.value = `${remainingDays} วัน`;
+    const formattedBalance = formatLeaveDurationText(remainingDays);
+    balanceInput.value = Number.isInteger(remainingDays) ? `${remainingDays} วัน` : `${formattedBalance} (${remainingDays} วัน)`;
     balanceInput.style.fontWeight = "700";
     balanceInput.style.color = remainingDays <= 0 ? "#ef4444" : "#0d9488";
     balanceInput.style.background = remainingDays <= 0 ? "#fef2f2" : "rgba(240, 253, 250, 0.8)";
@@ -1529,17 +1544,19 @@ async function saveLeave() {
       if (hoursMorning > 0) days1 = Math.max(0, days1 - 1) + (hoursMorning / 8);
       if (hoursAfternoon > 0) days2 = Math.max(0, days2 - 1) + (hoursAfternoon / 8);
 
+      const isAutoReject = totalDays > 2;
+
       payload.push({
         employee_id:            currentEmpId, 
         leave_type_id:          leaveTypeId,
         start_date:             startDate,
         end_date:               chunk1End,
         total_days:             days1,
-        reason:                 `${reason.trim()} (ส่วนที่ 1: ตัดรอบปี ${startYear})`,
+        reason:                 isAutoReject ? `${reason.trim()} (ปฏิเสธอัตโนมัติ: ลาเกิน 2 วัน) (ส่วนที่ 1: ตัดรอบปี ${startYear})` : `${reason.trim()} (ส่วนที่ 1: ตัดรอบปี ${startYear})`,
         attachment_url:         attachmentUrl,
-        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
-        manager_status:         defaultManagerStatus,
-        director_status:        defaultDirectorStatus,
+        status:                 isAutoReject ? "rejected" : "pending", // รอ HR ปิดงานขั้นสุดท้าย
+        manager_status:         isAutoReject ? "rejected" : defaultManagerStatus,
+        director_status:        isAutoReject ? "rejected" : defaultDirectorStatus,
         leave_hours:            hoursMorning,
         start_period:           hoursMorning > 0 ? "half_day" : "full_day",
         end_period:             "full_day",
@@ -1552,11 +1569,11 @@ async function saveLeave() {
         start_date:             chunk2Start,
         end_date:               endDate,
         total_days:             days2,
-        reason:                 `${reason.trim()} (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})`,
+        reason:                 isAutoReject ? `${reason.trim()} (ปฏิเสธอัตโนมัติ: ลาเกิน 2 วัน) (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})` : `${reason.trim()} (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})`,
         attachment_url:         attachmentUrl,
-        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
-        manager_status:         defaultManagerStatus,
-        director_status:        defaultDirectorStatus,
+        status:                 isAutoReject ? "rejected" : "pending", // รอ HR ปิดงานขั้นสุดท้าย
+        manager_status:         isAutoReject ? "rejected" : defaultManagerStatus,
+        director_status:        isAutoReject ? "rejected" : defaultDirectorStatus,
         leave_hours:            hoursAfternoon,
         start_period:           "full_day",
         end_period:             hoursAfternoon > 0 ? "half_day" : "full_day",
@@ -1568,17 +1585,19 @@ async function saveLeave() {
       const startPeriod = hoursMorning > 0 ? "half_day" : "full_day";
       const endPeriod = hoursAfternoon > 0 ? "half_day" : "full_day";
 
+      const isAutoReject = totalDays > 2;
+
       payload.push({
         employee_id:            currentEmpId, 
         leave_type_id:          leaveTypeId,
         start_date:             startDate,
         end_date:               endDate,
         total_days:             totalDays,
-        reason:                 reason.trim(),
+        reason:                 isAutoReject ? `${reason.trim()} (ปฏิเสธอัตโนมัติ: ลาเกิน 2 วัน)` : reason.trim(),
         attachment_url:         attachmentUrl,
-        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
-        manager_status:         defaultManagerStatus,
-        director_status:        defaultDirectorStatus,
+        status:                 isAutoReject ? "rejected" : "pending", // รอ HR ปิดงานขั้นสุดท้าย
+        manager_status:         isAutoReject ? "rejected" : defaultManagerStatus,
+        director_status:        isAutoReject ? "rejected" : defaultDirectorStatus,
         leave_hours:            totalHours,
         start_period:           startPeriod,
         end_period:             endPeriod,
@@ -1806,15 +1825,28 @@ async function saveLeave() {
       }
     }
 
-    Swal.fire({
-      title: 'ส่งคำขอลาสำเร็จ!',
-      html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:#0f766e; font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,
-      icon: 'success',
-      confirmButtonColor: '#0f766e',
-      confirmButtonText: 'รับทราบ'
-    }).then(() => {
-      window.location.href = "/pages/user/index-user.html";
-    });
+    const hasAutoRejected = payload.some(item => item.status === 'rejected');
+    if (hasAutoRejected) {
+      Swal.fire({
+        title: 'ยื่นคำขอลาเรียบร้อย (ระบบปฏิเสธ)',
+        html: `ใบลาบางรายการมีจำนวน<b>วันลาเกิน 2 วัน</b> จึงถูกระบบปฏิเสธการลาโดยอัตโนมัติตามนโยบายบริษัท`,
+        icon: 'warning',
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'รับทราบ'
+      }).then(() => {
+        window.location.href = "/pages/user/index-user.html";
+      });
+    } else {
+      Swal.fire({
+        title: 'ส่งคำขอลาสำเร็จ!',
+        html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:#0f766e; font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,
+        icon: 'success',
+        confirmButtonColor: '#0f766e',
+        confirmButtonText: 'รับทราบ'
+      }).then(() => {
+        window.location.href = "/pages/user/index-user.html";
+      });
+    }
 
   } catch (err) {
     console.error("❌ System Error:", err);
