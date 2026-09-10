@@ -1,5 +1,5 @@
-// PVT Workforce Hub - Service Worker (Updated for real-time preview sync)
-const CACHE_NAME = 'pvt-hr-leave-v3';
+// PVT Workforce Hub - Service Worker (Bypass Cache & Always Fresh)
+const CACHE_NAME = 'pvt-hr-leave-v4-fresh';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -18,27 +18,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only intercept GET requests with http/https scheme
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
     return;
   }
 
-  // Always prefer fresh network responses
+  // Always fetch fresh from network, fallback to cache only if offline
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        return networkResponse;
+    fetch(event.request, { cache: 'reload' })
+      .then((response) => {
+        return response;
       })
-      .catch(async () => {
-        const cachedResponse = await caches.match(event.request);
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return new Response('Network Connection Error', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: new Headers({ 'Content-Type': 'text/plain; charset=utf-8' })
-        });
-      })
+      .catch(() => caches.match(event.request))
   );
 });

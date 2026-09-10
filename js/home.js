@@ -606,6 +606,10 @@ function renderTopLeaveEmployees(approvedRequests) {
     if (index === 1) rankBadge = `<span class="col-rank" style="font-size:20px;">🥈</span>`;
     if (index === 2) rankBadge = `<span class="col-rank" style="font-size:20px;">🥉</span>`;
 
+    const formattedDays = window.PVTSDK?.formatLeaveDurationFriendly 
+      ? window.PVTSDK.formatLeaveDurationFriendly(emp.totalDays, 0, { compact: true }) 
+      : `${emp.totalDays} วัน`;
+
     html += `
       <div class="top-emp-card">
         <div class="col-rank">${rankBadge}</div>
@@ -615,7 +619,7 @@ function renderTopLeaveEmployees(approvedRequests) {
         </div>
         <div class="col-stats">
           <span class="stat-badge">${emp.count} ครั้ง</span>
-          <span class="stat-days">${emp.totalDays} วัน</span>
+          <span class="stat-days">${formattedDays}</span>
         </div>
       </div>
     `;

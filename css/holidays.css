@@ -173,34 +173,70 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .view-switch {
   display: flex;
+  gap: 6px;
   background: #f1f5f9;
-  padding: 3px;
-  border-radius: var(--radius-sm, 8px);
-  border: 1px solid var(--border, #e2e8f0);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .btn-view {
   background: transparent;
   border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
-  color: var(--text-soft, #64748b);
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #64748b;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+}
+
+.btn-view:hover {
+  color: var(--primary, #0d9488);
+  background: rgba(13, 148, 136, 0.05);
 }
 
 .btn-view.active {
   background: #ffffff;
   color: var(--primary, #0d9488);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
   font-weight: 600;
+}
+
+#btnAddHoliday {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+#btnAddHoliday:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.35);
+  transform: translateY(-1px);
+}
+
+#btnAddHoliday:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.2);
 }
 
 /* ==========================================================================

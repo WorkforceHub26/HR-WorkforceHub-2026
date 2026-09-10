@@ -107,47 +107,100 @@
     if (window.googleBannerKillerStarted) return;
     window.googleBannerKillerStarted = true;
 
-    setInterval(() => {
-      const selectors = [
-        'iframe.goog-te-banner-frame',
-        'iframe.goog-te-banner-frame-escaped',
-        'iframe[src*="translate.google.com"]',
-        'iframe[id*="google_translate"]',
-        'iframe[class*="goog-te-banner-frame"]',
-        '.goog-te-banner-frame',
-        '.goog-te-banner',
-        '#goog-gt-tt',
-        '.goog-te-balloon-frame',
-        '.goog-te-banner-frame-escaped'
-      ];
-      
-      selectors.forEach(sel => {
-        const els = document.querySelectorAll(sel);
-        els.forEach(el => {
-          if (el.style.display !== 'none' || el.style.visibility !== 'hidden' || el.style.height !== '0px') {
-            el.style.setProperty('display', 'none', 'important');
-            el.style.setProperty('visibility', 'hidden', 'important');
-            el.style.setProperty('opacity', '0', 'important');
-            el.style.setProperty('height', '0px', 'important');
-            el.style.setProperty('width', '0px', 'important');
-            el.style.setProperty('pointer-events', 'none', 'important');
-          }
-        });
-      });
+    const selectors = [
+      'body > .skiptranslate',
+      'body > div.skiptranslate',
+      'body > iframe.skiptranslate',
+      'iframe.goog-te-banner-frame',
+      'iframe.goog-te-banner-frame-escaped',
+      'iframe[src*="translate.google.com"]',
+      'iframe[id*="google_translate"]',
+      'iframe[id*=":1.container"]',
+      'iframe[id*=":2.container"]',
+      'iframe[id*=":0.container"]',
+      'iframe[class*="goog-te-banner-frame"]',
+      '.goog-te-banner-frame',
+      '.goog-te-banner',
+      '#goog-gt-tt',
+      '.goog-te-balloon-frame',
+      '.goog-te-banner-frame-escaped',
+      '.VIpgJd-ZVi9od-ORHb-OEVmcd',
+      '.VIpgJd-ZVi9od-aZ2wEe-wOHMyf',
+      '.VIpgJd-ZVi9od-xl07Ob-OEVmcd',
+      '.goog-te-menu-frame',
+      'iframe.goog-te-menu-frame',
+      'div[id*="goog-gt-"]'
+    ];
 
-      if (document.body) {
-        if (document.body.style.top !== '0px' || document.body.style.marginTop !== '0px') {
-          document.body.style.setProperty('top', '0px', 'important');
-          document.body.style.setProperty('margin-top', '0px', 'important');
+    const killBanners = () => {
+      try {
+        selectors.forEach(sel => {
+          const els = document.querySelectorAll(sel);
+          els.forEach(el => {
+            // Keep the clean widget inside settings modal visible
+            if (el.closest && (el.closest('#google_translate_element_visible') || el.closest('#systemSettingsModal') || el.closest('#google_translate_element_hidden'))) {
+              return;
+            }
+            if (el.style.display !== 'none' || el.style.visibility !== 'hidden' || el.style.height !== '0px') {
+              el.style.setProperty('display', 'none', 'important');
+              el.style.setProperty('visibility', 'hidden', 'important');
+              el.style.setProperty('opacity', '0', 'important');
+              el.style.setProperty('height', '0px', 'important');
+              el.style.setProperty('width', '0px', 'important');
+              el.style.setProperty('max-height', '0px', 'important');
+              el.style.setProperty('pointer-events', 'none', 'important');
+              el.style.setProperty('position', 'absolute', 'important');
+              el.style.setProperty('top', '-99999px', 'important');
+              el.style.setProperty('left', '-99999px', 'important');
+            }
+          });
+        });
+
+        if (typeof window.protectIconsFromTranslation === 'function') {
+          window.protectIconsFromTranslation(document.body);
         }
+
+        if (document.body) {
+          if (document.body.style.top && document.body.style.top !== '0px') {
+            document.body.style.setProperty('top', '0px', 'important');
+          }
+          if (document.body.style.marginTop && document.body.style.marginTop !== '0px') {
+            document.body.style.setProperty('margin-top', '0px', 'important');
+          }
+        }
+        if (document.documentElement) {
+          if (document.documentElement.style.top && document.documentElement.style.top !== '0px') {
+            document.documentElement.style.setProperty('top', '0px', 'important');
+          }
+          if (document.documentElement.style.marginTop && document.documentElement.style.marginTop !== '0px') {
+            document.documentElement.style.setProperty('margin-top', '0px', 'important');
+          }
+        }
+      } catch (e) {
+        // silent
       }
+    };
+
+    // Run immediately
+    killBanners();
+
+    // Fast polling
+    setInterval(killBanners, 150);
+
+    // Instant DOM observer
+    if (window.MutationObserver) {
+      const observer = new MutationObserver(() => {
+        killBanners();
+      });
       if (document.documentElement) {
-        if (document.documentElement.style.top !== '0px' || document.documentElement.style.marginTop !== '0px') {
-          document.documentElement.style.setProperty('top', '0px', 'important');
-          document.documentElement.style.setProperty('margin-top', '0px', 'important');
-        }
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['style', 'class']
+        });
       }
-    }, 100);
+    }
   }
 
   function applySavedPreferences() {
@@ -830,6 +883,10 @@
 
   // 🌐 6.5. System Language Functions
   window.changeSystemLanguage = function(langKey) {
+    const isNative = ['th', 'lo', 'my', 'en'].includes((langKey || "").toLowerCase());
+    if (isNative && typeof window.purgeGoogleTranslate === "function") {
+      window.purgeGoogleTranslate();
+    }
     if (typeof window.setGlobalLanguage === "function") {
       window.setGlobalLanguage(langKey, false, { forceBroadcast: true });
       updateLanguageButtonsUI();

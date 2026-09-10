@@ -973,15 +973,29 @@ select.year-select option {
 .btn-hero-icon {
   width: 54px;
   height: 54px;
-  background: rgba(255, 255, 255, 0.2);
+  min-width: 54px;
+  min-height: 54px;
+  background: rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(8px);
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
   flex-shrink: 0;
   margin-right: 16px;
+  box-sizing: border-box;
+}
+
+.btn-hero-icon .material-symbols-outlined {
+  font-size: 38px !important;
+  width: 38px !important;
+  height: 38px !important;
+  font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 40 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
 }
 
 .btn-hero-text {
@@ -1263,7 +1277,17 @@ select.year-select option {
   }
 
   .btn-hero-icon {
-    font-size: 28px;
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    min-height: 50px;
+    border-radius: 14px;
+  }
+
+  .btn-hero-icon .material-symbols-outlined {
+    font-size: 34px !important;
+    width: 34px !important;
+    height: 34px !important;
   }
 
   .recent-card {

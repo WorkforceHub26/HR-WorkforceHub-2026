@@ -28,7 +28,7 @@ app.get('/manifest.json', (req, res) => {
   const distPath = join(__dirname, 'dist', 'manifest.json');
   const rootPath = join(__dirname, 'manifest.json');
   const filePath = fs.existsSync(distPath) ? distPath : rootPath;
-  res.type('application/manifest+json');
+  res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
   res.sendFile(filePath);
 });
 

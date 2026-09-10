@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { resolve, join } from 'path';
+import fs from 'fs';
 import tailwindcss from '@tailwindcss/vite';
 import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot } from './api-handlers.js';
 
@@ -44,6 +45,28 @@ export default defineConfig({
         server.middlewares.use('/api/hr-chatbot', (req, res) => {
           if (req.method === 'POST') handleHrChatbot(req, res);
           else res.end();
+        });
+        server.middlewares.use((req, res, next) => {
+          const urlPath = req.url.split('?')[0];
+          if (urlPath === '/manifest.json') {
+            const manifestPath = resolve(__dirname, 'manifest.json');
+            if (fs.existsSync(manifestPath)) {
+              const content = fs.readFileSync(manifestPath, 'utf8');
+              res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+              res.setHeader('Cache-Control', 'no-cache');
+              return res.end(content);
+            }
+          }
+          if (urlPath === '/sw.js') {
+            const swPath = resolve(__dirname, 'sw.js');
+            if (fs.existsSync(swPath)) {
+              const content = fs.readFileSync(swPath, 'utf8');
+              res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+              res.setHeader('Cache-Control', 'no-cache');
+              return res.end(content);
+            }
+          }
+          next();
         });
       }
     }

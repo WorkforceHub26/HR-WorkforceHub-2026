@@ -678,6 +678,29 @@
       this.client = client;
       this.cache = cache;
       this.network = network;
+      this._leaveBalanceInsertForbidden = false;
+      this._inflightBalances = new Map();
+    }
+
+    // ตรวจสอบว่าระบบถูกบล็อกสิทธิ์ INSERT ลง employee_leave_balances (401/403/RLS) หรือไม่
+    isElbInsertBlocked() {
+      if (this._leaveBalanceInsertForbidden) return true;
+      try {
+        if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('pvt_elb_insert_forbidden') === 'true') {
+          this._leaveBalanceInsertForbidden = true;
+          return true;
+        }
+      } catch(e) {}
+      return false;
+    }
+
+    markElbInsertBlocked() {
+      this._leaveBalanceInsertForbidden = true;
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('pvt_elb_insert_forbidden', 'true');
+        }
+      } catch(e) {}
     }
 
     // ดึงโปรไฟล์พนักงาน + แผนก + ตำแหน่ง (พร้อมระบบ Cache)
@@ -779,6 +802,7 @@
 
     // ดึงวันลาคงเหลือ
     async getLeaveBalances(employeeId, year = window.getCurrentLeaveYear()) {
+      if (!this.client || !employeeId) return [];
       const yearAD = window.getADYear(year);
       const thaiYear = yearAD + 543;
 
@@ -786,60 +810,151 @@
       const cached = this.cache.get(cacheKey);
       if (cached) return cached;
 
-      let result = [];
-      try {
-        const { data: empBalList, error: empBalErr } = await this.client
-          .from('employee_leave_balances')
-          .select('*')
-          .eq('employee_id', employeeId)
-          .in('year', [yearAD, thaiYear])
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        const empBal = (empBalList && empBalList.length > 0) ? empBalList[0] : null;
-
-        if (!empBalErr && empBal) {
-          const { data: lTypes } = await this.client
-            .from('leave_types')
-            .select('*');
-          result = this.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
-        }
-      } catch (e) {
-        console.warn("employee_leave_balances fetch error:", e);
+      // In-flight deduplication: หากมีคำขอเดียวกันกำลังทำงานอยู่ ให้รอผลจาก promise เดียวกัน
+      if (!this._inflightBalances) this._inflightBalances = new Map();
+      if (this._inflightBalances.has(cacheKey)) {
+        return await this._inflightBalances.get(cacheKey);
       }
 
-      // 🛡️ หากยังไม่มีข้อมูลโควตา ให้สร้างอัตโนมัติแล้วลองดึงอีกครั้ง
-      if (!result || result.length === 0) {
+      const fetchPromise = (async () => {
+        let result = [];
         try {
-          await this.ensureLeaveBalances(employeeId, yearAD);
-          const { data: empBalList } = await this.client
+          const { data: empBalList, error: empBalErr } = await this.client
             .from('employee_leave_balances')
             .select('*')
             .eq('employee_id', employeeId)
             .in('year', [yearAD, thaiYear])
+            .order('created_at', { ascending: false })
             .limit(1);
 
-          if (empBalList && empBalList.length > 0) {
-            const { data: lTypes } = await this.client.from('leave_types').select('*');
-            result = this.transformEmployeeLeaveBalanceToItems(empBalList[0], lTypes || []);
+          const empBal = (empBalList && empBalList.length > 0) ? empBalList[0] : null;
+
+          if (!empBalErr && empBal) {
+            const { data: lTypes } = await this.client
+              .from('leave_types')
+              .select('*');
+            result = this.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
           }
         } catch (e) {
-          console.warn("Auto ensureLeaveBalances fallback error:", e);
+          console.warn("employee_leave_balances fetch notice:", e);
         }
-      }
 
-      this.cache.set(cacheKey, result || [], CONFIG.DEFAULT_TTL, ["leaves"]);
-      return result || [];
+        // 🛡️ หากยังไม่มีข้อมูลโควตาใน employee_leave_balances
+        // เช็กก่อนว่า client มีสิทธิ์ INSERT หรือไม่ ถ้าไม่มีให้ข้ามไปคำนวณ Virtual ทันที (ป้องกัน Error 401 ใน Console)
+        if (!result || result.length === 0) {
+          if (!this.isElbInsertBlocked()) {
+            try {
+              const ensureRes = await this.ensureLeaveBalances(employeeId, yearAD);
+              if (ensureRes?.status === 'created') {
+                const { data: empBalList } = await this.client
+                  .from('employee_leave_balances')
+                  .select('*')
+                  .eq('employee_id', employeeId)
+                  .in('year', [yearAD, thaiYear])
+                  .limit(1);
+
+                if (empBalList && empBalList.length > 0) {
+                  const { data: lTypes } = await this.client.from('leave_types').select('*');
+                  result = this.transformEmployeeLeaveBalanceToItems(empBalList[0], lTypes || []);
+                }
+              }
+            } catch (e) {
+              // Silently handle
+            }
+          }
+        }
+
+        // 🛡️ Fallback: หากยังไม่มี record ใน employee_leave_balances (เช่น Client ยังไม่ได้ล็อกอิน Supabase Auth หรือ RLS 401)
+        // คำนวณยอดโควตาจริงบนระบบทันทีโดยอิงจาก leave_types, อายุงาน และประวัติการลาจริง
+        if (!result || result.length === 0) {
+          try {
+            let vacationDays = 6.0;
+            try {
+              const { data: empData } = await this.client
+                .from('employees')
+                .select('start_date, created_at')
+                .eq('id', employeeId)
+                .maybeSingle();
+              if (empData) {
+                const sDate = empData.start_date || empData.created_at;
+                if (sDate && (Date.now() - new Date(sDate).getTime()) / (1000 * 3600 * 24) < 365) {
+                  vacationDays = 0.0;
+                }
+              }
+            } catch(e) {}
+
+            const virtualRow = {
+              id: `v_${employeeId}_${yearAD}`,
+              employee_id: employeeId,
+              year: yearAD,
+              sick_total: 30.0,
+              sick_used: 0.0,
+              personal_total: 6.0,
+              personal_used: 0.0,
+              vacation_total: vacationDays,
+              vacation_used: 0.0,
+              maternity_total: 98.0,
+              maternity_used: 0.0,
+              other_total: 30.0,
+              other_used: 0.0
+            };
+
+            const { data: reqs } = await this.client
+              .from('leave_requests')
+              .select('leave_type_id, total_days, status, start_date')
+              .eq('employee_id', employeeId)
+              .not('status', 'eq', 'rejected')
+              .not('status', 'eq', 'cancelled');
+
+            const { data: lTypes } = await this.client.from('leave_types').select('*');
+            const typesMap = {};
+            (lTypes || []).forEach(lt => { typesMap[String(lt.id)] = lt; });
+
+            (reqs || []).forEach(r => {
+              const reqYear = window.getADYear(r.start_date);
+              if (reqYear === yearAD) {
+                const lt = typesMap[String(r.leave_type_id)];
+                const code = String(lt?.leave_code || '').toUpperCase();
+                const name = String(lt?.leave_name || '').toLowerCase();
+                const days = parseFloat(r.total_days) || 0;
+                if (code === 'SICK' || code === '01' || name.includes('ป่วย')) virtualRow.sick_used += days;
+                else if (code === 'PERSONAL' || code === '02' || name.includes('กิจ')) virtualRow.personal_used += days;
+                else if (code === 'VACATION' || code === '03' || name.includes('พัก')) virtualRow.vacation_used += days;
+                else if (code === 'MATERNITY' || name.includes('คลอด')) virtualRow.maternity_used += days;
+                else virtualRow.other_used += days;
+              }
+            });
+
+            result = this.transformEmployeeLeaveBalanceToItems(virtualRow, lTypes || []);
+          } catch(fbErr) {
+            console.warn("Virtual balance calculation fallback notice:", fbErr);
+          }
+        }
+
+        this.cache.set(cacheKey, result || [], CONFIG.DEFAULT_TTL, ["leaves"]);
+        return result || [];
+      })();
+
+      this._inflightBalances.set(cacheKey, fetchPromise);
+      try {
+        return await fetchPromise;
+      } finally {
+        this._inflightBalances.delete(cacheKey);
+      }
     }
 
     // ตรวจสอบและสร้างโควตาวันลาอัตโนมัติหากยังไม่มีในปีนั้นๆ (ใช้ AD เป็นมาตรฐาน)
     async ensureLeaveBalances(employeeId, yearOrDate = window.getCurrentLeaveYear()) {
-      if (!this.client || !employeeId) return;
+      if (!this.client || !employeeId) return { status: 'skipped', message: 'Missing parameters' };
+      if (this.isElbInsertBlocked()) {
+        return { status: 'skipped', message: 'Insert unauthorized for client' };
+      }
+
       try {
         const yearAD = window.getADYear(yearOrDate);
         const thaiYear = yearAD + 543;
         
-        // 1. ตรวจสอบตารางหลัก employee_leave_balances
+        // 1. ตรวจสอบตารางหลัก employee_leave_balances (อ่านได้เสมอ)
         const { data: empBalList } = await this.client
           .from('employee_leave_balances')
           .select('id')
@@ -848,7 +963,6 @@
           .limit(1);
 
         if (empBalList && empBalList.length > 0) {
-          console.log(`ℹ️ [ensureLeaveBalances] มีข้อมูลโควตาวันลาของพนักงาน ${employeeId} ปี ${yearAD} ในระบบแล้ว`);
           return { status: 'existed', message: 'มีข้อมูลแล้ว', id: empBalList[0].id };
         }
 
@@ -875,7 +989,7 @@
           }
         } catch(e) {}
 
-        await this.client
+        const { error: insertError } = await this.client
           .from('employee_leave_balances')
           .insert([{
             employee_id: employeeId,
@@ -891,10 +1005,17 @@
             other_total: 30.0,
             other_used: 0.0
           }]);
+
+        if (insertError) {
+          // หากติด RLS หรือสิทธิ์ 401 Unauthorized ให้บันทึกสถานะไว้เพื่อไม่ส่ง Request ซ้ำ
+          this.markElbInsertBlocked();
+          return { status: 'error', message: insertError.message || insertError };
+        }
+
         console.log("✅ Auto-created missing employee_leave_balances for year", yearAD);
         return { status: 'created', message: 'สร้างข้อมูลเรียบร้อยแล้ว' };
       } catch (err) {
-        console.warn("⚠️ [ensureLeaveBalances] Warning:", err);
+        this.markElbInsertBlocked();
         return { status: 'error', message: err.message || err };
       }
     }
@@ -952,9 +1073,10 @@
             .update(updates)
             .eq('id', row.id);
         } else {
+          if (this.isElbInsertBlocked()) return;
           const initialUsed = absoluteUsedDays !== null ? absoluteUsedDays : Math.max(0, deltaUsedDays);
           const initialTotal = absoluteTotalDays !== null ? absoluteTotalDays : 30;
-          await this.client
+          const { error: insErr } = await this.client
             .from('employee_leave_balances')
             .insert([{
               employee_id: employeeId,
@@ -962,6 +1084,9 @@
               [usedCol]: initialUsed,
               [totalCol]: initialTotal
             }]);
+          if (insErr) {
+            this.markElbInsertBlocked();
+          }
         }
       } catch(err) {
         console.warn("⚠️ updateLeaveBalance error:", err);

@@ -3546,31 +3546,94 @@ window.CANONICAL_PHRASE_MAP = window.CANONICAL_PHRASE_MAP || {
   "นาที": "unitMinutes", "ນາທີ": "unitMinutes", "မိနစ်": "unitMinutes", "min(s)": "unitMinutes", "minutes": "unitMinutes"
 };
 
-// 🪄 [MAGIC TRANSLATE HELPER]: ควบคุม Google Translate Widget โปรแกรมมิก
+// 🧹 [TRANSLATION INTEGRITY]: ล้างคุกกี้และรีเซ็ต Google Translate เมื่อใช้ภาษามาตรฐานระบบ
+window.purgeGoogleTranslate = function() {
+  try {
+    const host = window.location.hostname;
+    const pastDate = "Thu, 01 Jan 1970 00:00:00 UTC";
+    const domains = ['', host, '.' + host, window.location.host];
+    const parts = host.split('.');
+    if (parts.length > 2) {
+      domains.push('.' + parts.slice(-2).join('.'));
+    }
+    const paths = ['/', window.location.pathname];
+    domains.forEach(d => {
+      paths.forEach(p => {
+        const dStr = d ? `; domain=${d}` : '';
+        document.cookie = `googtrans=; expires=${pastDate}; path=${p}${dStr};`;
+      });
+    });
+
+    const combo = document.querySelector('select.goog-te-combo');
+    if (combo && combo.value && combo.value !== 'th' && combo.value !== '') {
+      combo.value = '';
+      combo.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  } catch (e) {
+    console.warn("[Translate] Purge Google Translate skipped:", e);
+  }
+};
+
+// 🛡️ [ICON TRANSLATION GUARD]: ป้องกันไม่ให้ Google หรือ Browser แปลงตัวอักษรของ Material Icons
+window.protectIconsFromTranslation = function(root = document) {
+  try {
+    const iconSelectors = [
+      '.material-symbols-outlined',
+      '.material-symbols-rounded',
+      '.material-symbols-sharp',
+      '.material-icons',
+      '.material-icons-outlined',
+      '[class*="material-symbols"]',
+      '.brand-icon',
+      '.brand-icon *',
+      '.btn-hero-icon',
+      '.btn-hero-icon *',
+      '.lang-flag',
+      '.user-avatar',
+      '.avatar',
+      '.btn-toggle-icon',
+      '#mobileMenuBtn *',
+      '.btn-close-sidebar *',
+      '#hrChatbotFab *'
+    ];
+    const elements = root.querySelectorAll(iconSelectors.join(', '));
+    elements.forEach(el => {
+      if (el.getAttribute('translate') !== 'no') {
+        el.setAttribute('translate', 'no');
+      }
+      if (!el.classList.contains('notranslate')) {
+        el.classList.add('notranslate');
+      }
+    });
+  } catch (err) {}
+};
+
+// 🪄 [MAGIC TRANSLATE HELPER]: ควบคุม Google Translate Widget (เฉพาะภาษาภายนอก เช่น จีน, ญี่ปุ่น)
 window.triggerMagicTranslate = function(lang, retries = 3) {
   try {
+    const isNativeLang = ['th', 'lo', 'my', 'en'].includes(lang.toLowerCase());
+    if (isNativeLang) {
+      window.purgeGoogleTranslate();
+      return;
+    }
+
+    if (typeof window.protectIconsFromTranslation === 'function') {
+      window.protectIconsFromTranslation(document.body);
+    }
+
     let googleLang = lang;
     if (lang === 'zh') googleLang = 'zh-CN';
     
-    // 🌐 ตั้งค่าคุกกี้ googtrans เพื่อสะท้อนการแปลล่วงหน้าและส่งต่อสถานะไปหน้าย่อยอื่นๆ อัตโนมัติ
-    const cookieValue = (lang === 'th') ? '' : `/th/${googleLang}`;
+    const cookieValue = `/th/${googleLang}`;
     document.cookie = "googtrans=" + cookieValue + "; path=/";
     document.cookie = "googtrans=" + cookieValue + "; path=/; domain=" + window.location.hostname;
     
     const combo = document.querySelector('select.goog-te-combo');
     if (combo) {
-      if (lang === 'th') {
-        combo.value = ''; 
-        if (!combo.value) combo.value = 'th';
-      } else {
-        combo.value = googleLang;
-      }
-      
-      // Dispatch อีเวนต์ change เพื่อบังคับปลั๊กอินทำงานเสถียร 100%
+      combo.value = googleLang;
       combo.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log(`[Magic Translate] Triggered Google Translate and Cookie to: ${googleLang}`);
+      console.log(`[Magic Translate] Triggered Google Translate: ${googleLang}`);
     } else if (retries > 0) {
-      // ลองใหม่ใน 300ms (รอ Widget โหลด)
       setTimeout(() => window.triggerMagicTranslate(lang, retries - 1), 300);
     }
   } catch (err) {
@@ -3593,6 +3656,17 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
   localStorage.setItem("pvt_login_lang", lang);
   localStorage.setItem("pvt_language", lang); // Keep in sync for compatibility
   
+  // ⚡ Freeze transitions to prevent any CSS stutter/jump during text replacement
+  document.documentElement.classList.add("pvt-translating");
+
+  const isNativeLang = ['th', 'lo', 'my', 'en'].includes(lang.toLowerCase());
+  if (isNativeLang && typeof window.purgeGoogleTranslate === 'function') {
+    window.purgeGoogleTranslate();
+  }
+  if (typeof window.protectIconsFromTranslation === 'function') {
+    window.protectIconsFromTranslation(document.body);
+  }
+
   const isLanguageChanged = (window.__lastBroadcastLang !== lang);
   window.__pvtIsTranslating = true;
   const t = { ...window.globalAppTranslations.th, ...(window.globalAppTranslations[lang] || {}) };
@@ -3660,56 +3734,109 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       btn.textContent = t.logoutShort || t.logout;
     });
 
-    // 3. Translate Sidebar Menu Items deterministically by icon or href
+    // 3. Translate Sidebar Menu Items deterministically by icon or href & Protect icon glyphs
     document.querySelectorAll(".nav-menu .nav-item, .sidebar-menu .menu-item, .sidebar-footer .menu-item").forEach(item => {
       const labelSpan = item.querySelector(".nav-label, span:not(.material-symbols-outlined)");
       if (!labelSpan) return;
       const iconSpan = item.querySelector(".material-symbols-outlined");
+      if (iconSpan) {
+        iconSpan.setAttribute('translate', 'no');
+        iconSpan.classList.add('notranslate');
+      }
       const iconName = iconSpan ? iconSpan.textContent.trim().toLowerCase() : "";
       const href = (item.getAttribute("href") || "").toLowerCase();
       const onclickAttr = (item.getAttribute("onclick") || "").toLowerCase();
 
-      if (iconName.includes("home") || href.includes("home.html") || (href.includes("index-user") && iconName.includes("home"))) {
+      if (iconName.includes("home") || href.includes("home.html") || (href.includes("index-user") && (iconName.includes("home") || href.includes("home")))) {
         labelSpan.textContent = t.home;
         item.setAttribute("title", t.home);
+        if (iconSpan && iconSpan.textContent.trim() !== "home") iconSpan.textContent = "home";
       } else if (iconName.includes("fact_check") || href.includes("approval") || href.includes("leave-check") || href.includes("hr.html")) {
         labelSpan.textContent = t.leaveCheck;
         item.setAttribute("title", t.leaveCheck);
+        if (iconSpan && iconSpan.textContent.trim() !== "fact_check") iconSpan.textContent = "fact_check";
       } else if (iconName.includes("campaign") || href.includes("news")) {
         labelSpan.textContent = t.news || "ข่าวสาร";
         item.setAttribute("title", t.news || "ข่าวสาร");
+        if (iconSpan && iconSpan.textContent.trim() !== "campaign") iconSpan.textContent = "campaign";
       } else if (iconName.includes("manage_accounts") || href.endsWith("management.html") || href.includes("/hr/management")) {
         labelSpan.textContent = t.employeeManagement || "ระบบจัดการส่วนกลาง";
         item.setAttribute("title", t.employeeManagement || "ระบบจัดการส่วนกลาง");
+        if (iconSpan && iconSpan.textContent.trim() !== "manage_accounts") iconSpan.textContent = "manage_accounts";
       } else if (href.includes("leave-rules") || iconName.includes("policy") || onclickAttr.includes("rules")) {
         labelSpan.textContent = t.ruleTitle || "กฎระเบียบ";
         item.setAttribute("title", t.ruleTitle || "กฎระเบียบ");
+        if (iconSpan && iconSpan.textContent.trim() !== "policy") iconSpan.textContent = "policy";
       } else if (href.includes("full-guide") || iconName.includes("help_center") || (iconName.includes("menu_book") && href.includes("guide"))) {
         labelSpan.textContent = t.guideTitle ? "คู่มือ" : "คู่มือ";
         item.setAttribute("title", t.guideTitle || "คู่มือการใช้งาน");
+        if (iconSpan && iconSpan.textContent.trim() !== "menu_book") iconSpan.textContent = "menu_book";
       } else if (href.includes("profile") || (iconName === "person" && href.includes("/user/"))) {
         labelSpan.textContent = t.profileTitle || "ข้อมูลส่วนตัว";
         item.setAttribute("title", t.profileTitle || "ข้อมูลส่วนตัว");
+        if (iconSpan && iconSpan.textContent.trim() !== "person") iconSpan.textContent = "person";
       } else if (href.includes("leave-history") || iconName === "history") {
         labelSpan.textContent = t.historyTitle || "ประวัติการลา";
         item.setAttribute("title", t.historyTitle || "ประวัติการลา");
+        if (iconSpan && iconSpan.textContent.trim() !== "history") iconSpan.textContent = "history";
       } else if (iconName.includes("group") || iconName.includes("people") || href.includes("employee")) {
         labelSpan.textContent = t.employees;
         item.setAttribute("title", t.employees);
+        if (iconSpan && iconSpan.textContent.trim() !== "groups") iconSpan.textContent = "groups";
       } else if (iconName.includes("event") || iconName.includes("calendar") || href.includes("holiday") || iconName.includes("date_range")) {
         labelSpan.textContent = t.holidayTitle || "ปฏิทิน";
         item.setAttribute("title", t.holidayTitle || "ปฏิทิน");
+        if (iconSpan && iconSpan.textContent.trim() !== "calendar_today") iconSpan.textContent = "calendar_today";
       } else if (iconName.includes("badge") || iconName.includes("card") || href.includes("card") || onclickAttr.includes("card")) {
         labelSpan.textContent = t.cardSystem || "บัตรพนักงาน";
         item.setAttribute("title", t.cardSystem || "บัตรพนักงาน");
+        if (iconSpan && iconSpan.textContent.trim() !== "badge") iconSpan.textContent = "badge";
+      } else if (iconName.includes("chat") || onclickAttr.includes("chat") || onclickAttr.includes("line")) {
+        labelSpan.textContent = t.lineConnect || "LINE";
+        item.setAttribute("title", t.lineConnect || "LINE");
+        if (iconSpan && iconSpan.textContent.trim() !== "chat") iconSpan.textContent = "chat";
       } else if (iconName.includes("settings") || onclickAttr.includes("settings")) {
         labelSpan.textContent = t.settings || "ตั้งค่า";
         item.setAttribute("title", t.settings || "ตั้งค่า");
+        if (iconSpan && iconSpan.textContent.trim() !== "settings") iconSpan.textContent = "settings";
       } else if (iconName.includes("help") || onclickAttr.includes("help")) {
         labelSpan.textContent = t.help || "ช่วยเหลือ";
         item.setAttribute("title", t.help || "ช่วยเหลือ");
+        if (iconSpan && iconSpan.textContent.trim() !== "help_outline") iconSpan.textContent = "help_outline";
       }
     });
+
+    // 🛡️ Explicitly protect and preserve core UI action icons across the page
+    const coreIconGuards = [
+      ['#mobileMenuBtn .material-symbols-outlined', 'menu'],
+      ['#refreshBtn .material-symbols-outlined', 'refresh'],
+      ['#notificationBtn .material-symbols-outlined', 'notifications'],
+      ['#approverModeBtn .material-symbols-outlined', 'supervisor_account'],
+      ['.btn-hero-icon .material-symbols-outlined', 'edit_document'],
+      ['.btn-hero-arrow', 'chevron_right'],
+      ['.sidebar-brand .brand-icon .material-symbols-outlined', 'groups'],
+      ['.sidebar-cta-btn .material-symbols-outlined', 'edit_document'],
+      ['#hrChatbotFab .material-symbols-outlined', 'smart_toy'],
+      ['.btn-close-sidebar .material-symbols-outlined', 'close']
+    ];
+    coreIconGuards.forEach(([sel, canonical]) => {
+      const el = document.querySelector(sel);
+      if (el) {
+        if (el.textContent.trim() !== canonical) {
+          el.textContent = canonical;
+        }
+        el.setAttribute('translate', 'no');
+        el.classList.add('notranslate');
+      }
+    });
+
+    const sidebarCta = document.querySelector(".sidebar-cta-btn");
+    if (sidebarCta) {
+      const ctaLabel = sidebarCta.querySelector(".sidebar-cta-label");
+      if (ctaLabel) {
+        ctaLabel.textContent = t.requestLeave || t.heroLeaveTitle || "ยื่นใบลาออนไลน์";
+      }
+    }
 
     // =========================================================================
     // 🌐 Context-Aware Page-Specific Translations (Isolated by Page Route)
@@ -4120,6 +4247,21 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       const parentTag = parent.tagName;
       if (parentTag === "SCRIPT" || parentTag === "STYLE" || parentTag === "TEXTAREA" || parentTag === "INPUT") continue;
 
+      // 🛡️ Strict protection for Material Symbols and notranslate nodes
+      if (
+        parent.classList.contains("material-symbols-outlined") ||
+        parent.classList.contains("material-symbols-rounded") ||
+        parent.classList.contains("material-symbols-sharp") ||
+        parent.classList.contains("material-icons") ||
+        parent.classList.contains("notranslate") ||
+        parent.getAttribute("translate") === "no" ||
+        parent.closest(".material-symbols-outlined") ||
+        parent.closest(".material-icons") ||
+        parent.closest(".notranslate")
+      ) {
+        continue;
+      }
+
       // 🔒 Protect dynamic user identity, name, code, dept, and custom inputs from accidental dictionary matching
       let isProtected = false;
       let curr = parent;
@@ -4167,12 +4309,11 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       window.deepScanTranslateDynamicContent(document.body, lang);
     }
 
-    // 🪄 [MAGIC TRANSLATE INTEGRATION]: เมื่อเปลี่ยนภาษา ให้สั่ง Google Translate ทำงานควบคู่ไปด้วย
-    if (typeof window.triggerMagicTranslate === 'function' && !options.fromObserver) {
-      // Delay เล็กน้อยเพื่อให้ DOM อัปเดตจากการแปล Manual ก่อน
+    // 🪄 [MAGIC TRANSLATE INTEGRATION]: ทำงานเฉพาะภาษาภายนอกระบบเท่านั้น (ไม่รบกวน TH, LO, MY, EN)
+    if (!isNativeLang && typeof window.triggerMagicTranslate === 'function' && !options.fromObserver) {
       setTimeout(() => {
         window.triggerMagicTranslate(lang);
-      }, 150);
+      }, 100);
     }
 
     // 12. Broadcast event for custom JS controllers (ONLY if language actually changed or explicitly requested)
@@ -4188,6 +4329,12 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
     }
 
   } finally {
+    // ⚡ ปลดล็อค transition เมื่อ DOM จัดการขนาดและฟอนต์เรียบร้อย ป้องกันการกระตุก 100%
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("pvt-translating");
+      });
+    });
     setTimeout(() => {
       window.__pvtIsTranslating = false;
     }, 60);
@@ -4485,5 +4632,61 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 })();
+
+// 🛡️ [STARTUP INTEGRITY & PERSISTENT ICON SHIELD]
+(function initTranslationSafety() {
+  function runSafety() {
+    if (typeof window.protectIconsFromTranslation === 'function') {
+      window.protectIconsFromTranslation(document.body);
+    }
+    const currentLang = (localStorage.getItem("pvt_login_lang") || localStorage.getItem("pvt_language") || "th").toLowerCase();
+    if (['th', 'lo', 'my', 'en'].includes(currentLang)) {
+      if (document.cookie.includes("googtrans") && typeof window.purgeGoogleTranslate === 'function') {
+        window.purgeGoogleTranslate();
+      }
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runSafety);
+  } else {
+    runSafety();
+  }
+
+  try {
+    const iconObserver = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.addedNodes && m.addedNodes.length > 0) {
+          m.addedNodes.forEach(node => {
+            if (node.nodeType === 1) {
+              if (node.matches && (node.matches('.material-symbols-outlined, .material-icons, [class*="material-symbols"]'))) {
+                node.setAttribute('translate', 'no');
+                node.classList.add('notranslate');
+              } else if (node.querySelectorAll) {
+                const icons = node.querySelectorAll('.material-symbols-outlined, .material-icons, [class*="material-symbols"]');
+                icons.forEach(ic => {
+                  ic.setAttribute('translate', 'no');
+                  ic.classList.add('notranslate');
+                });
+              }
+            }
+          });
+        }
+      }
+    });
+    iconObserver.observe(document.documentElement, { childList: true, subtree: true });
+  } catch (e) {}
+})();
+
+// 🔄 [AUTO-UPDATE & CACHE BUSTER]: Ensure refreshed pages always load latest code
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (let registration of registrations) {
+      registration.update();
+    }
+  });
+}
+
+
 
 

@@ -829,11 +829,15 @@ body {
   border-color: #3b82f6 !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
 }
-.skiptranslate {
+/* Only style skiptranslate inside settings modal or visible element */
+#google_translate_element_visible .skiptranslate,
+#systemSettingsModal .skiptranslate,
+.magic-translate-card .skiptranslate {
   display: inline-block !important;
   vertical-align: middle !important;
   white-space: nowrap !important;
 }
+
 /* Hide Google branding and link texts */
 .goog-te-gadget {
   font-size: 0 !important;
@@ -846,27 +850,51 @@ body {
 .goog-logo-link {
   display: none !important;
 }
-/* Ensure no floating google translation banner at the top of the body */
+
+/* Ensure completely invisible and zero footprint for top translation banner */
+body > .skiptranslate,
+body > div.skiptranslate,
+body > iframe.skiptranslate,
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
 iframe.goog-te-banner-frame,
 iframe.goog-te-banner-frame-escaped,
+iframe.skiptranslate,
 iframe[src*="translate.google.com"],
 iframe[id*="google_translate"],
+iframe[id*=":1.container"],
+iframe[id*=":2.container"],
+iframe[id*=":0.container"],
 iframe[class*="goog-te-banner-frame"],
-.goog-te-banner-frame,
-.goog-te-banner,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-xl07Ob-OEVmcd,
+.goog-te-menu-frame,
+iframe.goog-te-menu-frame,
 #goog-gt-tt,
-.goog-te-balloon-frame {
+.goog-te-balloon-frame,
+.goog-te-spinner-pos,
+div[id*="goog-gt-"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
   height: 0 !important;
   width: 0 !important;
+  max-height: 0 !important;
+  max-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
   pointer-events: none !important;
+  position: absolute !important;
+  top: -99999px !important;
+  left: -99999px !important;
+  z-index: -99999 !important;
 }
+
 html, body {
-  top: 0 !important;
-  margin-top: 0 !important;
-  position: static !important;
+  top: 0px !important;
+  margin-top: 0px !important;
 }
 .magic-translate-card:hover {
   border-color: #3b82f6 !important;

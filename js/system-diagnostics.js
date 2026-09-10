@@ -706,7 +706,9 @@
       if (this.logs.length > 100) this.logs.shift(); // เก็บไม่เกิน 100 บรรทัด
       
       const consoleColor = level === 'ERROR' ? '#ef4444' : level === 'WARN' ? '#f59e0b' : '#10b981';
-      console.log(`%c[PVT-DIAGNOSTICS][${level}] ${message}`, `color:${consoleColor}; font-weight:bold;`, details || '');
+      if (level === 'ERROR' || level === 'WARN') {
+        console.log(`%c[PVT-DIAGNOSTICS][${level}] ${message}`, `color:${consoleColor}; font-weight:bold;`, details || '');
+      }
     },
 
     // 🖥️ 4. แสดงผลกล่องเครื่องมือตรวจแก้บัค (Diagnostics & Repair Modal)

@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import "./system-settings.css";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;600;700&family=Noto+Sans+Myanmar:wght@300;400;500;600;700&display=swap');
 
 /* ==========================================================================
    PVT WORKFORCE HUB - GLOBAL RESPONSIVE & SHARED UTILITIES
@@ -32,13 +32,60 @@ html, body {
 }
 
 html, body {
-  font-family: 'Sarabun', 'Kanit', sans-serif !important;
+  font-family: 'Kanit', 'Sarabun', 'Noto Sans Lao', 'Noto Sans Myanmar', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   margin: 0;
   padding: 0;
   width: 100%;
   min-height: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   ⚡ ZERO-JITTER / ZERO-STUTTER INSTANT LANGUAGE SWITCH
+   ========================================================================== */
+html.pvt-translating,
+html.pvt-translating *,
+html.pvt-translating *::before,
+html.pvt-translating *::after {
+  transition: none !important;
+  animation-duration: 0.0001ms !important;
+  animation-delay: 0s !important;
+}
+
+/* ==========================================================================
+   🛡️ STRICT ICON & GLYPH INTEGRITY (PREVENT TRANSLATION & WARPING)
+   ========================================================================== */
+.material-symbols-outlined,
+.material-symbols-rounded,
+.material-symbols-sharp,
+.material-icons,
+.material-icons-outlined,
+[class*="material-symbols"],
+.notranslate,
+[translate="no"] {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  direction: ltr !important;
+  -webkit-font-feature-settings: 'liga' !important;
+  -webkit-font-smoothing: antialiased !important;
+  translate: no !important;
+  user-select: none !important;
+}
+
+/* 🌐 Normalize any injected <font> elements so they never disrupt layout */
+font {
+  display: contents !important;
+  font: inherit !important;
+  color: inherit !important;
+  vertical-align: inherit !important;
 }
 
 /* 🌫️ ฉากหลังสำหรับ SweetAlert2 - z-index สูงสุดเหนือทุกเลเยอร์ */
@@ -292,21 +339,32 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
    GLOBAL USER PROFILE (TOPBAR)
    -------------------------------------------------------------------------- */
 .user-profile {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: var(--bg-card, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 50px;
   padding: 6px 14px 6px 6px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
+  margin-left: 6px;
 }
 
 .user-profile .avatar {
-  width: 40px;
-  height: 40px;
+  position: relative;
+  left: -2px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
   background: var(--primary-light, #ccfbf1);
   color: var(--primary-teal, #0d9488);
   font-weight: 700;
@@ -315,6 +373,16 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
   justify-content: center;
   border: 2px solid #ffffff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-profile .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 50%;
 }
 
 .user-profile .info {
@@ -322,19 +390,29 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
   flex-direction: column;
   justify-content: center;
   text-align: left;
+  min-width: 0;
+  flex: 1;
 }
 
 .user-profile .info strong {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--text-main, #1e293b);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
 }
 
 .user-profile .info span {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted, #64748b);
   line-height: 1.2;
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
 }
 
 .custom-input-consistent {
@@ -1833,6 +1911,67 @@ html[data-compact-mode="true"] .card-btn-group .action-btn,
 body.compact-mode .card-btn-group .action-btn {
   padding: 8px 12px !important;
 }
+
+/* 🛡️ COMPLETE GOOGLE TRANSLATE BANNER SUPPRESSION */
+body > .skiptranslate,
+body > div.skiptranslate,
+body > iframe.skiptranslate,
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+iframe.goog-te-banner-frame-escaped,
+iframe.skiptranslate,
+iframe[src*="translate.google.com"],
+iframe[id*="google_translate"],
+iframe[id*=":1.container"],
+iframe[id*=":2.container"],
+iframe[id*=":0.container"],
+iframe[class*="goog-te-banner-frame"],
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-xl07Ob-OEVmcd,
+.goog-te-menu-frame,
+iframe.goog-te-menu-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-te-spinner-pos,
+div[id*="goog-gt-"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  max-height: 0 !important;
+  max-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  top: -99999px !important;
+  left: -99999px !important;
+  z-index: -99999 !important;
+}
+
+html, body {
+  top: 0px !important;
+  margin-top: 0px !important;
+}
+
+/* 🖼️ Global Logo & Avatar Distortion Fix */
+.logo-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+.logo-wrapper .brand-logo,
+.brand-logo {
+  object-fit: contain !important;
+  display: block !important;
+}
+
 
 
 
