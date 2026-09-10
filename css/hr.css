@@ -461,13 +461,59 @@ body {
   transform: translateY(-2px);
 }
 
-#userAvatarHeader {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+#userAvatarHeader,
+.user-profile .avatar,
+.user-profile .avatar-badge,
+.user-profile img.avatar,
+#headerUserProfile .avatar,
+#headerUserProfile .avatar-badge {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 55%, #0f766e 100%) !important;
+  color: #ffffff !important;
+  font-family: 'Prompt', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  letter-spacing: 0.5px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+  user-select: none !important;
+}
+
+.user-profile .avatar *,
+.user-profile .avatar-badge *,
+#headerUserProfile .avatar *,
+#headerUserProfile .avatar-badge * {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: inherit !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  letter-spacing: 0.5px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
 }
 
 .user-profile .info strong { 

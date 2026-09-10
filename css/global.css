@@ -61,9 +61,7 @@ html.pvt-translating *::after {
 .material-symbols-sharp,
 .material-icons,
 .material-icons-outlined,
-[class*="material-symbols"],
-.notranslate,
-[translate="no"] {
+[class*="material-symbols"] {
   font-family: 'Material Symbols Outlined' !important;
   font-weight: normal !important;
   font-style: normal !important;
@@ -78,6 +76,11 @@ html.pvt-translating *::after {
   -webkit-font-smoothing: antialiased !important;
   translate: no !important;
   user-select: none !important;
+}
+
+.notranslate,
+[translate="no"] {
+  translate: no !important;
 }
 
 /* 🌐 Normalize any injected <font> elements so they never disrupt layout */
@@ -355,34 +358,71 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
   margin-left: 6px;
 }
 
-.user-profile .avatar {
+.user-profile .avatar,
+.user-profile .avatar-badge,
+.user-profile img.avatar,
+#headerUserProfile .avatar,
+#headerUserProfile .avatar-badge {
   position: relative;
-  left: -2px;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-  object-position: center;
-  background: var(--primary-light, #ccfbf1);
-  color: var(--primary-teal, #0d9488);
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  flex-shrink: 0;
-  overflow: hidden;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 55%, #0f766e 100%) !important;
+  color: #ffffff !important;
+  font-family: 'Prompt', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  letter-spacing: 0.5px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+  user-select: none !important;
+}
+
+.user-profile .avatar *,
+.user-profile .avatar-badge *,
+#headerUserProfile .avatar *,
+#headerUserProfile .avatar-badge * {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: inherit !important;
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  letter-spacing: 0.5px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
 }
 
 .user-profile .avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  border-radius: 50%;
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  border-radius: 50% !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .user-profile .info {
@@ -569,8 +609,8 @@ html, body {
   }
 
   /* ปรับแต่งปุ่มและกลุ่มควบคุม */
-  .btn:not(.lang-btn):not(#globalLangTh):not(#globalLangLo):not(#globalLangMy):not(#langThBtn):not(#langLoBtn):not(#langMyBtn):not(.btn-view):not(.toggle-sidebar-btn):not([class*="cal"]),
-  .btn-primary:not(.lang-btn),
+  .btn:not(.lang-btn):not(#globalLangTh):not(#globalLangLo):not(#globalLangMy):not(#langThBtn):not(#langLoBtn):not(#langMyBtn):not(.btn-view):not(.toggle-sidebar-btn):not([class*="cal"]):not(.btn-hero-leave):not([class*="hero"]):not([class*="special"]),
+  .btn-primary:not(.lang-btn):not(.btn-hero-leave),
   .btn-light:not(.lang-btn) {
     height: auto !important;
     padding: 8px 12px !important;
@@ -734,10 +774,10 @@ html, body {
 /* ==========================================================================
    ✨ HIGH-CRAFT PREMIUM GLOBAL BUTTON DESIGN SYSTEM
    ========================================================================== */
-.btn, 
-button:not([class^="swal2-"]):not(.menu-item):not(.nav-item):not(.sidebar-cta-btn):not(.btn-close-sidebar):not(.mobile-menu-btn):not(.notif-btn), 
+.btn:not(.btn-hero-leave):not([class*="hero"]), 
+button:not([class^="swal2-"]):not(.menu-item):not(.nav-item):not(.sidebar-cta-btn):not(.btn-close-sidebar):not(.mobile-menu-btn):not(.notif-btn):not(.btn-hero-leave):not([class*="hero"]), 
 .action-btn, 
-.btn-primary, 
+.btn-primary:not(.btn-hero-leave), 
 .btn-light, 
 .btn-secondary, 
 .btn-act,

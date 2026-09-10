@@ -837,13 +837,13 @@ export async function handleHrChatbot(req, res) {
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    const systemInstruction = `คุณคือ "HR Smart Assistant" ผู้ช่วยตอบคำถามอัตโนมัติประจำฝ่ายทรัพยากรบุคคลของบริษัท PVT Workforce Hub
-คุณมีหน้าที่ตอบคำถามพนักงานเกี่ยวกับ นโยบายวันลา สิทธิสวัสดิการ กฎระเบียบบริษัท และเงื่อนไขการเบิกเงิน
+    const systemInstruction = `คุณคือ "HR Smart Assistant" ผู้ช่วยอัจฉริยะประจำฝ่ายทรัพยากรบุคคลของบริษัท PVT Workforce Hub
+คุณมีความสามารถพิเศษในการแปลภาษา ตีความ และตอบคำถามพนักงานทุกภาษา (เช่น ไทย ลาว เมียนมา อังกฤษ ฯลฯ) เกี่ยวกับนโยบายวันลา สิทธิสวัสดิการ กฎระเบียบบริษัท และเงื่อนไขการเบิกเงิน
 
-⚡ กฎสำคัญในการตอบ (Concise & Direct):
-1. ตอบให้ "สั้น กระชับ ตรงประเด็นทันที" ความยาวประมาณ 1-3 บรรทัด (ไม่เกิน 1-2 ประโยคหลัก หรือใช้หัวข้อย่อยสั้นๆ)
-2. ห้ามเกริ่นนำเยิ่นเย้อ ห้ามทวนคำถาม และไม่ต้องใส่คำลงท้ายยาวๆ
-3. เน้นตัวเลข วัน สิทธิ์ และเงื่อนไขสำคัญด้วยตัวหนา เพื่อให้อ่านเข้าใจได้ทันทีใน 3 วินาที
+⚡ กฎสำคัญในการตอบ (Concise & Direct & Multilingual):
+1. หากพนักงานถามหรือพิมพ์มาเป็นภาษาใด (เช่น ภาษาไทย, ลาว, เมียนมา, อังกฤษ) ให้ตอบกลับด้วย "ภาษาเดียวกัน" กับที่พนักงานพิมพ์มาเสมอ
+2. ตอบให้ "สั้น กระชับ ตรงประเด็นทันที" ความยาวประมาณ 1-3 บรรทัด
+3. ห้ามเกริ่นนำเยิ่นเย้อ ห้ามทวนคำถาม และเน้นข้อมูลสำคัญด้วยตัวหนา
 4. สุภาพ เป็นมิตร และถูกต้องตามกฎระเบียบบริษัท 100%
 
 คู่มือนโยบายและสิทธิประโยชน์สำคัญของบริษัท:
@@ -859,7 +859,7 @@ export async function handleHrChatbot(req, res) {
 
 หากอยู่นอกเหนือจากระเบียบ ให้ตอบสั้นๆ ว่า "ติดต่อ HR เพิ่มเติมที่ อีเมล hr@pvt-workforce.com หรือโทรภายใน 101-104 ครับ"`;
 
-    const candidateModels = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    const candidateModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
     let responseText = null;
 
     for (const modelName of candidateModels) {
@@ -880,7 +880,17 @@ export async function handleHrChatbot(req, res) {
         }
       } catch (genErr) {
         console.warn(`⚠️ [HR Chatbot Model ${modelName} failed]:`, genErr.message);
-        // Pause briefly before trying fallback model
+        try {
+          const fallbackResp = await ai.models.generateContent({
+            model: 'gemini-3.6-flash',
+            contents: `${systemInstruction}\n\nคำถามจากพนักงาน: ${message}`
+          });
+          if (fallbackResp && fallbackResp.text) {
+            responseText = fallbackResp.text;
+            console.log(`🤖 [HR Chatbot Success with fallback gemini-3.6-flash]`);
+            break;
+          }
+        } catch (e2) {}
         await new Promise(r => setTimeout(r, 400));
       }
     }

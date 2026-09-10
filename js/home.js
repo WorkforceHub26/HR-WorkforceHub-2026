@@ -369,7 +369,7 @@ function drawCharts() {
   const approvedRequests = safeRequests.filter(r => {
     if (!r || !r.status) return false;
     const st = String(r.status).trim().toLowerCase();
-    return st === "approved" || st === "อนุมัติ" || st === "pass";
+    return st === "approved" || st === "อนุมัติ" || st === "อนุมัติแล้ว" || st === "pass" || st === "completed" || st === "complete";
   });
 
   const activeDataset = approvedRequests;
@@ -574,23 +574,113 @@ function renderTopLeaveEmployees(approvedRequests) {
   const container = document.getElementById("topLeaveEmployeesTable");
   if (!container) return;
 
-  if (!approvedRequests || approvedRequests.length === 0) {
-    container.innerHTML = `<div class="empty-state">ไม่มีข้อมูลประวัติการลาที่อนุมัติ</div>`;
+  const reqList = Array.isArray(approvedRequests) ? approvedRequests : [];
+
+  // กรองรายการที่อนุมัติแล้ว (หรือถ้ายังไม่มีอนุมัติ ให้ดูว่ามี safeRequests ไหม)
+  const validApproved = reqList.filter(r => {
+    if (!r) return false;
+    const st = String(r.status || "").trim().toLowerCase();
+    return st === "approved" || st === "อนุมัติ" || st === "อนุมัติแล้ว" || st === "complete" || st === "completed" || st === "pass";
+  });
+
+  if (validApproved.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding: 28px 16px; text-align: center; color: var(--text-soft); background: #f8fafc; border-radius: var(--radius-md); border: 1px dashed #e2e8f0;">
+        <span class="material-symbols-outlined" style="font-size: 38px; color: #cbd5e1; margin-bottom: 8px; display: block;">event_busy</span>
+        <div style="font-weight: 700; color: #64748b; font-size: 14px;">ยังไม่มีข้อมูลการลาที่อนุมัติแล้ว</div>
+        <span style="font-size: 12px; color: #94a3b8; margin-top: 4px; display: block;">ระบบจะจัดอันดับอัตโนมัติเมื่อมีใบลาที่ได้รับการอนุมัติเรียบร้อย</span>
+      </div>
+    `;
     return;
   }
 
   const empMap = {};
+  const allEmps = Array.isArray(typeof rawEmployees !== "undefined" ? rawEmployees : null) ? rawEmployees : [];
 
-  approvedRequests.forEach(r => {
-    const empId = r.employee_id || r.employees?.employee_code || r.emp_name || "Unknown";
-    const empName = r.employees?.full_name || r.employees?.first_name || r.emp_name || "ไม่ระบุชื่อ";
-    const deptName = (r.employees?.departments?.department_name) || r.department || "-";
-    const rawDays = r.actual_days ?? r.total_days ?? r.days_requested ?? r.days;
-    const days = (rawDays !== null && rawDays !== undefined && rawDays !== "") ? parseFloat(rawDays) : 1;
+  validApproved.forEach(r => {
+    if (!r) return;
+    
+    // 1. ดึงพนักงานและเชื่อมโยงข้อมูล
+    const empObj = r.employees || allEmps.find(e => String(e.id) === String(r.employee_id) || String(e.employee_code) === String(r.employee_id));
+    const empId = String(r.employee_id || (empObj ? (empObj.id || empObj.employee_code) : '') || r.emp_name || r.full_name || "Unknown");
+    
+    let empName = "ไม่ระบุชื่อ";
+    if (empObj) {
+      if (empObj.full_name) {
+        empName = empObj.full_name;
+      } else if (empObj.first_name) {
+        const parts = [empObj.prefix || empObj.title, empObj.first_name, empObj.last_name].filter(Boolean);
+        empName = parts.join(" ");
+      }
+    } else if (r.full_name) {
+      empName = r.full_name;
+    } else if (r.emp_name) {
+      empName = r.emp_name;
+    } else if (r.employee_name) {
+      empName = r.employee_name;
+    }
+
+    // แผนก
+    let deptName = "ส่วนกลาง / ทั่วไป";
+    if (empObj) {
+      const deptData = empObj.departments;
+      if (Array.isArray(deptData) && deptData.length > 0) {
+        deptName = deptData[0].department_name || deptName;
+      } else if (deptData && typeof deptData === "object" && deptData.department_name) {
+        deptName = deptData.department_name;
+      } else if (empObj.department) {
+        deptName = empObj.department;
+      }
+    } else if (r.department) {
+      deptName = r.department;
+    }
+
+    // รูปและรหัส
+    const avatarUrl = empObj?.image_url || empObj?.avatar_url || r.image_url || r.avatar_url || "";
+    const empCode = empObj?.employee_code || empObj?.emp_code || r.employee_code || "";
+
+    // 2. คำนวณจำนวนวันลาสะสมอย่างปลอดภัย
+    let days = 0;
+    const rawActual = r.actual_days;
+    const rawTotal = r.total_days;
+    const rawReq = r.days_requested;
+    const rawDays = r.days;
+    const rawHours = r.leave_hours ?? r.total_hours ?? r.hours;
+
+    if (rawActual !== null && rawActual !== undefined && rawActual !== "") {
+      days = parseFloat(rawActual) || 0;
+    } else if (rawTotal !== null && rawTotal !== undefined && rawTotal !== "") {
+      days = parseFloat(rawTotal) || 0;
+    } else if (rawReq !== null && rawReq !== undefined && rawReq !== "") {
+      days = parseFloat(rawReq) || 0;
+    } else if (rawDays !== null && rawDays !== undefined && rawDays !== "") {
+      days = parseFloat(rawDays) || 0;
+    } else if (rawHours !== null && rawHours !== undefined && rawHours !== "") {
+      days = (parseFloat(rawHours) || 0) / 8;
+    } else if (r.start_date && r.end_date) {
+      const s = new Date(r.start_date);
+      const e = new Date(r.end_date);
+      if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+        days = Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1);
+      } else {
+        days = 1;
+      }
+    } else {
+      days = 1;
+    }
 
     if (!empMap[empId]) {
-      empMap[empId] = { name: empName, dept: deptName, count: 0, totalDays: 0 };
+      empMap[empId] = {
+        id: empId,
+        name: empName,
+        code: empCode,
+        dept: deptName,
+        avatar: avatarUrl,
+        count: 0,
+        totalDays: 0
+      };
     }
+
     empMap[empId].count += 1;
     empMap[empId].totalDays += days;
   });
@@ -599,23 +689,74 @@ function renderTopLeaveEmployees(approvedRequests) {
     .sort((a, b) => b.totalDays - a.totalDays)
     .slice(0, 5);
 
+  if (sortedEmployees.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding: 24px 16px; text-align: center; color: var(--text-soft);">
+        <span class="material-symbols-outlined" style="font-size: 36px; color: #cbd5e1; margin-bottom: 6px; display: block;">event_busy</span>
+        <div>ไม่มีข้อมูลประวัติการลาที่อนุมัติ</div>
+      </div>
+    `;
+    return;
+  }
+
+  const maxDays = Math.max(...sortedEmployees.map(e => e.totalDays), 1);
+
   let html = "";
   sortedEmployees.forEach((emp, index) => {
     let rankBadge = `<span class="col-rank">${index + 1}</span>`;
-    if (index === 0) rankBadge = `<span class="col-rank" style="font-size:20px;">🥇</span>`;
-    if (index === 1) rankBadge = `<span class="col-rank" style="font-size:20px;">🥈</span>`;
-    if (index === 2) rankBadge = `<span class="col-rank" style="font-size:20px;">🥉</span>`;
+    let rankClass = `rank-${index + 1}`;
+    if (index === 0) rankBadge = `<span class="col-rank rank-medal" title="อันดับ 1">🥇</span>`;
+    else if (index === 1) rankBadge = `<span class="col-rank rank-medal" title="อันดับ 2">🥈</span>`;
+    else if (index === 2) rankBadge = `<span class="col-rank rank-medal" title="อันดับ 3">🥉</span>`;
 
-    const formattedDays = window.PVTSDK?.formatLeaveDurationFriendly 
-      ? window.PVTSDK.formatLeaveDurationFriendly(emp.totalDays, 0, { compact: true }) 
-      : `${emp.totalDays} วัน`;
+    // แปลงจำนวนวันและชั่วโมงลาให้อ่านง่ายเป็นภาษาไทยชัดเจน 100% (ไม่มีทศนิยมลอยน้ำ)
+    const totMin = Math.round((parseFloat(emp.totalDays) || 0) * 480);
+    const wDays = Math.floor(totMin / 480);
+    const remMin = totMin % 480;
+    const wH = Math.floor(remMin / 60);
+    const mins = remMin % 60;
+    
+    let formattedDays = "";
+    if (wDays === 0) {
+      if (wH === 4 && mins === 0) {
+        formattedDays = "4 ชม. (ครึ่งวัน)";
+      } else if (wH > 0 && mins > 0) {
+        formattedDays = `${wH} ชม. ${mins} นาที`;
+      } else if (wH > 0) {
+        formattedDays = `${wH} ชม.`;
+      } else if (mins > 0) {
+        formattedDays = `${mins} นาที`;
+      } else {
+        formattedDays = "0 วัน";
+      }
+    } else {
+      const parts = [`${wDays} วัน`];
+      if (wH === 4 && mins === 0) {
+        parts.push("4 ชม.");
+      } else {
+        if (wH > 0) parts.push(`${wH} ชม.`);
+        if (mins > 0) parts.push(`${mins} นาที`);
+      }
+      formattedDays = parts.join(" ");
+    }
+
+    // Avatar
+    const initials = emp.name.replace(/^(คุณ|นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.)\s*/, '').trim().substring(0, 2) || "PV";
+    const avatarHtml = emp.avatar 
+      ? `<img src="${emp.avatar}" class="top-emp-avatar" alt="${emp.name}" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'top-emp-avatar-badge',textContent:'${initials}'}));">`
+      : `<div class="top-emp-avatar-badge">${initials}</div>`;
 
     html += `
-      <div class="top-emp-card">
-        <div class="col-rank">${rankBadge}</div>
-        <div class="col-name">
-          <span class="emp-name">${emp.name}</span>
-          <span class="emp-dept">${emp.dept}</span>
+      <div class="top-emp-card ${rankClass}">
+        <div class="col-rank-box">
+          ${rankBadge}
+        </div>
+        <div class="col-profile-box">
+          ${avatarHtml}
+          <div class="col-name">
+            <span class="emp-name">${emp.name}</span>
+            <span class="emp-dept">${emp.dept} ${emp.code ? `• <span class="emp-code">${emp.code}</span>` : ''}</span>
+          </div>
         </div>
         <div class="col-stats">
           <span class="stat-badge">${emp.count} ครั้ง</span>

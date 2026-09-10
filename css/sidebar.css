@@ -117,7 +117,8 @@
 }
 
 /* 🧭 NAVIGATION MENU LIST */
-.sidebar-menu {
+.sidebar-menu,
+.nav-menu {
   padding: 6px 10px;
   display: flex;
   flex-direction: column;
@@ -133,7 +134,12 @@
 .sidebar button.menu-item,
 .sidebar a.menu-item,
 .sidebar-menu .menu-item,
-.sidebar-footer .menu-item {
+.sidebar-footer .menu-item,
+.sidebar .nav-item,
+.sidebar button.nav-item,
+.sidebar a.nav-item,
+.nav-menu .nav-item,
+.sidebar-light .nav-item {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -158,13 +164,17 @@
 }
 
 .sidebar .menu-item span,
-.sidebar-footer .menu-item span {
+.sidebar-footer .menu-item span,
+.sidebar .nav-item span,
+.sidebar .nav-label {
   text-align: left;
   white-space: nowrap;
 }
 
 .sidebar .menu-item:hover,
-.sidebar-footer .menu-item:hover {
+.sidebar-footer .menu-item:hover,
+.sidebar .nav-item:hover,
+.sidebar-light .nav-item:hover {
   background: #f8fafc;
   color: #0f172a;
   transform: translateX(2px);
@@ -172,14 +182,20 @@
 
 /* Active State */
 .sidebar .menu-item.active,
-.sidebar-menu .menu-item.active {
+.sidebar-menu .menu-item.active,
+.sidebar .nav-item.active,
+.nav-menu .nav-item.active,
+.sidebar-light .nav-item.active {
   background: #ecfeff !important;
   color: #0891b2 !important;
   font-weight: 600 !important;
 }
 
 .sidebar .menu-item.active .material-symbols-outlined,
-.sidebar-menu .menu-item.active .material-symbols-outlined {
+.sidebar-menu .menu-item.active .material-symbols-outlined,
+.sidebar .nav-item.active .material-symbols-outlined,
+.nav-menu .nav-item.active .material-symbols-outlined,
+.sidebar-light .nav-item.active .material-symbols-outlined {
   color: #0891b2 !important;
 }
 
