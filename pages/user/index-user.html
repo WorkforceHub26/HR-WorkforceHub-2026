@@ -54,6 +54,10 @@
           <span class="material-symbols-outlined">history</span>
           <span>ประวัติการลา</span>
         </a>
+        <a href="/pages/user/leave-stats.html" class="menu-item">
+          <span class="material-symbols-outlined">analytics</span>
+          <span>สถิติวันลา</span>
+        </a>
         <a href="/pages/user/holidays.html" class="menu-item">
           <span class="material-symbols-outlined">calendar_today</span>
           <span>ปฏิทิน</span>
@@ -110,17 +114,41 @@
     <main class="main-content" style="width: 100%; flex: 1;">
       <div class="app" style="max-width: 1000px; padding: 24px 16px; margin: 0 auto; width: 100%;">
         
-        <!-- ปุ่มสลับไปหน้าระบบอนุมัติ (แสดงเฉพาะ Leader / Manager / HR) -->
-        <a href="/pages/hr/hr.html" id="approverModeBtn" style="display: none; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 14px 20px; border-radius: 16px; text-decoration: none; font-weight: 600; margin-bottom: 20px; box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25); transition: all 0.3s ease;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span class="material-symbols-outlined" style="font-size: 26px;">supervisor_account</span>
-            <div style="text-align: left; line-height: 1.2;">
-              <span style="display: block; font-size: 14px; font-weight: 700;">ระบบหัวหน้างาน / HR</span>
-              <span style="display: block; font-size: 11px; color: #bfdbfe; font-weight: 400;">สลับไปหน้าอนุมัติใบลาและจัดการข้อมูล ➜</span>
+        <!-- 🎛️ TOP ACTION BAR: ปุ่มเปิดแดชบอร์ดสถิติวันลาทั้งหมด และปุ่มสลับไปหน้าระบบอนุมัติ HR -->
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+          
+          <!-- 📊 ปุ่มเปิดศูนย์สถิติและแดชบอร์ดการลาหลัก (Leave Statistics Dashboard Page) -->
+          <a href="/pages/user/leave-stats.html" id="btnOpenLeaveStats" style="display: flex; width: 100%; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%); color: white; padding: 16px 20px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-decoration: none; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25); transition: all 0.25s ease; text-align: left;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.12); backdrop-filter: blur(4px); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2);">
+                <span class="material-symbols-outlined" style="font-size: 26px; color: #38bdf8;">analytics</span>
+              </div>
+              <div style="text-align: left; line-height: 1.3;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 15px; font-weight: 700; color: #ffffff;">📊 แดชบอร์ดสถิติวันลาทั้งหมด (Leave Analytics)</span>
+                  <span style="font-size: 11px; background: #0284c7; color: #ffffff; padding: 2px 8px; border-radius: 10px; font-weight: 700;">เปิดหน้าสถิติ ➜</span>
+                </div>
+                <span style="display: block; font-size: 12px; color: #cbd5e1; font-weight: 400; margin-top: 3px;">เข้าดูสถิติวันลาสะสม สถิติรายแผนก พนักงานที่ลาสูงสุด และรายงานวิเคราะห์องค์กร</span>
+              </div>
             </div>
-          </div>
-          <span class="material-symbols-outlined">arrow_forward_ios</span>
-        </a>
+            <span class="material-symbols-outlined" style="color: #38bdf8; font-size: 24px;">arrow_forward</span>
+          </a>
+
+          <!-- 🛡️ ปุ่มสลับไปหน้าระบบอนุมัติ HR (แสดงเฉพาะ Leader / Manager / HR / Admin) -->
+          <a href="/pages/hr/hr.html" id="approverModeBtn" style="display: none; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; padding: 12px 18px; border-radius: 14px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15); transition: all 0.25s ease;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span class="material-symbols-outlined" style="font-size: 22px;">supervisor_account</span>
+              </div>
+              <div style="text-align: left; line-height: 1.3;">
+                <span style="display: block; font-size: 13.5px; font-weight: 700;">ระบบพิจารณาอนุมัติใบลา (สำหรับหัวหน้างาน / HR)</span>
+                <span style="display: block; font-size: 11px; color: #bfdbfe; font-weight: 400;">สลับเข้าสู่หน้าอนุมัติคำขอและบริหารแผนก</span>
+              </div>
+            </div>
+            <span class="material-symbols-outlined" style="font-size: 18px; opacity: 0.8;">arrow_forward_ios</span>
+          </a>
+
+        </div>
 
         <!-- Header ข้อมูลพนักงาน -->
         <header class="user-header" id="indexUserHeader">
@@ -358,12 +386,6 @@
           <span class="material-symbols-outlined" style="font-size: 36px; animation: spin 1s linear infinite;">sync</span>
           <p style="margin-top: 8px;">กำลังโหลดข้อมูลขั้นตอนการอนุมัติ...</p>
         </div>
-      </div>
-
-      <div class="modal-footer" style="padding: 14px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
-        <button type="button" onclick="closeVisualTimelineModal()" style="padding: 8px 20px; background: #0d9488; color: #ffffff; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;">
-          ปิดหน้าต่าง
-        </button>
       </div>
     </div>
   </div>

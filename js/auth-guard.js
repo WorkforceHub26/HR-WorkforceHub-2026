@@ -1540,6 +1540,8 @@ function saveUserSession(userData, expireInHours = 12) {
 
   try {
     localStorage.setItem("currentUser", JSON.stringify(sessionPayload));
+    // 🧭 ค่าเริ่มต้นเมื่อเข้าสู่ระบบ: สไลด์บาร์เริ่มต้นในสถานะปิด/ย่อ (Collapsed by default)
+    localStorage.setItem("sidebar-collapsed", "true");
     return true;
   } catch (err) {
     console.error("saveUserSession Error:", err);
@@ -2031,6 +2033,28 @@ function injectGlobalLangSwitcher() {
 // =========================================================================
 // 📱 GLOBAL MOBILE & DESKTOP SIDEBAR DRAWER CONTROLLER
 // =========================================================================
+window.applyGlobalSidebarState = function(isCollapsed) {
+  const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
+  const mainContent = document.querySelector(".main-content");
+  
+  if (isCollapsed) {
+    document.body.classList.add("desktop-sidebar-collapsed");
+    if (sidebar) sidebar.classList.add("collapsed");
+    if (mainContent) mainContent.classList.add("expanded");
+  } else {
+    document.body.classList.remove("desktop-sidebar-collapsed");
+    if (sidebar) sidebar.classList.remove("collapsed");
+    if (mainContent) mainContent.classList.remove("expanded");
+  }
+};
+
+window.toggleDesktopSidebar = function() {
+  const isCurrentlyCollapsed = document.body.classList.contains("desktop-sidebar-collapsed");
+  const nextCollapsedState = !isCurrentlyCollapsed;
+  window.applyGlobalSidebarState(nextCollapsedState);
+  localStorage.setItem('sidebar-collapsed', String(nextCollapsedState));
+};
+
 window.toggleMobileSidebar = function(e) {
   if (e && e.stopPropagation) e.stopPropagation();
   const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
@@ -2045,14 +2069,11 @@ window.toggleMobileSidebar = function(e) {
       window.closeMobileSidebar();
     }
   } else {
-    // Desktop Collapse / Expand Toggle
-    sidebar.classList.toggle("collapsed");
-    const mainContent = document.querySelector(".main-content");
-    if (mainContent) {
-      mainContent.classList.toggle("expanded");
-    }
+    window.toggleDesktopSidebar();
   }
 };
+
+window.toggleSidebar = window.toggleMobileSidebar;
 
 window.openMobileSidebar = function() {
   const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
@@ -2103,7 +2124,12 @@ window.closeMobileSidebar = function() {
 };
 
 function setupGlobalSidebarHandlers() {
-  document.querySelectorAll(".mobile-menu-btn, #mobileMenuBtn").forEach(btn => {
+  // 🧭 กำหนดให้สไลด์บาร์เริ่มต้นในสถานะปิด/ย่อเสมอในทุกๆ หน้า (Default: Collapsed/Closed)
+  const savedSidebarState = localStorage.getItem('sidebar-collapsed');
+  const shouldCollapse = savedSidebarState === null ? true : savedSidebarState === 'true';
+  window.applyGlobalSidebarState(shouldCollapse);
+
+  document.querySelectorAll(".mobile-menu-btn, #mobileMenuBtn, .btn-menu-toggle, #toggleSidebar").forEach(btn => {
     btn.removeEventListener("click", window.toggleMobileSidebar);
     btn.addEventListener("click", window.toggleMobileSidebar);
   });
@@ -2114,11 +2140,13 @@ function setupGlobalSidebarHandlers() {
     backdrop.addEventListener("click", window.closeMobileSidebar);
   }
 
-  document.querySelectorAll(".sidebar-light .nav-item, .sidebar .nav-item, aside .nav-item").forEach(item => {
+  document.querySelectorAll(".sidebar-light .nav-item, .sidebar .nav-item, aside .nav-item, .sidebar a, .nav-menu a").forEach(item => {
     item.addEventListener("click", () => {
+      // 🔒 เมื่อคลิกเปลี่ยนหน้า: ปิดสไลด์บาร์บนมือถือ และตั้งค่าให้หน้าถัดไปเริ่มต้นแบบปิดสไลด์บาร์เสมอ
       if (window.innerWidth <= 1024) {
         window.closeMobileSidebar();
       }
+      localStorage.setItem('sidebar-collapsed', 'true');
     });
   });
 
@@ -2321,6 +2349,40 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
+// 🪪 [GLOBAL EMPLOYEE CARD ACCESS]: Ensure digital card viewer works on all pages
+(function initGlobalEmployeeCardIntegration() {
+  function ensureCardScriptLoaded() {
+    if (!document.querySelector('script[src*="employee-card-modal.js"]')) {
+      const script = document.createElement('script');
+      script.src = '/js/employee-card-modal.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }
+
+  // Auto load script
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureCardScriptLoaded);
+  } else {
+    ensureCardScriptLoaded();
+  }
+
+  // Global fallback if clicked before script loaded
+  if (!window.openEmployeeCardManagerPopup) {
+    window.openEmployeeCardManagerPopup = function(forceRefresh) {
+      ensureCardScriptLoaded();
+      setTimeout(() => {
+        if (typeof window.openEmployeeCardManagerPopup === 'function') {
+          window.openEmployeeCardManagerPopup(forceRefresh);
+        } else {
+          alert('กำลังโหลดระบบบัตรพนักงาน กรุณารอสักครู่...');
+        }
+      }, 300);
+    };
+  }
+})();
+
 
 
 

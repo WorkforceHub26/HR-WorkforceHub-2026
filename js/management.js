@@ -1771,12 +1771,6 @@ function renderEmployeeTable() {
             <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
             <span>รายละเอียด</span>
           </button>
-          <button class="btn-table-act" 
-                  style="color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0;" 
-                  onclick="window.HealthWellness.openHealthManagerModal('${escapeHtml(emp.employee_code)}')" 
-                  title="ข้อมูลสุขภาพ & ประกันกลุ่ม">
-            <span class="material-symbols-outlined" style="font-size: 16px;">health_and_safety</span>
-          </button>
           <button class="btn-table-act danger" 
                   onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
                   title="ลบพนักงาน">

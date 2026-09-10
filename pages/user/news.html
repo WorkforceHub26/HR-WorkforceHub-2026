@@ -30,12 +30,10 @@
     
     <!-- 🧭 LEFT SIDEBAR MENU -->
     <aside class="sidebar" id="sidebarMenu">
-      <div class="sidebar-brand">
-        <div class="brand-icon">
-          <span class="material-symbols-outlined">groups</span>
-        </div>
-        <div class="brand-name">PVT WORKFORCE HUB</div>
-        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}" style="display: none;" title="ปิดเมนู">
+      <div class="sidebar-brand brand-zone">
+        <div class="brand-icon"></div>
+        <div class="brand-name logo-text">PVT WORKFORCE HUB</div>
+        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
       </div>
@@ -60,6 +58,10 @@
         <a href="/pages/user/leave-history.html" class="menu-item">
           <span class="material-symbols-outlined">history</span>
           <span>ประวัติการลา</span>
+        </a>
+        <a href="/pages/user/leave-stats.html" class="menu-item">
+          <span class="material-symbols-outlined">analytics</span>
+          <span>สถิติวันลา</span>
         </a>
         <a href="/pages/user/holidays.html" class="menu-item">
           <span class="material-symbols-outlined">calendar_today</span>
@@ -187,5 +189,6 @@
   <script src="/js/system-settings.js"></script>
   <script src="/js/company-news.js"></script>
   <script src="/js/news-user.js"></script>
+  <script src="/js/employee-card-modal.js"></script>
 </body>
 </html>

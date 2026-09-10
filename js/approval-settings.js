@@ -8,6 +8,17 @@ let departments = [];
 let employees = [];
 let approverMap = new Map();
 let executiveSetting = null;
+let realtimeSub = null;
+let lastSyncTime = null;
+
+/**
+ * 🔒 ตรวจสอบว่าพนักงานมี LINE User ID พร้อมใช้งานหรือไม่ (Robust Check)
+ */
+window.isLineConnected = function(emp) {
+  if (!emp || !emp.line_id) return false;
+  const str = String(emp.line_id).trim();
+  return str !== "" && str !== "null" && str !== "undefined" && str !== "-";
+};
 
 document.addEventListener("DOMContentLoaded", async () => {
   const session = JSON.parse(localStorage.getItem("currentUser") || "{}");
@@ -30,6 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   bindEvents();
   await loadAllData();
+  setupRealtimeSubscription();
 });
 
 function bindEvents() {
@@ -45,6 +57,85 @@ function bindEvents() {
   document.getElementById("individualEmployeeSelect")?.addEventListener("change", handleIndividualEmployeeChange);
   document.getElementById("btnSaveIndividual")?.addEventListener("click", saveIndividualApprover);
 }
+
+/**
+ * 🔄 ตั้งค่า Realtime Subscription เพื่อรับการอัปเดต LINE และสายอนุมัติอัตโนมัติแบบ Live
+ */
+function setupRealtimeSubscription() {
+  if (!sb || typeof sb.channel !== "function") return;
+  if (realtimeSub) {
+    try { sb.removeChannel(realtimeSub); } catch(e) {}
+  }
+
+  try {
+    realtimeSub = sb.channel("approval-settings-live-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, (payload) => {
+        console.log("⚡ [Realtime] พนักงานมีการเปลี่ยนแปลง (เช่น เชื่อม LINE):", payload);
+        if (payload.eventType === "UPDATE" && payload.new) {
+          const idx = employees.findIndex(e => String(e.id) === String(payload.new.id));
+          if (idx !== -1) {
+            employees[idx] = { ...employees[idx], ...payload.new };
+            // เติม department object หากขาด
+            if (!employees[idx].departments && employees[idx].department_id) {
+              const d = departments.find(x => String(x.id) === String(employees[idx].department_id));
+              if (d) employees[idx].departments = { department_name: d.department_name };
+            }
+            renderApproverTable();
+            renderEmployeeLineTable();
+            updateExecutiveLineStatus();
+            updateLineStatus("supervisor");
+            updateLineStatus("manager");
+          } else {
+            loadAllData(true);
+          }
+        } else {
+          loadAllData(true);
+        }
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "department_approvers" }, () => {
+        console.log("⚡ [Realtime] มีการอัปเดตสายอนุมัติแผนก");
+        loadAllData(true);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "system_settings" }, () => {
+        console.log("⚡ [Realtime] มีการอัปเดตการตั้งค่าระบบ/ผู้บริหาร");
+        loadAllData(true);
+      })
+      .subscribe((status) => {
+        console.log("📡 [Realtime Status]:", status);
+      });
+  } catch (rtErr) {
+    console.warn("Realtime subscription setup failed:", rtErr);
+  }
+}
+
+/**
+ * 🔄 ฟังก์ชันกดซิงค์ข้อมูลทั้งหมดทันที (Manual Refresh with UI feedback)
+ */
+window.refreshAllApprovalData = async function() {
+  const syncIcons = document.querySelectorAll("#syncIconHero, .spinning-sync-btn");
+  syncIcons.forEach(ic => ic.classList.add("spinning-icon"));
+
+  try {
+    await loadAllData();
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true
+    });
+    Toast.fire({
+      icon: 'success',
+      title: 'ซิงค์ข้อมูลล่าสุดสำเร็จ'
+    });
+  } catch (err) {
+    console.error("refreshAllApprovalData Error:", err);
+  } finally {
+    setTimeout(() => {
+      syncIcons.forEach(ic => ic.classList.remove("spinning-icon"));
+    }, 500);
+  }
+};
 
 window.focusSection = function(sectionId, focusElementId) {
   const el = document.getElementById(sectionId);
@@ -64,7 +155,7 @@ window.focusSection = function(sectionId, focusElementId) {
   }
 };
 
-async function loadAllData() {
+async function loadAllData(silent = false) {
   try {
     const [deptRes, empRes, mapRes, executiveRes] = await Promise.all([
       sb.from("departments").select("id, department_name").order("department_name"),
@@ -82,8 +173,18 @@ async function loadAllData() {
 
     departments = deptRes.data || [];
     employees = empRes.data || [];
+    
+    // เติม fallback แผนกให้พนักงานทุกท่านเพื่อความแม่นยำ 100%
+    employees.forEach(emp => {
+      if (!emp.departments && emp.department_id) {
+        const d = departments.find(x => String(x.id) === String(emp.department_id));
+        if (d) emp.departments = { department_name: d.department_name };
+      }
+    });
+
     approverMap = new Map((mapRes.data || []).map(x => [String(x.department_id), x]));
     executiveSetting = executiveRes.data || null;
+    lastSyncTime = new Date();
 
     renderExecutiveOptions();
     renderDepartmentOptions();
@@ -92,15 +193,27 @@ async function loadAllData() {
     // Initialize Tom Select for searchable dropdowns
     setTimeout(() => {
       initTomSelect();
-    }, 500);
+    }, 200);
     
     renderApproverTable();
     renderEmployeeLineTable();
     await loadLineNotificationSettings();
     await loadAutoDelegationData();
+    
+    updateSyncTimeBadge();
   } catch (err) {
     console.error("loadAllData:", err);
-    Swal.fire("โหลดข้อมูลไม่สำเร็จ", err.message || "กรุณาลองใหม่", "error");
+    if (!silent) {
+      Swal.fire("โหลดข้อมูลไม่สำเร็จ", err.message || "กรุณาลองใหม่", "error");
+    }
+  }
+}
+
+function updateSyncTimeBadge() {
+  const badge = document.getElementById("lastSyncTimeBadge");
+  if (badge && lastSyncTime) {
+    const timeStr = lastSyncTime.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    badge.textContent = `อัปเดตล่าสุด: ${timeStr}`;
   }
 }
 
@@ -488,7 +601,7 @@ function updateExecutiveLineStatus() {
     return;
   }
 
-  if (emp.line_id) {
+  if (isLineConnected(emp)) {
     el.className = "hint line-ok";
     el.textContent = "● LINE User ID พร้อมใช้งาน";
   } else {
@@ -585,12 +698,22 @@ function handleDepartmentChange() {
       sup.innerHTML = buildSupervisorOptions(departmentId, currentSupId);
       if (currentSupId) sup.value = currentSupId;
       sup.disabled = false;
+      if (sup.tomselect) {
+        sup.tomselect.clearOptions();
+        sup.tomselect.sync();
+        sup.tomselect.setValue(currentSupId || "");
+      }
     }
     
     if (mgr) {
       mgr.innerHTML = buildManagerOptions(departmentId, currentMgrId);
       if (currentMgrId) mgr.value = currentMgrId;
       mgr.disabled = false;
+      if (mgr.tomselect) {
+        mgr.tomselect.clearOptions();
+        mgr.tomselect.sync();
+        mgr.tomselect.setValue(currentMgrId || "");
+      }
     }
 
     if (save) save.disabled = false;
@@ -616,7 +739,7 @@ function updateLineStatus(type) {
     return;
   }
 
-  if (emp.line_id) {
+  if (isLineConnected(emp)) {
     el.className = "line-badge line-ok";
     el.textContent = "● LINE User ID พร้อมใช้งาน";
   } else {
@@ -713,7 +836,7 @@ function updateLineSummaryStats() {
 
   uniqueApproverIds.forEach(id => {
     const emp = employees.find(e => String(e.id) === String(id));
-    if (emp && emp.line_id) {
+    if (emp && isLineConnected(emp)) {
       connectedCount++;
     } else {
       notConnectedCount++;
@@ -736,7 +859,7 @@ function updateLineSummaryStats() {
       statExecLine.innerHTML = '<span style="color:#94a3b8; font-size:16px;">ยังไม่ระบุ</span>';
     } else {
       const execEmp = employees.find(e => String(e.id) === String(executiveSetting.employee_id));
-      if (execEmp?.line_id) {
+      if (isLineConnected(execEmp)) {
         statExecLine.innerHTML = '<span style="color:#16a34a; font-size:16px; font-weight:700;">● เชื่อมต่อแล้ว</span>';
       } else {
         statExecLine.innerHTML = '<span style="color:#ea580c; font-size:16px; font-weight:700;">○ ยังไม่ผูก LINE</span>';
@@ -757,8 +880,8 @@ function updateLineSummaryStats() {
     if (!sup && !mgr) {
       countNoApp++;
     } else {
-      const supOk = sup ? Boolean(sup.line_id) : true;
-      const mgrOk = mgr ? Boolean(mgr.line_id) : true;
+      const supOk = sup ? isLineConnected(sup) : true;
+      const mgrOk = mgr ? isLineConnected(mgr) : true;
       if (supOk && mgrOk && (sup || mgr)) {
         countFull++;
       } else {
@@ -793,12 +916,12 @@ function renderApproverTable() {
     // ตรวจสอบตัวกรองสถานะ LINE
     if (currentLineFilter === "line_all_connected") {
       if (!sup && !mgr) return false;
-      const supOk = sup ? Boolean(sup.line_id) : true;
-      const mgrOk = mgr ? Boolean(mgr.line_id) : true;
+      const supOk = sup ? isLineConnected(sup) : true;
+      const mgrOk = mgr ? isLineConnected(mgr) : true;
       if (!(supOk && mgrOk)) return false;
     } else if (currentLineFilter === "line_missing") {
       if (!sup && !mgr) return false;
-      const hasUnlinked = (sup && !sup.line_id) || (mgr && !mgr.line_id);
+      const hasUnlinked = (sup && !isLineConnected(sup)) || (mgr && !isLineConnected(mgr));
       if (!hasUnlinked) return false;
     } else if (currentLineFilter === "no_approver") {
       if (sup || mgr) return false;
@@ -839,7 +962,7 @@ function renderApproverTable() {
       : '<span style="color:#64748b; font-style:italic; font-size:13px;">⚡ ข้ามขั้นตอน L1 (ส่งไป L2 / HR)</span>';
     
     const l1Line = sup 
-      ? (sup.line_id 
+      ? (isLineConnected(sup)
           ? `<span class="table-line-tag active" title="LINE ID: ${escapeAttr(sup.line_id)}">● LINE เชื่อมแล้ว</span>` 
           : `<span class="table-line-tag inactive" style="cursor:pointer;" onclick="createLineLinkCode('${escapeAttr(sup.id)}')" title="คลิกเพื่อสร้างรหัสผูก LINE">○ ยังไม่ผูก LINE <span class="material-symbols-outlined" style="font-size:12px;">link</span></span>`) 
       : '';
@@ -849,7 +972,7 @@ function renderApproverTable() {
       : '<span style="color:#64748b; font-style:italic; font-size:13px;">⚡ ข้ามขั้นตอน L2 (มีเฉพาะ L1)</span>';
     
     const l2Line = mgr 
-      ? (mgr.line_id 
+      ? (isLineConnected(mgr)
           ? `<span class="table-line-tag active" title="LINE ID: ${escapeAttr(mgr.line_id)}">● LINE เชื่อมแล้ว</span>` 
           : `<span class="table-line-tag inactive" style="cursor:pointer;" onclick="createLineLinkCode('${escapeAttr(mgr.id)}')" title="คลิกเพื่อสร้างรหัสผูก LINE">○ ยังไม่ผูก LINE <span class="material-symbols-outlined" style="font-size:12px;">link</span></span>`) 
       : '';
@@ -954,6 +1077,17 @@ window.openApproverModal = function(departmentId) {
     if (currentSupId) supSelect.value = currentSupId;
     if (currentMgrId) mgrSelect.value = currentMgrId;
 
+    if (supSelect.tomselect) {
+      supSelect.tomselect.clearOptions();
+      supSelect.tomselect.sync();
+      supSelect.tomselect.setValue(currentSupId || "");
+    }
+    if (mgrSelect.tomselect) {
+      mgrSelect.tomselect.clearOptions();
+      mgrSelect.tomselect.sync();
+      mgrSelect.tomselect.setValue(currentMgrId || "");
+    }
+
     if (typeof updateModalLineStatus === "function") {
       updateModalLineStatus("supervisor");
       updateModalLineStatus("manager");
@@ -990,7 +1124,7 @@ window.updateModalLineStatus = function(type) {
     return;
   }
 
-  if (emp.line_id) {
+  if (isLineConnected(emp)) {
     el.className = "line-badge line-ok";
     el.textContent = "● LINE User ID พร้อมใช้งาน";
   } else {
@@ -1628,7 +1762,7 @@ function renderEmployeeLineTable() {
 
   // กรองรายชื่อตาม Tab และคำค้นหา
   const filtered = employees.filter(emp => {
-    const hasLine = Boolean(emp.line_id && String(emp.line_id).trim() !== "");
+    const hasLine = isLineConnected(emp);
     const isApp = activeApproverIds.has(String(emp.id)) || 
       ['executive', 'director', 'manager', 'leader', 'hr', 'admin'].includes((emp.role || '').toLowerCase()) ||
       isLeaderCandidate(emp) || isManagerCandidate(emp) || isExecutiveCandidate(emp);
@@ -1681,7 +1815,7 @@ function renderEmployeeLineTable() {
     const dept = departments.find(d => String(d.id) === String(emp.department_id));
     const deptName = dept?.department_name || emp.departments?.department_name || "ไม่ระบุแผนก";
     const posName = emp.positions?.position_name || "พนักงาน";
-    const hasLine = Boolean(emp.line_id && String(emp.line_id).trim() !== "");
+    const hasLine = isLineConnected(emp);
     const isResigned = emp.status === "resigned" || emp.status === "inactive";
 
     const empNameHtml = highlightMatch(emp.full_name || "-", currentEmpLineSearch);
@@ -1763,20 +1897,28 @@ function renderEmployeeLineTable() {
     let actionButtonsHtml = "";
     if (hasLine) {
       actionButtonsHtml = `
-        <div style="display:flex; flex-direction:column; gap:6px; align-items:center;">
-          <button type="button" class="btn-unlink-line" onclick="unlinkEmployeeLine('${escapeAttr(emp.id)}', '${escapeAttr(emp.full_name)}')" title="ลบช่อง line_id ใน employees (สำหรับคนลาออก หรือเปลี่ยนตำแหน่ง)">
-            <span class="material-symbols-outlined" style="font-size: 14px;">link_off</span> ล้าง LINE ID
-          </button>
-          <button type="button" class="btn-link-line" onclick="createLineLinkCode('${escapeAttr(emp.id)}')" title="สร้างรหัสผูกบัญชีใหม่" style="font-size:11px; padding:3px 8px;">
-            <span class="material-symbols-outlined" style="font-size: 13px;">sync</span> สร้างรหัสใหม่
+        <div style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+          <div style="display:flex; gap:4px;">
+            <button type="button" class="btn-link-line" onclick="editEmployeeLineIdDirectly('${escapeAttr(emp.id)}', '${escapeAttr(emp.full_name)}')" title="แก้ไข LINE User ID โดยตรง" style="font-size:11.5px; padding:3px 8px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;">
+              <span class="material-symbols-outlined" style="font-size: 13px;">edit</span> แก้ไข ID
+            </button>
+            <button type="button" class="btn-link-line" onclick="createLineLinkCode('${escapeAttr(emp.id)}')" title="สร้างรหัสผูกบัญชีใหม่" style="font-size:11.5px; padding:3px 8px;">
+              <span class="material-symbols-outlined" style="font-size: 13px;">sync</span> รหัสใหม่
+            </button>
+          </div>
+          <button type="button" class="btn-unlink-line" onclick="unlinkEmployeeLine('${escapeAttr(emp.id)}', '${escapeAttr(emp.full_name)}')" title="ลบช่อง line_id ใน employees (สำหรับคนลาออก หรือเปลี่ยนตำแหน่ง)" style="font-size:11px; padding:2px 8px; width:100%;">
+            <span class="material-symbols-outlined" style="font-size: 13px;">link_off</span> ล้าง LINE ID
           </button>
         </div>
       `;
     } else {
       actionButtonsHtml = `
-        <div style="display:flex; justify-content:center;">
-          <button type="button" class="btn-link-line" onclick="createLineLinkCode('${escapeAttr(emp.id)}')" title="สร้างรหัส 6 หลักเพื่อส่งให้พนักงานผูก LINE">
+        <div style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+          <button type="button" class="btn-link-line" onclick="createLineLinkCode('${escapeAttr(emp.id)}')" title="สร้างรหัส 6 หลักเพื่อส่งให้พนักงานผูก LINE" style="width:100%; justify-content:center;">
             <span class="material-symbols-outlined" style="font-size: 14px;">link</span> สร้างรหัสผูก LINE
+          </button>
+          <button type="button" class="btn-link-line" onclick="editEmployeeLineIdDirectly('${escapeAttr(emp.id)}', '${escapeAttr(emp.full_name)}')" title="ระบุ LINE User ID ด้วยตนเอง" style="font-size:11px; padding:2px 8px; background:#f8fafc; color:#475569; border-color:#cbd5e1; width:100%; justify-content:center;">
+            <span class="material-symbols-outlined" style="font-size: 13px;">edit_note</span> ระบุ LINE ID เอง
           </button>
         </div>
       `;
@@ -2051,6 +2193,61 @@ async function saveIndividualApprover() {
 }
 
 /**
+ * ✏️ ฟังก์ชันระบุหรือแก้ไข LINE User ID ของพนักงานโดยตรง
+ */
+window.editEmployeeLineIdDirectly = async function(employeeId, employeeName) {
+  const emp = employees.find(e => String(e.id) === String(employeeId));
+  const currentLineId = emp?.line_id || "";
+  const name = employeeName || emp?.full_name || "พนักงาน";
+
+  const { value: newLineId } = await Swal.fire({
+    title: "ระบุ LINE User ID",
+    html: `
+      <div style="text-align: left; font-size: 13.5px; color: #334155; margin-bottom: 8px;">
+        พนักงาน: <b style="color: #0f766e;">${escapeHtml(name)}</b>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; text-align: left; margin: 0 0 12px; line-height: 1.5;">
+        ระบุ LINE User ID ของพนักงาน (เช่น <code>U1234567890abcdef...</code>)<br>
+        <i>* หากต้องการยกเลิกการเชื่อมต่อ ให้เว้นว่างไว้แล้วกดบันทึก</i>
+      </p>
+    `,
+    input: "text",
+    inputValue: currentLineId,
+    inputPlaceholder: "เช่น U1234567890abcdef...",
+    showCancelButton: true,
+    confirmButtonText: "บันทึกข้อมูล",
+    cancelButtonText: "ยกเลิก",
+    confirmButtonColor: "#0f766e"
+  });
+
+  if (newLineId !== undefined) {
+    const cleanId = String(newLineId).trim() || null;
+    try {
+      const { error } = await sb.from("employees").update({ line_id: cleanId }).eq("id", employeeId);
+      if (error) throw error;
+
+      if (emp) emp.line_id = cleanId;
+      renderApproverTable();
+      renderEmployeeLineTable();
+      updateExecutiveLineStatus();
+      updateLineStatus("supervisor");
+      updateLineStatus("manager");
+
+      Swal.fire({
+        icon: "success",
+        title: "บันทึกแล้ว",
+        text: cleanId ? `เชื่อมต่อ LINE ID ของ ${name} สำเร็จ` : `ล้างข้อมูล LINE ID ของ ${name} เรียบร้อย`,
+        timer: 1600,
+        showConfirmButton: false
+      });
+    } catch (err) {
+      console.error("editEmployeeLineIdDirectly Error:", err);
+      Swal.fire("บันทึกไม่สำเร็จ", err.message || "กรุณาลองใหม่อีกครั้ง", "error");
+    }
+  }
+};
+
+/**
  * 🔍 Initialize Tom Select for all searchable dropdowns
  * Allows searching by Code, Name, Position, Department
  */
@@ -2082,7 +2279,7 @@ function initTomSelect() {
       
       // Initialize new instance
       try {
-        new TomSelect(id, {
+        const ts = new TomSelect(id, {
           create: false,
           sortField: {
             field: "text",
@@ -2094,6 +2291,25 @@ function initTomSelect() {
           plugins: ['dropdown_input'], // Better mobile search experience
           onInitialize: function() {
             // Optional: fine-tune styling after initialization
+          }
+        });
+
+        // 🎯 ผูก event เมื่อผู้ใช้เลือกตัวเลือกใน TomSelect เพื่อให้สถานะ LINE เปลี่ยนทันที
+        ts.on('change', () => {
+          if (id === '#departmentSelect') {
+            handleDepartmentChange();
+          } else if (id === '#supervisorSelect') {
+            updateLineStatus('supervisor');
+          } else if (id === '#managerSelect') {
+            updateLineStatus('manager');
+          } else if (id === '#executiveSelect') {
+            updateExecutiveLineStatus();
+          } else if (id === '#individualEmployeeSelect') {
+            handleIndividualEmployeeChange();
+          } else if (id === '#modalSupervisorSelect') {
+            updateModalLineStatus('supervisor');
+          } else if (id === '#modalManagerSelect') {
+            updateModalLineStatus('manager');
           }
         });
       } catch (err) {

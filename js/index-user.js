@@ -2881,3 +2881,415 @@ window.sendHrChatMessage = async function() {
 
   chatContainer.scrollTop = chatContainer.scrollHeight;
 };
+
+/* ==========================================================================
+   📊 9. LEAVE STATISTICS & DASHBOARD POPUP MODULE
+   ========================================================================== */
+window.leaveStatsState = {
+  currentTab: 'dept', // 'dept' | 'ranking' | 'types'
+  rankingScope: 'company', // 'company' | 'dept'
+  cachedData: null,
+  userDeptName: ''
+};
+
+window.openLeaveStatsDashboardModal = function() {
+  const modal = document.getElementById("leaveStatsDashboardModal");
+  if (modal) {
+    modal.style.display = "flex";
+    loadLeaveStatsDashboardData();
+  }
+};
+
+window.closeLeaveStatsDashboardModal = function() {
+  const modal = document.getElementById("leaveStatsDashboardModal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+};
+
+window.switchStatsTab = function(tabName) {
+  window.leaveStatsState.currentTab = tabName;
+  
+  // Highlight tab buttons
+  const btnDept = document.getElementById("btnStatsTabDept");
+  const btnRanking = document.getElementById("btnStatsTabRanking");
+  const btnTypes = document.getElementById("btnStatsTabTypes");
+
+  if (btnDept) {
+    btnDept.style.background = tabName === 'dept' ? '#0f766e' : '#ffffff';
+    btnDept.style.color = tabName === 'dept' ? '#ffffff' : '#475569';
+  }
+  if (btnRanking) {
+    btnRanking.style.background = tabName === 'ranking' ? '#0f766e' : '#ffffff';
+    btnRanking.style.color = tabName === 'ranking' ? '#ffffff' : '#475569';
+  }
+  if (btnTypes) {
+    btnTypes.style.background = tabName === 'types' ? '#0f766e' : '#ffffff';
+    btnTypes.style.color = tabName === 'types' ? '#ffffff' : '#475569';
+  }
+
+  // Show/Hide views
+  const viewDept = document.getElementById("statsViewDept");
+  const viewRanking = document.getElementById("statsViewRanking");
+  const viewTypes = document.getElementById("statsViewTypes");
+
+  if (viewDept) viewDept.style.display = tabName === 'dept' ? 'block' : 'none';
+  if (viewRanking) viewRanking.style.display = tabName === 'ranking' ? 'block' : 'none';
+  if (viewTypes) viewTypes.style.display = tabName === 'types' ? 'block' : 'none';
+
+  if (window.leaveStatsState.cachedData) {
+    renderLeaveStatsDashboard();
+  }
+};
+
+window.switchRankingScope = function(scope) {
+  window.leaveStatsState.rankingScope = scope;
+  
+  const btnCompany = document.getElementById("btnScopeCompany");
+  const btnDept = document.getElementById("btnScopeDept");
+
+  if (btnCompany) {
+    btnCompany.style.background = scope === 'company' ? '#0284c7' : '#ffffff';
+    btnCompany.style.color = scope === 'company' ? '#ffffff' : '#475569';
+  }
+  if (btnDept) {
+    btnDept.style.background = scope === 'dept' ? '#0284c7' : '#ffffff';
+    btnDept.style.color = scope === 'dept' ? '#ffffff' : '#475569';
+  }
+
+  if (window.leaveStatsState.cachedData) {
+    renderEmployeeRanking(window.leaveStatsState.cachedData);
+  }
+};
+
+window.loadLeaveStatsDashboardData = async function() {
+  const sb = getSafeSupabaseClient();
+  if (!sb) {
+    console.warn("Supabase client not ready for stats dashboard");
+    return;
+  }
+
+  const yearSelect = document.getElementById("statsYearSelect");
+  const selectedYear = yearSelect ? yearSelect.value : new Date().getFullYear().toString();
+
+  // Show loading indicators
+  const deptContainer = document.getElementById("deptStatsContainer");
+  const empContainer = document.getElementById("empRankingContainer");
+  const typesContainer = document.getElementById("leaveTypesStatsContainer");
+
+  if (deptContainer) deptContainer.innerHTML = `<div style="text-align: center; padding: 24px; color: #64748b;">⌛ กำลังคำนวณสถิติประมวลผล...</div>`;
+  if (empContainer) empContainer.innerHTML = `<div style="text-align: center; padding: 24px; color: #64748b;">⌛ กำลังประมวลผลอันดับ...</div>`;
+  if (typesContainer) typesContainer.innerHTML = `<div style="text-align: center; padding: 24px; color: #64748b; grid-column: 1 / -1;">⌛ กำลังประมวลผลประเภทวันลา...</div>`;
+
+  try {
+    // Fetch approved leave requests with employees and departments
+    const { data: requests, error } = await sb
+      .from("leave_requests")
+      .select(`
+        id,
+        employee_id,
+        leave_type_id,
+        leave_type_name,
+        days_requested,
+        status,
+        start_date,
+        created_at,
+        employees (
+          id,
+          first_name_th,
+          last_name_th,
+          nickname,
+          employee_code,
+          department_id,
+          profile_image_url,
+          avatar_url,
+          departments (
+            id,
+            department_name
+          )
+        )
+      `)
+      .eq("status", "approved");
+
+    if (error) {
+      console.warn("Fetch leave requests stats warning:", error);
+    }
+
+    const filteredRequests = (requests || []).filter(r => {
+      const year = r.start_date ? new Date(r.start_date).getFullYear().toString() : (r.created_at ? new Date(r.created_at).getFullYear().toString() : '');
+      return year === selectedYear || !r.start_date;
+    });
+
+    // Also get current user profile department
+    const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    window.leaveStatsState.userDeptName = localUser.department_name || localUser.departments?.department_name || "";
+
+    // Store processed data
+    window.leaveStatsState.cachedData = filteredRequests;
+    renderLeaveStatsDashboard();
+
+  } catch (err) {
+    console.error("loadLeaveStatsDashboardData error:", err);
+    if (deptContainer) deptContainer.innerHTML = `<div style="text-align: center; padding: 20px; color: #ef4444;">❌ เกิดข้อผิดพลาดในการโหลดข้อมูลสถิติ</div>`;
+  }
+};
+
+function renderLeaveStatsDashboard() {
+  const requests = window.leaveStatsState.cachedData || [];
+  const userDeptName = window.leaveStatsState.userDeptName || "";
+
+  let totalDays = 0;
+  const deptMap = {}; // { deptName: { days, count, empIds: Set } }
+  const empMap = {};  // { empId: { name, deptName, avatar, empCode, days, count, leaveTypes: {} } }
+  const typeMap = {}; // { typeName: { days, count } }
+
+  requests.forEach(req => {
+    const days = parseFloat(req.days_requested) || 0;
+    totalDays += days;
+
+    const emp = req.employees;
+    const empName = emp ? `${emp.first_name_th || ''} ${emp.last_name_th || ''}`.trim() || emp.nickname || 'พนักงาน' : 'ไม่ระบุชื่อ';
+    const deptName = emp?.departments?.department_name || 'ไม่ระบุแผนก';
+    const avatar = emp?.avatar_url || emp?.profile_image_url || '/assets/img/default-avatar.jpg';
+    const empCode = emp?.employee_code || '';
+    const leaveTypeName = req.leave_type_name || 'อื่นๆ';
+
+    // Dept map
+    if (!deptMap[deptName]) {
+      deptMap[deptName] = { days: 0, count: 0, empIds: new Set() };
+    }
+    deptMap[deptName].days += days;
+    deptMap[deptName].count += 1;
+    if (emp?.id) deptMap[deptName].empIds.add(emp.id);
+
+    // Emp map
+    const empId = req.employee_id || empName;
+    if (!empMap[empId]) {
+      empMap[empId] = { id: empId, name: empName, deptName, avatar, empCode, days: 0, count: 0, leaveTypes: {} };
+    }
+    empMap[empId].days += days;
+    empMap[empId].count += 1;
+    empMap[empId].leaveTypes[leaveTypeName] = (empMap[empId].leaveTypes[leaveTypeName] || 0) + days;
+
+    // Type map
+    if (!typeMap[leaveTypeName]) {
+      typeMap[leaveTypeName] = { days: 0, count: 0 };
+    }
+    typeMap[leaveTypeName].days += days;
+    typeMap[leaveTypeName].count += 1;
+  });
+
+  // Calculate Top Highlights
+  const deptList = Object.keys(deptMap).map(d => ({ name: d, days: deptMap[d].days, count: deptMap[d].count, empCount: deptMap[d].empIds.size }))
+    .sort((a, b) => b.days - a.days);
+
+  const empListAll = Object.values(empMap).sort((a, b) => b.days - a.days);
+  const empListDept = empListAll.filter(e => e.deptName.toLowerCase() === userDeptName.toLowerCase());
+
+  const topDept = deptList[0];
+  const topEmpCompany = empListAll[0];
+  const topEmpDept = empListDept[0];
+
+  // Render Top Row Stat Cards
+  const totalDaysEl = document.getElementById("statTotalApprovedDays");
+  const totalReqsEl = document.getElementById("statTotalApprovedRequests");
+  const topDeptNameEl = document.getElementById("statTopDeptName");
+  const topDeptDaysEl = document.getElementById("statTopDeptDays");
+  const topEmpCompEl = document.getElementById("statTopEmpCompany");
+  const topEmpCompDaysEl = document.getElementById("statTopEmpCompanyDays");
+  const topEmpDeptEl = document.getElementById("statTopEmpDept");
+  const topEmpDeptDaysEl = document.getElementById("statTopEmpDeptDays");
+
+  if (totalDaysEl) totalDaysEl.textContent = `${totalDays.toFixed(1)} วัน`;
+  if (totalReqsEl) totalReqsEl.textContent = `${requests.length} คำขออนุมัติ`;
+
+  if (topDeptNameEl) topDeptNameEl.textContent = topDept ? topDept.name : '-';
+  if (topDeptDaysEl) topDeptDaysEl.textContent = topDept ? `${topDept.days.toFixed(1)} วัน (${topDept.count} ครั้ง)` : '0 วัน';
+
+  if (topEmpCompEl) topEmpCompEl.textContent = topEmpCompany ? topEmpCompany.name : '-';
+  if (topEmpCompDaysEl) topEmpCompDaysEl.textContent = topEmpCompany ? `${topEmpCompany.days.toFixed(1)} วัน (${topEmpCompany.deptName})` : '0 วัน';
+
+  if (topEmpDeptEl) topEmpDeptEl.textContent = topEmpDept ? topEmpDept.name : (userDeptName ? `ไม่มีข้อมูลใน ${userDeptName}` : '-');
+  if (topEmpDeptDaysEl) topEmpDeptDaysEl.textContent = topEmpDept ? `${topEmpDept.days.toFixed(1)} วัน` : '0 วัน';
+
+  // Render Current Tab Content
+  renderDepartmentStats(deptList, totalDays);
+  renderEmployeeRanking(requests);
+  renderLeaveTypesStats(typeMap, totalDays);
+}
+
+function renderDepartmentStats(deptList, totalCompanyDays) {
+  const container = document.getElementById("deptStatsContainer");
+  if (!container) return;
+
+  if (deptList.length === 0) {
+    container.innerHTML = `<div style="text-align: center; padding: 30px; color: #94a3b8; font-size: 13px;">ยังไม่มีข้อมูลใบลาอนุมัติสำหรับวิเคราะห์</div>`;
+    return;
+  }
+
+  const maxDeptDays = deptList[0]?.days || 1;
+  const userDeptName = window.leaveStatsState.userDeptName || "";
+
+  let html = "";
+  deptList.forEach((dept, index) => {
+    const percentOfMax = Math.min(100, Math.round((dept.days / maxDeptDays) * 100));
+    const percentOfTotal = totalCompanyDays > 0 ? ((dept.days / totalCompanyDays) * 100).toFixed(1) : 0;
+    const isUserDept = dept.name.toLowerCase() === userDeptName.toLowerCase();
+
+    html += `
+      <div style="background: ${isUserDept ? '#f0fdf4' : '#f8fafc'}; padding: 12px 16px; border-radius: 12px; border: 1px solid ${isUserDept ? '#86efac' : '#e2e8f0'};">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 12px; font-weight: 800; color: #0d9488; background: #e0f2fe; padding: 2px 8px; border-radius: 6px;">#${index + 1}</span>
+            <strong style="font-size: 13.5px; color: #1e293b;">${safeEscapeHtml(dept.name)}</strong>
+            ${isUserDept ? `<span style="font-size: 10px; background: #16a34a; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600;">แผนกของคุณ</span>` : ''}
+          </div>
+          <div style="text-align: right;">
+            <strong style="font-size: 14px; color: #0f766e;">${dept.days.toFixed(1)} วัน</strong>
+            <span style="font-size: 11px; color: #64748b; margin-left: 6px;">(${dept.count} ครั้ง / ${dept.empCount} คน)</span>
+          </div>
+        </div>
+        <!-- Progress Bar -->
+        <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; display: flex;">
+          <div style="width: ${percentOfMax}%; background: linear-gradient(90deg, #0d9488, #0284c7); border-radius: 4px; transition: width 0.5s ease;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10.5px; color: #94a3b8;">
+          <span>สัดส่วนเทียบกับแผนกสูงสุด: ${percentOfMax}%</span>
+          <span>คิดเป็น ${percentOfTotal}% ของทั้งบริษัท</span>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderEmployeeRanking(requests) {
+  const container = document.getElementById("empRankingContainer");
+  if (!container) return;
+
+  const scope = window.leaveStatsState.rankingScope || 'company';
+  const userDeptName = window.leaveStatsState.userDeptName || "";
+
+  // Group by Employee
+  const empMap = {};
+  requests.forEach(req => {
+    const days = parseFloat(req.days_requested) || 0;
+    const emp = req.employees;
+    const empName = emp ? `${emp.first_name_th || ''} ${emp.last_name_th || ''}`.trim() || emp.nickname || 'พนักงาน' : 'ไม่ระบุชื่อ';
+    const deptName = emp?.departments?.department_name || 'ไม่ระบุแผนก';
+    const avatar = emp?.avatar_url || emp?.profile_image_url || '/assets/img/default-avatar.jpg';
+    const empCode = emp?.employee_code || '';
+    const leaveTypeName = req.leave_type_name || 'อื่นๆ';
+
+    const key = emp?.id || empName;
+    if (!empMap[key]) {
+      empMap[key] = { id: key, name: empName, deptName, avatar, empCode, days: 0, count: 0, leaveTypes: {} };
+    }
+    empMap[key].days += days;
+    empMap[key].count += 1;
+    empMap[key].leaveTypes[leaveTypeName] = (empMap[key].leaveTypes[leaveTypeName] || 0) + days;
+  });
+
+  let list = Object.values(empMap).sort((a, b) => b.days - a.days);
+
+  if (scope === 'dept' && userDeptName) {
+    list = list.filter(e => e.deptName.toLowerCase() === userDeptName.toLowerCase());
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = `<div style="text-align: center; padding: 30px; color: #94a3b8; font-size: 13px;">ไม่มีข้อมูลสถิติพนักงานสำหรับขอบเขตที่เลือก (${scope === 'dept' ? userDeptName : 'ทั้งบริษัท'})</div>`;
+    return;
+  }
+
+  let html = "";
+  list.forEach((emp, index) => {
+    // Find most used leave type
+    let topLeaveType = "-";
+    let maxTypeDays = 0;
+    Object.keys(emp.leaveTypes).forEach(t => {
+      if (emp.leaveTypes[t] > maxTypeDays) {
+        maxTypeDays = emp.leaveTypes[t];
+        topLeaveType = t;
+      }
+    });
+
+    let rankBadge = `<span style="font-weight: 800; font-size: 12px; color: #64748b;">#${index + 1}</span>`;
+    if (index === 0) rankBadge = `<span style="font-size: 18px;">🥇</span>`;
+    else if (index === 1) rankBadge = `<span style="font-size: 18px;">🥈</span>`;
+    else if (index === 2) rankBadge = `<span style="font-size: 18px;">🥉</span>`;
+
+    html += `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+          <div style="width: 28px; text-align: center; flex-shrink: 0;">${rankBadge}</div>
+          <img src="${safeEscapeHtml(emp.avatar)}" onerror="this.src='/assets/img/default-avatar.jpg'" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid #cbd5e1; flex-shrink: 0;">
+          <div style="min-width: 0; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <strong style="font-size: 13.5px; color: #1e293b;">${safeEscapeHtml(emp.name)}</strong>
+              ${emp.empCode ? `<span style="font-size: 11px; color: #94a3b8;">(${safeEscapeHtml(emp.empCode)})</span>` : ''}
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 1px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <span>🏢 ${safeEscapeHtml(emp.deptName)}</span>
+              <span>•</span>
+              <span>ประเภทใช้มากสุด: <b style="color: #0f766e;">${safeEscapeHtml(topLeaveType)}</b></span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0;">
+          <div style="font-size: 15px; font-weight: 800; color: #b91c1c;">${emp.days.toFixed(1)} วัน</div>
+          <span style="font-size: 10.5px; color: #64748b;">${emp.count} คำขออนุมัติ</span>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderLeaveTypesStats(typeMap, totalCompanyDays) {
+  const container = document.getElementById("leaveTypesStatsContainer");
+  if (!container) return;
+
+  const typeList = Object.keys(typeMap).map(t => ({ name: t, days: typeMap[t].days, count: typeMap[t].count }))
+    .sort((a, b) => b.days - a.days);
+
+  if (typeList.length === 0) {
+    container.innerHTML = `<div style="text-align: center; padding: 30px; color: #94a3b8; font-size: 13px; grid-column: 1 / -1;">ไม่มีข้อมูลประเภทวันลา</div>`;
+    return;
+  }
+
+  let html = "";
+  typeList.forEach(t => {
+    const percent = totalCompanyDays > 0 ? ((t.days / totalCompanyDays) * 100).toFixed(1) : 0;
+    
+    // Choose icon and color for leave type
+    let color = "#0284c7";
+    let bg = "#e0f2fe";
+    let icon = "event_available";
+
+    if (t.name.includes("ป่วย")) { color = "#e11d48"; bg = "#ffe4e6"; icon = "medical_services"; }
+    else if (t.name.includes("พักร้อน")) { color = "#0d9488"; bg = "#ccfbf1"; icon = "beach_access"; }
+    else if (t.name.includes("กิจ")) { color = "#d97706"; bg = "#fef3c7"; icon = "assignment_ind"; }
+
+    html += `
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: ${bg}; color: ${color}; display: flex; align-items: center; justify-content: center;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">${icon}</span>
+            </div>
+            <span style="font-size: 12px; font-weight: 800; color: ${color}; background: ${bg}; padding: 2px 8px; border-radius: 10px;">${percent}%</span>
+          </div>
+          <strong style="font-size: 14px; color: #1e293b; display: block;">${safeEscapeHtml(t.name)}</strong>
+          <span style="font-size: 11px; color: #64748b;">${t.count} คำขออนุมัติ</span>
+        </div>
+        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px dashed #e2e8f0; font-size: 16px; font-weight: 800; color: #0f172a;">
+          ${t.days.toFixed(1)} <span style="font-size: 12px; font-weight: 500; color: #64748b;">วันรวม</span>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}

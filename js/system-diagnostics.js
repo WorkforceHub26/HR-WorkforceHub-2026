@@ -1123,33 +1123,19 @@ window.hideGlobalLoading = function() {
 };
 
 window.toggleDesktopSidebar = function() {
-  document.body.classList.toggle('desktop-sidebar-collapsed');
-  localStorage.setItem('sidebar-collapsed', document.body.classList.contains('desktop-sidebar-collapsed'));
+  if (typeof window.applyGlobalSidebarState === 'function') {
+    const isCurrentlyCollapsed = document.body.classList.contains("desktop-sidebar-collapsed");
+    window.applyGlobalSidebarState(!isCurrentlyCollapsed);
+    localStorage.setItem('sidebar-collapsed', String(!isCurrentlyCollapsed));
+  } else {
+    document.body.classList.toggle('desktop-sidebar-collapsed');
+    localStorage.setItem('sidebar-collapsed', String(document.body.classList.contains('desktop-sidebar-collapsed')));
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (localStorage.getItem('sidebar-collapsed') === 'true') {
+  const savedState = localStorage.getItem('sidebar-collapsed');
+  if (savedState === null || savedState === 'true') {
     document.body.classList.add('desktop-sidebar-collapsed');
   }
-  
-  // Inject desktop toggle button next to mobile toggle if exists
-  const headers = document.querySelectorAll('header');
-  headers.forEach(header => {
-    const leftWrap = header.querySelector('div') || header;
-    const desktopBtn = document.createElement('button');
-    desktopBtn.className = 'desktop-menu-toggle';
-    desktopBtn.innerHTML = '<span class="material-symbols-outlined">menu</span>';
-    desktopBtn.onclick = window.toggleDesktopSidebar;
-    
-    // Find mobile btn and insert desktop btn near it
-    const mobileBtn = header.querySelector('.mobile-menu-btn');
-    if (mobileBtn && mobileBtn.parentNode) {
-      mobileBtn.parentNode.insertBefore(desktopBtn, mobileBtn.nextSibling);
-    } else {
-      leftWrap.insertBefore(desktopBtn, leftWrap.firstChild);
-    }
-  });
-
-  // Inject Unified Help button on every page
-  // (Handled by SystemDiagnostics for consistency)
 });

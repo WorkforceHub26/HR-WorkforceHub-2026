@@ -164,21 +164,23 @@ body.sidebar-open {
   overflow: hidden !important;
 }
 
-/* 📱 Mobile Menu Toggle Button (Touch-Friendly & Elevated) */
-.mobile-menu-btn {
-  display: none;
+/* 📱 Universal Menu Toggle Button (Desktop Collapse & Mobile Drawer) */
+.mobile-menu-btn,
+.desktop-menu-toggle,
+.btn-menu-toggle {
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 12px;
-  border: 1px solid #cbd5e1;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
   background: #ffffff;
-  color: #1e293b;
+  color: #334155;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   user-select: none;
@@ -187,19 +189,25 @@ body.sidebar-open {
   z-index: 10;
 }
 
-.mobile-menu-btn:hover {
+.mobile-menu-btn:hover,
+.desktop-menu-toggle:hover,
+.btn-menu-toggle:hover {
   background: #f8fafc;
-  border-color: var(--primary, #0fa472);
-  color: var(--primary, #0fa472);
+  border-color: #0fa472;
+  color: #0fa472;
 }
 
-.mobile-menu-btn:active {
+.mobile-menu-btn:active,
+.desktop-menu-toggle:active,
+.btn-menu-toggle:active {
   background: #f1f5f9;
-  transform: scale(0.94);
+  transform: scale(0.95);
 }
 
-.mobile-menu-btn .material-symbols-outlined {
-  font-size: 24px;
+.mobile-menu-btn .material-symbols-outlined,
+.desktop-menu-toggle .material-symbols-outlined,
+.btn-menu-toggle .material-symbols-outlined {
+  font-size: 22px;
   pointer-events: none;
 }
 
@@ -1144,31 +1152,6 @@ button.btn-primary:hover,
     margin-left: 72px !important;
     width: calc(100% - 72px) !important;
   }
-  
-  .desktop-menu-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: #475569;
-    transition: all 0.2s;
-  }
-  .desktop-menu-toggle:hover {
-    background: #f1f5f9;
-    color: #0f172a;
-  }
-}
-
-/* Ensure mobile toggle is hidden on desktop and desktop toggle hidden on mobile */
-@media (max-width: 1024px) {
-  .desktop-menu-toggle {
-    display: none !important;
-  }
 }
 
 /* ==========================================================================
@@ -2010,6 +1993,72 @@ html, body {
 .brand-logo {
   object-fit: contain !important;
   display: block !important;
+}
+
+/* ==========================================================================
+   ✨ GLOBAL MICRO-INTERACTIONS & ANIMATIONS
+   ========================================================================== */
+
+/* 🔘 1. Button Active Click Feedback */
+button:active, 
+.btn:active, 
+.action-btn:active, 
+.btn-table-act:active, 
+.menu-item:active,
+.btn-primary:active,
+.btn-secondary:active {
+  transform: scale(0.96) !important;
+  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 💀 2. Skeleton Shimmer Loading Effect */
+@keyframes shimmerPulse {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loader {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmerPulse 1.5s infinite ease-in-out;
+  border-radius: 6px;
+}
+
+/* 🔔 3. Pulsing Notification & Alert Aura */
+@keyframes softPulseAura {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.badge-pulse {
+  animation: softPulseAura 2s infinite;
+}
+
+/* 🌟 4. Smooth Page & Card Fade-Up Entrance */
+@keyframes pvtSmoothFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: pvtSmoothFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 🎴 5. Interactive Card Elevation */
+.interactive-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(13, 148, 136, 0.12);
 }
 
 

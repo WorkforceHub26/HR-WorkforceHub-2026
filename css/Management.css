@@ -420,8 +420,8 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1):hover,
 }
 
 .mobile-menu-btn {
-  display: none;
-  background: #f8fafc;
+  display: inline-flex !important;
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 8px;
@@ -1062,13 +1062,14 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
 
 .employee-list-header {
   display: grid;
-  grid-template-columns: 80px 100px 1.5fr 1fr 1fr 120px 140px;
+  grid-template-columns: 80px 110px 1.5fr 1fr 1fr 120px 140px;
   gap: 12px;
   padding: 12px 24px;
   background: #f8fafc;
   border-radius: 12px 12px 0 0;
   border: 1px solid #e2e8f0;
   border-bottom: none;
+  align-items: center;
 }
 
 .employee-list-header div {
@@ -1078,6 +1079,14 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+.employee-list-header .col-avatar { text-align: center; }
+.employee-list-header .col-code { text-align: left; }
+.employee-list-header .col-info { text-align: left; }
+.employee-list-header .col-dept { text-align: left; }
+.employee-list-header .col-start { text-align: left; }
+.employee-list-header .col-status { text-align: center; }
+.employee-list-header .col-actions { text-align: center; }
 
 @media screen and (max-width: 1024px) {
   .employee-list-header {
@@ -1110,9 +1119,9 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
 
 /* ปรับสไตล์ของแถวพนักงาน */
 .emp-card-item {
-  position: relative !important; /* ยึด absolute ภายในกรอบการ์ดของตนเอง ป้องกันการซ้อนทับข้ามการ์ด */
+  position: relative !important;
   display: grid;
-  grid-template-columns: 80px 100px 1.5fr 1fr 1fr 120px 140px;
+  grid-template-columns: 80px 110px 1.5fr 1fr 1fr 120px 140px;
   align-items: center;
   background: #ffffff;
   padding: 12px 24px;
@@ -1130,25 +1139,12 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
 }
 
-@media screen and (max-width: 1024px) {
-  .emp-card-item {
-    position: relative !important; /* ป้องกันไม่ให้ badge หลุดไปทับกันที่มุมนอกสุด */
-    display: flex;
-    flex-direction: column;
-    text-align: center;
-    padding: 24px;
-    border-radius: 16px;
-    gap: 14px;
-  }
-  
-  .emp-card-item:hover {
-    transform: translateY(-5px);
-  }
-}
-
 /* จัดระเบียบเนื้อหาภายในการ์ดให้สวยงามและไม่ล้น */
 .emp-card-item .col-avatar {
-  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
   position: relative;
 }
 
@@ -1161,14 +1157,6 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-@media screen and (max-width: 1024px) {
-  .emp-card-item .col-avatar img {
-    width: 80px;
-    height: 80px;
-    border: 4px solid #ffffff;
-  }
-}
-
 /* Focus mode & col-code styling */
 div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employeeListWrapper:nth-of-type(6) > div#employeeTableBody:nth-of-type(2) > div:nth-of-type(181) > div:nth-of-type(2),
 #employeeTableBody .emp-card-item .col-code,
@@ -1179,19 +1167,10 @@ div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employee
   background: transparent !important;
   padding: 0 !important;
   border-radius: 0 !important;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-}
-
-@media screen and (max-width: 1024px) {
-  div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employeeListWrapper:nth-of-type(6) > div#employeeTableBody:nth-of-type(2) > div:nth-of-type(181) > div:nth-of-type(2),
-  #employeeTableBody .emp-card-item .col-code,
-  .emp-card-item .col-code {
-    position: absolute !important;
-    top: 16px !important;
-    right: 16px !important;
-    z-index: 2 !important;
-  }
+  justify-content: flex-start;
+  margin: 0;
 }
 
 .emp-code-badge {
@@ -1211,46 +1190,52 @@ div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employee
 .emp-card-item .col-info {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
   gap: 4px;
+  margin: 0;
 }
 
 .emp-card-item .emp-name {
   font-weight: 700;
   color: #0f172a;
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1.2;
 }
 
 .emp-card-item .emp-pos {
-  font-size: 14px;
+  font-size: 13px;
   color: #0d9488;
   font-weight: 600;
 }
 
 .emp-card-item .col-dept {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0;
 }
 
 .emp-dept-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   color: #475569;
 }
 
 .emp-card-item .col-start {
-  border-top: 1px dashed #e2e8f0;
-  padding-top: 15px;
-  margin-top: 5px;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 .emp-start-date {
@@ -1264,15 +1249,16 @@ div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employee
 
 .emp-card-item .col-status {
   display: flex;
+  align-items: center;
   justify-content: center;
-  margin: 5px 0;
+  margin: 0;
 }
 
 .status-badge-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 14px;
+  padding: 5px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
@@ -1297,21 +1283,21 @@ div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employee
 
 .emp-card-item .col-actions {
   display: flex;
-  gap: 10px;
+  align-items: center;
   justify-content: center;
-  width: 100%;
-  margin-top: 10px;
+  gap: 8px;
+  margin: 0;
+  width: auto;
 }
 
 .btn-table-act {
-  flex: 1;
-  padding: 12px;
-  font-size: 13.5px;
-  border-radius: 12px;
-  display: flex;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border-radius: 8px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   border: 1px solid transparent;
   cursor: pointer;
   font-weight: 600;
@@ -1342,8 +1328,73 @@ div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employee
   box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
 }
 
-/* 💻 ปรับการแสดงผลบน Desktop ที่กว้างพอ ให้แสดงเป็นแถวเรียงกัน (ถ้าต้องการแบบเดิม) 
-   แต่จากรูปที่ส่งมา คุณน่าจะต้องการแบบการ์ดแต่ไม่ให้ล้น ผมจึงตั้งค่า Grid ให้เป็น Auto-fill แทน */
+@media screen and (max-width: 1024px) {
+  .emp-card-item {
+    position: relative !important;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    padding: 24px;
+    border-radius: 16px;
+    gap: 14px;
+  }
+  
+  .emp-card-item:hover {
+    transform: translateY(-5px);
+  }
+
+  .emp-card-item .col-avatar {
+    margin: 0 auto;
+  }
+
+  .emp-card-item .col-avatar img {
+    width: 80px;
+    height: 80px;
+    border: 4px solid #ffffff;
+  }
+
+  div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employeeListWrapper:nth-of-type(6) > div#employeeTableBody:nth-of-type(2) > div:nth-of-type(181) > div:nth-of-type(2),
+  #employeeTableBody .emp-card-item .col-code,
+  .emp-card-item .col-code {
+    position: absolute !important;
+    top: 16px !important;
+    right: 16px !important;
+    z-index: 2 !important;
+  }
+
+  .emp-card-item .col-info {
+    align-items: center;
+  }
+
+  .emp-card-item .col-dept {
+    justify-content: center;
+  }
+
+  .emp-card-item .col-start {
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 15px;
+    margin-top: 5px;
+    justify-content: center;
+  }
+
+  .emp-card-item .col-status {
+    justify-content: center;
+    margin: 5px 0;
+  }
+
+  .emp-card-item .col-actions {
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .btn-table-act {
+    flex: 1;
+    padding: 12px;
+    font-size: 13.5px;
+    border-radius: 12px;
+  }
+}
 
 /* 📱 RESPONSIVE CARDS (หน้าจอมือถือ) */
 @media screen and (max-width: 1024px) {

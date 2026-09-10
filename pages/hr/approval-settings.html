@@ -1372,7 +1372,14 @@
           กำหนดหัวหน้างาน (L1), ผู้จัดการฝ่าย (L2) ประจำแต่ละแผนก และผู้บริหารสูงสุด (L3) เพื่อให้ระบบส่งแจ้งเตือนเข้าแอป LINE โดยตรงเมื่อมีการยื่นใบลา
         </p>
       </div>
-      <div class="header-actions">
+      <div class="header-actions" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span id="lastSyncTimeBadge" style="font-size: 12px; color: #475569; background: #f1f5f9; padding: 6px 12px; border-radius: 9999px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #e2e8f0;">
+          <span style="color:#16a34a; font-size:12px;">●</span> อัปเดตอัตโนมัติ (Live Sync)
+        </span>
+        <button type="button" class="btn-header-action" onclick="refreshAllApprovalData()" id="btnHeaderSync" title="ดึงข้อมูลสถานะ LINE และสายอนุมัติล่าสุดจากเซิร์ฟเวอร์">
+          <span class="material-symbols-outlined" id="syncIconHero">sync</span>
+          <span id="syncTextHero">ซิงค์ข้อมูล</span>
+        </button>
         <button type="button" class="btn-header-action" onclick="manageDepartmentsModal()">
           <span class="material-symbols-outlined">corporate_fare</span>
           จัดการรายชื่อแผนก
@@ -1996,6 +2003,9 @@
         <span class="material-symbols-outlined" style="color: var(--primary);">table_chart</span>
         <span>ตารางสรุปสายอนุมัติและการเชื่อมต่อ LINE</span>
         <span id="tableCountBadge" class="table-count-badge">0 แผนก</span>
+        <button type="button" onclick="refreshAllApprovalData()" class="btn-table-edit" style="padding: 3px 8px; font-size: 12px; margin-left: 6px;" title="รีเฟรชข้อมูล">
+          <span class="material-symbols-outlined spinning-sync-btn" style="font-size: 14px;">sync</span> รีเฟรช
+        </button>
       </div>
       <div class="table-search-box">
         <span class="material-symbols-outlined" style="color: #94a3b8; font-size: 18px;">search</span>
@@ -2048,6 +2058,9 @@
         <span class="material-symbols-outlined" style="color: #16a34a;">phonelink_ring</span>
         <span>รายชื่อพนักงาน & ผู้บริหารที่เชื่อมต่อ LINE</span>
         <span id="empLineCountBadge" class="table-count-badge" style="background:#dcfce7; color:#15803d;">0 คน</span>
+        <button type="button" onclick="refreshAllApprovalData()" class="btn-table-edit" style="padding: 3px 8px; font-size: 12px; margin-left: 6px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;" title="รีเฟรชสถานะ LINE ล่าสุด">
+          <span class="material-symbols-outlined spinning-sync-btn" style="font-size: 14px;">sync</span> รีเฟรช
+        </button>
       </div>
       <div class="table-search-box">
         <span class="material-symbols-outlined" style="color: #94a3b8; font-size: 18px;">search</span>

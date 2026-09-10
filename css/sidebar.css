@@ -233,10 +233,13 @@
 
   body.desktop-sidebar-collapsed .sidebar,
   body.desktop-sidebar-collapsed .sidebar-light,
-  body.desktop-sidebar-collapsed aside {
+  body.desktop-sidebar-collapsed aside,
+  .sidebar.collapsed,
+  .sidebar-light.collapsed {
     width: 72px !important;
     min-width: 72px !important;
     overflow-x: hidden !important;
+    transform: none !important;
   }
 
   /* 🚫 Hide all text labels when collapsed */
@@ -252,7 +255,20 @@
   body.desktop-sidebar-collapsed .logout-text,
   body.desktop-sidebar-collapsed .logo-text,
   body.desktop-sidebar-collapsed .menu-text,
-  body.desktop-sidebar-collapsed .badge {
+  body.desktop-sidebar-collapsed .badge,
+  .sidebar.collapsed .brand-name,
+  .sidebar.collapsed .sidebar-brand-text,
+  .sidebar.collapsed .sidebar-cta-label,
+  .sidebar.collapsed .sidebar-section-title,
+  .sidebar.collapsed .user-info,
+  .sidebar.collapsed .nav-item span:not(.material-symbols-outlined),
+  .sidebar.collapsed .menu-item span:not(.material-symbols-outlined),
+  .sidebar.collapsed .btn-logout span:not(.material-symbols-outlined),
+  .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .logout-text,
+  .sidebar.collapsed .logo-text,
+  .sidebar.collapsed .menu-text,
+  .sidebar.collapsed .badge {
     display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;
@@ -264,20 +280,24 @@
 
   /* 🏢 Brand Zone Collapsed */
   body.desktop-sidebar-collapsed .sidebar-brand,
-  body.desktop-sidebar-collapsed .brand-zone {
+  body.desktop-sidebar-collapsed .brand-zone,
+  .sidebar.collapsed .sidebar-brand,
+  .sidebar.collapsed .brand-zone {
     padding: 14px 0 !important;
     justify-content: center !important;
     gap: 0 !important;
   }
 
   /* 🚀 Primary CTA Collapsed */
-  body.desktop-sidebar-collapsed .sidebar-cta-wrap {
+  body.desktop-sidebar-collapsed .sidebar-cta-wrap,
+  .sidebar.collapsed .sidebar-cta-wrap {
     padding: 8px 0 !important;
     display: flex !important;
     justify-content: center !important;
   }
 
-  body.desktop-sidebar-collapsed .sidebar-cta-btn {
+  body.desktop-sidebar-collapsed .sidebar-cta-btn,
+  .sidebar.collapsed .sidebar-cta-btn {
     width: 44px !important;
     height: 44px !important;
     min-width: 44px !important;
@@ -290,13 +310,17 @@
 
   /* 🧭 Menu Items Collapsed */
   body.desktop-sidebar-collapsed .sidebar-menu,
-  body.desktop-sidebar-collapsed .nav-menu {
+  body.desktop-sidebar-collapsed .nav-menu,
+  .sidebar.collapsed .sidebar-menu,
+  .sidebar.collapsed .nav-menu {
     padding: 8px 0 !important;
     align-items: center !important;
   }
 
   body.desktop-sidebar-collapsed .nav-item,
-  body.desktop-sidebar-collapsed .menu-item {
+  body.desktop-sidebar-collapsed .menu-item,
+  .sidebar.collapsed .nav-item,
+  .sidebar.collapsed .menu-item {
     width: 44px !important;
     height: 44px !important;
     min-width: 44px !important;
@@ -308,19 +332,23 @@
   }
 
   body.desktop-sidebar-collapsed .nav-item .material-symbols-outlined,
-  body.desktop-sidebar-collapsed .menu-item .material-symbols-outlined {
+  body.desktop-sidebar-collapsed .menu-item .material-symbols-outlined,
+  .sidebar.collapsed .nav-item .material-symbols-outlined,
+  .sidebar.collapsed .menu-item .material-symbols-outlined {
     font-size: 22px !important;
     margin: 0 !important;
   }
 
   /* 🚪 Footer & Logout Collapsed */
-  body.desktop-sidebar-collapsed .sidebar-footer {
+  body.desktop-sidebar-collapsed .sidebar-footer,
+  .sidebar.collapsed .sidebar-footer {
     padding: 12px 0 !important;
     display: flex !important;
     justify-content: center !important;
   }
 
-  body.desktop-sidebar-collapsed .btn-logout {
+  body.desktop-sidebar-collapsed .btn-logout,
+  .sidebar.collapsed .btn-logout {
     width: 44px !important;
     height: 44px !important;
     min-width: 44px !important;
@@ -330,16 +358,11 @@
     margin: 0 auto !important;
     gap: 0 !important;
   }
-}
 
-/* 💻 Desktop Sidebar Toggle */
-@media (min-width: 1025px) {
-  .sidebar-light.collapsed, .sidebar.collapsed {
-    transform: translateX(-100%);
-  }
+  body.desktop-sidebar-collapsed .main-content,
   .main-content.expanded {
-    margin-left: 0 !important;
-    width: 100% !important;
+    margin-left: 72px !important;
+    width: calc(100% - 72px) !important;
   }
 }
 
