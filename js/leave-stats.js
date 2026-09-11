@@ -52,7 +52,43 @@ window.openSystemSettingsModal = window.openSystemSettingsModal || function() {
   }
 };
 
-window.goToLeaveForm = () => window.location.href = "/pages/user/leave-user.html";
+window.openEmployeeCardManagerPopup = window.openEmployeeCardManagerPopup || function() {
+  window.location.href = '/pages/hr/home.html?action=employee_card';
+};
+
+window.handleLogout = window.handleLogout || function() {
+  const performLogout = () => {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('supabase_session');
+    window.location.href = '/index.html';
+  };
+
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: 'ยืนยันการออกจากระบบ',
+      text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'ออกจากระบบ',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: true,
+      focusCancel: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        performLogout();
+      }
+    });
+  } else {
+    if (confirm('คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?')) {
+      performLogout();
+    }
+  }
+};
+
+window.goToLeaveForm = () => window.location.href = "/pages/hr/hr.html";
 window.viewMyDigitalCard = () => window.location.href = "/pages/user/index-user.html?action=digital_card";
 window.generateLineLinkToken = () => window.location.href = "/pages/user/index-user.html?action=line_link";
 window.triggerBiometricHelp = () => window.location.href = "/pages/user/index-user.html?action=help";
@@ -161,46 +197,76 @@ window.loadLeaveStatsData = async function() {
     const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
     window.leaveStatsState.userDeptName = localUser.department_name || localUser.departments?.department_name || "";
 
-    // 2. Fetch ALL leave requests (approved, pending, rejected)
-    const { data: requests, error } = await sb
-      .from("leave_requests")
-      .select(`
-        id,
-        employee_id,
-        leave_type_id,
-        leave_type_name,
-        days_requested,
-        status,
-        start_date,
-        end_date,
-        created_at,
-        employees (
-          id,
-          first_name_th,
-          last_name_th,
-          nickname,
-          employee_code,
-          department_id,
-          profile_image_url,
-          avatar_url,
-          departments (
-            id,
-            department_name
-          )
-        )
-      `);
+    // 2. Fetch ALL data in parallel to avoid PGRST201 foreign-key ambiguity and column name variations
+    const [lrRes, empRes, ltRes, deptRes] = await Promise.all([
+      sb.from("leave_requests").select("id, employee_id, leave_type_id, total_days, status, start_date, end_date, created_at"),
+      sb.from("employees").select("id, first_name, last_name, full_name, nickname, employee_code, department_id, image_url"),
+      sb.from("leave_types").select("id, leave_name, leave_code"),
+      sb.from("departments").select("id, department_name, department_code")
+    ]);
 
-    if (error) {
-      console.warn("Fetch leave requests stats warning:", error);
-    }
+    if (lrRes.error) console.warn("Fetch leave_requests warning:", lrRes.error);
+    if (empRes.error) console.warn("Fetch employees warning:", empRes.error);
+    if (ltRes.error) console.warn("Fetch leave_types warning:", ltRes.error);
+    if (deptRes.error) console.warn("Fetch departments warning:", deptRes.error);
 
-    window.leaveStatsState.cachedRequests = requests || [];
+    const rawRequests = lrRes.data || [];
+    const empList = empRes.data || [];
+    const typeList = ltRes.data || [];
+    const deptList = deptRes.data || [];
 
-    // Populate Department Filter Dropdown if empty
-    populateDepartmentDropdown(requests || []);
+    const empMap = {};
+    empList.forEach(e => { if (e && e.id) empMap[e.id] = e; });
+
+    const typeLookup = {};
+    typeList.forEach(t => { if (t && t.id) typeLookup[t.id] = t.leave_name || t.leave_code || 'วันลา'; });
+
+    const deptLookup = {};
+    deptList.forEach(d => { if (d && d.id) deptLookup[d.id] = d.department_name || 'ทั่วไป'; });
+
+    const joinedRequests = rawRequests.map(r => {
+      const emp = r.employee_id ? empMap[r.employee_id] : null;
+      const deptName = emp && emp.department_id ? (deptLookup[emp.department_id] || 'ไม่ระบุแผนก') : 'ไม่ระบุแผนก';
+      const typeName = (r.leave_type_id ? typeLookup[r.leave_type_id] : null) || r.leave_type_name || 'อื่นๆ';
+      const days = parseFloat(r.days_requested != null ? r.days_requested : r.total_days) || 0;
+
+      return {
+        ...r,
+        days_requested: days,
+        leave_type_name: typeName,
+        employees: emp ? {
+          ...emp,
+          first_name_th: emp.first_name || emp.first_name_th || '',
+          last_name_th: emp.last_name || emp.last_name_th || '',
+          avatar_url: emp.image_url || emp.avatar_url || '/assets/img/default-avatar.jpg',
+          profile_image_url: emp.image_url || emp.avatar_url || '/assets/img/default-avatar.jpg',
+          departments: {
+            id: emp.department_id,
+            department_name: deptName
+          }
+        } : null
+      };
+    });
+
+    window.leaveStatsState.cachedRequests = joinedRequests;
+
+    // Populate Department Filter Dropdown
+    populateDepartmentDropdown(joinedRequests, deptList);
 
     // Render Dashboard
     renderAllDashboardViews();
+
+    // Update Pending Badge in HR Sidebar
+    const pendingBadge = document.getElementById("sidebarSlaPendingBadge");
+    if (pendingBadge) {
+      const pendingCount = joinedRequests.filter(r => r.status === 'pending').length;
+      if (pendingCount > 0) {
+        pendingBadge.textContent = pendingCount;
+        pendingBadge.style.display = 'inline-flex';
+      } else {
+        pendingBadge.style.display = 'none';
+      }
+    }
 
     // Update last updated timestamp
     const timeEl = document.getElementById("lastUpdatedTime");
@@ -218,11 +284,15 @@ window.loadLeaveStatsData = async function() {
   }
 };
 
-function populateDepartmentDropdown(requests) {
+function populateDepartmentDropdown(requests, deptList = []) {
   const deptSelect = document.getElementById("statsDeptSelect");
   if (!deptSelect) return;
 
   const deptsSet = new Set();
+  (deptList || []).forEach(d => {
+    const name = d.name || d.department_name;
+    if (name) deptsSet.add(name);
+  });
   requests.forEach(r => {
     const dName = r.employees?.departments?.department_name;
     if (dName) deptsSet.add(dName);
@@ -693,4 +763,51 @@ function renderStatusBreakdown(approved, pending, rejected, total, dayOfWeekMap)
 
 window.printLeaveStatsReport = function() {
   window.print();
+};
+
+window.exportStatsToExcel = function() {
+  try {
+    const year = document.getElementById('statsYearSelect')?.value || new Date().getFullYear();
+    const dept = document.getElementById('statsDeptFilter')?.value || 'all';
+    
+    // Build CSV Content compatible with Excel UTF-8 BOM
+    let csvContent = "\uFEFF";
+    csvContent += `รายงานสถิติการลาประจำปี ${year} (แผนก: ${dept})\n`;
+    csvContent += `สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}\n\n`;
+    csvContent += `อันดับ,ชื่อพนักงาน,แผนก,ประเภทการลา,จำนวนวันลาสะสม,สถานะ\n`;
+    
+    const tableRows = document.querySelectorAll('#topLeaveUsersTable tbody tr');
+    if (tableRows && tableRows.length > 0) {
+      tableRows.forEach((tr, index) => {
+        const cols = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/"/g, '""').trim()}"`);
+        if (cols.length > 0) {
+          csvContent += cols.join(',') + '\n';
+        }
+      });
+    } else {
+      csvContent += `1,สรุปภาพรวมทั้งหมด,${dept},วันลาทุกประเภท,-,สมบูรณ์\n`;
+    }
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `รายงานสถิติวันลา_${year}_${dept}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: 'success',
+        title: 'ส่งออกไฟล์ Excel สำเร็จ!',
+        text: `ดาวน์โหลดไฟล์รายงานสถิติประจำปี ${year} เรียบร้อยแล้ว`,
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
+  } catch (err) {
+    console.error('Error exporting to Excel:', err);
+    window.print();
+  }
 };

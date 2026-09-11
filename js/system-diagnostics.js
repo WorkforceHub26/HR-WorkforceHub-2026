@@ -12,7 +12,7 @@
     testResults: [],
     lastCameraResult: null,
 
-    // 🚀 1. ฟังก์ชันสแกนตรวจสอบความถูกต้องของระบบครบทุกมิติ
+    //  1. ฟังก์ชันสแกนตรวจสอบความถูกต้องของระบบครบทุกมิติ
     async runAllChecks() {
       this.testResults = [];
       this.log('INFO', 'Starting full system diagnostic sweep...');
@@ -57,7 +57,7 @@
       return this.testResults;
     },
 
-    // 🔍 Check 7: Business Logic Integrity
+    //  Check 7: Business Logic Integrity
     async checkBusinessLogic() {
       const sb = window.pvtSupabase?.getClient();
       if (!sb) return { id: 'logic', title: 'ความถูกต้องของตรรกะธุรกิจ', status: 'warning', message: 'ข้ามการตรวจสอบ (ไม่มี DB Client)' };
@@ -92,7 +92,7 @@
       }
     },
 
-    // 🔍 Check 1: Global Functions & Utilities
+    //  Check 1: Global Functions & Utilities
     checkGlobalHelpers() {
       const issues = [];
       
@@ -120,7 +120,7 @@
       };
     },
 
-    // 🔍 Check 2: User Session & Auth
+    //  Check 2: User Session & Auth
     async checkUserSession() {
       try {
         const rawSession = localStorage.getItem('currentUser');
@@ -169,7 +169,7 @@
       }
     },
 
-    // 🔍 Check 3: Database & Latency
+    //  Check 3: Database & Latency
     async checkDatabaseConnection() {
       const startTime = performance.now();
       const sb = window.pvtSupabase?.getClient() || window.supabaseClient;
@@ -212,7 +212,7 @@
       }
     },
 
-    // 🔍 Check 4: Storage Buckets
+    //  Check 4: Storage Buckets
     async checkStorageBuckets() {
       const sb = window.pvtSupabase?.getClient();
       if (!sb) {
@@ -252,7 +252,7 @@
       }
     },
 
-    // 🔍 Check 5: DOM & Page Structure
+    //  Check 5: DOM & Page Structure
     checkDOMIntegrity() {
       const pageTitle = document.title || 'Unknown';
       const hasMain = Boolean(document.querySelector('main, .main-content, .login-container'));
@@ -266,7 +266,7 @@
       };
     },
 
-    // 🔍 Check 6: Environment
+    //  Check 6: Environment
     checkEnvironment() {
       const isOnline = navigator.onLine;
       const ua = navigator.userAgent;
@@ -277,12 +277,12 @@
         title: 'สภาพแวดล้อมเครือข่ายและอุปกรณ์',
         status: isOnline ? 'passed' : 'failed',
         message: isOnline 
-          ? `เชื่อมต่ออินเทอร์เน็ตปกติ (${isMobile ? '📱 Mobile Device' : '💻 Desktop Device'})`
-          : '⚠️ อุปกรณ์ของคุณไม่ได้เชื่อมต่ออินเทอร์เน็ต (Offline)'
+          ? `เชื่อมต่ออินเทอร์เน็ตปกติ (${isMobile ? ' Mobile Device' : ' Desktop Device'})`
+          : '️ อุปกรณ์ของคุณไม่ได้เชื่อมต่ออินเทอร์เน็ต (Offline)'
       };
     },
 
-    // 🔍 Check 8: Biometric Camera & Browser Capability Check
+    //  Check 8: Biometric Camera & Browser Capability Check
     async checkBiometricCamera() {
       const ua = navigator.userAgent || '';
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -431,7 +431,7 @@
       return result;
     },
 
-    // 🖥️ Modal แสดงผลตรวจเชิงลึกสำหรับกล้องไบโอเมตริก
+    // ️ Modal แสดงผลตรวจเชิงลึกสำหรับกล้องไบโอเมตริก
     async showBiometricCameraDetailsModal(cameraResult = null) {
       if (!cameraResult) {
         cameraResult = this.lastCameraResult || await this.checkBiometricCamera();
@@ -450,7 +450,7 @@
       const icon = isPassed ? 'check_circle' : isWarn ? 'warning' : 'cancel';
 
       Swal.fire({
-        title: '📷 ผลวินิจฉัยความเข้ากันได้ของกล้องไบโอเมตริก',
+        title: ' ผลวินิจฉัยความเข้ากันได้ของกล้องไบโอเมตริก',
         html: `
           <div style="font-family: 'Sarabun', sans-serif; text-align: left; font-size: 13.5px; color: #334155;">
             <!-- Overall Status Header -->
@@ -472,7 +472,7 @@
             <!-- Technical Breakdown Table -->
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 16px;">
               <div style="padding: 9px 12px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12.5px; color: #1e293b;">
-                📋 ข้อมูลตรวจสภาพแวดล้อมและฮาร์ดแวร์
+                 ข้อมูลตรวจสภาพแวดล้อมและฮาร์ดแวร์
               </div>
               <div style="padding: 10px 12px; display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 12.5px;">
                 <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px;">
@@ -482,19 +482,19 @@
                 <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px;">
                   <span style="color: #64748b;">ความปลอดภัยการเชื่อมต่อ (HTTPS):</span>
                   <span style="color: ${r.isSecure ? '#16a34a' : '#dc2626'}; font-weight: 600;">
-                    ${r.isSecure ? '✅ ปลอดภัย (Secure Context)' : '❌ ไม่ปลอดภัย (Insecure HTTP)'}
+                    ${r.isSecure ? ' ปลอดภัย (Secure Context)' : ' ไม่ปลอดภัย (Insecure HTTP)'}
                   </span>
                 </div>
                 <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px;">
                   <span style="color: #64748b;">API กล้อง (navigator.mediaDevices):</span>
                   <span style="color: ${r.hasGetUserMedia ? '#16a34a' : '#dc2626'}; font-weight: 600;">
-                    ${r.hasGetUserMedia ? '✅ รองรับมาตรฐานใหม่' : '❌ ไม่รองรับ'}
+                    ${r.hasGetUserMedia ? ' รองรับมาตรฐานใหม่' : ' ไม่รองรับ'}
                   </span>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: #64748b;">ตรวจพบอุปกรณ์กล้องในเครื่อง:</span>
                   <span style="color: ${r.cameraCount > 0 ? '#16a34a' : '#b45309'}; font-weight: 600;">
-                    ${r.cameraCount > 0 ? `📷 พบกล้อง ${r.cameraCount} ตัว` : '📷 พร้อมเชื่อมต่อ'}
+                    ${r.cameraCount > 0 ? ` พบกล้อง ${r.cameraCount} ตัว` : ' พร้อมเชื่อมต่อ'}
                   </span>
                 </div>
               </div>
@@ -503,7 +503,7 @@
             <!-- Resolution Recommendations -->
             ${!isPassed ? `
               <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px; margin-bottom: 6px;">
-                <strong style="color: #1d4ed8; font-size: 13px; display: block; margin-bottom: 6px;">💡 วิธีแก้ไขที่แนะนำ:</strong>
+                <strong style="color: #1d4ed8; font-size: 13px; display: block; margin-bottom: 6px;"> วิธีแก้ไขที่แนะนำ:</strong>
                 <ol style="margin: 0; padding-left: 18px; line-height: 1.6; font-size: 12.5px; color: #1e40af;">
                   <li><b>อัปเดตเบราว์เซอร์:</b> อัปเดต Google Chrome, Safari หรือ Microsoft Edge เป็นเวอร์ชันล่าสุด</li>
                   <li><b>กรณีเปิดในแอป LINE / Facebook:</b> แตะที่ปุ่มเมนู <b>(⋮ หรือ ...)</b> แล้วเลือก <i>"เปิดด้วยเบราว์เซอร์ภายนอก"</i></li>
@@ -520,7 +520,7 @@
       });
     },
 
-    // ⚡ ตรวจเช็คความเข้ากันได้ของกล้องเมื่อโหลดหน้าเว็บ (Page Load Diagnostic Check)
+    //  ตรวจเช็คความเข้ากันได้ของกล้องเมื่อโหลดหน้าเว็บ (Page Load Diagnostic Check)
     async runBiometricDiagnosticOnLoad() {
       try {
         const result = await this.checkBiometricCamera();
@@ -530,7 +530,7 @@
         window.dispatchEvent(new CustomEvent('pvt:camera-diagnostic-completed', { detail: result }));
 
         if (result.status !== 'passed') {
-          console.warn(`%c[PVT-DIAGNOSTICS] ⚠️ Biometric Camera Compatibility Warning: ${result.message}`, 'color:#d97706; font-weight:bold;');
+          console.warn(`%c[PVT-DIAGNOSTICS] ️ Biometric Camera Compatibility Warning: ${result.message}`, 'color:#d97706; font-weight:bold;');
           
           // If banner exists on page (e.g. index.html)
           const banner = document.getElementById('biometricCameraAlertBanner');
@@ -544,8 +544,8 @@
           if (banner) {
             if (titleEl) {
               titleEl.textContent = result.isOutdated 
-                ? '⚠️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า' 
-                : '⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก';
+                ? '️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า' 
+                : '️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก';
             }
             if (msgEl) {
               msgEl.textContent = `${result.reason} ${result.recommendation}`;
@@ -590,7 +590,7 @@
       }
     },
 
-    // 🔍 Check 9: Login Activity Audit & Tracking Integrity
+    //  Check 9: Login Activity Audit & Tracking Integrity
     async checkLoginAuditTracking() {
       const details = [];
       let status = 'passed';
@@ -598,9 +598,9 @@
       // 1. Check helper availability
       const hasTracker = typeof window.recordLoginLog === 'function' || typeof window.PVTSDK?.loginAudit?.recordLoginLog === 'function';
       if (hasTracker) {
-        details.push('✅ โมดูลบันทึก Login Audit พร้อมทำงาน (recordLoginLog)');
+        details.push(' โมดูลบันทึก Login Audit พร้อมทำงาน (recordLoginLog)');
       } else {
-        details.push('⚠️ ไม่พบฟังก์ชัน recordLoginLog ในขอบเขตส่วนกลาง');
+        details.push('️ ไม่พบฟังก์ชัน recordLoginLog ในขอบเขตส่วนกลาง');
         status = 'warning';
       }
 
@@ -608,7 +608,7 @@
       try {
         const devEngine = window.PVTSDK?.loginAudit?.getDeviceInfo?.();
         if (devEngine && devEngine.os && devEngine.browser) {
-          details.push(`✅ ระบบตรวจจับอุปกรณ์: ${devEngine.browser} บน ${devEngine.os} (${devEngine.device_type})`);
+          details.push(` ระบบตรวจจับอุปกรณ์: ${devEngine.browser} บน ${devEngine.os} (${devEngine.device_type})`);
         }
       } catch (e) {}
 
@@ -618,7 +618,7 @@
         try {
           const { data, error } = await sb.from('login_logs').select('id').limit(1);
           if (!error) {
-            details.push('✅ ตาราง "login_logs" ใน Supabase พร้อมใช้งานสำหรับการตรวจสอบ');
+            details.push(' ตาราง "login_logs" ใน Supabase พร้อมใช้งานสำหรับการตรวจสอบ');
           } else {
             details.push(`ℹ️ สถานะตาราง "login_logs" (${error.message || 'รอดำเนินการไมเกรชัน'}) มีระบบสำรอง hr_admin_management_logs รองรับ`);
           }
@@ -638,7 +638,7 @@
       };
     },
 
-    // ⚡ 2. ระบบซ่อมแซมและแก้ไขบัคอัตโนมัติ (Self-Healing Routine)
+    //  2. ระบบซ่อมแซมและแก้ไขบัคอัตโนมัติ (Self-Healing Routine)
     async autoRepairAll() {
       const repairLogs = [];
       this.log('INFO', 'Executing Auto-Repair sequence...');
@@ -648,7 +648,7 @@
         window.escapeHtml = function (str) {
           return String(str ?? '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
         };
-        repairLogs.push('✅ ฉีดซ่อมฟังก์ชัน escapeHtml สำเร็จ');
+        repairLogs.push(' ฉีดซ่อมฟังก์ชัน escapeHtml สำเร็จ');
       }
 
       // 2. ซ่อมและล้างแคช Session ข้อมูลพนักงานที่ค้างหรือเสียหาย
@@ -663,38 +663,38 @@
               if (freshEmp) {
                 const updatedSession = { ...session, full_name: freshEmp.full_name, role: freshEmp.role, status: freshEmp.status, employee_code: freshEmp.employee_code };
                 localStorage.setItem('currentUser', JSON.stringify(updatedSession));
-                repairLogs.push(`✅ ซิงค์ข้อมูลสิทธิ์พนักงานล่าสุดสำหรับ "${freshEmp.full_name}" สำเร็จ`);
+                repairLogs.push(` ซิงค์ข้อมูลสิทธิ์พนักงานล่าสุดสำหรับ "${freshEmp.full_name}" สำเร็จ`);
               }
             }
           }
         }
       } catch (err) {
-        repairLogs.push(`⚠️ ซิงค์สิทธิ์ไม่สำเร็จ: ${err.message}`);
+        repairLogs.push(`️ ซิงค์สิทธิ์ไม่สำเร็จ: ${err.message}`);
       }
 
       // 3. ปลดล็อก Loading Overlay หรือ SweetAlert ค้าง
       const loadingElements = document.querySelectorAll('.swal2-loading, .loading-overlay');
       if (loadingElements.length > 0) {
         loadingElements.forEach(el => el.remove());
-        repairLogs.push('✅ เคลียร์สถานะการโหลดที่ค้างสะสมบนหน้าจอ');
+        repairLogs.push(' เคลียร์สถานะการโหลดที่ค้างสะสมบนหน้าจอ');
       }
 
       // 4. เรียกเรนเดอร์ข้อมูลโปรไฟล์ส่วนกลางใหม่
       if (typeof window.renderGlobalUserProfile === 'function') {
         try {
           await window.renderGlobalUserProfile();
-          repairLogs.push('✅ อัปเดตข้อมูลแถบเมนูบนสุดเรียบร้อยแล้ว');
+          repairLogs.push(' อัปเดตข้อมูลแถบเมนูบนสุดเรียบร้อยแล้ว');
         } catch (e) {}
       }
 
       if (repairLogs.length === 0) {
-        repairLogs.push('✅ ตรวจสอบแล้ว ระบบทำงานสมบูรณ์ ไม่พบปัญหาที่ต้องซ่อมแซม');
+        repairLogs.push(' ตรวจสอบแล้ว ระบบทำงานสมบูรณ์ ไม่พบปัญหาที่ต้องซ่อมแซม');
       }
 
       return repairLogs;
     },
 
-    // 📜 3. ระบบบันทึก Log ภายใน
+    //  3. ระบบบันทึก Log ภายใน
     log(level, message, details = null) {
       const entry = {
         timestamp: new Date().toLocaleTimeString(),
@@ -711,7 +711,7 @@
       }
     },
 
-    // 🖥️ 4. แสดงผลกล่องเครื่องมือตรวจแก้บัค (Diagnostics & Repair Modal)
+    // ️ 4. แสดงผลกล่องเครื่องมือตรวจแก้บัค (Diagnostics & Repair Modal)
     async showDiagnosticsModal() {
       if (!window.Swal) {
         alert('ระบบซ่อมแซมเปิดใช้งานแล้ว (แต่ไม่พบ SweetAlert2)');
@@ -763,22 +763,22 @@
         html: `
           <div style="max-height: 380px; overflow-y: auto; font-family:'Sarabun', sans-serif; padding-right:4px;">
             <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px; margin-bottom:14px; text-align:left; font-size:12.5px; color:#047857;">
-              💡 <b>คำแนะนำ:</b> หากคุณพบปัญหาปุ่มไม่ทำงาน สิทธิ์ไม่ตรง หรือดึงข้อมูลค้าง สามารถกดปุ่ม <b>"⚡ ซ่อมแซมระบบอัตโนมัติ"</b> ด้านล่างได้ทันที
+               <b>คำแนะนำ:</b> หากคุณพบปัญหาปุ่มไม่ทำงาน สิทธิ์ไม่ตรง หรือดึงข้อมูลค้าง สามารถกดปุ่ม <b>" ซ่อมแซมระบบอัตโนมัติ"</b> ด้านล่างได้ทันที
             </div>
             ${resultsHtml}
           </div>
           <div style="margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
             <button type="button" id="btn-diag-auto-fix" class="swal2-confirm swal2-styled" style="background:#0d9488; margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
-              <span class="material-symbols-outlined" style="font-size:16px;">build</span> ⚡ ซ่อมแซมระบบอัตโนมัติ
+              <span class="material-symbols-outlined" style="font-size:16px;">build</span>  ซ่อมแซมระบบอัตโนมัติ
             </button>
             <button type="button" id="btn-diag-sync-role" class="swal2-styled" style="background:#2563eb; color:#fff; margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
-              <span class="material-symbols-outlined" style="font-size:16px;">sync</span> 🔄 ซิงค์สิทธิ์พนักงาน
+              <span class="material-symbols-outlined" style="font-size:16px;">sync</span>  ซิงค์สิทธิ์พนักงาน
             </button>
             <button type="button" id="btn-diag-clear-cache" class="swal2-styled" style="background:#64748b; color:#fff; margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
-              <span class="material-symbols-outlined" style="font-size:16px;">cleaning_services</span> 🧹 ล้างแคชหน้าบ้าน
+              <span class="material-symbols-outlined" style="font-size:16px;">cleaning_services</span>  ล้างแคชหน้าบ้าน
             </button>
             <button type="button" id="btn-diag-copy-report" class="swal2-styled" style="background:#475569; color:#fff; margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
-              <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span> 📋 คัดลอกรายงาน
+              <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span>  คัดลอกรายงาน
             </button>
           </div>
         `,
@@ -791,7 +791,7 @@
             const logs = await SystemDiagnostics.autoRepairAll();
             Swal.fire({
               icon: 'success',
-              title: 'ซ่อมแซมระบบสำเร็จ! 🎉',
+              title: 'ซ่อมแซมระบบสำเร็จ! ',
               html: `<div style="text-align:left; font-size:13px; color:#334155; max-height:220px; overflow-y:auto;">${logs.map(l => `<p style="margin:4px 0;">${l}</p>`).join('')}</div>`,
               confirmButtonText: 'ตกลง',
               confirmButtonColor: '#0d9488'
@@ -831,7 +831,7 @@
       });
     },
 
-    // 🔘 5. ระบบปุ่มช่วยเหลือใหม่ (Unified Help Button)
+    //  5. ระบบปุ่มช่วยเหลือใหม่ (Unified Help Button)
     injectUnifiedHelpButton() {
       if (document.getElementById('pvt-unified-help-btn')) return;
 
@@ -879,7 +879,7 @@
       document.body.appendChild(btn);
     },
 
-    // 🖥️ 6. แสดงผล Popup คู่มือการใช้งานแบบใหม่ (Beautiful SweetAlert2 - Context Aware)
+    // ️ 6. แสดงผล Popup คู่มือการใช้งานแบบใหม่ (Beautiful SweetAlert2 - Context Aware)
     showUnifiedHelpPopup() {
       if (!window.Swal) {
         alert("คำแนะนำ: หากพบปัญหาโปรดติดต่อฝ่ายบุคคล (HR)");
@@ -888,11 +888,11 @@
 
       // ตรวจสอบหน้าปัจจุบันด้วย pathname
       const path = window.location.pathname.toLowerCase();
-      let pageTitle = "🚀 คู่มือแนะนำการใช้งานระบบ";
+      let pageTitle = " คู่มือแนะนำการใช้งานระบบ";
       let guideContent = "";
 
       if (path.includes("index-user.html") || path === "/" || path.endsWith("/user/")) {
-        pageTitle = "🏠 หน้าแผงควบคุมหลักพนักงาน (Dashboard)";
+        pageTitle = " หน้าแผงควบคุมหลักพนักงาน (Dashboard)";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>สิทธิ์วันลาคงเหลือ:</b> แสดงสถิติโควตาวันลาสะสมปีนี้ที่ได้รับการจัดสรรตามตำแหน่งงานของคุณ</li>
@@ -902,7 +902,7 @@
           </ul>
         `;
       } else if (path.includes("leave-user.html")) {
-        pageTitle = "✍️ หน้ายื่นใบลาออนไลน์ (Leave Application)";
+        pageTitle = "️ หน้ายื่นใบลาออนไลน์ (Leave Application)";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>เลือกประเภทวันลา:</b> คลิกเลือกประเภทการลาที่ถูกต้อง (เช่น ลาป่วย, ลากิจ, ลาพักร้อน) เพื่อตรวจสอบสิทธิ์คงเหลือ</li>
@@ -912,7 +912,7 @@
           </ul>
         `;
       } else if (path.includes("leave-history.html")) {
-        pageTitle = "📜 หน้าประวัติและติดตามสถานะใบลา";
+        pageTitle = " หน้าประวัติและติดตามสถานะใบลา";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>สถานะใบลาปัจจุบัน:</b> แถบสีจะระบุสิทธิ์พิจารณา เช่น รออนุมัติ (สีส้ม), อนุมัติ (สีเขียว), หรือ ปฏิเสธ (สีแดง)</li>
@@ -922,7 +922,7 @@
           </ul>
         `;
       } else if (path.includes("holidays.html")) {
-        pageTitle = "📅 หน้าปฏิทินวันหยุดและวันลาทีม";
+        pageTitle = " หน้าปฏิทินวันหยุดและวันลาทีม";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>ปฏิทินวันหยุดบริษัท:</b> เช็ครายชื่อวันหยุดราชการหรือวันหยุดกรณีพิเศษที่องค์กรกำหนดในแถบหลัก</li>
@@ -932,7 +932,7 @@
           </ul>
         `;
       } else if (path.includes("profile-user.html")) {
-        pageTitle = "👤 หน้าข้อมูลพนักงานและผูกแจ้งเตือน LINE";
+        pageTitle = " หน้าข้อมูลพนักงานและผูกแจ้งเตือน LINE";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>ข้อมูลส่วนตัว:</b> แสดงรหัสพนักงาน ชื่อจริง ตแหน่ง และช่องทางการติดต่ออย่างเป็นทางการ</li>
@@ -942,7 +942,7 @@
           </ul>
         `;
       } else if (path.includes("hr.html")) {
-        pageTitle = "⚖️ หน้าอนุมัติและจัดการใบลา (HR/Manager)";
+        pageTitle = "️ หน้าอนุมัติและจัดการใบลา (HR/Manager)";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>การตรวจสอบแบบกรอง:</b> ตารางงานระบุคำขออนุมัติใหม่ และคำขอพิจารณายกเลิกใบลาอย่างเป็นหมวดหมู่</li>
@@ -952,7 +952,7 @@
           </ul>
         `;
       } else if (path.includes("home.html") && path.includes("/hr/")) {
-        pageTitle = "📊 หน้าแดชบอร์ดสถิติวิเคราะห์ HR Overview";
+        pageTitle = " หน้าแดชบอร์ดสถิติวิเคราะห์ HR Overview";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>ตัวชี้วัดดัชนีลา:</b> แสดงสรุปยอดรวมวันลาประเภทต่างๆ ประจำเดือนนี้ทั้งหมดของบริษัท</li>
@@ -961,7 +961,7 @@
           </ul>
         `;
       } else if (path.includes("management.html")) {
-        pageTitle = "👥 หน้าจัดการข้อมูลพนักงานและจัดสรรสิทธิ์";
+        pageTitle = " หน้าจัดการข้อมูลพนักงานและจัดสรรสิทธิ์";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>เพิ่มบุคลากรรายใหม่:</b> กดปุ่มเพิ่มบัญชี ป้อนชื่อ นามสกุล และเลือกสังกัดแผนกเพื่อสร้าง QR Code บัตรพนักงาน</li>
@@ -970,7 +970,7 @@
           </ul>
         `;
       } else if (path.includes("approval-settings.html")) {
-        pageTitle = "⚙️ หน้าจัดการสายงานและผู้มีอำนาจอนุมัติ";
+        pageTitle = "️ หน้าจัดการสายงานและผู้มีอำนาจอนุมัติ";
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>เลือกแผนกงาน:</b> เลือกค้นหาแผนกเพื่อดึงสายงานการส่งคำขออนุมัติมาแสดงผล</li>
@@ -990,11 +990,11 @@
       }
 
       Swal.fire({
-        title: `<div style="font-size: 20px; font-weight: 800; color: #0d9488;">📘 ${pageTitle}</div>`,
+        title: `<div style="font-size: 20px; font-weight: 800; color: #0d9488;"> ${pageTitle}</div>`,
         html: `
           <div style="text-align: left; font-family: 'Sarabun', sans-serif;">
             <div style="background: #f0fdfa; border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid #ccfbf1; box-shadow: inset 0 1px 2px rgba(13,148,136,0.05);">
-              <strong style="color: #0f766e; display: block; margin-bottom: 10px; font-size: 14.5px; font-weight: 800; border-bottom: 1.5px solid #ccfbf1; padding-bottom: 6px;">🚀 คู่มือแนะนำระบบฉบับย่อ (Quick Guide)</strong>
+              <strong style="color: #0f766e; display: block; margin-bottom: 10px; font-size: 14.5px; font-weight: 800; border-bottom: 1.5px solid #ccfbf1; padding-bottom: 6px;"> คู่มือแนะนำระบบฉบับย่อ (Quick Guide)</strong>
               ${guideContent}
             </div>
 
@@ -1074,7 +1074,7 @@
     }
   };
 
-  // 🚀 เริ่มต้นทำงานอัตโนมัติ
+  //  เริ่มต้นทำงานอัตโนมัติ
   window.SystemDiagnostics = SystemDiagnostics;
 
   document.addEventListener('DOMContentLoaded', () => {

@@ -38,7 +38,7 @@
       </div>
       
       <div class="topbar-actions" style="display: flex; align-items: center; gap: 8px;">
-        <button type="button" class="btn btn-ghost btn-settings-action" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, เชื่อมต่อ LINE)">⚙️ ตั้งค่า</button>
+        <button type="button" class="btn btn-ghost btn-settings-action" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, เชื่อมต่อ LINE)"><img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; display: inline-block;" /> ตั้งค่า</button>
       </div>
 
     </div>
@@ -97,8 +97,8 @@
     </div>
 
     <div class="notice-box no-print">
-      💬 <strong>แจ้งเตือนผ่าน LINE:</strong> ระบบจะส่งแจ้งเตือนสถานะใบลานี้ไปยัง LINE ของท่านและหัวหน้างานทันทีที่กดส่งคำขอ และเมื่อได้รับการอนุมัติ/ปฏิเสธ<br/>
-      ⚠️ <strong>ตรวจสอบก่อนบันทึก:</strong> ลาพักผ่อนล่วงหน้าอย่างน้อย 3 วัน · ลากิจแจ้งล่วงหน้า 1 วัน · ลาป่วยแจ้งภายใน 4 ชั่วโมงแรก พร้อมใบรับรองแพทย์
+       <strong>แจ้งเตือนผ่าน LINE:</strong> ระบบจะส่งแจ้งเตือนสถานะใบลานี้ไปยัง LINE ของท่านและหัวหน้างานทันทีที่กดส่งคำขอ และเมื่อได้รับการอนุมัติ/ปฏิเสธ<br/>
+      ️ <strong>ตรวจสอบก่อนบันทึก:</strong> ลาพักผ่อนล่วงหน้าอย่างน้อย 3 วัน · ลากิจแจ้งล่วงหน้า 1 วัน · ลาป่วยแจ้งภายใน 4 ชั่วโมงแรก พร้อมใบรับรองแพทย์
     </div>
 
     <div class="leave-cards-container">
@@ -112,7 +112,7 @@
 
    <div class="bottom-actions no-print">
       <button class="btn btn-green" type="button" onclick="addLeaveRow()">＋ เพิ่มรายการลา</button>
-      <button class="btn btn-primary" type="button" id="btnSaveLeave" onclick="saveLeave()">💾 บันทึกคำขอลา</button>
+      <button class="btn btn-primary" type="button" id="btnSaveLeave" onclick="saveLeave()"> บันทึกคำขอลา</button>
     </div>
 
   </div>
@@ -141,18 +141,18 @@
         </div>
         
         <div class="form-guide-item">
-          <span class="form-guide-emoji">🧮</span>
+          <span class="form-guide-emoji"></span>
           <div><strong>สรุปรวมจำนวนวัน:</strong> ช่องนี้เป็นระบบ Auto-Calculate ตัวเลขจะคำนวณและแสดงผลรวมวันลาให้อัตโนมัติหลังจากกรอกเวลาเสร็จ</div>
         </div>
         
         <div class="form-guide-item">
-          <span class="form-guide-emoji">📁</span>
+          <span class="form-guide-emoji"></span>
           <div><strong>แนบหลักฐานรูปภาพ:</strong> หาก <span style="color:#e11d48">ลาป่วย</span> หรือลากิจจำเป็น ให้กดปุ่มเพื่ออัปโหลดรูปใบรับรองแพทย์หรือเอกสารประกอบ</div>
         </div>
         
         <div class="form-guide-item" style="border: none; padding-bottom: 0;">
           <span class="form-guide-emoji"> </span>
-          <div><strong>สายงานอนุมัติ (ด้านล่าง):</strong> เมื่อกดส่งคำขอ สถานะจะขึ้น <span style="color:#64748b">"รอพิจารณา"</span> ซึ่งใบลาจะวิ่งไปตามลำดับขั้น: หัวหน้าฝ่าย ➡️ ผู้จัดการ ➡️ ฝ่ายบุคคล ตามลำดับ</div>
+          <div><strong>สายงานอนุมัติ (ด้านล่าง):</strong> เมื่อกดส่งคำขอ สถานะจะขึ้น <span style="color:#64748b">"รอพิจารณา"</span> ซึ่งใบลาจะวิ่งไปตามลำดับขั้น: หัวหน้าฝ่าย ️ ผู้จัดการ ️ ฝ่ายบุคคล ตามลำดับ</div>
         </div>
       </div>
     </div>

@@ -30,7 +30,7 @@
 <body>
   <div class="app-shell">
     
-    <!-- 📌 เมนูด้านข้าง (Unified Luxury Sidebar) -->
+    <!--  เมนูด้านข้าง (Unified Luxury Sidebar) -->
     <aside class="sidebar-light" id="mainSidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
@@ -42,64 +42,73 @@
         </button>
       </div>
 
-      <!-- 🚀 ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
+      <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
       <div class="sidebar-cta-wrap">
         <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
-          <span class="material-symbols-outlined">fact_check</span>
+          <img src="/assets/icons/leave-document.svg" alt="ตรวจและอนุมัติใบลา" class="nav-icon-custom" style="width: 24px; height: 24px; object-fit: contain;" />
           <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
         </a>
       </div>
       
       <nav class="nav-menu">
         <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
-          <span class="material-symbols-outlined">dashboard</span>
+          <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
           <span class="nav-label">หน้าหลัก</span>
         </a>
         <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
-          <span class="material-symbols-outlined">fact_check</span>
+          <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
           <span class="nav-label">ตรวจใบลา</span>
           <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
         <a href="/pages/hr/management.html" class="nav-item active" title="ระบบจัดการส่วนกลาง">
-          <span class="material-symbols-outlined">manage_accounts</span>
+          <img src="/assets/icons/management-gear.svg" alt="ระบบจัดการส่วนกลาง" class="nav-icon-custom" />
           <span class="nav-label">ระบบจัดการส่วนกลาง</span>
         </a>
+        <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
+          <img src="/assets/icons/analytics-dashboard.svg" alt="สถิติวันลา" class="nav-icon-custom" />
+          <span class="nav-label">สถิติวันลา</span>
+        </a>
         <a href="/pages/user/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
-          <span class="material-symbols-outlined">calendar_today</span>
+          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
           <span class="nav-label">ปฏิทิน</span>
         </a>
 
         <div class="sidebar-divider"></div>
         <div class="sidebar-section-title">บริการด่วน</div>
 
-        <!-- 📢 ปุ่มจัดการข่าวสารองค์กร -->
+        <!--  ปุ่มจัดการข่าวสารองค์กร -->
         <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
-          <span class="material-symbols-outlined" style="color: #f59e0b;">campaign</span>
+          <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" class="nav-icon-custom" />
           <span class="nav-label">ข่าวสาร</span>
         </a>
 
         <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
         <button type="button" class="nav-item" onclick="openEmployeeCardManagerPopup(); return false;" title="ระบบบัตรพนักงาน">
-          <span class="material-symbols-outlined" style="color: #0284c7;">badge</span>
+          <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" class="nav-icon-custom" />
           <span class="nav-label">บัตรพนักงาน</span>
         </button>
 
-        <!-- 🔄 สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
+        <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
         <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
-          <span class="material-symbols-outlined" style="color: #10b981;">home</span>
+          <img src="/assets/icons/user-profile.svg" alt="หน้าหลักของพนักงาน" class="nav-icon-custom" />
           <span class="nav-label">หน้าหลักของพนักงาน</span>
         </a>
 
-        <!-- ⚙️ ตั้งค่า -->
-        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
-          <span class="material-symbols-outlined">settings</span>
+        <!-- <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; display: inline-block;" /> ตั้งค่า -->
+                <!-- 💡 ปุ่มแนะนำระบบ -->
+        <a href="/pages/user/full-guide.html" class="nav-item" title="แนะนำระบบการใช้งาน">
+          <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
+          <span class="nav-label">แนะนำระบบ</span>
+        </a>
+        <button type="button" class="nav-item" title="การตั้งค่าระบบ">
+          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
           <span class="nav-label">ตั้งค่า</span>
         </button>
       </nav>
       
       <div class="sidebar-footer">
         <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
-          <span class="material-symbols-outlined">logout</span>
+          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
           <span>ออกจากระบบ</span>
         </button>
       </div>
@@ -112,7 +121,7 @@
       <header class="topbar">
         <div class="topbar-left">
           <button class="mobile-menu-btn" id="mobileMenuBtn" title="เปิดเมนู" onclick="toggleMobileSidebar()">
-            <span class="material-symbols-outlined">menu</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; width: 22px; height: 22px;"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
           <div class="topbar-left-text">
             <h1 class="page-title">ระบบจัดการส่วนกลาง</h1>
@@ -181,7 +190,7 @@
           </div>
         </div>
 
-        <div class="manage-card" style="border-top: 4px solid #8b5cf6;">
+        <div class="manage-card" style="border-top: 4px solid #8b5cf6;" data-role="admin-only">
           <h3><span class="material-symbols-outlined" style="color: #8b5cf6;">analytics</span> 5. แดชบอร์ดแอดมิน</h3>
           <div class="card-btn-group">
             <button class="action-btn" onclick="openAdminDashboardModal()" style="border-left: 4px solid #8b5cf6; font-weight: 700; color: #6d28d9;" title="เปิดดูแดชบอร์ดแอดมินในรูปแบบป๊อปอัป">
@@ -267,22 +276,22 @@
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; font-size: 12.5px;">
               <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                <span style="font-weight: 700; color: #0f172a;">👥 ทุกตำแหน่ง:</span> <span style="color: #64748b;">ภาพรวมพนักงานทั้งหมด</span>
+                <span style="font-weight: 700; color: #0f172a;"> ทุกตำแหน่ง:</span> <span style="color: #64748b;">ภาพรวมพนักงานทั้งหมด</span>
               </div>
               <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
-                <span style="font-weight: 700; color: #1e40af;">👑 ผู้บริหาร:</span> <span style="color: #3b82f6;">CEO, MD, ผู้อำนวยการ</span>
+                <span style="font-weight: 700; color: #1e40af;"> ผู้บริหาร:</span> <span style="color: #3b82f6;">CEO, MD, ผู้อำนวยการ</span>
               </div>
               <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(13,148,136,0.05);">
-                <span style="font-weight: 700; color: #0f766e;">👔 ผู้จัดการ:</span> <span style="color: #14b8a6;">ผู้จัดการฝ่าย/สายงาน</span>
+                <span style="font-weight: 700; color: #0f766e;"> ผู้จัดการ:</span> <span style="color: #14b8a6;">ผู้จัดการฝ่าย/สายงาน</span>
               </div>
               <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(217,119,6,0.05);">
-                <span style="font-weight: 700; color: #92400e;">🎖️ หัวหน้างาน:</span> <span style="color: #d97706;">หัวหน้าแผนก / Supervisor</span>
+                <span style="font-weight: 700; color: #92400e;">️ หัวหน้างาน:</span> <span style="color: #d97706;">หัวหน้าแผนก / Supervisor</span>
               </div>
               <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(124,58,237,0.05);">
-                <span style="font-weight: 700; color: #5b21b6;">📋 เจ้าหน้าที่:</span> <span style="color: #7c3aed;">เจ้าหน้าที่, ผู้ช่วย, ช่างเทคนิค</span>
+                <span style="font-weight: 700; color: #5b21b6;"> เจ้าหน้าที่:</span> <span style="color: #7c3aed;">เจ้าหน้าที่, ผู้ช่วย, ช่างเทคนิค</span>
               </div>
               <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                <span style="font-weight: 700; color: #334155;">👤 พนักงานทั่วไป:</span> <span style="color: #64748b;">ฝ่ายปฏิบัติการและทั่วไป</span>
+                <span style="font-weight: 700; color: #334155;"> พนักงานทั่วไป:</span> <span style="color: #64748b;">ฝ่ายปฏิบัติการและทั่วไป</span>
               </div>
             </div>
           </div>
@@ -295,23 +304,23 @@
               <span class="pos-tab-count" id="count-all">0</span>
             </button>
             <button type="button" class="pos-tab" data-pos-cat="executive" onclick="filterByPosCategory('executive')">
-              <span>👑 ผู้บริหาร</span>
+              <span> ผู้บริหาร</span>
               <span class="pos-tab-count" id="count-executive">0</span>
             </button>
             <button type="button" class="pos-tab" data-pos-cat="manager" onclick="filterByPosCategory('manager')">
-              <span>👔 ผู้จัดการ</span>
+              <span> ผู้จัดการ</span>
               <span class="pos-tab-count" id="count-manager">0</span>
             </button>
             <button type="button" class="pos-tab" data-pos-cat="supervisor" onclick="filterByPosCategory('supervisor')">
-              <span>🎖️ หัวหน้างาน</span>
+              <span>️ หัวหน้างาน</span>
               <span class="pos-tab-count" id="count-supervisor">0</span>
             </button>
             <button type="button" class="pos-tab" data-pos-cat="officer" onclick="filterByPosCategory('officer')">
-              <span>📋 เจ้าหน้าที่</span>
+              <span> เจ้าหน้าที่</span>
               <span class="pos-tab-count" id="count-officer">0</span>
             </button>
             <button type="button" class="pos-tab" data-pos-cat="staff" onclick="filterByPosCategory('staff')">
-              <span>👤 พนักงาน</span>
+              <span> พนักงาน</span>
               <span class="pos-tab-count" id="count-staff">0</span>
             </button>
           </div>
@@ -336,12 +345,12 @@
 
             <!-- ตัวกรองตำแหน่งงานเฉพาะเจาะจง (ภาษาไทย + จำนวนคน) -->
             <select id="posFilter" class="select-input" onchange="renderEmployeeTable()" style="min-width: 210px; height: 42px;">
-              <option value="">💼 ทุกตำแหน่งงาน</option>
+              <option value=""> ทุกตำแหน่งงาน</option>
             </select>
 
             <!-- ตัวกรองแผนก -->
             <select id="deptFilter" class="select-input" onchange="fillPositionFilter(); renderEmployeeTable();" style="min-width: 210px; height: 42px;">
-              <option value="">🏢 ทุกแผนก</option>
+              <option value=""> ทุกแผนก</option>
             </select>
           </div>
 
@@ -400,13 +409,13 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 
-  <script src="/js/supabase-config.js" onload="console.log('  โหลด supabase-config.js สำเร็จ')" onerror="console.error('❌ โหลด supabase-config.js ล้มเหลว (404 Not Found)')"></script>
-  <script src="/js/auth-guard.js" onload="console.log('  โหลด auth-guard.js สำเร็จ')" onerror="console.error('❌ โหลด auth-guard.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/supabase-config.js" onload="console.log('  โหลด supabase-config.js สำเร็จ')" onerror="console.error(' โหลด supabase-config.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/auth-guard.js" onload="console.log('  โหลด auth-guard.js สำเร็จ')" onerror="console.error(' โหลด auth-guard.js ล้มเหลว (404 Not Found)')"></script>
   <script src="/js/system-settings.js"></script>
   <script src="/js/company-news.js"></script>
   <script src="/js/health-wellness.js" onload="console.log('  โหลด health-wellness.js สำเร็จ')"></script>
-  <script src="/js/components/login-logs-viewer.js" onload="console.log('  โหลด login-logs-viewer.js สำเร็จ')" onerror="console.error('❌ โหลด login-logs-viewer.js ล้มเหลว')"></script>
-  <script src="/js/management.js" onload="console.log('  โหลด management.js สำเร็จ')" onerror="console.error('❌ โหลด management.js ล้มเหลว (404 Not Found)')"></script>
-  <script src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error('❌ โหลด recharts-summary.js ล้มเหลว')"></script>
+  <script src="/js/components/login-logs-viewer.js" onload="console.log('  โหลด login-logs-viewer.js สำเร็จ')" onerror="console.error(' โหลด login-logs-viewer.js ล้มเหลว')"></script>
+  <script src="/js/management.js" onload="console.log('  โหลด management.js สำเร็จ')" onerror="console.error(' โหลด management.js ล้มเหลว (404 Not Found)')"></script>
+  <script src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error(' โหลด recharts-summary.js ล้มเหลว')"></script>
 </body>
 </html>

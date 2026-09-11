@@ -21,7 +21,7 @@
 
   <div class="app-container" id="appLayout">
     
-    <!-- 🧭 1. LEFT SIDEBAR MENU (UNIFIED LAYOUT) -->
+    <!--  1. LEFT SIDEBAR MENU (UNIFIED LAYOUT) -->
     <aside class="sidebar" id="sidebarMenu">
       <div class="sidebar-brand">
         <div class="brand-icon">
@@ -33,33 +33,29 @@
         </button>
       </div>
 
-      <!-- 🚀 ปุ่มกดยื่นใบลา (Action CTA) -->
+      <!--  ปุ่มกดยื่นใบลา (Action CTA) -->
       <div class="sidebar-cta-wrap">
         <button type="button" class="sidebar-cta-btn" onclick="goToLeaveForm()" title="ยื่นใบลาออนไลน์">
-          <span class="material-symbols-outlined">edit_document</span>
+          <img src="/assets/icons/leave-document.svg" alt="ยื่นใบลา" class="nav-icon-custom" style="width: 24px; height: 24px; object-fit: contain;" />
           <span class="sidebar-cta-label">ยื่นใบลาออนไลน์</span>
         </button>
       </div>
       
       <nav class="sidebar-menu">
         <a href="/pages/user/index-user.html" class="menu-item active">
-          <span class="material-symbols-outlined">home</span>
+          <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
           <span>หน้าหลัก</span>
         </a>
         <a href="/pages/user/profile-user.html" class="menu-item">
-          <span class="material-symbols-outlined">person</span>
+          <img src="/assets/icons/user-profile.svg" alt="ข้อมูลส่วนตัว" class="nav-icon-custom" />
           <span>ข้อมูลส่วนตัว</span>
         </a>
         <a href="/pages/user/leave-history.html" class="menu-item">
-          <span class="material-symbols-outlined">history</span>
+          <img src="/assets/icons/leave-history.svg" alt="ประวัติการลา" class="nav-icon-custom" />
           <span>ประวัติการลา</span>
         </a>
-        <a href="/pages/user/leave-stats.html" class="menu-item">
-          <span class="material-symbols-outlined">analytics</span>
-          <span>สถิติวันลา</span>
-        </a>
         <a href="/pages/user/holidays.html" class="menu-item">
-          <span class="material-symbols-outlined">calendar_today</span>
+          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
           <span>ปฏิทิน</span>
         </a>
 
@@ -68,84 +64,70 @@
 
         <!-- 🪪 ปุ่มบัตรพนักงานดิจิทัล -->
         <button type="button" class="menu-item" onclick="viewMyDigitalCard()" title="บัตรพนักงานดิจิทัล">
-          <span class="material-symbols-outlined" style="color: #0284c7;">badge</span>
+          <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" class="nav-icon-custom" />
           <span>บัตรพนักงาน</span>
         </button>
 
-        <!-- 💬 ปุ่มเชื่อมต่อ LINE -->
+        <!--  ปุ่มเชื่อมต่อ LINE -->
         <button type="button" class="menu-item" onclick="generateLineLinkToken()" title="เชื่อมต่อ LINE แจ้งเตือน">
-          <span class="material-symbols-outlined" style="color: #16a34a;">chat</span>
+          <img src="/assets/icons/line.svg" alt="LINE" class="nav-icon-custom" />
           <span>LINE</span>
         </button>
 
-        <!-- 📜 ปุ่มดูกฎระเบียบบริษัท -->
+        <!--  ปุ่มดูกฎระเบียบบริษัท -->
         <a href="/pages/user/leave-rules.html" class="menu-item" title="กฎระเบียบและเงื่อนไขการลา">
-          <span class="material-symbols-outlined" style="color: #6366f1;">policy</span>
+          <img src="/assets/icons/leave-policy.svg" alt="กฎระเบียบ" class="nav-icon-custom" />
           <span>กฎระเบียบ</span>
         </a>
 
-        <!-- 📘 ปุ่มคู่มือการใช้งาน -->
-        <a href="/pages/user/full-guide.html" class="menu-item" title="คู่มือการใช้งาน">
-          <span class="material-symbols-outlined" style="color: #0d9488;">menu_book</span>
-          <span>คู่มือ</span>
+        <!--  ปุ่มคู่มือการใช้งาน -->
+        <a href="/pages/user/full-guide.html" class="menu-item" title="แนะนำระบบการใช้งาน">
+          <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
+          <span>แนะนำระบบ</span>
         </a>
 
         <div class="sidebar-divider"></div>
 
         <a href="/pages/user/news.html" class="menu-item">
-          <span class="material-symbols-outlined">campaign</span>
+          <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" class="nav-icon-custom" />
           <span>ข่าวสาร</span>
         </a>
         <button type="button" class="menu-item" onclick="openSystemSettingsModal()" title="การตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, เชื่อมต่อ LINE)">
-          <span class="material-symbols-outlined">settings</span>
+          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
           <span>ตั้งค่า</span>
         </button>
       </nav>
       
       <div class="sidebar-footer">
         <button type="button" class="menu-item" onclick="triggerBiometricHelp()" style="color: var(--primary);">
-          <span class="material-symbols-outlined">help_outline</span>
+          <img src="/assets/icons/help-support.svg" alt="ช่วยเหลือ" class="nav-icon-custom" />
           <span>ช่วยเหลือ</span>
         </button>
       </div>
     </aside>
 
-    <!-- 💻 2. MAIN WORKSPACE CONTENT -->
+    <!--  2. MAIN WORKSPACE CONTENT -->
     <main class="main-content" style="width: 100%; flex: 1;">
       <div class="app" style="max-width: 1000px; padding: 24px 16px; margin: 0 auto; width: 100%;">
         
-        <!-- 🎛️ TOP ACTION BAR: ปุ่มเปิดแดชบอร์ดสถิติวันลาทั้งหมด และปุ่มสลับไปหน้าระบบอนุมัติ HR -->
+        <!-- ️ TOP ACTION BAR: ปุ่มสลับไปหน้าหลักผู้บริหารและหัวหน้างาน -->
         <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
           
-          <!-- 📊 ปุ่มเปิดศูนย์สถิติและแดชบอร์ดการลาหลัก (Leave Statistics Dashboard Page) -->
-          <a href="/pages/user/leave-stats.html" id="btnOpenLeaveStats" style="display: flex; width: 100%; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%); color: white; padding: 16px 20px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-decoration: none; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25); transition: all 0.25s ease; text-align: left;">
+          <!--  ปุ่มเข้าสู่หน้าหลักผู้บริหารและหัวหน้างาน (แสดงเฉพาะ Leader / Manager / HR / Admin) -->
+          <a href="/pages/hr/home.html" id="approverModeBtn" style="display: none; width: 100%; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%); color: white; padding: 16px 20px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-decoration: none; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25); transition: all 0.25s ease; text-align: left;">
             <div style="display: flex; align-items: center; gap: 14px;">
               <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.12); backdrop-filter: blur(4px); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2);">
-                <span class="material-symbols-outlined" style="font-size: 26px; color: #38bdf8;">analytics</span>
+                <span class="material-symbols-outlined" style="font-size: 26px; color: #38bdf8;">home</span>
               </div>
               <div style="text-align: left; line-height: 1.3;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 15px; font-weight: 700; color: #ffffff;">📊 แดชบอร์ดสถิติวันลาทั้งหมด (Leave Analytics)</span>
-                  <span style="font-size: 11px; background: #0284c7; color: #ffffff; padding: 2px 8px; border-radius: 10px; font-weight: 700;">เปิดหน้าสถิติ ➜</span>
+                  <span style="font-size: 15px; font-weight: 700; color: #ffffff;"> หน้าหลักผู้บริหารและหัวหน้างาน (Home)</span>
+                  <span style="font-size: 11px; background: #0284c7; color: #ffffff; padding: 2px 8px; border-radius: 10px; font-weight: 700;">เปิดหน้าหลัก </span>
                 </div>
-                <span style="display: block; font-size: 12px; color: #cbd5e1; font-weight: 400; margin-top: 3px;">เข้าดูสถิติวันลาสะสม สถิติรายแผนก พนักงานที่ลาสูงสุด และรายงานวิเคราะห์องค์กร</span>
+                <span style="display: block; font-size: 12px; color: #cbd5e1; font-weight: 400; margin-top: 3px;">เข้าสู่หน้าหลักภาพรวมองค์กร ตรวจอนุมัติใบลา และระบบจัดการ</span>
               </div>
             </div>
             <span class="material-symbols-outlined" style="color: #38bdf8; font-size: 24px;">arrow_forward</span>
-          </a>
-
-          <!-- 🛡️ ปุ่มสลับไปหน้าระบบอนุมัติ HR (แสดงเฉพาะ Leader / Manager / HR / Admin) -->
-          <a href="/pages/hr/hr.html" id="approverModeBtn" style="display: none; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; padding: 12px 18px; border-radius: 14px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15); transition: all 0.25s ease;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div style="width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <span class="material-symbols-outlined" style="font-size: 22px;">supervisor_account</span>
-              </div>
-              <div style="text-align: left; line-height: 1.3;">
-                <span style="display: block; font-size: 13.5px; font-weight: 700;">ระบบพิจารณาอนุมัติใบลา (สำหรับหัวหน้างาน / HR)</span>
-                <span style="display: block; font-size: 11px; color: #bfdbfe; font-weight: 400;">สลับเข้าสู่หน้าอนุมัติคำขอและบริหารแผนก</span>
-              </div>
-            </div>
-            <span class="material-symbols-outlined" style="font-size: 18px; opacity: 0.8;">arrow_forward_ios</span>
           </a>
 
         </div>
@@ -155,8 +137,8 @@
           <div class="user-header-left" style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
             <!-- Mobile Menu Toggle Button -->
             <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิดเมนู">
-              <span class="material-symbols-outlined">menu</span>
-            </button>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; width: 22px; height: 22px;"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
 
             <div class="brand-row" style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
               <img id="userAvatar" src="/assets/img/default-avatar.jpg" alt="PVT" />
@@ -173,10 +155,10 @@
               <span class="material-symbols-outlined">refresh</span>
             </button>
 
-            <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA DROPDOWN) -->
+            <!--  NOTIFICATION COMPONENT (REAL DATA DROPDOWN) -->
             <div class="notif-wrapper" style="position: relative; display: inline-block;">
-              <button id="notificationBtn" class="notif-btn" style="display: inline-flex;" onclick="toggleUserNotifDropdown(event)" title="การแจ้งเตือนใบลา">
-                <span class="material-symbols-outlined">notifications</span>
+              <button id="notificationBtn" class="notif-btn" style="display: inline-flex; align-items: center; justify-content: center;" onclick="toggleUserNotifDropdown(event)" title="การแจ้งเตือนใบลา">
+                <img src="/assets/icons/bell-new.svg" alt="การแจ้งเตือน" style="width: 22px; height: 22px; object-fit: contain;" />
                 <span id="notifBadge" class="notif-badge" style="display: none;">0</span>
               </button>
 
@@ -199,17 +181,18 @@
               </div>
             </div>
 
-            <button type="button" class="logout-btn" onclick="logout(); return false;">
-              ออก
+            <button type="button" class="logout-btn" onclick="logout(); return false;" style="display: flex; align-items: center; gap: 6px;">
+              <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" style="width: 18px; height: 18px; border-radius: 4px;" />
+              <span>ออก</span>
             </button>
           </div>
         </header>
 
-        <!-- 🟢 ปุ่มใหญ่สำหรับยื่นใบลา (แยกออกมาเดี่ยวๆ) -->
+        <!--  ปุ่มใหญ่สำหรับยื่นใบลา (แยกออกมาเดี่ยวๆ) -->
         <div class="hero-leave-container" style="margin-bottom: 24px;">
           <button class="btn-hero-leave" onclick="goToLeaveForm()">
-            <div class="btn-hero-icon">
-              <span class="material-symbols-outlined" style="font-size: 38px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; color: #fff; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 40;">edit_document</span>
+            <div class="btn-hero-icon" style="background: transparent; box-shadow: none;">
+              <img src="/assets/icons/leave-document.svg" alt="ยื่นใบลา" style="width: 44px; height: 44px; object-fit: contain;" />
             </div>
             <div class="btn-hero-text">
               <strong>ยื่นใบลาออนไลน์</strong>
@@ -219,15 +202,15 @@
           </button>
         </div>
 
-        <!-- 🌟 เมนูด่วน (Quick Menu) -->
+        <!--  เมนูด่วน (Quick Menu) -->
         <section class="quick-menu-section" style="margin-bottom: 24px;">
           <div class="section-header" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
             <h2 style="font-size: 16px; font-weight: 700; color: #1e293b; margin: 0;">เมนูด่วน</h2>
           </div>
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
             <div class="menu-card" onclick="goToLeaveHistory()" style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div style="background: #eff6ff; padding: 10px; border-radius: 10px; color: #3b82f6; display: flex;">
-                <span class="material-symbols-outlined">history</span>
+              <div style="background: rgba(59, 130, 246, 0.1); padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <img src="/assets/icons/leave-history.svg" alt="ประวัติการลา" style="width: 24px; height: 24px; object-fit: contain;" />
               </div>
               <div>
                 <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">ประวัติการลา</h3>
@@ -236,8 +219,8 @@
             </div>
             
             <div class="menu-card" onclick="location.href='/pages/user/leave-rules.html'" style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div style="background: #eef2ff; padding: 10px; border-radius: 10px; color: #6366f1; display: flex;">
-                <span class="material-symbols-outlined">menu_book</span>
+              <div style="background: rgba(99, 102, 241, 0.1); padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <img src="/assets/icons/leave-policy.svg" alt="กฎระเบียบ" style="width: 24px; height: 24px; object-fit: contain;" />
               </div>
               <div>
                 <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">กฎระเบียบ</h3>
@@ -246,8 +229,8 @@
             </div>
             
             <div class="menu-card" onclick="location.href='/pages/user/holidays.html'" style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div style="background: #fef3c7; padding: 10px; border-radius: 10px; color: #d97706; display: flex;">
-                <span class="material-symbols-outlined">event</span>
+              <div style="background: rgba(99, 102, 241, 0.1); padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <img src="/assets/icons/calendar-event.svg" alt="ปฏิทินวันหยุด" style="width: 24px; height: 24px; object-fit: contain;" />
               </div>
               <div>
                 <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">ปฏิทินวันหยุด</h3>
@@ -256,8 +239,8 @@
             </div>
             
             <div class="menu-card" onclick="showStaffCard()" style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div style="background: #fdf4ff; padding: 10px; border-radius: 10px; color: #c026d3; display: flex;">
-                <span class="material-symbols-outlined">badge</span>
+              <div style="background: rgba(2, 132, 199, 0.1); padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" style="width: 24px; height: 24px; object-fit: contain;" />
               </div>
               <div>
                 <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">บัตรพนักงาน</h3>
@@ -277,7 +260,7 @@
               <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
               </select>
               <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ซ่อน/แสดง สิทธิ์วันลา">
-                <span class="material-symbols-outlined">visibility</span>
+                <img class="toggle-eye-icon" src="/assets/icons/eye-open.svg" style="width: 24px; height: 24px; color: currentColor;" />
               </button>
             </div>
           </div>
@@ -294,7 +277,7 @@
             <button onclick="goToLeaveHistory()">ดูทั้งหมด</button>
                     
             <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)">
-              <span class="material-symbols-outlined">visibility</span>
+              <img class="toggle-eye-icon" src="/assets/icons/eye-open.svg" style="width: 24px; height: 24px; color: currentColor;" />
             </button>
             <!-- กล่องรายการต้องใส่ id="recentList" -->
           </div>
@@ -303,7 +286,7 @@
           </div>
         </section>
 
-        <!-- 👥 PANEL: สมาชิกพนักงานในแผนก -->
+        <!--  PANEL: สมาชิกพนักงานในแผนก -->
         <section class="panel mb-6" id="departmentTeamSection" style="display: none; margin-top: 24px;">
           <div class="panel-header" style="justify-content: space-between; align-items: center; display: flex; width: 100%;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -316,7 +299,7 @@
             <div style="display: flex; align-items: center; gap: 10px;">
               <span id="teamCountBadge" style="background: var(--primary-soft, #e0f2fe); color: var(--primary, #0284c7); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 20px;">0 คน</span>
               <button type="button" class="btn-toggle-icon" onclick="toggleSection('teamMembersContainer', this)" title="ซ่อน/แสดง รายชื่อสมาชิก" style="background: transparent; border: none; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center;">
-                <span class="material-symbols-outlined">visibility</span>
+                <img class="toggle-eye-icon" src="/assets/icons/eye-open.svg" style="width: 24px; height: 24px; color: currentColor;" />
               </button>
             </div>
           </div>
@@ -329,12 +312,12 @@
           </div>
         </section>
 
-        <!-- 📢 ข่าวสาร & ประชาสัมพันธ์องค์กร (Company Announcements) -->
+        <!--  ข่าวสาร & ประชาสัมพันธ์องค์กร (Company Announcements) -->
         <section class="news-section" id="news">
           <div class="news-section-header">
             <div class="news-header-left">
-              <div class="news-icon">
-                <span class="material-symbols-outlined">campaign</span>
+              <div class="news-icon" style="background: transparent; box-shadow: none;">
+                <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" style="width: 38px; height: 38px; object-fit: contain;" />
               </div>
               <div>
                 <h2>ข่าวสาร & ประกาศองค์กร</h2>
@@ -343,10 +326,10 @@
             </div>
             <div class="news-filter-chips" id="newsFilterChips">
               <button type="button" class="news-chip active" onclick="filterUserNews('all', this)">ทั้งหมด</button>
-              <button type="button" class="news-chip" onclick="filterUserNews('urgent', this)">🚨 ด่วน</button>
-              <button type="button" class="news-chip" onclick="filterUserNews('announcement', this)">📢 ประชาสัมพันธ์</button>
-              <button type="button" class="news-chip" onclick="filterUserNews('holiday', this)">📅 วันหยุด</button>
-              <button type="button" class="news-chip" onclick="filterUserNews('welfare', this)">🎁 สวัสดิการ</button>
+              <button type="button" class="news-chip" onclick="filterUserNews('urgent', this)"> ด่วน</button>
+              <button type="button" class="news-chip" onclick="filterUserNews('announcement', this)"> ประชาสัมพันธ์</button>
+              <button type="button" class="news-chip" onclick="filterUserNews('holiday', this)"> วันหยุด</button>
+              <button type="button" class="news-chip" onclick="filterUserNews('welfare', this)"> สวัสดิการ</button>
               <a href="/pages/user/news.html" class="news-chip" style="text-decoration: none; background: #f0fdfa; color: #0f766e; border-color: #99f6e4; font-weight: 700;" title="เปิดดูศูนย์ข่าวสารฉบับเต็ม">
                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: -2px;">open_in_new</span> ดูทั้งหมด
               </a>
@@ -364,7 +347,7 @@
     </main>
   </div>
 
-  <!-- 📍 VISUAL PROGRESS TRACKER MODAL (STEPPER TIMELINE) -->
+  <!--  VISUAL PROGRESS TRACKER MODAL (STEPPER TIMELINE) -->
   <div class="pvt-modal-overlay" id="visualTimelineModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px;">
     <div class="pvt-modal-card" style="background: #ffffff; width: 100%; max-width: 580px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
       <div class="modal-header" style="padding: 18px 24px; background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
@@ -390,7 +373,7 @@
     </div>
   </div>
 
-  <!-- 🤖 HR AI CHATBOT WIDGET (POLICY Q&A 24 HRS) -->
+  <!--  HR AI CHATBOT WIDGET (POLICY Q&A 24 HRS) -->
   <div id="hrChatbotWidget">
     <!-- Floating Action Button -->
     <button id="hrChatbotFab" onclick="toggleHrChatbot()" title="ถามผู้ช่วย HR AI เกี่ยวกับนโยบายและสิทธิวันลา" style="position: fixed; bottom: 24px; right: 24px; z-index: 9998; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: #ffffff; border: none; border-radius: 50px; padding: 12px 20px; display: flex; align-items: center; gap: 8px; box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.4), 0 8px 10px -6px rgba(13, 148, 136, 0.2); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
@@ -426,13 +409,13 @@
           🩺 ใบรับรองแพทย์ลาป่วย?
         </button>
         <button type="button" onclick="askHrQuestion('วันลาพักร้อนสะสมไปปีหน้าได้ไหม?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-          🏖️ สะสมวันลาพักร้อน?
+          ️ สะสมวันลาพักร้อน?
         </button>
         <button type="button" onclick="askHrQuestion('สิทธิการลาคลอดบุตรและการรับเงินสงเคราะห์เป็นอย่างไร?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-          👶 สิทธิลาคลอดบุตร?
+           สิทธิลาคลอดบุตร?
         </button>
         <button type="button" onclick="askHrQuestion('เงื่อนไขการเบิกค่ารักษาพยาบาลและเบี้ยเลี้ยงปฏิบัติงานนอกสถานที่?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-          💰 เบิกค่ารักษา & เบี้ยเลี้ยง?
+           เบิกค่ารักษา & เบี้ยเลี้ยง?
         </button>
       </div>
 
@@ -444,7 +427,7 @@
             <span class="material-symbols-outlined" style="font-size: 18px;">smart_toy</span>
           </div>
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0 14px 14px 14px; padding: 12px 14px; font-size: 13px; color: #1e293b; line-height: 1.5; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            สวัสดีครับ! ผมเป็นผู้ช่วยตอบคำถามอัตโนมัติประจำฝ่ายทรัพยากรบุคคล ยินดีช่วยเหลือพนักงานทุกท่านเกี่ยวกับ <strong>นโยบายวันลา สิทธิสวัสดิการ กฎระเบียบบริษัท และการเบิกเงิน</strong> สามารถพิมพ์สอบถามได้ตลอด 24 ชั่วโมงเลยครับ 😊
+            สวัสดีครับ! ผมเป็นผู้ช่วยตอบคำถามอัตโนมัติประจำฝ่ายทรัพยากรบุคคล ยินดีช่วยเหลือพนักงานทุกท่านเกี่ยวกับ <strong>นโยบายวันลา สิทธิสวัสดิการ กฎระเบียบบริษัท และการเบิกเงิน</strong> สามารถพิมพ์สอบถามได้ตลอด 24 ชั่วโมงเลยครับ 
           </div>
         </div>
       </div>
@@ -478,7 +461,7 @@
   <script src="/js/index-user.js"></script>
   <script src="/js/system-diagnostics.js"></script>
 
-  <!-- 🟢 Navigation Controllers -->
+  <!--  Navigation Controllers -->
   <script>
     // Filter User News by category
     function filterUserNews(category, btn) {

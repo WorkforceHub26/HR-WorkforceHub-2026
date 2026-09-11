@@ -1567,7 +1567,9 @@ window.toggleAllLineNotifs = function(enable) {
     "notif-manager-approved",
     "notif-final-approved",
     "notif-rejected",
-    "notif-cancellation"
+    "notif-cancellation",
+    "notif-hr-review",
+    "notif-hr-notify"
   ];
   ids.forEach(id => {
     const el = document.getElementById(id);
@@ -1596,7 +1598,9 @@ async function loadLineNotificationSettings() {
       manager_approved: true,
       final_approved: true,
       rejected: true,
-      cancellation: true
+      cancellation: true,
+      hr_review: true,
+      hr_notify: true
     };
 
     // Set DOM checkbox states & visual classes
@@ -1607,7 +1611,9 @@ async function loadLineNotificationSettings() {
       { id: "notif-manager-approved", val: settings.manager_approved !== false },
       { id: "notif-final-approved", val: settings.final_approved !== false },
       { id: "notif-rejected", val: settings.rejected !== false },
-      { id: "notif-cancellation", val: settings.cancellation !== false }
+      { id: "notif-cancellation", val: settings.cancellation !== false },
+      { id: "notif-hr-review", val: settings.hr_review !== false },
+      { id: "notif-hr-notify", val: settings.hr_notify !== false }
     ];
 
     mapList.forEach(item => {
@@ -1639,6 +1645,8 @@ async function saveLineNotificationSettings() {
     final_approved: document.getElementById("notif-final-approved")?.checked ?? true,
     rejected: document.getElementById("notif-rejected")?.checked ?? true,
     cancellation: document.getElementById("notif-cancellation")?.checked ?? true,
+    hr_review: document.getElementById("notif-hr-review")?.checked ?? true,
+    hr_notify: document.getElementById("notif-hr-notify")?.checked ?? true,
     updated_at: new Date().toISOString()
   };
 

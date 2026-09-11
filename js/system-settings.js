@@ -442,7 +442,7 @@
         <div class="settings-modal-header">
           <div class="settings-header-title-wrap">
             <div class="settings-header-icon">
-              <span class="material-symbols-outlined">settings</span>
+              <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 24px; height: 24px; border-radius: 6px; object-fit: contain;" />
             </div>
             <div>
               <h3 class="settings-modal-title" id="settingsModalTitle">การตั้งค่าระบบ (Settings)</h3>
@@ -460,7 +460,7 @@
           <!-- Card 1: ขนาดตัวอักษร -->
           <div class="setting-card-item">
             <div class="setting-item-head">
-              <span class="setting-item-icon">🔤</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #3b82f6; font-size: 28px;">text_format</span>
               <div class="setting-item-info">
                 <h4>ขนาดตัวอักษรและการแสดงผล (Font Size)</h4>
                 <p>เลือกขนาดข้อความที่เหมาะกับสายตาของคุณ เพื่อการอ่านที่สะดวกสบาย</p>
@@ -490,7 +490,7 @@
           <!-- Card 2: ธีมสีของระบบ -->
           <div class="setting-card-item">
             <div class="setting-item-head">
-              <span class="setting-item-icon">🎨</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #f43f5e; font-size: 28px;">palette</span>
               <div class="setting-item-info">
                 <h4>ธีมและโทนสีของระบบ (Color Themes)</h4>
                 <p>เปลี่ยนเฉดสีหลักของแอปพลิเคชันตามความชอบ</p>
@@ -505,7 +505,7 @@
           <!-- Card 3: เชื่อมต่อ LINE -->
           <div class="setting-card-item">
             <div class="setting-item-head">
-              <span class="setting-item-icon">💬</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #10b981; font-size: 28px;">forum</span>
               <div class="setting-item-info">
                 <h4>การแจ้งเตือนผ่าน LINE (LINE Notification)</h4>
                 <p>รับข้อความแจ้งเตือนผลการอนุมัติใบลาและสถานะคำขอตรงสู่มือถือ</p>
@@ -514,7 +514,7 @@
 
             <div class="line-status-banner">
               <div class="line-status-left">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE" />
+                <img src="/assets/icons/line.svg" alt="LINE" style="width: 28px; height: 28px; object-fit: contain;" />
                 <div class="line-status-text">
                   <h5 id="lineStatusTitle">สถานะ: กำลังตรวจสอบ...</h5>
                   <p id="lineStatusDesc">ผูกบัญชีเพื่อรับการแจ้งเตือนทันที</p>
@@ -542,7 +542,7 @@
           <!-- Card 4.5: Google Magic Translate (ช่วยแปลอัตโนมัติ) -->
           <div class="setting-card-item magic-translate-card" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-left: 4px solid #3b82f6;">
             <div class="setting-item-head">
-              <span class="setting-item-icon">🪄</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #a855f7; font-size: 28px;">auto_awesome</span>
               <div class="setting-item-info">
                 <h4 style="color: #1e293b;">ตัวช่วยแปลภาษาอัตโนมัติ (Google Magic Translate)</h4>
                 <p>หากภาษาในระบบยังไม่ครอบคลุม คุณสามารถใช้ระบบแปลอัตโนมัติของ Google แทนได้ทันที</p>
@@ -563,7 +563,7 @@
           <!-- Card 4: ภาษาที่ใช้งานในระบบ (Language) -->
           <div class="setting-card-item">
             <div class="setting-item-head">
-              <span class="setting-item-icon">🌐</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #0ea5e9; font-size: 28px;">language</span>
               <div class="setting-item-info">
                 <h4>ภาษาที่ใช้งานในระบบ (System Language)</h4>
                 <p>เลือกภาษาหลักสำหรับเมนูและแบบฟอร์มการทำเรื่องขอลา</p>
@@ -593,7 +593,7 @@
           <!-- Card 5: เอฟเฟกต์เสียงและระบบเตือน (Sound & Accessibility) -->
           <div class="setting-card-item">
             <div class="setting-item-head">
-              <span class="setting-item-icon">🔔</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #f59e0b; font-size: 28px;">notifications</span>
               <div class="setting-item-info">
                 <h4>การเข้าถึงและเสียงแจ้งเตือน (Accessibility & Sound)</h4>
                 <p>เปิด/ปิดเสียงตอบสนองและเอฟเฟกต์เมื่อกดปุ่มตอบรับหรือยื่นเรื่อง</p>
@@ -626,7 +626,7 @@
           <!-- Card 6: โหมดสุขภาพและการทำงาน (Health & Live Performance) -->
           <div class="setting-card-item">
             <div class="setting-item-head">
-              <span class="setting-item-icon">👁️</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #14b8a6; font-size: 28px;">visibility</span>
               <div class="setting-item-info">
                 <h4>สุขภาพและประสิทธิภาพเรียลไทม์ (Eye Care & Real-time Feed)</h4>
                 <p>ควบคุมการกรองแสงและอัตราการรีเฟรชข้อมูลหน้าจอของระบบ</p>
@@ -667,7 +667,7 @@
           <!-- Card 7: ความเป็นส่วนตัวและความเร็ว (Privacy & Power Saver) -->
           <div class="setting-card-item">
             <div class="setting-item-head">
-              <span class="setting-item-icon">🛡️</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #8b5cf6; font-size: 28px;">shield</span>
               <div class="setting-item-info">
                 <h4>ความปลอดภัยและการประหยัดพลังงาน (Privacy & Battery)</h4>
                 <p>ตั้งค่าการอำพรางสายตาและควบคุมแอนิเมชันเพื่อประหยัดทรัพยากรเครื่อง</p>
@@ -700,7 +700,7 @@
           <!-- Card 8: ระบบจัดการสำหรับผู้อนุมัติและการเข้าถึง (Approver & Accessibility) -->
           <div class="setting-card-item">
             <div class="setting-item-head">
-              <span class="setting-item-icon">⚖️</span>
+              <span class="setting-item-icon material-symbols-outlined" style="color: #64748b; font-size: 28px;">gavel</span>
               <div class="setting-item-info">
                 <h4>ขั้นตอนอนุมัติและการเข้าถึงง่าย (Approver Flow & High Contrast)</h4>
                 <p>กำหนดการถามยืนยันและการเพิ่มความหนาตัวอักษรเพื่อการอ่านที่ง่ายขึ้น</p>
@@ -738,7 +738,8 @@
             <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">restart_alt</span>
             รีเซ็ตเป็นค่าเริ่มต้น
           </button>
-          <button type="button" class="btn-settings-done" onclick="closeSystemSettingsModal()">
+          <button type="button" class="btn-settings-done" onclick="closeSystemSettingsModal()" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+            <img src="/assets/icons/check-circle.svg" alt="เรียบร้อย" style="width: 16px; height: 16px; object-fit: contain;" />
             เรียบร้อย
           </button>
         </div>
@@ -1214,6 +1215,26 @@
 
   // 🌟 9. Open Admin Dashboard Modal
   window.openAdminDashboardModal = function() {
+    const sessionStr = localStorage.getItem('currentUser');
+    const session = sessionStr ? JSON.parse(sessionStr) : null;
+    const empObj = session?.employees || session || {};
+    const rawRole = String(session?.role || empObj.role || '').toLowerCase().trim();
+    const isTrueAdmin = rawRole === 'admin' || rawRole === 'superadmin' || session?.employee_code === 'HR-001' || empObj.employee_code === 'HR-001';
+
+    if (!isTrueAdmin) {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: 'error',
+          title: 'ไม่มีสิทธิ์เข้าถึง',
+          text: 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าใช้งานหน้าคอนโซลแอดมินได้',
+          confirmButtonColor: '#ef4444'
+        });
+      } else {
+        alert('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าใช้งานหน้าคอนโซลแอดมินได้');
+      }
+      return;
+    }
+
     let overlay = document.getElementById("adminDashboardModalOverlay");
     if (!overlay) {
       overlay = document.createElement("div");

@@ -199,6 +199,31 @@
   color: #0891b2 !important;
 }
 
+/* 🏷️ Custom Vector SVG Icons in Nav Items */
+.sidebar .nav-icon-custom,
+.sidebar-light .nav-icon-custom,
+.sidebar-menu .nav-icon-custom,
+.nav-menu .nav-icon-custom,
+.menu-item .nav-icon-custom {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar .nav-item:hover .nav-icon-custom,
+.sidebar-light .nav-item:hover .nav-icon-custom,
+.sidebar .menu-item:hover .nav-icon-custom,
+.sidebar-menu .menu-item:hover .nav-icon-custom {
+  transform: scale(1.12);
+}
+
 .sidebar-divider {
   height: 1px;
   background-color: #f1f5f9;
@@ -339,6 +364,11 @@
     margin: 0 !important;
   }
 
+  body.desktop-sidebar-collapsed .nav-icon-custom,
+  .sidebar.collapsed .nav-icon-custom {
+    margin: 0 auto !important;
+  }
+
   /* 🚪 Footer & Logout Collapsed */
   body.desktop-sidebar-collapsed .sidebar-footer,
   .sidebar.collapsed .sidebar-footer {
@@ -381,11 +411,15 @@
     height: 100dvh !important;
     width: 280px !important;
     max-width: 86vw !important;
-    z-index: 9999 !important;
+    z-index: 100000 !important;
     transform: translateX(-100%) !important;
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: 6px 0 28px rgba(15, 23, 42, 0.22) !important;
     background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    opacity: 1 !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch !important;
@@ -413,6 +447,69 @@
     margin-left: 0 !important;
     width: 100% !important;
     padding: 1.25rem 1rem 4rem 1rem !important;
+  }
+}
+
+/* 🏹 Mobile Edge Arrow Floating Pull Button */
+.mobile-sidebar-edge-toggle {
+  display: none;
+}
+
+/* 🧭 Desktop Sidebar Edge Toggle Handle (ปิดใช้งานตามคำขอ) */
+.desktop-sidebar-edge-toggle,
+#desktopSidebarEdgeToggle {
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .mobile-sidebar-edge-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    left: 0;
+    top: 42%;
+    transform: translateY(-50%);
+    z-index: 9980;
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+    color: #ffffff;
+    padding: 12px 10px 12px 6px;
+    border-radius: 0 18px 18px 0;
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    border-left: none;
+    box-shadow: 4px 6px 20px rgba(13, 148, 136, 0.4);
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, background 0.2s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-sidebar-edge-toggle:hover {
+    background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+    padding-right: 14px;
+  }
+
+  .mobile-sidebar-edge-toggle:active {
+    transform: translateY(-50%) scale(0.92);
+  }
+
+  .mobile-sidebar-edge-toggle .edge-icon {
+    font-size: 22px;
+    animation: edgePulse 1.8s infinite ease-in-out;
+  }
+
+  @keyframes edgePulse {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(4px); }
+  }
+
+  /* Hide floating button when sidebar is open */
+  body.sidebar-open .mobile-sidebar-edge-toggle,
+  .sidebar.mobile-open ~ .mobile-sidebar-edge-toggle,
+  .sidebar-light.mobile-open ~ .mobile-sidebar-edge-toggle {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(-50%) translateX(-100%) !important;
   }
 }
 
@@ -444,5 +541,28 @@
 
 .btn-logout .material-symbols-outlined {
   font-size: 17px;
+}
+
+.btn-logout .nav-icon-custom {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  object-fit: contain;
+  border-radius: 6px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-logout:hover .nav-icon-custom {
+  transform: scale(1.12);
+}
+
+.notif-btn img,
+.notification-btn img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
 }
 

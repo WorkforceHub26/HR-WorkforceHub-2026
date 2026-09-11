@@ -2340,19 +2340,33 @@ class LineOAEngine {
               isEnabled = false;
             } else if (recipientRole === 'manager' && settings.new_request_l2 === false) {
               isEnabled = false;
+            } else if ((recipientRole === 'hr' || recipientRole === 'admin') && settings.hr_review === false) {
+              isEnabled = false;
             } else if (settings.new_request === false) {
               isEnabled = false;
             }
-          } else if (type === 'LEADER_APPROVED') {
-            if (settings.leader_approved === false) isEnabled = false;
-          } else if (type === 'MANAGER_APPROVED') {
-            if (settings.manager_approved === false) isEnabled = false;
+          } else if (type === 'LEADER_APPROVED' || type === 'MANAGER_APPROVED' || type === 'EXECUTIVE_APPROVED' || type === 'PENDING_HR' || type === 'HR_REVIEW') {
+            if ((recipientRole === 'hr' || recipientRole === 'admin') && settings.hr_review === false) {
+              isEnabled = false;
+            } else if (type === 'LEADER_APPROVED' && settings.leader_approved === false) {
+              isEnabled = false;
+            } else if (type === 'MANAGER_APPROVED' && settings.manager_approved === false) {
+              isEnabled = false;
+            }
           } else if (type === 'REQUEST_APPROVED' || type === 'FINAL_APPROVED') {
-            if (settings.final_approved === false) isEnabled = false;
+            if ((recipientRole === 'hr' || recipientRole === 'admin') && settings.hr_notify === false) {
+              isEnabled = false;
+            } else if (settings.final_approved === false) {
+              isEnabled = false;
+            }
           } else if (type === 'REJECTED') {
             if (settings.rejected === false) isEnabled = false;
           } else if (type === 'CANCELLATION') {
-            if (settings.cancellation === false) isEnabled = false;
+            if ((recipientRole === 'hr' || recipientRole === 'admin') && settings.hr_notify === false) {
+              isEnabled = false;
+            } else if (settings.cancellation === false) {
+              isEnabled = false;
+            }
           }
 
           if (!isEnabled) {
@@ -2577,5 +2591,79 @@ class LineOAEngine {
   };
 
   global.formatLeaveDurationText = global.formatLeaveDurationFriendly;
+
+  /**
+   * ⏱️ GLOBAL AUTOMATIC SLA 2-DAY EXPIRE SERVICE
+   * ตรวจสอบและปรับสถานะใบลาที่รออนุมัติเกิน 2 วัน (48 ชั่วโมง) ให้เป็น "ไม่อนุมัติ" อัตโนมัติ
+   * เหตุผล: "เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)"
+   */
+  global.autoRejectOverdueLeaves = async function() {
+    try {
+      const sb = global.PVTSDK?.client || global.pvtSupabase?.client || global.pvtSupabase?.getClient?.();
+      if (!sb) return [];
+
+      const now = Date.now();
+      const TWO_DAYS_MS = 48 * 60 * 60 * 1000; // 48 ชม. (2 วัน)
+
+      // 1. ดึงข้อมูลใบลาที่ยังค้างในสถานะรออนุมัติ
+      const { data: pendingReqs, error } = await sb
+        .from("leave_requests")
+        .select("id, created_at, status")
+        .or("status.ilike.pending,status.ilike.รออนุมัติ%");
+
+      if (error || !pendingReqs || pendingReqs.length === 0) return [];
+
+      const overdueIds = [];
+      for (const req of pendingReqs) {
+        if (!req.created_at) continue;
+        const createdTime = new Date(req.created_at).getTime();
+        if (isNaN(createdTime)) continue;
+
+        if (now - createdTime >= TWO_DAYS_MS) {
+          overdueIds.push(req.id);
+        }
+      }
+
+      if (overdueIds.length === 0) return [];
+
+      console.log(`⏱️ [SLA Auto-Expire] พบใบลาค้างเกิน 2 วัน (48 ชม.) จำนวน ${overdueIds.length} รายการ กำลังปรับเป็นไม่อนุมัติ...`, overdueIds);
+
+      const autoReason = "เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)";
+
+      for (const reqId of overdueIds) {
+        const { error: updateErr } = await sb
+          .from("leave_requests")
+          .update({
+            status: "rejected",
+            approval_comment: autoReason
+          })
+          .eq("id", reqId);
+
+        if (updateErr) {
+          console.warn(`⚠️ [SLA Auto-Expire] ล้มเหลวในการอัปเดตใบลา ID ${reqId}:`, updateErr.message);
+        } else {
+          console.log(`✅ [SLA Auto-Expire] ปรับสถานะใบลา ID ${reqId} เป็นไม่อนุมัติเรียบร้อย`);
+        }
+      }
+
+      return overdueIds;
+    } catch (err) {
+      console.error("💥 [SLA Auto-Expire Error]:", err);
+      return [];
+    }
+  };
+
+  // เรียกทำงานครั้งแรกเมื่อโหลดระบบเสร็จ และตั้งเวลารันอัตโนมัติทุกๆ 5 นาที
+  setTimeout(() => {
+    if (typeof global.autoRejectOverdueLeaves === 'function') {
+      global.autoRejectOverdueLeaves();
+    }
+  }, 3000);
+
+  setInterval(() => {
+    if (typeof global.autoRejectOverdueLeaves === 'function') {
+      global.autoRejectOverdueLeaves();
+    }
+  }, 5 * 60 * 1000);
 
 })(typeof window !== "undefined" ? window : this);

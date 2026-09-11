@@ -2,7 +2,36 @@ let myLeaveRows = [];
 let filteredLeaveRows = [];
 let myProfile = null;
 let currentFilter = 'all';
-let selectedYear = "2025"; // Standard default year matching the user screenshot
+let selectedYear = new Date().getFullYear().toString();
+let currentTypeFilter = "all";
+window.selectTypeFilter = function(type) {
+  currentTypeFilter = type;
+  const label = document.getElementById("selectedTypeLabel");
+  if (label) label.textContent = type === "all" ? "ทุกประเภท" : type;
+  
+  document.querySelectorAll("#typeDropdownMenu .year-dropdown-item").forEach(item => {
+    item.classList.remove("active");
+    if (type === "all" && item.innerText.trim() === "ทุกประเภท") item.classList.add("active");
+    else if (item.innerText.trim() === type) item.classList.add("active");
+  });
+  
+  document.getElementById("typeDropdownMenu").classList.remove("show");
+  filterLeaveHistory(currentFilter, null);
+};
+
+window.toggleTypeDropdown = function(e) {
+  e.stopPropagation();
+  const menu = document.getElementById("typeDropdownMenu");
+  if (menu) menu.classList.toggle("show");
+};
+
+document.addEventListener("click", (e) => {
+  const typeMenu = document.getElementById("typeDropdownMenu");
+  if (typeMenu && !e.target.closest(".year-dropdown-container:last-child")) {
+     typeMenu.classList.remove("show");
+  }
+});
+ // Standard default year matching the user screenshot
 
 function formatDuration(totalDays, leaveHours = null) {
   if (window.PVTSDK?.formatLeaveDurationFriendly) {
@@ -289,6 +318,29 @@ async function loadMyLeaveHistory() {
       }));
     }
 
+    // ⏱️ ตรวจสอบและตัดใบลาที่ค้างเกิน 2 วัน (48 ชม.) เป็น "ไม่อนุมัติ" อัตโนมัติ
+    if (typeof window.autoRejectOverdueLeaves === 'function') {
+      window.autoRejectOverdueLeaves();
+    }
+
+    const nowMs = Date.now();
+    const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
+    data = (data || []).map(item => {
+      const st = String(item.status || '').toLowerCase();
+      const isPending = (st === 'pending' || st === 'pending_l1' || st === 'pending_l2' || st.includes('รออนุมัติ'));
+      if (isPending && item.created_at) {
+        const createdTime = new Date(item.created_at).getTime();
+        if (!isNaN(createdTime) && (nowMs - createdTime >= TWO_DAYS_MS)) {
+          return {
+            ...item,
+            status: 'rejected',
+            approval_comment: item.approval_comment || 'เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)'
+          };
+        }
+      }
+      return item;
+    });
+
     myLeaveRows = data || [];
     
     // Filter by selected year
@@ -475,6 +527,19 @@ function filterLeaveHistory(type, element) {
     rows = rows.filter(item => item.status === 'approved');
   } else if (currentFilter === 'cancel_requested') {
     rows = rows.filter(item => item.status === 'cancel_requested');
+  }
+  
+  // 3. FILTER BY LEAVE TYPE
+  if (currentTypeFilter !== 'all') {
+    rows = rows.filter(item => {
+      let rawLeaveTypeName = "ไม่ระบุ";
+      if (Array.isArray(item.leave_types) && item.leave_types.length > 0) {
+        rawLeaveTypeName = item.leave_types[0].leave_name;
+      } else if (item.leave_types?.leave_name) {
+        rawLeaveTypeName = item.leave_types.leave_name;
+      }
+      return rawLeaveTypeName === currentTypeFilter;
+    });
   } else if (currentFilter === 'rejected_cancelled') {
     rows = rows.filter(item => item.status === 'rejected' || item.status === 'cancelled');
   }
@@ -927,3 +992,134 @@ window.downloadLeaveHistoryCSV = typeof downloadLeaveHistoryCSV !== 'undefined' 
 window.addEventListener("pvt-lang-changed", () => {
   renderRows();
 });
+
+
+// ==========================================
+// 🔔 NOTIFICATION SYSTEM (DUPLICATED FOR LEAVE-HISTORY)
+// ==========================================
+let localReadNotifIds = [];
+try {
+  const stored = localStorage.getItem("userReadNotifIds");
+  if (stored) localReadNotifIds = JSON.parse(stored);
+} catch(e){}
+
+function getUserReadNotifIds() { return localReadNotifIds; }
+function addUserReadNotifId(id) {
+  if (!localReadNotifIds.includes(id)) {
+    localReadNotifIds.push(id);
+    localStorage.setItem("userReadNotifIds", JSON.stringify(localReadNotifIds));
+  }
+}
+
+window.toggleUserNotifDropdown = function(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById("userNotifDropdown");
+  if (!dropdown) return;
+  const isShowing = dropdown.style.display === "flex";
+  dropdown.style.display = isShowing ? "none" : "flex";
+  if (!isShowing) fetchUserNotifications();
+};
+
+document.addEventListener("click", (e) => {
+  const dropdown = document.getElementById("userNotifDropdown");
+  const btn = document.getElementById("notificationBtn");
+  if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+    dropdown.style.display = "none";
+  }
+});
+
+async function fetchUserNotifications() {
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb || !window.currentProfile) return;
+  const myId = window.currentProfile.id || window.currentProfile.employee_id;
+  
+  try {
+    let notifList = [];
+    const { data: dbNotifs } = await sb.from("notifications").select("*").eq("employee_id", myId).order("created_at", { ascending: false }).limit(20);
+    
+    if (dbNotifs) {
+      dbNotifs.forEach(n => {
+        notifList.push({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          created_at: n.created_at,
+          is_read: n.is_read || getUserReadNotifIds().includes(n.id),
+          link: '/pages/user/leave-history.html'
+        });
+      });
+    }
+    
+    const unreadCount = notifList.filter(n => !n.is_read).length;
+    const badge = document.getElementById("notifBadge");
+    const countPill = document.getElementById("userNotifCount");
+    
+    if (badge) {
+      badge.innerText = unreadCount;
+      badge.style.display = unreadCount > 0 ? "flex" : "none";
+    }
+    if (countPill) {
+      countPill.innerText = unreadCount > 0 ? `${unreadCount} รายการใหม่` : "ไม่มีรายการใหม่";
+      countPill.style.background = unreadCount > 0 ? "#e0f2fe" : "#f1f5f9";
+      countPill.style.color = unreadCount > 0 ? "#0369a1" : "#64748b";
+    }
+    
+    const listEl = document.getElementById("userNotifList");
+    if (!listEl) return;
+    
+    if (notifList.length === 0) {
+      listEl.innerHTML = `<div style="padding: 24px; text-align: center; color: #64748b; font-size: 13px;">ไม่มีการแจ้งเตือนใหม่</div>`;
+      return;
+    }
+    
+    listEl.innerHTML = notifList.map(n => {
+      const isRead = n.is_read;
+      const bg = isRead ? "transparent" : "#f0f9ff";
+      const dot = isRead ? "" : `<div style="width: 8px; height: 8px; background: #0ea5e9; border-radius: 50%; margin-top: 6px; flex-shrink: 0;"></div>`;
+      let icon = "📢";
+      if (n.title.includes("อนุมัติแล้ว") || n.title.includes("✅")) icon = "✅";
+      else if (n.title.includes("ไม่อนุมัติ") || n.title.includes("❌")) icon = "❌";
+      else if (n.title.includes("คำขอใหม่") || n.title.includes("📥")) icon = "📥";
+      
+      return `
+        <div onclick="handleUserNotifClick('${n.id}', '${n.link}')" style="display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; background: ${bg}; cursor: pointer; transition: background 0.2s;">
+          ${dot}
+          <div style="font-size: 20px;">${icon}</div>
+          <div style="flex-grow: 1;">
+            <div style="font-weight: ${isRead ? '500' : '700'}; color: #1e293b; font-size: 13px; margin-bottom: 4px;">${n.title.replace(/^[❌✅📌🟢🎉📢⚠️📥\s]+/, '')}</div>
+            <div style="color: #64748b; font-size: 12px; line-height: 1.4;">${n.message}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error("Error fetching notifs:", err);
+  }
+}
+
+window.handleUserNotifClick = async function(id, link) {
+  addUserReadNotifId(id);
+  const sb = window.pvtSupabase?.getClient();
+  if (sb) {
+    await sb.from("notifications").update({ is_read: true }).eq("id", id);
+  }
+  if (link) window.location.href = link;
+};
+
+window.markAllUserNotificationsAsRead = async function(event) {
+  if (event) event.stopPropagation();
+  const sb = window.pvtSupabase?.getClient();
+  const myId = window.currentProfile?.id || window.currentProfile?.employee_id;
+  if (sb && myId) {
+    await sb.from("notifications").update({ is_read: true }).eq("employee_id", myId);
+  }
+  document.querySelectorAll("#userNotifList [onclick]").forEach(el => {
+    const match = el.getAttribute("onclick")?.match(/handleUserNotifClick\('([^']+)'/);
+    if (match) addUserReadNotifId(match[1]);
+  });
+  fetchUserNotifications();
+  if (typeof Swal !== 'undefined') Swal.fire({ icon: "success", title: "อ่านทั้งหมดแล้ว", timer: 1000, showConfirmButton: false });
+};
+
+// Auto load on init
+setTimeout(() => { fetchUserNotifications(); }, 2000);

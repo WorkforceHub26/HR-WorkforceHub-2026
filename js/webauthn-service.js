@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * 🔐 PVT HR LEAVE - WebAuthn Biometric Authentication & Passkey Service
+ *  PVT HR LEAVE - WebAuthn Biometric Authentication & Passkey Service
  * ============================================================================
  * Supports Touch ID, Face ID, Windows Hello, Android Biometric Authentication
  * compliant with FIDO2 / W3C Web Authentication standards.
@@ -17,7 +17,7 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  // 🛠️ ArrayBuffer & Base64URL Encoding Helpers
+  // ️ ArrayBuffer & Base64URL Encoding Helpers
   function bufferToBase64Url(buffer) {
     if (!buffer) return '';
     const bytes = new Uint8Array(buffer);
@@ -61,7 +61,7 @@
     return buffer;
   }
 
-  // 📱 Device Platform & Biometric Type Identification
+  //  Device Platform & Biometric Type Identification
   function detectBiometricTypeName() {
     const ua = navigator.userAgent || '';
     const platform = navigator.platform || '';
@@ -110,7 +110,7 @@
     return `${info.name.split(' ')[0]} on ${browserName}`;
   }
 
-  // 🔍 Check if WebAuthn and Platform Biometrics are supported on this device
+  //  Check if WebAuthn and Platform Biometrics are supported on this device
   async function isBiometricAvailable() {
     if (!window.PublicKeyCredential) {
       return {
@@ -137,7 +137,7 @@
     }
   }
 
-  // 🗄️ Local Storage Cache for Registered Biometric Credentials
+  // ️ Local Storage Cache for Registered Biometric Credentials
   const LOCAL_STORAGE_KEY = 'pvt_webauthn_credentials';
 
   function getLocalCredentials() {
@@ -157,7 +157,7 @@
     }
   }
 
-  // 🌐 Supabase Client Getter
+  //  Supabase Client Getter
   function getSbClient() {
     return window.pvtSupabase?.client 
         || window.pvtSupabase?.getClient?.() 
@@ -167,7 +167,7 @@
         || window.sb;
   }
 
-  // 🌐 Verify Active User Session from Supabase & Storage
+  //  Verify Active User Session from Supabase & Storage
   async function verifyActiveSession() {
     const sb = getSbClient();
     let verifiedEmp = null;
@@ -221,7 +221,7 @@
     };
   }
 
-  // 🌐 Helper: Resolve Employee Identity from all possible runtime sources
+  //  Helper: Resolve Employee Identity from all possible runtime sources
   async function resolveEmployeeObject(employee) {
     // 1. Direct input validation
     if (employee && typeof employee === 'object') {
@@ -338,7 +338,7 @@
   // 1️⃣ REGISTER WEBAUTHN CREDENTIAL (สร้างกุญแจสแกนลายนิ้วมือ/ใบหน้า)
   // --------------------------------------------------------------------------
   async function registerBiometricCredential(employee, options = {}) {
-    // 🔒 Phase 1: Verify Current Active User Session First
+    //  Phase 1: Verify Current Active User Session First
     const sessionCheck = await verifyActiveSession();
     let normalizedEmp = null;
 
@@ -392,7 +392,7 @@
       attestation: 'none'
     };
 
-    console.log('🔑 [WebAuthn] Initiating navigator.credentials.create...', publicKeyCredentialCreationOptions);
+    console.log(' [WebAuthn] Initiating navigator.credentials.create...', publicKeyCredentialCreationOptions);
 
     let credential;
     try {
@@ -479,7 +479,7 @@
       }
     }
 
-    console.log('✅ [WebAuthn] Successfully registered biometric credential with Supabase:', newCredRecord);
+    console.log(' [WebAuthn] Successfully registered biometric credential with Supabase:', newCredRecord);
     return newCredRecord;
   }
 
@@ -526,7 +526,7 @@
       timeout: 60000
     };
 
-    console.log('🔒 [WebAuthn] Prompting biometric scan with navigator.credentials.get...', publicKeyCredentialRequestOptions);
+    console.log(' [WebAuthn] Prompting biometric scan with navigator.credentials.get...', publicKeyCredentialRequestOptions);
 
     let assertion;
     try {
@@ -545,7 +545,7 @@
     }
 
     const credentialId = assertion.id;
-    console.log('✅ [WebAuthn] Assertion received for Credential ID:', credentialId);
+    console.log(' [WebAuthn] Assertion received for Credential ID:', credentialId);
 
     // Find matching employee for this credential
     let matchedCred = localCreds.find(c => c.credential_id === credentialId || c.id === credentialId);
@@ -681,7 +681,7 @@
     return true;
   }
 
-  // 📖 หน้าต่างแสดงคู่มือวิธีล็อกอินและลงทะเบียนด้วยลายนิ้วมือ / ใบหน้า (Biometric Guide Modal)
+  //  หน้าต่างแสดงคู่มือวิธีล็อกอินและลงทะเบียนด้วยลายนิ้วมือ / ใบหน้า (Biometric Guide Modal)
   function showBiometricGuideModal() {
     let guideModal = document.getElementById("pvtBiometricGuideModal");
     if (!guideModal) {
@@ -715,13 +715,13 @@
         step3_1_desc: "เมื่อต้องการเข้าสู่ระบบครั้งถัดไป ให้พิมพ์รหัสพนักงานของคุณที่หน้าล็อกอินปกติ",
         step3_2: "2. แตะปุ่มล็อกอินชีวมาตร",
         step3_2_desc: "กดปุ่ม 'เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า' จากนั้นสัมผัสเซ็นเซอร์สแกนเพื่อยืนยันตัวตน และเข้าสู่หน้าแดชบอร์ดส่วนตัวได้ใน 1 วินาที!",
-        tips_title: "💡 ข้อแนะนำเพิ่มเติมเพื่อความปลอดภัย",
+        tips_title: " ข้อแนะนำเพิ่มเติมเพื่อความปลอดภัย",
         tips_list: [
           "คุณสามารถลงทะเบียนอุปกรณ์ได้หลายเครื่องสำหรับบัญชีเดียวกัน (เช่น มือถือส่วนตัว และโน้ตบุ๊กทำงาน)",
           "ระบบเก็บข้อมูลลายพิมพ์ชีวมาตรเฉพาะบนชิปความปลอดภัยของตัวเครื่องคุณเท่านั้น ไม่มีการส่งข้อมูลสแกนนิ้วหรือภาพใบหน้าของคุณขึ้นคลาวด์หรืออินเทอร์เน็ตเด็ดขาด",
           "หากเซ็นเซอร์ชำรุด คุณสามารถสลับกลับไปล็อกอินด้วยรหัสผ่านปกติได้เสมอ"
         ],
-        err_title: "⚠️ หากสแกนไม่ผ่าน หรือปุ่มสแกนใช้งานไม่ได้",
+        err_title: "️ หากสแกนไม่ผ่าน หรือปุ่มสแกนใช้งานไม่ได้",
         err_list: [
           "ตรวจสอบว่าหน้าเลนส์กล้องหรือพื้นผิวปุ่มสแกนลายนิ้วมือสะอาดและไม่มีสิ่งกีดขวาง",
           "ตรวจสิทธิ์การเข้าถึง: เช็กว่าระบบอนุญาตสิทธิ์การยืนยันตัวตนชีวมาตรแก่เบราว์เซอร์ Chrome/Safari แล้วหรือไม่ในการตั้งค่าแอปพลิเคชันหลักของเครื่อง",
@@ -750,13 +750,13 @@
         step3_1_desc: "ເມື່ອຕ້ອງການເຂົ້າສູ່ລະບົບຄັ້ງຖັດໄປ, ໃຫ້ປ້ອນລະຫັດພະນັກງານຂອງທ່ານໃນໜ້າຈໍເຂົ້າສູ່ລະບົບຫຼັກ",
         step3_2: "2. ແຕະປຸ່ມລັອກອິນຊີວະມາດ",
         step3_2_desc: "ກົດປຸ່ມ 'ເຂົ້າສູ່ລະບົບດ້ວຍລາຍນິ້ວມື / ໃບໜ້າ' ຈາກນັ້ນສຳຜັດເຊັນເຊີສະແກນເພື່ອຢືນຢັນຕົວຕົນ ແລະ ເຂົ້າສູ່ໜ້າແດຊບອດສ່ວນຕົວໄດ້ໃນ 1 ວິນາທີ!",
-        tips_title: "💡 ຄຳແນະນຳເພີ່ມເຕີມເພື່ອຄວາມປອດໄພ",
+        tips_title: " ຄຳແນະນຳເພີ່ມເຕີມເພື່ອຄວາມປອດໄພ",
         tips_list: [
           "ທ່ານສາມາດລົງທະບຽນອຸປະກອນໄດ້ຫຼາຍເຄື່ອງສຳລັບບັນຊີດຽວກັນ (ເຊັ່ນ ມືຖືສ່ວນຕົວ ແລະ ໂນ້ດບຸກເຮັດວຽກ)",
           "ລະບົບເກັບຂໍ້ມູນລາຍພິມຊີວະມາດສະເພາະເທິງຊິບຄວາມປອດໄພຂອງອຸປະກອນທ່ານເທົ່ານັ້ນ ບໍ່ມີການສົ່ງຂໍ້ມູນຂຶ້ນຄລາວ ຫຼື ອິນເຕີເນັດຢ່າງເດັດຂາດ",
           "ຫາກເກີດຂໍ້ຜິດພາດ, ທ່ານຍັງສາມາດປ່ຽນໄປເຂົ້າສູ່ລະບົບດ້ວຍລະຫັດຜ່ານປົກກະຕິໄດ້ຕະຫຼອດເວລາ"
         ],
-        err_title: "⚠️ ຫາກສະແກນບໍ່ຜ່ານ ຫຼື ປຸ່ມສະແກນໃຊ້ງານບໍ່ໄດ້",
+        err_title: "️ ຫາກສະແກນບໍ່ຜ່ານ ຫຼື ປຸ່ມສະແກນໃຊ້ງານບໍ່ໄດ້",
         err_list: [
           "ກວດເບິ່ງວ່າໜ້າເລນກ້ອງ ຫຼື ປຸ່ມສະແກນລາຍນິ້ວມືສະອາດ ແລະ ບໍ່ມີສິ່ງກີດຂວາງ",
           "ກວດສິດການເຂົ້າເຖິງ: ເຊັກວ່າລະບົບອະນຸຍາດສິດຢືນຢັນຕົວຕົນຊີວະມາດໃຫ້ກັບ Chrome/Safari ແລ້ວຫຼືບໍ່ໃນການຕັ້ງຄ່າເຄື່ອງ",
@@ -785,13 +785,13 @@
         step3_1_desc: "နောက်တစ်ကြိမ် ဝင်ရောက်သည့်အခါ အဓိက လော့ဂ်အင်စာမျက်နှာတွင် သင့်ဝန်ထမ်းနံပါတ်ကို ရိုက်ထည့်ပါ",
         step3_2: "၂။ စကင်န်ခလုတ်ကို နှိပ်ပါ",
         step3_2_desc: "'လက်ဗွေ / မျက်နှာဖြင့် လော့ဂ်အင်ဝင်ရန်' ခလုတ်ကိုနှိပ်ပြီး ချက်ချင်း အောင်မြင်စွာ ဝင်ရောက်နိုင်ပါပြီ",
-        tips_title: "💡 လုံခြုံရေးအတွက် အကြံပြုချက်များ",
+        tips_title: " လုံခြုံရေးအတွက် အကြံပြုချက်များ",
         tips_list: [
           "အကောင့်တစ်ခုတည်းတွင် ဖုန်းနှင့် Laptop ကဲ့သို့ စက်ပစ္စည်းအများအပြား ချိတ်ဆက်နိုင်ပါသည်",
           "လုံခြုံရေးအတွက် သင့်ကိုယ်ရေးအချက်အလက်များကို သင့်စက်၏ လုံခြုံရေးChipထဲတွင်သာ သိမ်းဆည်းထားပါသည် (Cloud ပေါ်သို့ လုံးဝမပို့ပါ)",
           "စကင်န်ဖတ်ခြင်း အဆင်မပြေပါက ပုံမှန်စကားဝှက်ဖြင့် အချိန်မရွေး လော့ဂ်အင်ဝင်နိုင်ပါသည်"
         ],
-        err_title: "⚠️ စကင်န်မရခြင်း သို့မဟုတ် အမှားအယွင်းများရှိပါက",
+        err_title: "️ စကင်န်မရခြင်း သို့မဟုတ် အမှားအယွင်းများရှိပါက",
         err_list: [
           "သင့်စက်၏ ကင်မရာ သို့မဟုတ် လက်ဗွေဖတ်စနစ် သန့်ရှင်းမှုရှိမရှိ စစ်ဆေးပါ",
           "ဖုန်း Settings တွင် Browser အတွက် Biometrics ခွင့်ပြုချက် ပေးထားခြင်း ရှိမရှိ စစ်ဆေးပါ",

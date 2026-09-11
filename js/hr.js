@@ -715,6 +715,30 @@ async function loadPendingLeavesHR() {
     let rawData = data || [];
     console.log("[HR Load] Fetch success. Total records from DB:", rawData.length);
 
+    // ⏱️ ตรวจสอบและตัดใบลาที่ค้างเกิน 2 วัน (48 ชม.) เป็น "ไม่อนุมัติ" อัตโนมัติ
+    if (typeof window.autoRejectOverdueLeaves === 'function') {
+      window.autoRejectOverdueLeaves();
+    }
+
+    const nowMs = Date.now();
+    const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
+    rawData = rawData.map(req => {
+      const st = String(req.status || '').toLowerCase();
+      const isPending = (st === 'pending' || st === 'pending_l1' || st === 'pending_l2' || st.includes('รออนุมัติ'));
+      if (isPending && req.created_at) {
+        const createdTime = new Date(req.created_at).getTime();
+        if (!isNaN(createdTime) && (nowMs - createdTime >= TWO_DAYS_MS)) {
+          return {
+            ...req,
+            status: 'rejected',
+            approval_comment: req.approval_comment || 'เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)',
+            rejected_at: req.rejected_at || new Date().toISOString()
+          };
+        }
+      }
+      return req;
+    });
+
     // ระบุตัวตนของผู้ใช้งานปัจจุบันให้ชัดเจน (ต้องเป็น Employee UUID)
     const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
     const sessionUser = savedSession ? JSON.parse(savedSession) : {};
@@ -1108,8 +1132,8 @@ function renderLeaveTable() {
       const canForceCancel = (userRoleLower === 'hr' || userRoleLower === 'admin' || userRoleLower === 'superadmin');
       actionButtons = `
         <div class="action-btn-group">
-          <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span> รายละเอียด</button>
-          <button class="btn-act btn-act-print" onclick="printLeaveA4('${req.id}')" title="พิมพ์ใบลา" style="background:#f1f5f9; color:#475569; border-color:#e2e8f0;"><span class="material-symbols-outlined">print</span> พิมพ์</button>
+          <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span><span class="btn-text"> รายละเอียด</span></button>
+          <button class="btn-act btn-act-print" onclick="printLeaveA4('${req.id}')" title="พิมพ์ใบลา" style="background:#f1f5f9; color:#475569; border-color:#e2e8f0;"><span class="material-symbols-outlined">print</span><span class="btn-text"> พิมพ์</span></button>
           ${(req.status === 'approved' && canForceCancel) ? `
             <button class="btn-act btn-act-cancel" onclick="forceCancelLeave('${req.id}')"><span class="material-symbols-outlined">block</span> ยกเลิกใบลา</button>
           ` : ''}

@@ -908,14 +908,7 @@ body {
   transform: translateY(-1px);
 }
 
-@media screen and (min-width: 1400px) {
-  .leave-card-item {
-    display: grid;
-    grid-template-columns: 240px 1fr 280px 240px;
-    align-items: center;
-    gap: 16px;
-  }
-}
+
 
 .card-zone { 
   display: flex; 
@@ -1181,9 +1174,74 @@ body {
   transform: scale(0.96); 
 }
 
-/* 📱 Responsive Adaptive Breakpoints (Polished Mobile & Tablet UI) */
-@media screen and (max-width: 1399px) {
-  /* 💻 TABLET & COMPACT DESKTOP (<= 1399px) */
+/* 📱 Responsive Adaptive Breakpoints (Polished Mobile, Tablet & Desktop UI) */
+@media screen and (min-width: 1025px) {
+  .leave-list-header { 
+    display: none !important; 
+  }
+
+  .leave-card-item {
+    display: grid !important;
+    grid-template-columns: 1fr 340px !important;
+    grid-template-rows: auto 1fr !important;
+    gap: 12px 24px !important;
+    padding: 20px 24px !important;
+    background: #ffffff !important;
+    border-radius: 16px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+    align-items: start !important;
+  }
+
+  .profile-zone {
+    grid-column: 1 / 2 !important;
+    grid-row: 1 / 2 !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding-bottom: 10px !important;
+  }
+
+  .details-zone {
+    grid-column: 1 / 2 !important;
+    grid-row: 2 / 3 !important;
+  }
+
+  .status-zone {
+    grid-column: 2 / 3 !important;
+    grid-row: 1 / 2 !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+  }
+
+  .actions-zone {
+    grid-column: 2 / 3 !important;
+    grid-row: 2 / 3 !important;
+    align-self: end !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    padding-top: 10px !important;
+  }
+
+  .action-btn-group {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+  }
+
+  .action-btn-group .btn-act {
+    height: 38px !important;
+    padding: 0 14px !important;
+    font-size: 12.5px !important;
+    border-radius: 10px !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  /* 💻 TABLET & MOBILE (< 1025px) */
   .leave-list-header { 
     display: none !important; 
   }
@@ -1312,6 +1370,12 @@ body {
     justify-content: center !important;
     flex-shrink: 0 !important;
     border-radius: 10px !important;
+    overflow: hidden !important;
+  }
+
+  .action-btn-group .btn-act-preview .btn-text,
+  .action-btn-group .btn-act-print .btn-text {
+    display: none !important;
   }
   
   /* Fluid Text action buttons (Approve / Reject / Cancel) */
@@ -1330,6 +1394,8 @@ body {
     justify-content: center !important;
     gap: 4px !important;
     white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
   
   .action-btn-group .btn-act-approve .material-symbols-outlined,

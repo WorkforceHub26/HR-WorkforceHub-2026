@@ -145,10 +145,10 @@ font {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 9998;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  z-index: 99990;
   opacity: 0;
   transition: opacity 0.25s ease;
   pointer-events: none;
@@ -2067,3 +2067,148 @@ button:active,
 
 
 
+
+/* ==========================================================================
+   📱 COMPREHENSIVE MOBILE PHONE RESPONSIVENESS (EVERY PAGE SUPPORT)
+   ========================================================================== */
+
+@media screen and (max-width: 1024px) {
+  /* 1. Mobile Sidebar Drawer Overlay */
+  .sidebar, .sidebar-light, aside.sidebar, aside.sidebar-light, aside {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    max-width: 86vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 100000 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 10px 0 40px rgba(15, 23, 42, 0.3) !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .sidebar.mobile-open,
+  .sidebar-light.mobile-open,
+  aside.sidebar.mobile-open,
+  aside.sidebar-light.mobile-open,
+  .sidebar.show-mobile,
+  aside.sidebar.show-mobile {
+    transform: translateX(0) !important;
+  }
+
+  .mobile-sidebar-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(15, 23, 42, 0.55) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    z-index: 99990 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.25s ease !important;
+  }
+
+  .mobile-sidebar-backdrop.active,
+  body.sidebar-open .mobile-sidebar-backdrop {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .main-content, main.main-content, .workspace, .app {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  /* 2. Responsive Grids & Layouts for Smartphones */
+  .grid, .stats-grid, .summary-grid, .card-grid, .dashboard-grid, 
+  .settings-grid, .leave-type-grid, .rules-grid, .menu-grid, .quick-actions-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* 3. Horizontal Scrollable Tables on Mobile */
+  .table-responsive, .table-container, .table-wrapper, 
+  div:has(> table), .data-table-container, .history-table-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+    margin-bottom: 16px !important;
+    border-radius: 12px !important;
+  }
+
+  table {
+    min-width: 600px !important;
+  }
+
+  /* 4. Touch Target Optimization */
+  button, select, input[type="text"], input[type="date"], input[type="number"], .btn {
+    min-height: 44px !important;
+    font-size: 14px !important;
+  }
+
+  /* 5. Header & Topbar Stacking */
+  .topbar, .user-header, .header-container, .page-header {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    padding: 12px 14px !important;
+  }
+
+  .user-header-right, .topbar-right, .header-actions {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  /* 6. Modal / Dialog Fitting for Mobile Screen */
+  .modal-content, .swal2-popup, .popup-card, .dialog-box {
+    max-width: 94vw !important;
+    width: 100% !important;
+    margin: 8px auto !important;
+    padding: 16px !important;
+    border-radius: 16px !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 13.5px !important;
+  }
+
+  h1, .page-title {
+    font-size: 20px !important;
+  }
+
+  h2, .section-title {
+    font-size: 17px !important;
+  }
+
+  .card, .card-panel, .panel {
+    padding: 14px !important;
+    border-radius: 14px !important;
+  }
+}

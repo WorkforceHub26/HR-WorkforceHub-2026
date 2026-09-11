@@ -246,6 +246,29 @@ window.refreshDashboardData = async function(isManualClick = false) {
     rawEmployees = resEmployees?.data || [];
     const allLeaveTypes = resLeaveTypes?.data || [];
 
+    // ⏱️ ตรวจสอบและตัดใบลาที่ค้างเกิน 2 วัน (48 ชม.) เป็น "ไม่อนุมัติ"
+    if (typeof window.autoRejectOverdueLeaves === 'function') {
+      try { await window.autoRejectOverdueLeaves(); } catch(e) {}
+    }
+
+    const nowMs = Date.now();
+    const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
+    rawRequests = rawRequests.map(r => {
+      const st = String(r.status || '').toLowerCase();
+      const isPending = (st === 'pending' || st === 'pending_l1' || st === 'pending_l2' || st.includes('รออนุมัติ'));
+      if (isPending && r.created_at) {
+        const createdTime = new Date(r.created_at).getTime();
+        if (!isNaN(createdTime) && (nowMs - createdTime >= TWO_DAYS_MS)) {
+          return {
+            ...r,
+            status: 'rejected',
+            approval_comment: r.approval_comment || 'เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)'
+          };
+        }
+      }
+      return r;
+    });
+
     // --- 🔐 Role-Based Data Filtering (Personalized Dashboard) ---
     const savedSession = localStorage.getItem("currentUser");
     const sessionUser = savedSession ? JSON.parse(savedSession) : {};
@@ -740,8 +763,30 @@ function renderTopLeaveEmployees(approvedRequests) {
       formattedDays = parts.join(" ");
     }
 
+    // Helper to extract 2 readable consonants/letters from Thai/English names
+    function getDisplayInitials(fullName, nickname) {
+      if (nickname && nickname.trim()) {
+        const cleanNick = nickname.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '').trim();
+        if (cleanNick.length >= 2) return cleanNick.substring(0, 2);
+      }
+      if (!fullName) return "PV";
+      let name = fullName.replace(/^(คุณ|นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|Dr\.|Mr\.|Mrs\.|Ms\.)\s*/i, '').trim();
+      const parts = name.split(/\s+/);
+      if (parts.length >= 2) {
+        const firstP = parts[0].replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '').trim();
+        const lastP = parts[parts.length - 1].replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '').trim();
+        const fChar = firstP.charAt(0) || '';
+        const lChar = lastP.charAt(0) || '';
+        if (fChar || lChar) return (fChar + lChar).toUpperCase();
+      }
+      const cleanName = name.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '').trim();
+      if (cleanName.length >= 2) return cleanName.substring(0, 2).toUpperCase();
+      if (cleanName.length === 1) return cleanName.toUpperCase();
+      return "PV";
+    }
+
     // Avatar
-    const initials = emp.name.replace(/^(คุณ|นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.)\s*/, '').trim().substring(0, 2) || "PV";
+    const initials = getDisplayInitials(emp.name, emp.nickname);
     const avatarHtml = emp.avatar 
       ? `<img src="${emp.avatar}" class="top-emp-avatar" alt="${emp.name}" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'top-emp-avatar-badge',textContent:'${initials}'}));">`
       : `<div class="top-emp-avatar-badge">${initials}</div>`;

@@ -175,10 +175,15 @@
       margin: 0;
       line-height: 1.6;
     }
-    .log-entry { margin-bottom: 4px; }
-    .log-time { color: #475569; margin-right: 10px; font-size: 11px; }
-    .log-type-info { color: #38bdf8; }
-    .log-type-error { color: #f43f5e; }
+    .log-entry { margin-bottom: 4px; word-break: break-word; }
+    .log-time { color: #64748b; margin-right: 8px; font-size: 11px; }
+    .log-type-info { color: #38bdf8; font-weight: 600; }
+    .log-type-success { color: #34d399; font-weight: 600; }
+    .log-type-warn { color: #fbbf24; font-weight: 600; }
+    .log-type-error { color: #f43f5e; font-weight: 600; }
+    .log-type-action { color: #c084fc; font-weight: 600; }
+    .log-filter-btn { transition: all 0.2s ease; }
+    .log-filter-btn.active { font-weight: 700 !important; border-color: #0d9488 !important; box-shadow: 0 1px 4px rgba(13,148,136,0.15) !important; }
     
     /* Form & Controls */
     .form-group { margin-bottom: 16px; }
@@ -323,15 +328,15 @@
     </div>
     <div class="sidebar-menu">
       <a href="/pages/hr/home.html" class="menu-item">
-        <span class="material-symbols-outlined">dashboard</span>
+        <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
         <span>หน้าหลัก HR</span>
       </a>
       <a href="/pages/hr/hr.html" class="menu-item">
-        <span class="material-symbols-outlined">fact_check</span>
+        <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
         <span>ตรวจใบลา</span>
       </a>
       <a href="/pages/hr/management.html" class="menu-item">
-        <span class="material-symbols-outlined">manage_accounts</span>
+        <img src="/assets/icons/management-gear.svg" alt="ระบบจัดการส่วนกลาง" class="nav-icon-custom" />
         <span>ระบบจัดการส่วนกลาง</span>
       </a>
       <a href="/pages/hr/admin-dashboard.html" class="menu-item active">
@@ -343,8 +348,12 @@
         <span>ตั้งค่าสายการอนุมัติ</span>
       </a>
       <a href="/pages/hr/news-management.html" class="menu-item">
-        <span class="material-symbols-outlined" style="color: #f59e0b;">campaign</span>
+        <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" class="nav-icon-custom" />
         <span>ข่าวสารองค์กร</span>
+      </a>
+      <a href="/pages/user/leave-stats.html" class="menu-item">
+        <span class="material-symbols-outlined" style="color: #0284c7;">bar_chart</span>
+        <span>สถิติวันลา</span>
       </a>
       <!-- ปุ่มตั้งค่าระบบ (Modal ครอบคลุมทุกหน้า) -->
       <button type="button" class="menu-item" onclick="openSystemSettingsModal()" title="การตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, LINE)" style="background: none; border: none; width: 100%; cursor: pointer; text-align: left; font-family: inherit;">
@@ -352,7 +361,13 @@
         <span>ตั้งค่า</span>
       </button>
     </div>
-    <div class="sidebar-footer">
+            <!-- 💡 ปุ่มแนะนำระบบ -->
+        <a href="/pages/user/full-guide.html" class="nav-item" title="แนะนำระบบการใช้งาน">
+          <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
+          <span class="nav-label">แนะนำระบบ</span>
+        </a>
+      </div>
+      <div class="sidebar-footer">
       <div style="font-size: 12px; color: #94a3b8; text-align: center;">เวอร์ชันระบบ 2.4.0-pro</div>
     </div>
   </aside>
@@ -372,7 +387,7 @@
     <div class="dashboard-grid" style="margin-bottom: 32px;">
       <div class="metric-card">
         <div class="metric-icon" style="background: #ecfdf5; color: #059669;">
-          <span class="material-symbols-outlined">pending_actions</span>
+          <img src="/assets/icons/pending.svg" style="width: 28px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
         </div>
         <div class="metric-info">
           <h3>ใบลาค้างอนุมัติ</h3>
@@ -422,13 +437,39 @@
         </div>
       </section>
 
-      <!-- Console Logs -->
+      <!-- Console Logs & Debug Terminal -->
       <section class="panel" style="grid-column: span 2;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h2 style="margin:0;"><span class="material-symbols-outlined">terminal</span> บันทึกระบบแบบเรียลไทม์</h2>
-          <button class="secondary" style="padding:6px 12px; font-size:12px;" onclick="clearLogs()">ล้างบันทึก</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 style="margin:0; font-size: 16.5px; color: var(--accent);"><span class="material-symbols-outlined" style="color: #0d9488;">terminal</span> บันทึกระบบและประวัติทุกขั้นตอน (Debug Log Console)</h2>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">บันทึกการทำงานของระบบ การเรียก API และการกดปุ่มทุกขั้นตอนสำหรับแก้บัค</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <span id="log-count-badge" style="font-size: 11.5px; font-weight: 700; color: #0d9488; background: #ccfbf1; padding: 4px 10px; border-radius: 6px;">0 รายการ</span>
+            <button type="button" class="secondary" style="padding: 6px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="refreshLogsUI()" title="รีเฟรชบันทึกจากความจำ">
+              <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span> รีเฟรช Log
+            </button>
+            <button type="button" class="secondary" style="padding: 6px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="downloadLogFile()" title="ดาวน์โหลดไฟล์ Log เป็น Text">
+              <span class="material-symbols-outlined" style="font-size: 16px;">download</span> ดาวน์โหลด Log
+            </button>
+            <button type="button" class="secondary danger" style="padding: 6px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5;" onclick="clearLogs()" title="ล้างบันทึกทั้งหมด">
+              <span class="material-symbols-outlined" style="font-size: 16px;">delete</span> ล้างบันทึก
+            </button>
+          </div>
         </div>
-        <pre id="console-output"></pre>
+
+        <!-- Filter Bar -->
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; background: #f8fafc; padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <input type="text" id="log-search-input" placeholder="🔍 ค้นหาใน Log (เช่น error, fetch, click, supabase)..." oninput="renderLogs()" style="flex: 1; min-width: 180px; padding: 6px 12px; font-size: 12px; height: 32px;" />
+          <div style="display: flex; gap: 4px;">
+            <button type="button" class="log-filter-btn active" onclick="setLogFilter('all')" id="filter-btn-all" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; cursor: pointer;">ทั้งหมด</button>
+            <button type="button" class="log-filter-btn" onclick="setLogFilter('error')" id="filter-btn-error" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; border: 1px solid #fee2e2; background: #fef2f2; color: #dc2626; cursor: pointer;">Error</button>
+            <button type="button" class="log-filter-btn" onclick="setLogFilter('warn')" id="filter-btn-warn" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; border: 1px solid #fef3c7; background: #fffbeb; color: #d97706; cursor: pointer;">Warn</button>
+            <button type="button" class="log-filter-btn" onclick="setLogFilter('action')" id="filter-btn-action" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; border: 1px solid #e0e7ff; background: #eef2ff; color: #4338ca; cursor: pointer;">Action</button>
+          </div>
+        </div>
+
+        <pre id="console-output" style="height: 380px; font-size: 12.5px;"></pre>
       </section>
 
       <!-- Admin Tools -->
@@ -490,9 +531,10 @@
 
       <!-- Data Management Section -->
       <section class="panel" style="grid-column: span 3;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <h2 style="margin:0;"><span class="material-symbols-outlined">dataset</span> จัดการข้อมูลพนักงานและสายอนุมัติ</h2>
-          <div class="flex-gap">
+          <div class="flex-gap" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="emp-search-input" placeholder=" ค้นหาชื่อ, อีเมล, แผนก..." oninput="filterEmployeeTable()" style="max-width:220px; padding:6px 12px; font-size:13px;" />
             <button class="secondary" style="padding:6px 12px; font-size:12px; background:var(--primary);" onclick="addNewEmployee()">
               <span class="material-symbols-outlined" style="font-size:16px;">person_add</span> เพิ่มพนักงานใหม่
             </button>
@@ -518,6 +560,8 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
         <div class="table-container" style="margin-top:40px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin:0; font-size:16px; color:var(--accent);">โครงสร้างสายอนุมัติรายแผนก (L1 & L2)</h3>
@@ -543,6 +587,85 @@
           </table>
         </div>
       </section>
+
+      <!-- Button Test Suite Panel -->
+      <section class="panel" style="grid-column: span 3; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+          <h2 style="margin:0; color:#0f766e;"><span class="material-symbols-outlined" style="color:#0f766e;">science</span> ศูนย์ทดสอบปุ่มและฟังก์ชันระบบ (Button Diagnostics & Test Suite)</h2>
+          <span style="font-size:12px; color:#64748b; background:#e2e8f0; padding:4px 10px; border-radius:20px; font-weight:600;">คลิกทดสอบได้ทุกปุ่ม</span>
+        </div>
+        <p style="font-size:13px; color:#64748b; margin-top:0; margin-bottom:16px;">
+          ใช้ปุ่มในส่วนนี้เพื่อทดสอบระบบแจ้งเตือน Toast, ทดสอบการทำงานของ Supabase, สลับภาษา, ล้างแคช และการตรวจสอบสถานะระบบเพื่อยืนยันว่าไม่มีบัคในการทำงาน
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+          <!-- Test Group 1: Toast Alerts -->
+          <div style="background:#ffffff; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+            <div style="font-weight:700; font-size:14px; margin-bottom:10px; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-outlined" style="color:#059669; font-size:20px;">notifications</span>
+              1. ทดสอบการแจ้งเตือน (Toast)
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+              <button class="secondary" style="background:#059669; font-size:12px; padding:8px;" onclick="showToast('ทดสอบการแจ้งเตือนสำเร็จ (Success Toast)', 'success')">
+                <span class="material-symbols-outlined" style="font-size:16px;">check_circle</span> Success
+              </button>
+              <button class="secondary" style="background:#ef4444; font-size:12px; padding:8px;" onclick="showToast('ทดสอบการแจ้งเตือนข้อผิดพลาด (Error Toast)', 'error')">
+                <span class="material-symbols-outlined" style="font-size:16px;">error</span> Error
+              </button>
+              <button class="secondary" style="background:#f59e0b; font-size:12px; padding:8px;" onclick="showToast('ทดสอบคำเตือนระบบ (Warning Toast)', 'warning')">
+                <span class="material-symbols-outlined" style="font-size:16px;">warning</span> Warning
+              </button>
+              <button class="secondary" style="background:#3b82f6; font-size:12px; padding:8px;" onclick="showToast('ทดสอบข้อมูลข่าวสาร (Info Toast)', 'info')">
+                <span class="material-symbols-outlined" style="font-size:16px;">info</span> Info
+              </button>
+            </div>
+          </div>
+
+          <!-- Test Group 2: Database & Data Fetching -->
+          <div style="background:#ffffff; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+            <div style="font-weight:700; font-size:14px; margin-bottom:10px; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-outlined" style="color:#2563eb; font-size:20px;">database</span>
+              2. ทดสอบการดึงข้อมูล DB
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+              <button class="secondary" style="background:#2563eb; font-size:12px; padding:8px;" onclick="testFetchEmployees()">
+                <span class="material-symbols-outlined" style="font-size:16px;">groups</span> Query พนักงาน
+              </button>
+              <button class="secondary" style="background:#0284c7; font-size:12px; padding:8px;" onclick="testFetchDepts()">
+                <span class="material-symbols-outlined" style="font-size:16px;">domain</span> Query แผนก
+              </button>
+              <button class="secondary" style="background:#0f766e; font-size:12px; padding:8px;" onclick="testPendingLeavesCount()">
+                <span class="material-symbols-outlined" style="font-size:16px;">pending</span> Query ใบลาค้าง
+              </button>
+              <button class="secondary" style="background:#4f46e5; font-size:12px; padding:8px;" onclick="testDatabaseLatency()">
+                <span class="material-symbols-outlined" style="font-size:16px;">speed</span> วัด Latency DB
+              </button>
+            </div>
+          </div>
+
+          <!-- Test Group 3: System Modals & Utilities -->
+          <div style="background:#ffffff; padding:16px; border-radius:12px; border:1px solid #e2e8f0;">
+            <div style="font-weight:700; font-size:14px; margin-bottom:10px; color:#0f172a; display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-outlined" style="color:#8b5cf6; font-size:20px;">widgets</span>
+              3. ทดสอบ UI & ฟังก์ชันควบคุม
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+              <button class="secondary" style="background:#8b5cf6; font-size:12px; padding:8px;" onclick="openSystemSettingsModal()">
+                <span class="material-symbols-outlined" style="font-size:16px;">settings</span> ตั้งค่าระบบ Modal
+              </button>
+              <button class="secondary" style="background:#64748b; font-size:12px; padding:8px;" onclick="testSimulateLog()">
+                <span class="material-symbols-outlined" style="font-size:16px;">terminal</span> จำลองบันทึก Log
+              </button>
+              <button class="secondary" style="background:#0284c7; font-size:12px; padding:8px;" onclick="testAddMockSparkline()">
+                <span class="material-symbols-outlined" style="font-size:16px;">show_chart</span> สุ่มค่า Sparkline
+              </button>
+              <button class="secondary" style="background:#d97706; font-size:12px; padding:8px;" onclick="runDeepCheck()">
+                <span class="material-symbols-outlined" style="font-size:16px;">health_and_safety</span> ตรวจเชิงลึกเต็มระบบ
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 </div>
@@ -555,6 +678,22 @@
   <script src="/js/system-diagnostics.js"></script>
   <script src="/js/system-settings.js"></script>
   <script>
+    // 🔒 [STRICT ADMIN GUARD]: ตรวจสอบสิทธิ์ Admin ระดับสูงทันที
+    (function enforceAdminOnlyPage() {
+      try {
+        const raw = localStorage.getItem("currentUser");
+        const session = raw ? JSON.parse(raw) : null;
+        const emp = session?.employees || session || {};
+        const role = String(session?.role || emp.role || '').toLowerCase().trim();
+        const isTrueAdmin = role === 'admin' || role === 'superadmin' || session?.employee_code === 'HR-001' || emp.employee_code === 'HR-001';
+        
+        if (!session || !isTrueAdmin) {
+          alert("🚫 เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าใช้งานหน้าคอนโซลแอดมินนี้ได้");
+          window.location.replace("/pages/hr/home.html");
+        }
+      } catch(e) {}
+    })();
+
     // Toast System
     function showToast(message, type = 'success') {
       const container = document.getElementById('toast-container');
@@ -580,30 +719,180 @@
       }, 4000);
     }
 
-    // Console Redirection
-    const consoleOutput = document.getElementById('console-output');
-    const originalLog = console.log;
-    const originalError = console.error;
+    // =========================================================================
+    // 📝 [PERSISTENT LOG ENGINE]: บันทึกทุกขั้นตอนสำหรับการแก้บัค
+    // =========================================================================
+    const LOG_STORAGE_KEY = 'pvt_admin_system_logs';
+    let currentLogFilter = 'all';
 
-    function addLog(msg, type = 'info') {
-      const entry = document.createElement('div');
-      entry.className = 'log-entry';
-      const time = new Date().toLocaleTimeString();
-      entry.innerHTML = `<span class="log-time">${time}</span><span class="log-type-${type}">[${type.toUpperCase()}]</span> ${msg}`;
-      consoleOutput.appendChild(entry);
-      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    function getStoredLogs() {
+      try {
+        const raw = localStorage.getItem(LOG_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
     }
 
+    function saveLogEntry(msg, type = 'info', source = 'System') {
+      const logs = getStoredLogs();
+      const newLog = {
+        id: Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        time: new Date().toLocaleTimeString('th-TH'),
+        fullTime: new Date().toISOString(),
+        type: type.toLowerCase(), // info, success, warn, error, action
+        source,
+        message: String(msg)
+      };
+
+      logs.push(newLog);
+      if (logs.length > 500) logs.shift(); // Keep max 500 entries
+
+      try {
+        localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logs));
+      } catch(e) {}
+
+      renderLogs();
+    }
+
+    function renderLogs() {
+      const container = document.getElementById('console-output');
+      if (!container) return;
+
+      const logs = getStoredLogs();
+      const searchQ = (document.getElementById('log-search-input')?.value || '').toLowerCase().trim();
+
+      const filtered = logs.filter(log => {
+        if (currentLogFilter !== 'all') {
+          if (currentLogFilter === 'error' && log.type !== 'error') return false;
+          if (currentLogFilter === 'warn' && log.type !== 'warn' && log.type !== 'warning') return false;
+          if (currentLogFilter === 'action' && log.type !== 'action') return false;
+        }
+        if (searchQ) {
+          const combined = `${log.time} ${log.type} ${log.source} ${log.message}`.toLowerCase();
+          if (!combined.includes(searchQ)) return false;
+        }
+        return true;
+      });
+
+      const countBadge = document.getElementById('log-count-badge');
+      if (countBadge) {
+        countBadge.textContent = `${filtered.length} / ${logs.length} รายการ`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="color: #64748b; padding: 20px; text-align: center; font-style: italic;">-- ไม่พบประวัติบันทึกตามเงื่อนไขค้นหา --</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(log => {
+        let typeColor = '#38bdf8';
+        if (log.type === 'error') typeColor = '#f43f5e';
+        else if (log.type === 'warn' || log.type === 'warning') typeColor = '#fbbf24';
+        else if (log.type === 'success') typeColor = '#34d399';
+        else if (log.type === 'action') typeColor = '#c084fc';
+
+        return `<div class="log-entry" style="margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5;">` +
+          `<span class="log-time" style="color: #64748b; margin-right: 6px;">[${log.time}]</span>` +
+          `<span style="color: ${typeColor}; font-weight: 700; margin-right: 6px;">[${log.type.toUpperCase()}]</span>` +
+          `<span style="color: #94a3b8; font-size: 11px; margin-right: 8px;">(${log.source})</span>` +
+          `<span style="color: #f1f5f9;">${escapeHtmlLogs(log.message)}</span>` +
+          `</div>`;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtmlLogs(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function setLogFilter(filterType) {
+      currentLogFilter = filterType;
+      document.querySelectorAll('.log-filter-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`filter-btn-${filterType}`);
+      if (activeBtn) activeBtn.classList.add('active');
+      renderLogs();
+    }
+
+    function refreshLogsUI() {
+      renderLogs();
+      showToast('รีเฟรชประวัติ Log ล่าสุดเรียบร้อย', 'info');
+    }
+
+    function clearLogs() {
+      if (confirm('คุณต้องการล้างประวัติ Log บันทึกระบบทั้งหมดหรือไม่?')) {
+        localStorage.removeItem(LOG_STORAGE_KEY);
+        renderLogs();
+        saveLogEntry('ล้างประวัติ Log โดยผู้ดูแลระบบ', 'info', 'System');
+        showToast('ล้างประวัติ Log เรียบร้อยแล้ว', 'success');
+      }
+    }
+
+    function downloadLogFile() {
+      const logs = getStoredLogs();
+      if (logs.length === 0) {
+        showToast('ไม่มีข้อมูล Log สำหรับดาวน์โหลด', 'warning');
+        return;
+      }
+      const textContent = logs.map(l => `[${l.fullTime}] [${l.type.toUpperCase()}] (${l.source}): ${l.message}`).join('\n');
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pvt_admin_logs_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('ดาวน์โหลดไฟล์ Log สำเร็จ', 'success');
+    }
+
+    // Intercept Console
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+
     console.log = (...args) => {
-      addLog(args.join(' '), 'info');
+      saveLogEntry(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '), 'info', 'Console');
       originalLog(...args);
     };
+    console.warn = (...args) => {
+      saveLogEntry(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '), 'warn', 'Console');
+      originalWarn(...args);
+    };
     console.error = (...args) => {
-      addLog(args.join(' '), 'error');
+      saveLogEntry(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '), 'error', 'Console');
       originalError(...args);
     };
 
-    function clearLogs() { consoleOutput.innerHTML = ''; console.log('ล้างบันทึกโดยผู้ดูแลระบบ'); }
+    // Intercept Window Errors
+    window.addEventListener('error', (e) => {
+      saveLogEntry(`[UNHANDLED ERROR] ${e.message} at ${e.filename}:${e.lineno}`, 'error', 'Runtime');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      saveLogEntry(`[UNHANDLED PROMISE] ${e.reason?.message || e.reason}`, 'error', 'Promise');
+    });
+
+    // Intercept Fetch Requests
+    const originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+      const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || 'unknown');
+      const method = args[1]?.method || 'GET';
+      const start = Date.now();
+      try {
+        const response = await originalFetch.apply(this, args);
+        const duration = Date.now() - start;
+        saveLogEntry(`[API ${method}] ${url} -> Status ${response.status} (${duration}ms)`, response.ok ? 'info' : 'error', 'Fetch');
+        return response;
+      } catch (err) {
+        const duration = Date.now() - start;
+        saveLogEntry(`[API ${method} FAILED] ${url} -> ${err.message} (${duration}ms)`, 'error', 'Fetch');
+        throw err;
+      }
+    };
 
     // Sparkline Logic
     let latencyData = [];
@@ -817,6 +1106,13 @@
         return;
       }
 
+      // Check if search query exists
+      const searchInput = document.getElementById('emp-search-input');
+      if (searchInput && searchInput.value.trim()) {
+        filterEmployeeTable();
+        return;
+      }
+
       tableBody.innerHTML = employeesData.map(emp => `
         <tr id="row-${emp.id}">
           <td class="col-name">${emp.full_name || '-'}</td>
@@ -833,6 +1129,100 @@
           </td>
         </tr>
       `).join('');
+    }
+
+    function filterEmployeeTable() {
+      const q = (document.getElementById('emp-search-input')?.value || '').toLowerCase().trim();
+      if (!q) {
+        renderEmployeeTable();
+        return;
+      }
+      const filtered = employeesData.filter(emp => 
+        (emp.full_name && emp.full_name.toLowerCase().includes(q)) ||
+        (emp.email && emp.email.toLowerCase().includes(q)) ||
+        (emp.department && emp.department.toLowerCase().includes(q)) ||
+        (emp.role && emp.role.toLowerCase().includes(q))
+      );
+      if (!tableBody) return;
+      if (!filtered.length) {
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">ไม่พบพนักงานตรงกับคำค้นหา "${q}"</td></tr>`;
+        return;
+      }
+      tableBody.innerHTML = filtered.map(emp => `
+        <tr id="row-${emp.id}">
+          <td class="col-name">${emp.full_name || '-'}</td>
+          <td class="col-email">${emp.email || '-'}</td>
+          <td class="col-dept">${emp.department || '-'}</td>
+          <td class="col-role">${emp.role || '-'}</td>
+          <td class="action-btns">
+            <button class="icon-btn" onclick="editRow('${emp.id}')" title="แก้ไข">
+              <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
+            </button>
+            <button class="icon-btn" onclick="deleteRow('${emp.id}')" title="ลบ" style="color:#ef4444;">
+              <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Diagnostics & Button Test Suite Functions
+    async function testFetchEmployees() {
+      showToast('กำลังทดสอบ Query พนักงาน...', 'info');
+      console.log(' [TEST] เรียกใช้ testFetchEmployees()...');
+      await loadEmployeeData();
+      showToast(`ดึงข้อมูลสำเร็จ: พบพนักงาน ${employeesData.length} รายการ`, 'success');
+    }
+
+    async function testFetchDepts() {
+      showToast('กำลังทดสอบ Query แผนก...', 'info');
+      console.log(' [TEST] เรียกใช้ testFetchDepts()...');
+      await loadDeptApprovalData();
+      showToast(`ดึงข้อมูลสำเร็จ: พบโครงสร้างแผนก ${deptData.length} รายการ`, 'success');
+    }
+
+    async function testPendingLeavesCount() {
+      const sb = window.pvtSupabase?.getClient();
+      if (!sb) { showToast('ไม่พบไคลเอนต์ Supabase', 'error'); return; }
+      showToast('กำลังทดสอบดึงจำนวนใบลาค้าง...', 'info');
+      try {
+        const { count, error } = await sb.from('leave_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+        if (error) throw error;
+        showToast(`จำนวนใบลาค้างอนุมัติปัจจุบัน: ${count || 0} ใบ`, 'success');
+        console.log(` [TEST] จำนวนใบลาค้างอนุมัติ: ${count || 0}`);
+      } catch (e) {
+        showToast('การดึงใบลาล้มเหลว: ' + e.message, 'error');
+      }
+    }
+
+    async function testDatabaseLatency() {
+      showToast('กำลังวัดค่า Latency ของฐานข้อมูล...', 'info');
+      const start = Date.now();
+      const sb = window.pvtSupabase?.getClient();
+      if (!sb) return;
+      try {
+        await sb.from('employees').select('id').limit(1);
+        const duration = Date.now() - start;
+        showToast(`ความหน่วงฐานข้อมูล (Latency): ${duration} ms`, 'success');
+        console.log(` [TEST] DB Latency benchmark: ${duration}ms`);
+      } catch (e) {
+        showToast('วัดความหน่วงไม่สำเร็จ: ' + e.message, 'error');
+      }
+    }
+
+    function testSimulateLog() {
+      console.log(' [TEST LOG] ทดสอบการส่งข้อความลงในบันทึกระบบเรียลไทม์สำเร็จ');
+      console.error(' [TEST ERROR LOG] จำลองการแจ้งเตือนข้อผิดพลาดในระบบ');
+      showToast('เพิ่ม Log ตัวอย่างในบันทึกเรียลไทม์เรียบร้อย!', 'info');
+    }
+
+    function testAddMockSparkline() {
+      const randomVal = Math.floor(Math.random() * 150) + 30;
+      latencyData.push(randomVal);
+      if (latencyData.length > maxDataPoints) latencyData.shift();
+      renderSparkline();
+      showToast(`สุ่มเพิ่มจุดกราฟ Latency: ${randomVal}ms`, 'info');
+      console.log(` [TEST SPARKLINE] เพิ่มจุดกราฟ ${randomVal}ms`);
     }
 
     function editRow(id) {
@@ -1057,7 +1447,7 @@
           const empCount = snapshot.employees.length;
           const deptCount = (snapshot.departments || snapshot.approvals).length;
 
-          if (!confirm(`⚠️ คำเตือน: การกู้คืนจะเขียนทับข้อมูลปัจจุบัน\nพบพนักงาน: ${empCount} ราย\nพบโครงสร้าง: ${deptCount} รายการ\nต้องการดำเนินการต่อหรือไม่?`)) {
+          if (!confirm(`️ คำเตือน: การกู้คืนจะเขียนทับข้อมูลปัจจุบัน\nพบพนักงาน: ${empCount} ราย\nพบโครงสร้าง: ${deptCount} รายการ\nต้องการดำเนินการต่อหรือไม่?`)) {
             event.target.value = '';
             return;
           }
@@ -1097,6 +1487,19 @@
       const el = document.getElementById('live-time');
       if (el) el.textContent = new Date().toLocaleString('th-TH');
     }, 1000);
+
+    // Interactive Button Click Event Logging Listener for Testing & Debugging
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('button, a.menu-item, [role="button"]');
+      if (!btn) return;
+
+      const btnText = (btn.innerText || btn.textContent || btn.getAttribute('title') || 'unnamed button').trim().replace(/\s+/g, ' ');
+      const btnId = btn.id ? `#${btn.id}` : 'no-id';
+      const btnClasses = btn.className ? `.${btn.className.trim().replace(/\s+/g, '.')}` : 'no-class';
+      const onclickAttr = btn.getAttribute('onclick') || btn.getAttribute('href') || 'custom-handler';
+
+      console.log(` [BUTTON CLICK] "${btnText}" | ID: ${btnId} | Class: ${btnClasses} | Handler: ${onclickAttr}`);
+    }, true);
 
     updateMaintUI();
     initProfile();

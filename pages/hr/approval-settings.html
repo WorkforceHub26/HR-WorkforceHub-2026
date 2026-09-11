@@ -719,7 +719,7 @@
       margin-bottom: 8px;
     }
 
-    /* 📊 LINE Connection Summary Stats */
+    /*  LINE Connection Summary Stats */
     .line-stat-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -806,7 +806,7 @@
       font-weight: 700;
     }
 
-    /* 🏷️ Filter Tabs for Tables (Modern Segment Control Style) */
+    /* ️ Filter Tabs for Tables (Modern Segment Control Style) */
     .filter-tabs {
       display: flex;
       align-items: center;
@@ -1002,7 +1002,7 @@
       transform: translateY(0);
     }
 
-    /* 🎛️ Custom Switch Toggles for LINE Notification settings */
+    /* ️ Custom Switch Toggles for LINE Notification settings */
     .notif-group-card {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -1150,7 +1150,7 @@
       color: #0f172a;
     }
 
-    /* 👤 Employee LINE Connection Table Specific Styles */
+    /*  Employee LINE Connection Table Specific Styles */
     .emp-cell-user {
       display: flex;
       align-items: center;
@@ -1346,14 +1346,14 @@
           <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
           กลับหน้าระบบจัดการส่วนกลาง
         </a>
-        <button type="button" class="btn-back" onclick="openSystemSettingsModal()" title="การตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, LINE)" style="cursor: pointer;">
-          <span class="material-symbols-outlined" style="font-size: 18px; color: var(--primary);">settings</span>
+        <button type="button" class="btn-back" onclick="openSystemSettingsModal()" title="การตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, LINE)" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 18px; height: 18px; object-fit: contain;" />
           ตั้งค่า
         </button>
       </div>
       <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
         <span class="material-symbols-outlined" style="font-size: 18px; color: #22c55e;">verified</span>
-        ระบบสายอนุมัติอัตโนมัติ 4 ขั้นตอน (L1 ➔ L2 ➔ L3 ➔ HR)
+        ระบบสายอนุมัติอัตโนมัติ 4 ขั้นตอน (L1  L2  L3  HR)
       </div>
     </div>
 
@@ -1397,7 +1397,7 @@
       </div>
       <div class="card-panel-body">
         <ul class="help-list">
-          <li><strong>ขั้นตอนอนุมัติ:</strong> ระบบจะส่งแจ้งเตือนตามลำดับ L1 (หัวหน้างาน) ➔ L2 (ผู้จัดการ) ➔ L3 (ผู้บริหารสูงสุด) ตามที่ตั้งค่าในแต่ละแผนก</li>
+          <li><strong>ขั้นตอนอนุมัติ:</strong> ระบบจะส่งแจ้งเตือนตามลำดับ L1 (หัวหน้างาน)  L2 (ผู้จัดการ)  L3 (ผู้บริหารสูงสุด) ตามที่ตั้งค่าในแต่ละแผนก</li>
           <li><strong>เงื่อนไข L1/L2:</strong> หากแผนกใดไม่ได้ตั้งค่า L2 ระบบจะข้ามขั้นตอน L2 และส่งเรื่องให้ HR หรือ L3 ทันทีตามเงื่อนไขใบลา</li>
           <li><strong>การผูก LINE:</strong> ผู้ที่อยู่ในสายอนุมัติ <strong>จำเป็นต้องผูก LINE User ID</strong> เพื่อรับการแจ้งเตือน หากไม่ผูก ผู้ใช้งานจะไม่ได้รับข้อความแจ้งเตือนผ่าน LINE</li>
           <li><strong>แก้ไขข้อมูล:</strong> การแก้ไขสายอนุมัติจะส่งผลทันทีต่อใบลาที่ยื่นเข้ามาใหม่หลังจากทำการบันทึกข้อมูลแล้วเท่านั้น</li>
@@ -1408,7 +1408,7 @@
     <!-- Workflow Diagram Strip -->
     <section class="flow-guide">
       <div class="flow-step s0" onclick="focusSection('approverSummarySection')" title="ขั้นตอนที่ 1: พนักงานยื่นคำขอ">
-        <div class="flow-step-icon">👤</div>
+        <div class="flow-step-icon"></div>
         <div class="flow-step-text">
           <h4>1. พนักงาน</h4>
           <p>ยื่นคำขอลาออนไลน์</p>
@@ -1416,7 +1416,7 @@
       </div>
       <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
       <div class="flow-step s1" onclick="focusSection('deptConfigSection', 'supervisorSelect')" title="คลิกเพื่อตั้งค่าหัวหน้า L1">
-        <div class="flow-step-icon">🎖️</div>
+        <div class="flow-step-icon">️</div>
         <div class="flow-step-text">
           <h4>2. หัวหน้า (L1)</h4>
           <p>พิจารณาอนุมัติขั้นต้น</p>
@@ -1424,7 +1424,7 @@
       </div>
       <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
       <div class="flow-step s2" onclick="focusSection('deptConfigSection', 'managerSelect')" title="คลิกเพื่อตั้งค่าผู้จัดการ L2">
-        <div class="flow-step-icon">👔</div>
+        <div class="flow-step-icon"></div>
         <div class="flow-step-text">
           <h4>3. ผู้จัดการ (L2)</h4>
           <p>อนุมัติระดับฝ่าย</p>
@@ -1440,7 +1440,7 @@
       </div>
       <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
       <div class="flow-step s4" onclick="focusSection('autoDelegationSection')" title="ระบบโอนสิทธิ์อนุมัติอัตโนมัติเมื่อหัวหน้าลาพักร้อน">
-        <div class="flow-step-icon" style="background: #e0f2fe; color: #0284c7;">🔄</div>
+        <div class="flow-step-icon" style="background: #e0f2fe; color: #0284c7;"></div>
         <div class="flow-step-text">
           <h4>5. โอนสิทธิ์อัตโนมัติ</h4>
           <p>เมื่อหัวหน้าลาพักร้อน</p>
@@ -1448,7 +1448,7 @@
       </div>
       <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
       <div class="flow-step s5" onclick="focusSection('approverSummarySection')" title="ฝ่ายบุคคล HR ดำเนินการขั้นสุดท้าย">
-        <div class="flow-step-icon">📋</div>
+        <div class="flow-step-icon"></div>
         <div class="flow-step-text">
           <h4>6. ฝ่ายบุคคล (HR)</h4>
           <p>ตัดยอดโควตา & บันทึก</p>
@@ -1564,9 +1564,9 @@
                 <span>เงื่อนไขการโอนสิทธิ์</span>
               </label>
               <select id="delConditionSelect" class="field-select" onchange="handleDelConditionChange()">
-                <option value="on_annual_leave">🌴 อัตโนมัติเมื่อมีใบลาพักร้อนที่อนุมัติแล้ว (แนะนำ)</option>
-                <option value="always">🔄 โอนสิทธิ์ถาวร (มีอำนาจอนุมัติคู่ขนานตลอดเวลา)</option>
-                <option value="custom_date">📅 กำหนดช่วงวันพิเศษ (เช่น ไปดูงาน/ไปราชการ)</option>
+                <option value="on_annual_leave"> อัตโนมัติเมื่อมีใบลาพักร้อนที่อนุมัติแล้ว (แนะนำ)</option>
+                <option value="always"> โอนสิทธิ์ถาวร (มีอำนาจอนุมัติคู่ขนานตลอดเวลา)</option>
+                <option value="custom_date"> กำหนดช่วงวันพิเศษ (เช่น ไปดูงาน/ไปราชการ)</option>
               </select>
             </div>
           </div>
@@ -1814,8 +1814,8 @@
             <span class="field-label-tag" style="background:#ccfbf1; color:#0f766e;">เปิด-ปิดแยกแต่ละสถานะ</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" class="quick-toggle-btn" onclick="toggleAllLineNotifs(true)">
-              <span class="material-symbols-outlined" style="font-size: 16px; color: #16a34a;">check_circle</span> เปิดทั้งหมด
+            <button type="button" class="quick-toggle-btn" onclick="toggleAllLineNotifs(true)" style="display: inline-flex; align-items: center; gap: 6px;">
+              <img src="/assets/icons/check-circle.svg" alt="เปิดทั้งหมด" style="width: 16px; height: 16px; object-fit: contain;" /> เปิดทั้งหมด
             </button>
             <button type="button" class="quick-toggle-btn" onclick="toggleAllLineNotifs(false)">
               <span class="material-symbols-outlined" style="font-size: 16px; color: #64748b;">cancel</span> ปิดทั้งหมด
@@ -1869,7 +1869,7 @@
             
             <div class="notif-step-row is-active" id="row-notif-leader-approved">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">หัวหน้า L1 ผ่าน ➡️ ส่งหาผู้จัดการ L2</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">หัวหน้า L1 ผ่าน ️ ส่งหาผู้จัดการ L2</div>
                 <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งแชต LINE ผู้จัดการ L2 เมื่อหัวหน้างาน L1 กดอนุมัติแล้ว</div>
               </div>
               <div class="switch-wrapper">
@@ -1883,7 +1883,7 @@
 
             <div class="notif-step-row is-active" id="row-notif-manager-approved">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ผู้จัดการ L2 ผ่าน ➡️ ส่งหาผู้บริหาร L3</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ผู้จัดการ L2 ผ่าน ️ ส่งหาผู้บริหาร L3</div>
                 <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งเตือน LINE ผู้บริหาร L3 สำหรับเคสพิเศษ/ระดับหัวหน้างานลา</div>
               </div>
               <div class="switch-wrapper">
@@ -1905,7 +1905,7 @@
             
             <div class="notif-step-row is-active" id="row-notif-final-approved">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">อนุมัติเสร็จสมบูรณ์ ➡️ ส่งหาพนักงาน</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">อนุมัติเสร็จสมบูรณ์ ➔ ส่งหาพนักงาน</div>
                 <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">ส่งการ์ดสลิปอนุมัติสมบูรณ์ (ผ่าน 100%) กลับเข้าแชตพนักงาน</div>
               </div>
               <div class="switch-wrapper">
@@ -1919,7 +1919,7 @@
 
             <div class="notif-step-row is-active" id="row-notif-rejected">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ปฏิเสธใบลา ➡️ ส่งหาพนักงาน</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ปฏิเสธใบลา ➔ ส่งหาพนักงาน</div>
                 <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งพนักงานเมื่อคำขอโดนปฏิเสธ (ไม่อนุมัติ) พร้อมเหตุผลประกอบ</div>
               </div>
               <div class="switch-wrapper">
@@ -1933,13 +1933,49 @@
 
             <div class="notif-step-row is-active" id="row-notif-cancellation">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ขอยกเลิกคำขอ ➡️ แจ้งผู้อนุมัติ</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ขอยกเลิกคำขอ ➔ แจ้งผู้อนุมัติ</div>
                 <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งผู้อนุมัติ L1/L2 ทันทีเมื่อพนักงานกดยื่นเรื่องขอยกเลิกใบลา</div>
               </div>
               <div class="switch-wrapper">
                 <span class="switch-status-tag on" id="tag-notif-cancellation">เปิด</span>
                 <label class="switch-container">
                   <input type="checkbox" id="notif-cancellation" checked onchange="handleSwitchVisualChange('notif-cancellation')">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 4: การแจ้งเตือนฝ่าย HR (HR Controls & Popups) -->
+          <div class="notif-group-card">
+            <div style="font-weight: 800; font-size: 14px; color: #0d9488; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">manage_accounts</span>
+              การแจ้งเตือน LINE สำหรับฝ่าย HR
+            </div>
+            
+            <div class="notif-step-row is-active" id="row-notif-hr-review">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่ง LINE หา HR เมื่อถึงขั้นพิจารณา</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">ส่งคำขอเข้าแชต LINE ฝ่าย HR เมื่อผ่าน L1/L2 (หากปิด จะเด้งเตือนแค่หน้าเว็บ)</div>
+              </div>
+              <div class="switch-wrapper">
+                <span class="switch-status-tag on" id="tag-notif-hr-review">เปิด</span>
+                <label class="switch-container">
+                  <input type="checkbox" id="notif-hr-review" checked onchange="handleSwitchVisualChange('notif-hr-review')">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="notif-step-row is-active" id="row-notif-hr-notify">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่ง LINE หา HR เมื่อจบเรื่อง/ขอยกเลิก</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งสรุปเข้า LINE ฝ่าย HR เมื่ออนุมัติสมบูรณ์หรือยกเลิก (หากปิด จะเด้งเตือนแค่หน้าเว็บ)</div>
+              </div>
+              <div class="switch-wrapper">
+                <span class="switch-status-tag on" id="tag-notif-hr-notify">เปิด</span>
+                <label class="switch-container">
+                  <input type="checkbox" id="notif-hr-notify" checked onchange="handleSwitchVisualChange('notif-hr-notify')">
                   <span class="switch-slider"></span>
                 </label>
               </div>
@@ -2018,8 +2054,8 @@
       <button type="button" class="filter-tab-btn active" data-filter="all" onclick="setLineStatusFilter('all')">
         <span class="material-symbols-outlined" style="font-size:16px;">apps</span> ทั้งหมด (<span id="countAllFilter">0</span>)
       </button>
-      <button type="button" class="filter-tab-btn" data-filter="line_all_connected" onclick="setLineStatusFilter('line_all_connected')">
-        <span class="material-symbols-outlined" style="font-size:16px; color:#22c55e;">check_circle</span> เชื่อม LINE ครบ (<span id="countLineFull">0</span>)
+      <button type="button" class="filter-tab-btn" data-filter="line_all_connected" onclick="setLineStatusFilter('line_all_connected')" style="display: inline-flex; align-items: center; gap: 6px;">
+        <img src="/assets/icons/check-circle.svg" alt="เชื่อม LINE ครบ" style="width: 16px; height: 16px; object-fit: contain;" /> เชื่อม LINE ครบ (<span id="countLineFull">0</span>)
       </button>
       <button type="button" class="filter-tab-btn" data-filter="line_missing" onclick="setLineStatusFilter('line_missing')">
         <span class="material-symbols-outlined" style="font-size:16px; color:#f97316;">warning</span> มีคนที่ยังไม่เชื่อม LINE (<span id="countLineMissing">0</span>)
@@ -2034,10 +2070,10 @@
         <table class="modern-table">
           <thead>
             <tr>
-              <th style="width: 28%;">🏢 แผนก (Department)</th>
-              <th style="width: 28%;">🎖️ หัวหน้างาน L1 (Supervisor)</th>
-              <th style="width: 28%;">👔 ผู้จัดการฝ่าย L2 (Manager)</th>
-              <th style="width: 16%; text-align: center;">⚙️ จัดการ</th>
+              <th style="width: 28%;"> แผนก (Department)</th>
+              <th style="width: 28%;">️ หัวหน้างาน L1 (Supervisor)</th>
+              <th style="width: 28%;"> ผู้จัดการฝ่าย L2 (Manager)</th>
+              <th style="width: 16%; text-align: center;">️ จัดการ</th>
             </tr>
           </thead>
           <tbody id="approverTableBody">
@@ -2089,11 +2125,11 @@
         <table class="modern-table">
           <thead>
             <tr>
-              <th style="width: 26%;">👤 พนักงาน (Employee)</th>
-              <th style="width: 22%;">🏢 แผนก / ตำแหน่ง</th>
-              <th style="width: 16%;">🔰 บทบาทในระบบ</th>
-              <th style="width: 20%;">📱 สถานะ LINE & User ID</th>
-              <th style="width: 16%; text-align: center;">⚙️ จัดการ LINE ID</th>
+              <th style="width: 26%;"> พนักงาน (Employee)</th>
+              <th style="width: 22%;"> แผนก / ตำแหน่ง</th>
+              <th style="width: 16%;"> บทบาทในระบบ</th>
+              <th style="width: 20%;"> สถานะ LINE & User ID</th>
+              <th style="width: 16%; text-align: center;">️ จัดการ LINE ID</th>
             </tr>
           </thead>
           <tbody id="employeeLineTableBody">
@@ -2134,7 +2170,7 @@
         <!-- หัวหน้างาน L1 -->
         <div class="form-field">
           <label class="field-label" for="modalSupervisorSelect">
-            <span>🎖️ หัวหน้างาน / Supervisor (L1) <span style="color:#ef4444;">*</span></span>
+            <span>️ หัวหน้างาน / Supervisor (L1) <span style="color:#ef4444;">*</span></span>
             <span class="field-label-tag">อนุมัติขั้นแรก</span>
           </label>
           <select id="modalSupervisorSelect" class="field-select" onchange="updateModalLineStatus('supervisor')">
@@ -2151,7 +2187,7 @@
         <!-- ผู้จัดการ L2 -->
         <div class="form-field" style="margin-top:14px;">
           <label class="field-label" for="modalManagerSelect">
-            <span>👔 ผู้จัดการฝ่าย / Manager (L2)</span>
+            <span> ผู้จัดการฝ่าย / Manager (L2)</span>
             <span class="field-label-tag">ถ้ามี / ข้ามได้</span>
           </label>
           <select id="modalManagerSelect" class="field-select" onchange="updateModalLineStatus('manager')">
@@ -2167,7 +2203,7 @@
 
         <!-- กล่องคำแนะนำ -->
         <div style="margin-top:16px; background:#f0fdfa; border:1px solid #ccfbf1; border-radius:12px; padding:12px; font-size:12.5px; color:#0f766e; line-height:1.5;">
-          <b>💡 หมายเหตุการคัดกรอง:</b> ระบบคัดกรองเฉพาะพนักงานที่มีบทบาทหรือตำแหน่งเป็น หัวหน้า (Leader/Supervisor) หรือ ผู้จัดการ (Manager/Director) และหัวหน้าในแผนก เพื่อให้เลือกได้แม่นยำและไม่ปะปนกับพนักงานทั่วไป
+          <b> หมายเหตุการคัดกรอง:</b> ระบบคัดกรองเฉพาะพนักงานที่มีบทบาทหรือตำแหน่งเป็น หัวหน้า (Leader/Supervisor) หรือ ผู้จัดการ (Manager/Director) และหัวหน้าในแผนก เพื่อให้เลือกได้แม่นยำและไม่ปะปนกับพนักงานทั่วไป
         </div>
       </div>
 

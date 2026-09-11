@@ -76,6 +76,11 @@ window.currentSelectedYear = window.currentSelectedYear || new Date().getFullYea
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("📌 [LIFECYCLE] โครงสร้าง HTML โหลดเสร็จสิ้น เริ่มต้นดึงข้อมูล...");
   await initUserHome();
+  
+  // เปิดระบบ Realtime Notification 
+  if (window.currentProfile && window.currentProfile.id) {
+    setupRealtimeNotifications(window.currentProfile.id);
+  }
   initQuotaSystem();
   checkUserNotifications();
 });
@@ -519,18 +524,42 @@ window.viewMyDigitalCard = async function() {
    ========================================================================== */
 function checkApproverPermission(profileData) {
   const switchBtn = document.getElementById("approverModeBtn");
-  if (!switchBtn) return;
+  const statsBtn = document.getElementById("btnOpenLeaveStats");
 
-  const userRole = (profileData?.role || "").toLowerCase();
-  const positionName = (profileData?.position_name || profileData?.positions?.position_name || "").toLowerCase();
+  const emp = profileData?.employees || profileData || {};
+  const userRole = (emp?.role || profileData?.role || "").toLowerCase();
+  const positionName = (emp?.positions?.position_name || profileData?.position_name || profileData?.positions?.position_name || "").toLowerCase();
 
-  const approverRoles = ["leader", "manager", "director", "executive", "owner", "hr", "admin"];
-  const isApprover = approverRoles.includes(userRole) || 
-                     positionName.includes("ผู้จัดการ") || 
-                     positionName.includes("ผู้อำนวยการ") || 
-                     positionName.includes("หัวหน้า");
+  const approverRoles = ["leader", "manager", "director", "executive", "owner", "hr", "admin", "superadmin"];
+  
+  let isApprover = approverRoles.includes(userRole) || 
+                   positionName.includes("ผู้จัดการ") || 
+                   positionName.includes("ผู้อำนวยการ") || 
+                   (positionName.includes("หัวหน้า") && !positionName.includes("หัวหน้ากะ") && !positionName.includes("หัวหน้าส่วน")) ||
+                   positionName.includes("บริหาร") ||
+                   positionName.includes("manager") ||
+                   positionName.includes("leader") ||
+                   positionName.includes("director") ||
+                   positionName.includes("head");
 
-  switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
+  if (!isApprover && typeof window.getUserRoleCategory === "function") {
+    const roleCat = window.getUserRoleCategory(profileData);
+    if (roleCat && (roleCat.category === "leader_manager" || roleCat.category === "hr_exec")) {
+      isApprover = true;
+    }
+  }
+
+  const code = String(emp?.employee_code || profileData?.employee_code || "").trim();
+  if (['19122', '19072', '19128'].includes(code)) {
+    isApprover = false;
+  }
+
+  if (switchBtn) {
+    switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
+  }
+  if (statsBtn) {
+    statsBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
+  }
 }
 
 /* ==========================================================================
@@ -552,7 +581,7 @@ async function loadDepartmentTeam(profileData) {
   const positionName = (employee?.positions?.position_name || "").toLowerCase();
 
   const isLeaderOrHigher = ["leader", "manager", "director", "executive", "owner", "hr", "admin"].includes(userRole) ||
-                           positionName.includes("หัวหน้า") || positionName.includes("ผู้จัดการ") || positionName.includes("บริหาร");
+                           (positionName.includes("หัวหน้า") && !positionName.includes("หัวหน้ากะ") && !positionName.includes("หัวหน้าส่วน")) || positionName.includes("ผู้จัดการ") || positionName.includes("บริหาร");
 
   teamSection.style.display = "block";
   if (teamTitle) teamTitle.textContent = `สมาชิกพนักงานในแผนก (${deptName})`;
@@ -734,7 +763,8 @@ async function fetchUserNotifications() {
     });
 
     // 2. ดึงใบลาค้างอนุมัติ หากเป็นสายอนุมัติ (เพื่อเพิ่มปุ่มกระดิ่ง Zero-Inbox)
-    const approverRoles = ["leader", "manager", "director", "executive", "owner", "hr", "admin"];
+    // ถอด hr, admin ออกเพื่อไม่ให้ดึงใบลาของทุกคนมาโชว์ในหน้าส่วนตัว
+    const approverRoles = ["leader", "manager", "director", "executive", "owner"];
     if (approverRoles.includes(myRole)) {
       const { data: leaveRequests } = await sb
         .from("leave_requests")
@@ -1923,9 +1953,15 @@ window.toggleSection = function(sectionId, btnElement) {
   const isHidden = targetSection.classList.toggle('hidden-section');
 
   // เปลี่ยนไอคอนและสไตล์ปุ่ม
-  const iconEl = btnElement?.querySelector('.material-symbols-outlined');
-  if (iconEl) {
-    iconEl.textContent = isHidden ? 'visibility_off' : 'visibility';
+  // เปลี่ยนไอคอนและสไตล์ปุ่ม
+  const iconSpan = btnElement?.querySelector('.material-symbols-outlined');
+  if (iconSpan) {
+    iconSpan.textContent = isHidden ? 'visibility_off' : 'visibility';
+  }
+  
+  const iconImg = btnElement?.querySelector('.toggle-eye-icon');
+  if (iconImg) {
+    iconImg.src = isHidden ? '/assets/icons/eye-closed.svg' : '/assets/icons/eye-open.svg';
   }
   if (btnElement) {
     btnElement.classList.toggle('is-hidden', isHidden);
@@ -2416,8 +2452,6 @@ window.submitQuickLeave = async function() {
     const hasLeader = window.quickFormApproverInfo?.hasLeader ?? true;
     const hasManager = window.quickFormApproverInfo?.hasManager ?? false;
 
-    const isAutoReject = diffDays > 2;
-
     // Create the leave request object
     // ถ้าไม่มีหัวหน้ากะ/หัวหน้างาน ให้ข้าม L1 (manager_status = 'approved') และส่งให้ผู้จัดการฝ่าย (director_status = 'pending') พิจารณา
     const leaveRequest = {
@@ -2426,11 +2460,11 @@ window.submitQuickLeave = async function() {
       start_date: startDate,
       end_date: endDate,
       total_days: diffDays,
-      reason: isAutoReject ? `${reason.trim()} (ปฏิเสธอัตโนมัติ: ลาเกิน 2 วัน)` : reason,
+      reason: reason,
       attachment_url: attachmentUrl,
-      status: isAutoReject ? 'rejected' : 'pending',
-      manager_status: isAutoReject ? 'rejected' : (hasLeader ? 'pending' : 'approved'),
-      director_status: isAutoReject ? 'rejected' : 'pending',
+      status: 'pending',
+      manager_status: hasLeader ? 'pending' : 'approved',
+      director_status: 'pending',
       write_date: todayStr
     };
 
@@ -2488,28 +2522,15 @@ window.submitQuickLeave = async function() {
       successHtml += '<br><span style="color:#0d9488; font-size:13px; font-weight:600; display:inline-block; margin-top:6px;">✓ แนบไฟล์เอกสารเรียบร้อย</span>';
     }
 
-    if (diffDays > 2) {
-      successHtml = `ใบลาของคุณมีจำนวน<b>วันลาเกิน 2 วัน</b> ระบบจึงทำการปฏิเสธคำขอนี้โดยอัตโนมัติตามนโยบายบริษัท`;
-      Swal.fire({
-        icon: 'warning',
-        title: 'ยื่นคำขอลาเรียบร้อย (ระบบปฏิเสธ)',
-        html: successHtml,
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#ef4444'
-      }).then(() => {
-        location.reload();
-      });
-    } else {
-      Swal.fire({
-        icon: 'success',
-        title: '⚡ ยื่นคำขอลาสำเร็จ!',
-        html: successHtml,
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0d9488'
-      }).then(() => {
-        location.reload();
-      });
-    }
+    Swal.fire({
+      icon: 'success',
+      title: '⚡ ยื่นคำขอลาสำเร็จ!',
+      html: successHtml,
+      confirmButtonText: 'ตกลง',
+      confirmButtonColor: '#0d9488'
+    }).then(() => {
+      location.reload();
+    });
 
   } catch (err) {
     console.error("Quick Leave submission failed:", err);
@@ -3292,4 +3313,118 @@ function renderLeaveTypesStats(typeMap, totalCompanyDays) {
   });
 
   container.innerHTML = html;
+}
+// ==========================================
+// 🔴 REALTIME NOTIFICATIONS SYSTEM (POPUP)
+// ==========================================
+function setupRealtimeNotifications(userId) {
+  if (!window.pvtSupabase || typeof window.pvtSupabase.getClient !== 'function') return;
+  const sb = window.pvtSupabase.getClient();
+  if (!sb) return;
+
+  console.log("🟢 [Realtime] Subscribing to notifications for user:", userId);
+
+  sb.channel(`user_notifications_${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `employee_id=eq.${userId}`
+      },
+      (payload) => {
+        console.log("🔔 [Realtime] New Notification received:", payload.new);
+        showRealtimeNotificationPopup(payload.new);
+        fetchUserNotifications(); // อัพเดท Badge
+      }
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+         console.log("🟢 [Realtime] Connected successfully to notification channel.");
+      }
+    });
+}
+
+function showRealtimeNotificationPopup(notif) {
+  if (!notif) return;
+  
+  const title = notif.title || 'มีการแจ้งเตือนใหม่';
+  const msg = notif.message || '';
+  
+  let iconHtml = '<div style="background: #e0f2fe; color: #0284c7; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">🔔</div>';
+  let badgeColor = '#0ea5e9';
+
+  if (title.includes('อนุมัติแล้ว') || title.includes('✅')) {
+    iconHtml = '<div style="background: #dcfce7; color: #16a34a; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">✅</div>';
+    badgeColor = '#10b981';
+  } else if (title.includes('ไม่อนุมัติ') || title.includes('ปฏิเสธ') || title.includes('❌')) {
+    iconHtml = '<div style="background: #fee2e2; color: #ef4444; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">❌</div>';
+    badgeColor = '#ef4444';
+  }
+
+  // สร้าง Toast HTML
+  const toastId = 'notif-toast-' + Date.now();
+  const toastHtml = `
+    <div id="${toastId}" style="
+      position: fixed; 
+      top: 20px; 
+      right: -400px; 
+      background: white; 
+      width: 320px; 
+      max-width: 90vw;
+      border-radius: 12px; 
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); 
+      border-left: 5px solid ${badgeColor};
+      z-index: 99999;
+      display: flex;
+      padding: 16px;
+      gap: 12px;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      opacity: 0;
+      cursor: pointer;
+    " onclick="window.location.href='/pages/user/leave-history.html'">
+      <div style="flex-shrink: 0;">
+        ${iconHtml}
+      </div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+        <div style="font-weight: 700; color: #1e293b; font-size: 14px; margin-bottom: 4px;">${title.replace(/^[❌✅📌🟢🎉📢⚠️📥\\s]+/, '')}</div>
+        <div style="color: #64748b; font-size: 13px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+          ${msg}
+        </div>
+      </div>
+      <button style="position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 16px; color: #94a3b8; cursor: pointer; padding: 4px;" onclick="event.stopPropagation(); document.getElementById('${toastId}').style.right = '-400px'; setTimeout(()=>document.getElementById('${toastId}').remove(), 400);">✖</button>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', toastHtml);
+  
+  const toastEl = document.getElementById(toastId);
+  
+  // Animation in
+  setTimeout(() => {
+    toastEl.style.right = '20px';
+    toastEl.style.opacity = '1';
+    
+    // แบบ Responsive Mobile - เลื่อนมาตรงกลางแทน
+    if (window.innerWidth <= 768) {
+       toastEl.style.right = '0';
+       toastEl.style.left = '0';
+       toastEl.style.margin = '0 auto';
+       toastEl.style.width = 'calc(100% - 32px)';
+    }
+  }, 100);
+
+  // Auto remove
+  setTimeout(() => {
+    if (document.getElementById(toastId)) {
+      if (window.innerWidth <= 768) {
+         toastEl.style.top = '-150px';
+      } else {
+         toastEl.style.right = '-400px';
+      }
+      toastEl.style.opacity = '0';
+      setTimeout(() => toastEl.remove(), 400);
+    }
+  }, 6000);
 }

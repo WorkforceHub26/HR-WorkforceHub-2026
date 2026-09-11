@@ -332,8 +332,12 @@ function updateSidebarForRole(role, isPowerUser) {
           <span class="material-symbols-outlined">manage_accounts</span>
           <span class="nav-label">ระบบจัดการส่วนกลาง</span>
         </a>
+        <a href="/pages/user/leave-stats.html" class="nav-item menu-item" title="สถิติวันลา">
+          <img src="/assets/icons/analytics-dashboard.svg" alt="สถิติวันลา" class="nav-icon-custom" />
+          <span class="nav-label">สถิติวันลา</span>
+        </a>
         <a href="/pages/user/holidays.html" class="nav-item menu-item active" title="ปฏิทินวันหยุด">
-          <span class="material-symbols-outlined">calendar_today</span>
+          <img src="/assets/icons/calendar-event.svg" alt="วันหยุด" class="nav-icon-custom" />
           <span class="nav-label">วันหยุด</span>
         </a>
 
@@ -348,7 +352,7 @@ function updateSidebarForRole(role, isPowerUser) {
 
         <!-- 🪪 ระบบจัดการบัตรพนักงาน -->
         <button type="button" class="nav-item menu-item" onclick="if(typeof openEmployeeCardManagerPopup==='function'){openEmployeeCardManagerPopup();}else{window.location.href='/pages/user/index-user.html?action=digital_card';} return false;" title="ระบบบัตรพนักงาน">
-          <span class="material-symbols-outlined" style="color: #0284c7;">badge</span>
+          <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" class="nav-icon-custom" />
           <span class="nav-label">บัตรพนักงาน</span>
         </button>
 
@@ -363,7 +367,7 @@ function updateSidebarForRole(role, isPowerUser) {
     if (footerZone) {
       footerZone.innerHTML = `
         <button type="button" class="btn-logout nav-item menu-item" onclick="handleLogout()" title="ออกจากระบบ" style="color: #ef4444; width: 100%; justify-content: flex-start;">
-          <span class="material-symbols-outlined">logout</span>
+          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
           <span class="nav-label">ออกจากระบบ</span>
         </button>
       `;

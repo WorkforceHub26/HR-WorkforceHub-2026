@@ -51,11 +51,16 @@ window.getUserRoleCategory = function(userSession) {
     return { isAuth: true, category: 'employee', role, position, dept };
   }
 
+  // บังคับให้ 3 รหัสนี้เป็นพนักงานธรรมดาเท่านั้น (ห้ามเข้าหน้า HR) ให้ไปใช้ไอดีสำหรับอนุมัติโดยตรง (HR-001, HR-002, HR-003) แทน
+  if (['19122', '19072', '19128'].includes(code)) {
+    return { isAuth: true, category: 'employee', role: 'employee', position, dept };
+  }
+
   // 1. HR และ ผู้บริหารระดับสูง (HR Approver / Admin / Executive / Director / Owner)
   const isHrOrExecutive = 
     role === 'hr' || role === 'admin' || role === 'superadmin' || role === 'executive' || role === 'director' || role === 'owner' || role === 'hr_manager' ||
     role.includes('hr') || role.includes('admin') || role.includes('executive') || role.includes('director') || role.includes('owner') ||
-    code === '19122' || code === '10001';
+    code === '10001' || code.startsWith('HR-');
 
   if (isHrOrExecutive) {
     return { isAuth: true, category: 'hr_exec', role, position, dept };
@@ -75,7 +80,7 @@ window.getUserRoleCategory = function(userSession) {
     if (position.includes('ผู้บริหาร') || position.includes('director') || position.includes('executive')) {
       return { isAuth: true, category: 'hr_exec', role: 'executive', position, dept };
     }
-    if (position.includes('ผู้จัดการ') || position.includes('หัวหน้า') || position.includes('manager') || position.includes('leader')) {
+    if (position.includes('ผู้จัดการ') || (position.includes('หัวหน้า') && !position.includes('หัวหน้ากะ') && !position.includes('หัวหน้าส่วน')) || position.includes('manager') || position.includes('leader')) {
       return { isAuth: true, category: 'leader_manager', role: 'leader', position, dept };
     }
   }
@@ -127,10 +132,8 @@ window.getUserRoleCategory = function(userSession) {
         return;
       }
     }
-    if (userStatus.category === 'hr_exec') {
+    if (userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager') {
       window.location.replace("/pages/hr/home.html");
-    } else if (userStatus.category === 'leader_manager') {
-      window.location.replace("/pages/hr/hr.html");
     } else {
       window.location.replace("/pages/user/index-user.html");
     }
@@ -146,6 +149,21 @@ window.getUserRoleCategory = function(userSession) {
     return;
   }
 
+  // 🔒 ควบคุมการเข้าถึงหน้า admin-dashboard.html ให้เข้าได้เฉพาะ Admin เท่านั้น
+  const isAdminDashboard = path.includes("admin-dashboard");
+  if (isAdminDashboard) {
+    const emp = session?.employees || session || {};
+    const rawRole = String(session?.role || emp.role || userStatus.role || '').toLowerCase().trim();
+    const isTrueAdmin = rawRole === 'admin' || rawRole === 'superadmin' || session?.employee_code === 'HR-001' || emp.employee_code === 'HR-001';
+    
+    if (!isTrueAdmin) {
+      console.warn("🚫 [Auth Guard]: เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าถึงคอนโซลแอดมินได้");
+      try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+      window.location.replace("/pages/hr/home.html");
+      return;
+    }
+  }
+
   // 3. กรณีพนักงานธรรมดา (Employee)
   if (userStatus.category === 'employee') {
     if (isHrArea) {
@@ -159,9 +177,9 @@ window.getUserRoleCategory = function(userSession) {
   // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager)
   if (userStatus.category === 'leader_manager') {
     if (path.includes("management")) {
-      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติพนักงาน -> เด้งไปหน้าตรวจใบลา");
+      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติพนักงาน -> เด้งไปหน้าหลัก");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
-      window.location.replace("/pages/hr/hr.html");
+      window.location.replace("/pages/hr/home.html");
       return;
     }
   }
@@ -173,6 +191,30 @@ function applyNavPermissions() {
     const raw = localStorage.getItem("currentUser");
     const session = raw ? JSON.parse(raw) : null;
     const userStatus = window.getUserRoleCategory(session);
+    
+    // ตัดหน้าพนักงานออกสำหรับบัญชี HR โดยตรง
+    const empCode = String(session?.employee_code || session?.employees?.employee_code || '').trim();
+    if (empCode.startsWith('HR-')) {
+      document.querySelectorAll('a[href*="/pages/user/index-user.html"]').forEach(el => {
+        el.style.setProperty("display", "none", "important");
+      });
+    }
+
+    // 🔒 ตรวจสอบสิทธิ์ Admin ระดับสูง
+    const empObj = session?.employees || session || {};
+    const rawRoleVal = String(session?.role || empObj.role || userStatus?.role || '').toLowerCase().trim();
+    const isTrueAdminUser = rawRoleVal === 'admin' || rawRoleVal === 'superadmin' || session?.employee_code === 'HR-001' || empObj.employee_code === 'HR-001';
+
+    if (!isTrueAdminUser) {
+      const adminSelectors = [
+        'a[href*="admin-dashboard.html"]',
+        '[data-role="admin-only"]',
+        '.admin-only-item'
+      ];
+      document.querySelectorAll(adminSelectors.join(', ')).forEach(el => {
+        el.style.setProperty("display", "none", "important");
+      });
+    }
 
     if (userStatus.category === 'employee') {
       // พนักงานทั่วไป: ซ่อนหลังบ้านทั้งหมด
@@ -398,16 +440,13 @@ function redirectToDashboard(role, userObj) {
   }
 
   let targetPath = "/pages/user/index-user.html";
-  if (userStatus.category === 'hr_exec') {
+  
+  const empCode = String(userObj?.employee_code || userObj?.employees?.employee_code || '').trim();
+  
+  // บังคับทุกคนให้เริ่มที่หน้าพนักงานทั่วไปก่อน
+  // ยกเว้นไอดีสำหรับ HR โดยตรง (HR-XXX) ให้ตรงไปหน้าบริหารทันที
+  if (empCode.startsWith('HR-')) {
     targetPath = "/pages/hr/home.html";
-  } else if (userStatus.category === 'leader_manager') {
-    targetPath = "/pages/hr/hr.html";
-  } else {
-    const adminRoles = ['executive', 'director', 'owner', 'hr', 'admin', 'superadmin', 'manager', 'leader', 'supervisor', 'head', 'ผู้บริหาร', 'ผู้อำนวยการ', 'เจ้าของ', 'หัวหน้า', 'ผู้จัดการ'];
-    const isAdminRole = adminRoles.some(r => cleanRole.includes(r));
-    if (isAdminRole) {
-      targetPath = "/pages/hr/hr.html";
-    }
   }
   
   const targetUrl = new URL(targetPath, window.location.origin).href;
@@ -1667,6 +1706,99 @@ async function openChangePasswordModal(user) {
     }
   }
 
+  function ensureEdgeToggleButton() {
+    let edgeBtn = document.getElementById("mobileSidebarEdgeToggle");
+    if (!edgeBtn) {
+      edgeBtn = document.createElement("button");
+      edgeBtn.type = "button";
+      edgeBtn.id = "mobileSidebarEdgeToggle";
+      edgeBtn.className = "mobile-sidebar-edge-toggle";
+      edgeBtn.setAttribute("aria-label", "เปิดเมนูสไลด์บาร์");
+      edgeBtn.setAttribute("title", "ลากหรือกดเพื่อเปิดเมนู");
+      edgeBtn.innerHTML = '<span class="material-symbols-outlined edge-icon">chevron_right</span>';
+      edgeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.toggleMobileSidebar(true);
+      });
+      document.body.appendChild(edgeBtn);
+    }
+  }
+
+  function initTouchSwipeGestures() {
+    const mainContainers = document.querySelectorAll(".main-content, .app, main, body");
+    if (!mainContainers || mainContainers.length === 0) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchCurrentX = 0;
+    let touchCurrentY = 0;
+    let isTracking = false;
+    let startTime = 0;
+
+    const handleTouchStart = (e) => {
+      if (window.innerWidth > 1024) return;
+      if (e.touches.length !== 1) return;
+
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchCurrentX = touchStartX;
+      touchCurrentY = touchStartY;
+      startTime = Date.now();
+
+      const sidebar = document.querySelector(".sidebar-light") || document.querySelector(".sidebar") || document.querySelector("aside");
+      const isOpen = sidebar && sidebar.classList.contains("mobile-open");
+
+      // Initiate gesture if touch started near left swipe zone (<= 90px) OR if sidebar is open
+      if (touchStartX <= 90 || isOpen) {
+        isTracking = true;
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isTracking || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      touchCurrentX = touch.clientX;
+      touchCurrentY = touch.clientY;
+    };
+
+    const handleTouchEnd = () => {
+      if (!isTracking) return;
+      isTracking = false;
+
+      const deltaX = touchCurrentX - touchStartX;
+      const deltaY = touchCurrentY - touchStartY;
+      const duration = Date.now() - startTime;
+
+      // Ignore if gesture took too long (> 850ms) or was predominantly a vertical scroll
+      if (duration > 850) return;
+      if (Math.abs(deltaY) > Math.abs(deltaX) * 0.85) return;
+
+      const sidebar = document.querySelector(".sidebar-light") || document.querySelector(".sidebar") || document.querySelector("aside");
+      const isOpen = sidebar && sidebar.classList.contains("mobile-open");
+
+      // Rightward swipe gesture -> Seamlessly toggle drawer open
+      if (!isOpen && deltaX >= 35) {
+        window.toggleMobileSidebar(true);
+      } 
+      // Leftward swipe gesture when drawer is open -> Seamlessly toggle drawer close
+      else if (isOpen && deltaX <= -35) {
+        window.toggleMobileSidebar(false);
+      }
+    };
+
+    mainContainers.forEach(container => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
+
+      container.addEventListener("touchstart", handleTouchStart, { passive: true });
+      container.addEventListener("touchmove", handleTouchMove, { passive: true });
+      container.addEventListener("touchend", handleTouchEnd, { passive: true });
+    });
+  }
+
   window.toggleMobileSidebar = function(forceState) {
     const now = Date.now();
     if (typeof forceState !== "boolean" && now - lastToggleTime < 280) {
@@ -1677,6 +1809,7 @@ async function openChangePasswordModal(user) {
     const sidebar = document.querySelector(".sidebar-light") || document.querySelector(".sidebar") || document.querySelector("aside");
     const backdrop = getBackdrop();
     ensureSidebarCloseBtn();
+    ensureEdgeToggleButton();
     if (!sidebar) return;
 
     const shouldOpen = typeof forceState === "boolean" ? forceState : !sidebar.classList.contains("mobile-open");
@@ -1708,6 +1841,8 @@ async function openChangePasswordModal(user) {
   document.addEventListener("DOMContentLoaded", () => {
     getBackdrop();
     ensureSidebarCloseBtn();
+    ensureEdgeToggleButton();
+    initTouchSwipeGestures();
 
     document.querySelectorAll(".mobile-menu-btn, .btn-menu-toggle, #toggleSidebar").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -1797,8 +1932,12 @@ async function renderGlobalUserProfile() {
   document.querySelectorAll('.user-profile').forEach(container => {
     let html = "";
     let initials = "U";
-    if (rawRole === "admin" || rawRole === "hr") initials = "HR";
-    else initials = (fullName || "U").trim().substring(0, 2).toUpperCase();
+    if (rawRole === "admin" || rawRole === "hr") {
+      initials = "HR";
+    } else {
+      const cleanName = (fullName || "U").replace(/^(คุณ|นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.)\s*/i, '').replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, '').trim();
+      initials = cleanName.length >= 2 ? cleanName.substring(0, 2).toUpperCase() : (cleanName.toUpperCase() || "U");
+    }
 
     // รูปภาพ
     if (avatarUrl) {
@@ -1907,6 +2046,11 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
   }
 
   if (!lang) lang = 'th';
+
+  const prevLang = window.__pvtActiveLang || localStorage.getItem('pvt_login_lang') || 'th';
+  const langChanged = (prevLang !== lang);
+  window.__pvtActiveLang = lang;
+
   localStorage.setItem('pvt_login_lang', lang);
   localStorage.setItem('pvt_language', lang);
 
@@ -1943,39 +2087,39 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
   // 2. ป้องกันไอคอนก่อนเริ่มแปล
   window.protectIconsFromTranslation(document.body);
 
-  // 3. จัดการ Google Translate
-  if (lang === 'th') {
-    window.purgeGoogleTranslate();
-    const combo = document.querySelector('select.goog-te-combo, .goog-te-combo');
-    if (combo && combo.value && combo.value !== 'th' && combo.value !== '') {
-      combo.value = '';
-      combo.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  } else {
-    let googleLang = lang;
-    if (lang === 'zh') googleLang = 'zh-CN';
-
-    const cookieValue = '/th/' + googleLang;
-    document.cookie = 'googtrans=' + cookieValue + '; path=/';
-    document.cookie = 'googtrans=' + cookieValue + '; path=/; domain=' + window.location.hostname;
-
-    const combo = document.querySelector('select.goog-te-combo, .goog-te-combo');
-    if (combo) {
-      combo.value = googleLang;
-      combo.dispatchEvent(new Event('change', { bubbles: true }));
+  // 3. จัดการ Google Translate (ป้องกันการส่ง Event ซ้ำเมื่อมาจาก Observer)
+  if (!options.fromObserver) {
+    if (lang === 'th') {
+      window.purgeGoogleTranslate();
+      const combo = document.querySelector('select.goog-te-combo, .goog-te-combo');
+      if (combo && combo.value && combo.value !== 'th' && combo.value !== '') {
+        combo.value = '';
+        combo.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     } else {
-      setTimeout(() => {
-        const retryCombo = document.querySelector('select.goog-te-combo, .goog-te-combo');
-        if (retryCombo) {
-          retryCombo.value = googleLang;
-          retryCombo.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }, 500);
+      let googleLang = lang;
+      if (lang === 'zh') googleLang = 'zh-CN';
+
+      const cookieValue = '/th/' + googleLang;
+      document.cookie = 'googtrans=' + cookieValue + '; path=/';
+      document.cookie = 'googtrans=' + cookieValue + '; path=/; domain=' + window.location.hostname;
+
+      const combo = document.querySelector('select.goog-te-combo, .goog-te-combo');
+      if (combo && combo.value !== googleLang) {
+        combo.value = googleLang;
+        combo.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     }
   }
 
-  // 4. Dispatch event สำหรับ components ที่ต้องการรับแจ้ง
-  window.dispatchEvent(new CustomEvent('pvt-lang-changed', { detail: { lang } }));
+  // 4. Dispatch event สำหรับ re-rendering เฉพาะเมื่อเปลี่ยนภาษาจริงหรือสั่ง forceBroadcast เท่านั้น
+  if (!options.fromObserver && (langChanged || options.forceBroadcast)) {
+    window.__pvtIsTranslating = true;
+    window.dispatchEvent(new CustomEvent('pvt-lang-changed', { detail: { lang } }));
+    setTimeout(() => {
+      window.__pvtIsTranslating = false;
+    }, 500);
+  }
 };
 
 function injectGlobalLangSwitcher() {
@@ -2033,6 +2177,13 @@ function injectGlobalLangSwitcher() {
 // =========================================================================
 // 📱 GLOBAL MOBILE & DESKTOP SIDEBAR DRAWER CONTROLLER
 // =========================================================================
+window.ensureDesktopSidebarEdgeToggle = function() {
+  const desktopToggle = document.getElementById("desktopSidebarEdgeToggle");
+  if (desktopToggle) {
+    desktopToggle.remove();
+  }
+};
+
 window.applyGlobalSidebarState = function(isCollapsed) {
   const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
   const mainContent = document.querySelector(".main-content");
@@ -2046,6 +2197,19 @@ window.applyGlobalSidebarState = function(isCollapsed) {
     if (sidebar) sidebar.classList.remove("collapsed");
     if (mainContent) mainContent.classList.remove("expanded");
   }
+
+  // Update desktop edge toggle handle icon and tooltip
+  const edgeToggle = document.getElementById("desktopSidebarEdgeToggle");
+  if (edgeToggle) {
+    edgeToggle.setAttribute("title", isCollapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู");
+    const icon = edgeToggle.querySelector(".material-symbols-outlined, .edge-icon");
+    if (icon) icon.textContent = isCollapsed ? "chevron_right" : "chevron_left";
+  }
+
+  // Update any other desktop toggle button icons
+  document.querySelectorAll("#desktopSidebarToggleIcon, .desktop-toggle-icon").forEach(icon => {
+    icon.textContent = isCollapsed ? "chevron_right" : "chevron_left";
+  });
 };
 
 window.toggleDesktopSidebar = function() {
@@ -2124,14 +2288,16 @@ window.closeMobileSidebar = function() {
 };
 
 function setupGlobalSidebarHandlers() {
-  // 🧭 กำหนดให้สไลด์บาร์เริ่มต้นในสถานะปิด/ย่อเสมอในทุกๆ หน้า (Default: Collapsed/Closed)
+  window.ensureDesktopSidebarEdgeToggle();
+
+  // 🧭 โหลดสถานะการย่อ/ขยายสไลด์บาร์ที่ผู้ใช้เลือกไว้ (ค่าเริ่มต้น: เปิดแสดงปกติบน Desktop)
   const savedSidebarState = localStorage.getItem('sidebar-collapsed');
-  const shouldCollapse = savedSidebarState === null ? true : savedSidebarState === 'true';
+  const shouldCollapse = savedSidebarState === 'true';
   window.applyGlobalSidebarState(shouldCollapse);
 
-  document.querySelectorAll(".mobile-menu-btn, #mobileMenuBtn, .btn-menu-toggle, #toggleSidebar").forEach(btn => {
-    btn.removeEventListener("click", window.toggleMobileSidebar);
-    btn.addEventListener("click", window.toggleMobileSidebar);
+  document.querySelectorAll(".mobile-menu-btn, #mobileMenuBtn, .btn-menu-toggle, #toggleSidebar, .desktop-menu-toggle").forEach(btn => {
+    btn.removeEventListener("click", window.toggleSidebar);
+    btn.addEventListener("click", window.toggleSidebar);
   });
 
   const backdrop = document.getElementById("mobileSidebarBackdrop") || document.querySelector(".mobile-sidebar-backdrop");
@@ -2142,11 +2308,10 @@ function setupGlobalSidebarHandlers() {
 
   document.querySelectorAll(".sidebar-light .nav-item, .sidebar .nav-item, aside .nav-item, .sidebar a, .nav-menu a").forEach(item => {
     item.addEventListener("click", () => {
-      // 🔒 เมื่อคลิกเปลี่ยนหน้า: ปิดสไลด์บาร์บนมือถือ และตั้งค่าให้หน้าถัดไปเริ่มต้นแบบปิดสไลด์บาร์เสมอ
+      // 🔒 เมื่อคลิกเปลี่ยนหน้า: ปิดสไลด์บาร์บนมือถือเท่านั้น (คงสถานะที่เลือกบนเดสก์ท็อป)
       if (window.innerWidth <= 1024) {
         window.closeMobileSidebar();
       }
-      localStorage.setItem('sidebar-collapsed', 'true');
     });
   });
 
@@ -2176,6 +2341,9 @@ document.addEventListener("DOMContentLoaded", () => {
               node.classList.contains("lang-switcher") ||
               node.classList.contains("cal-day-cell") ||
               node.classList.contains("spinning-icon") ||
+              node.id === "recentList" ||
+              node.classList.contains("recent-item") ||
+              node.closest?.("#recentList") ||
               node.closest?.("#teamCalGrid") ||
               node.closest?.("#companyCalGrid") ||
               node.closest?.("#teamLeavesList") ||

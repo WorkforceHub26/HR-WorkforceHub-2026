@@ -15,7 +15,8 @@ let currentDeptApproverConfig = null;
 
 function getLeaveFormSteps() {
   const rawRole = String(currentProfile?.role || currentProfile?.position_name || localStorage.getItem("userRole") || "").toLowerCase();
-  const isLeader = rawRole.includes("leader") || rawRole.includes("supervisor") || rawRole.includes("head") || rawRole.includes("หัวหน้า");
+  const isSubLeader = rawRole.includes("หัวหน้ากะ") || rawRole.includes("หัวหน้าส่วน");
+  const isLeader = (rawRole.includes("leader") || rawRole.includes("supervisor") || rawRole.includes("head") || rawRole.includes("หัวหน้า")) && !isSubLeader;
   const isManager = rawRole.includes("manager") || rawRole.includes("ผู้จัดการ");
   const isHr = rawRole.includes("hr") || rawRole.includes("admin");
   const isExecutive = rawRole.includes("executive") || rawRole.includes("director") || rawRole.includes("owner");
@@ -1346,6 +1347,8 @@ async function saveLeave() {
   let defaultManagerStatus = "pending";
   let defaultDirectorStatus = "pending";
 
+  const isSubLeader = userRole.includes("หัวหน้ากะ") || userRole.includes("หัวหน้าส่วน");
+
   // 🧠 Approval Routing ตาม Role ของผู้ยื่น
   if (
     userRole.includes("executive") || userRole.includes("owner") ||
@@ -1360,8 +1363,8 @@ async function saveLeave() {
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
   } else if (
-    userRole.includes("leader") || userRole.includes("supervisor") ||
-    userRole.includes("head") || userRole.includes("หัวหน้า")
+    (userRole.includes("leader") || userRole.includes("supervisor") ||
+    userRole.includes("head") || userRole.includes("หัวหน้า")) && !isSubLeader
   ) {
     defaultManagerStatus = "approved";
     // หัวหน้ายื่นลา: ถ้าแผนกไม่มี L2 (ผู้จัดการ) ให้ข้าม L2 ไปรอ HR/ผู้บริหาร
@@ -1544,7 +1547,7 @@ async function saveLeave() {
       if (hoursMorning > 0) days1 = Math.max(0, days1 - 1) + (hoursMorning / 8);
       if (hoursAfternoon > 0) days2 = Math.max(0, days2 - 1) + (hoursAfternoon / 8);
 
-      const isAutoReject = totalDays > 2;
+      const isAutoReject = false;
 
       payload.push({
         employee_id:            currentEmpId, 
@@ -1552,11 +1555,11 @@ async function saveLeave() {
         start_date:             startDate,
         end_date:               chunk1End,
         total_days:             days1,
-        reason:                 isAutoReject ? `${reason.trim()} (ปฏิเสธอัตโนมัติ: ลาเกิน 2 วัน) (ส่วนที่ 1: ตัดรอบปี ${startYear})` : `${reason.trim()} (ส่วนที่ 1: ตัดรอบปี ${startYear})`,
+        reason:                 `${reason.trim()} (ส่วนที่ 1: ตัดรอบปี ${startYear})`,
         attachment_url:         attachmentUrl,
-        status:                 isAutoReject ? "rejected" : "pending", // รอ HR ปิดงานขั้นสุดท้าย
-        manager_status:         isAutoReject ? "rejected" : defaultManagerStatus,
-        director_status:        isAutoReject ? "rejected" : defaultDirectorStatus,
+        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
+        manager_status:         defaultManagerStatus,
+        director_status:        defaultDirectorStatus,
         leave_hours:            hoursMorning,
         start_period:           hoursMorning > 0 ? "half_day" : "full_day",
         end_period:             "full_day",
@@ -1569,11 +1572,11 @@ async function saveLeave() {
         start_date:             chunk2Start,
         end_date:               endDate,
         total_days:             days2,
-        reason:                 isAutoReject ? `${reason.trim()} (ปฏิเสธอัตโนมัติ: ลาเกิน 2 วัน) (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})` : `${reason.trim()} (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})`,
+        reason:                 `${reason.trim()} (ส่วนที่ 2: ตัดรอบปี ${startYear + 1})`,
         attachment_url:         attachmentUrl,
-        status:                 isAutoReject ? "rejected" : "pending", // รอ HR ปิดงานขั้นสุดท้าย
-        manager_status:         isAutoReject ? "rejected" : defaultManagerStatus,
-        director_status:        isAutoReject ? "rejected" : defaultDirectorStatus,
+        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
+        manager_status:         defaultManagerStatus,
+        director_status:        defaultDirectorStatus,
         leave_hours:            hoursAfternoon,
         start_period:           "full_day",
         end_period:             hoursAfternoon > 0 ? "half_day" : "full_day",
@@ -1585,7 +1588,7 @@ async function saveLeave() {
       const startPeriod = hoursMorning > 0 ? "half_day" : "full_day";
       const endPeriod = hoursAfternoon > 0 ? "half_day" : "full_day";
 
-      const isAutoReject = totalDays > 2;
+      const isAutoReject = false;
 
       payload.push({
         employee_id:            currentEmpId, 
@@ -1593,11 +1596,11 @@ async function saveLeave() {
         start_date:             startDate,
         end_date:               endDate,
         total_days:             totalDays,
-        reason:                 isAutoReject ? `${reason.trim()} (ปฏิเสธอัตโนมัติ: ลาเกิน 2 วัน)` : reason.trim(),
+        reason:                 reason.trim(),
         attachment_url:         attachmentUrl,
-        status:                 isAutoReject ? "rejected" : "pending", // รอ HR ปิดงานขั้นสุดท้าย
-        manager_status:         isAutoReject ? "rejected" : defaultManagerStatus,
-        director_status:        isAutoReject ? "rejected" : defaultDirectorStatus,
+        status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
+        manager_status:         defaultManagerStatus,
+        director_status:        defaultDirectorStatus,
         leave_hours:            totalHours,
         start_period:           startPeriod,
         end_period:             endPeriod,
@@ -1825,28 +1828,15 @@ async function saveLeave() {
       }
     }
 
-    const hasAutoRejected = payload.some(item => item.status === 'rejected');
-    if (hasAutoRejected) {
-      Swal.fire({
-        title: 'ยื่นคำขอลาเรียบร้อย (ระบบปฏิเสธ)',
-        html: `ใบลาบางรายการมีจำนวน<b>วันลาเกิน 2 วัน</b> จึงถูกระบบปฏิเสธการลาโดยอัตโนมัติตามนโยบายบริษัท`,
-        icon: 'warning',
-        confirmButtonColor: '#ef4444',
-        confirmButtonText: 'รับทราบ'
-      }).then(() => {
-        window.location.href = "/pages/user/index-user.html";
-      });
-    } else {
-      Swal.fire({
-        title: 'ส่งคำขอลาสำเร็จ!',
-        html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:#0f766e; font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,
-        icon: 'success',
-        confirmButtonColor: '#0f766e',
-        confirmButtonText: 'รับทราบ'
-      }).then(() => {
-        window.location.href = "/pages/user/index-user.html";
-      });
-    }
+    Swal.fire({
+      title: 'ส่งคำขอลาสำเร็จ!',
+      html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:#0f766e; font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,
+      icon: 'success',
+      confirmButtonColor: '#0f766e',
+      confirmButtonText: 'รับทราบ'
+    }).then(() => {
+      window.location.href = "/pages/user/index-user.html";
+    });
 
   } catch (err) {
     console.error("❌ System Error:", err);
