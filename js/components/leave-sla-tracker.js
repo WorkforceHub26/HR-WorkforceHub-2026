@@ -94,14 +94,45 @@
       badgeText = "⏳ ปานกลาง (< 24 ชม.)";
     }
 
-    // ลำดับขั้นตอนการรออนุมัติ
-    let stepText = "1. รอหัวหน้าแผนก (L1)";
+    // ลำดับขั้นตอนการรออนุมัติ (คำนวณตามโครงสร้างแผนกจริง)
+    const deptId = req.employees?.department_id || req.department_id;
+    const deptApprover = (typeof window.deptApproversMap !== 'undefined' && window.deptApproversMap[deptId]) || null;
+    const empRole = String(req.employees?.role || req.role || '').toLowerCase();
+    const empPos = String(req.employees?.positions?.position_name || req.employees?.position_name || '').toLowerCase();
+    
+    const isExecutiveOrHR = ['executive', 'director', 'hr', 'admin'].includes(empRole) || empPos.includes('ผู้บริหาร') || empPos.includes('ผู้อำนวยการ');
+    const isManagerRole = empRole === 'manager' || empPos.includes('ผู้จัดการ') || empPos.includes('manager');
+    const isLeaderRole = ['leader', 'supervisor'].includes(empRole) || empPos.includes('หัวหน้า');
+
+    let hasL1 = true;
+    let hasL2 = true;
+
+    if (deptApprover) {
+      hasL1 = Boolean(deptApprover.supervisor_id);
+      hasL2 = Boolean(deptApprover.manager_id);
+    }
+
+    if (isExecutiveOrHR) {
+      hasL1 = false;
+      hasL2 = false;
+    } else if (isManagerRole) {
+      hasL1 = false;
+      hasL2 = false;
+    } else if (isLeaderRole) {
+      hasL1 = false;
+    }
+
+    let stepText = "รอพิจารณา";
     let stageClass = "waiting-l1";
-    if (req.manager_status === 'approved' && (!req.director_status || req.director_status === 'pending')) {
-      stepText = "2. รอผู้จัดการฝ่าย (L2)";
+
+    if (hasL1 && req.manager_status !== 'approved' && req.manager_status !== 'rejected') {
+      stepText = "1. รอหัวหน้าแผนก (L1)";
+      stageClass = "waiting-l1";
+    } else if (hasL2 && req.director_status !== 'approved' && req.director_status !== 'rejected') {
+      stepText = hasL1 ? "2. รอผู้จัดการฝ่าย (L2)" : "รอผู้จัดการฝ่าย (L2)";
       stageClass = "waiting-l2";
-    } else if (req.director_status === 'approved' && (!req.executive_status || req.executive_status === 'pending')) {
-      stepText = "3. รอ HR / ผู้บริหาร (L3)";
+    } else {
+      stepText = "รอ HR / ผู้บริหาร (Final Review)";
       stageClass = "waiting-l3";
     }
 

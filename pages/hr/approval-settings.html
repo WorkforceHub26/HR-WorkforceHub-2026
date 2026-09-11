@@ -1814,6 +1814,10 @@
             <span class="field-label-tag" style="background:#ccfbf1; color:#0f766e;">เปิด-ปิดแยกแต่ละสถานะ</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="lineNotifAutoSaveIndicator" style="display:none; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:4px 10px; border-radius:12px; background:#f0fdf4;"></span>
+            <button type="button" class="quick-toggle-btn" onclick="openTestLineStepModal()" style="display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight:600;">
+              <span class="material-symbols-outlined" style="font-size: 16px; color: #2563eb;">science</span> ทดสอบส่ง LINE
+            </button>
             <button type="button" class="quick-toggle-btn" onclick="toggleAllLineNotifs(true)" style="display: inline-flex; align-items: center; gap: 6px;">
               <img src="/assets/icons/check-circle.svg" alt="เปิดทั้งหมด" style="width: 16px; height: 16px; object-fit: contain;" /> เปิดทั้งหมด
             </button>
@@ -1826,9 +1830,14 @@
           
           <!-- Column 1: เมื่อพนักงานส่งใบลาใหม่ (Employee Submission) -->
           <div class="notif-group-card">
-            <div style="font-weight: 800; font-size: 14px; color: var(--primary-hover); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">forward_to_inbox</span>
-              เมื่อพนักงาน "ยื่นใบลาใหม่"
+            <div style="font-weight: 800; font-size: 14px; color: var(--primary-hover); display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">forward_to_inbox</span>
+                เมื่อพนักงาน "ยื่นใบลาใหม่"
+              </span>
+              <button type="button" onclick="openTestLineStepModal('new_request')" style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; cursor:pointer; color:#166534; display:inline-flex; align-items:center; gap:3px;">
+                <span class="material-symbols-outlined" style="font-size:13px; color:#16a34a;">send</span> ทดสอบ
+              </button>
             </div>
             
             <div class="notif-step-row is-active" id="row-notif-new-request">
@@ -1862,9 +1871,14 @@
 
           <!-- Column 2: ระหว่างขั้นอนุมัติ (Approval States) -->
           <div class="notif-group-card">
-            <div style="font-weight: 800; font-size: 14px; color: var(--accent-blue); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">sync_alt</span>
-              ในระหว่างขั้นตอนการพิจารณา
+            <div style="font-weight: 800; font-size: 14px; color: var(--accent-blue); display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">sync_alt</span>
+                ในระหว่างขั้นตอนการพิจารณา
+              </span>
+              <button type="button" onclick="openTestLineStepModal('leader_approved')" style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; cursor:pointer; color:#1d4ed8; display:inline-flex; align-items:center; gap:3px;">
+                <span class="material-symbols-outlined" style="font-size:13px; color:#2563eb;">send</span> ทดสอบ
+              </button>
             </div>
             
             <div class="notif-step-row is-active" id="row-notif-leader-approved">
@@ -1898,9 +1912,14 @@
 
           <!-- Column 3: ส่งกลับหาพนักงาน & ขอยกเลิก (Send Back to Employee) -->
           <div class="notif-group-card">
-            <div style="font-weight: 800; font-size: 14px; color: var(--accent-purple); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">reply</span>
-              ส่งผลการพิจารณากลับหาพนักงาน & อื่นๆ
+            <div style="font-weight: 800; font-size: 14px; color: var(--accent-purple); display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">reply</span>
+                ส่งผลการพิจารณากลับหาพนักงาน & อื่นๆ
+              </span>
+              <button type="button" onclick="openTestLineStepModal('final_approved')" style="background:#faf5ff; border:1px solid #e9d5ff; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; cursor:pointer; color:#7e22ce; display:inline-flex; align-items:center; gap:3px;">
+                <span class="material-symbols-outlined" style="font-size:13px; color:#9333ea;">send</span> ทดสอบ
+              </button>
             </div>
             
             <div class="notif-step-row is-active" id="row-notif-final-approved">
@@ -1948,9 +1967,14 @@
 
           <!-- Column 4: การแจ้งเตือนฝ่าย HR (HR Controls & Popups) -->
           <div class="notif-group-card">
-            <div style="font-weight: 800; font-size: 14px; color: #0d9488; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">manage_accounts</span>
-              การแจ้งเตือน LINE สำหรับฝ่าย HR
+            <div style="font-weight: 800; font-size: 14px; color: #0d9488; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">manage_accounts</span>
+                การแจ้งเตือน LINE สำหรับฝ่าย HR
+              </span>
+              <button type="button" onclick="openTestLineStepModal('hr_review')" style="background:#f0fdfa; border:1px solid #99f6e4; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; cursor:pointer; color:#0f766e; display:inline-flex; align-items:center; gap:3px;">
+                <span class="material-symbols-outlined" style="font-size:13px; color:#0d9488;">send</span> ทดสอบ
+              </button>
             </div>
             
             <div class="notif-step-row is-active" id="row-notif-hr-review">

@@ -1240,7 +1240,21 @@ function classifyPositionCategory(posOrName) {
     return 'executive';
   }
 
-  // 1. ผู้จัดการ (Manager)
+  // 1. ตำแหน่งผู้ช่วย / รอง / หัวหน้ากะ (จัดอยู่ในหมวดผู้ช่วย/ปฏิบัติการพิเศษ ไม่ขึ้นเป็นผู้จัดการหรือหัวหน้าสายตรง)
+  if (
+    name.includes('ผู้ช่วย') ||
+    name.includes('รอง') ||
+    name.includes('หัวหน้ากะ') ||
+    name.includes('shift lead') ||
+    name.includes('shift leader') ||
+    name.includes('assistant') ||
+    name.includes('deputy') ||
+    name.includes('vice')
+  ) {
+    return 'officer';
+  }
+
+  // 2. ผู้จัดการ (Manager)
   if (
     name.includes('ผู้จัดการ') || 
     name.includes('manager')
@@ -1248,23 +1262,20 @@ function classifyPositionCategory(posOrName) {
     return 'manager';
   }
   
-  // 2. หัวหน้าแผนก / หัวหน้างาน / Supervisor
+  // 3. หัวหน้าแผนก / หัวหน้างาน / Supervisor (สายอนุมัติหลัก L1)
   if (
     name.includes('หัวหน้า') || 
     name.includes('supervisor') || 
     name.includes('lead') || 
-    name.includes('leader') ||
-    name.includes('หัวหน้ากะ')
+    name.includes('leader')
   ) {
     return 'supervisor';
   }
   
-  // 3. เจ้าหน้าที่ (รวมตำแหน่ง "ผู้ช่วย" อยู่ในหมวดนี้ตามระเบียบที่กำหนด)
+  // 4. เจ้าหน้าที่ (Officer, Engineer, Specialist)
   if (
     name.includes('เจ้าหน้าที่') || 
-    name.includes('ผู้ช่วย') || 
     name.includes('officer') || 
-    name.includes('assistant') || 
     name.includes('นักวิชาการ') || 
     name.includes('ธุรการ') || 
     name.includes('admin') || 
@@ -1286,7 +1297,7 @@ function classifyPositionCategory(posOrName) {
     return 'officer';
   }
   
-  // 4. พนักงานทั่วไป / ระดับปฏิบัติการ
+  // 5. พนักงานทั่วไป / ระดับปฏิบัติการ
   return 'staff';
 }
 
@@ -1295,15 +1306,33 @@ function getPositionCategoryLabel(catKey) {
     case 'executive': return '👑 กลุ่มผู้บริหารระดับสูง (Executive)';
     case 'manager': return '👔 กลุ่มผู้จัดการ (Manager)';
     case 'supervisor': return '🎖️ กลุ่มหัวหน้าแผนก / หัวหน้างาน (Supervisor & Lead)';
-    case 'officer': return '📋 กลุ่มเจ้าหน้าที่ / ผู้ช่วย (Officer & Assistant)';
+    case 'officer': return '📋 กลุ่มเจ้าหน้าที่ / ผู้ช่วย / รองหัวหน้า / หัวหน้ากะ (Officer & Assistant)';
     case 'staff': return '👤 กลุ่มพนักงานทั่วไป / ปฏิบัติการ (General Staff)';
     default: return 'ตำแหน่งงาน';
   }
 }
 
-// สร้าง Dropdown Options จัดกลุ่มตามหมวดหมู่ <optgroup>
+// สร้าง Dropdown Options จัดกลุ่มตามหมวดหมู่ <optgroup> พร้อมตัดรายการซ้ำ (Deduplication)
 function buildGroupedPositionOptions(positionsList, selectedIdOrName) {
-  const list = positionsList || window.positions || [];
+  const rawList = positionsList || window.positions || [];
+  
+  // ตัดรายการตำแหน่งซ้ำ (Deduplicate positions by name)
+  const uniquePositionsMap = new Map();
+  rawList.forEach(p => {
+    if (!p) return;
+    const pName = String(p.position_name || '').trim();
+    if (!pName) return;
+    
+    const key = pName.toLowerCase();
+    const isSelected = String(p.id) === String(selectedIdOrName) || pName === selectedIdOrName;
+    
+    if (!uniquePositionsMap.has(key) || isSelected) {
+      uniquePositionsMap.set(key, p);
+    }
+  });
+
+  const list = Array.from(uniquePositionsMap.values());
+
   const groups = {
     executive: [],
     manager: [],
@@ -1314,7 +1343,6 @@ function buildGroupedPositionOptions(positionsList, selectedIdOrName) {
 
   list.forEach(p => {
     let cat = classifyPositionCategory(p.position_name);
-    // Safety check: if cat is not one of our keys, default to staff or handle gracefully
     if (!groups[cat]) cat = 'staff'; 
     groups[cat].push(p);
   });
@@ -1356,7 +1384,7 @@ function buildGroupedPositionOptions(positionsList, selectedIdOrName) {
   }
 
   if (groups.officer.length > 0) {
-    html += `<optgroup label="📋 กลุ่มเจ้าหน้าที่ & ผู้ช่วย (${groups.officer.length})">`;
+    html += `<optgroup label="📋 กลุ่มเจ้าหน้าที่ / ผู้ช่วย / หัวหน้ากะ (${groups.officer.length})">`;
     groups.officer.forEach(p => {
       const isSel = String(p.id) === String(selectedIdOrName) || p.position_name === selectedIdOrName;
       html += `<option value="${p.id}" ${isSel ? 'selected' : ''}>${escapeHtml(p.position_name)}</option>`;

@@ -874,6 +874,96 @@ window.previewLeaveModalFromHistory = function(leaveId) {
       </div>`;
   }
 
+  // Dynamic Stepper Steps Calculation
+  const reqEmp = item.employees || window.currentProfile || {};
+  const reqDeptId = item.department_id || reqEmp.department_id;
+  const applicantRole = String(reqEmp.role || '').toLowerCase();
+  const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
+  const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
+  const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
+  const isApplicantHr = applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin';
+
+  let hasL1 = false;
+  let hasL2 = false;
+
+  const deptApprovers = (window.deptApproversMap && reqDeptId) ? window.deptApproversMap[reqDeptId] : null;
+  if (deptApprovers) {
+    hasL1 = Boolean(deptApprovers.hasLeader);
+    hasL2 = Boolean(deptApprovers.hasManager);
+  } else {
+    hasL1 = !isApplicantLeader && !isApplicantManager && !isApplicantHr;
+    hasL2 = !isApplicantManager && !isApplicantHr;
+  }
+
+  if (reqEmp.l1_approver_id) hasL1 = true;
+  if (reqEmp.l2_approver_id) hasL2 = true;
+  if (isApplicantLeader) hasL1 = false;
+  if (isApplicantManager || isApplicantHr) {
+    hasL1 = false;
+    hasL2 = false;
+  }
+
+  const stepsList = [
+    {
+      label: '1. ยื่นคำขอลา',
+      icon: 'check_circle',
+      iconColor: '#10b981',
+      statusText: 'สำเร็จ',
+      statusColor: '#15803d'
+    }
+  ];
+
+  let stepIdx = 2;
+  if (hasL1) {
+    const isApp = item.manager_status === 'approved';
+    const isRej = item.manager_status === 'rejected';
+    stepsList.push({
+      label: `${stepIdx}. หัวหน้างาน (L1)`,
+      icon: isApp ? 'check_circle' : isRej ? 'cancel' : 'hourglass_top',
+      iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : '#f59e0b',
+      statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : 'รอพิจารณา (48 ชม.)',
+      statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#b45309'
+    });
+    stepIdx++;
+  }
+
+  if (hasL2) {
+    const isApp = item.director_status === 'approved';
+    const isRej = item.director_status === 'rejected';
+    const isPendingL1 = hasL1 && item.manager_status !== 'approved';
+    stepsList.push({
+      label: `${stepIdx}. ผู้จัดการฝ่าย (L2)`,
+      icon: isApp ? 'check_circle' : isRej ? 'cancel' : isPendingL1 ? 'schedule' : 'hourglass_top',
+      iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : isPendingL1 ? '#94a3b8' : '#f59e0b',
+      statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : isPendingL1 ? 'รอดำเนินการ' : 'รอพิจารณา (ผู้จัดการฝ่าย L2)',
+      statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#94a3b8'
+    });
+    stepIdx++;
+  }
+
+  const isHrApp = item.status === 'approved';
+  const isHrRej = item.status === 'rejected';
+  const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved');
+  stepsList.push({
+    label: `${stepIdx}. ฝ่ายบุคคล (HR Final)`,
+    icon: isHrApp ? 'verified' : isHrRej ? 'cancel' : 'pending',
+    iconColor: isHrApp ? '#10b981' : isHrRej ? '#ef4444' : '#94a3b8',
+    statusText: isHrApp ? 'อนุมัติสมบูรณ์' : isHrRej ? 'ไม่อนุมัติ' : isPendingPrev ? 'รอดำเนินการ' : 'กำลังตรวจสอบ',
+    statusColor: isHrApp ? '#15803d' : isHrRej ? '#b91c1c' : '#94a3b8'
+  });
+
+  const stepperHtml = stepsList.map(s => `
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 6px;">
+        <span class="material-symbols-outlined" style="color: ${s.iconColor}; font-size: 16px;">${s.icon}</span>
+        ${s.label}
+      </span>
+      <span style="font-weight: 600; color: ${s.statusColor};">
+        ${s.statusText}
+      </span>
+    </div>
+  `).join('');
+
   Swal.fire({
     title: `<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:#0f766e;">event_note</span> ${typeName}</div>`,
     html: `
@@ -908,45 +998,7 @@ window.previewLeaveModalFromHistory = function(leaveId) {
             <span class="material-symbols-outlined" style="font-size: 18px;">timeline</span> ขั้นตอนการอนุมัติ (Visual Stepper)
           </div>
           <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="display: flex; align-items: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="color: #10b981; font-size: 16px;">check_circle</span> 1. ยื่นคำขอลา
-              </span>
-              <span style="color: #15803d; font-weight: 600;">สำเร็จ</span>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="display: flex; align-items: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="color: ${item.manager_status === 'approved' ? '#10b981' : item.manager_status === 'rejected' ? '#ef4444' : '#f59e0b'}; font-size: 16px;">
-                  ${item.manager_status === 'approved' ? 'check_circle' : item.manager_status === 'rejected' ? 'cancel' : 'hourglass_top'}
-                </span>
-                2. หัวหน้างาน (L1)
-              </span>
-              <span style="font-weight: 600; color: ${item.manager_status === 'approved' ? '#15803d' : item.manager_status === 'rejected' ? '#b91c1c' : '#b45309'};">
-                ${item.manager_status === 'approved' ? 'อนุมัติแล้ว' : item.manager_status === 'rejected' ? 'ไม่อนุมัติ' : 'รอพิจารณา (48 ชม.)'}
-              </span>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="display: flex; align-items: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="color: ${item.director_status === 'approved' ? '#10b981' : item.director_status === 'rejected' ? '#ef4444' : item.manager_status === 'approved' ? '#f59e0b' : '#94a3b8'}; font-size: 16px;">
-                  ${item.director_status === 'approved' ? 'check_circle' : item.director_status === 'rejected' ? 'cancel' : item.manager_status === 'approved' ? 'hourglass_top' : 'schedule'}
-                </span>
-                3. ผู้จัดการฝ่าย (L2)
-              </span>
-              <span style="font-weight: 600; color: ${item.director_status === 'approved' ? '#15803d' : item.director_status === 'rejected' ? '#b91c1c' : '#94a3b8'};">
-                ${item.director_status === 'approved' ? 'อนุมัติแล้ว' : item.director_status === 'rejected' ? 'ไม่อนุมัติ' : item.manager_status === 'approved' ? 'รอพิจารณา' : 'รอดำเนินการ'}
-              </span>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="display: flex; align-items: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="color: ${item.status === 'approved' ? '#10b981' : item.status === 'rejected' ? '#ef4444' : '#94a3b8'}; font-size: 16px;">
-                  ${item.status === 'approved' ? 'verified' : item.status === 'rejected' ? 'cancel' : 'pending'}
-                </span>
-                4. ฝ่ายบุคคล (HR Final)
-              </span>
-              <span style="font-weight: 600; color: ${item.status === 'approved' ? '#15803d' : item.status === 'rejected' ? '#b91c1c' : '#94a3b8'};">
-                ${item.status === 'approved' ? 'อนุมัติสมบูรณ์' : item.status === 'rejected' ? 'ไม่อนุมัติ' : 'รอดำเนินการ'}
-              </span>
-            </div>
+            ${stepperHtml}
           </div>
           <div style="margin-top: 10px; font-size: 11px; color: #0f766e; background: #f0fdfa; padding: 6px 10px; border-radius: 8px;">
             💡 ติดตามสถานะผ่านระบบได้โดยตรง ไม่ต้องทักไลน์สอบถามหัวหน้างาน
@@ -1123,3 +1175,32 @@ window.markAllUserNotificationsAsRead = async function(event) {
 
 // Auto load on init
 setTimeout(() => { fetchUserNotifications(); }, 2000);
+
+// 📱 Auto-sync on Android/Mobile WebView foreground resume for Leave History
+let lastHistorySync = Date.now();
+async function handleHistoryAutoSync() {
+  if (document.visibilityState === 'visible' || !document.hidden) {
+    const now = Date.now();
+    if (now - lastHistorySync > 3500) {
+      lastHistorySync = now;
+      console.log("📱 [AUTO-SYNC] Leave history returned to foreground, fetching fresh requests...");
+      try {
+        await loadMyLeaveHistory();
+        if (typeof fetchUserNotifications === 'function') fetchUserNotifications();
+      } catch (err) {
+        console.warn("History auto-sync error:", err);
+      }
+    }
+  }
+}
+
+document.addEventListener("visibilitychange", handleHistoryAutoSync);
+window.addEventListener("pageshow", handleHistoryAutoSync);
+window.addEventListener("focus", handleHistoryAutoSync);
+
+// Polling ทุกๆ 25 วินาที
+setInterval(() => {
+  if (document.visibilityState === 'visible' && !document.hidden) {
+    loadMyLeaveHistory();
+  }
+}, 25000);

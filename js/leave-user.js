@@ -573,30 +573,32 @@ async function fetchCurrentUserData() {
         const deptData = deptRes.data;
         const emps = (empsRes.data || []).filter(e => e.status === 'active' || !e.status);
 
-        const hasLeader = Boolean(
-          apprv?.supervisor_id ||
-          emps.some(e => {
-            const r = String(e.role || '').toLowerCase();
-            const p = String(e.positions?.position_name || '').toLowerCase();
-            return r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า');
-          })
-        );
+        let hasLeader = false;
+        let hasManager = false;
+        let supervisor_id = null;
+        let manager_id = null;
 
-        const hasManager = Boolean(
-          apprv?.manager_id ||
-          deptData?.approver_id ||
-          emps.some(e => {
+        if (apprv) {
+          hasLeader = Boolean(apprv.supervisor_id);
+          supervisor_id = apprv.supervisor_id || null;
+          hasManager = Boolean(apprv.manager_id || deptData?.approver_id);
+          manager_id = apprv.manager_id || deptData?.approver_id || null;
+        } else {
+          hasLeader = emps.some(e => {
             const r = String(e.role || '').toLowerCase();
             const p = String(e.positions?.position_name || '').toLowerCase();
-            return r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ');
-          })
-        );
+            return (r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า')) && !r.includes('manager') && !p.includes('ผู้จัดการ');
+          });
+          supervisor_id = emps.find(e => (String(e.role || '').toLowerCase().includes('leader') || String(e.positions?.position_name || '').toLowerCase().includes('หัวหน้า')) && !String(e.role || '').toLowerCase().includes('manager'))?.id || null;
+          hasManager = Boolean(deptData?.approver_id || emps.some(e => String(e.role || '').toLowerCase().includes('manager')));
+          manager_id = deptData?.approver_id || emps.find(e => String(e.role || '').toLowerCase().includes('manager'))?.id || null;
+        }
 
         currentDeptApproverConfig = {
           hasLeader,
           hasManager,
-          supervisor_id: apprv?.supervisor_id,
-          manager_id: apprv?.manager_id || deptData?.approver_id
+          supervisor_id,
+          manager_id
         };
       }
     } catch (e) {
@@ -1305,30 +1307,30 @@ async function saveLeave() {
       const deptData = deptRes.data;
       const emps = (empsRes.data || []).filter(e => e.status === 'active' || !e.status);
 
-      const hasLeader = Boolean(
-        apprv?.supervisor_id ||
-        emps.some(e => {
+      // 1. ตรวจสอบจาก department_approvers เป็นหลัก
+      let hasLeader = Boolean(apprv?.supervisor_id);
+      let hasManager = Boolean(apprv?.manager_id || deptData?.approver_id);
+
+      // 2. ถ้าใน department_approvers ยังไม่ได้บันทึกไว้ ให้ดูจากรายชื่อพนักงานในแผนก
+      if (!apprv?.supervisor_id && !apprv?.manager_id) {
+        hasLeader = emps.some(e => {
           const r = String(e.role || '').toLowerCase();
           const p = String(e.positions?.position_name || '').toLowerCase();
-          return r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า');
-        })
-      );
+          return (r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า')) && !r.includes('manager') && !p.includes('ผู้จัดการ');
+        });
 
-      const hasManager = Boolean(
-        apprv?.manager_id ||
-        deptData?.approver_id ||
-        emps.some(e => {
+        hasManager = emps.some(e => {
           const r = String(e.role || '').toLowerCase();
           const p = String(e.positions?.position_name || '').toLowerCase();
           return r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ');
-        })
-      );
+        });
+      }
 
       approverConfig = {
         hasLeader,
         hasManager,
-        supervisor_id: apprv?.supervisor_id,
-        manager_id: apprv?.manager_id || deptData?.approver_id
+        supervisor_id: apprv?.supervisor_id || null,
+        manager_id: apprv?.manager_id || deptData?.approver_id || null
       };
       currentDeptApproverConfig = approverConfig;
     } catch (e) {
@@ -1337,11 +1339,22 @@ async function saveLeave() {
   }
 
   // ✅ รวมผลกับ Individual Overrides (ถ้ามีให้ทับค่าของแผนก)
-  const l1Id = currentProfile?.l1_approver_id || approverConfig?.supervisor_id;
-  const l2Id = currentProfile?.l2_approver_id || approverConfig?.manager_id;
-  const l3Id = currentProfile?.l3_approver_id;
+  let l1Id = currentProfile?.l1_approver_id || approverConfig?.supervisor_id || null;
+  let l2Id = currentProfile?.l2_approver_id || approverConfig?.manager_id || null;
+  const l3Id = currentProfile?.l3_approver_id || null;
 
-  const hasL1 = Boolean(l1Id || approverConfig?.hasLeader);
+  // 🛡️ ป้องกันกรณี l1Id ชี้ไปที่ผู้จัดการ (เช่น แผนก QC ที่มีแต่ผู้จัดการ หรือเคยผูกผู้จัดการไว้ในช่อง l1)
+  if (l1Id) {
+    const isL1ActuallyManager = (approverConfig?.manager_id && l1Id === approverConfig.manager_id) ||
+      (l1Id === l2Id) ||
+      (!approverConfig?.supervisor_id && approverConfig?.manager_id);
+    if (isL1ActuallyManager) {
+      if (!l2Id) l2Id = l1Id;
+      l1Id = null;
+    }
+  }
+
+  const hasL1 = Boolean(l1Id || (approverConfig?.hasLeader && approverConfig?.supervisor_id));
   const hasL2 = Boolean(l2Id || approverConfig?.hasManager);
 
   let defaultManagerStatus = "pending";
@@ -1756,10 +1769,12 @@ async function saveLeave() {
       }
     } else {
       // พนักงานทั่วไป: ลำดับคือ หัวหน้างาน (L1) -> ผู้จัดการฝ่าย (L2) -> ผู้บริหาร (L3) -> HR
-      const targetL1Id = currentProfile?.l1_approver_id || (deptId ? (await sb.from("department_approvers").select("supervisor_id").eq("department_id", deptId).maybeSingle()).data?.supervisor_id : null);
-      const targetL2Id = currentProfile?.l2_approver_id || (deptId ? (await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle()).data?.manager_id : null);
+      // ⚡ หาก defaultManagerStatus เป็น 'approved' แปลว่าข้ามขั้นตอน L1 (เช่น แผนก QC หรือไม่มีหัวหน้างาน)
+      const isL1Skipped = defaultManagerStatus === 'approved';
+      let targetL1Id = isL1Skipped ? null : (l1Id || currentProfile?.l1_approver_id || (deptId ? (await sb.from("department_approvers").select("supervisor_id").eq("department_id", deptId).maybeSingle()).data?.supervisor_id : null));
+      let targetL2Id = l2Id || currentProfile?.l2_approver_id || (deptId ? (await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle()).data?.manager_id : null);
 
-      if (targetL1Id) {
+      if (targetL1Id && !isL1Skipped) {
         const { data: leaderEmp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", targetL1Id).maybeSingle();
         recipient = leaderEmp;
         recipientRole = "leader";

@@ -125,32 +125,47 @@ async function initSystemAndPermissions() {
 
         deptApproversMap = {};
         depts.forEach(d => {
+          const cfg = approverConfigByDept[d.id];
           const deptEmps = allEmps.filter(e => e.department_id === d.id && (e.status === 'active' || !e.status));
           
-          const leaders = deptEmps.filter(e => {
-            const r = String(e.role || '').toLowerCase();
-            const p = String(e.positions?.position_name || '').toLowerCase();
-            return r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า');
-          });
+          let hasLeader = false;
+          let supervisor_id = null;
+          let hasManager = false;
+          let manager_id = null;
 
-          const managers = deptEmps.filter(e => {
-            const r = String(e.role || '').toLowerCase();
-            const p = String(e.positions?.position_name || '').toLowerCase();
-            const isHrDept = String(d.department_name || '').includes('บุคคล');
-            return (r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ')) && (!isHrDept || r !== 'hr');
-          });
-
-          const cfg = approverConfigByDept[d.id] || {};
-          const hasLeader = Boolean(cfg.supervisor_id || leaders.length > 0);
-          const hasManager = Boolean(cfg.manager_id || d.approver_id || managers.length > 0);
+          if (cfg) {
+            // 🎯 กำหนดค่าอย่างเป็นทางการจากตาราง department_approvers
+            hasLeader = Boolean(cfg.supervisor_id);
+            supervisor_id = cfg.supervisor_id || null;
+            hasManager = Boolean(cfg.manager_id || d.approver_id);
+            manager_id = cfg.manager_id || d.approver_id || null;
+          } else {
+            // สำรอง (Fallback) เฉพาะแผนกที่ยังไม่เคยตั้งค่าในตาราง department_approvers
+            const leaders = deptEmps.filter(e => {
+              const r = String(e.role || '').toLowerCase();
+              const p = String(e.positions?.position_name || '').toLowerCase();
+              return (r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า')) && !r.includes('manager') && !p.includes('ผู้จัดการ');
+            });
+            const managers = deptEmps.filter(e => {
+              const r = String(e.role || '').toLowerCase();
+              const p = String(e.positions?.position_name || '').toLowerCase();
+              const isHrDept = String(d.department_name || '').includes('บุคคล');
+              return (r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ')) && (!isHrDept || r !== 'hr');
+            });
+            hasLeader = leaders.length > 0;
+            supervisor_id = leaders[0]?.id || null;
+            hasManager = Boolean(d.approver_id || managers.length > 0);
+            manager_id = d.approver_id || managers[0]?.id || null;
+          }
 
           deptApproversMap[d.id] = {
             hasLeader,
             hasManager,
-            supervisor_id: cfg.supervisor_id || (leaders[0]?.id || null),
-            manager_id: cfg.manager_id || d.approver_id || (managers[0]?.id || null)
+            supervisor_id,
+            manager_id
           };
         });
+        window.deptApproversMap = deptApproversMap;
 
         if (empData?.id) {
           isDeptSupervisor = apprvList.some(a => String(a.supervisor_id) === String(empData.id)) ||
@@ -394,7 +409,13 @@ function isPendingForRole(r, role) {
     return (r.manager_status || 'pending') === 'pending';
   }
   if (userRole === 'manager') {
-    return (r.director_status || 'pending') === 'pending';
+    if ((r.director_status || 'pending') === 'pending') return true;
+    if ((r.manager_status || 'pending') === 'pending') {
+      const deptId = r.employees?.department_id;
+      const deptApprover = (typeof window.deptApproversMap !== 'undefined' && window.deptApproversMap[deptId]) || null;
+      if (deptApprover && !deptApprover.supervisor_id) return true;
+    }
+    return false;
   }
   if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
     return (r.executive_status || 'pending') === 'pending';
@@ -3174,3 +3195,32 @@ window.handleLogout = function() {
     }
   });
 };
+
+// 📱 Auto-sync on Android/Mobile WebView foreground resume for HR Dashboard
+let lastHrSyncTime = Date.now();
+async function handleHrAutoSync() {
+  if (document.visibilityState === 'visible' || !document.hidden) {
+    const now = Date.now();
+    if (now - lastHrSyncTime > 4000) {
+      lastHrSyncTime = now;
+      console.log("📱 [AUTO-SYNC] HR Dashboard foreground resume, refreshing pending leaves & stats...");
+      try {
+        if (typeof loadPendingLeavesHR === 'function') loadPendingLeavesHR();
+        if (typeof loadDeptApproversMapping === 'function') loadDeptApproversMapping();
+      } catch (err) {
+        console.warn("HR auto-sync error:", err);
+      }
+    }
+  }
+}
+
+document.addEventListener("visibilitychange", handleHrAutoSync);
+window.addEventListener("pageshow", handleHrAutoSync);
+window.addEventListener("focus", handleHrAutoSync);
+
+// Polling ทุกๆ 30 วินาที
+setInterval(() => {
+  if (document.visibilityState === 'visible' && !document.hidden) {
+    if (typeof loadPendingLeavesHR === 'function') loadPendingLeavesHR();
+  }
+}, 30000);

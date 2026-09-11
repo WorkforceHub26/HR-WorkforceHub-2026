@@ -2681,7 +2681,13 @@ function isPendingForRoleHome(r, role) {
     return (r.manager_status || 'pending') === 'pending';
   }
   if (userRole === 'manager') {
-    return (r.director_status || 'pending') === 'pending';
+    if ((r.director_status || 'pending') === 'pending') return true;
+    if ((r.manager_status || 'pending') === 'pending') {
+      const deptId = r.employees?.department_id;
+      const deptApprover = (typeof window.deptApproversMap !== 'undefined' && window.deptApproversMap[deptId]) || null;
+      if (deptApprover && !deptApprover.supervisor_id) return true;
+    }
+    return false;
   }
   if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
     return (r.executive_status || 'pending') === 'pending';

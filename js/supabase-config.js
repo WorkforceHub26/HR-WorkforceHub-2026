@@ -2311,6 +2311,9 @@ class LineOAEngine {
       'NEW_REQUEST', 
       'LEADER_APPROVED', 
       'MANAGER_APPROVED', 
+      'EXECUTIVE_APPROVED',
+      'PENDING_HR',
+      'HR_REVIEW',
       'REQUEST_APPROVED', 
       'FINAL_APPROVED', 
       'REJECTED', 
@@ -2513,6 +2516,27 @@ class LineOAEngine {
         lineSent: false
       };
     }
+  }
+
+  // 🚀 สะดวกเรียกใช้ส่งแจ้งเตือนใบลาทั่วไป
+  async notifyLeaveRequest(leaveReq = {}) {
+    const role = leaveReq.recipientRole || leaveReq.approver_role || 'leader';
+    return await this.sendWorkflowNotification({
+      type: 'NEW_REQUEST',
+      leaveId: leaveReq.id,
+      employeeName: leaveReq.applicant_name || leaveReq.employee_name || 'พนักงาน',
+      employeeCode: leaveReq.employee_code || '',
+      departmentName: leaveReq.department_name || '',
+      recipientId: leaveReq.approver_id || leaveReq.recipientId,
+      recipientRole: role,
+      leaveType: leaveReq.leave_type_name || 'ใบลา',
+      startDate: leaveReq.start_date,
+      endDate: leaveReq.end_date,
+      totalDays: leaveReq.total_days || 1,
+      leaveHours: leaveReq.leave_hours || 0,
+      reason: leaveReq.reason || '',
+      attachmentUrl: leaveReq.attachment_url || ''
+    });
   }
 }
 

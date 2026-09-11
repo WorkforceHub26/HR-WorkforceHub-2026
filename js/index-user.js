@@ -85,6 +85,42 @@ document.addEventListener("DOMContentLoaded", async () => {
   checkUserNotifications();
 });
 
+// 📱 Auto-sync on Android/Mobile WebView foreground resume (ไม่จำเป็นต้องกดรีเฟรชหน้าจอเอง)
+let lastUserHomeSync = Date.now();
+async function handleUserHomeAutoSync() {
+  if (document.visibilityState === 'visible' || !document.hidden) {
+    const now = Date.now();
+    if (now - lastUserHomeSync > 3500) {
+      lastUserHomeSync = now;
+      console.log("📱 [AUTO-SYNC] App returned to active state, refreshing latest leave & notification data...");
+      try {
+        if (window.currentProfile) {
+          await loadRecentLeaves(window.currentProfile);
+          if (typeof initQuotaSystem === 'function') initQuotaSystem();
+          if (typeof checkUserNotifications === 'function') checkUserNotifications();
+          if (typeof checkApproverPermission === 'function') checkApproverPermission(window.currentProfile);
+        } else {
+          await initUserHome();
+        }
+      } catch (syncErr) {
+        console.warn("Auto-sync error:", syncErr);
+      }
+    }
+  }
+}
+
+document.addEventListener("visibilitychange", handleUserHomeAutoSync);
+window.addEventListener("pageshow", handleUserHomeAutoSync);
+window.addEventListener("focus", handleUserHomeAutoSync);
+
+// Polling อัตโนมัติทุกๆ 25 วินาที เมื่อหน้าต่างเปิดอยู่
+setInterval(() => {
+  if (document.visibilityState === 'visible' && !document.hidden && window.currentProfile) {
+    loadRecentLeaves(window.currentProfile);
+    if (typeof checkUserNotifications === 'function') checkUserNotifications();
+  }
+}, 25000);
+
 /* ==========================================================================
    📥 4. ฟังก์ชันหลักสำหรับโหลดข้อมูลหน้าพนักงาน (แก้ไข Relational Embedding)
    ========================================================================== */
@@ -1124,26 +1160,20 @@ async function openEmployeeStatusTrackerModal() {
         const apprv = apprvRes.data;
         const emps = (deptEmpsRes.data || []).filter(e => e.status === 'active' || !e.status);
 
-        if (!hasLeader) {
-          hasLeader = Boolean(
-            apprv?.supervisor_id ||
-            emps.some(e => {
-              const r = String(e.role || '').toLowerCase();
-              const p = String(e.positions?.position_name || '').toLowerCase();
-              return r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า');
-            })
-          );
-        }
-
-        if (!hasManager) {
-          hasManager = Boolean(
-            apprv?.manager_id ||
-            emps.some(e => {
-              const r = String(e.role || '').toLowerCase();
-              const p = String(e.positions?.position_name || '').toLowerCase();
-              return r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ');
-            })
-          );
+        if (apprv) {
+          hasLeader = Boolean(apprv.supervisor_id);
+          hasManager = Boolean(apprv.manager_id);
+        } else {
+          hasLeader = emps.some(e => {
+            const r = String(e.role || '').toLowerCase();
+            const p = String(e.positions?.position_name || '').toLowerCase();
+            return (r === 'leader' || r.includes('leader') || r.includes('supervisor') || p.includes('หัวหน้า')) && !r.includes('manager') && !p.includes('ผู้จัดการ');
+          });
+          hasManager = emps.some(e => {
+            const r = String(e.role || '').toLowerCase();
+            const p = String(e.positions?.position_name || '').toLowerCase();
+            return r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ');
+          });
         }
       } catch (err) {
         console.warn("Could not check department leaders:", err);
@@ -2227,22 +2257,38 @@ window.initQuickForm = async function(profile, quotas) {
           .eq('id', approverEmpId)
           .maybeSingle();
         if (appEmp) {
-          const pName = appEmp.positions?.position_name || 'หัวหน้างาน/หัวหน้ากะ';
-          approverText = `${appEmp.full_name} (${pName})`;
-          approverNote = '✓ สายอนุมัติ: ส่งคำขอให้หัวหน้างาน/หัวหน้ากะพิจารณา (L1)';
-          resolvedApprover = {
-            id: appEmp.id,
-            name: appEmp.full_name,
-            role: 'leader',
-            hasLeader: true,
-            hasManager: false
-          };
-          isLeaderFound = true;
+          const pName = appEmp.positions?.position_name || '';
+          const r = String(appEmp.role || '').toLowerCase();
+          const isActuallyManager = r === 'manager' || r === 'director' || pName.includes('ผู้จัดการ') || pName.includes('Manager');
+
+          if (isActuallyManager) {
+            approverText = `${appEmp.full_name} (${pName || 'ผู้จัดการฝ่าย'})`;
+            approverNote = '⚡ สายอนุมัติ: แผนกไม่มีหัวหน้างาน (L1) ระบบข้ามขั้นตอนและส่งตรงถึงผู้จัดการฝ่าย (L2)';
+            resolvedApprover = {
+              id: appEmp.id,
+              name: appEmp.full_name,
+              role: 'manager',
+              hasLeader: false,
+              hasManager: true
+            };
+            isLeaderFound = false; // It is a manager, not leader
+          } else {
+            approverText = `${appEmp.full_name} (${pName || 'หัวหน้างาน/หัวหน้ากะ'})`;
+            approverNote = '✓ สายอนุมัติ: ส่งคำขอให้หัวหน้างาน/หัวหน้ากะพิจารณา (L1)';
+            resolvedApprover = {
+              id: appEmp.id,
+              name: appEmp.full_name,
+              role: 'leader',
+              hasLeader: true,
+              hasManager: false
+            };
+            isLeaderFound = true;
+          }
         }
       }
 
       // 2. ⚡ เงื่อนไขเพิ่ม: ถ้าไม่มีหัวหน้ากะ หรือหัวหน้าธรรมดา -> ให้หาผู้จัดการ (Manager) เลย!
-      if (!isLeaderFound) {
+      if (!isLeaderFound && !resolvedApprover.hasManager) {
         let managerEmpId = employee?.l2_approver_id || null;
 
         if (!managerEmpId && deptId) {
@@ -2673,13 +2719,48 @@ window.openVisualTimelineModal = async function(leaveId) {
   const days = req.total_days || 0;
   const reason = req.reason || "-";
 
+  // ตรวจสอบสายอนุมัติของแผนก/พนักงาน
+  const reqEmp = req.employees || {};
+  const reqDeptId = req.department_id || reqEmp.department_id;
+  const applicantRole = String(reqEmp.role || '').toLowerCase();
+  const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
+  const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
+  const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
+  const isApplicantHr = applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin';
+
+  let hasL1 = false;
+  let hasL2 = false;
+
+  // ตรวจสอบจาก department_approvers cache หรือคำนวณสด
+  try {
+    const sb = getSafeSupabaseClient();
+    if (sb && reqDeptId) {
+      const [apprvRes] = await Promise.all([
+        sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", reqDeptId).maybeSingle()
+      ]);
+      const apprv = apprvRes.data;
+      if (apprv) {
+        hasL1 = Boolean(apprv.supervisor_id);
+        hasL2 = Boolean(apprv.manager_id);
+      }
+    }
+  } catch (e) {
+    console.warn("Could not check dept approvers for timeline modal:", e);
+  }
+
+  // Individual override check
+  if (reqEmp.l1_approver_id) hasL1 = true;
+  if (reqEmp.l2_approver_id) hasL2 = true;
+
+  if (isApplicantLeader) hasL1 = false;
+  if (isApplicantManager || isApplicantHr) {
+    hasL1 = false;
+    hasL2 = false;
+  }
+
   // Step calculations
-  // Step 1: Submission (Always complete)
-  // Step 2: L1 (Manager/Leader)
   const l1Status = req.manager_status || 'pending';
-  // Step 3: L2 (Director)
   const l2Status = req.director_status || 'pending';
-  // Step 4: Final HR
   const finalStatus = req.status || 'pending';
 
   const getStepBadge = (status) => {
@@ -2694,10 +2775,55 @@ window.openVisualTimelineModal = async function(leaveId) {
     return { bg: '#f59e0b', color: '#fff', icon: 'hourglass_empty' };
   };
 
-  const c1 = { bg: '#10b981', color: '#fff', icon: 'check' };
-  const c2 = getCircleIcon(l1Status);
-  const c3 = (l1Status === 'approved') ? getCircleIcon(l2Status) : { bg: '#e2e8f0', color: '#94a3b8', icon: 'schedule' };
-  const c4 = (finalStatus === 'approved') ? { bg: '#10b981', color: '#fff', icon: 'check_circle' } : (finalStatus === 'rejected') ? { bg: '#ef4444', color: '#fff', icon: 'cancel' } : { bg: '#e2e8f0', color: '#94a3b8', icon: 'verified' };
+  const timelineSteps = [];
+
+  // Step 1: ยื่นคำขอ
+  timelineSteps.push({
+    title: '1. ยื่นคำขอลาสำเร็จ',
+    badge: '<span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">สำเร็จแล้ว</span>',
+    desc: 'คำขอลาถูกส่งเข้าระบบ PVT Workforce Hub เรียบร้อยแล้ว',
+    circle: { bg: '#10b981', color: '#fff', icon: 'check' }
+  });
+
+  let stepNum = 2;
+
+  // Step L1: ถ้าแผนกมีหัวหน้า
+  if (hasL1) {
+    timelineSteps.push({
+      title: `${stepNum}. หัวหน้างานชั้นต้น (L1: Leader / Supervisor)`,
+      badge: getStepBadge(l1Status),
+      desc: l1Status === 'approved' ? 'หัวหน้างานอนุมัติแล้ว และส่งต่อไปยังลำดับถัดไป' : l1Status === 'rejected' ? 'หัวหน้างานไม่อนุมัติคำขอนี้' : 'กำลังรอหัวหน้างานตรวจสอบและอนุมัติ (กรอบเวลา 48 ชม.)',
+      circle: getCircleIcon(l1Status)
+    });
+    stepNum++;
+  }
+
+  // Step L2: ถ้าแผนกมีผู้จัดการ
+  if (hasL2) {
+    const isL2PendingPredecessor = hasL1 && l1Status !== 'approved';
+    const l2Badge = isL2PendingPredecessor ? '<span style="color: #94a3b8; font-size: 11px;">รอดำเนินการ</span>' : getStepBadge(l2Status);
+    const l2Circle = isL2PendingPredecessor ? { bg: '#e2e8f0', color: '#94a3b8', icon: 'schedule' } : getCircleIcon(l2Status);
+
+    timelineSteps.push({
+      title: `${stepNum}. ผู้จัดการฝ่าย (L2: Director / Manager)`,
+      badge: l2Badge,
+      desc: l2Status === 'approved' ? 'ผู้จัดการฝ่ายลงนามอนุมัติเรียบร้อยแล้ว' : l2Status === 'rejected' ? 'ผู้จัดการฝ่ายไม่อนุมัติ' : 'รอการพิจารณาจากผู้จัดการฝ่าย',
+      circle: l2Circle
+    });
+    stepNum++;
+  }
+
+  // Step Final: ฝ่ายบุคคล HR
+  const isHrPendingPredecessor = (hasL1 && l1Status !== 'approved') || (hasL2 && l2Status !== 'approved');
+  const hrBadge = finalStatus === 'approved' ? getStepBadge('approved') : finalStatus === 'rejected' ? getStepBadge('rejected') : (isHrPendingPredecessor ? '<span style="color: #94a3b8; font-size: 11px;">รอดำเนินการ</span>' : getStepBadge('pending'));
+  const hrCircle = finalStatus === 'approved' ? { bg: '#10b981', color: '#fff', icon: 'check_circle' } : finalStatus === 'rejected' ? { bg: '#ef4444', color: '#fff', icon: 'cancel' } : (isHrPendingPredecessor ? { bg: '#e2e8f0', color: '#94a3b8', icon: 'verified' } : { bg: '#f59e0b', color: '#fff', icon: 'hourglass_empty' });
+
+  timelineSteps.push({
+    title: `${stepNum}. ฝ่ายทรัพยากรบุคคล (HR Final & ตัดยอดสิทธิ์)`,
+    badge: hrBadge,
+    desc: finalStatus === 'approved' ? 'อนุมัติสมบูรณ์ ตัดยอดวันลาในระบบ และบันทึกประวัติเรียบร้อย' : 'ตรวจสอบสิทธิ์คงเหลือและความถูกต้องขั้นสุดท้าย',
+    circle: hrCircle
+  });
 
   body.innerHTML = `
     <!-- Card Summary Header -->
@@ -2719,59 +2845,20 @@ window.openVisualTimelineModal = async function(leaveId) {
       <!-- Vertical connecting line -->
       <div style="position: absolute; left: 15px; top: 12px; bottom: 20px; width: 2px; background: #e2e8f0; z-index: 1;"></div>
 
-      <!-- Step 1: Submit -->
-      <div style="position: relative; z-index: 2;">
-        <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${c1.bg}; color: ${c1.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">${c1.icon}</span>
+      ${timelineSteps.map(step => `
+        <div style="position: relative; z-index: 2;">
+          <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${step.circle.bg}; color: ${step.circle.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">${step.circle.icon}</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <strong style="font-size: 14px; color: #0f172a;">${step.title}</strong>
+            ${step.badge}
+          </div>
+          <div style="font-size: 12px; color: #64748b;">
+            ${step.desc}
+          </div>
         </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-          <strong style="font-size: 14px; color: #0f172a;">1. ยื่นคำขอลาสำเร็จ</strong>
-          <span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">สำเร็จแล้ว</span>
-        </div>
-        <div style="font-size: 12px; color: #64748b;">คำขอลาถูกส่งเข้าระบบ PVT Workforce Hub เรียบร้อยแล้ว</div>
-      </div>
-
-      <!-- Step 2: L1 Leader -->
-      <div style="position: relative; z-index: 2;">
-        <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${c2.bg}; color: ${c2.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">${c2.icon}</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-          <strong style="font-size: 14px; color: #0f172a;">2. หัวหน้างานชั้นต้น (L1: Leader / Supervisor)</strong>
-          ${getStepBadge(l1Status)}
-        </div>
-        <div style="font-size: 12px; color: #64748b;">
-          ${l1Status === 'approved' ? 'หัวหน้างานอนุมัติแล้ว และส่งต่อไปยังลำดับถัดไป' : l1Status === 'rejected' ? 'หัวหน้างานไม่อนุมัติคำขอนี้' : 'กำลังรอหัวหน้างานตรวจสอบและอนุมัติ (กรอบเวลา 48 ชม.)'}
-        </div>
-      </div>
-
-      <!-- Step 3: L2 Director -->
-      <div style="position: relative; z-index: 2;">
-        <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${c3.bg}; color: ${c3.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">${c3.icon}</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-          <strong style="font-size: 14px; color: #0f172a;">3. ผู้จัดการฝ่าย (L2: Director / Manager)</strong>
-          ${(l1Status === 'approved') ? getStepBadge(l2Status) : '<span style="color: #94a3b8; font-size: 11px;">รอดำเนินการ</span>'}
-        </div>
-        <div style="font-size: 12px; color: #64748b;">
-          ${l2Status === 'approved' ? 'ผู้จัดการฝ่ายลงนามอนุมัติเรียบร้อยแล้ว' : l2Status === 'rejected' ? 'ผู้จัดการฝ่ายไม่อนุมัติ' : 'รอการพิจารณาจากผู้จัดการฝ่าย'}
-        </div>
-      </div>
-
-      <!-- Step 4: HR Final -->
-      <div style="position: relative; z-index: 2;">
-        <div style="position: absolute; left: -36px; width: 30px; height: 30px; border-radius: 50%; background: ${c4.bg}; color: ${c4.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">${c4.icon}</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-          <strong style="font-size: 14px; color: #0f172a;">4. ฝ่ายทรัพยากรบุคคล (HR Final & ตัดยอดสิทธิ์)</strong>
-          ${finalStatus === 'approved' ? getStepBadge('approved') : finalStatus === 'rejected' ? getStepBadge('rejected') : '<span style="color: #94a3b8; font-size: 11px;">รอดำเนินการ</span>'}
-        </div>
-        <div style="font-size: 12px; color: #64748b;">
-          ${finalStatus === 'approved' ? 'อนุมัติสมบูรณ์ ตัดยอดวันลาในระบบ และบันทึกประวัติเรียบร้อย' : 'ตรวจสอบสิทธิ์คงเหลือและความถูกต้องขั้นสุดท้าย'}
-        </div>
-      </div>
+      `).join('')}
     </div>
 
     <!-- Helpful reassurance note -->
