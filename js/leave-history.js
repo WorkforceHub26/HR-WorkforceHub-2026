@@ -594,7 +594,7 @@ function renderRows() {
   };
   
   if (!filteredLeaveRows.length) {
-    tableBody.innerHTML = `<tr><td colspan="5" class="empty-history-cell">${t.emptyHistory || "ไม่พบรายการใบลาตามเงื่อนไขที่เลือก"}</td></tr>`;
+    tableBody.innerHTML = `<div class="empty-history-cell" style="text-align: center; padding: 20px; color: #64748b;">${t.emptyHistory || "ไม่พบรายการใบลาตามเงื่อนไขที่เลือก"}</div>`;
     return;
   }
 
@@ -688,30 +688,32 @@ function renderRows() {
     }
 
     return `
-      <tr id="row-${item.id}" class="${isOverdue ? 'row-overdue' : ''}">
-        <td data-label="วันที่ขอ"><strong>${formattedRange}</strong></td>
-        <td data-label="ประเภทการลา">
+      <div id="card-${item.id}" class="leave-card ${isOverdue ? 'card-overdue' : ''}" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
           <div class="leave-type-flex">
-            <div class="leave-type-icon-wrapper ${catDetails.colorClass}">
+            <div class="leave-type-icon-wrapper ${catDetails.colorClass}" style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
               <span class="material-symbols-outlined">${catDetails.icon}</span>
             </div>
             <div class="leave-type-text-stack">
-              <span class="leave-type-main-title">${displayTypeName}</span>
-              <span class="leave-type-reason-subtitle">${displayReason}</span>
+              <span class="leave-type-main-title" style="font-weight: 600; display: block;">${displayTypeName}</span>
+              <span class="leave-type-reason-subtitle" style="font-size: 0.85rem; color: #64748b;">${displayReason}</span>
             </div>
           </div>
-        </td>
-        <td data-label="จำนวนวัน"><span class="day-count-indicator">${formatDuration(item.total_days, item.leave_hours)}</span></td>
-        <td data-label="สถานะ"><span class="pvt-status-pill ${statusClass}">${displayStatus}</span></td>
-        <td data-label="รายละเอียด" style="text-align: center; white-space: nowrap;">
-          <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
-            <button class="btn-view-details" onclick="previewLeaveModalFromHistory('${item.id}')" title="ดูรายละเอียดและขั้นตอนอนุมัติ">
-              <span class="material-symbols-outlined">visibility</span>
-            </button>
-            ${actionBtnHtml}
-          </div>
-        </td>
-      </tr>
+          <span class="pvt-status-pill ${statusClass}" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 20px;">${displayStatus}</span>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #475569; margin-bottom: 12px;">
+          <span>${formattedRange}</span>
+          <span class="day-count-indicator" style="font-weight: 600;">${formatDuration(item.total_days, item.leave_hours)}</span>
+        </div>
+
+        <div style="display: flex; justify-content: end; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+          <button class="btn-view-details" onclick="previewLeaveModalFromHistory('${item.id}')" title="ดูรายละเอียด" style="background: #f1f5f9; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">visibility</span>
+          </button>
+          ${actionBtnHtml}
+        </div>
+      </div>
     `;
   }).join("");
 }

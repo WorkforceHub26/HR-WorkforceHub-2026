@@ -763,11 +763,13 @@ body {
 
   .user-header-actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end; /* ดันปุ่มไปชิดขวา */
     align-items: center;
     width: 100%;
     border-top: 1px dashed rgba(6, 182, 212, 0.2); /* เพิ่มเส้นประคั่นส่วนปุ่ม */
     padding-top: 12px;
+    gap: 10px; /* Increased gap slightly */
   }
 
   /* ดันระยะเว้นด้านล่างสุดของหน้าเว็บ เพิ่มป้องกันปุ่มลอย "ติดต่อ HR" บังการ์ดวันลา */

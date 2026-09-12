@@ -316,6 +316,24 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
     flex-wrap: nowrap !important;
     gap: 4px !important;
   }
+
+  /* Fix language switcher to the top of the screen on mobile */
+  #globalLangSwitcherContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+    background: transparent;
+    padding: 8px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  /* Adjust main content to not be covered by fixed switcher */
+  .main-content, .app {
+    padding-top: 50px !important;
+  }
 }
 
 /* Custom smooth scrollbar */

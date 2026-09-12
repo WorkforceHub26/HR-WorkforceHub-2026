@@ -870,7 +870,18 @@ button.menu-item .material-symbols-outlined {
 
   .main-content {
     margin-left: 0 !important;
-    padding: 20px;
+    padding: 16px; /* Reduced padding for mobile */
+  }
+
+  .page-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-user-section {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .hamburger-mobile-btn {
