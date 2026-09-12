@@ -685,13 +685,7 @@ function getApprovalWorkflowSteps(req) {
     });
   }
 
-  // ฝ่ายบุคคล (HR) เป็นผู้อนุมัติขั้นสุดท้ายเสมอ
-  steps.push({
-    role: 'hr',
-    shortName: 'HR',
-    fullName: 'ฝ่าย HR',
-    status: req.status
-  });
+  // HR is removed from the approval chain as per user request
 
   return steps;
 }
@@ -775,6 +769,43 @@ async function loadPendingLeavesHR(isSilent = false) {
             approval_comment: req.approval_comment || 'เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)',
             rejected_at: req.rejected_at || new Date().toISOString()
           };
+        }
+      }
+      return req;
+    });
+
+    // 🛡️ [Legacy Stuck Data Auto-Healing]: ตรวจหาใบลาเก่าที่เคยรอ HR อนุมัติ (หรือผ่านขั้นตอนทั้งหมดแล้วแต่ค้างอยู่) และปรับเป็นอนุมัติอัตโนมัติ
+    rawData = rawData.map(req => {
+      const st = String(req.status || '').toLowerCase();
+      const isPending = (st === 'pending' || st === 'pending_l1' || st === 'pending_l2' || st === 'pending_hr' || st.includes('รออนุมัติ'));
+      if (isPending) {
+        // ดึงขั้นตอนการอนุมัติที่ควรจะมีจริงในระบบ ณ ปัจจุบัน
+        const steps = getApprovalWorkflowSteps(req);
+        if (steps.length > 0) {
+          const allApproved = steps.every(step => {
+            const stepSt = String(step.status || '').toLowerCase();
+            return stepSt === 'approved' || stepSt === 'อนุมัติแล้ว';
+          });
+          
+          if (allApproved) {
+            console.log(`💡 [Auto-Healing] ใบลา #${req.id} ผ่านการอนุมัติครบทุกระดับชั้นแล้ว (L1-L3) → ปรับสถานะเป็นอนุมัติเสร็จสิ้นโดยอัตโนมัติ`);
+            // ยิงอัปเดตลงดาต้าเบสในเบื้องหลังแบบ non-blocking
+            const sb = window.PVTSDK?.supabase;
+            if (sb) {
+              sb.from('leave_requests')
+                .update({ status: 'approved', approved_at: new Date().toISOString() })
+                .eq('id', req.id)
+                .then(({ error }) => {
+                  if (error) console.error(`💥 [Auto-Healing Fail]`, error);
+                  else console.log(`✔️ [Auto-Healing DB Update Success] #${req.id}`);
+                });
+            }
+            return {
+              ...req,
+              status: 'approved',
+              approved_at: req.approved_at || new Date().toISOString()
+            };
+          }
         }
       }
       return req;
@@ -1028,7 +1059,6 @@ function renderLeaveTable() {
         <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
         <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
         <option value="pending_executive">3. ผู้จัดการผ่านแล้ว / รอผู้บริหารอนุมัติ (L3)</option>
-        <option value="pending_hr">4. ผู้บริหารผ่านแล้ว / รอ HR อนุมัติขั้นสุดท้าย (L4)</option>
         <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
         <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
       `;
@@ -1039,7 +1069,6 @@ function renderLeaveTable() {
         <option value="overdue">⚠️ ค้างพิจารณาเกิน 2 วัน (เกินกำหนด)</option>
         <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
         <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
-        <option value="pending_hr">3. ผู้จัดการผ่านแล้ว / รอ HR อนุมัติขั้นสุดท้าย (L3)</option>
         <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
         <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
       `;
@@ -1330,7 +1359,7 @@ function renderLeaveTable() {
     <div class="leave-list-header">
       <div class="col-profile">ผู้ขอลา / ข้อมูลพนักงาน</div>
       <div class="col-details">รายละเอียดการลา / ช่วงเวลา</div>
-      <div class="col-status-group">สถานะการอนุมัติ (L1-L4)</div>
+      <div class="col-status-group">สถานะการอนุมัติ (L1-L3)</div>
       <div class="col-actions">การจัดการ</div>
     </div>
   `;
@@ -2974,7 +3003,7 @@ async function exportLeaveReportExcel() {
         
         const mStatus = r.manager_status === 'approved' ? 'อนุมัติแล้ว' : r.manager_status === 'rejected' ? 'ไม่อนุมัติ' : 'รอพิจารณา';
         const dStatus = r.director_status === 'approved' ? 'อนุมัติแล้ว' : r.director_status === 'rejected' ? 'ไม่อนุมัติ' : 'รอพิจารณา';
-        const hrStatus = r.status === 'approved' ? 'อนุมัติครบสมบูรณ์' : r.status === 'rejected' ? 'ไม่อนุมัติ' : isCancelRequestStatus(r.status) ? 'ขอยกเลิก' : 'รอ HR พิจารณา';
+        const hrStatus = r.status === 'approved' ? 'อนุมัติครบสมบูรณ์' : r.status === 'rejected' ? 'ไม่อนุมัติ' : isCancelRequestStatus(r.status) ? 'ขอยกเลิก' : 'รออนุมัติ';
         const createdAt = r.created_at ? new Date(r.created_at).toLocaleDateString("th-TH") : "-";
 
         const row = detailSheet.getRow(idx + 2);
@@ -3197,6 +3226,10 @@ window.submitBulkApproval = async function() {
         const hasManagerInDept = deptInfo.hasManager || Boolean(reqData.employees?.l2_approver_id);
         if (!hasManagerInDept) {
           updateFields.director_status = 'approved';
+          if (!hasExecutiveColumn) {
+            updateFields.status = 'approved';
+            updateFields.approved_at = new Date().toISOString();
+          }
         }
       } else if (currentRole === 'manager') {
         updateFields.director_status = 'approved';
@@ -3204,17 +3237,23 @@ window.submitBulkApproval = async function() {
         if (hasExecutiveColumn) {
           const applicantRole = String(reqData.employees?.role || '').toLowerCase();
           const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
-          if (!isApplicantLeaderOrManager) updateFields.executive_status = 'approved';
+          if (!isApplicantLeaderOrManager) {
+            updateFields.executive_status = 'approved';
+            updateFields.status = 'approved';
+            updateFields.approved_at = new Date().toISOString();
+          }
+        } else {
+          updateFields.status = 'approved';
+          updateFields.approved_at = new Date().toISOString();
         }
       } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
         if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
         if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
         if (hasExecutiveColumn) {
           updateFields.executive_status = 'approved';
-        } else {
-          updateFields.status = 'approved';
-          updateFields.approved_at = new Date().toISOString();
         }
+        updateFields.status = 'approved';
+        updateFields.approved_at = new Date().toISOString();
       } else {
         if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
         if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';

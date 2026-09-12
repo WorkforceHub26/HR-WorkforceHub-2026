@@ -132,7 +132,7 @@
       stepText = hasL1 ? "2. รอผู้จัดการฝ่าย (L2)" : "รอผู้จัดการฝ่าย (L2)";
       stageClass = "waiting-l2";
     } else {
-      stepText = "รอ HR / ผู้บริหาร (Final Review)";
+      stepText = "รอผู้บริหารพิจารณา (Final Review)";
       stageClass = "waiting-l3";
     }
 

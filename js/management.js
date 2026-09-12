@@ -6220,7 +6220,7 @@ async function testLineNotificationFromHR() {
       '<select id="swal-input-type" class="swal2-input" style="margin-top: 0; width: 85%; font-size: 14px; padding: 10px; height: 42px;">' +
         '<option value="NEW_REQUEST">คำขอใหม่ (รออนุมัติ L1)</option>' +
         '<option value="LEADER_APPROVED">ผ่านอนุมัติขั้นต้น (รอ L2)</option>' +
-        '<option value="MANAGER_APPROVED">ผ่านอนุมัติผู้จัดการ (รอ HR)</option>' +
+        '<option value="MANAGER_APPROVED">ผ่านอนุมัติผู้จัดการ (สำเร็จ)</option>' +
         '<option value="FINAL_APPROVED">อนุมัติเสร็จสมบูรณ์</option>' +
         '<option value="REJECTED">คำขอลาไม่อนุมัติ</option>' +
         '<option value="CANCELLATION">แจ้งเตือนยกเลิกใบลา</option>' +

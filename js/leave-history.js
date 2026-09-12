@@ -131,6 +131,7 @@ async function initLeaveHistory() {
   try {
     // 1. โหลดข้อมูลโปรไฟล์ตามรูปแบบเดียวกับ index-user.js
     myProfile = await fetchUserProfileFromSchema();
+    window.currentProfile = myProfile;
     
     // 2. แสดงข้อมูลส่วนหัวพนักงาน (อัปเดตชื่อ แผนก และรูปโปรไฟล์)
     renderProfileHeader();
@@ -294,7 +295,7 @@ async function loadMyLeaveHistory() {
   try {
     let { data, error } = await sb
       .from("leave_requests")
-      .select("id, leave_type_id, start_date, end_date, total_days, reason, status, approval_comment, cancel_reason, created_at, leave_types(leave_name)")
+      .select("id, leave_type_id, start_date, end_date, total_days, reason, status, approval_comment, cancel_reason, created_at, leave_types(leave_name), employees(*, positions(*))")
       .eq("employee_id", empId)
       .order("created_at", { ascending: false });
 
@@ -582,7 +583,7 @@ function renderRows() {
     emptyHistory: "ไม่พบรายการใบลาตามเงื่อนไขที่เลือก",
     statusPending: "รออนุมัติ",
     statusApproved: "อนุมัติแล้ว",
-    statusCancelReq: "รอ HR อนุมัติยกเลิก",
+    statusCancelReq: "รออนุมัติยกเลิก",
     statusCancelled: "ยกเลิกแล้ว",
     statusRejected: "ไม่อนุมัติ",
     btnDirectCancel: "ยกเลิกคำขอ",
@@ -647,7 +648,7 @@ function renderRows() {
       displayStatus = t.statusApproved || "อนุมัติแล้ว";
     } 
     else if (item.status === "cancel_requested") {
-      displayStatus = t.statusCancelReq || "รอ HR อนุมัติยกเลิก";
+      displayStatus = t.statusCancelReq || "รออนุมัติยกเลิก";
       statusClass = "pending";
     } 
     else if (item.status === "cancelled") {
@@ -758,13 +759,13 @@ async function requestCancelApprovedLeave(requestId) {
 
   const { value: cancelReason, isConfirmed } = await Swal.fire({
     title: 'ส่งคำร้องขอยกเลิกใบลา',
-    text: 'ใบลานี้ได้รับการอนุมัติแล้ว การยกเลิกต้องรอให้ HR ตรวจสอบและอนุมัติคืนโควต้าวันลา',
+    text: 'ใบลานี้ได้รับการอนุมัติแล้ว การยกเลิกต้องส่งคำร้องเพื่อให้หัวหน้างาน/ผู้จัดการอนุมัติคืนโควต้าวันลา',
     input: 'textarea',
     inputPlaceholder: 'กรุณาระบุเหตุผลในการขอยกเลิกใบลา...',
     showCancelButton: true,
     confirmButtonColor: '#f59e0b',
     cancelButtonColor: '#64748b',
-    confirmButtonText: 'ส่งคำร้องหา HR',
+    confirmButtonText: 'ส่งคำร้องขอยกเลิก',
     cancelButtonText: 'ยกเลิก',
     inputValidator: (value) => {
       if (!value || !value.trim()) return 'โปรดระบุเหตุผลการขอยกเลิกใบลา!';
@@ -786,7 +787,7 @@ async function requestCancelApprovedLeave(requestId) {
 
       if (error) throw error;
 
-      await Swal.fire({ icon: 'success', title: 'ส่งคำร้องสำเร็จ!', text: 'ส่งคำร้องขอยกเลิกให้ HR เรียบร้อยแล้ว', confirmButtonColor: '#0f766e' });
+      await Swal.fire({ icon: 'success', title: 'ส่งคำร้องสำเร็จ!', text: 'ส่งคำร้องขอยกเลิกคำขอลาเรียบร้อยแล้ว', confirmButtonColor: '#0f766e' });
       await loadMyLeaveHistory();
     } catch (err) {
       console.error("❌ เกิดข้อผิดพลาดในการส่งคำร้อง:", err);
@@ -825,7 +826,7 @@ function downloadLeaveHistoryCSV() {
     
     let statusText = "รออนุมัติ";
     if (item.status === "approved") statusText = "อนุมัติแล้ว";
-    else if (item.status === "cancel_requested") statusText = "รอ HR อนุมัติยกเลิก";
+    else if (item.status === "cancel_requested") statusText = "รออนุมัติยกเลิก";
     else if (item.status === "cancelled") statusText = "ยกเลิกแล้ว";
     else if (item.status === "rejected") statusText = "ไม่อนุมัติ";
 
@@ -972,10 +973,10 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
   const isHrRej = item.status === 'rejected';
   const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved');
   stepsList.push({
-    label: `${stepIdx}. ฝ่ายบุคคล (HR Final)`,
+    label: `${stepIdx}. สถานะการอนุมัติ (Final Decision)`,
     icon: isHrApp ? 'verified' : isHrRej ? 'cancel' : 'pending',
     iconColor: isHrApp ? '#10b981' : isHrRej ? '#ef4444' : '#94a3b8',
-    statusText: isHrApp ? 'อนุมัติสมบูรณ์' : isHrRej ? 'ไม่อนุมัติ' : isPendingPrev ? 'รอดำเนินการ' : 'กำลังตรวจสอบ',
+    statusText: isHrApp ? 'อนุมัติสำเร็จสมบูรณ์' : isHrRej ? 'ไม่อนุมัติ' : isPendingPrev ? 'รอดำเนินการ' : 'กำลังพิจารณา',
     statusColor: isHrApp ? '#15803d' : isHrRej ? '#b91c1c' : '#94a3b8'
   });
 

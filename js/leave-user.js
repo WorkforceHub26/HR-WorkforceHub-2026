@@ -26,9 +26,11 @@ function getLeaveFormSteps() {
   const hasManager = !isManager && !isHr && !isExecutive && (Boolean(currentProfile?.l2_approver_id) || Boolean(deptApprover.hasManager));
 
   const steps = [];
-  if (hasLeader) steps.push("หัวหน้าแผนก");
-  if (hasManager) steps.push("ผู้จัดการฝ่าย");
-  steps.push("ฝ่ายบุคคล");
+  if (hasLeader) steps.push("หัวหน้าแผนก (L1)");
+  if (hasManager) steps.push("ผู้จัดการฝ่าย (L2)");
+  if (steps.length === 0) {
+    steps.push("อนุมัติทันที (Auto-Approved)");
+  }
   return steps;
 }
 let isHRRole = false;

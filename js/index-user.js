@@ -312,7 +312,7 @@ window.loadRecentLeaves = async function(profile) {
           displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusCancelled") : "ยกเลิกแล้ว";
           badgeStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;";
         } else if (item.status === "cancel_pending" || item.cancel_status === "pending") {
-          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusCancelReq") : "รอ HR อนุมัติยกเลิก";
+          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusCancelReq") : "รออนุมัติยกเลิก";
           badgeStyle = "background:#ffedd5; color:#c2410c; border:1px solid #fed7aa;";
         } else if (item.status === "rejected") {
           displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusRejected") : "ไม่อนุมัติ";
@@ -1122,7 +1122,7 @@ function renderCancelStepStatus(cancelStatus) {
   } else if (cancelStatus === 'rejected') {
     return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ปฏิเสธการยกเลิก</span>`;
   } else {
-    return `<span style="color:#ea580c; font-weight:600; font-size:11px;">⏳ รอ HR อนุมัติยกเลิก</span>`;
+    return `<span style="color:#ea580c; font-weight:600; font-size:11px;">⏳ รออนุมัติยกเลิก</span>`;
   }
 }
 
@@ -1198,7 +1198,7 @@ async function openEmployeeStatusTrackerModal() {
       } else if (item.status === "rejected") {
         overallBadge = `<span style="background:#f8d7da; color:#842029; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">❌ ไม่อนุมัติ</span>`;
       } else if (item.status === "cancel_pending" || item.cancel_status === "pending") {
-        overallBadge = `<span style="background:#ffedd5; color:#c2410c; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">⏳ รอ HR อนุมัติยกเลิก</span>`;
+        overallBadge = `<span style="background:#ffedd5; color:#c2410c; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">⏳ รออนุมัติยกเลิก</span>`;
       } else if (item.status === "cancelled" || item.cancel_status === "approved") {
         overallBadge = `<span style="background:#e2e8f0; color:#475569; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">🚫 ยกเลิกแล้ว</span>`;
       }
@@ -1221,7 +1221,7 @@ async function openEmployeeStatusTrackerModal() {
         });
       }
       steps.push({
-        title: 'HR อนุมัติ',
+        title: 'อนุมัติผล',
         status: item.status === 'approved' ? 'approved' : (item.status === 'rejected' ? 'rejected' : 'pending')
       });
 
@@ -1247,7 +1247,7 @@ async function openEmployeeStatusTrackerModal() {
 
           ${isCancellationFlow ? `
             <div style="margin-top: 8px; background: #fff7ed; padding: 8px 12px; border-radius: 10px; border: 1px solid #ffedd5; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 11px; color: #c2410c; font-weight: 600;">🔄 คำร้องขอยกเลิก (HR อนุมัติ):</span>
+              <span style="font-size: 11px; color: #c2410c; font-weight: 600;">🔄 คำร้องขอยกเลิก:</span>
               ${hrCancelStep}
             </div>
           ` : ''}
@@ -2355,19 +2355,13 @@ window.initQuickForm = async function(profile, quotas) {
             };
           }
         } else {
-          // หากไม่มีทั้งหัวหน้าและผู้จัดการ ส่งต่อ HR
-          const { data: hrEmp } = await sb
-            .from('employees')
-            .select('id, full_name, role')
-            .in('role', ['hr', 'admin'])
-            .limit(1)
-            .maybeSingle();
-          approverText = hrEmp ? `${hrEmp.full_name} (ฝ่ายบุคคล HR)` : 'ฝ่ายบุคคล (HR)';
-          approverNote = '⚡ ส่งต่อฝ่ายบุคคล (HR) พิจารณาอนุมัติโดยตรง';
+          // หากไม่มีทั้งหัวหน้าและผู้จัดการ อนุมัติแบบ Direct / Auto
+          approverText = 'ผู้อำนวยการ / อนุมัติอัตโนมัติ';
+          approverNote = '⚡ อนุมัติโดยตรงผ่านระบบแผนกกลาง';
           resolvedApprover = {
-            id: hrEmp?.id || null,
-            name: hrEmp?.full_name || 'HR',
-            role: 'hr',
+            id: null,
+            name: 'ระบบอนุมัติกลาง',
+            role: 'director',
             hasLeader: false,
             hasManager: false
           };
@@ -2375,8 +2369,8 @@ window.initQuickForm = async function(profile, quotas) {
       }
     } catch (e) {
       console.error("Error loading quick form approver:", e);
-      approverText = "ส่งต่อฝ่ายบุคคล (HR)";
-      approverNote = "ส่งคำขอไปยังฝ่ายทรัพยากรบุคคล";
+      approverText = "ผู้อำนวยการ / ผู้จัดการทั่วไป";
+      approverNote = "ส่งคำขอไปยังระดับการบริหารกลาง";
     }
   }
 
@@ -2813,15 +2807,15 @@ window.openVisualTimelineModal = async function(leaveId) {
     stepNum++;
   }
 
-  // Step Final: ฝ่ายบุคคล HR
+  // Step Final: อนุมัติเสร็จสิ้น Final
   const isHrPendingPredecessor = (hasL1 && l1Status !== 'approved') || (hasL2 && l2Status !== 'approved');
   const hrBadge = finalStatus === 'approved' ? getStepBadge('approved') : finalStatus === 'rejected' ? getStepBadge('rejected') : (isHrPendingPredecessor ? '<span style="color: #94a3b8; font-size: 11px;">รอดำเนินการ</span>' : getStepBadge('pending'));
   const hrCircle = finalStatus === 'approved' ? { bg: '#10b981', color: '#fff', icon: 'check_circle' } : finalStatus === 'rejected' ? { bg: '#ef4444', color: '#fff', icon: 'cancel' } : (isHrPendingPredecessor ? { bg: '#e2e8f0', color: '#94a3b8', icon: 'verified' } : { bg: '#f59e0b', color: '#fff', icon: 'hourglass_empty' });
 
   timelineSteps.push({
-    title: `${stepNum}. ฝ่ายทรัพยากรบุคคล (HR Final & ตัดยอดสิทธิ์)`,
+    title: `${stepNum}. อนุมัติเสร็จสมบูรณ์ (Final Decision)`,
     badge: hrBadge,
-    desc: finalStatus === 'approved' ? 'อนุมัติสมบูรณ์ ตัดยอดวันลาในระบบ และบันทึกประวัติเรียบร้อย' : 'ตรวจสอบสิทธิ์คงเหลือและความถูกต้องขั้นสุดท้าย',
+    desc: finalStatus === 'approved' ? 'อนุมัติสมบูรณ์ ตัดยอดวันลาในระบบ และบันทึกประวัติเรียบร้อย' : 'ตรวจสอบความถูกต้องและผ่านการอนุมัติระดับแผนกเรียบร้อย',
     circle: hrCircle
   });
 
