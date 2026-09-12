@@ -1035,15 +1035,15 @@
           }
         }
 
-        let usedCol = 'sick_used';
-        let totalCol = 'sick_total';
-        if (code === 'SICK' || code === '01' || code.includes('ป่วย')) {
+        let usedCol = 'other_used';
+        let totalCol = 'other_total';
+        if (code === 'SICK' || code === '01' || code.includes('SICK') || code.includes('ป่วย')) {
           usedCol = 'sick_used'; totalCol = 'sick_total';
-        } else if (code === 'PERSONAL' || code === '02' || code.includes('กิจ')) {
+        } else if (code === 'PERSONAL' || code === '02' || code.includes('PERSONAL') || code.includes('กิจ')) {
           usedCol = 'personal_used'; totalCol = 'personal_total';
-        } else if (code === 'VACATION' || code === '03' || code.includes('พัก')) {
+        } else if (code === 'VACATION' || code === '03' || code.includes('VACATION') || code.includes('พัก')) {
           usedCol = 'vacation_used'; totalCol = 'vacation_total';
-        } else if (code === 'MATERNITY' || code.includes('คลอด')) {
+        } else if (code === 'MATERNITY' || code.includes('MATERNITY') || code.includes('คลอด')) {
           usedCol = 'maternity_used'; totalCol = 'maternity_total';
         } else {
           usedCol = 'other_used'; totalCol = 'other_total';
@@ -1081,6 +1081,16 @@
             .insert([{
               employee_id: employeeId,
               year: yearAD,
+              sick_used: 0,
+              sick_total: 30,
+              personal_used: 0,
+              personal_total: 6,
+              vacation_used: 0,
+              vacation_total: 6,
+              maternity_used: 0,
+              maternity_total: 98,
+              other_used: 0,
+              other_total: 30,
               [usedCol]: initialUsed,
               [totalCol]: initialTotal
             }]);
@@ -1739,6 +1749,33 @@ class LineOAEngine {
         showComment = true;
         break;
 
+      case 'HR_REVIEW':
+      case 'PENDING_HR':
+        headerTitle = "คำขอใบลาส่งต่อฝ่ายบุคคล (HR Review)";
+        themeColor = "#0d9488"; // Teal
+        highlightBg = "#f0fdfa";
+        highlightText = "#0f766e";
+        statusBadgeText = "📋 รอฝ่ายบุคคลตรวจสอบ/บันทึก";
+        statusBadgeBg = "#ccfbf1";
+        statusBadgeColor = "#115e59";
+        actionLabel = "👉 เข้าสู่ระบบ HR";
+        actionUrl = approvalUrl;
+        showComment = true;
+        break;
+
+      case 'HR_NOTIFY':
+        headerTitle = "สรุปใบลาอนุมัติสมบูรณ์ (แจ้ง HR)";
+        themeColor = "#0284c7"; // Sky Blue
+        highlightBg = "#f0f9ff";
+        highlightText = "#0369a1";
+        statusBadgeText = "✅ อนุมัติสมบูรณ์ (บันทึกสถิติ HR)";
+        statusBadgeBg = "#e0f2fe";
+        statusBadgeColor = "#075985";
+        actionLabel = "📂 เปิดระบบจัดการ HR";
+        actionUrl = approvalUrl;
+        showComment = true;
+        break;
+
       case 'REQUEST_APPROVED':
       case 'FINAL_APPROVED':
         headerTitle = "ใบลาได้รับการอนุมัติเรียบร้อย";
@@ -2222,6 +2259,45 @@ class LineOAEngine {
           `🔗 ${approvalUrl}`;
         break;
 
+      case 'HR_REVIEW':
+      case 'PENDING_HR':
+        title = "📋 ถึงคิวฝ่ายบุคคล (HR) ตรวจสอบใบลา";
+        messageText = 
+          `📋 [คำขอลาส่งต่อฝ่ายบุคคล (HR Review)]\n` +
+          `⚠️ กรุณาดำเนินการตรวจสอบและบันทึกสถิติ\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
+          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
+          `📝 ประเภทการลา: ${leaveType}\n` +
+          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
+          `📅 วันที่ลา: ${dateFormatted}\n` +
+          `💬 เหตุผลการลา: ${reason || 'ไม่ได้ระบุ'}\n` +
+          `💬 ความเห็นผู้อนุมัติ: ${comment || 'ผ่านการอนุมัติระดับสายงานแล้ว'}\n` +
+          `⏰ ส่งเรื่องเมื่อ: ${nowStr}\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `👉 กดลิงก์เพื่อเข้าสู่ระบบ HR:\n` +
+          `🔗 ${approvalUrl}`;
+        break;
+
+      case 'HR_NOTIFY':
+        title = "📢 แจ้งฝ่ายบุคคล: อนุมัติใบลาสมบูรณ์แล้ว";
+        messageText = 
+          `📢 [แจ้งฝ่ายบุคคล (HR) - สรุปผลอนุมัติใบลา]\n` +
+          `✨ ใบลาได้รับการอนุมัติเรียบร้อยและบันทึกลงระบบแล้ว\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `👤 พนักงาน: ${employeeName} (${employeeCode || '-'})\n` +
+          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
+          `📝 ประเภทการลา: ${leaveType}\n` +
+          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
+          `📅 วันที่ลา: ${dateFormatted}\n` +
+          `💬 เหตุผลการลา: ${reason || '-'}\n` +
+          `💬 ความเห็นผู้อนุมัติ: ${comment || 'อนุมัติเรียบร้อย'}\n` +
+          `⏰ ดำเนินการเมื่อ: ${nowStr}\n` +
+          `━━━━━━━━━━━━━━━━━━━━\n` +
+          `🔗 ตรวจสอบข้อมูลในระบบ HR:\n` +
+          `${approvalUrl}`;
+        break;
+
       case 'REQUEST_APPROVED':
       case 'FINAL_APPROVED':
         title = "🎉 ใบลาของคุณได้รับการอนุมัติสมบูรณ์แล้ว";
@@ -2314,6 +2390,7 @@ class LineOAEngine {
       'EXECUTIVE_APPROVED',
       'PENDING_HR',
       'HR_REVIEW',
+      'HR_NOTIFY',
       'REQUEST_APPROVED', 
       'FINAL_APPROVED', 
       'REJECTED', 
@@ -2349,11 +2426,15 @@ class LineOAEngine {
               isEnabled = false;
             }
           } else if (type === 'LEADER_APPROVED' || type === 'MANAGER_APPROVED' || type === 'EXECUTIVE_APPROVED' || type === 'PENDING_HR' || type === 'HR_REVIEW') {
-            if ((recipientRole === 'hr' || recipientRole === 'admin') && settings.hr_review === false) {
+            if ((recipientRole === 'hr' || recipientRole === 'admin' || type === 'HR_REVIEW') && settings.hr_review === false) {
               isEnabled = false;
             } else if (type === 'LEADER_APPROVED' && settings.leader_approved === false) {
               isEnabled = false;
             } else if (type === 'MANAGER_APPROVED' && settings.manager_approved === false) {
+              isEnabled = false;
+            }
+          } else if (type === 'HR_NOTIFY') {
+            if (settings.hr_notify === false) {
               isEnabled = false;
             }
           } else if (type === 'REQUEST_APPROVED' || type === 'FINAL_APPROVED') {
@@ -2537,6 +2618,98 @@ class LineOAEngine {
       reason: leaveReq.reason || '',
       attachmentUrl: leaveReq.attachment_url || ''
     });
+  }
+
+  // 👥 ดึงรายชื่อฝ่ายบุคคล (HR / Admin) ที่เชื่อมต่อ LINE ไว้
+  async getHrRecipients() {
+    if (!this.client) return [];
+    try {
+      const sb = this.client;
+      
+      // 1. ตรวจสอบการกำหนดเฉพาะใน system_settings (leave_hr_approver)
+      const { data: hrSetting } = await sb
+        .from('system_settings')
+        .select('setting_value, employee_id')
+        .eq('setting_key', 'leave_hr_approver')
+        .maybeSingle();
+
+      if (hrSetting?.employee_id) {
+        const { data: specificHr } = await sb
+          .from('employees')
+          .select('id, full_name, employee_code, line_id, role')
+          .eq('id', hrSetting.employee_id)
+          .maybeSingle();
+        if (specificHr && specificHr.line_id && specificHr.line_id.trim()) {
+          return [specificHr];
+        }
+      }
+
+      // 2. ดึงจากพนักงาน role = 'hr', 'admin', 'superadmin' ที่มี line_id
+      const { data: hrList, error: hrErr } = await sb
+        .from('employees')
+        .select('id, full_name, employee_code, line_id, role, departments(department_name)')
+        .in('role', ['hr', 'admin', 'superadmin'])
+        .not('line_id', 'is', null);
+
+      if (!hrErr && Array.isArray(hrList) && hrList.length > 0) {
+        const valid = hrList.filter(e => e.line_id && e.line_id.trim().length > 0);
+        if (valid.length > 0) return valid;
+      }
+
+      // 3. Fallback: หาพนักงานในแผนกบุคคล (HR/Human Resources)
+      const { data: deptEmps } = await sb
+        .from('employees')
+        .select('id, full_name, employee_code, line_id, role, departments(department_name)')
+        .not('line_id', 'is', null);
+
+      if (Array.isArray(deptEmps)) {
+        const matched = deptEmps.filter(e => {
+          const dName = String(e.departments?.department_name || '').toLowerCase();
+          return (dName.includes('hr') || dName.includes('บุคคล') || dName.includes('human')) && e.line_id && e.line_id.trim().length > 0;
+        });
+        if (matched.length > 0) return matched;
+      }
+
+      return [];
+    } catch (err) {
+      console.warn("⚠️ [LINE OA Engine] getHrRecipients failed:", err);
+      return [];
+    }
+  }
+
+  // 📢 ส่งแจ้งเตือนไปยังฝ่ายบุคคล (HR) ทุกท่านที่เชื่อมต่อ LINE ไว้
+  async notifyHrWorkflow(leaveReq = {}, notifType = 'HR_NOTIFY') {
+    const hrRecipients = await this.getHrRecipients();
+    console.log(`📢 [LINE OA Engine] Dispatches [${notifType}] to ${hrRecipients.length} HR recipients.`);
+
+    const results = [];
+    for (const hr of hrRecipients) {
+      if (!hr.line_id) continue;
+      try {
+        const res = await this.sendWorkflowNotification({
+          type: notifType,
+          recipientId: hr.id,
+          recipientLineId: hr.line_id,
+          recipientRole: 'hr',
+          leaveId: leaveReq.id,
+          employeeName: leaveReq.applicant_name || leaveReq.employee_name || leaveReq.employees?.full_name || 'พนักงาน',
+          employeeCode: leaveReq.employee_code || leaveReq.employees?.employee_code || '',
+          departmentName: leaveReq.department_name || leaveReq.departments?.department_name || leaveReq.employees?.departments?.department_name || '',
+          leaveType: leaveReq.leave_type_name || leaveReq.leave_types?.leave_name || 'ใบลา',
+          startDate: leaveReq.start_date,
+          endDate: leaveReq.end_date,
+          totalDays: leaveReq.total_days || 1,
+          leaveHours: leaveReq.leave_hours || 0,
+          reason: leaveReq.reason || '',
+          comment: leaveReq.comment || leaveReq.approval_comment || '',
+          attachmentUrl: leaveReq.attachment_url || ''
+        });
+        results.push({ recipient: hr.full_name, ...res });
+      } catch (e) {
+        console.warn(`⚠️ [LINE OA Engine] Failed notifying HR (${hr.full_name}):`, e);
+      }
+    }
+    return results;
   }
 }
 

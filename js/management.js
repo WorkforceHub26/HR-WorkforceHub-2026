@@ -1462,6 +1462,20 @@ window.setupDepartmentPositionHelper = function(deptSelectId, positionSelectId, 
 
 // ==========================================
 // 5. UI RENDERERS & FILTERS
+window.isSystemOrAdminAccount = function(emp) {
+  if (!emp) return false;
+  const code = String(emp.employee_code || emp.code || '').trim().toUpperCase();
+  const role = String(emp.role || '').trim().toLowerCase();
+  const name = String(emp.full_name || emp.name || '').trim().toUpperCase();
+  const email = String(emp.email || '').trim().toLowerCase();
+
+  if (code === 'HR-001' || code === 'HR-002' || code === 'HR-003' || code.startsWith('ADMIN') || code.startsWith('SYS') || code === 'ADMIN') return true;
+  if (role === 'admin' || role === 'superadmin' || role === 'system') return true;
+  if (name.includes('ADMINISTRATOR') || name.includes('SYSTEM ADMIN') || name.includes('บัญชีระบบ') || name.includes('อนุมัติระบบ')) return true;
+  if (email.includes('admin@') || email.includes('system@')) return true;
+  return false;
+};
+
 // ==========================================
 function fillDepartmentFilter() {
   const select = document.getElementById("deptFilter");
@@ -1469,9 +1483,13 @@ function fillDepartmentFilter() {
 
   const current = select.value;
 
-  // คำนวณจำนวนพนักงานแยกตามแผนก
+  // คำนวณจำนวนพนักงานแยกตามแผนก (ยกเว้นรหัส admin และ HR-001 ที่ใช้สำหรับอนุมัติระบบ)
   const deptCounts = {};
+  let totalRealEmps = 0;
+
   employees.forEach((emp) => {
+    if (window.isSystemOrAdminAccount(emp)) return;
+    totalRealEmps++;
     const dName = emp.departments?.department_name;
     if (dName) {
       deptCounts[dName] = (deptCounts[dName] || 0) + 1;
@@ -1480,7 +1498,7 @@ function fillDepartmentFilter() {
 
   const deptNames = Object.keys(deptCounts).sort((a, b) => a.localeCompare(b, 'th'));
 
-  select.innerHTML = `<option value="">🏢 ทุกแผนก (รวม ${employees.length} คน)</option>` + 
+  select.innerHTML = `<option value="">🏢 ทุกแผนก (รวม ${totalRealEmps} คน)</option>` + 
     deptNames.map((dept) => `<option value="${escapeHtml(dept)}">${escapeHtml(dept)} (${deptCounts[dept]} คน)</option>`).join("");
 
   select.value = deptNames.includes(current) ? current : "";
@@ -1493,11 +1511,13 @@ function fillPositionFilter() {
   const current = select.value;
   const currentDept = document.getElementById("deptFilter")?.value || "";
 
-  // คำนวณจำนวนพนักงานแยกตามชื่อตำแหน่งงาน (กรองตามแผนกหากระบุ)
+  // คำนวณจำนวนพนักงานแยกตามชื่อตำแหน่งงาน (ยกเว้นรหัส admin และ HR-001 ที่ใช้สำหรับอนุมัติระบบ)
   const posCounts = {};
   let totalScope = 0;
 
   employees.forEach((emp) => {
+    if (window.isSystemOrAdminAccount(emp)) return;
+
     const department = emp.departments?.department_name || "";
     if (currentDept && department !== currentDept) return;
 
@@ -3415,10 +3435,11 @@ async function manageDepartments() {
     const positions = posRes.data || [];
     const emps = empRes.data || [];
 
-    // คำนวณจำนวนพนักงานต่อตำแหน่ง
+    // คำนวณจำนวนพนักงานต่อตำแหน่ง (ยกเว้นรหัสระบบ/อนุมัติ admin และ HR-001)
     const posCountMap = {};
     const deptCountMap = {};
     emps.forEach(e => {
+      if (window.isSystemOrAdminAccount && window.isSystemOrAdminAccount(e)) return;
       if (e.position_id) posCountMap[e.position_id] = (posCountMap[e.position_id] || 0) + 1;
       if (e.positions?.position_name) posCountMap[e.positions.position_name] = (posCountMap[e.positions.position_name] || 0) + 1;
       if (e.department_id) deptCountMap[e.department_id] = (deptCountMap[e.department_id] || 0) + 1;

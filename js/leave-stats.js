@@ -393,7 +393,7 @@ function renderAllDashboardViews() {
     }
     deptMap[deptName].days += days;
     deptMap[deptName].count += 1;
-    if (emp?.id) deptMap[deptName].empIds.add(emp.id);
+    if (emp?.id && !(window.isSystemOrAdminAccount && window.isSystemOrAdminAccount(emp))) deptMap[deptName].empIds.add(emp.id);
 
     // Emp map
     const empId = req.employee_id || empName;

@@ -671,6 +671,21 @@ function renderRows() {
     const displayTypeName = highlightMatch(catDetails.title, searchTerm);
     const displayReason = highlightMatch(item.reason || "พักผ่อนประจำปี", searchTerm);
 
+    let actionBtnHtml = "";
+    if (item.status === "pending") {
+      actionBtnHtml = `
+        <button class="btn-cancel-direct" onclick="directCancelLeave('${item.id}')" title="${t.btnDirectCancel || 'ยกเลิกคำขอ'}" style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.2s;">
+          <span class="material-symbols-outlined" style="font-size:14px; font-weight:bold;">close</span> <span>${t.btnDirectCancel || 'ยกเลิกคำขอ'}</span>
+        </button>
+      `;
+    } else if (item.status === "approved") {
+      actionBtnHtml = `
+        <button class="btn-cancel-request" onclick="requestCancelApprovedLeave('${item.id}')" title="${t.btnRequestCancel || 'ขอยกเลิกใบลา'}" style="background:#fffbeb; border:1px solid #fde68a; color:#b45309; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.2s;">
+          <span class="material-symbols-outlined" style="font-size:14px; font-weight:bold;">assignment_return</span> <span>${t.btnRequestCancel || 'ขอยกเลิก'}</span>
+        </button>
+      `;
+    }
+
     return `
       <tr id="row-${item.id}" class="${isOverdue ? 'row-overdue' : ''}">
         <td data-label="วันที่ขอ"><strong>${formattedRange}</strong></td>
@@ -687,10 +702,13 @@ function renderRows() {
         </td>
         <td data-label="จำนวนวัน"><span class="day-count-indicator">${formatDuration(item.total_days, item.leave_hours)}</span></td>
         <td data-label="สถานะ"><span class="pvt-status-pill ${statusClass}">${displayStatus}</span></td>
-        <td data-label="รายละเอียด" style="text-align: center;">
-          <button class="btn-view-details" onclick="previewLeaveModalFromHistory('${item.id}')" title="ดูรายละเอียดและจัดการคำขอ">
-            <span class="material-symbols-outlined">visibility</span>
-          </button>
+        <td data-label="รายละเอียด" style="text-align: center; white-space: nowrap;">
+          <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+            <button class="btn-view-details" onclick="previewLeaveModalFromHistory('${item.id}')" title="ดูรายละเอียดและขั้นตอนอนุมัติ">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+            ${actionBtnHtml}
+          </div>
         </td>
       </tr>
     `;
@@ -845,9 +863,31 @@ function downloadLeaveHistoryCSV() {
   });
 }
 
-window.previewLeaveModalFromHistory = function(leaveId) {
+window.previewLeaveModalFromHistory = async function(leaveId) {
   const item = (myLeaveRows || []).find(r => String(r.id) === String(leaveId));
   if (!item) return;
+
+  const sb = window.pvtSupabase?.getClient();
+  const reqEmp = item.employees || window.currentProfile || {};
+  const reqDeptId = item.department_id || reqEmp.department_id;
+
+  let supervisorId = null;
+  let managerId = null;
+  if (sb && reqDeptId) {
+    try {
+      const { data: deptApp } = await sb
+        .from("department_approvers")
+        .select("supervisor_id, manager_id")
+        .eq("department_id", reqDeptId)
+        .maybeSingle();
+      if (deptApp) {
+        supervisorId = deptApp.supervisor_id;
+        managerId = deptApp.manager_id;
+      }
+    } catch (err) {
+      console.warn("Error querying department_approvers in history:", err);
+    }
+  }
 
   const sla = window.calculateSlaDetails ? window.calculateSlaDetails(item) : { countdownText: "", isOverdue: false };
   const rawType = item.leave_types?.leave_name || "ลาทั่วไป";
@@ -875,28 +915,15 @@ window.previewLeaveModalFromHistory = function(leaveId) {
   }
 
   // Dynamic Stepper Steps Calculation
-  const reqEmp = item.employees || window.currentProfile || {};
-  const reqDeptId = item.department_id || reqEmp.department_id;
   const applicantRole = String(reqEmp.role || '').toLowerCase();
   const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
   const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
   const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
   const isApplicantHr = applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin';
 
-  let hasL1 = false;
-  let hasL2 = false;
+  let hasL1 = Boolean(supervisorId || reqEmp.l1_approver_id);
+  let hasL2 = Boolean(managerId || reqEmp.l2_approver_id);
 
-  const deptApprovers = (window.deptApproversMap && reqDeptId) ? window.deptApproversMap[reqDeptId] : null;
-  if (deptApprovers) {
-    hasL1 = Boolean(deptApprovers.hasLeader);
-    hasL2 = Boolean(deptApprovers.hasManager);
-  } else {
-    hasL1 = !isApplicantLeader && !isApplicantManager && !isApplicantHr;
-    hasL2 = !isApplicantManager && !isApplicantHr;
-  }
-
-  if (reqEmp.l1_approver_id) hasL1 = true;
-  if (reqEmp.l2_approver_id) hasL2 = true;
   if (isApplicantLeader) hasL1 = false;
   if (isApplicantManager || isApplicantHr) {
     hasL1 = false;

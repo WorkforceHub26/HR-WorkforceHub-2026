@@ -1204,8 +1204,50 @@ function playBarcodeScanSuccessSound() {
   }
 }
 
+// Dynamic Script Loader for Code Splitting & Performance Optimization
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.body.appendChild(script);
+  });
+}
+
 // 📱 ฟังก์ชันสแกน QR Code & Barcode แบบ Full-screen Mobile Modal UI พร้อมระบบตอบสนองครบวงจร
-function loginByQr() {
+async function loginByQr() {
+  // Lazy-load html5-qrcode module on-demand to speed up initial page load
+  if (typeof Html5Qrcode === "undefined") {
+    Swal.fire({
+      title: 'กำลังดาวน์โหลดโมดูลกล้อง...',
+      text: 'กรุณารอสักครู่ขณะระบบโหลดโมดูลกล้องสแกนสด...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    try {
+      await loadScript("https://unpkg.com/html5-qrcode");
+      Swal.close();
+    } catch (e) {
+      console.error("Failed to lazy load html5-qrcode:", e);
+      Swal.fire({
+        icon: 'error',
+        title: 'ไม่สามารถโหลดระบบกล้องได้',
+        text: 'กรุณาเชื่อมต่ออินเทอร์เน็ตหรือรีเฟรชหน้าเว็บเพื่อลองใหม่อีกครั้ง',
+        confirmButtonColor: '#ef4444'
+      });
+      return;
+    }
+  }
+
   let html5QrCode = null;
   let isCamRunning = false;
   let isTorchOn = false;
@@ -1805,14 +1847,12 @@ function loginByQr() {
   startCamera();
 }
 
-// 📖 หน้าต่างแสดงคู่มือวิธีแสดงบัตรพนักงานสำหรับสแกน (How-to Guide Modal)
+/// 📖 หน้าต่างแสดงคู่มือวิธีแสดงบัตรพนักงานสำหรับสแกน (How-to Guide Modal)
 function showQrGuideModal() {
-  let guideModal = document.getElementById("pvtQrGuideModal");
+  const guideModal = document.getElementById("pvtQrGuideModal");
   if (!guideModal) {
-    guideModal = document.createElement("div");
-    guideModal.id = "pvtQrGuideModal";
-    guideModal.className = "pvt-guide-modal-overlay";
-    document.body.appendChild(guideModal);
+    console.error("Static pvtQrGuideModal not found in DOM");
+    return;
   }
 
   const currentLang = typeof getGlobalLanguage === 'function' ? getGlobalLanguage() : (localStorage.getItem("preferred_lang") || "th");
@@ -1839,16 +1879,16 @@ function showQrGuideModal() {
     lo: {
       title: "ວິທີສະແດງບັດພະນັກງານສຳລັບສະແກນ",
       subtitle: "ຄຳແນະນຳການສະແກນ QR Code & ບາໂຄ້ດ ໃຫ້ສຳເລັດຢ່າງໄວວາ",
-      step1Title: "1. ຖືບັດຊື່ ແລະ ຂະໜານກັບກ້ອງ",
+      step1Title: "1. ຖືບັດຊື່ และ ຂະໜານກັບກ້ອງ",
       step1Desc: "ຫັນໜ້າທີ່ມີ QR Code ຫຼື ບາໂຄ້ດ ເຂົ້າຫາເລນກ້ອງໂດຍກົງ",
-      step2Title: "2. ຮັກສາໄລຍະຫ່າງ 15 - 20 ຊມ.",
+      step2Title: "2. ຮັກສາໄລຍะຫ່າງ 15 - 20 ຊມ.",
       step2Desc: "ວາງບັດໃຫ້ຢູ່ໃນກາງກອບສະແກນ ບໍ່ໃກ້ ຫຼື ໄກເກີນໄປ",
       step3Title: "3. ລະວັງແສງສະທ້ອນ ແລະ ເງົາມືດ",
       step3Desc: "ຫຼີກເວັ້ນແສງສະທ້ອນໃສ່ຊອງບັດ ສາມາດເປີດໄຟສາຍຊ່ວຍໄດ້",
       step4Title: "4. ຖືນິ້ງໄວ້ 1 - 2 ວິນາທີ",
       step4Desc: "ຖືບັດນິ້ງໆ ເພື່ອໃຫ້ກ້ອງປັບໂຟກັດ ມີສຽງສັນຍານເມື່ອສະແກນຜ່ານ",
       dosTitle: "ຂໍ້ຄວນເຮັດ",
-      dosList: ["ຢູ່ໃນກາງກອບ", "ໄລຍະ 15-20 ຊມ.", "ແສງສະຫວ່າງພໍດີ"],
+      dosList: ["ຢູ່ໃນກາງກອບ", "ໄລຍະ 15-20 ຊມ.", "ແແສງສະຫວ່າງພໍດີ"],
       dontsTitle: "ຂໍ້ຄວນລະວັງ",
       dontsList: ["ບໍ່ຖືບັດອຽງ", "ບໍ່ເອົານິ້ວ ບັງ QR Code", "ບໍ່ສະແກນໃນບ່ອນມືດ"],
       btnGotIt: "ເຂົ້າໃຈແລ້ວ / ເລີ່ມສະແກນບັດ",
@@ -1871,6 +1911,24 @@ function showQrGuideModal() {
       dontsList: ["ကတ်မစောင်းပါနှင့်", "လက်ချောင်းဖြင့် မကာပါနှင့်", "မှောင်လွန်းသောနေရာ မဖတ်ပါနှင့်"],
       btnGotIt: "နားလည်ပါပြီ / စကင်န်စတင်ရန်",
       btnClose: "ပိတ်ရန်"
+    },
+    en: {
+      title: "How to Properly Scan Employee ID Card",
+      subtitle: "Guidelines to scan your QR Code & barcode quickly and successfully",
+      step1Title: "1. Hold Card Straight & Parallel",
+      step1Desc: "Point the side containing the QR Code or barcode directly at the camera lens.",
+      step2Title: "2. Keep 15 - 20 cm Distance",
+      step2Desc: "Center the card in the camera viewfinder frame. Do not hold it too close or too far.",
+      step3Title: "3. Avoid Glare & Dark Shadows",
+      step3Desc: "Prevent strong light reflections from plastic cases. Use flashlight if it is too dark.",
+      step4Title: "4. Hold Still for 1 - 2 Seconds",
+      step4Desc: "Keep the card steady to let the camera autofocus. You will hear a beep when scanned.",
+      dosTitle: "Do's",
+      dosList: ["Keep card centered", "Keep 15-20 cm distance", "Provide optimal lighting"],
+      dontsTitle: "Don'ts",
+      dontsList: ["Do not tilt or skew card", "Do not cover QR with fingers", "Do not scan in low light"],
+      btnGotIt: "Got It / Start Scanning",
+      btnClose: "Close"
     }
   }[currentLang] || {
     title: "วิธีแสดงบัตรพนักงานสำหรับสแกน",
@@ -1891,99 +1949,43 @@ function showQrGuideModal() {
     btnClose: "ปิดหน้าต่าง"
   };
 
-  guideModal.innerHTML = `
-    <div class="pvt-guide-modal-window" role="dialog" aria-modal="true" aria-labelledby="pvtGuideTitle">
-      <div class="pvt-guide-header">
-        <div class="pvt-guide-title-box">
-          <div class="pvt-guide-icon-badge">
-            <span class="material-symbols-outlined">badge</span>
-          </div>
-          <div>
-            <h3 id="pvtGuideTitle">${i18n.title}</h3>
-            <p>${i18n.subtitle}</p>
-          </div>
-        </div>
-        <button type="button" class="pvt-guide-close-btn" id="btnCloseQrGuide" title="${i18n.btnClose}">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-      </div>
+  // Dynamically translate the static elements
+  const titleEl = document.getElementById("pvtGuideTitle");
+  const subtitleEl = document.getElementById("pvtGuideSubtitle");
+  const step1TitleEl = document.getElementById("guideStep1Title");
+  const step1DescEl = document.getElementById("guideStep1Desc");
+  const step2TitleEl = document.getElementById("guideStep2Title");
+  const step2DescEl = document.getElementById("guideStep2Desc");
+  const step3TitleEl = document.getElementById("guideStep3Title");
+  const step3DescEl = document.getElementById("guideStep3Desc");
+  const step4TitleEl = document.getElementById("guideStep4Title");
+  const step4DescEl = document.getElementById("guideStep4Desc");
+  const dosTitleEl = document.getElementById("guideDosTitle");
+  const dontsTitleEl = document.getElementById("guideDontsTitle");
+  const btnGotItEl = document.getElementById("guideBtnGotIt");
+  const dosListEl = document.getElementById("guideDosList");
+  const dontsListEl = document.getElementById("guideDontsList");
 
-      <div class="pvt-guide-body">
-        <!-- Step Grid (Icons + Text) -->
-        <div class="pvt-guide-steps-grid">
-          <div class="pvt-guide-step-card">
-            <div class="step-icon-box blue">
-              <span class="material-symbols-outlined">badge</span>
-            </div>
-            <div class="step-text-box">
-              <h4>${i18n.step1Title}</h4>
-              <p>${i18n.step1Desc}</p>
-            </div>
-          </div>
+  if (titleEl) titleEl.textContent = i18n.title;
+  if (subtitleEl) subtitleEl.textContent = i18n.subtitle;
+  if (step1TitleEl) step1TitleEl.textContent = i18n.step1Title;
+  if (step1DescEl) step1DescEl.textContent = i18n.step1Desc;
+  if (step2TitleEl) step2TitleEl.textContent = i18n.step2Title;
+  if (step2DescEl) step2DescEl.textContent = i18n.step2Desc;
+  if (step3TitleEl) step3TitleEl.textContent = i18n.step3Title;
+  if (step3DescEl) step3DescEl.textContent = i18n.step3Desc;
+  if (step4TitleEl) step4TitleEl.textContent = i18n.step4Title;
+  if (step4DescEl) step4DescEl.textContent = i18n.step4Desc;
+  if (dosTitleEl) dosTitleEl.textContent = i18n.dosTitle;
+  if (dontsTitleEl) dontsTitleEl.textContent = i18n.dontsTitle;
+  if (btnGotItEl) btnGotItEl.textContent = i18n.btnGotIt;
 
-          <div class="pvt-guide-step-card">
-            <div class="step-icon-box teal">
-              <span class="material-symbols-outlined">straighten</span>
-            </div>
-            <div class="step-text-box">
-              <h4>${i18n.step2Title}</h4>
-              <p>${i18n.step2Desc}</p>
-            </div>
-          </div>
-
-          <div class="pvt-guide-step-card">
-            <div class="step-icon-box amber">
-              <span class="material-symbols-outlined">light_mode</span>
-            </div>
-            <div class="step-text-box">
-              <h4>${i18n.step3Title}</h4>
-              <p>${i18n.step3Desc}</p>
-            </div>
-          </div>
-
-          <div class="pvt-guide-step-card">
-            <div class="step-icon-box green">
-              <span class="material-symbols-outlined">center_focus_strong</span>
-            </div>
-            <div class="step-text-box">
-              <h4>${i18n.step4Title}</h4>
-              <p>${i18n.step4Desc}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Do's & Don'ts Comparison Section -->
-        <div class="pvt-guide-dos-donts">
-          <div class="guide-dos-box">
-            <div class="guide-box-header green">
-              <span class="material-symbols-outlined">check_circle</span>
-              <span>${i18n.dosTitle}</span>
-            </div>
-            <ul>
-              ${i18n.dosList.map(item => `<li><span class="bullet">✓</span> ${item}</li>`).join('')}
-            </ul>
-          </div>
-
-          <div class="guide-donts-box">
-            <div class="guide-box-header red">
-              <span class="material-symbols-outlined">cancel</span>
-              <span>${i18n.dontsTitle}</span>
-            </div>
-            <ul>
-              ${i18n.dontsList.map(item => `<li><span class="bullet">✕</span> ${item}</li>`).join('')}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="pvt-guide-footer">
-        <button type="button" class="pvt-guide-btn-primary" id="btnGotItQrGuide">
-          <span class="material-symbols-outlined">qr_code_scanner</span>
-          <span>${i18n.btnGotIt}</span>
-        </button>
-      </div>
-    </div>
-  `;
+  if (dosListEl) {
+    dosListEl.innerHTML = i18n.dosList.map(item => `<li><span class="bullet">✓</span> ${item}</li>`).join('');
+  }
+  if (dontsListEl) {
+    dontsListEl.innerHTML = i18n.dontsList.map(item => `<li><span class="bullet">✕</span> ${item}</li>`).join('');
+  }
 
   // Display modal smoothly
   requestAnimationFrame(() => {
@@ -1992,27 +1994,30 @@ function showQrGuideModal() {
 
   const closeGuide = () => {
     guideModal.classList.remove("active");
-    setTimeout(() => {
-      if (guideModal && guideModal.parentNode) {
-        guideModal.parentNode.removeChild(guideModal);
-      }
-    }, 250);
   };
 
-  document.getElementById("btnCloseQrGuide")?.addEventListener("click", closeGuide);
-  document.getElementById("btnGotItQrGuide")?.addEventListener("click", () => {
-    closeGuide();
-    const qrModal = document.getElementById("pvtQrScannerModal");
-    if (!qrModal || qrModal.style.visibility === "hidden" || !qrModal.classList.contains("active")) {
-      loginByQr();
-    }
-  });
+  const btnClose = document.getElementById("btnCloseQrGuideStatic");
+  if (btnClose) {
+    btnClose.title = i18n.btnClose;
+    btnClose.onclick = closeGuide;
+  }
 
-  guideModal.addEventListener("click", (e) => {
+  const btnGotIt = document.getElementById("btnGotItQrGuideStatic");
+  if (btnGotIt) {
+    btnGotIt.onclick = () => {
+      closeGuide();
+      const qrModal = document.getElementById("pvtQrScannerModal");
+      if (!qrModal || qrModal.style.visibility === "hidden" || !qrModal.classList.contains("active")) {
+        loginByQr();
+      }
+    };
+  }
+
+  guideModal.onclick = (e) => {
     if (e.target === guideModal) {
       closeGuide();
     }
-  });
+  };
 }
 
 window.showQrGuideModal = showQrGuideModal;
@@ -2033,15 +2038,45 @@ window.togglePassword = function () {
 // 🔐 Biometric WebAuthn Login Core Function
 // ============================================================================
 async function loginByBiometrics() {
+  const loginBtn = document.getElementById("loginBtn");
+  const bioBtn = document.getElementById("biometricLoginBtn");
+
+  // Lazy-load WebAuthn Biometric Service module on-demand to speed up initial page load
+  if (typeof window.PVTWebAuthn === "undefined") {
+    Swal.fire({
+      title: 'กำลังดาวน์โหลดโมดูลความปลอดภัย...',
+      text: 'กรุณารอสักครู่ขณะระบบเริ่มโมดูลสแกนนิ้วมือ / ใบหน้า...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    try {
+      await loadScript("/js/webauthn-service.js");
+      Swal.close();
+    } catch (e) {
+      console.error("Failed to lazy load webauthn-service:", e);
+      Swal.fire({
+        icon: 'error',
+        title: 'ไม่สามารถโหลดระบบความปลอดภัยได้',
+        text: 'กรุณารีเฟรชหน้าเว็บ หรือเลือกสแกนรหัสผ่านธรรมดาแทน',
+        confirmButtonColor: '#ef4444'
+      });
+      if (loginBtn) loginBtn.disabled = false;
+      if (bioBtn) {
+        bioBtn.disabled = false;
+        bioBtn.style.opacity = '';
+      }
+      return;
+    }
+  }
+
   const i18n = getActiveLoginI18n();
   const usernameInput = document.getElementById("username");
   const targetEmpCode = usernameInput?.value?.trim() || "";
 
   // Clear previous validation states
   clearLoginValidationErrors();
-
-  const loginBtn = document.getElementById("loginBtn");
-  const bioBtn = document.getElementById("biometricLoginBtn");
 
   if (loginBtn) loginBtn.disabled = true;
   if (bioBtn) {

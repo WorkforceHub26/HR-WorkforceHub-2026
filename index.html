@@ -179,14 +179,111 @@
       </div>
     </div>
 
+    <!-- PVT QR Scan Guide Modal (Statically defined for performance & accessibility) -->
+    <div id="pvtQrGuideModal" class="pvt-guide-modal-overlay">
+      <div class="pvt-guide-modal-window" role="dialog" aria-modal="true" aria-labelledby="pvtGuideTitle">
+        <div class="pvt-guide-header">
+          <div class="pvt-guide-title-box">
+            <div class="pvt-guide-icon-badge">
+              <span class="material-symbols-outlined">badge</span>
+            </div>
+            <div>
+              <h3 id="pvtGuideTitle">วิธีแสดงบัตรพนักงานสำหรับสแกน</h3>
+              <p id="pvtGuideSubtitle">คำแนะนำการสแกน QR Code & บาร์โค้ด ให้สำเร็จอย่างรวดเร็ว</p>
+            </div>
+          </div>
+          <button type="button" class="pvt-guide-close-btn" id="btnCloseQrGuideStatic" title="ปิดหน้าต่าง">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="pvt-guide-body">
+          <!-- Step Grid (Icons + Text) -->
+          <div class="pvt-guide-steps-grid">
+            <div class="pvt-guide-step-card">
+              <div class="step-icon-box blue">
+                <span class="material-symbols-outlined">badge</span>
+              </div>
+              <div class="step-text-box">
+                <h4 id="guideStep1Title">1. ถือบัตรตั้งตรงและขนานกับกล้อง</h4>
+                <p id="guideStep1Desc">หันหน้าที่มี QR Code หรือบาร์โค้ดเข้าหาเลนส์กล้องโดยตรง ไม่เอียงบัตร</p>
+              </div>
+            </div>
+
+            <div class="pvt-guide-step-card">
+              <div class="step-icon-box teal">
+                <span class="material-symbols-outlined">straighten</span>
+              </div>
+              <div class="step-text-box">
+                <h4 id="guideStep2Title">2. รักษาระยะห่าง 15 - 20 ซม.</h4>
+                <p id="guideStep2Desc">เว้นระยะบัตรให้อยู่กึ่งกลางกรอบสแกน ไม่ใกล้หรือไกลเกินไป</p>
+              </div>
+            </div>
+
+            <div class="pvt-guide-step-card">
+              <div class="step-icon-box amber">
+                <span class="material-symbols-outlined">light_mode</span>
+              </div>
+              <div class="step-text-box">
+                <h4 id="guideStep3Title">3. ระวังแสงสะท้อนและเงามืด</h4>
+                <p id="guideStep3Desc">หลีกเลี่ยงแสงสะท้อนบนซองพลาสติก สามารถเปิดไฟฉายช่วยส่องสว่างได้</p>
+              </div>
+            </div>
+
+            <div class="pvt-guide-step-card">
+              <div class="step-icon-box green">
+                <span class="material-symbols-outlined">center_focus_strong</span>
+              </div>
+              <div class="step-text-box">
+                <h4 id="guideStep4Title">4. ถือนิ่งไว้ 1 - 2 วินาที</h4>
+                <p id="guideStep4Desc">ถือบัตรรอนิ่งๆ ให้กล้องปรับโฟกัส ระบบจะส่งเสียงสัญญาณเมื่อสแกนผ่าน</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Do's & Don'ts Comparison Section -->
+          <div class="pvt-guide-dos-donts">
+            <div class="guide-dos-box">
+              <div class="guide-box-header green">
+                <span class="material-symbols-outlined">check_circle</span>
+                <span id="guideDosTitle">ข้อควรทำ</span>
+              </div>
+              <ul id="guideDosList">
+                <li><span class="bullet">✓</span> อยู่กึ่งกลางกรอบ</li>
+                <li><span class="bullet">✓</span> ระยะห่าง 15-20 ซม.</li>
+                <li><span class="bullet">✓</span> แสงสว่างพอเหมาะ</li>
+              </ul>
+            </div>
+
+            <div class="guide-donts-box">
+              <div class="guide-box-header red">
+                <span class="material-symbols-outlined">cancel</span>
+                <span id="guideDontsTitle">ข้อควรระวัง</span>
+              </div>
+              <ul id="guideDontsList">
+                <li><span class="bullet">✕</span> ไม่ถือบัตรเอียง</li>
+                <li><span class="bullet">✕</span> ไม่เอานิ้ว บัง QR Code</li>
+                <li><span class="bullet">✕</span> ไม่สแกนในที่มืดเกินไป</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="pvt-guide-footer">
+          <button type="button" class="pvt-guide-btn-primary" id="btnGotItQrGuideStatic">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+            <span id="guideBtnGotIt">เข้าใจแล้ว / เริ่มสแกนบัตร</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ส่วนโหลดสคริปต์ต่างๆ -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
     <script src="/js/supabase-config.js"></script>
     <script src="/js/system-settings.js"></script>
     <script src="/js/system-diagnostics.js"></script>
-    <script src="/js/webauthn-service.js"></script>
     <script src="/auth/index.js"></script>
   </body>
 </html>

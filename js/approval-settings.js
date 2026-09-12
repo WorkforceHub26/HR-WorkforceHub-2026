@@ -468,7 +468,8 @@ function buildSupervisorOptions(departmentId, selectedId) {
 
   // แสดงกลุ่มพนักงานและหัวหน้าในแผนกตนเองก่อน
   if (inDeptEmployees.length > 0) {
-    html += `<optgroup label="พนักงานและหัวหน้าในแผนก ${escapeHtml(deptName)} (${inDeptEmployees.length} คน)">`;
+    const realInDeptCount = inDeptEmployees.filter(e => !(window.isSystemOrAdminAccount && window.isSystemOrAdminAccount(e))).length;
+    html += `<optgroup label="พนักงานและหัวหน้าในแผนก ${escapeHtml(deptName)} (${realInDeptCount} คน)">`;
     inDeptEmployees.forEach(e => {
       const pos = e.positions?.position_name || e.role || "เจ้าหน้าที่";
       const code = e.employee_code ? `#${e.employee_code} · ` : "";
@@ -524,7 +525,8 @@ function buildManagerOptions(departmentId, selectedId) {
 
   // แสดงกลุ่มผู้จัดการ/บุคลากรในแผนกตนเองก่อน
   if (inDeptEmployees.length > 0) {
-    html += `<optgroup label="ผู้จัดการ / หัวหน้า / บุคลากรในแผนก ${escapeHtml(deptName)} (${inDeptEmployees.length} คน)">`;
+    const realInDeptCount = inDeptEmployees.filter(e => !(window.isSystemOrAdminAccount && window.isSystemOrAdminAccount(e))).length;
+    html += `<optgroup label="ผู้จัดการ / หัวหน้า / บุคลากรในแผนก ${escapeHtml(deptName)} (${realInDeptCount} คน)">`;
     inDeptEmployees.forEach(e => {
       const pos = e.positions?.position_name || e.role || "ผู้จัดการ/เจ้าหน้าที่";
       const code = e.employee_code ? `#${e.employee_code} · ` : "";
@@ -830,6 +832,12 @@ async function saveApprover() {
     }
 
     approverMap.set(String(departmentId), data);
+    if (currentLineFilter === "no_approver") {
+      currentLineFilter = "all";
+      document.querySelectorAll("#approverFilterTabs .filter-tab-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.getAttribute("data-filter") === "all");
+      });
+    }
     await loadAllData();
     Swal.fire({ icon:"success", title:"บันทึกแล้ว", text:"ตั้งค่าสายอนุมัติของแผนกเรียบร้อย", timer:1600, showConfirmButton:false });
   } catch (err) {
@@ -1247,7 +1255,13 @@ window.saveApproverFromModal = async function() {
     }
 
     approverMap.set(String(departmentId), data);
-    renderApproverTable();
+    if (currentLineFilter === "no_approver") {
+      currentLineFilter = "all";
+      document.querySelectorAll("#approverFilterTabs .filter-tab-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.getAttribute("data-filter") === "all");
+      });
+    }
+    await loadAllData();
 
     // ซิงค์ฟอร์มหลักถ้ากำลังเปิดแผนกเดียวกัน
     const mainDeptSelect = document.getElementById("departmentSelect");
@@ -1375,9 +1389,7 @@ window.deleteApprover = async function(departmentId) {
     });
 
     // 4. Render UI ใหม่
-    renderApproverTable();
-    renderEmployeeLineTable();
-    updateLineSummaryStats();
+    await loadAllData();
 
     const deptSelect = document.getElementById("departmentSelect");
     if (String(deptSelect?.value) === String(departmentId)) {
@@ -2318,13 +2330,14 @@ function renderEmployeeLineTable() {
     activeApproverIds.add(String(executiveSetting.employee_id));
   }
 
-  // คำนวณตัวเลขสถิติบน Tabs
-  const totalAll = employees.length;
+  // คำนวณตัวเลขสถิติบน Tabs (ยกเว้นบัญชีระบบ/อนุมัติ admin และ HR-001)
+  const realEmps = employees.filter(e => !(window.isSystemOrAdminAccount && window.isSystemOrAdminAccount(e)));
+  const totalAll = realEmps.length;
   let totalConnected = 0;
   let totalUnconnected = 0;
   let totalApprovers = 0;
 
-  employees.forEach(emp => {
+  realEmps.forEach(emp => {
     const hasLine = Boolean(emp.line_id && String(emp.line_id).trim() !== "");
     if (hasLine) totalConnected++;
     else totalUnconnected++;

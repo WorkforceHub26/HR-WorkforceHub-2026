@@ -239,10 +239,24 @@
     if (!container) return;
 
     if (requests) {
-      // กรองเฉพาะ pending requests
+      // กรองเฉพาะ pending requests ที่ยังคงรอการอนุมัติสำหรับระดับสิทธิ์ของผู้ใช้งานปัจจุบันเท่านั้น
+      // (รายการที่ผู้ใช้งานท่านนี้ลงนามอนุมัติผ่านไปแล้ว จะถูกย้ายออกจากคิว SLA ค้างพิจารณา และไปอยู่ในหน้าประวัติแทน)
       cachedPendingRequests = requests.filter(r => {
         const st = String(r.status || '').toLowerCase();
-        return st === 'pending' || st === 'รออนุมัติ';
+        const isMainPending = (st === 'pending' || st === 'รออนุมัติ');
+        if (!isMainPending) return false;
+
+        // ถ้ามีฟังก์ชันเช็กสิทธิ์ตามบทบาท ให้กรองรายการที่อนุมัติผ่านระดับนี้ไปแล้วออก
+        if (typeof window.isPendingForRole === 'function') {
+          const role = window.currentRole || localStorage.getItem("userRole") || 'hr';
+          return window.isPendingForRole(r, role);
+        }
+        if (typeof window.isPendingForRoleHome === 'function') {
+          const role = window.currentRole || localStorage.getItem("userRole") || 'hr';
+          return window.isPendingForRoleHome(r, role);
+        }
+
+        return true;
       });
     }
 

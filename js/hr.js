@@ -700,25 +700,29 @@ function getApprovalWorkflowSteps(req) {
    📊 2. DATA FETCHING & TAB BADGES
    ========================================================================== */
 
-async function loadPendingLeavesHR() {
+async function loadPendingLeavesHR(isSilent = false) {
   const container = document.getElementById("leaveListContainer");
   if (!container) return;
 
   const sb = window.pvtSupabase?.getClient();
   if (!sb) {
-    container.innerHTML = `<div class="empty-state">❌ ระบบฐานข้อมูลไม่พร้อมใช้งาน</div>`;
+    if (!isSilent) {
+      container.innerHTML = `<div class="empty-state">❌ ระบบฐานข้อมูลไม่พร้อมใช้งาน</div>`;
+    }
     return;
   }
 
   try {
     // แสดงสถานะ Loading ระหว่างดึงข้อมูล
-    container.innerHTML = `
-      <div style="padding: 100px 0; text-align: center; color: var(--text-soft);">
-        <div class="pvt-loader" style="margin: 0 auto 20px;"></div>
-        <p>กำลังดึงข้อมูลใบลา...</p>
-      </div>`;
+    if (!isSilent) {
+      container.innerHTML = `
+        <div style="padding: 100px 0; text-align: center; color: var(--text-soft);">
+          <div class="pvt-loader" style="margin: 0 auto 20px;"></div>
+          <p>กำลังดึงข้อมูลใบลา...</p>
+        </div>`;
+    }
 
-    const { data, error } = await sb
+    let queryResult = await sb
       .from("leave_requests")
       .select(`
         *,
@@ -732,12 +736,24 @@ async function loadPendingLeavesHR() {
       `)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("❌ Supabase Select Error:", error);
-      throw error;
+    if (queryResult.error) {
+      console.warn("⚠️ Complex Join Query Failed in HR load, retrying simple select:", queryResult.error);
+      queryResult = await sb.from("leave_requests").select("*").order("created_at", { ascending: false });
     }
-    
-    let rawData = data || [];
+
+    let rawData = queryResult.data || [];
+
+    if ((queryResult.error || !rawData.length)) {
+      try {
+        const cached = localStorage.getItem("pvt_cached_hr_requests");
+        if (cached) {
+          rawData = JSON.parse(cached);
+          console.log("📦 Loaded HR leave requests from local cache fallback.");
+        }
+      } catch(e) {}
+    } else if (rawData.length) {
+      try { localStorage.setItem("pvt_cached_hr_requests", JSON.stringify(rawData)); } catch(e) {}
+    }
     console.log("[HR Load] Fetch success. Total records from DB:", rawData.length);
 
     // ⏱️ ตรวจสอบและตัดใบลาที่ค้างเกิน 2 วัน (48 ชม.) เป็น "ไม่อนุมัติ" อัตโนมัติ
@@ -848,9 +864,10 @@ async function loadPendingLeavesHR() {
     updateTabAndStatBadges();
     renderLeaveTable();
 
-    // ⏱️ อัปเดตและแสดงผล SLA Countdown Tracker สำหรับรายการรอพิจารณา
+    // ⏱️ อัปเดตและแสดงผล SLA Countdown Tracker สำหรับรายการรอพิจารณาของผู้ใช้ปัจจุบัน
     if (typeof window.renderLeaveSlaTracker === 'function') {
-      window.renderLeaveSlaTracker("leaveSlaTrackerContainer", allLeaveRequests);
+      const pendingForRoleRequests = allLeaveRequests.filter(r => isPendingForRole(r, currentRole));
+      window.renderLeaveSlaTracker("leaveSlaTrackerContainer", pendingForRoleRequests);
     }
 
     // 💡 จัดการการแสดงผลตาราง: ยุบตารางล่างเมื่ออยู่ในแท็บ 'รออนุมัติ' (SLA Tracker ทำหน้าที่แทน)
@@ -1701,7 +1718,8 @@ async function approveLeave(leaveId) {
       const currentYear = getADYear(reqData.start_date);
 
       if (window.PVTSDK?.user?.updateLeaveBalance) {
-        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, leaveDays);
+        const lCode = reqData.leave_types?.leave_code || null;
+        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
       }
     }
 
@@ -1903,7 +1921,7 @@ async function approveLeave(leaveId) {
       }
     }
 
-    // 💬 ส่งแจ้งเตือนกลับหาพนักงานเจ้าของใบลา
+    // 💬 1. ส่งแจ้งเตือนกลับหาพนักงานเจ้าของใบลา
     if (window.PVTSDK?.line) {
       try {
         await window.PVTSDK.line.sendWorkflowNotification({
@@ -1923,7 +1941,37 @@ async function approveLeave(leaveId) {
           attachmentUrl: reqData.attachment_url || ""
         });
       } catch (lineErr) {
-        console.warn("⚠️ [Workflow Notification] Approval notice error:", lineErr);
+        console.warn("⚠️ [Workflow Notification] Approval notice error to employee:", lineErr);
+      }
+    }
+
+    // 💬 2. 📢 ส่งแจ้งเตือนไปยังฝ่ายบุคคล (HR) ผ่าน LINE ทันทีเมื่อมีการอนุมัติ
+    if (window.PVTSDK?.notifyHrWorkflow || window.pvtSupabase?.notifyHrWorkflow) {
+      try {
+        const notifyFn = window.PVTSDK?.notifyHrWorkflow ? window.PVTSDK.notifyHrWorkflow.bind(window.PVTSDK) : window.pvtSupabase.notifyHrWorkflow.bind(window.pvtSupabase);
+        
+        // ถ้าเป็นหัวหน้างานอนุมัติแล้วต้องส่งต่อ ให้ใช้ HR_REVIEW หรือถ้าอนุมัติเสร็จสิ้นใช้ HR_NOTIFY
+        const notifTypeToHr = (updateFields.status === 'approved' || reqData.status === 'approved' || currentRole === 'manager' || currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') 
+          ? 'HR_NOTIFY' 
+          : 'HR_REVIEW';
+
+        await notifyFn({
+          id: leaveId,
+          applicant_name: reqData.employees?.full_name || applicantName,
+          employee_code: reqData.employees?.employee_code || applicantCode,
+          department_name: reqData.employees?.departments?.department_name || deptName,
+          leave_type_name: reqData.leave_types?.leave_name || leaveTypeName,
+          start_date: reqData.start_date,
+          end_date: reqData.end_date,
+          total_days: reqData.total_days,
+          leave_hours: reqData.leave_hours || 0,
+          reason: reqData.reason || '',
+          comment: reqData.approval_comment || `อนุมัติโดย ${currentRole.toUpperCase()}`,
+          attachment_url: reqData.attachment_url || ''
+        }, notifTypeToHr);
+        console.log(`✅ [LINE OA] Dispatched HR notification [${notifTypeToHr}] for leave ID: ${leaveId}`);
+      } catch (hrNotifErr) {
+        console.warn("⚠️ [LINE OA Trigger] HR notification notice error:", hrNotifErr);
       }
     }
 
@@ -2118,7 +2166,7 @@ async function forceCancelLeave(leaveId) {
     
     const { data: reqData } = await sb
       .from('leave_requests')
-      .select('*')
+      .select('*, leave_types!leave_type_id(leave_code, leave_name)')
       .eq('id', leaveId)
       .single();
 
@@ -2127,7 +2175,8 @@ async function forceCancelLeave(leaveId) {
       const daysToReturn = await getEffectiveLeaveDays(reqData);
 
       if (window.PVTSDK?.user?.updateLeaveBalance) {
-        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, -daysToReturn);
+        const lCode = reqData.leave_types?.leave_code || null;
+        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, -daysToReturn);
       }
     }
 
@@ -2176,7 +2225,7 @@ async function approveCancellation(leaveId) {
   try {
     const { data: reqData, error: reqErr } = await sb
       .from('leave_requests')
-      .select('*')
+      .select('*, leave_types!leave_type_id(leave_code, leave_name)')
       .eq('id', leaveId)
       .single();
 
@@ -2186,7 +2235,8 @@ async function approveCancellation(leaveId) {
     const currentYear = getADYear(reqData.start_date);
 
     if (window.PVTSDK?.user?.updateLeaveBalance) {
-      await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, -daysToReturn);
+      const lCode = reqData.leave_types?.leave_code || null;
+      await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, -daysToReturn);
     }
 
     const { error: updateErr } = await sb
@@ -3164,7 +3214,8 @@ window.submitBulkApproval = async function() {
         const leaveDays = await getEffectiveLeaveDays(reqData);
         const currentYear = getADYear(reqData.start_date);
         if (window.PVTSDK?.user?.updateLeaveBalance) {
-          await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, leaveDays);
+          const lCode = reqData.leave_types?.leave_code || null;
+          await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
         }
       }
 
@@ -3249,7 +3300,7 @@ window.addEventListener("focus", handleHrAutoSync);
 // Polling ทุกๆ 15 วินาที
 setInterval(() => {
   if (document.visibilityState === 'visible' && !document.hidden) {
-    if (typeof loadPendingLeavesHR === 'function') loadPendingLeavesHR();
+    if (typeof loadPendingLeavesHR === 'function') loadPendingLeavesHR(true);
   }
 }, 15000);
 
@@ -3264,12 +3315,21 @@ function setupHrRealtimeSubscription() {
       .channel('hr-leave-requests-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'leave_requests' },
+        { event: 'INSERT', schema: 'public', table: 'leave_requests' },
         (payload) => {
-          console.log('⚡ [Realtime Leave Change]:', payload.eventType, payload.new?.id || payload.old?.id);
-          // Debounce reload
+          console.log('⚡ [Realtime Leave INSERT]:', payload.new?.id);
           if (typeof loadPendingLeavesHR === 'function') {
-            loadPendingLeavesHR();
+            loadPendingLeavesHR(true);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'leave_requests' },
+        (payload) => {
+          console.log('⚡ [Realtime Leave UPDATE]:', payload.new?.id);
+          if (typeof loadPendingLeavesHR === 'function') {
+            loadPendingLeavesHR(true);
           }
         }
       )

@@ -239,12 +239,46 @@ window.refreshDashboardData = async function(isManualClick = false) {
       resLeaveTypes = fallbackResults[2];
     }
 
-    if (resRequests?.error) console.error("❌ Supabase Request Error:", resRequests.error);
-    if (resEmployees?.error) console.error("❌ Supabase Employees Error:", resEmployees.error);
+    if (resRequests?.error || resEmployees?.error) {
+      console.warn("⚠️ Initial Supabase fetch error, attempting simple query retry...", resRequests?.error || resEmployees?.error);
+      try {
+        const fallbackResults = await Promise.all([
+          sb.from("leave_requests").select("*").order("created_at", { ascending: false }),
+          sb.from("employees").select("*"),
+          sb.from("leave_types").select("*")
+        ]);
+        if (!fallbackResults[0]?.error && fallbackResults[0]?.data) resRequests = fallbackResults[0];
+        if (!fallbackResults[1]?.error && fallbackResults[1]?.data) resEmployees = fallbackResults[1];
+        if (!fallbackResults[2]?.error && fallbackResults[2]?.data) resLeaveTypes = fallbackResults[2];
+      } catch (retryErr) {
+        console.warn("⚠️ Retry simple query error:", retryErr);
+      }
+    }
 
     rawRequests = resRequests?.data || [];
     rawEmployees = resEmployees?.data || [];
     const allLeaveTypes = resLeaveTypes?.data || [];
+
+    // 📦 Fallback to local cache if network/Supabase request failed completely
+    if ((!rawRequests || rawRequests.length === 0) || (!rawEmployees || rawEmployees.length === 0)) {
+      try {
+        const cachedReq = localStorage.getItem("pvt_cached_home_requests");
+        const cachedEmp = localStorage.getItem("pvt_cached_home_employees");
+        if ((!rawRequests || rawRequests.length === 0) && cachedReq) {
+          rawRequests = JSON.parse(cachedReq);
+          console.log("📦 Loaded leave requests from local cache fallback.");
+        }
+        if ((!rawEmployees || rawEmployees.length === 0) && cachedEmp) {
+          rawEmployees = JSON.parse(cachedEmp);
+          console.log("📦 Loaded employees from local cache fallback.");
+        }
+      } catch (cacheErr) {}
+    } else {
+      try {
+        localStorage.setItem("pvt_cached_home_requests", JSON.stringify(rawRequests));
+        localStorage.setItem("pvt_cached_home_employees", JSON.stringify(rawEmployees));
+      } catch (cacheErr) {}
+    }
 
     // ⏱️ ตรวจสอบและตัดใบลาที่ค้างเกิน 2 วัน (48 ชม.) เป็น "ไม่อนุมัติ"
     if (typeof window.autoRejectOverdueLeaves === 'function') {
@@ -2898,7 +2932,8 @@ window.quickApproveFromDashboard = async function(leaveId) {
       const currentYear = new Date(reqData.start_date).getFullYear();
 
       if (window.PVTSDK?.user?.updateLeaveBalance) {
-        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, null, currentYear, leaveDays);
+        const lCode = reqData.leave_types?.leave_code || null;
+        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
       }
     }
 
@@ -2930,6 +2965,57 @@ window.quickApproveFromDashboard = async function(leaveId) {
       type: 'leave',
       link_url: '/pages/user/index-user.html'
     });
+
+    // 💬 ส่งแจ้งเตือน LINE ให้พนักงานผู้ขอลา
+    if (window.PVTSDK?.line) {
+      try {
+        await window.PVTSDK.line.sendWorkflowNotification({
+          type: 'REQUEST_APPROVED',
+          recipientId: reqData.employee_id,
+          recipientLineId: reqData.employees?.line_id || '',
+          leaveId: leaveId,
+          employeeName: reqData.employees?.full_name || 'พนักงาน',
+          employeeCode: reqData.employees?.employee_code || '',
+          departmentName: reqData.employees?.departments?.department_name || '',
+          recipientRole: 'employee',
+          leaveType: reqData.leave_types?.leave_name || 'ใบลา',
+          startDate: reqData.start_date,
+          endDate: reqData.end_date,
+          totalDays: reqData.total_days,
+          comment: 'ใบลาของคุณได้รับการอนุมัติเรียบร้อยแล้ว',
+          attachmentUrl: reqData.attachment_url || ""
+        });
+      } catch (lineErr) {
+        console.warn("⚠️ [Home LINE] Employee notification error:", lineErr);
+      }
+    }
+
+    // 📢 ส่งแจ้งเตือน LINE ให้ฝ่ายบุคคล (HR)
+    if (window.PVTSDK?.notifyHrWorkflow || window.pvtSupabase?.notifyHrWorkflow) {
+      try {
+        const notifyFn = window.PVTSDK?.notifyHrWorkflow ? window.PVTSDK.notifyHrWorkflow.bind(window.PVTSDK) : window.pvtSupabase.notifyHrWorkflow.bind(window.pvtSupabase);
+        const notifTypeToHr = (updateFields.status === 'approved' || reqData.status === 'approved' || myRole === 'manager' || myRole === 'executive' || myRole === 'director' || myRole === 'owner')
+          ? 'HR_NOTIFY'
+          : 'HR_REVIEW';
+
+        await notifyFn({
+          id: leaveId,
+          applicant_name: reqData.employees?.full_name || 'พนักงาน',
+          employee_code: reqData.employees?.employee_code || '',
+          department_name: reqData.employees?.departments?.department_name || '',
+          leave_type_name: reqData.leave_types?.leave_name || 'ใบลา',
+          start_date: reqData.start_date,
+          end_date: reqData.end_date,
+          total_days: reqData.total_days,
+          leave_hours: reqData.leave_hours || 0,
+          reason: reqData.reason || '',
+          comment: updateFields.approval_comment || `อนุมัติโดย ${myRole.toUpperCase()}`,
+          attachment_url: reqData.attachment_url || ''
+        }, notifTypeToHr);
+      } catch (hrNotifErr) {
+        console.warn("⚠️ [Home LINE] HR notification error:", hrNotifErr);
+      }
+    }
 
     if (updateFields.status === 'approved' || reqData.status === 'approved') {
       const subject = `[วันลาพัก] ${reqData.employees?.full_name || 'พนักงาน'} (${reqData.leave_types?.leave_name || 'ลากิจ'})`;
