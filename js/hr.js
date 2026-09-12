@@ -168,10 +168,16 @@ async function initSystemAndPermissions() {
         window.deptApproversMap = deptApproversMap;
 
         if (empData?.id) {
-          isDeptSupervisor = apprvList.some(a => String(a.supervisor_id) === String(empData.id)) ||
-            allEmps.some(e => String(e.id) === String(empData.id) && (e.role === 'leader' || String(e.positions?.position_name || '').includes('หัวหน้า')));
-          isDeptManager = apprvList.some(a => String(a.manager_id) === String(empData.id)) ||
-            allEmps.some(e => String(e.id) === String(empData.id) && (e.role === 'manager' || String(e.positions?.position_name || '').includes('ผู้จัดการ')));
+          const empIdStr = String(empData.id);
+          isDeptSupervisor = apprvList.some(a => String(a.supervisor_id) === empIdStr) ||
+            depts.some(d => String(d.backup_approver_id) === empIdStr) ||
+            allEmps.some(e => String(e.l1_approver_id) === empIdStr) ||
+            allEmps.some(e => String(e.id) === empIdStr && (e.role === 'leader' || String(e.positions?.position_name || '').includes('หัวหน้า')));
+          
+          isDeptManager = apprvList.some(a => String(a.manager_id) === empIdStr) ||
+            depts.some(d => String(d.approver_id) === empIdStr) ||
+            allEmps.some(e => String(e.l2_approver_id) === empIdStr) ||
+            allEmps.some(e => String(e.id) === empIdStr && (e.role === 'manager' || String(e.positions?.position_name || '').includes('ผู้จัดการ')));
         }
       } catch (e) {
         console.warn("Error checking approver list:", e);
@@ -393,7 +399,7 @@ function getAttachmentUrl(reqData) {
 function isPendingStatus(status) {
   if (!status) return false;
   const s = String(status).trim().toLowerCase();
-  return s === 'pending' || s === 'รออนุมัติ' || s === 'wait';
+  return s === 'pending' || s === 'รออนุมัติ' || s === 'wait' || s === 'waiting' || s.startsWith('pending_');
 }
 
 function isCancelRequestStatus(status) {
@@ -409,16 +415,14 @@ function isPendingForRole(r, role) {
     return (r.manager_status || 'pending') === 'pending';
   }
   if (userRole === 'manager') {
-    if ((r.director_status || 'pending') === 'pending') return true;
-    if ((r.manager_status || 'pending') === 'pending') {
-      const deptId = r.employees?.department_id;
-      const deptApprover = (typeof window.deptApproversMap !== 'undefined' && window.deptApproversMap[deptId]) || null;
-      if (deptApprover && !deptApprover.supervisor_id) return true;
-    }
-    return false;
+    // Manager handles requests waiting for L2 (director_status pending)
+    // OR requests waiting for L1 (manager_status pending) if in their scope
+    const isDirectorPending = (r.director_status || 'pending') === 'pending';
+    const isManagerPending = (r.manager_status || 'pending') === 'pending';
+    return isDirectorPending || isManagerPending;
   }
   if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
-    return (r.executive_status || 'pending') === 'pending';
+    return (r.executive_status || 'pending') === 'pending' || (r.director_status || 'pending') === 'pending';
   }
   return true;
 }
@@ -433,10 +437,10 @@ function isHistoryForRole(r, role) {
       return (r.manager_status || 'pending') !== 'pending';
     }
     if (userRole === 'manager') {
-      return (r.director_status || 'pending') !== 'pending';
+      return (r.director_status || 'pending') !== 'pending' && (r.manager_status || 'pending') !== 'pending';
     }
     if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
-      return (r.executive_status || 'pending') !== 'pending';
+      return (r.executive_status || 'pending') !== 'pending' && (r.director_status || 'pending') !== 'pending';
     }
   }
   return false;
@@ -778,35 +782,59 @@ async function loadPendingLeavesHR() {
         const reqEmp = req.employees;
         if (!reqEmp) return false;
 
-        const reqEmpId = reqEmp.id;
+        const reqEmpId = String(reqEmp.id || req.employee_id || '');
+        const currentEmpIdStr = currentEmpId ? String(currentEmpId) : '';
         const reqEmpRole = String(reqEmp.role || "").toLowerCase();
-        const reqDeptId = reqEmp.department_id;
-        const reqDeptName = reqEmp.departments?.department_name;
+        const reqDeptId = reqEmp.department_id ? String(reqEmp.department_id) : '';
+        const myDeptIdStr = myDeptId ? String(myDeptId) : '';
+        const reqDeptName = String(reqEmp.departments?.department_name || '').toLowerCase();
+        const myDeptNameStr = String(myDeptName || '').toLowerCase();
 
-        // 1. ห้ามเห็นใบลาของตัวเองในหน้านี้ (ให้ไปดูในหน้าประวัติส่วนตัว)
-        const isNotSelf = currentEmpId ? String(reqEmpId) !== String(currentEmpId) : true;
-        if (!isNotSelf) return false;
-        
+        // 🎯 ตรวจสอบว่าผู้ใช้งานปัจจุบันถูกระบุเป็นผู้อนุมัติโดยตรง (L1 / L2) หรือไม่
+        const isDirectL1 = currentEmpIdStr && String(reqEmp.l1_approver_id || '') === currentEmpIdStr;
+        const isDirectL2 = currentEmpIdStr && String(reqEmp.l2_approver_id || '') === currentEmpIdStr;
+        if (isDirectL1 || isDirectL2) return true;
+
+        // 🎯 ตรวจสอบการเป็นผู้จัดการ/หัวหน้าตามการตั้งค่าแผนก (deptApproversMap)
+        const deptCfg = (window.deptApproversMap && reqDeptId) ? window.deptApproversMap[reqDeptId] : null;
+        if (deptCfg) {
+          if (currentEmpIdStr && (String(deptCfg.manager_id || '') === currentEmpIdStr || String(deptCfg.supervisor_id || '') === currentEmpIdStr)) {
+            return true;
+          }
+        }
+
         let isSubordinate = false;
+        const isHigherRole = ['director', 'executive', 'owner', 'hr', 'admin', 'superadmin'].includes(reqEmpRole);
 
         if (userRole === "leader") {
-          // Leader เห็นเฉพาะพนักงาน (User) ในแผนกเดียวกัน
-          const isSameDept = (myDeptId || myDeptName) 
-            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
-            : true;
-          isSubordinate = isSameDept && (reqEmpRole === "user" || reqEmpRole === "");
+          // Leader เห็นพนักงานทั่วไปในแผนกเดียวกัน
+          const isSameDept = (myDeptIdStr && reqDeptId) 
+            ? (reqDeptId === myDeptIdStr)
+            : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : true);
+          const isNotLeaderOrHigher = !['leader', 'manager', 'director', 'executive', 'owner', 'hr', 'admin'].includes(reqEmpRole);
+          isSubordinate = isSameDept && isNotLeaderOrHigher;
         } 
         else if (userRole === "manager") {
-          // Manager เห็นทั้ง User และ Leader ในแผนกตัวเอง
-          const isSameDept = (myDeptId || myDeptName) 
-            ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
-            : true;
-          isSubordinate = isSameDept && (reqEmpRole === "user" || reqEmpRole === "leader" || reqEmpRole === "");
+          // Manager เห็นพนักงานและหัวหน้างานในแผนกตัวเอง
+          const isSameDept = (myDeptIdStr && reqDeptId) 
+            ? (reqDeptId === myDeptIdStr)
+            : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : true);
+          isSubordinate = isSameDept && !isHigherRole;
         } 
         else if (userRole === "director" || userRole === "executive" || userRole === "owner") {
-          // ระดับบริหาร เห็น Leader/Manager ทั่วองค์กร และเห็นพนักงานทุกคนในแผนกตัวเอง (ถ้ามี)
-          const isOrgSub = (reqEmpRole === "leader" || reqEmpRole === "manager" || reqEmpRole === "user");
-          isSubordinate = isOrgSub; 
+          // ระดับบริหาร เห็นทุกแผนกทั่วองค์กร
+          isSubordinate = !['owner'].includes(reqEmpRole); 
+        } else {
+          // กรณี role อื่นๆ หรือพนักงานทั่วไปที่ได้รับสิทธิ์ดู
+          const isSameDept = (myDeptIdStr && reqDeptId) 
+            ? (reqDeptId === myDeptIdStr)
+            : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : false);
+          isSubordinate = isSameDept;
+        }
+
+        // กรณีเป็นใบลาของตนเอง (Self) ขณะกำลังทดสอบระบบ ให้ยังคงแสดงในรายการเพื่อความโปร่งใส
+        if (currentEmpIdStr && reqEmpId === currentEmpIdStr) {
+          return true;
         }
 
         return isSubordinate;
@@ -3218,9 +3246,46 @@ document.addEventListener("visibilitychange", handleHrAutoSync);
 window.addEventListener("pageshow", handleHrAutoSync);
 window.addEventListener("focus", handleHrAutoSync);
 
-// Polling ทุกๆ 30 วินาที
+// Polling ทุกๆ 15 วินาที
 setInterval(() => {
   if (document.visibilityState === 'visible' && !document.hidden) {
     if (typeof loadPendingLeavesHR === 'function') loadPendingLeavesHR();
   }
-}, 30000);
+}, 15000);
+
+// ⚡ Realtime Channel Subscription for instant leave updates
+let hrRealtimeChannel = null;
+function setupHrRealtimeSubscription() {
+  try {
+    const sb = window.pvtSupabase?.getClient();
+    if (!sb || hrRealtimeChannel) return;
+
+    hrRealtimeChannel = sb
+      .channel('hr-leave-requests-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leave_requests' },
+        (payload) => {
+          console.log('⚡ [Realtime Leave Change]:', payload.eventType, payload.new?.id || payload.old?.id);
+          // Debounce reload
+          if (typeof loadPendingLeavesHR === 'function') {
+            loadPendingLeavesHR();
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('⚡ [Realtime Channel Status]:', status);
+      });
+  } catch (err) {
+    console.warn('Realtime subscription error:', err);
+  }
+}
+
+// Initialize Realtime once SDK is ready
+if (window.pvtSupabase) {
+  setupHrRealtimeSubscription();
+} else {
+  window.addEventListener('load', () => {
+    setTimeout(setupHrRealtimeSubscription, 1000);
+  });
+}

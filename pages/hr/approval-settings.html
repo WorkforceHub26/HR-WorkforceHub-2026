@@ -1803,13 +1803,122 @@
         </div>
       </section>
 
-      <!-- Panel 3: LINE Notification Step Routing Settings (Full Width Grid Span) -->
+      <!-- Panel 3: LINE Official Account Configuration & Token (Full Width Grid Span) -->
+      <section class="card-panel" id="lineOaCredentialsSection" style="grid-column: span 2; border-top: 4px solid #16a34a;">
+        <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: linear-gradient(to right, #f0fdf4, #ffffff); border-bottom: 1px solid #bbf7d0;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h2 class="card-panel-title" style="color: #15803d; font-weight: 700; margin: 0;">
+              <span class="material-symbols-outlined" style="color: #16a34a;">smart_toy</span>
+              3. ตั้งค่าการเชื่อมต่อ LINE Official Account (Bot & Webhook)
+            </h2>
+            <span class="field-label-tag" style="background:#dcfce7; color:#15803d; font-weight: 700;">LINE Messaging API</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="lineOaLiveStatus" class="line-badge line-no" style="font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+              <span class="material-symbols-outlined" style="font-size: 14px;">circle</span> ตรวจสอบการเชื่อมต่อ
+            </span>
+          </div>
+        </div>
+
+        <div class="card-panel-body" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+          
+          <div style="background: #f8fafc; border-radius: 12px; padding: 16px; border: 1px dashed #cbd5e1; font-size: 13.5px; color: #334155; line-height: 1.6;">
+            <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+              <span class="material-symbols-outlined" style="color: #16a34a; font-size: 20px;">help</span>
+              วิธีตั้งค่า LINE Official Account เพื่อส่งการแจ้งเตือนอัตโนมัติ
+            </div>
+            1. เข้าสู่ระบบ <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" style="color:#0284c7; font-weight:600; text-decoration:underline;">LINE Developers Console</a> แล้วเลือก Channel แบบ <b>Messaging API</b><br>
+            2. คัดลอก <b>Webhook URL</b> ด้านล่างนี้ไปวางในหน้า Messaging API และกด Verify พร้อมเปิด <b>Use webhook</b><br>
+            3. สร้าง <b>Channel access token (long-lived / v2.1)</b> นำมาวางในช่องด้านล่าง แล้วกด <b>"บันทึกการเชื่อมต่อ LINE OA"</b> และ <b>"ตรวจสอบการเชื่อมต่อ LINE API"</b>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            <!-- Channel Access Token -->
+            <div class="form-field" style="grid-column: 1 / -1;">
+              <label class="field-label" for="lineChannelAccessTokenInput">
+                <span>LINE Channel Access Token (Long-Lived) <span style="color:#ef4444;">*</span></span>
+                <span class="field-label-tag">v2.1 Token</span>
+              </label>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input type="password" id="lineChannelAccessTokenInput" class="field-select" placeholder="วาง Channel access token (long-lived) ที่ได้จาก LINE Developers..." style="font-family: monospace; padding-right: 42px;" />
+                <button type="button" onclick="toggleTokenVisibility('lineChannelAccessTokenInput', 'tokenVisibilityIcon')" style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: #64748b; padding: 4px; display: inline-flex; align-items: center;" title="แสดง/ซ่อน Token">
+                  <span class="material-symbols-outlined" id="tokenVisibilityIcon" style="font-size: 20px;">visibility</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Webhook URL (Supabase Edge Function) -->
+            <div class="form-field" style="grid-column: 1 / -1;">
+              <label class="field-label" for="lineWebhookUrlInput">
+                <span>LINE Webhook URL (นำไปใส่ใน LINE Developers Console &gt; Messaging API)</span>
+                <span class="field-label-tag" style="background:#e0f2fe; color:#0369a1; font-weight:700;">Supabase Edge Function</span>
+              </label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="lineWebhookUrlInput" class="field-select" value="https://pgogmhqjdchakcytsomx.supabase.co/functions/v1/line-webhook" style="background: #f8fafc; font-family: monospace; color: #0f172a; font-weight: 600;" />
+                <button type="button" class="quick-toggle-btn" onclick="copyLineWebhookUrl()" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; background:#f0fdf4; color:#15803d; border-color:#bbf7d0; font-weight: 700;">
+                  <span class="material-symbols-outlined" style="font-size: 16px;">content_copy</span> คัดลอก Webhook
+                </button>
+              </div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 4px; display:flex; align-items:center; gap:6px;">
+                <span class="material-symbols-outlined" style="font-size: 14px; color: #16a34a;">check_circle</span>
+                <span>Webhook Function: <code>https://pgogmhqjdchakcytsomx.supabase.co/functions/v1/line-webhook</code></span>
+                <span style="color: #cbd5e1;">|</span>
+                <span>Send Function: <code>https://pgogmhqjdchakcytsomx.supabase.co/functions/v1/line-send</code></span>
+              </div>
+            </div>
+
+            <!-- Basic ID / Bot ID -->
+            <div class="form-field" style="grid-column: 1 / -1;">
+              <label class="field-label" for="lineBasicIdInput">
+                <span>LINE Official Account Basic ID / Bot ID</span>
+                <span class="field-label-tag">ถ้ามี (เช่น @123abcde)</span>
+              </label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="lineBasicIdInput" class="field-select" placeholder="เช่น @pvtleave หรือ @123abcde" />
+                <button type="button" class="quick-toggle-btn" onclick="openLineQrModal()" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; background:#f0fdfa; color:#0f766e; border-color:#99f6e4;">
+                  <span class="material-symbols-outlined" style="font-size: 16px;">qr_code_2</span> ดู QR Code
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bot Info Preview Box (When Verified) -->
+          <div id="lineBotInfoPreview" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 14px 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <img id="lineBotPicture" src="/assets/icons/check-circle.svg" alt="Bot Avatar" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #16a34a; background: #fff;" />
+              <div>
+                <div style="font-weight: 700; font-size: 15px; color: #166534;" id="lineBotDisplayName">LINE Bot Name</div>
+                <div style="font-size: 12.5px; color: #15803d; margin-top: 2px;" id="lineBotBasicIdText">Basic ID: @bot</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="line-badge line-ok" style="font-size: 12px; padding: 4px 10px;">
+                <span class="material-symbols-outlined" style="font-size: 14px;">verified</span> เชื่อมต่อ API สมบูรณ์
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="card-panel-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <button type="button" class="btn-save" onclick="testLineOaConnection()" style="background: #0284c7; border-color: #0284c7;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">sensors</span>
+            ตรวจสอบการเชื่อมต่อ LINE API
+          </button>
+          <button type="button" id="btnSaveLineOaConfig" class="btn-save" onclick="saveLineOaConfig()">
+            <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
+            บันทึกการเชื่อมต่อ LINE OA
+          </button>
+        </div>
+      </section>
+
+      <!-- Panel 4: LINE Notification Step Routing Settings (Full Width Grid Span) -->
       <section class="card-panel" id="lineNotificationConfigSection" style="grid-column: span 2;">
         <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <h2 class="card-panel-title" style="color: #16a34a; font-weight: 700; margin: 0;">
               <span class="material-symbols-outlined" style="color: #16a34a;">notifications_active</span>
-              3. ตั้งค่าการแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
+              4. ตั้งค่าการแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
             </h2>
             <span class="field-label-tag" style="background:#ccfbf1; color:#0f766e;">เปิด-ปิดแยกแต่ละสถานะ</span>
           </div>

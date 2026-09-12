@@ -2179,15 +2179,15 @@ async function fetchRealNotifications() {
           isSameDept = (myDeptId || myDeptName) 
             ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
             : true;
-          isSubordinate = (reqEmpRole === "user");
+          isSubordinate = !['leader', 'manager', 'director', 'executive', 'owner', 'hr', 'admin'].includes(reqEmpRole);
         } else if (myRole === "manager") {
           isSameDept = (myDeptId || myDeptName) 
             ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
             : true;
-          isSubordinate = (reqEmpRole === "leader");
+          isSubordinate = !['manager', 'director', 'executive', 'owner', 'hr', 'admin'].includes(reqEmpRole);
         } else {
           isSameDept = true;
-          isSubordinate = (reqEmpRole === "leader" || reqEmpRole === "manager");
+          isSubordinate = !['owner'].includes(reqEmpRole);
         }
 
         return isSameDept && isNotSelf && isSubordinate;
@@ -2527,15 +2527,15 @@ window.openAllNotificationsModal = async function() {
           isSameDept = (myDeptId || myDeptName) 
             ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
             : true;
-          isSubordinate = (reqEmpRole === "user");
+          isSubordinate = !['leader', 'manager', 'director', 'executive', 'owner', 'hr', 'admin'].includes(reqEmpRole);
         } else if (myRole === "manager") {
           isSameDept = (myDeptId || myDeptName) 
             ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
             : true;
-          isSubordinate = (reqEmpRole === "leader");
+          isSubordinate = !['manager', 'director', 'executive', 'owner', 'hr', 'admin'].includes(reqEmpRole);
         } else {
           isSameDept = true;
-          isSubordinate = (reqEmpRole === "leader" || reqEmpRole === "manager");
+          isSubordinate = !['owner'].includes(reqEmpRole);
         }
 
         return isSameDept && isNotSelf && isSubordinate;

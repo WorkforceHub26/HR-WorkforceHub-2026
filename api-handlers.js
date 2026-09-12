@@ -906,4 +906,55 @@ export async function handleHrChatbot(req, res) {
   }
 }
 
+/**
+ * 🧪 ทดสอบการเชื่อมต่อ LINE Official Account Bot & Token
+ */
+export async function handleTestLineConnection(req, res) {
+  try {
+    let bodyData = {};
+    if (typeof req.body === 'object' && req.body !== null) {
+      bodyData = req.body;
+    } else if (typeof req.body === 'string') {
+      try { bodyData = JSON.parse(req.body); } catch (e) {}
+    } else {
+      bodyData = await parseJsonBody(req);
+    }
+
+    let token = bodyData?.channel_access_token;
+    if (!token) {
+      token = await getLineAccessToken();
+    }
+    if (!token) {
+      return sendJson(res, 400, {
+        success: false,
+        error: 'ยังไม่ได้ระบุ Channel Access Token หรือยังไม่ได้บันทึกลงในระบบ'
+      });
+    }
+
+    const botRes = await fetch('https://api.line.me/v2/bot/info', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!botRes.ok) {
+      const errText = await botRes.text();
+      return sendJson(res, botRes.status, {
+        success: false,
+        error: 'LINE API แจ้งข้อผิดพลาด: ' + errText
+      });
+    }
+
+    const botInfo = await botRes.json();
+    return sendJson(res, 200, {
+      success: true,
+      bot: botInfo,
+      message: 'เชื่อมต่อกับ LINE Messaging API สำเร็จเรียบร้อย'
+    });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ LINE API' });
+  }
+}
+
+
 

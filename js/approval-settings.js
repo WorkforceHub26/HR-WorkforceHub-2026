@@ -197,6 +197,7 @@ async function loadAllData(silent = false) {
     
     renderApproverTable();
     renderEmployeeLineTable();
+    await loadLineOaConfig();
     await loadLineNotificationSettings();
     await loadAutoDelegationData();
     
@@ -1600,7 +1601,309 @@ function escapeHtml(value) {
 function escapeAttr(value) { return escapeHtml(value); }
 
 // ============================================================
-// 🎛️ 3. ตั้งค่าการเปิด/ปิดแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
+// 🤖 3. ตั้งค่าการเชื่อมต่อ LINE Official Account (Bot & Webhook)
+// ============================================================
+
+window.toggleTokenVisibility = function(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if (!input) return;
+
+  if (input.type === "password") {
+    input.type = "text";
+    if (icon) icon.textContent = "visibility_off";
+  } else {
+    input.type = "password";
+    if (icon) icon.textContent = "visibility";
+  }
+};
+
+const DEFAULT_SUPABASE_WEBHOOK_URL = "https://pgogmhqjdchakcytsomx.supabase.co/functions/v1/line-webhook";
+
+window.copyLineWebhookUrl = async function() {
+  const input = document.getElementById("lineWebhookUrlInput");
+  const webhookUrl = input?.value || DEFAULT_SUPABASE_WEBHOOK_URL;
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(webhookUrl);
+    } else {
+      input.select();
+      document.execCommand("copy");
+    }
+
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "คัดลอก Webhook URL เรียบร้อย",
+      showConfirmButton: false,
+      timer: 2000
+    });
+  } catch (err) {
+    Swal.fire("คัดลอกไม่สำเร็จ", "กรุณาคัดลอกด้วยตนเอง: " + webhookUrl, "info");
+  }
+};
+
+window.openLineQrModal = function() {
+  const basicIdInput = document.getElementById("lineBasicIdInput");
+  let basicId = (basicIdInput?.value || "").trim();
+
+  if (!basicId) {
+    Swal.fire({
+      title: "ระบุ LINE Basic ID",
+      input: "text",
+      inputLabel: "Basic ID / Bot ID ของ LINE Official Account",
+      inputPlaceholder: "เช่น @123abcde หรือ @pvtleave",
+      showCancelButton: true,
+      confirmButtonText: "สร้าง QR Code",
+      cancelButtonText: "ยกเลิก",
+      confirmButtonColor: "#16a34a"
+    }).then(res => {
+      if (res.isConfirmed && res.value) {
+        if (basicIdInput) basicIdInput.value = res.value.trim();
+        showQrModal(res.value.trim());
+      }
+    });
+    return;
+  }
+
+  showQrModal(basicId);
+};
+
+function showQrModal(basicId) {
+  const cleanId = basicId.startsWith("@") ? basicId : `@${basicId}`;
+  const addFriendUrl = `https://line.me/R/ti/p/${encodeURIComponent(cleanId)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(addFriendUrl)}`;
+
+  Swal.fire({
+    title: "📱 เพิ่มเพื่อน LINE Official Account",
+    html: `
+      <div style="text-align:center; padding:10px 0;">
+        <div style="font-weight:700; color:#15803d; font-size:16px; margin-bottom:8px;">${escapeHtml(cleanId)}</div>
+        <div style="display:inline-block; padding:10px; background:#fff; border-radius:12px; border:2px solid #bbf7d0; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+          <img src="${qrUrl}" alt="LINE OA QR Code" style="width:200px; height:200px; display:block;" />
+        </div>
+        <div style="margin-top:14px; font-size:13px; color:#475569;">
+          ให้พนักงานสแกน QR Code นี้เพื่อเพิ่มเพื่อน LINE Bot ก่อนทำการผูกบัญชี
+        </div>
+        <div style="margin-top:10px;">
+          <a href="${addFriendUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:6px; background:#06c755; color:#fff; padding:8px 16px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px;">
+            <span class="material-symbols-outlined" style="font-size:18px;">open_in_new</span> เปิดลิงก์เพิ่มเพื่อน LINE
+          </a>
+        </div>
+      </div>
+    `,
+    confirmButtonColor: "#16a34a",
+    confirmButtonText: "ปิดหน้าต่าง"
+  });
+}
+
+async function loadLineOaConfig() {
+  try {
+    const webhookInput = document.getElementById("lineWebhookUrlInput");
+    if (webhookInput) {
+      webhookInput.value = DEFAULT_SUPABASE_WEBHOOK_URL;
+    }
+
+    const { data, error } = await sb
+      .from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", "line_oa_config")
+      .maybeSingle();
+
+    if (error && error.code !== "PGRST116") throw error;
+
+    const config = data?.setting_value || {};
+    const tokenInput = document.getElementById("lineChannelAccessTokenInput");
+    const basicIdInput = document.getElementById("lineBasicIdInput");
+    const liveStatus = document.getElementById("lineOaLiveStatus");
+
+    if (tokenInput && config.channel_access_token) {
+      tokenInput.value = config.channel_access_token;
+    }
+    if (basicIdInput && config.basic_id) {
+      basicIdInput.value = config.basic_id;
+    }
+    if (webhookInput && config.webhook_url) {
+      webhookInput.value = config.webhook_url;
+    }
+
+    if (liveStatus) {
+      if (config.channel_access_token) {
+        liveStatus.className = "line-badge line-ok";
+        liveStatus.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">check_circle</span> เชื่อมต่อแล้ว (มี Token)';
+      } else {
+        liveStatus.className = "line-badge line-no";
+        liveStatus.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">cancel</span> ยังไม่ได้ตั้งค่า Token';
+      }
+    }
+  } catch (err) {
+    console.warn("loadLineOaConfig warning:", err);
+  }
+}
+
+window.saveLineOaConfig = async function() {
+  const tokenInput = document.getElementById("lineChannelAccessTokenInput");
+  const basicIdInput = document.getElementById("lineBasicIdInput");
+  const webhookInput = document.getElementById("lineWebhookUrlInput");
+  const btn = document.getElementById("btnSaveLineOaConfig");
+
+  const token = tokenInput?.value?.trim() || "";
+  const basicId = basicIdInput?.value?.trim() || "";
+  const webhookUrl = webhookInput?.value || DEFAULT_SUPABASE_WEBHOOK_URL;
+
+  if (!token) {
+    Swal.fire("กรุณาระบุ Token", "จำเป็นต้องระบุ LINE Channel Access Token เพื่อส่งการแจ้งเตือน", "warning");
+    return;
+  }
+
+  const originalHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined spinning-icon" style="font-size:18px;">sync</span> กำลังบันทึก...';
+  }
+
+  try {
+    const settingValue = {
+      channel_access_token: token,
+      basic_id: basicId,
+      webhook_url: webhookUrl,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await sb
+      .from("system_settings")
+      .upsert({
+        setting_key: "line_oa_config",
+        setting_value: settingValue,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "setting_key" });
+
+    if (error) throw error;
+
+    // Update status badge
+    const liveStatus = document.getElementById("lineOaLiveStatus");
+    if (liveStatus) {
+      liveStatus.className = "line-badge line-ok";
+      liveStatus.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">check_circle</span> บันทึกแล้ว (มี Token)';
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "บันทึกการตั้งค่า LINE OA สำเร็จ",
+      text: "บันทึก Channel Access Token และการตั้งค่าเข้าสู่ระบบเรียบร้อยแล้ว",
+      timer: 2000,
+      showConfirmButton: false
+    });
+
+  } catch (err) {
+    console.error("saveLineOaConfig error:", err);
+    Swal.fire("บันทึกไม่สำเร็จ", err.message || "เกิดข้อผิดพลาดในการบันทึก", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml || '<span class="material-symbols-outlined" style="font-size: 18px;">save</span> บันทึกการเชื่อมต่อ LINE OA';
+    }
+  }
+};
+
+window.testLineOaConnection = async function() {
+  const tokenInput = document.getElementById("lineChannelAccessTokenInput");
+  const token = tokenInput?.value?.trim() || "";
+
+  Swal.fire({
+    title: "กำลังตรวจสอบการเชื่อมต่อ LINE...",
+    text: "ระบบกำลังส่งคำขอตรวจสอบความถูกต้องของ Token ไปยัง LINE API...",
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    const res = await fetch("/api/test-line-connection", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel_access_token: token })
+    });
+
+    const resText = await res.text();
+    let data = {};
+    try {
+      data = resText ? JSON.parse(resText) : {};
+    } catch (parseErr) {
+      throw new Error(resText || `HTTP ${res.status}: ไม่สามารถอ่านผลการตอบกลับจากระบบได้`);
+    }
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || `HTTP ${res.status}: ไม่สามารถเชื่อมต่อกับ LINE API ได้`);
+    }
+
+    const bot = data.bot || {};
+    const botName = bot.displayName || "LINE Official Account";
+    const basicId = bot.basicId ? `@${bot.basicId}` : "";
+    const picUrl = bot.pictureUrl || "/assets/icons/check-circle.svg";
+
+    // Update preview box in UI
+    const previewBox = document.getElementById("lineBotInfoPreview");
+    const nameEl = document.getElementById("lineBotDisplayName");
+    const idEl = document.getElementById("lineBotBasicIdText");
+    const picEl = document.getElementById("lineBotPicture");
+
+    if (previewBox) previewBox.style.display = "flex";
+    if (nameEl) nameEl.textContent = botName;
+    if (idEl) idEl.textContent = `Basic ID: ${basicId || "-"}`;
+    if (picEl && bot.pictureUrl) picEl.src = picUrl;
+
+    const liveStatus = document.getElementById("lineOaLiveStatus");
+    if (liveStatus) {
+      liveStatus.className = "line-badge line-ok";
+      liveStatus.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">verified</span> เชื่อมต่อ API สำเร็จ';
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "เชื่อมต่อ LINE API สำเร็จ!",
+      html: `
+        <div style="text-align:center; padding:10px 0;">
+          <img src="${picUrl}" style="width:64px; height:64px; border-radius:50%; margin-bottom:10px; border:2px solid #16a34a;" />
+          <div style="font-weight:700; font-size:16px; color:#1e293b;">${escapeHtml(botName)}</div>
+          <div style="font-size:13px; color:#64748b; margin-top:2px;">${escapeHtml(basicId)}</div>
+          <div style="margin-top:12px; background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px; font-size:13px; color:#166534;">
+            ✅ Token ถูกต้อง และบอทพร้อมส่ง Flex Message ข้อความแจ้งเตือนใบลาทุกขั้นตอน
+          </div>
+        </div>
+      `,
+      confirmButtonColor: "#16a34a",
+      confirmButtonText: "ยอดเยี่ยม"
+    });
+
+  } catch (err) {
+    console.error("testLineOaConnection error:", err);
+    Swal.fire({
+      icon: "error",
+      title: "ตรวจสอบการเชื่อมต่อไม่สำเร็จ",
+      html: `
+        <div style="text-align:left; font-size:13.5px; color:#334155; line-height:1.6;">
+          <p style="margin:0 0 8px; font-weight:600; color:#dc2626;">สาเหตุที่เป็นไปได้:</p>
+          <ul style="margin:0; padding-left:20px; color:#475569;">
+            <li>Channel access token ไม่ถูกต้องหรือหมดอายุ</li>
+            <li>ยังไม่ได้ออก Channel access token (long-lived / v2.1) ใน LINE Developers Console</li>
+            <li>คัดลอก Token มาไม่ครบถ้วน</li>
+          </ul>
+          <div style="margin-top:10px; font-size:12px; color:#b91c1c; background:#fef2f2; padding:8px; border-radius:6px;">
+            รายละเอียด: ${escapeHtml(err.message)}
+          </div>
+        </div>
+      `,
+      confirmButtonColor: "#dc2626"
+    });
+  }
+};
+
+// ============================================================
+// 🎛️ 4. ตั้งค่าการเปิด/ปิดแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
 // ============================================================
 
 let lineNotifSaveTimer = null;
@@ -1804,12 +2107,13 @@ window.openTestLineStepModal = function(defaultStepKey) {
     { key: "hr_notify", name: "9. สรุปผลใบลาสมบูรณ์ ➔ แจ้งฝ่ายบุคคล" }
   ];
 
-  const connectedEmployees = (allEmployeesList || []).filter(e => e.line_id && e.line_id.trim() !== "");
+  const connectedEmployees = (employees || []).filter(e => e && e.line_id && String(e.line_id).trim() !== "");
   
   const optionsEmpHtml = connectedEmployees.map(e => {
     const deptName = e.departments?.department_name || "-";
     const posName = e.positions?.position_name || e.role || "-";
-    return `<option value="${escapeHtml(e.line_id)}">${escapeHtml(e.full_name)} (${posName} - ${deptName}) [${escapeHtml(e.line_id.substring(0, 10))}...]</option>`;
+    const lineIdStr = String(e.line_id).trim();
+    return `<option value="${escapeHtml(lineIdStr)}">${escapeHtml(e.full_name || "พนักงาน")} (${escapeHtml(posName)} - ${escapeHtml(deptName)}) [${escapeHtml(lineIdStr.substring(0, 10))}...]</option>`;
   }).join("");
 
   const stepSelectHtml = stepOptions.map(s => {
@@ -1881,42 +2185,54 @@ window.openTestLineStepModal = function(defaultStepKey) {
       }
 
       try {
-        const payload = {
-          step: step,
-          target_line_id: targetLineId,
-          leave_data: {
-            id: 'TEST-' + Math.floor(1000 + Math.random() * 9000),
-            employee_name: empName,
-            leave_type: leaveType,
-            start_date: new Date().toISOString().split('T')[0],
-            end_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-            total_days: 1,
-            reason: reason
-          }
+        const notifTypeMap = {
+          "new_request": "NEW_REQUEST",
+          "new_request_l2": "NEW_REQUEST_L2",
+          "leader_approved": "LEADER_APPROVED",
+          "manager_approved": "MANAGER_APPROVED",
+          "final_approved": "FINAL_APPROVED",
+          "rejected": "REJECTED",
+          "cancellation": "CANCELLATION",
+          "hr_review": "HR_REVIEW",
+          "hr_notify": "HR_NOTIFY"
+        };
+
+        const notifType = notifTypeMap[step] || "NEW_REQUEST";
+
+        const notifPayload = {
+          type: notifType,
+          leaveId: 'TEST-' + Math.floor(1000 + Math.random() * 9000),
+          employeeName: empName,
+          leaveType: leaveType,
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+          totalDays: 1,
+          reason: reason,
+          recipientLineId: targetLineId,
+          recipientRole: 'approver'
         };
 
         let result = null;
-        if (window.pvtSupabase && window.pvtSupabase.lineOA && window.pvtSupabase.lineOA.sendWorkflowNotification) {
-          result = await window.pvtSupabase.lineOA.sendWorkflowNotification(step, payload.leave_data, targetLineId);
-        } else if (window.pvtSupabase && window.pvtSupabase.lineOA && window.pvtSupabase.lineOA.sendNotification) {
-          result = await window.pvtSupabase.lineOA.sendNotification(targetLineId, {
-            type: 'text',
-            text: `[PVT Workflow Test] ขั้นตอน: ${step}\nผู้ขอลา: ${empName}\nประเภท: ${leaveType} (1 วัน)\nเหตุผล: ${reason}\n\n✅ ระบบทดสอบการแจ้งเตือน LINE ทำงานสมบูรณ์`
-          });
+        if (window.PVTSDK?.line?.sendWorkflowNotification) {
+          result = await window.PVTSDK.line.sendWorkflowNotification(notifPayload);
+        } else if (window.pvtSupabase?.sendWorkflowNotification) {
+          result = await window.pvtSupabase.sendWorkflowNotification(notifPayload);
         } else {
-          // Send via fetch to Supabase Edge Function or webhook if defined
-          const webhookUrl = window.LINE_WEBHOOK_URL || (window.currentLineSettings && window.currentLineSettings.webhook_url);
-          if (webhookUrl) {
-            const res = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-            result = await res.json();
-          } else {
-            // Direct success simulation for UI check
-            result = { success: true, message: "LINE notification test payload dispatched." };
-          }
+          // Fallback via server endpoint
+          const res = await fetch('/api/send-notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipientLineId: targetLineId,
+              title: `[ทดสอบระบบ] ${leaveType}`,
+              message: `ผู้ขอลา: ${empName}\nประเภท: ${leaveType}\nเหตุผล: ${reason}\n\n✅ ระบบทดสอบการแจ้งเตือน LINE ทำงานสมบูรณ์`
+            })
+          });
+          result = await res.json();
+        }
+
+        if (result && result.success === false) {
+          throw new Error(result.error || result.warning || 'ไม่สามารถส่งข้อความได้');
         }
 
         return { success: true, targetLineId, step };
