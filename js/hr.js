@@ -6,7 +6,7 @@ let currentRole = "hr";
 let currentUserProfile = null;
 let allLeaveRequests = []; 
 let currentLeaveTab = "pending"; // 'pending' | 'cancellation' | 'history'
-let hasExecutiveColumn = false;
+let hasExecutiveColumn = true;
 let deptApproversMap = {};
 
 // ⚡ [1. IMMEDIATE CHECK]: เช็กสิทธิ์ทันทีตั้งแต่นาทีแรกที่โหลด JS
@@ -184,11 +184,26 @@ async function initSystemAndPermissions() {
       }
     }
 
-    // กำหนดกลุ่ม Role เพื่อใช้ในการ Filter ข้อมูล
-    if (rawRole === "hr" || rawRole === "admin" || rawRole === "superadmin" || rawRole.includes("hr") || rawRole.includes("admin")) {
-      currentRole = "hr";
-    } else if (rawRole === "director" || rawRole === "executive" || rawRole === "owner" || rawPos.includes("ผู้อำนวยการ") || rawPos.includes("บริหาร") || rawPos.includes("director") || rawPos.includes("executive") || rawPos.includes("owner")) {
+    // ดึงค่าผู้บริหารสูงสุดอนุมัติหลัก (L3) จาก system_settings
+    let isExecutiveApprover = false;
+    try {
+      const { data: execSet } = await sb.from("system_settings").select("employee_id").eq("setting_key", "leave_executive_approver").maybeSingle();
+      if (execSet?.employee_id) {
+        window.executiveSetting = execSet;
+        window.executiveApproverId = execSet.employee_id;
+        if (empData?.id && String(empData.id) === String(execSet.employee_id)) {
+          isExecutiveApprover = true;
+        }
+      }
+    } catch(err) {
+      console.warn("Could not check executive approver setting:", err);
+    }
+
+    // กำหนดกลุ่ม Role เพื่อใช้ในการ Filter ข้อมูล (ให้สิทธิ์ L3 Executive Approver เป็นอันดับสูงสุด)
+    if (isExecutiveApprover || rawRole === "director" || rawRole === "executive" || rawRole === "owner" || rawPos.includes("ผู้อำนวยการ") || rawPos.includes("ผู้บริหาร") || rawPos.includes("director") || rawPos.includes("executive") || rawPos.includes("owner")) {
       currentRole = "director";
+    } else if (rawRole === "hr" || rawRole === "admin" || rawRole === "superadmin" || rawRole.includes("hr") || rawRole.includes("admin")) {
+      currentRole = "hr";
     } else if (rawRole === "manager" || isDeptManager || rawPos.includes("ผู้จัดการ") || rawPos.includes("manager")) {
       currentRole = "manager";
     } else if (rawRole === "leader" || isDeptSupervisor || rawPos.includes("หัวหน้า") || rawPos.includes("leader") || rawPos.includes("supervisor")) {
@@ -402,6 +417,18 @@ function isPendingStatus(status) {
   return s === 'pending' || s === 'รออนุมัติ' || s === 'wait' || s === 'waiting' || s.startsWith('pending_');
 }
 
+function isLeaderOrManagerRole(roleStr, posStr = '') {
+  const r = String(roleStr || '').toLowerCase();
+  const p = String(posStr || '').toLowerCase();
+  return (
+    r.includes('leader') || r.includes('supervisor') || r.includes('head') ||
+    r.includes('manager') || r.includes('director') || r.includes('executive') || r.includes('owner') ||
+    r.includes('ผู้จัดการ') || r.includes('หัวหน้า') || r.includes('ผู้บริหาร') ||
+    p.includes('ผู้จัดการ') || p.includes('หัวหน้า') || p.includes('ผู้บริหาร') ||
+    p.includes('ผู้อำนวยการ') || p.includes('ผจก')
+  );
+}
+
 function isCancelRequestStatus(status) {
   if (!status) return false;
   const s = String(status).trim().toLowerCase();
@@ -422,7 +449,7 @@ function isPendingForRole(r, role) {
     return isDirectorPending || isManagerPending;
   }
   if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
-    return (r.executive_status || 'pending') === 'pending' || (r.director_status || 'pending') === 'pending';
+    return (r.executive_status || 'pending') === 'pending';
   }
   return true;
 }
@@ -440,7 +467,7 @@ function isHistoryForRole(r, role) {
       return (r.director_status || 'pending') !== 'pending' && (r.manager_status || 'pending') !== 'pending';
     }
     if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
-      return (r.executive_status || 'pending') !== 'pending' && (r.director_status || 'pending') !== 'pending';
+      return (r.executive_status || 'pending') !== 'pending';
     }
   }
   return false;
@@ -622,10 +649,10 @@ function getApprovalWorkflowSteps(req) {
   const applicantRole = String(reqEmp.role || '').toLowerCase();
   const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
 
-  const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
-  const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
-  const isApplicantHr = applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin';
-  const isApplicantExecutive = applicantRole === 'director' || applicantRole === 'executive' || applicantRole === 'owner';
+  const isApplicantLeader = (applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า')) && !applicantPos.includes('หัวหน้ากะ') && !applicantPos.includes('หัวหน้าส่วน');
+  const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ') || applicantPos.includes('ผจก');
+  const isApplicantExecutive = applicantRole === 'director' || applicantRole === 'executive' || applicantRole === 'owner' || applicantPos.includes('ผู้บริหาร') || applicantPos.includes('ผู้อำนวยการ');
+  const isApplicantHr = (applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin') && !isApplicantManager && !isApplicantExecutive;
 
   // 1. ตรวจสอบขั้นตอน "หัวหน้า" (L1):
   // - ซ่อน/ตัดออก ถ้าผู้ยื่นเป็นระดับหัวหน้า/ผู้จัดการ/HR/ผู้บริหาร เองอยู่แล้ว
@@ -651,9 +678,16 @@ function getApprovalWorkflowSteps(req) {
     }
   }
 
-  // 3. ตรวจสอบขั้นตอน "บริหาร" (สำหรับกรณีหัวหน้าหรือผู้จัดการเป็นผู้ยื่นลา)
+  // 3. ตรวจสอบขั้นตอน "บริหาร" (สำหรับกรณีผู้จัดการหรือหัวหน้าเป็นผู้ยื่นลา หรือระบุ L3)
   const isLeaderOrManager = isApplicantLeader || isApplicantManager;
-  const hasExecutive = Boolean(hasExecutiveColumn && isLeaderOrManager);
+  const hasExecutive = Boolean(
+    hasExecutiveColumn && (
+      isApplicantManager || 
+      (isApplicantLeader && !hasL2) || 
+      reqEmp.l3_approver_id || 
+      (window.executiveSetting?.employee_id && (isLeaderOrManager || req.executive_status))
+    )
+  );
 
   // สร้างลำดับขั้นตอนการอนุมัติเฉพาะขั้นตอนที่มีอยู่จริงในสายงาน
   const steps = [];
@@ -663,7 +697,7 @@ function getApprovalWorkflowSteps(req) {
       role: 'leader',
       shortName: 'หัวหน้า',
       fullName: 'หัวหน้าแผนก',
-      status: req.manager_status
+      status: req.manager_status || 'pending'
     });
   }
 
@@ -672,16 +706,16 @@ function getApprovalWorkflowSteps(req) {
       role: 'manager',
       shortName: 'ผู้จัดการ',
       fullName: 'ผู้จัดการฝ่าย',
-      status: req.director_status
+      status: req.director_status || 'pending'
     });
   }
 
   if (hasExecutive) {
     steps.push({
       role: 'executive',
-      shortName: 'บริหาร',
-      fullName: 'ผู้บริหาร',
-      status: req.executive_status
+      shortName: 'ผู้บริหาร (L3)',
+      fullName: 'ผู้บริหารสูงสุด',
+      status: req.executive_status || 'pending'
     });
   }
 
@@ -722,9 +756,9 @@ async function loadPendingLeavesHR(isSilent = false) {
         *,
         employees!employee_id ( 
           id, full_name, employee_code, nickname, role, image_url,
-          department_id, l1_approver_id, l2_approver_id,
+          department_id, l1_approver_id, l2_approver_id, l3_approver_id,
           departments!department_id (id, department_name), 
-          positions!position_id (position_name) 
+          positions!position_id (position_name, level_type) 
         ),
         leave_types!leave_type_id (id, leave_name, leave_code) 
       `)
@@ -786,8 +820,12 @@ async function loadPendingLeavesHR(isSilent = false) {
             const stepSt = String(step.status || '').toLowerCase();
             return stepSt === 'approved' || stepSt === 'อนุมัติแล้ว';
           });
+
+          // ⚠️ หากสถานะผู้บริหาร (L3) ยังรอพิจารณา ต้องห้าม auto-approve เด็ดขาด
+          const reqExecSt = String(req.executive_status || '').toLowerCase();
+          const isWaitingExecutive = (reqExecSt === 'pending' || reqExecSt === 'wait' || reqExecSt.includes('รอ'));
           
-          if (allApproved) {
+          if (allApproved && !isWaitingExecutive) {
             console.log(`💡 [Auto-Healing] ใบลา #${req.id} ผ่านการอนุมัติครบทุกระดับชั้นแล้ว (L1-L3) → ปรับสถานะเป็นอนุมัติเสร็จสิ้นโดยอัตโนมัติ`);
             // ยิงอัปเดตลงดาต้าเบสในเบื้องหลังแบบ non-blocking
             const sb = window.PVTSDK?.supabase;
@@ -837,10 +875,14 @@ async function loadPendingLeavesHR(isSilent = false) {
         const reqDeptName = String(reqEmp.departments?.department_name || '').toLowerCase();
         const myDeptNameStr = String(myDeptName || '').toLowerCase();
 
-        // 🎯 ตรวจสอบว่าผู้ใช้งานปัจจุบันถูกระบุเป็นผู้อนุมัติโดยตรง (L1 / L2) หรือไม่
+        // 🎯 ตรวจสอบว่าผู้ใช้งานปัจจุบันถูกระบุเป็นผู้อนุมัติโดยตรง (L1 / L2 / L3) หรือไม่
         const isDirectL1 = currentEmpIdStr && String(reqEmp.l1_approver_id || '') === currentEmpIdStr;
         const isDirectL2 = currentEmpIdStr && String(reqEmp.l2_approver_id || '') === currentEmpIdStr;
-        if (isDirectL1 || isDirectL2) return true;
+        const isDirectL3 = currentEmpIdStr && (
+          String(reqEmp.l3_approver_id || '') === currentEmpIdStr ||
+          String(window.executiveSetting?.employee_id || '') === currentEmpIdStr
+        );
+        if (isDirectL1 || isDirectL2 || isDirectL3) return true;
 
         // 🎯 ตรวจสอบการเป็นผู้จัดการ/หัวหน้าตามการตั้งค่าแผนก (deptApproversMap)
         const deptCfg = (window.deptApproversMap && reqDeptId) ? window.deptApproversMap[reqDeptId] : null;
@@ -868,9 +910,9 @@ async function loadPendingLeavesHR(isSilent = false) {
             : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : true);
           isSubordinate = isSameDept && !isHigherRole;
         } 
-        else if (userRole === "director" || userRole === "executive" || userRole === "owner") {
+        else if (userRole === "director" || userRole === "executive" || userRole === "owner" || isDirectL3) {
           // ระดับบริหาร เห็นทุกแผนกทั่วองค์กร
-          isSubordinate = !['owner'].includes(reqEmpRole); 
+          isSubordinate = true; 
         } else {
           // กรณี role อื่นๆ หรือพนักงานทั่วไปที่ได้รับสิทธิ์ดู
           const isSameDept = (myDeptIdStr && reqDeptId) 
@@ -890,7 +932,7 @@ async function loadPendingLeavesHR(isSilent = false) {
     }
 
     allLeaveRequests = rawData;
-    hasExecutiveColumn = rawData.length > 0 && rawData.some(r => r.hasOwnProperty('executive_status'));
+    hasExecutiveColumn = true;
     
     updateTabAndStatBadges();
     renderLeaveTable();
@@ -1023,16 +1065,25 @@ function canApproveStep(req, role) {
     // หาก L1 ยังไม่ได้รับอนุมัติ ผู้จัดการมีสิทธิ์พิจารณาอนุมัติแทนหรืออนุมัติข้ามขั้นได้ทันที
   }
 
-  // 🟡 4. กรณีผู้บริหาร (L3 Executive / Director) กำลังพิจารณา
-  if (role === 'director' || role === 'executive' || role === 'owner') {
+  // 🟡 4. กรณีผู้บริหาร (L3 Executive / Director) หรือผู้ที่ถูกระบุเป็นผู้บริหารสูงสุดอนุมัติหลัก
+  const isExecutiveUser = (
+    role === 'director' || role === 'executive' || role === 'owner' ||
+    (currentEmpId && (
+      String(currentEmpId) === String(window.executiveSetting?.employee_id || '') ||
+      String(currentEmpId) === String(window.executiveApproverId || '')
+    ))
+  );
+
+  if (isExecutiveUser) {
     if (isL3Approved || isFinalApproved) {
       Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
       return false;
     }
+    return true;
   }
 
-  // 🟢 5. กรณีฝ่ายบุคคล (HR / Admin) กำลังพิจารณา
-  if (role === 'hr' || role === 'admin') {
+  // 🟢 5. กรณีฝ่ายบุคคล (HR) กำลังพิจารณา
+  if (role === 'hr') {
     Swal.fire('ไม่มีสิทธิ์อนุมัติ', 'ฝ่ายบุคคล (HR) ไม่มีหน้าที่ในการอนุมัติใบลา มีหน้าที่เพียงตรวจสอบดูข้อมูลเท่านั้น', 'warning');
     return false;
   }
@@ -1113,8 +1164,7 @@ function renderLeaveTable() {
       const execStatus = req.executive_status || 'pending';
       const hrStatus = req.status || 'pending';
 
-      const applicantRole = String(req.employees?.role || '').toLowerCase();
-      const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+      const isApplicantLeaderOrManager = isLeaderOrManagerRole(req.employees?.role, req.employees?.positions?.position_name);
 
       if (stepFilter === "pending_manager") return mStatus === 'pending';
       if (stepFilter === "pending_director") return mStatus === 'approved' && dStatus === 'pending';
@@ -1250,7 +1300,7 @@ function renderLeaveTable() {
       `;
     }
 
-    const isApplicantLeaderOrManager = ['leader', 'manager'].includes(String(req.employees?.role || '').toLowerCase());
+    const isApplicantLeaderOrManager = isLeaderOrManagerRole(req.employees?.role, req.employees?.positions?.position_name);
     let executiveStatusHTML = "-";
     if (isApplicantLeaderOrManager) {
       executiveStatusHTML = getStatusBadgeHTML(req.executive_status);
@@ -1725,8 +1775,7 @@ async function approveLeave(leaveId) {
         updateFields.manager_status = 'approved';
       }
       if (hasExecutiveColumn) {
-        const applicantRole = String(reqData.employees?.role || '').toLowerCase();
-        const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+        const isApplicantLeaderOrManager = isLeaderOrManagerRole(reqData.employees?.role, reqData.employees?.positions?.position_name);
         if (!isApplicantLeaderOrManager) {
           updateFields.executive_status = 'approved';
           updateFields.status = 'approved';
@@ -1736,7 +1785,7 @@ async function approveLeave(leaveId) {
         updateFields.status = 'approved';
         updateFields.approved_at = new Date().toISOString();
       }
-    } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
+    } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner' || (window.executiveApproverId && String(currentEmpId) === String(window.executiveApproverId))) {
       // ✅ L3 อนุมัติ (ผู้บริหารระดับสูง / Director / Executive)
       if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
       if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
@@ -1907,8 +1956,7 @@ async function approveLeave(leaveId) {
         } else if (currentRole === 'manager') {
           // ผู้จัดการ L2 อนุมัติคำขอของ "หัวหน้างาน/ผู้จัดการ"
           // → แจ้งผู้บริหาร L3
-          const applicantRole = String(reqData.employees?.role || '').toLowerCase();
-          const needsExecutive = ['leader', 'manager'].includes(applicantRole);
+          const needsExecutive = isLeaderOrManagerRole(reqData.employees?.role, reqData.employees?.positions?.position_name);
 
           if (needsExecutive) {
             const { data: executiveSetting, error: executiveSettingError } = await sb
@@ -3235,8 +3283,7 @@ window.submitBulkApproval = async function() {
         updateFields.director_status = 'approved';
         if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
         if (hasExecutiveColumn) {
-          const applicantRole = String(reqData.employees?.role || '').toLowerCase();
-          const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
+          const isApplicantLeaderOrManager = isLeaderOrManagerRole(reqData.employees?.role, reqData.employees?.positions?.position_name);
           if (!isApplicantLeaderOrManager) {
             updateFields.executive_status = 'approved';
             updateFields.status = 'approved';
@@ -3246,7 +3293,7 @@ window.submitBulkApproval = async function() {
           updateFields.status = 'approved';
           updateFields.approved_at = new Date().toISOString();
         }
-      } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
+      } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner' || (window.executiveApproverId && String(currentEmpId) === String(window.executiveApproverId))) {
         if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
         if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
         if (hasExecutiveColumn) {

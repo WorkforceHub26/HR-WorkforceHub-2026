@@ -2219,9 +2219,37 @@ window.initQuickForm = async function(profile, quotas) {
   const sb = getSafeSupabaseClient();
   if (sb) {
     try {
-      const deptId = employee?.department_id || null;
-      let approverEmpId = employee?.l1_approver_id || null;
-      let isLeaderFound = false;
+      const empRole = String(employee?.role || '').toLowerCase();
+      const empPos = String(posName).toLowerCase();
+      const isManagerApplicant = empRole.includes('manager') || empPos.includes('ผู้จัดการ');
+
+      if (isManagerApplicant) {
+        let execEmpId = employee?.l3_approver_id || null;
+        if (!execEmpId) {
+          const { data: setting } = await sb.from("system_settings").select("employee_id").eq("setting_key", "leave_executive_approver").maybeSingle();
+          execEmpId = setting?.employee_id || null;
+        }
+        if (execEmpId) {
+          const { data: execEmp } = await sb.from("employees").select("id, full_name, role, positions!position_id(position_name)").eq("id", execEmpId).maybeSingle();
+          if (execEmp) {
+            approverText = `${execEmp.full_name} (ผู้บริหารสูงสุด L3)`;
+            approverNote = '⚡ คุณอยู่ในระดับผู้จัดการ: คำขอจะถูกส่งให้ผู้บริหารสูงสุด (L3) พิจารณาอนุมัติ';
+            resolvedApprover = {
+              id: execEmp.id,
+              name: execEmp.full_name,
+              role: 'executive',
+              hasLeader: false,
+              hasManager: false,
+              isManagerApplicant: true
+            };
+          }
+        }
+      }
+
+      if (!resolvedApprover.isManagerApplicant) {
+        const deptId = employee?.department_id || null;
+        let approverEmpId = employee?.l1_approver_id || null;
+        let isLeaderFound = false;
 
       // 1. ตรวจสอบหัวหน้างาน / หัวหน้ากะ (L1) ประจำตัวหรือของแผนก
       if (!approverEmpId && deptId) {
@@ -2367,7 +2395,8 @@ window.initQuickForm = async function(profile, quotas) {
           };
         }
       }
-    } catch (e) {
+    }
+  } catch (e) {
       console.error("Error loading quick form approver:", e);
       approverText = "ผู้อำนวยการ / ผู้จัดการทั่วไป";
       approverNote = "ส่งคำขอไปยังระดับการบริหารกลาง";
@@ -2491,9 +2520,9 @@ window.submitQuickLeave = async function() {
 
     const hasLeader = window.quickFormApproverInfo?.hasLeader ?? true;
     const hasManager = window.quickFormApproverInfo?.hasManager ?? false;
+    const isMgrApp = window.quickFormApproverInfo?.isManagerApplicant ?? false;
 
     // Create the leave request object
-    // ถ้าไม่มีหัวหน้ากะ/หัวหน้างาน ให้ข้าม L1 (manager_status = 'approved') และส่งให้ผู้จัดการฝ่าย (director_status = 'pending') พิจารณา
     const leaveRequest = {
       employee_id: employeeId,
       leave_type_id: leaveTypeId,
@@ -2503,8 +2532,9 @@ window.submitQuickLeave = async function() {
       reason: reason,
       attachment_url: attachmentUrl,
       status: 'pending',
-      manager_status: hasLeader ? 'pending' : 'approved',
-      director_status: 'pending',
+      manager_status: isMgrApp ? 'approved' : (hasLeader ? 'pending' : 'approved'),
+      director_status: isMgrApp ? 'approved' : 'pending',
+      executive_status: isMgrApp ? 'pending' : 'approved',
       write_date: todayStr
     };
 

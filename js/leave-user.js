@@ -13,21 +13,65 @@ let cachedHolidays = [];
 let currentProfile = null;
 let currentDeptApproverConfig = null;
 
+function isUserExecutive(profile) {
+  if (!profile) return false;
+  const r = String(profile.role || '').toLowerCase();
+  const p = String(profile.position_name || profile.positions?.position_name || '').toLowerCase();
+  return r === 'executive' || r === 'director' || r === 'owner' || p.includes('ผู้บริหาร') || p.includes('ผู้อำนวยการ');
+}
+
+function isUserManager(profile, deptConfig) {
+  if (!profile) return false;
+  const r = String(profile.role || '').toLowerCase();
+  const p = String(profile.position_name || profile.positions?.position_name || '').toLowerCase();
+  const l = String(profile.positions?.level_type || profile.level_type || '').toLowerCase();
+  if (r === 'manager' || r.includes('manager') || r.includes('ผู้จัดการ')) return true;
+  if (p.includes('ผู้จัดการ') || p.includes('manager') || p.includes('ผจก') || l.includes('ผู้จัดการ') || l.includes('manager')) return true;
+  if (profile.id && deptConfig?.manager_id && String(profile.id) === String(deptConfig.manager_id)) return true;
+  return false;
+}
+
+function isUserLeader(profile, deptConfig) {
+  if (!profile) return false;
+  const r = String(profile.role || '').toLowerCase();
+  const p = String(profile.position_name || profile.positions?.position_name || '').toLowerCase();
+  const isSub = p.includes('หัวหน้ากะ') || p.includes('หัวหน้าส่วน');
+  if (isSub) return false;
+  if (r === 'leader' || r.includes('leader') || r.includes('supervisor')) return true;
+  if (p.includes('หัวหน้า') || p.includes('supervisor') || p.includes('head')) return true;
+  if (profile.id && deptConfig?.supervisor_id && String(profile.id) === String(deptConfig.supervisor_id)) return true;
+  return false;
+}
+
 function getLeaveFormSteps() {
-  const rawRole = String(currentProfile?.role || currentProfile?.position_name || localStorage.getItem("userRole") || "").toLowerCase();
-  const isSubLeader = rawRole.includes("หัวหน้ากะ") || rawRole.includes("หัวหน้าส่วน");
-  const isLeader = (rawRole.includes("leader") || rawRole.includes("supervisor") || rawRole.includes("head") || rawRole.includes("หัวหน้า")) && !isSubLeader;
-  const isManager = rawRole.includes("manager") || rawRole.includes("ผู้จัดการ");
-  const isHr = rawRole.includes("hr") || rawRole.includes("admin");
-  const isExecutive = rawRole.includes("executive") || rawRole.includes("director") || rawRole.includes("owner");
+  const isExecutive = isUserExecutive(currentProfile);
+  const isManager = isUserManager(currentProfile, currentDeptApproverConfig);
+  const isLeader = isUserLeader(currentProfile, currentDeptApproverConfig);
+
+  if (isExecutive) {
+    return ["อนุมัติทันที (ผู้บริหารยื่นลา)"];
+  }
+
+  if (isManager) {
+    return ["ผู้บริหารสูงสุด (L3)"];
+  }
 
   const deptApprover = currentDeptApproverConfig || {};
-  const hasLeader = !isLeader && !isManager && !isHr && !isExecutive && (Boolean(currentProfile?.l1_approver_id) || Boolean(deptApprover.hasLeader));
-  const hasManager = !isManager && !isHr && !isExecutive && (Boolean(currentProfile?.l2_approver_id) || Boolean(deptApprover.hasManager));
+  const hasLeader = !isLeader && (Boolean(currentProfile?.l1_approver_id) || Boolean(deptApprover.hasLeader));
+  const hasManager = Boolean(currentProfile?.l2_approver_id) || Boolean(deptApprover.hasManager);
 
   const steps = [];
-  if (hasLeader) steps.push("หัวหน้าแผนก (L1)");
-  if (hasManager) steps.push("ผู้จัดการฝ่าย (L2)");
+  if (isLeader) {
+    if (hasManager) {
+      steps.push("ผู้จัดการฝ่าย (L2)");
+    } else {
+      steps.push("ผู้บริหารสูงสุด (L3)");
+    }
+  } else {
+    if (hasLeader) steps.push("หัวหน้าแผนก (L1)");
+    if (hasManager) steps.push("ผู้จัดการฝ่าย (L2)");
+  }
+
   if (steps.length === 0) {
     steps.push("อนุมัติทันที (Auto-Approved)");
   }
@@ -1292,8 +1336,9 @@ async function saveLeave() {
     return;
   }
 
-  const rawRole = currentProfile.role || currentProfile.position_name || localStorage.getItem("userRole") || "";
-  const userRole = String(rawRole).toLowerCase().trim();
+  const roleStr = currentProfile.role || localStorage.getItem("userRole") || "";
+  const posStr = currentProfile.positions?.position_name || currentProfile.position_name || "";
+  const userRole = String(roleStr + " " + posStr).toLowerCase().trim();
   const deptId = currentProfile?.department_id || null;
 
   // 🔀 ดึงข้อมูลสายอนุมัติของแผนกเพื่อตรวจสอบความหยืดหยุ่น (มี L1/L2 หรือไม่)
@@ -1361,36 +1406,35 @@ async function saveLeave() {
 
   let defaultManagerStatus = "pending";
   let defaultDirectorStatus = "pending";
+  let defaultExecutiveStatus = "pending";
 
-  const isSubLeader = userRole.includes("หัวหน้ากะ") || userRole.includes("หัวหน้าส่วน");
+  const isExecutiveApplicant = isUserExecutive(currentProfile);
+  const isManagerApplicant = isUserManager(currentProfile, approverConfig);
+  const isLeaderApplicant = !isManagerApplicant && isUserLeader(currentProfile, approverConfig);
 
-  // 🧠 Approval Routing ตาม Role ของผู้ยื่น
-  if (
-    userRole.includes("executive") || userRole.includes("owner") ||
-    userRole.includes("director") || userRole.includes("ผู้บริหาร") ||
-    userRole.includes("เจ้าของ")
-  ) {
+  // 🧠 Approval Routing ตามระดับตำแหน่งของผู้ยื่น
+  if (isExecutiveApplicant) {
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
-  } else if (
-    userRole.includes("manager") || userRole.includes("ผู้จัดการ")
-  ) {
+    defaultExecutiveStatus = "approved";
+  } else if (isManagerApplicant) {
+    // ผู้จัดการยื่นลา -> ข้าม L1/L2 และส่งตรงหาผู้บริหารสูงสุด (L3) เพื่อตรวจสอบและอนุมัติ
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
-  } else if (
-    (userRole.includes("leader") || userRole.includes("supervisor") ||
-    userRole.includes("head") || userRole.includes("หัวหน้า")) && !isSubLeader
-  ) {
+    defaultExecutiveStatus = "pending";
+  } else if (isLeaderApplicant) {
     defaultManagerStatus = "approved";
-    // หัวหน้ายื่นลา: ถ้าแผนกไม่มี L2 (ผู้จัดการ) ให้ข้าม L2 ไปรอ HR/ผู้บริหาร
+    // หัวหน้ายื่นลา: ถ้าแผนกไม่มี L2 (ผู้จัดการ) ให้ข้าม L2 ไปหาผู้บริหาร (L3)
     if (!hasL2) {
       defaultDirectorStatus = "approved";
     } else {
       defaultDirectorStatus = "pending";
     }
-  } else if (userRole.includes("hr") || userRole.includes("admin")) {
+    defaultExecutiveStatus = "pending";
+  } else if ((userRole.includes("hr") || userRole.includes("admin")) && !isManagerApplicant) {
     defaultManagerStatus = "approved";
     defaultDirectorStatus = "approved";
+    defaultExecutiveStatus = "approved";
   } else {
     // พนักงานทั่วไป:
     // ถ้าไม่มีหัวหน้าในแผนก/รายบุคคล -> ข้าม L1 ทันที
@@ -1399,6 +1443,7 @@ async function saveLeave() {
     if (!hasL2 && !l3Id) {
       defaultDirectorStatus = "approved";
     }
+    defaultExecutiveStatus = l3Id ? "pending" : "approved";
   }
 
   const payload = [];
@@ -1575,6 +1620,7 @@ async function saveLeave() {
         status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
+        executive_status:       defaultExecutiveStatus,
         leave_hours:            hoursMorning,
         start_period:           hoursMorning > 0 ? "half_day" : "full_day",
         end_period:             "full_day",
@@ -1592,6 +1638,7 @@ async function saveLeave() {
         status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
+        executive_status:       defaultExecutiveStatus,
         leave_hours:            hoursAfternoon,
         start_period:           "full_day",
         end_period:             hoursAfternoon > 0 ? "half_day" : "full_day",
@@ -1616,6 +1663,7 @@ async function saveLeave() {
         status:                 "pending", // รอ HR ปิดงานขั้นสุดท้าย
         manager_status:         defaultManagerStatus,
         director_status:        defaultDirectorStatus,
+        executive_status:       defaultExecutiveStatus,
         leave_hours:            totalHours,
         start_period:           startPeriod,
         end_period:             endPeriod,
@@ -1695,61 +1743,68 @@ async function saveLeave() {
     const deptId = currentProfile?.department_id || null;
     const deptName = currentProfile?.department_name || "";
     
-    const isLeaderApplicant = (
-      userRole.includes("leader") || userRole.includes("supervisor") ||
-      userRole.includes("head") || userRole.includes("หัวหน้า")
-    );
-    const isManagerApplicant = (
-      userRole.includes("manager") || userRole.includes("ผู้จัดการ")
-    );
-    const isExecutiveApplicant = (
-      userRole.includes("executive") || userRole.includes("director") ||
-      userRole.includes("owner") || userRole.includes("ผู้บริหาร")
-    );
+    const isLeaderApplicantFinal = isLeaderApplicant;
+    const isManagerApplicantFinal = isManagerApplicant;
+    const isExecutiveApplicantFinal = isExecutiveApplicant;
 
     let recipient = null;
     let recipientRole = "";
     let notificationType = "NEW_REQUEST";
 
-    // Helper: หา Executive คนแรกที่ active
+    // Helper: หา Executive อนุมัติหลัก L3 จาก system_settings หรือ role executive
     async function findExecutiveRecipient() {
-      const { data: setting } = await sb.from("system_settings").select("employee_id").eq("setting_key", "leave_executive_approver").maybeSingle();
-      if (!setting?.employee_id) return null;
-      const { data } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", setting.employee_id).maybeSingle();
-      return data || null;
+      try {
+        const { data: setting } = await sb.from("system_settings").select("employee_id").eq("setting_key", "leave_executive_approver").maybeSingle();
+        if (setting?.employee_id) {
+          const { data } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", setting.employee_id).maybeSingle();
+          if (data) return data;
+        }
+        // Fallback หาพนักงานที่มี role director/executive/owner
+        const { data: fallbackEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["director", "executive", "owner"]).limit(1).maybeSingle();
+        return fallbackEmp || null;
+      } catch (err) {
+        console.warn("⚠️ [Workflow] findExecutiveRecipient error:", err);
+        return null;
+      }
     }
 
-    // --- Logic หาผู้อนุมัติ (แบบใหม่ รองรับรายบุคคล) ---
-    if (isExecutiveApplicant) {
+    // --- Logic หาผู้อนุมัติ (แบบใหม่ รองรับระดับผู้จัดการและผู้บริหารสูงสุด L3) ---
+    if (isExecutiveApplicantFinal) {
       console.log("ℹ️ [Workflow] ผู้บริหารยื่นลาเอง");
       // แจ้ง HR รับทราบ
-      const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).limit(1).maybeSingle();
+      const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).neq("id", currentEmpId).limit(1).maybeSingle();
       if (hrEmp) {
         recipient = hrEmp;
         recipientRole = "hr";
       }
-    } else if (isManagerApplicant) {
-      // ผู้จัดการยื่นลา -> ส่งให้ L3 (รายบุคคล) หรือ Executive ส่วนกลาง
+    } else if (isManagerApplicantFinal) {
+      console.log("ℹ️ [Workflow] ผู้จัดการยื่นลา -> ส่งหาผู้อนุมัติหลัก L3 (ผู้บริหารสูงสุด)");
+      // ผู้จัดการยื่นลา -> ส่งให้ L3 (รายบุคคล) หรือ ผู้บริหารสูงสุด (L3) ในระบบ
       if (currentProfile?.l3_approver_id) {
         const { data: l3Emp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", currentProfile.l3_approver_id).maybeSingle();
-        recipient = l3Emp;
-        recipientRole = "executive";
+        if (l3Emp && String(l3Emp.id) !== String(currentEmpId)) {
+          recipient = l3Emp;
+          recipientRole = "executive";
+        }
       }
       
       if (!recipient) {
-        recipient = await findExecutiveRecipient();
-        recipientRole = "executive";
+        const execEmp = await findExecutiveRecipient();
+        if (execEmp && String(execEmp.id) !== String(currentEmpId)) {
+          recipient = execEmp;
+          recipientRole = "executive";
+        }
       }
 
       if (!recipient) {
-        const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).limit(1).maybeSingle();
+        const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).neq("id", currentEmpId).limit(1).maybeSingle();
         if (hrEmp) { recipient = hrEmp; recipientRole = "hr"; }
       }
-    } else if (isLeaderApplicant) {
+    } else if (isLeaderApplicantFinal) {
       // หัวหน้ายื่นลา -> ส่งให้ L2 (รายบุคคล) หรือ Manager แผนก
       const targetL2Id = currentProfile?.l2_approver_id || (deptId ? (await sb.from("department_approvers").select("manager_id").eq("department_id", deptId).maybeSingle()).data?.manager_id : null);
       
-      if (targetL2Id) {
+      if (targetL2Id && String(targetL2Id) !== String(currentEmpId)) {
         const { data: mgr } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", targetL2Id).maybeSingle();
         recipient = mgr;
         recipientRole = "manager";
@@ -1757,16 +1812,21 @@ async function saveLeave() {
       
       if (!recipient && currentProfile?.l3_approver_id) {
         const { data: l3Emp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", currentProfile.l3_approver_id).maybeSingle();
-        recipient = l3Emp;
-        recipientRole = "executive";
+        if (l3Emp && String(l3Emp.id) !== String(currentEmpId)) {
+          recipient = l3Emp;
+          recipientRole = "executive";
+        }
       }
 
       if (!recipient) {
-        recipient = await findExecutiveRecipient();
-        recipientRole = "executive";
+        const execEmp = await findExecutiveRecipient();
+        if (execEmp && String(execEmp.id) !== String(currentEmpId)) {
+          recipient = execEmp;
+          recipientRole = "executive";
+        }
       }
       if (!recipient) {
-        const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).limit(1).maybeSingle();
+        const { data: hrEmp } = await sb.from("employees").select("id, full_name, line_id, role").in("role", ["hr", "admin"]).neq("id", currentEmpId).limit(1).maybeSingle();
         if (hrEmp) { recipient = hrEmp; recipientRole = "hr"; }
       }
     } else {
@@ -1922,6 +1982,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     await fetchUserExistingLeaveDates(currentEmpId);
   }
 
+  const btnSaveLeave = document.getElementById("btnSaveLeave");
+  if (btnSaveLeave) {
+    btnSaveLeave.addEventListener("click", (e) => {
+      e.preventDefault();
+      saveLeave();
+    });
+  }
+
   addLeaveRow(); 
 });
 
@@ -1947,6 +2015,9 @@ function stepHours(btn, direction) {
 }
 
 // 🌐 Global Window Function Bindings for Leave Form Page
+window.saveLeave = saveLeave;
+window.toggleFormLeaveGuide = typeof toggleFormLeaveGuide !== 'undefined' ? toggleFormLeaveGuide : window.toggleFormLeaveGuide;
+window.handleDateChange = typeof handleDateChange !== 'undefined' ? handleDateChange : window.handleDateChange;
 window.stepHours = typeof stepHours !== 'undefined' ? stepHours : window.stepHours;
 window.removeLeaveRow = typeof removeLeaveRow !== 'undefined' ? removeLeaveRow : window.removeLeaveRow;
 window.addLeaveRow = typeof addLeaveRow !== 'undefined' ? addLeaveRow : window.addLeaveRow;
