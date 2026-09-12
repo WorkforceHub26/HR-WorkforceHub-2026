@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Simulates the approval logic of the HR system
+// Simulates the approval logic of the HR system where HR/Admin is removed from the approval chain
 function computeApprovalState(reqData: any, currentRole: string, hasExecutiveColumn: boolean, deptInfo: any) {
   let updateFields: any = {};
 
@@ -9,6 +10,10 @@ function computeApprovalState(reqData: any, currentRole: string, hasExecutiveCol
     const hasManagerInDept = deptInfo.hasManager || Boolean(reqData.employees?.l2_approver_id);
     if (!hasManagerInDept) {
       updateFields.director_status = 'approved';
+      if (!hasExecutiveColumn) {
+        updateFields.status = 'approved';
+        updateFields.approved_at = new Date().toISOString();
+      }
     }
   } else if (currentRole === 'manager') {
     updateFields.director_status = 'approved';
@@ -20,22 +25,19 @@ function computeApprovalState(reqData: any, currentRole: string, hasExecutiveCol
       const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
       if (!isApplicantLeaderOrManager) {
         updateFields.executive_status = 'approved';
+        updateFields.status = 'approved';
+        updateFields.approved_at = new Date().toISOString();
       }
+    } else {
+      updateFields.status = 'approved';
+      updateFields.approved_at = new Date().toISOString();
     }
   } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
     if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
     if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
     if (hasExecutiveColumn) {
       updateFields.executive_status = 'approved';
-    } else {
-      updateFields.status = 'approved';
-      updateFields.approved_at = new Date().toISOString();
     }
-  } else {
-    // HR / Admin final stage approval
-    if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
-    if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
-    if (hasExecutiveColumn) updateFields.executive_status = 'approved';
     updateFields.status = 'approved';
     updateFields.approved_at = new Date().toISOString();
   }
@@ -61,6 +63,7 @@ describe('HR Approval Workflow State Transitions', () => {
 
     expect(updates.manager_status).toBe('approved');
     expect(updates.director_status).toBe('approved'); // bypassed!
+    expect(updates.status).toBe('approved'); // final approved because no manager & no executive!
   });
 
   it('should transition to approved by manager (L1) but wait for L2 if department has manager', () => {
@@ -82,20 +85,18 @@ describe('HR Approval Workflow State Transitions', () => {
     expect(updates.director_status).toBeUndefined(); // remains pending!
   });
 
-  it('should completely approve and mark status as approved during final HR approval, leaving already approved columns alone', () => {
+  it('should completely approve and mark status as approved during manager (L2) approval if no executive column is present', () => {
     const leaveRequest = {
       id: 'req-3',
       employee_id: 'emp-123',
       manager_status: 'approved',
-      director_status: 'approved',
+      director_status: 'pending',
       status: 'pending'
     };
 
-    const updates = computeApprovalState(leaveRequest, 'hr', false, {});
+    const updates = computeApprovalState(leaveRequest, 'manager', false, {});
 
-    // They are already 'approved' in reqData, so they are not reset or duplicated in updates payload
-    expect(updates.manager_status).toBeUndefined();
-    expect(updates.director_status).toBeUndefined();
+    expect(updates.director_status).toBe('approved');
     expect(updates.status).toBe('approved');
     expect(updates.approved_at).toBeDefined();
   });

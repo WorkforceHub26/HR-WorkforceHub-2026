@@ -1002,10 +1002,8 @@ function canApproveStep(req, role) {
 
   // 🟢 5. กรณีฝ่ายบุคคล (HR / Admin) กำลังพิจารณา
   if (role === 'hr' || role === 'admin') {
-    if (isFinalApproved) {
-      Swal.fire('ดำเนินการแล้ว', 'ใบลาฉบับนี้ได้รับการอนุมัติขั้นสุดท้ายแล้ว', 'info');
-      return false;
-    }
+    Swal.fire('ไม่มีสิทธิ์อนุมัติ', 'ฝ่ายบุคคล (HR) ไม่มีหน้าที่ในการอนุมัติใบลา มีหน้าที่เพียงตรวจสอบดูข้อมูลเท่านั้น', 'warning');
+    return false;
   }
 
   return true;
@@ -1184,18 +1182,23 @@ function renderLeaveTable() {
 
     let actionButtons = "";
 
+    const isHrOrAdmin = (currentRole === 'hr' || currentRole === 'admin');
+
     if (currentLeaveTab === "cancellation") {
       actionButtons = `
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span></button>
           <button class="btn-act btn-act-print" onclick="printLeaveA4('${req.id}')" title="พิมพ์ใบลา" style="background:#f1f5f9; color:#475569; border-color:#e2e8f0;"><span class="material-symbols-outlined">print</span></button>
-          <button class="btn-act btn-act-approve" onclick="approveCancellation('${req.id}')"><span class="material-symbols-outlined">check_circle</span> อนุมัติยกเลิก</button>
-          <button class="btn-act btn-act-reject" onclick="rejectCancellation('${req.id}')"><span class="material-symbols-outlined">cancel</span> ปฏิเสธ</button>
+          ${!isHrOrAdmin ? `
+            <button class="btn-act btn-act-approve" onclick="approveCancellation('${req.id}')"><span class="material-symbols-outlined">check_circle</span> อนุมัติยกเลิก</button>
+            <button class="btn-act btn-act-reject" onclick="rejectCancellation('${req.id}')"><span class="material-symbols-outlined">cancel</span> ปฏิเสธ</button>
+          ` : ''}
         </div>
       `;
     } else if (currentLeaveTab === "history") {
       const userRoleLower = String(currentRole || '').toLowerCase();
-      const canForceCancel = (userRoleLower === 'hr' || userRoleLower === 'admin' || userRoleLower === 'superadmin');
+      // Even if HR/Admin could force cancel in the past, let's keep it or remove it depending on intent. The user said: "มีหน้าที่แค่ดูข้อมูลไม่ต้องอนุมัติใบลา แก้ให้หมดนะด่วนๆ" (only has role to view data, does not approve leave). They can keep print and preview.
+      const canForceCancel = !isHrOrAdmin && (userRoleLower === 'superadmin');
       actionButtons = `
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span><span class="btn-text"> รายละเอียด</span></button>
@@ -1210,8 +1213,10 @@ function renderLeaveTable() {
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span></button>
           <button class="btn-act btn-act-print" onclick="printLeaveA4('${req.id}')" title="พิมพ์ใบลา" style="background:#f1f5f9; color:#475569; border-color:#e2e8f0;"><span class="material-symbols-outlined">print</span></button>
-          <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
-          <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
+          ${!isHrOrAdmin ? `
+            <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
+            <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
+          ` : ''}
         </div>
       `;
     }
@@ -1222,7 +1227,7 @@ function renderLeaveTable() {
       executiveStatusHTML = getStatusBadgeHTML(req.executive_status);
     }
 
-    const isPendingTab = (currentLeaveTab === "pending");
+    const isPendingTab = (currentLeaveTab === "pending" && currentRole !== 'hr' && currentRole !== 'admin');
     const checkboxHTML = isPendingTab ? `
       <div class="bulk-check-wrapper" style="display: flex; align-items: center; justify-content: center; padding-right: 12px; margin-right: 4px;">
         <input type="checkbox" class="bulk-item-check" data-id="${req.id}" onclick="handleBulkItemCheckChange()" style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
@@ -1334,7 +1339,7 @@ function renderLeaveTable() {
   // Update Bulk Action Bar visibility
   const bulkBar = document.getElementById("bulkActionBar");
   if (bulkBar) {
-    if (currentLeaveTab === "pending" && filteredRequests.length > 0) {
+    if (currentLeaveTab === "pending" && filteredRequests.length > 0 && currentRole !== 'hr' && currentRole !== 'admin') {
       bulkBar.style.display = "flex";
       // Reset select all checkbox
       const selectAllCheckbox = document.getElementById("selectAllBulk");
@@ -1437,7 +1442,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
 
   const sla = getLeaveApprovalSLA(req);
   const isOverdue = sla.isOverdue;
-  const isPending = !req.status || req.status === 'pending' || req.status === 'รออนุมัติ';
+  const isPending = (!req.status || req.status === 'pending' || req.status === 'รออนุมัติ') && currentRole !== 'hr' && currentRole !== 'admin';
 
   modalBody.innerHTML = `
     <div class="preview-user-card">
@@ -1671,14 +1676,18 @@ async function approveLeave(leaveId) {
       updateFields.manager_status = 'approved';
 
       // 🔀 ตรวจสายอนุมัติของแผนก
-      // ถ้าแผนกนี้ไม่มี ผู้จัดการ (L2) ให้ข้าม L2 และส่งต่อไป HR ทันที
+      // ถ้าแผนกนี้ไม่มี ผู้จัดการ (L2) ให้ข้าม L2 และอนุมัติทันที (ถ้าไม่มี L3)
       const deptId = reqData.employees?.department_id || null;
       const deptInfo = deptApproversMap[deptId] || {};
       const hasManagerInDept = deptInfo.hasManager || Boolean(reqData.employees?.l2_approver_id);
 
       if (!hasManagerInDept) {
-        console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี ผู้จัดการ (L2) → ข้าม L2 ส่งตรงไป HR (L2)');
+        console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี ผู้จัดการ (L2) → ข้าม L2');
         updateFields.director_status = 'approved';
+        if (!hasExecutiveColumn) {
+          updateFields.status = 'approved';
+          updateFields.approved_at = new Date().toISOString();
+        }
       }
     } else if (currentRole === 'manager') {
       // ✅ L2 อนุมัติ (ผู้จัดการฝ่าย / Department Manager)
@@ -1691,7 +1700,12 @@ async function approveLeave(leaveId) {
         const isApplicantLeaderOrManager = ['leader', 'manager'].includes(applicantRole);
         if (!isApplicantLeaderOrManager) {
           updateFields.executive_status = 'approved';
+          updateFields.status = 'approved';
+          updateFields.approved_at = new Date().toISOString();
         }
+      } else {
+        updateFields.status = 'approved';
+        updateFields.approved_at = new Date().toISOString();
       }
     } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
       // ✅ L3 อนุมัติ (ผู้บริหารระดับสูง / Director / Executive)
@@ -1699,12 +1713,11 @@ async function approveLeave(leaveId) {
       if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
       if (hasExecutiveColumn) {
         updateFields.executive_status = 'approved';
-      } else {
-        updateFields.status = 'approved';
-        updateFields.approved_at = new Date().toISOString();
       }
+      updateFields.status = 'approved';
+      updateFields.approved_at = new Date().toISOString();
     } else {
-      // ✅ L4 / ขั้นสุดท้าย (ฝ่ายบุคคล HR / Super Admin)
+      // ✅ L4 / ขั้นสุดท้าย (ฝ่ายบุคคล HR / Super Admin) - เก็บเป็น fallback เผื่อมีสิทธิพิเศษอื่น แต่อนุมัติสำเร็จทันที
       if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
       if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
       if (hasExecutiveColumn) updateFields.executive_status = 'approved';
