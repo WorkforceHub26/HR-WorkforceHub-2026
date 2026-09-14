@@ -90,7 +90,7 @@
           <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
           <span class="nav-label">แนะนำระบบ</span>
         </a>
-        <button type="button" class="nav-item" title="การตั้งค่าระบบ">
+        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
           <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
           <span class="nav-label">ตั้งค่า</span>
         </button>
@@ -125,44 +125,50 @@
             <span class="material-symbols-outlined" id="btnSyncIcon">sync</span>
           </button>
 
-          <!--  NOTIFICATION COMPONENT (REAL DATA) -->
+          <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA - LARGE & CLEAR UI) -->
           <div class="notif-wrapper" style="position: relative; display: inline-block;">
-            <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน" style="display: inline-flex; align-items: center; justify-content: center;">
-              <img src="/assets/icons/bell-new.svg" alt="การแจ้งเตือน" style="width: 22px; height: 22px; object-fit: contain;" />
+            <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน" style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 14px;">
+              <img src="/assets/icons/bell-new.svg" alt="การแจ้งเตือน" style="width: 26px; height: 26px; object-fit: contain;" />
               <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
             </button>
 
-            <div class="notif-dropdown" id="notifDropdown" style="position: absolute; top: calc(100% + 12px); right: 0; width: 380px; z-index: 1000; flex-direction: column; overflow: hidden;">
+            <div class="notif-dropdown" id="notifDropdown">
               <div class="notif-header">
                 <div class="notif-title">
-                  <strong>การแจ้งเตือน</strong>
+                  <span class="material-symbols-outlined notif-header-icon" style="font-size: 22px; color: var(--primary);">notifications</span>
+                  <strong class="notif-title-text">การแจ้งเตือน</strong>
                   <span class="notif-count-pill" id="notifUnreadCount">0 รายการใหม่</span>
                 </div>
-                <button type="button" class="btn-mark-read" onclick="markAllNotificationsAsRead()">อ่านทั้งหมด</button>
+                <div class="notif-actions">
+                  <button type="button" class="btn-mark-read" onclick="markAllNotificationsAsRead()">อ่านทั้งหมด</button>
+                  <button type="button" class="btn-close-notif" onclick="document.getElementById('notifDropdown')?.classList.remove('show'); document.body.classList.remove('notif-open');" title="ปิดหน้าต่าง">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                  </button>
+                </div>
               </div>
 
-              <!-- ️ SLA Quick Filter Tabs in Dropdown -->
+              <!-- ⏱️ SLA Quick Filter Tabs in Dropdown -->
               <div class="notif-filter-tabs" id="notifFilterTabs">
                 <button type="button" class="notif-filter-tab active" data-filter="all" onclick="filterDropdownNotifs('all')">
-                  ทั้งหมด <span class="tab-badge" id="tabCountAll">0</span>
+                  <span>ทั้งหมด</span> <span class="tab-badge" id="tabCountAll">0</span>
                 </button>
                 <button type="button" class="notif-filter-tab tab-overdue" data-filter="overdue" onclick="filterDropdownNotifs('overdue')">
-                   เกิน 2 วัน <span class="tab-badge" id="tabCountOverdue">0</span>
+                  <span>🔴 เกิน 2 วัน</span> <span class="tab-badge" id="tabCountOverdue">0</span>
                 </button>
                 <button type="button" class="notif-filter-tab tab-urgent" data-filter="urgent" onclick="filterDropdownNotifs('urgent')">
-                   ใกล้ครบ <span class="tab-badge" id="tabCountUrgent">0</span>
+                  <span>🟠 ใกล้ครบ</span> <span class="tab-badge" id="tabCountUrgent">0</span>
                 </button>
               </div>
 
               <!-- Container สำหรับแสดงรายการจริงจาก Supabase & SLA -->
               <div class="notif-body" id="notifListContainer">
-                <div style="padding: 24px; text-align: center; color: var(--text-soft); font-size: 13px;">
+                <div style="padding: 36px 20px; text-align: center; color: var(--text-soft); font-size: 15px;">
                   ⌛ กำลังโหลดการแจ้งเตือน...
                 </div>
               </div>
 
               <div class="notif-footer">
-                <a href="/pages/hr/hr.html"> ไปหน้าตรวจใบลาทั้งหมด</a>
+                <a href="/pages/hr/hr.html" style="font-size: 15px; font-weight: 700;">👉 ไปหน้าตรวจใบลาทั้งหมด</a>
               </div>
             </div>
           </div>
@@ -226,8 +232,8 @@
         <div class="stat-card border-orange" id="statCardPendingLeaves">
           <div class="icon-box bg-orange"><img src="/assets/icons/pending.svg" style="width: 28px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" /></div>
           <div class="stat-info">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%;">
-              <span class="label">รอพิจารณา (L1/L2)</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: wrap;">
+              <span class="label" style="margin-bottom: 0;">รอพิจารณา (L1/L2)</span>
               <span class="stat-sla-badge" id="statSlaBadgeWarning" style="display: none;">️ เกิน SLA</span>
             </div>
             <span class="value" id="statPendingLeaves">0</span>
@@ -367,20 +373,20 @@
                 <p>กำหนดปฏิทิน</p>
               </div>
             </a>
-            <button type="button" onclick="openEmployeeCardManagerPopup()" class="quick-card hover-card-qr" style="border:none; cursor:pointer; text-align:left; width:100%;">
+            <a href="javascript:void(0)" onclick="openEmployeeCardManagerPopup()" class="quick-card hover-card-qr">
               <div class="icon-circle" style="background: rgba(2, 132, 199, 0.12); display: flex; align-items: center; justify-content: center;"><img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" style="width: 24px; height: 24px; object-fit: contain;" /></div>
               <div class="text">
                 <strong>บัตรพนักงาน</strong>
                 <p>เปิดระบบจัดการบัตร</p>
               </div>
-            </button>
-            <button type="button" onclick="window.openLoginLogsViewerModal ? window.openLoginLogsViewerModal() : (window.viewLoginAuditLogs ? window.viewLoginAuditLogs() : null)" class="quick-card hover-blue" style="border:none; cursor:pointer; text-align:left; width:100%;">
+            </a>
+            <a href="javascript:void(0)" onclick="window.openLoginLogsViewerModal ? window.openLoginLogsViewerModal() : (window.viewLoginAuditLogs ? window.viewLoginAuditLogs() : null)" class="quick-card hover-blue">
               <div class="icon-circle" style="background: rgba(13, 148, 136, 0.15); color: #0d9488;"><span class="material-symbols-outlined">shield_person</span></div>
               <div class="text">
                 <strong>ประวัติการเข้าสู่ระบบ</strong>
                 <p>ตรวจสอบ Login Logs</p>
               </div>
-            </button>
+            </a>
           </div>
         </section>
 

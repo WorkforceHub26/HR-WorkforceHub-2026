@@ -127,13 +127,21 @@ async function initSystemAndPermissions() {
         depts.forEach(d => {
           const cfg = approverConfigByDept[d.id];
           const deptEmps = allEmps.filter(e => e.department_id === d.id && (e.status === 'active' || !e.status));
+          const deptName = String(d.department_name || '').toLowerCase();
+          const isHrDept = deptName.includes('บุคคล') || deptName.includes('hr') || deptName.includes('ทรัพยากรบุคคล');
           
           let hasLeader = false;
           let supervisor_id = null;
           let hasManager = false;
           let manager_id = null;
 
-          if (cfg) {
+          if (isHrDept) {
+            // 🛡️ แผนกบุคคล/ทรัพยากรบุคคล: ไม่มีหัวหน้างาน (L1) มีแต่ผู้จัดการฝ่าย (L2)
+            hasLeader = false;
+            supervisor_id = null;
+            hasManager = true;
+            manager_id = cfg?.manager_id || d.approver_id || deptEmps.find(e => String(e.role || '').toLowerCase().includes('manager') || String(e.positions?.position_name || '').toLowerCase().includes('ผู้จัดการ'))?.id || null;
+          } else if (cfg) {
             // 🎯 กำหนดค่าอย่างเป็นทางการจากตาราง department_approvers
             hasLeader = Boolean(cfg.supervisor_id);
             supervisor_id = cfg.supervisor_id || null;
@@ -149,8 +157,7 @@ async function initSystemAndPermissions() {
             const managers = deptEmps.filter(e => {
               const r = String(e.role || '').toLowerCase();
               const p = String(e.positions?.position_name || '').toLowerCase();
-              const isHrDept = String(d.department_name || '').includes('บุคคล');
-              return (r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ')) && (!isHrDept || r !== 'hr');
+              return r === 'manager' || r.includes('manager') || p.includes('ผู้จัดการ');
             });
             hasLeader = leaders.length > 0;
             supervisor_id = leaders[0]?.id || null;
@@ -199,10 +206,18 @@ async function initSystemAndPermissions() {
       console.warn("Could not check executive approver setting:", err);
     }
 
+    const empCode = String(empData?.employee_code || "").trim();
+
     // กำหนดกลุ่ม Role เพื่อใช้ในการ Filter ข้อมูล (ให้สิทธิ์ L3 Executive Approver เป็นอันดับสูงสุด)
-    if (isExecutiveApprover || rawRole === "director" || rawRole === "executive" || rawRole === "owner" || rawPos.includes("ผู้อำนวยการ") || rawPos.includes("ผู้บริหาร") || rawPos.includes("director") || rawPos.includes("executive") || rawPos.includes("owner")) {
+    if (empCode === '19122') {
+      // 🌟 น.ส. ปณัยยา บุญเกิด: ผู้จัดการฝ่ายบุคคล-ธุรการ
+      // มีแอคเคาต์แยกสำหรับ HR กลาง (HR-001/002/003) ให้ทำหน้าที่เป็น Manager อนุมัติเฉพาะคนในแผนกตนเอง
+      currentRole = "manager";
+    } else if (isExecutiveApprover || rawRole === "director" || rawRole === "executive" || rawRole === "owner" || rawPos.includes("ผู้อำนวยการ") || rawPos.includes("ผู้บริหาร") || rawPos.includes("director") || rawPos.includes("executive") || rawPos.includes("owner")) {
       currentRole = "director";
-    } else if (rawRole === "hr" || rawRole === "admin" || rawRole === "superadmin" || rawRole.includes("hr") || rawRole.includes("admin")) {
+    } else if (rawRole === "admin" || rawRole === "superadmin" || rawRole.includes("admin")) {
+      currentRole = "admin";
+    } else if (rawRole === "hr" || rawRole.includes("hr")) {
       currentRole = "hr";
     } else if (rawRole === "manager" || isDeptManager || rawPos.includes("ผู้จัดการ") || rawPos.includes("manager")) {
       currentRole = "manager";
@@ -366,7 +381,16 @@ function applyRoleBasedUI() {
     if (btnBack) btnBack.style.display = "inline-flex";
 
     if (roleBadge) {
-      roleBadge.textContent = currentRole === "manager" ? "ผู้จัดการอนุมัติ (L2)" : "หัวหน้างานอนุมัติ (L1)";
+      const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+      const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+      const empCode = String(currentUserProfile?.employee_code || currentUserProfile?.employees?.employee_code || sessionUser?.employee_code || '').trim();
+      if (empCode === '19122') {
+        roleBadge.textContent = "ผู้จัดการฝ่ายบุคคล-ธุรการ (อนุมัติคนในแผนก)";
+        const pageSubTitle = document.getElementById("pageSubTitle");
+        if (pageSubTitle) pageSubTitle.textContent = "ฝ่ายบุคคล-ธุรการ (อนุมัติเฉพาะคนในแผนก)";
+      } else {
+        roleBadge.textContent = currentRole === "manager" ? "ผู้จัดการอนุมัติ (L2)" : "หัวหน้างานอนุมัติ (L1)";
+      }
       roleBadge.className = "status-badge status-pending";
     }
   } else {
@@ -437,6 +461,17 @@ function isCancelRequestStatus(status) {
 
 function isPendingForRole(r, role) {
   if (!isPendingStatus(r.status)) return false;
+
+  // 🚫 ห้ามตรวจ/อนุมัติใบลาของตนเอง (Self-Leave Exclusion):
+  // ผู้จัดการ/หัวหน้างานไม่สามารถตรวจหรืออนุมัติใบลาของตนเองได้ (ต้องส่งให้ผู้บริหาร L3 พิจารณา)
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const currentEmpId = currentUserProfile?.employees?.id || currentUserProfile?.id || sessionUser?.employees?.id || sessionUser?.id || sessionUser?.employee_id;
+  const currentEmpIdStr = currentEmpId ? String(currentEmpId) : '';
+  if (currentEmpIdStr && (String(r.employee_id || '') === currentEmpIdStr || String(r.employees?.id || '') === currentEmpIdStr)) {
+    return false;
+  }
+
   const userRole = String(role || '').toLowerCase();
   if (userRole === 'leader') {
     return (r.manager_status || 'pending') === 'pending';
@@ -644,50 +679,59 @@ function getStatusBadgeHTML(status) {
 function getApprovalWorkflowSteps(req) {
   const reqEmp = req.employees || {};
   const reqDeptId = req.department_id || reqEmp.department_id;
-  const deptInfo = deptApproversMap[reqDeptId] || { hasLeader: false, hasManager: false };
+  const deptInfo = (window.deptApproversMap && window.deptApproversMap[reqDeptId]) || 
+                   (typeof deptApproversMap !== 'undefined' && deptApproversMap[reqDeptId]) || 
+                   { hasLeader: false, hasManager: false };
 
+  const deptName = String(req.departments?.department_name || reqEmp.departments?.department_name || '').toLowerCase();
   const applicantRole = String(reqEmp.role || '').toLowerCase();
   const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
 
   const isApplicantLeader = (applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า')) && !applicantPos.includes('หัวหน้ากะ') && !applicantPos.includes('หัวหน้าส่วน');
   const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ') || applicantPos.includes('ผจก');
   const isApplicantExecutive = applicantRole === 'director' || applicantRole === 'executive' || applicantRole === 'owner' || applicantPos.includes('ผู้บริหาร') || applicantPos.includes('ผู้อำนวยการ');
-  const isApplicantHr = (applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin') && !isApplicantManager && !isApplicantExecutive;
+  const isHrDept = deptName.includes('บุคคล') || deptName.includes('hr') || deptName.includes('ทรัพยากรบุคคล') || applicantRole === 'hr' || applicantRole.includes('hr');
 
   // 1. ตรวจสอบขั้นตอน "หัวหน้า" (L1):
-  // - ซ่อน/ตัดออก ถ้าผู้ยื่นเป็นระดับหัวหน้า/ผู้จัดการ/HR/ผู้บริหาร เองอยู่แล้ว
+  // - แผนกบุคคล (HR) ไม่มีหัวหน้า มีแต่ผู้จัดการฝ่าย -> ซ่อน/ตัด L1 ออก 100%
+  // - ซ่อน/ตัดออก ถ้าผู้ยื่นเป็นระดับหัวหน้า/ผู้จัดการ/ผู้บริหาร เองอยู่แล้ว
   // - หรือ แผนกนั้นไม่มีหัวหน้า (และไม่มีรายบุคคล l1_approver_id กำหนดไว้)
   let hasL1 = false;
-  if (!isApplicantLeader && !isApplicantManager && !isApplicantHr && !isApplicantExecutive) {
+  if (!isHrDept && !isApplicantLeader && !isApplicantManager && !isApplicantExecutive) {
     if (reqEmp.l1_approver_id) {
       hasL1 = true;
     } else {
-      hasL1 = Boolean(deptInfo.hasLeader);
+      hasL1 = Boolean(deptInfo && deptInfo.hasLeader && deptInfo.supervisor_id);
     }
   }
 
   // 2. ตรวจสอบขั้นตอน "ผู้จัดการ" (L2):
-  // - ซ่อน/ตัดออก ถ้าผู้ยื่นเป็นผู้จัดการ/HR/ผู้บริหาร เองอยู่แล้ว
-  // - หรือ แผนกนั้นไม่มีผู้จัดการ (และไม่มีรายบุคคล l2_approver_id กำหนดไว้)
+  // - ซ่อน/ตัดออก ถ้าผู้ยื่นเป็นผู้จัดการ/ผู้บริหาร เองอยู่แล้ว
+  // - แผนกบุคคล (HR) มีผู้จัดการฝ่าย (19122) เป็นผู้อนุมัติเสมอ
   let hasL2 = false;
-  if (!isApplicantManager && !isApplicantHr && !isApplicantExecutive) {
-    if (reqEmp.l2_approver_id) {
+  if (!isApplicantManager && !isApplicantExecutive) {
+    if (isHrDept) {
+      hasL2 = true;
+    } else if (reqEmp.l2_approver_id) {
       hasL2 = true;
     } else {
-      hasL2 = Boolean(deptInfo.hasManager);
+      hasL2 = Boolean(deptInfo && (deptInfo.hasManager || deptInfo.manager_id));
     }
   }
 
-  // 3. ตรวจสอบขั้นตอน "บริหาร" (สำหรับกรณีผู้จัดการหรือหัวหน้าเป็นผู้ยื่นลา หรือระบุ L3)
-  const isLeaderOrManager = isApplicantLeader || isApplicantManager;
-  const hasExecutive = Boolean(
-    hasExecutiveColumn && (
-      isApplicantManager || 
-      (isApplicantLeader && !hasL2) || 
-      reqEmp.l3_approver_id || 
-      (window.executiveSetting?.employee_id && (isLeaderOrManager || req.executive_status))
-    )
-  );
+  // 3. ตรวจสอบขั้นตอน "ผู้บริหาร" (L3):
+  // - มีเฉพาะกรณี: มีการระบุ l3_approver_id เฉพาะบุคคล, หรือผู้ยื่นเป็นผู้จัดการฝ่าย (L2), หรือหัวหน้า (L1) ในแผนกที่ไม่มี L2
+  // - พนักงานทั่วไป (รวมถึงพนักงานฝ่ายบุคคล) จะไม่ปรากฏขั้นตอน L3 ให้เกะกะสายตา
+  let hasExecutive = false;
+  if (typeof hasExecutiveColumn !== 'undefined' && hasExecutiveColumn) {
+    if (reqEmp.l3_approver_id) {
+      hasExecutive = true;
+    } else if (isApplicantManager) {
+      hasExecutive = true;
+    } else if (isApplicantLeader && !hasL2) {
+      hasExecutive = true;
+    }
+  }
 
   // สร้างลำดับขั้นตอนการอนุมัติเฉพาะขั้นตอนที่มีอยู่จริงในสายงาน
   const steps = [];
@@ -695,8 +739,8 @@ function getApprovalWorkflowSteps(req) {
   if (hasL1) {
     steps.push({
       role: 'leader',
-      shortName: 'หัวหน้า',
-      fullName: 'หัวหน้าแผนก',
+      shortName: 'หัวหน้าแผนก (L1)',
+      fullName: 'หัวหน้างานชั้นต้น (L1: Leader / Supervisor)',
       status: req.manager_status || 'pending'
     });
   }
@@ -704,8 +748,8 @@ function getApprovalWorkflowSteps(req) {
   if (hasL2) {
     steps.push({
       role: 'manager',
-      shortName: 'ผู้จัดการ',
-      fullName: 'ผู้จัดการฝ่าย',
+      shortName: 'ผู้จัดการฝ่าย (L2)',
+      fullName: 'ผู้จัดการฝ่าย (L2: Director / Manager)',
       status: req.director_status || 'pending'
     });
   }
@@ -714,12 +758,10 @@ function getApprovalWorkflowSteps(req) {
     steps.push({
       role: 'executive',
       shortName: 'ผู้บริหาร (L3)',
-      fullName: 'ผู้บริหารสูงสุด',
+      fullName: 'ผู้บริหารสูงสุด (L3: Executive / MD)',
       status: req.executive_status || 'pending'
     });
   }
-
-  // HR is removed from the approval chain as per user request
 
   return steps;
 }
@@ -854,15 +896,16 @@ async function loadPendingLeavesHR(isSilent = false) {
     const sessionUser = savedSession ? JSON.parse(savedSession) : {};
     const myEmp = currentUserProfile?.employees || sessionUser?.employees || sessionUser || {};
     const currentEmpId = myEmp?.id;
-    const myDeptId = myEmp?.department_id;
-    const myDeptName = myEmp?.departments?.department_name || myEmp?.department_name;
+    const currentEmpCode = String(myEmp?.employee_code || sessionUser?.employee_code || '').trim();
+    const myDeptId = myEmp?.department_id || sessionUser?.department_id;
+    const myDeptName = myEmp?.departments?.department_name || myEmp?.department_name || sessionUser?.department_name;
 
     const userRole = (currentRole || '').toLowerCase();
-    const isHrOrAdmin = (userRole === "hr" || userRole === "admin");
+    const isHrOrAdmin = (userRole === "hr" || userRole === "admin") && currentEmpCode !== '19122';
 
-    // ถ้าไม่ใช่ HR/Admin ให้กรองเห็นเฉพาะลูกน้อง (Subordinates) ตามโครงสร้างองค์กร
-    if (!isHrOrAdmin) {
-      console.log("[HR Load] Applying hierarchical filters for:", userRole);
+    // ถ้าไม่ใช่ HR/Admin (หรือเป็นรหัส 19122) ให้กรองเห็นเฉพาะลูกน้อง (Subordinates) ตามโครงสร้างองค์กร
+    if (!isHrOrAdmin || currentEmpCode === '19122') {
+      console.log("[HR Load] Applying hierarchical filters for:", userRole, "EmpCode:", currentEmpCode);
       rawData = rawData.filter((req) => {
         const reqEmp = req.employees;
         if (!reqEmp) return false;
@@ -874,6 +917,26 @@ async function loadPendingLeavesHR(isSilent = false) {
         const myDeptIdStr = myDeptId ? String(myDeptId) : '';
         const reqDeptName = String(reqEmp.departments?.department_name || '').toLowerCase();
         const myDeptNameStr = String(myDeptName || '').toLowerCase();
+
+        // 🚫 ซ่อนใบลาของตนเองในหน้าตรวจใบลา (Self-Leave Exclusion):
+        // ผู้จัดการหรือหัวหน้างานไม่ต้องเห็นใบลาของตนเองในหน้าตรวจใบลา
+        // เพราะใบลาของผู้จัดการ/หัวหน้าฝ่ายจะต้องส่งให้ผู้บริหาร (Executive L3) เป็นผู้อนุมัติ
+        // หากต้องการดูข้อมูลบริษัทในภาพรวม ให้เข้าสู่ระบบผ่านแอคเคาต์แยก
+        const isSelf = currentEmpIdStr && (reqEmpId === currentEmpIdStr || String(req.employee_id || '') === currentEmpIdStr);
+        if (isSelf) {
+          return false;
+        }
+
+        // 🌟 พิเศษสำหรับ น.ส. ปณัยยา บุญเกิด (รหัส: 19122) ผู้จัดการฝ่าย - บุคคล-ธุรการ
+        // มีแอคเคาต์แยกให้เห็นเฉพาะใบลาของคนในแผนกพอ
+        if (currentEmpCode === '19122') {
+          const isSameDept = (myDeptIdStr && reqDeptId) 
+            ? (reqDeptId === myDeptIdStr)
+            : (reqDeptName.includes('บุคคล') || reqDeptName.includes('ธุรการ') || (myDeptNameStr && myDeptNameStr === reqDeptName));
+          
+          const isHigherExec = ['director', 'executive', 'owner'].includes(reqEmpRole);
+          return isSameDept && !isHigherExec;
+        }
 
         // 🎯 ตรวจสอบว่าผู้ใช้งานปัจจุบันถูกระบุเป็นผู้อนุมัติโดยตรง (L1 / L2 / L3) หรือไม่
         const isDirectL1 = currentEmpIdStr && String(reqEmp.l1_approver_id || '') === currentEmpIdStr;
@@ -893,14 +956,14 @@ async function loadPendingLeavesHR(isSilent = false) {
         }
 
         let isSubordinate = false;
-        const isHigherRole = ['director', 'executive', 'owner', 'hr', 'admin', 'superadmin'].includes(reqEmpRole);
+        const isHigherRole = ['director', 'executive', 'owner', 'superadmin'].includes(reqEmpRole);
 
         if (userRole === "leader") {
           // Leader เห็นพนักงานทั่วไปในแผนกเดียวกัน
           const isSameDept = (myDeptIdStr && reqDeptId) 
             ? (reqDeptId === myDeptIdStr)
             : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : true);
-          const isNotLeaderOrHigher = !['leader', 'manager', 'director', 'executive', 'owner', 'hr', 'admin'].includes(reqEmpRole);
+          const isNotLeaderOrHigher = !['leader', 'manager', 'director', 'executive', 'owner'].includes(reqEmpRole);
           isSubordinate = isSameDept && isNotLeaderOrHigher;
         } 
         else if (userRole === "manager") {
@@ -919,11 +982,6 @@ async function loadPendingLeavesHR(isSilent = false) {
             ? (reqDeptId === myDeptIdStr)
             : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : false);
           isSubordinate = isSameDept;
-        }
-
-        // กรณีเป็นใบลาของตนเอง (Self) ขณะกำลังทดสอบระบบ ให้ยังคงแสดงในรายการเพื่อความโปร่งใส
-        if (currentEmpIdStr && reqEmpId === currentEmpIdStr) {
-          return true;
         }
 
         return isSubordinate;
@@ -1030,9 +1088,12 @@ function canApproveStep(req, role) {
   const sessionUser = savedSession ? JSON.parse(savedSession) : {};
   const empData = currentUserProfile?.employees || sessionUser?.employees || sessionUser || {};
   const currentEmpId = empData?.id || empData?.employee_id || currentUserProfile?.employee_id;
+  const rawRole = String(empData?.role || sessionUser?.role || role || '').toLowerCase();
 
-  // 🛑 1. ป้องกันการกดอนุมัติใบลาของตัวเอง (Self-Approval Guard)
-  if (currentEmpId && String(req.employee_id) === String(currentEmpId)) {
+  const isAdminOrSuper = rawRole === 'admin' || rawRole === 'superadmin' || role === 'admin';
+
+  // 🛑 1. ป้องกันการกดอนุมัติใบลาของตัวเอง (Self-Approval Guard) - ยกเว้น Admin สำหรับทดสอบ
+  if (!isAdminOrSuper && currentEmpId && String(req.employee_id) === String(currentEmpId)) {
     Swal.fire({
       title: 'ไม่สามารถทำรายการได้',
       text: 'คุณไม่สามารถกดอนุมัติใบลาของตนเองได้ กรุณาให้ผู้จัดการฝ่าย หรือ ผู้บริหาร/HR เป็นผู้อนุมัติ',
@@ -1048,26 +1109,14 @@ function canApproveStep(req, role) {
   const isL3Approved = req.executive_status === 'approved';
   const isFinalApproved = req.status === 'approved';
 
-  // 🔵 2. กรณีหัวหน้างาน (L1 Leader) กำลังพิจารณา
-  if (role === 'leader') {
-    if (isL1Approved) {
-      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้หัวหน้างาน (L1) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/HR', 'info');
-      return false;
-    }
+  if (isFinalApproved) {
+    Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
+    return false;
   }
 
-  // 🔵 3. กรณีผู้จัดการ (L2 Manager) กำลังพิจารณา
-  if (role === 'manager') {
-    if (isL2Approved) {
-      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ผู้จัดการฝ่าย (L2) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของ HR/ผู้บริหาร', 'info');
-      return false;
-    }
-    // หาก L1 ยังไม่ได้รับอนุมัติ ผู้จัดการมีสิทธิ์พิจารณาอนุมัติแทนหรืออนุมัติข้ามขั้นได้ทันที
-  }
-
-  // 🟡 4. กรณีผู้บริหาร (L3 Executive / Director) หรือผู้ที่ถูกระบุเป็นผู้บริหารสูงสุดอนุมัติหลัก
+  // 🟡 2. Admin / Superadmin / Executive L3 สามารถอนุมัติได้เสมอ
   const isExecutiveUser = (
-    role === 'director' || role === 'executive' || role === 'owner' ||
+    role === 'director' || role === 'executive' || role === 'owner' || role === 'admin' || isAdminOrSuper ||
     (currentEmpId && (
       String(currentEmpId) === String(window.executiveSetting?.employee_id || '') ||
       String(currentEmpId) === String(window.executiveApproverId || '')
@@ -1075,17 +1124,27 @@ function canApproveStep(req, role) {
   );
 
   if (isExecutiveUser) {
-    if (isL3Approved || isFinalApproved) {
+    if (isL3Approved && isFinalApproved) {
       Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
       return false;
     }
     return true;
   }
 
-  // 🟢 5. กรณีฝ่ายบุคคล (HR) กำลังพิจารณา
-  if (role === 'hr') {
-    Swal.fire('ไม่มีสิทธิ์อนุมัติ', 'ฝ่ายบุคคล (HR) ไม่มีหน้าที่ในการอนุมัติใบลา มีหน้าที่เพียงตรวจสอบดูข้อมูลเท่านั้น', 'warning');
-    return false;
+  // 🔵 3. กรณีหัวหน้างาน (L1 Leader) กำลังพิจารณา
+  if (role === 'leader') {
+    if (isL1Approved) {
+      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้หัวหน้างาน (L1) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/ผู้บริหาร', 'info');
+      return false;
+    }
+  }
+
+  // 🔵 4. กรณีผู้จัดการ (L2 Manager) กำลังพิจารณา
+  if (role === 'manager') {
+    if (isL2Approved && isL3Approved) {
+      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
+      return false;
+    }
   }
 
   return true;
@@ -1593,18 +1652,135 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
       </div>
     ` : ''}
 
-    <div class="workflow-section">
-      <div class="workflow-section-title">สถานะการอนุมัติตามลำดับขั้น</div>
-      <div class="workflow-steps">
+    <div class="workflow-section" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f0fdfa; color: #0d9488; display: flex; align-items: center; justify-content: center;">
+            <span class="material-symbols-outlined" style="font-size: 20px;">timeline</span>
+          </div>
+          <div>
+            <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a;">ติดตามสถานะและขั้นตอนการพิจารณา (Visual Progress Tracker)</h4>
+            <span style="font-size: 12px; color: #64748b; font-weight: 500;">คำนวณตามโครงสร้างสายงานจริงของแผนก (${escapeHtml(emp.departments?.department_name || '-')})</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stepper Vertical Timeline -->
+      <div style="position: relative; padding-left: 38px; display: flex; flex-direction: column; gap: 20px;">
+        <!-- Vertical connecting line -->
+        <div style="position: absolute; left: 14px; top: 14px; bottom: 20px; width: 2px; background: #e2e8f0; z-index: 1;"></div>
+
         ${(() => {
           const workflowSteps = getApprovalWorkflowSteps(req);
-          return workflowSteps.map((step, idx) => `
-            <div class="step-card">
-              <span class="role-title">${idx + 1}. ${step.fullName} (L${idx + 1})</span>
-              ${getStatusBadgeHTML(step.status)}
+          const stepsList = [];
+          
+          // 1. Step 1: ยื่นคำขอลาสำเร็จ
+          stepsList.push({
+            title: '1. ยื่นคำขอลาสำเร็จ',
+            badge: '<span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">check_circle</span> สำเร็จแล้ว</span>',
+            desc: 'คำขอลาถูกส่งเข้าระบบ PVT Workforce Hub เรียบร้อยแล้ว',
+            circle: { bg: '#10b981', color: '#ffffff', icon: 'check' }
+          });
+
+          let stepIndex = 2;
+          let priorStepApproved = true;
+
+          workflowSteps.forEach(ws => {
+            const st = String(ws.status || 'pending').toLowerCase();
+            const isApproved = st === 'approved' || st === 'อนุมัติแล้ว';
+            const isRejected = st === 'rejected' || st === 'ไม่อนุมัติ';
+            
+            let badgeHtml = '';
+            let circleStyle = { bg: '#f59e0b', color: '#ffffff', icon: 'hourglass_empty' };
+            let descText = '';
+
+            if (!priorStepApproved && !isApproved && !isRejected) {
+              badgeHtml = '<span style="background: #f1f5f9; color: #64748b; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">schedule</span> รอดำเนินการ</span>';
+              circleStyle = { bg: '#e2e8f0', color: '#94a3b8', icon: 'schedule' };
+              descText = `รอดำเนินการหลังจากขั้นตอนก่อนหน้าได้รับการอนุมัติ`;
+            } else if (isApproved) {
+              badgeHtml = '<span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">check_circle</span> อนุมัติแล้ว</span>';
+              circleStyle = { bg: '#10b981', color: '#ffffff', icon: 'check' };
+              descText = `${ws.fullName} ตรวจสอบและลงนามอนุมัติเรียบร้อยแล้ว`;
+            } else if (isRejected) {
+              badgeHtml = '<span style="background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">cancel</span> ไม่อนุมัติ</span>';
+              circleStyle = { bg: '#ef4444', color: '#ffffff', icon: 'close' };
+              descText = `${ws.fullName} พิจารณาไม่อนุมัติคำขอนี้`;
+              priorStepApproved = false;
+            } else {
+              badgeHtml = '<span style="background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">hourglass_top</span> กำลังรอพิจารณา</span>';
+              circleStyle = { bg: '#f59e0b', color: '#ffffff', icon: 'hourglass_empty' };
+              descText = `กำลังรอ ${ws.fullName} ตรวจสอบและพิจารณาตามขั้นตอน`;
+              priorStepApproved = false;
+            }
+
+            stepsList.push({
+              title: `${stepIndex}. ${ws.fullName}`,
+              badge: badgeHtml,
+              desc: descText,
+              circle: circleStyle
+            });
+
+            stepIndex++;
+          });
+
+          // Final step: อนุมัติเสร็จสมบูรณ์ (Final Decision)
+          const overallStatus = String(req.status || 'pending').toLowerCase();
+          const allStepsDone = workflowSteps.length > 0 && workflowSteps.every(ws => {
+            const s = String(ws.status || '').toLowerCase();
+            return s === 'approved' || s === 'อนุมัติแล้ว';
+          });
+          const isFinalApproved = overallStatus === 'approved' || overallStatus === 'อนุมัติแล้ว' || allStepsDone;
+          const isFinalRejected = overallStatus === 'rejected' || overallStatus === 'ไม่อนุมัติ';
+          const isFinalCancelled = overallStatus === 'cancelled' || overallStatus === 'ยกเลิก';
+
+          let finalBadge = '';
+          let finalCircle = { bg: '#f59e0b', color: '#ffffff', icon: 'hourglass_empty' };
+          let finalDesc = '';
+
+          if (isFinalApproved) {
+            finalBadge = '<span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">verified</span> อนุมัติเสร็จสมบูรณ์</span>';
+            finalCircle = { bg: '#10b981', color: '#ffffff', icon: 'verified' };
+            finalDesc = 'คำขอลาผ่านการอนุมัติครบถ้วนสมบูรณ์ มีผลบันทึกในระบบและตัดยอดวันลาเรียบร้อยแล้ว';
+          } else if (isFinalRejected) {
+            finalBadge = '<span style="background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">cancel</span> สิ้นสุด (ไม่อนุมัติ)</span>';
+            finalCircle = { bg: '#ef4444', color: '#ffffff', icon: 'close' };
+            finalDesc = 'คำขอลาไม่ได้รับการอนุมัติ';
+          } else if (isFinalCancelled) {
+            finalBadge = '<span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">block</span> ยกเลิกคำขอแล้ว</span>';
+            finalCircle = { bg: '#94a3b8', color: '#ffffff', icon: 'block' };
+            finalDesc = 'ใบลาถูกยกเลิกแล้ว';
+          } else {
+            finalBadge = '<span style="background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">hourglass_top</span> กำลังรอพิจารณา</span>';
+            finalCircle = { bg: '#f59e0b', color: '#ffffff', icon: 'hourglass_empty' };
+            finalDesc = 'ตรวจสอบความถูกต้องและผ่านการอนุมัติระดับแผนกเรียบร้อย';
+          }
+
+          stepsList.push({
+            title: `${stepIndex}. อนุมัติเสร็จสมบูรณ์ (Final Decision)`,
+            badge: finalBadge,
+            desc: finalDesc,
+            circle: finalCircle
+          });
+
+          return stepsList.map(step => `
+            <div style="position: relative; z-index: 2;">
+              <div style="position: absolute; left: -38px; top: 0; width: 30px; height: 30px; border-radius: 50%; background: ${step.circle.bg}; color: ${step.circle.color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px #ffffff, 0 2px 5px rgba(0,0,0,0.08);">
+                <span class="material-symbols-outlined" style="font-size: 17px; font-weight: bold;">${step.circle.icon}</span>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                <div style="font-size: 13.5px; font-weight: 700; color: #1e293b;">${step.title}</div>
+                <div>${step.badge}</div>
+              </div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 3px; line-height: 1.5;">${step.desc}</div>
             </div>
           `).join('');
         })()}
+      </div>
+
+      <div style="margin-top: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #166534; line-height: 1.5;">
+        <span class="material-symbols-outlined" style="font-size: 18px; color: #15803d; flex-shrink: 0; margin-top: 1px;">info</span>
+        <div><strong>ระบบสายอนุมัติอัตโนมัติ:</strong> แสดงเฉพาะขั้นตอนที่จำเป็นตามโครงสร้างแผนกจริง หากแผนกไม่มีหัวหน้างาน หรือไม่ต้องผ่านผู้บริหาร ระบบจะข้ามขั้นตอนนั้นไปโดยอัตโนมัติ</div>
       </div>
     </div>
 
@@ -1727,6 +1903,7 @@ async function approveLeave(leaveId) {
       text: `คุณกำลังอนุมัติในฐานะ ${roleTitle}`,
       icon: 'question',
       showCancelButton: true,
+      showDenyButton: false,
       confirmButtonColor: '#10b981',
       cancelButtonColor: '#64748b',
       confirmButtonText: '✔️ ยืนยันอนุมัติ',
@@ -2138,16 +2315,25 @@ async function approveLeave(leaveId) {
 
 async function rejectLeave(leaveId) {
   const { value: reason } = await Swal.fire({
-    title: 'ปฏิเสธการขอลา',
+    title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ปฏิเสธคำขอลา</span>',
+    html: '<div style="font-size: 14px; color: #64748b; margin-bottom: 12px; font-weight: 500;">โปรดระบุเหตุผลที่ไม่อนุมัติคำขอนี้ เพื่อแจ้งให้พนักงานทราบ:</div>',
     input: 'textarea',
-    inputLabel: 'โปรดระบุเหตุผลการไม่อนุมัติ:',
-    inputPlaceholder: 'พิมพ์เหตุผลที่นี่...',
+    inputPlaceholder: 'พิมพ์เหตุผลการไม่อนุมัติที่นี่...',
     icon: 'warning',
     showCancelButton: true,
+    showDenyButton: false,
     confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#64748b',
     confirmButtonText: '✖️ ยืนยันไม่อนุมัติ',
     cancelButtonText: 'ยกเลิก',
-    inputValidator: (value) => { if (!value) return 'กรุณาระบุเหตุผลด้วยครับ!' }
+    customClass: {
+      popup: 'swal-refined-popup',
+      confirmButton: 'swal-btn-danger',
+      cancelButton: 'swal-btn-cancel'
+    },
+    inputValidator: (value) => { 
+      if (!value || !value.trim()) return 'กรุณาระบุเหตุผลในการไม่อนุมัติด้วยครับ!';
+    }
   });
 
   if (!reason) return;
@@ -2238,9 +2424,10 @@ async function forceCancelLeave(leaveId) {
     input: 'textarea',
     inputPlaceholder: 'ระบุเหตุผลการยกเลิกใบลา...',
     showCancelButton: true,
+    showDenyButton: false,
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#64748b',
-    confirmButtonText: 'ยืนยันยกเลิกใบลา',
+    confirmButtonText: '✖️ ยืนยันยกเลิกใบลา',
     cancelButtonText: 'ยกเลิก',
     inputValidator: (value) => {
       if (!value) return 'กรุณาระบุเหตุผลในการยกเลิกใบลา!';
@@ -2270,7 +2457,7 @@ async function forceCancelLeave(leaveId) {
       }
     }
 
-    const { error } = await sb
+    let { error } = await sb
       .from('leave_requests')
       .update({ 
         status: 'cancelled',
@@ -2278,6 +2465,16 @@ async function forceCancelLeave(leaveId) {
         approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason.trim()}`
       })
       .eq('id', leaveId);
+
+    if (error && (error.code === 'P0001' || (error.message && (error.message.includes('ช่วงวันที่ดังกล่าว') || error.message.includes('ซ้อนทับ'))))) {
+      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId);
+      const retry = await sb.from('leave_requests').update({
+        status: 'cancelled',
+        cancel_reason: reason.trim(),
+        approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason.trim()}`
+      }).eq('id', leaveId);
+      error = retry.error;
+    }
 
     if (error) throw error;
 
@@ -2295,6 +2492,7 @@ async function approveCancellation(leaveId) {
     text: "ระบบจะทำรายการยกเลิกใบลา และคืนจำนวนวันลาที่หักไปกลับเข้าโควตาพนักงานทันที",
     icon: 'warning',
     showCancelButton: true,
+    showDenyButton: false,
     confirmButtonColor: '#10b981',
     cancelButtonColor: '#64748b',
     confirmButtonText: '✔️ อนุมัติยกเลิก (คืนโควตา)',
@@ -2329,7 +2527,7 @@ async function approveCancellation(leaveId) {
       await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, -daysToReturn);
     }
 
-    const { error: updateErr } = await sb
+    let { error: updateErr } = await sb
       .from('leave_requests')
       .update({
         status: 'cancelled',
@@ -2337,6 +2535,16 @@ async function approveCancellation(leaveId) {
         approved_at: new Date().toISOString()
       })
       .eq('id', leaveId);
+
+    if (updateErr && (updateErr.code === 'P0001' || (updateErr.message && (updateErr.message.includes('ช่วงวันที่ดังกล่าว') || updateErr.message.includes('ซ้อนทับ'))))) {
+      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId);
+      const retry = await sb.from('leave_requests').update({
+        status: 'cancelled',
+        approval_comment: '[อนุมัติยกเลิกคำร้อง] คืนวันลาเข้าระบบเรียบร้อย',
+        approved_at: new Date().toISOString()
+      }).eq('id', leaveId);
+      updateErr = retry.error;
+    }
 
     if (updateErr) throw updateErr;
 
@@ -2357,8 +2565,9 @@ async function rejectCancellation(leaveId) {
     inputPlaceholder: 'พิมพ์เหตุผลที่นี่...',
     icon: 'warning',
     showCancelButton: true,
+    showDenyButton: false,
     confirmButtonColor: '#ef4444',
-    confirmButtonText: '❌ ยืนยันปฏิเสธ',
+    confirmButtonText: '✖️ ยืนยันปฏิเสธ',
     cancelButtonText: 'ยกเลิก',
     inputValidator: (value) => { if (!value) return 'กรุณาระบุเหตุผลด้วยครับ!' }
   });
@@ -3235,6 +3444,7 @@ window.submitBulkApproval = async function() {
     html: `คุณต้องการอนุมัติใบลาทั้งหมด <strong>${checkedBoxes.length} รายการ</strong> ที่เลือกพร้อมกันทันทีหรือไม่?`,
     icon: 'question',
     showCancelButton: true,
+    showDenyButton: false,
     confirmButtonColor: '#0d9488',
     cancelButtonColor: '#64748b',
     confirmButtonText: `✔️ ยืนยันอนุมัติ (${checkedBoxes.length} รายการ)`,

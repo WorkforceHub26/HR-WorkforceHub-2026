@@ -1048,3 +1048,19 @@ button.menu-item .material-symbols-outlined {
   }
 }
 
+/* 📋 Leave Card Interactive Styles */
+.leave-card {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+  cursor: pointer;
+}
+
+.leave-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+  border-color: #99f6e4 !important;
+}
+
+.leave-card:active {
+  transform: translateY(0);
+}
+

@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     switchTab(currentTabState);
     setupTableSearch();
     fetchRealNotifications();
+    initializeCollapsiblePanels();
 
   } catch (criticalError) {
     console.error("🚨 [CRITICAL ERROR] เกิดข้อผิดพลาดใน Process หลัก:", criticalError);
@@ -43,6 +44,73 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   console.groupEnd();
 });
+
+function initializeCollapsiblePanels() {
+  const panels = document.querySelectorAll('.panel, .leave-analytics-card');
+  
+  panels.forEach(panel => {
+    const header = panel.querySelector('.panel-header');
+    if (!header) return;
+    
+    // ตรวจสอบความถูกต้องของปุ่มสลับสถานะ
+    let chevron = header.querySelector('.panel-toggle-chevron') || header.querySelector('.btn-toggle-icon') || header.querySelector('#homeTeamToggleIcon');
+    let hasExistingToggle = !!chevron;
+    
+    if (!hasExistingToggle) {
+      chevron = document.createElement('span');
+      chevron.className = 'material-symbols-outlined panel-toggle-chevron';
+      chevron.textContent = 'expand_less'; // ค่าเริ่มต้นคือแสดงอยู่
+      chevron.style.marginLeft = 'auto';
+      chevron.style.cursor = 'pointer';
+      chevron.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      chevron.style.userSelect = 'none';
+      chevron.style.color = 'var(--text-soft)';
+      header.appendChild(chevron);
+    }
+    
+    header.style.cursor = 'pointer';
+    header.style.userSelect = 'none';
+    
+    header.addEventListener('click', (e) => {
+      // ข้ามกรณีที่ผู้ใช้กดคลิกโดนองค์ประกอบโต้ตอบใน Header (เช่น dropdown หรือลิงก์)
+      if (e.target.closest('select') || e.target.closest('input') || e.target.closest('button') || e.target.closest('a')) {
+        return;
+      }
+      
+      const isCollapsed = panel.classList.toggle('panel-collapsed');
+      
+      if (chevron) {
+        if (chevron.id === 'homeTeamToggleIcon' || chevron.closest('.btn-toggle-icon')) {
+          // หากเป็นแผงทีมพนักงาน ให้เรียกตัวแปร Toggle ของตัวระบบหลักเพื่อความสอดคล้องกัน
+          const btn = header.querySelector('.btn-toggle-icon');
+          if (btn && e.target !== btn && !btn.contains(e.target)) {
+            btn.click();
+            return;
+          }
+        } else {
+          chevron.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+      }
+      
+      // ถ้าเป็นแผงรายชื่อพนักงานที่มีสคริปต์ควบคุมเฉพาะของตัวเองอยู่แล้ว ให้ข้ามเพื่อไม่ให้ชนกัน
+      if (panel.id === 'homeDepartmentTeamSection') {
+        return;
+      }
+      
+      // ปิด-เปิดการแสดงผลของคอนเทนต์ด้านในทั้งหมด
+      const children = Array.from(panel.children);
+      children.forEach(child => {
+        if (child !== header) {
+          if (isCollapsed) {
+            child.style.display = 'none';
+          } else {
+            child.style.display = '';
+          }
+        }
+      });
+    });
+  });
+}
 
 function initializeSupabaseConnection() {
   if (window.pvtSupabase && typeof window.pvtSupabase.getClient === "function") {
@@ -73,16 +141,35 @@ function setupBellNotificationToggle() {
 
   if (!bellBtn || !dropdown) return;
 
-  bellBtn.addEventListener("click", (e) => {
+  const toggleDropdown = (e) => {
     e.stopPropagation();
+    const willShow = !dropdown.classList.contains("show");
     dropdown.classList.toggle("show");
-  });
+    if (willShow) {
+      document.body.classList.add("notif-open");
+      if (typeof fetchRealNotifications === "function") {
+        fetchRealNotifications();
+      }
+    } else {
+      document.body.classList.remove("notif-open");
+    }
+  };
+
+  bellBtn.addEventListener("click", toggleDropdown);
 
   document.addEventListener("click", (e) => {
     if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
       dropdown.classList.remove("show");
+      document.body.classList.remove("notif-open");
     }
   });
+
+  document.addEventListener("touchstart", (e) => {
+    if (!dropdown.contains(e.target) && !bellBtn.contains(e.target) && dropdown.classList.contains("show")) {
+      dropdown.classList.remove("show");
+      document.body.classList.remove("notif-open");
+    }
+  }, { passive: true });
 }
 
 /* ==========================================================================
@@ -306,13 +393,14 @@ window.refreshDashboardData = async function(isManualClick = false) {
     // --- 🔐 Role-Based Data Filtering (Personalized Dashboard) ---
     const savedSession = localStorage.getItem("currentUser");
     const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+    const empCode = String(sessionUser.employee_code || sessionUser?.employees?.employee_code || '').trim();
     const myRole = String(sessionUser.role || 'user').toLowerCase();
-    const myDeptId = sessionUser.department_id || (rawEmployees.find(e => String(e.id) === String(sessionUser.id))?.department_id);
+    const myDeptId = sessionUser.department_id || (rawEmployees.find(e => String(e.id) === String(sessionUser.id) || String(e.employee_code) === empCode)?.department_id) || (empCode === '19122' ? 'a318f70f-8e24-4e36-958a-7726d6c9da4d' : null);
 
-    // ถ้าเป็น Leader หรือ Manager ให้เห็นเฉพาะข้อมูลในแผนกตนเอง
-    const isDeptHead = (myRole === 'leader' || myRole === 'manager');
+    // ถ้าเป็น Leader หรือ Manager หรือเป็นรหัส 19122 (ผู้จัดการฝ่ายบุคคล-ธุรการ) ให้เห็นเฉพาะข้อมูลในแผนกตนเอง
+    const isDeptHead = (myRole === 'leader' || myRole === 'manager' || empCode === '19122');
     if (isDeptHead && myDeptId) {
-      console.log(`🔒 [Role Filter]: กรองข้อมูลเฉพาะแผนก ID: ${myDeptId} (Role: ${myRole})`);
+      console.log(`🔒 [Role Filter]: กรองข้อมูลเฉพาะแผนก ID: ${myDeptId} (Role: ${myRole}, EmpCode: ${empCode})`);
       
       // กรองพนักงานในแผนก
       rawEmployees = rawEmployees.filter(e => String(e.department_id) === String(myDeptId));
@@ -323,7 +411,7 @@ window.refreshDashboardData = async function(isManualClick = false) {
       
       // เปลี่ยนหัวข้อให้ชัดเจน
       const titleEl = document.querySelector('.topbar-left h1');
-      if (titleEl) titleEl.textContent = `ภาพรวมข้อมูลแผนก (${rawEmployees[0]?.departments?.department_name || 'ฝ่ายงานของคุณ'})`;
+      if (titleEl) titleEl.textContent = `ภาพรวมข้อมูลแผนก (${rawEmployees[0]?.departments?.department_name || 'ฝ่ายบุคคล-ธุรการ'})`;
     }
 
     // ผูกข้อมูลสัมพันธ์เพิ่มเติมเพื่อความสมบูรณ์ 100%
@@ -344,10 +432,16 @@ window.refreshDashboardData = async function(isManualClick = false) {
       rawEmployees = mockEmployees;
     }
 
+    const myEmpId = sessionUser?.id || sessionUser?.employee_id || sessionUser?.employees?.id;
     const pendingCount = rawRequests.filter(r => {
       if (!r || !r.status) return false;
-      const st = String(r.status).toLowerCase();
-      return st === "pending" || st === "รออนุมัติ" || st === "cancel_pending" || st === "cancel_requested";
+
+      // 🚫 ห้ามรวมใบลาของตนเอง (Self-Leave Exclusion)
+      const isSelf = myEmpId ? (String(r.employee_id) === String(myEmpId) || String(r.employees?.id) === String(myEmpId)) : false;
+      if (isSelf) return false;
+
+      // กรองเฉพาะใบลาค้างพิจารณาที่รอสิทธิ์อนุมัติของบทบาทเราจริงๆ เพื่อให้ตัวเลขหน้า Home ตรงกับหน้า "ตรวจใบลา"
+      return isPendingForRoleHome(r, myRole);
     }).length;
     
     const now = new Date();
@@ -937,10 +1031,24 @@ function computeSlaStats(requests) {
   const SLA_MS = SLA_HOURS * 3600 * 1000;
   const now = Date.now();
 
+  const savedSession = localStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const empCode = String(sessionUser.employee_code || sessionUser?.employees?.employee_code || '').trim();
+  let myRole = String(sessionUser.role || 'user').toLowerCase();
+  if (empCode === '19122') {
+    myRole = 'manager';
+  }
+  const myEmpId = sessionUser?.id || sessionUser?.employee_id || sessionUser?.employees?.id;
+
   const pendingList = (requests || []).filter(r => {
     if (!r || !r.status) return false;
-    const st = String(r.status).toLowerCase();
-    return st === "pending" || st === "รออนุมัติ" || st === "cancel_pending" || st === "cancel_requested";
+
+    // 🚫 ห้ามรวมใบลาของตนเอง (Self-Leave Exclusion)
+    const isSelf = myEmpId ? (String(r.employee_id) === String(myEmpId) || String(r.employees?.id) === String(myEmpId)) : false;
+    if (isSelf) return false;
+
+    // กรองเฉพาะใบลาค้างพิจารณาที่รอสิทธิ์อนุมัติของบทบาทเราจริงๆ เพื่อให้ตัวเลขและสัญลักษณ์ SLA สอดคล้องกับหน้างานจริง
+    return isPendingForRoleHome(r, myRole);
   });
 
   let overdueList = [];
@@ -1032,10 +1140,7 @@ function updateSlaBadges(slaStats) {
     } else if (urgentCount > 0) {
       statBadgeWarning.textContent = `⏳ ใกล้ครบ (${urgentCount})`;
       statBadgeWarning.style.display = 'inline-block';
-      statBadgeWarning.className = 'stat-sla-badge';
-      statBadgeWarning.style.background = '#fff7ed';
-      statBadgeWarning.style.color = '#c2410c';
-      statBadgeWarning.style.borderColor = '#fdba74';
+      statBadgeWarning.className = 'stat-sla-badge urgent';
     } else {
       statBadgeWarning.style.display = 'none';
     }
@@ -1101,7 +1206,7 @@ function renderSlaAlertBanner(slaStats) {
   }
 }
 
-function focusSlaTrackerSection(filterType) {
+window.focusSlaTrackerSection = function(filterType) {
   const trackerEl = document.getElementById("homeLeaveSlaTrackerContainer") || document.getElementById("slaTrackerComponent");
   if (trackerEl) {
     trackerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1508,6 +1613,8 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
           id,
           employee_code,
           full_name,
+          department_id,
+          image_url,
           departments!department_id ( department_name ),
           positions ( position_name )
         `)
@@ -1522,11 +1629,26 @@ window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
     }
   }
 
+  // Filter by user's department to only see their own department (meaning employees in the department)
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  let sessionUser = {};
+  try {
+    sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  } catch (e) {}
+  const myProfile = window.currentUserProfile || sessionUser || {};
+  const myDeptId = myProfile?.department_id || myProfile?.employees?.department_id;
+  const myRole = (myProfile?.role || "").toLowerCase();
+
+  let displayEmployees = cachedEmployeeList || [];
+  if (myDeptId && myRole !== 'admin' && myRole !== 'hr') {
+    displayEmployees = displayEmployees.filter(emp => String(emp.department_id) === String(myDeptId));
+  }
+
   let rowsHtml = "";
-  if (cachedEmployeeList.length === 0) {
+  if (displayEmployees.length === 0) {
     rowsHtml = `<tr><td colspan="4" style="text-align:center; padding:16px; color:#64748b;">ไม่พบข้อมูลพนักงานในระบบ</td></tr>`;
   } else {
-    cachedEmployeeList.forEach(emp => {
+    displayEmployees.forEach(emp => {
       const empRole = emp.positions?.position_name || 'พนักงาน';
       const empDept = emp.departments?.department_name || 'ไม่ระบุแผนก';
       const empName = emp.full_name || 'ไม่ระบุชื่อ';
@@ -2044,15 +2166,18 @@ function renderDropdownNotifsList() {
   const container = document.getElementById('notifListContainer');
   if (!container) return;
 
-  let filtered = cachedAllNotifications;
+  // กรองแสดงผลเฉพาะรายการที่ยังไม่ได้อ่าน เพื่อเมื่อกดอ่านทั้งหมดแล้วจะเคลียร์รายการออกทันที
+  const unreadNotifs = cachedAllNotifications.filter(item => !item.is_read);
+
+  let filtered = unreadNotifs;
   if (currentDropdownNotifFilter === 'overdue') {
-    filtered = cachedAllNotifications.filter(item => item.slaStatus === 'overdue');
+    filtered = unreadNotifs.filter(item => item.slaStatus === 'overdue');
   } else if (currentDropdownNotifFilter === 'urgent') {
-    filtered = cachedAllNotifications.filter(item => item.slaStatus === 'urgent');
+    filtered = unreadNotifs.filter(item => item.slaStatus === 'urgent');
   }
 
   if (filtered.length === 0) {
-    let emptyMsg = "🔕 ยังไม่มีการแจ้งเตือน";
+    let emptyMsg = "🔕 ยังไม่มีการแจ้งเตือนใหม่";
     if (currentDropdownNotifFilter === 'overdue') emptyMsg = "✨ ยอดเยี่ยม! ไม่มีรายการใบลาที่เกินกำหนด 2 วัน";
     if (currentDropdownNotifFilter === 'urgent') emptyMsg = "✨ ไม่มีรายการใบลาที่ใกล้ครบกำหนดในขณะนี้";
 
@@ -2085,22 +2210,22 @@ function renderDropdownNotifsList() {
     }
 
     html += `
-      <div class="notif-item ${isUnread ? 'unread' : 'read'} ${slaItemClass}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer; opacity: ${isUnread ? '1' : '0.88'}; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; border-bottom: 1px solid #f1f5f9; transition: background 0.15s;">
-        <div class="notif-icon ${theme.bgClass}" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <span class="material-symbols-outlined" style="font-size: 20px;">${item.slaStatus === 'overdue' ? 'alarm_off' : item.slaStatus === 'urgent' ? 'hourglass_top' : theme.icon}</span>
+      <div class="notif-item ${isUnread ? 'unread' : 'read'} ${slaItemClass}" onclick="handleNotifClick('${item.id}', '${item.link}')" style="cursor: pointer; opacity: ${isUnread ? '1' : '0.88'}; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; border-bottom: 1.5px solid #f1f5f9; transition: background 0.15s;">
+        <div class="notif-icon ${theme.bgClass}" style="width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+          <span class="material-symbols-outlined" style="font-size: 22px;">${item.slaStatus === 'overdue' ? 'alarm_off' : item.slaStatus === 'urgent' ? 'hourglass_top' : theme.icon}</span>
         </div>
         <div class="notif-content" style="flex: 1; min-width: 0;">
-          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 2px;">
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 4px;">
             ${slaBadgeHtml}
-            <span style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.35;">${formatted.title}</span>
+            <span class="notif-item-title" style="font-size: 14px; font-weight: 750; color: #0f172a; line-height: 1.4;">${formatted.title}</span>
           </div>
           ${formatted.bodyHtml}
           <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; flex-wrap: wrap; gap: 4px;">
-            <span class="notif-time" style="font-size: 11px; color: #94a3b8;">🕒 ${timeText}</span>
+            <span class="notif-time" style="font-size: 12px; color: #64748b; font-weight: 500;">🕒 ${timeText}</span>
             ${slaTimeHtml}
           </div>
         </div>
-        ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: #0d9488; border-radius: 50%; flex-shrink: 0; margin-top: 6px;"></span>' : ''}
+        ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: #0d9488; border-radius: 50%; flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);"></span>' : ''}
       </div>
     `;
   });
@@ -2132,23 +2257,23 @@ function formatCleanNotification(title, rawMessage) {
     };
   }
 
-  // แปลงแต่ละบรรทัดให้เป็น Tag ชัดเจนสวยงาม
+  // แปลงแต่ละบรรทัดให้เป็น Tag ชัดเจนสวยงาม ขนาดกะทัดรัดและอ่านง่าย
   const formattedLines = lines.map(line => {
     if (line.includes('เหตุผลที่ไม่ผ่าน') || line.includes('เหตุผลที่ยกเลิก') || line.includes('⚠️')) {
-      return `<div style="background: #fff1f2; color: #be123c; padding: 4px 8px; border-radius: 6px; border: 1px solid #fecdd3; font-weight: 600; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+      return `<div style="background: #fff1f2; color: #be123c; padding: 5px 10px; border-radius: 6px; border: 1px solid #fecdd3; font-weight: 700; font-size: 12.5px; margin-top: 3px; line-height: 1.4;">${line}</div>`;
     }
     if (line.includes('ความเห็นหัวหน้า') || line.includes('ความเห็นผู้จัดการ')) {
-      return `<div style="background: #f0fdf4; color: #166534; padding: 4px 8px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+      return `<div style="background: #f0fdf4; color: #166534; padding: 5px 10px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 12.5px; font-weight: 600; margin-top: 3px; line-height: 1.4;">${line}</div>`;
     }
     if (line.startsWith('👉')) {
-      return `<div style="color: #0d9488; font-weight: 600; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+      return `<div style="color: #0d9488; font-weight: 700; font-size: 13px; margin-top: 3px;">${line}</div>`;
     }
-    return `<div style="line-height: 1.45;">${line}</div>`;
+    return `<div style="line-height: 1.5; font-size: 13px; color: #334155;">${line}</div>`;
   });
 
   return {
     title: cleanTitle,
-    bodyHtml: `<div class="notif-parsed-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #475569; margin-top: 4px;">${formattedLines.join('')}</div>`
+    bodyHtml: `<div class="notif-parsed-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #334155; margin-top: 4px;">${formattedLines.join('')}</div>`
   };
 }
 
@@ -2259,14 +2384,14 @@ async function fetchRealNotifications() {
         const mins = Math.floor((overdueMs % (3600 * 1000)) / (60 * 1000));
         countdownText = days > 0 ? `เกินกำหนด ${days} วัน ${hours} ชม.` : `เกินกำหนด ${hours} ชม. ${mins} นาที`;
         title = `⚠️ เกิน SLA 2 วัน: ${empName} ${empCode ? `(${empCode})` : ''}`;
-        message = `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) เกินกรอบ 48 ชม. แล้ว ${countdownText}`;
+        message = `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) แผนก ${deptName || '-'}`;
       } else if (isUrgent) {
         slaStatus = 'urgent';
         const hours = Math.floor(remainingMs / (3600 * 1000));
         const mins = Math.floor((remainingMs % (3600 * 1000)) / (60 * 1000));
         countdownText = `เหลือ ${hours} ชม. ${mins} นาที`;
         title = `🔥 ใกล้ครบกำหนด 2 วัน: ${empName} ${empCode ? `(${empCode})` : ''}`;
-        message = `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) เหลือเวลาอีก ${countdownText}`;
+        message = `ยื่นขอ${leaveType} (${item.total_days || 1} วัน) แผนก ${deptName || '-'}`;
       }
 
       return {
@@ -2422,25 +2547,45 @@ async function handleNotifClick(notifId, redirectUrl) {
 async function markAllNotificationsAsRead() {
   const client = sb || window.pvtSupabase?.getClient();
 
-  // 1. มาร์กรายการใบลารออนุมัติทั้งหมดเป็นอ่านแล้ว
-  const pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ"));
+  // 1. มาร์กรายการทั้งหมดที่มีใน cachedAllNotifications เป็นอ่านแล้วใน LocalStorage ทันทีเพื่อความรวดเร็วและแม่นยำ
+  if (Array.isArray(cachedAllNotifications)) {
+    cachedAllNotifications.forEach(item => {
+      if (item && item.id) {
+        addReadNotifId(item.id);
+      }
+    });
+  }
+
+  // 2. มาร์กรายการคำขอใบลาค้างทั้งหมดเป็นอ่านแล้ว
+  const pendingLeaves = rawRequests.filter(r => r && (r.status === "pending" || r.status === "รออนุมัติ" || r.status === "cancel_pending"));
   pendingLeaves.forEach(item => addReadNotifId(`pending-${item.id}`));
 
-  // 2. มาร์กรายการใน Supabase เป็นอ่านแล้ว
+  // 3. มาร์กรายการแจ้งเตือนในระบบฐานข้อมูล Supabase เป็นอ่านแล้วเฉพาะของพนักงานคนนี้
   if (client) {
     try {
-      const { data } = await client.from('notifications').select('id').eq('is_read', false);
-      if (data) {
-        data.forEach(n => addReadNotifId(n.id));
+      const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+      const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+      const myProfile = window.currentUserProfile || sessionUser;
+      const myId = sessionUser?.id || myProfile?.id;
+
+      if (myId) {
+        // อัปเดตเฉพาะรายการแจ้งเตือนของตนเอง
+        await client.from('notifications')
+          .update({ is_read: true })
+          .eq('employee_id', myId)
+          .eq('is_read', false);
+      } else {
+        await client.from('notifications')
+          .update({ is_read: true })
+          .eq('is_read', false);
       }
-      await client.from('notifications').update({ is_read: true }).eq('is_read', false);
     } catch (err) {
       console.warn('Supabase mark all error:', err);
     }
   }
 
-  // 3. รีเฟรชการแสดงผลกระดิ่งทันที
-  fetchRealNotifications();
+  // 4. รีเฟรชการแสดงผลกระดิ่งและเนื้อหาทันที
+  await fetchRealNotifications();
 }
 
 /* ==========================================================================
@@ -2735,13 +2880,17 @@ function renderMyActionRequiredSection(requests, sessionUser) {
   const countBadge = document.getElementById("myActionCountBadge");
   if (!panel || !listContainer) return;
 
-  const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
-  const myEmpId = sessionUser?.id || sessionUser?.employee_id;
+  const empCode = String(sessionUser?.employee_code || sessionUser?.employees?.employee_code || localStorage.getItem("currentEmpCode") || '').trim();
+  let myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
+  if (empCode === '19122') {
+    myRole = 'manager';
+  }
+  const myEmpId = sessionUser?.id || sessionUser?.employee_id || sessionUser?.employees?.id;
 
   // Filter requests that are pending and require current user's role approval
   const myPendingActionItems = (requests || []).filter(r => {
     if (!r) return false;
-    const isSelf = myEmpId ? String(r.employee_id) === String(myEmpId) : false;
+    const isSelf = myEmpId ? (String(r.employee_id) === String(myEmpId) || String(r.employees?.id) === String(myEmpId)) : false;
     if (isSelf) return false; // Can't approve own leaves
 
     return isPendingForRoleHome(r, myRole);
@@ -2885,6 +3034,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
       text: 'คุณต้องการอนุมัติคำขอลาพักของพนักงานรายนี้ทันทีหรือไม่',
       icon: 'question',
       showCancelButton: true,
+      showDenyButton: false,
       confirmButtonColor: '#10b981',
       cancelButtonColor: '#64748b',
       confirmButtonText: '✔️ ยืนยันอนุมัติ',
@@ -3100,17 +3250,18 @@ window.quickRejectFromDashboard = async function(leaveId) {
   const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
 
   const { value: rejectComment } = await Swal.fire({
-    title: 'ปฏิเสธคำขออนุมัติ?',
-    input: 'text',
-    inputLabel: 'ระบุเหตุผลที่ไม่พิจารณาอนุมัติ',
-    inputPlaceholder: 'เช่น เอกสารไม่สมบูรณ์...',
+    title: '✖️ ยืนยันไม่อนุมัติ / ปฏิเสธคำขอลา?',
+    html: '<div style="font-size: 13.5px; color: #64748b; margin-bottom: 10px;">โปรดระบุเหตุผลความจำเป็นที่ไม่อนุมัติ เพื่อแจ้งให้พนักงานทราบ:</div>',
+    input: 'textarea',
+    inputPlaceholder: 'พิมพ์เหตุผลการไม่อนุมัติ เช่น งานเร่งด่วนทับซ้อน, กำลังพลในแผนกไม่เพียงพอ, เอกสารไม่สมบูรณ์...',
     inputValidator: (value) => {
-      if (!value) return 'กรุณาระบุเหตุผลในการปฏิเสธการลาด้วยครับ'
+      if (!value || !value.trim()) return 'กรุณาระบุเหตุผลในการไม่อนุมัติคำขอลาด้วยครับ!';
     },
+    icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#64748b',
-    confirmButtonText: '❌ ยืนยันปฏิเสธ',
+    confirmButtonText: '✖️ ยืนยันไม่อนุมัติ',
     cancelButtonText: 'ยกเลิก'
   });
 
@@ -3119,8 +3270,10 @@ window.quickRejectFromDashboard = async function(leaveId) {
   Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
   try {
+    const trimmedComment = rejectComment.trim();
     let updateFields = {
-      approval_comment: rejectComment
+      status: 'rejected',
+      approval_comment: trimmedComment
     };
 
     if (myRole === 'leader') {
@@ -3142,7 +3295,7 @@ window.quickRejectFromDashboard = async function(leaveId) {
     await sb.from('notifications').insert({
       employee_id: reqData.employee_id,
       title: `ใบลาได้รับการปฏิเสธ`,
-      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${rejectComment}`,
+      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${trimmedComment}`,
       type: 'leave',
       link_url: '/pages/user/index-user.html'
     });

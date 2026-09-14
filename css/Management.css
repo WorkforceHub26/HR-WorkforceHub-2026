@@ -2283,8 +2283,55 @@ div:nth-of-type(1) > main:nth-of-type(1) > div#rechartsSummaryPanel:nth-of-type(
 
   .card-btn-group .action-btn {
     padding: 12px 14px !important;
-    font-size: 13.5px !important;
+    font-size: 14.5px !important;
     min-height: 44px; /* Touch-friendly for mobile */
+  }
+
+  /* 📱 ขยายขนาดฟอนต์เพิ่มเติมสำหรับหน้าจอมือถือ */
+  .page-title {
+    font-size: 18px !important;
+  }
+
+  .page-subtitle {
+    font-size: 11.5px !important;
+  }
+
+  .section-title {
+    font-size: 15.5px !important;
+  }
+
+  .manage-card h3 {
+    font-size: 15.5px !important;
+  }
+
+  .pos-tab {
+    font-size: 13.5px !important;
+  }
+
+  .search-input,
+  .select-input,
+  .btn-clear-request {
+    font-size: 15px !important;
+  }
+
+  .employee-list-header {
+    font-size: 13px !important;
+  }
+
+  .employee-item,
+  .emp-item-card,
+  .col-info,
+  .col-dept,
+  .col-code {
+    font-size: 14.5px !important;
+  }
+
+  .stat-label {
+    font-size: 13.5px !important;
+  }
+
+  .stat-val {
+    font-size: 24px !important;
   }
 }
 
@@ -2293,6 +2340,16 @@ div:nth-of-type(1) > main:nth-of-type(1) > div#rechartsSummaryPanel:nth-of-type(
   #rechartsSummaryPanel .recharts-chart-card {
     padding: 12px 8px !important;
     border-radius: 12px !important;
+  }
+
+  .card-btn-group .action-btn {
+    font-size: 14px !important;
+  }
+
+  .search-input,
+  .select-input,
+  .btn-clear-request {
+    font-size: 15px !important;
   }
 }
 

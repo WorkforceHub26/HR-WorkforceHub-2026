@@ -268,10 +268,26 @@ async function loadUserProfile() {
     // 🧭 ปรับเมนูแถบข้าง (Sidebar) ให้ตรงตามสิทธิ์ของผู้ใช้งาน (HR/ผู้บริหาร vs พนักงาน)
     updateSidebarForRole(role, isPowerUser);
 
-    // Show team leaves tab for non-normal users (leader, manager, hr, executive, admin, etc.)
-    if (role !== 'user' && role !== '') {
-      const tabTeamLeaves = document.getElementById('tabTeamLeaves');
-      if (tabTeamLeaves) tabTeamLeaves.style.display = 'inline-block';
+    // 🔒 พนักงานทั่วไปห้ามเห็นหน้า วันลาของคนในแผนก ให้เฉพาะหัวหน้ากับผู้จัดการ (Leader, Manager, HR, Executive)
+    const empCode = String(sessionUser.employee_code || '').trim();
+    let userCategory = 'employee';
+    if (typeof window.getUserRoleCategory === "function") {
+      const catObj = window.getUserRoleCategory(sessionUser);
+      userCategory = catObj.category;
+    }
+    const positionName = String(sessionUser.position || sessionUser.positions?.position_name || '').toLowerCase();
+    const isLeaderOrManager = (userCategory === 'leader_manager' || userCategory === 'hr_exec') ||
+                              ['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner', 'hr', 'admin', 'superadmin'].includes(role) ||
+                              positionName.includes('หัวหน้า') || positionName.includes('ผู้จัดการ') || positionName.includes('บริหาร') || positionName.includes('ผู้อำนวยการ') ||
+                              empCode === '19122';
+
+    const tabTeamLeaves = document.getElementById('tabTeamLeaves');
+    if (tabTeamLeaves) {
+      if (isLeaderOrManager && userCategory !== 'employee') {
+        tabTeamLeaves.style.setProperty('display', 'inline-flex', 'important');
+      } else {
+        tabTeamLeaves.style.setProperty('display', 'none', 'important');
+      }
     }
 
     if (btnAdd) {
@@ -289,89 +305,30 @@ async function loadUserProfile() {
 // 🧭 จัดการโครงสร้าง Sidebar ตามบทบาทผู้ใช้
 function updateSidebarForRole(role, isPowerUser) {
   const ctaZone = document.getElementById('sidebarCtaZone');
-  const navMenu = document.getElementById('sidebarNavMenu');
   const footerZone = document.getElementById('sidebarFooterZone');
 
-  if (isPowerUser) {
-    // 🌟 HR / Admin / Executive Sidebar
-    if (ctaZone) {
-      ctaZone.innerHTML = `
-        <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
-          <span class="material-symbols-outlined">fact_check</span>
-          <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
-        </a>
-      `;
-    }
+  // ตรวจสอบปุ่ม Action CTA ด้านบนของ Sidebar
+  if (ctaZone && isPowerUser) {
+    ctaZone.innerHTML = `
+      <button type="button" class="sidebar-cta-btn" onclick="goToLeaveForm()" title="ยื่นใบลาออนไลน์">
+        <img src="/assets/icons/leave-document.svg" alt="ยื่นใบลา" class="nav-icon-custom" style="width: 24px; height: 24px; object-fit: contain;" />
+        <span class="sidebar-cta-label">ยื่นใบลาออนไลน์</span>
+      </button>
+    `;
+  }
 
-    if (navMenu) {
-      let homeHref = '/pages/hr/home.html';
-      if (document.referrer && document.referrer.includes('/pages/user/index-user.html')) {
-        homeHref = '/pages/user/index-user.html';
-        sessionStorage.setItem('holidays_came_from', 'user');
-      } else if (document.referrer && document.referrer.includes('/pages/hr/')) {
-        homeHref = '/pages/hr/home.html';
-        sessionStorage.setItem('holidays_came_from', 'hr');
-      } else {
-        const savedFrom = sessionStorage.getItem('holidays_came_from');
-        if (savedFrom === 'user') {
-          homeHref = '/pages/user/index-user.html';
-        }
-      }
-
-      navMenu.innerHTML = `
-        <a href="${homeHref}" class="nav-item menu-item" title="ภาพรวมระบบ">
-          <span class="material-symbols-outlined">dashboard</span>
-          <span class="nav-label">หน้าหลัก</span>
-        </a>
-        <a href="/pages/hr/hr.html" class="nav-item menu-item" title="ตรวจใบลา" id="navItemLeaveCheck">
-          <span class="material-symbols-outlined">fact_check</span>
-          <span class="nav-label">ตรวจใบลา</span>
-          <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
-        </a>
-        <a href="/pages/hr/management.html" class="nav-item menu-item" title="ระบบจัดการส่วนกลาง">
-          <span class="material-symbols-outlined">manage_accounts</span>
-          <span class="nav-label">ระบบจัดการส่วนกลาง</span>
-        </a>
-        <a href="/pages/user/leave-stats.html" class="nav-item menu-item" title="สถิติวันลา">
-          <img src="/assets/icons/analytics-dashboard.svg" alt="สถิติวันลา" class="nav-icon-custom" />
-          <span class="nav-label">สถิติวันลา</span>
-        </a>
-        <a href="/pages/user/holidays.html" class="nav-item menu-item active" title="ปฏิทินวันหยุด">
-          <img src="/assets/icons/calendar-event.svg" alt="วันหยุด" class="nav-icon-custom" />
-          <span class="nav-label">วันหยุด</span>
-        </a>
-
-        <div class="sidebar-divider"></div>
-        <div class="sidebar-section-title">บริการด่วน</div>
-
-        <!-- 📢 จัดการข่าวสารองค์กร -->
-        <a href="/pages/hr/news-management.html" class="nav-item menu-item" title="จัดการข่าวสารองค์กร">
-          <span class="material-symbols-outlined" style="color: #f59e0b;">campaign</span>
-          <span class="nav-label">ข่าวสาร</span>
-        </a>
-
-        <!-- 🪪 ระบบจัดการบัตรพนักงาน -->
-        <button type="button" class="nav-item menu-item" onclick="if(typeof openEmployeeCardManagerPopup==='function'){openEmployeeCardManagerPopup();}else{window.location.href='/pages/user/index-user.html?action=digital_card';} return false;" title="ระบบบัตรพนักงาน">
-          <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" class="nav-icon-custom" />
-          <span class="nav-label">บัตรพนักงาน</span>
-        </button>
-
-        <!-- 🔄 สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
-        <a href="/pages/user/index-user.html" class="nav-item menu-item" title="กลับหน้าหลักของพนักงาน">
-          <span class="material-symbols-outlined" style="color: #10b981;">home</span>
-          <span class="nav-label">หน้าหลักของพนักงาน</span>
-        </a>
-      `;
-    }
-
-    if (footerZone) {
-      footerZone.innerHTML = `
-        <button type="button" class="btn-logout nav-item menu-item" onclick="handleLogout()" title="ออกจากระบบ" style="color: #ef4444; width: 100%; justify-content: flex-start;">
-          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
-          <span class="nav-label">ออกจากระบบ</span>
-        </button>
-      `;
-    }
+  // ปรับแต่งปุ่มช่วยเหลือและออกจากระบบใน Footer ให้สมบูรณ์
+  if (footerZone && !footerZone.querySelector('.btn-logout')) {
+    footerZone.innerHTML = `
+      <button type="button" class="menu-item" onclick="triggerBiometricHelp()" style="color: var(--primary);">
+        <img src="/assets/icons/help-support.svg" alt="ช่วยเหลือ" class="nav-icon-custom" />
+        <span>ช่วยเหลือ</span>
+      </button>
+      <button type="button" class="btn-logout menu-item" onclick="handleLogout()" title="ออกจากระบบ" style="color: #ef4444; width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: 500;">
+        <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" style="width: 20px; height: 20px;" />
+        <span>ออกจากระบบ</span>
+      </button>
+    `;
   }
 }
 
@@ -990,23 +947,39 @@ window.switchHolidayTab = function(tab) {
   const teamWrapper = document.getElementById('teamLeavesWrapper');
 
   if (tab === 'company') {
-    companyTab.classList.add('active');
-    teamTab.classList.remove('active');
-    companyTab.style.borderBottomColor = 'var(--primary, #0fa472)';
-    companyTab.style.color = 'var(--primary, #0fa472)';
-    teamTab.style.borderBottomColor = 'transparent';
-    teamTab.style.color = '#64748b';
-    companyWrapper.style.display = 'block';
-    teamWrapper.style.display = 'none';
+    if (companyTab) {
+      companyTab.classList.add('active');
+      companyTab.style.background = '#0f766e';
+      companyTab.style.color = '#ffffff';
+      companyTab.style.fontWeight = '700';
+      companyTab.style.boxShadow = '0 2px 6px rgba(15, 118, 110, 0.35)';
+    }
+    if (teamTab) {
+      teamTab.classList.remove('active');
+      teamTab.style.background = 'transparent';
+      teamTab.style.color = '#475569';
+      teamTab.style.fontWeight = '600';
+      teamTab.style.boxShadow = 'none';
+    }
+    if (companyWrapper) companyWrapper.style.display = 'block';
+    if (teamWrapper) teamWrapper.style.display = 'none';
   } else {
-    teamTab.classList.add('active');
-    companyTab.classList.remove('active');
-    teamTab.style.borderBottomColor = 'var(--primary, #0fa472)';
-    teamTab.style.color = 'var(--primary, #0fa472)';
-    companyTab.style.borderBottomColor = 'transparent';
-    companyTab.style.color = '#64748b';
-    companyWrapper.style.display = 'none';
-    teamWrapper.style.display = 'block';
+    if (teamTab) {
+      teamTab.classList.add('active');
+      teamTab.style.background = '#0f766e';
+      teamTab.style.color = '#ffffff';
+      teamTab.style.fontWeight = '700';
+      teamTab.style.boxShadow = '0 2px 6px rgba(15, 118, 110, 0.35)';
+    }
+    if (companyTab) {
+      companyTab.classList.remove('active');
+      companyTab.style.background = 'transparent';
+      companyTab.style.color = '#475569';
+      companyTab.style.fontWeight = '600';
+      companyTab.style.boxShadow = 'none';
+    }
+    if (companyWrapper) companyWrapper.style.display = 'none';
+    if (teamWrapper) teamWrapper.style.display = 'block';
     
     // Set to current month initially
     teamCalCurrentDate = new Date();
@@ -1107,12 +1080,23 @@ window.loadTeamLeavesForCalendar = async function() {
       .lte('start_date', endStr)
       .gte('end_date', startStr);
       
-    const role = currentUserProfile.role.toLowerCase();
-    const isExecutiveOrHr = ['hr', 'admin', 'executive', 'director', 'owner'].includes(role);
+    // 🔒 กรองให้เห็นเฉพาะคนในแผนกของตนเองเท่านั้น (Department-scoped leaves)
+    const deptId = currentUserProfile.department_id || 
+                   currentUserProfile.departments?.id || 
+                   currentUserProfile.employees?.department_id || 
+                   'a318f70f-8e24-4e36-958a-7726d6c9da4d';
     
-    if (!isExecutiveOrHr) {
-       const deptId = currentUserProfile.department_id;
-       if (deptId) query = query.eq('employees.department_id', deptId);
+    if (deptId) {
+      query = query.eq('employees.department_id', deptId);
+    }
+
+    // อัปเดตหัวข้อปฏิทินให้แสดงชื่อแผนก
+    const deptName = currentUserProfile.department_name || 
+                     currentUserProfile.departments?.department_name || 
+                     currentUserProfile.employees?.departments?.department_name || '';
+    const titleTextEl = document.getElementById('teamCalendarTitleText');
+    if (titleTextEl) {
+      titleTextEl.innerText = deptName ? `ปฏิทินวันลาของพนักงานในแผนก (${deptName})` : `ปฏิทินวันลาของพนักงานในแผนก`;
     }
     
     const { data, error } = await query;
@@ -1120,7 +1104,7 @@ window.loadTeamLeavesForCalendar = async function() {
     
     teamLeavesData = data || [];
     renderTeamCalendarGrid(year, month, teamLeavesData);
-    renderTeamLeavesSidebar(teamLeavesData);
+    renderTeamLeavesSidebar(teamLeavesData, null, 1);
   } catch (err) {
     console.error('Error loading team leaves:', err);
     grid.innerHTML = `<div style="grid-column: 1 / -1; padding: 20px; color: #ef4444; text-align: center; background: #fee2e2; border-radius: 8px;">ไม่สามารถโหลดข้อมูลได้</div>`;
@@ -1205,7 +1189,7 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
 window.filterTeamLeaves = function() {
   const keyword = (document.getElementById('teamSearchInput')?.value || '').toLowerCase();
   if (!keyword) {
-    renderTeamLeavesSidebar(teamLeavesData);
+    renderTeamLeavesSidebar(teamLeavesData, null, 1);
     return;
   }
   
@@ -1214,7 +1198,7 @@ window.filterTeamLeaves = function() {
     const reason = (leave.reason || '').toLowerCase();
     return empName.includes(keyword) || reason.includes(keyword);
   });
-  renderTeamLeavesSidebar(filtered);
+  renderTeamLeavesSidebar(filtered, null, 1);
 };
 
 window.focusTeamLeaveDate = function(dateStr, leaveId = null) {
@@ -1363,19 +1347,37 @@ window.closeLeaveDetailModal = function() {
   if (modal) modal.style.display = 'none';
 };
 
-window.renderTeamLeavesSidebar = function(data, specificDay = null) {
+// 📄 ตัวแปรจัดการ Pagination ของรายการผู้ลาในแผนก
+window.teamLeavesCurrentList = [];
+window.teamLeavesCurrentDay = null;
+window.teamLeavesCurrentPage = 1;
+const TEAM_LEAVES_PER_PAGE = 5;
+
+window.changeTeamLeavesPage = function(delta) {
+  const list = window.teamLeavesCurrentList || [];
+  const totalPages = Math.ceil(list.length / TEAM_LEAVES_PER_PAGE) || 1;
+  let newPage = (window.teamLeavesCurrentPage || 1) + delta;
+  if (newPage < 1) newPage = 1;
+  if (newPage > totalPages) newPage = totalPages;
+  window.renderTeamLeavesSidebar(list, window.teamLeavesCurrentDay, newPage);
+};
+
+window.renderTeamLeavesSidebar = function(data, specificDay = null, page = 1) {
   const container = document.getElementById('teamLeavesList');
   const title = document.getElementById('teamSummaryTitle');
   if (!container) return;
 
   const strings = getLangStrings();
+  window.teamLeavesCurrentList = data || [];
+  window.teamLeavesCurrentDay = specificDay;
+  window.teamLeavesCurrentPage = page || 1;
 
   if (title) {
     if (specificDay) {
       title.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
           <span style="font-size: 15px;">${strings.teamDayTitle(parseInt(specificDay.split('-')[2], 10))}</span>
-          <button type="button" onclick="renderTeamLeavesSidebar(teamLeavesData)" style="background: #f1f5f9; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #475569; display: flex; align-items: center; gap: 4px;">
+          <button type="button" onclick="renderTeamLeavesSidebar(teamLeavesData, null, 1)" style="background: #f1f5f9; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #475569; display: flex; align-items: center; gap: 4px;">
             <span class="material-symbols-outlined" style="font-size: 14px;">calendar_month</span> ${strings.btnViewWholeMonth}
           </button>
         </div>`;
@@ -1395,10 +1397,19 @@ window.renderTeamLeavesSidebar = function(data, specificDay = null) {
       </div>`;
     return;
   }
+
+  const totalPages = Math.ceil(data.length / TEAM_LEAVES_PER_PAGE) || 1;
+  let currentPage = page;
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  window.teamLeavesCurrentPage = currentPage;
+
+  const startIndex = (currentPage - 1) * TEAM_LEAVES_PER_PAGE;
+  const pageItems = data.slice(startIndex, startIndex + TEAM_LEAVES_PER_PAGE);
   
-  let html = ``;
+  let html = `<div style="display: flex; flex-direction: column; gap: 10px;">`;
   
-  data.forEach(leave => {
+  pageItems.forEach(leave => {
     const empName = leave.employees?.full_name || '-';
     const rawLeaveName = leave.leave_types?.leave_name || 'Leave';
     const leaveName = typeof window.localizeCategory === 'function' ? window.localizeCategory(rawLeaveName) : rawLeaveName;
@@ -1430,6 +1441,30 @@ window.renderTeamLeavesSidebar = function(data, specificDay = null) {
       </div>
     `;
   });
+
+  html += `</div>`;
+
+  // 🔢 แสดงแถบควบคุมการเปลี่ยนหน้า (Pagination controls) เมื่อมีมากกว่า 1 หน้า หรือมีหลายรายการ
+  if (data.length > TEAM_LEAVES_PER_PAGE || totalPages > 1) {
+    const isPrevDisabled = currentPage <= 1;
+    const isNextDisabled = currentPage >= totalPages;
+
+    html += `
+      <div class="team-pagination-wrapper" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 4px 4px 4px; margin-top: 8px; border-top: 1px solid #e2e8f0; font-size: 12px; gap: 8px;">
+        <button type="button" onclick="changeTeamLeavesPage(-1)" ${isPrevDisabled ? 'disabled' : ''} style="background: ${isPrevDisabled ? '#f1f5f9' : '#ffffff'}; color: ${isPrevDisabled ? '#94a3b8' : '#334155'}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px 10px; font-weight: 600; cursor: ${isPrevDisabled ? 'not-allowed' : 'pointer'}; display: inline-flex; align-items: center; gap: 3px; font-family: inherit;">
+          <span class="material-symbols-outlined" style="font-size: 16px;">chevron_left</span> ก่อนหน้า
+        </button>
+        
+        <span style="font-weight: 700; color: #475569; font-size: 12px; white-space: nowrap;">
+          หน้า ${currentPage} / ${totalPages} (${data.length} รายการ)
+        </span>
+
+        <button type="button" onclick="changeTeamLeavesPage(1)" ${isNextDisabled ? 'disabled' : ''} style="background: ${isNextDisabled ? '#f1f5f9' : '#ffffff'}; color: ${isNextDisabled ? '#94a3b8' : '#334155'}; border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px 10px; font-weight: 600; cursor: ${isNextDisabled ? 'not-allowed' : 'pointer'}; display: inline-flex; align-items: center; gap: 3px; font-family: inherit;">
+          ถัดไป <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
+        </button>
+      </div>
+    `;
+  }
   
   container.innerHTML = html;
 };

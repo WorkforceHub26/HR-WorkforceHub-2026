@@ -206,7 +206,7 @@
   function applySavedPreferences() {
     startGoogleBannerKiller();
     // Dynamically inject Google Translate script and placeholder if not present
-    if (!document.getElementById('google_translate_element_hidden')) {
+    if (!document.getElementById('google_translate_element_hidden') && document.body) {
       const div = document.createElement('div');
       div.id = 'google_translate_element_hidden';
       div.style.display = 'none';

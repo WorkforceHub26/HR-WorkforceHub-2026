@@ -57,8 +57,28 @@
     }
 
     @media screen and (max-width: 768px) {
-      .rules-page-container { padding: 20px 16px; }
-      .rules-top-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .rules-page-container { padding: 16px 12px; }
+      .rules-top-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+      .btn-header-back, .btn-header-action {
+        padding: 6px 12px !important;
+        font-size: 11.5px !important;
+        gap: 4px !important;
+        flex: 1;
+        min-width: 0;
+      }
+      .btn-header-back .material-symbols-outlined,
+      .btn-header-action .material-symbols-outlined {
+        font-size: 14px !important;
+      }
+      .rules-title-section {
+        text-align: left !important;
+      }
+      .rules-title-section h1 {
+        font-size: 20px !important;
+      }
+      .rules-title-section p {
+        font-size: 12px !important;
+      }
     }
   </style>
 </head>

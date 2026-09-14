@@ -138,6 +138,9 @@ async function compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 
 
 function parseLocalDate(dateStr) {
   if (!dateStr) return null;
+  if (dateStr instanceof Date) {
+    return isNaN(dateStr.getTime()) ? null : new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate());
+  }
   const cleanStr = String(dateStr).split('T')[0];
   const [year, month, day] = cleanStr.split('-').map(Number);
   if (!year || !month || !day) return null;
@@ -536,6 +539,7 @@ async function loadLeaveTypes() {
 async function fetchCurrentUserData() {
   try {
     const supabase = window.pvtSupabase?.getClient();
+    const sb = supabase;
     if (!supabase) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้");
 
     let currentUserId = null;
@@ -883,6 +887,7 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
   const remainingDays = getBalanceForYear(selectedTypeId, currentYear);
   const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(selectedTypeId));
   const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : "";
+  const translatedName = typeof getTranslatedLeaveTypeName === 'function' ? getTranslatedLeaveTypeName(leaveName) : leaveName;
 
   if (typeof selectEl === 'object') {
     const card = selectEl.closest('.leave-box-item');
@@ -893,25 +898,9 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
       if (leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน")) {
         if (morningInput) morningInput.step = "4";
         if (afternoonInput) afternoonInput.step = "4";
-
-        Swal.fire({
-          icon: 'info',
-          title: '📌 เงื่อนไขการลาพักผ่อน',
-          html: '<b>บังคับขั้นต่ำ 0.5 วัน (4 ชั่วโมง)</b><br><small style="color:#64748b;">ระบบปรับช่องกรอกชั่วโมงเป็นครั้งละ 4 ชม. ให้อัตโนมัติครับ</small>',
-          confirmButtonColor: '#0f766e',
-          confirmButtonText: 'รับทราบ'
-        });
       } else if (leaveName.includes("กิจ")) {
         if (morningInput) morningInput.step = "0.5";
         if (afternoonInput) afternoonInput.step = "0.5";
-
-        Swal.fire({
-          icon: 'info',
-          title: '📌 เงื่อนไขการลากิจ',
-          html: '<b>ขั้นต่ำ 0.5 ชั่วโมง (30 นาที)</b><br><small style="color:#64748b;">สามารถเลือกกรอกเป็น 0.5, 1, 1.5 ... ชั่วโมงได้ครับ</small>',
-          confirmButtonColor: '#0f766e',
-          confirmButtonText: 'รับทราบ'
-        });
       } else {
         if (morningInput) morningInput.step = "0.5";
         if (afternoonInput) afternoonInput.step = "0.5";
@@ -921,12 +910,60 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
     }
   }
 
+  const formattedBalance = formatLeaveDurationText(remainingDays);
+  const remainingText = Number.isInteger(remainingDays) ? `${remainingDays} วัน` : `${formattedBalance} (${remainingDays} วัน)`;
+
   if (balanceInput) {
-    const formattedBalance = formatLeaveDurationText(remainingDays);
-    balanceInput.value = Number.isInteger(remainingDays) ? `${remainingDays} วัน` : `${formattedBalance} (${remainingDays} วัน)`;
+    balanceInput.value = remainingText;
     balanceInput.style.fontWeight = "700";
     balanceInput.style.color = remainingDays <= 0 ? "#ef4444" : "#0d9488";
     balanceInput.style.background = remainingDays <= 0 ? "#fef2f2" : "rgba(240, 253, 250, 0.8)";
+  }
+
+  // 🔔 แสดงการแจ้งเตือนสิทธิ์วันลาคงเหลือและเงื่อนไขทันทีที่เลือกประเภทการลา
+  if (typeof selectEl === 'object') {
+    const empName = currentProfile?.full_name || document.getElementById("employeeName")?.value || "พนักงาน";
+    const empCode = currentProfile?.employee_code || document.getElementById("employeeCode")?.value || "-";
+    const deptName = currentProfile?.department_name || document.getElementById("employeeDepartment")?.value || "";
+    const posName = currentProfile?.positions?.position_name || currentProfile?.position_name || document.getElementById("employeePosition")?.value || "";
+
+    let conditionHtml = "";
+    if (leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน")) {
+      conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; color:#166534; font-size:13px;">📌 <b>เงื่อนไขการลาพักผ่อน:</b> บังคับขั้นต่ำ 0.5 วัน (4 ชั่วโมง) ระบบปรับช่องกรอกชั่วโมงเป็นครั้งละ 4 ชม. ให้อัตโนมัติครับ</div>`;
+    } else if (leaveName.includes("กิจ")) {
+      conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; color:#166534; font-size:13px;">📌 <b>เงื่อนไขการลากิจ:</b> ขั้นต่ำ 0.5 ชั่วโมง (30 นาที) สามารถเลือกกรอกเป็น 0.5, 1, 1.5 ... ชั่วโมงได้ครับ</div>`;
+    } else if (leaveName.includes("ป่วย")) {
+      conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; color:#1e40af; font-size:13px;">ℹ️ <b>เงื่อนไขการลาป่วย:</b> กรณีลาป่วย 3 วันขึ้นไป ต้องมีใบรับรองแพทย์แนบประกอบการลาครับ</div>`;
+    }
+
+    if (remainingDays <= 0) {
+      conditionHtml += `<div style="margin-top:10px; padding:10px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; color:#dc2626; font-size:13px; font-weight:600;">⚠️ หมายเหตุ: สิทธิ์วันลาประเภทนี้หมดแล้วหรือคงเหลือ 0 วัน</div>`;
+    }
+
+    conditionHtml += `<div style="margin-top:10px; padding:10px 14px; background:#fff7ed; border:1px solid #ffedd5; border-radius:8px; color:#c2410c; font-size:13px;">🚨 <b>หมายเหตุการลาฉุกเฉิน:</b> การลาทุกประเภทกรณีลาฉุกเฉิน กำหนดขั้นต่ำอย่างน้อย 1 วันเต็ม</div>`;
+
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        icon: remainingDays <= 0 ? 'warning' : 'info',
+        title: `📊 แจ้งเตือนสิทธิ์วันลาคงเหลือ`,
+        html: `
+          <div style="text-align:left; font-size:14px; line-height:1.6; color:#334155;">
+            <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:12px;">
+              <div style="font-size:13px; color:#64748b; margin-bottom:4px;">👤 <b>ผู้ขออนุมัติลา:</b> <span style="color:#0f172a; font-weight:600;">${empName}</span> (${empCode})</div>
+              ${deptName ? `<div style="font-size:12px; color:#64748b;">🏢 <b>แผนก / ตำแหน่ง:</b> ${deptName} ${posName ? ' / ' + posName : ''}</div>` : ''}
+            </div>
+            <div style="text-align:center; padding:14px; background:${remainingDays <= 0 ? '#fef2f2' : '#f0fdfa'}; border:1px solid ${remainingDays <= 0 ? '#fecaca' : '#99f6e4'}; border-radius:12px;">
+              <span style="font-size:13px; color:#64748b; display:block; margin-bottom:2px;">ประเภทการลา: <b style="color:#0f172a;">${translatedName}</b></span>
+              <span style="font-size:13px; color:#64748b; display:block; margin-bottom:4px;">สิทธิ์วันลาคงเหลือประจำปี ${currentYear}:</span>
+              <span style="font-size:24px; font-weight:800; color:${remainingDays <= 0 ? '#dc2626' : '#0d9488'};">${remainingText}</span>
+            </div>
+            ${conditionHtml}
+          </div>
+        `,
+        confirmButtonColor: '#0f766e',
+        confirmButtonText: 'รับทราบ'
+      });
+    }
   }
 };
 
@@ -959,23 +996,38 @@ async function addLeaveRow() {
   const todayThaiStr = new Date().toLocaleDateString('en-CA');
 
   boxItem.innerHTML = `
-    <div class="row-divider">หมวดหมู่ที่ 1: วันที่และกรอบเวลาการลา</div>
-    <div class="grid-row-3">
-      <div class="input-group">
-        <label>วันที่เขียนคำขอ</label>
-        <input type="date" name="write_date" value="${todayThaiStr}" readonly tabindex="-1" class="readonly-highlight" style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed;">
+    <div class="row-divider" style="display: flex; align-items: center; gap: 6px;">
+      <span class="material-symbols-outlined" style="font-size: 18px; color: var(--primary);">calendar_month</span>
+      <span>หมวดหมู่ที่ 1: วันที่และกรอบเวลาการลา (คลิกเพื่อเลือกวันเต็มจอ)</span>
+    </div>
+    <div class="date-picker-large-grid">
+      <div class="input-group date-input-card">
+        <label><span class="material-symbols-outlined" style="font-size: 18px; color: #64748b;">edit_calendar</span> วันที่เขียนคำขอ</label>
+        <div class="large-date-input-wrapper">
+          <input type="date" name="write_date" value="${todayThaiStr}" readonly tabindex="-1" class="readonly-highlight large-date-field" style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed;">
+        </div>
       </div>
-      <div class="input-group">
-        <label>เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
-        <input type="text" name="start_date" placeholder="คลิกเพื่อเลือกวันเริ่มลา" readonly style="background-color: #fff; cursor: pointer;">
+      <div class="input-group date-input-card highlight-start-card">
+        <label><span class="material-symbols-outlined" style="font-size: 18px; color: #0891b2;">calendar_today</span> เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
+        <div class="large-date-input-wrapper">
+          <input type="text" name="start_date" placeholder="📅 คลิกเพื่อเลือกวันเริ่มลา..." readonly class="large-date-field start-date-picker" style="background-color: #fff; cursor: pointer;">
+        </div>
       </div>
-      <div class="input-group">
-        <label>สิ้นสุดวันที่ลา <span style="color:#ef4444;">*</span></label>
-        <input type="text" name="end_date" placeholder="คลิกเพื่อเลือกวันสิ้นสุด" readonly style="background-color: #fff; cursor: pointer;">
+      <div class="input-group date-input-card highlight-end-card">
+        <label><span class="material-symbols-outlined" style="font-size: 18px; color: #059669;">event</span> สิ้นสุดวันที่ลา <span style="color:#ef4444;">*</span></label>
+        <div class="large-date-input-wrapper">
+          <input type="text" name="end_date" placeholder="📅 คลิกเพื่อเลือกวันสิ้นสุด..." readonly class="large-date-field end-date-picker" style="background-color: #fff; cursor: pointer;">
+        </div>
       </div>
     </div>
 
-    <div class="row-divider">หมวดหมู่ที่ 2: รายละเอียดประเภทการลาและหลักฐาน</div>
+    <div class="row-divider" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <span>หมวดหมู่ที่ 2: รายละเอียดประเภทการลาและหลักฐาน</span>
+      <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 600; color: #dc2626; background: #fef2f2; padding: 4px 10px; border-radius: 6px; border: 1px solid #fecaca; text-transform: none;">
+        <input type="checkbox" name="is_emergency" value="true" onchange="calculateLeaveDays(this)" style="width: 14px; height: 14px; accent-color: #dc2626; cursor: pointer;">
+        🚨 เป็นกรณีลาฉุกเฉิน (ขั้นต่ำ 1 วัน)
+      </label>
+    </div>
     <div class="grid-row-3">
       <div class="input-group">
         <label>ประเภทการลา <span style="color:#ef4444;">*</span></label>
@@ -1125,6 +1177,24 @@ function calculateLeaveDays(element) {
   const displayInput = boxItem.querySelector('input[name="leave_days_display"]');
   if (displayInput) {
     displayInput.value = formatLeaveDurationText(cleanDays, (startDateInput === endDateInput && totalHours > 0) ? totalHours : 0);
+  }
+
+  // 🚨 ตรวจสอบการลาฉุกเฉิน (ขั้นต่ำ 1 วันเต็ม)
+  const isEmergency = boxItem.querySelector('input[name="is_emergency"]')?.checked;
+  if (isEmergency && cleanDays < 1 && startDateInput && endDateInput && textDisplay) {
+    textDisplay.innerHTML += `<br><span style="color:#dc2626; font-weight:700; font-size:12px; background:#fef2f2; padding:2px 8px; border-radius:6px; border:1px solid #fecaca; display:inline-block; margin-top:4px;">🚨 การลาฉุกเฉินทุกประเภท กำหนดขั้นต่ำอย่างน้อย 1 วันเต็ม</span>`;
+  }
+
+  // 🔔 ตรวจสอบและแสดงเตือนสิทธิ์วันลาคงเหลือทันที
+  if (selectedTypeId) {
+    const parsedDate = parseLocalDate(startDateInput) || new Date();
+    const startYr = parsedDate.getFullYear();
+    const remDays = getBalanceForYear(selectedTypeId, startYr);
+    if (remDays !== null && remDays !== undefined && window.employeeLeaveBalances && window.employeeLeaveBalances.length > 0) {
+      if (cleanDays > remDays && textDisplay) {
+        textDisplay.innerHTML += `<br><span style="color:#dc2626; font-weight:700; font-size:12px; background:#fef2f2; padding:2px 8px; border-radius:6px; border:1px solid #fecaca; display:inline-block; margin-top:4px;">⚠️ จำนวนวันลาที่เลือก (${cleanDays} วัน) เกินสิทธิ์คงเหลือ (${remDays} วัน)</span>`;
+      }
+    }
   }
 }
 
@@ -1308,13 +1378,26 @@ async function uploadAttachment(file, employeeId) {
   }
 }
 
+let isSavingLeave = false;
+
 // ==========================================
-// 💾 11. บันทึกคำขอใบลา (ปรับปรุงสายอนุมัติ 3 ระดับ)
+// 💾 11. บันทึกคำขอลา (ปรับปรุงสายอนุมัติ 3 ระดับ)
 // ==========================================
 async function saveLeave() {
+  if (isSavingLeave) return;
+  isSavingLeave = true;
+
+  const btnSaveLeave = document.getElementById("btnSaveLeave");
+  if (btnSaveLeave) {
+    btnSaveLeave.disabled = true;
+    btnSaveLeave.innerHTML = `<span class="material-symbols-outlined spin" style="font-size:16px;">sync</span> กำลังบันทึก...`;
+  }
+
   const sb = window.pvtSupabase?.getClient();
   if (!sb) {
     Swal.fire({ icon: 'error', title: 'การเชื่อมต่อขัดข้อง', text: 'ไม่พบการเชื่อมต่อฐานข้อมูล', confirmButtonColor: '#ef4444' });
+    isSavingLeave = false;
+    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = "💾 บันทึกคำขอลา"; }
     return;
   }
 
@@ -1327,12 +1410,16 @@ async function saveLeave() {
 
   if (!currentProfile) {
     Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูลผู้ใช้งาน', text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง', confirmButtonColor: '#ef4444' });
+    isSavingLeave = false;
+    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = "💾 บันทึกคำขอลา"; }
     return;
   }
 
   const cards = document.querySelectorAll("#leaveCardsList .leave-box-item");
   if (cards.length === 0) {
     Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', text: 'กรุณาเพิ่มรายการลาอย่างน้อย 1 รายการครับ', confirmButtonColor: '#f59e0b' });
+    isSavingLeave = false;
+    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = "💾 บันทึกคำขอลา"; }
     return;
   }
 
@@ -1431,12 +1518,8 @@ async function saveLeave() {
       defaultDirectorStatus = "pending";
     }
     defaultExecutiveStatus = "pending";
-  } else if ((userRole.includes("hr") || userRole.includes("admin")) && !isManagerApplicant) {
-    defaultManagerStatus = "approved";
-    defaultDirectorStatus = "approved";
-    defaultExecutiveStatus = "approved";
   } else {
-    // พนักงานทั่วไป:
+    // พนักงานทั่วไป (รวมถึงพนักงานฝ่ายบุคคล/ธุรการ ที่ต้องผ่านการอนุมัติจากผู้จัดการฝ่าย 19122):
     // ถ้าไม่มีหัวหน้าในแผนก/รายบุคคล -> ข้าม L1 ทันที
     if (!hasL1) defaultManagerStatus = "approved";
     // ถ้าไม่มีผู้จัดการในแผนก/รายบุคคล -> ข้าม L2 ทันที (ยกเว้นมี L3 ให้รอ L3)
@@ -1448,6 +1531,7 @@ async function saveLeave() {
 
   const payload = [];
   const uploadedPaths = []; 
+  const typeDaysAcc = {};
   let hasError = false;
   const currentEmpId = currentProfile.id || currentProfile.employee_id;
 
@@ -1503,6 +1587,41 @@ async function saveLeave() {
 
     const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(leaveTypeId));
     const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : "";
+
+    // 🛡️ ตรวจสอบสิทธิ์วันลาคงเหลือสะสม
+    const startYr = (startObj || new Date()).getFullYear();
+    const remDays = getBalanceForYear(leaveTypeId, startYr);
+    typeDaysAcc[leaveTypeId] = (typeDaysAcc[leaveTypeId] || 0) + totalDays;
+    const accDays = typeDaysAcc[leaveTypeId];
+
+    if (remDays !== null && remDays !== undefined && window.employeeLeaveBalances && window.employeeLeaveBalances.length > 0) {
+      if (accDays > remDays) {
+        Swal.fire({
+          icon: 'error',
+          title: '⚠️ สิทธิ์วันลาคงเหลือไม่เพียงพอ',
+          html: `รายการที่ ${index + 1}: การยื่นวันลา <b>${leaveName}</b> รวม <b>${accDays} วัน</b> เกินสิทธิ์คงเหลือของคุณที่มีเพียง <b>${remDays} วัน</b> ครับ`,
+          confirmButtonColor: '#ef4444'
+        });
+        hasError = true; break;
+      }
+    }
+
+    // 🚨 ตรวจสอบการลาฉุกเฉินสำหรับทุกประเภทการลา (ต้องลาขั้นต่ำอย่างน้อย 1 วันเต็ม)
+    const isEmergency = card.querySelector('input[name="is_emergency"]')?.checked;
+    if (isEmergency) {
+      if (totalDays < 1) {
+        Swal.fire({
+          icon: 'warning',
+          title: '⚠️ เงื่อนไขการลาฉุกเฉิน',
+          html: `รายการที่ ${index + 1}: การลาฉุกเฉินสำหรับ<b>ทุกประเภทการลา</b> กำหนดวันลาขั้นต่ำอย่างน้อย <b>1 วันเต็ม</b> ครับ (ปัจจุบันเลือก ${totalDays} วัน)`,
+          confirmButtonColor: '#f59e0b'
+        });
+        hasError = true; break;
+      }
+      if (!reason.includes("[ลาฉุกเฉิน]")) {
+        reason = `[ลาฉุกเฉิน] ${reason.trim()}`;
+      }
+    }
 
     const isPersonalLeave = leaveName.includes("กิจ");
     const isVacationLeave = leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน");
@@ -1676,6 +1795,12 @@ async function saveLeave() {
     if (uploadedPaths.length > 0) {
       console.log("🧹 [ROLLBACK] กำลังลบรูปภาพหลักฐานออกจาก Storage...", uploadedPaths);
       await sb.storage.from('leave-attachments').remove(uploadedPaths);
+    }
+    isSavingLeave = false;
+    const saveBtn = document.getElementById("btnSaveLeave");
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = "💾 บันทึกคำขอลา";
     }
     return;
   }
@@ -1927,6 +2052,9 @@ async function saveLeave() {
       text: err.message || "เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง",
       confirmButtonColor: '#ef4444'
     });
+  } finally {
+    isSavingLeave = false;
+    const saveBtn = document.getElementById("btnSaveLeave");
     if (saveBtn) {
       saveBtn.disabled = false;
       saveBtn.innerHTML = "💾 บันทึกคำขอลา";
@@ -1980,14 +2108,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const currentEmpId = currentProfile?.id || currentProfile?.employee_id;
   if (currentEmpId) {
     await fetchUserExistingLeaveDates(currentEmpId);
-  }
-
-  const btnSaveLeave = document.getElementById("btnSaveLeave");
-  if (btnSaveLeave) {
-    btnSaveLeave.addEventListener("click", (e) => {
-      e.preventDefault();
-      saveLeave();
-    });
   }
 
   addLeaveRow(); 

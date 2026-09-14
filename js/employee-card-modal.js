@@ -101,11 +101,26 @@
       }
     }
 
+    // Filter by user's department to only see their own department (meaning employees in the department)
+    const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+    let sessionUser = {};
+    try {
+      sessionUser = savedSession ? JSON.parse(savedSession) : {};
+    } catch (e) {}
+    const myProfile = window.currentUserProfile || sessionUser || {};
+    const myDeptId = myProfile?.department_id || myProfile?.employees?.department_id;
+    const myRole = (myProfile?.role || "").toLowerCase();
+
+    let displayEmployees = cachedEmployeeList || [];
+    if (myDeptId && myRole !== 'admin' && myRole !== 'hr') {
+      displayEmployees = displayEmployees.filter(emp => String(emp.department_id) === String(myDeptId));
+    }
+
     let rowsHtml = "";
-    if (cachedEmployeeList.length === 0) {
+    if (displayEmployees.length === 0) {
       rowsHtml = `<div style="text-align:center; padding:32px; color:#64748b; font-size:14px;">ไม่พบข้อมูลพนักงานในระบบ</div>`;
     } else {
-      cachedEmployeeList.forEach(emp => {
+      displayEmployees.forEach(emp => {
         const empRole = emp.positions?.position_name || emp.position_name || 'พนักงาน';
         const empDept = emp.departments?.department_name || emp.department_name || 'ไม่ระบุแผนก';
         const empName = emp.full_name || 'ไม่ระบุชื่อ';
@@ -169,7 +184,7 @@
           <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: #334155;">
               <input type="checkbox" id="selectAllCardsCheckbox" onchange="window.toggleSelectAllCards(this)" style="cursor: pointer; width: 18px; height: 18px; accent-color: #0f766e;" />
-              <span>เลือกทั้งหมด (<span id="totalVisibleCardCount">${cachedEmployeeList.length}</span> คน)</span>
+              <span>เลือกทั้งหมด (<span id="totalVisibleCardCount">${displayEmployees.length}</span> คน)</span>
             </label>
             <button id="btnPrintSelectedCards" onclick="window.handlePrintSelectedCardsFromPopup()" disabled
               style="background: #0f766e; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: not-allowed; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; opacity: 0.5; transition: all 0.2s;">

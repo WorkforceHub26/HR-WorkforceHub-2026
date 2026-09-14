@@ -676,61 +676,180 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ================= 🔔 NOTIFICATION BUTTON ================= */
+/* ================= 🔔 NOTIFICATION BUTTON & DROPDOWN (LARGE UI) ================= */
 .notif-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-light, rgba(255, 255, 255, 0.8));
-  border-radius: var(--radius-md, 12px);
+  width: 48px;
+  height: 48px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
   color: var(--primary-dark, #0891b2);
   cursor: pointer;
   transition: all 0.25s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .notif-btn:hover {
-  background: #ffffff;
+  background: #f8fafc;
+  border-color: #0284c7;
   color: var(--primary, #06b6d4);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.18);
 }
 
 .notif-btn .material-symbols-outlined {
-  font-size: 22px;
+  font-size: 26px;
 }
 
-/* ตัวเลขแจ้งเตือนสีแดง (Badge) */
+/* ตัวเลขแจ้งเตือนสีแดง (Badge) ชัดเจน ขนาดใหญ่ */
 .notif-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -6px;
+  right: -6px;
   background: var(--danger, #ef4444);
   color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 10px;
-  padding: 0 5px;
+  font-size: 13px;
+  font-weight: 800;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  padding: 0 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 3px 8px rgba(239, 68, 68, 0.5);
   animation: notifPulse 2s infinite;
+  z-index: 2;
 }
 
 @keyframes notifPulse {
   0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.12); }
   100% { transform: scale(1); }
+}
+
+/* กล่องหน้าต่างแจ้งเตือน (Dropdown) ขนาดใหญ่ อ่านสบาย */
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  width: 460px;
+  max-width: calc(100vw - 24px);
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 20px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.22), 0 10px 20px -5px rgba(0, 0, 0, 0.12);
+  z-index: 99999;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  animation: notifFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes notifFadeIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.notif-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.notif-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notif-title strong {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.notif-count-pill {
+  font-size: 13px;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 4px 10px;
+  border-radius: 16px;
+}
+
+.btn-mark-read {
+  background: #f0fdfa;
+  border: 1px solid #ccfbf1;
+  font-size: 13.5px;
+  color: #0f766e;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.btn-mark-read:hover {
+  background: #ccfbf1;
+  color: #115e59;
+}
+
+.notif-body {
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.notif-item {
+  padding: 16px 18px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  border-bottom: 1.5px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  background: #ffffff;
+}
+
+.notif-item:hover {
+  background: #f8fafc;
+}
+
+.notif-item.unread {
+  background: #f0f9ff;
+}
+
+.notif-item.unread:hover {
+  background: #e0f2fe;
+}
+
+.notif-footer {
+  padding: 14px 20px;
+  text-align: center;
+  border-top: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.notif-footer a {
+  color: #0284c7;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notif-footer a:hover {
+  text-decoration: underline;
 }
 
 /* ================= 📱 FIX MOBILE SQUEEZE & OVERLAP ================= */

@@ -893,7 +893,8 @@
           text: 'คุณแน่ใจหรือไม่ที่จะอนุมัติคำขอนี้ทันที?',
           icon: 'question',
           showCancelButton: true,
-          confirmButtonText: 'อนุมัติ',
+          showDenyButton: false,
+          confirmButtonText: '✔️ ยืนยันอนุมัติ',
           cancelButtonText: 'ยกเลิก',
           confirmButtonColor: '#10b981',
           cancelButtonColor: '#94a3b8'
@@ -951,16 +952,17 @@
       try {
         const { value: rejectComment } = await Swal.fire({
           title: 'ไม่อนุมัติคำขอลา',
-          input: 'text',
-          inputLabel: 'ระบุเหตุผลการไม่อนุมัติ',
-          inputPlaceholder: 'กรอกเหตุผล...',
+          input: 'textarea',
+          inputLabel: 'โปรดระบุเหตุผลการไม่อนุมัติ (จากหัวหน้างาน/ผู้จัดการ):',
+          inputPlaceholder: 'กรอกเหตุผลการไม่อนุมัติ เช่น งานเร่งด่วน, กำลังพลไม่พอ...',
           showCancelButton: true,
-          confirmButtonText: 'ยืนยันไม่อนุมัติ',
+          showDenyButton: false,
+          confirmButtonText: '✖️ ยืนยันไม่อนุมัติ',
           cancelButtonText: 'ยกเลิก',
           confirmButtonColor: '#ef4444',
           cancelButtonColor: '#94a3b8',
           inputValidator: (value) => {
-            if (!value) return 'กรุณาระบุเหตุผลการไม่อนุมัติ';
+            if (!value || !value.trim()) return 'กรุณาระบุเหตุผลการไม่อนุมัติด้วยครับ';
           }
         });
         if (!rejectComment) return;
@@ -976,7 +978,7 @@
 
         const { error } = await sb.from('leave_requests').update({
           status: 'rejected',
-          approval_comment: rejectComment
+          approval_comment: rejectComment.trim()
         }).eq('id', leaveId);
 
         if (error) throw error;

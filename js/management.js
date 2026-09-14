@@ -1419,6 +1419,30 @@ window.filterByPosCategory = function(category) {
   renderEmployeeTable();
 };
 
+window.clearEmployeeFilters = function() {
+  const searchInput = document.getElementById("empSearchInput");
+  if (searchInput) searchInput.value = "";
+  
+  const deptFilter = document.getElementById("deptFilter");
+  if (deptFilter) deptFilter.value = "";
+  
+  const posFilter = document.getElementById("posFilter");
+  if (posFilter) posFilter.value = "";
+
+  const btnClearSearchIcon = document.getElementById("btnClearSearchIcon");
+  if (btnClearSearchIcon) btnClearSearchIcon.style.display = "none";
+
+  if (typeof window.fillPositionFilter === "function") {
+    window.fillPositionFilter();
+  }
+
+  if (typeof window.filterByPosCategory === "function") {
+    window.filterByPosCategory('all');
+  } else if (typeof renderEmployeeTable === "function") {
+    renderEmployeeTable();
+  }
+};
+
 // ฟังก์ชันระบบช่วยเหลือแนะนำตำแหน่งตามแผนก
 window.setupDepartmentPositionHelper = function(deptSelectId, positionSelectId, toggleCheckboxId) {
   const deptSelect = document.getElementById(deptSelectId);
@@ -1655,9 +1679,15 @@ function renderEmployeeTable() {
   const container = document.getElementById("employeeTableBody");
   if (!container) return;
 
-  const search = document.getElementById("empSearchInput")?.value.trim().toLowerCase() || "";
+  const searchInputEl = document.getElementById("empSearchInput");
+  const search = searchInputEl?.value.trim().toLowerCase() || "";
   const dept = document.getElementById("deptFilter")?.value || "";
   const specificPos = document.getElementById("posFilter")?.value || "";
+
+  const btnClearSearchIcon = document.getElementById("btnClearSearchIcon");
+  if (btnClearSearchIcon) {
+    btnClearSearchIcon.style.display = searchInputEl?.value ? "inline-flex" : "none";
+  }
 
   // คำนวณจำนวนพนักงานในแต่ละหมวดหมู่ตำแหน่ง (กรองตามแผนกถ้ามีการเลือกแผนก)
   let cAll = 0, cExecutive = 0, cManager = 0, cSupervisor = 0, cOfficer = 0, cStaff = 0;

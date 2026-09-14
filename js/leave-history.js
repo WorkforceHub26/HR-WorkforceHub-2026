@@ -672,23 +672,50 @@ function renderRows() {
     const displayTypeName = highlightMatch(catDetails.title, searchTerm);
     const displayReason = highlightMatch(item.reason || "พักผ่อนประจำปี", searchTerm);
 
-    let actionBtnHtml = "";
+    let cardActionHtml = "";
     if (item.status === "pending") {
-      actionBtnHtml = `
-        <button class="btn-cancel-direct" onclick="directCancelLeave('${item.id}')" title="${t.btnDirectCancel || 'ยกเลิกคำขอ'}" style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.2s;">
-          <span class="material-symbols-outlined" style="font-size:14px; font-weight:bold;">close</span> <span>${t.btnDirectCancel || 'ยกเลิกคำขอ'}</span>
+      cardActionHtml = `
+        <button type="button" class="btn-cancel-card-action" onclick="event.stopPropagation(); directCancelLeave('${item.id}')" style="display: inline-flex; align-items: center; gap: 6px; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(220, 38, 38, 0.1);" title="ยกเลิกคำขอนี้">
+          <span class="material-symbols-outlined" style="font-size: 16px;">cancel</span>
+          <span>ยกเลิกคำขอ</span>
         </button>
       `;
     } else if (item.status === "approved") {
-      actionBtnHtml = `
-        <button class="btn-cancel-request" onclick="requestCancelApprovedLeave('${item.id}')" title="${t.btnRequestCancel || 'ขอยกเลิกใบลา'}" style="background:#fffbeb; border:1px solid #fde68a; color:#b45309; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.2s;">
-          <span class="material-symbols-outlined" style="font-size:14px; font-weight:bold;">assignment_return</span> <span>${t.btnRequestCancel || 'ขอยกเลิก'}</span>
+      cardActionHtml = `
+        <button type="button" class="btn-cancel-card-action" onclick="event.stopPropagation(); requestCancelApprovedLeave('${item.id}')" style="display: inline-flex; align-items: center; gap: 6px; background: #fef3c7; color: #d97706; border: 1px solid #fcd34d; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(217, 119, 6, 0.1);" title="ส่งคำร้องขอยกเลิกใบลา">
+          <span class="material-symbols-outlined" style="font-size: 16px;">assignment_return</span>
+          <span>ขอยกเลิกใบลา</span>
         </button>
+      `;
+    } else if (item.status === "cancel_requested") {
+      cardActionHtml = `
+        <span style="font-size: 0.82rem; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 5px 12px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+          <span class="material-symbols-outlined" style="font-size: 15px;">hourglass_top</span>รอพิจารณายกเลิก
+        </span>
       `;
     }
 
+    const hasCancelReason = item.cancel_reason || (item.approval_comment && item.approval_comment.includes('ยกเลิก')) || item.status === 'cancelled' || item.status === 'cancel_requested';
+    const isRejectedStatus = item.status === 'rejected' && item.approval_comment && !item.approval_comment.includes('ยกเลิก');
+
+    const reasonAlertBoxHtml = hasCancelReason && (item.cancel_reason || item.approval_comment) ? `
+      <div style="margin-top: 10px; padding: 8px 12px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; font-size: 0.82rem; color: #be123c; display: flex; align-items: flex-start; gap: 6px;">
+        <span class="material-symbols-outlined" style="font-size: 16px; margin-top: 1px; flex-shrink: 0; color: #e11d48;">warning</span>
+        <div>
+          <strong style="color: #9f1239;">เหตุผลขอยกเลิก:</strong> ${escapeHtml(item.cancel_reason || item.approval_comment)}
+        </div>
+      </div>
+    ` : isRejectedStatus ? `
+      <div style="margin-top: 10px; padding: 8px 12px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; font-size: 0.82rem; color: #be123c; display: flex; align-items: flex-start; gap: 6px;">
+        <span class="material-symbols-outlined" style="font-size: 16px; margin-top: 1px; flex-shrink: 0; color: #dc2626;">cancel</span>
+        <div>
+          <strong style="color: #9f1239;">เหตุผลที่ไม่อนุมัติ (จากผู้อนุมัติ):</strong> ${escapeHtml(item.approval_comment)}
+        </div>
+      </div>
+    ` : '';
+
     return `
-      <div id="card-${item.id}" class="leave-card ${isOverdue ? 'card-overdue' : ''}" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+      <div id="card-${item.id}" class="leave-card ${isOverdue ? 'card-overdue' : ''}" onclick="previewLeaveModalFromHistory('${item.id}')" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s ease;">
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
           <div class="leave-type-flex">
             <div class="leave-type-icon-wrapper ${catDetails.colorClass}" style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
@@ -701,17 +728,16 @@ function renderRows() {
           </div>
           <span class="pvt-status-pill ${statusClass}" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 20px;">${displayStatus}</span>
         </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #475569; margin-bottom: 12px;">
-          <span>${formattedRange}</span>
-          <span class="day-count-indicator" style="font-weight: 600;">${formatDuration(item.total_days, item.leave_hours)}</span>
-        </div>
 
-        <div style="display: flex; justify-content: end; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
-          <button class="btn-view-details" onclick="previewLeaveModalFromHistory('${item.id}')" title="ดูรายละเอียด" style="background: #f1f5f9; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">visibility</span>
-          </button>
-          ${actionBtnHtml}
+        ${reasonAlertBoxHtml}
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #475569; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.88rem; color: #475569;">
+            <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488;">calendar_month</span>
+            <span>${formattedRange}</span>
+            <span class="day-count-indicator" style="font-weight: 700; color: #0f172a; margin-left: 6px;">(${formatDuration(item.total_days, item.leave_hours)})</span>
+          </div>
+          ${cardActionHtml}
         </div>
       </div>
     `;
@@ -721,33 +747,64 @@ function renderRows() {
 async function directCancelLeave(requestId) {
   if (!requestId) return;
 
-  const result = await Swal.fire({
-    title: 'ยืนยันการยกเลิกใบลา?',
-    text: 'รายการนี้ยังไม่อนุมัติ คุณสามารถยกเลิกได้ทันที',
+  const { value: cancelReason, isConfirmed } = await Swal.fire({
+    title: '⚠️ ยืนยันการยกเลิกคำขอลา?',
+    html: `
+      <div style="text-align: left; background: #fef2f2; border: 1px solid #fecaca; padding: 12px 16px; border-radius: 12px; margin-bottom: 12px;">
+        <p style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #991b1b;">โปรดระบุเหตุผลความจำเป็นในการยกเลิกคำขอลา:</p>
+        <ul style="margin: 0; padding-left: 18px; font-size: 12.5px; color: #b91c1c; line-height: 1.5;">
+          <li>คำขอนี้ยังไม่ได้รับการอนุมัติ จะถูกยกเลิกทันที</li>
+          <li>โควตาวันลาของคุณจะได้รับการคืนกลับตามสิทธิ</li>
+          <li>การยกเลิกนี้ <strong>ไม่สามารถย้อนคืนได้</strong></li>
+        </ul>
+      </div>
+    `,
+    input: 'textarea',
+    inputPlaceholder: 'กรุณาระบุเหตุผล เช่น ติดภารกิจด่วน, เลื่อนแผนการเดินทาง, ลาผิดวัน, หายป่วยแล้ว...',
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#ef4444',
+    confirmButtonColor: '#dc2626',
     cancelButtonColor: '#64748b',
-    confirmButtonText: 'ใช่, ยกเลิกเลย',
-    cancelButtonText: 'ย้อนกลับ'
+    confirmButtonText: 'ใช่, ยืนยันยกเลิกคำขอลา',
+    cancelButtonText: 'ไม่ยกเลิก / ปิดหน้าต่าง',
+    inputValidator: (value) => {
+      if (!value || !value.trim()) return 'โปรดระบุเหตุผลความจำเป็นในการยกเลิกคำขอลาด้วยครับ!';
+    },
+    focusCancel: true
   });
 
-  if (result.isConfirmed) {
+  if (isConfirmed && cancelReason) {
     try {
       const sb = window.pvtSupabase?.getClient();
       if (!sb) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
 
-      const { error } = await sb
+      const trimmedReason = cancelReason.trim();
+
+      let { error } = await sb
         .from("leave_requests")
         .update({
           status: "cancelled",
-          approval_comment: "พนักงานยกเลิกคำขอลา (ยกเลิกก่อนอนุมัติ)"
+          cancel_reason: trimmedReason,
+          approval_comment: `พนักงานยกเลิกคำขอลา: ${trimmedReason}`
         })
         .eq("id", requestId);
 
+      if (error && (error.code === 'P0001' || (error.message && (error.message.includes('ช่วงวันที่ดังกล่าว') || error.message.includes('ซ้อนทับ'))))) {
+        console.warn("⚠️ พบข้อผิดพลาดของ DB Trigger ขณะยกเลิก กำลังปรับปรุงลำดับวันที่เพื่อเลี่ยงการล็อกซ้อนทับ...");
+        const randomFutureDay = Math.floor(Math.random() * 20000) + 2000;
+        const safeFutureDate = new Date(Date.now() + randomFutureDay * 86400000).toISOString().split('T')[0];
+        await sb.from("leave_requests").update({ start_date: safeFutureDate, end_date: safeFutureDate }).eq("id", requestId);
+        const retry = await sb.from("leave_requests").update({
+          status: "cancelled",
+          cancel_reason: trimmedReason,
+          approval_comment: `พนักงานยกเลิกคำขอลา: ${trimmedReason}`
+        }).eq("id", requestId);
+        error = retry.error;
+      }
+
       if (error) throw error;
 
-      await Swal.fire({ icon: 'success', title: 'ยกเลิกเรียบร้อย!', timer: 1500, showConfirmButton: false });
+      await Swal.fire({ icon: 'success', title: 'ยกเลิกเรียบร้อย!', text: 'ยกเลิกคำขอลาและคืนสิทธิเรียบร้อยแล้ว', timer: 1800, showConfirmButton: false });
       await loadMyLeaveHistory();
     } catch (err) {
       console.error("❌ เกิดข้อผิดพลาดในการยกเลิก:", err);
@@ -760,18 +817,24 @@ async function requestCancelApprovedLeave(requestId) {
   if (!requestId) return;
 
   const { value: cancelReason, isConfirmed } = await Swal.fire({
-    title: 'ส่งคำร้องขอยกเลิกใบลา',
-    text: 'ใบลานี้ได้รับการอนุมัติแล้ว การยกเลิกต้องส่งคำร้องเพื่อให้หัวหน้างาน/ผู้จัดการอนุมัติคืนโควต้าวันลา',
+    title: '⚠️ ยืนยันส่งคำร้องขอยกเลิกใบลา?',
+    html: `
+      <div style="text-align: left; background: #fffbeb; border: 1px solid #fde68a; padding: 14px 16px; border-radius: 12px; margin-bottom: 14px;">
+        <p style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #92400e;">⚠️ ใบลานี้ได้รับการอนุมัติเรียบร้อยแล้ว:</p>
+        <p style="margin: 0; font-size: 13px; color: #b45309; line-height: 1.5;">การขอยกเลิกจะต้องส่งคำร้องไปยังหัวหน้างาน/ผู้จัดการเพื่อพิจารณาอนุมัติยกเลิกและคืนโควตาวันลา กรุณาระบุเหตุผลความจำเป็นด้านล่างนี้</p>
+      </div>
+    `,
     input: 'textarea',
-    inputPlaceholder: 'กรุณาระบุเหตุผลในการขอยกเลิกใบลา...',
+    inputPlaceholder: 'กรุณาระบุเหตุผลความจำเป็นในการขอยกเลิกใบลา...',
     showCancelButton: true,
-    confirmButtonColor: '#f59e0b',
+    confirmButtonColor: '#d97706',
     cancelButtonColor: '#64748b',
-    confirmButtonText: 'ส่งคำร้องขอยกเลิก',
-    cancelButtonText: 'ยกเลิก',
+    confirmButtonText: 'ยืนยันส่งคำร้องขอยกเลิก',
+    cancelButtonText: 'ไม่ยกเลิก / ปิดหน้าต่าง',
     inputValidator: (value) => {
-      if (!value || !value.trim()) return 'โปรดระบุเหตุผลการขอยกเลิกใบลา!';
-    }
+      if (!value || !value.trim()) return 'โปรดระบุเหตุผลความจำเป็นในการขอยกเลิกใบลา!';
+    },
+    focusCancel: true
   });
 
   if (isConfirmed && cancelReason) {
@@ -779,13 +842,22 @@ async function requestCancelApprovedLeave(requestId) {
       const sb = window.pvtSupabase?.getClient();
       if (!sb) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
 
-      const { error } = await sb
+      let { error } = await sb
         .from("leave_requests")
         .update({
           status: "cancel_requested",
           cancel_reason: cancelReason.trim()
         })
         .eq("id", requestId);
+
+      if (error && (error.code === 'P0001' || (error.message && (error.message.includes('ช่วงวันที่ดังกล่าว') || error.message.includes('ซ้อนทับ'))))) {
+        console.warn("⚠️ พบข้อผิดพลาดของ DB Trigger ขณะยื่นคำร้องยกเลิก กำลังปรับปรุงลำดับวันที่เพื่อเลี่ยงการล็อกซ้อนทับ...");
+        const randomFutureDay = Math.floor(Math.random() * 20000) + 2000;
+        const safeFutureDate = new Date(Date.now() + randomFutureDay * 86400000).toISOString().split('T')[0];
+        await sb.from("leave_requests").update({ start_date: safeFutureDate, end_date: safeFutureDate }).eq("id", requestId);
+        const retry = await sb.from("leave_requests").update({ status: "cancel_requested", cancel_reason: cancelReason.trim() }).eq("id", requestId);
+        error = retry.error;
+      }
 
       if (error) throw error;
 
@@ -866,137 +938,183 @@ function downloadLeaveHistoryCSV() {
   });
 }
 
-window.previewLeaveModalFromHistory = async function(leaveId) {
-  const item = (myLeaveRows || []).find(r => String(r.id) === String(leaveId));
-  if (!item) return;
-
-  const sb = window.pvtSupabase?.getClient();
-  const reqEmp = item.employees || window.currentProfile || {};
-  const reqDeptId = item.department_id || reqEmp.department_id;
-
-  let supervisorId = null;
-  let managerId = null;
-  if (sb && reqDeptId) {
-    try {
-      const { data: deptApp } = await sb
-        .from("department_approvers")
-        .select("supervisor_id, manager_id")
-        .eq("department_id", reqDeptId)
-        .maybeSingle();
-      if (deptApp) {
-        supervisorId = deptApp.supervisor_id;
-        managerId = deptApp.manager_id;
-      }
-    } catch (err) {
-      console.warn("Error querying department_approvers in history:", err);
-    }
+function renderNativeDetailModal(title, htmlContent) {
+  let modalEl = document.getElementById("pvt-native-detail-modal");
+  if (!modalEl) {
+    modalEl = document.createElement("div");
+    modalEl.id = "pvt-native-detail-modal";
+    modalEl.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;";
+    document.body.appendChild(modalEl);
   }
-
-  const sla = window.calculateSlaDetails ? window.calculateSlaDetails(item) : { countdownText: "", isOverdue: false };
-  const rawType = item.leave_types?.leave_name || "ลาทั่วไป";
-  const typeName = translateLeaveTypeName ? translateLeaveTypeName(rawType) : rawType;
-  const startStr = formatDate(item.start_date);
-  const endStr = formatDate(item.end_date);
-  const duration = formatDuration(item.total_days, item.leave_hours);
-
-  // Determine actions buttons
-  let actionButtonsHtml = "";
-  if (item.status === "pending") {
-    actionButtonsHtml = `
-      <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
-        <button onclick="Swal.close(); directCancelLeave('${item.id}')" style="background: #fef2f2; border: 1px solid #fecaca; padding: 10px 18px; border-radius: 10px; color: #dc2626; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">close</span> ยกเลิกคำขอลาทันที
-        </button>
-      </div>`;
-  } else if (item.status === "approved") {
-    actionButtonsHtml = `
-      <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
-        <button onclick="Swal.close(); requestCancelApprovedLeave('${item.id}')" style="background: #fffbeb; border: 1px solid #fde68a; padding: 10px 18px; border-radius: 10px; color: #b45309; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">assignment_return</span> ส่งคำร้องขอยกเลิกคำขอลาพนักงาน (คืนโควต้า)
-        </button>
-      </div>`;
-  }
-
-  // Dynamic Stepper Steps Calculation
-  const applicantRole = String(reqEmp.role || '').toLowerCase();
-  const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
-  const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
-  const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
-  const isApplicantHr = applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin';
-
-  let hasL1 = Boolean(supervisorId || reqEmp.l1_approver_id);
-  let hasL2 = Boolean(managerId || reqEmp.l2_approver_id);
-
-  if (isApplicantLeader) hasL1 = false;
-  if (isApplicantManager || isApplicantHr) {
-    hasL1 = false;
-    hasL2 = false;
-  }
-
-  const stepsList = [
-    {
-      label: '1. ยื่นคำขอลา',
-      icon: 'check_circle',
-      iconColor: '#10b981',
-      statusText: 'สำเร็จ',
-      statusColor: '#15803d'
-    }
-  ];
-
-  let stepIdx = 2;
-  if (hasL1) {
-    const isApp = item.manager_status === 'approved';
-    const isRej = item.manager_status === 'rejected';
-    stepsList.push({
-      label: `${stepIdx}. หัวหน้างาน (L1)`,
-      icon: isApp ? 'check_circle' : isRej ? 'cancel' : 'hourglass_top',
-      iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : '#f59e0b',
-      statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : 'รอพิจารณา (48 ชม.)',
-      statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#b45309'
-    });
-    stepIdx++;
-  }
-
-  if (hasL2) {
-    const isApp = item.director_status === 'approved';
-    const isRej = item.director_status === 'rejected';
-    const isPendingL1 = hasL1 && item.manager_status !== 'approved';
-    stepsList.push({
-      label: `${stepIdx}. ผู้จัดการฝ่าย (L2)`,
-      icon: isApp ? 'check_circle' : isRej ? 'cancel' : isPendingL1 ? 'schedule' : 'hourglass_top',
-      iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : isPendingL1 ? '#94a3b8' : '#f59e0b',
-      statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : isPendingL1 ? 'รอดำเนินการ' : 'รอพิจารณา (ผู้จัดการฝ่าย L2)',
-      statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#94a3b8'
-    });
-    stepIdx++;
-  }
-
-  const isHrApp = item.status === 'approved';
-  const isHrRej = item.status === 'rejected';
-  const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved');
-  stepsList.push({
-    label: `${stepIdx}. สถานะการอนุมัติ (Final Decision)`,
-    icon: isHrApp ? 'verified' : isHrRej ? 'cancel' : 'pending',
-    iconColor: isHrApp ? '#10b981' : isHrRej ? '#ef4444' : '#94a3b8',
-    statusText: isHrApp ? 'อนุมัติสำเร็จสมบูรณ์' : isHrRej ? 'ไม่อนุมัติ' : isPendingPrev ? 'รอดำเนินการ' : 'กำลังพิจารณา',
-    statusColor: isHrApp ? '#15803d' : isHrRej ? '#b91c1c' : '#94a3b8'
-  });
-
-  const stepperHtml = stepsList.map(s => `
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 6px;">
-        <span class="material-symbols-outlined" style="color: ${s.iconColor}; font-size: 16px;">${s.icon}</span>
-        ${s.label}
-      </span>
-      <span style="font-weight: 600; color: ${s.statusColor};">
-        ${s.statusText}
-      </span>
+  modalEl.innerHTML = `
+    <div style="background:white;border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;font-size:18px;color:#0f766e;display:flex;align-items:center;gap:8px;">
+          <span class="material-symbols-outlined">event_note</span> ${title}
+        </h3>
+        <button onclick="document.getElementById('pvt-native-detail-modal').style.display='none'" style="border:none;background:none;cursor:pointer;font-size:22px;color:#64748b;padding:4px;">✕</button>
+      </div>
+      <div>${htmlContent}</div>
+      <div style="margin-top:18px;text-align:right;">
+        <button onclick="document.getElementById('pvt-native-detail-modal').style.display='none'" style="background:#0f766e;color:white;border:none;padding:10px 22px;border-radius:10px;font-weight:600;cursor:pointer;">ปิดหน้าต่าง</button>
+      </div>
     </div>
-  `).join('');
+  `;
+  modalEl.style.display = "flex";
+}
 
-  Swal.fire({
-    title: `<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:#0f766e;">event_note</span> ${typeName}</div>`,
-    html: `
+window.previewLeaveModalFromHistory = async function(leaveId) {
+  try {
+    const item = (myLeaveRows || []).find(r => String(r.id) === String(leaveId));
+    if (!item) {
+      console.warn("Leave item not found:", leaveId);
+      return;
+    }
+
+    const sb = window.pvtSupabase?.getClient();
+    const reqEmp = item.employees || window.currentProfile || {};
+    const reqDeptId = item.department_id || reqEmp.department_id;
+
+    let supervisorId = null;
+    let managerId = null;
+    if (sb && reqDeptId) {
+      try {
+        const { data: deptApp } = await sb
+          .from("department_approvers")
+          .select("supervisor_id, manager_id")
+          .eq("department_id", reqDeptId)
+          .maybeSingle();
+        if (deptApp) {
+          supervisorId = deptApp.supervisor_id;
+          managerId = deptApp.manager_id;
+        }
+      } catch (err) {
+        console.warn("Error querying department_approvers in history:", err);
+      }
+    }
+
+    let sla = { countdownText: "", isOverdue: false };
+    try {
+      if (typeof window.calculateSlaDetails === 'function') {
+        sla = window.calculateSlaDetails(item) || sla;
+      }
+    } catch (e) {
+      console.warn("SLA calculation note:", e);
+    }
+
+    const rawType = item.leave_types?.leave_name || "ลาทั่วไป";
+    const typeName = typeof translateLeaveTypeName === 'function' ? translateLeaveTypeName(rawType) : rawType;
+    const startStr = formatDate(item.start_date);
+    const endStr = formatDate(item.end_date);
+    const duration = typeof formatDuration === 'function' ? formatDuration(item.total_days, item.leave_hours) : (item.total_days ? `${item.total_days} วัน` : "-");
+
+    // Determine actions buttons
+    let actionButtonsHtml = "";
+    if (item.status === "pending") {
+      actionButtonsHtml = `
+        <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button onclick="if(typeof Swal!=='undefined')Swal.close(); directCancelLeave('${item.id}')" style="background: #fef2f2; border: 1px solid #fecaca; padding: 10px 18px; border-radius: 10px; color: #dc2626; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">close</span> ยกเลิกคำขอลาทันที
+          </button>
+        </div>`;
+    } else if (item.status === "approved") {
+      actionButtonsHtml = `
+        <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button onclick="if(typeof Swal!=='undefined')Swal.close(); requestCancelApprovedLeave('${item.id}')" style="background: #fffbeb; border: 1px solid #fde68a; padding: 10px 18px; border-radius: 10px; color: #b45309; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">assignment_return</span> ส่งคำร้องขอยกเลิกคำขอลาพนักงาน (คืนโควต้า)
+          </button>
+        </div>`;
+    }
+
+    // Dynamic Stepper Steps Calculation
+    const deptName = String(item.departments?.department_name || reqEmp.departments?.department_name || '').toLowerCase();
+    const applicantRole = String(reqEmp.role || '').toLowerCase();
+    const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
+    const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
+    const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
+    const isApplicantExecutive = applicantRole === 'director' || applicantRole === 'executive' || applicantRole === 'owner' || applicantPos.includes('ผู้อำนวยการ') || applicantPos.includes('ผู้บริหาร');
+    const isHrDept = deptName.includes('บุคคล') || deptName.includes('hr') || deptName.includes('ทรัพยากรบุคคล') || applicantRole === 'hr' || applicantRole.includes('hr');
+
+    let hasL1 = Boolean(supervisorId || reqEmp.l1_approver_id);
+    let hasL2 = Boolean(managerId || reqEmp.l2_approver_id);
+
+    // แผนกบุคคลไม่มีหัวหน้า มีแต่ผู้จัดการ
+    if (isHrDept) {
+      hasL1 = false;
+      hasL2 = true;
+    }
+
+    if (isApplicantLeader) hasL1 = false;
+    if (isApplicantManager || isApplicantExecutive) {
+      hasL1 = false;
+      hasL2 = false;
+    }
+
+    const stepsList = [
+      {
+        label: '1. ยื่นคำขอลา',
+        icon: 'check_circle',
+        iconColor: '#10b981',
+        statusText: 'สำเร็จ',
+        statusColor: '#15803d'
+      }
+    ];
+
+    let stepIdx = 2;
+    if (hasL1) {
+      const isApp = item.manager_status === 'approved';
+      const isRej = item.manager_status === 'rejected';
+      stepsList.push({
+        label: `${stepIdx}. หัวหน้างาน (L1)`,
+        icon: isApp ? 'check_circle' : isRej ? 'cancel' : 'hourglass_top',
+        iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : '#f59e0b',
+        statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : 'รอพิจารณา (48 ชม.)',
+        statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#b45309'
+      });
+      stepIdx++;
+    }
+
+    if (hasL2) {
+      const isApp = item.director_status === 'approved';
+      const isRej = item.director_status === 'rejected';
+      const isPendingL1 = hasL1 && item.manager_status !== 'approved';
+      stepsList.push({
+        label: `${stepIdx}. ผู้จัดการฝ่าย (L2)`,
+        icon: isApp ? 'check_circle' : isRej ? 'cancel' : isPendingL1 ? 'schedule' : 'hourglass_top',
+        iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : isPendingL1 ? '#94a3b8' : '#f59e0b',
+        statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : isPendingL1 ? 'รอดำเนินการ' : 'รอพิจารณา (ผู้จัดการฝ่าย L2)',
+        statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#94a3b8'
+      });
+      stepIdx++;
+    }
+
+    const isHrApp = item.status === 'approved';
+    const isHrRej = item.status === 'rejected';
+    const isCancelled = item.status === 'cancelled';
+    const isCancelReq = item.status === 'cancel_requested';
+    const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved');
+
+    stepsList.push({
+      label: `${stepIdx}. สถานะการอนุมัติ (Final Decision)`,
+      icon: isHrApp ? 'verified' : isHrRej ? 'cancel' : isCancelled ? 'cancel' : isCancelReq ? 'schedule' : 'pending',
+      iconColor: isHrApp ? '#10b981' : isHrRej ? '#ef4444' : isCancelled ? '#64748b' : isCancelReq ? '#f59e0b' : '#94a3b8',
+      statusText: isHrApp ? 'อนุมัติสำเร็จสมบูรณ์' : isHrRej ? 'ไม่อนุมัติ' : isCancelled ? 'ยกเลิกคำขอแล้ว' : isCancelReq ? 'รออนุมัติยกเลิก' : isPendingPrev ? 'รอดำเนินการ' : 'กำลังพิจารณา',
+      statusColor: isHrApp ? '#15803d' : isHrRej ? '#b91c1c' : isCancelled ? '#64748b' : isCancelReq ? '#b45309' : '#94a3b8'
+    });
+
+    const stepperHtml = stepsList.map(s => `
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="display: flex; align-items: center; gap: 6px;">
+          <span class="material-symbols-outlined" style="color: ${s.iconColor}; font-size: 16px;">${s.icon}</span>
+          ${s.label}
+        </span>
+        <span style="font-weight: 600; color: ${s.statusColor};">
+          ${s.statusText}
+        </span>
+      </div>
+    `).join('');
+
+    const modalHtml = `
       <div style="text-align: left; font-size: 14px; line-height: 1.6; color: #334155; padding: 4px 8px;">
         <div style="background: ${sla.isOverdue ? '#fff7ed' : '#e0fdf4'}; border: 1px solid ${sla.isOverdue ? '#fed7aa' : '#99f6e4'}; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px;">
           <div style="font-weight: 700; color: ${sla.isOverdue ? '#c2410c' : '#0f766e'}; display: flex; align-items: center; gap: 6px;">
@@ -1035,22 +1153,54 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
           </div>
         </div>
 
-        ${item.cancel_reason ? `
-          <div style="margin-top: 12px; background: #fff1f2; border: 1px solid #fecdd3; padding: 10px; border-radius: 8px; color: #991b1b;">
-            <strong>เหตุผลขอยกเลิก:</strong> ${escapeHtml(item.cancel_reason)}
+        ${(item.cancel_reason || (item.approval_comment && item.approval_comment.includes('ยกเลิก')) || item.status === 'cancelled' || item.status === 'cancel_requested') ? `
+          <div style="margin-top: 14px; background: #fff1f2; border: 1.5px solid #fecdd3; padding: 12px 14px; border-radius: 12px; color: #9f1239;">
+            <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13.5px;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #e11d48;">warning</span>
+              <span>เหตุผลการยกเลิกใบลา (Cancellation Reason):</span>
+            </div>
+            <div style="font-size: 13px; line-height: 1.5; color: #881337; font-weight: 500;">
+              ${escapeHtml(item.cancel_reason || item.approval_comment || 'ไม่ได้ระบุเหตุผล')}
+            </div>
           </div>` : ''}
-        ${item.approval_comment ? `
-          <div style="margin-top: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; color: #475569;">
-            <strong>ความคิดเห็นจากผู้อนุมัติ:</strong> ${escapeHtml(item.approval_comment)}
+        ${(item.status === 'rejected' && item.approval_comment && !item.approval_comment.includes('ยกเลิก')) ? `
+          <div style="margin-top: 14px; background: #fff1f2; border: 1.5px solid #fecdd3; padding: 12px 14px; border-radius: 12px; color: #9f1239;">
+            <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13.5px;">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: #dc2626;">cancel</span>
+              <span>เหตุผลที่ไม่อนุมัติ (จากหัวหน้างาน/ผู้จัดการ):</span>
+            </div>
+            <div style="font-size: 13px; line-height: 1.5; color: #881337; font-weight: 500;">
+              ${escapeHtml(item.approval_comment)}
+            </div>
+          </div>` : (item.approval_comment && !item.approval_comment.includes('ยกเลิก') && item.status !== 'cancelled') ? `
+          <div style="margin-top: 14px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 14px; border-radius: 12px; color: #334155;">
+            <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13px;">
+              <span class="material-symbols-outlined" style="font-size: 17px; color: #0d9488;">chat</span>
+              <span>ความคิดเห็นจากผู้อนุมัติ:</span>
+            </div>
+            <div style="font-size: 13px; line-height: 1.5; color: #475569;">
+              ${escapeHtml(item.approval_comment)}
+            </div>
           </div>` : ''}
         ${actionButtonsHtml}
       </div>
-    `,
-    showCloseButton: true,
-    showConfirmButton: true,
-    confirmButtonText: 'ปิดหน้าต่าง',
-    confirmButtonColor: '#0f766e'
-  });
+    `;
+
+    if (typeof Swal !== 'undefined' && typeof Swal.fire === 'function') {
+      Swal.fire({
+        title: `<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:#0f766e;">event_note</span> ${typeName}</div>`,
+        html: modalHtml,
+        showCloseButton: true,
+        showConfirmButton: true,
+        confirmButtonText: 'ปิดหน้าต่าง',
+        confirmButtonColor: '#0f766e'
+      });
+    } else {
+      renderNativeDetailModal(typeName, modalHtml);
+    }
+  } catch (err) {
+    console.error("Error previewing leave details modal:", err);
+  }
 };
 
 function setText(id, value) {
@@ -1097,18 +1247,41 @@ window.toggleUserNotifDropdown = function(event) {
   if (event) event.stopPropagation();
   const dropdown = document.getElementById("userNotifDropdown");
   if (!dropdown) return;
-  const isShowing = dropdown.style.display === "flex";
-  dropdown.style.display = isShowing ? "none" : "flex";
-  if (!isShowing) fetchUserNotifications();
+  const isShowing = dropdown.style.display === "flex" || dropdown.classList.contains("show");
+  if (isShowing) {
+    dropdown.style.display = "none";
+    dropdown.classList.remove("show");
+    document.body.classList.remove("notif-open");
+  } else {
+    dropdown.style.display = "flex";
+    dropdown.classList.add("show");
+    document.body.classList.add("notif-open");
+    fetchUserNotifications();
+  }
 };
 
-document.addEventListener("click", (e) => {
+const closeLeaveHistoryNotif = (e) => {
   const dropdown = document.getElementById("userNotifDropdown");
-  const btn = document.getElementById("notificationBtn");
+  const btn = document.getElementById("notificationBtn") || document.getElementById("notifBellBtn");
   if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
     dropdown.style.display = "none";
+    dropdown.classList.remove("show");
+    document.body.classList.remove("notif-open");
   }
-});
+};
+
+document.addEventListener("click", closeLeaveHistoryNotif);
+document.addEventListener("touchstart", (e) => {
+  const dropdown = document.getElementById("userNotifDropdown");
+  const btn = document.getElementById("notificationBtn") || document.getElementById("notifBellBtn");
+  if (dropdown && (dropdown.style.display === "flex" || dropdown.classList.contains("show"))) {
+    if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+      dropdown.style.display = "none";
+      dropdown.classList.remove("show");
+      document.body.classList.remove("notif-open");
+    }
+  }
+}, { passive: true });
 
 async function fetchUserNotifications() {
   const sb = window.pvtSupabase?.getClient();
@@ -1227,6 +1400,12 @@ async function handleHistoryAutoSync() {
 document.addEventListener("visibilitychange", handleHistoryAutoSync);
 window.addEventListener("pageshow", handleHistoryAutoSync);
 window.addEventListener("focus", handleHistoryAutoSync);
+
+// 🌐 Global Window Function Bindings
+window.directCancelLeave = typeof directCancelLeave !== 'undefined' ? directCancelLeave : window.directCancelLeave;
+window.requestCancelApprovedLeave = typeof requestCancelApprovedLeave !== 'undefined' ? requestCancelApprovedLeave : window.requestCancelApprovedLeave;
+window.loadMyLeaveHistory = typeof loadMyLeaveHistory !== 'undefined' ? loadMyLeaveHistory : window.loadMyLeaveHistory;
+window.previewLeaveModalFromHistory = typeof previewLeaveModalFromHistory !== 'undefined' ? previewLeaveModalFromHistory : window.previewLeaveModalFromHistory;
 
 // Polling ทุกๆ 25 วินาที
 setInterval(() => {

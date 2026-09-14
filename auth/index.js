@@ -926,6 +926,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.warn("⚠️ [Login Audit Log] Notice recording login:", logErr);
       }
 
+      // Store a pending professional toast for the next page load
+      sessionStorage.setItem("login_toast_pending", JSON.stringify({
+        title: "เข้าสู่ระบบสำเร็จ",
+        message: `ยินดีต้อนรับคุณ ${user.full_name || 'ผู้ใช้งาน'} เข้าสู่ระบบ PVT Workforce`,
+        isBiometric: false
+      }));
+
       sessionStorage.removeItem("redirect_attempt");
       // รักษาสถานะ loading ไว้ขณะกำลังย้ายหน้าจอเพื่อป้องกันการกดซ้ำ
       redirectToDashboard(user.role, user);
@@ -1140,6 +1147,13 @@ async function executeSecureQrLogin(scannedData) {
       console.warn("⚠️ [Login Audit Log] Notice recording QR login:", logErr);
     }
 
+    // Store a pending professional toast for the next page load
+    sessionStorage.setItem("login_toast_pending", JSON.stringify({
+      title: "เข้าสู่ระบบด้วย QR Code สำเร็จ",
+      message: `ยินดีต้อนรับคุณ ${user.full_name || 'ผู้ใช้งาน'} (รหัส: ${user.employee_code || ''})`,
+      isBiometric: false
+    }));
+
     // ย้ายหน้าจอ
     Swal.fire({
       icon: 'success',
@@ -1148,7 +1162,7 @@ async function executeSecureQrLogin(scannedData) {
         <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-top: 4px;">${user.full_name}</div>
         <div style="font-size: 13px; color: #0fa472; margin-top: 2px;">รหัสพนักงาน: ${user.employee_code}</div>
       `,
-      timer: 1200,
+      timer: 1000,
       showConfirmButton: false
     }).then(() => {
       redirectToDashboard(user.role);
@@ -1594,9 +1608,9 @@ async function loginByQr() {
     // 2. ส่งเสียงแจ้งเตือน (Chime)
     playBarcodeScanSuccessSound();
 
-    // 3. การสั่นแจ้งเตือน (Haptic)
+    // 3. การสั่นแจ้งเตือน (Haptic) - Enhanced tactile double-vibration pattern
     if (navigator.vibrate) {
-      try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+      try { navigator.vibrate([60, 40, 60, 40, 100]); } catch (e) {}
     }
 
     // 4. แสดงผลตอบรับบน UI (Visual Feedback)
@@ -1828,7 +1842,7 @@ async function loginByQr() {
       const decodedText = await html5QrCode.scanFile(file, true);
       playBarcodeScanSuccessSound();
       if (navigator.vibrate) {
-        try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+        try { navigator.vibrate([60, 40, 60, 40, 100]); } catch (e) {}
       }
       await closeModal();
       executeSecureQrLogin(decodedText);
@@ -2120,18 +2134,25 @@ async function loginByBiometrics() {
       console.warn("⚠️ [Login Audit Log] Notice recording biometric login:", logErr);
     }
 
+    // Store a pending professional toast for the next page load
+    sessionStorage.setItem("login_toast_pending", JSON.stringify({
+      title: "ยืนยันตัวตนสำเร็จ",
+      message: `ยินดีต้อนรับคุณ ${user.full_name || 'ผู้ใช้งาน'} ด้วยระบบไบโอเมตริก`,
+      isBiometric: true
+    }));
+
     Swal.fire({
       icon: 'success',
       title: 'ยืนยันตัวตนด้วยไบโอเมตริกสำเร็จ',
       html: `<div style="font-size: 15px; color: #0d9488; font-weight: 600; margin-top: 6px;">ยินดีต้อนรับคุณ ${user.full_name || user.employee_code}</div>`,
       confirmButtonColor: '#0d9488',
-      timer: 1500,
+      timer: 1200,
       showConfirmButton: false
     });
 
     setTimeout(() => {
       redirectToDashboard(user.role, user);
-    }, 1000);
+    }, 800);
   };
 
   try {

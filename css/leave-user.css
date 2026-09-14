@@ -321,14 +321,206 @@ textarea {
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* ─── 7. FLATPICKR STYLING ─── */
-.flatpickr-day.flatpickr-disabled,
+/* ─── 7. FLATPICKR STYLING & LARGE DATE PICKER ─── */
+.date-picker-large-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.date-input-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.date-input-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.12);
+}
+
+.date-input-card.highlight-start-card {
+  border-color: #a5f3fc;
+  background: #f0fdfa;
+}
+.date-input-card.highlight-start-card:focus-within,
+.date-input-card.highlight-start-card:hover {
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15);
+}
+
+.date-input-card.highlight-end-card {
+  border-color: #a7f3d0;
+  background: #f0fdf4;
+}
+.date-input-card.highlight-end-card:focus-within,
+.date-input-card.highlight-end-card:hover {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.date-input-card label {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-bottom: 8px !important;
+}
+
+.large-date-field,
+.input-group input.large-date-field,
+.input-group input.flatpickr-input {
+  height: 54px !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  border-radius: 12px !important;
+  border: 2px solid #cbd5e1 !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
+  transition: all 0.2s ease !important;
+}
+
+.large-date-field:focus,
+.input-group input.flatpickr-input:focus {
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2) !important;
+}
+
+/* 🗓️ FLATPICKR CALENDAR ENLARGEMENT (ปรับปฏิทินให้ใหญ่เต็มตา เลือกง่าย) */
+.flatpickr-calendar {
+  width: 440px !important;
+  max-width: 95vw !important;
+  border-radius: 24px !important;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05) !important;
+  padding: 20px 16px 16px !important;
+  border: none !important;
+  background: #ffffff !important;
+  font-family: inherit !important;
+  z-index: 99999 !important;
+}
+
+.flatpickr-months {
+  align-items: center !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 8px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.flatpickr-current-month {
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  padding-top: 0 !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  padding: 4px 8px !important;
+}
+
+.flatpickr-current-month input.cur-year {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+}
+
+.flatpickr-months .flatpickr-prev-month, 
+.flatpickr-months .flatpickr-next-month {
+  width: 42px !important;
+  height: 42px !important;
+  padding: 8px !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover, 
+.flatpickr-months .flatpickr-next-month:hover {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+.flatpickr-weekdays {
+  height: 36px !important;
+  margin-bottom: 6px !important;
+}
+
+span.flatpickr-weekday {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #0891b2 !important;
+}
+
+.flatpickr-days {
+  width: 100% !important;
+}
+
+.dayContainer {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: space-around !important;
+}
+
+.flatpickr-day {
+  max-width: calc(100% / 7 - 4px) !important;
+  flex-basis: calc(100% / 7 - 4px) !important;
+  height: 52px !important;
+  line-height: 50px !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  border-radius: 14px !important;
+  margin: 3px 2px !important;
+  transition: all 0.15s ease !important;
+}
+
+.flatpickr-day:hover {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+.flatpickr-day.today {
+  border: 2.5px solid #06b6d4 !important;
+  color: #0891b2 !important;
+  font-weight: 800 !important;
+  background: #f0fdfa !important;
+}
+
+.flatpickr-day.selected, 
+.flatpickr-day.startRange, 
+.flatpickr-day.endRange {
+  background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: none !important;
+  box-shadow: 0 6px 16px rgba(6, 182, 212, 0.4) !important;
+}
+
+.flatpickr-day.inRange {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  box-shadow: -4px 0 0 #e0f2fe, 4px 0 0 #e0f2fe !important;
+}
+
+.flatpickr-day.flatpickr-disabled, 
 .flatpickr-day.flatpickr-disabled:hover {
-  background-color: #fee2e2 !important;
-  color: #dc2626 !important;
-  text-decoration: line-through;
-  opacity: 0.7;
-  cursor: not-allowed !important;
+  background-color: #fef2f2 !important;
+  color: #ef4444 !important;
+  text-decoration: line-through !important;
+  opacity: 0.55 !important;
+  border-radius: 10px !important;
 }
 
 /* ─── 8. FORM GUIDE POPUP ─── */
@@ -431,7 +623,7 @@ textarea {
 @media screen and (max-width: 768px) {
   .page { padding: 20px 12px 160px !important; }
 
-  .grid-row-3, .info-grid {
+  .grid-row-3, .info-grid, .date-picker-large-grid {
     grid-template-columns: 1fr !important;
     gap: 14px;
   }

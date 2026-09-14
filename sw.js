@@ -18,16 +18,22 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+  // Only handle same-origin GET requests; let browser handle CDN and external APIs natively
+  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
-  // Always fetch fresh from network, fallback to cache only if offline
+  // Never intercept API requests
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request, { cache: 'reload' })
-      .then((response) => {
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    fetch(event.request).catch(async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+    })
   );
 });

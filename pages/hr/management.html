@@ -100,7 +100,7 @@
           <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
           <span class="nav-label">แนะนำระบบ</span>
         </a>
-        <button type="button" class="nav-item" title="การตั้งค่าระบบ">
+        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
           <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
           <span class="nav-label">ตั้งค่า</span>
         </button>
@@ -153,6 +153,7 @@
             <button class="action-btn" onclick="manageDepartments()"><span class="material-symbols-outlined">corporate_fare</span> จัดการแผนก/ตำแหน่ง</button>
             <button class="action-btn" onclick="location.href='/pages/hr/approval-settings.html'" style="border-left: 4px solid #ef4444;"><span class="material-symbols-outlined">rule_settings</span> ตั้งค่าผู้อนุมัติ</button>
             <button class="action-btn success-zone" onclick="importEmployeesExcel()"><span class="material-symbols-outlined">upload_file</span> อัปเดต/เพิ่มพนักงานด้วย Excel</button>
+            <button class="action-btn" onclick="clearEmployeeFilters()" style="border-left: 4px solid #f43f5e; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="color: #f43f5e;">restart_alt</span> ล้างคำขอ/ตัวกรองค้นหา</button>
           </div>
         </div>
 
@@ -163,17 +164,17 @@
             <button class="action-btn" onclick="editIndividualLeaveBalance()"><span class="material-symbols-outlined">tune</span> ปรับโควตารายบุคคล</button>
             <button class="action-btn" onclick="openHolidayManagerModal()"><span class="material-symbols-outlined">calendar_month</span> ปฏิทินวันหยุด</button>
             <button class="action-btn success-zone" onclick="checkAndCreateMissingQuotas()"><span class="material-symbols-outlined">sync_saved_locally</span> ตรวจสอบและสร้างโควตาวันลา</button>
+            <button class="action-btn" onclick="resetYearlyLeave()" style="border-left: 4px solid #0d9488; font-weight: 700; color: #0f766e;" title="สร้างและรีเซ็ตโควตาวันลาล่วงหน้าสำหรับปีหน้า หรือเลือกปีที่ต้องการ"><span class="material-symbols-outlined" style="color: #0d9488;">calendar_add_on</span> สร้างโควตาปีหน้า</button>
           </div>
         </div>
 
         <div class="manage-card">
           <h3><span class="material-symbols-outlined">health_and_safety</span> 3. รายงานและสุขภาวะ (Wellness)</h3>
           <div class="card-btn-group">
-                        <button class="action-btn" onclick="window.HealthWellness.openSickLeaveTrendModal()" style="border-left: 4px solid #ec4899; font-weight: 700; color: #be185d;"><span class="material-symbols-outlined" style="color: #ec4899;">monitoring</span> สถิติอาการป่วยยอดฮิต (Sick Trends)</button>
-            <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()" title="ส่งออกรายงานโควตาวันลา (employee_leave_balances) และประวัติการลา"><span class="material-symbols-outlined">download</span> ดึงรายงานโควตา (Excel)</button>
+            <button class="action-btn" onclick="window.HealthWellness.openSickLeaveTrendModal()" style="border-left: 4px solid #ec4899; font-weight: 700; color: #be185d;"><span class="material-symbols-outlined" style="color: #ec4899;">monitoring</span> สถิติอาการป่วยยอดฮิต (Sick Trends)</button>
+            <button class="action-btn success-zone" onclick="exportAllLeaveHistoryExcel()" title="ส่งออกรายงานโควตาวันลา (employee_leave_balances) และประวัติการลา"><img src="/assets/icons/excel.svg" alt="Excel" class="btn-icon-graphic btn-icon-excel" style="width: 17px; height: 17px;" /> ดึงรายงานโควตา (Excel)</button>
             <button class="action-btn" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
             <button class="action-btn" onclick="viewLoginAuditLogs()" style="border-left: 4px solid #0d9488;"><span class="material-symbols-outlined">badge</span> ประวัติการเข้าสู่ระบบ (Login Logs)</button>
-            <button class="action-btn" onclick="resetYearlyLeave()"><span class="material-symbols-outlined">published_with_changes</span> สร้าง/จัดการโควตาประจำปี</button>
             <button class="action-btn" onclick="testLineNotificationFromHR()" style="border-left: 4px solid #4f46e5;"><span class="material-symbols-outlined">notifications_active</span> ทดสอบแจ้งเตือน LINE (Slip)</button>
           </div>
         </div>
@@ -259,7 +260,11 @@
         <section class="panel">
           <div class="panel-head">
             <h2>รายชื่อพนักงาน</h2>
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn-clear-request" onclick="clearEmployeeFilters()" style="background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: 6px; padding: 4px 12px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="ล้างการค้นหาและตัวกรองทั้งหมด">
+                <span class="material-symbols-outlined" style="font-size: 16px;">restart_alt</span>
+                <span>ล้างคำขอ / ตัวกรอง</span>
+              </button>
               <button type="button" class="btn-refresh-data" onclick="handleFetchDataClick()" style="background: #f0fdfa; border: 1px solid #99f6e4; color: #0f766e; border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="รีเฟรชดึงข้อมูลล่าสุดจากระบบ">
                 <span class="material-symbols-outlined" style="font-size: 16px;">sync</span>
                 <span>รีเฟรชข้อมูล</span>
@@ -325,10 +330,10 @@
             </button>
           </div>
           
-          <div class="filter-panel" style="display: flex; gap: 12px; width: 100%; margin-bottom: 12px;">
+          <div class="filter-panel" style="display: flex; gap: 10px; width: 100%; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
             <!-- ช่องค้นหาขยายเต็มพื้นที่ (Flex: 1) และเพิ่ม oninput -->
-            <div class="custom-search-container" style="flex: 1; width: 100%;">
-              <div class="search-box" style="display: flex; align-items: center; width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 12px;">
+            <div class="custom-search-container" style="flex: 1; min-width: 220px; width: 100%;">
+              <div class="search-box" style="display: flex; align-items: center; width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 12px; position: relative;">
                 <span class="material-symbols-outlined icon-search" style="color: #64748b; margin-right: 8px;">search</span>
                 <input 
                   type="text" 
@@ -339,19 +344,44 @@
                   autocomplete="off"
                   style="width: 100%; border: none; outline: none; padding: 8px 0; font-size: 14px;"
                 />
+                <button 
+                  type="button" 
+                  id="btnClearSearchIcon" 
+                  onclick="clearEmployeeFilters()" 
+                  style="display: none; background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; margin-left: 4px; border-radius: 50%;"
+                  title="ล้างคำค้นหา"
+                  onmouseover="this.style.color='#ef4444'; this.style.background='#f1f5f9';"
+                  onmouseout="this.style.color='#94a3b8'; this.style.background='none';"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 18px;">cancel</span>
+                </button>
               </div>
               <div id="customDropdown" class="custom-dropdown-list hidden"></div>
             </div>
 
             <!-- ตัวกรองตำแหน่งงานเฉพาะเจาะจง (ภาษาไทย + จำนวนคน) -->
-            <select id="posFilter" class="select-input" onchange="renderEmployeeTable()" style="min-width: 210px; height: 42px;">
+            <select id="posFilter" class="select-input" onchange="renderEmployeeTable()" style="min-width: 180px; height: 42px;">
               <option value=""> ทุกตำแหน่งงาน</option>
             </select>
 
             <!-- ตัวกรองแผนก -->
-            <select id="deptFilter" class="select-input" onchange="fillPositionFilter(); renderEmployeeTable();" style="min-width: 210px; height: 42px;">
+            <select id="deptFilter" class="select-input" onchange="fillPositionFilter(); renderEmployeeTable();" style="min-width: 180px; height: 42px;">
               <option value=""> ทุกแผนก</option>
             </select>
+
+            <!-- ปุ่มล้างคำขอค้นหา / ล้างตัวกรอง -->
+            <button 
+              type="button" 
+              class="btn-clear-request" 
+              onclick="clearEmployeeFilters()" 
+              title="ล้างคำขอค้นหาและตัวกรองทั้งหมด"
+              style="height: 42px; padding: 0 16px; background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.2s;"
+              onmouseover="this.style.background='#ffe4e6'; this.style.borderColor='#fda4af';"
+              onmouseout="this.style.background='#fff1f2'; this.style.borderColor='#fecdd3';"
+            >
+              <span class="material-symbols-outlined" style="font-size: 18px;">restart_alt</span>
+              <span>ล้างคำขอ</span>
+            </button>
           </div>
 
           <!-- แถบสรุปจำนวนพนักงานตามตำแหน่งและแผนก -->

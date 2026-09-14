@@ -51,8 +51,13 @@ window.getUserRoleCategory = function(userSession) {
     return { isAuth: true, category: 'employee', role, position, dept };
   }
 
-  // บังคับให้ 3 รหัสนี้เป็นพนักงานธรรมดาเท่านั้น (ห้ามเข้าหน้า HR) ให้ไปใช้ไอดีสำหรับอนุมัติโดยตรง (HR-001, HR-002, HR-003) แทน
-  if (['19122', '19072', '19128'].includes(code)) {
+  // 19122 (น.ส. ปณัยยา บุญเกิด): ผู้จัดการฝ่าย - บุคคล-ธุรการ ให้สิทธิ์เป็น leader_manager (ผู้จัดการฝ่าย HR) มีปุ่มสลับเพื่ออนุมัติคนในแผนก
+  if (code === '19122') {
+    return { isAuth: true, category: 'leader_manager', role: 'manager', position: 'ผู้จัดการฝ่าย', dept: 'บุคคล-ธุรการ' };
+  }
+
+  // พนักงานเจ้าหน้าที่ HR ธรรมดา ให้เป็น employee
+  if (['19072', '19128'].includes(code)) {
     return { isAuth: true, category: 'employee', role: 'employee', position, dept };
   }
 
@@ -132,7 +137,15 @@ window.getUserRoleCategory = function(userSession) {
         return;
       }
     }
-    if (userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager') {
+    const empCode = String(session?.employee_code || session?.employees?.employee_code || '').trim();
+    let userStatus = { category: 'employee' };
+    if (typeof window.getUserRoleCategory === "function") {
+      userStatus = window.getUserRoleCategory(session);
+    }
+    const rawRole = String(session?.role || session?.employees?.role || '').toLowerCase().trim();
+    const isHrExec = userStatus.category === 'hr_exec' || empCode.startsWith('HR-') || (['hr', 'admin', 'superadmin', 'executive', 'director', 'owner'].includes(rawRole) && !['19122', '19072', '19128'].includes(empCode));
+
+    if (isHrExec) {
       window.location.replace("/pages/hr/home.html");
     } else {
       window.location.replace("/pages/user/index-user.html");
@@ -159,7 +172,7 @@ window.getUserRoleCategory = function(userSession) {
     if (!isTrueAdmin) {
       console.warn("🚫 [Auth Guard]: เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าถึงคอนโซลแอดมินได้");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
-      window.location.replace("/pages/hr/home.html");
+      window.location.replace("/pages/user/index-user.html");
       return;
     }
   }
@@ -179,7 +192,7 @@ window.getUserRoleCategory = function(userSession) {
     if (path.includes("management")) {
       console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติพนักงาน -> เด้งไปหน้าหลัก");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
-      window.location.replace("/pages/hr/home.html");
+      window.location.replace("/pages/user/index-user.html");
       return;
     }
   }
@@ -443,9 +456,9 @@ function redirectToDashboard(role, userObj) {
   
   const empCode = String(userObj?.employee_code || userObj?.employees?.employee_code || '').trim();
   
-  // บังคับทุกคนให้เริ่มที่หน้าพนักงานทั่วไปก่อน
-  // ยกเว้นไอดีสำหรับ HR โดยตรง (HR-XXX) ให้ตรงไปหน้าบริหารทันที
-  if (empCode.startsWith('HR-')) {
+  // ผู้บริหาร / HR / Admin -> /pages/hr/home.html
+  // หัวหน้างาน / ผู้จัดการ / พนักงานทั่วไป -> /pages/user/index-user.html
+  if (userStatus.category === 'hr_exec' || empCode.startsWith('HR-') || (['hr', 'admin', 'superadmin', 'executive', 'director', 'owner'].includes(cleanRole) && !['19122', '19072', '19128'].includes(empCode))) {
     targetPath = "/pages/hr/home.html";
   }
   
@@ -824,6 +837,38 @@ function loginByQr() {
       .pvt-qr-reticle-box.scan-success { box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 30px #10b981 !important; }
       .pvt-qr-reticle-box.scan-success .pvt-qr-corner { border-color: #34d399 !important; transform: scale(1.08); }
       .pvt-qr-reticle-box.scan-success .pvt-qr-laser { animation: none; opacity: 0; }
+      .pvt-qr-reticle-box::after {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        border: 3px solid #10b981;
+        border-radius: 22px;
+        opacity: 0;
+        pointer-events: none;
+        box-sizing: border-box;
+      }
+      .pvt-qr-reticle-box.scan-success::after {
+        animation: pvtQrRipple 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      }
+      @keyframes pvtQrRipple {
+        0% {
+          transform: scale(1);
+          opacity: 0.9;
+          border-color: #10b981;
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        }
+        50% {
+          opacity: 0.5;
+          border-color: #34d399;
+          box-shadow: 0 0 15px 5px rgba(52, 211, 153, 0.2);
+        }
+        100% {
+          transform: scale(1.22);
+          opacity: 0;
+          border-color: #059669;
+          box-shadow: 0 0 30px 10px rgba(5, 150, 105, 0);
+        }
+      }
       @keyframes pvtPopSuccess { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
       .pvt-qr-permission-card {
         position: absolute; inset: 20px; margin: auto; max-width: 360px; height: max-content;
@@ -1293,9 +1338,9 @@ function loginByQr() {
     // 2. ส่งเสียงแจ้งเตือน (Chime)
     playBarcodeScanSuccessSound();
 
-    // 3. การสั่นแจ้งเตือน (Haptic)
+    // 3. การสั่นแจ้งเตือน (Haptic) - Enhanced tactile double-vibration pattern
     if (navigator.vibrate) {
-      try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+      try { navigator.vibrate([60, 40, 60, 40, 100]); } catch (e) {}
     }
 
     // 4. แสดงผลตอบรับบน UI (Visual Feedback)
@@ -1527,7 +1572,7 @@ function loginByQr() {
       const decodedText = await html5QrCode.scanFile(file, true);
       playBarcodeScanSuccessSound();
       if (navigator.vibrate) {
-        try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+        try { navigator.vibrate([60, 40, 60, 40, 100]); } catch (e) {}
       }
       await closeModal();
       executeSecureQrLogin(decodedText);
@@ -2548,6 +2593,177 @@ if ('serviceWorker' in navigator) {
         }
       }, 300);
     };
+  }
+})();
+
+// 🍞 [GLOBAL TOAST NOTIFICATION SYSTEM]: Glassmorphic responsive alerts utilizing theme variables
+(function initGlobalToastSystem() {
+  const css = `
+    #pvt-toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 100005;
+      pointer-events: none;
+      font-family: 'Kanit', 'Sarabun', sans-serif;
+    }
+    @media (max-width: 640px) {
+      #pvt-toast-container {
+        top: auto;
+        bottom: 24px;
+        right: 16px;
+        left: 16px;
+        align-items: center;
+      }
+    }
+    .pvt-toast {
+      pointer-events: auto;
+      min-width: 320px;
+      max-width: 440px;
+      background: var(--bg-card, rgba(255, 255, 255, 0.85));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: var(--shadow-card, 0 10px 30px -10px rgba(15, 23, 42, 0.12));
+      border-radius: 16px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transform: translateY(-20px);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .pvt-toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .pvt-toast-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(13, 148, 136, 0.1);
+      color: #0d9488;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .pvt-toast-icon .material-symbols-outlined {
+      font-size: 22px;
+    }
+    .pvt-toast-content {
+      flex-grow: 1;
+    }
+    .pvt-toast-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 3px 0;
+      line-height: 1.3;
+    }
+    .pvt-toast-message {
+      font-size: 12.5px;
+      color: #475569;
+      margin: 0;
+      line-height: 1.4;
+    }
+    .pvt-toast-close {
+      color: #94a3b8;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s, transform 0.2s;
+    }
+    .pvt-toast-close:hover {
+      color: #475569;
+      transform: scale(1.1);
+    }
+  `;
+
+  // Inject Stylesheet
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  // Global Toast function
+  window.showSuccessToast = function(title, message, isBiometric = false) {
+    let container = document.getElementById('pvt-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'pvt-toast-container';
+      document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'pvt-toast';
+    toast.innerHTML = `
+      <div class="pvt-toast-icon">
+        <span class="material-symbols-outlined">${isBiometric ? 'fingerprint' : 'check_circle'}</span>
+      </div>
+      <div class="pvt-toast-content">
+        <div class="pvt-toast-title">${title}</div>
+        <div class="pvt-toast-message">${message}</div>
+      </div>
+      <button class="pvt-toast-close">✖</button>
+    `;
+
+    container.appendChild(toast);
+
+    // Fade and slide in
+    setTimeout(() => {
+      toast.classList.add('show');
+    }, 50);
+
+    // Setup close button
+    const closeBtn = toast.querySelector('.pvt-toast-close');
+    const dismiss = () => {
+      toast.classList.remove('show');
+      setTimeout(() => {
+        toast.remove();
+        if (container.children.length === 0) {
+          container.remove();
+        }
+      }, 400);
+    };
+
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dismiss();
+    });
+
+    // Auto dismiss
+    setTimeout(dismiss, 4500);
+  };
+
+  // Check and process pending toasts on load
+  function checkPendingToasts() {
+    try {
+      const pending = sessionStorage.getItem("login_toast_pending");
+      if (pending) {
+        const data = JSON.parse(pending);
+        if (data && data.title) {
+          window.showSuccessToast(data.title, data.message, data.isBiometric);
+        }
+        sessionStorage.removeItem("login_toast_pending");
+      }
+    } catch (e) {
+      console.warn("Notice: Failed checking pending toasts:", e);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkPendingToasts);
+  } else {
+    checkPendingToasts();
   }
 })();
 

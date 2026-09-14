@@ -141,34 +141,211 @@
       border-radius: 8px;
       font-size: 13px;
     }
+
+    /* 📱 MOBILE TYPOGRAPHY & SPARE SPACING OVERHAUL */
+    @media screen and (max-width: 768px) {
+      /* Shrink padding to maximize readable text width on narrow screens */
+      .content-card {
+        padding: 20px 16px !important;
+        border-radius: 18px !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04) !important;
+      }
+      
+      /* Increase base font-size to 16.5px to guarantee high legibility */
+      .content-card p,
+      .content-card li,
+      .content-card span,
+      .content-card div {
+        font-size: 16px !important;
+        line-height: 1.85 !important;
+        letter-spacing: 0.015em !important;
+      }
+      
+      /* Distinct headings for clear hierarchical division */
+      .content-card h4 {
+        font-size: 18px !important;
+        margin-top: 20px !important;
+        margin-bottom: 12px !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+        line-height: 1.4 !important;
+        border-bottom: 2px solid rgba(6, 182, 212, 0.1) !important;
+        padding-bottom: 8px !important;
+      }
+      
+      /* Generous breathing room between blocks */
+      .content-card > p,
+      .content-card > div,
+      .content-card > section,
+      .grid {
+        margin-bottom: 28px !important;
+      }
+
+      /* Highlight key takeaways with vivid, eye-catching text treatments */
+      .content-card strong {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        color: #0369a1 !important;
+        background-color: #f0f9ff !important;
+        padding: 2px 6px !important;
+        border-radius: 6px !important;
+        border: 1px solid rgba(3, 105, 161, 0.15) !important;
+        display: inline !important;
+      }
+      
+      /* Space list rows as separate readable units instead of dense bullets */
+      .content-card ul {
+        margin-top: 14px !important;
+        margin-bottom: 14px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+      }
+      
+      .content-card ul li {
+        padding-bottom: 12px !important;
+        border-bottom: 1px dashed rgba(6, 182, 212, 0.15) !important;
+        align-items: flex-start !important;
+      }
+      
+      .content-card ul li:last-child {
+        border-bottom: none !important;
+        padding-bottom: 0 !important;
+      }
+
+      /* Takeaway/Warning Banner enhancements with high contrast */
+      .p-5, .p-6, .p-4 {
+        padding: 20px 16px !important;
+        margin-top: 20px !important;
+        margin-bottom: 20px !important;
+        border-radius: 16px !important;
+        border-width: 1px !important;
+      }
+      
+      .bg-emerald-50, .bg-amber-50, .bg-rose-50, .bg-teal-50, .bg-teal-50\/50, .bg-cyan-50\/60 {
+        border-left-width: 5px !important;
+        font-size: 15.5px !important;
+        line-height: 1.8 !important;
+        color: #1e293b !important;
+      }
+
+      .bg-amber-50 {
+        background-color: #fffbeb !important;
+        border-color: #f59e0b !important;
+      }
+      .bg-rose-50 {
+        background-color: #fff1f2 !important;
+        border-color: #f43f5e !important;
+      }
+      .bg-emerald-50 {
+        background-color: #f0fdf4 !important;
+        border-color: #10b981 !important;
+      }
+      .bg-cyan-50\/60, .bg-teal-50\/50, .bg-teal-50 {
+        background-color: #f0fdfa !important;
+        border-color: #06b6d4 !important;
+      }
+
+      /* Quick scroll navigation bar */
+      .mobile-nav-chip {
+        font-size: 14px !important;
+        padding: 8px 16px !important;
+        border-radius: 9999px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        font-weight: 700 !important;
+        transition: all 0.2s ease !important;
+      }
+      
+      .mobile-nav-chip.active {
+        background-color: #06b6d4 !important;
+        color: white !important;
+        border-color: #06b6d4 !important;
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3) !important;
+      }
+
+      /* Clean Language Switcher on mobile - prevents horizontal overflow and scrollbars */
+      #globalLangSwitcherContainer, .lang-switcher {
+        margin: 6px auto 0 auto !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+        max-width: 100% !important;
+      }
+      .lang-switcher {
+        gap: 2px !important;
+        padding: 2px !important;
+        border-radius: 9999px !important;
+        border: 1px solid rgba(13, 148, 136, 0.15) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
+      }
+      .lang-switcher button, .lang-switcher .lang-btn {
+        padding: 3px 8px !important;
+        font-size: 11px !important;
+        height: 22px !important;
+        min-height: 22px !important;
+        line-height: 1 !important;
+      }
+    }
+
+    /* Hide scrollbars globally on any element using scrollbar-none */
+    .scrollbar-none {
+      -ms-overflow-style: none !important;  /* IE and Edge */
+      scrollbar-width: none !important;  /* Firefox */
+    }
+    .scrollbar-none::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
   </style>
 </head>
 <body class="min-h-screen">
 
-  <!-- Header -->
-  <header class="sticky top-0 z-50 glass-card px-6 py-4">
-    <div class="max-w-7xl mx-auto flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-200">
-          <span class="material-symbols-outlined">menu_book</span>
+  <!-- Sticky Unified Navigation Container (Prevents overlapping and layout bugs) -->
+  <div class="sticky top-0 z-50 w-full">
+    <!-- Header -->
+    <header class="glass-card px-3 py-2.5 md:px-6 md:py-4">
+      <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
+        <div class="flex items-center gap-2 md:gap-3 min-w-0">
+          <div class="w-8 h-8 md:w-10 md:h-10 bg-cyan-500 rounded-lg md:rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-200 flex-shrink-0">
+            <span class="material-symbols-outlined text-lg md:text-2xl">menu_book</span>
+          </div>
+          <div class="min-w-0">
+            <h1 class="heading-font text-sm md:text-lg font-bold text-slate-800 leading-tight truncate">PVT User Manual</h1>
+            <p class="text-[10px] md:text-xs text-cyan-600 font-medium truncate">คู่มือการใช้งานระบบพนักงาน (ฉบับสมบูรณ์)</p>
+          </div>
         </div>
-        <div>
-          <h1 class="heading-font text-lg font-bold text-slate-800 leading-tight">PVT User Manual</h1>
-          <p class="text-xs text-cyan-600 font-medium">คู่มือการใช้งานระบบพนักงาน (ฉบับสมบูรณ์)</p>
+        <div class="flex items-center gap-1.5 md:gap-3 flex-shrink-0">
+          <button type="button" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ" class="flex items-center gap-1 md:gap-2 px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-white hover:bg-cyan-50 text-slate-700 font-bold text-xs md:text-sm transition-all border border-slate-200 cursor-pointer shadow-sm">
+            <span class="material-symbols-outlined text-base md:text-lg text-cyan-600">settings</span>
+            <span class="hidden md:inline">ตั้งค่า</span>
+          </button>
+          <button type="button" onclick="history.back()" class="flex items-center gap-1 md:gap-2 px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-xs md:text-sm transition-all border border-slate-200 cursor-pointer">
+            <span class="material-symbols-outlined text-base md:text-lg">arrow_back</span>
+            <span class="hidden md:inline">ย้อนกลับ</span>
+          </button>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <button type="button" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, เชื่อมต่อ LINE)" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-cyan-50 text-slate-700 font-bold text-sm transition-all border border-slate-200 cursor-pointer shadow-sm">
-          <span class="material-symbols-outlined text-lg text-cyan-600">settings</span>
-          ตั้งค่า
-        </button>
-        <button type="button" onclick="history.back()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-sm transition-all border border-slate-200 cursor-pointer">
-          <span class="material-symbols-outlined text-lg">arrow_back</span>
-          ย้อนกลับ
-        </button>
+    </header>
+
+    <!-- Mobile Horizontal Scroll Navigation (Hides on Desktop) -->
+    <div class="block lg:hidden bg-white/95 backdrop-blur-md border-b border-slate-200 overflow-x-auto py-2.5 px-4 shadow-sm scrollbar-none" style="-webkit-overflow-scrolling: touch;">
+      <div class="flex gap-2 whitespace-nowrap">
+        <a href="#login" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">การเข้าสู่ระบบ</a>
+        <a href="#dashboard" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">หน้าแผงควบคุม (Dashboard)</a>
+        <a href="#leave-request" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">ขั้นตอนการยื่นใบลา</a>
+        <a href="#sla-tracker" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">ระบบติดตามนโยบาย SLA 2 วัน</a>
+        <a href="#leave-history" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">ตรวจสอบสถานะและประวัติ</a>
+        <a href="#line-link" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">การเชื่อมต่อ LINE</a>
+        <a href="#calendar" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">การใช้งานปฏิทิน</a>
+        <a id="chip-manager-section" href="#manager" style="display: none;" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">สำหรับหัวหน้าแผนก (L1)</a>
+        <a id="chip-hr-section" href="#hr" style="display: none;" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">สำหรับฝ่ายบุคคล (HR L2)</a>
+        <a href="#faq" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">คำถามพบบ่อย (FAQ)</a>
+        <a href="#pwa" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-cyan-600 text-white transition-all border border-cyan-500">ติดตั้งเป็นแอปมือถือ</a>
       </div>
     </div>
-  </header>
+  </div>
 
   <div class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-10">
     
@@ -853,21 +1030,26 @@
       if (userRole === 'manager' || userRole === 'admin' || userRole === 'hr') {
         const sidebarManager = document.getElementById('sidebar-manager-section');
         const contentManager = document.getElementById('manager');
+        const chipManager = document.getElementById('chip-manager-section');
         if(sidebarManager) sidebarManager.style.display = 'block';
         if(contentManager) contentManager.style.display = 'block';
+        if(chipManager) chipManager.style.display = 'inline-flex';
       }
       
       if (userRole === 'hr' || userRole === 'admin') {
         const sidebarHR = document.getElementById('sidebar-hr-section');
         const contentHR = document.getElementById('hr');
+        const chipHR = document.getElementById('chip-hr-section');
         if(sidebarHR) sidebarHR.style.display = 'block';
         if(contentHR) contentHR.style.display = 'block';
+        if(chipHR) chipHR.style.display = 'inline-flex';
       }
     });
 
     // Simple Active Nav Highlighting
     const sections = document.querySelectorAll('section');
     const navLinks = document.querySelectorAll('.nav-link');
+    const mobileChips = document.querySelectorAll('.mobile-nav-chip');
 
     window.addEventListener('scroll', () => {
       let current = '';
@@ -875,7 +1057,7 @@
         // Only consider sections that are actually visible
         if (section.style.display !== 'none') {
           const sectionTop = section.offsetTop;
-          if (window.pageYOffset >= sectionTop - 150) {
+          if (window.pageYOffset >= sectionTop - 200) {
             current = section.getAttribute('id');
           }
         }
@@ -885,6 +1067,15 @@
         link.classList.remove('active');
         if (link.getAttribute('href').includes('#' + current)) {
           link.classList.add('active');
+        }
+      });
+
+      mobileChips.forEach(chip => {
+        chip.classList.remove('active');
+        if (chip.getAttribute('href').includes('#' + current)) {
+          chip.classList.add('active');
+          // Auto-scroll the chips row horizontally to keep the active chip visible
+          chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
       });
     });

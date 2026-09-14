@@ -302,23 +302,86 @@ window.loadRecentLeaves = async function(profile) {
           else if (rawName.includes("คลอด") || rawName.includes("Matern")) leaveName = window.getPVTTranslation("leaveMaternity");
         }
 
+        // 🎨 กำหนดคู่สีและไอคอนตามประเภทวันลา (Color theme per leave type)
+        let typeConfig = {
+          icon: "event_note",
+          iconBg: "#e0f2fe",
+          iconColor: "#0284c7",
+          borderAccent: "#0284c7",
+          tagBg: "#f0f9ff",
+          tagColor: "#0369a1"
+        };
+
+        if (rawName.includes("ป่วย") || rawName.includes("Sick")) {
+          typeConfig = {
+            icon: "medication",
+            iconBg: "#ffe4e6",
+            iconColor: "#e11d48",
+            borderAccent: "#f43f5e",
+            tagBg: "#fff1f2",
+            tagColor: "#be123c"
+          };
+        } else if (rawName.includes("พักผ่อน") || rawName.includes("พักร้อน") || rawName.includes("Annual")) {
+          typeConfig = {
+            icon: "beach_access",
+            iconBg: "#d1fae5",
+            iconColor: "#059669",
+            borderAccent: "#10b981",
+            tagBg: "#ecfdf5",
+            tagColor: "#047857"
+          };
+        } else if (rawName.includes("กิจ") || rawName.includes("Business")) {
+          typeConfig = {
+            icon: "business_center",
+            iconBg: "#fef3c7",
+            iconColor: "#d97706",
+            borderAccent: "#f59e0b",
+            tagBg: "#fffbeb",
+            tagColor: "#b45309"
+          };
+        } else if (rawName.includes("คลอด") || rawName.includes("Matern")) {
+          typeConfig = {
+            icon: "child_friendly",
+            iconBg: "#f3e8ff",
+            iconColor: "#9333ea",
+            borderAccent: "#a855f7",
+            tagBg: "#faf5ff",
+            tagColor: "#7e22ce"
+          };
+        } else if (rawName.includes("บวช") || rawName.includes("ฌาปนกิจ") || rawName.includes("หมัน")) {
+          typeConfig = {
+            icon: "diversity_3",
+            iconBg: "#ede9fe",
+            iconColor: "#7c3aed",
+            borderAccent: "#8b5cf6",
+            tagBg: "#f5f3ff",
+            tagColor: "#6d28d9"
+          };
+        }
+
         let displayStatus = item.status;
-        let badgeStyle = "background:#fff3cd; color:#854d0e; border:1px solid #fde047;"; 
+        let badgeStyle = "background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; border: 1px solid #fcd34d;"; 
+        let statusIcon = "schedule";
                 
         if (item.status === "approved") {
-          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusApproved") : "อนุมัติ";
-          badgeStyle = "background:#d1e7dd; color:#0f5132; border:1px solid #badbcc;";
+          displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusApproved") : "อนุมัติแล้ว";
+          badgeStyle = "background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #166534; border: 1px solid #86efac;";
+          statusIcon = "check_circle";
         } else if (item.status === "cancelled" || item.status === "cancelled_by_user" || item.cancel_status === "approved") {
           displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusCancelled") : "ยกเลิกแล้ว";
-          badgeStyle = "background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;";
+          badgeStyle = "background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); color: #475569; border: 1px solid #cbd5e1;";
+          statusIcon = "cancel";
         } else if (item.status === "cancel_pending" || item.cancel_status === "pending") {
           displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusCancelReq") : "รออนุมัติยกเลิก";
-          badgeStyle = "background:#ffedd5; color:#c2410c; border:1px solid #fed7aa;";
+          badgeStyle = "background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); color: #c2410c; border: 1px solid #fdba74;";
+          statusIcon = "pending_actions";
         } else if (item.status === "rejected") {
           displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusRejected") : "ไม่อนุมัติ";
-          badgeStyle = "background:#f8d7da; color:#842029; border:1px solid #f5c2c7;";
+          badgeStyle = "background: linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%); color: #9f1239; border: 1px solid #fda4af;";
+          statusIcon = "highlight_off";
         } else if (item.status === "pending") {
           displayStatus = window.getPVTTranslation ? window.getPVTTranslation("statusPending") : "รออนุมัติ";
+          statusIcon = "hourglass_top";
         }
 
         const durationDisplay = window.PVTSDK?.formatLeaveDurationFriendly
@@ -326,17 +389,39 @@ window.loadRecentLeaves = async function(profile) {
           : `${item.total_days} ${unitDays}`;
 
         return `
-          <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <strong class="leave-type-title" data-raw-cat="${safeEscapeHtml(rawName)}" style="font-size: 15px; color: #0f172a;">${leaveName}</strong>
-              <span class="status ${item.status}" data-raw-status="${item.status}" style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; ${badgeStyle}">${displayStatus}</span>
+          <article class="recent-item" style="margin-bottom: 12px; padding: 14px 16px; background: #ffffff; border: 1px solid #e2e8f0; border-left: 5px solid ${typeConfig.borderAccent}; border-radius: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); transition: all 0.2s ease;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: ${typeConfig.iconBg}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid ${typeConfig.tagBg};">
+                  <span class="material-symbols-outlined" style="font-size: 20px; color: ${typeConfig.iconColor};">${typeConfig.icon}</span>
+                </div>
+                <div>
+                  <strong class="leave-type-title" data-raw-cat="${safeEscapeHtml(rawName)}" style="font-size: 15px; font-weight: 700; color: #0f172a; display: block; line-height: 1.2;">${leaveName}</strong>
+                  <span style="font-size: 11px; background: ${typeConfig.tagBg}; color: ${typeConfig.tagColor}; padding: 1px 6px; border-radius: 6px; font-weight: 600; display: inline-block; margin-top: 2px;">คำขอลา</span>
+                </div>
+              </div>
+              <span class="status ${item.status}" data-raw-status="${item.status}" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); ${badgeStyle}">
+                <span class="material-symbols-outlined" style="font-size: 14px;">${statusIcon}</span>
+                ${displayStatus}
+              </span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #64748b;">
-              <div>📅 ${labelDates} <span style="color: #334155; font-weight: 500;">${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span></div>
-              <div>⏱️ ${labelDuration} <span style="color: #0fa472; font-weight: 600;">${durationDisplay}</span></div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 10px; border-radius: 8px; font-size: 12.5px; color: #334155; display: inline-flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 15px; color: #64748b;">calendar_month</span>
+                <span>${labelDates}</span>
+                <strong style="color: #0f172a;">${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</strong>
+              </div>
+
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 5px 10px; border-radius: 8px; font-size: 12.5px; color: #166534; display: inline-flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 15px; color: #10b981;">schedule</span>
+                <span>${labelDuration}</span>
+                <strong style="color: #047857;">${durationDisplay}</strong>
+              </div>
             </div>
-            <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
-              <button type="button" class="btn-timeline-stepper" onclick="openVisualTimelineModal('${item.id}')" style="padding: 5px 12px; background: #f0fdfa; border: 1px solid #99f6e4; color: #0d9488; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+
+            <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px dashed #f1f5f9; padding-top: 8px;">
+              <button type="button" class="btn-timeline-stepper" onclick="openVisualTimelineModal('${item.id}')" style="padding: 5px 12px; background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); border: 1px solid #99f6e4; color: #0d9488; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 1px 3px rgba(13,148,136,0.1); transition: all 0.2s;">
                 <span class="material-symbols-outlined" style="font-size: 16px;">timeline</span>
                 ติดตามขั้นตอน (Stepper)
               </button>
@@ -344,7 +429,7 @@ window.loadRecentLeaves = async function(profile) {
           </article>
         `;
       }).join(""); 
-      recentList.innerHTML = `<div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">${listHtml}</div>`;
+      recentList.innerHTML = `<div style="max-height: 420px; overflow-y: auto; padding-right: 5px;">${listHtml}</div>`;
     }
   } catch (error) {
     console.error("❌ loadRecentLeaves Error:", error);
@@ -586,13 +671,40 @@ function checkApproverPermission(profileData) {
   }
 
   const code = String(emp?.employee_code || profileData?.employee_code || "").trim();
-  if (['19122', '19072', '19128'].includes(code)) {
+  if (code === '19122') {
+    // น.ส. ปณัยยา บุญเกิด: ผู้จัดการฝ่าย HR บุคคล-ธุรการ ให้เป็น Approver มีปุ่มสลับเพื่ออนุมัติคนในแผนก
+    isApprover = true;
+  } else if (['19072', '19128'].includes(code)) {
     isApprover = false;
   }
 
-  if (switchBtn) {
-    switchBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
+  const approverContainer = document.getElementById("approverActionContainer");
+  const deptApprovalBtn = document.getElementById("btnSwitchDeptApproval");
+
+  // ตรวจสอบว่าควรแสดงปุ่มแบบไหน (แสดงเพียง 1 ปุ่มที่เหมาะสมกับบทบาท ไม่ให้มี 2 ปุ่มซ้อนกัน)
+  const isTopExecutive = ["executive", "owner", "superadmin", "director"].includes(userRole) || 
+                         positionName.includes("กรรมการผู้จัดการ") || 
+                         positionName.includes("ประธาน") || 
+                         positionName.includes("ผู้บริหารระดับสูง");
+
+  if (approverContainer) {
+    approverContainer.style.setProperty("display", isApprover ? "flex" : "none", "important");
   }
+
+  if (isTopExecutive && isApprover) {
+    // 🏛️ ผู้บริหารระดับสูง: แสดงปุ่มเข้าสู่หน้าหลักภาพรวมองค์กร (Home)
+    if (switchBtn) switchBtn.style.setProperty("display", "flex", "important");
+    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "none", "important");
+  } else if (isApprover) {
+    // 👥 หัวหน้างานและผู้จัดการฝ่าย (รวมถึงคุณปณัยยา 19122): แสดงปุ่มตรวจและอนุมัติใบลาคนในแผนก (HR)
+    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "flex", "important");
+    if (switchBtn) switchBtn.style.setProperty("display", "none", "important");
+  } else {
+    // 👤 พนักงานทั่วไป: ซ่อนปุ่มทั้งหมด
+    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "none", "important");
+    if (switchBtn) switchBtn.style.setProperty("display", "none", "important");
+  }
+
   if (statsBtn) {
     statsBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
   }
@@ -714,23 +826,41 @@ async function initUserNotifications(profile) {
 }
 
 function setupUserNotifClickOutside() {
-  document.addEventListener("click", (e) => {
+  const handleClose = (e) => {
     const dropdown = document.getElementById("userNotifDropdown");
-    const btn = document.getElementById("notificationBtn");
+    const btn = document.getElementById("notificationBtn") || document.getElementById("notifBellBtn");
     if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
       dropdown.style.display = "none";
+      dropdown.classList.remove("show");
     }
-  });
+  };
+
+  document.addEventListener("click", handleClose);
+  document.addEventListener("touchstart", (e) => {
+    const dropdown = document.getElementById("userNotifDropdown");
+    const btn = document.getElementById("notificationBtn") || document.getElementById("notifBellBtn");
+    if (dropdown && (dropdown.style.display === "flex" || dropdown.classList.contains("show"))) {
+      if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+        dropdown.style.display = "none";
+        dropdown.classList.remove("show");
+      }
+    }
+  }, { passive: true });
 }
 
 function toggleUserNotifDropdown(event) {
   if (event) event.stopPropagation();
   const dropdown = document.getElementById("userNotifDropdown");
   if (!dropdown) return;
-  if (dropdown.style.display === "flex") {
+  const isShowing = dropdown.style.display === "flex" || dropdown.classList.contains("show");
+  if (isShowing) {
     dropdown.style.display = "none";
+    dropdown.classList.remove("show");
+    document.body.classList.remove("notif-open");
   } else {
     dropdown.style.display = "flex";
+    dropdown.classList.add("show");
+    document.body.classList.add("notif-open");
     fetchUserNotifications();
   }
 }
@@ -741,9 +871,13 @@ async function fetchUserNotifications() {
   if (!sb || !profile) return;
 
   const myId = profile.id || profile.employee_id;
-  const myRole = (profile.role || "user").toLowerCase();
+  const myEmpCode = String(profile.employee_code || "").trim();
+  let myRole = (profile.role || "user").toLowerCase();
+  if (myEmpCode === '19122') {
+    myRole = 'manager';
+  }
   const myDeptName = profile.departments?.department_name || profile.department_name || "";
-  const myDeptId = profile.department_id || "";
+  const myDeptId = profile.department_id || (myEmpCode === '19122' ? 'a318f70f-8e24-4e36-958a-7726d6c9da4d' : "");
 
   try {
     let notificationsList = [];
@@ -804,7 +938,7 @@ async function fetchUserNotifications() {
     if (approverRoles.includes(myRole)) {
       const { data: leaveRequests } = await sb
         .from("leave_requests")
-        .select("id, created_at, status, start_date, end_date, total_days, leave_types(leave_name), employees(full_name, role, department_id, departments!department_id(department_name))")
+        .select("id, employee_id, created_at, status, start_date, end_date, total_days, leave_types(leave_name), employees(id, full_name, role, department_id, departments(department_name))")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
@@ -835,7 +969,7 @@ async function fetchUserNotifications() {
             const isSameDept = (myDeptId || myDeptName)
               ? (String(reqDeptId) === String(myDeptId) || String(reqDeptName).toLowerCase() === String(myDeptName).toLowerCase())
               : true;
-            return isSameDept && reqEmpRole === "leader";
+            return isSameDept && !['director', 'executive', 'owner'].includes(reqEmpRole);
           }
 
           if (myRole === "director" || myRole === "executive" || myRole === "owner") {
@@ -945,23 +1079,23 @@ function formatCleanNotification(title, rawMessage) {
     };
   }
 
-  // แปลงแต่ละบรรทัดให้เป็น Tag ชัดเจนสวยงาม
+  // แปลงแต่ละบรรทัดให้เป็น Tag ชัดเจนสวยงาม ตัวหนังสือขนาดใหญ่ อ่านง่าย
   const formattedLines = lines.map(line => {
     if (line.includes('เหตุผลที่ไม่ผ่าน') || line.includes('เหตุผลที่ยกเลิก') || line.includes('⚠️')) {
-      return `<div style="background: #fff1f2; color: #be123c; padding: 3px 8px; border-radius: 6px; border: 1px solid #fecdd3; font-weight: 600; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+      return `<div style="background: #fff1f2; color: #be123c; padding: 6px 12px; border-radius: 8px; border: 1.5px solid #fecdd3; font-weight: 700; font-size: 13.5px; margin-top: 4px; line-height: 1.45;">${line}</div>`;
     }
     if (line.includes('ความเห็นหัวหน้า') || line.includes('ความเห็นผู้จัดการ')) {
-      return `<div style="background: #f0fdf4; color: #166534; padding: 3px 8px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+      return `<div style="background: #f0fdf4; color: #166534; padding: 6px 12px; border-radius: 8px; border: 1.5px solid #bbf7d0; font-size: 13.5px; font-weight: 600; margin-top: 4px; line-height: 1.45;">${line}</div>`;
     }
     if (line.startsWith('👉')) {
-      return `<div style="color: #0d9488; font-weight: 600; font-size: 11.5px; margin-top: 2px;">${line}</div>`;
+      return `<div style="color: #0d9488; font-weight: 700; font-size: 14px; margin-top: 4px;">${line}</div>`;
     }
-    return `<div style="line-height: 1.45;">${line}</div>`;
+    return `<div style="line-height: 1.55; font-size: 14px; color: #334155;">${line}</div>`;
   });
 
   return {
     title: cleanTitle,
-    bodyHtml: `<div class="notif-parsed-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #475569; margin-top: 4px;">${formattedLines.join('')}</div>`
+    bodyHtml: `<div class="notif-parsed-list" style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #334155; margin-top: 6px;">${formattedLines.join('')}</div>`
   };
 }
 
@@ -989,16 +1123,16 @@ function formatCleanNotification(title, rawMessage) {
       const formatted = formatCleanNotification(n.title, n.message);
 
       html += `
-        <div class="notif-item unread" onclick="handleUserNotifClick('${n.id}', '${n.link}')" style="display: flex; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.15s; background: #ffffff; text-align: left; align-items: flex-start;">
-          <div style="width: 36px; height: 36px; border-radius: 50%; background: ${iconBg}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <span class="material-symbols-outlined" style="font-size: 20px; color: ${iconColor};">${iconName}</span>
+        <div class="notif-item unread" onclick="handleUserNotifClick('${n.id}', '${n.link}')" style="display: flex; gap: 14px; padding: 16px 18px; border-bottom: 1.5px solid #f1f5f9; cursor: pointer; transition: background 0.15s; background: #ffffff; text-align: left; align-items: flex-start;">
+          <div style="width: 46px; height: 46px; border-radius: 14px; background: ${iconBg}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+            <span class="material-symbols-outlined" style="font-size: 26px; color: ${iconColor};">${iconName}</span>
           </div>
           <div style="flex: 1; min-width: 0;">
-            <div style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.35; margin-bottom: 2px;">${formatted.title}</div>
+            <div style="font-size: 16px; font-weight: 750; color: #0f172a; line-height: 1.4; margin-bottom: 4px;">${formatted.title}</div>
             ${formatted.bodyHtml}
-            <span style="font-size: 10.5px; color: #94a3b8; display: block; margin-top: 5px;">🕒 ${thaiTime}</span>
+            <span style="font-size: 13px; color: #64748b; font-weight: 500; display: block; margin-top: 6px;">🕒 ${thaiTime}</span>
           </div>
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: #0ea5e9; flex-shrink: 0; margin-top: 6px;"></div>
+          <div style="width: 10px; height: 10px; border-radius: 50%; background: #0284c7; flex-shrink: 0; margin-top: 6px; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);"></div>
         </div>
       `;
     });
@@ -1108,21 +1242,21 @@ function openNotificationModal() {
 
 function renderStepStatus(status) {
   if (status === 'approved' || status === 'pass') {
-    return `<span style="color:#10b981; font-weight:700; font-size:11px;">✅ อนุมัติ</span>`;
+    return `<span style="color:#10b981; font-weight:700; font-size:13px;">✅ อนุมัติ</span>`;
   } else if (status === 'rejected' || status === 'fail') {
-    return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ไม่ผ่าน</span>`;
+    return `<span style="color:#ef4444; font-weight:700; font-size:13px;">❌ ไม่ผ่าน</span>`;
   } else {
-    return `<span style="color:#d97706; font-weight:600; font-size:11px;">⏳ รอพิจารณา</span>`;
+    return `<span style="color:#d97706; font-weight:600; font-size:13px;">⏳ รอพิจารณา</span>`;
   }
 }
 
 function renderCancelStepStatus(cancelStatus) {
   if (cancelStatus === 'approved' || cancelStatus === 'cancelled') {
-    return `<span style="color:#475569; font-weight:700; font-size:11px;">🚫 ยกเลิกสำเร็จ</span>`;
+    return `<span style="color:#475569; font-weight:700; font-size:13px;">🚫 ยกเลิกสำเร็จ</span>`;
   } else if (cancelStatus === 'rejected') {
-    return `<span style="color:#ef4444; font-weight:700; font-size:11px;">❌ ปฏิเสธการยกเลิก</span>`;
+    return `<span style="color:#ef4444; font-weight:700; font-size:13px;">❌ ปฏิเสธการยกเลิก</span>`;
   } else {
-    return `<span style="color:#ea580c; font-weight:600; font-size:11px;">⏳ รออนุมัติยกเลิก</span>`;
+    return `<span style="color:#ea580c; font-weight:600; font-size:13px;">⏳ รออนุมัติยกเลิก</span>`;
   }
 }
 
@@ -1191,16 +1325,16 @@ async function openEmployeeStatusTrackerModal() {
       const leaveName = safeEscapeHtml(item.leave_types?.leave_name || "ใบลา");
       const days = item.total_days || 1;
 
-      let overallBadge = `<span style="background:#fef3c7; color:#b45309; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">⏳ อยู่ระหว่างพิจารณา</span>`;
+      let overallBadge = `<span style="background:#fef3c7; color:#b45309; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:700;">⏳ อยู่ระหว่างพิจารณา</span>`;
       
       if (item.status === "approved") {
-        overallBadge = `<span style="background:#d1e7dd; color:#0f5132; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">✅ อนุมัติเรียบร้อย</span>`;
+        overallBadge = `<span style="background:#d1e7dd; color:#0f5132; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:700;">✅ อนุมัติเรียบร้อย</span>`;
       } else if (item.status === "rejected") {
-        overallBadge = `<span style="background:#f8d7da; color:#842029; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">❌ ไม่อนุมัติ</span>`;
+        overallBadge = `<span style="background:#f8d7da; color:#842029; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:700;">❌ ไม่อนุมัติ</span>`;
       } else if (item.status === "cancel_pending" || item.cancel_status === "pending") {
-        overallBadge = `<span style="background:#ffedd5; color:#c2410c; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">⏳ รออนุมัติยกเลิก</span>`;
+        overallBadge = `<span style="background:#ffedd5; color:#c2410c; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:700;">⏳ รออนุมัติยกเลิก</span>`;
       } else if (item.status === "cancelled" || item.cancel_status === "approved") {
-        overallBadge = `<span style="background:#e2e8f0; color:#475569; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700;">🚫 ยกเลิกแล้ว</span>`;
+        overallBadge = `<span style="background:#e2e8f0; color:#475569; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:700;">🚫 ยกเลิกแล้ว</span>`;
       }
 
       const isCancellationFlow = item.status === "cancel_pending" || item.status === "cancelled" || item.cancel_status;
@@ -1226,40 +1360,40 @@ async function openEmployeeStatusTrackerModal() {
       });
 
       return `
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="font-size: 15px; color: #0f172a;">📝 ${leaveName} (${days} วัน)</strong>
+        <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 14px; text-align: left; box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+            <strong style="font-size: 17px; color: #0f172a; font-weight: 750;">📝 ${leaveName} (${days} วัน)</strong>
             ${overallBadge}
           </div>
           
-          <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+          <div style="font-size: 14px; color: #475569; margin-bottom: 14px;">
             <span>📅 ${formatThaiDate(item.start_date)} - ${formatThaiDate(item.end_date)}</span>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(${steps.length}, 1fr); gap: 6px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #f1f5f9; text-align: center;">
+          <div style="display: grid; grid-template-columns: repeat(${steps.length}, 1fr); gap: 8px; background: #f8fafc; padding: 12px; border-radius: 14px; border: 1px solid #f1f5f9; text-align: center;">
             ${steps.map((step, sIdx) => `
-              <div style="${sIdx < steps.length - 1 ? 'border-right: 1px solid #e2e8f0; padding-right: 4px;' : ''}">
-                <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">${sIdx + 1}. ${step.title}</div>
+              <div style="${sIdx < steps.length - 1 ? 'border-right: 1px solid #e2e8f0; padding-right: 6px;' : ''}">
+                <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">${sIdx + 1}. ${step.title}</div>
                 ${renderStepStatus(step.status)}
               </div>
             `).join('')}
           </div>
 
           ${isCancellationFlow ? `
-            <div style="margin-top: 8px; background: #fff7ed; padding: 8px 12px; border-radius: 10px; border: 1px solid #ffedd5; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 11px; color: #c2410c; font-weight: 600;">🔄 คำร้องขอยกเลิก:</span>
+            <div style="margin-top: 10px; background: #fff7ed; padding: 10px 14px; border-radius: 10px; border: 1px solid #fed7aa; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13.5px; color: #c2410c; font-weight: 700;">🔄 คำร้องขอยกเลิก:</span>
               ${hrCancelStep}
             </div>
           ` : ''}
 
           ${item.cancel_reason ? `
-            <div style="margin-top: 8px; font-size: 11px; color: #9a3412; background: #fff7ed; border: 1px solid #ffedd5; padding: 6px 10px; border-radius: 6px;">
+            <div style="margin-top: 10px; font-size: 13.5px; color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; padding: 8px 12px; border-radius: 8px; line-height: 1.45;">
               <b>เหตุผลที่ขอยกเลิก:</b> ${safeEscapeHtml(item.cancel_reason)}
             </div>
           ` : ''}
 
           ${item.approval_comment ? `
-            <div style="margin-top: 8px; font-size: 11px; color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 6px;">
+            <div style="margin-top: 10px; font-size: 13.5px; color: #334155; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 8px; line-height: 1.45;">
               <b>💬 หมายเหตุผู้อนุมัติ:</b> ${safeEscapeHtml(item.approval_comment)}
             </div>
           ` : ''}
@@ -1270,10 +1404,10 @@ async function openEmployeeStatusTrackerModal() {
     if (typeof Swal !== 'undefined') {
       Swal.fire({
         title: '🔔 ติดตามสถานะการอนุมัติ',
-        html: `<div style="max-height: 420px; overflow-y: auto; padding-right: 4px;">${cardsHtml}</div>`,
-        width: '480px',
+        html: `<div style="max-height: 460px; overflow-y: auto; padding-right: 6px;">${cardsHtml}</div>`,
+        width: '540px',
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#06b6d4'
+        confirmButtonColor: '#0284c7'
       });
     }
 
@@ -1287,13 +1421,13 @@ function openApproverNotificationModal() {
   const pendingCount = document.getElementById("notifBadge")?.innerText || "0";
   if (typeof Swal !== 'undefined') {
     Swal.fire({
-      title: '🔔 รายการแจ้งเตือนการอนุมัติ',
-      html: `มีใบลาที่รอการอนุมัติอยู่ทั้งหมด <b style="color:#eab308; font-size:20px;">${pendingCount}</b> รายการ`,
+      title: '🔔 แจ้งเตือนรายการรออนุมัติ',
+      html: `<div style="font-size: 16px; padding: 10px 0; line-height: 1.5;">มีใบลาที่รอคุณพิจารณาอนุมัติทั้งหมด <b style="color:#d97706; font-size:28px; font-weight:800;">${pendingCount}</b> รายการ</div>`,
       icon: 'info',
       showCancelButton: true,
       confirmButtonText: '🔎 ไปยังระบบอนุมัติ',
       cancelButtonText: 'ปิด',
-      confirmButtonColor: '#3b82f6'
+      confirmButtonColor: '#0284c7'
     }).then((result) => {
       if (result.isConfirmed) window.location.href = '/pages/hr/hr.html';
     });
@@ -2750,10 +2884,13 @@ window.openVisualTimelineModal = async function(leaveId) {
   const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
   const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
   const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
-  const isApplicantHr = applicantRole === 'hr' || applicantRole.includes('hr') || applicantRole.includes('admin') || applicantRole === 'superadmin';
+  const isApplicantExecutive = applicantRole === 'director' || applicantRole === 'executive' || applicantRole === 'owner' || applicantPos.includes('ผู้อำนวยการ') || applicantPos.includes('ผู้บริหาร');
 
   let hasL1 = false;
   let hasL2 = false;
+
+  const deptName = String(req.departments?.department_name || reqEmp.departments?.department_name || '').toLowerCase();
+  const isHrDept = deptName.includes('บุคคล') || deptName.includes('hr') || deptName.includes('ทรัพยากรบุคคล') || applicantRole === 'hr' || applicantRole.includes('hr');
 
   // ตรวจสอบจาก department_approvers cache หรือคำนวณสด
   try {
@@ -2772,12 +2909,18 @@ window.openVisualTimelineModal = async function(leaveId) {
     console.warn("Could not check dept approvers for timeline modal:", e);
   }
 
+  // แผนกบุคคล (HR) ไม่มีหัวหน้า มีแต่ผู้จัดการฝ่าย
+  if (isHrDept) {
+    hasL1 = false;
+    hasL2 = true;
+  }
+
   // Individual override check
-  if (reqEmp.l1_approver_id) hasL1 = true;
+  if (!isHrDept && reqEmp.l1_approver_id) hasL1 = true;
   if (reqEmp.l2_approver_id) hasL2 = true;
 
   if (isApplicantLeader) hasL1 = false;
-  if (isApplicantManager || isApplicantHr) {
+  if (isApplicantManager || isApplicantExecutive) {
     hasL1 = false;
     hasL2 = false;
   }
@@ -2885,8 +3028,42 @@ window.openVisualTimelineModal = async function(leaveId) {
       `).join('')}
     </div>
 
+    ${(req.cancel_reason || (req.approval_comment && req.approval_comment.includes('ยกเลิก')) || req.status === 'cancelled' || req.status === 'cancel_requested') ? `
+      <div style="margin-top: 20px; background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 12px; padding: 12px 16px; color: #9f1239;">
+        <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13.5px;">
+          <span class="material-symbols-outlined" style="font-size: 18px; color: #e11d48;">warning</span>
+          <span>เหตุผลการยกเลิกใบลา (Cancellation Reason):</span>
+        </div>
+        <div style="font-size: 13px; line-height: 1.5; color: #881337; font-weight: 500;">
+          ${escapeHtml(req.cancel_reason || req.approval_comment || 'ไม่ได้ระบุเหตุผล')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${(req.status === 'rejected' && req.approval_comment && !req.approval_comment.includes('ยกเลิก')) ? `
+      <div style="margin-top: 20px; background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 12px; padding: 12px 16px; color: #9f1239;">
+        <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13.5px;">
+          <span class="material-symbols-outlined" style="font-size: 18px; color: #dc2626;">cancel</span>
+          <span>เหตุผลที่ไม่อนุมัติ (จากหัวหน้างาน/ผู้จัดการ):</span>
+        </div>
+        <div style="font-size: 13px; line-height: 1.5; color: #881337; font-weight: 500;">
+          ${escapeHtml(req.approval_comment)}
+        </div>
+      </div>
+    ` : (req.approval_comment && !req.approval_comment.includes('ยกเลิก') && req.status !== 'cancelled') ? `
+      <div style="margin-top: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; color: #334155;">
+        <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13px;">
+          <span class="material-symbols-outlined" style="font-size: 17px; color: #0d9488;">chat</span>
+          <span>ความคิดเห็นจากผู้อนุมัติ:</span>
+        </div>
+        <div style="font-size: 13px; line-height: 1.5; color: #475569;">
+          ${escapeHtml(req.approval_comment)}
+        </div>
+      </div>
+    ` : ''}
+
     <!-- Helpful reassurance note -->
-    <div style="margin-top: 24px; padding: 12px 16px; background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 12px; font-size: 12px; color: #0f766e; display: flex; gap: 8px; align-items: flex-start;">
+    <div style="margin-top: 20px; padding: 12px 16px; background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 12px; font-size: 12px; color: #0f766e; display: flex; gap: 8px; align-items: flex-start;">
       <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488; flex-shrink: 0; margin-top: 1px;">info</span>
       <span>
         <strong>คำแนะนำ:</strong> พนักงานสามารถเปิดดูสถานะและขั้นตอนแบบ Stepper จากหน้านี้ได้ตลอดเวลา โดยระบบจะอัปเดตแบบเรียลไทม์ทันทีที่ผู้มีอำนาจกดอนุมัติ จึงไม่ต้องทักข้อความติดตามเป็นการส่วนตัวครับ
@@ -3155,9 +3332,23 @@ window.loadLeaveStatsDashboardData = async function() {
     // Also get current user profile department
     const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
     window.leaveStatsState.userDeptName = localUser.department_name || localUser.departments?.department_name || "";
+    const userRole = String(localUser.role || 'user').toLowerCase();
+    const empCode = String(localUser.employee_code || localUser?.employees?.employee_code || '').trim();
+
+    const isHrOrAdmin = ["hr", "admin", "superadmin"].includes(userRole) || empCode === '19122';
+    const isExecutive = ["director", "executive", "owner"].includes(userRole);
+    const canSeeAllCompany = isHrOrAdmin || isExecutive;
+
+    let finalRequests = filteredRequests;
+    if (!canSeeAllCompany && window.leaveStatsState.userDeptName) {
+      finalRequests = filteredRequests.filter(r => {
+        const dName = r.employees?.departments?.department_name || r.department_name || r.department || "";
+        return dName.toLowerCase() === window.leaveStatsState.userDeptName.toLowerCase();
+      });
+    }
 
     // Store processed data
-    window.leaveStatsState.cachedData = filteredRequests;
+    window.leaveStatsState.cachedData = finalRequests;
     renderLeaveStatsDashboard();
 
   } catch (err) {
@@ -3269,14 +3460,14 @@ function renderDepartmentStats(deptList, totalCompanyDays) {
     const isUserDept = dept.name.toLowerCase() === userDeptName.toLowerCase();
 
     html += `
-      <div style="background: ${isUserDept ? '#f0fdf4' : '#f8fafc'}; padding: 12px 16px; border-radius: 12px; border: 1px solid ${isUserDept ? '#86efac' : '#e2e8f0'};">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="dept-stat-card ${isUserDept ? 'user-dept' : ''}">
+        <div class="dept-stat-header">
+          <div class="dept-stat-title-group">
             <span style="font-size: 12px; font-weight: 800; color: #0d9488; background: #e0f2fe; padding: 2px 8px; border-radius: 6px;">#${index + 1}</span>
             <strong style="font-size: 13.5px; color: #1e293b;">${safeEscapeHtml(dept.name)}</strong>
-            ${isUserDept ? `<span style="font-size: 10px; background: #16a34a; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600;">แผนกของคุณ</span>` : ''}
+            ${isUserDept ? `<span style="font-size: 10px; background: #16a34a; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
           </div>
-          <div style="text-align: right;">
+          <div class="dept-stat-value-group">
             <strong style="font-size: 14px; color: #0f766e;">${dept.days.toFixed(1)} วัน</strong>
             <span style="font-size: 11px; color: #64748b; margin-left: 6px;">(${dept.count} ครั้ง / ${dept.empCount} คน)</span>
           </div>
@@ -3325,7 +3516,25 @@ function renderEmployeeRanking(requests) {
 
   let list = Object.values(empMap).sort((a, b) => b.days - a.days);
 
-  if (scope === 'dept' && userDeptName) {
+  // For non-HR / non-executive roles, force see only their own department (strictly enforced)
+  const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const userRole = String(localUser.role || 'user').toLowerCase();
+  const empCode = String(localUser.employee_code || localUser?.employees?.employee_code || '').trim();
+
+  const isHrOrAdmin = ["hr", "admin", "superadmin"].includes(userRole) || empCode === '19122';
+  const isExecutive = ["director", "executive", "owner"].includes(userRole);
+  const canSeeAllCompany = isHrOrAdmin || isExecutive;
+
+  if (!canSeeAllCompany) {
+    const scopeBtnGroup = document.getElementById("btnScopeCompany")?.parentElement;
+    if (scopeBtnGroup) {
+      scopeBtnGroup.style.display = "none";
+    }
+    window.leaveStatsState.rankingScope = 'dept';
+    if (userDeptName) {
+      list = list.filter(e => e.deptName.toLowerCase() === userDeptName.toLowerCase());
+    }
+  } else if (scope === 'dept' && userDeptName) {
     list = list.filter(e => e.deptName.toLowerCase() === userDeptName.toLowerCase());
   }
 

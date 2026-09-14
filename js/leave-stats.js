@@ -193,9 +193,14 @@ window.loadLeaveStatsData = async function() {
   });
 
   try {
-    // 1. Get current user profile
     const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
     window.leaveStatsState.userDeptName = localUser.department_name || localUser.departments?.department_name || "";
+    const userRole = String(localUser.role || 'user').toLowerCase();
+    const empCode = String(localUser.employee_code || localUser?.employees?.employee_code || '').trim();
+
+    const isHrOrAdmin = ["hr", "admin", "superadmin"].includes(userRole) || empCode === '19122';
+    const isExecutive = ["director", "executive", "owner"].includes(userRole);
+    const canSeeAllCompany = isHrOrAdmin || isExecutive;
 
     // 2. Fetch ALL data in parallel to avoid PGRST201 foreign-key ambiguity and column name variations
     const [lrRes, empRes, ltRes, deptRes] = await Promise.all([
@@ -248,10 +253,18 @@ window.loadLeaveStatsData = async function() {
       };
     });
 
-    window.leaveStatsState.cachedRequests = joinedRequests;
+    let finalRequests = joinedRequests;
+    if (!canSeeAllCompany && window.leaveStatsState.userDeptName) {
+      finalRequests = joinedRequests.filter(r => {
+        const dName = r.employees?.departments?.department_name || "";
+        return dName.toLowerCase() === window.leaveStatsState.userDeptName.toLowerCase();
+      });
+    }
+
+    window.leaveStatsState.cachedRequests = finalRequests;
 
     // Populate Department Filter Dropdown
-    populateDepartmentDropdown(joinedRequests, deptList);
+    populateDepartmentDropdown(finalRequests, deptList);
 
     // Render Dashboard
     renderAllDashboardViews();
@@ -287,6 +300,29 @@ window.loadLeaveStatsData = async function() {
 function populateDepartmentDropdown(requests, deptList = []) {
   const deptSelect = document.getElementById("statsDeptSelect");
   if (!deptSelect) return;
+
+  const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const userRole = String(localUser.role || 'user').toLowerCase();
+  const empCode = String(localUser.employee_code || localUser?.employees?.employee_code || '').trim();
+
+  const isHrOrAdmin = ["hr", "admin", "superadmin"].includes(userRole) || empCode === '19122';
+  const isExecutive = ["director", "executive", "owner"].includes(userRole);
+  const canSeeAllCompany = isHrOrAdmin || isExecutive;
+  const userDeptName = window.leaveStatsState.userDeptName || "";
+
+  if (!canSeeAllCompany && userDeptName) {
+    deptSelect.innerHTML = `<option value="${safeEscapeHtml(userDeptName)}">${safeEscapeHtml(userDeptName)} (แผนกของคุณ)</option>`;
+    window.leaveStatsState.deptFilter = userDeptName;
+    deptSelect.disabled = true; // Disable selecting other departments
+    
+    // Hide the company-wide vs department-only toggle for the ranking table to prevent leak/confusion
+    const scopeBtnGroup = document.getElementById("btnScopeCompany")?.parentElement;
+    if (scopeBtnGroup) {
+      scopeBtnGroup.style.display = "none";
+    }
+    window.leaveStatsState.rankingScope = 'dept';
+    return;
+  }
 
   const deptsSet = new Set();
   (deptList || []).forEach(d => {
@@ -472,14 +508,14 @@ function renderDepartmentStats(deptList, totalCompanyDays) {
     const isUserDept = dept.name.toLowerCase() === userDeptName.toLowerCase();
 
     html += `
-      <div style="background: ${isUserDept ? '#f0fdf4' : '#ffffff'}; padding: 16px 20px; border-radius: 14px; border: 1.5px solid ${isUserDept ? '#86efac' : '#e2e8f0'}; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="dept-stat-card ${isUserDept ? 'user-dept' : ''}">
+        <div class="dept-stat-header">
+          <div class="dept-stat-title-group">
             <span style="font-size: 13px; font-weight: 800; color: #0d9488; background: #ccfbf1; padding: 3px 10px; border-radius: 8px;">อันดับ #${index + 1}</span>
             <strong style="font-size: 15px; color: #0f172a;">${safeEscapeHtml(dept.name)}</strong>
-            ${isUserDept ? `<span style="font-size: 10.5px; background: #16a34a; color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 600;">แผนกของคุณ</span>` : ''}
+            ${isUserDept ? `<span style="font-size: 10.5px; background: #16a34a; color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
           </div>
-          <div style="text-align: right;">
+          <div class="dept-stat-value-group">
             <strong style="font-size: 16px; color: #0f766e; font-weight: 800;">${dept.days.toFixed(1)} วัน</strong>
             <span style="font-size: 12px; color: #64748b; margin-left: 8px;">(${dept.count} คำขอ / พนักงาน ${dept.empCount} คน)</span>
           </div>
@@ -548,11 +584,24 @@ function renderEmployeeRanking() {
 
   let list = Object.values(empMap).sort((a, b) => b.days - a.days);
 
-  // Filter scope
-  if (scope === 'dept' && userDeptName) {
+  // For non-HR / non-executive roles, force see only their own department (strictly enforced)
+  const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const userRole = String(localUser.role || 'user').toLowerCase();
+  const empCode = String(localUser.employee_code || localUser?.employees?.employee_code || '').trim();
+
+  const isHrOrAdmin = ["hr", "admin", "superadmin"].includes(userRole) || empCode === '19122';
+  const isExecutive = ["director", "executive", "owner"].includes(userRole);
+  const canSeeAllCompany = isHrOrAdmin || isExecutive;
+
+  if (!canSeeAllCompany && userDeptName) {
     list = list.filter(e => e.deptName.toLowerCase() === userDeptName.toLowerCase());
-  } else if (selectedDept !== 'all') {
-    list = list.filter(e => e.deptName.toLowerCase() === selectedDept.toLowerCase());
+  } else {
+    // Filter scope for admin / HR
+    if (scope === 'dept' && userDeptName) {
+      list = list.filter(e => e.deptName.toLowerCase() === userDeptName.toLowerCase());
+    } else if (selectedDept !== 'all') {
+      list = list.filter(e => e.deptName.toLowerCase() === selectedDept.toLowerCase());
+    }
   }
 
   // Search filter
@@ -669,20 +718,26 @@ function renderMonthlyTrends(monthlyMap) {
   const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
   const maxVal = Math.max(...monthlyMap, 1);
 
-  let html = `<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; height: 200px; padding-top: 20px; border-bottom: 2px solid #e2e8f0;">`;
+  let html = `
+    <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; height: 200px; padding-top: 20px; border-bottom: 2px solid #e2e8f0; min-width: 480px; margin-bottom: 4px;">
+  `;
 
   monthlyMap.forEach((val, i) => {
     const heightPercent = Math.max(5, Math.round((val / maxVal) * 100));
     html += `
-      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end;">
-        <span style="font-size: 10.5px; font-weight: 700; color: #0f766e;">${val > 0 ? val.toFixed(1) : ''}</span>
-        <div style="width: 100%; max-width: 32px; height: ${heightPercent}%; background: linear-gradient(180deg, #0d9488 0%, #0284c7 100%); border-radius: 6px 6px 0 0; transition: height 0.5s ease;" title="${monthNames[i]}: ${val} วัน"></div>
-        <span style="font-size: 11px; color: #64748b; font-weight: 600; margin-top: 4px;">${monthNames[i]}</span>
-      </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end;">
+          <span style="font-size: 10.5px; font-weight: 700; color: #0f766e;">${val > 0 ? val.toFixed(1) : ''}</span>
+          <div style="width: 100%; max-width: 32px; height: ${heightPercent}%; background: linear-gradient(180deg, #0d9488 0%, #0284c7 100%); border-radius: 6px 6px 0 0; transition: height 0.5s ease;" title="${monthNames[i]}: ${val} วัน"></div>
+          <span style="font-size: 11px; color: #64748b; font-weight: 600; margin-top: 4px;">${monthNames[i]}</span>
+        </div>
     `;
   });
 
-  html += `</div>`;
+  html += `
+      </div>
+    </div>
+  `;
   container.innerHTML = html;
 }
 

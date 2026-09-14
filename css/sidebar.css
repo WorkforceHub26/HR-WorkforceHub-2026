@@ -470,7 +470,7 @@
     left: 0;
     top: 42%;
     transform: translateY(-50%);
-    z-index: 9980;
+    z-index: 900 !important;
     background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
     color: #ffffff;
     padding: 12px 10px 12px 6px;
@@ -503,10 +503,12 @@
     50% { transform: translateX(4px); }
   }
 
-  /* Hide floating button when sidebar is open */
+  /* Hide floating button when sidebar or notification or modal is open */
   body.sidebar-open .mobile-sidebar-edge-toggle,
+  body.notif-open .mobile-sidebar-edge-toggle,
   .sidebar.mobile-open ~ .mobile-sidebar-edge-toggle,
-  .sidebar-light.mobile-open ~ .mobile-sidebar-edge-toggle {
+  .sidebar-light.mobile-open ~ .mobile-sidebar-edge-toggle,
+  .notif-dropdown.show ~ * .mobile-sidebar-edge-toggle {
     opacity: 0 !important;
     pointer-events: none !important;
     transform: translateY(-50%) translateX(-100%) !important;

@@ -97,7 +97,7 @@
           <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
           <span class="nav-label">แนะนำระบบ</span>
         </a>
-        <button type="button" class="nav-item" title="การตั้งค่าระบบ">
+        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
           <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
           <span class="nav-label">ตั้งค่า</span>
         </button>
@@ -234,11 +234,13 @@
                 <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
               </select>
             </div>
-            <button class="btn-pvt-refresh" onclick="loadPendingLeavesHR()">
-              <span class="material-symbols-outlined">sync</span> รีเฟรชข้อมูล
+            <button type="button" class="btn-pvt-refresh" onclick="loadPendingLeavesHR()" title="รีเฟรชข้อมูลคำขอล่าสุด">
+              <img src="/assets/icons/sync-refresh.svg" alt="รีเฟรช" class="btn-icon-graphic" />
+              <span>รีเฟรชข้อมูล</span>
             </button>
-            <button class="btn-pvt-refresh btn-export-excel" onclick="exportLeaveReportExcel()" style="background: var(--primary-soft); color: var(--primary-dark); border-color: var(--primary-light);">
-              <span class="material-symbols-outlined" style="color: var(--primary);">download</span> สรุป Excel
+            <button type="button" class="btn-pvt-refresh btn-export-excel" onclick="exportLeaveReportExcel()" title="ดาวน์โหลดสรุปรายงานใบลา Excel">
+              <img src="/assets/icons/excel.svg" alt="Excel" class="btn-icon-graphic btn-icon-excel" />
+              <span>สรุป Excel</span>
             </button>
           </div>
         </div>

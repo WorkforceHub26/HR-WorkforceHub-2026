@@ -1511,10 +1511,10 @@ input[type="file"]:hover {
 /* ปุ่มกระดิ่ง */
 .notif-btn {
   position: relative;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
   background: var(--card);
   color: var(--text-soft);
   display: flex;
@@ -1522,7 +1522,7 @@ input[type="file"]:hover {
   justify-content: center;
   cursor: pointer;
   transition: var(--fluid-transition);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .notif-btn:hover {
@@ -1530,10 +1530,11 @@ input[type="file"]:hover {
   color: var(--primary);
   border-color: var(--primary-light);
   transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.18);
 }
 
 .notif-btn span {
-  font-size: 22px;
+  font-size: 26px;
   transition: var(--spring-bounce);
 }
 
@@ -1541,34 +1542,40 @@ input[type="file"]:hover {
   transform: rotate(15deg) scale(1.1);
 }
 
-/* Badge ตัวเลขแดงป๊อบๆ */
+/* Badge ตัวเลขแดงป๊อบๆ ขนาดใหญ่ ชัดเจน */
 .notif-badge {
   position: absolute;
-  top: -2px;
-  right: -2px;
-  background: var(--danger);
+  top: -6px;
+  right: -6px;
+  background: var(--danger, #ef4444);
   color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 99px;
-  border: 2px solid #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  border: 2.5px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 3px 8px rgba(239, 68, 68, 0.5);
   animation: fluidPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
 }
 
-/* หน้าต่าง Dropdown Panel */
+/* หน้าต่าง Dropdown Panel ขนาดใหญ่ อ่านสบายตา */
 .notif-dropdown {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 14px);
   right: 0;
-  width: 360px;
+  width: 460px;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
-  max-width: calc(100vw - 32px);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.18), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1.5px solid #cbd5e1;
+  max-width: calc(100vw - 24px);
+  border-radius: 20px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.22), 0 10px 20px -5px rgba(0, 0, 0, 0.12);
   z-index: 99999 !important;
   display: none; /* ซ่อนเป็นค่าเริ่มต้น */
   flex-direction: column;
@@ -1582,65 +1589,68 @@ input[type="file"]:hover {
 
 /* ส่วนหัว Dropdown */
 .notif-header {
-  padding: 16px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
   background: #f8fafc;
 }
 
 .notif-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .notif-title strong {
-  font-size: 15px;
-  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text, #0f172a);
 }
 
 .notif-count-pill {
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--primary-soft);
-  color: var(--primary);
-  padding: 2px 8px;
-  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--primary-soft, #e0f2fe);
+  color: var(--primary, #0369a1);
+  padding: 4px 10px;
+  border-radius: 16px;
 }
 
 .btn-mark-read {
-  background: transparent;
-  border: none;
-  font-size: 12px;
-  color: var(--primary);
-  font-weight: 600;
+  background: #f0fdfa;
+  border: 1px solid #ccfbf1;
+  font-size: 13.5px;
+  color: #0f766e;
+  font-weight: 700;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  border-radius: 8px;
   transition: var(--ease);
 }
 
 .btn-mark-read:hover {
-  background: var(--primary-soft);
+  background: #ccfbf1;
+  color: #115e59;
 }
 
 /* รายการแจ้งเตือน */
 .notif-body {
-  max-height: 340px;
+  max-height: 460px;
   overflow-y: auto;
 }
 
 .notif-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1.5px solid #f1f5f9;
   cursor: pointer;
   transition: var(--fluid-transition);
   position: relative;
+  background: #ffffff;
 }
 
 .notif-item:last-child {
@@ -1656,17 +1666,18 @@ input[type="file"]:hover {
 }
 
 .notif-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
 .notif-icon span {
-  font-size: 18px;
+  font-size: 26px;
 }
 
 .notif-content {
@@ -1674,39 +1685,41 @@ input[type="file"]:hover {
 }
 
 .notif-text {
-  font-size: 13.5px;
-  color: var(--text);
-  line-height: 1.4;
-  margin-bottom: 4px;
+  font-size: 15px;
+  color: var(--text, #0f172a);
+  line-height: 1.5;
+  margin-bottom: 6px;
 }
 
 .notif-time {
-  font-size: 11px;
-  color: var(--text-soft);
+  font-size: 13px;
+  color: var(--text-soft, #64748b);
+  font-weight: 500;
 }
 
 .unread-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--primary);
+  width: 10px;
+  height: 10px;
+  background: var(--primary, #0d9488);
   border-radius: 50%;
   position: absolute;
-  right: 14px;
-  top: 18px;
+  right: 16px;
+  top: 20px;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
 }
 
 /* ส่วนท้าย Dropdown */
 .notif-footer {
-  padding: 12px;
+  padding: 14px 20px;
   text-align: center;
-  border-top: 1px solid var(--border);
+  border-top: 1.5px solid var(--border);
   background: #f8fafc;
 }
 
 .notif-footer a {
-  font-size: 13px;
-  color: var(--primary);
-  font-weight: 600;
+  font-size: 15px;
+  color: var(--primary, #0d9488);
+  font-weight: 700;
   text-decoration: none;
   transition: var(--ease);
 }
@@ -2714,12 +2727,50 @@ input[type="file"]:hover {
 .stat-sla-badge {
   background: #fee2e2;
   color: #b91c1c;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid #fca5a5;
-  animation: slaBadgePulse 2s infinite ease-in-out;
+  animation: softBadgePulse 2s infinite ease-in-out;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stat-sla-badge.urgent {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+  animation: softBadgeUrgentPulse 2s infinite ease-in-out;
+}
+
+@keyframes softBadgePulse {
+  0%, 100% {
+    box-shadow: 0 1px 4px rgba(239, 68, 68, 0.2);
+    opacity: 0.95;
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    opacity: 1;
+  }
+}
+
+@keyframes softBadgeUrgentPulse {
+  0%, 100% {
+    box-shadow: 0 1px 4px rgba(249, 115, 22, 0.2);
+    opacity: 0.95;
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+    opacity: 1;
+  }
+}
+
+.stat-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .stat-sla-subbadges {
@@ -2753,34 +2804,55 @@ input[type="file"]:hover {
 
 /* 4. 🎛️ Notification Dropdown Quick Filter Tabs */
 .notif-filter-tabs {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 10px 16px;
+  min-height: 52px;
+  box-sizing: border-box;
   background: #f8fafc;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
   overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.notif-filter-tabs::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .notif-filter-tab {
-  padding: 4px 10px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #64748b;
+  flex: 1 1 0%;
+  min-width: fit-content;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #475569;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
   white-space: nowrap;
+  box-sizing: border-box;
+  line-height: normal;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 
 .notif-filter-tab:hover {
   background: #f1f5f9;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .notif-filter-tab.active {
@@ -2803,9 +2875,9 @@ input[type="file"]:hover {
 
 .notif-filter-tab .tab-badge {
   background: rgba(0, 0, 0, 0.1);
-  padding: 1px 5px;
+  padding: 2px 7px;
   border-radius: 99px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .notif-filter-tab.active .tab-badge {
@@ -2816,22 +2888,22 @@ input[type="file"]:hover {
 /* 5. 🔔 Specialized SLA Notification Item in Dropdown */
 .notif-item.notif-sla-overdue {
   background: #fff5f5 !important;
-  border-left: 4px solid #ef4444 !important;
+  border-left: 5px solid #ef4444 !important;
 }
 
 .notif-item.notif-sla-urgent {
   background: #fffaf0 !important;
-  border-left: 4px solid #f97316 !important;
+  border-left: 5px solid #f97316 !important;
 }
 
 .notif-sla-badge-tag {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 750;
+  padding: 3px 9px;
+  border-radius: 8px;
   margin-right: 6px;
 }
 
@@ -2849,9 +2921,9 @@ input[type="file"]:hover {
 
 .notif-sla-time-highlight {
   display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -3111,6 +3183,66 @@ input[type="file"]:hover {
     font-size: 14px !important;
   }
 }
+
+/* 📱 Responsive optimizations for Panel Headers and Charts on Mobile viewports */
+@media screen and (max-width: 640px) {
+  .panel, .leave-analytics-card {
+    position: relative !important;
+    padding: 16px !important;
+  }
+
+  .panel-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    position: relative !important;
+    padding-right: 36px !important; /* เว้นที่ให้ปุ่มไอคอนพับเมนูด้านขวาแบบพอดี */
+    margin-bottom: 16px !important;
+  }
+
+  /* จัดเรียงไอคอนกับหัวเรื่องให้อยู่ในระนาบเดียวกันแบบกระชับ */
+  .panel-header > div:first-child,
+  .panel-header > .home-team-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  /* ป้องกันชื่อหัวข้อขนาดยาวล้นหน้าจอด้วยคำสั่งตัดคำที่ชาญฉลาด */
+  .panel-header h2 {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    word-break: break-word !important;
+  }
+
+  /* ดึงเอา Dropdown ตัวเลือกประเภทกราฟลงแถวถัดไป ให้กว้างสมบูรณ์และกดใช้งานได้ง่าย */
+  .panel-header select {
+    width: 100% !important;
+    max-width: none !important;
+    height: 38px !important;
+    font-size: 12.5px !important;
+    margin-top: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ปุ่มกดสำหรับพับ/ซ่อนเมนู ย้ายไปอยู่ตำแหน่งคงที่มุมขวาบนอย่างสวยงามและสมมาตร */
+  .panel-toggle-chevron {
+    position: absolute !important;
+    right: 0px !important;
+    top: 0px !important;
+    font-size: 24px !important;
+    color: var(--text-soft) !important;
+    background: transparent !important;
+    padding: 4px !important;
+    z-index: 10 !important;
+  }
+}
+
 
 
 
