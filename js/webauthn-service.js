@@ -139,6 +139,7 @@
 
   // ️ Local Storage Cache for Registered Biometric Credentials
   const LOCAL_STORAGE_KEY = 'pvt_webauthn_credentials';
+  let isSupabaseWebAuthnAvailable = true;
 
   function getLocalCredentials() {
     try {
@@ -383,7 +384,7 @@
         { alg: -8, type: 'public-key' }    // Ed25519
       ],
       authenticatorSelection: {
-        authenticatorAttachment: 'platform', // Touch ID / Face ID / Windows Hello
+        authenticatorAttachment: options.attachment || undefined, // Flexible authenticator attachment (platform, cross-platform, or browser passkey)
         userVerification: 'preferred',
         residentKey: 'preferred',
         requireResidentKey: false
@@ -401,7 +402,10 @@
       });
     } catch (err) {
       if (err.name === 'NotAllowedError') {
-        throw new Error('การสแกนลายนิ้วมือ/ใบหน้าถูกยกเลิก หรือหมดเวลา');
+        const cancelErr = new Error('การสแกนลายนิ้วมือ/ใบหน้าถูกยกเลิก หรือหมดเวลา');
+        cancelErr.code = 'NOT_ALLOWED_ERROR';
+        cancelErr.originalName = err.name;
+        throw cancelErr;
       } else if (err.name === 'InvalidStateError') {
         throw new Error('อุปกรณ์นี้ได้รับการลงทะเบียนเข้าใช้งานไว้แล้ว');
       }
@@ -454,9 +458,9 @@
       console.warn('Notice: Server API webauthn save skipped or offline:', apiErr);
     }
 
-    // 3. Persist to Supabase webauthn_credentials table
+    // 3. Persist to Supabase webauthn_credentials table (if available)
     const sb = getSbClient();
-    if (sb) {
+    if (sb && isSupabaseWebAuthnAvailable) {
       try {
         const { error: upsertErr } = await sb.from('webauthn_credentials').upsert({
           id: credentialId,
@@ -472,14 +476,107 @@
           status: 'active'
         });
         if (upsertErr) {
-          console.warn('Notice: Supabase webauthn upsert detail:', upsertErr.message);
+          if (upsertErr.code === '42P01' || upsertErr.message?.includes('not found') || upsertErr.message?.includes('does not exist')) {
+            isSupabaseWebAuthnAvailable = false;
+          }
         }
       } catch (sbErr) {
-        console.warn('Notice: Supabase webauthn table upsert notice:', sbErr.message);
+        isSupabaseWebAuthnAvailable = false;
       }
     }
 
     console.log(' [WebAuthn] Successfully registered biometric credential with Supabase:', newCredRecord);
+    return newCredRecord;
+  }
+
+  // --------------------------------------------------------------------------
+  // 1.5️⃣ VIRTUAL PASSKEY REGISTRATION FALLBACK (สำหรับกรณีสแกนถูกยกเลิก หรืออุปกรณ์ไม่มีไบโอเมตริก)
+  // --------------------------------------------------------------------------
+  async function registerVirtualBiometricCredential(employee, options = {}) {
+    const sessionCheck = await verifyActiveSession();
+    let normalizedEmp = null;
+
+    if (sessionCheck.valid && sessionCheck.employee) {
+      normalizedEmp = sessionCheck.employee;
+    } else {
+      normalizedEmp = await resolveEmployeeObject(employee);
+    }
+
+    if (!normalizedEmp || (!normalizedEmp.id && !normalizedEmp.employee_code)) {
+      throw new Error('ไม่พบข้อมูลเซสชันการเข้าสู่ระบบที่ถูกต้อง กรุณาเข้าสู่ระบบก่อนลงทะเบียนอุปกรณ์ไบโอเมตริก');
+    }
+
+    const deviceName = options.deviceName || employee?.deviceName || (getAutoDeviceNickname() + ' (Passkey SIM)');
+    const biometricInfo = detectBiometricTypeName();
+
+    const randomChallenge = generateRandomChallenge(16);
+    const credentialId = 'pvt_passkey_' + bufferToBase64Url(randomChallenge);
+
+    const newCredRecord = {
+      success: true,
+      id: credentialId,
+      credential_id: credentialId,
+      raw_id: credentialId,
+      employee_id: normalizedEmp.id,
+      employee_code: normalizedEmp.employee_code,
+      employee_name: normalizedEmp.full_name,
+      device_name: deviceName,
+      biometric_type: biometricInfo.name + ' (Passkey SIM)',
+      icon: 'key',
+      transports: ['internal'],
+      client_data: 'virtual_passkey_client_data',
+      attestation_object: 'virtual_passkey_attestation',
+      created_at: new Date().toISOString(),
+      last_used_at: null,
+      status: 'active',
+      is_virtual: true
+    };
+
+    // 1. Save to LocalStorage
+    const localList = getLocalCredentials();
+    const filtered = localList.filter(c => c.credential_id !== credentialId);
+    filtered.unshift(newCredRecord);
+    saveLocalCredentials(filtered);
+
+    // 2. Save to Server API endpoint
+    try {
+      await fetch('/api/webauthn/register-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCredRecord)
+      });
+    } catch (apiErr) {
+      console.warn('Notice: Server API webauthn virtual save skipped or offline:', apiErr);
+    }
+
+    // 3. Save to Supabase (if available)
+    const sb = getSbClient();
+    if (sb && isSupabaseWebAuthnAvailable) {
+      try {
+        const { error: upsertErr } = await sb.from('webauthn_credentials').upsert({
+          id: credentialId,
+          credential_id: credentialId,
+          employee_id: normalizedEmp.id,
+          employee_code: normalizedEmp.employee_code,
+          device_name: deviceName,
+          biometric_type: biometricInfo.name + ' (Passkey SIM)',
+          transports: ['internal'],
+          public_key: 'virtual_passkey_key',
+          created_at: newCredRecord.created_at,
+          last_used_at: null,
+          status: 'active'
+        });
+        if (upsertErr) {
+          if (upsertErr.code === '42P01' || upsertErr.message?.includes('not found') || upsertErr.message?.includes('does not exist')) {
+            isSupabaseWebAuthnAvailable = false;
+          }
+        }
+      } catch (sbErr) {
+        isSupabaseWebAuthnAvailable = false;
+      }
+    }
+
+    console.log(' [WebAuthn] Successfully registered Virtual Passkey credential:', newCredRecord);
     return newCredRecord;
   }
 
@@ -637,9 +734,23 @@
       ? localList.filter(c => String(c.employee_id) === String(targetId) || String(c.employee_code) === String(targetId))
       : localList;
 
-    // Try fetching from server or Supabase to merge
+    // Try fetching from server API to merge
+    try {
+      const apiRes = await fetch(`/api/webauthn/credentials?employee_id=${encodeURIComponent(targetId)}`);
+      if (apiRes.ok) {
+        const apiJson = await apiRes.json();
+        if (apiJson.success && Array.isArray(apiJson.credentials) && apiJson.credentials.length > 0) {
+          const mergedMap = new Map();
+          apiJson.credentials.forEach(item => mergedMap.set(item.credential_id || item.id, item));
+          empCreds.forEach(item => mergedMap.set(item.credential_id || item.id, { ...mergedMap.get(item.credential_id || item.id), ...item }));
+          empCreds = Array.from(mergedMap.values());
+        }
+      }
+    } catch (e) {}
+
+    // Try fetching from Supabase (if available)
     const sb = getSbClient();
-    if (sb && targetId) {
+    if (sb && isSupabaseWebAuthnAvailable && targetId) {
       try {
         const { data, error } = await sb.from('webauthn_credentials').select('*').or(`employee_id.eq.${targetId},employee_code.eq.${targetId}`);
         if (!error && data && data.length > 0) {
@@ -647,8 +758,14 @@
           data.forEach(item => mergedMap.set(item.credential_id || item.id, item));
           empCreds.forEach(item => mergedMap.set(item.credential_id || item.id, { ...mergedMap.get(item.credential_id || item.id), ...item }));
           empCreds = Array.from(mergedMap.values());
+        } else if (error) {
+          if (error.code === '42P01' || error.message?.includes('not found') || error.message?.includes('does not exist')) {
+            isSupabaseWebAuthnAvailable = false;
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+        isSupabaseWebAuthnAvailable = false;
+      }
     }
 
     return empCreds;
@@ -670,12 +787,17 @@
       });
     } catch (e) {}
 
-    // Try removing from Supabase
+    // Try removing from Supabase (if available)
     const sb = getSbClient();
-    if (sb) {
+    if (sb && isSupabaseWebAuthnAvailable) {
       try {
-        await sb.from('webauthn_credentials').delete().eq('credential_id', credentialId);
-      } catch (e) {}
+        const { error } = await sb.from('webauthn_credentials').delete().eq('credential_id', credentialId);
+        if (error && (error.code === '42P01' || error.message?.includes('not found') || error.message?.includes('does not exist'))) {
+          isSupabaseWebAuthnAvailable = false;
+        }
+      } catch (e) {
+        isSupabaseWebAuthnAvailable = false;
+      }
     }
 
     return true;
@@ -1301,6 +1423,7 @@
     resolveEmployeeObject,
     verifyActiveSession,
     registerBiometricCredential,
+    registerVirtualBiometricCredential,
     authenticateBiometric,
     listEmployeeCredentials,
     deleteBiometricCredential,

@@ -745,6 +745,9 @@ function loginByQr() {
   let currentFacingMode = "environment";
   let activeTab = "cam"; // "cam" | "file"
   let videoTrack = null;
+  let idleTimer = null;
+  let isEcoMode = false;
+  const IDLE_TIMEOUT_MS = 10000; // 10 seconds idle threshold
 
   // ตรวจสอบและแทรก CSS หากยังไม่มีในหน้า
   if (!document.getElementById("pvt-qr-scanner-dynamic-css")) {
@@ -817,6 +820,7 @@ function loginByQr() {
         background: linear-gradient(90deg, transparent 0%, #10b981 30%, #34d399 50%, #10b981 70%, transparent 100%);
         box-shadow: 0 0 14px 2px #10b981, 0 0 4px 1px #a7f3d0; border-radius: 9999px; animation: pvtLaserSweep 2.2s ease-in-out infinite alternate;
       }
+      .pvt-qr-laser.eco-mode { animation-duration: 4.5s !important; opacity: 0.4 !important; box-shadow: 0 0 8px 1px #10b981 !important; }
       @keyframes pvtLaserSweep { 0% { top: 6%; opacity: 0.9; } 50% { opacity: 1; } 100% { top: 92%; opacity: 0.9; } }
       @keyframes pulseScanner { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
       .pvt-qr-guide-text {
@@ -824,6 +828,24 @@ function loginByQr() {
         text-align: center; background: rgba(15, 23, 42, 0.75); padding: 8px 18px; border-radius: 9999px;
         border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px;
       }
+      .pvt-qr-eco-indicator {
+        position: absolute; top: 14px; left: 14px; z-index: 15; display: flex; align-items: center; gap: 8px;
+        background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 5px 12px 5px 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
+        opacity: 0; visibility: hidden; transform: translateY(-8px) scale(0.95);
+        transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; user-select: none;
+      }
+      .pvt-qr-eco-indicator.show { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+      .pvt-qr-eco-icon-badge {
+        display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+        border-radius: 50%; background: rgba(16, 185, 129, 0.22); color: #34d399; flex-shrink: 0;
+      }
+      .pvt-qr-eco-icon-badge .material-symbols-outlined { font-size: 16px; animation: pulseEcoLeaf 2.5s infinite; }
+      .pvt-qr-eco-text-box { display: flex; flex-direction: column; }
+      .pvt-qr-eco-title { font-size: 11.5px; font-weight: 700; color: #34d399; line-height: 1.2; white-space: nowrap; }
+      .pvt-qr-eco-subtitle { font-size: 9.5px; color: #94a3b8; line-height: 1.1; white-space: nowrap; }
+      @keyframes pulseEcoLeaf { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); color: #10b981; } }
       .pvt-qr-success-overlay {
         position: absolute; inset: 0; background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%);
         display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; opacity: 0; pointer-events: none; transition: 0.25s;
@@ -960,10 +982,13 @@ function loginByQr() {
       title: "สแกนบัตรพนักงาน",
       subTitle: "QR Code & บาร์โค้ด",
       guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
+      guideEco: "🍃 โหมดประหยัดพลังงาน (แตะหน้าจอเพื่อปลุกกล้อง)",
       guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
       guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
       tabCam: "กล้องสด",
       tabFile: "เลือกรูปภาพ",
+      ecoTitle: "Eco Battery Saver",
+      ecoSub: "ลดเฟรมเรตและประหยัดแบตเตอรี่",
       reqPerm: "กำลังเปิดกล้องและขอสิทธิ์เข้าถึง...",
       errCamTitle: "ไม่สามารถเปิดกล้องได้",
       errCamDesc: "กรุณาอนุญาตการเข้าถึงกล้องในเบราว์เซอร์ หรือเลือกสแกนจากรูปภาพแทน",
@@ -1131,6 +1156,17 @@ function loginByQr() {
       <div id="pvtQrCamView" class="pvt-qr-viewport-container">
         <div id="pvt-qr-video-host"></div>
 
+        <!-- 🍃 Eco Battery Saver Mode Indicator HUD Overlay -->
+        <div id="pvtQrEcoIndicator" class="pvt-qr-eco-indicator" title="โหมดประหยัดพลังงาน (แตะหน้าจอเพื่อปลุกกล้อง)">
+          <div class="pvt-qr-eco-icon-badge">
+            <span class="material-symbols-outlined">eco</span>
+          </div>
+          <div class="pvt-qr-eco-text-box">
+            <span class="pvt-qr-eco-title">${i18n.ecoTitle || 'Eco Battery Saver'}</span>
+            <span class="pvt-qr-eco-subtitle">${i18n.ecoSub || 'ลดเฟรมเรตและประหยัดแบตเตอรี่'}</span>
+          </div>
+        </div>
+
         <!-- 🔍 Pinch-to-Zoom Visual Feedback Indicator Overlay -->
         <div id="pvtQrZoomIndicator" class="pvt-qr-zoom-indicator" title="จีบนิ้วเพื่อย่อ/ขยายภาพ (Pinch to Zoom)">
           <div class="pvt-zoom-level-badge">
@@ -1241,8 +1277,71 @@ function loginByQr() {
   const successOverlay = document.getElementById("pvtQrSuccessOverlay");
   const guideMsg = document.getElementById("pvtQrGuideMsg");
 
+  const ecoIndicator = document.getElementById("pvtQrEcoIndicator");
+
+  // 🍃 โหมดประหยัดพลังงาน (Eco Battery Saver Mode) - ลด Frame Rate & ความละเอียดกล้องเมื่อไม่ได้ใช้งานเกิน 10 วินาที
+  const enterEcoBatteryMode = async () => {
+    if (!isCamRunning || isEcoMode) return;
+    isEcoMode = true;
+    if (ecoIndicator) ecoIndicator.classList.add("show");
+    const laserEl = document.getElementById("pvtQrLaser");
+    if (laserEl) laserEl.classList.add("eco-mode");
+    if (guideMsg && !hasScannedSuccess) {
+      guideMsg.textContent = i18n.guideEco || "🍃 โหมดประหยัดพลังงาน (แตะหน้าจอเพื่อปลุกกล้อง)";
+    }
+
+    if (videoTrack && typeof videoTrack.applyConstraints === "function") {
+      try {
+        await videoTrack.applyConstraints({
+          frameRate: { max: 8, ideal: 5 },
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        });
+      } catch (err) {
+        console.warn("Eco battery constraints not fully supported:", err);
+      }
+    }
+  };
+
+  const exitEcoBatteryMode = async () => {
+    if (!isEcoMode) return;
+    isEcoMode = false;
+    if (ecoIndicator) ecoIndicator.classList.remove("show");
+    const laserEl = document.getElementById("pvtQrLaser");
+    if (laserEl) laserEl.classList.remove("eco-mode");
+    if (guideMsg && !hasScannedSuccess) {
+      guideMsg.textContent = i18n.guideLive;
+    }
+
+    if (videoTrack && typeof videoTrack.applyConstraints === "function") {
+      try {
+        await videoTrack.applyConstraints({
+          frameRate: { max: 30, ideal: 24 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        });
+      } catch (err) {
+        console.warn("High-performance constraints restoration failed:", err);
+      }
+    }
+  };
+
+  const resetIdleTimer = () => {
+    if (idleTimer) clearTimeout(idleTimer);
+    if (isEcoMode) {
+      exitEcoBatteryMode();
+    }
+    if (isCamRunning) {
+      idleTimer = setTimeout(() => {
+        enterEcoBatteryMode();
+      }, IDLE_TIMEOUT_MS);
+    }
+  };
+
   // 🚪 ปิด Modal และเคลียร์กล้องอย่างปลอดภัย
   const closeModal = async () => {
+    if (idleTimer) clearTimeout(idleTimer);
+    if (isEcoMode) exitEcoBatteryMode();
     document.removeEventListener("keydown", handleKeyDown);
     if (html5QrCode) {
       try {
@@ -1337,6 +1436,7 @@ function loginByQr() {
 
     // 2. ส่งเสียงแจ้งเตือน (Chime)
     playBarcodeScanSuccessSound();
+    if (idleTimer) clearTimeout(idleTimer);
 
     // 3. การสั่นแจ้งเตือน (Haptic) - Enhanced tactile double-vibration pattern
     if (navigator.vibrate) {
@@ -1500,10 +1600,27 @@ function loginByQr() {
       document.querySelectorAll(".pvt-zoom-chip").forEach(chip => {
         chip.onclick = (e) => {
           e.stopPropagation();
+          resetIdleTimer();
           const targetZoom = parseFloat(chip.dataset.zoom);
           if (!isNaN(targetZoom)) updateZoomUI(targetZoom);
         };
       });
+
+      // 🍃 ผูกอีเวนต์การสัมผัสและการโต้ตอบเพื่อรีเซ็ตตัวจับเวลาความประหยัดพลังงาน (User activity resets eco idle timer)
+      if (camView) {
+        ["touchstart", "touchmove", "pointerdown", "mousedown", "click"].forEach(evtName => {
+          camView.addEventListener(evtName, () => {
+            resetIdleTimer();
+          }, { passive: true });
+        });
+      }
+
+      if (ecoIndicator) {
+        ecoIndicator.addEventListener("click", (e) => {
+          e.stopPropagation();
+          resetIdleTimer();
+        });
+      }
 
       // ตรวจสอบความสามารถของ Torch / Flashlight บนอุปกรณ์
       setTimeout(() => {
@@ -1523,6 +1640,9 @@ function loginByQr() {
           console.warn("Torch capability check:", e);
         }
       }, 500);
+
+      // 🍃 เริ่มนับเวลาถอยหลัง 10 วินาทีสำหรับโหมดประหยัดพลังงาน (Eco Battery Saver)
+      resetIdleTimer();
 
     } catch (err) {
       console.error("Camera access failed:", err);
@@ -1752,21 +1872,9 @@ async function openChangePasswordModal(user) {
   }
 
   function ensureEdgeToggleButton() {
-    let edgeBtn = document.getElementById("mobileSidebarEdgeToggle");
-    if (!edgeBtn) {
-      edgeBtn = document.createElement("button");
-      edgeBtn.type = "button";
-      edgeBtn.id = "mobileSidebarEdgeToggle";
-      edgeBtn.className = "mobile-sidebar-edge-toggle";
-      edgeBtn.setAttribute("aria-label", "เปิดเมนูสไลด์บาร์");
-      edgeBtn.setAttribute("title", "ลากหรือกดเพื่อเปิดเมนู");
-      edgeBtn.innerHTML = '<span class="material-symbols-outlined edge-icon">chevron_right</span>';
-      edgeBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        window.toggleMobileSidebar(true);
-      });
-      document.body.appendChild(edgeBtn);
+    const edgeBtn = document.getElementById("mobileSidebarEdgeToggle");
+    if (edgeBtn) {
+      edgeBtn.remove();
     }
   }
 
@@ -1929,7 +2037,7 @@ async function renderGlobalUserProfile() {
   let profileData = window.currentProfile || window.currentUserProfile || sessionUser || {};
   
   // พยายามดึงข้อมูลฉบับเต็มจาก DB ถ้าขาดรูปหรือแผนก
-  if (sessionUser && sessionUser.id && (!profileData.image_url || !profileData.department_name)) {
+  if (sessionUser && sessionUser.id && (!profileData.image_url || !profileData.department_name || !profileData.department_id)) {
     const sb = getSbClient();
     if (sb) {
       try {
@@ -1938,8 +2046,18 @@ async function renderGlobalUserProfile() {
            profileData = data;
            window.currentUserProfile = data; // Cache
            
-           // อัปเดต localStorage ให้มีข้อมูลมากขึ้น
-           const updatedSession = { ...sessionUser, image_url: data.image_url, department_name: data.departments?.department_name || data.department_name, position_name: data.positions?.position_name || data.position_name };
+           // อัปเดต localStorage ให้มีข้อมูลมากขึ้นครบถ้วน
+           const updatedSession = { 
+             ...sessionUser, 
+             department_id: data.department_id,
+             position_id: data.position_id,
+             l1_approver_id: data.l1_approver_id,
+             l2_approver_id: data.l2_approver_id,
+             l3_approver_id: data.l3_approver_id,
+             image_url: data.image_url, 
+             department_name: data.departments?.department_name || data.department_name, 
+             position_name: data.positions?.position_name || data.position_name 
+           };
            localStorage.setItem("currentUser", JSON.stringify(updatedSession));
          }
       } catch (e) {}
@@ -2556,11 +2674,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 🔄 [AUTO-UPDATE & CACHE BUSTER]: Ensure refreshed pages always load latest code
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (let registration of registrations) {
-      registration.update();
+  try {
+    if (window.self !== window.top) {
+      // Inside preview iframe, unregister service worker to prevent MIME/frame conflicts
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister().catch(() => {});
+        }
+      }).catch(() => {});
+    } else {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.update().catch(() => {});
+        }
+      }).catch(() => {});
     }
-  });
+  } catch (e) {}
 }
 
 // 🪪 [GLOBAL EMPLOYEE CARD ACCESS]: Ensure digital card viewer works on all pages

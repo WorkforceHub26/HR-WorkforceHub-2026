@@ -450,69 +450,20 @@
   }
 }
 
-/* 🏹 Mobile Edge Arrow Floating Pull Button */
-.mobile-sidebar-edge-toggle {
-  display: none;
+/* 🏹 Mobile Edge Arrow Floating Pull Button (ลบออกตามคำขอ) */
+.mobile-sidebar-edge-toggle,
+#mobileSidebarEdgeToggle,
+button#mobileSidebarEdgeToggle {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
 }
 
 /* 🧭 Desktop Sidebar Edge Toggle Handle (ปิดใช้งานตามคำขอ) */
 .desktop-sidebar-edge-toggle,
 #desktopSidebarEdgeToggle {
   display: none !important;
-}
-
-@media (max-width: 1024px) {
-  .mobile-sidebar-edge-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: fixed;
-    left: 0;
-    top: 42%;
-    transform: translateY(-50%);
-    z-index: 900 !important;
-    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
-    color: #ffffff;
-    padding: 12px 10px 12px 6px;
-    border-radius: 0 18px 18px 0;
-    border: 1.5px solid rgba(255, 255, 255, 0.4);
-    border-left: none;
-    box-shadow: 4px 6px 20px rgba(13, 148, 136, 0.4);
-    cursor: pointer;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, background 0.2s;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .mobile-sidebar-edge-toggle:hover {
-    background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
-    padding-right: 14px;
-  }
-
-  .mobile-sidebar-edge-toggle:active {
-    transform: translateY(-50%) scale(0.92);
-  }
-
-  .mobile-sidebar-edge-toggle .edge-icon {
-    font-size: 22px;
-    animation: edgePulse 1.8s infinite ease-in-out;
-  }
-
-  @keyframes edgePulse {
-    0%, 100% { transform: translateX(0); }
-    50% { transform: translateX(4px); }
-  }
-
-  /* Hide floating button when sidebar or notification or modal is open */
-  body.sidebar-open .mobile-sidebar-edge-toggle,
-  body.notif-open .mobile-sidebar-edge-toggle,
-  .sidebar.mobile-open ~ .mobile-sidebar-edge-toggle,
-  .sidebar-light.mobile-open ~ .mobile-sidebar-edge-toggle,
-  .notif-dropdown.show ~ * .mobile-sidebar-edge-toggle {
-    opacity: 0 !important;
-    pointer-events: none !important;
-    transform: translateY(-50%) translateX(-100%) !important;
-  }
 }
 
 /* 🚪 LOGOUT BUTTON STYLES */

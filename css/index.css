@@ -1460,6 +1460,87 @@ body {
 }
 
 /* ==========================================================================
+   🍃 ECO BATTERY SAVER HUD OVERLAY (>10s Idle)
+   ========================================================================== */
+
+.pvt-qr-eco-indicator {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 20px;
+  padding: 5px 12px 5px 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.95);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pvt-qr-eco-indicator.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.pvt-qr-eco-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.22);
+  color: #34d399;
+  flex-shrink: 0;
+}
+
+.pvt-qr-eco-icon-badge .material-symbols-outlined {
+  font-size: 16px;
+  animation: pulseEcoLeaf 2.5s infinite;
+}
+
+.pvt-qr-eco-text-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.pvt-qr-eco-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #34d399;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pvt-qr-eco-subtitle {
+  font-size: 9.5px;
+  color: #94a3b8;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.pvt-qr-laser.eco-mode {
+  animation-duration: 4.5s !important;
+  opacity: 0.4 !important;
+  box-shadow: 0 0 8px 1px #10b981 !important;
+}
+
+@keyframes pulseEcoLeaf {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); color: #10b981; }
+}
+
+/* ==========================================================================
    ⚡ QR CODE DETECTION INSTANT FEEDBACK (.pvt-qr-viewport-container)
    ========================================================================== */
 

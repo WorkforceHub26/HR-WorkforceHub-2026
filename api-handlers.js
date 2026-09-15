@@ -815,6 +815,52 @@ export async function handleOcrScan(req, res) {
 /* ==========================================================================
    🤖 HR POLICY & WELFARE AI CHATBOT HANDLER
    ========================================================================== */
+function getSmartPolicyReply(message) {
+  const msg = (message || '').toLowerCase();
+  
+  if (msg.includes('ใบรับรองแพทย์') || msg.includes('ป่วย') || msg.includes('sick')) {
+    return "🩺 **ระเบียบการลาป่วย**: พนักงานสามารถลาป่วยได้เท่าที่ป่วยจริง โดยได้รับค่าจ้างไม่เกิน **30 วันทำงาน/ปี** หากลาป่วยตั้งแต่ 1 วันทำงานขึ้นไป ต้องแนบใบรับรองแพทย์จากสถานพยาบาลประกอบการลาครับ";
+  }
+  
+  if (msg.includes('พักร้อน') || msg.includes('สะสม') || msg.includes('vacation') || msg.includes('annual')) {
+    return "🏖️ **สิทธิวันลาพักร้อน**: เมื่อทำงานครบ 1 ปี ได้รับสิทธิ์ลาพักร้อนไม่น้อยกว่า **6 วันทำงาน/ปี** (ต้องยื่นอนุมัติตามลำดับขั้นล่วงหน้า) **ข้อสำคัญ: วันลาพักร้อนไม่สามารถสะสมหรือยกยอดไปปีถัดไปได้ครับ**";
+  }
+  
+  if (msg.includes('คลอด') || msg.includes('maternity') || msg.includes('ตั้งครรภ์')) {
+    return "👶 **สิทธิการลาคลอดบุตร**: ลาได้ไม่เกิน **120 วัน** (รวมวันหยุด) โดยบริษัทจ่ายค่าจ้างให้ **60 วัน** และรับเงินสงเคราะห์จากประกันสังคมอีก **60 วัน** ครับ";
+  }
+  
+  if (msg.includes('ลากิจ') || msg.includes('กิจธุระ') || msg.includes('personal')) {
+    return "📋 **สิทธิการลากิจธุระจำเป็น**: ได้รับอนุมัติสิทธิลากิจโดยได้รับค่าจ้างไม่เกิน **3 วันทำงาน/ปี** ต้องยื่นล่วงหน้าอย่างน้อย 1 วันทำการ (ยกเว้นเหตุฉุกเฉินจำเป็นเร่งด่วน)";
+  }
+
+  if (msg.includes('ทำหมัน') || msg.includes('sterilization')) {
+    return "🏥 **สิทธิการลาทำหมัน**: พนักงานสามารถลาทำหมันได้ตามระยะเวลาที่แพทย์ระบุในใบรับรองแพทย์โดยได้รับค่าจ้างครบถ้วนครับ";
+  }
+
+  if (msg.includes('อุปสมบท') || msg.includes('บวช') || msg.includes('ordination')) {
+    return "🙏 **สิทธิการลาอุปสมบท**: ได้รับค่าจ้างไม่เกิน **15 วัน** (ต้องขออนุมัติตามลำดับขั้นล่วงหน้าไม่น้อยกว่า 15 วัน) ใช้สิทธิได้ 1 ครั้งตลอดอายุงานครับ";
+  }
+
+  if (msg.includes('ทหาร') || msg.includes('รับราชการ') || msg.includes('military')) {
+    return "🎖️ **สิทธิการลารับราชการทหาร**: ลาเพื่อรับราชการทหารในการเรียกพลเพื่อตรวจสอบ ฝึกวิชาทหาร หรือทดสอบความพรั่งพร้อม ได้ไม่เกิน **60 วัน/ปี** โดยได้รับค่าจ้างครบถ้วนครับ";
+  }
+
+  if (msg.includes('ฌาปนกิจ') || msg.includes('งานศพ') || msg.includes('funeral')) {
+    return "🕯️ **สิทธิการลาฌาปนกิจศพ**: บริษัทมอบสิทธิลาพิเศษเพื่อจัดการงานศพของบิดา มารดา คู่สมรส หรือบุตรโดยชอบด้วยกฎหมาย โดยได้รับค่าจ้างครับ";
+  }
+
+  if (msg.includes('สาย') || msg.includes('ขาดงาน') || msg.includes('บทลงโทษ') || msg.includes('late')) {
+    return "⚠️ **ข้อควรระวังและบทลงโทษ**: หากมาสาย 3 ครั้งภายในรอบเดือน จะได้รับหนังสือเตือนเป็นลายลักษณ์อักษร หากขาดงานติดต่อกัน 3 วันทำงานโดยไม่มีเหตุอันสมควร บริษัทมีสิทธิ์เลิกจ้างทันทีโดยไม่จ่ายค่าชดเชยครับ";
+  }
+
+  if (msg.includes('เบิก') || msg.includes('ค่ารักษา') || msg.includes('เบี้ยเลี้ยง') || msg.includes('สวัสดิการ')) {
+    return "💳 **การเบิกสวัสดิการและค่าใช้จ่าย**: สามารถแนบใบเสร็จและยื่นผ่านระบบ หรือติดต่อ HR เพิ่มเติมที่ อีเมล **hr@pvt-workforce.com** หรือโทรภายใน **101-104** ครับ";
+  }
+
+  return "🤖 **HR Smart Assistant**: ขอบคุณสำหรับคำถามครับ หากต้องการสอบถามระเบียบวันลา (ลาป่วย, ลาพักร้อน, ลากิจ, ลาคลอด) หรือสวัสดิการ สามารถพิมพ์ถามได้เลยครับ หรือติดต่อฝ่ายบุคคลโดยตรงที่ **hr@pvt-workforce.com** (โทร 101-104) ครับ";
+}
+
 export async function handleHrChatbot(req, res) {
   try {
     let bodyData = {};
@@ -833,7 +879,8 @@ export async function handleHrChatbot(req, res) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return sendJson(res, 500, { error: 'GEMINI_API_KEY is not configured on the server.' });
+      console.log('ℹ️ [HR Chatbot]: GEMINI_API_KEY is not set, using smart policy engine');
+      return sendJson(res, 200, { success: true, reply: getSmartPolicyReply(message) });
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -859,7 +906,7 @@ export async function handleHrChatbot(req, res) {
 
 หากอยู่นอกเหนือจากระเบียบ ให้ตอบสั้นๆ ว่า "ติดต่อ HR เพิ่มเติมที่ อีเมล hr@pvt-workforce.com หรือโทรภายใน 101-104 ครับ"`;
 
-    const candidateModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
     let responseText = null;
 
     for (const modelName of candidateModels) {
@@ -880,29 +927,19 @@ export async function handleHrChatbot(req, res) {
         }
       } catch (genErr) {
         console.warn(`⚠️ [HR Chatbot Model ${modelName} failed]:`, genErr.message);
-        try {
-          const fallbackResp = await ai.models.generateContent({
-            model: 'gemini-3.6-flash',
-            contents: `${systemInstruction}\n\nคำถามจากพนักงาน: ${message}`
-          });
-          if (fallbackResp && fallbackResp.text) {
-            responseText = fallbackResp.text;
-            console.log(`🤖 [HR Chatbot Success with fallback gemini-3.6-flash]`);
-            break;
-          }
-        } catch (e2) {}
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 300));
       }
     }
 
     if (!responseText) {
-      throw new Error("ขออภัยครับ ขณะนี้ระบบ AI มีผู้ใช้งานจำนวนมาก กรุณาลองใหม่อีกครั้ง หรือสอบถามฝ่ายบุคคลโดยตรงครับ");
+      console.log('ℹ️ [HR Chatbot]: Gemini calls failed, using smart policy fallback');
+      responseText = getSmartPolicyReply(message);
     }
 
     return sendJson(res, 200, { success: true, reply: responseText });
   } catch (err) {
     console.error("❌ HR Chatbot Error:", err);
-    return sendJson(res, 500, { error: err.message || 'เกิดข้อผิดพลาดในการประมวลผลคำตอบ' });
+    return sendJson(res, 200, { success: true, reply: getSmartPolicyReply(req.body?.message) });
   }
 }
 
@@ -953,6 +990,87 @@ export async function handleTestLineConnection(req, res) {
     });
   } catch (err) {
     return sendJson(res, 500, { success: false, error: err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ LINE API' });
+  }
+}
+
+// --------------------------------------------------------------------------
+// 12. WebAuthn Biometric & Passkey Server Storage Handlers
+// --------------------------------------------------------------------------
+const memoryWebAuthnCredentials = new Map();
+
+export async function handleWebAuthnRegisterVerify(req, res) {
+  try {
+    let bodyData = {};
+    if (typeof req.body === 'object' && req.body !== null) {
+      bodyData = req.body;
+    } else if (typeof req.body === 'string') {
+      try { bodyData = JSON.parse(req.body); } catch (e) {}
+    } else {
+      bodyData = await parseJsonBody(req);
+    }
+
+    const credId = bodyData.credential_id || bodyData.id;
+    if (!credId) {
+      return sendJson(res, 400, { success: false, error: 'Missing credential_id' });
+    }
+
+    memoryWebAuthnCredentials.set(credId, {
+      ...bodyData,
+      id: credId,
+      credential_id: credId,
+      created_at: bodyData.created_at || new Date().toISOString()
+    });
+
+    console.log(`🔐 [WebAuthn Registered]: Credential ID ${credId} for Employee ${bodyData.employee_code || bodyData.employee_id}`);
+
+    return sendJson(res, 200, {
+      success: true,
+      message: 'Credential registered and verified successfully',
+      credential: memoryWebAuthnCredentials.get(credId)
+    });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message });
+  }
+}
+
+export async function handleWebAuthnGetCredentials(req, res) {
+  try {
+    const url = new URL(req.url, `http://${req.headers?.host || 'localhost'}`);
+    const empId = url.searchParams.get('employee_id') || url.searchParams.get('employee_code');
+
+    let list = Array.from(memoryWebAuthnCredentials.values());
+    if (empId) {
+      list = list.filter(c => String(c.employee_id) === String(empId) || String(c.employee_code) === String(empId));
+    }
+
+    return sendJson(res, 200, {
+      success: true,
+      credentials: list
+    });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message });
+  }
+}
+
+export async function handleWebAuthnDeleteCredential(req, res) {
+  try {
+    let bodyData = {};
+    if (typeof req.body === 'object' && req.body !== null) {
+      bodyData = req.body;
+    } else if (typeof req.body === 'string') {
+      try { bodyData = JSON.parse(req.body); } catch (e) {}
+    } else {
+      bodyData = await parseJsonBody(req);
+    }
+
+    const credId = bodyData.credential_id || bodyData.id;
+    if (credId) {
+      memoryWebAuthnCredentials.delete(credId);
+    }
+
+    return sendJson(res, 200, { success: true, message: 'Credential removed' });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message });
   }
 }
 

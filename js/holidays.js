@@ -495,8 +495,18 @@ function filterHolidays() {
     if (titleEl) titleEl.innerText = strings.summaryYearTitle(strings.formatYear(year));
     if (monthSelect) monthSelect.value = 'all';
 
-    if (window.renderCompanyCalendarGrid) {
-      window.renderCompanyCalendarGrid(year, month, filtered);
+    const companyCalGrid = document.getElementById('companyCalGrid');
+    const companyCalDaysHeader = document.getElementById('companyCalDaysHeader');
+    const yearlyCalendarGrid = document.getElementById('yearlyCalendarGrid');
+
+    if (companyCalGrid) companyCalGrid.style.display = 'none';
+    if (companyCalDaysHeader) companyCalDaysHeader.style.display = 'none';
+    if (yearlyCalendarGrid) {
+      yearlyCalendarGrid.style.display = 'grid';
+      window.renderYearlyCalendarGrid(year, filtered);
+    }
+    
+    if (window.renderCompanySummarySidebar) {
       window.renderCompanySummarySidebar(filtered, null, true);
     }
   } else {
@@ -505,8 +515,20 @@ function filterHolidays() {
     }
     if (titleEl) titleEl.innerText = `${strings.monthsFull[month]} ${strings.formatYear(year)}`;
 
-    if (window.renderCompanyCalendarGrid) {
-      window.renderCompanyCalendarGrid(year, month, filtered);
+    const companyCalGrid = document.getElementById('companyCalGrid');
+    const companyCalDaysHeader = document.getElementById('companyCalDaysHeader');
+    const yearlyCalendarGrid = document.getElementById('yearlyCalendarGrid');
+
+    if (yearlyCalendarGrid) yearlyCalendarGrid.style.display = 'none';
+    if (companyCalDaysHeader) companyCalDaysHeader.style.display = 'grid';
+    if (companyCalGrid) {
+      companyCalGrid.style.display = 'grid';
+      if (window.renderCompanyCalendarGrid) {
+        window.renderCompanyCalendarGrid(year, month, filtered);
+      }
+    }
+    
+    if (window.renderCompanySummarySidebar) {
       const monthHolidays = filtered.filter(h => h.holiday_date.startsWith(`${year}-${String(month+1).padStart(2,'0')}`));
       window.renderCompanySummarySidebar(monthHolidays);
     }
@@ -1618,6 +1640,120 @@ window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
   }
 };
 
+window.renderYearlyCalendarGrid = function(year, holidaysList) {
+  const grid = document.getElementById('yearlyCalendarGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const strings = getLangStrings();
+
+  for (let m = 0; m < 12; m++) {
+    const monthName = strings.monthsFull[m];
+    const monthContainer = document.createElement('div');
+    monthContainer.className = 'mini-cal-month';
+    monthContainer.style.background = '#ffffff';
+    monthContainer.style.border = '1px solid #e2e8f0';
+    monthContainer.style.borderRadius = '12px';
+    monthContainer.style.padding = '12px';
+    monthContainer.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+    
+    // Month Header
+    const mHeader = document.createElement('div');
+    mHeader.style.textAlign = 'center';
+    mHeader.style.fontWeight = '700';
+    mHeader.style.fontSize = '15px';
+    mHeader.style.color = '#0f172a';
+    mHeader.style.marginBottom = '8px';
+    mHeader.style.paddingBottom = '8px';
+    mHeader.style.borderBottom = '1px dashed #e2e8f0';
+    mHeader.innerText = monthName;
+    monthContainer.appendChild(mHeader);
+
+    // Days Header
+    const dHeader = document.createElement('div');
+    dHeader.style.display = 'grid';
+    dHeader.style.gridTemplateColumns = 'repeat(7, 1fr)';
+    dHeader.style.textAlign = 'center';
+    dHeader.style.fontSize = '11px';
+    dHeader.style.fontWeight = '700';
+    dHeader.style.color = '#64748b';
+    dHeader.style.marginBottom = '6px';
+    dHeader.innerHTML = `
+      <span style="color:#dc2626;">อา</span><span>จ</span><span>อ</span><span>พ</span><span>พฤ</span><span>ศ</span><span>ส</span>
+    `;
+    monthContainer.appendChild(dHeader);
+
+    // Days Grid
+    const dGrid = document.createElement('div');
+    dGrid.style.display = 'grid';
+    dGrid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+    dGrid.style.gap = '2px';
+
+    const firstDay = new Date(year, m, 1);
+    const lastDay = new Date(year, m + 1, 0);
+    const startOffset = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+
+    // Empty cells for offset
+    for (let i = 0; i < startOffset; i++) {
+      const emptyCell = document.createElement('div');
+      dGrid.appendChild(emptyCell);
+    }
+
+    const today = new Date();
+    const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === m);
+    const todayDate = today.getDate();
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const cell = document.createElement('div');
+      cell.style.textAlign = 'center';
+      cell.style.fontSize = '12px';
+      cell.style.padding = '4px 0';
+      cell.style.borderRadius = '4px';
+      cell.style.cursor = 'pointer';
+      cell.style.fontWeight = '500';
+      cell.style.color = '#334155';
+
+      const dayStr = `${year}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+      const dayHolidays = holidaysList.filter(h => h.holiday_date === dayStr);
+
+      if (isCurrentMonth && i === todayDate) {
+        cell.style.background = '#e0f2fe';
+        cell.style.color = '#0284c7';
+        cell.style.fontWeight = '700';
+      }
+
+      if (dayHolidays.length > 0) {
+        const primaryH = dayHolidays[0];
+        let bg = '#fee2e2'; // official
+        let fg = '#dc2626';
+        if (primaryH.holiday_type === 'company') {
+          bg = '#dbeafe'; fg = '#2563eb';
+        } else if (primaryH.holiday_type === 'substitution') {
+          bg = '#fef3c7'; fg = '#d97706';
+        }
+        cell.style.background = bg;
+        cell.style.color = fg;
+        cell.style.fontWeight = '700';
+        cell.title = getLocalizedHolidayName(primaryH.holiday_name);
+      }
+
+      cell.innerText = i;
+      cell.onclick = () => {
+        // Go to that month
+        const monthSelect = document.getElementById('monthSelect');
+        if (monthSelect) monthSelect.value = m.toString();
+        changeYearOrMonth();
+        setTimeout(() => focusHolidayDateOnCalendar(dayStr), 200);
+      };
+
+      dGrid.appendChild(cell);
+    }
+
+    monthContainer.appendChild(dGrid);
+    grid.appendChild(monthContainer);
+  }
+};
+
 window.focusHolidayDateOnCalendar = function(dateStr) {
   if (!dateStr) return;
 
@@ -1661,7 +1797,7 @@ window.focusHolidayDateOnCalendar = function(dateStr) {
         inline: 'center'
       });
 
-      const dayHolidays = allCompanyHolidays ? allCompanyHolidays.filter(h => h.holiday_date === dateStr) : [];
+      const dayHolidays = (typeof holidaysData !== 'undefined' && holidaysData) ? holidaysData.filter(h => h.holiday_date === dateStr) : [];
       renderCompanySummarySidebar(dayHolidays, dateStr);
     }
   }, 100);

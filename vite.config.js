@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve, join } from 'path';
 import fs from 'fs';
 import tailwindcss from '@tailwindcss/vite';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot } from './api-handlers.js';
+import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
 
 export default defineConfig({
   plugins: [
@@ -46,25 +46,43 @@ export default defineConfig({
           if (req.method === 'POST') handleHrChatbot(req, res);
           else res.end();
         });
+        server.middlewares.use('/api/webauthn/register-verify', (req, res) => {
+          if (req.method === 'POST') handleWebAuthnRegisterVerify(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/webauthn/credentials', (req, res) => {
+          if (req.method === 'GET') handleWebAuthnGetCredentials(req, res);
+          else if (req.method === 'DELETE') handleWebAuthnDeleteCredential(req, res);
+          else res.end();
+        });
         server.middlewares.use((req, res, next) => {
           const urlPath = req.url.split('?')[0];
           if (urlPath === '/manifest.json') {
-            const manifestPath = resolve(__dirname, 'manifest.json');
-            if (fs.existsSync(manifestPath)) {
-              const content = fs.readFileSync(manifestPath, 'utf8');
+            const manifestDist = resolve(__dirname, 'dist/manifest.json');
+            const manifestPub = resolve(__dirname, 'public/manifest.json');
+            const manifestRoot = resolve(__dirname, 'manifest.json');
+            const targetPath = fs.existsSync(manifestPub) ? manifestPub : (fs.existsSync(manifestDist) ? manifestDist : manifestRoot);
+            if (fs.existsSync(targetPath)) {
+              const content = fs.readFileSync(targetPath, 'utf8');
               res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
               res.setHeader('Cache-Control', 'no-cache');
               return res.end(content);
             }
           }
           if (urlPath === '/sw.js') {
-            const swPath = resolve(__dirname, 'sw.js');
-            if (fs.existsSync(swPath)) {
-              const content = fs.readFileSync(swPath, 'utf8');
-              res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-              res.setHeader('Cache-Control', 'no-cache');
-              return res.end(content);
-            }
+            const swPub = resolve(__dirname, 'public/sw.js');
+            const swDist = resolve(__dirname, 'dist/sw.js');
+            const swRoot = resolve(__dirname, 'sw.js');
+            let content = '';
+            if (fs.existsSync(swPub)) content = fs.readFileSync(swPub, 'utf8');
+            else if (fs.existsSync(swRoot)) content = fs.readFileSync(swRoot, 'utf8');
+            else if (fs.existsSync(swDist)) content = fs.readFileSync(swDist, 'utf8');
+            else content = '// PVT SW\nself.addEventListener("install", e => self.skipWaiting());\nself.addEventListener("activate", e => self.clients.claim());';
+
+            res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+            res.setHeader('Service-Worker-Allowed', '/');
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            return res.end(content);
           }
           next();
         });

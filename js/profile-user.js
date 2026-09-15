@@ -595,6 +595,66 @@ async function registerCurrentBiometricDevice() {
     }
   } catch (err) {
     console.error("Register device failure:", err);
+
+    const errMsg = String(err.message || err || '');
+    const isCancelOrTimeout = (
+      err.code === 'NOT_ALLOWED_ERROR' ||
+      errMsg.includes('ถูกยกเลิก') ||
+      errMsg.includes('หมดเวลา') ||
+      errMsg.includes('NotAllowedError') ||
+      errMsg.includes('NotSupportedError') ||
+      errMsg.includes('canceled')
+    );
+
+    if (isCancelOrTimeout) {
+      const fallbackPrompt = await Swal.fire({
+        icon: 'warning',
+        title: 'การสแกนถูกยกเลิก หรือไม่พบอุปกรณ์ไบโอเมตริก',
+        html: `
+          <div style="text-align: left; font-size: 14px; color: #475569; line-height: 1.5;">
+            <p style="margin-bottom: 8px;">การสแกนลายนิ้วมือ/ใบหน้าถูกยกเลิก หรืออุปกรณ์ไม่มีเซนเซอร์ฮาร์ดแวร์ไบโอเมตริก</p>
+            <p style="margin-bottom: 0; font-weight: 600; color: #0d9488;">คุณต้องการเปิดใช้งาน <strong>Passkey / กุญแจดิจิทัลประจำอุปกรณ์ (Virtual Passkey SIM)</strong> สำหรับอุปกรณ์ "${nickname}" แทนหรือไม่?</p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '🔑 ลงทะเบียน Passkey สำรอง',
+        cancelButtonText: 'ปิดหน้าต่าง',
+        confirmButtonColor: '#0d9488',
+        cancelButtonColor: '#64748b'
+      });
+
+      if (fallbackPrompt.isConfirmed) {
+        try {
+          Swal.fire({
+            title: 'กำลังเปิดใช้งาน Passkey สำรอง...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+          });
+
+          const virtualResult = await window.PVTWebAuthn.registerVirtualBiometricCredential(resolvedEmp, { deviceName: nickname });
+          if (virtualResult && (virtualResult.success || virtualResult.id)) {
+            Swal.fire({
+              icon: 'success',
+              title: 'ลงทะเบียน Passkey สำเร็จ!',
+              text: `ลงทะเบียนกุญแจดิจิทัลประจำอุปกรณ์ "${nickname}" สำหรับคุณ ${resolvedEmp.full_name || ''} เรียบร้อยแล้ว`,
+              confirmButtonColor: '#0d9488'
+            });
+            await loadRegisteredBiometrics();
+            return;
+          }
+        } catch (vErr) {
+          Swal.fire({
+            icon: 'error',
+            title: 'ลงทะเบียนสำรองล้มเหลว',
+            text: vErr.message || 'ไม่สามารถลงทะเบียน Passkey สำรองได้',
+            confirmButtonColor: '#ef4444'
+          });
+          return;
+        }
+      }
+      return;
+    }
+
     Swal.fire({
       icon: 'error',
       title: 'ลงทะเบียนไม่สำเร็จ',

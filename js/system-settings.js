@@ -785,6 +785,11 @@
     backdrop.classList.add("active");
     document.body.style.overflow = "hidden";
     
+    // Auto-close sidebar on mobile if it is open
+    if (window.innerWidth <= 1024 && typeof window.closeMobileSidebar === 'function') {
+      window.closeMobileSidebar();
+    }
+    
     // Move Google Translate widget to the modal placeholder
     setTimeout(() => {
       const source = document.getElementById('google_translate_element_hidden');

@@ -207,10 +207,26 @@ font {
   box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.2) !important;
 }
 
+.swal-btn-success {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  padding: 10px 20px !important;
+}
+
+.swal-btn-success:hover {
+  background-color: #059669 !important;
+}
+
 .swal-btn-danger {
   background-color: #ef4444 !important;
   color: #ffffff !important;
   border: none !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  padding: 10px 20px !important;
 }
 
 .swal-btn-danger:hover {
@@ -221,6 +237,9 @@ font {
   background-color: #64748b !important;
   color: #ffffff !important;
   border: none !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  padding: 10px 20px !important;
 }
 
 .swal-btn-cancel:hover {

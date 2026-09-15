@@ -1088,11 +1088,26 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
       stepIdx++;
     }
 
+    let hasL3 = Boolean(reqEmp.l3_approver_id || isApplicantManager || (isApplicantLeader && !hasL2) || (item.executive_status && item.executive_status !== 'none'));
+    if (hasL3) {
+      const isApp = item.executive_status === 'approved';
+      const isRej = item.executive_status === 'rejected';
+      const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved');
+      stepsList.push({
+        label: `${stepIdx}. ผู้บริหารสูงสุด (L3)`,
+        icon: isApp ? 'check_circle' : isRej ? 'cancel' : isPendingPrev ? 'schedule' : 'hourglass_top',
+        iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : isPendingPrev ? '#94a3b8' : '#a855f7',
+        statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : isPendingPrev ? 'รอดำเนินการ' : 'รอพิจารณา (ผู้บริหาร L3)',
+        statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#7e22ce'
+      });
+      stepIdx++;
+    }
+
     const isHrApp = item.status === 'approved';
     const isHrRej = item.status === 'rejected';
     const isCancelled = item.status === 'cancelled';
     const isCancelReq = item.status === 'cancel_requested';
-    const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved');
+    const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved') || (hasL3 && item.executive_status !== 'approved');
 
     stepsList.push({
       label: `${stepIdx}. สถานะการอนุมัติ (Final Decision)`,

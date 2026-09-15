@@ -220,7 +220,7 @@
                 ${pinnedIcon}
               </div>
               <h3 class="news-card-title">${escapeHtml(item.title)}</h3>
-              <p class="news-card-snippet">${escapeHtml(item.content)}</p>
+              <p class="news-card-snippet">${escapeHtml(String(item.content || '').replace(/\\n/g, ' ').replace(/<[^>]*>/g, ''))}</p>
               <div class="news-card-meta">
                 <span><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: -2px;">schedule</span> ${formattedDate}</span>
                 <span class="news-read-more">อ่านต่อ <span class="material-symbols-outlined" style="font-size: 16px;">arrow_forward</span></span>
@@ -240,7 +240,7 @@
       const formattedDate = formatThaiNewsDate(item.date || item.created_at);
       const catLabel = CATEGORY_NAMES[item.category] || "ประชาสัมพันธ์";
       const catClass = item.category || "announcement";
-      const formattedContent = escapeHtml(item.content).replace(/\n/g, "<br/>");
+      const formattedContent = formatRichNewsContent(item.content);
       const actionLink = item.link_url
         ? `<div style="margin-top: 20px;"><a href="${item.link_url}" class="news-btn-primary" style="text-decoration: none;" target="_blank"><span class="material-symbols-outlined">open_in_new</span> ไปยังลิงก์ที่เกี่ยวข้อง</a></div>`
         : "";
@@ -580,6 +580,43 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function formatRichNewsContent(rawContent) {
+    if (!rawContent) return "";
+    let content = String(rawContent).replace(/\\n/g, "\n");
+    const hasHtml = /<[a-z][\s\S]*>/i.test(content);
+    if (!hasHtml) {
+      content = escapeHtml(content);
+    }
+    const lines = content.split(/\r?\n/);
+    const formattedLines = lines.map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return "<div style='height: 8px;'></div>";
+
+      // Match numbered lists: "1. ", "2) "
+      const numMatch = trimmed.match(/^(\d+[\.\)])\s*(.*)/);
+      if (numMatch) {
+        const numLabel = numMatch[1].replace(/[\.\)]/, "");
+        const itemText = numMatch[2];
+        return `<div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 10px 14px; margin: 8px 0; color: #166534; font-weight: 600; display: flex; align-items: flex-start; gap: 10px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.06);"><span style="background: #16a34a; color: #ffffff; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 1px;">${numLabel}</span><div style="flex: 1; line-height: 1.5;">${itemText}</div></div>`;
+      }
+
+      // Match bullets
+      if (/^[•\-\*]\s+/.test(trimmed)) {
+        const bulletText = trimmed.replace(/^[•\-\*]\s+/, "");
+        return `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 8px; padding: 8px 12px; margin: 6px 0; color: #1e293b; font-weight: 500; display: flex; align-items: center; gap: 8px;"><span style="color: #0284c7; font-size: 16px;">•</span><span>${bulletText}</span></div>`;
+      }
+
+      // Auto highlight dates & keywords
+      let lineHtml = line;
+      lineHtml = lineHtml.replace(/(สำคัญมาก|หมายเหตุ|ด่วนที่สุด|ข้อปฏิบัติ|เงื่อนไข|สิทธิประโยชน์)/g, '<mark style="background: #fef08a; padding: 2px 8px; border-radius: 6px; color: #854d0e; font-weight: 800; border: 1px solid #fde047;">$1</mark>');
+      lineHtml = lineHtml.replace(/(\d{1,2}\s+(?:มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s+\d{4})/g, '<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-block;">📅 $1</span>');
+
+      return `<div style="margin-bottom: 4px;">${lineHtml}</div>`;
+    });
+
+    return formattedLines.join("");
   }
 
   function formatThaiNewsDate(dateStr) {

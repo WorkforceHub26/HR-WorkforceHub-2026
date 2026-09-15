@@ -317,11 +317,7 @@
           </div>
         </div>
         <div class="flex items-center gap-1.5 md:gap-3 flex-shrink-0">
-          <button type="button" onclick="openSystemSettingsModal()" title="System Settings" class="flex items-center gap-1 md:gap-2 px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-white hover:bg-cyan-50 text-slate-700 font-bold text-xs md:text-sm transition-all border border-slate-200 cursor-pointer shadow-sm">
-            <span class="material-symbols-outlined text-base md:text-lg text-cyan-600">settings</span>
-            <span class="hidden md:inline">Settings</span>
-          </button>
-          <button type="button" onclick="history.back()" class="flex items-center gap-1 md:gap-2 px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-xs md:text-sm transition-all border border-slate-200 cursor-pointer">
+          <button type="button" onclick="if(window.history.length > 1 && document.referrer){window.history.back();}else{window.location.href=document.referrer || '/pages/user/index-user.html';}" class="flex items-center gap-1 md:gap-2 px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-xs md:text-sm transition-all border border-slate-200 cursor-pointer">
             <span class="material-symbols-outlined text-base md:text-lg">arrow_back</span>
             <span class="hidden md:inline">Back</span>
           </button>

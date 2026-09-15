@@ -3016,6 +3016,106 @@ window.toggleMyActionItemsExpand = function() {
   }
 };
 
+function buildDashboardLeaveConfirmHtml(reqData, roleTitle, actionType = 'approve') {
+  const safeEscape = (str) => {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  };
+
+  const empName = reqData.employees?.full_name || reqData.employees?.name || reqData.emp_name || reqData.name || 'พนักงาน';
+  const empCode = reqData.employees?.employee_code || reqData.employee_code || '';
+  const deptName = reqData.employees?.departments?.department_name || reqData.department || reqData.department_name || '-';
+  const posName = reqData.employees?.positions?.position_name || reqData.position || '-';
+  const leaveName = reqData.leave_types?.leave_name || reqData.leave_type_name || 'ไม่ระบุประเภท';
+  const startDate = typeof formatThaiDate === 'function' ? formatThaiDate(reqData.start_date) : reqData.start_date;
+  const endDate = typeof formatThaiDate === 'function' ? formatThaiDate(reqData.end_date) : reqData.end_date;
+  const reason = reqData.reason || 'ไม่ได้ระบุเหตุผล';
+
+  const rawDays = reqData.actual_days || reqData.days_requested || reqData.total_days || 0;
+  const leaveHours = reqData.leave_hours || 0;
+  let durationText = `${rawDays} วัน`;
+  if (leaveHours > 0) {
+    const d = Math.floor(leaveHours / 8);
+    const remH = leaveHours % 8;
+    const wholeH = Math.floor(remH);
+    const mins = Math.round((remH - wholeH) * 60);
+    let parts = [];
+    if (d > 0) parts.push(`${d} วัน`);
+    if (wholeH > 0) parts.push(`${wholeH} ชม.`);
+    if (mins > 0) parts.push(`${mins} นาที`);
+    durationText = parts.length > 0 ? parts.join(' ') : `${leaveHours} ชม.`;
+  }
+
+  const isApprove = actionType === 'approve';
+  const themeColor = isApprove ? '#10b981' : '#ef4444';
+  const themeBg = isApprove ? '#f0fdf4' : '#fef2f2';
+  const themeBorder = isApprove ? '#bbf7d0' : '#fecaca';
+
+  return `
+    <div style="text-align: left; font-size: 13.5px; line-height: 1.5; color: #334155; margin-top: 6px;">
+      <div style="background: ${themeBg}; border: 1.5px solid ${themeBorder}; border-radius: 14px; padding: 14px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 22px; color: ${themeColor};">person</span>
+            <div>
+              <strong style="color: #0f172a; font-size: 15px;">${safeEscape(empName)}</strong>
+              ${empCode ? `<span style="background: #ffffff; color: #475569; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 6px; border: 1px solid #cbd5e1; margin-left: 6px;">รหัส ${safeEscape(empCode)}</span>` : ''}
+            </div>
+          </div>
+          <span style="font-size: 11.5px; font-weight: 700; color: ${themeColor}; background: #ffffff; padding: 2px 9px; border-radius: 12px; border: 1px solid ${themeBorder};">
+            #${safeEscape(String(reqData.id).slice(-6))}
+          </span>
+        </div>
+
+        <div style="font-size: 12.5px; color: #64748b; margin-bottom: 10px; padding-left: 30px;">
+          <span>แผนก: <strong style="color: #334155;">${safeEscape(deptName)}</strong></span>
+          <span style="margin: 0 6px;">•</span>
+          <span>ตำแหน่ง: <strong style="color: #334155;">${safeEscape(posName)}</strong></span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #ffffff; border-radius: 10px; padding: 10px 12px; border: 1px solid #e2e8f0; font-size: 13px;">
+          <div>
+            <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ประเภทการลา</span>
+            <strong style="color: #0d9488; font-size: 13.5px;">${safeEscape(leaveName)}</strong>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">จำนวนเวลาลา</span>
+            <strong style="color: #0f172a; font-size: 13.5px;">${durationText}</strong>
+          </div>
+          <div style="grid-column: span 2; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 2px;">
+            <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ช่วงวันที่ขอลา</span>
+            <strong style="color: #334155; font-size: 13px;">${startDate} - ${endDate}</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px; font-size: 12.5px; background: #ffffff; border-radius: 10px; padding: 8px 12px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; font-weight: 600;">เหตุผลการลา:</span>
+          <span style="color: #1e293b; margin-left: 4px;">${safeEscape(reason)}</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #64748b; padding: 2px 4px 6px 4px;">
+        <span>สิทธิ์ผู้พิจารณา:</span>
+        <span style="font-weight: 700; color: ${themeColor}; background: ${themeBg}; padding: 3px 10px; border-radius: 8px; border: 1px solid ${themeBorder};">
+          ${safeEscape(roleTitle)}
+        </span>
+      </div>
+
+      ${isApprove ? `
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #065f46; display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 17px; color: #10b981; flex-shrink: 0;">check_circle</span>
+          <span>การอนุมัติจะมีผลตัดยอดวันลาและส่งการแจ้งเตือนไปยังพนักงานทันที</span>
+        </div>
+      ` : `
+        <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #9f1239; display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 17px; color: #ef4444; flex-shrink: 0;">warning</span>
+          <span>การไม่อนุมัติจะมีผลสิ้นสุดคำขอนี้ทันที และส่งเหตุผลแจ้งเตือนให้พนักงานทราบ</span>
+        </div>
+      `}
+    </div>
+  `;
+}
+
 window.quickApproveFromDashboard = async function(leaveId) {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
@@ -3027,21 +3127,36 @@ window.quickApproveFromDashboard = async function(leaveId) {
   const sessionUser = savedSession ? JSON.parse(savedSession) : {};
   const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
 
-  const isQuickMode = localStorage.getItem("pvt_double_confirm") === "false";
-  if (!isQuickMode) {
-    const result = await Swal.fire({
-      title: 'ยืนยันอนุมัติใบลา?',
-      text: 'คุณต้องการอนุมัติคำขอลาพักของพนักงานรายนี้ทันทีหรือไม่',
-      icon: 'question',
-      showCancelButton: true,
-      showDenyButton: false,
-      confirmButtonColor: '#10b981',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: '✔️ ยืนยันอนุมัติ',
-      cancelButtonText: 'ยกเลิก'
-    });
-    if (!result.isConfirmed) return;
-  }
+  const roleTitle = myRole === 'leader' 
+    ? 'หัวหน้างาน (L1)' 
+    : myRole === 'manager' 
+    ? 'ผู้จัดการฝ่าย (L2)' 
+    : (myRole === 'executive' || myRole === 'director' || myRole === 'owner')
+    ? 'ผู้บริหาร (L3)'
+    : 'ฝ่ายบุคคล HR / Admin';
+
+  // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการอนุมัติ เพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
+  const result = await Swal.fire({
+    title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ยืนยันอนุมัติคำขอลา</span>',
+    html: buildDashboardLeaveConfirmHtml(reqData, roleTitle, 'approve'),
+    icon: 'question',
+    iconColor: '#10b981',
+    showCancelButton: true,
+    showDenyButton: false,
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">check_circle</span> ยืนยันอนุมัติคำขอลา',
+    cancelButtonText: 'ยกเลิก',
+    focusCancel: true,
+    allowOutsideClick: false,
+    customClass: {
+      popup: 'swal-refined-popup',
+      confirmButton: 'swal-btn-success',
+      cancelButton: 'swal-btn-cancel'
+    }
+  });
+
+  if (!result.isConfirmed) return;
 
   Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -3249,23 +3364,55 @@ window.quickRejectFromDashboard = async function(leaveId) {
   const sessionUser = savedSession ? JSON.parse(savedSession) : {};
   const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
 
-  const { value: rejectComment } = await Swal.fire({
-    title: '✖️ ยืนยันไม่อนุมัติ / ปฏิเสธคำขอลา?',
-    html: '<div style="font-size: 13.5px; color: #64748b; margin-bottom: 10px;">โปรดระบุเหตุผลความจำเป็นที่ไม่อนุมัติ เพื่อแจ้งให้พนักงานทราบ:</div>',
-    input: 'textarea',
-    inputPlaceholder: 'พิมพ์เหตุผลการไม่อนุมัติ เช่น งานเร่งด่วนทับซ้อน, กำลังพลในแผนกไม่เพียงพอ, เอกสารไม่สมบูรณ์...',
-    inputValidator: (value) => {
-      if (!value || !value.trim()) return 'กรุณาระบุเหตุผลในการไม่อนุมัติคำขอลาด้วยครับ!';
-    },
+  const roleTitle = myRole === 'leader' 
+    ? 'หัวหน้างาน (L1)' 
+    : myRole === 'manager' 
+    ? 'ผู้จัดการฝ่าย (L2)' 
+    : (myRole === 'executive' || myRole === 'director' || myRole === 'owner')
+    ? 'ผู้บริหาร (L3)'
+    : 'ฝ่ายบุคคล HR / Admin';
+
+  const summaryHtml = buildDashboardLeaveConfirmHtml(reqData, roleTitle, 'reject');
+
+  // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการไม่อนุมัติ เพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
+  const { value: rejectComment, isConfirmed } = await Swal.fire({
+    title: '<span style="font-size: 20px; font-weight: 800; color: #b91c1c;">ยืนยันไม่อนุมัติ / ปฏิเสธคำขอลา</span>',
+    html: `
+      ${summaryHtml}
+      <div style="text-align: left; margin-top: 14px;">
+        <label for="swal-dashboard-reject-input" style="font-size: 13px; font-weight: 700; color: #b91c1c; display: block; margin-bottom: 6px;">
+          โปรดระบุเหตุผลความจำเป็นที่ไม่อนุมัติ (บังคับกรอก เพื่อแจ้งเตือนพนักงาน):
+        </label>
+        <textarea id="swal-dashboard-reject-input" class="swal2-textarea" placeholder="พิมพ์เหตุผลการไม่อนุมัติ เช่น งานเร่งด่วนทับซ้อน, กำลังพลในแผนกไม่เพียงพอ, เอกสารไม่สมบูรณ์..." style="width: 100%; min-height: 80px; margin: 0; box-sizing: border-box; font-size: 13.5px; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 10px; font-family: inherit;"></textarea>
+      </div>
+    `,
     icon: 'warning',
+    iconColor: '#ef4444',
     showCancelButton: true,
+    showDenyButton: false,
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#64748b',
-    confirmButtonText: '✖️ ยืนยันไม่อนุมัติ',
-    cancelButtonText: 'ยกเลิก'
+    confirmButtonText: '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">cancel</span> ยืนยันไม่อนุมัติคำขอ',
+    cancelButtonText: 'ยกเลิก',
+    focusCancel: true,
+    allowOutsideClick: false,
+    customClass: {
+      popup: 'swal-refined-popup',
+      confirmButton: 'swal-btn-danger',
+      cancelButton: 'swal-btn-cancel'
+    },
+    preConfirm: () => {
+      const textarea = document.getElementById('swal-dashboard-reject-input');
+      const val = textarea ? textarea.value.trim() : '';
+      if (!val) {
+        Swal.showValidationMessage('กรุณาระบุเหตุผลในการไม่อนุมัติคำขอลาด้วยครับ เพื่อแจ้งให้พนักงานทราบ');
+        return false;
+      }
+      return val;
+    }
   });
 
-  if (!rejectComment) return;
+  if (!isConfirmed || !rejectComment) return;
 
   Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 

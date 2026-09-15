@@ -94,46 +94,122 @@
       badgeText = "⏳ ปานกลาง (< 24 ชม.)";
     }
 
-    // ลำดับขั้นตอนการรออนุมัติ (คำนวณตามโครงสร้างแผนกจริง)
-    const deptId = req.employees?.department_id || req.department_id;
-    const deptApprover = (typeof window.deptApproversMap !== 'undefined' && window.deptApproversMap[deptId]) || null;
-    const empRole = String(req.employees?.role || req.role || '').toLowerCase();
-    const empPos = String(req.employees?.positions?.position_name || req.employees?.position_name || '').toLowerCase();
-    
-    const isExecutiveOrHR = ['executive', 'director', 'hr', 'admin'].includes(empRole) || empPos.includes('ผู้บริหาร') || empPos.includes('ผู้อำนวยการ');
-    const isManagerRole = empRole === 'manager' || empPos.includes('ผู้จัดการ') || empPos.includes('manager');
-    const isLeaderRole = ['leader', 'supervisor'].includes(empRole) || empPos.includes('หัวหน้า');
+    // 🚦 ลำดับขั้นตอนการรออนุมัติ (คำนวณตามโครงสร้างสายการอนุมัติจริง)
+    let steps = [];
+    if (typeof window.getApprovalWorkflowSteps === 'function') {
+      steps = window.getApprovalWorkflowSteps(req) || [];
+    } else {
+      const reqEmp = req.employees || {};
+      const reqDeptId = req.department_id || reqEmp.department_id;
+      const deptApprover = (typeof window.deptApproversMap !== 'undefined' && window.deptApproversMap[reqDeptId]) || null;
+      const empRole = String(reqEmp.role || req.role || '').toLowerCase();
+      const empPos = String(reqEmp.positions?.position_name || reqEmp.position_name || '').toLowerCase();
+      const deptName = String(req.departments?.department_name || reqEmp.departments?.department_name || '').toLowerCase();
 
-    let hasL1 = true;
-    let hasL2 = true;
+      const isApplicantLeader = (empRole === 'leader' || empRole.includes('leader') || empRole.includes('supervisor') || empPos.includes('หัวหน้า')) && !empPos.includes('หัวหน้ากะ') && !empPos.includes('หัวหน้าส่วน');
+      const isApplicantManager = empRole === 'manager' || empRole.includes('manager') || empPos.includes('ผู้จัดการ') || empPos.includes('ผจก');
+      const isApplicantExecutive = empRole === 'director' || empRole === 'executive' || empRole === 'owner' || empPos.includes('ผู้บริหาร') || empPos.includes('ผู้อำนวยการ');
+      const isHrDept = deptName.includes('บุคคล') || deptName.includes('hr') || deptName.includes('ธุรการ') || deptName.includes('ทรัพยากรบุคคล') || empRole === 'hr';
 
-    if (deptApprover) {
-      hasL1 = Boolean(deptApprover.supervisor_id);
-      hasL2 = Boolean(deptApprover.manager_id);
-    }
+      let hasL1 = false;
+      if (!isHrDept && !isApplicantLeader && !isApplicantManager && !isApplicantExecutive) {
+        if (reqEmp.l1_approver_id) {
+          hasL1 = true;
+        } else {
+          hasL1 = Boolean(deptApprover && deptApprover.hasLeader && deptApprover.supervisor_id);
+        }
+      }
 
-    if (isExecutiveOrHR) {
-      hasL1 = false;
-      hasL2 = false;
-    } else if (isManagerRole) {
-      hasL1 = false;
-      hasL2 = false;
-    } else if (isLeaderRole) {
-      hasL1 = false;
+      let hasL2 = false;
+      if (!isApplicantManager && !isApplicantExecutive) {
+        if (isHrDept) {
+          hasL2 = true;
+        } else if (reqEmp.l2_approver_id) {
+          hasL2 = true;
+        } else {
+          hasL2 = Boolean(deptApprover && (deptApprover.hasManager || deptApprover.manager_id));
+        }
+      }
+
+      let hasExecutive = false;
+      if (reqEmp.l3_approver_id) {
+        hasExecutive = true;
+      } else if (isApplicantManager) {
+        hasExecutive = true;
+      } else if (isApplicantLeader && !hasL2) {
+        hasExecutive = true;
+      }
+
+      if (hasL1) {
+        steps.push({ role: 'leader', shortName: 'หัวหน้าแผนก (L1)', status: req.manager_status || 'pending' });
+      }
+      if (hasL2) {
+        steps.push({ role: 'manager', shortName: 'ผู้จัดการฝ่าย (L2)', status: req.director_status || 'pending' });
+      }
+      if (hasExecutive) {
+        steps.push({ role: 'executive', shortName: 'ผู้บริหาร (L3)', status: req.executive_status || 'pending' });
+      }
     }
 
     let stepText = "รอพิจารณา";
     let stageClass = "waiting-l1";
+    let stageIcon = "pending_actions";
 
-    if (hasL1 && req.manager_status !== 'approved' && req.manager_status !== 'rejected') {
-      stepText = "1. รอหัวหน้าแผนก (L1)";
-      stageClass = "waiting-l1";
-    } else if (hasL2 && req.director_status !== 'approved' && req.director_status !== 'rejected') {
-      stepText = hasL1 ? "2. รอผู้จัดการฝ่าย (L2)" : "รอผู้จัดการฝ่าย (L2)";
-      stageClass = "waiting-l2";
+    if (steps && steps.length > 0) {
+      const pendingStep = steps.find(s => s.status === 'pending' || s.status === 'waiting');
+      if (pendingStep) {
+        if (pendingStep.role === 'leader') {
+          stepText = "1. รอหัวหน้าแผนก (L1)";
+          stageClass = "waiting-l1";
+          stageIcon = "supervisor_account";
+        } else if (pendingStep.role === 'manager') {
+          stepText = steps.some(s => s.role === 'leader') ? "2. รอผู้จัดการฝ่าย (L2)" : "รอผู้จัดการฝ่าย (L2)";
+          stageClass = "waiting-l2";
+          stageIcon = "manage_accounts";
+        } else if (pendingStep.role === 'executive') {
+          stepText = "รอผู้บริหารพิจารณา (L3)";
+          stageClass = "waiting-l3";
+          stageIcon = "verified_user";
+        } else {
+          stepText = `รอ${pendingStep.shortName || pendingStep.role}`;
+          stageClass = "waiting-l2";
+          stageIcon = "manage_accounts";
+        }
+      } else {
+        const st = String(req.status || '').toLowerCase();
+        if (st === 'approved') {
+          stepText = "อนุมัติครบสมบูรณ์";
+          stageClass = "approved";
+          stageIcon = "check_circle";
+        } else if (st === 'rejected') {
+          stepText = "ไม่อนุมัติ";
+          stageClass = "rejected";
+          stageIcon = "cancel";
+        } else {
+          stepText = "ผ่านการอนุมัติสายงานแล้ว";
+          stageClass = "approved";
+          stageIcon = "check_circle";
+        }
+      }
     } else {
-      stepText = "รอผู้บริหารพิจารณา (Final Review)";
-      stageClass = "waiting-l3";
+      // กรณีไม่มีขั้นตอนระบุไว้ชัดเจน ให้ตรวจสอบจากฟิลด์สถานะโดยตรง
+      if (req.director_status === 'pending') {
+        stepText = "รอผู้จัดการฝ่าย (L2)";
+        stageClass = "waiting-l2";
+        stageIcon = "manage_accounts";
+      } else if (req.manager_status === 'pending') {
+        stepText = "รอหัวหน้าแผนก (L1)";
+        stageClass = "waiting-l1";
+        stageIcon = "supervisor_account";
+      } else if (req.executive_status === 'pending') {
+        stepText = "รอผู้บริหารพิจารณา (L3)";
+        stageClass = "waiting-l3";
+        stageIcon = "verified_user";
+      } else {
+        stepText = "รอตรวจสอบคำขอ";
+        stageClass = "waiting-l1";
+        stageIcon = "pending_actions";
+      }
     }
 
     return {
@@ -148,7 +224,8 @@
       statusType,
       badgeText,
       stepText,
-      stageClass
+      stageClass,
+      stageIcon
     };
   }
 
@@ -243,7 +320,7 @@
       // (รายการที่ผู้ใช้งานท่านนี้ลงนามอนุมัติผ่านไปแล้ว จะถูกย้ายออกจากคิว SLA ค้างพิจารณา และไปอยู่ในหน้าประวัติแทน)
       cachedPendingRequests = requests.filter(r => {
         const st = String(r.status || '').toLowerCase();
-        const isMainPending = (st === 'pending' || st === 'รออนุมัติ');
+        const isMainPending = (st === 'pending' || st === 'pending_l1' || st === 'pending_l2' || st === 'รออนุมัติ' || st.includes('pending') || st.includes('รออนุมัติ'));
         if (!isMainPending) return false;
 
         // ถ้ามีฟังก์ชันเช็กสิทธิ์ตามบทบาท ให้กรองรายการที่อนุมัติผ่านระดับนี้ไปแล้วออก
@@ -502,7 +579,7 @@
             <div class="sla-stage-status">
               <span>สถานะขั้นตอน:</span>
               <span class="sla-stage-badge ${sla.stageClass}">
-                <span class="material-symbols-outlined" style="font-size: 13px;">person_apron</span>
+                <span class="material-symbols-outlined" style="font-size: 13px;">${sla.stageIcon || 'assignment_ind'}</span>
                 ${sla.stepText}
               </span>
             </div>
@@ -799,7 +876,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f1f5f9; border-radius: 8px; font-size: 12.5px; margin-bottom: 10px;">
           <span style="color: #475569; font-weight: 500;">ขั้นตอนปัจจุบัน:</span>
           <span style="font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
-            <span class="material-symbols-outlined" style="font-size: 16px; color: #0d9488;">assignment_ind</span>
+            <span class="material-symbols-outlined" style="font-size: 16px; color: #0d9488;">${sla.stageIcon || 'assignment_ind'}</span>
             ${sla.stepText}
           </span>
         </div>
@@ -889,15 +966,23 @@
     } else {
       try {
         const { isConfirmed } = await Swal.fire({
-          title: 'ยืนยันอนุมัติคำขอลา',
-          text: 'คุณแน่ใจหรือไม่ที่จะอนุมัติคำขอนี้ทันที?',
+          title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ยืนยันอนุมัติคำขอลา</span>',
+          text: 'คุณแน่ใจหรือไม่ที่จะอนุมัติคำขอนี้ทันที? ระบบจะทำการบันทึกและตัดยอดวันลาตามขั้นตอน',
           icon: 'question',
+          iconColor: '#10b981',
           showCancelButton: true,
           showDenyButton: false,
-          confirmButtonText: '✔️ ยืนยันอนุมัติ',
+          confirmButtonText: '✔️ ยืนยันอนุมัติคำขอ',
           cancelButtonText: 'ยกเลิก',
           confirmButtonColor: '#10b981',
-          cancelButtonColor: '#94a3b8'
+          cancelButtonColor: '#64748b',
+          focusCancel: true,
+          allowOutsideClick: false,
+          customClass: {
+            popup: 'swal-refined-popup',
+            confirmButton: 'swal-btn-success',
+            cancelButton: 'swal-btn-cancel'
+          }
         });
         if (!isConfirmed) return;
 
@@ -950,22 +1035,29 @@
       await window.quickRejectFromDashboard(leaveId);
     } else {
       try {
-        const { value: rejectComment } = await Swal.fire({
-          title: 'ไม่อนุมัติคำขอลา',
+        const { value: rejectComment, isConfirmed } = await Swal.fire({
+          title: '<span style="font-size: 20px; font-weight: 800; color: #b91c1c;">ยืนยันไม่อนุมัติ / ปฏิเสธคำขอลา</span>',
           input: 'textarea',
           inputLabel: 'โปรดระบุเหตุผลการไม่อนุมัติ (จากหัวหน้างาน/ผู้จัดการ):',
-          inputPlaceholder: 'กรอกเหตุผลการไม่อนุมัติ เช่น งานเร่งด่วน, กำลังพลไม่พอ...',
+          inputPlaceholder: 'กรอกเหตุผลการไม่อนุมัติ เช่น งานเร่งด่วน, กำลังพลไม่พอ, เอกสารไม่สมบูรณ์...',
           showCancelButton: true,
           showDenyButton: false,
-          confirmButtonText: '✖️ ยืนยันไม่อนุมัติ',
+          confirmButtonText: '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">cancel</span> ยืนยันไม่อนุมัติคำขอ',
           cancelButtonText: 'ยกเลิก',
           confirmButtonColor: '#ef4444',
-          cancelButtonColor: '#94a3b8',
+          cancelButtonColor: '#64748b',
+          focusCancel: true,
+          allowOutsideClick: false,
+          customClass: {
+            popup: 'swal-refined-popup',
+            confirmButton: 'swal-btn-danger',
+            cancelButton: 'swal-btn-cancel'
+          },
           inputValidator: (value) => {
-            if (!value || !value.trim()) return 'กรุณาระบุเหตุผลการไม่อนุมัติด้วยครับ';
+            if (!value || !value.trim()) return 'กรุณาระบุเหตุผลการไม่อนุมัติด้วยครับ เพื่อแจ้งให้พนักงานทราบ';
           }
         });
-        if (!rejectComment) return;
+        if (!isConfirmed || !rejectComment) return;
 
         Swal.fire({
           title: 'กำลังบันทึกข้อมูล...',

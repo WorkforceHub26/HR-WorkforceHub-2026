@@ -1021,12 +1021,30 @@ async function addLeaveRow() {
       </div>
     </div>
 
-    <div class="row-divider" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-      <span>หมวดหมู่ที่ 2: รายละเอียดประเภทการลาและหลักฐาน</span>
-      <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 600; color: #dc2626; background: #fef2f2; padding: 4px 10px; border-radius: 6px; border: 1px solid #fecaca; text-transform: none;">
-        <input type="checkbox" name="is_emergency" value="true" onchange="calculateLeaveDays(this)" style="width: 14px; height: 14px; accent-color: #dc2626; cursor: pointer;">
-        🚨 เป็นกรณีลาฉุกเฉิน (ขั้นต่ำ 1 วัน)
+    <div class="emergency-leave-banner" style="margin: 18px 0; padding: 16px 20px; background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border: 2.5px solid #f87171; border-radius: 16px; box-shadow: 0 8px 24px rgba(225, 29, 72, 0.12); transition: all 0.25s ease;">
+      <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; margin: 0; width: 100%; user-select: none;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);">
+            <span class="material-symbols-outlined" style="font-size: 28px;">warning</span>
+          </div>
+          <div>
+            <div style="font-size: 16px; font-weight: 800; color: #9f1239; line-height: 1.3; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              🚨 เป็นกรณีลาฉุกเฉิน / ลากะทันหัน (Emergency Leave)
+              <span style="font-size: 11px; font-weight: 800; background: #be123c; color: #ffffff; padding: 3px 10px; border-radius: 12px; white-space: nowrap;">กำหนดขั้นต่ำ 1 วันเต็ม</span>
+            </div>
+            <div style="font-size: 13px; color: #881337; margin-top: 3px; font-weight: 600;">
+              คลิกติ๊กเลือกช่องนี้หากเป็นการยื่นใบลาเร่งด่วน ระบบจะติดธงแจ้งเตือนด่วนไปยังหัวหน้างานและ HR ทันที
+            </div>
+          </div>
+        </div>
+        <div style="flex-shrink: 0; padding-right: 4px;">
+          <input type="checkbox" name="is_emergency" value="true" onchange="if(typeof toggleEmergencyStyle==='function'){toggleEmergencyStyle(this);} calculateLeaveDays(this);" style="width: 26px; height: 26px; accent-color: #dc2626; cursor: pointer; transform: scale(1.3);">
+        </div>
       </label>
+    </div>
+
+    <div class="row-divider">
+      <span>หมวดหมู่ที่ 2: รายละเอียดประเภทการลาและหลักฐาน</span>
     </div>
     <div class="grid-row-3">
       <div class="input-group">
@@ -1423,10 +1441,38 @@ async function saveLeave() {
     return;
   }
 
+  // 🛡️ ดึงข้อมูล employee ที่สดใหม่จาก DB เสมอ เพื่อให้ได้ department_id, approver IDs ที่แม่นยำ
+  const currentEmpId = currentProfile?.id || currentProfile?.employee_id || localStorage.getItem("currentUserId");
+  if (currentEmpId && sb && (!currentProfile?.department_id || !currentProfile?.employee_code || currentProfile?.l1_approver_id === undefined)) {
+    try {
+      const { data: freshEmp } = await sb
+        .from('employees')
+        .select('*, departments!department_id(department_name), positions(position_name, duty_name)')
+        .eq('id', currentEmpId)
+        .maybeSingle();
+      if (freshEmp) {
+        currentProfile = {
+          ...currentProfile,
+          ...freshEmp,
+          department_name: freshEmp.departments?.department_name || currentProfile.department_name,
+          position_name: freshEmp.positions?.position_name || currentProfile.position_name
+        };
+      }
+    } catch(e) {
+      console.warn("Could not fetch fresh emp profile on submit:", e);
+    }
+  }
+
   const roleStr = currentProfile.role || localStorage.getItem("userRole") || "";
   const posStr = currentProfile.positions?.position_name || currentProfile.position_name || "";
   const userRole = String(roleStr + " " + posStr).toLowerCase().trim();
   const deptId = currentProfile?.department_id || null;
+  const deptNameStr = String(currentProfile.departments?.department_name || currentProfile.department_name || '').toLowerCase();
+  const empCodeStr = String(currentProfile.employee_code || '').trim();
+  const isHrDept = deptId === 'a318f70f-8e24-4e36-958a-7726d6c9da4d' ||
+    deptNameStr.includes('บุคคล') ||
+    deptNameStr.includes('ธุรการ') ||
+    deptNameStr.includes('hr');
 
   // 🔀 ดึงข้อมูลสายอนุมัติของแผนกเพื่อตรวจสอบความหยืดหยุ่น (มี L1/L2 หรือไม่)
   let approverConfig = currentDeptApproverConfig;
@@ -1477,11 +1523,15 @@ async function saveLeave() {
   let l2Id = currentProfile?.l2_approver_id || approverConfig?.manager_id || null;
   const l3Id = currentProfile?.l3_approver_id || null;
 
+  // สำหรับแผนกบุคคล-ธุรการ: ผู้จัดการ L2 คือ น.ส. ปณัยยา บุญเกิด (19122)
+  if (isHrDept && empCodeStr !== '19122') {
+    if (!l2Id) l2Id = '1ebd2af9-328b-4818-84ce-00d8b75be739';
+  }
+
   // 🛡️ ป้องกันกรณี l1Id ชี้ไปที่ผู้จัดการ (เช่น แผนก QC ที่มีแต่ผู้จัดการ หรือเคยผูกผู้จัดการไว้ในช่อง l1)
   if (l1Id) {
     const isL1ActuallyManager = (approverConfig?.manager_id && l1Id === approverConfig.manager_id) ||
-      (l1Id === l2Id) ||
-      (!approverConfig?.supervisor_id && approverConfig?.manager_id);
+      (l1Id === l2Id);
     if (isL1ActuallyManager) {
       if (!l2Id) l2Id = l1Id;
       l1Id = null;
@@ -1489,14 +1539,14 @@ async function saveLeave() {
   }
 
   const hasL1 = Boolean(l1Id || (approverConfig?.hasLeader && approverConfig?.supervisor_id));
-  const hasL2 = Boolean(l2Id || approverConfig?.hasManager);
+  const hasL2 = Boolean(l2Id || approverConfig?.hasManager || (isHrDept && empCodeStr !== '19122'));
 
   let defaultManagerStatus = "pending";
   let defaultDirectorStatus = "pending";
   let defaultExecutiveStatus = "pending";
 
   const isExecutiveApplicant = isUserExecutive(currentProfile);
-  const isManagerApplicant = isUserManager(currentProfile, approverConfig);
+  const isManagerApplicant = (isHrDept && empCodeStr === '19122') || isUserManager(currentProfile, approverConfig);
   const isLeaderApplicant = !isManagerApplicant && isUserLeader(currentProfile, approverConfig);
 
   // 🧠 Approval Routing ตามระดับตำแหน่งของผู้ยื่น
@@ -1522,18 +1572,25 @@ async function saveLeave() {
     // พนักงานทั่วไป (รวมถึงพนักงานฝ่ายบุคคล/ธุรการ ที่ต้องผ่านการอนุมัติจากผู้จัดการฝ่าย 19122):
     // ถ้าไม่มีหัวหน้าในแผนก/รายบุคคล -> ข้าม L1 ทันที
     if (!hasL1) defaultManagerStatus = "approved";
-    // ถ้าไม่มีผู้จัดการในแผนก/รายบุคคล -> ข้าม L2 ทันที (ยกเว้นมี L3 ให้รอ L3)
-    if (!hasL2 && !l3Id) {
-      defaultDirectorStatus = "approved";
+    
+    // สำหรับแผนกบุคคล: ถ้าเป็นพนักงานทั่วไป ต้องส่งให้ผู้จัดการฝ่ายบุคคล (19122) เป็น L2 เสมอ
+    if (isHrDept && empCodeStr !== '19122') {
+      defaultDirectorStatus = "pending";
+      defaultExecutiveStatus = l3Id ? "pending" : "approved";
+    } else {
+      if (!hasL2 && !l3Id) {
+        defaultDirectorStatus = "pending";
+      } else if (!hasL2) {
+        defaultDirectorStatus = "approved";
+      }
+      defaultExecutiveStatus = l3Id ? "pending" : "approved";
     }
-    defaultExecutiveStatus = l3Id ? "pending" : "approved";
   }
 
   const payload = [];
   const uploadedPaths = []; 
   const typeDaysAcc = {};
   let hasError = false;
-  const currentEmpId = currentProfile.id || currentProfile.employee_id;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -2133,6 +2190,39 @@ function stepHours(btn, direction) {
   input.value = Math.round(newVal * 100) / 100; // ป้องกันปัญหา Floating point บน JS
   calculateLeaveDays(input);
 }
+
+window.toggleEmergencyStyle = function(checkbox) {
+  const banner = checkbox.closest('.leave-row-box') || checkbox.closest('.emergency-leave-banner')?.parentElement;
+  const bannerBox = checkbox.closest('.emergency-leave-banner');
+  if (bannerBox) {
+    if (checkbox.checked) {
+      bannerBox.style.border = '2.5px solid #dc2626';
+      bannerBox.style.boxShadow = '0 0 0 4px rgba(220, 38, 38, 0.25), 0 10px 28px rgba(220, 38, 38, 0.22)';
+      bannerBox.style.background = 'linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)';
+    } else {
+      bannerBox.style.border = '2.5px solid #f87171';
+      bannerBox.style.boxShadow = '0 8px 24px rgba(225, 29, 72, 0.12)';
+      bannerBox.style.background = 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)';
+    }
+  }
+
+  if (banner) {
+    const reasonInput = banner.querySelector('input[name="reason"]');
+    if (reasonInput) {
+      if (checkbox.checked) {
+        reasonInput.style.borderColor = '#ef4444';
+        reasonInput.style.backgroundColor = '#fef2f2';
+        reasonInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.2)';
+        reasonInput.placeholder = '🚨 [ลาฉุกเฉิน] ระบุเหตุผลความจำเป็นเร่งด่วน...';
+      } else {
+        reasonInput.style.borderColor = '';
+        reasonInput.style.backgroundColor = '';
+        reasonInput.style.boxShadow = '';
+        reasonInput.placeholder = 'ระบุเหตุผลความจำเป็น...';
+      }
+    }
+  }
+};
 
 // 🌐 Global Window Function Bindings for Leave Form Page
 window.saveLeave = saveLeave;

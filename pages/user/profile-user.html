@@ -99,9 +99,9 @@
       </nav>
       
       <div class="sidebar-footer">
-        <button type="button" class="menu-item" onclick="triggerBiometricHelp()" style="color: var(--primary);">
-          <img src="/assets/icons/help-support.svg" alt="ช่วยเหลือ" class="nav-icon-custom" />
-          <span>ช่วยเหลือ</span>
+        <button type="button" class="btn-logout" onclick="logout(); return false;" title="ออกจากระบบ">
+          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
+          <span>ออกจากระบบ</span>
         </button>
       </div>
     </aside>
@@ -125,10 +125,6 @@
             </div>
           </div>
           <div class="user-header-actions" style="display: flex; align-items: center; gap: 10px;">
-            <button type="button" class="btn btn-outline" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, เชื่อมต่อ LINE)" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; font-weight: 600; font-size: 13.5px; color: #1e293b;">
-              <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 18px; height: 18px; object-fit: contain;" />
-              <span>ตั้งค่า</span>
-            </button>
             <button class="logout-btn" onclick="location.href='/pages/user/index-user.html'">กลับ</button>
           </div>
         </header>

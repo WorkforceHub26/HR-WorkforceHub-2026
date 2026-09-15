@@ -48,7 +48,7 @@
           <span>ประกาศสำคัญปักหมุด</span>
         </div>
         <h2 class="pinned-hero-title">${escapeHtml(pinned.title)}</h2>
-        <p class="pinned-hero-desc">${escapeHtml(pinned.content)}</p>
+        <p class="pinned-hero-desc">${escapeHtml(String(pinned.content || '').replace(/\\n/g, ' ').replace(/<[^>]*>/g, ''))}</p>
         <button type="button" class="pinned-hero-btn" onclick="CompanyNews.openNewsDetailModal('${pinned.id}')">
           <span>อ่านรายละเอียดฉบับเต็ม</span>
           <span class="material-symbols-outlined" style="font-size: 16px;">arrow_forward</span>

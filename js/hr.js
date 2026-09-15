@@ -174,6 +174,12 @@ async function initSystemAndPermissions() {
         });
         window.deptApproversMap = deptApproversMap;
 
+        const deptNamesMap = {};
+        depts.forEach(d => {
+          deptNamesMap[d.id] = d.department_name;
+        });
+        window.allDepartmentsMap = deptNamesMap;
+
         if (empData?.id) {
           const empIdStr = String(empData.id);
           isDeptSupervisor = apprvList.some(a => String(a.supervisor_id) === empIdStr) ||
@@ -468,8 +474,20 @@ function isPendingForRole(r, role) {
   const sessionUser = savedSession ? JSON.parse(savedSession) : {};
   const currentEmpId = currentUserProfile?.employees?.id || currentUserProfile?.id || sessionUser?.employees?.id || sessionUser?.id || sessionUser?.employee_id;
   const currentEmpIdStr = currentEmpId ? String(currentEmpId) : '';
+  const currentEmpCode = String(currentUserProfile?.employee_code || sessionUser?.employee_code || '').trim();
   if (currentEmpIdStr && (String(r.employee_id || '') === currentEmpIdStr || String(r.employees?.id || '') === currentEmpIdStr)) {
     return false;
+  }
+  if (currentEmpCode && String(r.employees?.employee_code || '').trim() === currentEmpCode) {
+    return false;
+  }
+
+  // 🌟 สำหรับ น.ส. ปณัยยา บุญเกิด (รหัส: 19122) ผู้จัดการฝ่ายบุคคล-ธุรการ:
+  if (currentEmpCode === '19122') {
+    const isDirectorPending = (r.director_status || 'pending') === 'pending';
+    const isManagerPending = (r.manager_status || 'pending') === 'pending';
+    // แสดงรายการที่รอการพิจารณา ตราบใดที่ยังไม่ได้ approved_by หรือสถานะยัง pending
+    return isDirectorPending || isManagerPending || !r.approved_by;
   }
 
   const userRole = String(role || '').toLowerCase();
@@ -488,8 +506,23 @@ function isPendingForRole(r, role) {
   }
   return true;
 }
+window.isPendingForRole = isPendingForRole;
 
 function isHistoryForRole(r, role) {
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const currentEmpCode = String(currentUserProfile?.employee_code || sessionUser?.employee_code || '').trim();
+
+  if (currentEmpCode === '19122') {
+    if (!isPendingStatus(r.status) && !isCancelRequestStatus(r.status)) {
+      return true;
+    }
+    if (isPendingStatus(r.status)) {
+      return (r.director_status || 'pending') !== 'pending' && Boolean(r.approved_by);
+    }
+    return false;
+  }
+
   const userRole = String(role || '').toLowerCase();
   if (!isPendingStatus(r.status) && !isCancelRequestStatus(r.status)) {
     return true;
@@ -507,6 +540,7 @@ function isHistoryForRole(r, role) {
   }
   return false;
 }
+window.isHistoryForRole = isHistoryForRole;
 
 function getADYear(dateStr) {
   if (typeof window.getADYear === 'function' && window.getADYear !== getADYear) {
@@ -765,6 +799,7 @@ function getApprovalWorkflowSteps(req) {
 
   return steps;
 }
+window.getApprovalWorkflowSteps = getApprovalWorkflowSteps;
 
 /* ==========================================================================
    📊 2. DATA FETCHING & TAB BADGES
@@ -807,8 +842,49 @@ async function loadPendingLeavesHR(isSilent = false) {
       .order("created_at", { ascending: false });
 
     if (queryResult.error) {
-      console.warn("⚠️ Complex Join Query Failed in HR load, retrying simple select:", queryResult.error);
-      queryResult = await sb.from("leave_requests").select("*").order("created_at", { ascending: false });
+      console.warn("⚠️ Complex Join Query Failed in HR load, retrying fallback fetch:", queryResult.error);
+      const simpleRes = await sb.from("leave_requests").select("*").order("created_at", { ascending: false });
+      if (simpleRes.data && simpleRes.data.length > 0) {
+        try {
+          const [empsRes, typesRes, deptsRes] = await Promise.all([
+            sb.from("employees").select("id, full_name, employee_code, nickname, role, image_url, department_id, l1_approver_id, l2_approver_id, l3_approver_id, departments!department_id(id, department_name), positions!position_id(position_name, level_type)"),
+            sb.from("leave_types").select("id, leave_name, leave_code"),
+            sb.from("departments").select("id, department_name")
+          ]);
+          const deptIdMap = {};
+          (deptsRes.data || []).forEach(d => { deptIdMap[d.id] = d.department_name; });
+          const empMap = {};
+          (empsRes.data || []).forEach(e => {
+            if (e.department_id && !e.departments && deptIdMap[e.department_id]) {
+              e.departments = { id: e.department_id, department_name: deptIdMap[e.department_id] };
+            }
+            empMap[e.id] = e;
+          });
+          const typeMap = {};
+          (typesRes.data || []).forEach(t => { typeMap[t.id] = t; });
+
+          queryResult = {
+            data: simpleRes.data.map(r => {
+              const emp = r.employees || empMap[r.employee_id] || null;
+              if (emp && !emp.departments && emp.department_id && deptIdMap[emp.department_id]) {
+                emp.departments = { id: emp.department_id, department_name: deptIdMap[emp.department_id] };
+              }
+              return {
+                ...r,
+                employees: emp,
+                leave_types: r.leave_types || typeMap[r.leave_type_id] || null,
+                department_name: r.department_name || emp?.departments?.department_name || (r.department_id ? deptIdMap[r.department_id] : '')
+              };
+            }),
+            error: null
+          };
+        } catch(joinFallbackErr) {
+          console.warn("Enrichment fallback failed:", joinFallbackErr);
+          queryResult = simpleRes;
+        }
+      } else {
+        queryResult = simpleRes;
+      }
     }
 
     let rawData = queryResult.data || [];
@@ -897,8 +973,12 @@ async function loadPendingLeavesHR(isSilent = false) {
     const myEmp = currentUserProfile?.employees || sessionUser?.employees || sessionUser || {};
     const currentEmpId = myEmp?.id;
     const currentEmpCode = String(myEmp?.employee_code || sessionUser?.employee_code || '').trim();
-    const myDeptId = myEmp?.department_id || sessionUser?.department_id;
-    const myDeptName = myEmp?.departments?.department_name || myEmp?.department_name || sessionUser?.department_name;
+    let myDeptId = myEmp?.department_id || sessionUser?.department_id;
+    let myDeptName = myEmp?.departments?.department_name || myEmp?.department_name || sessionUser?.department_name;
+    if (currentEmpCode === '19122') {
+      if (!myDeptId) myDeptId = 'a318f70f-8e24-4e36-958a-7726d6c9da4d';
+      if (!myDeptName) myDeptName = 'บุคคล-ธุรการ';
+    }
 
     const userRole = (currentRole || '').toLowerCase();
     const isHrOrAdmin = (userRole === "hr" || userRole === "admin") && currentEmpCode !== '19122';
@@ -915,8 +995,15 @@ async function loadPendingLeavesHR(isSilent = false) {
         const reqEmpRole = String(reqEmp.role || "").toLowerCase();
         const reqDeptId = reqEmp.department_id ? String(reqEmp.department_id) : '';
         const myDeptIdStr = myDeptId ? String(myDeptId) : '';
-        const reqDeptName = String(reqEmp.departments?.department_name || '').toLowerCase();
-        const myDeptNameStr = String(myDeptName || '').toLowerCase();
+        // Resolve Department Names with robust fallback mapping
+        let reqDeptName = String(reqEmp.departments?.department_name || req.department_name || '').toLowerCase();
+        if (!reqDeptName && reqDeptId && window.allDepartmentsMap) {
+          reqDeptName = String(window.allDepartmentsMap[reqDeptId] || '').toLowerCase();
+        }
+        let myDeptNameStr = String(myDeptName || '').toLowerCase();
+        if (!myDeptNameStr && myDeptId && window.allDepartmentsMap) {
+          myDeptNameStr = String(window.allDepartmentsMap[myDeptId] || '').toLowerCase();
+        }
 
         // 🚫 ซ่อนใบลาของตนเองในหน้าตรวจใบลา (Self-Leave Exclusion):
         // ผู้จัดการหรือหัวหน้างานไม่ต้องเห็นใบลาของตนเองในหน้าตรวจใบลา
@@ -927,15 +1014,40 @@ async function loadPendingLeavesHR(isSilent = false) {
           return false;
         }
 
+        // 🎯 ตรวจสอบความสอดคล้องของแผนก (Same Department Check)
+        const isSameDept = Boolean(
+          (myDeptIdStr && reqDeptId && myDeptIdStr === reqDeptId) ||
+          (myDeptNameStr && reqDeptName && (
+            myDeptNameStr === reqDeptName ||
+            myDeptNameStr.includes(reqDeptName) ||
+            reqDeptName.includes(myDeptNameStr)
+          ))
+        );
+
+        const isHrDept = (
+          reqDeptName.includes('บุคคล') || 
+          reqDeptName.includes('ธุรการ') || 
+          reqDeptName.includes('hr') || 
+          reqDeptName.includes('human') || 
+          reqDeptName.includes('personnel') || 
+          reqDeptName.includes('admin') ||
+          myDeptNameStr.includes('บุคคล') || 
+          myDeptNameStr.includes('ธุรการ') || 
+          myDeptNameStr.includes('hr')
+        );
+
         // 🌟 พิเศษสำหรับ น.ส. ปณัยยา บุญเกิด (รหัส: 19122) ผู้จัดการฝ่าย - บุคคล-ธุรการ
-        // มีแอคเคาต์แยกให้เห็นเฉพาะใบลาของคนในแผนกพอ
+        // มีแอคเคาต์แยกสำหรับ HR กลางในการดูข้อมูลรวม ดั้งนั้นแอคเคาต์นี้ให้เห็นเฉพาะใบลาของคนในแผนกตนเองเท่านั้น
         if (currentEmpCode === '19122') {
-          const isSameDept = (myDeptIdStr && reqDeptId) 
-            ? (reqDeptId === myDeptIdStr)
-            : (reqDeptName.includes('บุคคล') || reqDeptName.includes('ธุรการ') || (myDeptNameStr && myDeptNameStr === reqDeptName));
-          
           const isHigherExec = ['director', 'executive', 'owner'].includes(reqEmpRole);
-          return isSameDept && !isHigherExec;
+          const isMyHrDept = (
+            reqDeptId === 'a318f70f-8e24-4e36-958a-7726d6c9da4d' ||
+            isSameDept ||
+            reqDeptName.includes('บุคคล') ||
+            reqDeptName.includes('ธุรการ') ||
+            reqDeptName.includes('hr')
+          );
+          return isMyHrDept && !isHigherExec;
         }
 
         // 🎯 ตรวจสอบว่าผู้ใช้งานปัจจุบันถูกระบุเป็นผู้อนุมัติโดยตรง (L1 / L2 / L3) หรือไม่
@@ -959,28 +1071,19 @@ async function loadPendingLeavesHR(isSilent = false) {
         const isHigherRole = ['director', 'executive', 'owner', 'superadmin'].includes(reqEmpRole);
 
         if (userRole === "leader") {
-          // Leader เห็นพนักงานทั่วไปในแผนกเดียวกัน
-          const isSameDept = (myDeptIdStr && reqDeptId) 
-            ? (reqDeptId === myDeptIdStr)
-            : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : true);
+          // Leader เห็นพนักงานในแผนกเดียวกัน
           const isNotLeaderOrHigher = !['leader', 'manager', 'director', 'executive', 'owner'].includes(reqEmpRole);
           isSubordinate = isSameDept && isNotLeaderOrHigher;
         } 
         else if (userRole === "manager") {
           // Manager เห็นพนักงานและหัวหน้างานในแผนกตัวเอง
-          const isSameDept = (myDeptIdStr && reqDeptId) 
-            ? (reqDeptId === myDeptIdStr)
-            : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : true);
           isSubordinate = isSameDept && !isHigherRole;
         } 
         else if (userRole === "director" || userRole === "executive" || userRole === "owner" || isDirectL3) {
           // ระดับบริหาร เห็นทุกแผนกทั่วองค์กร
           isSubordinate = true; 
         } else {
-          // กรณี role อื่นๆ หรือพนักงานทั่วไปที่ได้รับสิทธิ์ดู
-          const isSameDept = (myDeptIdStr && reqDeptId) 
-            ? (reqDeptId === myDeptIdStr)
-            : (myDeptNameStr && reqDeptName ? myDeptNameStr === reqDeptName : false);
+          // กรณี role อื่นๆ ให้ดูคนในแผนกเดียวกันได้ถ้าได้รับสิทธิ์
           isSubordinate = isSameDept;
         }
 
@@ -1274,7 +1377,11 @@ function renderLeaveTable() {
   filteredRequests.forEach((req) => {
     const rawEmpName = req.employees ? req.employees.full_name : "ไม่ทราบชื่อ";
     const rawEmpCode = req.employees ? req.employees.employee_code : "-";
-    const rawDeptName = req.employees?.departments?.department_name || "-";
+    let rawDeptName = req.employees?.departments?.department_name || req.department_name || "";
+    if (!rawDeptName && req.employees?.department_id && window.allDepartmentsMap) {
+      rawDeptName = window.allDepartmentsMap[req.employees.department_id] || "";
+    }
+    if (!rawDeptName) rawDeptName = "-";
     const rawPositionName = req.employees?.positions?.position_name || "-";
     const rawLeaveType = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุ";
 
@@ -1395,9 +1502,11 @@ function renderLeaveTable() {
             <span class="label">วันที่:</span>
             <span class="val">${startDate} ถึง ${endDate}</span>
           </div>
-          <div class="detail-row reason-row">
+          <div class="detail-row reason-row" ${req.is_emergency ? 'style="background: #fef2f2; padding: 6px 8px; border-radius: 8px; border: 1px solid #fecaca;"' : ''}>
             <span class="label">เหตุผล:</span>
-            <span class="val text-truncate-2">${reasonText}</span>
+            <span class="val text-truncate-2" ${req.is_emergency ? 'style="color: #b91c1c; font-weight: 700;"' : ''}>
+              ${req.is_emergency ? '<span style="background: #ef4444; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 6px; font-weight: 800; margin-right: 4px; display: inline-block;">🚨 ฉุกเฉิน</span>' : ''}${reasonText}
+            </span>
             <div class="attachment-trigger">
               ${renderAttachmentCell(attachmentUrl, req.id)}
             </div>
@@ -1629,9 +1738,13 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
       </div>
     </div>
 
-    <div class="preview-item-full">
-      <label>เหตุผล / หมายเหตุประกอบการลา</label>
-      <div style="font-weight: 500; line-height: 1.6; color: #334155; font-size: 14px;">${req.reason || 'ไม่ได้ระบุเหตุผล'}</div>
+    <div class="preview-item-full" ${req.is_emergency ? 'style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;"' : ''}>
+      <label ${req.is_emergency ? 'style="color: #b91c1c; font-weight: 800; display: flex; align-items: center; gap: 6px;"' : ''}>
+        ${req.is_emergency ? '<span class="material-symbols-outlined" style="font-size: 18px; color: #ef4444;">warning</span> 🚨 กรณีลาฉุกเฉิน / ลากะทันหัน (Emergency Leave)' : 'เหตุผล / หมายเหตุประกอบการลา'}
+      </label>
+      <div style="font-weight: 600; line-height: 1.6; color: ${req.is_emergency ? '#9f1239' : '#334155'}; font-size: 14px;">
+        ${escapeHtml(req.reason || 'ไม่ได้ระบุเหตุผล')}
+      </div>
     </div>
 
     ${(req.cancel_reason || (req.approval_comment && req.approval_comment.includes('ยกเลิก')) || req.status === 'cancelled') ? `
@@ -1749,7 +1862,11 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
           } else if (isFinalCancelled) {
             finalBadge = '<span style="background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">block</span> ยกเลิกคำขอแล้ว</span>';
             finalCircle = { bg: '#94a3b8', color: '#ffffff', icon: 'block' };
-            finalDesc = 'ใบลาถูกยกเลิกแล้ว';
+            finalDesc = 'ใบลาถูกยกเลิกเรียบร้อยแล้ว';
+          } else if (overallStatus === 'cancel_pending' || overallStatus === 'cancel_requested' || overallStatus === 'ขอยกเลิก') {
+            finalBadge = '<span style="background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">hourglass_top</span> รอการติดตามผลคำร้องขอยกเลิก</span>';
+            finalCircle = { bg: '#f59e0b', color: '#ffffff', icon: 'hourglass_empty' };
+            finalDesc = 'มีการยื่นคำร้องขอยกเลิกใบลา อยู่ระหว่างรอการตรวจสอบและพิจารณาจาก HR / ผู้ดูแล';
           } else {
             finalBadge = '<span style="background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 13px;">hourglass_top</span> กำลังรอพิจารณา</span>';
             finalCircle = { bg: '#f59e0b', color: '#ffffff', icon: 'hourglass_empty' };
@@ -1881,9 +1998,128 @@ function closePreviewModal() {
    🔵 6. WORKFLOW ACTIONS (APPROVE / REJECT / CANCEL)
    ========================================================================== */
 
+/**
+ * 🛡️ สร้างโครงร่าง HTML สรุปข้อมูลใบลาสำหรับกล่องยืนยัน SweetAlert2
+ * ป้องกันการกดยืนยันหรือไม่อนุมัติโดยไม่ตั้งใจ (Accidental Submissions)
+ */
+function buildLeaveActionConfirmDialogHtml(reqData, roleTitle, actionType = 'approve') {
+  const empName = reqData.employees?.full_name || reqData.employees?.name || 'ไม่ระบุชื่อพนักงาน';
+  const empCode = reqData.employees?.employee_code ? `รหัส ${reqData.employees.employee_code}` : '';
+  let deptName = reqData.employees?.departments?.department_name || reqData.department_name || '';
+  if (!deptName && reqData.employees?.department_id && window.allDepartmentsMap) {
+    deptName = window.allDepartmentsMap[reqData.employees.department_id] || '';
+  }
+  if (!deptName) deptName = '-';
+  const posName = reqData.employees?.positions?.position_name || '-';
+  const leaveName = reqData.leave_types ? reqData.leave_types.leave_name : 'ไม่ระบุประเภท';
+  const startDate = typeof formatThaiDate === 'function' ? formatThaiDate(reqData.start_date) : reqData.start_date;
+  const endDate = typeof formatThaiDate === 'function' ? formatThaiDate(reqData.end_date) : reqData.end_date;
+  const reason = reqData.reason || 'ไม่ได้ระบุเหตุผล';
+
+  const rawDays = reqData.actual_days || reqData.days_requested || reqData.total_days || 0;
+  const leaveHours = reqData.leave_hours || 0;
+  let durationText = `${rawDays} วัน`;
+  if (leaveHours > 0) {
+    const d = Math.floor(leaveHours / 8);
+    const remH = leaveHours % 8;
+    const wholeH = Math.floor(remH);
+    const mins = Math.round((remH - wholeH) * 60);
+    let parts = [];
+    if (d > 0) parts.push(`${d} วัน`);
+    if (wholeH > 0) parts.push(`${wholeH} ชม.`);
+    if (mins > 0) parts.push(`${mins} นาที`);
+    durationText = parts.length > 0 ? parts.join(' ') : `${leaveHours} ชม.`;
+  } else if (rawDays % 1 !== 0) {
+    const wholeDays = Math.floor(rawDays);
+    const totalH = (rawDays - wholeDays) * 8;
+    const wholeH = Math.floor(totalH);
+    const mins = Math.round((totalH - wholeH) * 60);
+    let parts = [];
+    if (wholeDays > 0) parts.push(`${wholeDays} วัน`);
+    if (wholeH > 0) parts.push(`${wholeH} ชม.`);
+    if (mins > 0) parts.push(`${mins} นาที`);
+    durationText = parts.length > 0 ? parts.join(' ') : `${rawDays} วัน`;
+  }
+
+  const isApprove = actionType === 'approve';
+  const themeColor = isApprove ? '#10b981' : '#ef4444';
+  const themeBg = isApprove ? '#f0fdf4' : '#fef2f2';
+  const themeBorder = isApprove ? '#bbf7d0' : '#fecaca';
+
+  return `
+    <div style="text-align: left; font-size: 13.5px; line-height: 1.5; color: #334155; margin-top: 6px;">
+      <!-- กล่องรายละเอียดข้อมูลใบลา -->
+      <div style="background: ${themeBg}; border: 1.5px solid ${themeBorder}; border-radius: 14px; padding: 14px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 22px; color: ${themeColor};">person</span>
+            <div>
+              <strong style="color: #0f172a; font-size: 15px;">${escapeHtml(empName)}</strong>
+              ${empCode ? `<span style="background: #ffffff; color: #475569; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 6px; border: 1px solid #cbd5e1; margin-left: 6px;">${escapeHtml(empCode)}</span>` : ''}
+            </div>
+          </div>
+          <span style="font-size: 11.5px; font-weight: 700; color: ${themeColor}; background: #ffffff; padding: 2px 9px; border-radius: 12px; border: 1px solid ${themeBorder};">
+            #${escapeHtml(String(reqData.id).slice(-6))}
+          </span>
+        </div>
+
+        <div style="font-size: 12.5px; color: #64748b; margin-bottom: 10px; padding-left: 30px;">
+          <span>แผนก: <strong style="color: #334155;">${escapeHtml(deptName)}</strong></span>
+          <span style="margin: 0 6px;">•</span>
+          <span>ตำแหน่ง: <strong style="color: #334155;">${escapeHtml(posName)}</strong></span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #ffffff; border-radius: 10px; padding: 10px 12px; border: 1px solid #e2e8f0; font-size: 13px;">
+          <div>
+            <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ประเภทการลา</span>
+            <strong style="color: #0d9488; font-size: 13.5px;">${escapeHtml(leaveName)}</strong>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">จำนวนเวลาลา</span>
+            <strong style="color: #0f172a; font-size: 13.5px;">${durationText}</strong>
+          </div>
+          <div style="grid-column: span 2; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 2px;">
+            <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ช่วงวันที่ขอลา</span>
+            <strong style="color: #334155; font-size: 13px;">${startDate} - ${endDate}</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px; font-size: 12.5px; background: #ffffff; border-radius: 10px; padding: 8px 12px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; font-weight: 600;">เหตุผลการลา:</span>
+          <span style="color: #1e293b; margin-left: 4px;">${escapeHtml(reason)}</span>
+        </div>
+      </div>
+
+      <!-- ข้อมูลสิทธิ์ผู้พิจารณา -->
+      <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #64748b; padding: 2px 4px 6px 4px;">
+        <span>สิทธิ์ผู้พิจารณา:</span>
+        <span style="font-weight: 700; color: ${themeColor}; background: ${themeBg}; padding: 3px 10px; border-radius: 8px; border: 1px solid ${themeBorder};">
+          ${escapeHtml(roleTitle)}
+        </span>
+      </div>
+
+      ${isApprove ? `
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #065f46; display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 17px; color: #10b981; flex-shrink: 0;">check_circle</span>
+          <span>การอนุมัติจะมีผลตัดยอดวันลาและส่งการแจ้งเตือนไปยังพนักงานทันที</span>
+        </div>
+      ` : `
+        <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #9f1239; display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 17px; color: #ef4444; flex-shrink: 0;">warning</span>
+          <span>การไม่อนุมัติจะมีผลสิ้นสุดคำขอนี้ทันที และส่งเหตุผลแจ้งเตือนให้พนักงานทราบ</span>
+        </div>
+      `}
+    </div>
+  `;
+}
+
 async function approveLeave(leaveId) {
   const reqData = allLeaveRequests.find(r => r.id === leaveId);
   if (!reqData) return;
+
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const currentEmpId = currentUserProfile?.employees?.id || currentUserProfile?.id || sessionUser?.employees?.id || sessionUser?.id || sessionUser?.employee_id;
 
   if (!canApproveStep(reqData, currentRole)) return;
 
@@ -1895,24 +2131,29 @@ async function approveLeave(leaveId) {
     ? 'ผู้บริหาร (L3)'
     : 'ฝ่ายบุคคล HR / Admin';
 
-  let isConfirmed = true;
-  const isQuickMode = localStorage.getItem("pvt_double_confirm") === "false";
-  if (!isQuickMode) {
-    const result = await Swal.fire({
-      title: 'ยืนยันอนุมัติใบลา?',
-      text: `คุณกำลังอนุมัติในฐานะ ${roleTitle}`,
-      icon: 'question',
-      showCancelButton: true,
-      showDenyButton: false,
-      confirmButtonColor: '#10b981',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: '✔️ ยืนยันอนุมัติ',
-      cancelButtonText: 'ยกเลิก'
-    });
-    isConfirmed = result.isConfirmed;
-  }
+  // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการอนุมัติเพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
+  const result = await Swal.fire({
+    title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ยืนยันอนุมัติคำขอลา</span>',
+    html: buildLeaveActionConfirmDialogHtml(reqData, roleTitle, 'approve'),
+    icon: 'question',
+    iconColor: '#10b981',
+    showCancelButton: true,
+    showDenyButton: false,
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">check_circle</span> ยืนยันอนุมัติคำขอลา',
+    cancelButtonText: 'ยกเลิก',
+    focusCancel: true,
+    allowOutsideClick: false,
+    customClass: {
+      popup: 'swal-refined-popup',
+      confirmButton: 'swal-btn-success',
+      cancelButton: 'swal-btn-cancel'
+    }
+  });
 
-  if (!isConfirmed) return;
+  if (!result.isConfirmed) return;
+  if (typeof closePreviewModal === 'function') closePreviewModal();
 
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
@@ -1978,6 +2219,10 @@ async function approveLeave(leaveId) {
       if (hasExecutiveColumn) updateFields.executive_status = 'approved';
       updateFields.status = 'approved';
       updateFields.approved_at = new Date().toISOString();
+    }
+
+    if (updateFields.status === 'approved' && currentEmpId) {
+      updateFields.approved_by = currentEmpId;
     }
 
     // หักยอดวันลาหากได้รับการอนุมัติขั้นสุดท้ายเรียบร้อยแล้ว (status = approved)
@@ -2314,29 +2559,60 @@ async function approveLeave(leaveId) {
 }
 
 async function rejectLeave(leaveId) {
-  const { value: reason } = await Swal.fire({
-    title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ปฏิเสธคำขอลา</span>',
-    html: '<div style="font-size: 14px; color: #64748b; margin-bottom: 12px; font-weight: 500;">โปรดระบุเหตุผลที่ไม่อนุมัติคำขอนี้ เพื่อแจ้งให้พนักงานทราบ:</div>',
-    input: 'textarea',
-    inputPlaceholder: 'พิมพ์เหตุผลการไม่อนุมัติที่นี่...',
+  const reqData = allLeaveRequests.find(r => r.id === leaveId);
+  if (!reqData) return;
+
+  const roleTitle = currentRole === 'leader' 
+    ? 'หัวหน้างาน (L1)' 
+    : currentRole === 'manager' 
+    ? 'ผู้จัดการฝ่าย (L2)' 
+    : (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner')
+    ? 'ผู้บริหาร (L3)'
+    : 'ฝ่ายบุคคล HR / Admin';
+
+  const summaryHtml = buildLeaveActionConfirmDialogHtml(reqData, roleTitle, 'reject');
+
+  // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการไม่อนุมัติ เพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
+  const { value: reason, isConfirmed } = await Swal.fire({
+    title: '<span style="font-size: 20px; font-weight: 800; color: #b91c1c;">ยืนยันไม่อนุมัติ / ปฏิเสธคำขอลา</span>',
+    html: `
+      ${summaryHtml}
+      <div style="text-align: left; margin-top: 14px;">
+        <label for="swal-reject-reason-input" style="font-size: 13px; font-weight: 700; color: #b91c1c; display: block; margin-bottom: 6px;">
+          โปรดระบุเหตุผลความจำเป็นที่ไม่อนุมัติ (บังคับกรอก เพื่อแจ้งเตือนพนักงาน):
+        </label>
+        <textarea id="swal-reject-reason-input" class="swal2-textarea" placeholder="ระบุเหตุผล เช่น ติดภารกิจเร่งด่วนในแผนก, กำลังพลไม่เพียงพอ, ยื่นเอกสารไม่สมบูรณ์..." style="width: 100%; min-height: 80px; margin: 0; box-sizing: border-box; font-size: 13.5px; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 10px; font-family: inherit;"></textarea>
+      </div>
+    `,
     icon: 'warning',
+    iconColor: '#ef4444',
     showCancelButton: true,
     showDenyButton: false,
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#64748b',
-    confirmButtonText: '✖️ ยืนยันไม่อนุมัติ',
+    confirmButtonText: '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">cancel</span> ยืนยันไม่อนุมัติคำขอ',
     cancelButtonText: 'ยกเลิก',
+    focusCancel: true,
+    allowOutsideClick: false,
     customClass: {
       popup: 'swal-refined-popup',
       confirmButton: 'swal-btn-danger',
       cancelButton: 'swal-btn-cancel'
     },
-    inputValidator: (value) => { 
-      if (!value || !value.trim()) return 'กรุณาระบุเหตุผลในการไม่อนุมัติด้วยครับ!';
+    preConfirm: () => {
+      const textarea = document.getElementById('swal-reject-reason-input');
+      const val = textarea ? textarea.value.trim() : '';
+      if (!val) {
+        Swal.showValidationMessage('กรุณาระบุเหตุผลในการไม่อนุมัติคำขอลาด้วยครับ เพื่อแจ้งให้พนักงานทราบ');
+        return false;
+      }
+      return val;
     }
   });
 
-  if (!reason) return;
+  if (!isConfirmed || !reason) return;
+  if (typeof closePreviewModal === 'function') closePreviewModal();
+
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
@@ -2487,16 +2763,48 @@ async function forceCancelLeave(leaveId) {
 }
 
 async function approveCancellation(leaveId) {
+  const reqData = allLeaveRequests.find(r => r.id === leaveId);
+  const empName = reqData?.employees?.full_name || reqData?.employees?.name || 'พนักงาน';
+  const leaveName = reqData?.leave_types?.leave_name || 'ใบลา';
+
   const result = await Swal.fire({
-    title: 'ยืนยันอนุมัติการยกเลิกใบลา?',
-    text: "ระบบจะทำรายการยกเลิกใบลา และคืนจำนวนวันลาที่หักไปกลับเข้าโควตาพนักงานทันที",
+    title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ยืนยันอนุมัติการยกเลิกใบลา</span>',
+    html: `
+      <div style="text-align: left; font-size: 13.5px; color: #334155; margin-top: 8px;">
+        <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+          <div style="font-weight: 700; color: #166534; font-size: 14px; margin-bottom: 4px;">
+            ${escapeHtml(empName)} - ${escapeHtml(leaveName)}
+          </div>
+          <div style="font-size: 12.5px; color: #64748b;">
+            ช่วงวันที่: ${reqData ? formatThaiDate(reqData.start_date) : '-'} - ${reqData ? formatThaiDate(reqData.end_date) : '-'}
+          </div>
+          ${reqData?.cancel_reason ? `
+            <div style="margin-top: 8px; font-size: 12px; color: #991b1b; background: #fef2f2; padding: 6px 10px; border-radius: 6px; border: 1px solid #fecaca;">
+              <strong>เหตุผลขอยกเลิก:</strong> ${escapeHtml(reqData.cancel_reason)}
+            </div>
+          ` : ''}
+        </div>
+        <div style="font-size: 13px; color: #065f46; background: #ecfdf5; border-radius: 8px; padding: 8px 12px; border: 1px solid #a7f3d0; display: flex; align-items: center; gap: 6px;">
+          <span class="material-symbols-outlined" style="font-size: 18px; color: #10b981;">restart_alt</span>
+          <span>ระบบจะทำรายการยกเลิกใบลา และคืนจำนวนวันลาที่หักไปกลับเข้าโควตาพนักงานทันที</span>
+        </div>
+      </div>
+    `,
     icon: 'warning',
+    iconColor: '#10b981',
     showCancelButton: true,
     showDenyButton: false,
     confirmButtonColor: '#10b981',
     cancelButtonColor: '#64748b',
     confirmButtonText: '✔️ อนุมัติยกเลิก (คืนโควตา)',
-    cancelButtonText: 'ยกเลิก'
+    cancelButtonText: 'ยกเลิก',
+    focusCancel: true,
+    allowOutsideClick: false,
+    customClass: {
+      popup: 'swal-refined-popup',
+      confirmButton: 'swal-btn-success',
+      cancelButton: 'swal-btn-cancel'
+    }
   });
 
   if (!result.isConfirmed) return;
@@ -2558,21 +2866,54 @@ async function approveCancellation(leaveId) {
 }
 
 async function rejectCancellation(leaveId) {
-  const { value: reason } = await Swal.fire({
-    title: 'ปฏิเสธคำร้องขอยกเลิก',
-    input: 'textarea',
-    inputLabel: 'โปรดระบุเหตุผลที่ไม่อนุมัติให้ยกเลิก:',
-    inputPlaceholder: 'พิมพ์เหตุผลที่นี่...',
+  const reqData = allLeaveRequests.find(r => r.id === leaveId);
+  const empName = reqData?.employees?.full_name || reqData?.employees?.name || 'พนักงาน';
+  const leaveName = reqData?.leave_types?.leave_name || 'ใบลา';
+
+  const { value: reason, isConfirmed } = await Swal.fire({
+    title: '<span style="font-size: 20px; font-weight: 800; color: #b91c1c;">ปฏิเสธคำร้องขอยกเลิกใบลา</span>',
+    html: `
+      <div style="text-align: left; font-size: 13.5px; color: #334155; margin-top: 8px;">
+        <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+          <div style="font-weight: 700; color: #991b1b; font-size: 14px; margin-bottom: 4px;">
+            ${escapeHtml(empName)} - ${escapeHtml(leaveName)}
+          </div>
+          <div style="font-size: 12.5px; color: #64748b;">
+            ช่วงวันที่: ${reqData ? formatThaiDate(reqData.start_date) : '-'} - ${reqData ? formatThaiDate(reqData.end_date) : '-'}
+          </div>
+        </div>
+        <label for="swal-reject-cancel-input" style="font-size: 13px; font-weight: 700; color: #b91c1c; display: block; margin-bottom: 6px;">
+          โปรดระบุเหตุผลที่ไม่อนุมัติให้ยกเลิก (บังคับกรอก):
+        </label>
+        <textarea id="swal-reject-cancel-input" class="swal2-textarea" placeholder="พิมพ์เหตุผลการปฏิเสธคำร้องขอยกเลิก..." style="width: 100%; min-height: 75px; margin: 0; box-sizing: border-box; font-size: 13.5px; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 10px; font-family: inherit;"></textarea>
+      </div>
+    `,
     icon: 'warning',
+    iconColor: '#ef4444',
     showCancelButton: true,
     showDenyButton: false,
     confirmButtonColor: '#ef4444',
-    confirmButtonText: '✖️ ยืนยันปฏิเสธ',
+    confirmButtonText: '✖️ ยืนยันปฏิเสธคำร้อง',
     cancelButtonText: 'ยกเลิก',
-    inputValidator: (value) => { if (!value) return 'กรุณาระบุเหตุผลด้วยครับ!' }
+    focusCancel: true,
+    allowOutsideClick: false,
+    customClass: {
+      popup: 'swal-refined-popup',
+      confirmButton: 'swal-btn-danger',
+      cancelButton: 'swal-btn-cancel'
+    },
+    preConfirm: () => {
+      const el = document.getElementById('swal-reject-cancel-input');
+      const val = el ? el.value.trim() : '';
+      if (!val) {
+        Swal.showValidationMessage('กรุณาระบุเหตุผลที่ไม่อนุมัติให้ยกเลิกใบลาด้วยครับ');
+        return false;
+      }
+      return val;
+    }
   });
 
-  if (!reason) return;
+  if (!isConfirmed || !reason) return;
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 

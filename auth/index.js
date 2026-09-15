@@ -592,12 +592,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const savedLang = localStorage.getItem("pvt_login_lang") || 'th';
   setLanguage(savedLang);
 
-  // Register Service Worker for PWA (Add to Home Screen)
-  if ('serviceWorker' in navigator) {
+  // Register Service Worker for PWA (Only in top-level standalone window)
+  if ('serviceWorker' in navigator && window.self === window.top && window.location.protocol.startsWith('http')) {
     try {
-      await navigator.serviceWorker.register('/sw.js');
+      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      if (reg) {
+        console.log('PWA Service Worker registered:', reg.scope);
+      }
     } catch (swErr) {
-      console.log('Service Worker not registered:', swErr);
+      console.warn('Notice: PWA Service Worker registration skipped:', swErr?.message || swErr);
     }
   }
 
@@ -975,6 +978,9 @@ function saveUserSession(userData) {
     position_name: posName,
     duty_name: dutyName,
     image_url: userData.image_url || "",
+    l1_approver_id: userData.l1_approver_id || null,
+    l2_approver_id: userData.l2_approver_id || null,
+    l3_approver_id: userData.l3_approver_id || null,
     expireAt: new Date().getTime() + (expireHours * 60 * 60 * 1000)
   };
   localStorage.setItem("currentUser", JSON.stringify(sessionPayload));
@@ -1106,7 +1112,7 @@ async function executeSecureQrLogin(scannedData) {
     // ค้นหาพนักงานในฐานข้อมูลด้วย employee_code (Case-Insensitive)
     let { data: users, error } = await sb
       .from('employees')
-      .select('id, employee_code, full_name, role, status')
+      .select('id, employee_code, full_name, role, status, department_id, position_id, l1_approver_id, l2_approver_id, l3_approver_id, image_url, departments!department_id(department_name), positions(position_name, duty_name)')
       .ilike('employee_code', empCode);
 
     if (error) throw new Error("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: " + error.message);
@@ -1115,7 +1121,7 @@ async function executeSecureQrLogin(scannedData) {
     if (!users || users.length === 0) {
       const { data: fallbackUsers } = await sb
         .from('employees')
-        .select('id, employee_code, full_name, role, status')
+        .select('id, employee_code, full_name, role, status, department_id, position_id, l1_approver_id, l2_approver_id, l3_approver_id, image_url, departments!department_id(department_name), positions(position_name, duty_name)')
         .or(`employee_code.eq.${empCode},employee_code.eq.${empCode.padStart(4, '0')},phone.eq.${empCode}`);
       
       if (fallbackUsers && fallbackUsers.length > 0) {
@@ -1268,6 +1274,9 @@ async function loginByQr() {
   let currentFacingMode = "environment";
   let activeTab = "cam"; // "cam" | "file"
   let videoTrack = null;
+  let idleTimer = null;
+  let isEcoMode = false;
+  const IDLE_TIMEOUT_MS = 10000; // 10 seconds idle threshold
 
   // ค้นหาหรือสร้าง DOM สำหรับ Modal แบบ Full-Screen
   let modalOverlay = document.getElementById("pvtQrScannerModal");
@@ -1287,6 +1296,9 @@ async function loginByQr() {
       guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
       guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
       guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
+      guideEco: "🍃 โหมดประหยัดแบตเตอรี่ (แตะหน้าจอเพื่อปลุกกล้อง)",
+      ecoTitle: "โหมดประหยัดพลังงาน",
+      ecoSub: "ลดเฟรมเรตเมื่อไม่ได้ใช้งานเกิน 10 วิ",
       tabCam: "กล้องสด",
       tabFile: "เลือกรูปภาพ",
       reqPerm: "กำลังเปิดกล้องและขอสิทธิ์เข้าถึง...",
@@ -1308,6 +1320,9 @@ async function loginByQr() {
       guideLive: "ວາງ QR ຫຼື ບາໂຄ້ດ ໃຫ້ຢູ່ໃນກອບ",
       guideScanning: "ກຳລັງກວດສອບລະຫັດພະນັກງານ...",
       guideSuccess: "ສະແກນສຳເລັດ! ກຳລັງຢືນຢັນຕົວຕົນ...",
+      guideEco: "🍃 ໂໝດປະຢັດແບັດເຕີຣີ (ແຕະໜ້າຈໍເພື່ອປຸກກ້ອງ)",
+      ecoTitle: "ໂໝດປະຢັດພະລັງງານ",
+      ecoSub: "ຫຼຸດເຟຣມເລດເມື່ອບໍ່ໄດ້ໃຊ້ເກີນ 10 ວິ",
       tabCam: "ກ້ອງສົດ",
       tabFile: "ເລືອກຮູບພາບ",
       reqPerm: "ກຳລັງເປີດກ້ອງ ແລະ ຂໍສິດການເຂົ້າເຖິງ...",
@@ -1329,6 +1344,9 @@ async function loginByQr() {
       guideLive: "QR သို့မဟုတ် ဘားကုဒ်ကို ဘောင်အတွင်း ထားပါ",
       guideScanning: "ဝန်ထမ်းကုဒ်ကို စစ်ဆေးနေသည်...",
       guideSuccess: "စကင်န်အောင်မြင်ပါသည်!",
+      guideEco: "🍃 ဘက်ထရီချွေတာရေးမုဒ် (မျက်နှာပြင်ကိုနှိပ်ပါ)",
+      ecoTitle: "ဘက်ထရီချွေတာရေး",
+      ecoSub: "၁၀ စက္ကန့်မလှုပ်ရှားပါက FPS လျှော့ချသည်",
       tabCam: "ကင်မရာ",
       tabFile: "ပုံရွေးပါ",
       reqPerm: "ကင်မရာ ဖွင့်နေသည်...",
@@ -1350,6 +1368,9 @@ async function loginByQr() {
     guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
     guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
     guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
+    guideEco: "🍃 โหมดประหยัดแบตเตอรี่ (แตะหน้าจอเพื่อปลุกกล้อง)",
+    ecoTitle: "โหมดประหยัดพลังงาน",
+    ecoSub: "ลดเฟรมเรตเมื่อไม่ได้ใช้งานเกิน 10 วิ",
     tabCam: "กล้องสด",
     tabFile: "เลือกรูปภาพ",
     reqPerm: "กำลังเปิดกล้องและขอสิทธิ์เข้าถึง...",
@@ -1400,6 +1421,17 @@ async function loginByQr() {
       <!-- 📷 Scanner Viewport / HUD Reticle -->
       <div id="pvtQrCamView" class="pvt-qr-viewport-container">
         <div id="pvt-qr-video-host"></div>
+
+        <!-- 🍃 Eco Battery Saver Visual Indicator Overlay (>10s Idle) -->
+        <div id="pvtQrEcoIndicator" class="pvt-qr-eco-indicator" title="โหมดประหยัดพลังงาน - แตะหน้าจอเพื่อปลุกกล้องเต็มประสิทธิภาพ">
+          <div class="pvt-qr-eco-icon-badge">
+            <span class="material-symbols-outlined">eco</span>
+          </div>
+          <div class="pvt-qr-eco-text-box">
+            <span class="pvt-qr-eco-title">${i18n.ecoTitle}</span>
+            <span class="pvt-qr-eco-subtitle">${i18n.ecoSub}</span>
+          </div>
+        </div>
 
         <!-- 🔍 Pinch-to-Zoom Visual Feedback Indicator Overlay -->
         <div id="pvtQrZoomIndicator" class="pvt-qr-zoom-indicator" title="จีบนิ้วเพื่อย่อ/ขยายภาพ (Pinch to Zoom)">
@@ -1511,8 +1543,78 @@ async function loginByQr() {
   const successOverlay = document.getElementById("pvtQrSuccessOverlay");
   const guideMsg = document.getElementById("pvtQrGuideMsg");
 
+  // 🍃 ระบบประหยัดพลังงานแบตเตอรี่ (Eco Battery Saver) เมื่อเปิดกล้องทิ้งไว้เกิน 10 วินาที
+  const enterEcoBatteryMode = async () => {
+    if (!isCamRunning || isEcoMode) return;
+    isEcoMode = true;
+
+    const ecoIndicator = document.getElementById("pvtQrEcoIndicator");
+    if (ecoIndicator) ecoIndicator.classList.add("show");
+
+    const laser = document.getElementById("pvtQrLaser");
+    if (laser) laser.classList.add("eco-mode");
+
+    if (guideMsg && !hasScannedSuccess) {
+      guideMsg.textContent = i18n.guideEco || "🍃 โหมดประหยัดแบตเตอรี่ (แตะหน้าจอเพื่อปลุกกล้อง)";
+    }
+
+    // 🔋 ลดเฟรมเรตและความละเอียดของฮาร์ดแวร์กล้องลง เพื่อประหยัดแบตเตอรี่และลดความร้อน CPU/GPU
+    if (videoTrack) {
+      try {
+        await videoTrack.applyConstraints({
+          frameRate: { ideal: 6, max: 8 },
+          width: { ideal: 480, max: 640 },
+          height: { ideal: 480, max: 640 }
+        });
+      } catch (e) {
+        console.warn("Eco Mode track constraints notice:", e);
+      }
+    }
+  };
+
+  const exitEcoBatteryMode = async (resetTimer = true) => {
+    if (resetTimer) resetIdleTimer();
+    if (!isEcoMode) return;
+    isEcoMode = false;
+
+    const ecoIndicator = document.getElementById("pvtQrEcoIndicator");
+    if (ecoIndicator) ecoIndicator.classList.remove("show");
+
+    const laser = document.getElementById("pvtQrLaser");
+    if (laser) laser.classList.remove("eco-mode");
+
+    if (guideMsg && !hasScannedSuccess) {
+      guideMsg.textContent = i18n.guideLive;
+    }
+
+    // ⚡ คืนค่าเฟรมเรตระดับสูงและความละเอียดคมชัดเพื่อการสแกนที่รวดเร็วแม่นยำ
+    if (videoTrack && isCamRunning) {
+      try {
+        await videoTrack.applyConstraints({
+          frameRate: { ideal: 24, max: 30 },
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 }
+        });
+      } catch (e) {
+        console.warn("Restore high performance constraints notice:", e);
+      }
+    }
+  };
+
+  const resetIdleTimer = () => {
+    if (idleTimer) clearTimeout(idleTimer);
+    if (isCamRunning && activeTab === "cam") {
+      idleTimer = setTimeout(() => {
+        enterEcoBatteryMode();
+      }, IDLE_TIMEOUT_MS);
+    }
+  };
+
   // 🚪 ปิด Modal และเคลียร์กล้องอย่างปลอดภัย
   const closeModal = async () => {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = null;
+    isEcoMode = false;
     document.removeEventListener("keydown", handleKeyDown);
     if (html5QrCode) {
       try {
@@ -1536,13 +1638,35 @@ async function loginByQr() {
 
   const handleKeyDown = (e) => {
     if (e.key === "Escape") closeModal();
+    else exitEcoBatteryMode();
   };
   document.addEventListener("keydown", handleKeyDown);
 
   btnClose.onclick = closeModal;
 
+  // 🍃 แตะป้ายประหยัดแบตเตอรี่เพื่อปลุกกล้องทันที
+  const ecoIndicatorEl = document.getElementById("pvtQrEcoIndicator");
+  if (ecoIndicatorEl) {
+    ecoIndicatorEl.onclick = (e) => {
+      e.stopPropagation();
+      exitEcoBatteryMode();
+    };
+  }
+
+  // ปลุกกล้องจากโหมดประหยัดพลังงานเมื่อมีการสัมผัสหรือเคลื่อนไหวบนจอ
+  const registerUserActivity = () => {
+    exitEcoBatteryMode();
+  };
+
+  if (camView) {
+    ["touchstart", "touchmove", "pointerdown", "mousedown", "mousemove", "click"].forEach(evtName => {
+      camView.addEventListener(evtName, registerUserActivity, { passive: true });
+    });
+  }
+
   // 🔦 สลับการใช้งานไฟฉาย (Torch)
   btnTorch.onclick = async () => {
+    registerUserActivity();
     if (!videoTrack) return;
     try {
       isTorchOn = !isTorchOn;
@@ -1558,6 +1682,7 @@ async function loginByQr() {
 
   // 🔄 สลับกล้องหน้า / กล้องหลัง
   btnFlip.onclick = async () => {
+    registerUserActivity();
     currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
     if (isCamRunning) {
       try {
@@ -1570,6 +1695,7 @@ async function loginByQr() {
 
   // 📑 การสลับแท็บ กล้องสด <-> เลือกรูปภาพ
   tabCam.onclick = async () => {
+    registerUserActivity();
     if (activeTab === "cam") return;
     activeTab = "cam";
     tabCam.classList.add("active");
@@ -1577,9 +1703,11 @@ async function loginByQr() {
     fileView.style.display = "none";
     camView.style.display = "flex";
     if (!isCamRunning) await startCamera();
+    else resetIdleTimer();
   };
 
   tabFile.onclick = async () => {
+    if (idleTimer) clearTimeout(idleTimer);
     if (activeTab === "file") return;
     activeTab = "file";
     tabFile.classList.add("active");
@@ -1599,6 +1727,7 @@ async function loginByQr() {
   const onScanSuccess = (decodedText) => {
     if (hasScannedSuccess) return;
     hasScannedSuccess = true;
+    if (idleTimer) clearTimeout(idleTimer);
 
     // ⚡ 1. Immediate visual detection highlight on .pvt-qr-viewport-container
     if (camView) camView.classList.add("qr-detected");
@@ -1793,6 +1922,9 @@ async function loginByQr() {
           console.warn("Torch capability check:", e);
         }
       }, 500);
+
+      // 🍃 เริ่มนับเวลาถอยหลัง 10 วินาทีสำหรับโหมดประหยัดพลังงาน (Eco Battery Saver)
+      resetIdleTimer();
 
     } catch (err) {
       console.error("Camera access failed:", err);

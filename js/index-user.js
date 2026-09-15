@@ -1526,17 +1526,34 @@ async function loadQuotaData(targetYear) {
 
     const approvedTimesMap = {};
     const approvedDaysMap = {};
+    let totalPendingDays = 0;
+    let totalPendingCount = 0;
+    let totalApprovedDays = 0;
+    let totalApprovedCount = 0;
 
     (requests || []).forEach(r => {
       const typeIdStr = String(r.leave_type_id);
-      if (r.status === 'approved') {
-        const reqYear = r.start_date ? (typeof window.getADYear === 'function' ? window.getADYear(r.start_date) : new Date(r.start_date).getFullYear()) : targetYearAD;
-        if (reqYear === targetYearAD) {
+      const reqYear = r.start_date ? (typeof window.getADYear === 'function' ? window.getADYear(r.start_date) : new Date(r.start_date).getFullYear()) : targetYearAD;
+      if (reqYear === targetYearAD) {
+        const days = parseFloat(r.total_days) || 0;
+        if (r.status === 'approved') {
           approvedTimesMap[typeIdStr] = (approvedTimesMap[typeIdStr] || 0) + 1;
-          approvedDaysMap[typeIdStr] = (approvedDaysMap[typeIdStr] || 0) + (parseFloat(r.total_days) || 0);
+          approvedDaysMap[typeIdStr] = (approvedDaysMap[typeIdStr] || 0) + days;
+          totalApprovedDays += days;
+          totalApprovedCount += 1;
+        } else if (r.status === 'pending') {
+          totalPendingDays += days;
+          totalPendingCount += 1;
         }
       }
     });
+
+    window.cachedLeaveStats = {
+      pendingDays: totalPendingDays,
+      pendingCount: totalPendingCount,
+      approvedDays: totalApprovedDays,
+      approvedCount: totalApprovedCount
+    };
 
     // 🎯 รวมข้อมูลแบบ Deduplication โดยยึด leave_type_id เป็นหลัก (1 ประเภทลา = 1 การ์ดเท่านั้น)
     const quotaMap = new Map();
@@ -1859,69 +1876,411 @@ window.generateLineLinkToken = async function() {
 };
 
 /* ==========================================================================
-   📊 ฟังก์ชันวาดการ์ดโควตาวันลา (แสดงจำนวนครั้งที่อนุมัติแล้ว)
+   📊 ฟังก์ชันวาดรายการสิทธิ์วันลาคงเหลือ (รูปแบบ Dropdown + Micro Card)
    ========================================================================== */
+window.cachedUserQuotas = [];
+window.selectedMicroQuotaId = window.selectedMicroQuotaId || 'all';
+
 function renderQuotaCards(quotas) {
   const container = document.getElementById('leaveBalancesContainer');
   if (!container) return;
   
   if (!quotas || quotas.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 24px 0;">ไม่พบข้อมูลสิทธิ์วันลาสำหรับปีนี้</div>`;
+    container.innerHTML = `<div class="empty-state" style="width: 100%; text-align: center; color: #64748b; padding: 24px 16px; background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; font-size: 14px;">ไม่พบข้อมูลสิทธิ์วันลาสำหรับปีนี้</div>`;
     return;
   }
 
-  container.innerHTML = quotas.map(item => {
-    const typeName = safeEscapeHtml(item.leave_type_name || "สิทธิ์การลา");
+  window.cachedUserQuotas = quotas;
+
+  const LEAVE_ICONS = {
+    sick: "medical_services",
+    personal: "business_center",
+    vacation: "beach_access",
+    maternity: "child_care",
+    ordination: "self_improvement",
+    sterilization: "health_and_safety",
+    military: "military_tech",
+    other: "event_note"
+  };
+
+  const formattedItems = quotas.map((item, index) => {
+    const rawTypeName = safeEscapeHtml(item.leave_type_name || "สิทธิ์การลา");
+    let typeName = rawTypeName;
+    if (typeName.includes("พักร้อน") || typeName.includes("พักผ่อน")) typeName = "ลาพักร้อน";
+    else if (typeName.includes("ป่วย")) typeName = "ลาป่วย";
+    else if (typeName.includes("กิจ")) typeName = "ลากิจส่วนตัว";
+    else if (typeName.includes("คลอด")) typeName = "ลาคลอดบุตร";
+    else if (typeName.includes("บวช") || typeName.includes("อุปสมบท")) typeName = "ลาอุปสมบท";
+
     const total = parseFloat(item.entitlement_days) || parseFloat(item.quota) || 0;
     const used = parseFloat(item.used_days) || 0;
     const remaining = parseFloat(item.remaining_days) ?? (total - used);
     const usedPercent = total > 0 ? Math.min(Math.round((used / total) * 100), 100) : 0;
-    const cardColor = item.card_color || "#2563eb";
-    const leaveTypeId = item.leave_type_id || "";
+    const cardColor = item.card_color || (typeName.includes("พักร้อน") ? "#0d9488" : typeName.includes("ป่วย") ? "#ef4444" : "#2563eb");
+    const leaveTypeId = item.leave_type_id || `type-${index}`;
     const approvedTimes = item.approved_times || 0;
-
     const isUnder1Year = Boolean(item.is_under_1_year);
-    const tenureBadge = isUnder1Year ? `<span title="รอบปีการลาบริษัท: 1 ธ.ค. - 30 พ.ย." style="font-size: 11px; color: #e11d48; font-weight: 600; background: #fff1f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecdd3; margin-left: 6px;">อายุงานไม่ถึง 1 ปี (รอบ 1 ธ.ค. - 30 พ.ย.)</span>` : '';
 
-    const remainingFriendly = window.PVTSDK?.formatLeaveDurationFriendly
-      ? window.PVTSDK.formatLeaveDurationFriendly(remaining, 0, { compact: true })
-      : `${remaining} วัน`;
-    const usedFriendly = window.PVTSDK?.formatLeaveDurationFriendly
-      ? window.PVTSDK.formatLeaveDurationFriendly(used, 0, { compact: true })
-      : `${used} วัน`;
-    const remainingDisplay = Number.isInteger(remaining) ? remaining : remainingFriendly;
-    const remainingSubtext = Number.isInteger(remaining) ? '' : `<span style="font-size: 11px; color: #64748b; margin-left: 4px;">(${remaining} วัน)</span>`;
+    let iconName = LEAVE_ICONS.other;
+    let emojiIcon = "📝";
+    if (typeName.includes("พักร้อน")) { iconName = LEAVE_ICONS.vacation; emojiIcon = "🏖️"; }
+    else if (typeName.includes("ป่วย")) { iconName = LEAVE_ICONS.sick; emojiIcon = "🤒"; }
+    else if (typeName.includes("กิจ")) { iconName = LEAVE_ICONS.personal; emojiIcon = "💼"; }
+    else if (typeName.includes("คลอด")) { iconName = LEAVE_ICONS.maternity; emojiIcon = "👶"; }
+    else if (typeName.includes("บวช")) { iconName = LEAVE_ICONS.ordination; emojiIcon = "🧘"; }
 
-    return `
-      <div class="quota-card" 
-           onclick="showLeaveTypeHistory('${leaveTypeId}', '${typeName}')"
-           style="border-top: 4px solid ${cardColor}; cursor: pointer; transition: transform 0.15s ease;"
-           title="คลิกเพื่อดูประวัติ ${typeName}">
-        <div class="quota-header-row" style="flex-wrap: wrap; gap: 4px; align-items: center;">
-          <div class="quota-type-title">${typeName} ${tenureBadge}</div>
-          <span class="quota-approved-badge" style="background: ${cardColor}15; color: ${cardColor}; border: 1px solid ${cardColor}30; margin-left: auto;">
-            อนุมัติ ${approvedTimes} ครั้ง
-          </span>
-        </div>
-        
-        <div class="quota-days">
-          <span class="num-highlight" style="color: ${cardColor};">${remainingDisplay}</span>
-          <span class="num-total">/ ${total} วัน</span>
-          ${remainingSubtext}
-        </div>
-        
-        <div class="quota-progress-track">
-          <div class="quota-progress-bar" style="width: ${usedPercent}%; background-color: ${cardColor};"></div>
+    return {
+      rawTypeName,
+      typeName,
+      total,
+      used,
+      remaining,
+      usedPercent,
+      cardColor,
+      leaveTypeId,
+      approvedTimes,
+      isUnder1Year,
+      iconName,
+      emojiIcon
+    };
+  });
+
+  // Check if active selection exists
+  let activeId = window.selectedMicroQuotaId || 'all';
+  let activeItem = formattedItems.find(i => String(i.leaveTypeId) === String(activeId));
+  if (activeId !== 'all' && !activeItem) {
+    activeId = 'all';
+    window.selectedMicroQuotaId = 'all';
+  }
+
+  // 1. Dropdown Select Options
+  const optionsHtml = `
+    <option value="all" ${activeId === 'all' ? 'selected' : ''}>📊 สรุปสิทธิ์วันลาคงเหลือภาพรวม</option>
+    ${formattedItems.map(item => `
+      <option value="${item.leaveTypeId}" ${String(activeId) === String(item.leaveTypeId) ? 'selected' : ''}>
+        ${item.emojiIcon} ${item.typeName} — คงเหลือ ${item.remaining} วัน
+      </option>
+    `).join('')}
+  `;
+
+  // Total Summary values across all types
+  const totalSumRemaining = formattedItems.reduce((acc, i) => acc + Math.max(0, i.remaining), 0);
+  const totalSumUsed = formattedItems.reduce((acc, i) => acc + i.used, 0);
+  const totalSumEntitlement = formattedItems.reduce((acc, i) => acc + i.total, 0);
+
+  const leaveStats = window.cachedLeaveStats || {
+    pendingDays: 0,
+    pendingCount: 0,
+    approvedDays: 0,
+    approvedCount: 0
+  };
+
+  // 2. Render Micro Card Content
+  let microCardHtml = '';
+
+  if (activeId === 'all' || !activeItem) {
+    // === SUMMARY ALL MICRO CARD ===
+    microCardHtml = `
+      <div class="micro-card-body summary-mode">
+        <div class="micro-card-header">
+          <div class="micro-card-title-group">
+            <div class="micro-card-icon-badge" style="background: #0284c715; color: #0284c7;">
+              <span class="material-symbols-outlined">analytics</span>
+            </div>
+            <div>
+              <h3 class="micro-card-name">สรุปสิทธิ์วันลาภาพรวมปีนี้</h3>
+              <p class="micro-card-subtext">สรุปสถานะการยื่นลาประจำปี</p>
+            </div>
+          </div>
         </div>
 
-        <div class="quota-footer">
-          <span>ใช้ไป ${usedFriendly} (${approvedTimes} ครั้ง)</span>
-          <span>${usedPercent}%</span>
+        <div class="micro-card-grid">
+          <div class="micro-stat-box used">
+            <span class="stat-label">ใช้ไปเท่าไหร่</span>
+            <div class="stat-value-group">
+              <span class="stat-num" style="color: #2563eb;">${totalSumUsed}</span>
+              <span class="stat-unit">วัน</span>
+            </div>
+          </div>
+          <div class="micro-stat-box pending">
+            <span class="stat-label">ใบลารออนุมัติ</span>
+            <div class="stat-value-group">
+              <span class="stat-num" style="color: #d97706;">${leaveStats.pendingCount}</span>
+              <span class="stat-unit">รายการ (${leaveStats.pendingDays} วัน)</span>
+            </div>
+          </div>
+          <div class="micro-stat-box approved">
+            <span class="stat-label">อนุมัติแล้ว</span>
+            <div class="stat-value-group">
+              <span class="stat-num" style="color: #059669;">${leaveStats.approvedCount}</span>
+              <span class="stat-unit">รายการ (${leaveStats.approvedDays} วัน)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Micro Quick Switcher Pills -->
+        <div class="micro-pills-row">
+          <div class="micro-pills-header">
+            <span class="micro-pills-label">เลือกดูเจาะจง:</span>
+            <div class="micro-pills-nav-btns">
+              <button type="button" class="micro-pill-nav-btn" onclick="window.scrollMicroPills(-120)" title="เลื่อนซ้าย">
+                <span class="material-symbols-outlined">chevron_left</span>
+              </button>
+              <button type="button" class="micro-pill-nav-btn" onclick="window.scrollMicroPills(120)" title="เลื่อนขวา">
+                <span class="material-symbols-outlined">chevron_right</span>
+              </button>
+            </div>
+          </div>
+          <div class="micro-pills-scroll" id="microPillsScrollContainer">
+            ${formattedItems.map(item => `
+              <button type="button" 
+                      class="micro-pill-chip" 
+                      style="--pill-color: ${item.cardColor};"
+                      onclick="window.handleMicroQuotaChange('${item.leaveTypeId}')">
+                <span>${item.emojiIcon} ${item.typeName}</span>
+                <strong style="color: ${item.cardColor};">${item.remaining} ว.</strong>
+              </button>
+            `).join('')}
+          </div>
         </div>
       </div>
     `;
-  }).join('');
+  } else {
+    // === SPECIFIC LEAVE TYPE MICRO CARD ===
+    const item = activeItem;
+    const tenureBadge = item.isUnder1Year ? `<span class="quota-tenure-badge">อายุงาน <1 ปี</span>` : '';
+
+    microCardHtml = `
+      <div class="micro-card-body" style="--theme-color: ${item.cardColor};">
+        <div class="micro-card-header">
+          <div class="micro-card-title-group">
+            <div class="micro-card-icon-badge" style="background: ${item.cardColor}15; color: ${item.cardColor};">
+              <span class="material-symbols-outlined">${item.iconName}</span>
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <h3 class="micro-card-name">${item.typeName}</h3>
+                ${tenureBadge}
+              </div>
+              <p class="micro-card-subtext">โควต้าทั้งหมด <strong>${item.total}</strong> วัน • อนุมัติแล้ว <strong>${item.approvedTimes}</strong> ครั้ง</p>
+            </div>
+          </div>
+
+          <button type="button" 
+                  class="micro-history-btn" 
+                  onclick="showLeaveTypeHistory('${item.leaveTypeId}', '${item.rawTypeName}')">
+            <span>ประวัติ</span>
+            <span class="material-symbols-outlined" style="font-size: 15px;">chevron_right</span>
+          </button>
+        </div>
+
+        <div class="micro-card-grid">
+          <div class="micro-stat-box remaining">
+            <span class="stat-label">คงเหลือ</span>
+            <div class="stat-value-group">
+              <span class="stat-num" style="color: ${item.cardColor};">${item.remaining}</span>
+              <span class="stat-unit">วัน</span>
+            </div>
+          </div>
+          <div class="micro-stat-box used">
+            <span class="stat-label">ใช้ไปแล้ว</span>
+            <div class="stat-value-group">
+              <span class="stat-num" style="color: #64748b;">${item.used}</span>
+              <span class="stat-unit">วัน (${item.usedPercent}%)</span>
+            </div>
+          </div>
+          <div class="micro-stat-box total">
+            <span class="stat-label">สิทธิ์ทั้งหมด</span>
+            <div class="stat-value-group">
+              <span class="stat-num" style="color: #334155;">${item.total}</span>
+              <span class="stat-unit">วัน</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="micro-progress-wrapper">
+          <div class="micro-progress-track">
+            <div class="micro-progress-bar" style="width: ${item.usedPercent}%; background: linear-gradient(90deg, ${item.cardColor} 0%, ${item.cardColor}dd 100%);"></div>
+          </div>
+        </div>
+
+        <!-- Micro Quick Switcher Pills -->
+        <div class="micro-pills-row">
+          <div class="micro-pills-header">
+            <span class="micro-pills-label">เปลี่ยนประเภท:</span>
+            <div class="micro-pills-nav-btns">
+              <button type="button" class="micro-pill-nav-btn" onclick="window.scrollMicroPills(-120)" title="เลื่อนซ้าย">
+                <span class="material-symbols-outlined">chevron_left</span>
+              </button>
+              <button type="button" class="micro-pill-nav-btn" onclick="window.scrollMicroPills(120)" title="เลื่อนขวา">
+                <span class="material-symbols-outlined">chevron_right</span>
+              </button>
+            </div>
+          </div>
+          <div class="micro-pills-scroll" id="microPillsScrollContainer">
+            <button type="button" 
+                    class="micro-pill-chip ${activeId === 'all' ? 'active' : ''}" 
+                    onclick="window.handleMicroQuotaChange('all')">
+              <span>📊 ภาพรวม</span>
+            </button>
+            ${formattedItems.map(i => `
+              <button type="button" 
+                      class="micro-pill-chip ${String(i.leaveTypeId) === String(activeId) ? 'active' : ''}" 
+                      style="--pill-color: ${i.cardColor};"
+                      onclick="window.handleMicroQuotaChange('${i.leaveTypeId}')">
+                <span>${i.emojiIcon} ${i.typeName}</span>
+                <strong style="color: ${i.cardColor};">${i.remaining} ว.</strong>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Assembly wrapper with Dropdown Header
+  container.innerHTML = `
+    <div class="quota-dropdown-micro-wrapper">
+      <div class="quota-dropdown-bar">
+        <label for="quotaMicroSelect" class="quota-dropdown-label">
+          <span class="material-symbols-outlined" style="font-size: 18px; color: #0284c7;">tune</span>
+          <span>เลือกประเภทวันลา:</span>
+        </label>
+        <select id="quotaMicroSelect" class="quota-type-select" onchange="window.handleMicroQuotaChange(this.value)">
+          ${optionsHtml}
+        </select>
+      </div>
+
+      ${microCardHtml}
+    </div>
+  `;
+
+  setTimeout(() => {
+    window.initMicroPillsDragScroll();
+  }, 50);
 }
+
+window.scrollMicroPills = function(offset) {
+  const el = document.getElementById('microPillsScrollContainer') || document.querySelector('.micro-pills-scroll');
+  if (el) {
+    el.scrollBy({ left: offset, behavior: 'smooth' });
+  }
+};
+
+window.initMicroPillsDragScroll = function() {
+  const scrollContainer = document.getElementById('microPillsScrollContainer') || document.querySelector('.micro-pills-scroll');
+  if (!scrollContainer) return;
+
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+  let hasMoved = false;
+
+  // Prevent button click when dragging
+  scrollContainer.addEventListener('click', (e) => {
+    if (hasMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      hasMoved = false;
+    }
+  }, true);
+
+  // MOUSE DRAG EVENT HANDLERS
+  scrollContainer.addEventListener('mousedown', (e) => {
+    isDown = true;
+    hasMoved = false;
+    scrollContainer.classList.add('dragging');
+    startX = e.pageX - scrollContainer.offsetLeft;
+    scrollLeft = scrollContainer.scrollLeft;
+  });
+
+  scrollContainer.addEventListener('mouseleave', () => {
+    isDown = false;
+    scrollContainer.classList.remove('dragging');
+  });
+
+  scrollContainer.addEventListener('mouseup', () => {
+    isDown = false;
+    scrollContainer.classList.remove('dragging');
+    if (hasMoved) {
+      window.microPillsWasDragged = true;
+      setTimeout(() => { 
+        window.microPillsWasDragged = false; 
+        hasMoved = false;
+      }, 100);
+    }
+  });
+
+  scrollContainer.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    const x = e.pageX - scrollContainer.offsetLeft;
+    const walk = (x - startX) * 1.8;
+    if (Math.abs(x - startX) > 4) {
+      hasMoved = true;
+      window.microPillsWasDragged = true;
+    }
+    if (hasMoved) {
+      e.preventDefault();
+      scrollContainer.scrollLeft = scrollLeft - walk;
+    }
+  });
+
+  // TOUCH DRAG EVENT HANDLERS (FINGER SWIPE)
+  let touchStartX = 0;
+  let touchScrollLeft = 0;
+
+  scrollContainer.addEventListener('touchstart', (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    isDown = true;
+    hasMoved = false;
+    touchStartX = e.touches[0].pageX - scrollContainer.offsetLeft;
+    touchScrollLeft = scrollContainer.scrollLeft;
+  }, { passive: true });
+
+  scrollContainer.addEventListener('touchend', () => {
+    isDown = false;
+    if (hasMoved) {
+      window.microPillsWasDragged = true;
+      setTimeout(() => { 
+        window.microPillsWasDragged = false; 
+        hasMoved = false;
+      }, 100);
+    }
+  }, { passive: true });
+
+  scrollContainer.addEventListener('touchmove', (e) => {
+    if (!isDown || !e.touches || e.touches.length === 0) return;
+    const x = e.touches[0].pageX - scrollContainer.offsetLeft;
+    const walk = (x - touchStartX) * 1.5;
+    if (Math.abs(x - touchStartX) > 4) {
+      hasMoved = true;
+      window.microPillsWasDragged = true;
+    }
+    if (hasMoved) {
+      scrollContainer.scrollLeft = touchScrollLeft - walk;
+    }
+  }, { passive: true });
+
+  // MOUSE WHEEL
+  scrollContainer.addEventListener('wheel', (e) => {
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      scrollContainer.scrollLeft += e.deltaY * 0.9;
+    }
+  }, { passive: false });
+};
+
+window.handleMicroQuotaChange = function(typeId) {
+  if (window.microPillsWasDragged) {
+    window.microPillsWasDragged = false;
+    return;
+  }
+  window.selectedMicroQuotaId = typeId;
+  if (window.cachedUserQuotas && window.cachedUserQuotas.length > 0) {
+    renderQuotaCards(window.cachedUserQuotas);
+  }
+};
 
 /* ==========================================================================
    🔍 ฟังก์ชัน Pop-up ประวัติการลา (กรองเฉพาะ leave_type_id ที่คลิกเลือก)
@@ -2016,8 +2375,10 @@ window.showLeaveTypeHistory = async function(leaveTypeId, leaveTypeName) {
    🔄 10. ระบบ Refresh Data (พร้อม Animation ปุ่มหมุน)
    ========================================================================== */
 window.refreshUserData = async function() {
-  const refreshIcons = document.querySelectorAll('.material-symbols-outlined');
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) refreshBtn.classList.add('is-refreshing');
   
+  const refreshIcons = document.querySelectorAll('.material-symbols-outlined');
   refreshIcons.forEach(icon => {
     if (icon.innerText === 'refresh') {
       icon.style.transition = 'transform 0.6s ease';
@@ -2041,6 +2402,8 @@ window.refreshUserData = async function() {
     if (typeof loadQuotaData === "function") {
       await loadQuotaData(window.currentSelectedYear);
     }
+
+    if (refreshBtn) refreshBtn.classList.remove('is-refreshing');
 
     if (typeof Swal !== 'undefined') {
       const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
