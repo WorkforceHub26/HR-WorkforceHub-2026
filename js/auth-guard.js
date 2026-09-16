@@ -2313,13 +2313,13 @@ function injectGlobalLangSwitcher() {
   
   container.innerHTML = `
     <div class="lang-switcher">
-      <button type="button" class="lang-btn" id="globalLangTh" onclick="window.setGlobalLanguage('th', false, { forceBroadcast: true })" title="ภาษาไทย">ไทย</button>
-      <button type="button" class="lang-btn" id="globalLangLo" onclick="window.setGlobalLanguage('lo', false, { forceBroadcast: true })" title="ພາສາລາວ">ລາວ</button>
-      <button type="button" class="lang-btn" id="globalLangMy" onclick="window.setGlobalLanguage('my', false, { forceBroadcast: true })" title="မြန်မာစာ">မြန်မာ</button>
+      <button type="button" class="lang-btn" id="globalLangTh" onclick="window.setGlobalLanguage('th', false, { forceBroadcast: true })" title="ภาษาไทย">ภาษาไทย</button>
       <button type="button" class="lang-btn" id="globalLangEn" onclick="window.setGlobalLanguage('en', false, { forceBroadcast: true })" title="English">English</button>
-    </div>
-  `;
-
+      </div>
+      `;
+      // <button type="button" class="lang-btn" id="globalLangLo" onclick="window.setGlobalLanguage('lo', false, { forceBroadcast: true })" title="ພາສາລາວ">ລາວ</button>
+      // <button type="button" class="lang-btn" id="globalLangMy" onclick="window.setGlobalLanguage('my', false, { forceBroadcast: true })" title="မြန်မာစာ">မြန်မာ</button>
+      
   if (targetContainer.classList.contains('rules-top-bar')) {
     targetContainer.insertBefore(container, targetContainer.children[1] || null);
   } else if (targetContainer.classList.contains('topbar') || targetContainer.tagName === 'HEADER' || targetContainer.classList.contains('user-header')) {
