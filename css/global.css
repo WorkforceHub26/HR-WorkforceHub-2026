@@ -91,11 +91,92 @@ font {
   vertical-align: inherit !important;
 }
 
+/* ==========================================================================
+   ✨ SOPHISTICATED ANIMATION FRAMEWORK
+   ========================================================================== */
+
+/* 🚀 Entrance Transitions */
+@keyframes revealFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes revealSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes revealSlideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes revealScaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 🧪 Utility Classes */
+.animate-fade { animation: revealFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-up { animation: revealSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-down { animation: revealSlideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-scale { animation: revealScaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ⏳ Staggered Entrance Delays (0-1s range) */
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* 🖱️ Interactive States */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+.hover-lift:active {
+  transform: translateY(0);
+}
+
+.hover-glow:hover {
+  filter: drop-shadow(0 0 8px rgba(13, 148, 136, 0.4));
+}
+
+/* 🌫️ Skeleton Loading Shimmer */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
 /* 🌫️ ฉากหลังสำหรับ SweetAlert2 - z-index สูงสุดเหนือทุกเลเยอร์ */
 .swal2-container {
   background-color: rgba(15, 23, 42, 0.65) !important;
   z-index: 2147483647 !important;
   pointer-events: auto !important;
+}
+
+/* 🚫 ป้องกัน SweetAlert2 ปรับเปลี่ยนความสูงและตัดจัดวางหน้าจอสั่นไหว/ขนาดการ์ดเปลี่ยน */
+html.swal2-height-auto {
+  height: 100% !important;
+}
+body.swal2-shown:not(.swal2-no-backdrop) {
+  overflow-y: auto !important;
+  padding-right: 0px !important;
 }
 
 /* กล่องป๊อปอัป SweetAlert2 (Large, Accessible, High-Contrast UI Alerts) */
@@ -338,31 +419,46 @@ body.sidebar-open {
 /* 📱 Mobile Drawer Close Button */
 .btn-close-sidebar {
   display: none;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #64748b;
-  cursor: pointer;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  max-width: 36px !important;
+  max-height: 36px !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  margin-left: auto;
+  flex-shrink: 0 !important;
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  outline: none !important;
+  overflow: hidden !important;
 }
 
 .btn-close-sidebar:hover, .btn-close-sidebar:active {
-  background: #fee2e2;
-  color: #ef4444;
-  border-color: #fca5a5;
-  transform: scale(0.96);
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+  border-color: #fca5a5 !important;
+  transform: scale(1.06);
 }
 
 .btn-close-sidebar .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* 📊 Responsive Table Wrappers & Touch Optimization */
@@ -443,20 +539,18 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
 
   /* Fix language switcher to the top of the screen on mobile */
   #globalLangSwitcherContainer {
-    position: fixed;
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100%;
-    z-index: 9999;
+    z-index: 99;
     background: transparent;
-    padding: 8px;
+    padding: 4px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
   }
   
   /* Adjust main content to not be covered by fixed switcher */
   .main-content, .app {
-    padding-top: 50px !important;
+    padding-top: 0 !important;
   }
 }
 
@@ -817,7 +911,7 @@ html, body {
   display: inline-flex !important;
   align-items: center !important;
   background: #f8fafc !important; /* Premium clean background */
-  padding: 3px !important;
+  padding: 1px !important; /* Reduced padding */
   border-radius: 9999px !important;
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05) !important;
   border: 1px solid #e2e8f0 !important; /* Soft slate-200 border */
@@ -832,10 +926,10 @@ html, body {
 #globalLangTh, #globalLangLo, #globalLangMy,
 #langThBtn, #langLoBtn, #langMyBtn {
   border: none !important;
-  padding: 4px 14px !important; /* Spacious padding for beautiful readability */
+  padding: 2px 10px !important; /* Reduced padding */
   border-radius: 9999px !important; /* Always fully rounded pill matching container */
   cursor: pointer !important;
-  font-size: 11.5px !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
   color: #64748b !important;
   background: transparent !important;
@@ -844,8 +938,8 @@ html, body {
   align-items: center !important;
   justify-content: center !important;
   line-height: 1 !important;
-  height: 26px !important;
-  min-height: 26px !important;
+  height: 22px !important; /* Reduced height */
+  min-height: 22px !important; /* Reduced height */
   box-sizing: border-box !important;
   white-space: nowrap !important;
   letter-spacing: 0.3px !important;
@@ -864,6 +958,36 @@ html, body {
   border-radius: 9999px !important;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
   font-weight: 700 !important;
+}
+
+.lang-text-short {
+  display: inline-flex !important;
+}
+
+.lang-text-full {
+  display: inline !important;
+}
+
+@media (max-width: 768px) {
+  .lang-text-full {
+    display: none !important;
+  }
+  .lang-text-short {
+    display: inline !important;
+  }
+  .lang-switcher button,
+  .lang-switcher .lang-btn,
+  #globalLangSwitcherContainer .lang-btn {
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    min-height: 20px !important;
+    height: 20px !important;
+  }
+  #globalLangSwitcherContainer {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
 }
 
 .lang-switcher button:hover:not(.active) {
@@ -1296,6 +1420,7 @@ button.btn-primary:hover,
   body.desktop-sidebar-collapsed .brand-zone {
     padding: 14px 0 !important;
     justify-content: center !important;
+    align-items: center !important;
     gap: 0 !important;
   }
 
@@ -1616,13 +1741,13 @@ p, span, div, td, th, label, .card-title, .badge {
 
 #globalLangSwitcherContainer,
 #globalLangSwitcherContainer .lang-switcher {
+  display: inline-flex !important;
   position: relative !important;
   grid-column: auto !important;
   grid-row: auto !important;
   flex-shrink: 0 !important;
-  margin: 0 !important;
+  margin: 0 10px !important; /* Added 10px breathing room */
   z-index: 10 !important;
-  display: inline-flex !important;
   align-items: center !important;
 }
 
@@ -1794,7 +1919,7 @@ p, span, div, td, th, label, .card-title, .badge {
 
 .sidebar-section-title {
   padding: 4px 10px 2px 10px;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -1807,7 +1932,7 @@ p, span, div, td, th, label, .card-title, .badge {
   margin-left: auto;
   background: #ef4444;
   color: #ffffff;
-  font-size: 10.5px;
+  font-size: 12px;
   padding: 1px 6px;
   border-radius: 9999px;
   font-weight: 700;
@@ -2735,7 +2860,7 @@ button:active,
   }
 
   .notif-count-pill {
-    font-size: 10.5px !important;
+    font-size: 12px !important;
     padding: 2px 5px !important;
   }
 
@@ -2778,7 +2903,7 @@ button:active,
   }
 
   .notif-filter-tab .tab-badge {
-    font-size: 10px !important;
+    font-size: 12px !important;
     padding: 1px 4px !important;
   }
 
@@ -2892,3 +3017,549 @@ button:active,
 .btn-sla-refresh span {
   color: #ffffff !important;
 }
+
+/* ==========================================================================
+   📱 GLOBAL NATIVE MOBILE BOTTOM NAVIGATION BAR
+   ========================================================================== */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 12px max(6px, env(safe-area-inset-bottom)) 12px;
+  z-index: 1000;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.05);
+}
+
+@media (min-width: 1025px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  body:has(.mobile-bottom-nav) .main-content,
+  body:has(.mobile-bottom-nav) .page-container,
+  body:has(.mobile-bottom-nav) .dashboard-container,
+  body:has(.mobile-bottom-nav) .profile-wrapper,
+  body:has(.mobile-bottom-nav) .leave-form-container,
+  body:has(.mobile-bottom-nav) .rules-page-container,
+  body:has(.mobile-bottom-nav) .news-hub-container,
+  body:has(.mobile-bottom-nav) .page,
+  body:has(.mobile-bottom-nav) .content-body {
+    padding-bottom: max(88px, calc(76px + env(safe-area-inset-bottom))) !important;
+  }
+
+  /* Raise floating action buttons above mobile bottom bar */
+  body:has(.mobile-bottom-nav) #hrChatbotFab {
+    bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    right: 16px !important;
+  }
+
+  body:has(.mobile-bottom-nav) .form-fab-btn,
+  body:has(.mobile-bottom-nav) #form-leave-guide-fab {
+    bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body:has(.mobile-bottom-nav) .bottom-actions {
+    bottom: calc(68px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: #64748b;
+  position: relative;
+  padding: 4px 10px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  user-select: none;
+  min-width: 58px;
+}
+
+.bottom-nav-item .material-symbols-outlined {
+  font-size: 22px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.bottom-nav-item .nav-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.bottom-nav-item.active {
+  color: #1d4ed8;
+}
+
+.bottom-nav-item.active .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1, 'wght' 700;
+  transform: translateY(-1px);
+}
+
+.bottom-nav-item.active .nav-label {
+  font-weight: 800;
+}
+
+.nav-active-dot {
+  position: absolute;
+  bottom: 0px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #1d4ed8;
+}
+
+/* Center Prominent Action in Bottom Nav (+ FAB) */
+.bottom-nav-item.primary-action {
+  color: #1d4ed8;
+  margin-top: -16px;
+}
+
+.bottom-nav-item.primary-action .center-fab-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bottom-nav-item.primary-action .center-fab-icon .material-symbols-outlined {
+  font-size: 24px;
+  color: #ffffff;
+}
+
+.bottom-nav-item.primary-action:hover .center-fab-icon {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.5);
+}
+
+.bottom-nav-item.primary-action:active .center-fab-icon {
+  transform: scale(0.94);
+}
+
+/* ==========================================================================
+   📱 BORDERLESS HEADER ICONS & PROFILE (MOBILE & DESKTOP GLOBAL)
+   ========================================================================== */
+div#appLayout > main > header,
+.page-header-row.mobile-appbar,
+.page-header-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  padding: 10px 16px !important; /* Added padding */
+}
+
+div#appLayout > main > header > div:nth-of-type(1),
+.appbar-left-zone {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  flex-wrap: nowrap !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+div#appLayout > main > header > div:nth-of-type(2),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2),
+.appbar-right-zone {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+  border-top: none !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding-top: 0 !important;
+}
+
+div#appLayout > main > header > div:nth-of-type(2)::before,
+div#appLayout > main > header > div:nth-of-type(2)::after,
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2)::before,
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2)::after,
+.appbar-right-zone::before,
+.appbar-right-zone::after {
+  display: none !important;
+  content: none !important;
+  border: none !important;
+}
+
+.appbar-title-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  text-align: left !important;
+  min-width: 0 !important;
+}
+
+.appbar-main-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.appbar-subtitle-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  margin-top: 2px !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+}
+
+.appbar-subtext {
+  font-size: 11.5px !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  text-align: left !important;
+}
+
+div#appLayout > main > header > div:nth-of-type(2) > div:nth-of-type(3),
+div#appLayout > main > header > div:nth-of-type(2) > div:nth-of-type(2),
+.appbar-right-zone .notif-wrapper,
+.appbar-right-zone .user-profile-pill,
+.appbar-right-zone .mobile-menu-btn,
+.appbar-right-zone .app-icon-btn,
+.appbar-left-zone .btn-header-back-app {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.appbar-right-zone .user-profile-avatar {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  display: block !important;
+}
+
+/* 🎯 Focus-mode styling: Clean and organize header, remove name and rights/role */
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1),
+.page-header-row.mobile-appbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  min-height: 56px !important;
+  overflow: visible !important;
+}
+
+/* Remove name and role/rights text from top header */
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-meta,
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-meta,
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-name,
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-desc,
+.page-header-row.mobile-appbar .user-profile-meta,
+.page-header-row.mobile-appbar .user-profile-name,
+.page-header-row.mobile-appbar .user-profile-desc,
+.user-profile-meta {
+  display: none !important;
+}
+
+/* Format avatar into a neat circular clickable icon */
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-pill,
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-pill,
+.page-header-row.mobile-appbar .user-profile-pill,
+.user-profile-pill {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-avatar,
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-avatar,
+.page-header-row.mobile-appbar .user-profile-avatar,
+.user-profile-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  display: block !important;
+  transition: transform 0.2s ease, border-color 0.2s ease !important;
+}
+
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-avatar:hover,
+.page-header-row.mobile-appbar .user-profile-avatar:hover {
+  transform: scale(1.05) !important;
+  border-color: #0d9488 !important;
+}
+
+/* Right-zone actions layout */
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2),
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2),
+.page-header-row.mobile-appbar .appbar-right-zone,
+.appbar-right-zone {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* Clean, non-overlapping language switcher */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#historyActionsZone:nth-of-type(1) > div#globalLangSwitcherContainer:nth-of-type(1),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#historyActionsZone:nth-of-type(1) > div#globalLangSwitcherContainer:nth-of-type(1),
+#historyActionsZone > #globalLangSwitcherContainer,
+#historyActionsZone #globalLangSwitcherContainer {
+  margin-left: 20px !important;
+  margin-right: -19px !important;
+  margin-top: 2px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+  padding-top: 0px !important;
+  width: 97.375px !important;
+  height: 28.3977px !important;
+  font-size: 11.5px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+#globalLangSwitcherContainer .lang-switcher {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 9999px !important;
+  padding: 2px !important;
+  gap: 2px !important;
+}
+
+#globalLangSwitcherContainer .lang-btn {
+  border: none !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  padding: 4px 8px !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+}
+
+#globalLangSwitcherContainer .lang-btn.active {
+  background: #0d9488 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.3) !important;
+}
+
+/* 🎯 Focus-mode styling updates for Header Title & Subtitle */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1),
+.page-header-row .appbar-main-title {
+  font-size: 18px !important;
+}
+
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2),
+.page-header-row .appbar-subtext {
+  font-size: 12px !important;
+}
+
+/* 🎯 Focus-mode styling updates for Header Notification Icon */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button#notificationBtn:nth-of-type(1) > img:nth-of-type(1),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button#notificationBtn:nth-of-type(1) > img:nth-of-type(1),
+#notificationBtn > img {
+  padding-left: 0px !important;
+  margin-left: 19px !important;
+}
+
+/* ==========================================================================
+   📱 IPHONE & IOS SAFARI COMPATIBILITY & OPTIMIZATIONS
+   ========================================================================== */
+
+/* 1. iOS Root & Safe Area Variables */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* 2. Global iOS WebKit adjustments */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+/* 3. Prevent iOS Safari Auto-Zoom on Form Input Focus */
+@media screen and (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevents iPhone Safari page auto-zoom on input focus */
+  }
+
+  /* Reset form input default iOS rounded corners & inner shadows */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="date"],
+  select,
+  textarea {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+}
+
+/* 4. Touch Targets & Instant Touch Response on Mobile */
+button,
+a,
+input,
+select,
+textarea,
+.clickable,
+.nav-item,
+.menu-item {
+  touch-action: manipulation; /* Removes 300ms delay on iOS taps */
+}
+
+/* 5. Smooth Touch Momentum Scrolling for WebKit / Safari */
+.sidebar,
+.modal-body,
+.swal2-popup,
+.table-responsive,
+.scrollable-y,
+.card-body,
+.page-body-container,
+.drawer-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 6. iPhone Fixed Bars & Safe Area Bottom Spacing (Notch / Home Indicator) */
+.mobile-bottom-bar,
+.mobile-nav,
+.fixed-bottom-action,
+footer.mobile-footer {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+}
+
+/* 7. Modal & SweetAlert2 Responsive Adjustments for iPhone (SE, 12/13/14/15/16 Pro) */
+@media screen and (max-width: 480px) {
+  .swal2-popup {
+    width: 92% !important;
+    padding: 16px 12px !important;
+    border-radius: 16px !important;
+    max-height: 90dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .swal2-title {
+    font-size: 16px !important;
+  }
+
+  .swal2-html-container {
+    font-size: 13px !important;
+  }
+
+  .swal2-actions {
+    flex-direction: column-reverse !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .swal2-actions button {
+    width: 100% !important;
+    margin: 0 !important;
+    min-height: 44px !important; /* Standard iPhone touch target size */
+  }
+
+  /* Table responsive wrapper touch scroll on iPhone */
+  .table-responsive,
+  div[style*="overflow-x: auto"],
+  div[style*="overflow-x:auto"] {
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+  }
+
+  /* Ensure main layout fits iPhone notch & home indicator */
+  #appLayout,
+  .app-container {
+    min-height: 100dvh !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+}
+
+
+

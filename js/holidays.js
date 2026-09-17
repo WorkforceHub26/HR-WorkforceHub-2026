@@ -291,7 +291,9 @@ async function loadUserProfile() {
     }
 
     if (btnAdd) {
-      btnAdd.style.display = isPowerUser ? 'inline-flex' : 'none';
+      // ตรวจสอบสิทธิ์: เฉพาะ Admin หรือ HR เท่านั้นที่มีสิทธิ์จัดการวันหยุด
+      const canManageHolidays = ['admin', 'hr'].includes(role) || Boolean(sessionUser.is_hr) || Boolean(sessionUser.is_admin);
+      btnAdd.style.display = canManageHolidays ? 'inline-flex' : 'none';
     }
 
     document.querySelectorAll('.hr-only').forEach(el => {
@@ -899,6 +901,34 @@ async function deleteHoliday(id) {
 }
 
 // 🗓️ DATE FORMATTING UTILITIES (Localized)
+function formatHolidayListText(dateStr, holidayName) {
+  if (!dateStr) return holidayName || '-';
+  const strings = getLangStrings();
+  const d = parseLocalDate(dateStr);
+  const lang = getActiveLang();
+  const locName = getLocalizedHolidayName(holidayName);
+  
+  if (lang === 'th') {
+    const dayName = strings.days[d.getDay()];
+    const dateNum = d.getDate();
+    const monthName = strings.monthsFull[d.getMonth()];
+    const yearTh = d.getFullYear() + 543;
+    return `${dayName} ที่ ${dateNum} ${monthName} ${yearTh} (${locName})`;
+  } else if (lang === 'lo') {
+    const dayName = strings.days[d.getDay()];
+    const dateNum = d.getDate();
+    const monthName = strings.monthsFull[d.getMonth()];
+    const year = d.getFullYear();
+    return `${dayName} ວັນທີ ${dateNum} ${monthName} ${year} (${locName})`;
+  } else {
+    const dayName = strings.days[d.getDay()];
+    const dateNum = d.getDate();
+    const monthName = strings.monthsFull[d.getMonth()];
+    const year = d.getFullYear();
+    return `${dayName}, ${dateNum} ${monthName} ${year} (${locName})`;
+  }
+}
+
 function formatLocalDateShort(dateStr) {
   if (!dateStr) return '-';
   const strings = getLangStrings();
@@ -950,11 +980,18 @@ function smartGoBack(defaultUrl = '/pages/user/index-user.html') {
 }
 
 // 🌐 Global Window Function Bindings for Holidays Page
-window.openAddHolidayModal = typeof openAddHolidayModal !== 'undefined' ? openAddHolidayModal : window.openAddHolidayModal;
-window.openEditHolidayModal = typeof openEditHolidayModal !== 'undefined' ? openEditHolidayModal : window.openEditHolidayModal;
-window.deleteHoliday = typeof deleteHoliday !== 'undefined' ? deleteHoliday : window.deleteHoliday;
-window.closeHolidayModal = typeof closeHolidayModal !== 'undefined' ? closeHolidayModal : window.closeHolidayModal;
-window.handleSaveHoliday = typeof handleSaveHoliday !== 'undefined' ? handleSaveHoliday : window.handleSaveHoliday;
+window.switchView = switchView;
+window.openHolidayModal = openHolidayModal;
+window.openAddHolidayModal = openHolidayModal;
+window.openEditHolidayModal = openEditHolidayModal;
+window.deleteHoliday = deleteHoliday;
+window.closeHolidayModal = closeHolidayModal;
+window.handleSaveHoliday = handleSaveHoliday;
+window.filterHolidays = filterHolidays;
+window.changeYearOrMonth = changeYearOrMonth;
+window.smartGoBack = smartGoBack;
+window.loadUserProfile = loadUserProfile;
+window.fetchHolidays = fetchHolidays;
 
 // ==========================================
 // 👥 TEAM LEAVES TAB LOGIC
@@ -1176,7 +1213,7 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
         dotsHtml += `<div class="cal-leave-dot" style="background:${bg};" title="${dayLeaves[j].employees?.full_name}"></div>`;
       }
       if(dayLeaves.length > 3) {
-         dotsHtml += `<span style="font-size: 10px; color: #64748b; line-height: 8px;">+${dayLeaves.length - 3}</span>`;
+         dotsHtml += `<span style="font-size: 12px; color: #64748b; line-height: 8px;">+${dayLeaves.length - 3}</span>`;
       }
       dotsHtml += `</div>`;
     }
@@ -1803,6 +1840,25 @@ window.focusHolidayDateOnCalendar = function(dateStr) {
   }, 100);
 };
 
+window.toggleHolidayRowDetail = function(id, event) {
+  if (event) event.stopPropagation();
+  const detailEl = document.getElementById(`holidayDetail_${id}`);
+  const iconEl = document.getElementById(`holidayExpandIcon_${id}`);
+  const rowEl = document.getElementById(`holidayRow_${id}`);
+  if (!detailEl) return;
+  
+  const isExpanded = detailEl.style.display !== 'none';
+  if (isExpanded) {
+    detailEl.style.display = 'none';
+    if (iconEl) iconEl.style.transform = 'rotate(0deg)';
+    if (rowEl) rowEl.classList.remove('is-expanded');
+  } else {
+    detailEl.style.display = 'block';
+    if (iconEl) iconEl.style.transform = 'rotate(180deg)';
+    if (rowEl) rowEl.classList.add('is-expanded');
+  }
+};
+
 window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly = false) {
   const container = document.getElementById('companySummaryList');
   const title = document.getElementById('companySummaryTitle');
@@ -1814,18 +1870,18 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
 
   if (specificDay) {
     title.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-        <span style="font-size: 14px; font-weight: 600;">${strings.summaryDayTitle(parseInt(specificDay.split('-')[2], 10))}</span>
-        <button type="button" onclick="filterHolidays()" style="background: #f1f5f9; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #475569; display: flex; align-items: center; gap: 4px;">
-          <span class="material-symbols-outlined" style="font-size: 14px;">calendar_month</span> ${strings.btnBack}
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px;">
+        <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${strings.summaryDayTitle(parseInt(specificDay.split('-')[2], 10))}</span>
+        <button type="button" onclick="filterHolidays()" style="margin-left: auto; background: #f1f5f9; border: 1px solid #e2e8f0; cursor: pointer; padding: 4px 10px; border-radius: 8px; font-size: 12px; color: #475569; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+          <span class="material-symbols-outlined" style="font-size: 15px;">calendar_month</span> ${strings.btnBack}
         </button>
       </div>`;
   } else if (isYearly || selectedMonthVal === 'all') {
     const currentY = strings.formatYear(companyCalCurrentDate.getFullYear());
     title.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px;">
         <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${strings.summaryYearTitle(currentY)}</span>
-        <span style="font-size: 11px; background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${strings.totalDaysLabel(list ? list.length : 0)}</span>
+        <span style="margin-left: auto; font-size: 11.5px; background: #e0f2fe; color: #0284c7; padding: 3px 10px; border-radius: 12px; font-weight: 700; white-space: nowrap;">${strings.totalDaysLabel(list ? list.length : 0)}</span>
       </div>`;
     document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => {
       c.classList.remove('highlight-day-active');
@@ -1835,10 +1891,10 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
     const currentM = companyCalCurrentDate.getMonth();
     const currentY = strings.formatYear(companyCalCurrentDate.getFullYear());
     title.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-        <span style="font-size: 14px; font-weight: 600; color: #0f172a;">${strings.summaryMonthTitle(strings.monthsFull[currentM], currentY)}</span>
-        <button type="button" onclick="showYearlySummary()" style="background: #f1f5f9; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #0284c7; font-weight: 500; display: flex; align-items: center; gap: 3px;" title="ดูสรุปวันหยุดตลอดทั้งปี">
-          <span class="material-symbols-outlined" style="font-size: 13px;">calendar_today</span> ${strings.btnViewWholeYear}
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px;">
+        <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${strings.summaryMonthTitle(strings.monthsFull[currentM], currentY)}</span>
+        <button type="button" onclick="showYearlySummary()" style="margin-left: auto; background: #f1f5f9; border: 1px solid #e2e8f0; cursor: pointer; padding: 4px 10px; border-radius: 8px; font-size: 12px; color: #0284c7; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="ดูสรุปวันหยุดตลอดทั้งปี">
+          <span class="material-symbols-outlined" style="font-size: 14px;">calendar_today</span> ${strings.btnViewWholeYear}
         </button>
       </div>`;
     document.querySelectorAll('#companyCalGrid .cal-day-cell').forEach(c => {
@@ -1849,42 +1905,90 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
   
   if (!list || list.length === 0) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
-        <span class="material-symbols-outlined" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;">event_busy</span>
-        <p style="margin: 0; font-size: 13px;">${strings.noHolidaysSection}</p>
+      <div style="text-align: center; padding: 32px 20px; color: #94a3b8; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">
+        <span class="material-symbols-outlined" style="font-size: 32px; margin-bottom: 8px; opacity: 0.6; display: block;">event_busy</span>
+        <p style="margin: 0; font-size: 13px; font-weight: 500;">${strings.noHolidaysSection}</p>
       </div>`;
     return;
   }
   
   const isPowerUser = currentUserProfile ? ['admin', 'hr'].includes(currentUserProfile.role ? currentUserProfile.role.toLowerCase() : '') : false;
   
-  let html = ``;
-  list.forEach(item => {
+  let html = `<div class="holiday-summary-list-container" style="display: flex; flex-direction: column; gap: 6px; width: 100%; box-sizing: border-box;">`;
+  
+  list.forEach((item) => {
     let tagText = item.holiday_type === 'company' ? strings.tagCompany : (item.holiday_type === 'substitution' ? strings.tagSubstitution : strings.tagOfficial);
-    let color = item.holiday_type === 'company' ? '#3b82f6' : (item.holiday_type === 'substitution' ? '#d97706' : '#ef4444');
+    let color = item.holiday_type === 'company' ? '#2563eb' : (item.holiday_type === 'substitution' ? '#d97706' : '#ef4444');
+    let bgSoft = item.holiday_type === 'company' ? '#eff6ff' : (item.holiday_type === 'substitution' ? '#fffbeb' : '#fef2f2');
     const locName = getLocalizedHolidayName(item.holiday_name);
+    const locDesc = getLocalizedHolidayDesc(item.description || item.holiday_desc || '');
+    const formattedLine = formatHolidayListText(item.holiday_date, item.holiday_name);
     
     html += `
-      <div class="company-summary-card-item" onclick="focusHolidayDateOnCalendar('${item.holiday_date}')" style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid ${color}; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.04);" title="กดเพื่อดูบนปฏิทิน">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <h4 style="margin: 0; font-size: 14px; color: #0f172a; line-height: 1.4; font-weight: 700;">${locName}</h4>
-          <span style="font-size: 10.5px; background: ${color}15; color: ${color}; padding: 2px 8px; border-radius: 12px; font-weight: 700; border: 1px solid ${color}30; white-space: nowrap;">${tagText}</span>
+      <div class="company-summary-list-row" id="holidayRow_${item.id}" onclick="toggleHolidayRowDetail('${item.id}', event)" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02); width: 100%; box-sizing: border-box;">
+        <!-- 📋 Header Bar: Compact single line as requested -->
+        <div style="padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1;">
+            <div style="width: 28px; height: 28px; min-width: 28px; background: ${bgSoft}; border: 1px solid ${color}30; border-radius: 7px; color: ${color}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <span class="material-symbols-outlined" style="font-size: 16px;">event</span>
+            </div>
+            
+            <div style="min-width: 0; flex: 1;">
+              <span class="holiday-date-main-text" style="font-size: 13px; font-weight: 600; color: #0f172a; line-height: 1.4; display: block; word-break: normal; overflow-wrap: break-word; white-space: normal; text-align: left;">${formattedLine}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; flex-shrink: 0;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0;">
+              <span class="material-symbols-outlined" id="holidayExpandIcon_${item.id}" style="font-size: 16px; transition: transform 0.2s ease;">expand_more</span>
+            </div>
+          </div>
         </div>
-        <div style="font-size: 12px; color: #64748b; display: flex; align-items: center; justify-content: space-between;">
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 15px; color: ${color}">event</span>${formatLocalDateShort(item.holiday_date)}</span>
-          <span style="font-size: 11px; color: #0d9488; font-weight: 600; display: flex; align-items: center; gap: 2px;">
-            <span class="material-symbols-outlined" style="font-size: 14px;">near_me</span> ดูบนปฏิทิน
-          </span>
+
+        <!-- 📄 Collapsible Detail Panel (Shown upon click) -->
+        <div id="holidayDetail_${item.id}" class="holiday-row-detail-body" style="display: none; padding: 10px 14px; background: #f8fafc; border-top: 1px solid #f1f5f9; box-sizing: border-box; width: 100%;">
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #334155; width: 100%; box-sizing: border-box;">
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 15px; color: ${color}; margin-top: 1px; flex-shrink: 0;">calendar_today</span>
+              <div style="word-break: normal; overflow-wrap: break-word;">
+                <strong style="color: #0f172a;">วันที่เต็ม:</strong> ${formatLocalDateFull(item.holiday_date)}
+              </div>
+            </div>
+            
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 15px; color: ${color}; margin-top: 1px; flex-shrink: 0;">label</span>
+              <div>
+                <strong style="color: #0f172a;">ประเภท:</strong> <span style="font-size: 12px; background: ${bgSoft}; color: ${color}; padding: 2px 7px; border-radius: 6px; font-weight: 700; border: 1px solid ${color}30;">${tagText}</span>
+              </div>
+            </div>
+
+            ${locDesc ? `
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 15px; color: #64748b; margin-top: 1px; flex-shrink: 0;">notes</span>
+              <div style="word-break: normal; overflow-wrap: break-word;">
+                <strong style="color: #0f172a;">รายละเอียด/หมายเหตุ:</strong> ${locDesc}
+              </div>
+            </div>` : ''}
+
+            <!-- Bottom Actions -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 6px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap; gap: 6px; width: 100%;" onclick="event.stopPropagation()">
+              <button type="button" onclick="focusHolidayDateOnCalendar('${item.holiday_date}')" style="background: #0d9488; color: #ffffff; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: background 0.15s ease;">
+                <span class="material-symbols-outlined" style="font-size: 15px;">calendar_month</span> ไปที่รายเดือน (ดูบนปฏิทิน)
+              </button>
+
+              ${isPowerUser ? `
+              <div style="display: flex; gap: 6px;">
+                <button type="button" onclick="openEditHolidayModal('${item.id}')" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; cursor: pointer;"><span class="material-symbols-outlined" style="font-size: 13px;">edit</span>แก้ไข</button>
+                <button type="button" onclick="deleteHoliday('${item.id}')" style="background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; cursor: pointer;"><span class="material-symbols-outlined" style="font-size: 13px;">delete</span>ลบ</button>
+              </div>` : ''}
+            </div>
+          </div>
         </div>
-        ${isPowerUser ? `
-        <div style="margin-top: 4px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px dashed #f1f5f9; padding-top: 6px;" onclick="event.stopPropagation()">
-          <button type="button" onclick="openEditHolidayModal('${item.id}')" style="background: #eff6ff; border: 1px solid #bfdbfe; cursor: pointer; color: #2563eb; display: flex; align-items: center; justify-content: center; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 14px;">edit</span>แก้ไข</button>
-          <button type="button" onclick="deleteHoliday('${item.id}')" style="background: #fef2f2; border: 1px solid #fecaca; cursor: pointer; color: #ef4444; display: flex; align-items: center; justify-content: center; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; gap: 3px;"><span class="material-symbols-outlined" style="font-size: 14px;">delete</span>ลบ</button>
-        </div>` : ''}
       </div>
     `;
   });
   
+  html += `</div>`;
   container.innerHTML = html;
 };
 
@@ -1910,3 +2014,94 @@ window.addEventListener("pvt-lang-changed", () => {
     }
   }
 });
+
+// Sidebar Helper Actions
+window.goToLeaveForm = function() { window.location.href = "/pages/user/leave-user.html"; };
+window.viewMyDigitalCard = function() { window.location.href = "/pages/user/index-user.html?action=digital_card"; };
+window.generateLineLinkToken = function() { window.location.href = "/pages/user/index-user.html?action=line_link"; };
+
+window.toggleHolidaySummarySection = function() {
+  console.log('toggleHolidaySummarySection called');
+  const content = document.querySelector('#companySummarySidebar .sidebar-content');
+  const btnIcon = document.getElementById('btnToggleSummaryIcon');
+  const btnText = document.getElementById('btnToggleSummaryText');
+  if (content) {
+    // Check if currently hidden (either by inline style or class)
+    const isHidden = content.style.getPropertyValue('display') === 'none' || content.classList.contains('toggle-collapsed');
+    
+    if (isHidden) {
+      content.style.removeProperty('display');
+      content.classList.remove('toggle-collapsed');
+      if (btnIcon) btnIcon.textContent = 'visibility_off';
+      if (btnText) btnText.textContent = 'ซ่อนรายการสรุป';
+      console.log('Summary section visible');
+    } else {
+      content.style.setProperty('display', 'none', 'important');
+      content.classList.add('toggle-collapsed');
+      if (btnIcon) btnIcon.textContent = 'visibility';
+      if (btnText) btnText.textContent = 'แสดงรายการสรุป';
+      console.log('Summary section hidden');
+    }
+  } else {
+    console.warn('Summary content container not found');
+  }
+};
+
+window.toggleHolidayCalendarBody = function() {
+  console.log('toggleHolidayCalendarBody called');
+  const body = document.getElementById('companyCalendarBody');
+  const btnIcon = document.getElementById('btnToggleCalendarIcon');
+  const btnText = document.getElementById('btnToggleCalendarText');
+  if (body) {
+    const isHidden = body.style.getPropertyValue('display') === 'none' || body.classList.contains('toggle-collapsed');
+    
+    if (isHidden) {
+      body.style.removeProperty('display');
+      body.classList.remove('toggle-collapsed');
+      if (btnIcon) btnIcon.textContent = 'visibility_off';
+      if (btnText) btnText.textContent = 'ซ่อนปฏิทิน';
+      console.log('Calendar body visible');
+    } else {
+      body.style.setProperty('display', 'none', 'important');
+      body.classList.add('toggle-collapsed');
+      if (btnIcon) btnIcon.textContent = 'visibility';
+      if (btnText) btnText.textContent = 'แสดงปฏิทิน';
+      console.log('Calendar body hidden');
+    }
+  } else {
+    console.warn('Calendar body container not found');
+  }
+};
+
+function bindToggleButtons() {
+  try {
+    const btnSummary = document.getElementById('btnToggleSummary');
+    if (btnSummary) {
+      btnSummary.removeAttribute('onclick'); // Let event listener handle it if active
+      btnSummary.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.toggleHolidaySummarySection();
+      });
+      console.log('Successfully bound btnToggleSummary');
+    }
+    const btnCalendar = document.getElementById('btnToggleCalendar');
+    if (btnCalendar) {
+      btnCalendar.removeAttribute('onclick'); // Let event listener handle it if active
+      btnCalendar.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.toggleHolidayCalendarBody();
+      });
+      console.log('Successfully bound btnToggleCalendar');
+    }
+  } catch (err) {
+    console.error('Error binding toggle buttons:', err);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindToggleButtons);
+} else {
+  bindToggleButtons();
+}

@@ -513,7 +513,7 @@ function renderDepartmentStats(deptList, totalCompanyDays) {
           <div class="dept-stat-title-group">
             <span style="font-size: 13px; font-weight: 800; color: #0d9488; background: #ccfbf1; padding: 3px 10px; border-radius: 8px;">อันดับ #${index + 1}</span>
             <strong style="font-size: 15px; color: #0f172a;">${safeEscapeHtml(dept.name)}</strong>
-            ${isUserDept ? `<span style="font-size: 10.5px; background: #16a34a; color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
+            ${isUserDept ? `<span style="font-size: 12px; background: #16a34a; color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
           </div>
           <div class="dept-stat-value-group">
             <strong style="font-size: 16px; color: #0f766e; font-weight: 800;">${dept.days.toFixed(1)} วัน</strong>
@@ -727,7 +727,7 @@ function renderMonthlyTrends(monthlyMap) {
     const heightPercent = Math.max(5, Math.round((val / maxVal) * 100));
     html += `
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end;">
-          <span style="font-size: 10.5px; font-weight: 700; color: #0f766e;">${val > 0 ? val.toFixed(1) : ''}</span>
+          <span style="font-size: 12px; font-weight: 700; color: #0f766e;">${val > 0 ? val.toFixed(1) : ''}</span>
           <div style="width: 100%; max-width: 32px; height: ${heightPercent}%; background: linear-gradient(180deg, #0d9488 0%, #0284c7 100%); border-radius: 6px 6px 0 0; transition: height 0.5s ease;" title="${monthNames[i]}: ${val} วัน"></div>
           <span style="font-size: 11px; color: #64748b; font-weight: 600; margin-top: 4px;">${monthNames[i]}</span>
         </div>

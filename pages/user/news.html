@@ -23,6 +23,11 @@
   <!-- External Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="PVT Hub" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
 </head>
 
 <body>
@@ -31,8 +36,10 @@
     <!--  LEFT SIDEBAR MENU -->
     <aside class="sidebar" id="sidebarMenu">
       <div class="sidebar-brand brand-zone">
-        <div class="brand-icon"></div>
-        <div class="brand-name logo-text">PVT WORKFORCE HUB</div>
+        <div class="brand-icon">
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div class="brand-name logo-text">PVTT WORKFORCE HUB</div>
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
@@ -173,15 +180,42 @@
 
         </div>
       </div>
+
+      <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR -->
+      <nav class="mobile-bottom-nav">
+        <a href="/pages/user/index-user.html" class="bottom-nav-item">
+          <span class="material-symbols-outlined">home</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/user/leave-history.html" class="bottom-nav-item">
+          <span class="material-symbols-outlined">receipt_long</span>
+          <span class="nav-label">ประวัติลา</span>
+        </a>
+        <a href="/pages/user/leave-user.html" class="bottom-nav-item primary-action" title="ยื่นใบลาใหม่">
+          <div class="center-fab-icon">
+            <span class="material-symbols-outlined">add</span>
+          </div>
+          <span class="nav-label">ยื่นใบลา</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="bottom-nav-item">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">วันหยุด</span>
+        </a>
+        <a href="/pages/user/profile-user.html" class="bottom-nav-item">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">ข้อมูลฉัน</span>
+        </a>
+      </nav>
+
     </main>
   </div>
 
   <!-- Scripts -->
-  <script src="/js/supabase-config.js"></script>
-  <script src="/js/auth-guard.js"></script>
-  <script src="/js/system-settings.js"></script>
-  <script src="/js/company-news.js"></script>
-  <script src="/js/news-user.js"></script>
-  <script src="/js/employee-card-modal.js"></script>
+  <script type="module" src="/js/supabase-config.js"></script>
+  <script type="module" src="/js/auth-guard.js"></script>
+  <script type="module" src="/js/system-settings.js"></script>
+  <script type="module" src="/js/company-news.js"></script>
+  <script type="module" src="/js/news-user.js"></script>
+  <script type="module" src="/js/employee-card-modal.js"></script>
 </body>
 </html>

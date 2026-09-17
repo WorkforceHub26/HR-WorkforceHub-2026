@@ -203,7 +203,46 @@
     }
   }
 
+  function checkAndSetUserRoleLevel() {
+    try {
+      const sessionStr = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+      if (!sessionStr) {
+        // If no user is logged in, default to employee
+        document.documentElement.setAttribute("data-user-role-level", "employee");
+        return;
+      }
+      const u = JSON.parse(sessionStr);
+      if (!u) {
+        document.documentElement.setAttribute("data-user-role-level", "employee");
+        return;
+      }
+
+      const roleStr = String(u.role || u.position || u.user_role || u.level || '').toLowerCase();
+      const roleName = String(u.role_name || u.position_name || '').toLowerCase();
+      const isHrOrAdmin = !!u.is_hr || !!u.is_admin || !!u.is_super_admin;
+
+      const isRegularEmployee = !isHrOrAdmin && (
+        roleStr === 'user' || 
+        roleStr === 'employee' || 
+        roleStr === 'พนักงาน' || 
+        roleStr === 'staff' ||
+        roleName === 'พนักงาน' ||
+        roleName === 'พนักงานทั่วไป' ||
+        (roleStr === '' && !roleName)
+      ) && !roleStr.includes('leader') && !roleStr.includes('sup') && !roleStr.includes('mgr') && !roleStr.includes('manager') && !roleStr.includes('หัวหน้า') && !roleStr.includes('ผู้จัดการ') && !roleStr.includes('hr') && !roleStr.includes('admin') && !roleStr.includes('approver');
+
+      const level = isRegularEmployee ? "employee" : "higher";
+      document.documentElement.setAttribute("data-user-role-level", level);
+    } catch (e) {
+      console.warn("Error checking user role level in system settings:", e);
+    }
+  }
+
+  // Periodic check to ensure it stays synchronized even if currentUser changes
+  setInterval(checkAndSetUserRoleLevel, 500);
+
   function applySavedPreferences() {
+    checkAndSetUserRoleLevel();
     startGoogleBannerKiller();
     // Dynamically inject Google Translate script and placeholder if not present
     if (!document.getElementById('google_translate_element_hidden') && document.body) {
@@ -235,6 +274,8 @@
     const savedPrivacy = localStorage.getItem("pvt_privacy_shield") === "true";
     const savedMotion = localStorage.getItem("pvt_reduced_motion") === "true";
     const savedContrast = localStorage.getItem("pvt_high_contrast") === "true";
+    const savedHolidaySummary = localStorage.getItem("pvt_show_holiday_summary") !== "false";
+    const savedHolidayCalendar = localStorage.getItem("pvt_show_holiday_calendar") !== "false";
 
     applyFontSizeToDoc(savedFontSize);
     applyThemeToDoc(savedTheme);
@@ -243,7 +284,27 @@
     applyPrivacyShieldToDoc(savedPrivacy);
     applyReducedMotionToDoc(savedMotion);
     applyHighContrastToDoc(savedContrast);
+    applyHolidaySummaryToDoc(savedHolidaySummary);
+    applyHolidayCalendarToDoc(savedHolidayCalendar);
     initAutoRefreshTimer();
+  }
+
+  function applyHolidaySummaryToDoc(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+      root.removeAttribute("data-hide-holiday-summary");
+    } else {
+      root.setAttribute("data-hide-holiday-summary", "true");
+    }
+  }
+
+  function applyHolidayCalendarToDoc(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+      root.removeAttribute("data-hide-holiday-calendar");
+    } else {
+      root.setAttribute("data-hide-holiday-calendar", "true");
+    }
   }
 
   function applyCompactModeToDoc(enabled) {
@@ -393,9 +454,9 @@
     root.setAttribute("data-font-size", sizeKey);
 
     if (sizeKey === "large") {
-      root.style.fontSize = "19px";
+      root.style.fontSize = "17.92px"; // +12%
     } else if (sizeKey === "medium") {
-      root.style.fontSize = "17.5px";
+      root.style.fontSize = "16.96px"; // +6%
     } else {
       root.style.fontSize = "16px";
     }
@@ -473,17 +534,50 @@
                 <span class="font-size-label">มาตรฐาน (100%)</span>
               </button>
               <button type="button" class="font-size-btn" id="fontBtnMedium" onclick="changeSystemFontSize('medium')">
-                <span class="font-size-sample" style="font-size: 18px;">กขค</span>
-                <span class="font-size-label">ปานกลาง (+12%)</span>
+                <span class="font-size-sample" style="font-size: 17px;">กขค</span>
+                <span class="font-size-label">ปานกลาง (+6%)</span>
               </button>
               <button type="button" class="font-size-btn" id="fontBtnLarge" onclick="changeSystemFontSize('large')">
-                <span class="font-size-sample" style="font-size: 21px;">กขค</span>
-                <span class="font-size-label">ใหญ่พิเศษ (+25%)</span>
+                <span class="font-size-sample" style="font-size: 19px;">กขค</span>
+                <span class="font-size-label">ใหญ่ (+12%)</span>
               </button>
             </div>
 
             <div class="font-preview-box" id="fontPreviewBox">
               <strong>ตัวอย่างการแสดงผล:</strong> ระบบยื่นใบลาและตรวจสอบสิทธิ์คงเหลือ ประจำปี พ.ศ. 2569 (PVT Workforce Hub)
+            </div>
+          </div>
+
+          <!-- Card 1.5: แสดง/ซ่อน สรุปวันหยุด และ ปฏิทินวันหยุด (Holiday Display Settings) -->
+          <div class="setting-card-item">
+            <div class="setting-item-head">
+              <span class="setting-item-icon material-symbols-outlined" style="color: #0d9488; font-size: 28px;">calendar_month</span>
+              <div class="setting-item-info">
+                <h4>การแสดงผลสรุปและปฏิทินวันหยุด (Holiday Widgets)</h4>
+                <p>เลือกแสดงหรือซ่อนส่วนกล่องสรุปวันหยุดประจำปีและปฏิทินวันหยุดเพื่อจัดหน้าจอตามต้องการ</p>
+              </div>
+            </div>
+
+            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 8px;">
+              <div class="setting-toggle-info">
+                <h5>แสดงกล่องสรุปวันหยุดประจำปี (Yearly Holiday Summary)</h5>
+                <p>กล่องแสดงรายการวันหยุดประจำปีแบบย่อในหน้าปฏิทินและหน้ายื่นใบลา</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsHolidaySummaryToggle" onchange="toggleSystemHolidaySummary(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-toggle-row">
+              <div class="setting-toggle-info">
+                <h5>แสดงกล่องปฏิทินวันหยุดประจำเดือน (Monthly Calendar View)</h5>
+                <p>ตารางปฏิทินแสดงวันหยุดประจำเดือนในหน้าปฏิทิน</p>
+              </div>
+              <label class="setting-switch">
+                <input type="checkbox" id="settingsHolidayCalendarToggle" onchange="toggleSystemHolidayCalendar(this.checked)">
+                <span class="setting-slider"></span>
+              </label>
             </div>
           </div>
 
@@ -503,7 +597,7 @@
           </div>
 
           <!-- Card 3: เชื่อมต่อ LINE -->
-          <div class="setting-card-item">
+          <div class="setting-card-item" id="settingsLineNotifyCard">
             <div class="setting-item-head">
               <span class="setting-item-icon material-symbols-outlined" style="color: #10b981; font-size: 28px;">forum</span>
               <div class="setting-item-info">
@@ -781,12 +875,14 @@
     updateMotionSwitchUI();
     updateConfirmSwitchUI();
     updateHighContrastSwitchUI();
+    updateHolidaySummarySwitchUI();
+    updateHolidayCalendarSwitchUI();
 
     backdrop.classList.add("active");
     document.body.style.overflow = "hidden";
     
-    // Auto-close sidebar on mobile if it is open
-    if (window.innerWidth <= 1024 && typeof window.closeMobileSidebar === 'function') {
+    // Auto-close sidebar on mobile/desktop if it is open
+    if (typeof window.closeMobileSidebar === 'function') {
       window.closeMobileSidebar();
     }
     
@@ -834,9 +930,9 @@
     const preview = document.getElementById("fontPreviewBox");
     if (preview) {
       if (sizeKey === "large") {
-        preview.style.fontSize = "17px";
+        preview.style.fontSize = "15.5px";
       } else if (sizeKey === "medium") {
-        preview.style.fontSize = "15px";
+        preview.style.fontSize = "14px";
       } else {
         preview.style.fontSize = "13px";
       }
@@ -1072,6 +1168,41 @@
     }
   };
 
+  // 📅 6.14. Holiday Summary & Calendar Visibility Functions
+  window.toggleSystemHolidaySummary = function(enabled) {
+    localStorage.setItem("pvt_show_holiday_summary", enabled ? "true" : "false");
+    applyHolidaySummaryToDoc(enabled);
+    updateHolidaySummarySwitchUI();
+    if (window.playSystemChime) {
+      window.playSystemChime(enabled ? "toggle_on" : "toggle_off");
+    }
+  };
+
+  window.updateHolidaySummarySwitchUI = function() {
+    const isSummaryEnabled = localStorage.getItem("pvt_show_holiday_summary") !== "false";
+    const toggle = document.getElementById("settingsHolidaySummaryToggle");
+    if (toggle) {
+      toggle.checked = isSummaryEnabled;
+    }
+  };
+
+  window.toggleSystemHolidayCalendar = function(enabled) {
+    localStorage.setItem("pvt_show_holiday_calendar", enabled ? "true" : "false");
+    applyHolidayCalendarToDoc(enabled);
+    updateHolidayCalendarSwitchUI();
+    if (window.playSystemChime) {
+      window.playSystemChime(enabled ? "toggle_on" : "toggle_off");
+    }
+  };
+
+  window.updateHolidayCalendarSwitchUI = function() {
+    const isCalEnabled = localStorage.getItem("pvt_show_holiday_calendar") !== "false";
+    const toggle = document.getElementById("settingsHolidayCalendarToggle");
+    if (toggle) {
+      toggle.checked = isCalEnabled;
+    }
+  };
+
   // 💬 7. LINE Notification Status & Actions
   function updateLineStatusUI() {
     const titleEl = document.getElementById("lineStatusTitle");
@@ -1173,6 +1304,8 @@
     localStorage.removeItem("pvt_reduced_motion");
     localStorage.removeItem("pvt_double_confirm");
     localStorage.removeItem("pvt_high_contrast");
+    localStorage.removeItem("pvt_show_holiday_summary");
+    localStorage.removeItem("pvt_show_holiday_calendar");
     localStorage.setItem("pvt_login_lang", "th");
     localStorage.setItem("pvt_language", "th");
 
@@ -1183,6 +1316,8 @@
     applyPrivacyShieldToDoc(false);
     applyReducedMotionToDoc(false);
     applyHighContrastToDoc(false);
+    applyHolidaySummaryToDoc(true);
+    applyHolidayCalendarToDoc(true);
     initAutoRefreshTimer();
     if (typeof window.setGlobalLanguage === "function") {
       window.setGlobalLanguage("th", false, { forceBroadcast: true });
@@ -1199,6 +1334,8 @@
     updateMotionSwitchUI();
     updateConfirmSwitchUI();
     updateHighContrastSwitchUI();
+    updateHolidaySummarySwitchUI();
+    updateHolidayCalendarSwitchUI();
 
     const preview = document.getElementById("fontPreviewBox");
     if (preview) preview.style.fontSize = "13px";

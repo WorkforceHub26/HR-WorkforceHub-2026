@@ -389,7 +389,7 @@
             display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             overflow: hidden;
           }
-          .card-header { font-size: 10px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
+          .card-header { font-size: 12px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
           .card-body { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
           .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid #38bdf8; flex-shrink: 0; background: #1e293b; }
           .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
@@ -400,7 +400,7 @@
           .qr-box { background: white; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
           .qr-box img { width: 50px; height: 50px; display: block; }
           .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
-          .emp-id { font-size: 10px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-family: monospace; }
+          .emp-id { font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-family: monospace; }
           @media print { body { background: transparent; } .card { border: none; box-shadow: none; } }
         </style>
       </head>
@@ -503,12 +503,12 @@
             }
             .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1); }
             .lanyard-hole { width: 32px; height: 6px; background: #020617; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.15); }
-            .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
+            .company { font-weight: 700; font-size: 12px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
             .profile-section { margin-bottom: 4px; width: 100%; }
             .name { font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; line-height: 1.2; word-break: break-word; }
             .badge-container { display: flex; flex-direction: column; gap: 3px; align-items: center; justify-content: center; }
-            .role-badge { font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
-            .dept-text { font-size: 10px; color: #94a3b8; font-weight: 400; }
+            .role-badge { font-size: 12px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+            .dept-text { font-size: 12px; color: #94a3b8; font-weight: 400; }
             .qr-box { background: #ffffff; padding: 6px; border-radius: 10px; display: inline-block; border: 2px solid #38bdf8; }
             .qr-box img { width: 110px; height: 110px; display: block; }
             .footer-section { width: 100%; }

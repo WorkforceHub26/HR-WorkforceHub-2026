@@ -68,7 +68,7 @@ window.getUserRoleCategory = function(userSession) {
     code === '10001' || code.startsWith('HR-');
 
   if (isHrOrExecutive) {
-    return { isAuth: true, category: 'hr_exec', role, position, dept };
+    return { isAuth: true, category: 'hr_exec', role, position, dept, isViewOnly: code === 'HR-001-3' };
   }
 
   // 2. หัวหน้างาน และ ผู้จัดการแผนก (Leader / Manager / Supervisor)
@@ -153,10 +153,10 @@ window.getUserRoleCategory = function(userSession) {
     return;
   }
 
-  // 🔒 ควบคุมการเข้าถึงหน้า home.html ให้เข้าได้เฉพาะ HR และ หัวหน้างาน / ผู้จัดการ
+  // 🔒 ควบคุมการเข้าถึงหน้า home.html ให้เข้าได้เฉพาะ HR เท่านั้น (หัวหน้างาน/ผู้จัดการทั่วไปให้ไปหน้าพนักงาน)
   const isHomeHtmlPage = path.includes("home.html");
-  if (isHomeHtmlPage && userStatus.category !== 'hr_exec' && userStatus.category !== 'leader_manager') {
-    console.warn("🚫 [Auth Guard]: เฉพาะสิทธิ์ HR และ หัวหน้างาน/ผู้จัดการเท่านั้นที่เข้าถึงหน้าหลัก Dashboard ได้");
+  if (isHomeHtmlPage && userStatus.category !== 'hr_exec') {
+    console.warn("🚫 [Auth Guard]: เฉพาะสิทธิ์ HR ระดับบริหารเท่านั้นที่เข้าถึงหน้าหลัก Dashboard ได้");
     try { if (document.body) document.body.innerHTML = ''; } catch(e){}
     window.location.replace("/pages/user/index-user.html");
     return;
@@ -187,10 +187,10 @@ window.getUserRoleCategory = function(userSession) {
     }
   }
 
-  // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager)
+  // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager) - บังคับไปหน้าพนักงานตามคำสั่งใหม่
   if (userStatus.category === 'leader_manager') {
-    if (path.includes("management")) {
-      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าหน้าจัดการประวัติพนักงาน -> เด้งไปหน้าหลัก");
+    if (isHrArea) {
+      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการถูกกำหนดให้ใช้งานหน้าพนักงานเท่านั้น -> เด้งไปหน้าพนักงาน");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
       window.location.replace("/pages/user/index-user.html");
       return;
@@ -586,7 +586,7 @@ function extractEmployeeCodeFromScannedData(scannedData) {
   return raw;
 }
 
-async function executeSecureQrLogin(scannedData) {
+async function executeSecureQrLogin(scannedData, scanMetadata = {}) {
   if (!scannedData) return;
 
   Swal.fire({
@@ -641,20 +641,18 @@ async function executeSecureQrLogin(scannedData) {
 
     // 📸 บันทึกประวัติการสแกน QR Code เข้าสู่ตาราง qr_attendance_logs สำหรับ Audit
     try {
+      const logData = {
+        scanned_data: scannedData,
+        scan_type: 'login_qr_scan',
+        status: 'success',
+        employee_code: user.employee_code,
+        device_metadata: scanMetadata // Include battery level and charging status
+      };
+
       if (typeof window.recordQrAttendanceLog === 'function') {
-        await window.recordQrAttendanceLog(user.id, {
-          scanned_data: scannedData,
-          scan_type: 'login_qr_scan',
-          status: 'success',
-          employee_code: user.employee_code
-        });
+        await window.recordQrAttendanceLog(user.id, logData);
       } else if (window.PVTSDK?.attendance?.recordQrAttendanceLog) {
-        await window.PVTSDK.attendance.recordQrAttendanceLog(user.id, {
-          scanned_data: scannedData,
-          scan_type: 'login_qr_scan',
-          status: 'success',
-          employee_code: user.employee_code
-        });
+        await window.PVTSDK.attendance.recordQrAttendanceLog(user.id, logData);
       }
     } catch (logErr) {
       console.warn("⚠️ [QR Audit Log] Warning logging QR attendance:", logErr);
@@ -665,10 +663,15 @@ async function executeSecureQrLogin(scannedData) {
 
     // 🔒 บันทึกประวัติการเข้าสู่ระบบผ่าน QR Code ไปยัง Supabase 'login_logs' สำหรับตรวจสอบ (Audit Purposes)
     try {
+      const loginLogMetadata = { 
+        scanned_data: scannedData,
+        ...scanMetadata // Spread battery level, charging status, etc.
+      };
+
       if (typeof recordLoginLog === 'function') {
-        recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
+        recordLoginLog(user, { method: 'qr_code', metadata: loginLogMetadata });
       } else if (window.PVTSDK?.loginAudit?.recordLoginLog) {
-        window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
+        window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'qr_code', metadata: loginLogMetadata });
       }
     } catch (logErr) {
       console.warn("⚠️ [Login Audit Log] Notice recording QR login:", logErr);
@@ -697,41 +700,33 @@ async function executeSecureQrLogin(scannedData) {
   }
 }
 
-// 🔊 Web Audio API: สังเคราะห์เสียงตอบรับเมื่อสแกนสำเร็จ (Harmonic Success Chime)
+// 🔊 Web Audio API: สังเคราะห์เสียง 'Ding' สั้นๆ เมื่อสแกนสำเร็จ
 function playBarcodeScanSuccessSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
     const now = ctx.currentTime;
     
-    // Primary chime (Sine tone)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(784, now); // G5
-    osc1.frequency.exponentialRampToValueAtTime(1174.66, now + 0.08); // D6
-    gain1.gain.setValueAtTime(0.25, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.3);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1318.51, now); // E6 (High clear note)
+    
+    gain.gain.setValueAtTime(0.12, now); // Soft volume
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2); // Fast decay
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start(now);
+    osc.stop(now + 0.2);
 
-    // Harmonic sparkle (Triangle tone)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(1568, now + 0.03); // G6
-    gain2.gain.setValueAtTime(0.12, now + 0.03);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.03);
-    osc2.stop(now + 0.24);
+    // ปิด AudioContext เมื่อใช้งานเสร็จเพื่อคืนทรัพยากร
+    setTimeout(() => {
+      if (ctx.state !== 'closed') ctx.close().catch(() => {});
+    }, 400);
   } catch (e) {
     console.warn("Audio chime feedback note:", e);
   }
@@ -746,8 +741,13 @@ function loginByQr() {
   let activeTab = "cam"; // "cam" | "file"
   let videoTrack = null;
   let idleTimer = null;
+  let focusRetryTimer = null;
   let isEcoMode = false;
+  let hasScannedSuccess = false;
+  let lastBatteryLevel = null;
+  let isBatteryCharging = false;
   const IDLE_TIMEOUT_MS = 10000; // 10 seconds idle threshold
+  const FOCUS_RETRY_MS = 6000; // 6 seconds for focus retry cycle
 
   // ตรวจสอบและแทรก CSS หากยังไม่มีในหน้า
   if (!document.getElementById("pvt-qr-scanner-dynamic-css")) {
@@ -930,6 +930,31 @@ function loginByQr() {
       .pvt-qr-tab-btn.active {
         background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: #ffffff; border-color: rgba(255, 255, 255, 0.2);
         box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+      }
+      .pvt-qr-focus-progress-container {
+        position: absolute; bottom: 105px; width: min(220px, 60vw); height: 4px;
+        background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden;
+        z-index: 10; border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .pvt-qr-focus-bar {
+        width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399);
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); transition: width 0.3s;
+      }
+      .pvt-qr-battery-badge {
+        position: absolute; top: 14px; right: 14px; z-index: 15;
+        display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+        background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px;
+        font-size: 11px; font-weight: 700; color: #f8fafc;
+        transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .pvt-qr-battery-badge.low {
+        border-color: #ef4444; color: #f87171; background: rgba(239, 68, 68, 0.1);
+        animation: batteryLowPulse 2s infinite;
+      }
+      @keyframes batteryLowPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
       }
     `;
     document.head.appendChild(styleEl);
@@ -1167,6 +1192,12 @@ function loginByQr() {
           </div>
         </div>
 
+        <!-- 🔋 Battery Status Indicator -->
+        <div id="pvtQrBatteryBadge" class="pvt-qr-battery-badge" style="display: none;">
+          <span class="material-symbols-outlined" id="pvtQrBatteryIcon" style="font-size: 16px;">battery_full</span>
+          <span id="pvtQrBatteryText">100%</span>
+        </div>
+
         <!-- 🔍 Pinch-to-Zoom Visual Feedback Indicator Overlay -->
         <div id="pvtQrZoomIndicator" class="pvt-qr-zoom-indicator" title="จีบนิ้วเพื่อย่อ/ขยายภาพ (Pinch to Zoom)">
           <div class="pvt-zoom-level-badge">
@@ -1195,6 +1226,11 @@ function loginByQr() {
           <span class="pvt-qr-corner bottom-left"></span>
           <span class="pvt-qr-corner bottom-right"></span>
           <div id="pvtQrLaser" class="pvt-qr-laser"></div>
+        </div>
+
+        <!-- ⏱️ Camera Focus Timeout Progress Bar -->
+        <div class="pvt-qr-focus-progress-container">
+          <div id="pvtQrFocusBar" class="pvt-qr-focus-bar"></div>
         </div>
 
         <!-- Guide Caption -->
@@ -1278,6 +1314,54 @@ function loginByQr() {
   const guideMsg = document.getElementById("pvtQrGuideMsg");
 
   const ecoIndicator = document.getElementById("pvtQrEcoIndicator");
+  const batteryBadge = document.getElementById("pvtQrBatteryBadge");
+  const batteryIcon = document.getElementById("pvtQrBatteryIcon");
+  const batteryText = document.getElementById("pvtQrBatteryText");
+
+  // 🔋 Battery Status Monitoring Logic
+  const updateBatteryStatus = (battery) => {
+    const level = Math.round(battery.level * 100);
+    lastBatteryLevel = level;
+    isBatteryCharging = battery.charging;
+    if (batteryText) batteryText.textContent = `${level}%`;
+
+    if (batteryIcon) {
+      if (battery.charging) {
+        batteryIcon.textContent = "battery_charging_full";
+        batteryIcon.style.color = "#10b981";
+      } else {
+        batteryIcon.style.color = "";
+        if (level > 90) batteryIcon.textContent = "battery_full";
+        else if (level > 60) batteryIcon.textContent = "battery_6_bar";
+        else if (level > 30) batteryIcon.textContent = "battery_3_bar";
+        else batteryIcon.textContent = "battery_alert";
+      }
+    }
+
+    if (batteryBadge) {
+      if (level <= 20 && !battery.charging) {
+        batteryBadge.classList.add("low");
+        // Auto-trigger eco mode on low battery
+        if (!isEcoMode) enterEcoBatteryMode();
+      } else {
+        batteryBadge.classList.remove("low");
+      }
+    }
+  };
+
+  const initBatteryMonitoring = async () => {
+    if (!navigator.getBattery) return;
+    try {
+      const battery = await navigator.getBattery();
+      if (batteryBadge) batteryBadge.style.display = "flex";
+      updateBatteryStatus(battery);
+
+      battery.addEventListener("levelchange", () => updateBatteryStatus(battery));
+      battery.addEventListener("chargingchange", () => updateBatteryStatus(battery));
+    } catch (e) {
+      console.warn("Battery status API not supported or failed:", e);
+    }
+  };
 
   // 🍃 โหมดประหยัดพลังงาน (Eco Battery Saver Mode) - ลด Frame Rate & ความละเอียดกล้องเมื่อไม่ได้ใช้งานเกิน 10 วินาที
   const enterEcoBatteryMode = async () => {
@@ -1297,6 +1381,8 @@ function loginByQr() {
           width: { ideal: 640 },
           height: { ideal: 480 }
         });
+        // 📳 Haptic: Short pulse for eco mode entry
+        if (navigator.vibrate) navigator.vibrate(100);
       } catch (err) {
         console.warn("Eco battery constraints not fully supported:", err);
       }
@@ -1338,9 +1424,67 @@ function loginByQr() {
     }
   };
 
+  // ⏱️ Focus Retry Logic & Progress Bar Animation
+  const startFocusProgress = () => {
+    if (hasScannedSuccess || !isCamRunning || activeTab !== "cam") return;
+    const bar = document.getElementById("pvtQrFocusBar");
+    if (!bar) return;
+
+    // Reset bar state
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    void bar.offsetWidth; // Force reflow
+
+    // Start fill animation
+    bar.style.transition = `width ${FOCUS_RETRY_MS}ms linear`;
+    bar.style.width = '100%';
+
+    if (focusRetryTimer) clearTimeout(focusRetryTimer);
+    focusRetryTimer = setTimeout(async () => {
+      if (hasScannedSuccess || !isCamRunning) return;
+      await retryCameraFocus();
+      startFocusProgress(); // Loop focus cycle
+    }, FOCUS_RETRY_MS);
+  };
+
+  const stopFocusProgress = () => {
+    if (focusRetryTimer) clearTimeout(focusRetryTimer);
+    const bar = document.getElementById("pvtQrFocusBar");
+    if (bar) {
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+    }
+  };
+
+  const retryCameraFocus = async () => {
+    if (!videoTrack || hasScannedSuccess || !isCamRunning) return;
+    
+    // Provide a subtle visual feedback on reticle during focus retry
+    if (reticle) {
+      reticle.style.transition = "transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+      reticle.style.transform = "scale(1.05)";
+      setTimeout(() => { 
+        if (reticle) reticle.style.transform = "scale(1)"; 
+      }, 300);
+    }
+
+    try {
+      // Re-apply focus constraints to force hardware autofocus trigger
+      const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+      if (capabilities.focusMode) {
+        await videoTrack.applyConstraints({
+          advanced: [{ focusMode: 'continuous' }]
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn("Autofocus re-trigger failed:", e);
+    }
+  };
+
   // 🚪 ปิด Modal และเคลียร์กล้องอย่างปลอดภัย
   const closeModal = async () => {
     if (idleTimer) clearTimeout(idleTimer);
+    if (focusRetryTimer) clearTimeout(focusRetryTimer);
     if (isEcoMode) exitEcoBatteryMode();
     document.removeEventListener("keydown", handleKeyDown);
     if (html5QrCode) {
@@ -1369,6 +1513,9 @@ function loginByQr() {
   document.addEventListener("keydown", handleKeyDown);
 
   btnClose.onclick = closeModal;
+
+  // Initialize battery monitoring
+  initBatteryMonitoring();
 
   // 🔦 สลับการใช้งานไฟฉาย (Torch)
   btnTorch.onclick = async () => {
@@ -1415,6 +1562,7 @@ function loginByQr() {
     tabCam.classList.remove("active");
     camView.style.display = "none";
     fileView.style.display = "flex";
+    stopFocusProgress();
     if (isCamRunning) {
       try {
         await html5QrCode.stop();
@@ -1424,10 +1572,12 @@ function loginByQr() {
   };
 
   // 🎯 Callback เมื่อสแกนพบ Barcode / QR Code สำเร็จ
-  let hasScannedSuccess = false;
   const onScanSuccess = (decodedText) => {
     if (hasScannedSuccess) return;
     hasScannedSuccess = true;
+
+    // Stop focus retry cycle immediately
+    stopFocusProgress();
 
     // ⚡ 1. Immediate visual detection highlight on .pvt-qr-viewport-container
     if (camView) camView.classList.add("qr-detected");
@@ -1438,9 +1588,9 @@ function loginByQr() {
     playBarcodeScanSuccessSound();
     if (idleTimer) clearTimeout(idleTimer);
 
-    // 3. การสั่นแจ้งเตือน (Haptic) - Enhanced tactile double-vibration pattern
+    // 3. การสั่นแจ้งเตือน (Haptic) - Distinct success double-pulse pattern
     if (navigator.vibrate) {
-      try { navigator.vibrate([60, 40, 60, 40, 100]); } catch (e) {}
+      try { navigator.vibrate([60, 40, 60]); } catch (e) {}
     }
 
     // 4. แสดงผลตอบรับบน UI (Visual Feedback)
@@ -1451,7 +1601,11 @@ function loginByQr() {
     // 5. หน่วงเวลาสั้นๆ เพื่อให้ผู้ใช้รับรู้ feedback ก่อนเปลี่ยนหน้า
     setTimeout(async () => {
       await closeModal();
-      executeSecureQrLogin(decodedText);
+      executeSecureQrLogin(decodedText, { 
+        battery_level: lastBatteryLevel, 
+        is_charging: isBatteryCharging,
+        capture_time: new Date().toISOString()
+      });
     }, 450);
   };
 
@@ -1499,6 +1653,9 @@ function loginByQr() {
 
       isCamRunning = true;
       permCard.style.display = "none";
+
+      // Start focus progress cycle
+      startFocusProgress();
 
       // 🔍 Pinch-to-Zoom Controller & Visual Feedback Logic for .pvt-qr-viewport-container
       let currentZoom = 1.0;
@@ -1657,6 +1814,11 @@ function loginByQr() {
     permTitle.textContent = title;
     permDesc.textContent = message;
     permActions.style.display = "flex";
+
+    // 📳 Haptic: Triple pulse for error warning
+    if (navigator.vibrate) {
+      try { navigator.vibrate([150, 50, 150, 50, 150]); } catch (e) {}
+    }
   };
 
   permRetryBtn.onclick = () => startCamera();
@@ -2198,13 +2360,19 @@ window.protectIconsFromTranslation = function(root = document) {
 
 // 🌐 [SET GLOBAL LANGUAGE]: ควบคุมการเปลี่ยนภาษาผ่าน Google Translate 100%
 window.setGlobalLanguage = function(lang, reload = false, options = {}) {
+  // 1. ป้องกันการทำงานซ้อนทับกัน (Lock Mechanism)
+  if (window.__pvtLangSwitchLock && !options.fromObserver) {
+    return;
+  }
+
   // 🚫 ไม่รบกวนหน้าของ HR / Admin
   const currentPath = (window.location.pathname || '').toLowerCase();
   const isHrAdminPage = currentPath.includes('/pages/hr/') || 
                         currentPath.includes('/hr/') || 
-                        document.body.classList.contains('hr-layout') ||
-                        document.querySelector('aside.sidebar-light') !== null;
-  if (isHrAdminPage) {
+                        document.body.classList.contains('hr-layout');
+  
+  // ตรวจสอบว่าหน้า HR ยอมรับการแปลภาษาหรือไม่ (บางหน้าอาจจะอนุญาต)
+  if (isHrAdminPage && !options.forceInHr) {
     return;
   }
 
@@ -2212,20 +2380,32 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
 
   const prevLang = window.__pvtActiveLang || localStorage.getItem('pvt_login_lang') || 'th';
   const langChanged = (prevLang !== lang);
+  
+  // ถ้าภาษาไม่เปลี่ยน และไม่ใช่การบังคับ ไม่ต้องทำอะไรต่อเพื่อลดภาระ DOM
+  if (!langChanged && !options.forceBroadcast && !options.fromObserver) {
+    return;
+  }
+
+  // ป้องกันการเรียกซ้ำจาก MutationObserver ในช่วงเวลาที่กำลังประมวลผล
+  if (options.fromObserver && window.__pvtIsTranslating) {
+    return;
+  }
+
   window.__pvtActiveLang = lang;
+  window.__pvtLangSwitchLock = true; 
 
   localStorage.setItem('pvt_login_lang', lang);
   localStorage.setItem('pvt_language', lang);
 
-  // 1. Highlight active language buttons across switchers
+  // 2. Highlight active language buttons across switchers
   const allLangBtns = document.querySelectorAll('#langThBtn, #globalLangTh, #langLoBtn, #globalLangLo, #langMyBtn, #globalLangMy, #langEnBtn, #globalLangEn');
   allLangBtns.forEach(b => {
     b.classList.remove('active');
-    b.style.backgroundColor = 'transparent';
-    b.style.color = '#64748b';
-    b.style.boxShadow = 'none';
-    b.style.fontWeight = '600';
-    b.style.borderRadius = '9999px';
+    // รีเซ็ตสไตล์เดิม
+    b.style.backgroundColor = '';
+    b.style.color = '';
+    b.style.boxShadow = '';
+    b.style.fontWeight = '';
   });
 
   const activeSelectors = {
@@ -2239,25 +2419,43 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
     const activeBtns = document.querySelectorAll(activeSelectors[lang]);
     activeBtns.forEach(b => {
       b.classList.add('active');
-      b.style.backgroundColor = '#ffffff';
-      b.style.color = '#0891b2';
-      b.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.08)';
-      b.style.fontWeight = '700';
-      b.style.borderRadius = '9999px';
+      // สไตล์ปุ่มที่เลือก (เฉพาะจุดที่ไม่ได้ใช้ CSS Class คุม)
+      if (b.id.startsWith('globalLang')) {
+        b.style.backgroundColor = '#ffffff';
+        b.style.color = '#0891b2';
+        b.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.08)';
+        b.style.fontWeight = '700';
+      }
     });
   }
 
-  // 2. ป้องกันไอคอนก่อนเริ่มแปล
+  // 3. ป้องกันไอคอนก่อนเริ่มแปล
   window.protectIconsFromTranslation(document.body);
 
-  // 3. จัดการ Google Translate (ป้องกันการส่ง Event ซ้ำเมื่อมาจาก Observer)
+  // 4. จัดการ Google Translate
   if (!options.fromObserver) {
     if (lang === 'th') {
       window.purgeGoogleTranslate();
       const combo = document.querySelector('select.goog-te-combo, .goog-te-combo');
-      if (combo && combo.value && combo.value !== 'th' && combo.value !== '') {
-        combo.value = '';
+      if (combo) {
+        // หาตัวเลือกที่เป็นภาษาไทยหรือค่าเริ่มต้น
+        let targetValue = '';
+        for (let i = 0; i < combo.options.length; i++) {
+          const val = combo.options[i].value;
+          if (val === 'th' || val === '') {
+            targetValue = val;
+            break;
+          }
+        }
+        combo.value = targetValue;
         combo.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      
+      // บังคับรีโหลดเมื่อผู้ใช้เปลี่ยนภาษากลับมาเป็น TH แบบแมนวล เพื่อเคลียร์ความจำแคชของ Google Translate 100%
+      if (langChanged) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 120);
       }
     } else {
       let googleLang = lang;
@@ -2268,20 +2466,30 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       document.cookie = 'googtrans=' + cookieValue + '; path=/; domain=' + window.location.hostname;
 
       const combo = document.querySelector('select.goog-te-combo, .goog-te-combo');
-      if (combo && combo.value !== googleLang) {
-        combo.value = googleLang;
-        combo.dispatchEvent(new Event('change', { bubbles: true }));
+      if (combo) {
+        if (combo.value !== googleLang) {
+          combo.value = googleLang;
+          combo.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       }
     }
   }
 
-  // 4. Dispatch event สำหรับ re-rendering เฉพาะเมื่อเปลี่ยนภาษาจริงหรือสั่ง forceBroadcast เท่านั้น
+  // 5. Dispatch event & Unlocking
   if (!options.fromObserver && (langChanged || options.forceBroadcast)) {
     window.__pvtIsTranslating = true;
     window.dispatchEvent(new CustomEvent('pvt-lang-changed', { detail: { lang } }));
+    
+    // ปลดล็อกหลังจากผ่านไปช่วงเวลาหนึ่ง (เพิ่มเวลาเล็กน้อยเพื่อความเสถียร)
     setTimeout(() => {
       window.__pvtIsTranslating = false;
-    }, 500);
+      window.__pvtLangSwitchLock = false;
+    }, 1000);
+  } else {
+    // ถ้ามาจาก observer หรือไม่มีการ broadcast ก็ปลดล็อกเร็วขึ้น
+    setTimeout(() => {
+      window.__pvtLangSwitchLock = false;
+    }, 300);
   }
 };
 
@@ -2290,7 +2498,6 @@ function injectGlobalLangSwitcher() {
 
   // 🚫 Do not show language switcher on HR Administration pages
   const isHrPage = window.location.pathname.includes('/pages/hr/') || 
-                   document.querySelector('aside.sidebar-light') !== null ||
                    document.body.classList.contains('hr-layout');
   if (isHrPage) return;
   
@@ -2313,13 +2520,13 @@ function injectGlobalLangSwitcher() {
   
   container.innerHTML = `
     <div class="lang-switcher">
-      <button type="button" class="lang-btn" id="globalLangTh" onclick="window.setGlobalLanguage('th', false, { forceBroadcast: true })" title="ภาษาไทย">ภาษาไทย</button>
-      <button type="button" class="lang-btn" id="globalLangEn" onclick="window.setGlobalLanguage('en', false, { forceBroadcast: true })" title="English">English</button>
-      </div>
-      `;
+      <button type="button" class="lang-btn" id="globalLangTh" onclick="window.setGlobalLanguage('th', false, { forceBroadcast: true })" title="ภาษาไทย"><span class="lang-text-full">ภาษาไทย</span><span class="lang-text-short">TH</span></button>
+      <button type="button" class="lang-btn" id="globalLangEn" onclick="window.setGlobalLanguage('en', false, { forceBroadcast: true })" title="English"><span class="lang-text-full">English</span><span class="lang-text-short">EN</span></button>
+    </div>
+  `;
       // <button type="button" class="lang-btn" id="globalLangLo" onclick="window.setGlobalLanguage('lo', false, { forceBroadcast: true })" title="ພາສາລາວ">ລາວ</button>
       // <button type="button" class="lang-btn" id="globalLangMy" onclick="window.setGlobalLanguage('my', false, { forceBroadcast: true })" title="မြန်မာစာ">မြန်မာ</button>
-      
+
   if (targetContainer.classList.contains('rules-top-bar')) {
     targetContainer.insertBefore(container, targetContainer.children[1] || null);
   } else if (targetContainer.classList.contains('topbar') || targetContainer.tagName === 'HEADER' || targetContainer.classList.contains('user-header')) {
@@ -2407,6 +2614,7 @@ window.openMobileSidebar = function() {
   if (!sidebar) return;
 
   sidebar.classList.add("mobile-open");
+  sidebar.style.display = "flex";
   document.body.classList.add("sidebar-open");
 
   let backdrop = document.getElementById("mobileSidebarBackdrop");
@@ -2437,18 +2645,20 @@ window.openMobileSidebar = function() {
   }
 };
 
-window.closeMobileSidebar = function() {
-  const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
-  if (sidebar) {
-    sidebar.classList.remove("mobile-open");
-  }
-  document.body.classList.remove("sidebar-open");
+  window.closeMobileSidebar = function() {
+    const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
+    if (sidebar) {
+      sidebar.classList.remove("mobile-open");
+      sidebar.classList.remove("active"); // Fix for inconsistent sidebar classes
+      sidebar.style.display = "";
+    }
+    document.body.classList.remove("sidebar-open");
 
-  const backdrop = document.getElementById("mobileSidebarBackdrop") || document.querySelector(".mobile-sidebar-backdrop");
-  if (backdrop) {
-    backdrop.classList.remove("active");
-  }
-};
+    const backdrop = document.getElementById("mobileSidebarBackdrop") || document.querySelector(".mobile-sidebar-backdrop");
+    if (backdrop) {
+      backdrop.classList.remove("active");
+    }
+  };
 
 function setupGlobalSidebarHandlers() {
   window.ensureDesktopSidebarEdgeToggle();
@@ -2501,6 +2711,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             if (
               node.id === "globalLangSwitcherContainer" || 
+              node.id === "pvtNetworkStatusBanner" ||
               node.classList.contains("lang-switcher") ||
               node.classList.contains("cal-day-cell") ||
               node.classList.contains("spinning-icon") ||
@@ -2525,11 +2736,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (shouldTranslate) {
       clearTimeout(mutationDebounceTimer);
       mutationDebounceTimer = setTimeout(() => {
-        if (!window.__pvtIsTranslating) {
+        if (!window.__pvtIsTranslating && !window.__pvtLangSwitchLock) {
           const currentLang = window.getGlobalLanguage();
-          window.setGlobalLanguage(currentLang, false, { fromObserver: true });
+          if (currentLang !== 'th') {
+            window.setGlobalLanguage(currentLang, false, { fromObserver: true });
+          }
         }
-      }, 250);
+      }, 450); // Increased debounce for stability
     }
   });
 

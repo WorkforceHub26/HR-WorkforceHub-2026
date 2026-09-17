@@ -215,10 +215,16 @@ async function initSystemAndPermissions() {
     const empCode = String(empData?.employee_code || "").trim();
 
     // กำหนดกลุ่ม Role เพื่อใช้ในการ Filter ข้อมูล (ให้สิทธิ์ L3 Executive Approver เป็นอันดับสูงสุด)
+    window.isViewOnlyHR = false; // Flag สำหรับสิทธิ์การดูอย่างเดียว
+
     if (empCode === '19122') {
       // 🌟 น.ส. ปณัยยา บุญเกิด: ผู้จัดการฝ่ายบุคคล-ธุรการ
       // มีแอคเคาต์แยกสำหรับ HR กลาง (HR-001/002/003) ให้ทำหน้าที่เป็น Manager อนุมัติเฉพาะคนในแผนกตนเอง
       currentRole = "manager";
+    } else if (empCode === 'HR-001-3') {
+      // 🌟 เฉพาะรหัส HR-001-3: ให้มีสิทธิ์เป็น HR (ดูได้อย่างเดียว ไม่สามารถอนุมัติได้)
+      currentRole = "hr";
+      window.isViewOnlyHR = true;
     } else if (isExecutiveApprover || rawRole === "director" || rawRole === "executive" || rawRole === "owner" || rawPos.includes("ผู้อำนวยการ") || rawPos.includes("ผู้บริหาร") || rawPos.includes("director") || rawPos.includes("executive") || rawPos.includes("owner")) {
       currentRole = "director";
     } else if (rawRole === "admin" || rawRole === "superadmin" || rawRole.includes("admin")) {
@@ -1505,7 +1511,7 @@ function renderLeaveTable() {
           <div class="detail-row reason-row" ${req.is_emergency ? 'style="background: #fef2f2; padding: 6px 8px; border-radius: 8px; border: 1px solid #fecaca;"' : ''}>
             <span class="label">เหตุผล:</span>
             <span class="val text-truncate-2" ${req.is_emergency ? 'style="color: #b91c1c; font-weight: 700;"' : ''}>
-              ${req.is_emergency ? '<span style="background: #ef4444; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 6px; font-weight: 800; margin-right: 4px; display: inline-block;">🚨 ฉุกเฉิน</span>' : ''}${reasonText}
+              ${req.is_emergency ? '<span style="background: #ef4444; color: #fff; font-size: 12px; padding: 1px 6px; border-radius: 6px; font-weight: 800; margin-right: 4px; display: inline-block;">🚨 ฉุกเฉิน</span>' : ''}${reasonText}
             </span>
             <div class="attachment-trigger">
               ${renderAttachmentCell(attachmentUrl, req.id)}
@@ -1935,7 +1941,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
           ` : ''}
         </div>
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          ${isPending ? `
+          ${isPending && !window.isViewOnlyHR ? `
             <button type="button" class="btn-act btn-act-approve" id="btnModalApprove" style="background: #10b981; color: #ffffff; border: none; padding: 7px 18px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);">
               <span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span> อนุมัติ
             </button>
@@ -3039,12 +3045,12 @@ async function printLeaveA4(leaveId) {
           .sig-space { height: 50px; margin-bottom: 8px; display: flex; align-items: flex-end; justify-content: center; position: relative; }
           .sig-line { width: 85%; border-bottom: 1.2px solid #cbd5e1; margin: 0 auto; }
           .sig-name { font-size: 12px; font-weight: 700; margin-top: 6px; color: #1e293b; }
-          .sig-title { font-size: 10.5px; color: #64748b; margin-top: 1px; font-weight: 500; }
+          .sig-title { font-size: 12px; color: #64748b; margin-top: 1px; font-weight: 500; }
           
           /* Electronic approval badge watermark overlay */
           .digital-stamp { font-size: 9px; border: 1.5px dashed #059669; color: #059669; padding: 4px 6px; border-radius: 6px; text-transform: uppercase; font-weight: 800; display: inline-block; transform: rotate(-3deg); line-height: 1.2; background: #f0fdf4; }
 
-          .doc-footer { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+          .doc-footer { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px; }
         </style>
       </head>
       <body>

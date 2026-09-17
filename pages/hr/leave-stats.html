@@ -18,224 +18,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <style>
-    /*  Background & Layout Polish (Unified Luxury HR Style) */
-    body {
-      font-family: 'Sarabun', 'Kanit', sans-serif !important;
-      background-color: #f0fdfa !important;
-      background-image: 
-        radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
-        radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
-        radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
-        radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%) !important;
-      background-attachment: fixed !important;
-      min-height: 100vh !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow-x: hidden !important;
-    }
-
-    #appLayout {
-      display: flex !important;
-      width: 100% !important;
-      min-height: 100vh !important;
-      position: relative !important;
-      overflow-x: hidden !important;
-    }
-
-    /* ️ Fix buggy vertical line: Remove inner scrollbar & ensure clean main workspace */
-    #appLayout > main.main-content,
-    main.main-content {
-      flex: 1 !important;
-      min-width: 0 !important;
-      background: transparent !important;
-      overflow-y: visible !important;
-      overflow-x: hidden !important;
-      position: relative !important;
-      scrollbar-width: none !important;
-      -ms-overflow-style: none !important;
-    }
-
-    #appLayout > main.main-content::-webkit-scrollbar,
-    main.main-content::-webkit-scrollbar {
-      display: none !important;
-      width: 0 !important;
-      height: 0 !important;
-      background: transparent !important;
-    }
-
-    /* ️ Custom Vector SVG Icons */
-    .nav-icon-custom {
-      width: 22px;
-      height: 22px;
-      object-fit: contain;
-      flex-shrink: 0;
-      display: inline-block;
-      transition: transform 0.2s ease;
-    }
-
-    .nav-item:hover .nav-icon-custom {
-      transform: scale(1.12);
-    }
-
-    .stats-tab-btn {
-      padding: 8px 18px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      color: #475569;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-    .stats-tab-btn.active {
-      background: #0f766e;
-      color: #ffffff;
-      border-color: #0f766e;
-      box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
-    }
-    .stats-card-highlight {
-      background: #ffffff;
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      transition: transform 0.2s;
-    }
-    .stats-card-highlight:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
-    }
-    
-    /* 📱 Responsive Page Header Banner and Department Cards */
-    .stats-header-banner {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
-      color: white;
-      padding: 24px 28px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
-      margin-bottom: 24px;
-      position: relative;
-      overflow: hidden;
-    }
-    .stats-header-banner-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 16px;
-      position: relative;
-      z-index: 2;
-    }
-    .stats-header-title-section {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-    .stats-header-actions-section {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    /* 📊 Optimized responsive classes for department stats cards */
-    .dept-stat-card {
-      background: #ffffff;
-      padding: 16px 20px;
-      border-radius: 14px;
-      border: 1.5px solid #e2e8f0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .dept-stat-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-    .dept-stat-card.user-dept {
-      background: #f0fdf4 !important;
-      border-color: #86efac !important;
-    }
-    .dept-stat-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-    .dept-stat-title-group {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .dept-stat-value-group {
-      text-align: right;
-    }
-
-    @media screen and (max-width: 768px) {
-      .stats-header-banner {
-        padding: 16px !important;
-      }
-      .stats-header-banner-content {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 14px !important;
-      }
-      .stats-header-title-section {
-        width: 100% !important;
-      }
-      .stats-header-title-section h1 {
-        font-size: 18px !important;
-      }
-      .stats-header-title-section p {
-        font-size: 11.5px !important;
-      }
-      .stats-header-actions-section {
-        width: 100% !important;
-        justify-content: flex-start !important;
-        gap: 8px !important;
-      }
-      .stats-header-actions-section button,
-      .stats-header-actions-section a {
-        flex: 1 1 auto !important;
-        justify-content: center !important;
-        padding: 8px 12px !important;
-        font-size: 11.5px !important;
-      }
-
-      .dept-stat-header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 8px !important;
-      }
-      .dept-stat-value-group {
-        text-align: left !important;
-        width: 100% !important;
-        display: flex !important;
-        align-items: baseline !important;
-        justify-content: space-between !important;
-        border-top: 1px dashed #e2e8f0;
-        padding-top: 8px;
-        margin-top: 4px;
-      }
-    }
-
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
-    }
-    @media print {
-      .sidebar, .top-header-actions, .no-print { display: none !important; }
-      .main-content { margin: 0 !important; width: 100% !important; padding: 0 !important; }
-    }
-  </style>
+  <link rel="stylesheet" href="/css/leave-stats.css" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="PVT Hub" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
 </head>
 <body>
 
@@ -245,9 +33,9 @@
     <aside class="sidebar-light" id="mainSidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
-          <span class="material-symbols-outlined">groups</span>
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
-        <div class="brand-name">PVT WORKFORCE HUB</div>
+        <div class="brand-name">PVTT WORKFORCE HUB</div>
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
@@ -525,10 +313,10 @@
     </main>
   </div>
 
-  <script src="/js/supabase-config.js"></script>
-  <script src="/js/auth-guard.js"></script>
-  <script src="/js/system-settings.js"></script>
-  <script src="/js/employee-card-modal.js"></script>
-  <script src="/js/leave-stats.js"></script>
+  <script type="module" src="/js/supabase-config.js"></script>
+  <script type="module" src="/js/auth-guard.js"></script>
+  <script type="module" src="/js/system-settings.js"></script>
+  <script type="module" src="/js/employee-card-modal.js"></script>
+  <script type="module" src="/js/leave-stats.js"></script>
 </body>
 </html>

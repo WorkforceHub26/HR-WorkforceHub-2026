@@ -346,7 +346,7 @@
           </tr>
         `;
       } else {
-        paginatedLogs.forEach((log, index) => {
+        paginatedLogs.forEach((log) => {
           const rawTime = log.timestamp || log.created_at || log.login_at;
           const timeObj = rawTime ? new Date(rawTime) : null;
           const dateStr = timeObj && !isNaN(timeObj.getTime())
@@ -401,17 +401,17 @@
                 <div style="font-weight: 600; color: #0f172a; font-family: monospace;">${timeStr}</div>
                 <div style="font-size: 11px; color: #64748b;">${dateStr}</div>
               </td>
-              <td style="padding: 12px 10px;">
+              <td style="padding: 12px 10px; min-width: 180px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <div style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
                     ${fullName.charAt(0) || 'U'}
                   </div>
-                  <div>
-                    <div style="font-weight: 700; color: #0f172a;">${fullName}</div>
+                  <div style="overflow: hidden;">
+                    <div style="font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${fullName}">${fullName}</div>
                     <div style="font-size: 11px; color: #64748b; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                       ${empCode ? `<span style="background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-weight: 600; color: #334155;">${empCode}</span>` : ''}
-                      ${role ? `<span style="background: #f0fdf4; color: #166534; padding: 1px 5px; border-radius: 4px; font-size: 10.5px;">${role}</span>` : ''}
-                      <span style="font-family: monospace; font-size: 10px; color: #94a3b8;" title="Supabase User ID: ${userId}">${userId.length > 14 ? userId.substring(0, 14) + '...' : userId}</span>
+                      ${role ? `<span style="background: #f0fdf4; color: #166534; padding: 1px 5px; border-radius: 4px; font-size: 12px;">${role}</span>` : ''}
+                      <span style="font-family: monospace; font-size: 12px; color: #94a3b8;" title="Supabase User ID: ${userId}">${userId.length > 14 ? userId.substring(0, 14) + '...' : userId}</span>
                     </div>
                   </div>
                 </div>
@@ -419,15 +419,15 @@
               <td style="padding: 12px 10px; white-space: nowrap;">
                 ${methodBadge}
               </td>
-              <td style="padding: 12px 10px;">
-                <div style="display: flex; align-items: center; gap: 6px;">
+              <td style="padding: 12px 10px; min-width: 180px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <span style="background: ${devBadgeBg}; color: ${devBadgeColor}; padding: 3px 6px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;">
                     <span class="material-symbols-outlined" style="font-size: 14px;">${devIcon}</span>
                     ${devType}
                   </span>
-                  <span style="font-weight: 600; color: #1e293b; font-size: 12px;">${browser}</span>
+                  <span style="font-weight: 600; color: #1e293b; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${browser}</span>
                 </div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   ${os} ${screen ? `· ${screen}` : ''}
                 </div>
               </td>
@@ -446,10 +446,42 @@
       }
 
       return `
-        <div class="login-logs-component" style="font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif; color: #1e293b; text-align: left;">
+        <style>
+          .login-logs-component *, .login-logs-component *::before, .login-logs-component *::after {
+            box-sizing: border-box;
+          }
+          .login-logs-component .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+          }
+          .login-logs-component .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+          }
+          .login-logs-component table {
+            width: 100%;
+            min-width: 850px;
+            border-collapse: collapse;
+          }
+          @media (max-width: 640px) {
+            .login-logs-component .header-bar {
+              flex-direction: column;
+              align-items: flex-start !important;
+            }
+            .login-logs-component .header-actions {
+              width: 100%;
+              justify-content: flex-start !important;
+              margin-top: 10px;
+            }
+          }
+        </style>
+        <div class="login-logs-component" style="font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif; color: #1e293b; text-align: left; width: 100%; overflow: hidden;">
           
           <!-- Header Bar with Read-Only Indicator and Target Table Badge -->
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; background: #f8fafc; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <div class="header-bar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; background: #f8fafc; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-outlined" style="color: #0d9488; font-size: 24px;">shield_lock</span>
@@ -463,7 +495,7 @@
               </span>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="header-actions" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
               <button type="button" onclick="window.PVTLoginLogsViewer?.purgeOlderLogs()" style="background: #fef2f2; border: 1px solid #fca5a5; padding: 6px 12px; border-radius: 8px; font-size: 12.5px; color: #b91c1c; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'; this.style.borderColor='#ef4444'" onmouseout="this.style.background='#fef2f2'; this.style.borderColor='#fca5a5'">
                 <span class="material-symbols-outlined" style="font-size: 16px; color: #ef4444;">delete_sweep</span> ล้างประวัติ > 90 วัน
               </button>
@@ -477,7 +509,7 @@
           </div>
 
           <!-- Summary Metric Cards -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px;">
+          <div class="stats-grid">
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
               <div style="font-size: 12px; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 5px;">
                 <span class="material-symbols-outlined" style="font-size: 16px; color: #0d9488;">history</span> เข้าสู่ระบบทั้งหมด
@@ -528,7 +560,7 @@
             </div>
 
             <!-- Custom Date Inputs & Search -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <div class="filter-grid">
               <!-- Start Date -->
               <div>
                 <label style="display: block; font-size: 11.5px; font-weight: 600; color: #64748b; margin-bottom: 4px;">ตั้งแต่วันที่:</label>
@@ -584,8 +616,8 @@
 
           <!-- Table Container -->
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-            <div style="max-height: 520px; overflow-y: auto; overflow-x: auto;">
-              <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <div style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
+              <table style="text-align: left;">
                 <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 2; border-bottom: 2px solid #e2e8f0;">
                   <tr style="font-size: 12px; color: #475569;">
                     <th style="padding: 10px; font-weight: 700;">เวลา (Timestamp)</th>
@@ -727,74 +759,110 @@
           throw new Error(result.error || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
         }
       } catch (err) {
-        console.error('Purge error:', err);
+        console.error('[LoginLogsViewer] Purge failed:', err);
         Swal.fire({
           icon: 'error',
-          title: 'เกิดข้อผิดพลาด',
-          text: err.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อล้างข้อมูลได้',
-          confirmButtonColor: '#ef4444'
+          title: 'ไม่สามารถล้างข้อมูลได้',
+          text: err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง',
+          confirmButtonColor: '#64748b'
         });
       }
     }
 
     /**
-     * 🖼️ Render to DOM
+     * 📋 Show SQL Migration for login_logs table
      */
-    render() {
-      if (this.containerId) {
-        const el = document.getElementById(this.containerId);
-        if (el) {
-          el.innerHTML = this.renderHTML();
-          return;
-        }
-      }
-    }
+    showSqlMigration() {
+      const sql = `
+CREATE TABLE IF NOT EXISTS public.login_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    user_id UUID,
+    employee_code TEXT,
+    full_name TEXT,
+    role TEXT,
+    login_method TEXT, -- 'password', 'qr', 'token'
+    status TEXT DEFAULT 'success',
+    ip_address TEXT,
+    device_info JSONB, -- {browser, os, device_type, screen}
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-    /**
-     * 🪟 Open within SweetAlert2 Modal
-     */
-    async openModal() {
-      await this.fetchLogs();
-
-      const modalContent = document.createElement('div');
-      modalContent.id = 'loginLogsModalViewerContainer';
-      modalContent.innerHTML = this.renderHTML();
-      this.containerId = 'loginLogsModalViewerContainer';
+-- Indexing for performance
+CREATE INDEX IF NOT EXISTS idx_login_logs_timestamp ON public.login_logs (timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_login_logs_user_id ON public.login_logs (user_id);
+CREATE INDEX IF NOT EXISTS idx_login_logs_emp_code ON public.login_logs (employee_code);
+      `.trim();
 
       if (window.Swal) {
         Swal.fire({
-          title: '',
-          html: modalContent,
-          width: 'min(96vw, 1020px)',
-          padding: '16px',
-          showConfirmButton: true,
-          confirmButtonText: 'ปิดหน้าต่าง',
+          title: 'คำสั่ง SQL สำหรับสร้างตาราง login_logs',
+          html: `<pre style="text-align: left; background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 11px; overflow-x: auto; font-family: monospace; border: 1px solid #e2e8f0; color: #334155;">${sql}</pre>`,
+          width: 'min(90vw, 600px)',
+          confirmButtonText: 'คัดลอกคำสั่ง SQL',
           confirmButtonColor: '#0d9488',
-          customClass: {
-            popup: 'swal2-login-logs-popup'
+          showCancelButton: true,
+          cancelButtonText: 'ปิด'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigator.clipboard.writeText(sql);
+            Swal.fire({
+              icon: 'success',
+              title: 'คัดลอกแล้ว!',
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 2000
+            });
           }
         });
       }
+    }
+
+    /**
+     * 🚀 Main Render Function
+     */
+    render() {
+      if (!this.containerId) return;
+      const container = document.getElementById(this.containerId);
+      if (container) {
+        container.innerHTML = this.renderHTML();
+      }
+    }
+
+    /**
+     * 📢 Static Method to open viewer in a Modal
+     */
+    static async openModal() {
+      const viewer = new LoginLogsViewerComponent({ limit: 300 });
+      viewer.containerId = 'pvtLoginLogsViewerContainer';
+
+      const { value: formValues } = await Swal.fire({
+        title: null,
+        html: `<div id="pvtLoginLogsViewerContainer" style="min-height: 400px; padding: 4px;">กำลังเตรียมข้อมูล...</div>`,
+        width: 'min(96vw, 1020px)',
+        padding: '12px',
+        showConfirmButton: false,
+        showCloseButton: true,
+        allowOutsideClick: true,
+        didOpen: () => {
+          window.PVTLoginLogsViewer = viewer;
+          window.copyLoginLogsMigrationSql = () => viewer.showSqlMigration();
+          viewer.fetchLogs();
+        },
+        willClose: () => {
+          delete window.PVTLoginLogsViewer;
+          delete window.copyLoginLogsMigrationSql;
+        }
+      });
     }
   }
 
   // Expose to window
   window.LoginLogsViewerComponent = LoginLogsViewerComponent;
-  window.PVTLoginLogsViewer = new LoginLogsViewerComponent();
+  window.openLoginLogsViewerModal = LoginLogsViewerComponent.openModal;
 
-  // Helper function to mount to any element
-  window.mountLoginLogsViewer = function (containerId, options = {}) {
-    const instance = new LoginLogsViewerComponent({ containerId, ...options });
-    instance.fetchLogs();
-    return instance;
-  };
-
-  // Helper function to open modal directly
-  window.openLoginLogsViewerModal = function () {
-    if (!window.PVTLoginLogsViewer) {
-      window.PVTLoginLogsViewer = new LoginLogsViewerComponent();
-    }
-    return window.PVTLoginLogsViewer.openModal();
-  };
+  // Auto-init for legacy support
+  window.viewLoginAuditLogs = LoginLogsViewerComponent.openModal;
 
 })(window);

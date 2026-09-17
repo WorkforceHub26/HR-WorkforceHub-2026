@@ -100,38 +100,38 @@ body {
 /* 🏷️ BRAND ZONE & LOGO */
 .sidebar-brand,
 .brand-zone {
-  padding: 24px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  padding: 16px 18px 12px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
   border-bottom: 1px solid #f1f5f9;
   background: #ffffff;
-  position: relative;
+  position: relative !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .brand-icon {
-  width: 52px;
-  height: 36px;
-  min-width: 52px;
-  min-height: 36px;
-  background-color: #ffffff;
-  background-image: url('/assets/icons/Logo_PVT_2026_B.png');
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
-  transition: all 0.25s ease;
-  padding: 2px 4px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .brand-icon:hover {
-  transform: scale(1.04);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  transform: scale(1.05);
 }
 
 .brand-icon .material-symbols-outlined {
@@ -139,13 +139,17 @@ body {
 }
 
 .brand-name {
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #0f766e;
+  letter-spacing: -0.1px;
+  color: #1e3a8a !important; /* Deep Royal Blue */
   text-transform: uppercase;
-  white-space: nowrap !important;
-  line-height: 1.2;
+  text-align: left !important;
+  white-space: normal;
+  line-height: 1.25;
+  width: 100%;
+  max-width: 195px;
+  word-break: break-word;
 }
 
 .logo-mini {
@@ -153,7 +157,7 @@ body {
   height: auto;
   max-height: 48px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(15, 164, 114, 0.15));
+  filter: drop-shadow(0 4px 8px rgba(30, 64, 175, 0.15));
   transition: var(--spring-bounce);
 }
 
@@ -169,7 +173,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, #0d9488, #0891b2);
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 55%, #0284c7 100%) !important;
   color: #ffffff !important;
   border: none;
   padding: 11px 16px;
@@ -178,16 +182,16 @@ body {
   font-weight: 700;
   font-size: 13.5px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.28);
+  box-shadow: 0 4px 14px rgba(30, 64, 175, 0.28);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   box-sizing: border-box;
 }
 
 .sidebar-cta-btn:hover {
-  background: linear-gradient(135deg, #0f766e, #0e7490);
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 55%, #0369a1 100%) !important;
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.38);
+  box-shadow: 0 6px 18px rgba(30, 64, 175, 0.38);
   color: #ffffff !important;
 }
 
@@ -358,8 +362,7 @@ body {
 }
 
 /* 🏷️ TOPBAR */
-div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
-.topbar {
+.topbar:not(.page-header-row) {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -379,8 +382,7 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
   box-sizing: border-box;
 }
 
-div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1):hover,
-.topbar:hover {
+.topbar:not(.page-header-row):hover {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 
@@ -397,9 +399,8 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1):hover,
   flex-direction: column;
 }
 
-div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) h1,
 .topbar-left h1,
-.page-title {
+.home-page .page-title {
   font-family: 'Kanit', 'Sarabun', -apple-system, sans-serif !important;
   font-size: 22px !important;
   font-weight: 700 !important;
@@ -1509,6 +1510,22 @@ input[type="file"]:hover {
 }
 
 /* ปุ่มกระดิ่ง */
+/* ปุ่มรีเฟรช / ซิงค์ข้อมูล (Vibrant Blue for visibility) */
+.notif-btn#btnSyncData,
+.notif-btn[onclick*="refreshDashboardData"] {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+
+.notif-btn#btnSyncData:hover,
+.notif-btn[onclick*="refreshDashboardData"]:hover {
+  background: #1d4ed8 !important;
+  transform: translateY(-2px) scale(1.05) !important;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45) !important;
+}
+
 .notif-btn {
   position: relative;
   width: 48px;
@@ -1759,8 +1776,8 @@ input[type="file"]:hover {
     box-sizing: border-box !important;
   }
 
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
-  .topbar {
+  .home-page .topbar,
+  body#homePage .topbar {
     display: grid !important;
     grid-template-columns: 1fr auto !important;
     grid-template-rows: auto auto !important;
@@ -1793,10 +1810,9 @@ input[type="file"]:hover {
     justify-content: center !important;
   }
 
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) h1,
   .topbar-left h1,
   .topbar-left-text h1,
-  .page-title {
+  .home-page .page-title {
     font-size: 16px !important;
     font-weight: 700 !important;
     color: #0f172a !important;
@@ -1814,7 +1830,7 @@ input[type="file"]:hover {
   }
 
   .topbar-left p,
-  .page-subtitle {
+  .home-page .page-subtitle {
     display: none !important;
   }
 
@@ -1836,8 +1852,7 @@ input[type="file"]:hover {
   }
 
   /* User Profile -> Top Right (Row 1, Column 2) with Name, Department & Position */
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile,
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3),
+  .home-page .user-profile,
   .topbar .user-profile {
     grid-column: 2 / 3 !important;
     grid-row: 1 / 2 !important;
@@ -1856,7 +1871,6 @@ input[type="file"]:hover {
     box-sizing: border-box !important;
   }
 
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#headerUserProfile > div:nth-of-type(1),
   .user-profile .avatar,
   .user-profile .avatar-badge,
   .user-profile img.avatar {
@@ -1932,7 +1946,6 @@ input[type="file"]:hover {
   }
 
   /* Notification Bell -> Bottom Right (Row 2, Column 2) */
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .notif-wrapper,
   .topbar .notif-wrapper {
     grid-column: 2 / 3 !important;
     grid-row: 2 / 3 !important;
@@ -1966,13 +1979,12 @@ input[type="file"]:hover {
     padding: 10px 8px 3rem 8px !important;
   }
 
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
-  .topbar {
+  .home-page .topbar,
+  body#homePage .topbar {
     padding: 10px 12px !important;
     row-gap: 10px !important;
   }
 
-  div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) h1,
   .topbar-left h1 {
     font-size: 16.5px !important;
   }
@@ -3155,12 +3167,12 @@ input[type="file"]:hover {
   }
 
   .my-action-card-time {
-    font-size: 10.5px !important;
+    font-size: 12px !important;
     padding: 2px 4px !important;
   }
 
   .my-action-card-reason {
-    font-size: 10px !important;
+    font-size: 12px !important;
     padding: 2px 4px !important;
     -webkit-line-clamp: 1 !important;
   }

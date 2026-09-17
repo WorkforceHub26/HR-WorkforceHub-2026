@@ -352,6 +352,8 @@ async function initManagementSystem() {
       ? window.getUserRoleCategory(profile) 
       : { isAuth: true, category: (profile.role === 'admin' || profile.role === 'hr') ? 'hr_exec' : 'employee' };
     
+    window.isViewOnlyHR = userStatus.isViewOnly || false;
+
     if (userStatus.category !== 'hr_exec') {
       console.warn("🚫 [Management]: ผู้ใช้งานไม่มีสิทธิ์เข้าถึงหน้านี้ -> กำลังส่งกลับ");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
@@ -365,6 +367,12 @@ async function initManagementSystem() {
 
     // 🎯 1. แสดงโปรไฟล์บน Header ตรงนี้ได้เลยครับ!
     renderHeaderProfile();
+
+    // 🔒 Hide edit actions if view-only
+    if (window.isViewOnlyHR) {
+      const addBtns = document.querySelectorAll('.action-btn[onclick*="addNewEmployee"], .action-btn[onclick*="importEmployeesExcel"]');
+      addBtns.forEach(b => b.style.display = 'none');
+    }
 
     // 🏢 2. เชื่อมต่อการสลับบริษัทในเครือ (Multi-Entity Switcher Event)
     if (!window._entityListenerAttached) {
@@ -632,7 +640,7 @@ async function viewLoginAuditLogs() {
             <td style="padding: 10px 8px; color: #334155; white-space: nowrap; font-family: monospace;">${timeStr}</td>
             <td style="padding: 10px 8px;">
               <div style="font-weight: 600; color: #0f172a;">${fullName}</div>
-              <div style="font-size: 11px; color: #64748b;">${empCode ? `รหัส: ${empCode} · ` : ''}<span style="font-family: monospace; font-size: 10px; color: #94a3b8;">${String(userId).substring(0, 12)}...</span></div>
+              <div style="font-size: 11px; color: #64748b;">${empCode ? `รหัส: ${empCode} · ` : ''}<span style="font-family: monospace; font-size: 12px; color: #94a3b8;">${String(userId).substring(0, 12)}...</span></div>
             </td>
             <td style="padding: 10px 8px; white-space: nowrap;">
               ${methodBadge}
@@ -1849,18 +1857,20 @@ function renderEmployeeTable() {
             <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
             <span>รายละเอียด</span>
           </button>
-          <button class="btn-table-act danger" 
-                  onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
-                  title="ลบพนักงาน">
-            <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
-          </button>
-          ${emp.line_id ? `
-          <button class="btn-table-act warning" 
-                  onclick="unlinkLineAccount('${emp.id}', '${escapeHtml(emp.full_name)}')" 
-                  title="ยกเลิกการผูกบัญชี LINE">
-            <span class="material-symbols-outlined" style="font-size: 16px;">link_off</span>
-          </button>
-          ` : ''}
+          ${window.isViewOnlyHR ? '' : `
+            <button class="btn-table-act danger" 
+                    onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
+                    title="ลบพนักงาน">
+              <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+            </button>
+            ${emp.line_id ? `
+            <button class="btn-table-act warning" 
+                    onclick="unlinkLineAccount('${emp.id}', '${escapeHtml(emp.full_name)}')" 
+                    title="ยกเลิกการผูกบัญชี LINE">
+              <span class="material-symbols-outlined" style="font-size: 16px;">link_off</span>
+            </button>
+            ` : ''}
+          `}
         </div>
       </div>
     `;
@@ -2002,6 +2012,7 @@ async function renderCustomFieldsHTMLForEdit(supabase, employeeCode) {
 
 // ปรับปรุงฟอร์มเปิดดู/แก้ไขพนักงานแบบย่อ
 async function openEmployeeDetail(employeeId, isEditMode = false) {
+  if (isEditMode && window.isViewOnlyHR) isEditMode = false;
   if (!window.departments || window.departments.length === 0) await fetchDepartments();
   if (!window.positions || window.positions.length === 0) await fetchPositions();
 
@@ -2040,9 +2051,11 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
             <span style="color:#64748b;">·</span>
             <span>${escapeHtml(emp.full_name || "-")}</span>
           </span>
-          <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:#0d9488; border:1px solid #0d9488; color:white; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
-            <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไขข้อมูล
-          </button>
+          ${window.isViewOnlyHR ? '' : `
+            <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:#0d9488; border:1px solid #0d9488; color:white; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+              <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไขข้อมูล
+            </button>
+          `}
         </div>
       `;
     }
@@ -3906,7 +3919,7 @@ async function editGlobalLeaveRules() {
       <tr style="border-bottom:1px solid #e2e8f0;" id="rule-row-${r.id}">
         <td style="padding:8px; border:1px solid #cbd5e1;">
           <input type="text" id="rule-name-${r.id}" class="swal2-input" value="${escapeHtml(r.leave_name)}" style="margin:0; height:36px; font-size:13px; width:100%;">
-          <small style="color:#64748b; font-size:10px;">รหัส: ${escapeHtml(r.leave_code)}</small>
+          <small style="color:#64748b; font-size: 12px;">รหัส: ${escapeHtml(r.leave_code)}</small>
         </td>
         <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
           <input type="number" id="rule-quota-${r.id}" class="swal2-input" value="${r.yearly_quota || 0}" step="0.5" min="0" style="margin:0; height:36px; font-size:13px; text-align:center; width:80px;">

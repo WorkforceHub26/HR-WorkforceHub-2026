@@ -166,3 +166,63 @@ body {
   .card-header-tag { font-size: 15px; padding: 10px 14px; }
   .rule-list-item li { font-size: 13.5px; padding: 10px 12px 10px 32px; }
 }
+
+/* 📱 Rules Page Layout & Responsive Overrides */
+/* สไตล์เพิ่มเติมสำหรับจัดการ Layout แบบไม่มี Sidebar */
+    .rules-page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .rules-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      gap: 20px;
+    }
+
+    .rules-title-section h1 {
+      font-size: 28px;
+      color: var(--text, #0f172a);
+      margin: 0 0 4px 0;
+      font-weight: 700;
+    }
+
+    .rules-title-section p {
+      color: var(--text-soft, #64748b);
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* ปรับแต่งตำแหน่ง Caution Box ท้ายตารางให้เต็มความกว้างเพื่อความสวยงาม */
+    .caution-box-fullwidth {
+      grid-column: 1 / -1;
+      border-top: 6px solid var(--danger, #ef4444) !important;
+    }
+
+    @media screen and (max-width: 768px) {
+      .rules-page-container { padding: 16px 12px; }
+      .rules-top-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+      .btn-header-back, .btn-header-action {
+        padding: 6px 12px !important;
+        font-size: 11.5px !important;
+        gap: 4px !important;
+        flex: 1;
+        min-width: 0;
+      }
+      .btn-header-back .material-symbols-outlined,
+      .btn-header-action .material-symbols-outlined {
+        font-size: 14px !important;
+      }
+      .rules-title-section {
+        text-align: left !important;
+      }
+      .rules-title-section h1 {
+        font-size: 20px !important;
+      }
+      .rules-title-section p {
+        font-size: 12px !important;
+      }
+    }
