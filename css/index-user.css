@@ -234,39 +234,37 @@ header#indexUserHeader::before,
   white-space: normal !important;
   word-break: break-word !important;
   overflow-wrap: anywhere !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  display: block !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
   max-width: 100% !important;
 }
 
 #userDepartment {
   display: flex !important;
-  flex-direction: column !important;
-  gap: 4px !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
   border-radius: 0 !important;
-  margin-top: 5px !important;
+  margin-top: 6px !important;
   max-width: 100% !important;
   overflow: visible !important;
 }
 
 .profile-meta-row {
   display: inline-flex !important;
-  align-self: flex-start !important;
-  font-size: 11px !important;
-  color: #0d9488 !important;
-  font-weight: 700 !important;
-  background: rgba(13, 148, 136, 0.1) !important;
-  padding: 3px 8px !important;
-  border-radius: 6px !important;
-  border: 1px solid rgba(13, 148, 136, 0.18) !important;
-  white-space: normal !important;
-  word-break: break-all !important;
+  align-items: center !important;
+  font-size: 11.5px !important;
+  color: #0f766e !important;
+  font-weight: 600 !important;
+  background: #f0fdfa !important;
+  padding: 3px 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid #ccfbf1 !important;
+  white-space: nowrap !important;
   line-height: 1.3 !important;
   text-align: left !important;
 }
@@ -1165,25 +1163,7 @@ section.quick-menu-section,
   100% { left: 200%; }
 }
 
-/* ================= 📊 LEAVE BALANCE SYSTEM (ULTRA SPACE-SAVING) ================= */
-.leave-section { 
-  background: #ffffff !important; 
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 14px !important;
-  padding: 10px 14px !important; 
-  margin-bottom: 14px !important; 
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
-  box-sizing: border-box !important;
-}
 
-.leave-section h2 { 
-  font-size: 15px !important; 
-  color: #0f172a !important; 
-  margin: 0 !important; 
-  font-weight: 800 !important; 
-  border-bottom: none !important;
-  padding-bottom: 0 !important;
-}
 
 .leave-grid {
   display: grid;
@@ -1611,36 +1591,7 @@ section.quick-menu-section,
 
 
 
-/* ================= 📊 LEAVE HEADER & YEAR SELECT ================= */
-.leave-header-row {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  flex-wrap: nowrap !important;
-  gap: 8px !important;
-  border-bottom: 1px dashed #e2e8f0 !important;
-  padding-bottom: 10px !important;
-  margin-bottom: 12px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
 
-.leave-header-controls {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  flex-wrap: nowrap !important;
-  flex-shrink: 0 !important;
-}
-
-/* ปรับ h2 ใน header row ไม่ให้ติดเส้นซ้ำ */
-.leave-header-row h2 {
-  border-bottom: none !important;
-  padding-bottom: 0 !important;
-  margin-bottom: 0 !important;
-  font-size: 15.5px !important;
-  white-space: nowrap !important;
-}
 
 
 
@@ -1678,51 +1629,7 @@ section.quick-menu-section,
   margin-top: 6px;
 }
 
-/* ================= 📊 FIX YEAR SELECT (FORCE RESET) ================= */
-select.year-select {
-  /* ล้างสไตล์ดั้งเดิมของ Windows/OS ทิ้งทั้งหมด */
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  
-  /* ลบขอบดำดั้งเดิมออก */
-  border: none !important;
-  outline: none !important;
-  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.15) !important;
-  
-  /* ใช้สีขาวทึบแทนโปร่งแสงเพื่อป้องกันขอบดำซ้อน */
-  background-color: #ffffff !important;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%230891b2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 10px center !important;
-  background-size: 10px auto !important;
 
-  /* ข้อความและขนาด */
-  color: var(--primary-dark, #0891b2) !important;
-  font-family: inherit !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  
-  /* ล็อกความสูงไม่ให้ขอบแลบ */
-  height: 36px !important;
-  line-height: 36px !important;
-  min-height: 36px !important;
-  max-height: 36px !important;
-  padding: 0 28px 0 12px !important;
-  border-radius: 10px !important;
-  cursor: pointer !important;
-  margin: 0 !important;
-}
-
-select.year-select:hover,
-select.year-select:focus {
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25) !important;
-}
-
-select.year-select option {
-  background-color: #ffffff !important;
-  color: #1e293b !important;
-}
 
 
 /* ================= 🛠️ OVERRIDE GLOBAL SELECT COLLISION ================= */
@@ -2711,8 +2618,8 @@ select.year-select option {
     display: flex !important;
     align-items: center !important;
     justify-content: flex-end !important;
-    gap: 12px !important; /* เพิ่ม gap เพื่อให้ปุ่มมีระยะห่างที่แน่นอน */
-    width: auto !important; /* เปลี่ยนจาก 100% เป็น auto เพื่อให้ปุ่มจัดเรียงชิดขวาตามธรรมชาติ */
+    gap: 4px !important;
+    width: auto !important;
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -2720,12 +2627,34 @@ select.year-select option {
     flex-wrap: nowrap !important;
   }
 
+  .user-header-actions #refreshBtn {
+    order: 1 !important;
+  }
+
+  .user-header-actions .notif-wrapper,
+  .user-header-actions #notificationBtn {
+    order: 2 !important;
+  }
+
+  .user-header-actions #globalLangSwitcherContainer {
+    order: 3 !important;
+  }
+
+  .user-header-actions .logout-btn {
+    order: 4 !important;
+  }
+
+  .user-header-actions .mobile-menu-btn,
+  .user-header-top .mobile-menu-btn {
+    order: 5 !important;
+  }
+
   /* ปุ่มเปลี่ยนภาษาแบบ Compact Pill กะทัดรัด สไตล์ LINE */
   #globalLangSwitcherContainer,
   .user-header-actions #globalLangSwitcherContainer {
     display: inline-flex !important;
     align-items: center !important;
-    margin: 0 !important;
+    margin: 0 2px !important;
     padding: 0 !important;
     flex-shrink: 0 !important;
     position: relative !important;
@@ -2734,6 +2663,7 @@ select.year-select option {
     right: auto !important;
     bottom: auto !important;
     width: auto !important;
+    max-width: fit-content !important;
     height: auto !important;
     z-index: 10 !important;
   }
@@ -2744,13 +2674,13 @@ select.year-select option {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 100% !important; /* ยืดให้เต็มขนาดความกว้างคงที่ 70px ของ container */
+    width: auto !important;
     background: #f1f5f9 !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 16px !important;
+    border-radius: 14px !important;
     padding: 2px !important;
     gap: 2px !important;
-    height: 32px !important;
+    height: 30px !important;
     box-sizing: border-box !important;
     box-shadow: none !important;
   }
@@ -2762,12 +2692,12 @@ select.year-select option {
     font-size: 0 !important; /* ซ่อนข้อความยาวเดิมเพื่อกันล้นและแก้ปัญหาแคช */
     font-weight: 700 !important;
     padding: 0 !important;
-    width: 32px !important;
-    min-width: 32px !important;
-    max-width: 32px !important;
-    height: 26px !important;
-    line-height: 26px !important;
-    border-radius: 13px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 24px !important;
+    line-height: 24px !important;
+    border-radius: 11px !important;
     cursor: pointer !important;
     transition: all 0.2s ease !important;
     white-space: nowrap !important;
@@ -2988,19 +2918,18 @@ select.year-select option {
     white-space: normal !important;
     word-break: break-word !important;
     overflow-wrap: anywhere !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 1 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    display: block !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
     max-width: 100% !important;
   }
 
   /* ป้ายสังกัด/รหัสพนักงาน สไตล์ Tag กะทัดรัด สะอาดตา */
   #userDepartment {
     display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
     background: transparent !important;
     border: none !important;
     padding: 0 !important;
@@ -3012,7 +2941,7 @@ select.year-select option {
 
   #userDepartment .profile-meta-row {
     display: inline-flex !important;
-    align-self: flex-start !important;
+    align-items: center !important;
     font-size: 11px !important;
     font-weight: 600 !important;
     color: #0f766e !important;
@@ -3021,9 +2950,7 @@ select.year-select option {
     padding: 3px 8px !important;
     border-radius: 6px !important;
     line-height: 1.3 !important;
-    max-width: 100% !important;
-    white-space: normal !important;
-    word-break: break-all !important;
+    white-space: nowrap !important;
   }
 
   /* Dropdown แจ้งเตือนบนมือถือ */
@@ -3392,14 +3319,14 @@ select.year-select option {
     margin-bottom: 0 !important;
   }
 
-  .leave-section {
+  .quick-menu-section {
     order: 4 !important;
     margin-bottom: 0 !important;
     padding: 12px 14px !important;
     border-radius: 16px !important;
   }
 
-  .quick-menu-section {
+  .leave-section {
     order: 5 !important;
     margin-bottom: 0 !important;
     padding: 12px 14px !important;
@@ -3583,15 +3510,11 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#historyActionsZone:nth-of-type(1) > div#globalLangSwitcherContainer:nth-of-type(1),
 #historyActionsZone > #globalLangSwitcherContainer,
 #historyActionsZone #globalLangSwitcherContainer {
-  margin-left: 20px !important;
-  margin-right: -19px !important;
-  margin-top: 2px !important;
-  padding-left: 0px !important;
-  padding-right: 0px !important;
-  padding-top: 0px !important;
-  width: 97.375px !important;
-  height: 28.3977px !important;
-  font-size: 11.5px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  font-size: 12px !important;
 }
 
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-meta,
@@ -3739,19 +3662,16 @@ div#appLayout > main > header > div:nth-of-type(2) #globalLangSwitcherContainer 
         flex-direction: column !important;
         align-items: stretch !important;
         background: #ffffff !important;
-        padding: 14px 16px 16px 16px !important;
-        border-radius: 0 0 20px 20px !important;
-        border-left: none !important;
-        border-right: none !important;
-        border-top: none !important;
-        border-bottom: 1px solid #e2e8f0 !important;
-        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
+        padding: 12px 14px 14px 14px !important;
+        border-radius: 16px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04) !important;
         margin-top: 0px !important;
         margin-bottom: 16px !important;
-        margin-left: -12px !important;
-        margin-right: -12px !important;
-        width: calc(100% + 24px) !important;
-        max-width: calc(100% + 24px) !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
         box-sizing: border-box !important;
         overflow: visible !important;
       }
@@ -3764,8 +3684,42 @@ div#appLayout > main > header > div:nth-of-type(2) #globalLangSwitcherContainer 
         gap: 6px !important;
         box-sizing: border-box !important;
         flex-wrap: nowrap !important;
-        margin: 0 !important;
+        margin: 0 0 8px 0 !important;
         padding: 0 !important;
+      }
+      .user-header-title {
+        display: none !important;
+      }
+      .user-header-actions {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 4px !important;
+        width: auto !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        flex-shrink: 0 !important;
+        flex-wrap: nowrap !important;
+      }
+      .user-header-actions #refreshBtn,
+      .user-header-actions #notificationBtn,
+      .user-header-actions .logout-btn,
+      .user-header-actions .mobile-menu-btn,
+      .user-header-top .mobile-menu-btn {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        max-width: 36px !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
+      }
+      .user-header-actions #refreshBtn .material-symbols-outlined,
+      .user-header-actions #notificationBtn .material-symbols-outlined,
+      .user-header-actions .logout-btn .material-symbols-outlined,
+      .user-header-actions .mobile-menu-btn .material-symbols-outlined,
+      .user-header-top .mobile-menu-btn .material-symbols-outlined {
+        font-size: 20px !important;
       }
       .user-header-profile,
       .user-header-left {
@@ -3776,31 +3730,16 @@ div#appLayout > main > header > div:nth-of-type(2) #globalLangSwitcherContainer 
         background: transparent !important;
         border: none !important;
         border-radius: 0 !important;
-        padding: 4px 0 0 0 !important;
+        padding: 8px 0 0 0 !important;
+        border-top: 1px dashed #f1f5f9 !important;
         box-sizing: border-box !important;
         box-shadow: none !important;
-      }
-      .user-header-actions .logout-btn {
-        width: 40px !important;
-        height: 40px !important;
-        min-width: 40px !important;
-        max-width: 40px !important;
-        padding: 0 !important;
-        border-radius: 12px !important;
-        background: transparent !important;
-        border: none !important;
-        color: #dc2626 !important;
-        box-shadow: none !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        flex-shrink: 0 !important;
-        outline: none !important;
       }
       .user-header-actions .logout-btn span:not(.material-symbols-outlined) {
         display: none !important;
       }
     }
+
     /* ป้องกันรูปโปรไฟล์ขยายขนาดใหญ่ยักษ์ดึงจอระหว่างโหลดเว็บ */
     #userAvatar {
       width: 70px !important;
@@ -3811,3 +3750,43 @@ div#appLayout > main > header > div:nth-of-type(2) #globalLangSwitcherContainer 
       object-fit: cover !important;
       border: 2px solid #ffffff !important;
     }
+
+/* 🎯 Focus-Mode Selected Elements - Header Decoration & Responsive Layout */
+@media (min-width: 769px) {
+  div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > header#indexUserHeader:nth-of-type(1),
+  div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > header#indexUserHeader:nth-of-type(1),
+  header#indexUserHeader,
+  #indexUserHeader {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 20px !important;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%) !important;
+    border: 1px solid rgba(226, 232, 240, 0.8) !important;
+    box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.02) !important;
+    border-radius: 20px !important;
+    padding: 18px 24px !important;
+    position: relative !important;
+    overflow: visible !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+
+  .user-header .user-header-title,
+  #indexUserHeader .user-header-title {
+    display: none !important;
+  }
+}
+
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > header#indexUserHeader:nth-of-type(1)::before,
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > header#indexUserHeader:nth-of-type(1)::before,
+#indexUserHeader::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 5px !important;
+  background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%) !important;
+  border-radius: 20px 20px 0 0 !important;
+}

@@ -3231,13 +3231,23 @@ window.quickApproveFromDashboard = async function(leaveId) {
     if (updateErr) throw updateErr;
 
     // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล
-    await sb.from('notifications').insert({
-      employee_id: reqData.employee_id,
-      title: `ใบลาได้รับการอนุมัติ`,
-      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
-      type: 'leave',
-      link_url: '/pages/user/index-user.html'
-    });
+    if (window.safeInsertNotification) {
+      await window.safeInsertNotification(sb, {
+        employee_id: reqData.employee_id,
+        title: `ใบลาได้รับการอนุมัติ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      });
+    } else {
+      await sb.from('notifications').insert({
+        employee_id: reqData.employee_id,
+        title: `ใบลาได้รับการอนุมัติ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      }).catch(e => console.warn(e));
+    }
 
     // 💬 ส่งแจ้งเตือน LINE ให้พนักงานผู้ขอลา
     if (window.PVTSDK?.line) {
@@ -3447,13 +3457,23 @@ window.quickRejectFromDashboard = async function(leaveId) {
     if (updateErr) throw updateErr;
 
     // 🔔 แจ้งเตือนพนักงาน
-    await sb.from('notifications').insert({
-      employee_id: reqData.employee_id,
-      title: `ใบลาได้รับการปฏิเสธ`,
-      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${trimmedComment}`,
-      type: 'leave',
-      link_url: '/pages/user/index-user.html'
-    });
+    if (window.safeInsertNotification) {
+      await window.safeInsertNotification(sb, {
+        employee_id: reqData.employee_id,
+        title: `ใบลาได้รับการปฏิเสธ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${trimmedComment}`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      });
+    } else {
+      await sb.from('notifications').insert({
+        employee_id: reqData.employee_id,
+        title: `ใบลาได้รับการปฏิเสธ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${trimmedComment}`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      }).catch(e => console.warn(e));
+    }
 
     Swal.fire({ icon: 'success', title: 'ปฏิเสธใบลาเรียบร้อย', showConfirmButton: false, timer: 1500 });
     await refreshDashboardData();

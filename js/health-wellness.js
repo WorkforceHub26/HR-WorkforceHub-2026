@@ -117,7 +117,10 @@
         didOpen: () => Swal.showLoading()
       });
 
-      const sb = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+      let sb = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client);
+      if (!sb || typeof sb.from !== 'function') {
+        if (window.supabase && typeof window.supabase.from === 'function') sb = window.supabase;
+      }
       let rawLeaves = [];
       let totalEmps = 0;
 

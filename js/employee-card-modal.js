@@ -128,26 +128,24 @@
         const fullAvatarUrl = emp.image_url || '/assets/img/default-avatar.jpg';
 
         rowsHtml += `
-          <div class="emp-card-selection-item" style="display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; gap: 12px; transition: background 0.15s ease;">
+          <div class="emp-card-selection-item" style="display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; gap: 10px; transition: background 0.15s ease;">
             <div style="flex-shrink: 0; display: flex; align-items: center;">
               <input type="checkbox" class="emp-card-checkbox" 
                      data-code="${escapeHtml(empCode)}" 
                      data-name="${escapeHtml(empName)}" 
                      data-role="${escapeHtml(empRole)}" 
                      data-dept="${escapeHtml(empDept)}"
-                     style="cursor: pointer; width: 19px; height: 19px; accent-color: #0f766e;" />
+                     style="cursor: pointer; width: 18px; height: 18px; accent-color: #0f766e;" />
             </div>
             <div style="flex-shrink: 0;">
-              <img src="${fullAvatarUrl}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+              <img src="${fullAvatarUrl}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0; flex-shrink: 0;" onerror="this.src='/assets/img/default-avatar.jpg';">
             </div>
             <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 700; color: #0f172a; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(empName)}</div>
-              <div style="color: #64748b; font-size: 12px; margin-top: 2px; display: flex; align-items: center; gap: 6px;">
-                <span style="font-weight: 600; color: #0f766e; background: #ccfbf1; padding: 1px 6px; border-radius: 4px;">#${escapeHtml(empCode)}</span>
-                <span>•</span>
-                <span>${escapeHtml(empRole)}</span>
-                <span>•</span>
-                <span>${escapeHtml(empDept)}</span>
+              <div style="font-weight: 700; color: #0f172a; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(empName)}</div>
+              <div style="color: #64748b; font-size: 11.5px; margin-top: 3px; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; line-height: 1.3;">
+                <span style="font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 1px 6px; border-radius: 4px; font-size: 11px;">#${escapeHtml(empCode)}</span>
+                <span style="color: #334155; font-weight: 600;">${escapeHtml(empRole)}</span>
+                <span style="color: #94a3b8; font-size: 11px;">(${escapeHtml(empDept)})</span>
               </div>
             </div>
             <div style="flex-shrink: 0;">
@@ -157,9 +155,9 @@
                       data-role="${escapeHtml(empRole)}" 
                       data-dept="${escapeHtml(empDept)}"
                       data-avatar="${escapeHtml(fullAvatarUrl)}"
-                style="background: #0284c7; color: white; border: none; padding: 7px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                <span class="material-symbols-outlined" style="font-size:18px;">badge</span>
-                <span>ดูบัตร</span>
+                style="background: #0284c7; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
+                <span class="material-symbols-outlined" style="font-size:16px;">badge</span>
+                <span class="btn-card-label">ดูบัตร</span>
               </button>
             </div>
           </div>
@@ -167,37 +165,70 @@
       });
     }
 
+    const popupWidth = window.innerWidth < 640 ? '95%' : '640px';
+
     Swal.fire({
       title: '🪪 ระบบจัดการและพิมพ์บัตรพนักงานดิจิทัล',
-      width: '640px',
+      width: popupWidth,
+      customClass: {
+        popup: 'pvt-card-popup-container'
+      },
       html: `
-        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; text-align: left;">
+        <style>
+          .pvt-card-popup-container {
+            padding: 16px 12px !important;
+            border-radius: 20px !important;
+            box-sizing: border-box !important;
+          }
+          @media (max-width: 480px) {
+            .pvt-card-popup-container {
+              padding: 12px 8px !important;
+            }
+            .pvt-card-popup-container .swal2-title {
+              font-size: 16px !important;
+              margin-bottom: 10px !important;
+            }
+            .emp-card-selection-item {
+              padding: 10px 8px !important;
+              gap: 8px !important;
+            }
+            .btn-view-card {
+              padding: 5px 8px !important;
+              font-size: 11.5px !important;
+            }
+            #btnPrintSelectedCards {
+              padding: 6px 10px !important;
+              font-size: 12px !important;
+            }
+          }
+        </style>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; text-align: left;">
           <div style="display: flex; gap: 8px;">
             <input type="text" id="cardSearchInput" placeholder="🔍 ค้นหารหัสพนักงาน, ชื่อ-สกุล, ตำแหน่ง, หรือแผนก..." 
-              style="flex: 1; padding: 11px 14px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font-family: inherit;" />
+              style="flex: 1; padding: 9px 12px; font-size: 13.5px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font-family: inherit; width: 100%; box-sizing: border-box;" />
             <button type="button" onclick="window.openEmployeeCardManagerPopup(true)" title="รีเฟรชข้อมูลล่าสุด"
-              style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #475569;">
+              style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #475569; flex-shrink: 0;">
               <span class="material-symbols-outlined" style="font-size: 20px;">sync</span>
             </button>
           </div>
           
-          <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: #334155;">
-              <input type="checkbox" id="selectAllCardsCheckbox" onchange="window.toggleSelectAllCards(this)" style="cursor: pointer; width: 18px; height: 18px; accent-color: #0f766e;" />
-              <span>เลือกทั้งหมด (<span id="totalVisibleCardCount">${displayEmployees.length}</span> คน)</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f0; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: #334155; white-space: nowrap;">
+              <input type="checkbox" id="selectAllCardsCheckbox" onchange="window.toggleSelectAllCards(this)" style="cursor: pointer; width: 17px; height: 17px; accent-color: #0f766e;" />
+              <span>เลือกทั้งหมด (<span id="totalVisibleCardCount">${displayEmployees.length}</span>)</span>
             </label>
             <button id="btnPrintSelectedCards" onclick="window.handlePrintSelectedCardsFromPopup()" disabled
-              style="background: #0f766e; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: not-allowed; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; opacity: 0.5; transition: all 0.2s;">
-              <span class="material-symbols-outlined" style="font-size:18px;">print</span> 
+              style="background: #0f766e; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 700; cursor: not-allowed; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; opacity: 0.5; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+              <span class="material-symbols-outlined" style="font-size:16px;">print</span> 
               พิมพ์ชุด (<span id="selectedCardCount">0</span>)
             </button>
           </div>
         </div>
         
-        <div id="employeeCardTableBody" style="max-height: 420px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; text-align: left;">
+        <div id="employeeCardTableBody" style="max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; text-align: left;">
           ${rowsHtml}
         </div>
-        <div id="noMatchCardMessage" style="display: none; padding: 28px; text-align: center; color: #64748b; font-size: 14px;">
+        <div id="noMatchCardMessage" style="display: none; padding: 24px; text-align: center; color: #64748b; font-size: 13.5px;">
           ❌ ไม่พบข้อมูลพนักงานที่ตรงกับคำค้นหา
         </div>
       `,
@@ -304,26 +335,37 @@
   window.showIndividualIdCard = function (empCode, empName, empRole, empDept, avatarUrl) {
     const qrUrl = generateEmployeeQrUrl(empCode);
     const imgUrl = avatarUrl || '/assets/img/default-avatar.jpg';
+    const singleCardModalWidth = window.innerWidth < 480 ? '95%' : '420px';
     
     Swal.fire({
       title: '💳 บัตรประจำตัวพนักงานดิจิทัล',
-      width: '420px',
+      width: singleCardModalWidth,
+      customClass: {
+        popup: 'pvt-single-card-popup'
+      },
       html: `
-        <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 320px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-          <div style="font-weight: 700; font-size: 13px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 16px;">PVT WORKFORCE HUB</div>
-          <div style="width: 84px; height: 84px; margin: 0 auto 14px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #1e293b;">
+        <style>
+          .pvt-single-card-popup {
+            padding: 16px 10px !important;
+            border-radius: 20px !important;
+            box-sizing: border-box !important;
+          }
+        </style>
+        <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 100%; max-width: 310px; margin: 10px auto; border-radius: 20px; padding: 20px 16px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box;">
+          <div style="font-weight: 700; font-size: 12.5px; letter-spacing: 1.2px; color: #38bdf8; margin-bottom: 14px;">PVT WORKFORCE HUB</div>
+          <div style="width: 76px; height: 76px; margin: 0 auto 12px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #1e293b;">
             <img src="${imgUrl}" onerror="this.src='/assets/img/default-avatar.jpg';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
           </div>
-          <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #ffffff;">${escapeHtml(empName)}</div>
-          <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtml(empRole)}</div>
-          <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 16px;">แผนก: ${escapeHtml(empDept)}</div>
-          <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-            <img src="${qrUrl}" alt="Employee QR Code" style="width: 130px; height: 130px; display: block;" 
-                 onerror="this.onerror=null; this.src='https://via.placeholder.com/130?text=QR+Error';" />
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 4px; color: #ffffff; line-height: 1.2;">${escapeHtml(empName)}</div>
+          <div style="font-size: 12.5px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtml(empRole)}</div>
+          <div style="font-size: 11.5px; color: #94a3b8; font-weight: 500; margin-bottom: 14px;">แผนก: ${escapeHtml(empDept)}</div>
+          <div style="background: white; padding: 8px; border-radius: 12px; display: inline-block; margin-bottom: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+            <img src="${qrUrl}" alt="Employee QR Code" style="width: 120px; height: 120px; display: block;" 
+                 onerror="this.onerror=null; this.src='https://via.placeholder.com/120?text=QR+Error';" />
           </div>
           <div>
-            <span style="font-size: 11px; color: #94a3b8; display: block; text-transform: uppercase; margin-bottom: 2px;">Employee ID</span>
-            <span style="font-size: 16px; font-weight: 800; background: rgba(255,255,255,0.12); padding: 4px 18px; border-radius: 30px; display: inline-block; letter-spacing: 1px; font-family: monospace;">
+            <span style="font-size: 10.5px; color: #94a3b8; display: block; text-transform: uppercase; margin-bottom: 2px;">Employee ID</span>
+            <span style="font-size: 15px; font-weight: 800; background: rgba(255,255,255,0.12); padding: 4px 16px; border-radius: 30px; display: inline-block; letter-spacing: 1px; font-family: monospace;">
               ${escapeHtml(empCode)}
             </span>
           </div>

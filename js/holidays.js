@@ -228,9 +228,11 @@ function getLocalizedHolidayDesc(desc) {
 
 // 🚀 INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadUserProfile();
-  initNotificationBell();
-  await fetchHolidays();
+  if (document.getElementById('companyCalGrid') || document.getElementById('holidayGridContainer') || document.getElementById('yearSelect') || document.getElementById('companySummarySidebar')) {
+    await loadUserProfile();
+    initNotificationBell();
+    await fetchHolidays();
+  }
 });
 
 // 🛠️ HELPER: แปลงสตริง วันที่ ป้องกัน Timezone Offset และรองรับ ISO String

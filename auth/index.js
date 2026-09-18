@@ -102,12 +102,8 @@ function redirectToDashboard(role, userObj) {
     userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
   }
 
-  let targetPath = "/pages/user/index-user.html";
-  if (userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager') {
-    targetPath = "/pages/hr/home.html";
-  } else {
-    targetPath = "/pages/user/index-user.html";
-  }
+  // 🧭 ตอนเข้าสู่ระบบ ให้เข้าสู่หน้า /pages/user/index-user.html เสมอ
+  const targetPath = "/pages/user/index-user.html";
 
   sessionStorage.removeItem("redirect_attempt");
   const targetUrl = new URL(targetPath, window.location.origin).href;

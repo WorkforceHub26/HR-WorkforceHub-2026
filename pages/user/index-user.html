@@ -34,7 +34,7 @@
     
     <!--  1. LEFT SIDEBAR MENU (UNIFIED LAYOUT) -->
     <aside class="sidebar" id="sidebarMenu">
-      <div class="sidebar-brand">
+      <div class="sidebar-brand" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" style="cursor: pointer;" title="เปิด/ปิด เมนู">
         <div class="brand-icon">
           <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
@@ -125,7 +125,7 @@
     <main class="main-content" style="width: 100%; flex: 1;">
       <div class="app" style="max-width: 1000px; padding: 24px 16px; margin: 0 auto; width: 100%;">
         
-        <!-- ⚡ TOP ACTION BAR: ปุ่มสลับเพื่ออนุมัติคนในแผนก และหน้าหลักผู้บริหาร/หัวหน้างาน -->
+        <!-- ⚡ TOP ACTION BAR: ปุ่มสลับเพื่ออนุมัติคนในแผนก (สำหรับหัวหน้างานและผู้จัดการฝ่าย) -->
         <div id="approverActionContainer" style="display: none; flex-direction: column; gap: 12px; margin-bottom: 20px;">
           
           <!--  ปุ่มสลับเพื่ออนุมัติคนในแผนก (สำหรับหัวหน้างานและผู้จัดการฝ่าย) -->
@@ -148,30 +148,12 @@
             </div>
           </a>
 
-          <!--  ปุ่มเข้าสู่หน้าหลักผู้บริหารและหัวหน้างาน (แสดงเฉพาะ Leader / Manager / HR / Admin) -->
-          <a href="/pages/hr/home.html" id="approverModeBtn" style="display: flex; width: 100%; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); color: white; padding: 14px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); font-weight: 600; text-decoration: none; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2); transition: all 0.25s ease; text-align: left;">
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.12); backdrop-filter: blur(4px); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2);">
-                <span class="material-symbols-outlined" style="font-size: 22px; color: #38bdf8;">home</span>
-              </div>
-              <div style="text-align: left; line-height: 1.3;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 14.5px; font-weight: 700; color: #ffffff;"> หน้าหลักผู้บริหารและหัวหน้างาน (Home)</span>
-                  <span style="font-size: 11px; background: #0284c7; color: #ffffff; padding: 2px 8px; border-radius: 10px; font-weight: 700;">ภาพรวมองค์กร </span>
-                </div>
-                <span style="display: block; font-size: 11.5px; color: #cbd5e1; font-weight: 400; margin-top: 2px;">เข้าสู่หน้าหลักภาพรวมองค์กรและระบบจัดการ</span>
-              </div>
-            </div>
-            <span class="material-symbols-outlined" style="color: #38bdf8; font-size: 22px;">chevron_right</span>
-          </a>
-
         </div>
 
         <!-- Header ข้อมูลพนักงาน (Responsive Mobile-First Architecture) -->
         <header class="user-header animate-fade delay-100" id="indexUserHeader">
           <!-- 📱 แถวบน: เมนูลัดและเครื่องมือ (Nav & Utilities Bar) -->
           <div class="user-header-top">
-
             <!-- Actions Toolbar (Refresh, Notif, Logout, Menu) -->
             <div class="user-header-actions">
               <button id="refreshBtn" class="notif-btn" onclick="refreshUserData()" title="รีเฟรชข้อมูลล่าสุด" aria-label="รีเฟรชข้อมูล">
@@ -301,8 +283,6 @@
           </div>
         </section>
 
-
-
         <!-- ส่วนแสดงสิทธิ์วันลาคงเหลือ -->
         <div class="leave-section">
           <div class="leave-header-row">
@@ -422,7 +402,7 @@
         </a>
         <a href="/pages/user/profile-user.html" class="bottom-nav-item">
           <span class="material-symbols-outlined">person</span>
-          <span class="nav-label">ข้อมูลฉัน</span>
+          <span class="nav-label">ข้อมูลส่วนตัว</span>
         </a>
       </nav>
 

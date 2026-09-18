@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
   <link rel="stylesheet" href="/css/system-settings.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" crossorigin="anonymous" />
   <link rel="stylesheet" href="/css/approval-settings.css" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -964,6 +964,32 @@
         </table>
       </div>
     </div>
+
+    <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR (HR / LEADER) -->
+    <nav class="mobile-bottom-nav">
+      <a href="/pages/hr/home.html" class="bottom-nav-item">
+        <span class="material-symbols-outlined">home</span>
+        <span class="nav-label">หน้าหลัก</span>
+      </a>
+      <a href="/pages/user/leave-stats.html" class="bottom-nav-item">
+        <span class="material-symbols-outlined">receipt_long</span>
+        <span class="nav-label">สถิติลา</span>
+      </a>
+      <a href="/pages/hr/hr.html" class="bottom-nav-item primary-action" title="ตรวจและอนุมัติใบลา">
+        <div class="center-fab-icon">
+          <span class="material-symbols-outlined">fact_check</span>
+        </div>
+        <span class="nav-label">ตรวจใบลา</span>
+      </a>
+      <a href="/pages/hr/holidays.html" class="bottom-nav-item">
+        <span class="material-symbols-outlined">calendar_month</span>
+        <span class="nav-label">วันหยุด</span>
+      </a>
+      <a href="/pages/user/index-user.html" class="bottom-nav-item">
+        <span class="material-symbols-outlined">person</span>
+        <span class="nav-label">หน้าพนักงาน</span>
+      </a>
+    </nav>
 
   </div>
 

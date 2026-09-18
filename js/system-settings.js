@@ -1259,7 +1259,10 @@
     }
 
     try {
-      const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+      let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client);
+      if (!client || typeof client.from !== 'function') {
+        if (window.supabase && typeof window.supabase.from === 'function') client = window.supabase;
+      }
       if (!client) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
 
       const { error } = await client

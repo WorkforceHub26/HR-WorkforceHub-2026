@@ -190,6 +190,7 @@
 
     // Intercept Window Errors
     window.addEventListener('error', (e) => {
+      if (e.message === 'Script error.' || e.message === 'Script error') return;
       saveLogEntry(`[UNHANDLED ERROR] ${e.message} at ${e.filename}:${e.lineno}`, 'error', 'Runtime');
     });
     window.addEventListener('unhandledrejection', (e) => {

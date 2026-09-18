@@ -445,24 +445,31 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .user-profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #ffffff;
-  padding: 6px 16px 6px 6px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition-smooth);
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
 .user-profile:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: none !important;
+  transform: scale(1.06);
+}
+
+.user-profile .info,
+.user-profile .status-badge {
+  display: none !important;
 }
 
 #userAvatarHeader,
@@ -1376,8 +1383,15 @@ body {
   }
   
   .status-steps-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
     gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .status-steps-grid .step-item {
+    flex: 1 1 28% !important;
+    min-width: 85px !important;
   }
   
   .actions-zone {
@@ -1787,8 +1801,19 @@ body {
 }
 
 @media screen and (max-width: 768px) {
-  .topbar { flex-direction: column; align-items: stretch; }
-  .topbar-right { width: 100%; justify-content: flex-start; }
+  .topbar { 
+    display: flex !important;
+    flex-direction: row !important; 
+    align-items: center !important; 
+    justify-content: space-between !important; 
+    flex-wrap: nowrap !important;
+  }
+  .topbar-right { 
+    width: auto !important; 
+    justify-content: flex-end !important; 
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+  }
   .stats-grid { grid-template-columns: 1fr; gap: 14px; }
   .toolbar-flex {
     flex-direction: column !important;

@@ -10,6 +10,7 @@ console.log("📢 [SYSTEM] เปิดใช้งานระบบติด�
 let employees = [];
 let leaveTypes = [];          
 let cachedHolidays = [];      
+let holidaysData = [];
 let currentProfile = null;
 let currentDeptApproverConfig = null;
 
@@ -1380,9 +1381,11 @@ async function sendNotification(title, message, type = 'leave', targetUrl = '/pa
       payload.employee_id = recipientId;
     }
 
-    const { error } = await sb.from("notifications").insert([payload]);
-
-    if (error) console.warn("⚠️ บันทึกแจ้งเตือนลง DB ไม่สำเร็จ:", error.message);
+    if (window.safeInsertNotification) {
+      await window.safeInsertNotification(sb, payload);
+    } else {
+      await sb.from("notifications").insert([payload]).catch(e => console.warn(e));
+    }
   } catch (err) {
     console.error("❌ Notification Error:", err);
   }
@@ -2079,13 +2082,15 @@ async function saveLeave() {
           const notificationMessage = `พนักงาน: ${empName} (${currentProfile.employee_code || "-"})\nประเภท: ${leaveName}\nวันที่: ${item.start_date} ถึง ${item.end_date}\nเหตุผล: ${item.reason}`;
 
           // 🔔 บันทึกลงตาราง notifications (In-app)
-          sb.from("notifications").insert({
-            employee_id: recipient.id,
-            title: notificationTitle,
-            message: notificationMessage,
-            type: 'leave',
-            link_url: '/pages/hr/hr.html'
-          });
+          if (window.safeInsertNotification) {
+            window.safeInsertNotification(sb, {
+              employee_id: recipient.id,
+              title: notificationTitle,
+              message: notificationMessage,
+              type: 'leave',
+              link_url: '/pages/hr/hr.html'
+            });
+          }
 
           // โค้ดเดิม (Workflow SDK) - ส่ง Flex Message สวยงามพร้อมปุ่มกด
           window.PVTSDK.line.sendWorkflowNotification({

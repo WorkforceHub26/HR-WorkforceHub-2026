@@ -4,10 +4,18 @@
 
 // 🟢 Helper สำหรับดึง Supabase Client จาก SDK ป้องกัน Error
 function getSbClient() {
-  return window.pvtSupabase?.client 
-      || window.PVTSDK?.client 
-      || window.supabaseClient 
-      || window.supabase;
+  const list = [
+    window.pvtSupabase?.getClient?.(),
+    window.pvtSupabase?.client,
+    window.PVTSDK?.getClient?.(),
+    window.PVTSDK?.client,
+    window.supabaseClient
+  ];
+  for (const c of list) {
+    if (c && typeof c.from === 'function') return c;
+  }
+  if (window.supabase && typeof window.supabase.from === 'function') return window.supabase;
+  return null;
 }
 
 // 🟢 ตรวจสอบกลุ่มสิทธิ์ของผู้ใช้ (Role Classifier)
@@ -143,20 +151,16 @@ window.getUserRoleCategory = function(userSession) {
       userStatus = window.getUserRoleCategory(session);
     }
     const rawRole = String(session?.role || session?.employees?.role || '').toLowerCase().trim();
-    const isHrExec = userStatus.category === 'hr_exec' || empCode.startsWith('HR-') || (['hr', 'admin', 'superadmin', 'executive', 'director', 'owner'].includes(rawRole) && !['19122', '19072', '19128'].includes(empCode));
-
-    if (isHrExec) {
-      window.location.replace("/pages/hr/home.html");
-    } else {
-      window.location.replace("/pages/user/index-user.html");
-    }
+    // 🧭 เมื่อเข้าสู่ระบบ หรือเปิดหน้าแรก ให้เข้าสู่หน้า /pages/user/index-user.html เท่านั้น
+    window.location.replace("/pages/user/index-user.html");
     return;
   }
 
-  // 🔒 ควบคุมการเข้าถึงหน้า home.html ให้เข้าได้เฉพาะ HR เท่านั้น (หัวหน้างาน/ผู้จัดการทั่วไปให้ไปหน้าพนักงาน)
+  // 🔒 ควบคุมการเข้าถึงหน้า home.html ให้เข้าได้ตั้งแต่ระดับหัวหน้างานขึ้นไป (หัวหน้างาน, ผู้จัดการ, ผู้บริหาร, HR, Admin)
+  // เฉพาะพนักงานทั่วไป (Employee) เท่านั้นที่ห้ามเข้าหน้า home.html
   const isHomeHtmlPage = path.includes("home.html");
-  if (isHomeHtmlPage && userStatus.category !== 'hr_exec') {
-    console.warn("🚫 [Auth Guard]: เฉพาะสิทธิ์ HR ระดับบริหารเท่านั้นที่เข้าถึงหน้าหลัก Dashboard ได้");
+  if (isHomeHtmlPage && userStatus.category === 'employee') {
+    console.warn("🚫 [Auth Guard]: พนักงานทั่วไปไม่มีสิทธิ์เข้าถึงหน้าหลัก Dashboard -> เด้งไปหน้า index-user.html");
     try { if (document.body) document.body.innerHTML = ''; } catch(e){}
     window.location.replace("/pages/user/index-user.html");
     return;
@@ -187,10 +191,12 @@ window.getUserRoleCategory = function(userSession) {
     }
   }
 
-  // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager) - บังคับไปหน้าพนักงานตามคำสั่งใหม่
+  // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager) - อนุญาตให้เข้าถึงหน้า HR ได้ เพื่อไปอนุมัติใบลา
   if (userStatus.category === 'leader_manager') {
-    if (isHrArea) {
-      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการถูกกำหนดให้ใช้งานหน้าพนักงานเท่านั้น -> เด้งไปหน้าพนักงาน");
+    // ให้ผ่านได้ถ้าเป็นโซน HR (เพราะต้องไปหน้า /pages/hr/hr.html เพื่ออนุมัติ)
+    // แต่บล็อกหน้า admin
+    if (isAdminDashboard) {
+      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการไม่มีสิทธิ์เข้าโซนแอดมิน -> เด้งไปหน้าพนักงาน");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
       window.location.replace("/pages/user/index-user.html");
       return;
@@ -204,18 +210,25 @@ function applyNavPermissions() {
     const raw = localStorage.getItem("currentUser");
     const session = raw ? JSON.parse(raw) : null;
     const userStatus = window.getUserRoleCategory(session);
+    const empObj = session?.employees || session || {};
+    const rawRoleVal = String(session?.role || empObj.role || userStatus?.role || '').toLowerCase().trim();
     
-    // ตัดหน้าพนักงานออกสำหรับบัญชี HR โดยตรง
+    // ตัดหน้าพนักงานออกสำหรับบัญชี HR กลางโดยตรงเท่านั้น (HR-001, HR-002, HR-003, HR-001-3)
     const empCode = String(session?.employee_code || session?.employees?.employee_code || '').trim();
-    if (empCode.startsWith('HR-')) {
+    const isSpecialHrAdmin = ['HR-001', 'HR-002', 'HR-003', 'HR-001-3'].includes(empCode) || ((rawRoleVal === 'admin' || rawRoleVal === 'superadmin') && !['19122', '19072', '19128'].includes(empCode));
+
+    if (['HR-001', 'HR-002', 'HR-003', 'HR-001-3'].includes(empCode)) {
       document.querySelectorAll('a[href*="/pages/user/index-user.html"]').forEach(el => {
         el.style.setProperty("display", "none", "important");
+      });
+    } else if (userStatus.category === 'employee') {
+      // พนักงานทั่วไป ปรับลิงก์ home.html ให้ชี้ไปที่ index-user.html
+      document.querySelectorAll('a[href*="/pages/hr/home.html"], a[href="home.html"]').forEach(el => {
+        el.href = '/pages/user/index-user.html';
       });
     }
 
     // 🔒 ตรวจสอบสิทธิ์ Admin ระดับสูง
-    const empObj = session?.employees || session || {};
-    const rawRoleVal = String(session?.role || empObj.role || userStatus?.role || '').toLowerCase().trim();
     const isTrueAdminUser = rawRoleVal === 'admin' || rawRoleVal === 'superadmin' || session?.employee_code === 'HR-001' || empObj.employee_code === 'HR-001';
 
     if (!isTrueAdminUser) {
@@ -255,6 +268,7 @@ function applyNavPermissions() {
         el.style.setProperty("display", "none", "important");
       });
     }
+
   } catch (err) {
     console.error("applyNavPermissions error:", err);
   }
@@ -452,15 +466,8 @@ function redirectToDashboard(role, userObj) {
     userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
   }
 
-  let targetPath = "/pages/user/index-user.html";
-  
-  const empCode = String(userObj?.employee_code || userObj?.employees?.employee_code || '').trim();
-  
-  // ผู้บริหาร / HR / Admin -> /pages/hr/home.html
-  // หัวหน้างาน / ผู้จัดการ / พนักงานทั่วไป -> /pages/user/index-user.html
-  if (userStatus.category === 'hr_exec' || empCode.startsWith('HR-') || (['hr', 'admin', 'superadmin', 'executive', 'director', 'owner'].includes(cleanRole) && !['19122', '19072', '19128'].includes(empCode))) {
-    targetPath = "/pages/hr/home.html";
-  }
+  // 🧭 ตอนเข้าสู่ระบบ ให้เข้าสู่หน้า /pages/user/index-user.html เสมอ
+  const targetPath = "/pages/user/index-user.html";
   
   const targetUrl = new URL(targetPath, window.location.origin).href;
 
@@ -687,7 +694,7 @@ async function executeSecureQrLogin(scannedData, scanMetadata = {}) {
       timer: 1200,
       showConfirmButton: false
     }).then(() => {
-      redirectToDashboard(user.role);
+      redirectToDashboard(user.role, user);
     });
 
   } catch (err) {

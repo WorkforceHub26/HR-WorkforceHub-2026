@@ -2251,24 +2251,27 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div
   flex-shrink: 0 !important;
 }
 
-/* Clean, non-overlapping language switcher */
+/* Clean, responsive language switcher */
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#historyActionsZone:nth-of-type(1) > div#globalLangSwitcherContainer:nth-of-type(1),
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#historyActionsZone:nth-of-type(1) > div#globalLangSwitcherContainer:nth-of-type(1),
 #historyActionsZone > #globalLangSwitcherContainer,
-#historyActionsZone #globalLangSwitcherContainer {
-  margin-left: 20px !important;
-  margin-right: -19px !important;
-  margin-top: 2px !important;
-  padding-left: 0px !important;
-  padding-right: 0px !important;
-  padding-top: 0px !important;
-  width: 97.375px !important;
-  height: 28.3977px !important;
-  font-size: 11.5px !important;
+#historyActionsZone #globalLangSwitcherContainer,
+#globalLangSwitcherContainer {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
   display: inline-flex !important;
   align-items: center !important;
   position: relative !important;
   flex-shrink: 0 !important;
+}
+
+#historyActionsZone {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
 }
 
 /* 🎯 Focus-mode styling updates for Header Title & Subtitle */
@@ -2284,12 +2287,51 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
   font-size: 12px !important;
 }
 
-/* 🎯 Focus-mode styling updates for Header Notification Icon */
+/* 🎯 Header Notification & Avatar */
+#notificationBtn,
+.notif-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button#notificationBtn:nth-of-type(1) > img:nth-of-type(1),
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button#notificationBtn:nth-of-type(1) > img:nth-of-type(1),
-#notificationBtn > img {
-  padding-left: 0px !important;
-  margin-left: 19px !important;
+#notificationBtn > img,
+.notif-btn > img {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
+.user-profile-avatar,
+#userAvatar,
+#user-avatar {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 2px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
 }
 
 /* 🎯 Focus-mode styling updates for Upcoming Holiday Hero Countdown */
@@ -2329,4 +2371,183 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:
   font-weight: 700 !important;
   letter-spacing: 0.5px !important;
   margin-top: 4px !important;
+}
+
+
+/* 1. Icon */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companySummarySidebar:nth-of-type(2) > div:nth-of-type(1) > h3:nth-of-type(1) > span:nth-of-type(1),
+#companySummarySidebar > div:first-of-type > h3 > span:first-of-type {
+  color: #0d9488 !important;
+  font-size: 22px !important;
+  background: #ccfbf1 !important;
+  padding: 8px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15) !important;
+}
+
+/* 2. Title */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companySummarySidebar:nth-of-type(2) > div:nth-of-type(1) > h3:nth-of-type(1) > span:nth-of-type(2),
+#companySummarySidebar > div:first-of-type > h3 > span:nth-of-type(2) {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* 3. Header Wrapper */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companySummarySidebar:nth-of-type(2) > div:nth-of-type(1),
+#companySummarySidebar > div:first-of-type {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  border-bottom: 1.5px solid rgba(13, 148, 136, 0.1) !important;
+  padding: 16px 20px !important;
+  margin: 0 !important;
+  background: linear-gradient(135deg, rgba(240, 253, 250, 0.7) 0%, rgba(255, 255, 255, 0.4) 100%) !important;
+  border-radius: 20px 20px 0 0 !important;
+}
+
+/* Base Panel Override */
+#companySummarySidebar.company-summary-panel-top {
+  border-radius: 20px !important;
+  border: 1px solid rgba(203, 213, 225, 0.8) !important;
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.03) !important;
+  background: #ffffff !important;
+  overflow: hidden !important;
+}
+
+/* 4. Toggle Button */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companySummarySidebar:nth-of-type(2) > div:nth-of-type(1) > button#btnToggleSummary:nth-of-type(1),
+#btnToggleSummary {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 14px !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 20px !important;
+  color: #475569 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+}
+
+#btnToggleSummary:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* 5. Body Content Wrapper */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companySummarySidebar:nth-of-type(2) > div:nth-of-type(2),
+#companySummarySidebar .sidebar-content {
+  padding: 20px !important;
+  background: #ffffff !important;
+  border-radius: 0 0 20px 20px !important;
+}
+
+/* 🎯 Focus-Mode Selected Elements - Company Calendar Decoration */
+
+/* 1. Base Panel Override */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companyCalendarLayout:nth-of-type(3) > div:nth-of-type(1),
+#companyCalendarLayout .team-calendar-main {
+  border-radius: 20px !important;
+  border: 1px solid rgba(203, 213, 225, 0.8) !important;
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.03) !important;
+  background: #ffffff !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+/* 2. Header Wrapper */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companyCalendarLayout:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1),
+#companyCalendarLayout .calendar-view-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  border-bottom: 1.5px solid rgba(14, 165, 233, 0.1) !important;
+  padding: 16px 20px !important;
+  margin: 0 !important;
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.7) 0%, rgba(255, 255, 255, 0.4) 100%) !important;
+  border-radius: 20px 20px 0 0 !important;
+}
+
+/* 3. Title Text */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companyCalendarLayout:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > h3:nth-of-type(1) > span:nth-of-type(2),
+#companyCalendarLayout .calendar-title-heading .cal-title-text {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Make sure the icon is visible and styled */
+#companyCalendarLayout .calendar-title-heading .cal-title-icon {
+  display: inline-flex !important;
+  visibility: visible !important;
+  height: auto !important;
+  color: #0284c7 !important;
+  font-size: 22px !important;
+  background: #e0f2fe !important;
+  padding: 8px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15) !important;
+}
+
+/* 4. Nav Controls */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companyCalendarLayout:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1),
+#companyCalendarLayout .calendar-nav-controls {
+  background: #ffffff !important;
+  padding: 6px 10px !important;
+  border-radius: 20px !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+}
+
+#companyCalendarLayout .calendar-nav-controls button {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  background: transparent !important;
+}
+
+#companyCalendarLayout .calendar-nav-controls button:hover {
+  background: #f1f5f9 !important;
+}
+
+/* 5. Toggle Button */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companyCalendarLayout:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > button#btnToggleCalendar:nth-of-type(1),
+#btnToggleCalendar {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 14px !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 20px !important;
+  color: #475569 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+}
+
+#btnToggleCalendar:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Calendar Body Spacing */
+#companyCalendarBody {
+  padding: 20px !important;
 }

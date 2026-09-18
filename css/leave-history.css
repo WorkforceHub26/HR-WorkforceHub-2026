@@ -513,15 +513,11 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#historyActionsZone:nth-of-type(1) > div#globalLangSwitcherContainer:nth-of-type(1),
 #historyActionsZone > #globalLangSwitcherContainer,
 #historyActionsZone #globalLangSwitcherContainer {
-  margin-left: 20px !important;
-  margin-right: -19px !important;
-  margin-top: 2px !important;
-  padding-left: 0px !important;
-  padding-right: 0px !important;
-  padding-top: 0px !important;
-  width: 97.375px !important;
-  height: 28.3977px !important;
-  font-size: 11.5px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  font-size: 12px !important;
   display: inline-flex !important;
   align-items: center !important;
   position: relative !important;
@@ -1617,17 +1613,19 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
   bottom: 0;
   left: 0;
   right: 0;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.94);
+  height: auto;
+  min-height: 58px;
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid rgba(226, 232, 240, 0.85);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 12px max(6px, env(safe-area-inset-bottom)) 12px;
+  padding: 3px 4px max(4px, env(safe-area-inset-bottom)) 4px;
   z-index: 1000;
-  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.05);
+  box-sizing: border-box;
 }
 
 @media (min-width: 1025px) {
@@ -1641,26 +1639,38 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   text-decoration: none;
   color: #64748b;
   position: relative;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 3px 2px;
+  border-radius: 10px;
   transition: all 0.2s ease;
   user-select: none;
-  min-width: 58px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 20%;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .bottom-nav-item .material-symbols-outlined {
-  font-size: 22px;
+  font-size: 21px;
   transition: transform 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
 }
 
 .bottom-nav-item .nav-label {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 11px !important;
+  font-weight: 500;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  letter-spacing: -0.2px;
+  text-align: center;
+  display: block;
 }
 
 .bottom-nav-item.active {
@@ -1673,7 +1683,7 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 }
 
 .bottom-nav-item.active .nav-label {
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .nav-active-dot {
@@ -1688,20 +1698,25 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 /* Center Prominent Action in Bottom Nav */
 .bottom-nav-item.primary-action {
   color: #1d4ed8;
-  margin-top: -16px;
+  margin-top: -24px;
+  padding-top: 1px;
+  padding-bottom: 5px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .bottom-nav-item.primary-action .center-fab-icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
 }
 
 .bottom-nav-item.primary-action .center-fab-icon .material-symbols-outlined {
@@ -1895,7 +1910,7 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button#notificationBtn:nth-of-type(1) > img:nth-of-type(1),
 #notificationBtn > img {
   padding-left: 0px !important;
-  margin-left: 19px !important;
+  margin-left: 0px !important;
 }
 
 

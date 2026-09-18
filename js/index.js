@@ -16,7 +16,13 @@
           }
 
           try {
-            const sb = typeof getSbClient === 'function' ? getSbClient() : (window.supabase || window.pvtSupabase?.client);
+            let sb = null;
+            if (typeof getSbClient === 'function') {
+              sb = getSbClient();
+            } else {
+              const candidate = window.supabaseClient || window.pvtSupabase?.client || window.pvtSupabase?.getClient?.();
+              if (candidate && typeof candidate.from === 'function') sb = candidate;
+            }
             if (!sb) {
               updateUI(true, 'Ready'); 
               return;

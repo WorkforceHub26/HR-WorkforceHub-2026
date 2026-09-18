@@ -2266,13 +2266,23 @@ async function approveLeave(leaveId) {
     const notificationTitle = `ใบลาของคุณได้รับการอนุมัติ (ขั้นสุดท้าย)`;
     const notificationMessage = `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติเรียบร้อยแล้ว`;
     
-    await sb.from('notifications').insert({
-      employee_id: reqData.employee_id,
-      title: notificationTitle,
-      message: notificationMessage,
-      type: 'leave',
-      link_url: '/pages/user/index-user.html'
-    });
+    if (window.safeInsertNotification) {
+      await window.safeInsertNotification(sb, {
+        employee_id: reqData.employee_id,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      });
+    } else {
+      await sb.from('notifications').insert({
+        employee_id: reqData.employee_id,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      }).catch(e => console.warn(e));
+    }
 
     // 💬 ส่งแจ้งเตือน LINE โดยอัตโนมัติผ่าน SDK ด้านล่าง (ส่ง Flex Message)
     if (window.PVTSDK?.line) {
@@ -2350,13 +2360,23 @@ async function approveLeave(leaveId) {
 
                 if (executiveEmp) {
                   // บันทึกแจ้งเตือนลงตาราง notifications สำหรับผู้บริหาร
-                  await sb.from('notifications').insert({
-                    employee_id: executiveEmp.id,
-                    title: `ใบลาจาก ${applicantName} ส่งหาผู้บริหาร (เนื่องจากแผนกไม่มีผู้จัดการ)`,
-                    message: `พนักงาน: ${applicantName} (${applicantCode})\nแผนก: ${deptName}\nประเภท: ${leaveTypeName}\nวันที่: ${reqData.start_date} ถึง ${reqData.end_date}\n(แผนกไม่มีผู้จัดการฝ่าย)`,
-                    type: 'leave',
-                    link_url: '/pages/hr/hr.html'
-                  });
+                  if (window.safeInsertNotification) {
+                    await window.safeInsertNotification(sb, {
+                      employee_id: executiveEmp.id,
+                      title: `ใบลาจาก ${applicantName} ส่งหาผู้บริหาร (เนื่องจากแผนกไม่มีผู้จัดการ)`,
+                      message: `พนักงาน: ${applicantName} (${applicantCode})\nแผนก: ${deptName}\nประเภท: ${leaveTypeName}\nวันที่: ${reqData.start_date} ถึง ${reqData.end_date}\n(แผนกไม่มีผู้จัดการฝ่าย)`,
+                      type: 'leave',
+                      link_url: '/pages/hr/hr.html'
+                    });
+                  } else {
+                    await sb.from('notifications').insert({
+                      employee_id: executiveEmp.id,
+                      title: `ใบลาจาก ${applicantName} ส่งหาผู้บริหาร (เนื่องจากแผนกไม่มีผู้จัดการ)`,
+                      message: `พนักงาน: ${applicantName} (${applicantCode})\nแผนก: ${deptName}\nประเภท: ${leaveTypeName}\nวันที่: ${reqData.start_date} ถึง ${reqData.end_date}\n(แผนกไม่มีผู้จัดการฝ่าย)`,
+                      type: 'leave',
+                      link_url: '/pages/hr/hr.html'
+                    }).catch(e => console.warn(e));
+                  }
 
                   if (window.PVTSDK?.line) {
                     await window.PVTSDK.line.sendWorkflowNotification({
@@ -2653,13 +2673,23 @@ async function rejectLeave(leaveId) {
       const notificationTitle = `ใบลาของคุณถูกปฏิเสธ`;
       const notificationMessage = `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ไม่ได้รับการอนุมัติ\nเหตุผล: ${reason.trim()}`;
       
-      await sb.from('notifications').insert({
-        employee_id: reqData.employee_id,
-        title: notificationTitle,
-        message: notificationMessage,
-        type: 'leave',
-        link_url: '/pages/user/index-user.html'
-      });
+      if (window.safeInsertNotification) {
+        await window.safeInsertNotification(sb, {
+          employee_id: reqData.employee_id,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: 'leave',
+          link_url: '/pages/user/index-user.html'
+        });
+      } else {
+        await sb.from('notifications').insert({
+          employee_id: reqData.employee_id,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: 'leave',
+          link_url: '/pages/user/index-user.html'
+        }).catch(e => console.warn(e));
+      }
 
       // 💬 ส่งแจ้งเตือน LINE โดยอัตโนมัติผ่าน SDK ด้านล่าง (ส่ง Flex Message)
     }
@@ -3883,13 +3913,23 @@ window.submitBulkApproval = async function() {
       if (updateErr) throw updateErr;
 
       // In-app Notification
-      await sb.from('notifications').insert({
-        employee_id: reqData.employee_id,
-        title: `ใบลาของคุณได้รับการอนุมัติ`,
-        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
-        type: 'leave',
-        link_url: '/pages/user/index-user.html'
-      });
+      if (window.safeInsertNotification) {
+        await window.safeInsertNotification(sb, {
+          employee_id: reqData.employee_id,
+          title: `ใบลาของคุณได้รับการอนุมัติ`,
+          message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
+          type: 'leave',
+          link_url: '/pages/user/index-user.html'
+        });
+      } else {
+        await sb.from('notifications').insert({
+          employee_id: reqData.employee_id,
+          title: `ใบลาของคุณได้รับการอนุมัติ`,
+          message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
+          type: 'leave',
+          link_url: '/pages/user/index-user.html'
+        }).catch(e => console.warn(e));
+      }
 
       successCount++;
     } catch (err) {

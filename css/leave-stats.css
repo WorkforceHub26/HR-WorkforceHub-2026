@@ -159,6 +159,167 @@
       text-align: right;
     }
 
+    /* 🏆 Employee Ranking Cards (Structured Non-Jumping Row Layout) */
+    .emp-ranking-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      gap: 12px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+      min-height: 68px;
+    }
+
+    .emp-ranking-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+      transform: translateY(-1px);
+    }
+
+    .emp-ranking-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .emp-ranking-rank {
+      width: 32px;
+      text-align: center;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+    }
+
+    .emp-ranking-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #e2e8f0;
+      flex-shrink: 0;
+      background: #f8fafc;
+    }
+
+    .emp-ranking-info {
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .emp-ranking-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .emp-ranking-name {
+      font-size: 14px;
+      color: #0f172a;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .emp-ranking-code {
+      font-size: 11px;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 1px 6px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      font-weight: 600;
+    }
+
+    .emp-ranking-sub-row {
+      font-size: 12px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .emp-ranking-dept {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .emp-ranking-stats {
+      text-align: right;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      padding-left: 8px;
+      min-width: 80px;
+    }
+
+    .emp-ranking-days {
+      font-size: 15px;
+      font-weight: 800;
+      color: #b91c1c;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .emp-ranking-count {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
+    @media screen and (max-width: 640px) {
+      .emp-ranking-card {
+        padding: 10px 12px;
+        gap: 10px;
+        min-height: 62px;
+      }
+      .emp-ranking-left {
+        gap: 8px;
+      }
+      .emp-ranking-rank {
+        width: 26px;
+      }
+      .emp-ranking-avatar {
+        width: 36px;
+        height: 36px;
+      }
+      .emp-ranking-name {
+        font-size: 13px;
+      }
+      .emp-ranking-sub-row {
+        font-size: 11px;
+        gap: 4px;
+      }
+      .emp-ranking-stats {
+        min-width: 70px;
+      }
+      .emp-ranking-days {
+        font-size: 14px;
+      }
+    }
+
     @media screen and (max-width: 768px) {
       .stats-header-banner {
         padding: 16px !important;

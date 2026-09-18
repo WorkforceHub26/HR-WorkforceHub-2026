@@ -10,7 +10,10 @@ async function loadProfile() {
 
   try {
     let currentUserData = null;
-    const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+    let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client);
+    if (!client || typeof client.from !== 'function') {
+      if (window.supabase && typeof window.supabase.from === 'function') client = window.supabase;
+    }
 
     // 1️⃣ ดึงข้อมูลผ่าน Helper Function pvtSupabase (ถ้ามี)
     if (window.pvtSupabase && typeof window.pvtSupabase.getCurrentProfile === "function") {
@@ -213,7 +216,10 @@ async function saveUserLineId() {
   }
 
   try {
-    const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+    let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client);
+    if (!client || typeof client.from !== 'function') {
+      if (window.supabase && typeof window.supabase.from === 'function') client = window.supabase;
+    }
     if (!client) throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้');
 
     const { error } = await client
@@ -321,7 +327,10 @@ async function generateLineLinkCode() {
     return;
   }
 
-  const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+  let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client);
+  if (!client || typeof client.from !== 'function') {
+    if (window.supabase && typeof window.supabase.from === 'function') client = window.supabase;
+  }
   if (!client) return;
 
   try {

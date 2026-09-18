@@ -8,12 +8,18 @@ console.log("📢 [SYSTEM] เริ่มต้นโหลดสคริป�
    🔒 1. Safe Supabase Client & Helper Functions
    ========================================================================== */
 function getSafeSupabaseClient() {
-  return window.pvtSupabase?.getClient?.() 
-      || window.pvtSupabase?.client 
-      || window.PVTSDK?.client 
-      || window.supabaseClient 
-      || window.supabase 
-      || null;
+  const list = [
+    window.pvtSupabase?.getClient?.(),
+    window.pvtSupabase?.client,
+    window.PVTSDK?.getClient?.(),
+    window.PVTSDK?.client,
+    window.supabaseClient
+  ];
+  for (const c of list) {
+    if (c && typeof c.from === 'function') return c;
+  }
+  if (window.supabase && typeof window.supabase.from === 'function') return window.supabase;
+  return null;
 }
 
 function safeEscapeHtml(str) {
@@ -704,18 +710,11 @@ function checkApproverPermission(profileData) {
     approverContainer.style.setProperty("display", isApprover ? "flex" : "none", "important");
   }
 
-  if (isTopExecutive && isApprover) {
-    // 🏛️ ผู้บริหารระดับสูง: แสดงปุ่มเข้าสู่หน้าหลักภาพรวมองค์กร (Home)
-    if (switchBtn) switchBtn.style.setProperty("display", "flex", "important");
-    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "none", "important");
-  } else if (isApprover) {
-    // 👥 หัวหน้างานและผู้จัดการฝ่าย (รวมถึงคุณปณัยยา 19122): แสดงปุ่มตรวจและอนุมัติใบลาคนในแผนก (HR)
-    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "flex", "important");
-    if (switchBtn) switchBtn.style.setProperty("display", "none", "important");
-  } else {
-    // 👤 พนักงานทั่วไป: ซ่อนปุ่มทั้งหมด
-    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "none", "important");
-    if (switchBtn) switchBtn.style.setProperty("display", "none", "important");
+  if (deptApprovalBtn) {
+    deptApprovalBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
+  }
+  if (switchBtn) {
+    switchBtn.style.setProperty("display", "none", "important");
   }
 
   if (statsBtn) {
@@ -920,17 +919,24 @@ async function fetchUserNotifications() {
 
         if (myRole === "leader" || myRole === "manager") {
           const myDeptKeyword = String(myDeptName || "").toLowerCase();
-          // ถ้ามีชื่อแผนกในข้อความ หรือเป็นคำขอที่เกี่ยวกับ "อนุมัติ" ในแผนกตัวเอง
           if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
             return true;
           }
-          // ถ้าไม่มีข้อมูลแผนก แต่อย่างน้อยต้องเป็นคำขออนุมัติ และไม่ใช่ของพนักงานทั่วไปคนอื่น (กรณีไม่มี user_id)
-          // แต่ทางที่ดีควรระบุ user_id ตอนสร้างแจ้งเตือน
-          return false; // ปิดการมองเห็นแบบเหมาเข่ง เพื่อความเป็นส่วนตัว
+          return false;
         }
-        return true; // HR / Admin see all
+        return true;
       });
     }
+
+    try {
+      const localNotifs = JSON.parse(localStorage.getItem("pvt_local_notifications") || "[]");
+      const myLocals = localNotifs.filter(n => String(n.employee_id) === String(myId));
+      myLocals.forEach(n => {
+        if (!filteredDbNotifs.some(dbN => String(dbN.id) === String(n.id))) {
+          filteredDbNotifs.push(n);
+        }
+      });
+    } catch(e) {}
 
     // แปลง db notifications เป็นรูปแบบมาตรฐาน
     filteredDbNotifs.forEach(n => {
@@ -3049,14 +3055,25 @@ window.submitQuickLeave = async function() {
           ? `${applicantName} ได้ยื่นคำขอลาแบบด่วน วันที่ ${startDate} ถึง ${endDate} กรุณาตรวจสอบ`
           : `${applicantName} ได้ยื่นคำขอลาแบบด่วน (ไม่มีหัวหน้างานประจำแผนก) ส่งตรงให้ผู้จัดการพิจารณา วันที่ ${startDate} ถึง ${endDate}`;
         
-        await sb.from('notifications').insert([{
-          employee_id: approverId,
-          title: notifTitle,
-          message: notifMsg,
-          type: 'leave',
-          link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
-          is_read: false
-        }]);
+        if (window.safeInsertNotification) {
+          await window.safeInsertNotification(sb, {
+            employee_id: approverId,
+            title: notifTitle,
+            message: notifMsg,
+            type: 'leave',
+            link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
+            is_read: false
+          });
+        } else {
+          await sb.from('notifications').insert([{
+            employee_id: approverId,
+            title: notifTitle,
+            message: notifMsg,
+            type: 'leave',
+            link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
+            is_read: false
+          }]);
+        }
       }
     } catch (notifErr) {
       console.warn("Could not insert notification:", notifErr);
@@ -3168,7 +3185,7 @@ window.checkSmartNudges = async function(profile, quotas) {
                   </span>
                 </div>
               </div>
-              <a href="/pages/hr/home.html" style="text-decoration: none; background: #2563eb; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+              <a href="/pages/hr/hr.html" style="text-decoration: none; background: #2563eb; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
                 <span class="material-symbols-outlined" style="font-size: 16px;">checklist</span> ตรวจสอบทันที
               </a>
             </div>
