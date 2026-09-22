@@ -102,11 +102,12 @@ function redirectToDashboard(role, userObj) {
     userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
   }
 
-  const empCode = String(userObj?.employee_code || userObj?.employees?.employee_code || '').trim();
-  const isSpecialHr = ['HR-001', 'HR-002', 'HR-003', 'HR-001-3'].includes(empCode);
-
-  // 🧭 HR-001-3 และบัญชี HR กลาง ให้เข้าสู่หน้า Dashboard /pages/hr/home.html ทันที
-  const targetPath = isSpecialHr ? "/pages/hr/home.html" : "/pages/user/index-user.html";
+  let targetPath = "/pages/user/index-user.html";
+  if (userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager') {
+    targetPath = "/pages/hr/home.html";
+  } else {
+    targetPath = "/pages/user/index-user.html";
+  }
 
   sessionStorage.removeItem("redirect_attempt");
   const targetUrl = new URL(targetPath, window.location.origin).href;
@@ -207,31 +208,6 @@ async function autoSessionCheckAndRedirect() {
     }
   };
 
-<<<<<<< HEAD
-=======
-  window.toggleAltLoginOptions = function() {
-    const group = document.getElementById("altLoginGroup");
-    const btn = document.getElementById("altLoginToggleBtn");
-    const chevron = document.getElementById("altToggleChevron");
-    if (!group || !btn) return;
-
-    const isCollapsed = group.classList.contains("collapsed");
-    if (isCollapsed) {
-      group.classList.remove("collapsed");
-      btn.setAttribute("aria-expanded", "true");
-      btn.classList.add("active");
-      if (chevron) chevron.style.transform = "rotate(180deg)";
-    } else {
-      group.classList.add("collapsed");
-      btn.setAttribute("aria-expanded", "false");
-      btn.classList.remove("active");
-      if (chevron) chevron.style.transform = "rotate(0deg)";
-    }
-  };
-
-  window.checkAndToggleBiometricButton = checkAndToggleBiometricButton;
-
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   const showSessionVerifyingUI = (show) => {
     const overlay = document.getElementById("sessionCheckOverlay");
     const skeleton = document.getElementById("loginSkeleton");

@@ -115,7 +115,7 @@
 }
 
 .insurance-limit-label {
-  font-size: 12px;
+  font-size: 10px;
   opacity: 0.8;
   text-transform: uppercase;
 }
@@ -224,7 +224,7 @@
 }
 
 .vital-stat-label {
-  font-size: 12px;
+  font-size: 10.5px;
   color: #64748b;
   font-weight: 600;
   margin-bottom: 2px;

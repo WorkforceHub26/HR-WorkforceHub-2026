@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <script src="/js/early-auth-guard.js"></script>
+  <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -17,11 +17,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <!--  SweetAlert2 for notifications & popups -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" crossorigin="anonymous"></script>
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="PVT Hub" />
-  <meta name="format-detection" content="telephone=no" />
-  <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
 </head>
 <body id="page-user-history">
 
@@ -34,10 +29,7 @@
           <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
         <div class="brand-name">PVTT WORKFORCE HUB</div>
-<<<<<<< HEAD
         <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
-=======
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}" style="display: none;" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
@@ -130,12 +122,6 @@
         </div>
         
         <div class="appbar-right-zone">
-<<<<<<< HEAD
-=======
-          <!-- Injected Language Switcher Container (.history-actions) -->
-          <div class="history-actions" id="historyActionsZone"></div>
-
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           <!-- Notification Bell -->
           <div class="notif-wrapper" style="position: relative; display: inline-block;">
             <button id="notificationBtn" class="app-icon-btn notif-btn" onclick="toggleUserNotifDropdown(event)" title="การแจ้งเตือนใบลา" aria-label="การแจ้งเตือน">
@@ -167,13 +153,10 @@
           <!-- User Profile Avatar -->
           <div class="user-profile-pill" onclick="window.location.href='/pages/user/profile-user.html'" title="ข้อมูลส่วนตัว">
             <img src="/assets/img/default-avatar.jpg" alt="Avatar" id="user-avatar" class="user-profile-avatar" />
-<<<<<<< HEAD
             <div class="user-profile-meta desktop-only">
               <span id="emp-name" class="user-profile-name">กำลังโหลด...</span>
               <span id="emp-detail" class="user-profile-desc">พนักงานประจำ</span>
             </div>
-=======
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           </div>
 
           <!-- Mobile Sidebar Drawer Trigger (3 Dots Menu - Borderless) -->
@@ -293,21 +276,16 @@
         </a>
         <a href="/pages/user/profile-user.html" class="bottom-nav-item">
           <span class="material-symbols-outlined">person</span>
-<<<<<<< HEAD
           <span class="nav-label">ข้อมูลฉัน</span>
-=======
-          <span class="nav-label">ข้อมูลส่วนตัว</span>
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         </a>
       </nav>
       
     </main>
   </div>
 
-  <script type="module" src="/js/supabase-config.js"></script>
+  <script type="module" src="/auth/supabase-config.js"></script>
   <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/system-settings.js"></script>
-<<<<<<< HEAD
   
   <script type="module" src="/js/leave-history.js"></script>
   
@@ -414,11 +392,5 @@
       });
     }
   </script>
-=======
-  
-  <script type="module" src="/js/leave-history.js"></script>
-  
-  
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 </body>
 </html>

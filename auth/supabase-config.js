@@ -8,16 +8,131 @@
 (function (global) {
   "use strict";
 
+  // ==========================================================================
+  // 0. DUAL-ENVIRONMENT ENGINE: DEV vs MAIN (Production)
+  // ==========================================================================
+  const ENV_CONFIGS = {
+    // 🌐 MAIN: Production Environment
+    MAIN: {
+      key: "MAIN",
+      label: "MAIN (Production)",
+      URL: "https://pgogmhqjdchakcytsomx.supabase.co",
+      ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8",
+      CACHE_PREFIX: "pvt_hr_cache_main_",
+      OFFLINE_QUEUE_KEY: "pvt_offline_queue_main"
+    },
+    // 🧪 DEV: Development & Staging Environment
+    DEV: {
+      key: "DEV",
+      label: "DEV (Development / Staging)",
+      URL: "https://pgogmhqjdchakcytsomx.supabase.co", // Default fallback URL (customizable via UI / env / localStorage)
+      ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8",
+      CACHE_PREFIX: "pvt_hr_cache_dev_",
+      OFFLINE_QUEUE_KEY: "pvt_offline_queue_dev"
+    }
+  };
+
+  function resolveActiveEnvironment() {
+    // 1. Check URL Parameter: ?env=dev or ?env=main
+    try {
+      if (typeof window !== "undefined" && window.location && window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        const queryEnv = params.get("env");
+        if (queryEnv) {
+          const upper = queryEnv.trim().toUpperCase();
+          if (upper === "DEV" || upper === "MAIN") {
+            try { localStorage.setItem("pvt_app_env", upper); } catch (e) {}
+            return upper;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2. Check localStorage persistence
+    try {
+      if (typeof localStorage !== "undefined") {
+        const saved = localStorage.getItem("pvt_app_env");
+        if (saved) {
+          const upper = saved.trim().toUpperCase();
+          if (upper === "DEV" || upper === "MAIN") {
+            return upper;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 3. Check explicit global variable: window.PVT_ENV or window.__APP_ENV__
+    if (typeof global !== "undefined") {
+      const explicit = global.PVT_ENV || global.__APP_ENV__;
+      if (explicit) {
+        const upper = String(explicit).trim().toUpperCase();
+        if (upper === "DEV" || upper === "MAIN") return upper;
+      }
+    }
+
+    // 4. Hostname / Domain heuristic:
+    //    Localhost or Google Cloud Run dev container (ais-dev-*.run.app) -> DEV
+    //    Otherwise -> MAIN
+    try {
+      if (typeof window !== "undefined" && window.location && window.location.hostname) {
+        const host = window.location.hostname.toLowerCase();
+        if (
+          host === "localhost" ||
+          host === "127.0.0.1" ||
+          host.startsWith("ais-dev-") ||
+          host.endsWith(".local") ||
+          host.includes("-dev")
+        ) {
+          return "DEV";
+        }
+      }
+    } catch (e) {}
+
+    return "MAIN";
+  }
+
+  const ACTIVE_ENV = resolveActiveEnvironment();
+  const SELECTED_ENV_CONFIG = { ...ENV_CONFIGS[ACTIVE_ENV] };
+
+  // Allow custom URL/Key overrides from localStorage or global window variables
+  try {
+    const customUrl = localStorage.getItem(`pvt_supabase_url_${ACTIVE_ENV.toLowerCase()}`);
+    const customKey = localStorage.getItem(`pvt_supabase_key_${ACTIVE_ENV.toLowerCase()}`);
+    if (customUrl && customUrl.trim()) SELECTED_ENV_CONFIG.URL = customUrl.trim();
+    if (customKey && customKey.trim()) SELECTED_ENV_CONFIG.ANON_KEY = customKey.trim();
+  } catch (e) {}
+
+  if (ACTIVE_ENV === "DEV") {
+    if (global.PVT_SUPABASE_DEV_URL) SELECTED_ENV_CONFIG.URL = global.PVT_SUPABASE_DEV_URL;
+    if (global.PVT_SUPABASE_DEV_KEY) SELECTED_ENV_CONFIG.ANON_KEY = global.PVT_SUPABASE_DEV_KEY;
+  } else {
+    if (global.PVT_SUPABASE_MAIN_URL) SELECTED_ENV_CONFIG.URL = global.PVT_SUPABASE_MAIN_URL;
+    if (global.PVT_SUPABASE_MAIN_KEY) SELECTED_ENV_CONFIG.ANON_KEY = global.PVT_SUPABASE_MAIN_KEY;
+  }
+
   // Configuration Constants
   const CONFIG = {
-    URL: "https://pgogmhqjdchakcytsomx.supabase.co",
-    ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8",
-    CACHE_PREFIX: "pvt_hr_cache_",
-    OFFLINE_QUEUE_KEY: "pvt_offline_queue",
+    ENV: ACTIVE_ENV,
+    ENV_LABEL: SELECTED_ENV_CONFIG.label,
+    URL: SELECTED_ENV_CONFIG.URL,
+    ANON_KEY: SELECTED_ENV_CONFIG.ANON_KEY,
+    CACHE_PREFIX: SELECTED_ENV_CONFIG.CACHE_PREFIX,
+    OFFLINE_QUEUE_KEY: SELECTED_ENV_CONFIG.OFFLINE_QUEUE_KEY,
     DEFAULT_TTL: 5 * 1000, // 5 วินาที เพื่อให้ข้อมูลสดใหม่อยู่เสมอและไม่อมแคชเก่า
     MAX_RETRIES: 3,
     RETRY_DELAY: 1000,
   };
+
+  // Console Telemetry Log
+  try {
+    console.log(
+      `%c[PVT Supabase SDK]%c Active Environment: %c${CONFIG.ENV}%c (${CONFIG.ENV_LABEL}) | URL: ${CONFIG.URL}`,
+      "background: #1e293b; color: #38bdf8; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      "color: #64748b;",
+      CONFIG.ENV === 'DEV' ? "color: #f59e0b; font-weight: bold;" : "color: #10b981; font-weight: bold;",
+      "color: #64748b;"
+    );
+  } catch (e) {}
 
   if (typeof global.getDefaultAvatarUrl !== "function") {
     global.getDefaultAvatarUrl = function(title = "", gender = "", fullName = "") {
@@ -1599,41 +1714,6 @@
         }
       }
     }
-// 🛡️ Global helper to safely insert notification with local fallback
-window.safeInsertNotification = async function(sbClient, payload) {
-  if (!payload) return null;
-  const items = Array.isArray(payload) ? payload : [payload];
-  if (items.length === 0) return null;
-
-  if (sbClient) {
-    try {
-      const { data, error } = await sbClient.from('notifications').insert(items);
-      if (!error) return data;
-      console.debug("ℹ️ [Notification DB Insert Notice - using local fallback]:", error.message || error);
-    } catch (err) {
-      console.debug("ℹ️ [Notification DB Insert Exception - using local fallback]:", err);
-    }
-  }
-
-  try {
-    const localNotifs = JSON.parse(localStorage.getItem("pvt_local_notifications") || "[]");
-    items.forEach(item => {
-      localNotifs.unshift({
-        id: "local_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
-        employee_id: item.employee_id,
-        title: item.title || "แจ้งเตือนระบบ",
-        message: item.message || "",
-        type: item.type || "leave",
-        link_url: item.link_url || "/pages/user/leave-history.html",
-        is_read: false,
-        created_at: new Date().toISOString()
-      });
-    });
-    localStorage.setItem("pvt_local_notifications", JSON.stringify(localNotifs.slice(0, 50)));
-  } catch(e) {}
-  return null;
-};
-
 class NotificationEngine {
   constructor(client) {
     this.client = client;
@@ -2502,14 +2582,14 @@ class LineOAEngine {
 
     if (this.client && recipientId) {
       try {
-        await window.safeInsertNotification(this.client, {
+        await this.client.from('notifications').insert([{
           employee_id: recipientId,
           title: title,
           message: messageText.replace(/\*\*/g, ''),
           type: 'leave',
           link_url: targetLinkUrl,
           is_read: false
-        });
+        }]);
       } catch (err) {
         console.warn("⚠️ [LINE OA Engine] DB notification log fallback:", err);
       }
@@ -2884,9 +2964,260 @@ class LineOAEngine {
     }
   }
 
-  // Export Global Instance
+  // Export Global Instance & Central Constants
   global.PVTSDK = new PVTHRSdk();
   global.pvtSupabase = global.PVTSDK; // Backward Compatibility
+
+  // Active Environment Attributes
+  global.PVT_ENV = CONFIG.ENV;
+  global.PVTSDK.env = CONFIG.ENV;
+  global.PVTSDK.envLabel = CONFIG.ENV_LABEL;
+  global.PVTSDK.envConfig = CONFIG;
+  global.PVTSDK.allEnvs = ENV_CONFIGS;
+
+  global.SUPABASE_URL = CONFIG.URL;
+  global.SUPABASE_ANON_KEY = CONFIG.ANON_KEY;
+  global.SUPABASE_KEY = CONFIG.ANON_KEY;
+  global.PVT_SUPABASE_URL = CONFIG.URL;
+  global.PVT_SUPABASE_ANON_KEY = CONFIG.ANON_KEY;
+
+  global.getSupabaseEnv = function() {
+    return CONFIG.ENV;
+  };
+
+  global.getSupabaseConfigs = function() {
+    return {
+      activeEnv: CONFIG.ENV,
+      activeConfig: CONFIG,
+      allConfigs: ENV_CONFIGS
+    };
+  };
+
+  global.setSupabaseEnv = function(targetEnv, options = {}) {
+    const cleanEnv = String(targetEnv || "").trim().toUpperCase();
+    if (cleanEnv !== "DEV" && cleanEnv !== "MAIN") {
+      console.warn(`[SDK Env] Unknown environment: "${targetEnv}". Only 'DEV' or 'MAIN' are allowed.`);
+      return false;
+    }
+
+    try {
+      localStorage.setItem("pvt_app_env", cleanEnv);
+      if (options.url) {
+        localStorage.setItem(`pvt_supabase_url_${cleanEnv.toLowerCase()}`, options.url.trim());
+      }
+      if (options.key) {
+        localStorage.setItem(`pvt_supabase_key_${cleanEnv.toLowerCase()}`, options.key.trim());
+      }
+    } catch (e) {
+      console.error("[SDK Env] Failed to store environment configuration:", e);
+    }
+
+    if (options.reload !== false && typeof window !== "undefined" && window.location) {
+      window.location.reload();
+    }
+    return true;
+  };
+
+  global.switchSupabaseEnv = global.setSupabaseEnv;
+  global.PVTSDK.setEnv = global.setSupabaseEnv;
+  global.PVTSDK.getEnv = global.getSupabaseEnv;
+  global.PVTSDK.switchEnv = global.setSupabaseEnv;
+
+  // Environment Switcher Modal UI Helper
+  global.openSupabaseEnvModal = function() {
+    if (typeof document === 'undefined') return;
+    
+    // Check if modal already exists
+    let modalEl = document.getElementById('pvt-env-modal');
+    if (modalEl) {
+      modalEl.style.display = 'flex';
+      return;
+    }
+
+    const currentEnv = CONFIG.ENV;
+    const devUrl = localStorage.getItem('pvt_supabase_url_dev') || ENV_CONFIGS.DEV.URL;
+    const devKey = localStorage.getItem('pvt_supabase_key_dev') || ENV_CONFIGS.DEV.ANON_KEY;
+    const mainUrl = localStorage.getItem('pvt_supabase_url_main') || ENV_CONFIGS.MAIN.URL;
+    const mainKey = localStorage.getItem('pvt_supabase_key_main') || ENV_CONFIGS.MAIN.ANON_KEY;
+
+    modalEl = document.createElement('div');
+    modalEl.id = 'pvt-env-modal';
+    modalEl.style.cssText = `
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+      z-index: 999999; display: flex; align-items: center; justify-content: center;
+      padding: 16px; font-family: system-ui, -apple-system, sans-serif;
+    `;
+
+    modalEl.innerHTML = `
+      <div style="background: #ffffff; border-radius: 16px; max-width: 520px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; border: 1px solid #e2e8f0;">
+        <div style="background: #0f172a; color: #ffffff; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">⚙️</span>
+            <div>
+              <div style="font-size: 16px; font-weight: 700;">Supabase Environment Selector</div>
+              <div style="font-size: 12px; color: #94a3b8;">สลับสภาพแวดล้อมระหว่าง DEV และ MAIN</div>
+            </div>
+          </div>
+          <button id="pvt-env-modal-close" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+        </div>
+
+        <div style="padding: 24px; max-height: 80vh; overflow-y: auto;">
+          <div style="margin-bottom: 20px;">
+            <label style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 8px;">เลือกสภาพแวดล้อม (Active Environment)</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 2px solid ${currentEnv === 'DEV' ? '#f59e0b' : '#e2e8f0'}; border-radius: 10px; cursor: pointer; background: ${currentEnv === 'DEV' ? '#fffbeb' : '#f8fafc'}; transition: all 0.2s;">
+                <input type="radio" name="pvt_selected_env" value="DEV" ${currentEnv === 'DEV' ? 'checked' : ''} style="accent-color: #f59e0b; width: 18px; height: 18px;">
+                <div>
+                  <div style="font-weight: 700; color: #b45309; font-size: 14px;">🧪 DEV</div>
+                  <div style="font-size: 11px; color: #64748b;">Development & Test</div>
+                </div>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 2px solid ${currentEnv === 'MAIN' ? '#10b981' : '#e2e8f0'}; border-radius: 10px; cursor: pointer; background: ${currentEnv === 'MAIN' ? '#f0fdf4' : '#f8fafc'}; transition: all 0.2s;">
+                <input type="radio" name="pvt_selected_env" value="MAIN" ${currentEnv === 'MAIN' ? 'checked' : ''} style="accent-color: #10b981; width: 18px; height: 18px;">
+                <div>
+                  <div style="font-weight: 700; color: #047857; font-size: 14px;">🌐 MAIN</div>
+                  <div style="font-size: 11px; color: #64748b;">Production Hub</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; margin-bottom: 16px;">
+            <div style="font-size: 12px; font-weight: 700; color: #b45309; margin-bottom: 8px;">🧪 ตั้งค่า Supabase สำหรับ DEV (Custom URL/Key)</div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 11px; color: #64748b; display: block; margin-bottom: 4px;">DEV Supabase Project URL</label>
+              <input id="pvt-input-dev-url" type="text" value="${devUrl}" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;" placeholder="https://your-dev-id.supabase.co">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #64748b; display: block; margin-bottom: 4px;">DEV Supabase Anon Key</label>
+              <input id="pvt-input-dev-key" type="password" value="${devKey}" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;" placeholder="eyJhbGci...">
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid #f1f5f9; padding-top: 16px;">
+            <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 8px;">🌐 ตั้งค่า Supabase สำหรับ MAIN (Production URL/Key)</div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 11px; color: #64748b; display: block; margin-bottom: 4px;">MAIN Supabase Project URL</label>
+              <input id="pvt-input-main-url" type="text" value="${mainUrl}" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;" placeholder="https://pgogmhqjdchakcytsomx.supabase.co">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #64748b; display: block; margin-bottom: 4px;">MAIN Supabase Anon Key</label>
+              <input id="pvt-input-main-key" type="password" value="${mainKey}" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;" placeholder="eyJhbGci...">
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 14px 24px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <button id="pvt-env-btn-reset" type="button" style="padding: 8px 14px; background: transparent; border: 1px solid #cbd5e1; color: #64748b; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+            คืนค่าเริ่มต้น
+          </button>
+          <div style="display: flex; gap: 10px;">
+            <button id="pvt-env-btn-cancel" type="button" style="padding: 8px 16px; background: #e2e8f0; border: none; color: #475569; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+              ยกเลิก
+            </button>
+            <button id="pvt-env-btn-save" type="button" style="padding: 8px 20px; background: #0284c7; border: none; color: #ffffff; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);">
+              บันทึกและสลับ (Save & Switch)
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modalEl);
+
+    const closeModal = () => { modalEl.style.display = 'none'; };
+    document.getElementById('pvt-env-modal-close').onclick = closeModal;
+    document.getElementById('pvt-env-btn-cancel').onclick = closeModal;
+    modalEl.onclick = (e) => { if (e.target === modalEl) closeModal(); };
+
+    // Reset Defaults button
+    document.getElementById('pvt-env-btn-reset').onclick = () => {
+      localStorage.removeItem('pvt_app_env');
+      localStorage.removeItem('pvt_supabase_url_dev');
+      localStorage.removeItem('pvt_supabase_key_dev');
+      localStorage.removeItem('pvt_supabase_url_main');
+      localStorage.removeItem('pvt_supabase_key_main');
+      window.location.reload();
+    };
+
+    // Save & Switch button
+    document.getElementById('pvt-env-btn-save').onclick = () => {
+      const selectedRadio = document.querySelector('input[name="pvt_selected_env"]:checked');
+      const targetEnv = selectedRadio ? selectedRadio.value : 'MAIN';
+
+      const dUrl = document.getElementById('pvt-input-dev-url').value.trim();
+      const dKey = document.getElementById('pvt-input-dev-key').value.trim();
+      const mUrl = document.getElementById('pvt-input-main-url').value.trim();
+      const mKey = document.getElementById('pvt-input-main-key').value.trim();
+
+      if (dUrl) localStorage.setItem('pvt_supabase_url_dev', dUrl);
+      if (dKey) localStorage.setItem('pvt_supabase_key_dev', dKey);
+      if (mUrl) localStorage.setItem('pvt_supabase_url_main', mUrl);
+      if (mKey) localStorage.setItem('pvt_supabase_key_main', mKey);
+
+      localStorage.setItem('pvt_app_env', targetEnv);
+      window.location.reload();
+    };
+  };
+
+  // Discreet Floating Indicator for DEV mode
+  if (typeof document !== 'undefined') {
+    const renderEnvBadge = () => {
+      if (CONFIG.ENV !== 'DEV' && !window.location.search.includes('env_badge=1')) return;
+      if (document.getElementById('pvt-env-floating-badge')) return;
+
+      const badge = document.createElement('div');
+      badge.id = 'pvt-env-floating-badge';
+      badge.title = `Active Environment: ${CONFIG.ENV_LABEL}\nคลิกเพื่อดูรายละเอียดหรือสลับไป MAIN`;
+      badge.style.cssText = `
+        position: fixed; bottom: 12px; left: 12px; z-index: 99998;
+        background: #fef3c7; color: #b45309; border: 1.5px solid #f59e0b;
+        font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+        font-weight: 800; padding: 4px 10px; border-radius: 9999px;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); cursor: pointer;
+        display: flex; align-items: center; gap: 6px; user-select: none;
+        transition: transform 0.15s ease;
+      `;
+      badge.innerHTML = `
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block; box-shadow: 0 0 6px #f59e0b;"></span>
+        <span>DEV MODE</span>
+      `;
+      badge.onmouseover = () => { badge.style.transform = 'scale(1.05)'; };
+      badge.onmouseout = () => { badge.style.transform = 'scale(1)'; };
+      badge.onclick = () => {
+        if (typeof global.openSupabaseEnvModal === 'function') {
+          global.openSupabaseEnvModal();
+        }
+      };
+      document.body.appendChild(badge);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderEnvBadge);
+    } else {
+      renderEnvBadge();
+    }
+  }
+
+  global.getSupabase = function() {
+    if (window.supabaseClient) return window.supabaseClient;
+    if (global.PVTSDK?.client) return global.PVTSDK.client;
+    return global.PVTSDK?.getClient() || null;
+  };
+
+  global.getAvatarUrl = function(imageUrl, title = "", gender = "", fullName = "") {
+    if (global.PVTSDK?.storage?.getAvatarUrl) {
+      return global.PVTSDK.storage.getAvatarUrl(imageUrl, title, gender, fullName);
+    }
+    if (!imageUrl || imageUrl === "null" || imageUrl === "undefined" || imageUrl === "/assets/img/default-avatar.jpg") {
+      return typeof global.getDefaultAvatarUrl === 'function' ? global.getDefaultAvatarUrl(title, gender, fullName) : '/assets/img/default-avatar.jpg';
+    }
+    let url = String(imageUrl).trim();
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+    return `${CONFIG.URL}/storage/v1/object/public/employee-images/${url.replace(/^\//, "")}`;
+  };
 
   // Global Function for Recording QR Attendance Logs
   global.recordQrAttendanceLog = async function(employeeId, metadata = {}) {

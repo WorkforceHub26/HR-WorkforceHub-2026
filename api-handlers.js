@@ -4,11 +4,21 @@ import { GoogleGenAI } from '@google/genai';
 // Shared in-memory token store for LINE linking
 const memoryLineTokens = new Map();
 
-function getSupabaseConfig() {
+function getSupabaseConfig(req = null) {
+  const reqEnv = req?.headers?.['x-pvt-env'] || req?.headers?.['x-app-env'] || process.env.VITE_DEFAULT_ENV || 'MAIN';
+  const isDev = String(reqEnv).toUpperCase() === 'DEV';
+
+  if (isDev && (process.env.VITE_SUPABASE_DEV_URL || process.env.SUPABASE_DEV_URL)) {
+    const url = process.env.VITE_SUPABASE_DEV_URL || process.env.SUPABASE_DEV_URL;
+    const anonKey = process.env.VITE_SUPABASE_DEV_ANON_KEY || process.env.SUPABASE_DEV_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
+    const serviceKey = process.env.SUPABASE_DEV_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey;
+    return { url, anonKey, serviceKey, env: 'DEV' };
+  }
+
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "https://pgogmhqjdchakcytsomx.supabase.co";
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey;
-  return { url, anonKey, serviceKey };
+  return { url, anonKey, serviceKey, env: 'MAIN' };
 }
 
 // 1. Create LINE Link Code
@@ -736,7 +746,7 @@ export async function handleOcrScan(req, res) {
 
     const ai = new GoogleGenAI({ apiKey });
     let response = null;
-    const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+    const candidateModels = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
     
     for (const modelName of candidateModels) {
       try {
@@ -906,7 +916,7 @@ export async function handleHrChatbot(req, res) {
 
 หากอยู่นอกเหนือจากระเบียบ ให้ตอบสั้นๆ ว่า "ติดต่อ HR เพิ่มเติมที่ อีเมล hr@pvt-workforce.com หรือโทรภายใน 101-104 ครับ"`;
 
-    const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+    const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
     let responseText = null;
 
     for (const modelName of candidateModels) {

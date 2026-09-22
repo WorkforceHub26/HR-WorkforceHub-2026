@@ -7,7 +7,7 @@
 ## 📚 สารบัญ (Table of Contents)
 1. [ภาพรวมสถาปัตยกรรมระบบ (System Architecture Overview)](#1-ภาพรวมสถาปัตยกรรมระบบ)
 2. [เจาะลึก auth/index.js (ระบบล็อกอินและการกระจายสิทธิ์)](#2-เจาะลึก-authindexjs)
-3. [เจาะลึก js/supabase-config.js (เอนจินหลัก ฐานข้อมูล และ LINE Notification)](#3-เจาะลึก-jssupabase-configjs)
+3. [เจาะลึก auth/supabase-config.js (เอนจินหลัก ฐานข้อมูล และ LINE Notification)](#3-เจาะลึก-authsupabase-configjs)
 4. [เจาะลึก js/auth-guard.js (ระบบ Middleware ตรวจสอบสิทธิ์เข้าใช้งาน)](#4-เจาะลึก-jsauth-guardjs)
 5. [เจาะลึก js/index-user.js (หน้าหลักพนักงาน โควตา และเมนูลัด)](#5-เจาะลึก-jsindex-userjs)
 6. [เจาะลึก js/leave-user.js (ระบบคำนวณวันลา การบีบอัดรูป และการยื่นใบลา)](#6-เจาะลึก-jsleave-userjs)
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 ---
 
-## 3. เจาะลึก `js/supabase-config.js`
+## 3. เจาะลึก `auth/supabase-config.js`
 > **หน้าที่:** หัวใจหลักของระบบ จัดเตรียมการเชื่อมต่อ Supabase, จัดการ Offline Queue คิวคำขอลาเมื่อเน็ตหลุด, และเอนจินส่งแจ้งเตือนเข้า LINE Official Account
 
 ### 📌 ส่วนประกอบหลัก
@@ -131,6 +131,20 @@ async sendWorkflowNotification(opts = {}) {
   1. รับพารามิเตอร์ข้อมูลคำขอลา และ LINE User ID ของผู้รับปลายทาง
   2. กรองเฉพาะ Event ที่กำหนดเพื่อส่งออกข้อความ
   3. ยิง HTTP POST เข้าไปยัง Supabase Edge Function เพื่อสร้าง Flex Message สวยงามส่งตรงเข้าแอป LINE บนมือถือของผู้รับ
+
+#### 3.3 ระบบแยกสภาพแวดล้อม DEV / MAIN (Dual Environment Engine)
+ระบบรองรับการสลับและแยกระหว่างฐานข้อมูลพัฒนา (DEV) และฐานข้อมูลจริง (MAIN) ได้อย่างยืดหยุ่น:
+* **การตรวจจับอัตโนมัติ (Auto-Detection)**:
+  - หากเปิดบน `localhost`, `127.0.0.1`, หรือ Cloud Run dev preview (`ais-dev-*.run.app`) -> ระบบจะเลือกโหมด **DEV** อัตโนมัติ
+  - หากเปิดบนโดเมนจริงหรือ Share App URL (`ais-pre-*.run.app`) -> ระบบจะเลือกโหมด **MAIN** (Production)
+* **การสลับด้วยตนเอง (Manual Override / Switcher)**:
+  - **ผ่าน URL Parameter**: เติม `?env=dev` หรือ `?env=main` ใน URL
+  - **ผ่าน JavaScript API**:
+    - `window.getSupabaseEnv()`: เรียกดูสภาพแวดล้อมปัจจุบัน (`'DEV'` หรือ `'MAIN'`)
+    - `window.setSupabaseEnv('DEV')` หรือ `window.setSupabaseEnv('MAIN')`: สลับสภาพแวดล้อมและรีโหลดหน้า
+    - `window.openSupabaseEnvModal()`: เปิดหน้าต่าง UI สลับ Environment และตั้งค่า Custom DEV/MAIN URL & Key
+  - **ปุ่มลอย DEV Badge**: ในโหมด DEV จะมีแถบป้ายเล็กๆ `🧪 DEV MODE` ที่มุมล่างซ้าย สามารถคลิกเพื่อเปิดกล่องสลับสภาพแวดล้อมได้ทันที
+* **การแยกแคชและคิวออฟไลน์**: ระบบแยกชื่อแคช (`pvt_hr_cache_dev_` vs `pvt_hr_cache_main_`) และคิวออฟไลน์เพื่อไม่ให้ข้อมูล DEV และ MAIN ปะปนกัน
 
 ---
 

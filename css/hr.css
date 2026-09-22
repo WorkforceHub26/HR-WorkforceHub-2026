@@ -113,7 +113,6 @@ body {
 
 .sidebar-brand,
 .brand-zone {
-<<<<<<< HEAD
   padding: 20px 16px 16px 16px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -123,33 +122,16 @@ body {
   gap: 8px !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.12) 100%) !important;
-=======
-  padding: 16px 18px 12px 18px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  justify-content: flex-start !important;
-  gap: 6px !important;
-  border-bottom: 1px solid #f1f5f9;
-  background: #ffffff;
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   position: relative !important;
   width: 100%;
   box-sizing: border-box;
 }
 
 .brand-icon {
-<<<<<<< HEAD
   width: 72px !important;
   height: 72px !important;
   min-width: 72px !important;
   min-height: 72px !important;
-=======
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
@@ -157,7 +139,6 @@ body {
   box-shadow: none !important;
   display: flex !important;
   align-items: center !important;
-<<<<<<< HEAD
   justify-content: center !important;
   padding: 0 !important;
   flex-shrink: 0;
@@ -167,15 +148,6 @@ body {
 
 .brand-icon:hover {
   transform: scale(1.06);
-=======
-  justify-content: flex-start !important;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.brand-icon:hover {
-  transform: scale(1.05);
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 .brand-icon .material-symbols-outlined {
@@ -183,7 +155,6 @@ body {
 }
 
 .brand-name {
-<<<<<<< HEAD
   font-size: 14px !important;
   font-weight: 800 !important;
   letter-spacing: 0.5px !important;
@@ -197,19 +168,6 @@ body {
   word-break: break-word !important;
   margin: 0 auto !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-=======
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.1px;
-  color: #1e3a8a !important; /* Deep Royal Blue */
-  text-transform: uppercase;
-  text-align: left !important;
-  white-space: normal;
-  line-height: 1.25;
-  width: 100%;
-  max-width: 195px;
-  word-break: break-word;
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 .logo-mini {
@@ -495,7 +453,6 @@ body {
 }
 
 .user-profile {
-<<<<<<< HEAD
   display: inline-flex;
   align-items: center;
   height: 44px;
@@ -512,29 +469,6 @@ body {
   background: #f8fafc;
   border-color: #cbd5e1;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-=======
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 0 !important;
-  background: transparent !important;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  border: none !important;
-  box-shadow: none !important;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-}
-
-.user-profile:hover {
-  box-shadow: none !important;
-  transform: scale(1.06);
-}
-
-.user-profile .info,
-.user-profile .status-badge {
-  display: none !important;
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 #userAvatarHeader,
@@ -1142,7 +1076,7 @@ body {
 
 .attachment-trigger .btn-act { 
   padding: 3px 8px; 
-  font-size: 12px; 
+  font-size: 10.5px; 
   min-height: 26px;
   border-radius: 6px;
 }
@@ -1174,7 +1108,7 @@ body {
 }
 
 .step-lbl { 
-  font-size: 12px; 
+  font-size: 10px; 
   color: #64748b; 
   font-weight: 700; 
   text-transform: uppercase; 
@@ -1448,15 +1382,8 @@ body {
   }
   
   .status-steps-grid {
-    display: flex !important;
-    flex-wrap: wrap !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
-    width: 100% !important;
-  }
-
-  .status-steps-grid .step-item {
-    flex: 1 1 28% !important;
-    min-width: 85px !important;
   }
   
   .actions-zone {
@@ -1866,19 +1793,8 @@ body {
 }
 
 @media screen and (max-width: 768px) {
-  .topbar { 
-    display: flex !important;
-    flex-direction: row !important; 
-    align-items: center !important; 
-    justify-content: space-between !important; 
-    flex-wrap: nowrap !important;
-  }
-  .topbar-right { 
-    width: auto !important; 
-    justify-content: flex-end !important; 
-    margin-left: auto !important;
-    flex-shrink: 0 !important;
-  }
+  .topbar { flex-direction: column; align-items: stretch; }
+  .topbar-right { width: 100%; justify-content: flex-start; }
   .stats-grid { grid-template-columns: 1fr; gap: 14px; }
   .toolbar-flex {
     flex-direction: column !important;

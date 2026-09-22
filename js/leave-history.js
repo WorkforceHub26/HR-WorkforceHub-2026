@@ -283,7 +283,8 @@ function renderProfileHeader() {
     } else if (rawAvatarUrl && String(rawAvatarUrl).trim() !== "" && rawAvatarUrl !== "null" && rawAvatarUrl !== "/assets/img/default-avatar.jpg") {
       let clean = String(rawAvatarUrl).trim();
       if (!clean.startsWith("http")) {
-        clean = `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${clean.replace(/^\//, '')}`;
+        const baseUrl = window.SUPABASE_URL || 'https://pgogmhqjdchakcytsomx.supabase.co';
+        clean = `${baseUrl}/storage/v1/object/public/employee-images/${clean.replace(/^\//, '')}`;
       }
       if (clean.includes("storage/v1/object/") && !clean.includes("storage/v1/object/public/")) {
         clean = clean.replace("storage/v1/object/", "storage/v1/object/public/");
@@ -1507,106 +1508,3 @@ setInterval(() => {
     loadMyLeaveHistory();
   }
 }, 25000);
-
-
-// 🔙 Navigation & UI Helpers (Transferred from leave-history.html)
-// 🔙 Mobile Back Navigation Function
-    function handleGoBack() {
-      if (window.history.length > 1 && document.referrer && !document.referrer.includes(window.location.pathname)) {
-        window.history.back();
-      } else {
-        window.location.href = "/pages/user/index-user.html";
-      }
-    }
-    window.handleGoBack = handleGoBack;
-
-    // Search input helpers
-    function onHistorySearchInput(inputEl) {
-      const clearBtn = document.getElementById("clearSearchBtn");
-      if (clearBtn) {
-        clearBtn.style.display = inputEl.value.trim() ? "inline-flex" : "none";
-      }
-      if (typeof window.onHistorySearchChange === "function") {
-        window.onHistorySearchChange();
-      }
-    }
-    window.onHistorySearchInput = onHistorySearchInput;
-
-    function clearHistorySearch() {
-      const input = document.getElementById("historySearchInput");
-      if (input) {
-        input.value = "";
-        onHistorySearchInput(input);
-        input.focus();
-      }
-    }
-    window.clearHistorySearch = clearHistorySearch;
-
-    // Handle feature dummies gracefully
-    function showDummyFeatureToast(featureName) {
-      Swal.fire({
-        icon: 'info',
-        title: featureName,
-        text: 'ระบบนี้อยู่ระหว่างเชื่อมต่อความปลอดภัยและระบบหลัก จะเปิดให้บริการเร็วๆ นี้ค่ะ',
-        confirmButtonColor: '#0f766e',
-        timer: 3000
-      });
-    }
-
-    // Sidebar Action Functions
-    function goToLeaveForm() {
-      window.location.href = "/pages/user/leave-user.html";
-    }
-
-    function viewMyDigitalCard() {
-      window.location.href = "/pages/user/index-user.html?action=digital_card";
-    }
-
-    function generateLineLinkToken() {
-      window.location.href = "/pages/user/index-user.html?action=line_link";
-    }
-
-    // Trigger biometric guide modal
-    function triggerBiometricHelp() {
-      if (window.SystemDiagnostics && typeof window.SystemDiagnostics.showUnifiedHelpPopup === 'function') {
-        window.SystemDiagnostics.showUnifiedHelpPopup();
-      } else if (typeof window.showBiometricGuideModal === 'function') {
-        window.showBiometricGuideModal();
-      } else {
-        Swal.fire({
-          icon: 'info',
-          title: 'คู่มือลายนิ้วมือ/ใบหน้า',
-          text: 'สามารถดูคู่มือและตั้งค่าระบบสแกนได้ที่หน้า ข้อมูลส่วนตัว หรือหน้าล็อกอินหลัก',
-          confirmButtonColor: '#0f766e'
-        });
-      }
-    }
-
-    // Custom Year Dropdown Toggles
-    function toggleYearDropdown(event) {
-      event.stopPropagation();
-      const menu = document.getElementById('yearDropdownMenu');
-      if (menu) {
-        menu.classList.toggle('show');
-      }
-    }
-
-    document.addEventListener('click', function() {
-      const menu = document.getElementById('yearDropdownMenu');
-      if (menu) {
-        menu.classList.remove('show');
-      }
-    });
-
-    // Toggle User notifications
-    function toggleUserNotifications() {
-      Swal.fire({
-        icon: 'success',
-        title: 'ระบบแจ้งเตือนล่าสุด',
-        text: 'ท่านสามารถเข้าดูประวัติการแจ้งเตือนและการพิจารณาใบลาล่าสุดได้จากกระดิ่งหน้าหลัก',
-        confirmButtonColor: '#0f766e'
-      });
-    }
-
-    window.toggleYearDropdown = typeof toggleYearDropdown !== 'undefined' ? toggleYearDropdown : window.toggleYearDropdown;
-    window.toggleUserNotifications = typeof toggleUserNotifications !== 'undefined' ? toggleUserNotifications : window.toggleUserNotifications;

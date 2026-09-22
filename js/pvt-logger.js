@@ -77,7 +77,6 @@ const PVTLogger = {
   initAutomatedTracking() {
     // ดักจับ Code พังทั่วไป (เช่น ตัวแปรไม่มีอยู่จริง, พิมพ์คำสั่งผิด)
     window.addEventListener('error', (event) => {
-      if (event.message === 'Script error.' || event.message === 'Script error') return;
       this.log('ERROR', 'FRONTEND', 'UNCAUGHT_EXCEPTION', event.message, event.error, {
         filename: event.filename,
         lineno: event.lineno,

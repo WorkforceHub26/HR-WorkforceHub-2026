@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <script src="/js/early-auth-guard.js"></script>
+  <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -20,18 +20,7 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-<<<<<<< HEAD
   <link rel="stylesheet" href="/css/hr-approval.css" /> 
-=======
-  <link rel="stylesheet" href="/css/hr.css" /> 
-  <link rel="stylesheet" href="/css/leave-sla-tracker.css" />
-  <link rel="stylesheet" href="/css/system-settings.css" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="PVT Hub" />
-  <meta name="format-detection" content="telephone=no" />
-  <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 </head>
 
 <body id="page-hr-approval">
@@ -44,12 +33,8 @@
           <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
         <div class="brand-name">PVTT WORKFORCE HUB</div>
-<<<<<<< HEAD
         <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
-=======
-        <button class="btn-close-sidebar" onclick="toggleMobileSidebar()" style="display: none;" title="ปิดเมนู">
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
       </div>
@@ -80,15 +65,9 @@
           <span class="material-symbols-outlined">analytics</span>
           <span class="nav-label">สถิติวันลา</span>
         </a>
-<<<<<<< HEAD
         <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
           <span class="material-symbols-outlined">calendar_month</span>
           <span class="nav-label">จัดการวันหยุด</span>
-=======
-        <a href="/pages/hr/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
-          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
-          <span class="nav-label">ปฏิทิน</span>
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         </a>
         
         <div class="sidebar-divider"></div>
@@ -114,17 +93,10 @@
 
         <div class="sidebar-divider"></div>
 
-<<<<<<< HEAD
         <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
         <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
           <span class="material-symbols-outlined">person</span>
           <span class="nav-label">หน้าหลักของพนักงาน</span>
-=======
-        <!-- 👤 สลับไปหน้าพนักงาน -->
-        <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
-          <img src="/assets/icons/user-profile.svg" alt="หน้าพนักงาน" class="nav-icon-custom" />
-          <span class="nav-label">หน้าพนักงาน</span>
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         </a>
       </nav>
 
@@ -149,7 +121,6 @@
             </a>
           </div>
 
-<<<<<<< HEAD
           <div class="topbar-right-actions">
             <!-- Hidden containers so JS references remain valid -->
             <div class="info" style="display: none !important;">
@@ -157,16 +128,6 @@
               <span id="userPositionHeader">-</span>
             </div>
             <span id="userRoleBadge" class="status-badge status-approved" style="display: none !important;">
-=======
-        <div class="topbar-right">
-          <div class="user-profile" onclick="window.location.href='/pages/user/profile-user.html'" style="cursor: pointer;" title="ข้อมูลส่วนตัว">
-            <img id="userAvatarHeader" src="/assets/img/default-avatar.jpg" alt="Profile" onerror="this.src='/assets/img/default-avatar.jpg';" />
-            <div class="info" style="display: none;">
-              <strong id="userNameHeader">กำลังโหลด...</strong>
-              <span id="userPositionHeader">-</span>
-            </div>
-            <span id="userRoleBadge" class="status-badge status-approved" style="display: none;">
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
               ตรวจสอบสิทธิ์...
             </span>
 
@@ -313,33 +274,6 @@
         </div>
       </section>
 
-      <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR (HR / LEADER) -->
-      <nav class="mobile-bottom-nav">
-        <a href="/pages/hr/home.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">home</span>
-          <span class="nav-label">หน้าหลัก</span>
-        </a>
-        <a href="/pages/user/leave-stats.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">receipt_long</span>
-          <span class="nav-label">สถิติลา</span>
-        </a>
-        <a href="/pages/hr/hr.html" class="bottom-nav-item primary-action active" title="ตรวจและอนุมัติใบลา">
-          <div class="center-fab-icon">
-            <span class="material-symbols-outlined">fact_check</span>
-          </div>
-          <span class="nav-label">ตรวจใบลา</span>
-          <span class="nav-active-dot"></span>
-        </a>
-        <a href="/pages/hr/holidays.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">calendar_month</span>
-          <span class="nav-label">วันหยุด</span>
-        </a>
-        <a href="/pages/user/index-user.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">person</span>
-          <span class="nav-label">หน้าพนักงาน</span>
-        </a>
-      </nav>
-
     </main>
   </div>
 
@@ -365,7 +299,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
-  <script type="module" src="/js/supabase-config.js"></script>
+  <script type="module" src="/auth/supabase-config.js"></script>
   <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/system-settings.js"></script>
   <script type="module" src="/js/company-news.js"></script>

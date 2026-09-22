@@ -1630,7 +1630,7 @@ window.toggleTokenVisibility = function(inputId, iconId) {
   }
 };
 
-const DEFAULT_SUPABASE_WEBHOOK_URL = "https://pgogmhqjdchakcytsomx.supabase.co/functions/v1/line-webhook";
+const DEFAULT_SUPABASE_WEBHOOK_URL = (window.SUPABASE_URL ? `${window.SUPABASE_URL}/functions/v1/line-webhook` : "https://pgogmhqjdchakcytsomx.supabase.co/functions/v1/line-webhook");
 
 window.copyLineWebhookUrl = async function() {
   const input = document.getElementById("lineWebhookUrlInput");
@@ -2455,13 +2455,13 @@ function renderEmployeeLineTable() {
 
     let workflowTags = "";
     if (isExecL3) {
-      workflowTags += `<div style="margin-top:3px;"><span style="font-size: 12px; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #fde68a;">👑 ผู้อนุมัติ L3 (ผู้บริหาร)</span></div>`;
+      workflowTags += `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #fde68a;">👑 ผู้อนุมัติ L3 (ผู้บริหาร)</span></div>`;
     }
     if (assignedDeptsL1.length > 0) {
-      workflowTags += `<div style="margin-top:2px;"><span style="font-size: 12px; background:#ccfbf1; color:#0f766e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #99f6e4;" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ L1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
+      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#ccfbf1; color:#0f766e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #99f6e4;" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ L1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
     }
     if (assignedDeptsL2.length > 0) {
-      workflowTags += `<div style="margin-top:2px;"><span style="font-size: 12px; background:#e0e7ff; color:#4338ca; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #c7d2fe;" title="${escapeAttr(assignedDeptsL2.join(', '))}">👔 ผู้อนุมัติ L2 (${escapeHtml(assignedDeptsL2[0])}${assignedDeptsL2.length > 1 ? ` +${assignedDeptsL2.length - 1}` : ''})</span></div>`;
+      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#e0e7ff; color:#4338ca; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #c7d2fe;" title="${escapeAttr(assignedDeptsL2.join(', '))}">👔 ผู้อนุมัติ L2 (${escapeHtml(assignedDeptsL2[0])}${assignedDeptsL2.length > 1 ? ` +${assignedDeptsL2.length - 1}` : ''})</span></div>`;
     }
 
     // สถานะ LINE & รหัส User ID
@@ -2534,8 +2534,8 @@ function renderEmployeeLineTable() {
               <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
                 <span class="emp-code-badge">#${empCodeHtml}</span>
                 ${isResigned 
-                  ? `<span style="background:#fee2e2; color:#b91c1c; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px; border:1px solid #fca5a5;">⚠️ ลาออกแล้ว</span>` 
-                  : `<span style="background:#f0fdf4; color:#15803d; font-size: 12px; font-weight:600; padding:1px 6px; border-radius:4px;">ปกติ</span>`
+                  ? `<span style="background:#fee2e2; color:#b91c1c; font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:4px; border:1px solid #fca5a5;">⚠️ ลาออกแล้ว</span>` 
+                  : `<span style="background:#f0fdf4; color:#15803d; font-size:10.5px; font-weight:600; padding:1px 6px; border-radius:4px;">ปกติ</span>`
                 }
               </div>
             </div>

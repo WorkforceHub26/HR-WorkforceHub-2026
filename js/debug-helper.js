@@ -54,7 +54,6 @@ const PVTDebugger = {
 
 // 🛑 ดักจับกรณี Code พังกลางทางแต่ไม่มีใครเขียน try-catch ครอบไว้ (Global Error Listener)
 window.addEventListener("error", (event) => {
-  if (event.message === "Script error." || event.message === "Script error") return;
   PVTDebugger.error(event.error, `บั๊กหลุดที่ไฟล์: ${event.filename} บรรทัดที่ ${event.lineno}`);
 });
 

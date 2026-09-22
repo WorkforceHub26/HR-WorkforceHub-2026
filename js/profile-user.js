@@ -120,7 +120,8 @@ async function loadProfile() {
         if (clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:")) {
           return clean;
         }
-        return `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${clean.replace(/^\//, '')}`;
+        const baseUrl = window.SUPABASE_URL || 'https://pgogmhqjdchakcytsomx.supabase.co';
+        return `${baseUrl}/storage/v1/object/public/employee-images/${clean.replace(/^\//, '')}`;
       }
 
       if (typeof window.getDefaultAvatarUrl === "function") {
@@ -535,7 +536,8 @@ async function handleProfileAvatarUpload(input) {
         .from('employee-images')
         .getPublicUrl(fileName);
 
-      uploadedPublicUrl = publicUrlData?.publicUrl || `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${fileName}`;
+      const baseUrl = window.SUPABASE_URL || 'https://pgogmhqjdchakcytsomx.supabase.co';
+      uploadedPublicUrl = publicUrlData?.publicUrl || `${baseUrl}/storage/v1/object/public/employee-images/${fileName}`;
 
       if (empId) {
         await client.from('employees').update({ image_url: fileName }).eq('id', empId);

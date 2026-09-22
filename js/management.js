@@ -6,14 +6,20 @@
  */
 
 // ==========================================
-// 0. CONFIGURATION & REAL CREDENTIALS
+// 0. CENTRAL CONFIGURATION & CLIENT ACCESS
 // ==========================================
-var SUPABASE_URL = window.SUPABASE_URL || "https://pgogmhqjdchakcytsomx.supabase.co";
-var SUPABASE_KEY = window.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8";
+function getSupabaseClient() {
+  if (typeof window.getSupabase === 'function') {
+    const client = window.getSupabase();
+    if (client) return client;
+  }
+  if (window.supabaseClient) return window.supabaseClient;
+  if (window.PVTSDK?.client) return window.PVTSDK.client;
+  if (window.PVTSDK?.getClient) return window.PVTSDK.getClient();
+  return null;
+}
 
-window.PVT_SUPABASE_URL = SUPABASE_URL;
-window.PVT_SUPABASE_ANON_KEY = SUPABASE_KEY;
-var supabaseClient = (window.PVTSDK && typeof window.PVTSDK.getClient === 'function') ? window.PVTSDK.getClient() : window.supabaseClient;
+var supabaseClient = getSupabaseClient();
 
 function showAppError(title, message) {
   console.error(`❌ [${title}]:`, message);
@@ -30,74 +36,26 @@ function showAppError(title, message) {
   }
 }
 
-// ==========================================
-// 1. PVT SUPABASE MODULE DEFINITION
-// ==========================================
-window.pvtSupabase = (() => {
-  let client = null;
+// Ensure central pvtSupabase exists and merge helpers
+if (!window.pvtSupabase && window.PVTSDK) {
+  window.pvtSupabase = window.PVTSDK;
+}
 
-  function getClient() {
-    if (client) return client;
-    if (window.supabaseClient) {
-      client = window.supabaseClient;
-      return client;
-    }
-    if (typeof supabase === 'undefined' || !supabase?.createClient) {
-      console.warn("⚠️ Supabase SDK ยังไม่ได้โหลดบนหน้าเว็บ");
-      return null;
-    }
-    try {
-      client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-        auth: { persistSession: true, autoRefreshToken: true },
-        global: { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } }
-      });
-      window.supabaseClient = client;
-      return client;
-    } catch (err) {
-      showAppError("ข้อผิดพลาดการเชื่อมต่อ Supabase", err.message);
-      return null;
-    }
+window.getSupabaseClient = getSupabaseClient;
+
+// Helper utilities
+function getCachedUser() {
+  try {
+    return JSON.parse(localStorage.getItem("currentUser") || "null");
+  } catch {
+    return null;
   }
+}
 
-  async function getSession() {
-    const sb = getClient();
-    if (!sb?.auth) return null;
-    try {
-      const { data, error } = await sb.auth.getSession();
-      if (error) throw error;
-      return data?.session || null;
-    } catch (err) {
-      console.error("Get Session Error:", err);
-      return null;
-    }
-  }
-
-  function getCachedUser() {
-    try {
-      return JSON.parse(localStorage.getItem("currentUser") || "null");
-    } catch {
-      return null;
-    }
-  }
-
-// ==========================================
-// 1. getCurrentProfile (แก้ LEFT JOIN + เก็บ Role)
-// ==========================================
-// ==========================================
-// 0. GLOBAL STATE INITIALIZATION
-// ==========================================
 window.state = window.state || {
   currentUserProfile: null
 };
 
-/**
- * =========================================================================
- * ฟังก์ชันดึงข้อมูลโปรไฟล์พนักงานตาม User ID (เวอร์ชันเสถียรสูง + ปลอดภัย)
- * =========================================================================
- * @param {string|number} userId - ID ของพนักงานที่ต้องการดึงข้อมูล
- * @param {number} timeoutMs - ระยะเวลา Timeout สูงสุดในการดึงข้อมูล (มิลลิวินาที) ค่าเริ่มต้น 10000ms (10 วินาที)
- * @returns {Promise<Object|null>} ข้อมูลโปรไฟล์พนักงาน หรือ null หากเกิดข้อผิดพลาด/ไม่พบข้อมูล
- */
 async function getCurrentProfile(userId) {
   if (!userId) {
     console.warn("getCurrentProfile Warning: ไม่พบรหัสผู้ใช้งาน (User ID Missing or Empty)");
@@ -105,7 +63,7 @@ async function getCurrentProfile(userId) {
   }
 
   try {
-    const sb = getClient();
+    const sb = getSupabaseClient();
     if (!sb) return null;
     
     const { data, error } = await sb
@@ -129,48 +87,38 @@ async function getCurrentProfile(userId) {
     return null;
   }
 }
-  function toISODate(input) {
-    if (!input) return null;
-    const value = String(input).trim();
-    if (!value) return null;
-    if (value.includes("/")) {
-      const [rawDay, rawMonth, rawYear] = value.split("/");
-      if (!rawDay || !rawMonth || !rawYear) return null;
-      let year = Number(rawYear);
-      if (year > 2400) year -= 543;
-      return `${year}-${rawMonth.padStart(2, "0")}-${rawDay.padStart(2, "0")}`;
-    }
-    if (value.includes("-")) {
-      const parts = value.split("-");
-      if (parts.length < 3) return value;
-      let year = Number(parts[0]);
-      if (year > 2400) year -= 543;
-      return `${year}-${parts[1].padStart(2, "0")}-${parts[2].substring(0, 2).padStart(2, "0")}`;
-    }
-    return null;
-  }
 
-  function formatThaiDate(dateValue) {
-    if (!dateValue) return "-";
-    const cleanDateStr = String(dateValue).trim().split("T")[0];
-    const date = new Date(`${cleanDateStr}T00:00:00`);
-    if (Number.isNaN(date.getTime())) return dateValue;
-    return new Intl.DateTimeFormat("th-TH", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(date);
+function toISODate(input) {
+  if (!input) return null;
+  const value = String(input).trim();
+  if (!value) return null;
+  if (value.includes("/")) {
+    const [rawDay, rawMonth, rawYear] = value.split("/");
+    if (!rawDay || !rawMonth || !rawYear) return null;
+    let year = Number(rawYear);
+    if (year > 2400) year -= 543;
+    return `${year}-${rawMonth.padStart(2, "0")}-${rawDay.padStart(2, "0")}`;
   }
+  if (value.includes("-")) {
+    const parts = value.split("-");
+    if (parts.length < 3) return value;
+    let year = Number(parts[0]);
+    if (year > 2400) year -= 543;
+    return `${year}-${parts[1].padStart(2, "0")}-${parts[2].substring(0, 2).padStart(2, "0")}`;
+  }
+  return null;
+}
 
-// ฟังก์ชันช่วย Escape HTML ป้องกัน XSS
-function escapeHtml(text) {
-  if (!text) return '';
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+function formatThaiDate(dateValue) {
+  if (!dateValue) return "-";
+  const cleanDateStr = String(dateValue).trim().split("T")[0];
+  const date = new Date(`${cleanDateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  return new Intl.DateTimeFormat("th-TH", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
 
 function statusLabel(status) {
@@ -179,89 +127,21 @@ function statusLabel(status) {
     approved: "อนุมัติแล้ว",
     rejected: "ไม่อนุมัติ",
     cancelled: "ยกเลิกแล้ว",
-    cancel_requested: "รออนุมัติยกเลิก", // 👈 เพิ่มบรรทัดนี้
+    cancel_requested: "รออนุมัติยกเลิก",
   }[status] || status || "-";
 }
 
-function getDefaultAvatarUrl(title = "", gender = "", fullName = "") {
-  const cleanTitle = String(title || "").trim().toLowerCase();
-  const cleanGender = String(gender || "").trim().toLowerCase();
-  const cleanName = String(fullName || "").trim().toLowerCase();
-
-  const femaleTokens = ["นางสาว", "นาง", "น.ส.", "น.ส", "นส.", "นส", "สาว", "คุณหญิง", "ms.", "ms", "mrs.", "mrs", "miss.", "miss", "female", "หญิง", "f"];
-  const maleTokens = ["นาย", "นาย.", "mr.", "mr", "master.", "master", "male", "ชาย", "m"];
-
-  if (femaleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
-    return "/assets/img/avatar-female.jpg?v=2";
-  }
-
-  if (maleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
-    return "/assets/img/avatar-male.jpg?v=2";
-  }
-
-  return "/assets/img/avatar-male.jpg?v=2";
+function downloadBlob(filename, content, mimeType = "text/plain;charset=utf-8") {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
-
-window.getDefaultAvatarUrl = getDefaultAvatarUrl;
-
-function getAvatarUrl(imageUrl, title = "", gender = "", fullName = "") {
-  if (typeof imageUrl === 'object' && imageUrl !== null) {
-    const obj = imageUrl;
-    imageUrl = obj.image_url || obj.avatar_url || obj.avatar || obj.employees?.image_url || null;
-    title = title || obj.title || obj.prefix || obj.employees?.title || "";
-    gender = gender || obj.gender || obj.employees?.gender || "";
-    fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
-  }
-
-  if (!imageUrl || imageUrl === "null" || imageUrl === "undefined" || imageUrl === "/assets/img/default-avatar.jpg") {
-    return getDefaultAvatarUrl(title, gender, fullName);
-  }
-  
-  let url = String(imageUrl).trim();
-  if (!url) return getDefaultAvatarUrl(title, gender, fullName);
-
-  // หากเป็น URL สมบูรณ์จากภายนอกหรือ Supabase CDN
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
-    // 🛑 แก้บั๊ก: ถ้ามี /public/ อยู่แล้ว ให้ส่งกลับทันที ห้ามเติมซ้ำ
-    if (url.includes("/storage/v1/object/public/")) {
-      return url;
-    }
-    return url.replace("/storage/v1/object/", "/storage/v1/object/public/");
-  }
-
-  // หากเป็นแค่ชื่อไฟล์ที่เก็บใน Storage
-  return `${SUPABASE_URL}/storage/v1/object/public/employee-images/${url.replace(/^\//, "")}`;
-}
-
-window.getAvatarUrl = getAvatarUrl;
-
-  function downloadBlob(filename, content, mimeType = "text/plain;charset=utf-8") {
-    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  return {
-    getClient,
-    getSession,
-    getCachedUser,
-    getCurrentProfile,
-    toISODate,
-    formatThaiDate,
-    escapeHtml,
-    statusLabel,
-    getAvatarUrl,
-    downloadBlob,
-  };
-})();
-
-window.pvtSupabase.getClient();
 
 // ==========================================
 // 2. GLOBAL STATE & INITIALIZATION
@@ -694,7 +574,7 @@ async function viewLoginAuditLogs() {
             <td style="padding: 10px 8px; color: #334155; white-space: nowrap; font-family: monospace;">${timeStr}</td>
             <td style="padding: 10px 8px;">
               <div style="font-weight: 600; color: #0f172a;">${fullName}</div>
-              <div style="font-size: 11px; color: #64748b;">${empCode ? `รหัส: ${empCode} · ` : ''}<span style="font-family: monospace; font-size: 12px; color: #94a3b8;">${String(userId).substring(0, 12)}...</span></div>
+              <div style="font-size: 11px; color: #64748b;">${empCode ? `รหัส: ${empCode} · ` : ''}<span style="font-family: monospace; font-size: 10px; color: #94a3b8;">${String(userId).substring(0, 12)}...</span></div>
             </td>
             <td style="padding: 10px 8px; white-space: nowrap;">
               ${methodBadge}
@@ -4224,7 +4104,7 @@ async function editGlobalLeaveRules() {
       <tr style="border-bottom:1px solid #e2e8f0;" id="rule-row-${r.id}">
         <td style="padding:8px; border:1px solid #cbd5e1;">
           <input type="text" id="rule-name-${r.id}" class="swal2-input" value="${escapeHtml(r.leave_name)}" style="margin:0; height:36px; font-size:13px; width:100%;">
-          <small style="color:#64748b; font-size: 12px;">รหัส: ${escapeHtml(r.leave_code)}</small>
+          <small style="color:#64748b; font-size:10px;">รหัส: ${escapeHtml(r.leave_code)}</small>
         </td>
         <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
           <input type="number" id="rule-quota-${r.id}" class="swal2-input" value="${r.yearly_quota || 0}" step="0.5" min="0" style="margin:0; height:36px; font-size:13px; text-align:center; width:80px;">
@@ -6713,10 +6593,6 @@ window.viewAuditLogs = typeof viewAuditLogs !== 'undefined' ? viewAuditLogs : wi
 window.resetYearlyLeave = typeof resetYearlyLeave !== 'undefined' ? resetYearlyLeave : window.resetYearlyLeave;
 window.importEmployeesExcel = importEmployeesExcel;
 window.downloadExcelTemplate = downloadExcelTemplate;
-window.fillPositionFilter = typeof fillPositionFilter !== 'undefined' ? fillPositionFilter : window.fillPositionFilter;
-window.fillDepartmentFilter = typeof fillDepartmentFilter !== 'undefined' ? fillDepartmentFilter : window.fillDepartmentFilter;
-window.renderEmployeeTable = typeof renderEmployeeTable !== 'undefined' ? renderEmployeeTable : window.renderEmployeeTable;
-window.handleLogout = typeof handleLogout !== 'undefined' ? handleLogout : window.handleLogout;
 
 // ==========================================
 // 🏢 ROSTER / HOME TEAM IN MANAGEMENT PAGE

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <script src="/js/early-auth-guard.js"></script>
+  <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -17,16 +17,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<<<<<<< HEAD
-=======
-
-  <link rel="stylesheet" href="/css/leave-stats.css" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="PVT Hub" />
-  <meta name="format-detection" content="telephone=no" />
-  <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 </head>
 <body id="page-user-leave-stats">
 
@@ -39,10 +29,7 @@
           <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
         <div class="brand-name">PVTT WORKFORCE HUB</div>
-<<<<<<< HEAD
         <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
-=======
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
@@ -74,13 +61,8 @@
           <span class="material-symbols-outlined">analytics</span>
           <span class="nav-label">สถิติวันลา</span>
         </a>
-<<<<<<< HEAD
         <a href="/pages/user/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
           <span class="material-symbols-outlined">calendar_month</span>
-=======
-        <a href="/pages/hr/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
-          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           <span class="nav-label">ปฏิทิน</span>
         </a>
 
@@ -344,25 +326,18 @@
         </a>
         <a href="/pages/user/profile-user.html" class="bottom-nav-item">
           <span class="material-symbols-outlined">person</span>
-<<<<<<< HEAD
           <span class="nav-label">ข้อมูลฉัน</span>
-=======
-          <span class="nav-label">ข้อมูลส่วนตัว</span>
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         </a>
       </nav>
 
     </main>
   </div>
 
-  <script type="module" src="/js/supabase-config.js"></script>
+  <script type="module" src="/auth/supabase-config.js"></script>
   <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/system-settings.js"></script>
   <script type="module" src="/js/employee-card-modal.js"></script>
-<<<<<<< HEAD
   <script type="module" src="/js/components/login-logs-viewer.js"></script>
-=======
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   <script type="module" src="/js/leave-stats.js"></script>
 </body>
 </html>

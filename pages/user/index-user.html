@@ -1,10 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
-<<<<<<< HEAD
-  <script src="/js/early-auth-guard.js"></script>
-=======
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
+  <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -16,13 +13,7 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
   <link rel="stylesheet" href="/css/index-user.css" />
-<<<<<<< HEAD
   <link rel="stylesheet" href="/css/system-settings.css" />
-=======
-  <link rel="stylesheet" href="/css/leave-history.css" />
-  <link rel="stylesheet" href="/css/system-settings.css" />
-  <link rel="stylesheet" href="/css/company-news.css" />
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 
   <!-- 2. โหลดฟอนต์ภายนอกแบบ Non-blocking ไม่ให้รบกวนการคำนวณขนาดกรอบหน้าจอและดีไซน์หลัก -->
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Lao:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -77,13 +68,10 @@
           <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
           <span>ปฏิทิน</span>
         </a>
-<<<<<<< HEAD
         <a href="/pages/hr/hr.html" class="menu-item animate-fade delay-350 hover-lift" id="navItemLeaveCheck" title="ตรวจและอนุมัติใบลาพนักงาน">
           <img src="/assets/icons/leave-approval.svg" alt="อนุมัติใบลา" class="nav-icon-custom" />
           <span>อนุมัติใบลา</span>
         </a>
-=======
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 
         <div class="sidebar-divider"></div>
         <div class="sidebar-section-title">บริการด่วน</div>
@@ -140,34 +128,7 @@
     <main class="main-content" style="width: 100%; flex: 1;">
       <div class="app" style="max-width: 1000px; padding: 24px 16px; margin: 0 auto; width: 100%;">
         
-<<<<<<< HEAD
 
-=======
-        <!-- ⚡ TOP ACTION BAR: ปุ่มสลับเพื่ออนุมัติคนในแผนก (สำหรับหัวหน้างานและผู้จัดการฝ่าย) -->
-        <div id="approverActionContainer" style="display: none; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-          
-          <!--  ปุ่มสลับเพื่ออนุมัติคนในแผนก (สำหรับหัวหน้างานและผู้จัดการฝ่าย) -->
-          <a href="/pages/hr/hr.html" id="btnSwitchDeptApproval" style="display: flex; width: 100%; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #0d9488 0%, #0284c7 50%, #6366f1 100%); color: white; padding: 18px 22px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.35); font-weight: 600; text-decoration: none; box-shadow: 0 12px 32px rgba(13, 148, 136, 0.4), 0 4px 12px rgba(99, 102, 241, 0.25); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: left; position: relative; overflow: hidden;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 16px 40px rgba(13, 148, 136, 0.5), 0 6px 16px rgba(99, 102, 241, 0.35)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 12px 32px rgba(13, 148, 136, 0.4), 0 4px 12px rgba(99, 102, 241, 0.25)';">
-            <div style="position: absolute; top: -50%; right: -20%; width: 150px; height: 150px; background: rgba(255,255,255,0.15); border-radius: 50%; pointer-events: none; filter: blur(20px);"></div>
-            <div style="display: flex; align-items: center; gap: 16px; z-index: 1;">
-              <div style="width: 52px; height: 52px; background: rgba(255,255,255,0.22); backdrop-filter: blur(8px); border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.4); box-shadow: inset 0 2px 6px rgba(255,255,255,0.3);">
-                <span class="material-symbols-outlined" style="font-size: 30px; color: #ffffff; animation: pulse 2s infinite;">how_to_reg</span>
-              </div>
-              <div style="text-align: left; line-height: 1.4;">
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                  <span style="font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: 0.2px;">✨ ปุ่มสลับเพื่ออนุมัติคนในแผนก</span>
-                  <span style="font-size: 11px; background: #fef08a; color: #854d0e; padding: 3px 10px; border-radius: 12px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">⚡ ด่วน / แนะนำ</span>
-                </div>
-                <span style="display: block; font-size: 13px; color: #e0f2fe; font-weight: 500; margin-top: 3px;">สำหรับหัวหน้างานและผู้จัดการฝ่าย ตรวจสอบและลงนามอนุมัติใบลาของทีมได้ทันที</span>
-              </div>
-            </div>
-            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1;">
-              <span class="material-symbols-outlined" style="color: #ffffff; font-size: 24px;">arrow_forward</span>
-            </div>
-          </a>
-
-        </div>
->>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 
         <!-- Header ข้อมูลพนักงาน (Responsive Mobile-First Architecture) -->
         <header class="user-header animate-fade delay-100" id="indexUserHeader">
@@ -534,7 +495,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
   <!-- ไฟล์ SDK และ CSS เดิมของคุณ -->
-  <script type="module" src="/js/supabase-config.js"></script>
+  <script type="module" src="/auth/supabase-config.js"></script>
   <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/system-settings.js"></script>
   <script type="module" src="/js/company-news.js"></script>
