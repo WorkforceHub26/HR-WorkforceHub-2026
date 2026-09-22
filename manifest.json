@@ -11,7 +11,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/assets/icons/iconicapp.png",
+      "src": "/assets/icons/PVTT_FLOW.png",
       "sizes": "192x192 512x512",
       "type": "image/png",
       "purpose": "any maskable"
