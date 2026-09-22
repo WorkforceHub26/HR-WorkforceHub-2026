@@ -694,7 +694,7 @@ async function viewLoginAuditLogs() {
             <td style="padding: 10px 8px; color: #334155; white-space: nowrap; font-family: monospace;">${timeStr}</td>
             <td style="padding: 10px 8px;">
               <div style="font-weight: 600; color: #0f172a;">${fullName}</div>
-              <div style="font-size: 11px; color: #64748b;">${empCode ? `รหัส: ${empCode} · ` : ''}<span style="font-family: monospace; font-size: 10px; color: #94a3b8;">${String(userId).substring(0, 12)}...</span></div>
+              <div style="font-size: 11px; color: #64748b;">${empCode ? `รหัส: ${empCode} · ` : ''}<span style="font-family: monospace; font-size: 12px; color: #94a3b8;">${String(userId).substring(0, 12)}...</span></div>
             </td>
             <td style="padding: 10px 8px; white-space: nowrap;">
               ${methodBadge}
@@ -4224,7 +4224,7 @@ async function editGlobalLeaveRules() {
       <tr style="border-bottom:1px solid #e2e8f0;" id="rule-row-${r.id}">
         <td style="padding:8px; border:1px solid #cbd5e1;">
           <input type="text" id="rule-name-${r.id}" class="swal2-input" value="${escapeHtml(r.leave_name)}" style="margin:0; height:36px; font-size:13px; width:100%;">
-          <small style="color:#64748b; font-size:10px;">รหัส: ${escapeHtml(r.leave_code)}</small>
+          <small style="color:#64748b; font-size: 12px;">รหัส: ${escapeHtml(r.leave_code)}</small>
         </td>
         <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
           <input type="number" id="rule-quota-${r.id}" class="swal2-input" value="${r.yearly_quota || 0}" step="0.5" min="0" style="margin:0; height:36px; font-size:13px; text-align:center; width:80px;">
@@ -6713,6 +6713,10 @@ window.viewAuditLogs = typeof viewAuditLogs !== 'undefined' ? viewAuditLogs : wi
 window.resetYearlyLeave = typeof resetYearlyLeave !== 'undefined' ? resetYearlyLeave : window.resetYearlyLeave;
 window.importEmployeesExcel = importEmployeesExcel;
 window.downloadExcelTemplate = downloadExcelTemplate;
+window.fillPositionFilter = typeof fillPositionFilter !== 'undefined' ? fillPositionFilter : window.fillPositionFilter;
+window.fillDepartmentFilter = typeof fillDepartmentFilter !== 'undefined' ? fillDepartmentFilter : window.fillDepartmentFilter;
+window.renderEmployeeTable = typeof renderEmployeeTable !== 'undefined' ? renderEmployeeTable : window.renderEmployeeTable;
+window.handleLogout = typeof handleLogout !== 'undefined' ? handleLogout : window.handleLogout;
 
 // ==========================================
 // 🏢 ROSTER / HOME TEAM IN MANAGEMENT PAGE

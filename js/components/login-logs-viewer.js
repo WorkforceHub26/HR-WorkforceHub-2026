@@ -410,8 +410,8 @@
                     <div style="font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${fullName}">${fullName}</div>
                     <div style="font-size: 11px; color: #64748b; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                       ${empCode ? `<span style="background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-weight: 600; color: #334155;">${empCode}</span>` : ''}
-                      ${role ? `<span style="background: #f0fdf4; color: #166534; padding: 1px 5px; border-radius: 4px; font-size: 10.5px;">${role}</span>` : ''}
-                      <span style="font-family: monospace; font-size: 10px; color: #94a3b8;" title="Supabase User ID: ${userId}">${userId.length > 14 ? userId.substring(0, 14) + '...' : userId}</span>
+                      ${role ? `<span style="background: #f0fdf4; color: #166534; padding: 1px 5px; border-radius: 4px; font-size: 12px;">${role}</span>` : ''}
+                      <span style="font-family: monospace; font-size: 12px; color: #94a3b8;" title="Supabase User ID: ${userId}">${userId.length > 14 ? userId.substring(0, 14) + '...' : userId}</span>
                     </div>
                   </div>
                 </div>
@@ -616,7 +616,11 @@
 
           <!-- Table Container -->
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+<<<<<<< HEAD
             <div style="max-height: calc(100vh - 310px); min-height: 380px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
+=======
+            <div style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
               <table style="text-align: left;">
                 <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 2; border-bottom: 2px solid #e2e8f0;">
                   <tr style="font-size: 12px; color: #475569;">
@@ -831,6 +835,7 @@ CREATE INDEX IF NOT EXISTS idx_login_logs_emp_code ON public.login_logs (employe
     }
 
     /**
+<<<<<<< HEAD
      * 📢 Static Method to open viewer in a Fullscreen Modal (แบบเต็มหน้า 100% Edge-to-Edge)
      */
     static async openModal() {
@@ -932,6 +937,22 @@ CREATE INDEX IF NOT EXISTS idx_login_logs_emp_code ON public.login_logs (employe
           popup: 'pvt-login-logs-fullscreen-popup',
           htmlContainer: 'pvt-login-logs-fullscreen-html'
         },
+=======
+     * 📢 Static Method to open viewer in a Modal
+     */
+    static async openModal() {
+      const viewer = new LoginLogsViewerComponent({ limit: 300 });
+      viewer.containerId = 'pvtLoginLogsViewerContainer';
+
+      const { value: formValues } = await Swal.fire({
+        title: null,
+        html: `<div id="pvtLoginLogsViewerContainer" style="min-height: 400px; padding: 4px;">กำลังเตรียมข้อมูล...</div>`,
+        width: 'min(96vw, 1020px)',
+        padding: '12px',
+        showConfirmButton: false,
+        showCloseButton: true,
+        allowOutsideClick: true,
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         didOpen: () => {
           window.PVTLoginLogsViewer = viewer;
           window.copyLoginLogsMigrationSql = () => viewer.showSqlMigration();

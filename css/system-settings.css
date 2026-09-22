@@ -4,17 +4,17 @@
 
 /* 🔤 Font Scaling CSS Rules (มีผลครอบคลุมทุกหน้าและทุกองค์ประกอบข้อความ) */
 html[data-font-size="medium"] {
-  font-size: 16.5px !important;
+  font-size: 16.96px !important; /* +6% */
 }
 html[data-font-size="large"] {
-  font-size: 18px !important;
+  font-size: 17.92px !important; /* +12% */
 }
 
 html[data-font-size="medium"] body {
-  font-size: 16.5px !important;
+  font-size: 16.96px !important;
 }
 html[data-font-size="large"] body {
-  font-size: 18px !important;
+  font-size: 17.92px !important;
 }
 
 html[data-font-size="medium"] p,
@@ -44,7 +44,7 @@ html[data-font-size="large"] textarea,
 html[data-font-size="large"] .nav-label,
 html[data-font-size="large"] .btn,
 html[data-font-size="large"] .action-btn {
-  font-size: 114% !important;
+  font-size: 112% !important;
 }
 
 /* Adjust element spacing and elasticity for large font mode */
@@ -792,7 +792,7 @@ body {
   display: none !important;
 }
 .goog-te-menu-value span[style*="color"] {
-  font-size: 10px !important;
+  font-size: 12px !important;
   margin-left: 4px !important;
   color: #64748b !important;
 }
@@ -900,5 +900,100 @@ html, body {
   border-color: #3b82f6 !important;
   box-shadow: 0 8px 20px -10px rgba(59, 130, 246, 0.2) !important;
 }
+
+/* 📅 Hide Holiday Summary and Holiday Calendar when toggled off */
+html[data-hide-holiday-summary="true"] #companySummarySidebar,
+html[data-hide-holiday-summary="true"] .company-summary-panel-top {
+  display: none !important;
+}
+
+html[data-hide-holiday-calendar="true"] #companyCalendarLayout,
+html[data-hide-holiday-calendar="true"] .team-calendar-layout {
+  display: none !important;
+}
+
+/* 📅 Hide Holiday Calendar links/buttons when toggled off */
+html[data-hide-holiday-calendar="true"] [href*="holidays.html"],
+html[data-hide-holiday-calendar="true"] [onclick*="holidays.html"],
+html[data-hide-holiday-calendar="true"] [onclick*="goToHolidays"] {
+  display: none !important;
+}
+
+/* 🟢 Hide all LINE connect, LINE links, widgets, settings, and profile sections for non-managers (regular employees) */
+html[data-user-role-level="employee"] #sidebarLineConnectBtn,
+html[data-user-role-level="employee"] #sidebarLineConnectBtnQuick,
+html[data-user-role-level="employee"] .nav-item-line,
+html[data-user-role-level="employee"] #lineConnectWidget,
+html[data-user-role-level="employee"] #lineNotificationSection,
+html[data-user-role-level="employee"] #lineSettingBox,
+html[data-user-role-level="employee"] #settingsLineNotifyCard,
+html[data-user-role-level="employee"] .magic-translate-card button[onclick*="generateLineLinkToken"],
+html[data-user-role-level="employee"] .menu-item[onclick*="generateLineLinkToken"],
+html[data-user-role-level="employee"] button[onclick*="generateLineLinkToken"],
+html[data-user-role-level="employee"] button[onclick*="openLineConnectModal"],
+html[data-user-role-level="employee"] [onclick*="line_link"] {
+  display: none !important;
+}
+
+/* 🟢 Holiday Toggle Buttons Style & Responsiveness */
+.holiday-toggle-btn {
+  background: rgba(13, 148, 136, 0.08) !important;
+  border: 1px solid rgba(13, 148, 136, 0.2) !important;
+  cursor: pointer !important;
+  padding: 6px 14px !important;
+  border-radius: 9999px !important;
+  font-size: 13px !important;
+  color: #0d9488 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 1px 2px rgba(13, 148, 136, 0.05) !important;
+  flex-shrink: 0 !important;
+  touch-action: manipulation !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.holiday-toggle-btn * {
+  pointer-events: none !important;
+}
+
+.holiday-toggle-btn:hover {
+  background: rgba(13, 148, 136, 0.15) !important;
+  border-color: rgba(13, 148, 136, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+.holiday-toggle-btn:active {
+  transform: translateY(1px) !important;
+}
+
+@media (max-width: 640px) {
+  .holiday-toggle-btn .toggle-text {
+    display: none !important;
+  }
+  .holiday-toggle-btn {
+    padding: 8px !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+  }
+}
+
+.toggle-collapsed {
+  display: none !important;
+}
+
+/* 🎯 Focus-Mode Selected Element */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > nav:nth-of-type(1) > a:nth-of-type(3) {
+  padding-left: 10px !important;
+  margin-left: 0px !important;
+  margin-bottom: 22px !important;
+}
+
+
 
 

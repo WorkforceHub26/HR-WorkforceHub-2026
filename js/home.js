@@ -1900,7 +1900,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
           display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
           overflow: hidden;
         }
-        .card-header { font-size: 10px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
+        .card-header { font-size: 12px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
         .card-body { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
         .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid #38bdf8; flex-shrink: 0; background: #1e293b; }
         .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
@@ -1911,7 +1911,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
         .qr-box { background: white; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
         .qr-box img { width: 50px; height: 50px; display: block; }
         .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
-        .emp-id { font-size: 10px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; }
+        .emp-id { font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; }
         @media print { body { background: transparent; } .card { border: none; box-shadow: none; } }
       </style>
     </head>
@@ -2017,12 +2017,12 @@ window.printMultipleCards = function (selectedList = []) {
           }
           .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1); }
           .lanyard-hole { width: 32px; height: 6px; background: #020617; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.15); }
-          .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
+          .company { font-weight: 700; font-size: 12px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
           .profile-section { margin-bottom: 4px; width: 100%; }
           .name { font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; line-height: 1.2; word-break: break-word; }
           .badge-container { display: flex; flex-direction: column; gap: 3px; align-items: center; justify-content: center; }
-          .role-badge { font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
-          .dept-text { font-size: 10px; color: #94a3b8; font-weight: 400; }
+          .role-badge { font-size: 12px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+          .dept-text { font-size: 12px; color: #94a3b8; font-weight: 400; }
           .qr-box { background: #ffffff; padding: 6px; border-radius: 10px; display: inline-block; border: 2px solid #38bdf8; }
           .qr-box img { width: 110px; height: 110px; display: block; }
           .footer-section { width: 100%; }
@@ -2869,6 +2869,7 @@ window.markAllNotificationsAsRead = typeof markAllNotificationsAsRead !== 'undef
 window.openAllNotificationsModal = typeof openAllNotificationsModal !== 'undefined' ? openAllNotificationsModal : window.openAllNotificationsModal;
 window.handlePrintSelectedCardsFromPopup = typeof handlePrintSelectedCardsFromPopup !== 'undefined' ? handlePrintSelectedCardsFromPopup : window.handlePrintSelectedCardsFromPopup;
 window.toggleSelectAllCards = typeof toggleSelectAllCards !== 'undefined' ? toggleSelectAllCards : window.toggleSelectAllCards;
+window.drawCharts = typeof drawCharts !== 'undefined' ? drawCharts : window.drawCharts;
 
 /* ==========================================================================
    7. 🎯 ACTION-FIRST DASHBOARD ENGINE
@@ -3254,13 +3255,23 @@ window.quickApproveFromDashboard = async function(leaveId) {
     if (updateErr) throw updateErr;
 
     // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล
-    await sb.from('notifications').insert({
-      employee_id: reqData.employee_id,
-      title: `ใบลาได้รับการอนุมัติ`,
-      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
-      type: 'leave',
-      link_url: '/pages/user/index-user.html'
-    });
+    if (window.safeInsertNotification) {
+      await window.safeInsertNotification(sb, {
+        employee_id: reqData.employee_id,
+        title: `ใบลาได้รับการอนุมัติ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      });
+    } else {
+      await sb.from('notifications').insert({
+        employee_id: reqData.employee_id,
+        title: `ใบลาได้รับการอนุมัติ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      }).catch(e => console.warn(e));
+    }
 
     // 💬 ส่งแจ้งเตือน LINE ให้พนักงานผู้ขอลา
     if (window.PVTSDK?.line) {
@@ -3470,13 +3481,23 @@ window.quickRejectFromDashboard = async function(leaveId) {
     if (updateErr) throw updateErr;
 
     // 🔔 แจ้งเตือนพนักงาน
-    await sb.from('notifications').insert({
-      employee_id: reqData.employee_id,
-      title: `ใบลาได้รับการปฏิเสธ`,
-      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${trimmedComment}`,
-      type: 'leave',
-      link_url: '/pages/user/index-user.html'
-    });
+    if (window.safeInsertNotification) {
+      await window.safeInsertNotification(sb, {
+        employee_id: reqData.employee_id,
+        title: `ใบลาได้รับการปฏิเสธ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${trimmedComment}`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      });
+    } else {
+      await sb.from('notifications').insert({
+        employee_id: reqData.employee_id,
+        title: `ใบลาได้รับการปฏิเสธ`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการปฏิเสธ เนื่องจาก: ${trimmedComment}`,
+        type: 'leave',
+        link_url: '/pages/user/index-user.html'
+      }).catch(e => console.warn(e));
+    }
 
     Swal.fire({ icon: 'success', title: 'ปฏิเสธใบลาเรียบร้อย', showConfirmButton: false, timer: 1500 });
     await refreshDashboardData();

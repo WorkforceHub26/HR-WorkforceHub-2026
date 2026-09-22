@@ -117,9 +117,12 @@ export default defineConfig({
         hrAdminDashboard: resolve(__dirname, 'pages/hr/admin-dashboard.html'),
         hrLeaveStats: resolve(__dirname, 'pages/hr/leave-stats.html'),
         hrNewsManagement: resolve(__dirname, 'pages/hr/news-management.html'),
+<<<<<<< HEAD
         hrEmployeeCards: resolve(__dirname, 'pages/hr/employee-cards.html'),
         hrHolidays: resolve(__dirname, 'pages/hr/holidays.html'),
         hrLoginLogs: resolve(__dirname, 'pages/hr/login-logs.html'),
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
       },
     },
   },

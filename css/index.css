@@ -496,7 +496,11 @@ body {
   max-height: 22px !important;
   max-width: 22px !important;
   padding: 0 !important;
+<<<<<<< HEAD
   font-size: 10px !important;
+=======
+  font-size: 12px !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   font-weight: 700 !important;
   border-radius: 50% !important;
   display: inline-flex !important;

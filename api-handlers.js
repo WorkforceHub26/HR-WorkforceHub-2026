@@ -736,7 +736,7 @@ export async function handleOcrScan(req, res) {
 
     const ai = new GoogleGenAI({ apiKey });
     let response = null;
-    const candidateModels = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
     
     for (const modelName of candidateModels) {
       try {
@@ -906,7 +906,7 @@ export async function handleHrChatbot(req, res) {
 
 หากอยู่นอกเหนือจากระเบียบ ให้ตอบสั้นๆ ว่า "ติดต่อ HR เพิ่มเติมที่ อีเมล hr@pvt-workforce.com หรือโทรภายใน 101-104 ครับ"`;
 
-    const candidateModels = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+    const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
     let responseText = null;
 
     for (const modelName of candidateModels) {

@@ -707,22 +707,22 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
     gap: 4px !important;
   }
 
-  /* Fix language switcher to the top of the screen on mobile */
+  /* Fix language switcher container on mobile */
   #globalLangSwitcherContainer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 9999;
+    position: relative;
+    width: auto;
+    max-width: 100%;
+    z-index: 99;
     background: transparent;
-    padding: 8px;
-    display: flex;
-    justify-content: center;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
   }
   
   /* Adjust main content to not be covered by fixed switcher */
   .main-content, .app {
-    padding-top: 50px !important;
+    padding-top: 0 !important;
   }
 }
 
@@ -755,23 +755,35 @@ table tbody tr:hover td, table.styled-table tbody tr:hover td, table.data-table 
 
 
 /* --------------------------------------------------------------------------
-   GLOBAL USER PROFILE (TOPBAR)
+   GLOBAL USER PROFILE (TOPBAR) - AVATAR ONLY
    -------------------------------------------------------------------------- */
 .user-profile {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--bg-card, #ffffff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 50px;
-  padding: 6px 14px 6px 6px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  max-width: 100%;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  max-width: fit-content !important;
   box-sizing: border-box;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible !important;
   margin-left: 6px;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.user-profile:hover {
+  transform: scale(1.06);
+}
+
+.user-profile .info,
+.user-profile .status-badge {
+  display: none !important;
 }
 
 .user-profile .avatar,
@@ -1083,7 +1095,7 @@ html, body {
   display: inline-flex !important;
   align-items: center !important;
   background: #f8fafc !important; /* Premium clean background */
-  padding: 3px !important;
+  padding: 1px !important; /* Reduced padding */
   border-radius: 9999px !important;
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05) !important;
   border: 1px solid #e2e8f0 !important; /* Soft slate-200 border */
@@ -1098,10 +1110,10 @@ html, body {
 #globalLangTh, #globalLangLo, #globalLangMy,
 #langThBtn, #langLoBtn, #langMyBtn {
   border: none !important;
-  padding: 4px 14px !important; /* Spacious padding for beautiful readability */
+  padding: 2px 10px !important; /* Reduced padding */
   border-radius: 9999px !important; /* Always fully rounded pill matching container */
   cursor: pointer !important;
-  font-size: 11.5px !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
   color: #64748b !important;
   background: transparent !important;
@@ -1110,8 +1122,8 @@ html, body {
   align-items: center !important;
   justify-content: center !important;
   line-height: 1 !important;
-  height: 26px !important;
-  min-height: 26px !important;
+  height: 22px !important; /* Reduced height */
+  min-height: 22px !important; /* Reduced height */
   box-sizing: border-box !important;
   white-space: nowrap !important;
   letter-spacing: 0.3px !important;
@@ -1150,6 +1162,7 @@ html, body {
   .lang-switcher button,
   .lang-switcher .lang-btn,
   #globalLangSwitcherContainer .lang-btn {
+<<<<<<< HEAD
     padding: 3px 8px !important;
     font-size: 11px !important;
     font-weight: 700 !important;
@@ -1159,6 +1172,17 @@ html, body {
   #globalLangSwitcherContainer {
     margin-left: 2px !important;
     margin-right: 2px !important;
+=======
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    min-height: 20px !important;
+    height: 20px !important;
+  }
+  #globalLangSwitcherContainer {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   }
 }
 
@@ -1950,7 +1974,7 @@ p, span, div, td, th, label, .card-title, .badge {
   grid-column: auto !important;
   grid-row: auto !important;
   flex-shrink: 0 !important;
-  margin: 0 !important;
+  margin: 0 10px !important; /* Added 10px breathing room */
   z-index: 10 !important;
   align-items: center !important;
 }
@@ -2123,7 +2147,7 @@ p, span, div, td, th, label, .card-title, .badge {
 
 .sidebar-section-title {
   padding: 4px 10px 2px 10px;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -2136,7 +2160,7 @@ p, span, div, td, th, label, .card-title, .badge {
   margin-left: auto;
   background: #ef4444;
   color: #ffffff;
-  font-size: 10.5px;
+  font-size: 12px;
   padding: 1px 6px;
   border-radius: 9999px;
   font-weight: 700;
@@ -2711,16 +2735,22 @@ button:active,
     font-size: 14px !important;
   }
 
-  /* 5. Header & Topbar Stacking */
+  /* 5. Header & Topbar Layout */
   .topbar, .user-header, .header-container, .page-header {
-    flex-wrap: wrap !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
     gap: 10px !important;
     padding: 12px 14px !important;
   }
 
   .user-header-right, .topbar-right, .header-actions {
-    width: 100% !important;
-    justify-content: space-between !important;
+    width: auto !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
   }
 
   /* 6. Modal / Dialog Fitting for Mobile Screen */
@@ -3067,7 +3097,7 @@ button:active,
   }
 
   .notif-count-pill {
-    font-size: 10.5px !important;
+    font-size: 12px !important;
     padding: 2px 5px !important;
   }
 
@@ -3110,7 +3140,7 @@ button:active,
   }
 
   .notif-filter-tab .tab-badge {
-    font-size: 10px !important;
+    font-size: 12px !important;
     padding: 1px 4px !important;
   }
 
@@ -3255,17 +3285,30 @@ button:active,
   bottom: 0;
   left: 0;
   right: 0;
+<<<<<<< HEAD
   height: 64px;
   background: rgba(255, 255, 255, 0.94);
+=======
+  height: auto;
+  min-height: 58px;
+  background: rgba(255, 255, 255, 0.96);
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid rgba(226, 232, 240, 0.85);
   display: flex;
   align-items: center;
   justify-content: space-around;
+<<<<<<< HEAD
   padding: 0 12px max(6px, env(safe-area-inset-bottom)) 12px;
   z-index: 1000;
   box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.05);
+=======
+  padding: 3px 4px max(4px, env(safe-area-inset-bottom)) 4px;
+  z-index: 1000;
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.05);
+  box-sizing: border-box;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 @media (min-width: 1025px) {
@@ -3284,6 +3327,7 @@ button:active,
   body:has(.mobile-bottom-nav) .news-hub-container,
   body:has(.mobile-bottom-nav) .page,
   body:has(.mobile-bottom-nav) .content-body {
+<<<<<<< HEAD
     padding-bottom: max(110px, calc(96px + env(safe-area-inset-bottom))) !important;
   }
 
@@ -3291,16 +3335,24 @@ button:active,
   body:has(.mobile-bottom-nav):has(.bottom-actions) .leave-cards-container,
   body:has(.bottom-actions) .page {
     padding-bottom: calc(220px + env(safe-area-inset-bottom)) !important;
+=======
+    padding-bottom: max(78px, calc(68px + env(safe-area-inset-bottom))) !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   }
 
   /* Raise floating action buttons above mobile bottom bar */
   body:has(.mobile-bottom-nav) #hrChatbotFab {
+<<<<<<< HEAD
     bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+=======
+    bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
     right: 16px !important;
   }
 
   body:has(.mobile-bottom-nav) .form-fab-btn,
   body:has(.mobile-bottom-nav) #form-leave-guide-fab {
+<<<<<<< HEAD
     bottom: calc(80px + env(safe-area-inset-bottom)) !important;
     left: 16px !important;
     right: auto !important;
@@ -3319,6 +3371,13 @@ button:active,
 
   body:has(.mobile-bottom-nav) .bottom-actions {
     bottom: calc(68px + env(safe-area-inset-bottom)) !important;
+=======
+    bottom: calc(74px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body:has(.mobile-bottom-nav) .bottom-actions {
+    bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   }
 }
 
@@ -3327,6 +3386,7 @@ button:active,
   flex-direction: column;
   align-items: center;
   justify-content: center;
+<<<<<<< HEAD
   gap: 2px;
   text-decoration: none;
   color: #64748b;
@@ -3347,6 +3407,40 @@ button:active,
   font-size: 10.5px;
   font-weight: 600;
   line-height: 1.2;
+=======
+  gap: 1px;
+  text-decoration: none;
+  color: #64748b;
+  position: relative;
+  padding: 3px 2px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  user-select: none;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 20%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.bottom-nav-item .material-symbols-outlined {
+  font-size: 21px;
+  transition: transform 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.bottom-nav-item .nav-label {
+  font-size: 11px !important;
+  font-weight: 500;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  letter-spacing: -0.2px;
+  text-align: center;
+  display: block;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 .bottom-nav-item.active {
@@ -3359,7 +3453,11 @@ button:active,
 }
 
 .bottom-nav-item.active .nav-label {
+<<<<<<< HEAD
   font-weight: 800;
+=======
+  font-weight: 700;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 .nav-active-dot {
@@ -3374,20 +3472,39 @@ button:active,
 /* Center Prominent Action in Bottom Nav (+ FAB) */
 .bottom-nav-item.primary-action {
   color: #1d4ed8;
+<<<<<<< HEAD
   margin-top: -16px;
 }
 
 .bottom-nav-item.primary-action .center-fab-icon {
   width: 44px;
   height: 44px;
+=======
+  margin-top: -24px;
+  padding-top: 1px;
+  padding-bottom: 5px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.bottom-nav-item.primary-action .center-fab-icon {
+  width: 40px;
+  height: 40px;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   border-radius: 50%;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
+<<<<<<< HEAD
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+=======
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 .bottom-nav-item.primary-action .center-fab-icon .material-symbols-outlined {
@@ -3407,12 +3524,18 @@ button:active,
 /* ==========================================================================
    📱 BORDERLESS HEADER ICONS & PROFILE (MOBILE & DESKTOP GLOBAL)
    ========================================================================== */
+<<<<<<< HEAD
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1),
 div#appLayout > main > header,
 .page-header-row.mobile-appbar,
 .page-header-row,
 #indexUserHeader,
 .user-header {
+=======
+div#appLayout > main > header,
+.page-header-row.mobile-appbar,
+.page-header-row {
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
@@ -3420,6 +3543,7 @@ div#appLayout > main > header,
   flex-wrap: nowrap !important;
   grid-template-columns: none !important;
   grid-template-rows: none !important;
+<<<<<<< HEAD
   margin: 0 !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
@@ -3431,6 +3555,9 @@ div#appLayout > main > header,
   width: 100% !important;
   max-width: 100% !important;
   border-radius: 0 !important;
+=======
+  padding: 10px 16px !important; /* Added padding */
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 div#appLayout > main > header > div:nth-of-type(1),
@@ -3539,6 +3666,7 @@ div#appLayout > main > header > div:nth-of-type(2) > div:nth-of-type(2),
   display: block !important;
 }
 
+<<<<<<< HEAD
 /* 🔍 ลบกรอบสี่เหลี่ยมสีเขียว/ฟ้าหัวเป็ดโปร่งแสงออกจากไอคอนค้นหาทั่วระบบ */
 .search-icon,
 .home-team-search .search-icon,
@@ -3982,9 +4110,350 @@ div#appLayout > aside#mainSidebar > button#desktopSidebarEdgeToggle:hover,
 div#appLayout > aside#mainSidebar > button#desktopSidebarEdgeToggle:active,
 #desktopSidebarEdgeToggle:active {
   transform: translateY(-50%) scale(0.92) !important;
+=======
+/* 🎯 Focus-mode styling: Clean and organize header, remove name and rights/role */
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1),
+.page-header-row.mobile-appbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  min-height: 56px !important;
+  overflow: visible !important;
+}
+
+/* Remove name and role/rights text from top header */
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-meta,
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-meta,
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-name,
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-desc,
+.page-header-row.mobile-appbar .user-profile-meta,
+.page-header-row.mobile-appbar .user-profile-name,
+.page-header-row.mobile-appbar .user-profile-desc,
+.user-profile-meta {
+  display: none !important;
+}
+
+/* Format avatar into a neat circular clickable icon */
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-pill,
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-pill,
+.page-header-row.mobile-appbar .user-profile-pill,
+.user-profile-pill {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-avatar,
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-avatar,
+.page-header-row.mobile-appbar .user-profile-avatar,
+.user-profile-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  display: block !important;
+  transition: transform 0.2s ease, border-color 0.2s ease !important;
+}
+
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user-profile-avatar:hover,
+.page-header-row.mobile-appbar .user-profile-avatar:hover {
+  transform: scale(1.05) !important;
+  border-color: #0d9488 !important;
+}
+
+/* Right-zone actions layout */
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2),
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2),
+.page-header-row.mobile-appbar .appbar-right-zone,
+.appbar-right-zone {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 14px !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .appbar-right-zone {
+    gap: 8px !important;
+  }
+}
+
+/* Clean, responsive language switcher */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#historyActionsZone:nth-of-type(1) > div#globalLangSwitcherContainer:nth-of-type(1),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div#historyActionsZone:nth-of-type(1) > div#globalLangSwitcherContainer:nth-of-type(1),
+#historyActionsZone > #globalLangSwitcherContainer,
+#historyActionsZone #globalLangSwitcherContainer,
+#globalLangSwitcherContainer {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+#historyActionsZone {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+#globalLangSwitcherContainer .lang-switcher {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 9999px !important;
+  padding: 3px !important;
+  gap: 2px !important;
+}
+
+#globalLangSwitcherContainer .lang-btn {
+  border: none !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+}
+
+#globalLangSwitcherContainer .lang-btn.active {
+  background: #0d9488 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.3) !important;
+}
+
+/* 🎯 Header Notification Button & Icon */
+#notificationBtn,
+.notif-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+#notificationBtn:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button#notificationBtn:nth-of-type(1) > img:nth-of-type(1),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button#notificationBtn:nth-of-type(1) > img:nth-of-type(1),
+#notificationBtn > img,
+.notif-btn > img {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
+/* User profile avatar */
+.user-profile-avatar,
+#userAvatar,
+#user-avatar {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 2px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  transition: transform 0.2s ease, border-color 0.2s ease !important;
+}
+
+/* 🎯 Focus-mode styling updates for Header Title & Subtitle */
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1),
+.page-header-row .appbar-main-title {
+  font-size: 18px !important;
+}
+
+div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2),
+div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2),
+.page-header-row .appbar-subtext {
+  font-size: 12px !important;
+}
+
+/* ==========================================================================
+   📱 IPHONE & IOS SAFARI COMPATIBILITY & OPTIMIZATIONS
+   ========================================================================== */
+
+/* 1. iOS Root & Safe Area Variables */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* 2. Global iOS WebKit adjustments */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+/* 3. Prevent iOS Safari Auto-Zoom on Form Input Focus */
+@media screen and (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevents iPhone Safari page auto-zoom on input focus */
+  }
+
+  /* Reset form input default iOS rounded corners & inner shadows */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="date"],
+  select,
+  textarea {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+}
+
+/* 4. Touch Targets & Instant Touch Response on Mobile */
+button,
+a,
+input,
+select,
+textarea,
+.clickable,
+.nav-item,
+.menu-item {
+  touch-action: manipulation; /* Removes 300ms delay on iOS taps */
+}
+
+/* 5. Smooth Touch Momentum Scrolling for WebKit / Safari */
+.sidebar,
+.modal-body,
+.swal2-popup,
+.table-responsive,
+.scrollable-y,
+.card-body,
+.page-body-container,
+.drawer-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 6. iPhone Fixed Bars & Safe Area Bottom Spacing (Notch / Home Indicator) */
+.mobile-bottom-bar,
+.mobile-nav,
+.fixed-bottom-action,
+footer.mobile-footer {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+}
+
+/* 7. Modal & SweetAlert2 Responsive Adjustments for iPhone (SE, 12/13/14/15/16 Pro) */
+@media screen and (max-width: 480px) {
+  .swal2-popup {
+    width: 92% !important;
+    padding: 16px 12px !important;
+    border-radius: 16px !important;
+    max-height: 90dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .swal2-title {
+    font-size: 16px !important;
+  }
+
+  .swal2-html-container {
+    font-size: 13px !important;
+  }
+
+  .swal2-actions {
+    flex-direction: column-reverse !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .swal2-actions button {
+    width: 100% !important;
+    margin: 0 !important;
+    min-height: 44px !important; /* Standard iPhone touch target size */
+  }
+
+  /* Table responsive wrapper touch scroll on iPhone */
+  .table-responsive,
+  div[style*="overflow-x: auto"],
+  div[style*="overflow-x:auto"] {
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+  }
+
+  /* Ensure main layout fits iPhone notch & home indicator */
+  #appLayout,
+  .app-container {
+    min-height: 100dvh !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1

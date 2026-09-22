@@ -22,6 +22,11 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
   <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="PVT Hub" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
 </head>
 
 <body id="page-hr-management">
@@ -34,8 +39,12 @@
           <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
         <div class="brand-name">PVTT WORKFORCE HUB</div>
+<<<<<<< HEAD
         <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
+=======
+        <button class="btn-close-sidebar" onclick="toggleMobileSidebar()" style="display: none;" title="ปิดเมนู">
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
       </div>
@@ -66,9 +75,15 @@
           <span class="material-symbols-outlined">analytics</span>
           <span class="nav-label">สถิติวันลา</span>
         </a>
+<<<<<<< HEAD
         <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
           <span class="material-symbols-outlined">calendar_month</span>
           <span class="nav-label">จัดการวันหยุด</span>
+=======
+        <a href="/pages/hr/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
+          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
+          <span class="nav-label">ปฏิทิน</span>
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         </a>
         
         <div class="sidebar-divider"></div>
@@ -94,10 +109,17 @@
 
         <div class="sidebar-divider"></div>
 
+<<<<<<< HEAD
         <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
         <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
           <span class="material-symbols-outlined">person</span>
           <span class="nav-label">หน้าหลักของพนักงาน</span>
+=======
+        <!-- 👤 สลับไปหน้าพนักงาน -->
+        <a href="/pages/user/index-user.html" class="nav-item" title="หน้าพนักงาน">
+          <img src="/assets/icons/user-profile.svg" alt="หน้าพนักงาน" class="nav-icon-custom" />
+          <span class="nav-label">หน้าพนักงาน</span>
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         </a>
       </nav>
 
@@ -121,9 +143,9 @@
           </div>
         </div>
         <div class="topbar-right">
-          <div class="user-profile" id="headerUserProfile">
+          <div class="user-profile" id="headerUserProfile" onclick="window.location.href='/pages/user/profile-user.html'" style="cursor: pointer;" title="ข้อมูลส่วนตัว">
             <div class="avatar avatar-badge notranslate" translate="no">HR</div>
-            <div class="info">
+            <div class="info" style="display: none;">
               <strong id="headerUserName">ผู้ดูแลระบบ</strong>
               <span id="headerUserRoleDept">เจ้าหน้าที่ HR | ฝ่ายทรัพยากรบุคคล</span>
             </div>
@@ -144,29 +166,61 @@
             <button class="action-btn hover-lift" onclick="editEmployeeData()"><span class="material-symbols-outlined">manage_accounts</span> แก้ไขข้อมูล/ตำแหน่ง</button>
             <button class="action-btn hover-lift" onclick="manageDepartments()"><span class="material-symbols-outlined">corporate_fare</span> จัดการแผนก/ตำแหน่ง</button>
             <button class="action-btn hover-lift" onclick="location.href='/pages/hr/approval-settings.html'" style="border-left: 4px solid #ef4444;"><span class="material-symbols-outlined">rule_settings</span> ตั้งค่าผู้อนุมัติ</button>
+<<<<<<< HEAD
             <button class="action-btn hover-lift" onclick="openLeaveRulesManagerModal()" style="border-left: 4px solid #0d9488; font-weight: 700; color: #0f766e;"><span class="material-symbols-outlined" style="color: #0d9488;">gavel</span> เงื่อนไขการลา (แก้ไข/เพิ่ม/ลบ)</button>
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
             <button class="action-btn success-zone hover-lift" onclick="importEmployeesExcel()"><span class="material-symbols-outlined">upload_file</span> อัปเดต/เพิ่มพนักงานด้วย Excel</button>
             <button class="action-btn hover-lift" onclick="clearEmployeeFilters()" style="border-left: 4px solid #f43f5e; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="color: #f43f5e;">restart_alt</span> ล้างคำขอ/ตัวกรองค้นหา</button>
           </div>
         </div>
 
         <div class="manage-card animate-slide-up delay-150 hover-lift">
+<<<<<<< HEAD
           <h3><span class="material-symbols-outlined">fact_check</span> 2. กฎระเบียบ & ข่าวสาร</h3>
+=======
+          <h3><span class="material-symbols-outlined">fact_check</span> 2. กฎระเบียบ</h3>
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           <div class="card-btn-group">
             <button class="action-btn hover-lift" onclick="editGlobalLeaveRules()"><span class="material-symbols-outlined">rule</span> ตั้งค่าโควตากลาง</button>
             <button class="action-btn hover-lift" onclick="editIndividualLeaveBalance()"><span class="material-symbols-outlined">tune</span> ปรับโควตารายบุคคล</button>
             <button class="action-btn hover-lift" onclick="openHolidayManagerModal()"><span class="material-symbols-outlined">calendar_month</span> ปฏิทินวันหยุด</button>
             <button class="action-btn success-zone hover-lift" onclick="checkAndCreateMissingQuotas()"><span class="material-symbols-outlined">sync_saved_locally</span> ตรวจสอบและสร้างโควตาวันลา</button>
             <button class="action-btn hover-lift" onclick="resetYearlyLeave()" style="border-left: 4px solid #0d9488; font-weight: 700; color: #0f766e;" title="สร้างและรีเซ็ตโควตาวันลาล่วงหน้าสำหรับปีหน้า หรือเลือกปีที่ต้องการ"><span class="material-symbols-outlined" style="color: #0d9488;">calendar_add_on</span> สร้างโควตาปีหน้า</button>
+<<<<<<< HEAD
             <a href="/pages/hr/news-management.html" class="action-btn hover-lift" style="border-left: 4px solid #0284c7; font-weight: 700; color: #0369a1; text-decoration: none;">
               <span class="material-symbols-outlined" style="color: #0284c7;">feed</span> ศูนย์จัดการข่าวสารองค์กร (Full Page)
             </a>
             <button class="action-btn hover-lift" onclick="openNewsManagerModal()" style="border-left: 4px solid #0284c7;">
               <span class="material-symbols-outlined" style="color: #0284c7;">campaign</span> จัดการข่าวสาร (Quick Modal)
+=======
+          </div>
+        </div>
+
+        <div class="manage-card animate-slide-up delay-200 hover-lift">
+          <h3><span class="material-symbols-outlined">health_and_safety</span> 3. รายงานและสุขภาวะ (Wellness)</h3>
+          <div class="card-btn-group">
+            <button class="action-btn success-zone hover-lift" onclick="exportAllLeaveHistoryExcel()" title="ส่งออกรายงานโควตาวันลา (employee_leave_balances) และประวัติการลา"><img src="/assets/icons/excel.svg" alt="Excel" class="btn-icon-graphic btn-icon-excel" style="width: 17px; height: 17px;" /> ดึงรายงานโควตา (Excel)</button>
+            <button class="action-btn hover-lift" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
+            <button class="action-btn hover-lift" onclick="viewLoginAuditLogs()" style="border-left: 4px solid #0d9488;"><span class="material-symbols-outlined">badge</span> ประวัติการเข้าสู่ระบบ (Login Logs)</button>
+            <button class="action-btn hover-lift" onclick="testLineNotificationFromHR()" style="border-left: 4px solid #4f46e5;"><span class="material-symbols-outlined">notifications_active</span> ทดสอบแจ้งเตือน LINE (Slip)</button>
+          </div>
+        </div>
+
+        <div class="manage-card animate-slide-up delay-300 hover-lift" style="border-top: 4px solid #0284c7;">
+          <h3><span class="material-symbols-outlined" style="color: #0284c7;">campaign</span> 4. ข่าวสาร</h3>
+          <div class="card-btn-group">
+            <a href="/pages/hr/news-management.html" class="action-btn hover-lift" style="border-left: 4px solid #0284c7; font-weight: 700; color: #0369a1; text-decoration: none;">
+              <span class="material-symbols-outlined" style="color: #0284c7;">feed</span> เปิดหน้าศูนย์จัดการข่าวสาร (Full Page)
+            </a>
+            <button class="action-btn hover-lift" onclick="openNewsManagerModal()">
+              <span class="material-symbols-outlined">add_circle</span> เพิ่ม/แก้ไขในป๊อปอัป (Quick Modal)
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
             </button>
           </div>
         </div>
 
+<<<<<<< HEAD
         <div class="manage-card animate-slide-up delay-200 hover-lift">
           <h3><span class="material-symbols-outlined">health_and_safety</span> 3. รายงาน, สุขภาวะ (Wellness) & แดชบอร์ดแอดมิน</h3>
           <div class="card-btn-group">
@@ -179,11 +233,72 @@
             </button>
             <a href="/pages/hr/admin-dashboard.html" class="action-btn hover-lift" style="text-decoration: none;" title="เปิดแดชบอร์ดแอดมินเต็มหน้าจอ" data-role="admin-only">
               <span class="material-symbols-outlined" style="color: #8b5cf6;">open_in_new</span> แดชบอร์ดเต็มหน้าจอ (Admin Console)
+=======
+        <div class="manage-card animate-slide-up delay-400 hover-lift" style="border-top: 4px solid #8b5cf6;" data-role="admin-only">
+          <h3><span class="material-symbols-outlined" style="color: #8b5cf6;">analytics</span> 5. แดชบอร์ดแอดมิน</h3>
+          <div class="card-btn-group">
+            <button class="action-btn hover-lift" onclick="openAdminDashboardModal()" style="border-left: 4px solid #8b5cf6; font-weight: 700; color: #6d28d9;" title="เปิดดูแดชบอร์ดแอดมินในรูปแบบป๊อปอัป">
+              <span class="material-symbols-outlined" style="color: #8b5cf6;">widgets</span> เปิดดูในป๊อปอัป (Popup Modal)
+            </button>
+            <a href="/pages/hr/admin-dashboard.html" class="action-btn hover-lift" style="text-decoration: none;" title="เปิดแดชบอร์ดแอดมินเต็มหน้าจอ">
+              <span class="material-symbols-outlined">open_in_new</span> เปิดหน้าต่างเต็ม (Admin Console)
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
             </a>
           </div>
         </div>
       </div>
 
+<<<<<<< HEAD
+=======
+      <!-- SECTION: Recharts Analytics (สถิติรายวันประจำเดือน) -->
+      <div class="section-title">
+        <span class="material-symbols-outlined">monitoring</span>
+        <span>วิเคราะห์แนวโน้มการเข้าใช้งานและการลาประจำเดือนนี้</span>
+      </div>
+      <div id="rechartsSummaryPanel" style="margin-bottom: 24px;"></div>
+
+      <!-- SECTION 2: การ์ดสรุปสถิติ (Stat Cards) -->
+      <div class="section-title">
+        <span class="material-symbols-outlined">analytics</span>
+        <span>สรุปภาพรวมสถิติการลา</span>
+      </div>
+      <section class="summary-grid">
+        <article class="panel stat-card animate-scale delay-100 hover-lift">
+          <span class="stat-label">พนักงานทั้งหมด</span>
+          <strong id="statEmployees" class="stat-val">0</strong>
+        </article>
+        <article class="panel stat-card animate-scale delay-200 hover-lift" onclick="location.href='/pages/hr/hr.html'" style="cursor: pointer;">
+          <span class="stat-label">รายการลาทั้งหมด</span>
+          <strong id="statLeaves" class="stat-val">0</strong>
+        </article>
+        <article class="panel stat-card animate-scale delay-300 hover-lift" onclick="location.href='/pages/hr/hr.html?tab=pending'" style="cursor: pointer;">
+          <span class="stat-label">รออนุมัติ</span>
+          <strong id="statPending" class="stat-val warning">0</strong>
+        </article>
+        <article class="panel stat-card animate-scale delay-400 hover-lift" onclick="location.href='/pages/hr/hr.html?tab=history&filter=fully_approved'" style="cursor: pointer;">
+          <span class="stat-label">วันลารวม</span>
+          <strong id="statDays" class="stat-val primary">0</strong>
+        </article>
+      </section>
+
+      <!-- SECTION 3: กราฟวิเคราะห์ (Charts) -->
+      <section class="chart-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>สรุปแยกตามประเภทการลา</h2>
+            <span id="typeChartNote" class="status active">พร้อมใช้งาน</span>
+          </div>
+          <div id="typeChart" class="bars"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <h2>สถานะคำขอลา</h2>
+          </div>
+          <div id="statusChart" class="bars"></div>
+        </article>
+      </section>
+
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
         <!-- SECTION 4: ตารางข้อมูลพนักงาน & ประวัติการลา -->
         <div class="section-title">
           <span class="material-symbols-outlined">badge</span>
@@ -344,6 +459,7 @@
           </div>
         </section>
 
+<<<<<<< HEAD
         <!--  PANEL: รายชื่อพนักงานในองค์กร (Roster) ย้ายมาอยู่ท้ายสุดหน้าระบบจัดการส่วนกลาง -->
         <section class="panel mb-6 home-team-panel" id="homeDepartmentTeamSection" style="margin-top: 24px;">
           <div class="panel-header">
@@ -415,6 +531,34 @@
             </div>
           </div>
         </section>
+=======
+      <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR (HR / LEADER) -->
+      <nav class="mobile-bottom-nav">
+        <a href="/pages/hr/home.html" class="bottom-nav-item">
+          <span class="material-symbols-outlined">home</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/management.html" class="bottom-nav-item active">
+          <span class="material-symbols-outlined">manage_accounts</span>
+          <span class="nav-label">จัดการ</span>
+          <span class="nav-active-dot"></span>
+        </a>
+        <a href="/pages/hr/hr.html" class="bottom-nav-item primary-action" title="ตรวจและอนุมัติใบลา">
+          <div class="center-fab-icon">
+            <span class="material-symbols-outlined">fact_check</span>
+          </div>
+          <span class="nav-label">ตรวจใบลา</span>
+        </a>
+        <a href="/pages/hr/holidays.html" class="bottom-nav-item">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">วันหยุด</span>
+        </a>
+        <a href="/pages/user/index-user.html" class="bottom-nav-item">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">หน้าพนักงาน</span>
+        </a>
+      </nav>
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 
     </main>
   </div>
@@ -448,7 +592,10 @@
   <script type="module" src="/js/system-settings.js"></script>
   <script type="module" src="/js/company-news.js"></script>
   <script type="module" src="/js/health-wellness.js" onload="console.log('  โหลด health-wellness.js สำเร็จ')"></script>
+<<<<<<< HEAD
   <script src="/js/leave-rules.js" onload="console.log('  โหลด leave-rules.js สำเร็จ')"></script>
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   <script type="module" src="/js/components/login-logs-viewer.js" onload="console.log('  โหลด login-logs-viewer.js สำเร็จ')" onerror="console.error(' โหลด login-logs-viewer.js ล้มเหลว')"></script>
   <script type="module" src="/js/management.js" onload="console.log('  โหลด management.js สำเร็จ')" onerror="console.error(' โหลด management.js ล้มเหลว (404 Not Found)')"></script>
   <script type="module" src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error(' โหลด recharts-summary.js ล้มเหลว')"></script>

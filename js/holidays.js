@@ -228,9 +228,11 @@ function getLocalizedHolidayDesc(desc) {
 
 // 🚀 INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadUserProfile();
-  initNotificationBell();
-  await fetchHolidays();
+  if (document.getElementById('companyCalGrid') || document.getElementById('holidayGridContainer') || document.getElementById('yearSelect') || document.getElementById('companySummarySidebar')) {
+    await loadUserProfile();
+    initNotificationBell();
+    await fetchHolidays();
+  }
 });
 
 // 🛠️ HELPER: แปลงสตริง วันที่ ป้องกัน Timezone Offset และรองรับ ISO String
@@ -326,7 +328,13 @@ async function loadUserProfile() {
     }
 
     if (btnAdd) {
+<<<<<<< HEAD
       btnAdd.style.display = 'none';
+=======
+      // ตรวจสอบสิทธิ์: เฉพาะ Admin หรือ HR เท่านั้นที่มีสิทธิ์จัดการวันหยุด
+      const canManageHolidays = ['admin', 'hr'].includes(role) || Boolean(sessionUser.is_hr) || Boolean(sessionUser.is_admin);
+      btnAdd.style.display = canManageHolidays ? 'inline-flex' : 'none';
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
     }
 
     document.querySelectorAll('.hr-only').forEach(el => {
@@ -1293,7 +1301,7 @@ window.renderTeamCalendarGrid = function(year, month, leaves) {
         dotsHtml += `<div class="cal-leave-dot" style="background:${bg};" title="${dayLeaves[j].employees?.full_name}"></div>`;
       }
       if(dayLeaves.length > 3) {
-         dotsHtml += `<span style="font-size: 10px; color: #64748b; line-height: 8px;">+${dayLeaves.length - 3}</span>`;
+         dotsHtml += `<span style="font-size: 12px; color: #64748b; line-height: 8px;">+${dayLeaves.length - 3}</span>`;
       }
       dotsHtml += `</div>`;
     }
@@ -2038,7 +2046,11 @@ window.renderCompanySummarySidebar = function(list, specificDay = null, isYearly
             <div style="display: flex; align-items: flex-start; gap: 8px;">
               <span class="material-symbols-outlined" style="font-size: 15px; color: ${color}; margin-top: 1px; flex-shrink: 0;">label</span>
               <div>
+<<<<<<< HEAD
                 <strong style="color: #0f172a;">ประเภท:</strong> <span style="font-size: 10.5px; background: ${bgSoft}; color: ${color}; padding: 2px 7px; border-radius: 6px; font-weight: 700; border: 1px solid ${color}30;">${tagText}</span>
+=======
+                <strong style="color: #0f172a;">ประเภท:</strong> <span style="font-size: 12px; background: ${bgSoft}; color: ${color}; padding: 2px 7px; border-radius: 6px; font-weight: 700; border: 1px solid ${color}30;">${tagText}</span>
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
               </div>
             </div>
 
@@ -2094,3 +2106,94 @@ window.addEventListener("pvt-lang-changed", () => {
     }
   }
 });
+
+// Sidebar Helper Actions
+window.goToLeaveForm = function() { window.location.href = "/pages/user/leave-user.html"; };
+window.viewMyDigitalCard = function() { window.location.href = "/pages/user/index-user.html?action=digital_card"; };
+window.generateLineLinkToken = function() { window.location.href = "/pages/user/index-user.html?action=line_link"; };
+
+window.toggleHolidaySummarySection = function() {
+  console.log('toggleHolidaySummarySection called');
+  const content = document.querySelector('#companySummarySidebar .sidebar-content');
+  const btnIcon = document.getElementById('btnToggleSummaryIcon');
+  const btnText = document.getElementById('btnToggleSummaryText');
+  if (content) {
+    // Check if currently hidden (either by inline style or class)
+    const isHidden = content.style.getPropertyValue('display') === 'none' || content.classList.contains('toggle-collapsed');
+    
+    if (isHidden) {
+      content.style.removeProperty('display');
+      content.classList.remove('toggle-collapsed');
+      if (btnIcon) btnIcon.textContent = 'visibility_off';
+      if (btnText) btnText.textContent = 'ซ่อนรายการสรุป';
+      console.log('Summary section visible');
+    } else {
+      content.style.setProperty('display', 'none', 'important');
+      content.classList.add('toggle-collapsed');
+      if (btnIcon) btnIcon.textContent = 'visibility';
+      if (btnText) btnText.textContent = 'แสดงรายการสรุป';
+      console.log('Summary section hidden');
+    }
+  } else {
+    console.warn('Summary content container not found');
+  }
+};
+
+window.toggleHolidayCalendarBody = function() {
+  console.log('toggleHolidayCalendarBody called');
+  const body = document.getElementById('companyCalendarBody');
+  const btnIcon = document.getElementById('btnToggleCalendarIcon');
+  const btnText = document.getElementById('btnToggleCalendarText');
+  if (body) {
+    const isHidden = body.style.getPropertyValue('display') === 'none' || body.classList.contains('toggle-collapsed');
+    
+    if (isHidden) {
+      body.style.removeProperty('display');
+      body.classList.remove('toggle-collapsed');
+      if (btnIcon) btnIcon.textContent = 'visibility_off';
+      if (btnText) btnText.textContent = 'ซ่อนปฏิทิน';
+      console.log('Calendar body visible');
+    } else {
+      body.style.setProperty('display', 'none', 'important');
+      body.classList.add('toggle-collapsed');
+      if (btnIcon) btnIcon.textContent = 'visibility';
+      if (btnText) btnText.textContent = 'แสดงปฏิทิน';
+      console.log('Calendar body hidden');
+    }
+  } else {
+    console.warn('Calendar body container not found');
+  }
+};
+
+function bindToggleButtons() {
+  try {
+    const btnSummary = document.getElementById('btnToggleSummary');
+    if (btnSummary) {
+      btnSummary.removeAttribute('onclick'); // Let event listener handle it if active
+      btnSummary.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.toggleHolidaySummarySection();
+      });
+      console.log('Successfully bound btnToggleSummary');
+    }
+    const btnCalendar = document.getElementById('btnToggleCalendar');
+    if (btnCalendar) {
+      btnCalendar.removeAttribute('onclick'); // Let event listener handle it if active
+      btnCalendar.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.toggleHolidayCalendarBody();
+      });
+      console.log('Successfully bound btnToggleCalendar');
+    }
+  } catch (err) {
+    console.error('Error binding toggle buttons:', err);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindToggleButtons);
+} else {
+  bindToggleButtons();
+}

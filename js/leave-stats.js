@@ -53,7 +53,20 @@ window.openSystemSettingsModal = window.openSystemSettingsModal || function() {
 };
 
 window.openEmployeeCardManagerPopup = window.openEmployeeCardManagerPopup || function() {
-  window.location.href = '/pages/hr/home.html?action=employee_card';
+  try {
+    const raw = localStorage.getItem("currentUser");
+    const session = raw ? JSON.parse(raw) : null;
+    const empCode = String(session?.employee_code || session?.employees?.employee_code || '').trim();
+    const rawRole = String(session?.role || session?.employees?.role || '').toLowerCase().trim();
+    const isSpecialHr = ['HR-001', 'HR-002', 'HR-003', 'HR-001-3'].includes(empCode) || ((rawRole === 'admin' || rawRole === 'superadmin') && !['19122', '19072', '19128'].includes(empCode));
+    if (isSpecialHr) {
+      window.location.href = '/pages/hr/home.html?action=employee_card';
+    } else {
+      window.location.href = '/pages/user/index-user.html?action=digital_card';
+    }
+  } catch(e) {
+    window.location.href = '/pages/user/index-user.html?action=digital_card';
+  }
 };
 
 window.handleLogout = function(event) {
@@ -118,8 +131,9 @@ function safeEscapeHtml(str) {
 }
 
 function getSafeSupabaseClient() {
-  if (window.supabaseClient) return window.supabaseClient;
-  if (window.supabase) return window.supabase;
+  const c = window.supabaseClient || window.pvtSupabase?.client || window.pvtSupabase?.getClient?.();
+  if (c && typeof c.from === 'function') return c;
+  if (window.supabase && typeof window.supabase.from === 'function') return window.supabase;
   return null;
 }
 
@@ -208,11 +222,10 @@ window.loadLeaveStatsData = async function() {
 
   try {
     const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-    window.leaveStatsState.userDeptName = localUser.department_name || localUser.departments?.department_name || "";
     const userRole = String(localUser.role || 'user').toLowerCase();
     const empCode = String(localUser.employee_code || localUser?.employees?.employee_code || '').trim();
 
-    const isHrOrAdmin = ["hr", "admin", "superadmin"].includes(userRole) || empCode === '19122';
+    const isHrOrAdmin = ["hr", "admin", "superadmin"].includes(userRole) || ['19122', 'HR-001', 'HR-002', 'HR-003'].includes(empCode);
     const isExecutive = ["director", "executive", "owner"].includes(userRole);
     const canSeeAllCompany = isHrOrAdmin || isExecutive;
 
@@ -243,6 +256,20 @@ window.loadLeaveStatsData = async function() {
     const deptLookup = {};
     deptList.forEach(d => { if (d && d.id) deptLookup[d.id] = d.department_name || 'ทั่วไป'; });
 
+    // Robustly determine current user's department name
+    let userDeptName = localUser.department_name || localUser.departments?.department_name || localUser.department || "";
+    if (!userDeptName) {
+      const myEmp = empList.find(e => 
+        (localUser.id && String(e.id) === String(localUser.id)) || 
+        (empCode && String(e.employee_code).trim() === empCode) || 
+        (localUser.employee_id && String(e.id) === String(localUser.employee_id))
+      );
+      if (myEmp) {
+        userDeptName = myEmp.department_id ? (deptLookup[myEmp.department_id] || '') : (myEmp.department_name || '');
+      }
+    }
+    window.leaveStatsState.userDeptName = userDeptName;
+
     const joinedRequests = rawRequests.map(r => {
       const emp = r.employee_id ? empMap[r.employee_id] : null;
       const deptName = emp && emp.department_id ? (deptLookup[emp.department_id] || 'ไม่ระบุแผนก') : 'ไม่ระบุแผนก';
@@ -268,11 +295,12 @@ window.loadLeaveStatsData = async function() {
     });
 
     let finalRequests = joinedRequests;
-    if (!canSeeAllCompany && window.leaveStatsState.userDeptName) {
+    if (!canSeeAllCompany && userDeptName) {
       finalRequests = joinedRequests.filter(r => {
         const dName = r.employees?.departments?.department_name || "";
-        return dName.toLowerCase() === window.leaveStatsState.userDeptName.toLowerCase();
+        return dName.toLowerCase() === userDeptName.toLowerCase();
       });
+      window.leaveStatsState.deptFilter = userDeptName;
     }
 
     window.leaveStatsState.cachedRequests = finalRequests;
@@ -507,13 +535,24 @@ function renderDepartmentStats(deptList, totalCompanyDays) {
   const container = document.getElementById("deptStatsContainer");
   if (!container) return;
 
+  const localUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const userRole = String(localUser.role || 'user').toLowerCase();
+  const empCode = String(localUser.employee_code || localUser?.employees?.employee_code || '').trim();
+  const isHrOrAdmin = ["hr", "admin", "superadmin"].includes(userRole) || ['19122', 'HR-001', 'HR-002', 'HR-003'].includes(empCode);
+  const isExecutive = ["director", "executive", "owner"].includes(userRole);
+  const canSeeAllCompany = isHrOrAdmin || isExecutive;
+  const userDeptName = window.leaveStatsState.userDeptName || "";
+
+  if (!canSeeAllCompany && userDeptName) {
+    deptList = deptList.filter(d => d.name.toLowerCase() === userDeptName.toLowerCase());
+  }
+
   if (deptList.length === 0) {
     container.innerHTML = `<div style="text-align: center; padding: 40px; color: #94a3b8; font-size: 14px;">ยังไม่มีข้อมูลใบลาสำหรับวิเคราะห์</div>`;
     return;
   }
 
   const maxDeptDays = deptList[0]?.days || 1;
-  const userDeptName = window.leaveStatsState.userDeptName || "";
 
   let html = "";
   deptList.forEach((dept, index) => {
@@ -527,7 +566,7 @@ function renderDepartmentStats(deptList, totalCompanyDays) {
           <div class="dept-stat-title-group">
             <span style="font-size: 13px; font-weight: 800; color: #0d9488; background: #ccfbf1; padding: 3px 10px; border-radius: 8px;">อันดับ #${index + 1}</span>
             <strong style="font-size: 15px; color: #0f172a;">${safeEscapeHtml(dept.name)}</strong>
-            ${isUserDept ? `<span style="font-size: 10.5px; background: #16a34a; color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
+            ${isUserDept ? `<span style="font-size: 12px; background: #16a34a; color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
           </div>
           <div class="dept-stat-value-group">
             <strong style="font-size: 16px; color: #0f766e; font-weight: 800;">${dept.days.toFixed(1)} วัน</strong>
@@ -652,25 +691,25 @@ function renderEmployeeRanking() {
     else if (index === 2) rankBadge = `<span style="font-size: 22px;">🥉</span>`;
 
     html += `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; gap: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-        <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
-          <div style="width: 32px; text-align: center; flex-shrink: 0;">${rankBadge}</div>
-          <img src="${safeEscapeHtml(emp.avatar)}" onerror="this.src='/assets/img/default-avatar.jpg'" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;">
-          <div style="min-width: 0; flex: 1;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <strong style="font-size: 14px; color: #0f172a; font-weight: 700;">${safeEscapeHtml(emp.name)}</strong>
-              ${emp.empCode ? `<span style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 1px 6px; border-radius: 6px;">${safeEscapeHtml(emp.empCode)}</span>` : ''}
+      <div class="emp-ranking-card">
+        <div class="emp-ranking-left">
+          <div class="emp-ranking-rank">${rankBadge}</div>
+          <img src="${safeEscapeHtml(emp.avatar)}" onerror="this.src='/assets/img/default-avatar.jpg'" class="emp-ranking-avatar" alt="Avatar">
+          <div class="emp-ranking-info">
+            <div class="emp-ranking-name-row">
+              <span class="emp-ranking-name">${safeEscapeHtml(emp.name)}</span>
+              ${emp.empCode ? `<span class="emp-ranking-code">${safeEscapeHtml(emp.empCode)}</span>` : ''}
             </div>
-            <div style="font-size: 12px; color: #64748b; margin-top: 2px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-              <span>🏢 ${safeEscapeHtml(emp.deptName)}</span>
-              <span>•</span>
-              <span>ประเภทหลัก: <b style="color: #0f766e;">${safeEscapeHtml(topLeaveType)}</b></span>
+            <div class="emp-ranking-sub-row">
+              <span class="emp-ranking-dept">🏢 ${safeEscapeHtml(emp.deptName)}</span>
+              <span style="color: #cbd5e1; flex-shrink: 0;">•</span>
+              <span style="flex-shrink: 0;">ประเภทหลัก: <b style="color: #0f766e; font-weight: 600;">${safeEscapeHtml(topLeaveType)}</b></span>
             </div>
           </div>
         </div>
-        <div style="text-align: right; flex-shrink: 0;">
-          <div style="font-size: 16px; font-weight: 800; color: #b91c1c;">${emp.days.toFixed(1)} วัน</div>
-          <span style="font-size: 11px; color: #64748b;">${emp.count} คำขอ</span>
+        <div class="emp-ranking-stats">
+          <div class="emp-ranking-days">${emp.days.toFixed(1)} วัน</div>
+          <span class="emp-ranking-count">${emp.count} คำขอ</span>
         </div>
       </div>
     `;
@@ -741,7 +780,7 @@ function renderMonthlyTrends(monthlyMap) {
     const heightPercent = Math.max(5, Math.round((val / maxVal) * 100));
     html += `
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end;">
-          <span style="font-size: 10.5px; font-weight: 700; color: #0f766e;">${val > 0 ? val.toFixed(1) : ''}</span>
+          <span style="font-size: 12px; font-weight: 700; color: #0f766e;">${val > 0 ? val.toFixed(1) : ''}</span>
           <div style="width: 100%; max-width: 32px; height: ${heightPercent}%; background: linear-gradient(180deg, #0d9488 0%, #0284c7 100%); border-radius: 6px 6px 0 0; transition: height 0.5s ease;" title="${monthNames[i]}: ${val} วัน"></div>
           <span style="font-size: 11px; color: #64748b; font-weight: 600; margin-top: 4px;">${monthNames[i]}</span>
         </div>

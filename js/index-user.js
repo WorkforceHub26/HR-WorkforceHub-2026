@@ -8,12 +8,18 @@ console.log("📢 [SYSTEM] เริ่มต้นโหลดสคริป�
    🔒 1. Safe Supabase Client & Helper Functions
    ========================================================================== */
 function getSafeSupabaseClient() {
-  return window.pvtSupabase?.getClient?.() 
-      || window.pvtSupabase?.client 
-      || window.PVTSDK?.client 
-      || window.supabaseClient 
-      || window.supabase 
-      || null;
+  const list = [
+    window.pvtSupabase?.getClient?.(),
+    window.pvtSupabase?.client,
+    window.PVTSDK?.getClient?.(),
+    window.PVTSDK?.client,
+    window.supabaseClient
+  ];
+  for (const c of list) {
+    if (c && typeof c.from === 'function') return c;
+  }
+  if (window.supabase && typeof window.supabase.from === 'function') return window.supabase;
+  return null;
 }
 
 function safeEscapeHtml(str) {
@@ -822,18 +828,11 @@ function checkApproverPermission(profileData) {
     approverContainer.style.setProperty("display", isApprover ? "flex" : "none", "important");
   }
 
-  if (isTopExecutive && isApprover) {
-    // 🏛️ ผู้บริหารระดับสูง: แสดงปุ่มเข้าสู่หน้าหลักภาพรวมองค์กร (Home)
-    if (switchBtn) switchBtn.style.setProperty("display", "flex", "important");
-    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "none", "important");
-  } else if (isApprover) {
-    // 👥 หัวหน้างานและผู้จัดการฝ่าย (รวมถึงคุณปณัยยา 19122): แสดงปุ่มตรวจและอนุมัติใบลาคนในแผนก (HR)
-    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "flex", "important");
-    if (switchBtn) switchBtn.style.setProperty("display", "none", "important");
-  } else {
-    // 👤 พนักงานทั่วไป: ซ่อนปุ่มทั้งหมด
-    if (deptApprovalBtn) deptApprovalBtn.style.setProperty("display", "none", "important");
-    if (switchBtn) switchBtn.style.setProperty("display", "none", "important");
+  if (deptApprovalBtn) {
+    deptApprovalBtn.style.setProperty("display", isApprover ? "flex" : "none", "important");
+  }
+  if (switchBtn) {
+    switchBtn.style.setProperty("display", "none", "important");
   }
 
   if (statsBtn) {
@@ -896,13 +895,13 @@ async function loadDepartmentTeam(profileData) {
       const nick = emp.nickname ? `(${emp.nickname})` : "";
       const roleLower = (emp.role || "").toLowerCase();
 
-      let roleBadge = '<span style="font-size: 10px; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-weight: 600;">พนักงาน</span>';
+      let roleBadge = '<span style="font-size: 12px; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-weight: 600;">พนักงาน</span>';
       if (roleLower === "leader" || roleLower.includes("leader")) {
-        roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 6px; font-weight: 700;">👑 หัวหน้างาน (L1)</span>';
+        roleBadge = '<span style="font-size: 12px; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 6px; font-weight: 700;">👑 หัวหน้างาน (L1)</span>';
       } else if (roleLower === "manager" || roleLower.includes("manager")) {
-        roleBadge = '<span style="font-size: 10px; background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (L2)</span>';
+        roleBadge = '<span style="font-size: 12px; background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (L2)</span>';
       } else if (["hr", "admin", "superadmin"].includes(roleLower)) {
-        roleBadge = '<span style="font-size: 10px; background: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
+        roleBadge = '<span style="font-size: 12px; background: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
       }
 
       const lineBadge = emp.line_id 
@@ -1042,17 +1041,24 @@ async function fetchUserNotifications() {
 
         if (myRole === "leader" || myRole === "manager") {
           const myDeptKeyword = String(myDeptName || "").toLowerCase();
-          // ถ้ามีชื่อแผนกในข้อความ หรือเป็นคำขอที่เกี่ยวกับ "อนุมัติ" ในแผนกตัวเอง
           if (myDeptKeyword && (msgLower.includes(myDeptKeyword) || titleLower.includes(myDeptKeyword))) {
             return true;
           }
-          // ถ้าไม่มีข้อมูลแผนก แต่อย่างน้อยต้องเป็นคำขออนุมัติ และไม่ใช่ของพนักงานทั่วไปคนอื่น (กรณีไม่มี user_id)
-          // แต่ทางที่ดีควรระบุ user_id ตอนสร้างแจ้งเตือน
-          return false; // ปิดการมองเห็นแบบเหมาเข่ง เพื่อความเป็นส่วนตัว
+          return false;
         }
-        return true; // HR / Admin see all
+        return true;
       });
     }
+
+    try {
+      const localNotifs = JSON.parse(localStorage.getItem("pvt_local_notifications") || "[]");
+      const myLocals = localNotifs.filter(n => String(n.employee_id) === String(myId));
+      myLocals.forEach(n => {
+        if (!filteredDbNotifs.some(dbN => String(dbN.id) === String(n.id))) {
+          filteredDbNotifs.push(n);
+        }
+      });
+    } catch(e) {}
 
     // แปลง db notifications เป็นรูปแบบมาตรฐาน
     filteredDbNotifs.forEach(n => {
@@ -2143,7 +2149,11 @@ function renderQuotaCards(quotas) {
               <span class="stat-num" style="color: #d97706;">${leaveStats.pendingCount}</span>
               <span class="stat-unit">รายการ</span>
             </div>
+<<<<<<< HEAD
             ${leaveStats.pendingDays > 0 ? `<span style="font-size: 10px; color: #b45309; font-weight: 600; line-height: 1;">(${leaveStats.pendingDays} วัน)</span>` : ''}
+=======
+            ${leaveStats.pendingDays > 0 ? `<span style="font-size: 12px; color: #b45309; font-weight: 600; line-height: 1;">(${leaveStats.pendingDays} วัน)</span>` : ''}
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           </div>
           <div class="micro-stat-box approved">
             <span class="stat-label">อนุมัติแล้ว</span>
@@ -2151,7 +2161,11 @@ function renderQuotaCards(quotas) {
               <span class="stat-num" style="color: #059669;">${leaveStats.approvedCount}</span>
               <span class="stat-unit">รายการ</span>
             </div>
+<<<<<<< HEAD
             ${leaveStats.approvedDays > 0 ? `<span style="font-size: 10px; color: #047857; font-weight: 600; line-height: 1;">(${leaveStats.approvedDays} วัน)</span>` : ''}
+=======
+            ${leaveStats.approvedDays > 0 ? `<span style="font-size: 12px; color: #047857; font-weight: 600; line-height: 1;">(${leaveStats.approvedDays} วัน)</span>` : ''}
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           </div>
         </div>
 
@@ -3081,6 +3095,15 @@ window.selectQuickLeaveType = function(leaveTypeId, element) {
 };
 
 window.submitQuickLeave = async function() {
+  if (!navigator.onLine) {
+    return Swal.fire({
+      icon: 'error',
+      title: '📡 ไม่พบการเชื่อมต่ออินเทอร์เน็ต',
+      text: 'อุปกรณ์ของคุณไม่ได้เชื่อมต่ออินเทอร์เน็ตในขณะนี้ กรุณาตรวจสอบสัญญาณ Wi-Fi หรือ Cellular แล้วลองใหม่อีกครั้งครับ',
+      confirmButtonColor: '#ef4444'
+    });
+  }
+
   const sb = getSafeSupabaseClient();
   if (!sb) return;
   
@@ -3171,14 +3194,25 @@ window.submitQuickLeave = async function() {
           ? `${applicantName} ได้ยื่นคำขอลาแบบด่วน วันที่ ${startDate} ถึง ${endDate} กรุณาตรวจสอบ`
           : `${applicantName} ได้ยื่นคำขอลาแบบด่วน (ไม่มีหัวหน้างานประจำแผนก) ส่งตรงให้ผู้จัดการพิจารณา วันที่ ${startDate} ถึง ${endDate}`;
         
-        await sb.from('notifications').insert([{
-          employee_id: approverId,
-          title: notifTitle,
-          message: notifMsg,
-          type: 'leave',
-          link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
-          is_read: false
-        }]);
+        if (window.safeInsertNotification) {
+          await window.safeInsertNotification(sb, {
+            employee_id: approverId,
+            title: notifTitle,
+            message: notifMsg,
+            type: 'leave',
+            link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
+            is_read: false
+          });
+        } else {
+          await sb.from('notifications').insert([{
+            employee_id: approverId,
+            title: notifTitle,
+            message: notifMsg,
+            type: 'leave',
+            link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
+            is_read: false
+          }]);
+        }
       }
     } catch (notifErr) {
       console.warn("Could not insert notification:", notifErr);
@@ -3216,12 +3250,40 @@ window.submitQuickLeave = async function() {
 
   } catch (err) {
     console.error("Quick Leave submission failed:", err);
-    Swal.fire({
-      icon: 'error',
-      title: 'เกิดข้อผิดพลาด',
-      text: err.message || 'ไม่สามารถบันทึกข้อมูลได้',
-      confirmButtonColor: '#ef4444'
-    });
+    const isNetworkErr = !navigator.onLine || 
+      (err && (err.message?.toLowerCase().includes('fetch') || 
+               err.message?.toLowerCase().includes('network') || 
+               err.message?.toLowerCase().includes('timeout') || 
+               err.name === 'AbortError'));
+
+    if (isNetworkErr) {
+      Swal.fire({
+        icon: 'warning',
+        title: '📡 สัญญาณอินเทอร์เน็ตไม่เสถียร',
+        html: `ไม่สามารถยื่นคำขอลาได้เนื่องจากสัญญาณอินเทอร์เน็ตช้าหรือขัดข้อง<br/><br/>
+               <span style="color:#64748b; font-size:13px; text-align:left; display:block; line-height:1.6;">
+               <b>คำแนะนำ:</b><br/>
+               • ตรวจสอบสัญญาณ Wi-Fi หรือ Mobile Data (4G/5G)<br/>
+               • เมื่อสัญญาณกลับมาปกติแล้ว สามารถกดปุ่ม <b>"ลองส่งใหม่อีกครั้ง"</b> ได้ทันที
+               </span>`,
+        showCancelButton: true,
+        confirmButtonText: '🔄 ลองส่งใหม่อีกครั้ง',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#0d9488',
+        cancelButtonColor: '#64748b'
+      }).then((res) => {
+        if (res.isConfirmed) {
+          window.submitQuickLeave();
+        }
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: err.message || 'ไม่สามารถบันทึกข้อมูลได้',
+        confirmButtonColor: '#ef4444'
+      });
+    }
   }
 };
 
@@ -3290,7 +3352,7 @@ window.checkSmartNudges = async function(profile, quotas) {
                   </span>
                 </div>
               </div>
-              <a href="/pages/hr/home.html" style="text-decoration: none; background: #2563eb; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+              <a href="/pages/hr/hr.html" style="text-decoration: none; background: #2563eb; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
                 <span class="material-symbols-outlined" style="font-size: 16px;">checklist</span> ตรวจสอบทันที
               </a>
             </div>
@@ -4043,7 +4105,7 @@ function renderDepartmentStats(deptList, totalCompanyDays) {
           <div class="dept-stat-title-group">
             <span style="font-size: 12px; font-weight: 800; color: #0d9488; background: #e0f2fe; padding: 2px 8px; border-radius: 6px;">#${index + 1}</span>
             <strong style="font-size: 13.5px; color: #1e293b;">${safeEscapeHtml(dept.name)}</strong>
-            ${isUserDept ? `<span style="font-size: 10px; background: #16a34a; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
+            ${isUserDept ? `<span style="font-size: 12px; background: #16a34a; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
           </div>
           <div class="dept-stat-value-group">
             <strong style="font-size: 14px; color: #0f766e;">${dept.days.toFixed(1)} วัน</strong>
@@ -4054,7 +4116,7 @@ function renderDepartmentStats(deptList, totalCompanyDays) {
         <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; display: flex;">
           <div style="width: ${percentOfMax}%; background: linear-gradient(90deg, #0d9488, #0284c7); border-radius: 4px; transition: width 0.5s ease;"></div>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10.5px; color: #94a3b8;">
+        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px; color: #94a3b8;">
           <span>สัดส่วนเทียบกับแผนกสูงสุด: ${percentOfMax}%</span>
           <span>คิดเป็น ${percentOfTotal}% ของทั้งบริษัท</span>
         </div>
@@ -4157,7 +4219,7 @@ function renderEmployeeRanking(requests) {
         </div>
         <div style="text-align: right; flex-shrink: 0;">
           <div style="font-size: 15px; font-weight: 800; color: #b91c1c;">${emp.days.toFixed(1)} วัน</div>
-          <span style="font-size: 10.5px; color: #64748b;">${emp.count} คำขออนุมัติ</span>
+          <span style="font-size: 12px; color: #64748b;">${emp.count} คำขออนุมัติ</span>
         </div>
       </div>
     `;
@@ -4326,3 +4388,44 @@ function showRealtimeNotificationPopup(notif) {
     }
   }, 6000);
 }
+
+
+// 🧭 Navigation & News Controllers (Transferred from HTML)
+// Filter User News by category
+    function filterUserNews(category, btn) {
+      document.querySelectorAll('#newsFilterChips .news-chip').forEach(c => c.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      if (window.CompanyNews) {
+        window.CompanyNews.renderUserNewsFeed('companyNewsFeed', category);
+      }
+    }
+
+    // Initialize News Feed on Load
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.CompanyNews) {
+        window.CompanyNews.renderUserNewsFeed('companyNewsFeed');
+      }
+    });
+
+    function triggerBiometricHelp() {
+      if (window.SystemDiagnostics && typeof window.SystemDiagnostics.showUnifiedHelpPopup === 'function') {
+        window.SystemDiagnostics.showUnifiedHelpPopup();
+      } else {
+        Swal.fire({
+          icon: 'info',
+          title: 'คู่มือความปลอดภัยชีวมาตร',
+          text: 'ท่านสามารถตั้งค่าการลงทะเบียน Face/Fingerprint สแกนเพื่อเข้าใช้งานได้อย่างรวดเร็วในหน้าข้อมูลส่วนตัวค่ะ',
+          confirmButtonColor: '#06b6d4'
+        });
+      }
+    }
+window.filterUserNews = filterUserNews;
+window.triggerBiometricHelp = triggerBiometricHelp;
+window.handleYearChange = typeof handleYearChange !== 'undefined' ? handleYearChange : window.handleYearChange;
+window.showStaffCard = function() {
+  if (typeof window.viewMyDigitalCard === 'function') {
+    window.viewMyDigitalCard();
+  } else if (typeof viewMyDigitalCard === 'function') {
+    viewMyDigitalCard();
+  }
+};

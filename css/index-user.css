@@ -2558,7 +2558,11 @@ section.quick-menu-section,
     order: 1 !important;
     display: flex !important;
     align-items: center !important;
+<<<<<<< HEAD
     justify-content: space-between !important;
+=======
+    justify-content: flex-end !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
     width: 100% !important;
     gap: 6px !important;
     box-sizing: border-box !important;
@@ -2619,6 +2623,7 @@ section.quick-menu-section,
     line-height: 1 !important;
   }
 
+<<<<<<< HEAD
   /* กลุ่มปุ่ม Action ฝั่งขวา และปุ่มเปลี่ยนภาษาฝั่งซ้าย */
   .user-header-actions {
     display: flex !important;
@@ -2626,6 +2631,15 @@ section.quick-menu-section,
     justify-content: space-between !important;
     gap: 4px !important;
     width: 100% !important;
+=======
+  /* กลุ่มปุ่ม Action ฝั่งขวา (จัดเรียง 1 แถว ห้ามตัดตก ห้ามหลุดขอบ) */
+  .user-header-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
+    width: auto !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -2633,12 +2647,15 @@ section.quick-menu-section,
     flex-wrap: nowrap !important;
   }
 
+<<<<<<< HEAD
   .user-header-actions #globalLangSwitcherContainer {
     order: -1 !important;
     margin-right: auto !important;
     margin-left: 0 !important;
   }
 
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   .user-header-actions #refreshBtn {
     order: 1 !important;
   }
@@ -2648,6 +2665,13 @@ section.quick-menu-section,
     order: 2 !important;
   }
 
+<<<<<<< HEAD
+=======
+  .user-header-actions #globalLangSwitcherContainer {
+    order: 3 !important;
+  }
+
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   .user-header-actions .logout-btn {
     order: 4 !important;
   }
@@ -3533,6 +3557,7 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) .user
   display: none !important;
 }
 
+<<<<<<< HEAD
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > header#indexUserHeader:nth-of-type(1) > div:nth-of-type(1),
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > header#indexUserHeader:nth-of-type(1) > div:nth-of-type(1),
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > header#indexUserHeader:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1),
@@ -3556,6 +3581,8 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > header
   order: -1 !important;
   flex: 0 0 auto !important;
 }
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 #globalLangSwitcherContainer,
 div#appLayout > main > header > div:nth-of-type(2) #globalLangSwitcherContainer {
   display: inline-flex !important;
@@ -3567,12 +3594,19 @@ div#appLayout > main > header > div:nth-of-type(2) #globalLangSwitcherContainer 
   bottom: auto !important;
   width: auto !important;
   max-width: 100% !important;
+<<<<<<< HEAD
   margin-right: auto !important;
   margin-left: 0 !important;
   padding: 0 !important;
   flex-shrink: 0 !important;
   z-index: 10 !important;
   order: -1 !important;
+=======
+  margin: 0 4px !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  z-index: 10 !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 #globalLangSwitcherContainer .lang-switcher {
@@ -3823,6 +3857,7 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > header
   background: linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%) !important;
   border-radius: 20px 20px 0 0 !important;
 }
+<<<<<<< HEAD
 
 
 /* --- Source: /css/company-news.css --- */
@@ -6174,3 +6209,5 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 
 
 
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1

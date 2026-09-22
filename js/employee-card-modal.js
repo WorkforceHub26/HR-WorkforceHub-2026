@@ -196,26 +196,28 @@
           : (typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp.image_url, empTitle, empGender, empName) : (emp.image_url ? (emp.image_url.startsWith('http') ? emp.image_url : `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${emp.image_url.replace(/^\//, '')}`) : defaultAvatar));
 
         rowsHtml += `
-          <div class="emp-card-selection-item" style="display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; gap: 12px; transition: background 0.15s ease;">
+          <div class="emp-card-selection-item" style="display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; gap: 10px; transition: background 0.15s ease;">
             <div style="flex-shrink: 0; display: flex; align-items: center;">
               <input type="checkbox" class="emp-card-checkbox" 
                      data-code="${escapeHtml(empCode)}" 
                      data-name="${escapeHtml(empName)}" 
                      data-role="${escapeHtml(empRole)}" 
                      data-dept="${escapeHtml(empDept)}"
-                     style="cursor: pointer; width: 19px; height: 19px; accent-color: #0f766e;" />
+                     style="cursor: pointer; width: 18px; height: 18px; accent-color: #0f766e;" />
             </div>
             <div style="flex-shrink: 0;">
+<<<<<<< HEAD
               <img src="${fullAvatarUrl}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" onerror="this.onerror=null; this.src='${defaultAvatar}';">
+=======
+              <img src="${fullAvatarUrl}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0; flex-shrink: 0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
             </div>
             <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 700; color: #0f172a; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(empName)}</div>
-              <div style="color: #64748b; font-size: 12px; margin-top: 2px; display: flex; align-items: center; gap: 6px;">
-                <span style="font-weight: 600; color: #0f766e; background: #ccfbf1; padding: 1px 6px; border-radius: 4px;">#${escapeHtml(empCode)}</span>
-                <span>•</span>
-                <span>${escapeHtml(empRole)}</span>
-                <span>•</span>
-                <span>${escapeHtml(empDept)}</span>
+              <div style="font-weight: 700; color: #0f172a; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(empName)}</div>
+              <div style="color: #64748b; font-size: 11.5px; margin-top: 3px; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; line-height: 1.3;">
+                <span style="font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 1px 6px; border-radius: 4px; font-size: 11px;">#${escapeHtml(empCode)}</span>
+                <span style="color: #334155; font-weight: 600;">${escapeHtml(empRole)}</span>
+                <span style="color: #94a3b8; font-size: 11px;">(${escapeHtml(empDept)})</span>
               </div>
             </div>
             <div style="flex-shrink: 0;">
@@ -225,9 +227,9 @@
                       data-role="${escapeHtml(empRole)}" 
                       data-dept="${escapeHtml(empDept)}"
                       data-avatar="${escapeHtml(fullAvatarUrl)}"
-                style="background: #0284c7; color: white; border: none; padding: 7px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                <span class="material-symbols-outlined" style="font-size:18px;">badge</span>
-                <span>ดูบัตร</span>
+                style="background: #0284c7; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); white-space: nowrap;">
+                <span class="material-symbols-outlined" style="font-size:16px;">badge</span>
+                <span class="btn-card-label">ดูบัตร</span>
               </button>
             </div>
           </div>
@@ -235,37 +237,70 @@
       });
     }
 
+    const popupWidth = window.innerWidth < 640 ? '95%' : '640px';
+
     Swal.fire({
       title: '🪪 ระบบจัดการและพิมพ์บัตรพนักงานดิจิทัล',
-      width: '640px',
+      width: popupWidth,
+      customClass: {
+        popup: 'pvt-card-popup-container'
+      },
       html: `
-        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; text-align: left;">
+        <style>
+          .pvt-card-popup-container {
+            padding: 16px 12px !important;
+            border-radius: 20px !important;
+            box-sizing: border-box !important;
+          }
+          @media (max-width: 480px) {
+            .pvt-card-popup-container {
+              padding: 12px 8px !important;
+            }
+            .pvt-card-popup-container .swal2-title {
+              font-size: 16px !important;
+              margin-bottom: 10px !important;
+            }
+            .emp-card-selection-item {
+              padding: 10px 8px !important;
+              gap: 8px !important;
+            }
+            .btn-view-card {
+              padding: 5px 8px !important;
+              font-size: 11.5px !important;
+            }
+            #btnPrintSelectedCards {
+              padding: 6px 10px !important;
+              font-size: 12px !important;
+            }
+          }
+        </style>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; text-align: left;">
           <div style="display: flex; gap: 8px;">
             <input type="text" id="cardSearchInput" placeholder="🔍 ค้นหารหัสพนักงาน, ชื่อ-สกุล, ตำแหน่ง, หรือแผนก..." 
-              style="flex: 1; padding: 11px 14px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font-family: inherit;" />
+              style="flex: 1; padding: 9px 12px; font-size: 13.5px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font-family: inherit; width: 100%; box-sizing: border-box;" />
             <button type="button" onclick="window.openEmployeeCardManagerPopup(true)" title="รีเฟรชข้อมูลล่าสุด"
-              style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #475569;">
+              style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #475569; flex-shrink: 0;">
               <span class="material-symbols-outlined" style="font-size: 20px;">sync</span>
             </button>
           </div>
           
-          <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: #334155;">
-              <input type="checkbox" id="selectAllCardsCheckbox" onchange="window.toggleSelectAllCards(this)" style="cursor: pointer; width: 18px; height: 18px; accent-color: #0f766e;" />
-              <span>เลือกทั้งหมด (<span id="totalVisibleCardCount">${displayEmployees.length}</span> คน)</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f0; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: #334155; white-space: nowrap;">
+              <input type="checkbox" id="selectAllCardsCheckbox" onchange="window.toggleSelectAllCards(this)" style="cursor: pointer; width: 17px; height: 17px; accent-color: #0f766e;" />
+              <span>เลือกทั้งหมด (<span id="totalVisibleCardCount">${displayEmployees.length}</span>)</span>
             </label>
             <button id="btnPrintSelectedCards" onclick="window.handlePrintSelectedCardsFromPopup()" disabled
-              style="background: #0f766e; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: not-allowed; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; opacity: 0.5; transition: all 0.2s;">
-              <span class="material-symbols-outlined" style="font-size:18px;">print</span> 
+              style="background: #0f766e; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 700; cursor: not-allowed; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; opacity: 0.5; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;">
+              <span class="material-symbols-outlined" style="font-size:16px;">print</span> 
               พิมพ์ชุด (<span id="selectedCardCount">0</span>)
             </button>
           </div>
         </div>
         
-        <div id="employeeCardTableBody" style="max-height: 420px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; text-align: left;">
+        <div id="employeeCardTableBody" style="max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; text-align: left;">
           ${rowsHtml}
         </div>
-        <div id="noMatchCardMessage" style="display: none; padding: 28px; text-align: center; color: #64748b; font-size: 14px;">
+        <div id="noMatchCardMessage" style="display: none; padding: 24px; text-align: center; color: #64748b; font-size: 13.5px;">
           ❌ ไม่พบข้อมูลพนักงานที่ตรงกับคำค้นหา
         </div>
       `,
@@ -371,6 +406,7 @@
   // 🟢 3. Show Single Digital ID Card Modal
   window.showIndividualIdCard = async function (empCode, empName, empRole, empDept, avatarUrl) {
     const qrUrl = generateEmployeeQrUrl(empCode);
+<<<<<<< HEAD
     const defaultAvatar = (typeof window.getDefaultAvatarUrl === 'function')
       ? window.getDefaultAvatarUrl('', '', empName)
       : ((empName.includes('นาง') || empName.includes('น.ส.')) ? '/assets/img/avatar-female.jpg' : '/assets/img/avatar-male.jpg');
@@ -395,6 +431,40 @@
           <div>
             <span style="font-size: 11px; color: #bae6fd; display: block; text-transform: uppercase; margin-bottom: 2px;">Employee ID</span>
             <span style="font-size: 16px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 4px 18px; border-radius: 30px; display: inline-block; letter-spacing: 1px; font-family: monospace;">
+=======
+    const imgUrl = avatarUrl || '/assets/img/default-avatar.jpg';
+    const singleCardModalWidth = window.innerWidth < 480 ? '95%' : '420px';
+    
+    Swal.fire({
+      title: '💳 บัตรประจำตัวพนักงานดิจิทัล',
+      width: singleCardModalWidth,
+      customClass: {
+        popup: 'pvt-single-card-popup'
+      },
+      html: `
+        <style>
+          .pvt-single-card-popup {
+            padding: 16px 10px !important;
+            border-radius: 20px !important;
+            box-sizing: border-box !important;
+          }
+        </style>
+        <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 100%; max-width: 310px; margin: 10px auto; border-radius: 20px; padding: 20px 16px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box;">
+          <div style="font-weight: 700; font-size: 12.5px; letter-spacing: 1.2px; color: #38bdf8; margin-bottom: 14px;">PVT WORKFORCE HUB</div>
+          <div style="width: 76px; height: 76px; margin: 0 auto 12px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #1e293b;">
+            <img src="${imgUrl}" onerror="this.src='/assets/img/default-avatar.jpg';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
+          </div>
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 4px; color: #ffffff; line-height: 1.2;">${escapeHtml(empName)}</div>
+          <div style="font-size: 12.5px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtml(empRole)}</div>
+          <div style="font-size: 11.5px; color: #94a3b8; font-weight: 500; margin-bottom: 14px;">แผนก: ${escapeHtml(empDept)}</div>
+          <div style="background: white; padding: 8px; border-radius: 12px; display: inline-block; margin-bottom: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+            <img src="${qrUrl}" alt="Employee QR Code" style="width: 120px; height: 120px; display: block;" 
+                 onerror="this.onerror=null; this.src='https://via.placeholder.com/120?text=QR+Error';" />
+          </div>
+          <div>
+            <span style="font-size: 10.5px; color: #94a3b8; display: block; text-transform: uppercase; margin-bottom: 2px;">Employee ID</span>
+            <span style="font-size: 15px; font-weight: 800; background: rgba(255,255,255,0.12); padding: 4px 16px; border-radius: 30px; display: inline-block; letter-spacing: 1px; font-family: monospace;">
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
               ${escapeHtml(empCode)}
             </span>
           </div>
@@ -507,11 +577,15 @@
             display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             overflow: hidden;
           }
+<<<<<<< HEAD
           .card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
             background: linear-gradient(90deg, ${theme.topAccent[0]}, ${theme.topAccent[1]}, ${theme.topAccent[2]});
           }
           .card-header { font-size: 10px; font-weight: 700; color: ${theme.brandText}; text-align: center; letter-spacing: 1px; }
+=======
+          .card-header { font-size: 12px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           .card-body { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
           .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid ${theme.avatarRing}; flex-shrink: 0; background: ${theme.avatarFallbackBg || '#0f2b6e'}; }
           .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
@@ -521,8 +595,13 @@
           .role { color: ${theme.roleText}; font-weight: 600; }
           .qr-box { background: ${theme.qrContainerBg || '#ffffff'}; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; ${theme.qrContainerBorder ? `border: 1px solid ${theme.qrContainerBorder};` : ''} }
           .qr-box img { width: 50px; height: 50px; display: block; }
+<<<<<<< HEAD
           .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid ${theme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}; padding-top: 3px; }
           .emp-id { font-size: 10px; font-weight: 700; background: ${theme.pillBg}; color: ${theme.pillText}; border: 1px solid ${theme.pillBorder}; padding: 2px 8px; border-radius: 10px; font-family: monospace; }
+=======
+          .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
+          .emp-id { font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-family: monospace; }
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
           @media print { body { background: transparent; } .card { border: none; box-shadow: none; } }
         </style>
       </head>
@@ -625,12 +704,16 @@
             }
             .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #38bdf8, #60a5fa, #93c5fd); }
             .lanyard-hole { width: 32px; height: 6px; background: #020617; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.15); }
+<<<<<<< HEAD
             .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: #bae6fd; text-transform: uppercase; margin-bottom: 6px; }
+=======
+            .company { font-weight: 700; font-size: 12px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
             .profile-section { margin-bottom: 4px; width: 100%; }
             .name { font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; line-height: 1.2; word-break: break-word; }
             .badge-container { display: flex; flex-direction: column; gap: 3px; align-items: center; justify-content: center; }
-            .role-badge { font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
-            .dept-text { font-size: 10px; color: #94a3b8; font-weight: 400; }
+            .role-badge { font-size: 12px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+            .dept-text { font-size: 12px; color: #94a3b8; font-weight: 400; }
             .qr-box { background: #ffffff; padding: 6px; border-radius: 10px; display: inline-block; border: 2px solid #38bdf8; }
             .qr-box img { width: 110px; height: 110px; display: block; }
             .footer-section { width: 100%; }

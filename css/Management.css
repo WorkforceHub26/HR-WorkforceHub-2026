@@ -130,6 +130,7 @@ body {
 
 .sidebar-brand,
 .brand-zone {
+<<<<<<< HEAD
   padding: 20px 16px 16px 16px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -139,16 +140,33 @@ body {
   gap: 8px !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.12) 100%) !important;
+=======
+  padding: 16px 18px 12px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   position: relative !important;
   width: 100%;
   box-sizing: border-box;
 }
 
 .brand-icon {
+<<<<<<< HEAD
   width: 72px !important;
   height: 72px !important;
   min-width: 72px !important;
   min-height: 72px !important;
+=======
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
@@ -156,6 +174,7 @@ body {
   box-shadow: none !important;
   display: flex !important;
   align-items: center !important;
+<<<<<<< HEAD
   justify-content: center !important;
   padding: 0 !important;
   flex-shrink: 0;
@@ -165,6 +184,15 @@ body {
 
 .brand-icon:hover {
   transform: scale(1.06);
+=======
+  justify-content: flex-start !important;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.brand-icon:hover {
+  transform: scale(1.05);
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 .brand-icon .material-symbols-outlined {
@@ -172,6 +200,7 @@ body {
 }
 
 .brand-name {
+<<<<<<< HEAD
   font-size: 14px !important;
   font-weight: 800 !important;
   letter-spacing: 0.5px !important;
@@ -185,6 +214,19 @@ body {
   word-break: break-word !important;
   margin: 0 auto !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+=======
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.1px;
+  color: #1e3a8a !important; /* Deep Royal Blue */
+  text-transform: uppercase;
+  text-align: left !important;
+  white-space: normal;
+  line-height: 1.25;
+  width: 100%;
+  max-width: 195px;
+  word-break: break-word;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 .logo-mini {
@@ -530,27 +572,34 @@ div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-ty
   transform: translateY(-1px);
 }
 
-/* User Profile Badge (Selector 2) */
+/* User Profile Badge (Selector 2) - Avatar Only */
 div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3),
 .user-profile {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: #f8fafc;
-  padding: 4px 14px 4px 5px;
-  border-radius: 24px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: default;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
   box-sizing: border-box;
 }
 
 div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3):hover,
 .user-profile:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  transform: scale(1.06);
+}
+
+.user-profile .info,
+.user-profile .status-badge {
+  display: none !important;
 }
 
 .user-profile .avatar,
@@ -2061,7 +2110,7 @@ div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#employee
 
   .topbar-left-text p,
   .page-subtitle {
-    font-size: 10px !important;
+    font-size: 12px !important;
     letter-spacing: 0.6px !important;
   }
 
@@ -2360,7 +2409,7 @@ div:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div#posCateg
   #posCategoryTabs .pos-tab .pos-tab-count,
   .pos-category-tabs .pos-tab .pos-tab-count {
     padding: 0 5px !important;
-    font-size: 10.5px !important;
+    font-size: 12px !important;
     min-width: 18px !important;
   }
 }

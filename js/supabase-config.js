@@ -1599,6 +1599,41 @@
         }
       }
     }
+// 🛡️ Global helper to safely insert notification with local fallback
+window.safeInsertNotification = async function(sbClient, payload) {
+  if (!payload) return null;
+  const items = Array.isArray(payload) ? payload : [payload];
+  if (items.length === 0) return null;
+
+  if (sbClient) {
+    try {
+      const { data, error } = await sbClient.from('notifications').insert(items);
+      if (!error) return data;
+      console.debug("ℹ️ [Notification DB Insert Notice - using local fallback]:", error.message || error);
+    } catch (err) {
+      console.debug("ℹ️ [Notification DB Insert Exception - using local fallback]:", err);
+    }
+  }
+
+  try {
+    const localNotifs = JSON.parse(localStorage.getItem("pvt_local_notifications") || "[]");
+    items.forEach(item => {
+      localNotifs.unshift({
+        id: "local_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+        employee_id: item.employee_id,
+        title: item.title || "แจ้งเตือนระบบ",
+        message: item.message || "",
+        type: item.type || "leave",
+        link_url: item.link_url || "/pages/user/leave-history.html",
+        is_read: false,
+        created_at: new Date().toISOString()
+      });
+    });
+    localStorage.setItem("pvt_local_notifications", JSON.stringify(localNotifs.slice(0, 50)));
+  } catch(e) {}
+  return null;
+};
+
 class NotificationEngine {
   constructor(client) {
     this.client = client;
@@ -2467,14 +2502,14 @@ class LineOAEngine {
 
     if (this.client && recipientId) {
       try {
-        await this.client.from('notifications').insert([{
+        await window.safeInsertNotification(this.client, {
           employee_id: recipientId,
           title: title,
           message: messageText.replace(/\*\*/g, ''),
           type: 'leave',
           link_url: targetLinkUrl,
           is_read: false
-        }]);
+        });
       } catch (err) {
         console.warn("⚠️ [LINE OA Engine] DB notification log fallback:", err);
       }

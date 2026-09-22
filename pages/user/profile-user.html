@@ -116,6 +116,7 @@
     <!--  2. MAIN CONTENT -->
     <main class="main-content" style="width: 100%; flex: 1; padding: 0;">
       <div class="app" style="max-width: 1000px; padding: 24px 16px; margin: 0 auto; width: 100%;">
+<<<<<<< HEAD
         <header class="user-header animate-fade delay-100" id="profileUserHeader">
           <!-- 📱 แถวบน: เมนูลัดและเครื่องมือ (Nav & Utilities Bar) -->
           <div class="user-header-top" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
@@ -134,6 +135,16 @@
           <div class="user-header-profile user-header-left">
             <div class="brand-row" style="display: flex; align-items: center; gap: 14px;">
               <img id="userAvatar" src="/assets/img/default-avatar.jpg" alt="PVT Profile" style="width: 64px !important; height: 64px !important; min-width: 64px !important; min-height: 64px !important; border-radius: 50% !important; object-fit: cover !important; border: 2.5px solid #ffffff !important; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;" />
+=======
+        <header class="user-header" id="profileUserHeader">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <!-- Mobile Hamburger button -->
+            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิดเมนู">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; width: 22px; height: 22px;"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+            <div class="brand-row">
+              <img src="/assets/icons/PVTT_FLOW.png" alt="PVT" class="header-brand-logo" style="width: 52px; height: 52px; object-fit: contain; border-radius: 12px; background: #ffffff; border: 1px solid rgba(226, 232, 240, 0.9); mix-blend-mode: multiply; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);" />
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
               <div>
                 <p class="hello" id="profileBrandTitle">PVT HR Leave</p>
                 <h1 id="profileHeaderTitle">ข้อมูลพนักงาน</h1>

@@ -91,7 +91,11 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 }
 
 .appbar-main-title {
+<<<<<<< HEAD
   font-family: 'Sarabun', -apple-system, sans-serif !important;
+=======
+  font-family: 'Kanit', 'Sarabun', -apple-system, sans-serif !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   font-size: 19px !important;
   font-weight: 700 !important;
   color: #0f172a !important;
@@ -2345,6 +2349,7 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 }
 
 /* 🎯 Focus-mode styling updates for Upcoming Holiday Hero Countdown */
+<<<<<<< HEAD
 @keyframes heroCountdownPulse {
   0%, 100% {
     transform: scale(1) translateY(0);
@@ -2367,6 +2372,8 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
   }
 }
 
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > section#upcomingHeroBanner:nth-of-type(1) > div:nth-of-type(2),
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > section#upcomingHeroBanner:nth-of-type(1) > div:nth-of-type(2),
 #upcomingHeroBanner .hero-countdown-box {
@@ -2380,6 +2387,7 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div#companyHolidaysWrapper:
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
+<<<<<<< HEAD
   text-align: center !important;
   margin-left: auto !important;
   margin-right: auto !important;
@@ -2388,12 +2396,19 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div#companyHolidaysWrapper:
   width: 173px !important;
   height: 158px !important;
   animation: heroCountdownPulse 3s infinite ease-in-out !important;
+=======
+  min-width: 120px !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > section#upcomingHeroBanner:nth-of-type(1) > div:nth-of-type(2) > span#heroCountdownDays:nth-of-type(1),
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > section#upcomingHeroBanner:nth-of-type(1) > div:nth-of-type(2) > span#heroCountdownDays:nth-of-type(1),
 #upcomingHeroBanner #heroCountdownDays {
+<<<<<<< HEAD
   color: #2563eb !important;
+=======
+  color: #0d9488 !important;
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
   border: none !important;
   border-radius: 0 !important;
   font-size: 40px !important;
@@ -2401,8 +2416,11 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > div#companyHolidaysWrapper:
   line-height: 1 !important;
   letter-spacing: -1px !important;
   text-shadow: none !important;
+<<<<<<< HEAD
   display: inline-block !important;
   animation: heroNumberPop 3s infinite ease-in-out !important;
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 }
 
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > section#upcomingHeroBanner:nth-of-type(1) > div:nth-of-type(2) > span.countdown-label,
@@ -2414,6 +2432,7 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:
   margin-top: 4px !important;
 }
 
+<<<<<<< HEAD
 @keyframes liveTickerBlink {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.85); }
@@ -2461,6 +2480,8 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:
   font-weight: 700 !important;
 }
 
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
 
 /* 1. Icon */
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:nth-of-type(2) > div#companySummarySidebar:nth-of-type(2) > div:nth-of-type(1) > h3:nth-of-type(1) > span:nth-of-type(1),
@@ -2639,6 +2660,7 @@ div#appLayout:nth-of-type(2) > main:nth-of-type(1) > div#companyHolidaysWrapper:
 #companyCalendarBody {
   padding: 20px !important;
 }
+<<<<<<< HEAD
 
 
 /* --- Source: /css/home.css --- */
@@ -6001,3 +6023,5 @@ input[type="file"]:hover {
 
 
 
+=======
+>>>>>>> fb0c40c3f559dded7ddb41c6926da0c305776ce1
