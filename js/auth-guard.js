@@ -151,8 +151,20 @@ window.getUserRoleCategory = function(userSession) {
       userStatus = window.getUserRoleCategory(session);
     }
     const rawRole = String(session?.role || session?.employees?.role || '').toLowerCase().trim();
-    // 🧭 เมื่อเข้าสู่ระบบ หรือเปิดหน้าแรก ให้เข้าสู่หน้า /pages/user/index-user.html เท่านั้น
+    if (['HR-001', 'HR-002', 'HR-003', 'HR-001-3'].includes(empCode)) {
+      window.location.replace("/pages/hr/home.html");
+      return;
+    }
     window.location.replace("/pages/user/index-user.html");
+    return;
+  }
+
+  // 🧭 หากเป็นบัญชี HR กลาง (HR-001-3, HR-001, HR-002, HR-003) เปิดหน้าพนักงาน -> ส่งตรงไปหน้า Dashboard
+  const empCode = String(session?.employee_code || session?.employees?.employee_code || '').trim();
+  if (path.includes("index-user.html") && ['HR-001', 'HR-002', 'HR-003', 'HR-001-3'].includes(empCode)) {
+    console.log("🧭 [Auth Guard]: บัญชี HR กลาง (HR-001-3) -> นำทางตรงไปหน้า Dashboard /pages/hr/home.html");
+    try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+    window.location.replace("/pages/hr/home.html");
     return;
   }
 
@@ -466,8 +478,11 @@ function redirectToDashboard(role, userObj) {
     userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
   }
 
-  // 🧭 ตอนเข้าสู่ระบบ ให้เข้าสู่หน้า /pages/user/index-user.html เสมอ
-  const targetPath = "/pages/user/index-user.html";
+  const empCode = String(userObj?.employee_code || userObj?.employees?.employee_code || '').trim();
+  const isSpecialHr = ['HR-001', 'HR-002', 'HR-003', 'HR-001-3'].includes(empCode);
+
+  // 🧭 HR-001-3 และบัญชี HR กลาง ให้เข้าสู่หน้า Dashboard /pages/hr/home.html ทันที
+  const targetPath = isSpecialHr ? "/pages/hr/home.html" : "/pages/user/index-user.html";
   
   const targetUrl = new URL(targetPath, window.location.origin).href;
 

@@ -102,8 +102,11 @@ function redirectToDashboard(role, userObj) {
     userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
   }
 
-  // 🧭 ตอนเข้าสู่ระบบ ให้เข้าสู่หน้า /pages/user/index-user.html เสมอ
-  const targetPath = "/pages/user/index-user.html";
+  const empCode = String(userObj?.employee_code || userObj?.employees?.employee_code || '').trim();
+  const isSpecialHr = ['HR-001', 'HR-002', 'HR-003', 'HR-001-3'].includes(empCode);
+
+  // 🧭 HR-001-3 และบัญชี HR กลาง ให้เข้าสู่หน้า Dashboard /pages/hr/home.html ทันที
+  const targetPath = isSpecialHr ? "/pages/hr/home.html" : "/pages/user/index-user.html";
 
   sessionStorage.removeItem("redirect_attempt");
   const targetUrl = new URL(targetPath, window.location.origin).href;

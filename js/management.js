@@ -6408,4 +6408,8 @@ window.viewAuditLogs = typeof viewAuditLogs !== 'undefined' ? viewAuditLogs : wi
 window.resetYearlyLeave = typeof resetYearlyLeave !== 'undefined' ? resetYearlyLeave : window.resetYearlyLeave;
 window.importEmployeesExcel = importEmployeesExcel;
 window.downloadExcelTemplate = downloadExcelTemplate;
+window.fillPositionFilter = typeof fillPositionFilter !== 'undefined' ? fillPositionFilter : window.fillPositionFilter;
+window.fillDepartmentFilter = typeof fillDepartmentFilter !== 'undefined' ? fillDepartmentFilter : window.fillDepartmentFilter;
+window.renderEmployeeTable = typeof renderEmployeeTable !== 'undefined' ? renderEmployeeTable : window.renderEmployeeTable;
+window.handleLogout = typeof handleLogout !== 'undefined' ? handleLogout : window.handleLogout;
 
