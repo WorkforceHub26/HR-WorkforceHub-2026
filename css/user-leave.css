@@ -1,0 +1,6 @@
+/* ======================================================
+   Dedicated Stylesheet for User Request Leave (/pages/user/leave-user.html)
+   Scoped Page ID: #page-user-leave
+   ====================================================== */
+@import url('/css/leave-user.css');
+@import url('/css/holidays.css');

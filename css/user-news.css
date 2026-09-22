@@ -1,0 +1,6 @@
+/* ======================================================
+   Dedicated Stylesheet for User News (/pages/user/news.html)
+   Scoped Page ID: #page-user-news
+   ====================================================== */
+@import url('/css/news-user.css');
+@import url('/css/company-news.css');

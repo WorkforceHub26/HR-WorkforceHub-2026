@@ -1,0 +1,683 @@
+/* ======================================================
+   Dedicated Stylesheet for Employee Cards (/pages/hr/employee-cards.html)
+   Scoped Page ID: #page-hr-employee-cards
+   Specifically tuned for Laptop / Notebook / PC & Mobile
+   ====================================================== */
+@import url('/css/employee-cards.css');
+
+/* ==========================================================================
+   🪪 EMPLOYEE CARDS ADMIN LAYOUT & RESPONSIVE DISCIPLINE
+   ========================================================================== */
+
+#page-hr-employee-cards {
+  overflow-x: hidden !important;
+  width: 100%;
+  background: #f8fafc;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#page-hr-employee-cards .app-shell {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
+}
+
+/* Main Content Shell - Notebook / Laptop / PC default layout */
+#page-hr-employee-cards .main-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 250px);
+  width: calc(100% - 250px);
+  margin-left: 250px;
+  padding: 20px 24px 48px 24px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  min-height: 100vh;
+  overflow-x: hidden !important;
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar Collapsed State (Edge toggle collapsed on PC / Laptop) */
+body.desktop-sidebar-collapsed#page-hr-employee-cards .main-content,
+body.desktop-sidebar-collapsed #page-hr-employee-cards .main-content,
+#page-hr-employee-cards .main-content.expanded {
+  margin-left: 72px !important;
+  width: calc(100% - 72px) !important;
+  max-width: calc(100% - 72px) !important;
+}
+
+/* Content Body Reset - Ensure no double padding or horizontal push */
+#page-hr-employee-cards .content-body {
+  padding: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* 🏷️ TOPBAR - Compact, Clean & Responsive */
+#page-hr-employee-cards .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0; 
+  padding: 12px 18px; 
+  position: sticky;
+  top: 10px;
+  z-index: 99;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  border-radius: 14px;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+#page-hr-employee-cards .topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+#page-hr-employee-cards .topbar-title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+#page-hr-employee-cards .topbar-page-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .topbar-page-sub {
+  font-size: 12px;
+  color: #64748b;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+#page-hr-employee-cards .user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px 12px;
+}
+
+#page-hr-employee-cards .user-profile-badge .user-info .user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+#page-hr-employee-cards .user-profile-badge .user-info .user-role {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* 🌟 HERO HEADER - Scaled for Laptop screens */
+#page-hr-employee-cards .cards-hero-header {
+  border-radius: 16px;
+  padding: 18px 22px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  min-width: 0;
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #0284c7 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.16);
+}
+
+#page-hr-employee-cards .cards-hero-title {
+  min-width: 0;
+  flex: 1 1 280px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#page-hr-employee-cards .cards-hero-icon {
+  width: 46px;
+  height: 46px;
+  font-size: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#page-hr-employee-cards .cards-hero-text {
+  min-width: 0;
+  flex: 1;
+}
+
+#page-hr-employee-cards .cards-hero-text h1 {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin: 0 0 3px 0;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .cards-hero-text p {
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  color: #ccfbf1;
+  opacity: 0.95;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 📊 METRICS GRID - Specifically configured for Laptop & PC */
+#page-hr-employee-cards .cards-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#page-hr-employee-cards .metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+#page-hr-employee-cards .metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+  border-color: #cbd5e1;
+}
+
+#page-hr-employee-cards .metric-info {
+  min-width: 0;
+  flex: 1;
+}
+
+#page-hr-employee-cards .metric-info label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 3px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .metric-info .val {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+}
+
+#page-hr-employee-cards .metric-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 🛠️ TOOLBAR & FILTERS - Clean wrapping and flex containment */
+#page-hr-employee-cards .cards-toolbar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+#page-hr-employee-cards .toolbar-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#page-hr-employee-cards .search-box-wrap {
+  flex: 1 1 200px;
+  min-width: 160px;
+  max-width: 100%;
+  position: relative;
+}
+
+#page-hr-employee-cards .search-box-wrap input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  background: #f8fafc;
+  color: #0f172a;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+#page-hr-employee-cards .search-box-wrap input:focus {
+  background: #ffffff;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+#page-hr-employee-cards .search-box-wrap .search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 19px;
+  pointer-events: none;
+}
+
+#page-hr-employee-cards .filter-select {
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  flex: 0 1 auto;
+}
+
+#page-hr-employee-cards .filter-select:focus {
+  background: #ffffff;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+#page-hr-employee-cards #adminDeptFilterSelect {
+  flex: 1 1 170px;
+  min-width: 150px;
+  max-width: 240px;
+}
+
+#page-hr-employee-cards #adminThemeSelect {
+  flex: 1 1 210px;
+  min-width: 180px;
+  max-width: 280px;
+}
+
+#page-hr-employee-cards .toolbar-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#page-hr-employee-cards .selection-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+#page-hr-employee-cards .btn-group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+#page-hr-employee-cards .btn-action-primary {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  border: none;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+#page-hr-employee-cards .btn-action-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+}
+
+#page-hr-employee-cards .btn-action-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+#page-hr-employee-cards .btn-action-secondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* 🎴 CARDS GALLERY GRID - Adaptive columns for Laptop & PC */
+#page-hr-employee-cards .emp-cards-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 30px;
+}
+
+#page-hr-employee-cards .emp-card-preview-item {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+#page-hr-employee-cards .emp-card-preview-item:hover {
+  transform: translateY(-2px);
+  border-color: #0d9488;
+  box-shadow: 0 8px 18px rgba(13, 148, 136, 0.12);
+}
+
+#page-hr-employee-cards .emp-card-preview-item.selected {
+  border-color: #0d9488;
+  background: #f0fdf4;
+}
+
+#page-hr-employee-cards .emp-card-inner-box {
+  border-radius: 14px;
+  padding: 14px 12px;
+  text-align: center;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#page-hr-employee-cards .emp-avatar-circle {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 8px auto;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+#page-hr-employee-cards .emp-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#page-hr-employee-cards .emp-card-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .emp-card-role {
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .emp-card-dept {
+  font-size: 11px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .emp-card-code-pill {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+#page-hr-employee-cards .emp-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+#page-hr-employee-cards .btn-card-action-sm {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   💻 SCREEN LAYOUT TUNING FOR NOTEBOOK - PC & INTERMEDIATE RESOLUTIONS
+   ========================================================================== */
+
+/* Laptop / Notebook range (1025px - 1280px) */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  #page-hr-employee-cards .cards-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  #page-hr-employee-cards .emp-cards-gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  #page-hr-employee-cards .search-box-wrap {
+    min-width: 140px;
+  }
+
+  #page-hr-employee-cards #adminDeptFilterSelect {
+    max-width: 190px;
+  }
+
+  #page-hr-employee-cards #adminThemeSelect {
+    max-width: 230px;
+  }
+}
+
+/* Tablet & Smaller Screens */
+@media (max-width: 1024px) {
+  #page-hr-employee-cards .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 14px 16px 40px 16px !important;
+  }
+  
+  #page-hr-employee-cards .topbar {
+    top: 0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+
+  #page-hr-employee-cards .cards-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  #page-hr-employee-cards .cards-hero-header {
+    padding: 16px 18px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #page-hr-employee-cards .emp-cards-gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
+  }
+}
+
+/* Mobile Screens */
+@media (max-width: 640px) {
+  #page-hr-employee-cards .cards-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #page-hr-employee-cards .emp-cards-gallery-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  #page-hr-employee-cards .cards-toolbar {
+    padding: 12px;
+  }
+
+  #page-hr-employee-cards .toolbar-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  #page-hr-employee-cards .search-box-wrap {
+    max-width: 100%;
+  }
+
+  #page-hr-employee-cards .filter-select {
+    width: 100%;
+    max-width: 100% !important;
+  }
+  
+  #page-hr-employee-cards .toolbar-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  #page-hr-employee-cards .btn-group-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  #page-hr-employee-cards .btn-action-primary,
+  #page-hr-employee-cards .btn-action-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}

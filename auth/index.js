@@ -114,24 +114,71 @@ function redirectToDashboard(role, userObj) {
   window.location.replace(targetUrl);
 }
 
+// 🔐 Check WebAuthn API support on device startup & ensure 'Biometric Login' button is visible
+async function checkAndToggleBiometricButton() {
+  const bioBtn = document.getElementById("biometricLoginBtn");
+  const bioGuideBtn = document.getElementById("biometricGuideBtn");
+  if (!bioBtn) return;
+
+  try {
+    // Keep biometric button visible on modern browsers supporting WebAuthn or touch/face APIs
+    if (window.PublicKeyCredential || (navigator.credentials && navigator.credentials.get)) {
+      bioBtn.style.display = "flex";
+      if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
+    } else {
+      // Fallback display for demo and universal access
+      bioBtn.style.display = "flex";
+      if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
+    }
+  } catch (err) {
+    console.warn("⚠️ [WebAuthn] Startup support check warning:", err);
+    bioBtn.style.display = "flex";
+    if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
+  }
+}
+window.checkAndToggleBiometricButton = checkAndToggleBiometricButton;
+
 /**
  * ⚡ ตรวจสอบ Session และ Supabase Token อัตโนมัติ (Seamless Auto-Redirect)
  * หากผู้ใช้มี Token / Session ที่ยังไม่หมดอายุ จะทำการข้ามหน้า Login และตรงเข้าสู่ Dashboard ทันที
  */
 async function autoSessionCheckAndRedirect() {
   const urlParams = new URLSearchParams(window.location.search);
-  const isLogoutRequested = urlParams.get("logout") === "true" || urlParams.get("logout") === "1" || urlParams.get("action") === "logout" || urlParams.get("logged_out") === "1";
+  const isLogoutRequested = urlParams.get("logout") === "true" || 
+                            urlParams.get("logout") === "1" || 
+                            urlParams.get("action") === "logout" || 
+                            urlParams.get("logged_out") === "1" ||
+                            sessionStorage.getItem("pvt_explicit_logout") === "true" ||
+                            localStorage.getItem("pvt_explicit_logout") === "true";
 
   // 1. กรณีผู้ใช้กดออกจากระบบอย่างชัดเจน (Explicit Logout)
   if (isLogoutRequested) {
-    localStorage.removeItem("currentUser");
-    sessionStorage.removeItem("redirect_attempt");
+    console.log("🔒 [Auth] ตรวจพบคำสั่งออกจากระบบ (Explicit Logout) - กำลังล้างเซสชันทั้งหมด...");
+    try {
+      sessionStorage.removeItem("pvt_explicit_logout");
+      localStorage.removeItem("pvt_explicit_logout");
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("pvt_user");
+      localStorage.removeItem("pvt_auth_token");
+      localStorage.removeItem("supabase_session");
+      sessionStorage.clear();
+
+      // ล้าง Token ทั้งหมดของ Supabase ใน localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth-token') || key.includes('user')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) {}
+
     try {
       const sb = getSbClient();
       if (sb?.auth?.signOut) {
         sb.auth.signOut().catch(() => {});
       }
     } catch (e) {}
+
     // ล้าง query string ?logout ออกจาก address bar ให้เรียบร้อย
     if (window.history.replaceState) {
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -141,30 +188,25 @@ async function autoSessionCheckAndRedirect() {
 
   const hasRedirectAttempt = sessionStorage.getItem("redirect_attempt");
 
-  // 🔐 Check WebAuthn API support on device startup & ensure 'Biometric Login' button is visible
-  const checkAndToggleBiometricButton = async () => {
-    const bioBtn = document.getElementById("biometricLoginBtn");
-    const bioGuideBtn = document.getElementById("biometricGuideBtn");
-    if (!bioBtn) return;
+  window.toggleAltLoginOptions = function() {
+    const group = document.getElementById("altLoginGroup");
+    const btn = document.getElementById("altLoginToggleBtn");
+    const chevron = document.getElementById("altToggleChevron");
+    if (!group || !btn) return;
 
-    try {
-      // Keep biometric button visible on modern browsers supporting WebAuthn or touch/face APIs
-      if (window.PublicKeyCredential || (navigator.credentials && navigator.credentials.get)) {
-        bioBtn.style.display = "flex";
-        if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
-      } else {
-        // Fallback display for demo and universal access
-        bioBtn.style.display = "flex";
-        if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
-      }
-    } catch (err) {
-      console.warn("⚠️ [WebAuthn] Startup support check warning:", err);
-      bioBtn.style.display = "flex";
-      if (bioGuideBtn) bioGuideBtn.style.display = "inline-flex";
+    const isCollapsed = group.classList.contains("collapsed");
+    if (isCollapsed) {
+      group.classList.remove("collapsed");
+      btn.setAttribute("aria-expanded", "true");
+      btn.classList.add("active");
+      if (chevron) chevron.style.transform = "rotate(180deg)";
+    } else {
+      group.classList.add("collapsed");
+      btn.setAttribute("aria-expanded", "false");
+      btn.classList.remove("active");
+      if (chevron) chevron.style.transform = "rotate(0deg)";
     }
   };
-
-  window.checkAndToggleBiometricButton = checkAndToggleBiometricButton;
 
   const showSessionVerifyingUI = (show) => {
     const overlay = document.getElementById("sessionCheckOverlay");
@@ -311,9 +353,10 @@ const loginTranslations = {
     userInputPlaceholder: "กรอกรหัสพนักงาน หรือ ชื่อพนักงาน",
     passLabel: "รหัสผ่าน (Password)",
     passInputPlaceholder: "กรอกรหัสผ่านเข้าสู่ระบบ",
-    remember: "จดจำรหัสพนักงาน (Remember Me)",
+    remember: "จำรหัสพนักงาน",
     loginBtn: "เข้าสู่ระบบ",
     loggingIn: "กำลังเข้าสู่ระบบ...",
+    altLoginToggle: "เข้าสู่ระบบวิธีอื่น",
     qrBtn: "สแกนคิวอาร์โค้ดบัตรพนักงาน",
     qrGuideLink: "วิธีถือบัตรสแกน (How-to Guide)",
     biometricLoginBtn: "เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า",
@@ -392,6 +435,7 @@ const loginTranslations = {
     remember: "Remember Me",
     loginBtn: "Sign In",
     loggingIn: "Signing in...",
+    altLoginToggle: "Other Sign-in Options",
     qrBtn: "Scan Employee Card QR Code",
     qrGuideLink: "How to scan employee card (Guide)",
     biometricLoginBtn: "Sign in with Fingerprint / Face ID",
@@ -534,6 +578,7 @@ function setLanguage(lang) {
   const rememberEl = document.getElementById("i18nRemember");
   const loginBtnEl = document.getElementById("i18nLoginBtn");
   const loggingInEl = document.getElementById("i18nLoggingInText");
+  const altLoginToggleEl = document.getElementById("i18nAltLoginToggleText");
   const qrBtnEl = document.getElementById("i18nQrBtn");
   const qrGuideLinkEl = document.getElementById("i18nQrGuideLink");
   const biometricLoginBtnText = document.getElementById("i18nBiometricLoginBtn");
@@ -547,6 +592,7 @@ function setLanguage(lang) {
   if (rememberEl) rememberEl.textContent = t.remember;
   if (loginBtnEl) loginBtnEl.textContent = t.loginBtn;
   if (loggingInEl && t.loggingIn) loggingInEl.textContent = t.loggingIn;
+  if (altLoginToggleEl && t.altLoginToggle) altLoginToggleEl.textContent = t.altLoginToggle;
   if (qrBtnEl) qrBtnEl.textContent = t.qrBtn;
   if (qrGuideLinkEl && t.qrGuideLink) qrGuideLinkEl.textContent = t.qrGuideLink;
   if (biometricLoginBtnText && t.biometricLoginBtn) biometricLoginBtnText.textContent = t.biometricLoginBtn;
@@ -608,19 +654,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   const hideLoginSkeleton = () => {
     const skeleton = document.getElementById("loginSkeleton");
     const loginForm = document.getElementById("loginForm");
-    if (skeleton && skeleton.style.display !== "none") {
-      skeleton.style.opacity = "0";
-      skeleton.style.transition = "opacity 0.18s ease";
+    
+    if (!loginForm) return;
+
+    if (skeleton && skeleton.style.display !== "none" && !skeleton.classList.contains("hidden")) {
+      // 1. Unhide loginForm invisibly in DOM first so layout geometry is established seamlessly
+      loginForm.style.display = "flex";
+      loginForm.style.opacity = "0";
+      loginForm.style.transition = "opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1)";
+
+      // 2. Prepare skeleton transition
+      skeleton.style.transition = "opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1)";
+
+      // 3. Trigger simultaneous crossfade in next frame (no height collapse delay)
+      requestAnimationFrame(() => {
+        skeleton.style.opacity = "0";
+        loginForm.style.opacity = "1";
+      });
+
+      // 4. Clean up skeleton display once crossfade completes
       setTimeout(() => {
         skeleton.style.display = "none";
         skeleton.classList.add("hidden");
-        if (loginForm) {
-          loginForm.style.display = "flex";
-          loginForm.classList.add("fade-in");
-        }
-      }, 160);
-    } else if (loginForm) {
+        loginForm.style.opacity = "";
+        loginForm.style.transition = "";
+      }, 230);
+    } else {
       loginForm.style.display = "flex";
+      loginForm.style.opacity = "1";
     }
   };
 
@@ -1184,41 +1245,33 @@ async function executeSecureQrLogin(scannedData) {
   }
 }
 
-// 🔊 Web Audio API: สังเคราะห์เสียงตอบรับเมื่อสแกนสำเร็จ (Harmonic Success Chime)
+// 🔊 Web Audio API: สังเคราะห์เสียง 'Ding' สั้นๆ เมื่อสแกนสำเร็จ
 function playBarcodeScanSuccessSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
     const now = ctx.currentTime;
     
-    // Primary chime (Sine tone)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(784, now); // G5
-    osc1.frequency.exponentialRampToValueAtTime(1174.66, now + 0.08); // D6
-    gain1.gain.setValueAtTime(0.25, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.3);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1318.51, now); // E6 (High clear note)
+    
+    gain.gain.setValueAtTime(0.12, now); // Soft volume
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2); // Fast decay
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start(now);
+    osc.stop(now + 0.2);
 
-    // Harmonic sparkle (Triangle tone)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(1568, now + 0.03); // G6
-    gain2.gain.setValueAtTime(0.12, now + 0.03);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.03);
-    osc2.stop(now + 0.24);
+    // ปิด AudioContext เมื่อใช้งานเสร็จเพื่อคืนทรัพยากร
+    setTimeout(() => {
+      if (ctx.state !== 'closed') ctx.close().catch(() => {});
+    }, 400);
   } catch (e) {
     console.warn("Audio chime feedback note:", e);
   }

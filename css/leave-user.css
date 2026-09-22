@@ -38,7 +38,7 @@ html, body {
 }
 
 body {
-  font-family: "Sarabun", "Kanit", "Noto Sans Thai", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg); 
   background-image: 
     radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
@@ -157,13 +157,15 @@ body {
   padding: 16px 0; 
   display: flex; 
   align-items: center; 
-  justify-content: space-between; 
+  justify-content: center; 
+  text-align: center;
   margin-bottom: 16px; 
   border-bottom: 2px solid #e2e8f0; 
   flex-wrap: wrap;
   gap: 12px;
 }
-.container-head h2 { font-size: 20px; font-weight: 700; color: #1e293b; }
+div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) > h2:nth-of-type(1),
+.container-head h2 { font-size: 23px !important; font-weight: 700; color: #1e293b; text-align: center; width: 100%; }
 
 .leave-box-item {
   background: #ffffff;
@@ -307,6 +309,46 @@ textarea {
 .btn-danger { background: #fee2e2; color: #b91c1c; border: 2px solid #fecaca; }
 .btn-danger:hover { background: #fecaca; }
 .btn-sm { padding: 8px 16px; font-size: 14px; min-height: 40px; border-radius: 8px; }
+
+/* 🚀 Primary Submit Button Style for Leave Form (Primary Blue) */
+div:nth-of-type(2) > div:nth-of-type(4) > button#btnSaveLeave:nth-of-type(2),
+#btnSaveLeave {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 15.5px !important;
+  padding: 12px 28px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  letter-spacing: 0.2px !important;
+}
+
+#btnSaveLeave:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.45) !important;
+}
+
+#btnSaveLeave:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+#btnSaveLeave .material-symbols-outlined {
+  font-size: 20px !important;
+  transition: transform 0.2s ease !important;
+}
+
+#btnSaveLeave:hover .material-symbols-outlined {
+  transform: translateX(3px) rotate(-10deg) !important;
+}
 
 .bottom-actions { 
   background: var(--card); 
@@ -527,7 +569,8 @@ span.flatpickr-weekday {
 .form-guide-wrapper {
   position: fixed;
   bottom: max(24px, env(safe-area-inset-bottom));
-  right: max(24px, env(safe-area-inset-right));
+  left: max(24px, env(safe-area-inset-left)) !important;
+  right: auto !important;
   z-index: 999;
   font-family: inherit;
 }
@@ -602,8 +645,20 @@ span.flatpickr-weekday {
   gap: 6px;
   box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
   transition: all 0.2s ease;
-  float: right;
+  float: left !important;
   touch-action: manipulation;
+}
+
+div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
+#form-leave-guide-fab {
+  border-radius: 50px !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  padding-top: 10px !important;
+  margin-left: -6px !important;
+  margin-top: 0px !important;
+  margin-bottom: 10px !important;
+  margin-right: 0px !important;
 }
 
 @keyframes formGuideFadeIn {
@@ -621,7 +676,7 @@ span.flatpickr-weekday {
 }
 
 @media screen and (max-width: 768px) {
-  .page { padding: 20px 12px 160px !important; }
+  .page { padding: 20px 12px calc(220px + env(safe-area-inset-bottom)) !important; }
 
   .grid-row-3, .info-grid, .date-picker-large-grid {
     grid-template-columns: 1fr !important;
@@ -641,8 +696,10 @@ span.flatpickr-weekday {
   }
 
   .form-guide-wrapper { 
-    right: 12px !important; 
-    bottom: max(75px, env(safe-area-inset-bottom)) !important; 
+    left: 12px !important; 
+    right: auto !important; 
+    bottom: calc(142px + env(safe-area-inset-bottom)) !important; 
+    z-index: 950 !important;
   }
   .form-guide-popup { width: calc(100vw - 24px); }
   .form-fab-text { display: none; }

@@ -1,0 +1,540 @@
+/* ======================================================
+   Dedicated Stylesheet for News Management (/pages/hr/news-management.html)
+   Scoped Page ID: #page-hr-news-management
+   Specifically optimized for Laptop / Notebook / PC & Mobile
+   ====================================================== */
+@import url('/css/company-news.css');
+
+/* ==========================================================================
+   📰 NEWS MANAGEMENT ADMIN LAYOUT & CUSTOM STYLES
+   ========================================================================== */
+
+#page-hr-news-management {
+  overflow-x: hidden !important;
+  width: 100%;
+  background: #f8fafc;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#page-hr-news-management .app-shell {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
+}
+
+/* Main Content Area - Laptop / PC default layout */
+#page-hr-news-management .main-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 250px);
+  width: calc(100% - 250px);
+  margin-left: 250px;
+  padding: 20px 24px 48px 24px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  min-height: 100vh;
+  overflow-x: hidden !important;
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar Collapsed State (Edge toggle collapsed on PC / Laptop) */
+body.desktop-sidebar-collapsed#page-hr-news-management .main-content,
+body.desktop-sidebar-collapsed #page-hr-news-management .main-content,
+#page-hr-news-management .main-content.expanded {
+  margin-left: 72px !important;
+  width: calc(100% - 72px) !important;
+  max-width: calc(100% - 72px) !important;
+}
+
+/* 🏷️ TOPBAR - Compact & Responsive */
+#page-hr-news-management .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0; 
+  padding: 12px 18px; 
+  position: sticky;
+  top: 10px;
+  z-index: 99;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  border-radius: 14px;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+#page-hr-news-management .topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 300px;
+}
+
+#page-hr-news-management .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+#page-hr-news-management .news-mgmt-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding-bottom: 40px;
+  box-sizing: border-box;
+}
+
+/* 📊 STATISTICS GRID - Specifically configured for Laptop & PC */
+#page-hr-news-management .news-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#page-hr-news-management .news-stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#page-hr-news-management .news-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+  border-color: #cbd5e1;
+}
+
+#page-hr-news-management .news-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+#page-hr-news-management .news-stat-icon .material-symbols-outlined {
+  font-size: 22px;
+}
+
+#page-hr-news-management .news-stat-info {
+  min-width: 0;
+  flex: 1;
+}
+
+#page-hr-news-management .news-stat-info h4 {
+  margin: 0 0 3px 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-news-management .news-stat-info .stat-number {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 🛠️ TOOLBAR & FILTERS - Clean wrapping and flex discipline */
+#page-hr-news-management .news-toolbar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+#page-hr-news-management .search-filter-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 450px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+#page-hr-news-management .search-box-wrap {
+  position: relative;
+  flex: 1 1 180px;
+  min-width: 160px;
+  max-width: 320px;
+}
+
+#page-hr-news-management .search-box-wrap .material-symbols-outlined {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 19px;
+  pointer-events: none;
+}
+
+#page-hr-news-management .search-input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-family: inherit;
+  font-size: 13px;
+  background: #f8fafc;
+  color: #0f172a;
+  box-sizing: border-box;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+#page-hr-news-management .search-input:focus {
+  background: #ffffff;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+#page-hr-news-management .category-select {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-family: inherit;
+  font-size: 13px;
+  background: #f8fafc;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 0 1 auto;
+}
+
+#page-hr-news-management .category-select:focus {
+  border-color: #0d9488;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+#page-hr-news-management .btn-create-news {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  color: #ffffff;
+  border: none;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(13, 148, 136, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#page-hr-news-management .btn-create-news:hover {
+  background: linear-gradient(135deg, #0f766e, #115e59);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(13, 148, 136, 0.35);
+}
+
+#page-hr-news-management .btn-create-news .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* 🎴 NEWS CARDS GRID - Adaptive columns for Laptop & PC */
+#page-hr-news-management .news-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#page-hr-news-management .admin-news-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+#page-hr-news-management .admin-news-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.08);
+}
+
+#page-hr-news-management .admin-news-card.pinned {
+  border-color: #fde047;
+  background: linear-gradient(180deg, #fefce8 0%, #ffffff 48px);
+}
+
+#page-hr-news-management .news-header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+#page-hr-news-management .news-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+#page-hr-news-management .news-tag.urgent { background: #fee2e2; color: #dc2626; }
+#page-hr-news-management .news-tag.announcement { background: #e0f2fe; color: #0284c7; }
+#page-hr-news-management .news-tag.holiday { background: #fef3c7; color: #d97706; }
+#page-hr-news-management .news-tag.welfare { background: #dcfce7; color: #16a34a; }
+#page-hr-news-management .news-tag.activity { background: #f3e8ff; color: #9333ea; }
+
+#page-hr-news-management .pin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #d97706;
+  background: #fef3c7;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #fde047;
+  white-space: nowrap;
+}
+
+#page-hr-news-management .news-item-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+#page-hr-news-management .news-item-content {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 14px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+#page-hr-news-management .news-card-bottom {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#page-hr-news-management .news-author-time {
+  font-size: 11.5px;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+#page-hr-news-management .news-author-time span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-news-management .news-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+#page-hr-news-management .btn-icon-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+#page-hr-news-management .btn-icon-action:hover {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+#page-hr-news-management .btn-icon-action.pin-active {
+  background: #fef3c7;
+  color: #d97706;
+  border-color: #fde047;
+}
+
+#page-hr-news-management .btn-icon-action.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* 📭 EMPTY STATE */
+#page-hr-news-management .empty-news-box {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  border: 2px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 50px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+/* ==========================================================================
+   💻 SCREEN LAYOUT TUNING FOR NOTEBOOK - PC & INTERMEDIATE RESOLUTIONS
+   ========================================================================== */
+
+/* Laptop / Notebook range (1025px - 1280px) */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  #page-hr-news-management .news-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  #page-hr-news-management .news-cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+}
+
+/* Tablet & Smaller Screens */
+@media (max-width: 1024px) {
+  #page-hr-news-management .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 14px 16px 40px 16px !important;
+  }
+  
+  #page-hr-news-management .topbar {
+    top: 0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+
+  #page-hr-news-management .news-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+/* Mobile Screens */
+@media (max-width: 640px) {
+  #page-hr-news-management .news-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #page-hr-news-management .news-cards-container {
+    grid-template-columns: 1fr;
+  }
+  
+  #page-hr-news-management .news-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  #page-hr-news-management .search-filter-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  #page-hr-news-management .search-box-wrap {
+    max-width: 100%;
+  }
+
+  #page-hr-news-management .category-select {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  #page-hr-news-management .btn-create-news {
+    width: 100%;
+    justify-content: center;
+  }
+}

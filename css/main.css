@@ -20,7 +20,7 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-color);
   
   /* เว้นระยะรอยแหว่งกล้องบน-ล่าง ของ iOS และ Android อัตโนมัติ */

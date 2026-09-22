@@ -183,16 +183,45 @@ function statusLabel(status) {
   }[status] || status || "-";
 }
 
-function getAvatarUrl(imageUrl) {
-  if (!imageUrl || imageUrl === "null" || imageUrl === "undefined") {
-    return "/assets/img/default-avatar.jpg";
+function getDefaultAvatarUrl(title = "", gender = "", fullName = "") {
+  const cleanTitle = String(title || "").trim().toLowerCase();
+  const cleanGender = String(gender || "").trim().toLowerCase();
+  const cleanName = String(fullName || "").trim().toLowerCase();
+
+  const femaleTokens = ["นางสาว", "นาง", "น.ส.", "น.ส", "นส.", "นส", "สาว", "คุณหญิง", "ms.", "ms", "mrs.", "mrs", "miss.", "miss", "female", "หญิง", "f"];
+  const maleTokens = ["นาย", "นาย.", "mr.", "mr", "master.", "master", "male", "ชาย", "m"];
+
+  if (femaleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
+    return "/assets/img/avatar-female.jpg?v=2";
+  }
+
+  if (maleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
+    return "/assets/img/avatar-male.jpg?v=2";
+  }
+
+  return "/assets/img/avatar-male.jpg?v=2";
+}
+
+window.getDefaultAvatarUrl = getDefaultAvatarUrl;
+
+function getAvatarUrl(imageUrl, title = "", gender = "", fullName = "") {
+  if (typeof imageUrl === 'object' && imageUrl !== null) {
+    const obj = imageUrl;
+    imageUrl = obj.image_url || obj.avatar_url || obj.avatar || obj.employees?.image_url || null;
+    title = title || obj.title || obj.prefix || obj.employees?.title || "";
+    gender = gender || obj.gender || obj.employees?.gender || "";
+    fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
+  }
+
+  if (!imageUrl || imageUrl === "null" || imageUrl === "undefined" || imageUrl === "/assets/img/default-avatar.jpg") {
+    return getDefaultAvatarUrl(title, gender, fullName);
   }
   
   let url = String(imageUrl).trim();
-  if (!url) return "/assets/img/default-avatar.jpg";
+  if (!url) return getDefaultAvatarUrl(title, gender, fullName);
 
   // หากเป็น URL สมบูรณ์จากภายนอกหรือ Supabase CDN
-  if (url.startsWith("http://") || url.startsWith("https://")) {
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
     // 🛑 แก้บั๊ก: ถ้ามี /public/ อยู่แล้ว ให้ส่งกลับทันที ห้ามเติมซ้ำ
     if (url.includes("/storage/v1/object/public/")) {
       return url;
@@ -201,8 +230,10 @@ function getAvatarUrl(imageUrl) {
   }
 
   // หากเป็นแค่ชื่อไฟล์ที่เก็บใน Storage
-  return `${SUPABASE_URL}/storage/v1/object/public/employee-images/${url}`;
+  return `${SUPABASE_URL}/storage/v1/object/public/employee-images/${url.replace(/^\//, "")}`;
 }
+
+window.getAvatarUrl = getAvatarUrl;
 
   function downloadBlob(filename, content, mimeType = "text/plain;charset=utf-8") {
     const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
@@ -257,26 +288,49 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.groupEnd();
 });
 
-function handleLogout() {
+function handleLogout(event) {
+  if (event && event.preventDefault) event.preventDefault();
+  if (event && event.stopPropagation) event.stopPropagation();
+
+  const doLogout = () => {
+    if (typeof window.executePvtLogout === 'function') {
+      window.executePvtLogout();
+    } else {
+      sessionStorage.setItem('pvt_explicit_logout', 'true');
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace('/index.html?logout=true');
+    }
+  };
+
   if (window.Swal) {
     Swal.fire({
-      title: 'ยืนยันการออกจากระบบ?',
-      icon: 'question',
+      title: 'ยืนยันการออกจากระบบ',
+      text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+      icon: 'warning',
+      showConfirmButton: true,
       showCancelButton: true,
-      confirmButtonText: 'ออกจากระบบ',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'ตกลง (ยืนยันการออก)',
       cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#ef4444'
+      reverseButtons: false,
+      focusConfirm: true,
+      customClass: {
+        popup: 'pvt-logout-popup'
+      }
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.clear();
-        window.location.href = '/index.html';
+        doLogout();
       }
     });
   } else {
-    localStorage.clear();
-    window.location.href = '/index.html';
+    if (confirm('คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่? (กด ตกลง / OK เพื่อยืนยันการออก)')) {
+      doLogout();
+    }
   }
 }
+window.handleLogout = handleLogout;
 
 // ==========================================
 // 3. SUPABASE CONNECTOR & AUDIT LOGS
@@ -352,6 +406,8 @@ async function initManagementSystem() {
       ? window.getUserRoleCategory(profile) 
       : { isAuth: true, category: (profile.role === 'admin' || profile.role === 'hr') ? 'hr_exec' : 'employee' };
     
+    window.isViewOnlyHR = userStatus.isViewOnly || false;
+
     if (userStatus.category !== 'hr_exec') {
       console.warn("🚫 [Management]: ผู้ใช้งานไม่มีสิทธิ์เข้าถึงหน้านี้ -> กำลังส่งกลับ");
       try { if (document.body) document.body.innerHTML = ''; } catch(e){}
@@ -365,6 +421,12 @@ async function initManagementSystem() {
 
     // 🎯 1. แสดงโปรไฟล์บน Header ตรงนี้ได้เลยครับ!
     renderHeaderProfile();
+
+    // 🔒 Hide edit actions if view-only
+    if (window.isViewOnlyHR) {
+      const addBtns = document.querySelectorAll('.action-btn[onclick*="addNewEmployee"], .action-btn[onclick*="importEmployeesExcel"]');
+      addBtns.forEach(b => b.style.display = 'none');
+    }
 
     // 🏢 2. เชื่อมต่อการสลับบริษัทในเครือ (Multi-Entity Switcher Event)
     if (!window._entityListenerAttached) {
@@ -1000,6 +1062,13 @@ async function refreshDashboard() {
     renderSummary();
     renderEmployeeTable();
 
+    // เติมพนักงานเข้าแผง Roster พนักงานด้านล่างสุดของหน้าจอจัดการส่วนกลาง
+    if (typeof renderHomeDepartmentTeam === 'function') {
+      const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+      const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+      renderHomeDepartmentTeam(employees, sessionUser);
+    }
+
     // Rerender the Recharts Summary panel
     if (typeof window.renderRechartsDashboard === 'function') {
       window.renderRechartsDashboard();
@@ -1557,6 +1626,7 @@ function fillPositionFilter() {
 
   select.value = posNames.includes(current) ? current : "";
 }
+window.fillPositionFilter = fillPositionFilter;
 
 function renderSummary() {
   const safeRequests = Array.isArray(leaveRequests) ? leaveRequests : [];
@@ -1775,7 +1845,7 @@ function renderEmployeeTable() {
   }
 
   container.innerHTML = filtered.map((emp) => {
-    const avatarUrl = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : '/assets/img/default-avatar.jpg';
+    const avatarUrl = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url, emp.title) : getAvatarUrl(emp.image_url, emp.title);
     const thaiStartDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-");
     const statusLabel = emp.status === "inactive" || emp.status === "resigned" ? "ลาออก" : "ใช้งาน";
     const statusClass = emp.status || "active";
@@ -1849,18 +1919,20 @@ function renderEmployeeTable() {
             <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
             <span>รายละเอียด</span>
           </button>
-          <button class="btn-table-act danger" 
-                  onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
-                  title="ลบพนักงาน">
-            <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
-          </button>
-          ${emp.line_id ? `
-          <button class="btn-table-act warning" 
-                  onclick="unlinkLineAccount('${emp.id}', '${escapeHtml(emp.full_name)}')" 
-                  title="ยกเลิกการผูกบัญชี LINE">
-            <span class="material-symbols-outlined" style="font-size: 16px;">link_off</span>
-          </button>
-          ` : ''}
+          ${window.isViewOnlyHR ? '' : `
+            <button class="btn-table-act danger" 
+                    onclick="deleteEmployee('${emp.id}', '${escapeHtml(emp.employee_code)}', '${escapeHtml(emp.full_name)}')" 
+                    title="ลบพนักงาน">
+              <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
+            </button>
+            ${emp.line_id ? `
+            <button class="btn-table-act warning" 
+                    onclick="unlinkLineAccount('${emp.id}', '${escapeHtml(emp.full_name)}')" 
+                    title="ยกเลิกการผูกบัญชี LINE">
+              <span class="material-symbols-outlined" style="font-size: 16px;">link_off</span>
+            </button>
+            ` : ''}
+          `}
         </div>
       </div>
     `;
@@ -2002,6 +2074,7 @@ async function renderCustomFieldsHTMLForEdit(supabase, employeeCode) {
 
 // ปรับปรุงฟอร์มเปิดดู/แก้ไขพนักงานแบบย่อ
 async function openEmployeeDetail(employeeId, isEditMode = false) {
+  if (isEditMode && window.isViewOnlyHR) isEditMode = false;
   if (!window.departments || window.departments.length === 0) await fetchDepartments();
   if (!window.positions || window.positions.length === 0) await fetchPositions();
 
@@ -2040,9 +2113,11 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
             <span style="color:#64748b;">·</span>
             <span>${escapeHtml(emp.full_name || "-")}</span>
           </span>
-          <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:#0d9488; border:1px solid #0d9488; color:white; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
-            <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไขข้อมูล
-          </button>
+          ${window.isViewOnlyHR ? '' : `
+            <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:#0d9488; border:1px solid #0d9488; color:white; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+              <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไขข้อมูล
+            </button>
+          `}
         </div>
       `;
     }
@@ -2051,7 +2126,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
     if (body) {
       body.innerHTML = `
         <div style="display:flex; align-items:center; gap:14px; background:#f8fafc; padding:14px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px; flex-wrap:wrap;">
-          <img src="${emp.image_url || 'https://placehold.co/100?text=PVT'}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #0d9488; background:#fff; flex-shrink:0;">
+          <img src="${getAvatarUrl(emp.image_url, emp.title)}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #0d9488; background:#fff; flex-shrink:0;" onerror="this.onerror=null; this.src=getDefaultAvatarUrl('${escapeHtml(emp.title || '')}');">
           <div style="flex:1; min-width:180px;">
             <div style="font-size:15px; font-weight:700; color:#1e293b;">${escapeHtml(emp.full_name || "-")} ${emp.nickname ? `<span style="font-weight:400; color:#64748b;">(${escapeHtml(emp.nickname)})</span>` : ''}</div>
             <div style="font-size:13px; color:#0d9488; font-weight:600; margin-top:2px;">${escapeHtml(emp.positions?.position_name || "-")} · ${escapeHtml(emp.departments?.department_name || "-")}</div>
@@ -2088,7 +2163,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
     }
   } else {
     // โหมดแก้ไข
-    if (title) title.innerHTML = `<span>✏️ แก้ไขพนักงาน: ${escapeHtml(emp.employee_code || "-")}</span>`;
+    if (title) title.innerHTML = `<span style="display:inline-flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:22px;">edit_note</span> แก้ไขข้อมูลพนักงาน: <strong>${escapeHtml(emp.employee_code || "-")}</strong> <span style="font-size:14px; opacity:0.85; font-weight:400;">(${escapeHtml(emp.full_name || "-")})</span></span>`;
     
     // สร้าง Dropdown แผนกและตำแหน่ง (จัดกลุ่มตามประเภท: ผู้จัดการ, หัวหน้า, เจ้าหน้าที่/ผู้ช่วย, พนักงาน)
     const deptOptions = (window.departments || []).map(d => {
@@ -2122,148 +2197,245 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
       empLastName = nameParts.slice(1).join(' ') || '';
     }
 
+    window._inlinePhotoRemoved = false;
+
     if (body) {
+      const currentAvatarUrl = emp.image_url 
+        ? (window.getAvatarUrl ? window.getAvatarUrl(emp.image_url, emp.title, emp.gender, emp.full_name) : emp.image_url)
+        : (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl(emp.title, emp.gender, emp.full_name) : '/assets/img/default-avatar.jpg');
+      const defaultAvatarFallback = window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl(emp.title, emp.gender, emp.full_name) : '/assets/img/default-avatar.jpg';
+
       body.innerHTML = `
         <form id="inlineEditForm" onsubmit="event.preventDefault(); saveEmployeeInlineEdit('${emp.id}');" style="display:flex; flex-direction:column; gap:16px; font-family:'Sarabun', sans-serif;">
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; text-align:left; max-height: 65vh; overflow-y: auto; padding-right: 6px;">
+          <div class="pvt-fs-grid" style="grid-template-columns: 280px 1fr; gap: 16px;">
             
-            <div style="grid-column: 1 / -1; text-align: center; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px dashed #cbd5e1; margin-bottom: 12px;">
-              <img id="inline-edit-profilePreview" src="${emp.image_url || 'https://placehold.co/100?text=No+Image'}" 
-                   style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 8px; background: #fff;">
-              <input type="file" id="inline-edit-img" class="swal2-file" accept="image/*" style="display: block; margin: 0 auto; font-size: 12px;">
-            </div>
-
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">รหัสพนักงาน *</label>
-              <input id="inline-edit-code" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.employee_code || '')}" required>
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">รหัสผ่านใหม่ (ว่างไว้เพื่อคงเดิม)</label>
-              <input type="text" id="inline-edit-password" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" placeholder="ปล่อยว่างหากใช้รหัสผ่านเดิม">
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">คำนำหน้าชื่อ <span id="edit-prefix-req" style="color:red;">*</span></label>
-              <select id="inline-edit-title" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
-                <option value="" disabled ${!emp.title ? 'selected' : ''}>เลือกคำนำหน้า...</option>
-                <option value="นาย" ${emp.title === 'นาย' ? 'selected' : ''}>นาย</option>
-                <option value="นาง" ${emp.title === 'นาง' ? 'selected' : ''}>นาง</option>
-                <option value="นางสาว" ${emp.title === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
-                ${(emp.role === 'executive' || emp.role === 'admin' || emp.title === 'คุณ') ? `<option value="คุณ" ${emp.title === 'คุณ' ? 'selected' : ''}>คุณ</option>` : ''}
-              </select>
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อจริง *</label>
-              <input id="inline-edit-firstName" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(empFirstName)}" placeholder="ชื่อจริง" required>
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">นามสกุล *</label>
-              <input id="inline-edit-lastName" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(empLastName)}" placeholder="นามสกุล" required>
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">ชื่อเล่น</label>
-              <input id="inline-edit-nickname" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.nickname || '')}" placeholder="ชื่อเล่น">
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">เบอร์โทรศัพท์</label>
-              <input id="inline-edit-phone" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.phone || '')}" placeholder="08X-XXX-XXXX">
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">ไอดีไลน์ (Line ID)</label>
-              <input id="inline-edit-lineId" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.line_id || '')}" placeholder="Line ID">
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">อีเมลองค์กร</label>
-              <input type="email" id="inline-edit-email" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.email || '')}" placeholder="email@company.com">
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">เลขบัญชีธนาคาร</label>
-              <input id="inline-edit-bankAccount" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.bank_account || '')}" placeholder="เลขบัญชี 10 หลัก">
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">🏥 โรงพยาบาลประกันสังคม</label>
-              <input id="inline-edit-hospital" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${escapeHtml(emp.hospital || '')}" placeholder="เช่น รพ.เปาโล">
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">สังกัดฝ่าย / แผนก <span id="edit-dept-req" style="color:red;">*</span></label>
-              <select id="inline-edit-dept" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
-                <option value="" disabled>-- เลือกแผนก --</option>
-                ${deptOptions}
-              </select>
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">ตำแหน่งงาน <span id="edit-role-req" style="color:red;">*</span></label>
-              <select id="inline-edit-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
-                <option value="" disabled>-- เลือกตำแหน่ง --</option>
-                ${roleOptions}
-              </select>
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #0d9488;">👑 สิทธิ์ในระบบ (System Role) *</label>
-              <select id="inline-edit-system-role" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box; background:#ffffff; border: 2px solid #0d9488; font-weight:600; color:#0d9488; cursor: pointer;" onchange="window.updateEmployeeEditFormRequirements()">
-                <option value="user" ${emp.role === 'user' || !emp.role ? 'selected' : ''}>👤 พนักงานทั่วไป (Employee / Staff)</option>
-                <option value="leader" ${emp.role === 'leader' ? 'selected' : ''}>🎖️ หัวหน้างาน (Supervisor / Leader - ผู้อนุมัติ L1)</option>
-                <option value="manager" ${emp.role === 'manager' ? 'selected' : ''}>👔 ผู้จัดการฝ่าย (Department Manager - ผู้อนุมัติ L2)</option>
-                <option value="executive" ${emp.role === 'executive' || emp.role === 'director' || emp.role === 'owner' ? 'selected' : ''}>⭐ ผู้บริหารระดับสูง (Director / Executive - ผู้อนุมัติ L3)</option>
-                <option value="hr" ${emp.role === 'hr' ? 'selected' : ''}>📋 ฝ่ายบุคคล (HR Officer - อนุมัติขั้นสุดท้าย)</option>
-                <option value="admin" ${emp.role === 'admin' || emp.role === 'superadmin' ? 'selected' : ''}>🛡️ ผู้ดูแลระบบ (System Admin)</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">ประเภทพนักงาน <span id="edit-type-req" style="color:red;">*</span></label>
-              <select id="inline-edit-type" class="swal2-select custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;">
-                <option value="" disabled>เลือกประเภทพนักงาน...</option>
-                <option value="พนักงานประจำ (Full-time)" ${emp.employment_type === 'พนักงานประจำ (Full-time)' || emp.employment_type === 'full_time' ? 'selected' : ''}>พนักงานประจำ (Full-time)</option>
-                <option value="พนักงานพาร์ทไทม์ (Part-time)" ${emp.employment_type === 'พนักงานพาร์ทไทม์ (Part-time)' || emp.employment_type === 'part_time' ? 'selected' : ''}>พนักงานพาร์ทไทม์ (Part-time)</option>
-                <option value="พนักงานสัญญาจ้าง (Contract)" ${emp.employment_type === 'พนักงานสัญญาจ้าง (Contract)' || emp.employment_type === 'contract' ? 'selected' : ''}>พนักงานสัญญาจ้าง (Contract)</option>
-                <option value="นักศึกษาฝึกงาน (Intern)" ${emp.employment_type === 'นักศึกษาฝึกงาน (Intern)' || emp.employment_type === 'intern' ? 'selected' : ''}>นักศึกษาฝึกงาน (Intern)</option>
-                <option value="พนักงานทดลองงาน (Probation)" ${emp.employment_type === 'พนักงานทดลองงาน (Probation)' ? 'selected' : ''}>พนักงานทดลองงาน (Probation)</option>
-                <option value="รายเดือน (Monthly)" ${emp.employment_type === 'รายเดือน (Monthly)' || emp.employment_type === 'monthly' ? 'selected' : ''}>รายเดือน (Monthly)</option>
-                <option value="รายวัน (Daily)" ${emp.employment_type === 'รายวัน (Daily)' || emp.employment_type === 'daily' ? 'selected' : ''}>รายวัน (Daily)</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:13px; font-weight:600; color: #1e293b;">วันที่เริ่มงาน <span id="edit-start-req" style="color:red;">*</span></label>
-              <input type="date" id="inline-edit-startDate" class="swal2-input custom-input-consistent" style="margin:4px 0 0; width:100%; height:42px; font-size:14px; box-sizing: border-box;" value="${emp.start_date ? emp.start_date.split('T')[0] : ''}">
-            </div>
-
-            <!-- Section Custom Columns -->
-            <div class="custom-fields-section" style="grid-column: 1 / -1; margin-top: 10px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h6 style="margin: 0; font-weight: 700; color: #0d9488; font-size: 13px;">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</h6>
-                <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => openEmployeeDetail('${emp.id}', true))" style="font-size: 12px; padding: 5px 12px; background: #0d9488; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                  ⚙️ จัดการ/เพิ่มคอลัมน์ระบบ
-                </button>
+            <!-- Left Side: Avatar & Account Info -->
+            <div class="pvt-fs-left-col">
+              <!-- Avatar Card -->
+              <div class="pvt-fs-card" style="padding: 16px; margin-bottom: 14px;">
+                <div class="pvt-fs-card-title" style="font-size: 14px; margin-bottom: 12px; padding-bottom: 8px;">
+                  <span class="material-symbols-outlined" style="font-size:18px;">account_circle</span> รูปถ่ายพนักงาน
+                </div>
+                <div class="pvt-avatar-uploader" style="padding: 16px 12px; margin-bottom: 0;">
+                  <img id="inline-edit-profilePreview" src="${currentAvatarUrl}" 
+                       class="pvt-avatar-img" style="width: 120px; height: 160px; object-fit: cover; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Profile Preview" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
+                  <div style="display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; justify-content: center; align-items: center; width: 100%;">
+                    <label for="inline-edit-img" class="pvt-file-label-btn" style="font-size: 12px; padding: 6px 12px; margin: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                      <span class="material-symbols-outlined" style="font-size:16px;">photo_camera</span> เปลี่ยนรูปภาพ
+                    </label>
+                    <button type="button" id="inline-edit-remove-photo-btn" onclick="window.handleRemoveInlineEmployeePhoto('${escapeHtml(emp.title || '')}', '${escapeHtml(emp.gender || '')}', '${escapeHtml(emp.full_name || '')}')" style="font-size: 12px; padding: 6px 12px; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease;" title="ลบรูปโปรไฟล์และกลับไปใช้รูปเริ่มต้นตามเพศ/คำนำหน้า">
+                      <span class="material-symbols-outlined" style="font-size:16px;">delete</span> ลบรูป
+                    </button>
+                  </div>
+                  <input type="file" id="inline-edit-img" accept="image/*" style="display: none;" onchange="if(this.files[0]) { document.getElementById('inline-edit-profilePreview').src = URL.createObjectURL(this.files[0]); window._inlinePhotoRemoved = false; }">
+                </div>
               </div>
-              <div id="customColumnsContainer" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">${customFieldsHTML}</div>
+
+              <!-- Account Credentials Card -->
+              <div class="pvt-fs-card" style="padding: 16px; margin-bottom: 0;">
+                <div class="pvt-fs-card-title" style="font-size: 14px; margin-bottom: 12px; padding-bottom: 8px;">
+                  <span class="material-symbols-outlined" style="font-size:18px;">lock</span> บัญชีและสิทธิ์ในระบบ
+                </div>
+                <div class="pvt-field-group" style="margin-bottom: 12px;">
+                  <label for="inline-edit-code">รหัสพนักงาน <span class="req">*</span></label>
+                  <input id="inline-edit-code" class="pvt-input" value="${escapeHtml(emp.employee_code || '')}" required>
+                </div>
+                <div class="pvt-field-group" style="margin-bottom: 12px;">
+                  <label for="inline-edit-password">รหัสผ่านใหม่ <span style="font-size:11px; color:#64748b;">(ว่างไว้เพื่อคงเดิม)</span></label>
+                  <input type="text" id="inline-edit-password" class="pvt-input" placeholder="ปล่อยว่างหากใช้รหัสผ่านเดิม">
+                </div>
+                <div class="pvt-field-group">
+                  <label for="inline-edit-system-role" style="color: #0d9488;">👑 สิทธิ์ในระบบ <span class="req">*</span></label>
+                  <select id="inline-edit-system-role" class="pvt-select pvt-select-highlight" onchange="window.updateEmployeeEditFormRequirements()">
+                    <option value="user" ${emp.role === 'user' || !emp.role ? 'selected' : ''}>👤 พนักงานทั่วไป (Employee)</option>
+                    <option value="leader" ${emp.role === 'leader' ? 'selected' : ''}>🎖️ หัวหน้างาน (Supervisor - L1)</option>
+                    <option value="manager" ${emp.role === 'manager' ? 'selected' : ''}>👔 ผู้จัดการฝ่าย (Manager - L2)</option>
+                    <option value="executive" ${emp.role === 'executive' || emp.role === 'director' || emp.role === 'owner' ? 'selected' : ''}>⭐ ผู้บริหารระดับสูง (Executive - L3)</option>
+                    <option value="hr" ${emp.role === 'hr' ? 'selected' : ''}>📋 ฝ่ายบุคคล (HR Officer)</option>
+                    <option value="admin" ${emp.role === 'admin' || emp.role === 'superadmin' ? 'selected' : ''}>🛡️ ผู้ดูแลระบบ (Admin)</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
+            <!-- Right Side: Personal, Contact & Job Details -->
+            <div class="pvt-fs-right-col">
+              <!-- Personal Info Card -->
+              <div class="pvt-fs-card" style="padding: 16px; margin-bottom: 14px;">
+                <div class="pvt-fs-card-title" style="font-size: 14px; margin-bottom: 12px; padding-bottom: 8px;">
+                  <span class="material-symbols-outlined" style="font-size:18px;">badge</span> ข้อมูลส่วนตัว
+                </div>
+                <div class="pvt-form-row">
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-title">คำนำหน้าชื่อ <span id="edit-prefix-req" class="req">*</span></label>
+                    <select id="inline-edit-title" class="pvt-select">
+                      <option value="" disabled ${!emp.title ? 'selected' : ''}>เลือกคำนำหน้า...</option>
+                      <option value="นาย" ${emp.title === 'นาย' ? 'selected' : ''}>นาย</option>
+                      <option value="นาง" ${emp.title === 'นาง' ? 'selected' : ''}>นาง</option>
+                      <option value="นางสาว" ${emp.title === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+                      ${(emp.role === 'executive' || emp.role === 'admin' || emp.title === 'คุณ') ? `<option value="คุณ" ${emp.title === 'คุณ' ? 'selected' : ''}>คุณ</option>` : ''}
+                    </select>
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-firstName">ชื่อจริง <span class="req">*</span></label>
+                    <input id="inline-edit-firstName" class="pvt-input" value="${escapeHtml(empFirstName)}" placeholder="ชื่อจริง" required>
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-lastName">นามสกุล <span class="req">*</span></label>
+                    <input id="inline-edit-lastName" class="pvt-input" value="${escapeHtml(empLastName)}" placeholder="นามสกุล" required>
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-nickname">ชื่อเล่น</label>
+                    <input id="inline-edit-nickname" class="pvt-input" value="${escapeHtml(emp.nickname || '')}" placeholder="ชื่อเล่น">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Contact & Account Card -->
+              <div class="pvt-fs-card" style="padding: 16px; margin-bottom: 14px;">
+                <div class="pvt-fs-card-title" style="font-size: 14px; margin-bottom: 12px; padding-bottom: 8px;">
+                  <span class="material-symbols-outlined" style="font-size:18px;">contact_phone</span> ข้อมูลการติดต่อและบัญชี
+                </div>
+                <div class="pvt-form-row">
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-phone">เบอร์โทรศัพท์</label>
+                    <input id="inline-edit-phone" class="pvt-input" value="${escapeHtml(emp.phone || '')}" placeholder="08X-XXX-XXXX">
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-lineId">ไอดีไลน์ (Line ID)</label>
+                    <input id="inline-edit-lineId" class="pvt-input" value="${escapeHtml(emp.line_id || '')}" placeholder="Line ID">
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-email">อีเมลองค์กร</label>
+                    <input type="email" id="inline-edit-email" class="pvt-input" value="${escapeHtml(emp.email || '')}" placeholder="email@company.com">
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-bankAccount">เลขบัญชีธนาคาร</label>
+                    <input id="inline-edit-bankAccount" class="pvt-input" value="${escapeHtml(emp.bank_account || '')}" placeholder="เลขบัญชี 10 หลัก">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Job & Department Card -->
+              <div class="pvt-fs-card" style="padding: 16px; margin-bottom: 14px;">
+                <div class="pvt-fs-card-title" style="font-size: 14px; margin-bottom: 12px; padding-bottom: 8px;">
+                  <span class="material-symbols-outlined" style="font-size:18px;">corporate_fare</span> ข้อมูลการทำงานและสังกัด
+                </div>
+                <div class="pvt-form-row">
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-dept">สังกัดฝ่าย / แผนก <span id="edit-dept-req" class="req">*</span></label>
+                    <select id="inline-edit-dept" class="pvt-select">
+                      <option value="" disabled>-- เลือกแผนก --</option>
+                      ${deptOptions}
+                    </select>
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-role">ตำแหน่งงาน <span id="edit-role-req" class="req">*</span></label>
+                    <select id="inline-edit-role" class="pvt-select">
+                      <option value="" disabled>-- เลือกตำแหน่ง --</option>
+                      ${roleOptions}
+                    </select>
+                  </div>
+                </div>
+                <div class="pvt-form-row" style="margin-top: 12px;">
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-type">ประเภทพนักงาน <span id="edit-type-req" class="req">*</span></label>
+                    <select id="inline-edit-type" class="pvt-select">
+                      <option value="" disabled>เลือกประเภทพนักงาน...</option>
+                      <option value="พนักงานประจำ (Full-time)" ${emp.employment_type === 'พนักงานประจำ (Full-time)' || emp.employment_type === 'full_time' ? 'selected' : ''}>พนักงานประจำ (Full-time)</option>
+                      <option value="พนักงานพาร์ทไทม์ (Part-time)" ${emp.employment_type === 'พนักงานพาร์ทไทม์ (Part-time)' || emp.employment_type === 'part_time' ? 'selected' : ''}>พนักงานพาร์ทไทม์ (Part-time)</option>
+                      <option value="พนักงานสัญญาจ้าง (Contract)" ${emp.employment_type === 'พนักงานสัญญาจ้าง (Contract)' || emp.employment_type === 'contract' ? 'selected' : ''}>พนักงานสัญญาจ้าง (Contract)</option>
+                      <option value="นักศึกษาฝึกงาน (Intern)" ${emp.employment_type === 'นักศึกษาฝึกงาน (Intern)' || emp.employment_type === 'intern' ? 'selected' : ''}>นักศึกษาฝึกงาน (Intern)</option>
+                      <option value="พนักงานทดลองงาน (Probation)" ${emp.employment_type === 'พนักงานทดลองงาน (Probation)' ? 'selected' : ''}>พนักงานทดลองงาน (Probation)</option>
+                      <option value="รายเดือน (Monthly)" ${emp.employment_type === 'รายเดือน (Monthly)' || emp.employment_type === 'monthly' ? 'selected' : ''}>รายเดือน (Monthly)</option>
+                      <option value="รายวัน (Daily)" ${emp.employment_type === 'รายวัน (Daily)' || emp.employment_type === 'daily' ? 'selected' : ''}>รายวัน (Daily)</option>
+                    </select>
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-startDate">วันที่เริ่มงาน <span id="edit-start-req" class="req">*</span></label>
+                    <input type="date" id="inline-edit-startDate" class="pvt-input" value="${emp.start_date ? emp.start_date.split('T')[0] : ''}">
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="inline-edit-hospital">🏥 โรงพยาบาลประกันสังคม</label>
+                    <input id="inline-edit-hospital" class="pvt-input" value="${escapeHtml(emp.hospital || '')}" placeholder="เช่น รพ.เปาโล">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Custom Columns Card -->
+              <div class="pvt-fs-card" style="padding: 16px; margin-bottom: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <div class="pvt-fs-card-title" style="font-size: 14px; margin-bottom:0; border-bottom:none; padding-bottom:0;">
+                    <span class="material-symbols-outlined" style="font-size:18px;">post_add</span> ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)
+                  </div>
+                  <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => openEmployeeDetail('${emp.id}', true))" style="font-size: 11.5px; padding: 5px 12px; background: #0d9488; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    ⚙️ จัดการคอลัมน์ระบบ
+                  </button>
+                </div>
+                <div id="customColumnsContainer" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">${customFieldsHTML}</div>
+              </div>
+
+            </div>
           </div>
 
-          <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px; border-top:1px solid #e2e8f0; padding-top:16px;">
-            <button type="button" class="btn-light" onclick="openEmployeeDetail('${emp.id}', false)">ยกเลิก</button>
-            <button type="submit" class="btn-primary" style="background:#0d9488; border-color:#0d9488; color:white; border-radius:6px; cursor:pointer;">บันทึกข้อมูล</button>
+          <div class="pvt-fs-footer" style="position: sticky; bottom: -24px; background: #ffffff; border-top: 1px solid #cbd5e1; padding: 14px 28px; margin: 24px -24px -24px -24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -4px 16px rgba(0,0,0,0.06); z-index: 20; flex-wrap: wrap; gap: 12px;">
+            <div style="font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 8px;">
+              <span class="material-symbols-outlined" style="font-size:18px; color:#0d9488;">badge</span>
+              <span>กำลังแก้ไขข้อมูลพนักงาน: <strong style="color:#0f766e;">${escapeHtml(emp.employee_code || '-')}</strong> (${escapeHtml(emp.full_name || '-')})</span>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <button type="button" class="btn-light" onclick="openEmployeeDetail('${emp.id}', false)" style="padding: 10px 20px; font-weight: 600; font-size: 14px; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;">
+                ❌ ยกเลิก
+              </button>
+              <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); border: none; color: white; border-radius: 8px; padding: 10px 28px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);">
+                <span class="material-symbols-outlined" style="font-size:18px;">save</span> บันทึกการแก้ไขข้อมูล
+              </button>
+            </div>
           </div>
         </form>
       `;
+    }
 
       // ผูก Event Listener ทันทีเพื่ออัปเดตรูปประจำตัวพรีวิวเรียลไทม์เมื่อเลือกไฟล์ใหม่
       setTimeout(() => {
         window.updateEmployeeEditFormRequirements();
         const imgInput = document.getElementById('inline-edit-img');
         const preview = document.getElementById('inline-edit-profilePreview');
+        const titleSelect = document.getElementById('inline-edit-title');
+
+        const updateAvatarForEditTitle = () => {
+          if (!imgInput || (imgInput.files && imgInput.files.length > 0)) return;
+          // Only change if employee doesn't have custom image or is using default avatar
+          if (!emp.image_url || preview.src.includes('avatar') || preview.src.includes('default')) {
+            preview.src = getDefaultAvatarUrl(titleSelect ? titleSelect.value : '');
+          }
+        };
+
+        if (titleSelect) {
+          titleSelect.addEventListener('change', updateAvatarForEditTitle);
+        }
+
         if (imgInput && preview) {
           imgInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
               const url = URL.createObjectURL(file);
               preview.src = url;
+            } else {
+              updateAvatarForEditTitle();
             }
           });
         }
       }, 50);
-    }
   }
-  if (modal) modal.classList.add("open");
+  if (modal) {
+    if (isEditMode) {
+      modal.classList.add("modal-fullscreen");
+    } else {
+      modal.classList.remove("modal-fullscreen");
+    }
+    modal.classList.add("open");
+  }
 }
 
 async function saveEmployeeInlineEdit(employeeId) {
@@ -2340,6 +2512,8 @@ async function saveEmployeeInlineEdit(employeeId) {
   if (fileInput && fileInput.files[0]) {
     const uploadedUrl = await uploadEmployeeImage(getSupabase(), code, fileInput.files[0]);
     if (uploadedUrl) updateData.image_url = uploadedUrl;
+  } else if (window._inlinePhotoRemoved) {
+    updateData.image_url = null;
   }
 
   // 🛑 เพิ่มปุ่มยืนยันก่อนบันทึกการแก้ไขข้อมูลพนักงาน (ป้องกันลืม/กดพลาด)
@@ -2396,13 +2570,52 @@ async function saveEmployeeInlineEdit(employeeId) {
   }
 }
 
+window.handleRemoveInlineEmployeePhoto = function(defaultTitle = '', defaultGender = '', defaultName = '') {
+  const imgInput = document.getElementById('inline-edit-img');
+  if (imgInput) imgInput.value = '';
+  window._inlinePhotoRemoved = true;
+
+  const title = document.getElementById('inline-edit-title')?.value || defaultTitle;
+  const gender = document.getElementById('inline-edit-gender')?.value || defaultGender;
+  const firstName = document.getElementById('inline-edit-first-name')?.value || '';
+  const lastName = document.getElementById('inline-edit-last-name')?.value || '';
+  const fullName = (`${firstName} ${lastName}`).trim() || defaultName;
+
+  const defaultAvatar = (typeof window.getDefaultAvatarUrl === 'function')
+    ? window.getDefaultAvatarUrl(title, gender, fullName)
+    : '/assets/img/default-avatar.jpg';
+
+  const previewEl = document.getElementById('inline-edit-profilePreview');
+  if (previewEl) {
+    previewEl.src = defaultAvatar;
+  }
+
+  if (window.Swal) {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true
+    });
+    Toast.fire({
+      icon: 'info',
+      title: 'ลบรูปโปรไฟล์แล้ว (ระบบจะใช้รูปตามเพศ/คำนำหน้าชื่อแทน)'
+    });
+  }
+};
+
 
 
 function closeEmployeeModal(event) {
   if (event && event.target && event.target.id !== "employeeModal" && !event.target.closest('.btn-close') && !event.target.closest('.btn-light')) {
     return;
   }
-  document.getElementById("employeeModal")?.classList.remove("open");
+  const modal = document.getElementById("employeeModal");
+  if (modal) {
+    modal.classList.remove("open");
+    modal.classList.remove("modal-fullscreen");
+  }
 }
 
 function detail(label, value) {
@@ -2869,133 +3082,238 @@ window.addNewEmployee = async function addNewEmployee() {
     let roleOptions = buildGroupedPositionOptions(roleRes.data, null);
 
     const { value: formValues } = await Swal.fire({
-      title: '➕ เพิ่มพนักงานใหม่เข้าสู่ระบบ',
-      width: 'min(92vw, 800px)',
+      customClass: {
+        container: 'pvt-fullscreen-swal-container',
+        popup: 'pvt-fullscreen-swal-popup'
+      },
+      width: '100vw',
+      padding: '0',
+      showCancelButton: true,
+      confirmButtonText: '💾 ตรวจสอบและบันทึกข้อมูล',
+      cancelButtonText: '❌ ยกเลิก',
+      confirmButtonColor: '#0d9488',
+      cancelButtonColor: '#64748b',
+      focusConfirm: false,
       html: `
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; text-align:left; font-family:'Sarabun', sans-serif; max-height: 65vh; overflow-y: auto; padding-right: 6px;">
-          
-          <div style="grid-column: 1 / -1; text-align: center; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px dashed #cbd5e1;">
-            <img id="profilePreview" src="https://placehold.co/100?text=No+Image" 
-                 style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #0d9488; margin-bottom: 8px; background: #fff;">
-            <input type="file" id="empImage" class="swal2-file" accept="image/*" style="display: block; margin: 0 auto; font-size: 12px;">
-          </div>
-
-          <div>
-            <label style="font-size:13px; font-weight:600;">รหัสพนักงาน *</label>
-            <input id="swal-empCode" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เช่น 19001">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">รหัสผ่านเข้าใช้งาน *</label>
-            <input type="text" id="swal-password" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="รหัสผ่านเข้าสู่ระบบ">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">คำนำหน้าชื่อ <span id="swal-prefix-req" style="color:red;">*</span></label>
-            <select id="title" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
-              <option value="" disabled selected>เลือกคำนำหน้า...</option>
-              <option value="นาย">นาย</option>
-              <option value="นาง">นาง</option>
-              <option value="นางสาว">นางสาว</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">ชื่อจริง *</label>
-            <input id="swal-firstName" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="ชื่อจริง">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">นามสกุล *</label>
-            <input id="swal-lastName" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="นามสกุล">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">ชื่อเล่น</label>
-            <input id="swal-nickname" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="ชื่อเล่น">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">เบอร์โทรศัพท์</label>
-            <input id="swal-phone" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="08X-XXX-XXXX">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">ไอดีไลน์ (Line ID)</label>
-            <input id="swal-lineId" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="Line ID">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">อีเมลองค์กร</label>
-            <input type="email" id="swal-email" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="email@company.com">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">เลขบัญชีธนาคาร</label>
-            <input id="swal-bankAccount" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เลขบัญชี 10 หลัก">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">🏥 โรงพยาบาลประกันสังคม</label>
-            <input id="swal-hospital" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;" placeholder="เช่น รพ.เปาโล">
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">สังกัดฝ่าย / แผนก <span id="swal-dept-req" style="color:red;">*</span></label>
-            <select id="swal-dept" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
-              <option value="" disabled selected>-- เลือกแผนก --</option>
-              ${deptOptions}
-            </select>
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">ตำแหน่งงาน <span id="swal-role-req" style="color:red;">*</span></label>
-            <select id="swal-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
-              <option value="" disabled selected>-- เลือกตำแหน่ง --</option>
-              ${roleOptions}
-            </select>
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600; color: #0d9488;">👑 สิทธิ์ในระบบ (System Role) *</label>
-            <select id="swal-system-role" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px; background:#ffffff; border: 2px solid #0d9488; font-weight:600; color:#0d9488; cursor: pointer;" onchange="window.updateEmployeeFormRequirements()">
-              <option value="user" selected>👤 พนักงานทั่วไป (Employee / Staff)</option>
-              <option value="leader">🎖️ หัวหน้างาน (Supervisor / Leader - ผู้อนุมัติ L1)</option>
-              <option value="manager">👔 ผู้จัดการฝ่าย (Department Manager - ผู้อนุมัติ L2)</option>
-              <option value="executive">⭐ ผู้บริหารระดับสูง (Director / Executive - ผู้อนุมัติ L3)</option>
-              <option value="hr">📋 ฝ่ายบุคคล (HR Officer - อนุมัติขั้นสุดท้าย)</option>
-              <option value="admin">🛡️ ผู้ดูแลระบบ (System Admin)</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">ประเภทพนักงาน <span id="swal-type-req" style="color:red;">*</span></label>
-            <select id="employee_type" class="swal2-select" style="margin:4px 0 0; width:100%; height:38px;">
-              <option value="" disabled selected>เลือกประเภทพนักงาน...</option>
-              <option value="พนักงานประจำ (Full-time)">พนักงานประจำ (Full-time)</option>
-              <option value="พนักงานพาร์ทไทม์ (Part-time)">พนักงานพาร์ทไทม์ (Part-time)</option>
-              <option value="พนักงานสัญญาจ้าง (Contract)">พนักงานสัญญาจ้าง (Contract)</option>
-              <option value="นักศึกษาฝึกงาน (Intern)">นักศึกษาฝึกงาน (Intern)</option>
-              <option value="พนักงานทดลองงาน (Probation)">พนักงานทดลองงาน (Probation)</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:13px; font-weight:600;">วันที่เริ่มงาน <span id="swal-start-req" style="color:red;">*</span></label>
-            <input type="date" id="swal-startDate" class="swal2-input" style="margin:4px 0 0; width:100%; height:38px;">
-          </div>
-
-          <!-- Section Custom Columns -->
-          <div class="custom-fields-section" style="grid-column: 1 / -1; margin-top: 10px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <h6 style="margin: 0; font-weight: 700; color: #0d9488; font-size: 13px;">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</h6>
-              <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => window.addNewEmployee())" style="font-size: 12px; padding: 5px 12px; background: #0d9488; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                ⚙️ จัดการ/เพิ่มคอลัมน์ระบบ
-              </button>
+        <div class="pvt-fs-wrapper" style="font-family:'Sarabun', sans-serif;">
+          <!-- Header Bar -->
+          <div class="pvt-fs-header">
+            <div class="pvt-fs-title-group">
+              <div class="pvt-fs-icon-box">
+                <span class="material-symbols-outlined">person_add</span>
+              </div>
+              <div class="pvt-fs-title-text">
+                <h3>เพิ่มพนักงานใหม่เข้าสู่ระบบ</h3>
+                <p>กรอกข้อมูลประวัติพนักงานและกำหนดสิทธิ์การใช้งานในระบบ</p>
+              </div>
             </div>
-            <div id="customColumnsContainer" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">${customFieldsHTML}</div>
+            <div class="pvt-fs-header-right">
+              <div class="pvt-fs-badge">
+                <span class="material-symbols-outlined" style="font-size:16px;">admin_panel_settings</span> ศูนย์จัดการประวัติพนักงาน
+              </div>
+              <button type="button" class="pvt-fs-close-btn" onclick="Swal.close()" title="ปิดหน้าต่าง">&times;</button>
+            </div>
           </div>
 
+          <!-- Body Content -->
+          <div class="pvt-fs-body">
+            <div class="pvt-fs-grid">
+
+              <!-- Left Column: Avatar & Login Credentials -->
+              <div class="pvt-fs-left-col">
+                <!-- Card 1: Avatar -->
+                <div class="pvt-fs-card">
+                  <div class="pvt-fs-card-title">
+                    <span class="material-symbols-outlined" style="font-size:20px;">account_circle</span> รูปโปรไฟล์พนักงาน
+                  </div>
+                  <div class="pvt-avatar-uploader">
+                    <img id="profilePreview" src="/assets/img/default-avatar.jpg" class="pvt-avatar-img" alt="Profile Preview" onerror="this.onerror=null; this.src='https://placehold.co/300x400/f1f5f9/64748b?text=3x4+Photo';">
+                    <label for="empImage" class="pvt-file-label-btn">
+                      <span class="material-symbols-outlined" style="font-size:18px;">photo_camera</span> เลือกไฟล์รูปภาพ
+                    </label>
+                    <input type="file" id="empImage" accept="image/*" style="display: none;">
+                    <div id="empImageName" style="font-size:11.5px; color:#64748b; margin-top:8px;">ยังไม่ได้เลือกไฟล์ภาพ</div>
+                  </div>
+                </div>
+
+                <!-- Card 2: Login Credentials & System Role -->
+                <div class="pvt-fs-card">
+                  <div class="pvt-fs-card-title">
+                    <span class="material-symbols-outlined" style="font-size:20px;">lock</span> บัญชีและสิทธิ์ในระบบ
+                  </div>
+                  <div class="pvt-field-group" style="margin-bottom: 14px;">
+                    <label for="swal-empCode">รหัสพนักงาน <span class="req">*</span></label>
+                    <input id="swal-empCode" class="pvt-input" placeholder="เช่น 19001" required>
+                  </div>
+                  <div class="pvt-field-group" style="margin-bottom: 14px;">
+                    <label for="swal-password">รหัสผ่านเข้าใช้งาน <span class="req">*</span></label>
+                    <input type="text" id="swal-password" class="pvt-input" placeholder="รหัสผ่านเข้าสู่ระบบ" required>
+                  </div>
+                  <div class="pvt-field-group">
+                    <label for="swal-system-role" style="color: #0d9488;">👑 สิทธิ์ในระบบ (System Role) <span class="req">*</span></label>
+                    <select id="swal-system-role" class="pvt-select pvt-select-highlight" onchange="window.updateEmployeeFormRequirements()">
+                      <option value="user" selected>👤 พนักงานทั่วไป (Employee / Staff)</option>
+                      <option value="leader">🎖️ หัวหน้างาน (Supervisor / Leader - L1)</option>
+                      <option value="manager">👔 ผู้จัดการฝ่าย (Department Manager - L2)</option>
+                      <option value="executive">⭐ ผู้บริหารระดับสูง (Executive - L3)</option>
+                      <option value="hr">📋 ฝ่ายบุคคล (HR Officer)</option>
+                      <option value="admin">🛡️ ผู้ดูแลระบบ (System Admin)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Column: Personal, Contact & Employment -->
+              <div class="pvt-fs-right-col">
+                <!-- Card 3: Personal Info -->
+                <div class="pvt-fs-card">
+                  <div class="pvt-fs-card-title">
+                    <span class="material-symbols-outlined" style="font-size:20px;">badge</span> ข้อมูลส่วนตัว
+                  </div>
+                  <div class="pvt-form-row">
+                    <div class="pvt-field-group">
+                      <label for="title">คำนำหน้าชื่อ <span id="swal-prefix-req" class="req">*</span></label>
+                      <select id="title" class="pvt-select">
+                        <option value="" disabled selected>เลือกคำนำหน้า...</option>
+                        <option value="นาย">นาย</option>
+                        <option value="นาง">นาง</option>
+                        <option value="นางสาว">นางสาว</option>
+                      </select>
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-firstName">ชื่อจริง <span class="req">*</span></label>
+                      <input id="swal-firstName" class="pvt-input" placeholder="กรอกชื่อจริง" required>
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-lastName">นามสกุล <span class="req">*</span></label>
+                      <input id="swal-lastName" class="pvt-input" placeholder="กรอกนามสกุล" required>
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-nickname">ชื่อเล่น</label>
+                      <input id="swal-nickname" class="pvt-input" placeholder="ชื่อเล่น">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card 4: Contact & Account -->
+                <div class="pvt-fs-card">
+                  <div class="pvt-fs-card-title">
+                    <span class="material-symbols-outlined" style="font-size:20px;">contact_phone</span> ข้อมูลการติดต่อและบัญชี
+                  </div>
+                  <div class="pvt-form-row">
+                    <div class="pvt-field-group">
+                      <label for="swal-phone">เบอร์โทรศัพท์</label>
+                      <input id="swal-phone" class="pvt-input" placeholder="08X-XXX-XXXX">
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-lineId">ไอดีไลน์ (LINE ID)</label>
+                      <input id="swal-lineId" class="pvt-input" placeholder="Line ID">
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-email">อีเมลองค์กร</label>
+                      <input type="email" id="swal-email" class="pvt-input" placeholder="email@company.com">
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-bankAccount">เลขบัญชีธนาคาร</label>
+                      <input id="swal-bankAccount" class="pvt-input" placeholder="เลขบัญชี 10 หลัก">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card 5: Employment & Organization -->
+                <div class="pvt-fs-card">
+                  <div class="pvt-fs-card-title">
+                    <span class="material-symbols-outlined" style="font-size:20px;">corporate_fare</span> ข้อมูลการทำงานและสังกัด
+                  </div>
+                  <div class="pvt-form-row">
+                    <div class="pvt-field-group">
+                      <label for="swal-dept">สังกัดฝ่าย / แผนก <span id="swal-dept-req" class="req">*</span></label>
+                      <select id="swal-dept" class="pvt-select">
+                        <option value="" disabled selected>-- เลือกแผนก --</option>
+                        ${deptOptions}
+                      </select>
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-role">ตำแหน่งงาน <span id="swal-role-req" class="req">*</span></label>
+                      <select id="swal-role" class="pvt-select">
+                        <option value="" disabled selected>-- เลือกตำแหน่ง --</option>
+                        ${roleOptions}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="pvt-form-row" style="margin-top: 12px;">
+                    <div class="pvt-field-group">
+                      <label for="employee_type">ประเภทพนักงาน <span id="swal-type-req" class="req">*</span></label>
+                      <select id="employee_type" class="pvt-select">
+                        <option value="" disabled selected>เลือกประเภทพนักงาน...</option>
+                        <option value="พนักงานประจำ (Full-time)">พนักงานประจำ (Full-time)</option>
+                        <option value="พนักงานพาร์ทไทม์ (Part-time)">พนักงานพาร์ทไทม์ (Part-time)</option>
+                        <option value="พนักงานสัญญาจ้าง (Contract)">พนักงานสัญญาจ้าง (Contract)</option>
+                        <option value="นักศึกษาฝึกงาน (Intern)">นักศึกษาฝึกงาน (Intern)</option>
+                        <option value="พนักงานทดลองงาน (Probation)">พนักงานทดลองงาน (Probation)</option>
+                      </select>
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-startDate">วันที่เริ่มงาน <span id="swal-start-req" class="req">*</span></label>
+                      <input type="date" id="swal-startDate" class="pvt-input">
+                    </div>
+                    <div class="pvt-field-group">
+                      <label for="swal-hospital">🏥 โรงพยาบาลประกันสังคม</label>
+                      <input id="swal-hospital" class="pvt-input" placeholder="เช่น รพ.เปาโล">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card 6: Custom Columns -->
+                <div class="pvt-fs-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <div class="pvt-fs-card-title" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">
+                      <span class="material-symbols-outlined" style="font-size:20px;">post_add</span> ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)
+                    </div>
+                    <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => window.addNewEmployee())" style="font-size: 12px; padding: 6px 14px; background: #0d9488; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                      <span class="material-symbols-outlined" style="font-size:16px;">settings</span> จัดการคอลัมน์ระบบ
+                    </button>
+                  </div>
+                  <div id="customColumnsContainer" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">${customFieldsHTML}</div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </div>
       `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: 'ตรวจสอบความถูกต้อง >',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#0d9488',
       didOpen: (popup) => {
         window.updateEmployeeFormRequirements();
         const empImageInput = popup.querySelector('#empImage');
         const profilePreviewImg = popup.querySelector('#profilePreview');
+        const empImageName = popup.querySelector('#empImageName');
+        const titleSelect = popup.querySelector('#title');
+
+        const updateAvatarForTitle = () => {
+          if (!empImageInput || (empImageInput.files && empImageInput.files.length > 0)) {
+            return; // Don't override user uploaded image
+          }
+          const selectedTitle = titleSelect ? titleSelect.value : '';
+          const defaultAvatar = getDefaultAvatarUrl(selectedTitle);
+          if (profilePreviewImg) {
+            profilePreviewImg.src = defaultAvatar;
+          }
+        };
+
+        if (titleSelect) {
+          titleSelect.addEventListener('change', updateAvatarForTitle);
+          updateAvatarForTitle();
+        }
+
         if (empImageInput && profilePreviewImg) {
           empImageInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (file) profilePreviewImg.src = URL.createObjectURL(file);
+            if (file) {
+              profilePreviewImg.src = URL.createObjectURL(file);
+              if (empImageName) empImageName.textContent = `📷 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            } else {
+              updateAvatarForTitle();
+            }
           });
         }
       },
@@ -6395,4 +6713,294 @@ window.viewAuditLogs = typeof viewAuditLogs !== 'undefined' ? viewAuditLogs : wi
 window.resetYearlyLeave = typeof resetYearlyLeave !== 'undefined' ? resetYearlyLeave : window.resetYearlyLeave;
 window.importEmployeesExcel = importEmployeesExcel;
 window.downloadExcelTemplate = downloadExcelTemplate;
+
+// ==========================================
+// 🏢 ROSTER / HOME TEAM IN MANAGEMENT PAGE
+// ==========================================
+let homeTeamFullList = [];
+let homeTeamCurrentRoleFilter = 'all';
+let homeTeamCurrentDeptFilter = 'all';
+let homeTeamSearchKeyword = '';
+let homeTeamIsExpandedHeight = false;
+
+function populateHomeTeamDepartments() {
+  const select = document.getElementById("homeTeamDeptSelect");
+  if (!select) return;
+
+  const currentVal = select.value || "all";
+
+  // ดึงชื่อแผนกที่ไม่ซ้ำกันของพนักงานทั้งหมดในชุด
+  const depts = new Set();
+  homeTeamFullList.forEach(emp => {
+    const deptName = emp.departments?.department_name || emp.department_name;
+    if (deptName) {
+      depts.add(deptName.trim());
+    }
+  });
+
+  const sortedDepts = Array.from(depts).sort((a, b) => a.localeCompare(b, 'th'));
+
+  // เติมตัวเลือกใน Select แบบไดนามิก
+  select.innerHTML = '<option value="all">ทั้งหมด (ทุกแผนก)</option>' + 
+    sortedDepts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+
+  if (sortedDepts.includes(currentVal)) {
+    select.value = currentVal;
+    homeTeamCurrentDeptFilter = currentVal;
+  } else {
+    select.value = "all";
+    homeTeamCurrentDeptFilter = "all";
+  }
+}
+
+function handleHomeTeamDeptChange(value) {
+  homeTeamCurrentDeptFilter = value || 'all';
+  applyHomeTeamRender();
+}
+
+function renderHomeDepartmentTeam(employeesList, sessionUser) {
+  const container = document.getElementById("homeTeamMembersGrid");
+  const titleEl = document.getElementById("homeTeamSectionTitle");
+  const subtitleEl = document.getElementById("homeTeamSectionSubtitle");
+  const badgeEl = document.getElementById("homeTeamCountBadge");
+  const sectionEl = document.getElementById("homeDepartmentTeamSection");
+
+  if (!container) return;
+
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const userObj = sessionUser || (savedSession ? JSON.parse(savedSession) : {});
+  const userRole = String(userObj.role || 'user').toLowerCase();
+
+  // ไม่ต้องซ่อนสำหรับ HR ในหน้าจัดการส่วนกลาง!
+  if (sectionEl) {
+    sectionEl.style.setProperty("display", "block", "important");
+  }
+  
+  let deptId = userObj.department_id;
+  let deptName = userObj.department_name || userObj.departments?.department_name;
+
+  if (!deptId && Array.isArray(employeesList)) {
+    const me = employeesList.find(e => String(e.id) === String(userObj.id));
+    if (me) {
+      deptId = me.department_id;
+      deptName = me.departments?.department_name || me.department_name;
+    }
+  }
+
+  const isLeaderOrManager = ['leader', 'manager', 'supervisor', 'head'].includes(userRole);
+  const isHrOrAdmin = ['hr', 'admin', 'director', 'executive', 'owner'].includes(userRole);
+
+  let filteredList = Array.isArray(employeesList) ? [...employeesList] : [];
+
+  if (titleEl) {
+    titleEl.textContent = `สมาชิกพนักงานในองค์กรทั้งหมด`;
+  }
+
+  if (subtitleEl) {
+    subtitleEl.textContent = `ข้อมูลสมาชิกและตำแหน่งงานสังกัดแผนกต่างๆ ในบริษัท`;
+  }
+
+  if (badgeEl) {
+    badgeEl.textContent = `${filteredList.length} คน`;
+  }
+
+  // บันทึกรายการทั้งหมดสำหรับค้นหา/กรอง
+  homeTeamFullList = filteredList;
+  populateHomeTeamDepartments();
+  updateHomeTeamFilterCounts(filteredList);
+  applyHomeTeamRender();
+}
+
+function updateHomeTeamFilterCounts(list) {
+  const allCount = list.length;
+  let leaderCount = 0;
+  let staffCount = 0;
+
+  list.forEach(emp => {
+    const r = String(emp.role || '').toLowerCase();
+    if (['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x))) {
+      leaderCount++;
+    } else {
+      staffCount++;
+    }
+  });
+
+  const chipAll = document.getElementById("chipCountAll");
+  const chipLeader = document.getElementById("chipCountLeader");
+  const chipStaff = document.getElementById("chipCountStaff");
+
+  if (chipAll) chipAll.textContent = allCount;
+  if (chipLeader) chipLeader.textContent = leaderCount;
+  if (chipStaff) chipStaff.textContent = staffCount;
+}
+
+function applyHomeTeamRender() {
+  const container = document.getElementById("homeTeamMembersGrid");
+  const showingInfo = document.getElementById("homeTeamShowingInfo");
+  if (!container) return;
+
+  const deptFilterContainer = document.getElementById("homeTeamDeptFilterContainer");
+  if (deptFilterContainer) {
+    if (homeTeamCurrentRoleFilter === 'staff') {
+      deptFilterContainer.style.setProperty("display", "flex", "important");
+    } else {
+      deptFilterContainer.style.setProperty("display", "none", "important");
+      homeTeamCurrentDeptFilter = 'all';
+      const select = document.getElementById("homeTeamDeptSelect");
+      if (select) select.value = 'all';
+    }
+  }
+
+  let displayList = [...homeTeamFullList];
+
+  // กรองตามบทบาท
+  if (homeTeamCurrentRoleFilter === 'leader') {
+    displayList = displayList.filter(emp => {
+      const r = String(emp.role || '').toLowerCase();
+      return ['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x));
+    });
+  } else if (homeTeamCurrentRoleFilter === 'staff') {
+    displayList = displayList.filter(emp => {
+      const r = String(emp.role || '').toLowerCase();
+      const isStaff = !['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x));
+      if (!isStaff) return false;
+
+      if (homeTeamCurrentDeptFilter && homeTeamCurrentDeptFilter !== 'all') {
+        const d = emp.departments?.department_name || emp.department_name || '';
+        return String(d).trim() === String(homeTeamCurrentDeptFilter).trim();
+      }
+      return true;
+    });
+  }
+
+  // ค้นหาข้อความ
+  if (homeTeamSearchKeyword) {
+    const kw = homeTeamSearchKeyword.toLowerCase();
+    displayList = displayList.filter(emp => {
+      const name = `${emp.first_name || ''} ${emp.last_name || ''} ${emp.full_name || ''} ${emp.nickname || ''}`.toLowerCase();
+      const code = String(emp.employee_code || '').toLowerCase();
+      const pos = String(emp.positions?.position_name || emp.position_name || '').toLowerCase();
+      return name.includes(kw) || code.includes(kw) || pos.includes(kw);
+    });
+  }
+
+  if (showingInfo) {
+    showingInfo.textContent = `กำลังแสดง ${displayList.length} จากทั้งหมด ${homeTeamFullList.length} คน`;
+  }
+
+  if (displayList.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--text-soft); font-size: 12.5px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+        <span class="material-symbols-outlined" style="font-size: 28px; color: #94a3b8; display: block; margin-bottom: 4px;">person_search</span>
+        ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไขการค้นหา
+      </div>`;
+    return;
+  }
+
+  container.className = "team-grid-4col";
+
+  container.innerHTML = displayList.map(emp => {
+    const avatar = (window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : emp.image_url) || "/assets/img/default-avatar.jpg";
+    const pos = emp.positions?.position_name || emp.position_name || "พนักงาน";
+    const empCode = emp.employee_code ? `${emp.employee_code}` : "-";
+    const nickStr = emp.nickname ? `(${emp.nickname})` : "";
+    const roleStr = String(emp.role || "").toLowerCase();
+    const fullName = emp.full_name || (emp.first_name ? `${emp.first_name} ${emp.last_name || ''}` : 'พนักงาน');
+
+    let roleBadge = '<span style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 6px; font-weight: 600;">👤 พนักงาน</span>';
+    if (roleStr === "leader" || roleStr.includes("leader")) {
+      roleBadge = '<span style="font-size: 11px; background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 6px; font-weight: 700;">👑 หัวหน้า</span>';
+    } else if (roleStr === "manager" || roleStr.includes("manager")) {
+      roleBadge = '<span style="font-size: 11px; background: #dbeafe; color: #1d4ed8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผจก.</span>';
+    } else if (["hr", "admin", "superadmin"].includes(roleStr)) {
+      roleBadge = '<span style="font-size: 11px; background: #f3e8ff; color: #6b21a8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
+    } else if (["director", "executive", "owner"].includes(roleStr)) {
+      roleBadge = '<span style="font-size: 11px; background: #ecfdf5; color: #047857; padding: 2px 7px; border-radius: 6px; font-weight: 700;">🏛️ ผู้บริหาร</span>';
+    }
+
+    const lineIndicator = emp.line_id 
+      ? '<span title="เชื่อมต่อ LINE แล้ว" style="font-size: 11.5px; color: #16a34a; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block;"></span> LINE</span>'
+      : '<span title="ยังไม่ผูก LINE" style="font-size: 11.5px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px;height:6px;border-radius:50%;background:#cbd5e1;display:inline-block;"></span> ไม่ผูก</span>';
+
+    return `
+      <div class="team-member-card">
+        <img src="${avatar}" class="team-member-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
+        <div style="flex: 1; min-width: 0; overflow: hidden;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
+            <span style="font-weight: 700; font-size: 14px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(fullName)}">
+              ${escapeHtml(fullName)} ${nickStr}
+            </span>
+            <span style="font-size: 12px; color: #64748b; font-weight: 600; flex-shrink: 0;">#${escapeHtml(empCode)}</span>
+          </div>
+          <div style="font-size: 12.5px; color: #0284c7; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${escapeHtml(pos)}
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+            ${roleBadge}
+            ${lineIndicator}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function handleHomeTeamSearch(keyword) {
+  homeTeamSearchKeyword = (keyword || '').trim();
+  applyHomeTeamRender();
+}
+
+function filterHomeTeamByRole(role, btn) {
+  homeTeamCurrentRoleFilter = role;
+  const chips = document.querySelectorAll("#homeTeamRoleFilters .team-filter-chip");
+  chips.forEach(c => {
+    c.classList.remove("active");
+    c.style.background = "";
+    c.style.color = "";
+    c.style.borderColor = "";
+  });
+  if (btn) {
+    btn.classList.add("active");
+  }
+  applyHomeTeamRender();
+}
+
+function toggleHomeTeamScrollHeight() {
+  const scrollArea = document.getElementById("homeTeamScrollContainer");
+  const txt = document.getElementById("txtToggleTeamHeight");
+  const ico = document.getElementById("icoToggleTeamHeight");
+  if (!scrollArea) return;
+
+  homeTeamIsExpandedHeight = !homeTeamIsExpandedHeight;
+  if (homeTeamIsExpandedHeight) {
+    scrollArea.classList.add("expanded");
+    scrollArea.style.maxHeight = "none";
+    if (txt) txt.textContent = "ย่อความสูง (ประหยัดพื้นที่)";
+    if (ico) ico.textContent = "unfold_less";
+  } else {
+    scrollArea.classList.remove("expanded");
+    scrollArea.style.maxHeight = "380px";
+    if (txt) txt.textContent = "ขยายดูทั้งหมด";
+    if (ico) ico.textContent = "unfold_more";
+  }
+}
+
+function toggleHomeTeamContainer(btn) {
+  const body = document.getElementById("homeTeamBodyWrapper");
+  const icon = document.getElementById("homeTeamToggleIcon");
+  if (!body) return;
+  const isHidden = body.classList.toggle("collapsed");
+  if (icon) {
+    icon.textContent = isHidden ? "expand_more" : "expand_less";
+  }
+}
+
+// ผูกเข้ากับ window
+window.renderHomeDepartmentTeam = renderHomeDepartmentTeam;
+window.handleHomeTeamDeptChange = handleHomeTeamDeptChange;
+window.handleHomeTeamSearch = handleHomeTeamSearch;
+window.filterHomeTeamByRole = filterHomeTeamByRole;
+window.toggleHomeTeamScrollHeight = toggleHomeTeamScrollHeight;
+window.toggleHomeTeamContainer = toggleHomeTeamContainer;
+
 

@@ -637,9 +637,39 @@
     }
   }
 
+  // Global filter function for user news chips in index-user.html
+  global.filterUserNews = function (category, btnElement) {
+    if (btnElement) {
+      const chips = document.querySelectorAll("#newsFilterChips .news-chip");
+      chips.forEach((c) => c.classList.remove("active"));
+      btnElement.classList.add("active");
+    }
+    CompanyNews.renderUserNewsFeed("companyNewsFeed", category || "all");
+  };
+
   // Export to global window
   global.CompanyNews = CompanyNews;
   global.openNewsManagerModal = () => CompanyNews.openHRManagerModal();
   global.openHrNewsManagerModal = () => CompanyNews.openHRManagerModal();
+
+  // Auto initialize user news feed on page load if element exists
+  function initAutoNewsFeed() {
+    if (document.getElementById("companyNewsFeed")) {
+      CompanyNews.renderUserNewsFeed("companyNewsFeed", "all");
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAutoNewsFeed);
+  } else {
+    initAutoNewsFeed();
+  }
+
+  // Live update if news is updated in another tab
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY) {
+      initAutoNewsFeed();
+    }
+  });
 
 })(window);

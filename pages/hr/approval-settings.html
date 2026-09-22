@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
+  <script src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -15,7 +16,7 @@
   
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/system-settings.css" />
+  <link rel="stylesheet" href="/css/hr-approval-settings.css" />
 
   <style>
     :root {
@@ -797,7 +798,7 @@
       font-weight: 800;
       color: #0f172a;
       line-height: 1.1;
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: 'Sarabun', sans-serif;
     }
 
     .line-stat-lbl {
@@ -1331,12 +1332,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css">
   <style>
     /* Custom Tom Select Styling to match theme */
-    .ts-control { border-radius: 10px !important; padding: 10px 12px !important; border: 1px solid #e2e8f0 !important; font-family: 'Kanit', sans-serif !important; }
+    .ts-control { border-radius: 10px !important; padding: 10px 12px !important; border: 1px solid #e2e8f0 !important; font-family: 'Sarabun', sans-serif !important; }
     .ts-dropdown { border-radius: 12px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; border: 1px solid #e2e8f0 !important; }
     .ts-dropdown .optgroup-header { font-weight: 700; color: var(--primary); background: #f0fdfa; }
   </style>
 </head>
-<body>
+<body id="page-hr-approval-settings">
   <div class="app-layout">
     
     <!-- Top Navigation Bar -->
@@ -2353,11 +2354,11 @@
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="/js/supabase-config.js"></script>
-  <script src="/js/auth-guard.js"></script>
-  <script src="/js/system-settings.js"></script>
-  <script src="/js/delegation-service.js"></script>
-  <script src="/js/approval-settings.js"></script>
+  <script type="module" src="/js/supabase-config.js"></script>
+  <script type="module" src="/js/auth-guard.js"></script>
+  <script type="module" src="/js/system-settings.js"></script>
+  <script type="module" src="/js/delegation-service.js"></script>
+  <script type="module" src="/js/approval-settings.js"></script>
 </body>
 </html>
 

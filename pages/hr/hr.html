@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
+  <script src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -19,22 +20,21 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/hr.css" /> 
-  <link rel="stylesheet" href="/css/leave-sla-tracker.css" />
-  <link rel="stylesheet" href="/css/system-settings.css" />
+  <link rel="stylesheet" href="/css/hr-approval.css" /> 
 </head>
 
-<body>
+<body id="page-hr-approval">
   <div class="app-shell" id="appShell">
     
     <!--  SIDEBAR ด้านซ้าย (Unified Luxury Sidebar) -->
     <aside class="sidebar-light" id="mainSidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
-          <span class="material-symbols-outlined">groups</span>
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
-        <div class="brand-name">PVT WORKFORCE HUB</div>
-        <button class="btn-close-sidebar" onclick="toggleMobileSidebar()" style="display: none;" title="ปิดเมนู">
+        <div class="brand-name">PVTT WORKFORCE HUB</div>
+        <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
       </div>
@@ -42,70 +42,67 @@
       <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
       <div class="sidebar-cta-wrap">
         <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
-          <img src="/assets/icons/leave-document.svg" alt="ตรวจและอนุมัติใบลา" class="nav-icon-custom" style="width: 24px; height: 24px; object-fit: contain;" />
+          <span class="material-symbols-outlined">fact_check</span>
           <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
         </a>
       </div>
 
       <nav class="nav-menu">
         <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
-          <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
         <a href="/pages/hr/hr.html" class="nav-item active" title="ตรวจใบลา" id="navItemLeaveCheck">
-          <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">ตรวจใบลา</span>
           <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
         <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
-          <img src="/assets/icons/management-gear.svg" alt="ระบบจัดการส่วนกลาง" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">tune</span>
           <span class="nav-label">ระบบจัดการส่วนกลาง</span>
         </a>
         <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
-          <img src="/assets/icons/analytics-dashboard.svg" alt="สถิติวันลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">analytics</span>
           <span class="nav-label">สถิติวันลา</span>
         </a>
-        <a href="/pages/user/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
-          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
-          <span class="nav-label">ปฏิทิน</span>
+        <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">จัดการวันหยุด</span>
         </a>
-
+        
         <div class="sidebar-divider"></div>
         <div class="sidebar-section-title">บริการด่วน</div>
-
+        
         <!--  ปุ่มจัดการข่าวสารองค์กร -->
         <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
-          <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">campaign</span>
           <span class="nav-label">ข่าวสาร</span>
         </a>
 
         <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
-        <button type="button" class="nav-item" onclick="openEmployeeCardManagerPopup(); return false;" title="ระบบบัตรพนักงาน">
-          <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" class="nav-icon-custom" />
-          <span class="nav-label">บัตรพนักงาน</span>
-        </button>
+        <a href="/pages/hr/employee-cards.html" class="nav-item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="nav-label">บัตรพนักงาน (Admin)</span>
+        </a>
+        
+        <!-- ประวัติการเข้าสู่ระบบ -->
+        <a href="/pages/hr/login-logs.html" class="nav-item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
 
         <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
         <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
-          <img src="/assets/icons/user-profile.svg" alt="หน้าหลักของพนักงาน" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">person</span>
           <span class="nav-label">หน้าหลักของพนักงาน</span>
         </a>
-
-        <!-- <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; display: inline-block;" /> ตั้งค่า -->
-                <!-- 💡 ปุ่มแนะนำระบบ -->
-        <a href="/pages/user/full-guide.html" class="nav-item" title="แนะนำระบบการใช้งาน">
-          <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
-          <span class="nav-label">แนะนำระบบ</span>
-        </a>
-        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
-          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
-          <span class="nav-label">ตั้งค่า</span>
-        </button>
       </nav>
 
       <div class="sidebar-footer">
-        <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
-          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
+        <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
           <span>ออกจากระบบ</span>
         </button>
       </div>
@@ -116,28 +113,31 @@
       
       <!-- Topbar / Header Glass Card -->
       <header class="topbar">
-        <div class="topbar-left">
-          <button class="mobile-menu-btn" id="mobileMenuBtn" title="เปิดเมนู" onclick="toggleMobileSidebar()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; width: 22px; height: 22px;"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          </button>
-          
-          <div>
-            <h1 id="pageMainTitle">ระบบอนุมัติใบลา</h1>
-            <p id="pageSubTitle">LEAVE APPROVALS</p>
+        <div class="topbar-row-main">
+          <div class="topbar-actions-left">
+            <a href="/pages/hr/home.html" class="btn-mobile-back" title="กลับหน้าหลัก">
+              <span class="material-symbols-outlined">arrow_back</span>
+              <span>หน้าหลัก</span>
+            </a>
           </div>
-        </div>
 
-        <div class="topbar-right">
-          <div class="user-profile">
-            <img id="userAvatarHeader" src="/assets/img/default-avatar.jpg" alt="Profile" onerror="this.src='/assets/img/default-avatar.jpg';" />
-            <div class="info">
+          <div class="topbar-right-actions">
+            <!-- Hidden containers so JS references remain valid -->
+            <div class="info" style="display: none !important;">
               <strong id="userNameHeader">กำลังโหลด...</strong>
               <span id="userPositionHeader">-</span>
             </div>
-            <span id="userRoleBadge" class="status-badge status-approved">
+            <span id="userRoleBadge" class="status-badge status-approved" style="display: none !important;">
               ตรวจสอบสิทธิ์...
             </span>
+
+            <img id="userAvatarHeader" src="/assets/img/default-avatar.jpg" alt="Profile" onerror="this.src='/assets/img/default-avatar.jpg';" />
           </div>
+        </div>
+
+        <div class="topbar-title-block">
+          <h1 id="pageMainTitle">ระบบอนุมัติใบลา</h1>
+          <p id="pageSubTitle">LEAVE APPROVALS</p>
         </div>
       </header>
 
@@ -305,6 +305,7 @@
   <script type="module" src="/js/company-news.js"></script>
   <script type="module" src="/js/delegation-service.js"></script>
   <script type="module" src="/js/components/leave-sla-tracker.js"></script>
+  <script type="module" src="/js/components/login-logs-viewer.js"></script>
   <script type="module" src="/js/hr.js"></script>
   <script type="module" src="/js/system-diagnostics.js"></script>
 </body>

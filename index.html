@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="th">
   <head>
+    <script src="/js/early-auth-guard.js"></script>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
     <title>PVT Workforce Hub - เข้าสู่ระบบ</title>
@@ -21,27 +22,27 @@
     <!-- Modern Thai & International Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Lao:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&family=Noto+Sans+Lao:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     
-    <link rel="stylesheet" href="/css/index.css"/>
-    <link rel="stylesheet" href="/css/system-settings.css"/>
+    <link rel="stylesheet" href="/css/global.css"/>
+    <link rel="stylesheet" href="/css/login.css"/>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  </head>
-  <body>
-    <div class="login-container">
-      <main class="login-card">
+</head>
+  <body id="page-login">
+    <div class="login-container animate-fade">
+      <main class="login-card animate-slide-up delay-100">
         
-        <section class="brand-area">
-          <div class="logo-wrapper">
-            <img src="/assets/icons/Logo_PVT_2026_B.png" alt="PVT Logo" class="brand-logo"/>
+        <section class="brand-area animate-fade delay-200">
+          <div class="logo-wrapper hover-glow">
+            <img src="/assets/icons/PVTT_FLOW.png" alt="PVT Logo" class="brand-logo"/>
           </div>
-          <h1>PVT&T HR Leave</h1>
+          <h1 id="pvtLoginHeader" class="animate-slide-down delay-300">ระบบบริหารจัดการบุคลากรและงานบุคคล</h1>
           <div class="brand-badge">
-            <span class="pulse-dot"></span>
-            <span id="i18nBadge">ระบบขออนุญาตลาออนไลน์</span>
+            <span id="i18nBadge">บริษัท พี.วี.ที.แอนด์ ที. พลาส จำกัด</span>
           </div>
+
         </section>
 
         <!-- Color-Coded Validation Alert Banner -->
@@ -82,21 +83,21 @@
         <!-- Skeleton Loading State (Displayed during page & session check initialization) -->
         <div id="loginSkeleton" class="login-skeleton" aria-label="กำลังโหลดข้อมูล...">
           <div class="skeleton-field-group">
-            <div class="skeleton-line skeleton-label" style="width: 42%;"></div>
-            <div class="skeleton-box skeleton-input"></div>
+            <div class="skeleton-line skeleton-label skeleton-shimmer" style="width: 42%;"></div>
+            <div class="skeleton-box skeleton-input skeleton-shimmer"></div>
           </div>
           <div class="skeleton-field-group">
-            <div class="skeleton-line skeleton-label" style="width: 35%;"></div>
-            <div class="skeleton-box skeleton-input"></div>
+            <div class="skeleton-line skeleton-label skeleton-shimmer" style="width: 35%;"></div>
+            <div class="skeleton-box skeleton-input skeleton-shimmer"></div>
           </div>
-          <div class="skeleton-line skeleton-remember" style="width: 60%;"></div>
-          <div class="skeleton-box skeleton-btn skeleton-btn-primary"></div>
+          <div class="skeleton-line skeleton-remember skeleton-shimmer" style="width: 60%;"></div>
+          <div class="skeleton-box skeleton-btn skeleton-btn-primary skeleton-shimmer"></div>
           <div class="skeleton-alt-group">
-            <div class="skeleton-box skeleton-btn skeleton-btn-secondary"></div>
+            <div class="skeleton-box skeleton-btn skeleton-btn-secondary skeleton-shimmer"></div>
           </div>
         </div>
 
-        <form id="loginForm" style="display: none;">
+        <form id="loginForm" class="animate-fade delay-400" style="display: none;">
           <div class="form-group">
             <label for="username" id="i18nUserLabel">รหัสพนักงาน หรือ ชื่อ-นามสกุล</label>
             <div class="input-wrapper" id="usernameWrapper">
@@ -126,57 +127,89 @@
           <div class="form-group remember-group">
             <label for="rememberMe" class="remember-label">
               <input type="checkbox" id="rememberMe" class="remember-checkbox">
-              <span id="i18nRemember">จดจำรหัสพนักงาน (Remember Me)</span>
+              <span id="i18nRemember">จำรหัสพนักงาน</span>
             </label>
           </div>
 
-          <button type="submit" id="loginBtn" class="login-btn" aria-live="polite">
+          <button type="submit" id="loginBtn" class="login-btn hover-lift" aria-live="polite">
             <span class="btn-content">
-              <span class="material-symbols-outlined">login</span>
+              <span class="btn-status-indicator" aria-hidden="true">
+                <!-- Ready Status Indicator SVG (Idle State) -->
+                <svg class="status-svg svg-ready" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="พร้อมเข้าสู่ระบบ">
+                  <circle class="ready-beacon" cx="12" cy="12" r="9.5" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.5" />
+                  <circle class="ready-ring" cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" />
+                  <circle class="ready-dot" cx="12" cy="12" r="2" fill="currentColor" />
+                  <path class="ready-symbol" d="M8.5 12.2l2.3 2.3L15.6 9.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <!-- Active Spinner SVG (Transforms during Authentication) -->
+                <svg class="status-svg svg-spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="กำลังตรวจสอบข้อมูล">
+                  <circle class="spinner-track" cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.28)" stroke-width="2.4" />
+                  <path class="spinner-arc" d="M12 3a9 9 0 0 1 9 9" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" />
+                </svg>
+              </span>
               <span id="i18nLoginBtn">เข้าสู่ระบบ</span>
             </span>
             <span class="btn-spinner" aria-hidden="true">
-              <span class="spinner-circle"></span>
+              <span class="btn-status-indicator">
+                <svg class="status-svg svg-spinner active" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle class="spinner-track" cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.28)" stroke-width="2.4" />
+                  <path class="spinner-arc" d="M12 3a9 9 0 0 1 9 9" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" />
+                </svg>
+              </span>
               <span id="i18nLoggingInText" class="spinner-text">กำลังเข้าสู่ระบบ...</span>
             </span>
           </button>
           
-          <div class="alt-login-group">
-            <button type="button" class="qr-btn" onclick="loginByQr()">
-              <span class="material-symbols-outlined">qr_code_scanner</span>
-              <span id="i18nQrBtn">สแกนคิวอาร์โค้ดบัตรพนักงาน</span>
+          <!-- 🔗 ลิงก์และกลุ่มทางเลือกเข้าสู่ระบบวิธีอื่น (Grouped Alt Login Methods) -->
+          <div class="alt-login-wrapper">
+            <button type="button" id="altLoginToggleBtn" class="alt-login-toggle-btn" onclick="toggleAltLoginOptions()" aria-expanded="false" title="ดูตัวเลือกการเข้าสู่ระบบแบบอื่น">
+              <span class="material-symbols-outlined alt-toggle-icon">tune</span>
+              <span id="i18nAltLoginToggleText">เข้าสู่ระบบวิธีอื่น</span>
+              <span class="material-symbols-outlined toggle-chevron" id="altToggleChevron">expand_more</span>
             </button>
 
-            <button type="button" class="qr-guide-link-btn" onclick="showQrGuideModal()" title="ดูวิธีแสดงบัตรพนักงานสำหรับสแกน">
-              <span class="material-symbols-outlined" style="font-size: 17px;">help_outline</span>
-              <span id="i18nQrGuideLink">วิธีถือบัตรสแกน (How-to Guide)</span>
-            </button>
+            <div id="altLoginGroup" class="alt-login-group collapsed">
+              <button type="button" class="qr-btn hover-lift" onclick="loginByQr()">
+                <span class="material-symbols-outlined">qr_code_scanner</span>
+                <span id="i18nQrBtn">สแกนคิวอาร์โค้ดบัตรพนักงาน</span>
+              </button>
 
-            <button type="button" id="biometricLoginBtn" class="biometric-btn" style="display: none;" onclick="loginByBiometrics()">
-              <span class="material-symbols-outlined">fingerprint</span>
-              <span id="i18nBiometricLoginBtn">เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า</span>
-            </button>
+              <button type="button" class="qr-guide-link-btn hover-lift" onclick="showQrGuideModal()" title="ดูวิธีแสดงบัตรพนักงานสำหรับสแกน">
+                <span class="material-symbols-outlined" style="font-size: 16px;">help_outline</span>
+                <span id="i18nQrGuideLink">วิธีถือบัตรสแกน (How-to Guide)</span>
+              </button>
 
-            <button type="button" id="biometricGuideBtn" class="biometric-guide-btn" style="display: none;" onclick="showBiometricGuideModal()" title="ดูวิธีตั้งค่าและใช้งานระบบสแกนนิ้ว/ใบหน้า">
-              <span class="material-symbols-outlined" style="font-size: 17px;">help_outline</span>
-              <span id="i18nBiometricGuideLink">วิธีใช้สแกนนิ้ว/ใบหน้า (Biometric Guide)</span>
-            </button>
+              <button type="button" id="biometricLoginBtn" class="biometric-btn" style="display: none;" onclick="loginByBiometrics()">
+                <span class="material-symbols-outlined">fingerprint</span>
+                <span id="i18nBiometricLoginBtn">เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า</span>
+              </button>
+
+              <button type="button" id="biometricGuideBtn" class="biometric-guide-btn" style="display: none;" onclick="showBiometricGuideModal()" title="ดูวิธีตั้งค่าและใช้งานระบบสแกนนิ้ว/ใบหน้า">
+                <span class="material-symbols-outlined" style="font-size: 16px;">help_outline</span>
+                <span id="i18nBiometricGuideLink">วิธีใช้สแกนนิ้ว/ใบหน้า (Biometric Guide)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 🌐 Language & Settings Switcher Pill (Above Divider Line) -->
+          <div class="lang-switcher-wrapper" style="display: flex; justify-content: center; width: 100%; margin-top: 2px;">
+            <div class="lang-switcher" style="display: flex; gap: 3px; align-items: center; background: #f1f5f9; padding: 2px; border-radius: 9999px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+              <button type="button" class="lang-btn" id="langThBtn" onclick="setLanguage('th')" title="ภาษาไทย">TH</button>
+              <!-- <button type="button" class="lang-btn" id="langLoBtn" onclick="setLanguage('lo')" title="ພາສາລາວ">LO</button> -->
+              <!-- <button type="button" class="lang-btn" id="langMyBtn" onclick="setLanguage('my')" title="မြန်မာစာ">MY</button> -->
+              <button type="button" class="lang-btn" id="langEnBtn" onclick="setLanguage('en')" title="English">EN</button>
+              <button type="button" class="lang-btn" id="langSettingsBtn" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี)">
+                <span class="material-symbols-outlined" style="font-size: 13px; line-height: 1;">settings</span>
+              </button>
+            </div>
           </div>
         </form>
-      </main>
 
-      <div class="login-footer-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 420px; margin-top: 20px; font-size: 13px; color: #64748b;">
-        <span>© 2026 PVT Workforce · Ver 2.5</span>
-        <div class="lang-switcher" style="display: flex; gap: 2px; align-items: center; background: #f1f5f9; padding: 3px; border-radius: 9999px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-          <button type="button" class="lang-btn" id="langThBtn" onclick="setLanguage('th')" title="ภาษาไทย">TH</button>
-          <!-- <button type="button" class="lang-btn" id="langLoBtn" onclick="setLanguage('lo')" title="ພາສາລາວ">LO</button> -->
-          <!-- <button type="button" class="lang-btn" id="langMyBtn" onclick="setLanguage('my')" title="မြန်မာစာ">MY</button> -->
-          <button type="button" class="lang-btn" id="langEnBtn" onclick="setLanguage('en')" title="English">EN</button>
-          <button type="button" class="lang-btn" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี)" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; border: none; background: transparent; cursor: pointer; color: #475569;">
-            <span class="material-symbols-outlined" style="font-size: 16px;">settings</span>
-          </button>
+        <!-- 🏷️ Footer Copyright Line inside Main Card -->
+        <div class="login-footer-info" style="display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 6px; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+          <span style="font-size: 12.5px; color: #94a3b8; font-weight: 500; text-align: center; display: block; width: 100%;">© 2026 P.V.T.& T.Plas Group </span>
         </div>
-      </div>
+      </main>
     </div>
 
     <!-- PVT QR Scan Guide Modal (Statically defined for performance & accessibility) -->
@@ -281,9 +314,116 @@
     <!-- ส่วนโหลดสคริปต์ต่างๆ -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
-    <script src="/js/supabase-config.js"></script>
-    <script src="/js/system-settings.js"></script>
-    <script src="/js/system-diagnostics.js"></script>
-    <script src="/auth/index.js"></script>
-  </body>
+    <script type="module" src="/js/supabase-config.js"></script>
+    <script type="module" src="/js/system-settings.js"></script>
+    <script type="module" src="/js/system-diagnostics.js"></script>
+    <script type="module" src="/auth/index.js"></script>
+
+    <!-- 🌐 Supabase Connectivity Monitor -->
+    <script>
+      (function() {
+        const statusContainer = document.getElementById('pvtConnectionStatus');
+        const statusText = document.getElementById('pvtStatusText');
+        const statusIcon = document.querySelector('#pvtConnectionStatus .status-icon');
+        
+        async function checkSupabaseConnection() {
+          const isOnline = navigator.onLine;
+          if (!isOnline) {
+            updateUI(false, 'Offline');
+            return;
+          }
+
+          try {
+            const sb = typeof getSbClient === 'function' ? getSbClient() : (window.supabase || window.pvtSupabase?.client);
+            if (!sb) {
+              updateUI(true, 'Ready'); 
+              return;
+            }
+            
+            const { error } = await sb.from('employees').select('id').limit(1).maybeSingle();
+            if (error) throw error;
+            updateUI(true, 'Online');
+          } catch (err) {
+            console.warn('Supabase connection check failed:', err);
+            updateUI(true, 'Limited'); 
+          }
+        }
+
+        function updateUI(online, label) {
+          if (!statusContainer) return;
+          
+          statusContainer.classList.remove('online', 'offline', 'limited');
+          if (!online || label === 'Offline') {
+            statusContainer.classList.add('offline');
+            if (statusText) statusText.textContent = 'Offline';
+            if (statusIcon) statusIcon.textContent = 'cloud_off';
+          } else if (label === 'Limited') {
+            statusContainer.classList.add('limited');
+            if (statusText) statusText.textContent = 'Limited';
+            if (statusIcon) statusIcon.textContent = 'cloud_sync';
+          } else {
+            statusContainer.classList.add('online');
+            if (statusText) statusText.textContent = 'Online';
+            if (statusIcon) statusIcon.textContent = 'cloud_done';
+          }
+        }
+
+        window.addEventListener('online', checkSupabaseConnection);
+        window.addEventListener('offline', () => updateUI(false, 'Offline'));
+        
+        setTimeout(checkSupabaseConnection, 1000);
+        setInterval(checkSupabaseConnection, 30000);
+
+        // 🛠️ Hidden Troubleshooting Shortcut (Long Press on Header)
+        const header = document.getElementById('pvtLoginHeader');
+        let pressTimer;
+
+        const startPress = (e) => {
+          // Only trigger on left-click or touch
+          if (e.type === 'mousedown' && e.button !== 0) return;
+          
+          // Visual feedback
+          header.style.transition = 'all 0.2s ease';
+          header.style.opacity = '0.6';
+          header.style.transform = 'scale(0.98)';
+          
+          pressTimer = window.setTimeout(() => {
+            header.style.opacity = '1';
+            header.style.transform = 'scale(1)';
+            
+            if (confirm('ระบบตรวจพบการกดค้าง: คุณต้องการล้างข้อมูลแคช (Clear Storage) และออกจากระบบเพื่อแก้ไขปัญหาใช่หรือไม่?\n\n(This will clear all local credentials and reset the login state.)')) {
+              localStorage.clear();
+              sessionStorage.clear();
+              alert('ล้างข้อมูลสำเร็จ (Success): ระบบจะเริ่มใหม่ในขณะนี้');
+              window.location.reload();
+            }
+          }, 2000); // 2 seconds long press
+        };
+
+        const cancelPress = () => {
+          header.style.opacity = '1';
+          header.style.transform = 'scale(1)';
+          clearTimeout(pressTimer);
+        };
+
+        if (header) {
+          // Mouse events
+          header.addEventListener('mousedown', startPress);
+          header.addEventListener('mouseup', cancelPress);
+          header.addEventListener('mouseleave', cancelPress);
+          
+          // Touch events (Mobile)
+          header.addEventListener('touchstart', (e) => {
+            // Prevent default context menu on some mobile browsers if possible
+            startPress(e);
+          }, { passive: true });
+          header.addEventListener('touchend', cancelPress);
+          header.addEventListener('touchcancel', cancelPress);
+          
+          header.style.cursor = 'help';
+          header.title = 'Hold for troubleshooting options';
+        }
+      })();
+    </script>
+</body>
 </html>

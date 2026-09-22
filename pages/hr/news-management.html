@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
+  <script src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -12,322 +13,23 @@
   
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/home.css" />
-  <link rel="stylesheet" href="/css/leave-sla-tracker.css" />
-  <link rel="stylesheet" href="/css/system-settings.css" />
+  <link rel="stylesheet" href="/css/hr-news-management.css" />
   
   <!-- SweetAlert2 for rich alerts -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <style>
-    /*  News Management Custom Styles */
-    .news-mgmt-container {
-      max-width: 1300px;
-      margin: 0 auto;
-      padding-bottom: 60px;
-    }
-
-    .news-stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .news-stat-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 18px 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .news-stat-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
-    }
-    .news-stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .news-stat-info h4 {
-      margin: 0 0 4px 0;
-      font-size: 13px;
-      color: #64748b;
-      font-weight: 500;
-    }
-    .news-stat-info .stat-number {
-      font-size: 24px;
-      font-weight: 800;
-      color: #0f172a;
-      line-height: 1;
-    }
-
-    /* Toolbar & Search */
-    .news-toolbar {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-    }
-
-    .search-filter-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-      flex: 1;
-      min-width: 280px;
-    }
-
-    .search-box-wrap {
-      position: relative;
-      flex: 1;
-      min-width: 200px;
-      max-width: 380px;
-    }
-    .search-box-wrap .material-symbols-outlined {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #94a3b8;
-      font-size: 20px;
-    }
-    .search-input {
-      width: 100%;
-      padding: 9px 14px 9px 38px;
-      border-radius: 10px;
-      border: 1px solid #cbd5e1;
-      font-family: inherit;
-      font-size: 13.5px;
-      background: #f8fafc;
-      color: #0f172a;
-      box-sizing: border-box;
-      outline: none;
-      transition: all 0.2s ease;
-    }
-    .search-input:focus {
-      background: #ffffff;
-      border-color: #0d9488;
-      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
-    }
-
-    .category-select {
-      padding: 9px 14px;
-      border-radius: 10px;
-      border: 1px solid #cbd5e1;
-      font-family: inherit;
-      font-size: 13.5px;
-      background: #f8fafc;
-      color: #334155;
-      outline: none;
-      cursor: pointer;
-    }
-    .category-select:focus {
-      border-color: #0d9488;
-      background: #ffffff;
-    }
-
-    .btn-create-news {
-      background: linear-gradient(135deg, #0d9488, #0891b2);
-      color: #ffffff;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 10px;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 13.5px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
-      transition: all 0.2s ease;
-    }
-    .btn-create-news:hover {
-      background: linear-gradient(135deg, #0f766e, #0e7490);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(13, 148, 136, 0.35);
-    }
-
-    /* News Cards Grid */
-    .news-cards-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-      gap: 20px;
-    }
-
-    .admin-news-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: relative;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-    }
-    .admin-news-card:hover {
-      border-color: #cbd5e1;
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06);
-    }
-    .admin-news-card.pinned {
-      border-color: #fed7aa;
-      background: linear-gradient(to bottom, #fffbf5, #ffffff);
-    }
-
-    .news-header-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .news-tag {
-      font-size: 11.5px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .news-tag.urgent { background: #fee2e2; color: #dc2626; }
-    .news-tag.announcement { background: #e0f2fe; color: #0284c7; }
-    .news-tag.holiday { background: #fef3c7; color: #d97706; }
-    .news-tag.welfare { background: #dcfce7; color: #16a34a; }
-    .news-tag.activity { background: #f3e8ff; color: #9333ea; }
-
-    .pin-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #ea580c;
-      background: #ffedd5;
-      padding: 3px 8px;
-      border-radius: 6px;
-    }
-
-    .news-item-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0 0 8px 0;
-      line-height: 1.4;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .news-item-content {
-      font-size: 13.5px;
-      color: #475569;
-      line-height: 1.6;
-      margin: 0 0 16px 0;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      white-space: pre-line;
-    }
-
-    .news-card-bottom {
-      border-top: 1px solid #f1f5f9;
-      padding-top: 14px;
-      margin-top: auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .news-author-time {
-      font-size: 12px;
-      color: #94a3b8;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .news-actions-wrap {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-icon-action {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      background: #f8fafc;
-      color: #475569;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .btn-icon-action:hover {
-      background: #ffffff;
-      color: #0f172a;
-      border-color: #cbd5e1;
-      transform: translateY(-1px);
-    }
-    .btn-icon-action.pin-active {
-      background: #ffedd5;
-      color: #ea580c;
-      border-color: #fed7aa;
-    }
-    .btn-icon-action.delete:hover {
-      background: #fee2e2;
-      color: #dc2626;
-      border-color: #fca5a5;
-    }
-
-    /* Empty state */
-    .empty-news-box {
-      grid-column: 1 / -1;
-      background: #ffffff;
-      border: 2px dashed #cbd5e1;
-      border-radius: 16px;
-      padding: 60px 20px;
-      text-align: center;
-      color: #64748b;
-    }
-  </style>
 </head>
 
-<body>
+<body id="page-hr-news-management">
   <div class="app-shell">
     
     <!--  SIDEBAR ด้านซ้าย (Unified Luxury Sidebar) -->
     <aside class="sidebar-light" id="mainSidebar">
-      <div class="sidebar-brand brand-zone">
-        <div class="brand-icon"></div>
-        <div class="brand-name logo-text">PVT WORKFORCE HUB</div>
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div class="brand-name">PVTT WORKFORCE HUB</div>
+        <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
@@ -336,69 +38,67 @@
       <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
       <div class="sidebar-cta-wrap">
         <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
-          <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">fact_check</span>
           <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
         </a>
       </div>
 
       <nav class="nav-menu">
         <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
-          <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
         <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
-          <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">ตรวจใบลา</span>
+          <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
         <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
-          <img src="/assets/icons/management-gear.svg" alt="ระบบจัดการส่วนกลาง" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">tune</span>
           <span class="nav-label">ระบบจัดการส่วนกลาง</span>
         </a>
         <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
-          <img src="/assets/icons/analytics-dashboard.svg" alt="สถิติวันลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">analytics</span>
           <span class="nav-label">สถิติวันลา</span>
         </a>
-        <a href="/pages/user/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
-          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
-          <span class="nav-label">ปฏิทิน</span>
+        <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">จัดการวันหยุด</span>
         </a>
-
+        
         <div class="sidebar-divider"></div>
         <div class="sidebar-section-title">บริการด่วน</div>
-
+        
         <!--  ปุ่มจัดการข่าวสารองค์กร -->
         <a href="/pages/hr/news-management.html" class="nav-item active" title="จัดการข่าวสารองค์กร">
-          <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">campaign</span>
           <span class="nav-label">ข่าวสาร</span>
         </a>
 
         <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
-        <button type="button" class="nav-item" onclick="openEmployeeCardManagerPopup(); return false;" title="ระบบบัตรพนักงาน">
-          <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" class="nav-icon-custom" />
-          <span class="nav-label">บัตรพนักงาน</span>
-        </button>
+        <a href="/pages/hr/employee-cards.html" class="nav-item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="nav-label">บัตรพนักงาน (Admin)</span>
+        </a>
+        
+        <!-- ประวัติการเข้าสู่ระบบ -->
+        <a href="/pages/hr/login-logs.html" class="nav-item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
 
         <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
         <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
-          <img src="/assets/icons/user-profile.svg" alt="หน้าหลัก" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">person</span>
           <span class="nav-label">หน้าหลักของพนักงาน</span>
         </a>
-
-        <!-- <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; display: inline-block;" /> ตั้งค่า -->
-                <!-- 💡 ปุ่มแนะนำระบบ -->
-        <a href="/pages/user/full-guide.html" class="nav-item" title="แนะนำระบบการใช้งาน">
-          <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
-          <span class="nav-label">แนะนำระบบ</span>
-        </a>
-        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
-          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
-          <span class="nav-label">ตั้งค่า</span>
-        </button>
       </nav>
 
       <div class="sidebar-footer">
-        <button type="button" class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
-          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
+        <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
           <span>ออกจากระบบ</span>
         </button>
       </div>
@@ -410,22 +110,26 @@
       <!-- Topbar Header -->
       <header class="topbar">
         <div class="topbar-left">
-          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิด/ปิด เมนู">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; width: 22px; height: 22px;"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          </button>
-          <div>
-            <h1 class="page-title" style="margin: 0; font-size: 20px; font-weight: 800; color: #0f172a;"> จัดการข่าวสารและประกาศองค์กร</h1>
-            <p style="margin: 2px 0 0 0; font-size: 13px; color: #64748b;">เผยแพร่ข่าว ประกาศด่วน วันหยุด และกิจกรรมองค์กรสู่พนักงานแบบเรียลไทม์</p>
+          <div class="topbar-left-text">
+            <h1 class="page-title">📢 จัดการข่าวสารและประกาศองค์กร</h1>
+            <p class="page-subtitle">เผยแพร่ข่าว ประกาศด่วน วันหยุด และกิจกรรมองค์กรสู่พนักงานแบบเรียลไทม์</p>
           </div>
         </div>
-        <div class="topbar-right">
-          <a href="/pages/user/news.html" target="_blank" class="action-btn" style="text-decoration: none; background: #f8fafc;" title="เปิดดูมุมมองพนักงาน">
+        <div class="topbar-right" style="display: flex; align-items: center; gap: 10px;">
+          <a href="/pages/user/news.html" target="_blank" class="action-btn" style="text-decoration: none; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 14px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #0284c7;" title="เปิดดูมุมมองพนักงาน">
             <span class="material-symbols-outlined" style="font-size: 18px; color: #0284c7;">visibility</span>
-            <span>ดูมุมมองพนักงาน</span>
+            <span>มุมมองพนักงาน</span>
           </a>
-          <button class="action-btn" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ">
-            <span class="material-symbols-outlined">settings</span>
+          <button class="action-btn" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ" style="border: 1px solid #e2e8f0; background: #f8fafc; width: 38px; height: 38px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+            <span class="material-symbols-outlined" style="font-size: 20px; color: #475569;">settings</span>
           </button>
+          <div class="user-profile" id="headerUserProfile">
+            <div class="avatar avatar-badge notranslate" translate="no">HR</div>
+            <div class="info">
+              <strong id="headerUserName">ผู้ดูแลระบบ</strong>
+              <span id="headerUserRoleDept">ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -522,6 +226,7 @@
   <script src="/js/system-settings.js"></script>
   <script src="/js/company-news.js"></script>
   <script src="/js/employee-card-modal.js"></script>
+  <script src="/js/components/login-logs-viewer.js"></script>
   
   <script>
     // Initial Load
@@ -585,17 +290,22 @@
       }
 
       const CATEGORY_MAP = {
-        urgent: { label: " ประกาศด่วน", class: "urgent" },
-        announcement: { label: " ประชาสัมพันธ์", class: "announcement" },
-        holiday: { label: " วันหยุด/ปฏิทิน", class: "holiday" },
-        welfare: { label: " สวัสดิการ", class: "welfare" },
-        activity: { label: " กิจกรรมองค์กร", class: "activity" }
+        urgent: { label: "ประกาศด่วน", class: "urgent" },
+        announcement: { label: "ประชาสัมพันธ์", class: "announcement" },
+        holiday: { label: "วันหยุด/ปฏิทิน", class: "holiday" },
+        welfare: { label: "สวัสดิการ", class: "welfare" },
+        activity: { label: "กิจกรรมองค์กร", class: "activity" }
       };
 
       container.innerHTML = filtered.map(item => {
         const catInfo = CATEGORY_MAP[item.category] || CATEGORY_MAP.announcement;
         const formattedDate = item.date ? new Date(item.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
         
+        // Handle both literal string '\n' and actual newline characters
+        const cleanTitle = escapeHtml((item.title || '').replace(/\\n/g, ' '));
+        const cleanContent = escapeHtml((item.content || '').replace(/\\n/g, '\n'));
+        const cleanAuthor = escapeHtml((item.author || 'ฝ่ายทรัพยากรบุคคล (HR)').replace(/\\n/g, ' '));
+
         return `
           <div class="admin-news-card ${item.is_pinned ? 'pinned' : ''}">
             <div>
@@ -603,13 +313,13 @@
                 <span class="news-tag ${catInfo.class}">${catInfo.label}</span>
                 ${item.is_pinned ? '<span class="pin-badge"><span class="material-symbols-outlined" style="font-size: 14px;">push_pin</span> ปักหมุด</span>' : ''}
               </div>
-              <h3 class="news-item-title">${escapeHtml(item.title)}</h3>
-              <div class="news-item-content">${escapeHtml(item.content)}</div>
+              <h3 class="news-item-title">${cleanTitle}</h3>
+              <div class="news-item-content">${cleanContent}</div>
             </div>
 
             <div class="news-card-bottom">
               <div class="news-author-time">
-                <span><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: -2px;">person</span> ${escapeHtml(item.author || 'HR')}</span>
+                <span><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: -2px;">person</span> ${cleanAuthor}</span>
                 <span><span class="material-symbols-outlined" style="font-size: 13px; vertical-align: -2px;">calendar_today</span> ${formattedDate}</span>
               </div>
 

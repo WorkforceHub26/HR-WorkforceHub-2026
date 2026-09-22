@@ -56,12 +56,22 @@ window.openEmployeeCardManagerPopup = window.openEmployeeCardManagerPopup || fun
   window.location.href = '/pages/hr/home.html?action=employee_card';
 };
 
-window.handleLogout = window.handleLogout || function() {
+window.handleLogout = function(event) {
+  if (typeof window.executePvtLogout === 'function' && typeof Swal === 'undefined') {
+    return window.executePvtLogout();
+  }
   const performLogout = () => {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('supabase_session');
-    window.location.href = '/index.html';
+    if (typeof window.executePvtLogout === 'function') {
+      window.executePvtLogout();
+    } else {
+      sessionStorage.setItem('pvt_explicit_logout', 'true');
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('supabase_session');
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace('/index.html?logout=true');
+    }
   };
 
   if (typeof Swal !== 'undefined') {
@@ -69,20 +79,24 @@ window.handleLogout = window.handleLogout || function() {
       title: 'ยืนยันการออกจากระบบ',
       text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
       icon: 'warning',
+      showConfirmButton: true,
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       cancelButtonColor: '#64748b',
-      confirmButtonText: 'ออกจากระบบ',
+      confirmButtonText: 'ตกลง (ยืนยันการออก)',
       cancelButtonText: 'ยกเลิก',
-      reverseButtons: true,
-      focusCancel: true
+      reverseButtons: false,
+      focusConfirm: true,
+      customClass: {
+        popup: 'pvt-logout-popup'
+      }
     }).then((result) => {
       if (result.isConfirmed) {
         performLogout();
       }
     });
   } else {
-    if (confirm('คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?')) {
+    if (confirm('คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่? (กด ตกลง / OK เพื่อยืนยันการออก)')) {
       performLogout();
     }
   }

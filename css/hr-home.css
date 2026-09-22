@@ -1,0 +1,8 @@
+/* ======================================================
+   Dedicated Stylesheet for HR Dashboard (/pages/hr/home.html)
+   Scoped Page ID: #page-hr-home
+   ====================================================== */
+@import url('/css/home.css');
+@import url('/css/hr.css');
+@import url('/css/company-news.css');
+@import url('/css/health-wellness.css');

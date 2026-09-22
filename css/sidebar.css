@@ -12,61 +12,96 @@
   left: 0;
   bottom: 0;
   z-index: 100;
-  background: #ffffff;
-  border-right: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #0f1e4e 0%, #1e3a8a 50%, #172554 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
-  overflow: hidden;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.25) !important;
+  overflow: visible;
 }
 
 /* 🏷️ BRAND ZONE */
 .sidebar-brand,
 .brand-zone {
-  padding: 16px 16px 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #ffffff;
+  padding: 20px 16px 16px 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 8px !important;
+  position: relative !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.12) 100%) !important;
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .brand-icon {
-  width: 52px;
-  height: 36px;
-  min-width: 52px;
-  min-height: 36px;
-  background-color: #ffffff;
-  background-image: url('/assets/icons/Logo_PVT_2026_B.png');
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
-  transition: all 0.25s ease;
-  padding: 2px 4px;
+  width: 72px !important;
+  height: 72px !important;
+  min-width: 72px !important;
+  min-height: 72px !important;
+  background-color: transparent !important;
+  background-image: none !important; /* Prevent double rendering / overlapping */
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  flex-shrink: 0;
+  margin: 0 auto !important;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)) !important;
+  transition: transform 0.25s ease !important;
+}
+
+.brand-icon img {
+  width: 72px !important;
+  height: 72px !important;
+  max-height: 72px !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  display: block !important;
+  margin: 0 auto !important;
 }
 
 .brand-icon:hover {
-  transform: scale(1.04);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  transform: scale(1.06) !important;
 }
 
-.brand-name {
-  font-size: 13.5px;
-  font-weight: 800;
-  letter-spacing: 0.3px;
-  color: #0f766e;
-  text-transform: uppercase;
-  white-space: nowrap !important;
-  line-height: 1.2;
+.brand-name,
+.logo-text {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.6px !important;
+  color: #ffffff !important; /* White for high contrast on blue */
+  text-transform: uppercase !important;
+  text-align: center !important;
+  white-space: normal !important;
+  line-height: 1.3 !important;
+  width: 100% !important;
+  max-width: 210px !important;
+  word-break: break-word !important;
+  margin: 0 auto !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.brand-subname {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #bfdbfe !important; /* Soft ice blue text */
+  text-align: center !important;
+  line-height: 1.35 !important;
+  width: 100% !important;
+  max-width: 210px !important;
+  word-break: break-word !important;
+  margin: 2px auto 0 auto !important;
+  opacity: 0.95 !important;
 }
 
 /* 🚀 SIDEBAR PRIMARY ACTION (CTA) */
@@ -81,27 +116,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  background: linear-gradient(135deg, #0d9488, #0891b2);
-  color: #ffffff !important;
+  gap: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%) !important;
+  color: #1e3a8a !important;
   border: none;
-  padding: 8px 14px;
-  border-radius: 10px;
+  padding: 9px 16px;
+  border-radius: 11px;
   font-family: inherit;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13px;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(13, 148, 136, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   box-sizing: border-box;
 }
 
 .sidebar-cta-btn:hover {
-  background: linear-gradient(135deg, #0f766e, #0e7490);
+  background: #ffffff !important;
+  color: #1d4ed8 !important;
   transform: translateY(-1px);
-  box-shadow: 0 5px 14px rgba(13, 148, 136, 0.32);
-  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
 
 .sidebar-cta-btn:active {
@@ -110,6 +145,7 @@
 
 .sidebar-cta-btn .material-symbols-outlined {
   font-size: 18px;
+  color: #1e3a8a !important;
 }
 
 .sidebar-cta-label {
@@ -147,7 +183,7 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 10px;
-  color: #475569;
+  color: #e0f2fe !important;
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 500;
@@ -175,8 +211,8 @@
 .sidebar-footer .menu-item:hover,
 .sidebar .nav-item:hover,
 .sidebar-light .nav-item:hover {
-  background: #f8fafc;
-  color: #0f172a;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
   transform: translateX(2px);
 }
 
@@ -186,17 +222,136 @@
 .sidebar .nav-item.active,
 .nav-menu .nav-item.active,
 .sidebar-light .nav-item.active {
-  background: #ecfeff !important;
-  color: #0891b2 !important;
-  font-weight: 600 !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15) !important;
+  border-left: 3.5px solid #60a5fa !important;
+}
+
+.sidebar .menu-item .material-symbols-outlined,
+.sidebar .nav-item .material-symbols-outlined,
+.sidebar-light .material-symbols-outlined,
+.nav-menu .material-symbols-outlined,
+aside .material-symbols-outlined {
+  font-size: 22px !important;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #93c5fd;
+  flex-shrink: 0;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   🎨 VIBRANT & DISTINCT ADMIN SIDEBAR ICON COLOR PALETTE
+   ========================================================================== */
+
+/* CTA Action Button Icon */
+.sidebar-cta-btn .material-symbols-outlined,
+.sidebar .sidebar-cta-btn .material-symbols-outlined {
+  color: #0d9488 !important; /* Premium Teal */
+  font-weight: 700 !important;
+}
+
+.sidebar-cta-btn:hover .material-symbols-outlined {
+  color: #0f766e !important;
+  transform: scale(1.15) !important;
+}
+
+/* 1. หน้าหลัก (Home / Dashboard) */
+.sidebar a[href*="home"] .material-symbols-outlined,
+.sidebar a[href*="dashboard"] .material-symbols-outlined,
+.nav-menu a[href*="home"] .material-symbols-outlined,
+aside a[href*="home"] .material-symbols-outlined {
+  color: #38bdf8 !important; /* Sky Blue */
+}
+
+/* 2. ตรวจใบลา (Leave Checks & Approvals) */
+.sidebar a[href*="hr.html"] .material-symbols-outlined,
+.sidebar #navItemLeaveCheck .material-symbols-outlined,
+.nav-menu a[href*="hr.html"] .material-symbols-outlined,
+aside a[href*="hr.html"] .material-symbols-outlined {
+  color: #34d399 !important; /* Vibrant Emerald Mint */
+}
+
+/* 3. ระบบจัดการส่วนกลาง (Central Management / Settings) */
+.sidebar a[href*="management"] .material-symbols-outlined,
+.nav-menu a[href*="management"] .material-symbols-outlined,
+aside a[href*="management"] .material-symbols-outlined {
+  color: #fbbf24 !important; /* Warm Amber Gold */
+}
+
+/* 4. สถิติวันลา (Leave Stats / Analytics) */
+.sidebar a[href*="leave-stats"] .material-symbols-outlined,
+.nav-menu a[href*="stats"] .material-symbols-outlined,
+aside a[href*="leave-stats"] .material-symbols-outlined {
+  color: #c084fc !important; /* Purple / Lavender */
+}
+
+/* 5. จัดการวันหยุด (Holidays) */
+.sidebar a[href*="holidays"] .material-symbols-outlined,
+.nav-menu a[href*="holidays"] .material-symbols-outlined,
+aside a[href*="holidays"] .material-symbols-outlined {
+  color: #fb7185 !important; /* Coral / Rose Pink */
+}
+
+/* 6. ข่าวสารองค์กร (News Management) */
+.sidebar a[href*="news"] .material-symbols-outlined,
+.nav-menu a[href*="news"] .material-symbols-outlined,
+aside a[href*="news"] .material-symbols-outlined {
+  color: #f472b6 !important; /* Magenta / Pink */
+}
+
+/* 7. ศูนย์จัดการบัตรพนักงาน (Employee Cards) */
+.sidebar a[href*="employee-cards"] .material-symbols-outlined,
+.nav-menu a[href*="cards"] .material-symbols-outlined,
+aside a[href*="employee-cards"] .material-symbols-outlined {
+  color: #818cf8 !important; /* Indigo Blue */
+}
+
+/* 8. ประวัติเข้าสู่ระบบ (Login Audit History) */
+.sidebar button[onclick*="LoginLogs"] .material-symbols-outlined,
+.sidebar button[onclick*="viewLoginAuditLogs"] .material-symbols-outlined,
+.sidebar button[onclick*="Logs"] .material-symbols-outlined,
+.nav-menu button[onclick*="LoginLogs"] .material-symbols-outlined,
+aside button[onclick*="LoginLogs"] .material-symbols-outlined {
+  color: #2dd4bf !important; /* Shield Security Teal */
+}
+
+/* 9. หน้าหลักของพนักงาน (User Portal Switch) */
+.sidebar a[href*="index-user"] .material-symbols-outlined,
+.nav-menu a[href*="index-user"] .material-symbols-outlined,
+aside a[href*="index-user"] .material-symbols-outlined {
+  color: #a5f3fc !important; /* Light Ice Blue */
+}
+
+/* 10. ปุ่มออกจากระบบ (Logout) */
+.btn-logout .material-symbols-outlined,
+.sidebar-footer .btn-logout .material-symbols-outlined,
+aside .btn-logout .material-symbols-outlined {
+  color: #f87171 !important; /* Soft Bright Red */
+}
+
+.sidebar .menu-item:hover .material-symbols-outlined,
+.sidebar .nav-item:hover .material-symbols-outlined,
+.sidebar-light .nav-item:hover .material-symbols-outlined,
+aside .nav-item:hover .material-symbols-outlined,
+aside .menu-item:hover .material-symbols-outlined {
+  transform: scale(1.15) !important;
+  filter: brightness(1.25) drop-shadow(0 0 6px rgba(255, 255, 255, 0.45));
 }
 
 .sidebar .menu-item.active .material-symbols-outlined,
 .sidebar-menu .menu-item.active .material-symbols-outlined,
 .sidebar .nav-item.active .material-symbols-outlined,
 .nav-menu .nav-item.active .material-symbols-outlined,
-.sidebar-light .nav-item.active .material-symbols-outlined {
-  color: #0891b2 !important;
+.sidebar-light .nav-item.active .material-symbols-outlined,
+aside .nav-item.active .material-symbols-outlined {
+  filter: brightness(1.3) drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+  transform: scale(1.1) !important;
 }
 
 /* 🏷️ Custom Vector SVG Icons in Nav Items */
@@ -226,14 +381,14 @@
 
 .sidebar-divider {
   height: 1px;
-  background-color: #f1f5f9;
+  background-color: rgba(255, 255, 255, 0.12) !important;
   margin: 12px 4px;
 }
 
 .sidebar-section-title {
   font-size: 11px;
   font-weight: 700;
-  color: #94a3b8;
+  color: #93c5fd !important;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 14px;
@@ -242,7 +397,7 @@
 
 .sidebar-footer {
   padding: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
   flex-shrink: 0;
 }
 
@@ -261,14 +416,17 @@
   body.desktop-sidebar-collapsed aside,
   .sidebar.collapsed,
   .sidebar-light.collapsed {
-    width: 72px !important;
-    min-width: 72px !important;
-    overflow-x: hidden !important;
+    width: 80px !important;
+    min-width: 80px !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
     transform: none !important;
   }
 
   /* 🚫 Hide all text labels when collapsed */
   body.desktop-sidebar-collapsed .brand-name,
+  body.desktop-sidebar-collapsed .brand-subname,
+  body.desktop-sidebar-collapsed .brand-subtitle,
   body.desktop-sidebar-collapsed .sidebar-brand-text,
   body.desktop-sidebar-collapsed .sidebar-cta-label,
   body.desktop-sidebar-collapsed .sidebar-section-title,
@@ -282,6 +440,8 @@
   body.desktop-sidebar-collapsed .menu-text,
   body.desktop-sidebar-collapsed .badge,
   .sidebar.collapsed .brand-name,
+  .sidebar.collapsed .brand-subname,
+  .sidebar.collapsed .brand-subtitle,
   .sidebar.collapsed .sidebar-brand-text,
   .sidebar.collapsed .sidebar-cta-label,
   .sidebar.collapsed .sidebar-section-title,
@@ -311,6 +471,23 @@
     padding: 14px 0 !important;
     justify-content: center !important;
     gap: 0 !important;
+  }
+
+  body.desktop-sidebar-collapsed .brand-icon,
+  body.desktop-sidebar-collapsed .brand-icon img,
+  body.desktop-sidebar-collapsed img.logo-img,
+  body.desktop-sidebar-collapsed .logo-icon,
+  .sidebar.collapsed .brand-icon,
+  .sidebar.collapsed .brand-icon img,
+  .sidebar.collapsed img.logo-img,
+  .sidebar.collapsed .logo-icon {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+    margin: 0 auto !important;
+    object-fit: contain !important;
   }
 
   /* 🚀 Primary CTA Collapsed */
@@ -391,8 +568,8 @@
 
   body.desktop-sidebar-collapsed .main-content,
   .main-content.expanded {
-    margin-left: 72px !important;
-    width: calc(100% - 72px) !important;
+    margin-left: 80px !important;
+    width: calc(100% - 80px) !important;
   }
 }
 
@@ -428,19 +605,169 @@
     justify-content: space-between !important;
   }
 
+  /* 🎯 HIGH CONTRAST TEXT COLORS FOR MOBILE / LIGHT SIDEBAR */
+  .sidebar, .sidebar-light, aside {
+    color: #0f172a !important;
+  }
+
+  .sidebar .brand-name,
+  .sidebar .logo-text,
+  .sidebar-light .brand-name,
+  .sidebar-light .logo-text,
+  aside .brand-name,
+  aside .logo-text {
+    color: #0f172a !important;
+    text-shadow: none !important;
+    font-weight: 800 !important;
+  }
+
+  .sidebar .brand-subname,
+  .sidebar-light .brand-subname,
+  aside .brand-subname {
+    color: #0284c7 !important;
+    font-weight: 600 !important;
+    opacity: 1 !important;
+  }
+
+  .sidebar .sidebar-section-title,
+  .sidebar-light .sidebar-section-title,
+  aside .sidebar-section-title {
+    color: #0284c7 !important;
+    font-weight: 700 !important;
+    font-size: 11.5px !important;
+  }
+
+  .sidebar .menu-item,
+  .sidebar button.menu-item,
+  .sidebar a.menu-item,
+  .sidebar-menu .menu-item,
+  .sidebar-footer .menu-item,
+  .sidebar .nav-item,
+  .sidebar button.nav-item,
+  .sidebar a.nav-item,
+  .nav-menu .nav-item,
+  .sidebar-light .nav-item,
+  aside .menu-item,
+  aside .nav-item {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+  }
+
+  .sidebar .menu-item span,
+  .sidebar-footer .menu-item span,
+  .sidebar .nav-item span,
+  .sidebar .nav-label,
+  .sidebar-light .nav-item span,
+  aside .menu-item span,
+  aside .nav-item span {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+  }
+
+  .sidebar .menu-item:hover,
+  .sidebar-footer .menu-item:hover,
+  .sidebar .nav-item:hover,
+  .sidebar-light .nav-item:hover,
+  aside .menu-item:hover,
+  aside .nav-item:hover {
+    background: #f1f5f9 !important;
+    color: #0284c7 !important;
+  }
+
+  .sidebar .menu-item:hover span,
+  .sidebar-footer .menu-item:hover span,
+  .sidebar .nav-item:hover span,
+  .sidebar-light .nav-item:hover span,
+  aside .menu-item:hover span,
+  aside .nav-item:hover span {
+    color: #0284c7 !important;
+  }
+
+  .sidebar .menu-item.active,
+  .sidebar-menu .menu-item.active,
+  .sidebar .nav-item.active,
+  .nav-menu .nav-item.active,
+  .sidebar-light .nav-item.active,
+  aside .menu-item.active,
+  aside .nav-item.active {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+    font-weight: 700 !important;
+    border-left: 4px solid #0284c7 !important;
+  }
+
+  .sidebar .menu-item.active span,
+  .sidebar-menu .menu-item.active span,
+  .sidebar .nav-item.active span,
+  .nav-menu .nav-item.active span,
+  .sidebar-light .nav-item.active span,
+  aside .menu-item.active span,
+  aside .nav-item.active span {
+    color: #0369a1 !important;
+    font-weight: 700 !important;
+  }
+
+  .sidebar-divider {
+    background-color: #e2e8f0 !important;
+  }
+
+  .sidebar .brand-zone,
+  .sidebar-light .brand-zone,
+  aside .brand-zone,
+  .sidebar .sidebar-brand,
+  .sidebar-light .sidebar-brand {
+    border-bottom: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+  }
+
   .sidebar-light.mobile-open, .sidebar.mobile-open, aside.sidebar-light.mobile-open, aside.mobile-open {
     transform: translateX(0) !important;
   }
 
-  .sidebar-light .brand-zone, .sidebar .brand-zone, aside .brand-zone {
+  .sidebar-light .brand-zone, .sidebar .brand-zone, aside .brand-zone, .sidebar .sidebar-brand, aside .sidebar-brand, .sidebar-brand {
     display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    padding: 16px 18px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    padding: 16px 18px 12px 18px !important;
+    position: relative !important;
   }
 
   .btn-close-sidebar {
     display: inline-flex !important;
+    position: absolute !important;
+    top: 14px !important;
+    right: 14px !important;
+    margin: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    cursor: pointer !important;
+    outline: none !important;
+    overflow: hidden !important;
+  }
+
+  .btn-close-sidebar .material-symbols-outlined {
+    font-size: 20px !important;
+    line-height: 1 !important;
+    width: 20px !important;
+    height: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .main-content {
@@ -460,10 +787,73 @@ button#mobileSidebarEdgeToggle {
   opacity: 0 !important;
 }
 
-/* 🧭 Desktop Sidebar Edge Toggle Handle (ปิดใช้งานตามคำขอ) */
+/* 🧭 Desktop Sidebar Edge Toggle Handle - ปุ่มคลิกกลางขอบ Sidebar */
+div#appLayout > aside#mainSidebar > button#desktopSidebarEdgeToggle,
 .desktop-sidebar-edge-toggle,
 #desktopSidebarEdgeToggle {
-  display: none !important;
+  display: flex !important;
+  position: absolute !important;
+  top: 50% !important;
+  right: -16px !important;
+  transform: translateY(-50%) !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 2px solid #0d9488 !important;
+  color: #0d9488 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.16), 0 0 0 3px rgba(13, 148, 136, 0.12) !important;
+  cursor: pointer !important;
+  z-index: 10000 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  user-select: none !important;
+  overflow: visible !important;
+  outline: none !important;
+}
+
+div#appLayout > aside#mainSidebar > button#desktopSidebarEdgeToggle:hover,
+.desktop-sidebar-edge-toggle:hover,
+#desktopSidebarEdgeToggle:hover {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
+  border-color: #0f766e !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.42), 0 0 0 4px rgba(13, 148, 136, 0.22) !important;
+  transform: translateY(-50%) scale(1.15) !important;
+}
+
+div#appLayout > aside#mainSidebar > button#desktopSidebarEdgeToggle:active,
+.desktop-sidebar-edge-toggle:active,
+#desktopSidebarEdgeToggle:active {
+  transform: translateY(-50%) scale(0.92) !important;
+}
+
+.desktop-sidebar-edge-toggle .edge-icon,
+.desktop-sidebar-edge-toggle .material-symbols-outlined,
+#desktopSidebarEdgeToggle .material-symbols-outlined {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  display: block !important;
+  pointer-events: none !important;
+  transition: transform 0.2s ease !important;
+}
+
+@media (max-width: 1024px) {
+  .desktop-sidebar-edge-toggle,
+  #desktopSidebarEdgeToggle {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .mobile-menu-btn {
+    display: none !important;
+  }
 }
 
 /* 🚪 LOGOUT BUTTON STYLES */
@@ -490,6 +880,42 @@ button#mobileSidebarEdgeToggle {
   color: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(239, 68, 68, 0.2);
+}
+
+/* 🌟 Luxury Dark Sidebar Variant for HR Admin (aside#mainSidebar) */
+aside#mainSidebar .btn-logout,
+.sidebar-light .btn-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #fca5a5 !important;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+aside#mainSidebar .btn-logout:hover,
+.sidebar-light .btn-logout:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+}
+
+aside#mainSidebar .btn-logout:hover .material-symbols-outlined,
+.sidebar-light .btn-logout:hover .material-symbols-outlined {
+  color: #ffffff !important;
+  transform: scale(1.1);
 }
 
 .btn-logout .material-symbols-outlined {

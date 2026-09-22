@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
+  <script src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -10,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/system-settings.css" />
+  <link rel="stylesheet" href="/css/hr-admin-dashboard.css" />
   <style>
     :root { 
       --primary: #0f766e; 
@@ -29,13 +30,13 @@
     /* Sidebar */
     aside { 
       width: 260px; 
-      background: #ffffff; 
-      color: #1e293b; 
+      background: linear-gradient(180deg, #0f1e4e 0%, #1e3a8a 50%, #172554 100%); 
+      color: #ffffff; 
       padding: 0; 
       display: flex; 
       flex-direction: column;
-      border-right: 1px solid #e2e8f0;
-      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.25);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 100;
     }
@@ -52,33 +53,47 @@
       backdrop-filter: blur(2px);
     }
     .sidebar-brand {
-      padding: 22px 20px;
+      padding: 20px 16px 16px 16px;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid #f1f5f9;
-      background: #ffffff;
+      justify-content: center;
+      text-align: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.1);
     }
     .brand-icon {
-      width: 36px;
-      height: 36px;
-      min-width: 36px;
-      min-height: 36px;
-      background: linear-gradient(135deg, #0f766e, #2dd4bf);
-      border-radius: 10px;
+      width: 72px;
+      height: 72px;
+      min-width: 72px;
+      min-height: 72px;
+      background: transparent;
+      border-radius: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 4px 10px rgba(15, 118, 110, 0.22);
+      box-shadow: none;
+      margin: 0 auto;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
     }
     .brand-name {
-      font-size: 14.5px;
+      font-size: 14px;
       font-weight: 800;
       letter-spacing: 0.5px;
-      color: #0f766e;
+      color: #ffffff;
       text-transform: uppercase;
-      white-space: nowrap !important;
+      text-align: center;
+      margin: 0 auto;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+    .brand-subname {
+      font-size: 11px;
+      font-weight: 500;
+      color: #bfdbfe !important;
+      text-align: center;
+      margin: 2px auto 0 auto;
     }
     
     .sidebar-menu { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
@@ -87,19 +102,19 @@
       align-items: center; 
       gap: 12px; 
       padding: 11px 16px; 
-      color: #475569; 
+      color: #e0f2fe; 
       text-decoration: none; 
       border-radius: 10px; 
       font-size: 13.5px;
       font-weight: 500;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .menu-item:hover { background: #f8fafc; color: #0f172a; transform: translateX(3px); }
-    .menu-item.active { background: #ccfbf1 !important; color: #0f766e !important; font-weight: 600; }
-    .menu-item.active .material-symbols-outlined { color: #0f766e !important; }
-    .menu-item .material-symbols-outlined { font-size: 20px; flex-shrink: 0; }
+    .menu-item:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; transform: translateX(3px); }
+    .menu-item.active { background: rgba(255, 255, 255, 0.2) !important; color: #ffffff !important; font-weight: 700; border-left: 3.5px solid #60a5fa; }
+    .menu-item.active .material-symbols-outlined { color: #ffffff !important; }
+    .menu-item .material-symbols-outlined { font-size: 20px; flex-shrink: 0; color: #93c5fd; }
     
-    .sidebar-footer { padding: 14px 12px; border-top: 1px solid #f1f5f9; }
+    .sidebar-footer { padding: 14px 12px; border-top: 1px solid rgba(255, 255, 255, 0.12); color: #93c5fd; }
     
     /* Main Content */
     main { flex: 1; min-width: 0; overflow-y: auto; padding: 40px; position: relative; box-sizing: border-box; }
@@ -313,62 +328,87 @@
     }
   </style>
 </head>
-<body>
+<body id="page-hr-admin-dashboard">
 <div class="app-container" id="app-wrapper">
   <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
-  <aside id="main-sidebar">
+  <aside class="sidebar-light" id="mainSidebar">
     <div class="sidebar-brand">
       <div class="brand-icon">
-        <span class="material-symbols-outlined">groups</span>
+        <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
       </div>
-      <div class="brand-name">PVT WORKFORCE HUB</div>
-      <button class="icon-btn mobile-nav-toggle" onclick="toggleSidebar()" style="background: transparent; border: none; color: #64748b; margin-left: auto;">
-        <span class="material-symbols-outlined">close</span>
+      <div class="brand-name">PVTT WORKFORCE HUB</div>
+      <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+      <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
+        <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
       </button>
     </div>
-    <div class="sidebar-menu">
-      <a href="/pages/hr/home.html" class="menu-item">
-        <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
-        <span>หน้าหลัก HR</span>
+
+    <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
+    <div class="sidebar-cta-wrap">
+      <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
+        <span class="material-symbols-outlined">fact_check</span>
+        <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
       </a>
-      <a href="/pages/hr/hr.html" class="menu-item">
-        <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
-        <span>ตรวจใบลา</span>
+    </div>
+
+    <nav class="nav-menu">
+      <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
+        <span class="material-symbols-outlined">dashboard</span>
+        <span class="nav-label">หน้าหลัก</span>
       </a>
-      <a href="/pages/hr/management.html" class="menu-item">
-        <img src="/assets/icons/management-gear.svg" alt="ระบบจัดการส่วนกลาง" class="nav-icon-custom" />
-        <span>ระบบจัดการส่วนกลาง</span>
+      <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
+        <span class="material-symbols-outlined">fact_check</span>
+        <span class="nav-label">ตรวจใบลา</span>
+        <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
       </a>
-      <a href="/pages/hr/admin-dashboard.html" class="menu-item active">
+      <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
+        <span class="material-symbols-outlined">tune</span>
+        <span class="nav-label">ระบบจัดการส่วนกลาง</span>
+      </a>
+      <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
         <span class="material-symbols-outlined">analytics</span>
-        <span>แดชบอร์ดสถิติ</span>
+        <span class="nav-label">สถิติวันลา</span>
       </a>
-      <a href="/pages/hr/approval-settings.html" class="menu-item">
-        <span class="material-symbols-outlined">verified_user</span>
-        <span>ตั้งค่าสายการอนุมัติ</span>
+      <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
+        <span class="material-symbols-outlined">calendar_month</span>
+        <span class="nav-label">จัดการวันหยุด</span>
       </a>
-      <a href="/pages/hr/news-management.html" class="menu-item">
-        <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" class="nav-icon-custom" />
-        <span>ข่าวสารองค์กร</span>
+      
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">บริการด่วน</div>
+      
+      <!--  ปุ่มจัดการข่าวสารองค์กร -->
+      <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
+        <span class="material-symbols-outlined">campaign</span>
+        <span class="nav-label">ข่าวสาร</span>
       </a>
-      <a href="/pages/user/leave-stats.html" class="menu-item">
-        <span class="material-symbols-outlined" style="color: #0284c7;">bar_chart</span>
-        <span>สถิติวันลา</span>
+
+      <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
+      <a href="/pages/hr/employee-cards.html" class="nav-item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+        <span class="material-symbols-outlined">badge</span>
+        <span class="nav-label">บัตรพนักงาน (Admin)</span>
       </a>
-      <!-- ปุ่มตั้งค่าระบบ (Modal ครอบคลุมทุกหน้า) -->
-      <button type="button" class="menu-item" onclick="openSystemSettingsModal()" title="การตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี, LINE)" style="background: none; border: none; width: 100%; cursor: pointer; text-align: left; font-family: inherit;">
-        <span class="material-symbols-outlined">settings</span>
-        <span>ตั้งค่า</span>
+      
+      <!-- ประวัติการเข้าสู่ระบบ -->
+      <a href="/pages/hr/login-logs.html" class="nav-item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+        <span class="material-symbols-outlined">shield_person</span>
+        <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
+      </a>
+
+      <div class="sidebar-divider"></div>
+
+      <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
+      <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
+        <span class="material-symbols-outlined">person</span>
+        <span class="nav-label">หน้าหลักของพนักงาน</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+        <span class="material-symbols-outlined">logout</span>
+        <span>ออกจากระบบ</span>
       </button>
-    </div>
-            <!-- 💡 ปุ่มแนะนำระบบ -->
-        <a href="/pages/user/full-guide.html" class="nav-item" title="แนะนำระบบการใช้งาน">
-          <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
-          <span class="nav-label">แนะนำระบบ</span>
-        </a>
-      </div>
-      <div class="sidebar-footer">
-      <div style="font-size: 12px; color: #94a3b8; text-align: center;">เวอร์ชันระบบ 2.4.0-pro</div>
     </div>
   </aside>
 

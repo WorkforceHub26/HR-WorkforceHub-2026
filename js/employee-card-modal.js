@@ -27,6 +27,32 @@
     return currentOrigin;
   }
 
+  // Preload standalone QRCode generator for instant offline QR generation (<2ms)
+  if (typeof window !== 'undefined' && !window.QRCode) {
+    const s = document.createElement('script');
+    s.src = '/js/qrcode.min.js';
+    s.async = true;
+    document.head.appendChild(s);
+  }
+
+  // Fast offline QR Code generator (fallback to online API if needed)
+  async function generateEmployeeQrDataUrl(empCode) {
+    if (!empCode) return "";
+    const cleanCode = String(empCode).trim();
+    const baseUrl = getBaseUrl();
+    const targetUrl = `${baseUrl}/index.html?auto_login=${encodeURIComponent(cleanCode)}`;
+
+    try {
+      if (window.QRCode && typeof window.QRCode.toString === 'function') {
+        const svg = await window.QRCode.toString(targetUrl, { type: 'svg', margin: 1, width: 220 });
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      }
+    } catch (e) {
+      console.warn("Offline QR generator fallback:", e);
+    }
+    return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(targetUrl)}`;
+  }
+
   function generateEmployeeQrUrl(empCode) {
     if (!empCode) return "";
     const cleanCode = String(empCode).trim();
@@ -43,6 +69,8 @@
     }
   }
 
+  window.generateEmployeeQrDataUrl = generateEmployeeQrDataUrl;
+
   async function getClient() {
     if (window.sb) return window.sb;
     if (window.pvtSupabase?.getClient) return window.pvtSupabase.getClient();
@@ -50,11 +78,40 @@
     return null;
   }
 
+  function isUserAdmin() {
+    try {
+      const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+      const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+      const userStatus = window.getUserRoleCategory ? window.getUserRoleCategory(sessionUser) : {};
+      const empObj = sessionUser?.employees || sessionUser || {};
+      const myProfile = window.currentUserProfile || window.currentProfile || sessionUser || {};
+      const rawRoleVal = String(sessionUser?.role || empObj.role || myProfile?.role || userStatus?.role || '').toLowerCase().trim();
+
+      return userStatus.category === 'hr_exec' ||
+             ['admin', 'superadmin', 'hr', 'hr_manager', 'executive'].includes(rawRoleVal) ||
+             Boolean(sessionUser?.is_admin) ||
+             Boolean(sessionUser?.is_hr) ||
+             Boolean(myProfile?.is_admin) ||
+             Boolean(myProfile?.is_hr) ||
+             sessionUser?.employee_code === 'HR-001' ||
+             empObj.employee_code === 'HR-001' ||
+             myProfile?.employee_code === 'HR-001';
+    } catch (e) {
+      return false;
+    }
+  }
+
   // 🟢 1. Open Employee Card Selection & Batch Print Modal
   window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
     if (typeof Swal === "undefined") {
       alert("⚠️ กำลังโหลดไลบรารี กรุณารอสักครู่");
       return;
+    }
+
+    const isAdmin = isUserAdmin();
+    if (!isAdmin) {
+      // พนักงานทั่วไปที่ไม่ใช่แอดมิน ให้เปิดเฉพาะบัตรพนักงานตนเองเท่านั้น
+      return window.openMyEmployeeCardModal();
     }
 
     if (!cachedEmployeeList || forceRefresh) {
@@ -85,6 +142,7 @@
               full_name,
               image_url,
               line_id,
+              status,
               department_id,
               departments!department_id ( department_name ),
               positions ( position_name )
@@ -92,7 +150,10 @@
             .order('employee_code', { ascending: true });
 
           if (error) throw error;
-          cachedEmployeeList = employees || [];
+          cachedEmployeeList = (employees || []).filter(emp => {
+            const st = String(emp.status || '').toLowerCase().trim();
+            return st !== 'resigned' && st !== 'inactive' && st !== 'ลาออก';
+          });
         } catch (err) {
           console.error("Error loading employees for cards:", err);
           Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงรายชื่อพนักงานได้: ' + (err.message || ''), 'error');
@@ -101,7 +162,7 @@
       }
     }
 
-    // Filter by user's department to only see their own department (meaning employees in the department)
+    // Filter by user's department to only see their own department if not Admin
     const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
     let sessionUser = {};
     try {
@@ -109,10 +170,9 @@
     } catch (e) {}
     const myProfile = window.currentUserProfile || sessionUser || {};
     const myDeptId = myProfile?.department_id || myProfile?.employees?.department_id;
-    const myRole = (myProfile?.role || "").toLowerCase();
 
     let displayEmployees = cachedEmployeeList || [];
-    if (myDeptId && myRole !== 'admin' && myRole !== 'hr') {
+    if (!isAdmin && myDeptId) {
       displayEmployees = displayEmployees.filter(emp => String(emp.department_id) === String(myDeptId));
     }
 
@@ -125,7 +185,15 @@
         const empDept = emp.departments?.department_name || emp.department_name || 'ไม่ระบุแผนก';
         const empName = emp.full_name || 'ไม่ระบุชื่อ';
         const empCode = emp.employee_code || '';
-        const fullAvatarUrl = emp.image_url || '/assets/img/default-avatar.jpg';
+        const empTitle = emp.title || '';
+        const empGender = emp.gender || '';
+        const defaultAvatar = (typeof window.getDefaultAvatarUrl === 'function') 
+          ? window.getDefaultAvatarUrl(empTitle, empGender, empName)
+          : ((empTitle.includes('สาว') || empTitle.includes('นาง') || empTitle.includes('น.ส.') || empGender === 'female' || empName.includes('นาง') || empName.includes('น.ส.')) ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
+
+        const fullAvatarUrl = (window.pvtSupabase && typeof window.pvtSupabase.getAvatarUrl === 'function')
+          ? window.pvtSupabase.getAvatarUrl(emp.image_url, empTitle, empGender, empName)
+          : (typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp.image_url, empTitle, empGender, empName) : (emp.image_url ? (emp.image_url.startsWith('http') ? emp.image_url : `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${emp.image_url.replace(/^\//, '')}`) : defaultAvatar));
 
         rowsHtml += `
           <div class="emp-card-selection-item" style="display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; gap: 12px; transition: background 0.15s ease;">
@@ -138,7 +206,7 @@
                      style="cursor: pointer; width: 19px; height: 19px; accent-color: #0f766e;" />
             </div>
             <div style="flex-shrink: 0;">
-              <img src="${fullAvatarUrl}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+              <img src="${fullAvatarUrl}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" onerror="this.onerror=null; this.src='${defaultAvatar}';">
             </div>
             <div style="flex: 1; min-width: 0;">
               <div style="font-weight: 700; color: #0f172a; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(empName)}</div>
@@ -301,50 +369,98 @@
   };
 
   // 🟢 3. Show Single Digital ID Card Modal
-  window.showIndividualIdCard = function (empCode, empName, empRole, empDept, avatarUrl) {
+  window.showIndividualIdCard = async function (empCode, empName, empRole, empDept, avatarUrl) {
     const qrUrl = generateEmployeeQrUrl(empCode);
-    const imgUrl = avatarUrl || '/assets/img/default-avatar.jpg';
+    const defaultAvatar = (typeof window.getDefaultAvatarUrl === 'function')
+      ? window.getDefaultAvatarUrl('', '', empName)
+      : ((empName.includes('นาง') || empName.includes('น.ส.')) ? '/assets/img/avatar-female.jpg' : '/assets/img/avatar-male.jpg');
+    const imgUrl = (avatarUrl && avatarUrl !== '/assets/img/default-avatar.jpg') ? avatarUrl : defaultAvatar;
     
     Swal.fire({
       title: '💳 บัตรประจำตัวพนักงานดิจิทัล',
-      width: '420px',
+      width: '440px',
       html: `
-        <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 320px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-          <div style="font-weight: 700; font-size: 13px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 16px;">PVT WORKFORCE HUB</div>
-          <div style="width: 84px; height: 84px; margin: 0 auto 14px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #1e293b;">
-            <img src="${imgUrl}" onerror="this.src='/assets/img/default-avatar.jpg';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
+        <div id="pvt-id-card" style="background: linear-gradient(135deg, #0a2558 0%, #1e40af 55%, #0284c7 100%); width: 320px; margin: 12px auto; border-radius: 20px; padding: 22px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.15);">
+          <div style="font-weight: 700; font-size: 13px; letter-spacing: 1.5px; color: #bae6fd; margin-bottom: 14px;">PVT WORKFORCE HUB</div>
+          <div style="width: 84px; height: 84px; margin: 0 auto 12px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #0f2b6e;">
+            <img src="${imgUrl}" onerror="this.onerror=null; this.src='${defaultAvatar}';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
           </div>
           <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #ffffff;">${escapeHtml(empName)}</div>
-          <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtml(empRole)}</div>
-          <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 16px;">แผนก: ${escapeHtml(empDept)}</div>
-          <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-            <img src="${qrUrl}" alt="Employee QR Code" style="width: 130px; height: 130px; display: block;" 
-                 onerror="this.onerror=null; this.src='https://via.placeholder.com/130?text=QR+Error';" />
+          <div style="font-size: 13px; color: #7dd3fc; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtml(empRole)}</div>
+          <div style="font-size: 12px; color: #e2e8f0; font-weight: 500; margin-bottom: 14px;">แผนก: ${escapeHtml(empDept)}</div>
+          <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+            <img src="${qrUrl}" alt="Employee QR Code" style="width: 125px; height: 125px; display: block;" 
+                 onerror="this.onerror=null; this.src='https://via.placeholder.com/125?text=QR+Error';" />
           </div>
           <div>
-            <span style="font-size: 11px; color: #94a3b8; display: block; text-transform: uppercase; margin-bottom: 2px;">Employee ID</span>
-            <span style="font-size: 16px; font-weight: 800; background: rgba(255,255,255,0.12); padding: 4px 18px; border-radius: 30px; display: inline-block; letter-spacing: 1px; font-family: monospace;">
+            <span style="font-size: 11px; color: #bae6fd; display: block; text-transform: uppercase; margin-bottom: 2px;">Employee ID</span>
+            <span style="font-size: 16px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 4px 18px; border-radius: 30px; display: inline-block; letter-spacing: 1px; font-family: monospace;">
               ${escapeHtml(empCode)}
             </span>
           </div>
         </div>
+        <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
+          <button type="button" id="btnDownloadSingleCardPng"
+                  style="flex: 1; background: #0284c7; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>📥 ดาวน์โหลด PNG</span>
+          </button>
+          <button type="button" id="btnPrintSingleCardAction"
+                  style="flex: 1; background: #0f766e; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>🖨️ สั่งพิมพ์บัตร</span>
+          </button>
+        </div>
       `,
       showCancelButton: true,
       cancelButtonText: '🔙 ย้อนกลับ',
-      confirmButtonText: '🖨️ สั่งพิมพ์บัตร',
-      confirmButtonColor: '#0f766e',
+      showConfirmButton: false,
       cancelButtonColor: '#64748b',
+      didOpen: () => {
+        const dlBtn = document.getElementById('btnDownloadSingleCardPng');
+        if (dlBtn) {
+          dlBtn.addEventListener('click', async () => {
+            dlBtn.disabled = true;
+            dlBtn.innerText = 'กำลังสร้างไฟล์...';
+            try {
+              const currentTheme = localStorage.getItem('pvt_emp_card_theme') || 'royal_blue';
+              const dataUrl = await generateEmployeeCardPNG({
+                empCode,
+                empName,
+                myRole: empRole,
+                myDept: empDept,
+                avatarUrl: imgUrl,
+                qrUrl: qrUrl,
+                themeKey: currentTheme
+              });
+              downloadCardPNG(dataUrl, empCode);
+            } catch (err) {
+              console.error("Card generation error:", err);
+            } finally {
+              dlBtn.disabled = false;
+              dlBtn.innerText = '📥 ดาวน์โหลด PNG';
+            }
+          });
+        }
+
+        const printBtn = document.getElementById('btnPrintSingleCardAction');
+        if (printBtn) {
+          printBtn.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('pvt_emp_card_theme') || 'royal_blue';
+            window.printSingleCard(empCode, empName, empRole, empDept, imgUrl, currentTheme);
+          });
+        }
+      }
     }).then((result) => {
       if (result.dismiss === Swal.DismissReason.cancel) {
         window.openEmployeeCardManagerPopup();
-      } else if (result.isConfirmed) {
-        window.printSingleCard(empCode, empName, empRole, empDept, imgUrl);
       }
     });
   };
 
   // 🟢 4. Single Card Print
-  window.printSingleCard = function (empCode, empName, position, department, pictureUrl) {
+  window.printSingleCard = function (empCode, empName, position, department, pictureUrl, themeKey) {
+    const selectedThemeKey = themeKey || localStorage.getItem('pvt_emp_card_theme') || 'royal_blue';
+    const theme = CARD_THEMES[selectedThemeKey] || CARD_THEMES.royal_blue;
+
     let employee = {};
     if (typeof empCode === 'object' && empCode !== null) {
       employee = {
@@ -385,22 +501,28 @@
           body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f1f5f9; }
           .card {
             position: relative; width: 85.6mm; height: 53.98mm; border-radius: 8px; padding: 8px 12px;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: white;
+            background: linear-gradient(135deg, ${theme.bgGrad[0]} 0%, ${theme.bgGrad[1]} 55%, ${theme.bgGrad[2]} 100%);
+            color: ${theme.nameText};
+            border: ${theme.isLight ? '1px solid #cbd5e1' : 'none'};
             display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             overflow: hidden;
           }
-          .card-header { font-size: 10px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
+          .card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, ${theme.topAccent[0]}, ${theme.topAccent[1]}, ${theme.topAccent[2]});
+          }
+          .card-header { font-size: 10px; font-weight: 700; color: ${theme.brandText}; text-align: center; letter-spacing: 1px; }
           .card-body { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
-          .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid #38bdf8; flex-shrink: 0; background: #1e293b; }
+          .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid ${theme.avatarRing}; flex-shrink: 0; background: ${theme.avatarFallbackBg || '#0f2b6e'}; }
           .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
           .details { flex: 1; font-size: 9px; line-height: 1.3; }
-          .name { font-weight: 700; font-size: 11px; color: #fff; margin-bottom: 2px; }
-          .meta { color: #94a3b8; font-size: 9px; }
-          .role { color: #38bdf8; font-weight: 600; }
-          .qr-box { background: white; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+          .name { font-weight: 700; font-size: 11px; color: ${theme.nameText}; margin-bottom: 2px; }
+          .meta { color: ${theme.deptText}; font-size: 9px; }
+          .role { color: ${theme.roleText}; font-weight: 600; }
+          .qr-box { background: ${theme.qrContainerBg || '#ffffff'}; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; ${theme.qrContainerBorder ? `border: 1px solid ${theme.qrContainerBorder};` : ''} }
           .qr-box img { width: 50px; height: 50px; display: block; }
-          .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
-          .emp-id { font-size: 10px; font-weight: 700; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-family: monospace; }
+          .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid ${theme.isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}; padding-top: 3px; }
+          .emp-id { font-size: 10px; font-weight: 700; background: ${theme.pillBg}; color: ${theme.pillText}; border: 1px solid ${theme.pillBorder}; padding: 2px 8px; border-radius: 10px; font-family: monospace; }
           @media print { body { background: transparent; } .card { border: none; box-shadow: none; } }
         </style>
       </head>
@@ -496,14 +618,14 @@
             body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; padding: 20px; margin: 0; }
             .card-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
             .card { 
-              position: relative; background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); 
+              position: relative; background: linear-gradient(145deg, #0a2558 0%, #1e40af 55%, #0284c7 100%); 
               width: 240px; height: 380px; border-radius: 16px; padding: 18px 14px; color: white; 
-              text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column;
+              text-align: center; border: 1px solid rgba(255, 255, 255, 0.15); display: flex; flex-direction: column;
               justify-content: space-between; align-items: center; overflow: hidden; page-break-inside: avoid;
             }
-            .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1); }
+            .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #38bdf8, #60a5fa, #93c5fd); }
             .lanyard-hole { width: 32px; height: 6px; background: #020617; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.15); }
-            .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
+            .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: #bae6fd; text-transform: uppercase; margin-bottom: 6px; }
             .profile-section { margin-bottom: 4px; width: 100%; }
             .name { font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; line-height: 1.2; word-break: break-word; }
             .badge-container { display: flex; flex-direction: column; gap: 3px; align-items: center; justify-content: center; }
@@ -560,4 +682,1060 @@
   };
 
   window.generateEmployeeQrUrl = generateEmployeeQrUrl;
+
+  // 🟢 5. Color Themes & HTML5 Canvas High-Res Digital Card Generator (PNG)
+  const CARD_THEMES = {
+    royal_blue: {
+      id: 'royal_blue',
+      name: 'ฟ้าอ่อนพาสเทล',
+      emoji: '🔵',
+      chipBg: '#e0f2fe',
+      chipBorder: '#0284c7',
+      bgGrad: ['#f0f9ff', '#e0f2fe', '#bae6fd'],
+      topAccent: ['#38bdf8', '#0284c7', '#0369a1'],
+      brandText: '#0369a1',
+      subText: '#0284c7',
+      avatarRing: '#0284c7',
+      avatarFallbackBg: '#e0f2fe',
+      avatarFallbackText: '#0284c7',
+      nameText: '#0369a1',
+      roleText: '#0284c7',
+      deptText: '#334155',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#bae6fd',
+      qrHelpText: '#475569',
+      pillBg: '#ffffff',
+      pillBorder: '#bae6fd',
+      pillText: '#0284c7',
+      isLight: true
+    },
+    emerald_teal: {
+      id: 'emerald_teal',
+      name: 'เขียวมิ้นต์พาสเทล',
+      emoji: '🟢',
+      chipBg: '#dcfce7',
+      chipBorder: '#0d9488',
+      bgGrad: ['#f0fdf4', '#dcfce7', '#a7f3d0'],
+      topAccent: ['#34d399', '#0d9488', '#065f46'],
+      brandText: '#065f46',
+      subText: '#0d9488',
+      avatarRing: '#0d9488',
+      avatarFallbackBg: '#dcfce7',
+      avatarFallbackText: '#0d9488',
+      nameText: '#065f46',
+      roleText: '#0d9488',
+      deptText: '#115e59',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#a7f3d0',
+      qrHelpText: '#475569',
+      pillBg: '#ffffff',
+      pillBorder: '#a7f3d0',
+      pillText: '#0f766e',
+      isLight: true
+    },
+    emerald_green: {
+      id: 'emerald_green',
+      name: 'เขียวมิ้นต์พาสเทล',
+      emoji: '🟢',
+      chipBg: '#dcfce7',
+      chipBorder: '#0d9488',
+      bgGrad: ['#f0fdf4', '#dcfce7', '#a7f3d0'],
+      topAccent: ['#34d399', '#0d9488', '#065f46'],
+      brandText: '#065f46',
+      subText: '#0d9488',
+      avatarRing: '#0d9488',
+      avatarFallbackBg: '#dcfce7',
+      avatarFallbackText: '#0d9488',
+      nameText: '#065f46',
+      roleText: '#0d9488',
+      deptText: '#115e59',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#a7f3d0',
+      qrHelpText: '#475569',
+      pillBg: '#ffffff',
+      pillBorder: '#a7f3d0',
+      pillText: '#0f766e',
+      isLight: true
+    },
+    luxury_gold: {
+      id: 'luxury_gold',
+      name: 'ทองครีมพรีเมียม',
+      emoji: '🟡',
+      chipBg: '#fef3c7',
+      chipBorder: '#d97706',
+      bgGrad: ['#fffbeb', '#fef3c7', '#fde68a'],
+      topAccent: ['#fbbf24', '#d97706', '#78350f'],
+      brandText: '#78350f',
+      subText: '#b45309',
+      avatarRing: '#d97706',
+      avatarFallbackBg: '#fef3c7',
+      avatarFallbackText: '#b45309',
+      nameText: '#78350f',
+      roleText: '#b45309',
+      deptText: '#92400e',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#fde68a',
+      qrHelpText: '#475569',
+      pillBg: '#ffffff',
+      pillBorder: '#fde68a',
+      pillText: '#b45309',
+      isLight: true
+    },
+    modern_white: {
+      id: 'modern_white',
+      name: 'ขาวมุกพลาตินัม',
+      emoji: '⚪',
+      chipBg: '#ffffff',
+      chipBorder: '#94a3b8',
+      bgGrad: ['#ffffff', '#f8fafc', '#f1f5f9'],
+      topAccent: ['#0284c7', '#3b82f6', '#6366f1'],
+      brandText: '#0f172a',
+      subText: '#0284c7',
+      avatarRing: '#0284c7',
+      avatarFallbackBg: '#e2e8f0',
+      avatarFallbackText: '#0284c7',
+      nameText: '#0f172a',
+      roleText: '#0284c7',
+      deptText: '#475569',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#cbd5e1',
+      qrHelpText: '#64748b',
+      pillBg: '#0f172a',
+      pillBorder: '#0284c7',
+      pillText: '#ffffff',
+      isLight: true
+    },
+    pearl_white: {
+      id: 'pearl_white',
+      name: 'ขาวมุกพลาตินัม',
+      emoji: '⚪',
+      chipBg: '#ffffff',
+      chipBorder: '#94a3b8',
+      bgGrad: ['#ffffff', '#f8fafc', '#f1f5f9'],
+      topAccent: ['#0284c7', '#3b82f6', '#6366f1'],
+      brandText: '#0f172a',
+      subText: '#0284c7',
+      avatarRing: '#0284c7',
+      avatarFallbackBg: '#e2e8f0',
+      avatarFallbackText: '#0284c7',
+      nameText: '#0f172a',
+      roleText: '#0284c7',
+      deptText: '#475569',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#cbd5e1',
+      qrHelpText: '#64748b',
+      pillBg: '#0f172a',
+      pillBorder: '#0284c7',
+      pillText: '#ffffff',
+      isLight: true
+    },
+    dark_navy: {
+      id: 'dark_navy',
+      name: 'ขาวสเลทพลาตินัม',
+      emoji: '⚪',
+      chipBg: '#ffffff',
+      chipBorder: '#94a3b8',
+      bgGrad: ['#ffffff', '#f8fafc', '#e2e8f0'],
+      topAccent: ['#0284c7', '#3b82f6', '#0f172a'],
+      brandText: '#0f172a',
+      subText: '#0284c7',
+      avatarRing: '#0284c7',
+      avatarFallbackBg: '#e2e8f0',
+      avatarFallbackText: '#0284c7',
+      nameText: '#0f172a',
+      roleText: '#0284c7',
+      deptText: '#475569',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#cbd5e1',
+      qrHelpText: '#64748b',
+      pillBg: '#0f172a',
+      pillBorder: '#0284c7',
+      pillText: '#ffffff',
+      isLight: true
+    },
+    violet_platinum: {
+      id: 'violet_platinum',
+      name: 'ม่วงลาเวนเดอร์พาสเทล',
+      emoji: '🟣',
+      chipBg: '#f3e8ff',
+      chipBorder: '#9333ea',
+      bgGrad: ['#faf5ff', '#f3e8ff', '#e9d5ff'],
+      topAccent: ['#c084fc', '#9333ea', '#581c87'],
+      brandText: '#581c87',
+      subText: '#7e22ce',
+      avatarRing: '#9333ea',
+      avatarFallbackBg: '#f3e8ff',
+      avatarFallbackText: '#7e22ce',
+      nameText: '#581c87',
+      roleText: '#7e22ce',
+      deptText: '#6b21a8',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#e9d5ff',
+      qrHelpText: '#475569',
+      pillBg: '#ffffff',
+      pillBorder: '#e9d5ff',
+      pillText: '#7e22ce',
+      isLight: true
+    },
+    purple_luxury: {
+      id: 'purple_luxury',
+      name: 'ม่วงลาเวนเดอร์พาสเทล',
+      emoji: '🟣',
+      chipBg: '#f3e8ff',
+      chipBorder: '#9333ea',
+      bgGrad: ['#faf5ff', '#f3e8ff', '#e9d5ff'],
+      topAccent: ['#c084fc', '#9333ea', '#581c87'],
+      brandText: '#581c87',
+      subText: '#7e22ce',
+      avatarRing: '#9333ea',
+      avatarFallbackBg: '#f3e8ff',
+      avatarFallbackText: '#7e22ce',
+      nameText: '#581c87',
+      roleText: '#7e22ce',
+      deptText: '#6b21a8',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#e9d5ff',
+      qrHelpText: '#475569',
+      pillBg: '#ffffff',
+      pillBorder: '#e9d5ff',
+      pillText: '#7e22ce',
+      isLight: true
+    },
+    rose_crimson: {
+      id: 'rose_crimson',
+      name: 'ชมพูพีชพาสเทล',
+      emoji: '🌸',
+      chipBg: '#ffe4e6',
+      chipBorder: '#e11d48',
+      bgGrad: ['#fff1f2', '#ffe4e6', '#fecdd3'],
+      topAccent: ['#fb7185', '#e11d48', '#881337'],
+      brandText: '#881337',
+      subText: '#be123c',
+      avatarRing: '#e11d48',
+      avatarFallbackBg: '#ffe4e6',
+      avatarFallbackText: '#be123c',
+      nameText: '#881337',
+      roleText: '#be123c',
+      deptText: '#9f1239',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#fecdd3',
+      qrHelpText: '#475569',
+      pillBg: '#ffffff',
+      pillBorder: '#fecdd3',
+      pillText: '#be123c',
+      isLight: true
+    },
+    ocean_cyan: {
+      id: 'ocean_cyan',
+      name: 'ฟ้าใสซีแอน',
+      emoji: '🔷',
+      chipBg: '#cffafe',
+      chipBorder: '#0891b2',
+      bgGrad: ['#ecfeff', '#cffafe', '#a5f3fc'],
+      topAccent: ['#38bdf8', '#0891b2', '#155e75'],
+      brandText: '#155e75',
+      subText: '#0891b2',
+      avatarRing: '#0891b2',
+      avatarFallbackBg: '#cffafe',
+      avatarFallbackText: '#0891b2',
+      nameText: '#155e75',
+      roleText: '#0891b2',
+      deptText: '#0e7490',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#a5f3fc',
+      qrHelpText: '#475569',
+      pillBg: '#ffffff',
+      pillBorder: '#a5f3fc',
+      pillText: '#0891b2',
+      isLight: true
+    },
+    midnight_dark: {
+      id: 'midnight_dark',
+      name: 'สเลทอ่อนโมเดิร์น',
+      emoji: '⚪',
+      chipBg: '#f1f5f9',
+      chipBorder: '#475569',
+      bgGrad: ['#f8fafc', '#f1f5f9', '#e2e8f0'],
+      topAccent: ['#0284c7', '#475569', '#0f172a'],
+      brandText: '#0f172a',
+      subText: '#475569',
+      avatarRing: '#0284c7',
+      avatarFallbackBg: '#e2e8f0',
+      avatarFallbackText: '#0284c7',
+      nameText: '#0f172a',
+      roleText: '#0284c7',
+      deptText: '#475569',
+      qrContainerBg: '#ffffff',
+      qrContainerBorder: '#cbd5e1',
+      qrHelpText: '#64748b',
+      pillBg: '#0f172a',
+      pillBorder: '#0284c7',
+      pillText: '#ffffff',
+      isLight: true
+    }
+  };
+
+  async function generateEmployeeCardPNG({ empCode, empName, myRole, myDept, avatarUrl, qrUrl, themeKey = 'royal_blue' }) {
+    const theme = CARD_THEMES[themeKey] || CARD_THEMES.royal_blue;
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 960;
+    const ctx = canvas.getContext("2d");
+
+    // Ensure we have a high-speed QR code (offline SVG data URL takes <2ms)
+    let finalQrUrl = qrUrl;
+    if (!finalQrUrl) {
+      finalQrUrl = await generateEmployeeQrDataUrl(empCode);
+    }
+
+    const loadSafeImage = async (url) => {
+      if (!url) return null;
+      // Instant loading for Data URLs / SVGs
+      if (url.startsWith('data:')) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+      }
+      // Strict timeout of 600ms for network images to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600);
+      try {
+        const res = await fetch(url, { mode: 'cors', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error('CORS fetch failed');
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = objUrl;
+        });
+      } catch (e) {
+        clearTimeout(timeoutId);
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          let settled = false;
+          const done = (val) => {
+            if (!settled) {
+              settled = true;
+              resolve(val);
+            }
+          };
+          img.onload = () => done(img);
+          img.onerror = () => done(null);
+          img.src = url;
+          setTimeout(() => done(null), 500);
+        });
+      }
+    };
+
+    const [avatarImg, qrImg] = await Promise.all([
+      loadSafeImage(avatarUrl),
+      loadSafeImage(finalQrUrl)
+    ]);
+
+    const drawRoundedRect = (x, y, w, h, r, fillStyle) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      ctx.fillStyle = fillStyle;
+      ctx.fill();
+    };
+
+    // Background Gradient with Theme
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, 960);
+    bgGrad.addColorStop(0, theme.bgGrad[0]);
+    bgGrad.addColorStop(0.55, theme.bgGrad[1]);
+    bgGrad.addColorStop(1, theme.bgGrad[2]);
+    drawRoundedRect(0, 0, 640, 960, 48, bgGrad);
+
+    // Subtle border for light themes
+    if (theme.isLight) {
+      ctx.beginPath();
+      ctx.moveTo(48, 0);
+      ctx.arcTo(640, 0, 640, 960, 48);
+      ctx.arcTo(640, 960, 0, 960, 48);
+      ctx.arcTo(0, 960, 0, 0, 48);
+      ctx.arcTo(0, 0, 640, 0, 48);
+      ctx.closePath();
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    // Decorative Top Accent Bar
+    const lineGrad = ctx.createLinearGradient(0, 0, 640, 0);
+    lineGrad.addColorStop(0, theme.topAccent[0]);
+    lineGrad.addColorStop(0.5, theme.topAccent[1]);
+    lineGrad.addColorStop(1, theme.topAccent[2]);
+    drawRoundedRect(0, 0, 640, 14, 7, lineGrad);
+
+    // Organization Branding Header
+    ctx.fillStyle = theme.brandText;
+    ctx.font = 'bold 22px "Sarabun", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('PVT WORKFORCE HUB', 320, 75);
+
+    ctx.fillStyle = theme.subText;
+    ctx.font = '600 13px "Sarabun", sans-serif';
+    ctx.fillText('DIGITAL EMPLOYEE IDENTITY CARD', 320, 102);
+
+    // Avatar Circle Clip
+    const avatarX = 320, avatarY = 220, avatarRadius = 88;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX, avatarY, avatarRadius, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    if (avatarImg) {
+      try {
+        const aspect = avatarImg.width / avatarImg.height;
+        let dw = avatarRadius * 2, dh = avatarRadius * 2;
+        if (aspect > 1) dw = dh * aspect;
+        else dh = dw / aspect;
+        ctx.drawImage(avatarImg, avatarX - dw / 2, avatarY - dh / 2, dw, dh);
+      } catch (e) {
+        drawFallbackAvatar();
+      }
+    } else {
+      drawFallbackAvatar();
+    }
+    ctx.restore();
+
+    function drawFallbackAvatar() {
+      ctx.fillStyle = theme.avatarFallbackBg || '#0f2b6e';
+      ctx.fill();
+      ctx.fillStyle = theme.avatarFallbackText || '#38bdf8';
+      ctx.font = 'bold 52px "Sarabun", sans-serif';
+      ctx.textAlign = 'center';
+      const initial = (empName || 'P').trim().charAt(0).toUpperCase();
+      ctx.fillText(initial, avatarX, avatarY + 18);
+    }
+
+    // Avatar Border Ring
+    ctx.beginPath();
+    ctx.arc(avatarX, avatarY, avatarRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = theme.avatarRing;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    // Employee Details
+    ctx.fillStyle = theme.nameText;
+    ctx.font = 'bold 32px "Sarabun", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(empName, 320, 360);
+
+    ctx.fillStyle = theme.roleText;
+    ctx.font = 'bold 22px "Sarabun", sans-serif';
+    ctx.fillText(`ตำแหน่ง: ${myRole}`, 320, 404);
+
+    ctx.fillStyle = theme.deptText;
+    ctx.font = '500 20px "Sarabun", sans-serif';
+    ctx.fillText(`แผนก: ${myDept}`, 320, 442);
+
+    // QR Frame Container
+    drawRoundedRect(185, 480, 270, 270, 28, theme.qrContainerBg);
+    if (theme.qrContainerBorder) {
+      ctx.strokeStyle = theme.qrContainerBorder;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    if (qrImg) {
+      try {
+        ctx.drawImage(qrImg, 205, 500, 230, 230);
+      } catch (e) {
+        drawFallbackQr();
+      }
+    } else {
+      drawFallbackQr();
+    }
+
+    function drawFallbackQr() {
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 16px "Sarabun", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('SCAN QR CODE', 320, 615);
+      ctx.font = '14px monospace';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(empCode, 320, 640);
+    }
+
+    // QR Helper Text
+    ctx.fillStyle = theme.qrHelpText;
+    ctx.font = '500 14px "Sarabun", sans-serif';
+    ctx.fillText('สแกน QR สำหรับลงเวลาและเข้าสู่ระบบ', 320, 785);
+
+    // Employee Code Badge
+    drawRoundedRect(195, 820, 250, 60, 30, theme.pillBg);
+    ctx.strokeStyle = theme.pillBorder;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = theme.pillText;
+    ctx.font = 'bold 28px monospace, "Sarabun", sans-serif';
+    ctx.fillText(empCode, 320, 861);
+
+    try {
+      return canvas.toDataURL('image/png');
+    } catch (e) {
+      console.warn("Canvas toDataURL tainted, returning vector fallback:", e);
+      return drawPureVectorPNG({ empCode, empName, myRole, myDept, themeKey });
+    }
+  }
+
+  // Safe vector fallback PNG generator that never fails
+  function drawPureVectorPNG({ empCode, empName, myRole, myDept, themeKey = 'royal_blue' }) {
+    const theme = CARD_THEMES[themeKey] || CARD_THEMES.royal_blue;
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 960;
+    const ctx = canvas.getContext("2d");
+
+    const drawRoundedRect = (x, y, w, h, r, fillStyle) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      ctx.fillStyle = fillStyle;
+      ctx.fill();
+    };
+
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, 960);
+    bgGrad.addColorStop(0, theme.bgGrad[0]);
+    bgGrad.addColorStop(0.55, theme.bgGrad[1]);
+    bgGrad.addColorStop(1, theme.bgGrad[2]);
+    drawRoundedRect(0, 0, 640, 960, 48, bgGrad);
+
+    if (theme.isLight) {
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = theme.brandText;
+    ctx.font = 'bold 22px "Sarabun", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('PVT WORKFORCE HUB', 320, 80);
+
+    ctx.fillStyle = theme.subText;
+    ctx.font = '600 13px "Sarabun", sans-serif';
+    ctx.fillText('DIGITAL EMPLOYEE IDENTITY CARD', 320, 105);
+
+    const avatarX = 320, avatarY = 220, avatarRadius = 88;
+    ctx.fillStyle = theme.avatarFallbackBg || '#0f2b6e';
+    ctx.beginPath();
+    ctx.arc(avatarX, avatarY, avatarRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = theme.avatarRing;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    ctx.fillStyle = theme.avatarFallbackText || '#38bdf8';
+    ctx.font = 'bold 52px "Sarabun", sans-serif';
+    const initial = (empName || 'P').trim().charAt(0).toUpperCase();
+    ctx.fillText(initial, avatarX, avatarY + 18);
+
+    ctx.fillStyle = theme.nameText;
+    ctx.font = 'bold 32px "Sarabun", sans-serif';
+    ctx.fillText(empName, 320, 360);
+
+    ctx.fillStyle = theme.roleText;
+    ctx.font = 'bold 22px "Sarabun", sans-serif';
+    ctx.fillText(`ตำแหน่ง: ${myRole}`, 320, 404);
+
+    ctx.fillStyle = theme.deptText;
+    ctx.font = '500 20px "Sarabun", sans-serif';
+    ctx.fillText(`แผนก: ${myDept}`, 320, 442);
+
+    drawRoundedRect(185, 480, 270, 270, 28, theme.qrContainerBg);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText('EMPLOYEE QR CODE', 320, 610);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '15px monospace';
+    ctx.fillText(empCode, 320, 635);
+
+    drawRoundedRect(195, 820, 250, 60, 30, theme.pillBg);
+    ctx.strokeStyle = theme.pillBorder;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = theme.pillText;
+    ctx.font = 'bold 28px monospace, "Sarabun", sans-serif';
+    ctx.fillText(empCode, 320, 861);
+
+    return canvas.toDataURL('image/png');
+  }
+
+  // Helper: Download Card PNG to user's device
+  function downloadCardPNG(dataUrl, empCode) {
+    try {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `Employee_Card_${empCode || 'PVT'}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      if (typeof Swal !== 'undefined') {
+        const Toast = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true
+        });
+        Toast.fire({
+          icon: 'success',
+          title: `📥 ดาวน์โหลดบัตร #${empCode} ลงเครื่องเรียบร้อยแล้ว`
+        });
+      }
+    } catch (err) {
+      console.error("❌ Error downloading card PNG:", err);
+      window.open(dataUrl, '_blank');
+    }
+  }
+
+  // 🟢 6. Open My Individual Employee Card Modal (สำหรับหน้า User - "ของใครของมัน / กรองด้วยรหัสพนักงาน")
+  window.openMyEmployeeCardModal = async function (targetEmpCode) {
+    if (typeof Swal === "undefined") {
+      alert("⚠️ กำลังโหลดระบบบัตรพนักงาน กรุณารอสักครู่");
+      return;
+    }
+
+    const isAdmin = isUserAdmin();
+
+    // หากผู้ใช้งานเป็น Admin และกดเมนูบัตรพนักงานเข้ามาโดยไม่ได้ระบุรหัสพนักงาน ให้เปิดระบบดูและพิมพ์บัตรพนักงานทุกคน
+    if (isAdmin && !targetEmpCode) {
+      return window.openEmployeeCardManagerPopup();
+    }
+
+    // ดึงรหัสพนักงานของผู้ใช้งานปัจจุบัน
+    let currentCode = String(targetEmpCode || "").trim();
+    
+    // หากไม่ใช่อุปกรณ์/บัญชี Admin ให้จำกัดดูได้เฉพาะบัตรพนักงานของตนเองเท่านั้น
+    if (!isAdmin) {
+      const sessionUser = JSON.parse(localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser") || "{}");
+      const profile = window.currentProfile || window.currentUserProfile || sessionUser || {};
+      const myOwnCode = String(
+        profile?.employee_code ||
+        profile?.emp_code ||
+        sessionUser?.employee_code ||
+        sessionUser?.emp_code ||
+        ""
+      ).trim();
+
+      if (myOwnCode) {
+        currentCode = myOwnCode;
+      }
+    } else if (!currentCode) {
+      const sessionUser = JSON.parse(localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser") || "{}");
+      const profile = window.currentProfile || window.currentUserProfile || sessionUser || {};
+      currentCode = String(
+        profile?.employee_code ||
+        profile?.emp_code ||
+        sessionUser?.employee_code ||
+        sessionUser?.emp_code ||
+        ""
+      ).trim();
+    }
+
+    // หากไม่พบรหัสพนักงานใน Session ให้แสดงป๊อปอัปให้ผู้ใช้ระบุรหัสพนักงานเพื่อกรอง
+    if (!currentCode) {
+      Swal.fire({
+        title: '💳 บัตรประจำตัวพนักงานดิจิทัล',
+        html: `
+          <div style="font-size: 14px; color: #475569; margin-bottom: 14px;">
+            กรุณาระบุรหัสพนักงานของคุณเพื่อค้นหาและเปิดบัตรประจำตัว
+          </div>
+          <div style="margin-bottom: 10px;">
+            <input type="text" id="swalInputEmpCode" placeholder="ระบุรหัสพนักงาน เช่น EMP001"
+                   style="width: 85%; padding: 10px 14px; font-size: 15px; font-weight: 700; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-family: monospace; outline: none; color: #0f172a;" />
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '🔍 ดูบัตรพนักงาน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#0f766e',
+        cancelButtonColor: '#64748b',
+        preConfirm: () => {
+          const val = document.getElementById('swalInputEmpCode')?.value.trim();
+          if (!val) {
+            Swal.showValidationMessage('กรุณากรอกรหัสพนักงาน');
+            return false;
+          }
+          return val;
+        }
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          window.openMyEmployeeCardModal(result.value);
+        }
+      });
+      return;
+    }
+
+    // แสดงสถานะกำลังโหลด
+    Swal.fire({
+      title: '⏳ กำลังเตรียมบัตรพนักงาน...',
+      html: `
+        <div style="padding: 16px 8px; font-size: 14px; color: #0f766e; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+          <span>กำลังกรองข้อมูลรหัสพนักงาน: <b style="font-family: monospace; font-size: 16px; color: #0284c7;">${escapeHtml(currentCode)}</b></span>
+          <span style="font-size: 12px; color: #64748b;">ระบบกำลังจัดเตรียมภาพบัตรความละเอียดสูงสำหรับดาวน์โหลด...</span>
+        </div>
+      `,
+      allowOutsideClick: false,
+      didOpen: () => {
+        if (Swal.showLoading) Swal.showLoading();
+      }
+    });
+
+    // ดึงข้อมูลพนักงานจากฐานข้อมูล Supabase ด้วยการกรอง employee_code หรือ full_name
+    let empData = null;
+    try {
+      const client = await getClient();
+      if (client) {
+        const { data, error } = await client
+          .from('employees')
+          .select(`
+            id,
+            employee_code,
+            full_name,
+            image_url,
+            line_id,
+            department_id,
+            departments!department_id ( department_name ),
+            positions ( position_name )
+          `)
+          .or(`employee_code.ilike.%${currentCode}%,full_name.ilike.%${currentCode}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          empData = data;
+        }
+      }
+    } catch (err) {
+      console.warn("⚠️ ไม่สามารถดึงข้อมูลจาก Supabase ได้ ใช้ข้อมูลแคช:", err);
+    }
+
+    // หากไม่พบในฐานข้อมูล ให้ใช้ข้อมูลใน Local Session
+    if (!empData) {
+      const sessionUser = JSON.parse(localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser") || "{}");
+      const profile = window.currentProfile || window.currentUserProfile || sessionUser || {};
+      const profileCode = profile?.employee_code || profile?.emp_code || sessionUser?.employee_code || sessionUser?.emp_code || "";
+      if (profileCode && profileCode.toUpperCase() === currentCode.toUpperCase()) {
+        empData = profile;
+      }
+    }
+
+    // หากยังไม่พบข้อมูล ให้แจ้งเตือนและให้กรอกรหัสใหม่
+    if (!empData) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ไม่พบข้อมูลพนักงาน',
+        html: `
+          <div style="font-size: 14px; color: #475569; margin-bottom: 12px;">
+            ไม่พบข้อมูลพนักงานสำหรับคำค้นหา: <b style="font-family: monospace; color: #ef4444;">${escapeHtml(currentCode)}</b>
+          </div>
+          <div style="font-size: 13px; color: #64748b;">
+            กรุณาตรวจสอบรหัสพนักงานหรือชื่อใหม่อีกครั้ง
+          </div>
+        `,
+        confirmButtonText: 'กรอกรหัสใหม่',
+        confirmButtonColor: '#0f766e',
+        showCancelButton: true,
+        cancelButtonText: 'ปิด',
+        cancelButtonColor: '#64748b'
+      }).then((res) => {
+        if (res.isConfirmed) {
+          window.openMyEmployeeCardModal();
+        }
+      });
+      return;
+    }
+
+    const finalCode = empData.employee_code || currentCode;
+    const fullName = empData.full_name || "พนักงาน";
+    const myDept = empData.departments?.department_name || empData.department_name || "ทั่วไป";
+    const myRole = empData.positions?.position_name || empData.position_name || "พนักงาน";
+    const empTitle = empData.title || '';
+    const empGender = empData.gender || '';
+    const defaultAvatar = (typeof window.getDefaultAvatarUrl === 'function')
+      ? window.getDefaultAvatarUrl(empTitle, empGender, fullName)
+      : ((empTitle.includes('สาว') || empTitle.includes('นาง') || empTitle.includes('น.ส.') || empGender === 'female' || fullName.includes('นาง') || fullName.includes('น.ส.')) ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
+
+    const avatarUrl = (window.pvtSupabase && typeof window.pvtSupabase.getAvatarUrl === 'function')
+      ? window.pvtSupabase.getAvatarUrl(empData.image_url, empTitle, empGender, fullName)
+      : (typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(empData.image_url, empTitle, empGender, fullName) : (empData.image_url ? (empData.image_url.startsWith('http') ? empData.image_url : `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${empData.image_url.replace(/^\//, '')}`) : defaultAvatar));
+    const qrUrl = generateEmployeeQrUrl(finalCode);
+
+    let currentThemeKey = localStorage.getItem('pvt_emp_card_theme') || 'royal_blue';
+    if (!CARD_THEMES[currentThemeKey]) currentThemeKey = 'royal_blue';
+
+    // สำหรับ Admin: ดึงรายชื่อพนักงานทั้งหมดสร้าง Dropdown Selector
+    let adminSelectHtml = '';
+    if (isAdmin) {
+      if (!cachedEmployeeList || cachedEmployeeList.length === 0) {
+        try {
+          const client = await getClient();
+          if (client) {
+            const { data } = await client
+              .from('employees')
+              .select(`
+                id,
+                employee_code,
+                full_name,
+                department_id,
+                departments!department_id ( department_name )
+              `)
+              .order('employee_code', { ascending: true });
+            if (data) cachedEmployeeList = data;
+          }
+        } catch (e) {}
+      }
+
+      if (cachedEmployeeList && cachedEmployeeList.length > 0) {
+        const optionsHtml = cachedEmployeeList.map(e => {
+          const code = e.employee_code || '';
+          const name = e.full_name || '';
+          const dept = e.departments?.department_name || '';
+          const isSelected = code.toUpperCase() === finalCode.toUpperCase();
+          return `<option value="${escapeHtml(code)}" ${isSelected ? 'selected' : ''}>${escapeHtml(code)} - ${escapeHtml(name)} (${escapeHtml(dept)})</option>`;
+        }).join('');
+
+        adminSelectHtml = `
+          <!-- ตัวเลือกสำหรับ Admin ดูบัตรพนักงานทุกคน -->
+          <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; text-align: left;">
+            <div style="font-size: 12px; font-weight: 700; color: #0369a1; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span>👑 สิทธิ์แอดมิน: เลือกดูบัตรพนักงานทุกคน</span>
+              <button type="button" id="btnAdminOpenAllCardsList" style="background: #0284c7; color: #ffffff; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                <span>📋 ดูรายชื่อทั้งหมด</span>
+              </button>
+            </div>
+            <select id="adminCardEmpSelect" style="width: 100%; padding: 8px 10px; font-size: 13.5px; font-weight: 700; border: 1.5px solid #0284c7; border-radius: 8px; outline: none; background: #ffffff; color: #0f172a; cursor: pointer;">
+              ${optionsHtml}
+            </select>
+          </div>
+        `;
+      }
+    }
+
+    // สร้างรูปบัตรความละเอียดสูง (PNG Data URL) ตามธีมสีที่เลือก
+    let cardImageDataUrl = await generateEmployeeCardPNG({
+      empCode: finalCode,
+      empName: fullName,
+      myRole: myRole,
+      myDept: myDept,
+      avatarUrl: avatarUrl,
+      qrUrl: qrUrl,
+      themeKey: currentThemeKey
+    });
+
+    // สร้างปุ่มเลือกสีบัตร (Palette Chips)
+    const colorChipsHtml = Object.values(CARD_THEMES).map(t => {
+      const isAct = t.id === currentThemeKey;
+      return `
+        <button type="button" class="btn-card-theme-chip" data-theme="${t.id}"
+                title="${t.name}"
+                style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 600; cursor: pointer; border: 2px solid ${isAct ? '#0284c7' : '#e2e8f0'}; background: ${isAct ? '#f0f9ff' : '#ffffff'}; color: ${isAct ? '#0369a1' : '#475569'}; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.15s ease;">
+          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: ${t.chipBg}; border: 1px solid ${t.chipBorder || 'transparent'}; flex-shrink: 0;"></span>
+          <span>${t.name}</span>
+        </button>
+      `;
+    }).join('');
+
+    const adminFilterHtml = isAdmin ? `
+        <!-- ฟิลเตอร์กรองด้วยรหัสพนักงานสำหรับ Admin -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; text-align: left;">
+          <div style="font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>🔍 ค้นหารหัสพนักงาน / ชื่อพนักงาน</span>
+            <span style="color: #0f766e; background: #ccfbf1; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">สิทธิ์แอดมิน</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="myCardFilterCodeInput" value="${escapeHtml(finalCode)}" placeholder="ระบุรหัสพนักงานหรือชื่อ..."
+                   style="flex: 1; padding: 8px 10px; font-size: 13.5px; font-weight: 700; border: 1.5px solid #cbd5e1; border-radius: 8px; outline: none; font-family: inherit; color: #0f172a;" />
+            <button type="button" id="btnApplyCodeFilter"
+                    style="background: #0f766e; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+              <span>ค้นหา</span>
+            </button>
+          </div>
+        </div>
+    ` : '';
+
+    // แสดงป๊อปอัปบัตรพนักงาน
+    Swal.fire({
+      title: '💳 บัตรประจำตัวพนักงานดิจิทัล',
+      width: '470px',
+      html: `
+        ${adminSelectHtml}
+
+        <!-- แถบเลือกชุดสีบัตร (Color Themes) -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin: 4px 0 14px 0; text-align: center;">
+          <div style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>🎨</span>
+            <span>เลือกสีบัตรพนักงาน (Card Theme):</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;" id="cardThemeChipsContainer">
+            ${colorChipsHtml}
+          </div>
+        </div>
+
+        <div style="margin: 0 0 16px 0; position: relative;">
+          <!-- ภาพตัวอย่างบัตรพนักงาน -->
+          <div style="position: relative; display: inline-block;">
+            <img id="myEmpCardImgPreview" src="${cardImageDataUrl}" alt="บัตรพนักงาน ${escapeHtml(finalCode)}"
+                 style="width: 270px; border-radius: 20px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.28); display: block; margin: 0 auto; border: 1px solid rgba(0,0,0,0.08); transition: opacity 0.2s ease;" />
+            <div id="cardRenderingSpinner" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+              กำลังเปลี่ยนสี...
+            </div>
+          </div>
+        </div>
+
+        ${adminFilterHtml}
+
+        <!-- ปุ่มคำสั่งดาวน์โหลดและพิมพ์ -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button type="button" id="btnDownloadCardPng"
+                  style="width: 100%; background: #0284c7; color: #ffffff; border: none; padding: 12px; border-radius: 10px; font-size: 14.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.28); transition: all 0.2s ease;">
+            <img src="/assets/icons/download.svg" onerror="this.remove()" style="width: 18px; height: 18px; filter: brightness(0) invert(1);" alt="" />
+            <span>📥 ดาวน์โหลดรูปลงเครื่อง (PNG)</span>
+          </button>
+
+          <button type="button" id="btnPrintCardSingle"
+                  style="width: 100%; background: #0f766e; color: #ffffff; border: none; padding: 11px; border-radius: 10px; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(15, 118, 110, 0.25); transition: all 0.2s ease;">
+            <img src="/assets/icons/print.svg" onerror="this.remove()" style="width: 18px; height: 18px; filter: brightness(0) invert(1);" alt="" />
+            <span>🖨️ สั่งพิมพ์บัตร / บันทึก PDF (CR80)</span>
+          </button>
+        </div>
+      `,
+      showCancelButton: false,
+      confirmButtonText: 'ปิดหน้าต่าง',
+      confirmButtonColor: '#64748b',
+      customClass: {
+        confirmButton: 'swal2-confirm-btn-standard'
+      },
+      didOpen: () => {
+        if (isAdmin) {
+          const adminSelect = document.getElementById('adminCardEmpSelect');
+          if (adminSelect) {
+            adminSelect.addEventListener('change', (e) => {
+              const selectedCode = e.target.value;
+              if (selectedCode) {
+                window.openMyEmployeeCardModal(selectedCode);
+              }
+            });
+          }
+          const adminListBtn = document.getElementById('btnAdminOpenAllCardsList');
+          if (adminListBtn) {
+            adminListBtn.addEventListener('click', () => {
+              window.openEmployeeCardManagerPopup();
+            });
+          }
+        }
+
+        // ผูกการเปลี่ยนสีบัตรพนักงานแบบตอบสนองทันที
+        const themeChips = document.querySelectorAll('.btn-card-theme-chip');
+        const previewImg = document.getElementById('myEmpCardImgPreview');
+        const spinner = document.getElementById('cardRenderingSpinner');
+
+        themeChips.forEach(chip => {
+          chip.addEventListener('click', async () => {
+            const selectedKey = chip.getAttribute('data-theme');
+            if (!selectedKey || selectedKey === currentThemeKey) return;
+
+            currentThemeKey = selectedKey;
+            localStorage.setItem('pvt_emp_card_theme', currentThemeKey);
+
+            // อัปเดตสไตล์ของปุ่มเลือกสี
+            themeChips.forEach(c => {
+              const isAct = c.getAttribute('data-theme') === currentThemeKey;
+              c.style.border = isAct ? '2px solid #0284c7' : '2px solid #e2e8f0';
+              c.style.background = isAct ? '#f0f9ff' : '#ffffff';
+              c.style.color = isAct ? '#0369a1' : '#475569';
+            });
+
+            // สร้างรูปบัตรใหม่ตามสีที่เลือก
+            if (previewImg) previewImg.style.opacity = '0.4';
+            if (spinner) spinner.style.display = 'block';
+
+            try {
+              cardImageDataUrl = await generateEmployeeCardPNG({
+                empCode: finalCode,
+                empName: fullName,
+                myRole: myRole,
+                myDept: myDept,
+                avatarUrl: avatarUrl,
+                qrUrl: qrUrl,
+                themeKey: currentThemeKey
+              });
+              if (previewImg) previewImg.src = cardImageDataUrl;
+            } catch (err) {
+              console.error("❌ Failed to update card theme:", err);
+            } finally {
+              if (previewImg) previewImg.style.opacity = '1';
+              if (spinner) spinner.style.display = 'none';
+            }
+          });
+        });
+
+        // ผูกปุ่มดาวน์โหลดรูปบัตร
+        const dlBtn = document.getElementById('btnDownloadCardPng');
+        if (dlBtn) {
+          dlBtn.addEventListener('click', () => {
+            downloadCardPNG(cardImageDataUrl, finalCode);
+          });
+        }
+
+        // ผูกปุ่มสั่งพิมพ์บัตรเดี่ยว
+        const printBtn = document.getElementById('btnPrintCardSingle');
+        if (printBtn) {
+          printBtn.addEventListener('click', () => {
+            window.printSingleCard(finalCode, fullName, myRole, myDept, avatarUrl, currentThemeKey);
+          });
+        }
+
+        // ผูกปุ่มกรองด้วยรหัสพนักงาน
+        const filterBtn = document.getElementById('btnApplyCodeFilter');
+        const filterInput = document.getElementById('myCardFilterCodeInput');
+        if (filterBtn && filterInput) {
+          const runFilter = () => {
+            const newCode = filterInput.value.trim();
+            if (newCode) {
+              window.openMyEmployeeCardModal(newCode);
+            }
+          };
+          filterBtn.addEventListener('click', runFilter);
+          filterInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              runFilter();
+            }
+          });
+        }
+      }
+    });
+  };
+
+  // Export functions globally
+  window.viewMyDigitalCard = function(targetEmpCode) {
+    if (isUserAdmin() && !targetEmpCode) {
+      return window.openEmployeeCardManagerPopup();
+    }
+    return window.openMyEmployeeCardModal(targetEmpCode);
+  };
+  window.showStaffCard = window.viewMyDigitalCard;
+  window.generateEmployeeCardPNG = generateEmployeeCardPNG;
+  window.downloadCardPNG = downloadCardPNG;
 })();

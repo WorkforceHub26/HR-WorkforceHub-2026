@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <script src="/js/early-auth-guard.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0d9488" />
+  <title>Workforce Hub | PVT HR Dashboard</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+  <link rel="stylesheet" href="/css/hr-holidays.css" />
+</head>
+
+<body id="page-hr-holidays">
+  <div class="app-shell">
+    
+    <!--  SIDEBAR ด้านซ้าย (Unified Luxury Sidebar) -->
+    <aside class="sidebar-light" id="mainSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div class="brand-name">PVTT WORKFORCE HUB</div>
+        <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
+          <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+        </button>
+      </div>
+
+      <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
+      <div class="sidebar-cta-wrap">
+        <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
+        </a>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">ตรวจใบลา</span>
+          <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
+        </a>
+        <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
+          <span class="material-symbols-outlined">tune</span>
+          <span class="nav-label">ระบบจัดการส่วนกลาง</span>
+        </a>
+        <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
+          <span class="material-symbols-outlined">analytics</span>
+          <span class="nav-label">สถิติวันลา</span>
+        </a>
+        <a href="/pages/hr/holidays.html" class="nav-item active" title="จัดการปฏิทินวันหยุด (Admin)">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">จัดการวันหยุด</span>
+        </a>
+        
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-title">บริการด่วน</div>
+        
+        <!--  ปุ่มจัดการข่าวสารองค์กร -->
+        <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
+          <span class="material-symbols-outlined">campaign</span>
+          <span class="nav-label">ข่าวสาร</span>
+        </a>
+
+        <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
+        <a href="/pages/hr/employee-cards.html" class="nav-item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="nav-label">บัตรพนักงาน (Admin)</span>
+        </a>
+        
+        <!-- ประวัติการเข้าสู่ระบบ -->
+        <a href="/pages/hr/login-logs.html" class="nav-item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
+        <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">หน้าหลักของพนักงาน</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </aside>
+      
+    <!--  MAIN CONTENT ส่วนเนื้อหาหลัก -->
+    <main class="main-content">
+      
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-left-text">
+            <h1 class="page-title">📅 จัดการปฏิทินวันหยุด (Admin Calendar)</h1>
+            <p class="page-subtitle">ระบบกำหนดวันหยุดนักขัตฤกษ์ วันหยุดพิเศษบริษัท และวันหยุดชดเชย</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="user-profile" id="headerUserProfile">
+            <div class="avatar avatar-badge notranslate" translate="no">HR</div>
+            <div class="info">
+              <strong id="headerUserName">ผู้ดูแลระบบ</strong>
+              <span id="headerUserRoleDept">ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
+            </div>
+            <!-- Hidden fallback spans for script references -->
+            <span id="adminUserName" style="display:none;">ผู้ดูแลระบบ</span>
+            <span id="adminUserRole" style="display:none;">ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Main Page Content Area -->
+      <div class="content-body">
+        <div class="admin-holidays-wrapper">
+
+          <!-- 🌟 Admin Hero Banner -->
+          <section class="admin-page-hero">
+            <div class="admin-page-hero-info">
+              <h2>
+                <span class="material-symbols-outlined text-2xl">event_available</span>
+                ระบบจัดการปฏิทินวันหยุดองค์กร
+              </h2>
+              <p>
+                หน้านี้สำหรับ<strong>ผู้ดูแลระบบ (Admin)</strong> เท่านั้น เพิ่ม แก้ไข และลบวันหยุดตามประเพณีหรือวันหยุดพิเศษของบริษัทได้ทันที โดยจะสะท้อนไปยังปฏิทินของพนักงานโดยอัตโนมัติ
+              </p>
+            </div>
+
+            <div class="admin-hero-actions">
+              <button type="button" class="btn-hero-action btn-hero-primary" onclick="openAddHolidayModal()">
+                <span class="material-symbols-outlined text-lg">add_circle</span>
+                <span>เพิ่มวันหยุดใหม่</span>
+              </button>
+
+              <button type="button" class="btn-hero-action btn-hero-secondary" onclick="handleBatchSeedHolidays()">
+                <span class="material-symbols-outlined text-lg">auto_fix_high</span>
+                <span>นำเข้า 18 วันหยุดมาตรฐาน</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- 📊 KPI Statistics Grid -->
+          <section class="admin-stats-grid">
+            <div class="admin-stat-card">
+              <div class="admin-stat-icon bg-teal">
+                <span class="material-symbols-outlined text-2xl">date_range</span>
+              </div>
+              <div class="admin-stat-content">
+                <span class="admin-stat-label">วันหยุดทั้งหมดในปี</span>
+                <span class="admin-stat-value" id="kpiTotalHolidays">- วัน</span>
+                <span class="admin-stat-subtext">ปฏิทินที่ประกาศใช้</span>
+              </div>
+            </div>
+
+            <div class="admin-stat-card">
+              <div class="admin-stat-icon bg-blue">
+                <span class="material-symbols-outlined text-2xl">upcoming</span>
+              </div>
+              <div class="admin-stat-content">
+                <span class="admin-stat-label">วันหยุดถัดไป</span>
+                <span class="admin-stat-value text-lg font-bold" id="kpiNextHolidayName">-</span>
+                <span class="admin-stat-subtext" id="kpiNextHolidayDate">-</span>
+              </div>
+            </div>
+
+            <div class="admin-stat-card">
+              <div class="admin-stat-icon bg-amber">
+                <span class="material-symbols-outlined text-2xl">hourglass_top</span>
+              </div>
+              <div class="admin-stat-content">
+                <span class="admin-stat-label">วันหยุดคงเหลือปีนี้</span>
+                <span class="admin-stat-value" id="kpiRemainHolidays">- วัน</span>
+                <span class="admin-stat-subtext">นับจากวันนี้เป็นต้นไป</span>
+              </div>
+            </div>
+
+            <div class="admin-stat-card">
+              <div class="admin-stat-icon bg-rose">
+                <span class="material-symbols-outlined text-2xl">pie_chart</span>
+              </div>
+              <div class="admin-stat-content">
+                <span class="admin-stat-label">สัดส่วนประเภทวันหยุด</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200" id="kpiOfficialCount">นักขัตฤกษ์: -</span>
+                  <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200" id="kpiCompanyCount">บริษัท: -</span>
+                </div>
+                <span class="admin-stat-subtext">แบ่งตามหมวดหมู่</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- 🛠️ Toolbar & Filters -->
+          <section class="admin-toolbar-panel">
+            <div class="admin-toolbar-left">
+              <!-- Search box -->
+              <div class="admin-search-box">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input type="text" id="adminSearchInput" class="admin-search-input" placeholder="ค้นหาชื่อวันหยุด หรือวันที่..." oninput="handleAdminSearch()" />
+              </div>
+
+              <!-- Year Filter -->
+              <select id="adminYearSelect" class="admin-select-filter" onchange="handleAdminYearChange()">
+                <option value="2025">ปี 2025 (2568)</option>
+                <option value="2026" selected>ปี 2026 (2569)</option>
+                <option value="2027">ปี 2027 (2570)</option>
+                <option value="2028">ปี 2028 (2571)</option>
+              </select>
+
+              <!-- Month Filter -->
+              <select id="adminMonthSelect" class="admin-select-filter" onchange="handleAdminMonthChange()">
+                <option value="all">ทุกเดือน (ทั้งปี)</option>
+                <option value="0">มกราคม</option>
+                <option value="1">กุมภาพันธ์</option>
+                <option value="2">มีนาคม</option>
+                <option value="3">เมษายน</option>
+                <option value="4">พฤษภาคม</option>
+                <option value="5">มิถุนายน</option>
+                <option value="6">กรกฎาคม</option>
+                <option value="7">สิงหาคม</option>
+                <option value="8">กันยายน</option>
+                <option value="9">ตุลาคม</option>
+                <option value="10">พฤศจิกายน</option>
+                <option value="11">ธันวาคม</option>
+              </select>
+
+              <!-- Category Filter -->
+              <select id="adminCategorySelect" class="admin-select-filter" onchange="handleAdminCategoryChange()">
+                <option value="all">ทุกประเภทวันหยุด</option>
+                <option value="official">วันหยุดนักขัตฤกษ์</option>
+                <option value="company">วันหยุดพิเศษบริษัท</option>
+                <option value="substitution">วันหยุดชดเชย</option>
+              </select>
+            </div>
+
+            <div class="admin-toolbar-right">
+              <!-- View Switcher -->
+              <div class="admin-view-toggle">
+                <button type="button" id="adminBtnViewTable" class="admin-btn-view active" onclick="switchAdminView('table')" title="มุมมองตาราง">
+                  <span class="material-symbols-outlined text-lg">view_list</span>
+                </button>
+                <button type="button" id="adminBtnViewGrid" class="admin-btn-view" onclick="switchAdminView('grid')" title="มุมมองการ์ด">
+                  <span class="material-symbols-outlined text-lg">grid_view</span>
+                </button>
+                <button type="button" id="adminBtnViewCalendar" class="admin-btn-view" onclick="switchAdminView('calendar')" title="มุมมองปฏิทิน">
+                  <span class="material-symbols-outlined text-lg">calendar_month</span>
+                </button>
+              </div>
+
+              <!-- Add Holiday Button -->
+              <button type="button" class="btn-add-holiday-main" onclick="openAddHolidayModal()">
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>เพิ่มวันหยุด</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- 📋 View 1: Management Table View -->
+          <div id="adminTableContainer" class="admin-table-container">
+            <div class="admin-table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px; text-align: center;">ลำดับ</th>
+                    <th style="width: 140px;">วันที่หยุด</th>
+                    <th style="width: 110px;">วัน</th>
+                    <th>ชื่อวันหยุด</th>
+                    <th style="width: 150px;">ประเภทวันหยุด</th>
+                    <th style="width: 110px; text-align: center;">สิทธิ์ค่าจ้าง</th>
+                    <th style="width: 110px;">นับถอยหลัง</th>
+                    <th>รายละเอียด / หมายเหตุ</th>
+                    <th style="width: 150px; text-align: center;">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="adminHolidayTableBody">
+                  <!-- Generated dynamically via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 🔲 View 2: Cards Grid View -->
+          <div id="adminCardsGrid" class="admin-cards-grid" style="display: none;">
+            <!-- Generated dynamically via JS -->
+          </div>
+
+          <!-- 📅 View 3: Calendar View -->
+          <div id="adminCalendarContainer" style="display: none;" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6">
+            <div class="flex items-center justify-between flex-wrap gap-4 mb-6 pb-4 border-b border-slate-100">
+              <div class="flex items-center gap-3">
+                <button type="button" onclick="adminCalPrevMonth()" class="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
+                  <span class="material-symbols-outlined">chevron_left</span>
+                </button>
+                <h3 class="text-xl font-bold text-slate-800 m-0" id="adminCalMonthYear">มกราคม 2569</h3>
+                <button type="button" onclick="adminCalNextMonth()" class="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
+                  <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+              </div>
+
+              <div class="flex items-center gap-4 text-xs font-semibold">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-rose-500"></span> วันหยุดนักขัตฤกษ์
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-blue-500"></span> วันหยุดบริษัท
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-amber-500"></span> วันหยุดชดเชย
+                </span>
+              </div>
+            </div>
+
+            <!-- Calendar Days Header -->
+            <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+              <div class="text-rose-600 py-1">อาทิตย์</div>
+              <div class="py-1">จันทร์</div>
+              <div class="py-1">อังคาร</div>
+              <div class="py-1">พุธ</div>
+              <div class="py-1">พฤหัสบดี</div>
+              <div class="py-1">ศุกร์</div>
+              <div class="text-teal-600 py-1">เสาร์</div>
+            </div>
+
+            <!-- Calendar Grid Days -->
+            <div id="adminCalGrid" class="grid grid-cols-7 gap-2">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <!-- 📭 Empty State -->
+          <div id="adminEmptyState" class="admin-empty-state" style="display: none;">
+            <span class="material-symbols-outlined">event_busy</span>
+            <h3>ไม่พบข้อมูลวันหยุด</h3>
+            <p>ไม่พบรายการวันหยุดที่ตรงกับเงื่อนไขการค้นหา หรือยังไม่ได้เพิ่มวันหยุดในปีนี้</p>
+            <div class="mt-4 flex justify-center gap-3">
+              <button type="button" class="btn-add-holiday-main" onclick="openAddHolidayModal()">
+                <span class="material-symbols-outlined text-sm">add</span> เพิ่มวันหยุดใหม่
+              </button>
+              <button type="button" class="btn-seed-holidays" onclick="handleBatchSeedHolidays()">
+                <span class="material-symbols-outlined text-sm">auto_fix_high</span> นำเข้าวันหยุดมาตรฐาน
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 🪟 Modal: Add / Edit Holiday -->
+  <div id="adminHolidayModal" class="admin-modal-overlay" style="display: none;">
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <h3 id="adminModalTitle">
+          <span class="material-symbols-outlined text-teal-600">event</span>
+          เพิ่มวันหยุดใหม่
+        </h3>
+        <button type="button" class="admin-btn-close" onclick="closeAdminHolidayModal()">
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+
+      <form id="adminHolidayForm" onsubmit="handleSaveAdminHoliday(event)">
+        <input type="hidden" id="holidayFormId" value="" />
+
+        <div class="admin-modal-body">
+          <div class="admin-form-group">
+            <label for="holidayFormDate">วันที่วันหยุด <span class="text-rose-500">*</span></label>
+            <input type="date" id="holidayFormDate" required />
+          </div>
+
+          <div class="admin-form-group">
+            <label for="holidayFormName">ชื่อวันหยุด <span class="text-rose-500">*</span></label>
+            <input type="text" id="holidayFormName" placeholder="เช่น วันขึ้นปีใหม่, วันสงกรานต์" required />
+          </div>
+
+          <div class="admin-form-group">
+            <label for="holidayFormType">ประเภทวันหยุด</label>
+            <select id="holidayFormType">
+              <option value="official">วันหยุดนักขัตฤกษ์ / ตามประเพณี</option>
+              <option value="company">วันหยุดพิเศษบริษัท (Company Holiday)</option>
+              <option value="substitution">วันหยุดชดเชย (Substitution Holiday)</option>
+            </select>
+          </div>
+
+          <div class="admin-form-group">
+            <label for="holidayFormDesc">รายละเอียดเพิ่มเติม / หมายเหตุ</label>
+            <textarea id="holidayFormDesc" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี) เช่น หยุดชดเชยวันเสาร์ที่ผ่านมา"></textarea>
+          </div>
+
+          <div class="admin-checkbox-label">
+            <input type="checkbox" id="holidayFormPaid" checked />
+            <label for="holidayFormPaid">เป็นวันหยุดที่ได้รับค่าจ้าง (Paid Holiday)</label>
+          </div>
+        </div>
+
+        <div class="admin-modal-footer">
+          <button type="button" class="btn-modal-cancel" onclick="closeAdminHolidayModal()">ยกเลิก</button>
+          <button type="submit" class="btn-modal-submit">บันทึกข้อมูลวันหยุด</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Core Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="/js/supabase-config.js"></script>
+  <script type="module" src="/js/auth-guard.js"></script>
+  <script type="module" src="/js/components/login-logs-viewer.js"></script>
+  <script type="module" src="/js/admin-holidays.js"></script>
+
+  <script>
+    // Toggle Mobile Sidebar
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleBtn = document.getElementById('sidebarToggleBtn');
+      const closeBtn = document.getElementById('sidebarCloseBtn');
+      const sidebar = document.getElementById('sidebar');
+
+      if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+          sidebar.classList.toggle('active');
+        });
+      }
+
+      if (closeBtn && sidebar) {
+        closeBtn.addEventListener('click', () => {
+          sidebar.classList.remove('active');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

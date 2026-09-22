@@ -317,26 +317,49 @@ async function fetchUserExistingLeaveDates(employeeId) {
 // ==========================================
 async function loadCompanyHolidays() {
   const sb = window.pvtSupabase?.getClient();
-  if (!sb) return [];
+  if (!sb) {
+    if (typeof defaultHolidays2026 !== 'undefined') {
+      holidaysData = defaultHolidays2026;
+      cachedHolidays = holidaysData.map(h => h.holiday_date);
+      if (document.getElementById('companySummarySidebar') && typeof window.renderCompanySummarySidebar === 'function') {
+        window.renderCompanySummarySidebar(holidaysData, null, true);
+      }
+      return cachedHolidays;
+    }
+    return [];
+  }
 
   const currentYear = new Date().getFullYear();
   try {
     const { data: holidays, error } = await sb
       .from('holidays')
-      .select('holiday_date')
+      .select('*')
       .gte('holiday_date', `${currentYear - 1}-01-01`)
-      .lte('holiday_date', `${currentYear + 1}-12-31`);
+      .lte('holiday_date', `${currentYear + 1}-12-31`)
+      .order('holiday_date', { ascending: true });
 
-    if (error) {
-      console.warn('⚠️ ไม่สามารถดึงวันหยุดบริษัทได้:', error.message);
-      return [];
+    if (error || !holidays || holidays.length === 0) {
+      console.warn('⚠️ ไม่สามารถดึงวันหยุดบริษัทจาก Supabase ได้ ใช้ข้อมูลสำรองแทน');
+      holidaysData = (typeof defaultHolidays2026 !== 'undefined') ? defaultHolidays2026 : [];
+    } else {
+      holidaysData = holidays;
     }
 
-    cachedHolidays = (holidays || []).map(h => h.holiday_date);
+    cachedHolidays = (holidaysData || []).map(h => h.holiday_date);
+    
+    if (document.getElementById('companySummarySidebar') && typeof window.renderCompanySummarySidebar === 'function') {
+      window.renderCompanySummarySidebar(holidaysData, null, true);
+    }
+
     return cachedHolidays;
   } catch (err) {
     console.error('❌ ดึงวันหยุดล้มเหลว:', err);
-    return [];
+    holidaysData = (typeof defaultHolidays2026 !== 'undefined') ? defaultHolidays2026 : [];
+    cachedHolidays = holidaysData.map(h => h.holiday_date);
+    if (document.getElementById('companySummarySidebar') && typeof window.renderCompanySummarySidebar === 'function') {
+      window.renderCompanySummarySidebar(holidaysData, null, true);
+    }
+    return cachedHolidays;
   }
 }
 
@@ -1408,14 +1431,14 @@ async function saveLeave() {
   const btnSaveLeave = document.getElementById("btnSaveLeave");
   if (btnSaveLeave) {
     btnSaveLeave.disabled = true;
-    btnSaveLeave.innerHTML = `<span class="material-symbols-outlined spin" style="font-size:16px;">sync</span> กำลังบันทึก...`;
+    btnSaveLeave.innerHTML = `<span class="material-symbols-outlined spin" style="font-size:16px;">sync</span> กำลังส่งคำขอ...`;
   }
 
   const sb = window.pvtSupabase?.getClient();
   if (!sb) {
     Swal.fire({ icon: 'error', title: 'การเชื่อมต่อขัดข้อง', text: 'ไม่พบการเชื่อมต่อฐานข้อมูล', confirmButtonColor: '#ef4444' });
     isSavingLeave = false;
-    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = "💾 บันทึกคำขอลา"; }
+    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = '<span class="material-symbols-outlined">send</span> ส่งคำขอ'; }
     return;
   }
 
@@ -1429,7 +1452,7 @@ async function saveLeave() {
   if (!currentProfile) {
     Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูลผู้ใช้งาน', text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง', confirmButtonColor: '#ef4444' });
     isSavingLeave = false;
-    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = "💾 บันทึกคำขอลา"; }
+    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = '<span class="material-symbols-outlined">send</span> ส่งคำขอ'; }
     return;
   }
 
@@ -1437,7 +1460,7 @@ async function saveLeave() {
   if (cards.length === 0) {
     Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', text: 'กรุณาเพิ่มรายการลาอย่างน้อย 1 รายการครับ', confirmButtonColor: '#f59e0b' });
     isSavingLeave = false;
-    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = "💾 บันทึกคำขอลา"; }
+    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = '<span class="material-symbols-outlined">send</span> ส่งคำขอ'; }
     return;
   }
 
@@ -1857,7 +1880,7 @@ async function saveLeave() {
     const saveBtn = document.getElementById("btnSaveLeave");
     if (saveBtn) {
       saveBtn.disabled = false;
-      saveBtn.innerHTML = "💾 บันทึกคำขอลา";
+      saveBtn.innerHTML = '<span class="material-symbols-outlined">send</span> ส่งคำขอ';
     }
     return;
   }
@@ -2114,7 +2137,7 @@ async function saveLeave() {
     const saveBtn = document.getElementById("btnSaveLeave");
     if (saveBtn) {
       saveBtn.disabled = false;
-      saveBtn.innerHTML = "💾 บันทึกคำขอลา";
+      saveBtn.innerHTML = '<span class="material-symbols-outlined">send</span> ส่งคำขอ';
     }
   }
 }

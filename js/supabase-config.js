@@ -19,6 +19,27 @@
     RETRY_DELAY: 1000,
   };
 
+  if (typeof global.getDefaultAvatarUrl !== "function") {
+    global.getDefaultAvatarUrl = function(title = "", gender = "", fullName = "") {
+      const cleanTitle = String(title || "").trim().toLowerCase();
+      const cleanGender = String(gender || "").trim().toLowerCase();
+      const cleanName = String(fullName || "").trim().toLowerCase();
+
+      const femaleTokens = ["นางสาว", "นาง", "น.ส.", "น.ส", "นส.", "นส", "สาว", "คุณหญิง", "ms.", "ms", "mrs.", "mrs", "miss.", "miss", "female", "หญิง", "f"];
+      const maleTokens = ["นาย", "นาย.", "mr.", "mr", "master.", "master", "male", "ชาย", "m"];
+
+      if (femaleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
+        return "/assets/img/avatar-female.jpg?v=2";
+      }
+
+      if (maleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
+        return "/assets/img/avatar-male.jpg?v=2";
+      }
+
+      return "/assets/img/avatar-male.jpg?v=2";
+    };
+  }
+
   // ==========================================================================
   // 1. SMART CACHE ENGINE (Storage + Memory + Tag Invalidation)
   // ==========================================================================
@@ -385,12 +406,21 @@
       this.client = client;
     }
 
-    getAvatarUrl(imageUrl) {
-      if (!imageUrl || !String(imageUrl).trim()) {
-        return "/assets/img/default-avatar.jpg";
+    getAvatarUrl(imageUrl, title = "", gender = "", fullName = "") {
+      if (typeof imageUrl === 'object' && imageUrl !== null) {
+        const obj = imageUrl;
+        imageUrl = obj.image_url || obj.avatar_url || obj.avatar || obj.employees?.image_url || null;
+        title = title || obj.title || obj.prefix || obj.employees?.title || "";
+        gender = gender || obj.gender || obj.employees?.gender || "";
+        fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
+      }
+      if (!imageUrl || !String(imageUrl).trim() || imageUrl === "null" || imageUrl === "undefined" || imageUrl === "/assets/img/default-avatar.jpg") {
+        return typeof window.getDefaultAvatarUrl === "function" 
+          ? window.getDefaultAvatarUrl(title, gender, fullName) 
+          : (title.includes('สาว') || title.includes('นาง') || title.includes('น.ส.') || gender === 'female' || fullName.includes('นาง') || fullName.includes('น.ส.') ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
       }
       let url = String(imageUrl).trim();
-      if (url.startsWith("http")) return url;
+      if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
       return `${CONFIG.URL}/storage/v1/object/public/employee-images/${url.replace(/^\//, "")}`;
     }
 
@@ -653,20 +683,87 @@
       }
       
       getClient() {
+        if (!this.client) {
+          this._initClient(true);
+        }
         return this.client;
       }
 
-      _initClient() {
+      _initClient(silent = false) {
         if (window.supabaseClient) {
           this.client = window.supabaseClient;
-          return;
+          return this.client;
         }
-        if (global.supabase?.createClient) {
-          this.client = global.supabase.createClient(CONFIG.URL, CONFIG.ANON_KEY);
+        const sb = global.supabase || (typeof window !== 'undefined' ? window.supabase : null);
+        if (sb?.createClient) {
+          this.client = sb.createClient(CONFIG.URL, CONFIG.ANON_KEY);
           window.supabaseClient = this.client;
-        } else {
-          console.error("[SDK Error] Supabase JS Client is not loaded on window.");
+          this._propagateClient();
+          return this.client;
         }
+
+        // Automatic fallback: inject CDN script if not present
+        if (typeof document !== 'undefined' && !this._scriptInjected) {
+          this._scriptInjected = true;
+          let script = document.querySelector('script[src*="supabase-js"]');
+          if (!script) {
+            script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            script.async = false;
+            document.head.appendChild(script);
+          }
+          script.addEventListener('load', () => {
+            const loadedSb = global.supabase || (typeof window !== 'undefined' ? window.supabase : null);
+            if (loadedSb?.createClient) {
+              this.client = loadedSb.createClient(CONFIG.URL, CONFIG.ANON_KEY);
+              window.supabaseClient = this.client;
+              this._propagateClient();
+              console.log("[SDK Engine] Supabase JS Client loaded and initialized successfully.");
+            }
+          });
+        }
+
+        // Check again once DOM is ready or after brief delays
+        if (typeof window !== 'undefined' && !this._listenerAttached) {
+          this._listenerAttached = true;
+          const retryInit = () => {
+            if (!this.client) {
+              const loadedSb = global.supabase || window.supabase;
+              if (loadedSb?.createClient) {
+                this.client = loadedSb.createClient(CONFIG.URL, CONFIG.ANON_KEY);
+                window.supabaseClient = this.client;
+                this._propagateClient();
+              }
+            }
+          };
+          window.addEventListener('DOMContentLoaded', retryInit);
+          window.addEventListener('load', retryInit);
+          setTimeout(retryInit, 400);
+          setTimeout(retryInit, 1200);
+        }
+
+        if (!silent) {
+          setTimeout(() => {
+            if (!this.client && !window.supabaseClient && !(global.supabase?.createClient || (typeof window !== 'undefined' && window.supabase?.createClient))) {
+              console.warn("[SDK Warning] Supabase JS Client is still loading or not loaded on window.");
+            }
+          }, 3000);
+        }
+        return this.client;
+      }
+
+      _propagateClient() {
+        if (!this.client) return;
+        const engines = [
+          this.auth, this.hr, this.leave, this.storage, this.realtime,
+          this.user, this.card, this.attendance, this.loginAudit,
+          this.notification, this.line
+        ];
+        engines.forEach(eng => {
+          if (eng && typeof eng === 'object') {
+            eng.client = this.client;
+          }
+        });
       }
     }
 
@@ -1105,13 +1202,19 @@
 
     // ระบบ Logout กลาง (ล้างทั้ง Session และ SDK Cache)
     async logout() {
+      try {
+        sessionStorage.setItem('pvt_explicit_logout', 'true');
+        localStorage.setItem('pvt_explicit_logout', 'true');
+      } catch (e) {}
       this.cache.clearAll();
+      try {
+        if (this.client?.auth) {
+          await this.client.auth.signOut().catch(() => {});
+        }
+      } catch (e) {}
       localStorage.clear();
       sessionStorage.clear();
-      if (this.client?.auth) {
-        try { await this.client.auth.signOut(); } catch (e) {}
-      }
-      window.location.replace("/index.html");
+      window.location.replace("/index.html?logout=true");
     }
   }
 

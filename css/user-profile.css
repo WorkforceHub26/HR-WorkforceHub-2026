@@ -1,0 +1,6 @@
+/* ======================================================
+   Dedicated Stylesheet for User Profile (/pages/user/profile-user.html)
+   Scoped Page ID: #page-user-profile
+   ====================================================== */
+@import url('/css/profile-user.css');
+@import url('/css/health-wellness.css');

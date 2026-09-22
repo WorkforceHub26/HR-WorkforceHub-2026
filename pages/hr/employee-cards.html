@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <script src="/js/early-auth-guard.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0d9488" />
+  <title>ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin) | PVT System</title>
+  
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  
+  <!-- Style Sheets -->
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+  <link rel="stylesheet" href="/css/hr-employee-cards.css" />
+  
+  <!-- SweetAlert2 & QR Code -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/js/qrcode.min.js"></script>
+</head>
+
+<body id="page-hr-employee-cards">
+  <div class="app-shell">
+    
+    <!--  SIDEBAR ด้านซ้าย (Unified Luxury Sidebar) -->
+    <aside class="sidebar-light" id="mainSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div class="brand-name">PVTT WORKFORCE HUB</div>
+        <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
+          <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+        </button>
+      </div>
+
+      <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
+      <div class="sidebar-cta-wrap">
+        <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
+        </a>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">ตรวจใบลา</span>
+          <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
+        </a>
+        <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
+          <span class="material-symbols-outlined">tune</span>
+          <span class="nav-label">ระบบจัดการส่วนกลาง</span>
+        </a>
+        <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
+          <span class="material-symbols-outlined">analytics</span>
+          <span class="nav-label">สถิติวันลา</span>
+        </a>
+        <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">จัดการวันหยุด</span>
+        </a>
+        
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-title">บริการด่วน</div>
+        
+        <!--  ปุ่มจัดการข่าวสารองค์กร -->
+        <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
+          <span class="material-symbols-outlined">campaign</span>
+          <span class="nav-label">ข่าวสาร</span>
+        </a>
+
+        <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน (Active Page) -->
+        <a href="/pages/hr/employee-cards.html" class="nav-item active" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="nav-label">บัตรพนักงาน (Admin)</span>
+        </a>
+        
+        <!-- ประวัติการเข้าสู่ระบบ -->
+        <a href="/pages/hr/login-logs.html" class="nav-item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
+        <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">หน้าหลักของพนักงาน</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- พื้นที่แสดงผลเนื้อหาหลัก (Main Content Shell) -->
+    <main class="main-content">
+      
+      <!-- Top Bar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-left-text">
+            <h1 class="page-title">🪪 ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin Card Center)</h1>
+            <p class="page-subtitle">ระบบจัดการ ค้นหา พิมพ์บัตรพนักงานดิจิทัล และสร้างไฟล์ CR80 รวมทุกแผนก</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="user-profile" id="headerUserProfile">
+            <div class="avatar avatar-badge notranslate" translate="no">HR</div>
+            <div class="info">
+              <strong id="headerUserName">ผู้ดูแลระบบ</strong>
+              <span id="headerUserRoleDept">เจ้าหน้าที่ HR / ฝ่ายทรัพยากรบุคคล</span>
+            </div>
+            <!-- Hidden fallback spans for script references -->
+            <span id="topbarUserName" style="display:none;">ผู้ดูแลระบบ</span>
+            <span id="topbarUserRole" style="display:none;">ผู้ดูแลระบบ</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Page Content Area -->
+      <div class="content-body">
+        
+        <!-- Hero Header Banner -->
+        <section class="cards-hero-header">
+          <div class="cards-hero-title">
+            <div class="cards-hero-icon">🪪</div>
+            <div class="cards-hero-text">
+              <h1>ระบบจัดการบัตรประจำตัวพนักงานดิจิทัล</h1>
+              <p>ศูนย์รวมข้อมูล ค้นหา และสั่งพิมพ์บัตรพนักงานมาตรฐาน CR80 สำหรับผู้ดูแลระบบ HR และ Admin</p>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn-action-primary" onclick="openEmployeeCardManagerPopup(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); box-shadow: none;">
+              <span>📋 สลับมุมมองป๊อปอัปด่วน</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Metrics Overview Grid -->
+        <section class="cards-metrics-grid">
+          <div class="metric-card">
+            <div class="metric-info">
+              <label>พนักงานทั้งหมดในระบบ</label>
+              <div class="val" id="metricTotalEmp">0</div>
+            </div>
+            <div class="metric-icon-wrap teal">👥</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-info">
+              <label>เลือกสั่งพิมพ์ปัจจุบัน</label>
+              <div class="val" id="metricSelectedEmp" style="color: #0d9488;">0</div>
+            </div>
+            <div class="metric-icon-wrap blue">🖨️</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-info">
+              <label>แผนกทั้งหมด</label>
+              <div class="val" id="metricTotalDept">0</div>
+            </div>
+            <div class="metric-icon-wrap amber">🏢</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-info">
+              <label>สถานะระบบบัตร</label>
+              <div class="val" style="font-size: 16px; color: #16a34a; font-weight: 700;">พร้อมใช้งาน 100%</div>
+            </div>
+            <div class="metric-icon-wrap purple">✨</div>
+          </div>
+        </section>
+
+        <!-- Filter & Control Toolbar -->
+        <section class="cards-toolbar">
+          <div class="toolbar-controls-row">
+            <div class="search-box-wrap">
+              <span class="material-symbols-outlined search-icon">search</span>
+              <input type="text" id="adminEmpSearchInput" placeholder="ค้นหาด้วย ชื่อพนักงาน, รหัสพนักงาน, ตำแหน่ง หรือแผนก..." />
+            </div>
+
+            <select id="adminDeptFilterSelect" class="filter-select">
+              <option value="">🏢 ทุกแผนก (All Departments)</option>
+            </select>
+
+            <select id="adminThemeSelect" class="filter-select" style="border-color: #0284c7; background: #f0f9ff; color: #0369a1; font-weight: 700;">
+              <option value="royal_blue">🎨 สีบัตร: Sky Blue (ฟ้าอ่อนพาสเทล)</option>
+              <option value="emerald_teal">🎨 สีบัตร: Mint Emerald (เขียวมิ้นต์พาสเทล)</option>
+              <option value="luxury_gold">🎨 สีบัตร: Warm Cream Gold (ทองครีมพรีเมียม)</option>
+              <option value="dark_navy">🎨 สีบัตร: Pearl Platinum (ขาวมุกพลาตินัม)</option>
+              <option value="violet_platinum">🎨 สีบัตร: Soft Lavender (ม่วงลาเวนเดอร์พาสเทล)</option>
+              <option value="rose_crimson">🎨 สีบัตร: Soft Rose Peach (ชมพูพีชพาสเทล)</option>
+            </select>
+          </div>
+
+          <div class="toolbar-actions-row">
+            <label class="selection-toggle-wrap">
+              <input type="checkbox" id="selectAllCheckbox" style="width: 18px; height: 18px; accent-color: #0d9488;" />
+              <span>เลือกพนักงานที่แสดงผลทั้งหมด (<span id="visibleCountTxt">0</span> คน)</span>
+            </label>
+
+            <div class="btn-group-actions">
+              <button type="button" class="btn-action-primary" id="btnBatchPrintSelected">
+                <span>🖨️ สั่งพิมพ์บัตรพนักงานที่เลือก (<span id="btnBatchPrintCount">0</span>)</span>
+              </button>
+              <button type="button" class="btn-action-secondary" id="btnReloadData">
+                <span>🔄 รีเฟรชข้อมูล</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Employee Cards Gallery Grid -->
+        <section id="empCardsGalleryGrid" class="emp-cards-gallery-grid">
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #0f766e; font-size: 15px;">
+            ⌛ กำลังเชื่อมต่อฐานข้อมูลพนักงาน...
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Core Scripts -->
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/auth-guard.js"></script>
+  <script src="/js/employee-card-modal.js"></script>
+  <script src="/js/components/login-logs-viewer.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      let allEmployees = [];
+      let filteredEmployees = [];
+      let selectedEmpCodes = new Set();
+      let currentTheme = localStorage.getItem('pvt_emp_card_theme') || 'royal_blue';
+
+      const searchInput = document.getElementById('adminEmpSearchInput');
+      const deptSelect = document.getElementById('adminDeptFilterSelect');
+      const themeSelect = document.getElementById('adminThemeSelect');
+      const selectAllCb = document.getElementById('selectAllCheckbox');
+      const galleryGrid = document.getElementById('empCardsGalleryGrid');
+      const metricTotalEmp = document.getElementById('metricTotalEmp');
+      const metricSelectedEmp = document.getElementById('metricSelectedEmp');
+      const metricTotalDept = document.getElementById('metricTotalDept');
+      const visibleCountTxt = document.getElementById('visibleCountTxt');
+      const btnBatchPrintCount = document.getElementById('btnBatchPrintCount');
+      const btnBatchPrintSelected = document.getElementById('btnBatchPrintSelected');
+      const btnReloadData = document.getElementById('btnReloadData');
+
+      if (themeSelect) themeSelect.value = currentTheme;
+
+      async function fetchEmployeesData() {
+        galleryGrid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: #0f766e; font-size: 15px; font-weight: 600;">
+            ⏳ กำลังโหลดข้อมูลบัตรพนักงานทุกคนในองค์กร...
+          </div>
+        `;
+
+        try {
+          const client = window.sb || (window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : null);
+          if (client) {
+            const { data, error } = await client
+              .from('employees')
+              .select(`
+                id,
+                employee_code,
+                full_name,
+                title,
+                image_url,
+                status,
+                department_id,
+                departments!department_id ( department_name ),
+                positions ( position_name )
+              `)
+              .order('employee_code', { ascending: true });
+
+            if (error) throw error;
+            // กรองพนักงานที่ยังทำงานอยู่ (ไม่รวมสถานะ ลาออก หรือ inactive)
+            allEmployees = (data || []).filter(emp => {
+              const st = String(emp.status || '').toLowerCase().trim();
+              return st !== 'resigned' && st !== 'inactive' && st !== 'ลาออก';
+            });
+          }
+        } catch (err) {
+          console.error("Failed to load employees:", err);
+          allEmployees = JSON.parse(localStorage.getItem('allEmployees') || '[]');
+        }
+
+        // Populate department filter options
+        const deptMap = new Map();
+        allEmployees.forEach(emp => {
+          const dName = emp.departments?.department_name || emp.department_name;
+          if (dName) deptMap.set(dName, true);
+        });
+
+        deptSelect.innerHTML = '<option value="">🏢 ทุกแผนก (All Departments)</option>';
+        deptMap.forEach((_, name) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = `🏢 แผนก ${name}`;
+          deptSelect.appendChild(opt);
+        });
+
+        metricTotalEmp.textContent = allEmployees.length;
+        metricTotalDept.textContent = deptMap.size;
+
+        renderGallery();
+      }
+
+      function renderGallery() {
+        const keyword = (searchInput.value || '').toLowerCase().trim();
+        const selectedDept = deptSelect.value;
+
+        filteredEmployees = allEmployees.filter(emp => {
+          const name = (emp.full_name || '').toLowerCase();
+          const code = (emp.employee_code || '').toLowerCase();
+          const dept = (emp.departments?.department_name || emp.department_name || '').toLowerCase();
+          const role = (emp.positions?.position_name || emp.position_name || '').toLowerCase();
+
+          const matchKw = !keyword || name.includes(keyword) || code.includes(keyword) || dept.includes(keyword) || role.includes(keyword);
+          const matchDept = !selectedDept || (emp.departments?.department_name || emp.department_name) === selectedDept;
+
+          return matchKw && matchDept;
+        });
+
+        visibleCountTxt.textContent = filteredEmployees.length;
+
+        if (filteredEmployees.length === 0) {
+          galleryGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 48px; background: #ffffff; border-radius: 16px; border: 1px dashed #cbd5e1; color: #64748b; font-size: 14.5px;">
+              🔍 ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไขการค้นหา
+            </div>
+          `;
+          return;
+        }
+
+        galleryGrid.innerHTML = filteredEmployees.map(emp => {
+          const code = emp.employee_code || '';
+          const name = emp.full_name || 'ไม่ระบุชื่อ';
+          const title = emp.title || '';
+          const gender = emp.gender || '';
+          const dept = emp.departments?.department_name || emp.department_name || 'ทั่วไป';
+          const role = emp.positions?.position_name || emp.position_name || 'พนักงาน';
+
+          const defaultAvatar = (typeof window.getDefaultAvatarUrl === 'function')
+            ? window.getDefaultAvatarUrl(title, gender, name)
+            : ((title.includes('สาว') || title.includes('นาง') || title.includes('น.ส.') || gender === 'female' || name.includes('นาง') || name.includes('น.ส.')) ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
+
+          const avatar = (window.pvtSupabase && typeof window.pvtSupabase.getAvatarUrl === 'function')
+            ? window.pvtSupabase.getAvatarUrl(emp.image_url, title, gender, name)
+            : (typeof window.getAvatarUrl === 'function'
+              ? window.getAvatarUrl(emp.image_url, title, gender, name)
+              : (emp.image_url ? (emp.image_url.startsWith('http') ? emp.image_url : `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${emp.image_url.replace(/^\//, '')}`) : defaultAvatar));
+
+          const isSelected = selectedEmpCodes.has(code);
+
+          return `
+            <div class="emp-card-preview-item ${isSelected ? 'selected' : ''}" data-code="${code}">
+              <div class="emp-card-header-row">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #334155; cursor: pointer;">
+                  <input type="checkbox" class="emp-checkbox-input emp-select-cb" data-code="${code}" ${isSelected ? 'checked' : ''} />
+                  <span>เลือกพิมพ์</span>
+                </label>
+                <span style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-weight: 600;">CR80 Ready</span>
+              </div>
+
+              <div class="emp-card-inner-box theme-${currentTheme}">
+                <div class="emp-avatar-circle">
+                  <img src="${avatar}" onerror="this.onerror=null; this.src='${defaultAvatar}';" alt="${code}" />
+                </div>
+                <div class="emp-card-name">${escapeHtml(name)}</div>
+                <div class="emp-card-role">ตำแหน่ง: ${escapeHtml(role)}</div>
+                <div class="emp-card-dept">แผนก: ${escapeHtml(dept)}</div>
+                <div class="emp-card-code-pill">${escapeHtml(code)}</div>
+              </div>
+
+              <div class="emp-card-actions">
+                <button type="button" class="btn-card-action-sm view btn-single-view" data-code="${code}" title="ดูบัตรพนักงานเดี่ยว">
+                  <span>💳 ดูบัตร</span>
+                </button>
+                <button type="button" class="btn-card-action-sm print btn-single-print" data-code="${code}" data-name="${escapeHtml(name)}" data-role="${escapeHtml(role)}" data-dept="${escapeHtml(dept)}" data-avatar="${avatar}" title="สั่งพิมพ์บัตรเดี่ยว">
+                  <span>🖨️ พิมพ์</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        attachGalleryEvents();
+      }
+
+      function attachGalleryEvents() {
+        document.querySelectorAll('.emp-select-cb').forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            const code = e.target.getAttribute('data-code');
+            if (e.target.checked) {
+              selectedEmpCodes.add(code);
+            } else {
+              selectedEmpCodes.delete(code);
+            }
+            updateSelectionUi();
+          });
+        });
+
+        document.querySelectorAll('.btn-single-view').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const code = btn.getAttribute('data-code');
+            if (window.openMyEmployeeCardModal) {
+              window.openMyEmployeeCardModal(code);
+            }
+          });
+        });
+
+        document.querySelectorAll('.btn-single-print').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const { code, name, role, dept, avatar } = btn.dataset;
+            if (window.printSingleCard) {
+              window.printSingleCard(code, name, role, dept, avatar, currentTheme);
+            }
+          });
+        });
+      }
+
+      function updateSelectionUi() {
+        metricSelectedEmp.textContent = selectedEmpCodes.size;
+        btnBatchPrintCount.textContent = selectedEmpCodes.size;
+
+        document.querySelectorAll('.emp-card-preview-item').forEach(item => {
+          const code = item.getAttribute('data-code');
+          const cb = item.querySelector('.emp-select-cb');
+          if (selectedEmpCodes.has(code)) {
+            item.classList.add('selected');
+            if (cb) cb.checked = true;
+          } else {
+            item.classList.remove('selected');
+            if (cb) cb.checked = false;
+          }
+        });
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // Toolbar Listeners
+      searchInput.addEventListener('input', renderGallery);
+      deptSelect.addEventListener('change', renderGallery);
+
+      themeSelect.addEventListener('change', (e) => {
+        currentTheme = e.target.value;
+        localStorage.setItem('pvt_emp_card_theme', currentTheme);
+        renderGallery();
+      });
+
+      selectAllCb.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          filteredEmployees.forEach(emp => selectedEmpCodes.add(emp.employee_code));
+        } else {
+          filteredEmployees.forEach(emp => selectedEmpCodes.delete(emp.employee_code));
+        }
+        updateSelectionUi();
+      });
+
+      btnBatchPrintSelected.addEventListener('click', () => {
+        if (selectedEmpCodes.size === 0) {
+          Swal.fire('กรุณาเลือกพนักงาน', 'โปรดทำเครื่องหมายเลือกพนักงานอย่างน้อย 1 คนเพื่อสั่งพิมพ์บัตร', 'warning');
+          return;
+        }
+        if (window.printMultipleCards) {
+          window.printMultipleCards(Array.from(selectedEmpCodes));
+        }
+      });
+
+      btnReloadData.addEventListener('click', fetchEmployeesData);
+
+      // Initial fetch
+      await fetchEmployeesData();
+    });
+  </script>
+</body>
+</html>

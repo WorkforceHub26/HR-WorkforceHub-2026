@@ -1,0 +1,6 @@
+/* ======================================================
+   Dedicated Stylesheet for User Dashboard (/pages/user/index-user.html)
+   Scoped Page ID: #page-user-index
+   ====================================================== */
+@import url('/css/index-user.css');
+@import url('/css/company-news.css');

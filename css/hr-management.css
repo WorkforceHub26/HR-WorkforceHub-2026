@@ -1,0 +1,7 @@
+/* ======================================================
+   Dedicated Stylesheet for HR Management (/pages/hr/management.html)
+   Scoped Page ID: #page-hr-management
+   ====================================================== */
+@import url('/css/Management.css');
+@import url('/css/company-news.css');
+@import url('/css/health-wellness.css');

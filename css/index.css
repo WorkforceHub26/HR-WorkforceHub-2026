@@ -27,7 +27,7 @@
 }
 
 body {
-  font-family: 'IBM Plex Sans Thai', 'Plus Jakarta Sans', 'Sarabun', sans-serif;
+  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: #f0fdfa;
   background-image: 
     radial-gradient(circle at 15% 15%, #cffafe 0px, transparent 40%),
@@ -251,62 +251,59 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 14px;
-  padding: 10px 18px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.08);
+  padding: 0;
+  background: transparent !important;
+  border-radius: 0;
+  border: none !important;
+  box-shadow: none !important;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .logo-wrapper:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.12);
+  box-shadow: none !important;
 }
 
 .logo-wrapper .brand-logo,
 .brand-logo {
   height: auto;
-  max-height: 70px;
+  max-height: 115px !important;
   width: auto;
-  max-width: 260px;
+  max-width: 340px !important;
   object-fit: contain;
   display: block;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.brand-area h1 {
-  font-size: 24px;
+.brand-area h1,
+#pvtLoginHeader {
+  font-size: clamp(17px, 4vw, 20px) !important;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  line-height: 1.35;
+  letter-spacing: -0.2px;
   color: #0f172a;
   margin: 0 0 6px 0;
+  text-align: center;
 }
 
 .brand-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: linear-gradient(135deg, #eff6ff 0%, #f0fdfa 100%);
+  gap: 0;
+  background: transparent !important;
   color: #0d9488;
-  border: 1px solid #cbd5e1;
-  padding: 4px 14px;
-  border-radius: 20px;
-  font-size: 12.5px;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0;
+  font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.06);
+  box-shadow: none !important;
 }
 
 .pulse-dot {
-  width: 7px;
-  height: 7px;
-  background-color: #10b981;
-  border-radius: 50%;
-  display: inline-block;
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  animation: pulseDot 2s infinite;
+  display: none !important;
 }
 
 @keyframes pulseDot {
@@ -320,6 +317,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .form-group {
@@ -441,71 +439,181 @@ body {
 
 #loginForm .remember-label,
 .remember-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   cursor: pointer;
-  font-size: 14.5px;
+  font-size: 13px;
   font-weight: 500;
-  color: #334155;
+  color: #475569;
   margin-bottom: 0;
-  min-height: 48px; /* Accessible min touch target height */
-  padding: 8px 12px;
-  border-radius: 12px;
+  min-height: auto;
+  padding: 2px 0;
+  background-color: transparent !important;
+  border: none !important;
   user-select: none;
-  background-color: rgba(241, 245, 249, 0.5);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.2s ease;
   box-sizing: border-box;
-  width: 100%;
 }
 
 #loginForm .remember-label:hover,
 .remember-label:hover {
-  background-color: rgba(13, 148, 136, 0.08);
-  border-color: rgba(13, 148, 136, 0.25);
-  color: #0f766e;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: #0d9488;
 }
 
 #loginForm .remember-checkbox,
 .remember-checkbox {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
   accent-color: #0d9488;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 4px;
   margin: 0;
   flex-shrink: 0;
 }
 
 /* Accessible Language Switcher Touch Targets */
-.login-footer-info .lang-switcher {
-  padding: 4px !important;
+.lang-switcher-wrapper .lang-switcher,
+.login-footer-info .lang-switcher,
+.lang-switcher {
+  padding: 2px !important;
   border-radius: 9999px !important;
-  gap: 4px !important;
+  gap: 3px !important;
   align-items: center !important;
 }
 
-.login-footer-info .lang-btn,
-.login-footer-info .lang-switcher button,
-#loginForm ~ .login-footer-info .lang-btn,
-#langThBtn, #langLoBtn, #langMyBtn {
-  min-height: 44px !important;
-  min-width: 44px !important;
-  height: 44px !important;
-  padding: 8px 14px !important;
-  font-size: 13.5px !important;
+.lang-switcher .lang-btn,
+.lang-switcher button,
+#langThBtn, #langEnBtn, #langLoBtn, #langMyBtn, #langSettingsBtn {
+  min-height: 22px !important;
+  min-width: 22px !important;
+  height: 22px !important;
+  width: 22px !important;
+  max-height: 22px !important;
+  max-width: 22px !important;
+  padding: 0 !important;
+  font-size: 10px !important;
   font-weight: 700 !important;
-  border-radius: 9999px !important;
+  border-radius: 50% !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  outline: none !important;
+  color: #64748b !important;
+  background: transparent !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Active state for all login lang-switcher buttons (TH, EN, Settings) - Perfect equal circles */
+.lang-switcher button.active,
+.lang-switcher .lang-btn.active,
+.lang-switcher button[style*="background-color: rgb(255, 255, 255)"],
+.lang-switcher button[style*="background: rgb(255, 255, 255)"],
+#langThBtn.active, #langEnBtn.active, #langLoBtn.active, #langMyBtn.active {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #0d9488 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12) !important;
+  border: none !important;
+  outline: none !important;
+  min-height: 22px !important;
+  min-width: 22px !important;
+  height: 22px !important;
+  width: 22px !important;
+  padding: 0 !important;
+}
+
+.lang-switcher button:hover:not(.active),
+#langSettingsBtn:hover {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #0d9488 !important;
+  border-radius: 50% !important;
 }
 
 /* ================== ปุ่มกดเข้าสู่ระบบ (Login Button) ================== */
+/* Shared Hover-Lift for All Login Buttons */
+.login-btn, 
+.qr-btn, 
+.biometric-btn, 
+.qr-guide-link-btn, 
+.biometric-guide-btn {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              filter 0.2s ease, 
+              background 0.2s ease,
+              opacity 0.2s ease !important;
+}
+
+.login-btn:not(:disabled):not(.loading):hover,
+.qr-btn:hover,
+.biometric-btn:hover,
+.qr-guide-link-btn:hover,
+.biometric-guide-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Shared Active State for Tactile Feedback */
+.login-btn:not(:disabled):not(.loading):active,
+.qr-btn:active,
+.biometric-btn:active,
+.qr-guide-link-btn:active,
+.biometric-guide-btn:active {
+  transform: scale(0.95) translateY(0.5px) !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Border Gradient Glow Animation */
+@keyframes border-gradient-glow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Button Breathing Pulse Animation */
+@keyframes button-breathing-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 14px var(--primary-glow);
+  }
+  50% {
+    transform: scale(1.012);
+    box-shadow: 0 6px 22px var(--primary-glow);
+  }
+}
+
+.login-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.8px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .login-btn {
   width: 100%;
   height: 52px;
@@ -528,15 +636,94 @@ body {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), 
-              box-shadow 0.2s ease, 
-              filter 0.2s ease, 
-              background 0.2s ease,
-              opacity 0.2s ease;
+}
+
+/* Idle Breathing Animation */
+.login-btn:not(:disabled):not(.loading):not(:hover):not(:active) {
+  animation: button-breathing-pulse 3s ease-in-out infinite;
+}
+
+.login-btn:not(:disabled):not(.loading):hover::before {
+  opacity: 1;
+  animation: border-gradient-glow 2s ease-in-out infinite;
 }
 
 .login-btn span.material-symbols-outlined {
   font-size: 20px;
+}
+
+/* ==========================================================================
+   🔄 SVG Status Indicator & Dynamic Authentication Spinner for .login-btn
+   ========================================================================== */
+.login-btn .btn-status-indicator {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.login-btn .btn-status-indicator .status-svg {
+  width: 22px;
+  height: 22px;
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+}
+
+/* 🟢 Ready Status Indicator (Idle / Non-loading State) */
+.login-btn .btn-status-indicator .svg-ready {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.login-btn .btn-status-indicator .svg-ready .ready-beacon {
+  transform-origin: 12px 12px;
+  animation: readyBeaconPulse 2.6s ease-in-out infinite;
+}
+
+@keyframes readyBeaconPulse {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+/* 🌀 Active Spinner (Hidden during idle, active during authentication) */
+.login-btn .btn-status-indicator .svg-spinner {
+  opacity: 0;
+  transform: scale(0.45) rotate(-90deg);
+  pointer-events: none;
+  transform-origin: 12px 12px;
+}
+
+/* Transform to Active Spinner only during Authentication */
+.login-btn.loading .btn-status-indicator .svg-ready {
+  opacity: 0;
+  transform: scale(0.35) rotate(90deg);
+}
+
+.login-btn.loading .btn-status-indicator .svg-spinner,
+.login-btn .btn-status-indicator .svg-spinner.active {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  animation: statusSpinnerSpin 0.72s linear infinite;
+  transform-origin: 12px 12px;
+}
+
+@keyframes statusSpinnerSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .login-btn .btn-content {
@@ -546,6 +733,8 @@ body {
   gap: 8px;
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 2;
   transform: translateY(0) scale(1);
   opacity: 1;
   transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), 
@@ -598,17 +787,9 @@ body {
 }
 
 /* Hover & Active States (Only when not loading and not disabled) */
-.login-btn:not(:disabled):not(.loading):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px var(--primary-glow);
-  filter: brightness(1.04);
-}
-
 .login-btn:not(:disabled):not(.loading):active {
-  transform: scale(0.97) translateY(1px);
   box-shadow: 0 2px 6px var(--primary-glow);
   filter: brightness(0.96);
-  transition-duration: 0.08s;
 }
 
 /* Loading & Disabled States (Prevents double clicks and glitches) */
@@ -700,6 +881,7 @@ body {
   margin-top: 2px;
   margin-bottom: 2px;
   border-radius: 6px;
+  width: 50%;
 }
 
 .skeleton-btn {
@@ -744,13 +926,75 @@ body {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
-/* ================== กล่องปุ่มทางเลือกเข้าสู่ระบบ (Alt Login Actions) ================== */
+/* ================== ลิงก์และกล่องกลุ่มทางเลือกเข้าสู่ระบบวิธีอื่น ================== */
+.alt-login-wrapper {
+  margin-top: 6px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.alt-login-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #0d9488;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.alt-login-toggle-btn:hover,
+.alt-login-toggle-btn.active {
+  background: rgba(13, 148, 136, 0.08);
+  color: #0f766e;
+}
+
+.alt-login-toggle-btn .alt-toggle-icon {
+  font-size: 18px;
+  color: inherit;
+}
+
+.alt-login-toggle-btn .toggle-chevron {
+  font-size: 18px;
+  color: inherit;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .alt-login-group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  margin-top: 2px;
+  margin-top: 10px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-sizing: border-box;
+  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, margin 0.25s ease, padding 0.25s ease;
+  overflow: hidden;
+  max-height: 500px;
+  opacity: 1;
+}
+
+.alt-login-group.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  border: none !important;
+  pointer-events: none;
 }
 
 /* ================== ปุ่มสแกน QR Code ================== */
@@ -774,26 +1018,16 @@ body {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .qr-btn span.material-symbols-outlined {
   font-size: 20px;
 }
 
-.qr-btn:hover {
-  background: #ccfbf1;
-  border-color: #0f766e;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.12);
-}
-
 .qr-btn:active {
-  transform: scale(0.96) translateY(1px);
   background: #bbf7d0;
   border-color: #0d9488;
   box-shadow: inset 0 2px 4px rgba(13, 148, 136, 0.12);
-  transition-duration: 0.08s;
 }
 
 /* ================== ปุ่มสแกน Biometrics ================== */
@@ -817,26 +1051,16 @@ body {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .biometric-btn span.material-symbols-outlined {
   font-size: 20px;
 }
 
-.biometric-btn:hover {
-  background: #dcfce7;
-  border-color: #15803d;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.12);
-}
-
 .biometric-btn:active {
-  transform: scale(0.96) translateY(1px);
   background: #bbf7d0;
   border-color: #16a34a;
   box-shadow: inset 0 2px 4px rgba(22, 163, 74, 0.12);
-  transition-duration: 0.08s;
 }
 
 .login-footer-info {
@@ -1034,7 +1258,7 @@ body {
 }
 
 .swal2-popup {
-  font-family: 'IBM Plex Sans Thai', 'Plus Jakarta Sans', 'Sarabun', sans-serif !important;
+  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif !important;
   border-radius: 20px !important;
   padding: 1.8em !important;
   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
@@ -1078,11 +1302,12 @@ body {
   }
 
   .brand-logo {
-    height: clamp(56px, 9vh, 72px);
+    height: clamp(80px, 12vh, 110px);
   }
 
-  .brand-area h1 {
-    font-size: clamp(20px, 4.5vw, 22px);
+  .brand-area h1,
+  #pvtLoginHeader {
+    font-size: clamp(16px, 4vw, 19px) !important;
   }
 
   #loginForm {
@@ -2326,9 +2551,8 @@ body {
   margin-top: -2px;
 }
 
-.qr-guide-link-btn:hover {
-  background: rgba(13, 148, 136, 0.08);
-  color: #0f766e;
+.qr-guide-link-btn:active {
+  transform: scale(0.95);
 }
 
 .biometric-guide-btn {
@@ -2349,9 +2573,8 @@ body {
   margin-top: -2px;
 }
 
-.biometric-guide-btn:hover {
-  background: rgba(22, 163, 74, 0.08);
-  color: #166534;
+.biometric-guide-btn:active {
+  transform: scale(0.95);
 }
 
 @media screen and (max-width: 640px) {
@@ -2363,3 +2586,71 @@ body {
     padding-right: 16px;
   }
 }
+
+/* 🌐 Connectivity Status Indicator Styling */
+.pvt-connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 4px 12px;
+  background: rgba(241, 245, 249, 0.6);
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.pvt-connection-status .status-icon {
+  font-size: 14px;
+}
+
+.pvt-connection-status .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+/* Online State */
+.pvt-connection-status.online {
+  border-color: #bbf7d0;
+  color: #15803d;
+  background: #f0fdf4;
+}
+.pvt-connection-status.online .status-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+/* Offline State */
+.pvt-connection-status.offline {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+.pvt-connection-status.offline .status-dot {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+  animation: connectionPulse 1.5s infinite;
+}
+
+/* Limited/Sync State */
+.pvt-connection-status.limited {
+  border-color: #fde68a;
+  color: #92400e;
+  background: #fffbeb;
+}
+.pvt-connection-status.limited .status-dot {
+  background: #f59e0b;
+}
+
+@keyframes connectionPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+

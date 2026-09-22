@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="th">
 <head>
+  <script src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -12,22 +13,21 @@
   
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/home.css" />
-  <link rel="stylesheet" href="/css/leave-sla-tracker.css" />
-  <link rel="stylesheet" href="/css/system-settings.css" />
+  <link rel="stylesheet" href="/css/hr-home.css" />
 </head>
 
-<body>
-  <div class="app-shell">
+<body id="page-hr-home">
+  <div class="app-shell" id="appLayout">
     
     <!--  SIDEBAR ด้านซ้าย (Unified Luxury Sidebar) -->
     <aside class="sidebar-light" id="mainSidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
-          <span class="material-symbols-outlined">groups</span>
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
-        <div class="brand-name">PVT WORKFORCE HUB</div>
-        <button class="btn-close-sidebar" onclick="toggleMobileSidebar()" style="display: none;" title="ปิดเมนู">
+        <div class="brand-name">PVTT WORKFORCE HUB</div>
+        <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
       </div>
@@ -35,70 +35,67 @@
       <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
       <div class="sidebar-cta-wrap">
         <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
-          <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">fact_check</span>
           <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
         </a>
       </div>
 
       <nav class="nav-menu">
         <a href="/pages/hr/home.html" class="nav-item active" title="ภาพรวมระบบ">
-          <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
         <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
-          <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">ตรวจใบลา</span>
           <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
         <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
-          <img src="/assets/icons/management-gear.svg" alt="ระบบจัดการส่วนกลาง" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">tune</span>
           <span class="nav-label">ระบบจัดการส่วนกลาง</span>
         </a>
         <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
-          <img src="/assets/icons/analytics-dashboard.svg" alt="สถิติวันลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">analytics</span>
           <span class="nav-label">สถิติวันลา</span>
         </a>
-        <a href="/pages/user/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
-          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
-          <span class="nav-label">ปฏิทิน</span>
+        <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">จัดการวันหยุด</span>
         </a>
-
+        
         <div class="sidebar-divider"></div>
         <div class="sidebar-section-title">บริการด่วน</div>
-
+        
         <!--  ปุ่มจัดการข่าวสารองค์กร -->
         <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
-          <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">campaign</span>
           <span class="nav-label">ข่าวสาร</span>
         </a>
 
         <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
-        <button type="button" class="nav-item" onclick="openEmployeeCardManagerPopup(); return false;" title="ระบบบัตรพนักงาน">
-          <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" class="nav-icon-custom" />
-          <span class="nav-label">บัตรพนักงาน</span>
-        </button>
+        <a href="/pages/hr/employee-cards.html" class="nav-item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="nav-label">บัตรพนักงาน (Admin)</span>
+        </a>
+        
+        <!-- ประวัติการเข้าสู่ระบบ -->
+        <a href="/pages/hr/login-logs.html" class="nav-item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
 
         <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
         <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
-          <img src="/assets/icons/user-profile.svg" alt="หน้าหลักของพนักงาน" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">person</span>
           <span class="nav-label">หน้าหลักของพนักงาน</span>
         </a>
-
-        <!-- <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; display: inline-block;" /> ตั้งค่า -->
-                <!-- 💡 ปุ่มแนะนำระบบ -->
-        <a href="/pages/user/full-guide.html" class="nav-item" title="แนะนำระบบการใช้งาน">
-          <img src="/assets/icons/user-guide.svg" alt="แนะนำระบบ" class="nav-icon-custom" />
-          <span class="nav-label">แนะนำระบบ</span>
-        </a>
-        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
-          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
-          <span class="nav-label">ตั้งค่า</span>
-        </button>
       </nav>
 
       <div class="sidebar-footer">
-        <button class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
-          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
+        <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
           <span>ออกจากระบบ</span>
         </button>
       </div>
@@ -110,9 +107,6 @@
       <!-- TOPBAR -->
       <header class="topbar">
         <div class="topbar-left">
-          <button class="mobile-menu-btn" id="mobileMenuBtn" title="เปิดเมนู" onclick="toggleMobileSidebar()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block; width: 22px; height: 22px;"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-          </button>
           <div>
             <h1>ภาพรวมระบบ</h1>
             <p>PVT HR Live Tracking System</p>
@@ -127,8 +121,8 @@
 
           <!-- 🔔 NOTIFICATION COMPONENT (REAL DATA - LARGE & CLEAR UI) -->
           <div class="notif-wrapper" style="position: relative; display: inline-block;">
-            <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน" style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 14px;">
-              <img src="/assets/icons/bell-new.svg" alt="การแจ้งเตือน" style="width: 26px; height: 26px; object-fit: contain;" />
+            <button type="button" class="notif-btn" id="notifBellBtn" title="การแจ้งเตือน" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%;">
+              <img src="/assets/icons/bell-new.svg" alt="การแจ้งเตือน" style="width: 22px; height: 22px; object-fit: contain;" />
               <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
             </button>
 
@@ -259,136 +253,9 @@
         </div>
       </div>
 
-      <!--  ROW: Today's Leaves Detailed List -->
-      <section class="panel mb-6" id="todayLeavesPanel">
-        <div class="panel-header">
-          <span class="material-symbols-outlined text-primary">hail</span>
-          <h2>รายละเอียดพนักงานที่ลาวันนี้</h2>
-        </div>
-        <div class="card-body">
-          <div id="todayLeavesDetailList" class="today-leaves-grid">
-            <div style="padding: 20px; text-align: center; color: #94a3b8;">กำลังโหลดข้อมูล...</div>
-          </div>
-        </div>
-      </section>
-
-      <!--  PANEL: รายชื่อพนักงานในแผนก (สำหรับหัวหน้า / ผู้จัดการ / HR) -->
-      <section class="panel mb-6 home-team-panel" id="homeDepartmentTeamSection">
-        <div class="panel-header">
-          <div class="home-team-header-left">
-            <div class="panel-icon-circle">
-              <span class="material-symbols-outlined">group</span>
-            </div>
-            <div>
-              <div class="home-team-title-wrap">
-                <h2 id="homeTeamSectionTitle">สมาชิกพนักงานในแผนก</h2>
-                <span id="homeTeamCountBadge">0 คน</span>
-              </div>
-              <p id="homeTeamSectionSubtitle">รายชื่อพนักงานและตำแหน่งงานสังกัดแผนกของคุณ</p>
-            </div>
-          </div>
-          
-          <div class="home-team-controls">
-            <!-- ช่องค้นหา -->
-            <div class="home-team-search">
-              <span class="material-symbols-outlined search-icon">search</span>
-              <input type="text" id="homeTeamSearchInput" placeholder="ค้นหาชื่อ, รหัส, ตำแหน่ง..." oninput="handleHomeTeamSearch(this.value)" autocomplete="off">
-            </div>
-
-            <!-- ปุ่มย้อนกลับ/ขยาย -->
-            <button type="button" class="btn-toggle-icon" onclick="toggleHomeTeamContainer(this)" title="ซ่อน/แสดง รายชื่อสมาชิก" aria-label="ซ่อน/แสดง รายชื่อสมาชิก">
-              <span class="material-symbols-outlined" id="homeTeamToggleIcon">expand_less</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="card-body" id="homeTeamBodyWrapper">
-          <!-- Filter chips -->
-          <div id="homeTeamRoleFilters">
-            <button type="button" class="team-filter-chip active" onclick="filterHomeTeamByRole('all', this)">
-              ทั้งหมด (<span id="chipCountAll">0</span>)
-            </button>
-            <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('leader', this)">
-               หัวหน้า/ผจก. (<span id="chipCountLeader">0</span>)
-            </button>
-            <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('staff', this)">
-               พนักงาน (<span id="chipCountStaff">0</span>)
-            </button>
-          </div>
-
-          <!-- Roster Grid Container (3-4 columns) -->
-          <div id="homeTeamScrollContainer" class="home-team-scroll-area">
-            <div id="homeTeamMembersGrid" class="team-grid-4col">
-              <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 14px;">
-                ⏳ กำลังโหลดข้อมูลสมาชิกในแผนก...
-              </div>
-            </div>
-          </div>
-
-          <!-- Footer summary -->
-          <div id="homeTeamFooterBar">
-            <span id="homeTeamShowingInfo">กำลังแสดง 0 คน</span>
-            <button type="button" id="btnToggleTeamHeight" onclick="toggleHomeTeamScrollHeight()">
-              <span id="txtToggleTeamHeight">ขยายดูทั้งหมด</span>
-              <span class="material-symbols-outlined" id="icoToggleTeamHeight">unfold_more</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
       <!--  ROW 1: เมนูด่วน + กราฟสัดส่วนประเภทการลา -->
-      <div class="middle-grid">
+      <div>
         <!-- เมนูด่วน -->
-        <section class="panel quick-menu-panel">
-          <div class="panel-header">
-            <span class="material-symbols-outlined text-primary">apps</span>
-            <h2>เมนูจัดการด่วน</h2>
-          </div>
-          <div class="quick-grid">
-            <a href="/pages/hr/hr.html" class="quick-card hover-purple">
-              <div class="icon-circle bg-purple"><span class="material-symbols-outlined">fact_check</span></div>
-              <div class="text">
-                <strong>ตรวจใบลา</strong>
-                <p>จัดการคำขอลา</p>
-              </div>
-            </a>
-            <a href="/pages/hr/management.html" class="quick-card hover-blue">
-              <div class="icon-circle bg-blue"><span class="material-symbols-outlined">manage_accounts</span></div>
-              <div class="text">
-                <strong>ข้อมูลพนักงาน</strong>
-                <p>เพิ่ม/แก้ไข สมาชิก</p>
-              </div>
-            </a>
-            <a href="/pages/user/leave-rules.html" class="quick-card hover-green">
-              <div class="icon-circle bg-green"><span class="material-symbols-outlined">rule</span></div>
-              <div class="text">
-                <strong>เงื่อนไขการลา</strong>
-                <p>ตั้งค่าสิทธิ์วันลา</p>
-              </div>
-            </a>
-            <a href="/pages/user/holidays.html" class="quick-card hover-orange">
-              <div class="icon-circle" style="background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center;"><img src="/assets/icons/calendar-event.svg" alt="วันหยุดบริษัท" style="width: 24px; height: 24px; object-fit: contain;" /></div>
-              <div class="text">
-                <strong>วันหยุดบริษัท</strong>
-                <p>กำหนดปฏิทิน</p>
-              </div>
-            </a>
-            <a href="javascript:void(0)" onclick="openEmployeeCardManagerPopup()" class="quick-card hover-card-qr">
-              <div class="icon-circle" style="background: rgba(2, 132, 199, 0.12); display: flex; align-items: center; justify-content: center;"><img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" style="width: 24px; height: 24px; object-fit: contain;" /></div>
-              <div class="text">
-                <strong>บัตรพนักงาน</strong>
-                <p>เปิดระบบจัดการบัตร</p>
-              </div>
-            </a>
-            <a href="javascript:void(0)" onclick="window.openLoginLogsViewerModal ? window.openLoginLogsViewerModal() : (window.viewLoginAuditLogs ? window.viewLoginAuditLogs() : null)" class="quick-card hover-blue">
-              <div class="icon-circle" style="background: rgba(13, 148, 136, 0.15); color: #0d9488;"><span class="material-symbols-outlined">shield_person</span></div>
-              <div class="text">
-                <strong>ประวัติการเข้าสู่ระบบ</strong>
-                <p>ตรวจสอบ Login Logs</p>
-              </div>
-            </a>
-          </div>
-        </section>
 
         <!--   Card สัดส่วนประเภทการลา -->
         <div class="leave-analytics-card">
@@ -463,7 +330,66 @@
         </section>
       </div>
 
-      <!-- ROW 3 was here, removed as requested -->
+      <!-- SECTION: Recharts Analytics (สถิติรายวันประจำเดือน) ย้ายมาจากหน้าจัดการ -->
+      <div class="section-title" style="margin-top: 24px;">
+        <span class="material-symbols-outlined">monitoring</span>
+        <span>วิเคราะห์แนวโน้มการเข้าใช้งานและการลาประจำเดือนนี้</span>
+      </div>
+      <div id="rechartsSummaryPanel" style="margin-bottom: 24px;"></div>
+
+      <!-- SECTION 2: การ์ดสรุปสถิติ (Stat Cards) ย้ายมาจากหน้าจัดการ -->
+      <div class="section-title" style="margin-top: 24px;">
+        <span class="material-symbols-outlined">analytics</span>
+        <span>สรุปภาพรวมสถิติการลา (ทั้งปี)</span>
+      </div>
+      <section class="summary-grid" style="margin-bottom: 24px;">
+        <article class="panel stat-card animate-scale delay-100 hover-lift">
+          <span class="stat-label">พนักงานทั้งหมด</span>
+          <strong id="statEmployees" class="stat-val">0</strong>
+        </article>
+        <article class="panel stat-card animate-scale delay-200 hover-lift" onclick="location.href='/pages/hr/hr.html'" style="cursor: pointer;">
+          <span class="stat-label">รายการลาทั้งหมด</span>
+          <strong id="statLeaves" class="stat-val">0</strong>
+        </article>
+        <article class="panel stat-card animate-scale delay-300 hover-lift" onclick="location.href='/pages/hr/hr.html?tab=pending'" style="cursor: pointer;">
+          <span class="stat-label">รออนุมัติ</span>
+          <strong id="statPending" class="stat-val warning">0</strong>
+        </article>
+        <article class="panel stat-card animate-scale delay-400 hover-lift" onclick="location.href='/pages/hr/hr.html?tab=history&filter=fully_approved'" style="cursor: pointer;">
+          <span class="stat-label">วันลารวม</span>
+          <strong id="statDays" class="stat-val primary">0</strong>
+        </article>
+      </section>
+
+      <!-- SECTION 3: กราฟวิเคราะห์ (Charts) ย้ายมาจากหน้าจัดการ -->
+      <section class="chart-grid" style="margin-bottom: 24px;">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>สรุปแยกตามประเภทการลา</h2>
+            <span id="typeChartNote" class="status active">พร้อมใช้งาน</span>
+          </div>
+          <div id="typeChart" class="bars"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <h2>สถานะคำขอลา</h2>
+          </div>
+          <div id="statusChart" class="bars"></div>
+        </article>
+      </section>
+
+      <!--  ROW: Today's Leaves Detailed List -->
+      <section class="panel mb-6" id="todayLeavesPanel">
+        <div class="panel-header">
+          <span class="material-symbols-outlined text-primary">hail</span>
+          <h2>รายละเอียดพนักงานที่ลาวันนี้</h2>
+        </div>
+        <div class="card-body">
+          <div id="todayLeavesDetailList" class="today-leaves-grid">
+            <div style="padding: 20px; text-align: center; color: #94a3b8;">กำลังโหลดข้อมูล...</div>
+          </div>
+        </div>
+      </section>
 
     </main>
   </div>
@@ -475,6 +401,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
 
 <!-- 2. Your JS Files -->
 <script type="module" src="/js/supabase-config.js"></script>
@@ -484,6 +414,7 @@
 <script type="module" src="/js/delegation-service.js"></script>
 <script type="module" src="/js/components/leave-sla-tracker.js"></script>
 <script type="module" src="/js/components/login-logs-viewer.js"></script>
+<script type="module" src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error(' โหลด recharts-summary.js ล้มเหลว')"></script>
 <script type="module" src="/js/home.js"></script>
 <script type="module" src="/js/system-diagnostics.js"></script>
 </body>

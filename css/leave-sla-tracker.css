@@ -432,7 +432,7 @@
 .sla-countdown-digits {
   font-size: 15px;
   font-weight: 800;
-  font-family: 'Kanit', 'Sarabun', monospace;
+  font-family: 'Sarabun', monospace;
   color: #0f172a;
   display: flex;
   align-items: baseline;

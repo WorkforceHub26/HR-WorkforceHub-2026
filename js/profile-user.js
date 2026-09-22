@@ -10,7 +10,10 @@ async function loadProfile() {
 
   try {
     let currentUserData = null;
-    const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+    let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client);
+    if (!client || typeof client.from !== 'function') {
+      if (window.supabase && typeof window.supabase.from === 'function') client = window.supabase;
+    }
 
     // 1️⃣ ดึงข้อมูลผ่าน Helper Function pvtSupabase (ถ้ามี)
     if (window.pvtSupabase && typeof window.pvtSupabase.getCurrentProfile === "function") {
@@ -91,11 +94,72 @@ async function loadProfile() {
       }
     }
 
+    // -------------------------------------------------------------
+    // 🎨 Helper Function: ดึง URL รูปโปรไฟล์พนักงานอย่างสมบูรณ์ตามระบบ
+    // -------------------------------------------------------------
+    function getProfileAvatarUrl(empData) {
+      if (!empData) return "/assets/img/avatar-male.jpg?v=2";
+      
+      const rawUrl = empData.image_url || empData.avatar_url || empData.profile_image_url || empData.image;
+      const title = empData.title || empData.prefix || "";
+      const gender = empData.gender || "";
+      const fullName = empData.full_name || empData.name || "";
+
+      if (window.pvtSupabase && typeof window.pvtSupabase.getAvatarUrl === "function") {
+        return window.pvtSupabase.getAvatarUrl(rawUrl, title, gender, fullName);
+      }
+      if (window.PVTSDK && window.PVTSDK.storage && typeof window.PVTSDK.storage.getAvatarUrl === "function") {
+        return window.PVTSDK.storage.getAvatarUrl(rawUrl, title, gender, fullName);
+      }
+      if (typeof window.getAvatarUrl === "function") {
+        return window.getAvatarUrl(rawUrl, title, gender, fullName);
+      }
+
+      if (rawUrl && String(rawUrl).trim() !== "" && rawUrl !== "null" && rawUrl !== "undefined" && rawUrl !== "/assets/img/default-avatar.jpg") {
+        const clean = String(rawUrl).trim();
+        if (clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:")) {
+          return clean;
+        }
+        return `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${clean.replace(/^\//, '')}`;
+      }
+
+      if (typeof window.getDefaultAvatarUrl === "function") {
+        return window.getDefaultAvatarUrl(title, gender, fullName);
+      }
+
+      const cleanTitle = String(title).toLowerCase();
+      const cleanGender = String(gender).toLowerCase();
+      const cleanName = String(fullName).toLowerCase();
+      const isFemale = ["นางสาว", "นาง", "น.ส.", "นส", "สาว", "female", "หญิง"].some(t => cleanTitle.includes(t) || cleanGender.includes(t) || cleanName.includes(t));
+
+      return isFemale ? "/assets/img/avatar-female.jpg?v=2" : "/assets/img/avatar-male.jpg?v=2";
+    }
+
     // รวมข้อมูลที่ดึงจาก DB หรือจาก Session
     const emp = realProfile || currentUserData.employees || currentUserData;
     const deptName = emp?.departments?.department_name || emp?.department_name || "-";
     const posName = emp?.positions?.position_name || emp?.position_name || "-";
     const rawStartDate = emp?.start_date || emp?.join_date || emp?.created_at || currentUserData?.created_at;
+
+    const empTitle = emp?.title || emp?.prefix || "";
+    const empGender = emp?.gender || "";
+    const empName = emp?.full_name || currentUserData?.display_name || currentUserData?.full_name || "พนักงาน";
+    const empCode = emp?.employee_code || currentUserData?.employee_code || "-";
+
+    const resolvedAvatarUrl = getProfileAvatarUrl(emp);
+    const fallbackAvatarUrl = (typeof window.getDefaultAvatarUrl === "function")
+      ? window.getDefaultAvatarUrl(empTitle, empGender, empName)
+      : (empTitle.includes('สาว') || empTitle.includes('นาง') || empTitle.includes('น.ส.') || empGender === 'female' || empName.includes('นาง') || empName.includes('น.ส.') ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
+
+    // 🔄 อัปเดตรูปโปรไฟล์ใน Header ด้านบน
+    const userHeaderAvatarEl = document.getElementById("userAvatar");
+    if (userHeaderAvatarEl) {
+      userHeaderAvatarEl.src = resolvedAvatarUrl;
+      userHeaderAvatarEl.onerror = function() {
+        this.onerror = null;
+        this.src = fallbackAvatarUrl;
+      };
+    }
 
     const escapeFn = window.pvtSupabase?.escapeHtml || ((str) => str || "-");
     const dateFn = window.pvtSupabase?.formatThaiDate || ((dateStr) => {
@@ -120,16 +184,33 @@ async function loadProfile() {
       lblStartDate: "วันเริ่มงาน"
     };
 
-    // 🌟 พ่น HTML แสดงผลข้อมูลโปรไฟล์จริง
+    // 🌟 พ่น HTML แสดงผลข้อมูลโปรไฟล์จริงพร้อมการ์ดรูปโปรไฟล์และการอัปโหลด
     box.innerHTML = `
+      <!-- 📸 การ์ดรูปโปรไฟล์พร้อมปุ่มอัปโหลดเปลี่ยนรูปภาพ -->
+      <div class="profile-avatar-card" style="padding: 24px 16px; background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid #e2e8f0; border-radius: 16px; text-align: center; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+        <div style="position: relative; width: 110px; height: 110px; margin: 0 auto 14px auto;">
+          <img id="profileAvatarImg" src="${resolvedAvatarUrl}" alt="${escapeFn(empName)}" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid #ffffff; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);" onerror="this.onerror=null; this.src='${fallbackAvatarUrl}';" />
+          <button type="button" id="btnTriggerAvatarUpload" onclick="document.getElementById('profileAvatarFileInput').click()" title="เปลี่ยนรูปโปรไฟล์" style="position: absolute; bottom: 2px; right: 2px; width: 36px; height: 36px; border-radius: 50%; background: #0284c7; color: #ffffff; border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); transition: transform 0.2s;">
+            <span class="material-symbols-outlined" style="font-size: 20px;">photo_camera</span>
+          </button>
+          <input type="file" id="profileAvatarFileInput" accept="image/*" style="display: none;" onchange="handleProfileAvatarUpload(this)" />
+        </div>
+        <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">${escapeFn(empName)}</h3>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
+          <span style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600;">รหัส: ${escapeFn(empCode)}</span>
+          <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600;">${escapeFn(deptName)}</span>
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin: 10px 0 0 0;">แตะไอคอนกล้องถ่ายรูปเพื่ออัปโหลดหรือเปลี่ยนรูปโปรไฟล์</p>
+      </div>
+
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
         <span style="color: #64748b; font-size: 14px;">${t.lblFullName || "ชื่อ-นามสกุล"}</span>
-        <strong style="color: #1e293b; font-size: 15px;">${escapeFn(emp?.full_name || currentUserData?.display_name || currentUserData?.full_name)}</strong>
+        <strong style="color: #1e293b; font-size: 15px;">${escapeFn(empName)}</strong>
       </article>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
         <span style="color: #64748b; font-size: 14px;">${t.lblEmpCode || "รหัสพนักงาน"}</span>
-        <strong style="color: #1e293b; font-size: 15px;">${escapeFn(emp?.employee_code || currentUserData?.employee_code)}</strong>
+        <strong style="color: #1e293b; font-size: 15px;">${escapeFn(empCode)}</strong>
       </article>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -167,11 +248,27 @@ async function loadProfile() {
 
 
 
-    // Initialize WebAuthn biometric settings
-    try {
-      await initBiometricProfile();
-    } catch (bioErr) {
-      console.warn("Error initializing biometrics in profile:", bioErr);
+    // Role-based visibility for LINE Notification Settings (เฉพาะหัวหน้างาน, ผู้จัดการ, ผู้บริหาร และ HR/Admin)
+    const lineSection = document.getElementById("lineNotificationSection");
+    if (lineSection) {
+      const r = String(emp?.role || currentUserData?.role || '').toLowerCase();
+      const p = String(emp?.position_name || emp?.positions?.position_name || '').toLowerCase();
+      const l = String(emp?.positions?.level_type || emp?.level_type || '').toLowerCase();
+
+      const isLeaderOrManager = 
+        r.includes('manager') || r.includes('ผู้จัดการ') ||
+        r.includes('leader') || r.includes('supervisor') || r.includes('หัวหน้า') ||
+        r.includes('admin') || r.includes('hr') || r.includes('executive') || r.includes('director') || r.includes('owner') ||
+        p.includes('ผู้จัดการ') || p.includes('manager') || p.includes('ผจก') ||
+        p.includes('หัวหน้า') || p.includes('supervisor') || p.includes('head') ||
+        p.includes('ผู้บริหาร') || p.includes('ผู้อำนวยการ') ||
+        l.includes('ผู้จัดการ') || l.includes('manager') || l.includes('leader') || l.includes('supervisor');
+
+      if (isLeaderOrManager) {
+        lineSection.style.display = "block";
+      } else {
+        lineSection.style.display = "none";
+      }
     }
 
     console.log("✅ [SUCCESS] โหลดข้อมูลโปรไฟล์จริงของ HR/User สำเร็จ!");
@@ -197,7 +294,10 @@ async function saveUserLineId() {
   }
 
   try {
-    const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+    let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client);
+    if (!client || typeof client.from !== 'function') {
+      if (window.supabase && typeof window.supabase.from === 'function') client = window.supabase;
+    }
     if (!client) throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูล Supabase ได้');
 
     const { error } = await client
@@ -305,7 +405,10 @@ async function generateLineLinkCode() {
     return;
   }
 
-  const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabase || window.sb);
+  let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client);
+  if (!client || typeof client.from !== 'function') {
+    if (window.supabase && typeof window.supabase.from === 'function') client = window.supabase;
+  }
   if (!client) return;
 
   try {
@@ -377,9 +480,129 @@ async function generateLineLinkCode() {
   }
 }
 
+async function handleProfileAvatarUpload(input) {
+  if (!input || !input.files || !input.files[0]) return;
+  const file = input.files[0];
+
+  if (!file.type.startsWith("image/")) {
+    if (window.Swal) Swal.fire("ไฟล์ไม่ถูกต้อง", "กรุณาเลือกไฟล์รูปภาพ (JPG, PNG, WebP) เท่านั้น", "warning");
+    else alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    if (window.Swal) Swal.fire("ไฟล์มีขนาดใหญ่เกินไป", "ขนาดไฟล์ต้องไม่เกิน 10 MB", "warning");
+    else alert("ขนาดไฟล์ต้องไม่เกิน 10 MB");
+    return;
+  }
+
+  try {
+    if (window.Swal) {
+      Swal.fire({
+        title: "กำลังอัปโหลดรูปโปรไฟล์...",
+        text: "กรุณารอสักครู่ ระบบกำลังประมวลผลและอัปเดตรูปภาพ",
+        allowOutsideClick: false,
+        didOpen: () => { if (Swal.showLoading) Swal.showLoading(); }
+      });
+    }
+
+    const emp = window.currentEmpProfile || {};
+    const empCode = emp.employee_code || emp.code || "EMP_" + (emp.id || Date.now());
+    const empId = emp.id || emp.employee_id;
+
+    let uploadedPublicUrl = null;
+    let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client || window.supabase);
+
+    if (window.pvtSupabase && typeof window.pvtSupabase.uploadEmployeeAvatar === "function" && empId) {
+      try {
+        uploadedPublicUrl = await window.pvtSupabase.uploadEmployeeAvatar(empId, file);
+      } catch (err) {
+        console.warn("pvtSupabase.uploadEmployeeAvatar error, using direct bucket upload:", err);
+      }
+    }
+
+    if (!uploadedPublicUrl && client && client.storage) {
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `avatars/${empCode}_${Date.now()}.${fileExt}`;
+
+      const { data, error } = await client.storage
+        .from('employee-images')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = client.storage
+        .from('employee-images')
+        .getPublicUrl(fileName);
+
+      uploadedPublicUrl = publicUrlData?.publicUrl || `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${fileName}`;
+
+      if (empId) {
+        await client.from('employees').update({ image_url: fileName }).eq('id', empId);
+      } else if (empCode) {
+        await client.from('employees').update({ image_url: fileName }).eq('employee_code', empCode);
+      }
+    }
+
+    if (!uploadedPublicUrl) {
+      throw new Error("ไม่สามารถรับ URL รูปภาพจากเซิร์ฟเวอร์ได้");
+    }
+
+    // Update Local Cache
+    emp.image_url = uploadedPublicUrl;
+    emp.avatar_url = uploadedPublicUrl;
+    window.currentEmpProfile = emp;
+
+    const possibleStorageKeys = ["currentUser", "pvt_user", "user", "profile", "employee_session", "hr_session", "loggedInUser"];
+    for (const key of possibleStorageKeys) {
+      const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed) {
+            parsed.image_url = uploadedPublicUrl;
+            parsed.avatar_url = uploadedPublicUrl;
+            if (parsed.employees) {
+              parsed.employees.image_url = uploadedPublicUrl;
+              parsed.employees.avatar_url = uploadedPublicUrl;
+            }
+            if (localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(parsed));
+            if (sessionStorage.getItem(key)) sessionStorage.setItem(key, JSON.stringify(parsed));
+          }
+        } catch (e) {}
+      }
+    }
+
+    // Update DOM Images
+    const avatarImgEl = document.getElementById("profileAvatarImg");
+    if (avatarImgEl) avatarImgEl.src = uploadedPublicUrl;
+
+    const userHeaderAvatarEl = document.getElementById("userAvatar");
+    if (userHeaderAvatarEl) userHeaderAvatarEl.src = uploadedPublicUrl;
+
+    if (window.Swal) {
+      Swal.fire({
+        icon: "success",
+        title: "อัปโหลดรูปโปรไฟล์สำเร็จ! 🎉",
+        text: "อัปเดตรูปภาพโปรไฟล์เรียบร้อยแล้ว",
+        timer: 2000,
+        showConfirmButton: false
+      });
+    } else {
+      alert("อัปโหลดรูปโปรไฟล์สำเร็จแล้ว");
+    }
+
+  } catch (error) {
+    console.error("❌ Error uploading profile avatar:", error);
+    if (window.Swal) Swal.fire("อัปโหลดไม่สำเร็จ", error.message || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ", "error");
+    else alert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ: " + (error.message || ""));
+  }
+}
+
 window.saveUserLineId = saveUserLineId;
 window.testLineNotification = testLineNotification;
 window.generateLineLinkCode = generateLineLinkCode;
+window.handleProfileAvatarUpload = handleProfileAvatarUpload;
 
 window.addEventListener("pvt-lang-changed", () => {
   if (typeof loadProfile === "function") {
@@ -388,320 +611,7 @@ window.addEventListener("pvt-lang-changed", () => {
 });
 
 
-// ============================================================================
-// 🔐 Biometric / WebAuthn Settings in Profile Page
-// ============================================================================
-async function initBiometricProfile() {
-  const statusEl = document.getElementById("biometricSupportStatus");
-  const registerBtn = document.getElementById("btnRegisterBiometric");
-  const nicknameInput = document.getElementById("biometricDeviceName");
-  
-  if (!statusEl || !registerBtn) return;
-
-  const emp = window.currentEmpProfile;
-  if (!emp || !emp.id) {
-    statusEl.innerHTML = `⚠️ <span style="color:#b91c1c;">กรุณารอโหลดโปรไฟล์ให้สำเร็จก่อน</span>`;
-    statusEl.style.backgroundColor = "#fee2e2";
-    statusEl.style.color = "#991b1b";
-    registerBtn.disabled = true;
-    return;
-  }
-
-  // Set default nickname to browser/OS name if possible
-  if (nicknameInput && !nicknameInput.value) {
-    const ua = navigator.userAgent;
-    let deviceName = "เบราว์เซอร์ปัจจุบัน";
-    if (ua.includes("Windows")) deviceName = "Windows Device";
-    else if (ua.includes("Macintosh")) deviceName = "MacBook / iMac";
-    else if (ua.includes("iPhone")) deviceName = "iPhone Device";
-    else if (ua.includes("iPad")) deviceName = "iPad Device";
-    else if (ua.includes("Android")) deviceName = "Android Device";
-    else if (ua.includes("Linux")) deviceName = "Linux Device";
-    nicknameInput.value = deviceName;
-  }
-
-  if (!window.PVTWebAuthn) {
-    statusEl.innerHTML = `⚠️ <span style="color:#b91c1c;">ไม่สามารถโหลดไลบรารีระบบชีวมาตรได้</span>`;
-    statusEl.style.backgroundColor = "#fee2e2";
-    statusEl.style.color = "#991b1b";
-    registerBtn.disabled = true;
-    return;
-  }
-
-  const check = await window.PVTWebAuthn.isBiometricAvailable();
-  if (check.supported) {
-    statusEl.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> <span>อุปกรณ์นี้รองรับการสแกนลายนิ้วมือ / ใบหน้า</span>`;
-    statusEl.style.backgroundColor = "#dcfce7";
-    statusEl.style.color = "#166534";
-    registerBtn.disabled = false;
-  } else {
-    statusEl.innerHTML = `⚠️ <span style="color:#b91c1c;">ไม่รองรับ: ${check.reason}</span>`;
-    statusEl.style.backgroundColor = "#fee2e2";
-    statusEl.style.color = "#991b1b";
-    registerBtn.disabled = true;
-  }
-
-  // List registered devices
-  await loadRegisteredBiometrics();
-}
-
-async function loadRegisteredBiometrics() {
-  const listEl = document.getElementById("registeredBiometricList");
-  if (!listEl) return;
-
-  const emp = window.currentEmpProfile;
-  if (!emp || !emp.id) return;
-
-  if (!window.PVTWebAuthn) return;
-
-  try {
-    const creds = await window.PVTWebAuthn.listEmployeeCredentials(emp.id);
-    if (creds.length === 0) {
-      listEl.innerHTML = `
-        <div style="font-size: 12.5px; color: #64748b; padding: 12px; text-align: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
-          ไม่มีอุปกรณ์ที่ลงทะเบียนไว้ในปัจจุบัน
-        </div>
-      `;
-      return;
-    }
-
-    let html = "";
-    creds.forEach(cred => {
-      const addedDate = new Date(cred.created_at).toLocaleDateString('th-TH', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      
-      html += `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; gap: 10px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="material-symbols-outlined" style="color: #0d9488; font-size: 24px; background: #f0fdfa; padding: 6px; border-radius: 8px;">fingerprint</span>
-            <div>
-              <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${cred.device_name || 'อุปกรณ์ลงทะเบียน'}</div>
-              <div style="font-size: 11.5px; color: #64748b;">ลงทะเบียนเมื่อ: ${addedDate}</div>
-            </div>
-          </div>
-          <button type="button" onclick="deleteBiometricDevice('${cred.id}')" style="background: transparent; color: #ef4444; border: 1px solid #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
-            <span class="material-symbols-outlined" style="font-size: 16px;">delete</span>
-            ลบ
-          </button>
-        </div>
-      `;
-    });
-    listEl.innerHTML = html;
-  } catch (err) {
-    console.error("Error rendering biometric list:", err);
-    listEl.innerHTML = `
-      <div style="font-size: 12.5px; color: #ef4444; padding: 10px; text-align: center; background: #fef2f2; border-radius: 8px;">
-        ไม่สามารถโหลดรายการอุปกรณ์ได้
-      </div>
-    `;
-  }
-}
-
-async function registerCurrentBiometricDevice() {
-  let sessionCheck = null;
-  if (window.PVTWebAuthn?.verifyActiveSession) {
-    try {
-      sessionCheck = await window.PVTWebAuthn.verifyActiveSession();
-    } catch (e) {}
-  }
-
-  let resolvedEmp = sessionCheck?.valid ? sessionCheck.employee : null;
-
-  if (!resolvedEmp) {
-    if (window.PVTWebAuthn?.resolveEmployeeObject) {
-      try {
-        resolvedEmp = await window.PVTWebAuthn.resolveEmployeeObject(window.currentEmpProfile);
-      } catch (e) {}
-    }
-  }
-
-  if (!resolvedEmp || (!resolvedEmp.id && !resolvedEmp.employee_code)) {
-    // กวาดหาข้อมูลจาก session/localStorage สำรอง
-    try {
-      const keys = ["currentUser", "pvt_user", "employee_session", "hr_session", "profile", "loggedInUser"];
-      for (const k of keys) {
-        const raw = localStorage.getItem(k) || sessionStorage.getItem(k);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && (parsed.id || parsed.employee_id || parsed.employee_code)) {
-            resolvedEmp = {
-              id: parsed.id || parsed.employee_id || parsed.employee_code,
-              employee_id: parsed.id || parsed.employee_id || parsed.employee_code,
-              employee_code: parsed.employee_code || parsed.id,
-              full_name: parsed.full_name || parsed.emp_name || 'พนักงาน'
-            };
-            window.currentEmpProfile = parsed;
-            break;
-          }
-        }
-      }
-    } catch (e) {}
-  }
-
-  if (!resolvedEmp || (!resolvedEmp.id && !resolvedEmp.employee_code)) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'ไม่พบข้อมูลการเข้าสู่ระบบ',
-      text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้งก่อนลงทะเบียนอุปกรณ์ไบโอเมตริก',
-      confirmButtonText: 'ไปหน้าเข้าสู่ระบบ',
-      confirmButtonColor: '#0d9488',
-      showCancelButton: true,
-      cancelButtonText: 'ปิด'
-    }).then((res) => {
-      if (res.isConfirmed) {
-        window.location.href = '/index.html';
-      }
-    });
-    return;
-  }
-
-  const nicknameInput = document.getElementById("biometricDeviceName");
-  const nickname = nicknameInput ? nicknameInput.value.trim() : "";
-  if (!nickname) {
-    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุชื่อเรียกอุปกรณ์เพื่อความจดจำ', 'warning');
-    return;
-  }
-
-  const registerBtn = document.getElementById("btnRegisterBiometric");
-  if (registerBtn) registerBtn.disabled = true;
-
-  try {
-    Swal.fire({
-      title: 'กำลังลงทะเบียนอุปกรณ์',
-      text: 'กรุณาแตะเซนเซอร์สแกนนิ้วหรือมองกล้องตามคําแนะนําของระบบ',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    const result = await window.PVTWebAuthn.registerBiometricCredential(resolvedEmp, { deviceName: nickname });
-
-    if (result && (result.success || result.id || result.credential_id)) {
-      Swal.fire({
-        icon: 'success',
-        title: 'ลงทะเบียนสำเร็จ!',
-        text: `ลงทะเบียนอุปกรณ์ "${nickname}" สำหรับคุณ ${resolvedEmp.full_name || ''} เรียบร้อยแล้ว`,
-        confirmButtonColor: '#0d9488'
-      });
-      await loadRegisteredBiometrics();
-    } else {
-      throw new Error(result?.error || 'การยืนยันสิทธิล้มเหลว');
-    }
-  } catch (err) {
-    console.error("Register device failure:", err);
-
-    const errMsg = String(err.message || err || '');
-    const isCancelOrTimeout = (
-      err.code === 'NOT_ALLOWED_ERROR' ||
-      errMsg.includes('ถูกยกเลิก') ||
-      errMsg.includes('หมดเวลา') ||
-      errMsg.includes('NotAllowedError') ||
-      errMsg.includes('NotSupportedError') ||
-      errMsg.includes('canceled')
-    );
-
-    if (isCancelOrTimeout) {
-      const fallbackPrompt = await Swal.fire({
-        icon: 'warning',
-        title: 'การสแกนถูกยกเลิก หรือไม่พบอุปกรณ์ไบโอเมตริก',
-        html: `
-          <div style="text-align: left; font-size: 14px; color: #475569; line-height: 1.5;">
-            <p style="margin-bottom: 8px;">การสแกนลายนิ้วมือ/ใบหน้าถูกยกเลิก หรืออุปกรณ์ไม่มีเซนเซอร์ฮาร์ดแวร์ไบโอเมตริก</p>
-            <p style="margin-bottom: 0; font-weight: 600; color: #0d9488;">คุณต้องการเปิดใช้งาน <strong>Passkey / กุญแจดิจิทัลประจำอุปกรณ์ (Virtual Passkey SIM)</strong> สำหรับอุปกรณ์ "${nickname}" แทนหรือไม่?</p>
-          </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: '🔑 ลงทะเบียน Passkey สำรอง',
-        cancelButtonText: 'ปิดหน้าต่าง',
-        confirmButtonColor: '#0d9488',
-        cancelButtonColor: '#64748b'
-      });
-
-      if (fallbackPrompt.isConfirmed) {
-        try {
-          Swal.fire({
-            title: 'กำลังเปิดใช้งาน Passkey สำรอง...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-          });
-
-          const virtualResult = await window.PVTWebAuthn.registerVirtualBiometricCredential(resolvedEmp, { deviceName: nickname });
-          if (virtualResult && (virtualResult.success || virtualResult.id)) {
-            Swal.fire({
-              icon: 'success',
-              title: 'ลงทะเบียน Passkey สำเร็จ!',
-              text: `ลงทะเบียนกุญแจดิจิทัลประจำอุปกรณ์ "${nickname}" สำหรับคุณ ${resolvedEmp.full_name || ''} เรียบร้อยแล้ว`,
-              confirmButtonColor: '#0d9488'
-            });
-            await loadRegisteredBiometrics();
-            return;
-          }
-        } catch (vErr) {
-          Swal.fire({
-            icon: 'error',
-            title: 'ลงทะเบียนสำรองล้มเหลว',
-            text: vErr.message || 'ไม่สามารถลงทะเบียน Passkey สำรองได้',
-            confirmButtonColor: '#ef4444'
-          });
-          return;
-        }
-      }
-      return;
-    }
-
-    Swal.fire({
-      icon: 'error',
-      title: 'ลงทะเบียนไม่สำเร็จ',
-      text: err.message || 'เกิดปัญหาในการเรียกใช้งานอุปกรณ์รักษาความปลอดภัยชีวมาตร',
-      confirmButtonColor: '#ef4444'
-    });
-  } finally {
-    if (registerBtn) registerBtn.disabled = false;
-  }
-}
-
-async function deleteBiometricDevice(credId) {
-  const confirmRes = await Swal.fire({
-    title: 'ยืนยันการลบอุปกรณ์?',
-    text: 'เมื่อลบแล้ว คุณจะไม่สามารถใช้ลายนิ้วมือหรือการสแกนใบหน้าของอุปกรณ์นี้ล็อกอินได้อีกต่อไป',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#64748b',
-    confirmButtonText: 'ใช่, ต้องการลบ',
-    cancelButtonText: 'ยกเลิก'
-  });
-
-  if (!confirmRes.isConfirmed) return;
-
-  try {
-    const deleted = await window.PVTWebAuthn.deleteBiometricCredential(credId);
-    if (deleted) {
-      Swal.fire({
-        icon: 'success',
-        title: 'ลบสำเร็จ',
-        text: 'ลบกุญแจความปลอดภัยอุปกรณ์นี้เสร็จเรียบร้อย',
-        confirmButtonColor: '#0d9488',
-        timer: 1500,
-        showConfirmButton: false
-      });
-      await loadRegisteredBiometrics();
-    } else {
-      throw new Error("ลบข้อมูลไม่สำเร็จ");
-    }
-  } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
-  }
-}
-
-window.registerCurrentBiometricDevice = registerCurrentBiometricDevice;
-window.deleteBiometricDevice = deleteBiometricDevice;
-
-
-
+// Sidebar Helper Actions
+window.goToLeaveForm = function() { window.location.href = "/pages/user/leave-user.html"; };
+window.viewMyDigitalCard = function() { window.location.href = "/pages/user/index-user.html?action=digital_card"; };
+window.generateLineLinkToken = function() { window.location.href = "/pages/user/index-user.html?action=line_link"; };

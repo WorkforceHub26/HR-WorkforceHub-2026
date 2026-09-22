@@ -24,6 +24,7 @@ let toastTimer = null;
    3. 🚀 INITIALIZATION & EVENT LISTENERS
    ========================================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
+  window.drawCharts = drawCharts;
   console.group("🚀 [Timeline Step 1]: เริ่มต้นโหลดระบบ Dashboard Core");
   
   try {
@@ -176,95 +177,8 @@ function setupBellNotificationToggle() {
    4. 🔄 DATA SYNC & FETCHING
    ========================================================================== */
 window.showSyncSuccessPopup = function(stats, isManualClick = false) {
-  const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-  
-  const titleText = isManualClick ? 'ซิงค์ข้อมูลระบบเรียบร้อยแล้ว' : 'สรุปภาพรวมข้อมูลล่าสุด';
-
-  if (typeof Swal !== 'undefined') {
-    Swal.fire({
-      title: `<div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:18px; font-weight:700; color:#0f766e;">
-        <span class="material-symbols-outlined" style="font-size:26px; color:#0d9488;">cloud_done</span>
-        ${titleText}
-      </div>`,
-      html: `
-        <div style="margin-top:10px; text-align:left; font-family:var(--font-sans, sans-serif);">
-          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
-            <div>
-              <div style="font-size:11px; color:#166534; font-weight:600;">สถานะการเชื่อมต่อฐานข้อมูล</div>
-              <div style="font-size:13px; color:#15803d; font-weight:700; display:flex; align-items:center; gap:6px; margin-top:2px;">
-                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e;"></span>
-                Supabase Live Cloud Connected
-              </div>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:11px; color:#166534;">เวลาที่ซิงค์ล่าสุด</div>
-              <div style="font-size:13px; color:#15803d; font-weight:700;">${timeStr} น.</div>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; margin-bottom:12px;">
-            <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 12px;">
-              <div style="font-size:11px; color:#92400e; font-weight:600; display:flex; align-items:center; gap:4px;">
-                <span class="material-symbols-outlined" style="font-size:16px; color:#d97706;">hourglass_top</span>
-                ใบลารออนุมัติ
-              </div>
-              <div style="font-size:22px; font-weight:800; color:#d97706; margin-top:4px;">${stats.pendingCount || 0} <span style="font-size:12px; font-weight:600; color:#92400e;">รายการ</span></div>
-            </div>
-
-            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 12px;">
-              <div style="font-size:11px; color:#1e40af; font-weight:600; display:flex; align-items:center; gap:4px;">
-                <span class="material-symbols-outlined" style="font-size:16px; color:#2563eb;">event_available</span>
-                ผู้ลาวันนี้
-              </div>
-              <div style="font-size:22px; font-weight:800; color:#2563eb; margin-top:4px;">${stats.todayCount || 0} <span style="font-size:12px; font-weight:600; color:#1e40af;">คน</span></div>
-            </div>
-
-            <div style="background:#f0fdfa; border:1px solid #99f6e4; border-radius:10px; padding:10px 12px;">
-              <div style="font-size:11px; color:#115e59; font-weight:600; display:flex; align-items:center; gap:4px;">
-                <span class="material-symbols-outlined" style="font-size:16px; color:#0f766e;">groups</span>
-                บุคลากรทั้งหมด
-              </div>
-              <div style="font-size:22px; font-weight:800; color:#0f766e; margin-top:4px;">${stats.totalEmp || 0} <span style="font-size:12px; font-weight:600; color:#115e59;">คน</span></div>
-            </div>
-
-            <div style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:10px 12px;">
-              <div style="font-size:11px; color:#5b21b6; font-weight:600; display:flex; align-items:center; gap:4px;">
-                <span class="material-symbols-outlined" style="font-size:16px; color:#7c3aed;">today</span>
-                ผู้ลาพรุ่งนี้
-              </div>
-              <div style="font-size:22px; font-weight:800; color:#7c3aed; margin-top:4px;">${stats.tomorrowCount || 0} <span style="font-size:12px; font-weight:600; color:#5b21b6;">คน</span></div>
-            </div>
-          </div>
-
-          <div style="font-size:11px; color:#94a3b8; text-align:center;">
-            อัปเดตข้อมูลระบบล่าสุดเรียบร้อยแล้ว (${dateStr})
-          </div>
-        </div>
-      `,
-      showConfirmButton: true,
-      confirmButtonText: '<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;font-size:14px;font-weight:700;"><span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> รับทราบ</span>',
-      confirmButtonColor: '#0d9488',
-      showDenyButton: false,
-      showCancelButton: false,
-      timer: 15000,
-      timerProgressBar: true,
-      showCloseButton: true,
-      allowOutsideClick: true,
-      allowEscapeKey: true,
-      focusConfirm: true,
-      customClass: {
-        popup: 'pvt-sync-popup'
-      },
-      didOpen: (popup) => {
-        const container = popup.closest('.swal2-container') || document.querySelector('.swal2-container');
-        if (container) {
-          container.style.zIndex = '2147483647';
-          container.style.pointerEvents = 'auto';
-        }
-      }
-    });
-  } else {
+  // นำ Popup สรุปภาพรวมข้อมูลล่าสุดออกตามที่ผู้ใช้ร้องขอ
+  if (isManualClick && typeof showToast === 'function') {
     showToast('✅ ซิงค์ข้อมูลระบบเรียบร้อยแล้ว', 'success');
   }
 };
@@ -382,8 +296,8 @@ window.refreshDashboardData = async function(isManualClick = false) {
         if (!isNaN(createdTime) && (nowMs - createdTime >= TWO_DAYS_MS)) {
           return {
             ...r,
-            status: 'rejected',
-            approval_comment: r.approval_comment || 'เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)'
+            status: 'cancelled',
+            approval_comment: r.approval_comment || 'ยกเลิกอัตโนมัติเนื่องจากหัวหน้าไม่ได้ดำเนินการในเวลาที่กำหนด (เกิน 2 วัน)'
           };
         }
       }
@@ -471,7 +385,17 @@ window.refreshDashboardData = async function(isManualClick = false) {
     // --- 🎯 Render "My Action Required" items (Action-First Dashboard) ---
     renderMyActionRequiredSection(rawRequests, sessionUser);
 
+    // ผูกข้อมูลเข้าสู่ window เพื่อให้คอมโพเนนต์ Recharts นำไปวาดกราฟแท้จริง
+    window.employees = rawEmployees;
+    window.leaveRequests = rawRequests;
+
     drawCharts();
+    if (typeof renderSummary === "function") {
+      renderSummary();
+    }
+    if (typeof window.renderRechartsDashboard === "function") {
+      window.renderRechartsDashboard();
+    }
     
     // 🟢 แสดง SweetAlert2 Sync Popup Modal รายละเอียดสมบูรณ์
     showSyncSuccessPopup({
@@ -501,6 +425,7 @@ if (typeof window.chartTypeInstance === "undefined") window.chartTypeInstance = 
 if (typeof window.chartDeptInstance === "undefined") window.chartDeptInstance = null;
 
 function drawCharts() {
+  window.drawCharts = drawCharts;
   // 1. ตรวจสอบว่ามีไลบรารี Chart.js หรือไม่
   if (typeof Chart === "undefined") {
     console.warn("⚠️ Chart.js library not loaded yet, retrying in 300ms...");
@@ -1248,11 +1173,14 @@ function renderTodayLeavesDetail(leaves) {
     const emp = r.employees || {};
     const type = r.leave_types?.leave_name || "ไม่ระบุประเภท";
     const dept = (emp.departments?.department_name) || "-";
-    const img = emp.image_url || "/assets/img/default-avatar.jpg";
+    const defaultAvatarFallback = typeof window.getDefaultAvatarUrl === 'function'
+      ? window.getDefaultAvatarUrl(emp.title || emp.prefix, emp.gender, emp.full_name)
+      : "/assets/img/avatar-male.jpg?v=2";
+    const img = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp) : (window.getAvatarUrl ? window.getAvatarUrl(emp) : defaultAvatarFallback);
     
     return `
       <div class="today-leave-card-detail">
-        <img src="${img}" class="emp-avatar" onerror="this.src='/assets/img/default-avatar.jpg'">
+        <img src="${img}" class="emp-avatar" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
         <div class="info">
           <div class="name">${escapeHtmlText(emp.full_name || "ไม่ระบุชื่อ")}</div>
           <div class="dept">${escapeHtmlText(dept)}</div>
@@ -1268,8 +1196,44 @@ function renderTodayLeavesDetail(leaves) {
    ========================================================================== */
 let homeTeamFullList = [];
 let homeTeamCurrentRoleFilter = 'all';
+let homeTeamCurrentDeptFilter = 'all';
 let homeTeamSearchKeyword = '';
 let homeTeamIsExpandedHeight = false;
+
+function populateHomeTeamDepartments() {
+  const select = document.getElementById("homeTeamDeptSelect");
+  if (!select) return;
+
+  const currentVal = select.value || "all";
+
+  // ดึงชื่อแผนกที่ไม่ซ้ำกันของพนักงานทั้งหมดในชุด
+  const depts = new Set();
+  homeTeamFullList.forEach(emp => {
+    const deptName = emp.departments?.department_name || emp.department_name;
+    if (deptName) {
+      depts.add(deptName.trim());
+    }
+  });
+
+  const sortedDepts = Array.from(depts).sort((a, b) => a.localeCompare(b, 'th'));
+
+  // เติมตัวเลือกใน Select แบบไดนามิก
+  select.innerHTML = '<option value="all">ทั้งหมด (ทุกแผนก)</option>' + 
+    sortedDepts.map(d => `<option value="${escapeHtmlText(d)}">${escapeHtmlText(d)}</option>`).join("");
+
+  if (sortedDepts.includes(currentVal)) {
+    select.value = currentVal;
+    homeTeamCurrentDeptFilter = currentVal;
+  } else {
+    select.value = "all";
+    homeTeamCurrentDeptFilter = "all";
+  }
+}
+
+window.handleHomeTeamDeptChange = function(value) {
+  homeTeamCurrentDeptFilter = value || 'all';
+  applyHomeTeamRender();
+};
 
 function renderHomeDepartmentTeam(employeesList, sessionUser) {
   const container = document.getElementById("homeTeamMembersGrid");
@@ -1346,6 +1310,7 @@ function renderHomeDepartmentTeam(employeesList, sessionUser) {
 
   // บันทึกรายการทั้งหมดสำหรับค้นหา/กรอง
   homeTeamFullList = filteredList;
+  populateHomeTeamDepartments();
   updateHomeTeamFilterCounts(filteredList);
   applyHomeTeamRender();
 }
@@ -1378,6 +1343,19 @@ function applyHomeTeamRender() {
   const showingInfo = document.getElementById("homeTeamShowingInfo");
   if (!container) return;
 
+  // จัดการการแสดงผลเปิด/ปิดฟิลเตอร์แผนกเฉพาะเมื่อกดปุ่ม "พนักงาน"
+  const deptFilterContainer = document.getElementById("homeTeamDeptFilterContainer");
+  if (deptFilterContainer) {
+    if (homeTeamCurrentRoleFilter === 'staff') {
+      deptFilterContainer.style.setProperty("display", "flex", "important");
+    } else {
+      deptFilterContainer.style.setProperty("display", "none", "important");
+      homeTeamCurrentDeptFilter = 'all';
+      const select = document.getElementById("homeTeamDeptSelect");
+      if (select) select.value = 'all';
+    }
+  }
+
   let displayList = [...homeTeamFullList];
 
   // กรองตามบทบาท
@@ -1389,7 +1367,14 @@ function applyHomeTeamRender() {
   } else if (homeTeamCurrentRoleFilter === 'staff') {
     displayList = displayList.filter(emp => {
       const r = String(emp.role || '').toLowerCase();
-      return !['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x));
+      const isStaff = !['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x));
+      if (!isStaff) return false;
+
+      if (homeTeamCurrentDeptFilter && homeTeamCurrentDeptFilter !== 'all') {
+        const d = emp.departments?.department_name || emp.department_name || '';
+        return String(d).trim() === String(homeTeamCurrentDeptFilter).trim();
+      }
+      return true;
     });
   }
 
@@ -1421,7 +1406,10 @@ function applyHomeTeamRender() {
   container.className = "team-grid-4col";
 
   container.innerHTML = displayList.map(emp => {
-    const avatar = (window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : emp.image_url) || "/assets/img/default-avatar.jpg";
+    const defaultFallback = typeof window.getDefaultAvatarUrl === 'function' 
+      ? window.getDefaultAvatarUrl(emp.title || emp.prefix, emp.gender, emp.full_name) 
+      : "/assets/img/avatar-male.jpg?v=2";
+    const avatar = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp) : (window.getAvatarUrl ? window.getAvatarUrl(emp) : defaultFallback);
     const pos = emp.positions?.position_name || emp.position_name || "พนักงาน";
     const empCode = emp.employee_code ? `${emp.employee_code}` : "-";
     const nickStr = emp.nickname ? `(${emp.nickname})` : "";
@@ -1445,7 +1433,7 @@ function applyHomeTeamRender() {
 
     return `
       <div class="team-member-card">
-        <img src="${avatar}" class="team-member-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
+        <img src="${avatar}" class="team-member-avatar" onerror="this.onerror=null; this.src='${defaultFallback}';">
         <div style="flex: 1; min-width: 0; overflow: hidden;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
             <span style="font-weight: 700; font-size: 14px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtmlText(fullName)}">
@@ -1540,53 +1528,62 @@ function setupTableSearch() {
    7. 💳 DIGITAL EMPLOYEE CARD MANAGER & BATCH PRINT SYSTEM (FUTURE-PROOFED)
    ========================================================================== */
 
-// 🟢 7.0 CONFIG & HELPER CENTRAL FOR QR CODE & ROUTING
-const PVT_CARD_CONFIG = {
-  // หากพัฒนาบน localhost จะสลับไปใช้ Domain จริงให้อัตโนมัติ เพื่อให้โทรศัพท์สแกนได้
-  PRODUCTION_DOMAIN: "https://dev-workforcehub-2026.pages.dev",
-  // ระบุไฟล์ปลายทางให้ชัดเจนเพื่อป้องกันปัญหา Blank Page (หน้าขาว)
-  ENTRY_PAGE_PATH: "/index.html", 
-  QR_SIZE: "180x180"
+// Centralized delegation to employee-card-modal.js for clean, non-duplicated code
+async function ensureEmployeeCardModalLoaded() {
+  if (typeof window.openEmployeeCardManagerPopup === "function" && window.generateEmployeeCardPNG) {
+    return true;
+  }
+  console.log("Dynamically preloading centralized employee card manager...");
+  await new Promise((resolve) => {
+    const s = document.createElement('script');
+    s.src = '/js/employee-card-modal.js';
+    s.onload = resolve;
+    s.onerror = resolve;
+    document.head.appendChild(s);
+  });
+  return typeof window.openEmployeeCardManagerPopup === "function";
+}
+
+
+// Centralized delegation loader to openEmployeeCardManagerPopup, printSingleCard, printMultipleCards, and showIndividualIdCard
+window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
+  const loaded = await ensureEmployeeCardModalLoaded();
+  if (loaded && typeof window.openEmployeeCardManagerPopup === "function") {
+    return window.openEmployeeCardManagerPopup(forceRefresh);
+  } else {
+    alert("⚠️ ไม่สามารถโหลดระบบบัตรพนักงานได้ กรุณาลองใหม่อีกครั้ง");
+  }
 };
 
-/**
- * ดึง Base URL ของระบบอย่างปลอดภัย
- */
-function getSystemBaseUrl() {
-  const currentOrigin = window.location.origin;
-  if (!currentOrigin || currentOrigin.includes("localhost") || currentOrigin.includes("127.0.0.1") || currentOrigin.includes("file://")) {
-    return PVT_CARD_CONFIG.PRODUCTION_DOMAIN;
+window.showIndividualIdCard = async function (empCode, empName, empRole, empDept, avatarUrl) {
+  const loaded = await ensureEmployeeCardModalLoaded();
+  if (loaded && typeof window.showIndividualIdCard === "function") {
+    return window.showIndividualIdCard(empCode, empName, empRole, empDept, avatarUrl);
   }
-  return currentOrigin;
-}
+};
 
-/**
- * ฟังก์ชันกลางสำหรับสร้าง URL ปลายทาง และ URL รูปภาพ QR Code
- */
-function generateEmployeeQrUrl(empCode) {
-  if (!empCode) return "";
-  
-  const cleanCode = String(empCode).trim();
-  const baseUrl = getSystemBaseUrl();
-  
-  try {
-    const targetUrl = new URL(PVT_CARD_CONFIG.ENTRY_PAGE_PATH, baseUrl);
-    targetUrl.searchParams.set("auto_login", cleanCode);
-
-    const encodedTarget = encodeURIComponent(targetUrl.toString());
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${PVT_CARD_CONFIG.QR_SIZE}&data=${encodedTarget}`;
-  } catch (err) {
-    console.error("❌ Error generating QR URL:", err);
-    const fallbackTarget = `${baseUrl}${PVT_CARD_CONFIG.ENTRY_PAGE_PATH}?auto_login=${encodeURIComponent(cleanCode)}`;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${PVT_CARD_CONFIG.QR_SIZE}&data=${encodeURIComponent(fallbackTarget)}`;
+window.printSingleCard = async function (empCode, empName, position, department, pictureUrl, themeKey) {
+  const loaded = await ensureEmployeeCardModalLoaded();
+  if (loaded && typeof window.printSingleCard === "function") {
+    return window.printSingleCard(empCode, empName, position, department, pictureUrl, themeKey);
   }
-}
+};
 
-// ตัวแปร Cache เก็บรายชื่อพนักงาน
-let cachedEmployeeList = null;
+window.printMultipleCards = async function (selectedList = []) {
+  const loaded = await ensureEmployeeCardModalLoaded();
+  if (loaded && typeof window.printMultipleCards === "function") {
+    return window.printMultipleCards(selectedList);
+  }
+};
 
-// 🟢 7.1 ฟังก์ชันเปิด Popup เลือกพนักงาน (Batch Print & Card Selection)
-window.openEmployeeCardManagerPopup = async function (forceRefresh = false) {
+// Legacy backup to ignore
+const legacyBackupIgnore = true;
+if (false) {
+  // ตัวแปร Cache เก็บรายชื่อพนักงาน
+  let cachedEmployeeList = null;
+
+  // 🟢 7.1 ฟังก์ชันเปิด Popup เลือกพนักงาน (Batch Print & Card Selection)
+  window.openEmployeeCardManagerPopup_legacy = async function (forceRefresh = false) {
   if (typeof Swal === "undefined") {
     alert("⚠️ ไม่พบลายบรารี SweetAlert2");
     return;
@@ -2078,6 +2075,7 @@ window.printMultipleCards = function (selectedList = []) {
 
   setTimeout(() => { openEmployeeCardManagerPopup(); }, 800);
 };
+} // End of legacy block
 
 // 🛠️ Helper Functions สำหรับ Escape ข้อความ ป้องกัน XSS และ Syntax Error
 function escapeHtmlText(str) {
@@ -2616,36 +2614,61 @@ function showToast(msg, type = "success") {
   toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3000);
 }
 
-window.handleLogout = function() {
-  Swal.fire({
-    title: 'ยืนยันการออกจากระบบ',
-    text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#64748b',
-    confirmButtonText: 'ออกจากระบบ',
-    cancelButtonText: 'ยกเลิก',
-    reverseButtons: true,
-    focusCancel: true
-  }).then((result) => {
-    if (result.isConfirmed) {
-      Swal.fire({
-        title: 'กำลังออกจากระบบ...',
-        text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
-        icon: 'success',
-        showConfirmButton: false,
-        timer: 1200,
-        timerProgressBar: true
-      });
+window.handleLogout = function(event) {
+  if (event && event.preventDefault) event.preventDefault();
+  if (event && event.stopPropagation) event.stopPropagation();
 
-      setTimeout(() => {
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: 'ยืนยันการออกจากระบบ',
+      text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+      icon: 'warning',
+      showConfirmButton: true,
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'ตกลง (ยืนยันการออก)',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: false,
+      focusConfirm: true,
+      customClass: {
+        popup: 'pvt-logout-popup'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
+          title: 'กำลังออกจากระบบ...',
+          text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
+          icon: 'success',
+          showConfirmButton: false,
+          timer: 800,
+          timerProgressBar: true
+        });
+
+        setTimeout(() => {
+          if (typeof window.executePvtLogout === 'function') {
+            window.executePvtLogout();
+          } else {
+            sessionStorage.setItem('pvt_explicit_logout', 'true');
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace("/index.html?logout=true");
+          }
+        }, 800);
+      }
+    });
+  } else {
+    if (confirm('คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่? (กด ตกลง / OK เพื่อยืนยันการออก)')) {
+      if (typeof window.executePvtLogout === 'function') {
+        window.executePvtLogout();
+      } else {
+        sessionStorage.setItem('pvt_explicit_logout', 'true');
         localStorage.clear();
-        localStorage.clear();
-        window.location.href = "/index.html";
-      }, 1200);
+        sessionStorage.clear();
+        window.location.replace("/index.html?logout=true");
+      }
     }
-  });
+  }
 };
 
 // ฟังก์ชันเปิด Pop-up แสดงการแจ้งเตือนทั้งหมด
@@ -2882,6 +2905,8 @@ function renderMyActionRequiredSection(requests, sessionUser) {
 
   const empCode = String(sessionUser?.employee_code || sessionUser?.employees?.employee_code || localStorage.getItem("currentEmpCode") || '').trim();
   let myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
+  const isViewOnly = empCode === 'HR-001-3';
+
   if (empCode === '19122') {
     myRole = 'manager';
   }
@@ -2960,12 +2985,18 @@ function renderMyActionRequiredSection(requests, sessionUser) {
         </div>
 
         <div class="my-action-card-actions">
-          <button type="button" class="my-action-btn-approve" onclick="quickApproveFromDashboard('${item.id}')" title="อนุมัติคำขอลาทันที">
-            <span class="material-symbols-outlined">check_circle</span> อนุมัติ
-          </button>
-          <button type="button" class="my-action-btn-reject" onclick="quickRejectFromDashboard('${item.id}')" title="ปฏิเสธคำขอลา">
-            <span class="material-symbols-outlined">cancel</span> ปฏิเสธ
-          </button>
+          ${isViewOnly ? `
+            <div style="font-size: 11px; color: #64748b; font-style: italic; padding: 4px 8px; background: #f8fafc; border-radius: 6px; width: 100%; text-align: center;">
+              สิทธิ์รับชมอย่างเดียว
+            </div>
+          ` : `
+            <button type="button" class="my-action-btn-approve" onclick="quickApproveFromDashboard('${item.id}')" title="อนุมัติคำขอลาทันที">
+              <span class="material-symbols-outlined">check_circle</span> อนุมัติ
+            </button>
+            <button type="button" class="my-action-btn-reject" onclick="quickRejectFromDashboard('${item.id}')" title="ปฏิเสธคำขอลา">
+              <span class="material-symbols-outlined">cancel</span> ปฏิเสธ
+            </button>
+          `}
         </div>
       </div>
     `;
@@ -3455,3 +3486,127 @@ window.quickRejectFromDashboard = async function(leaveId) {
     Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message, confirmButtonColor: '#ef4444' });
   }
 };
+
+/* ==========================================================================
+   📊 6. RENDER SUMMARY & NATIVE BAR CHARTS (MOVED FROM MANAGEMENT PAGE)
+   ========================================================================== */
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function renderSummary() {
+  const safeRequests = Array.isArray(rawRequests) ? rawRequests : [];
+  const safeEmployees = Array.isArray(rawEmployees) ? rawEmployees : [];
+
+  const approvedRequests = safeRequests.filter((item) => {
+    const st = String(item?.status || "").toLowerCase().trim();
+    return st === "approved" || st === "อนุมัติ" || st === "pass";
+  });
+  
+  const totalApprovedDays = approvedRequests.reduce((sum, item) => {
+    return sum + Number(item.actual_days ?? item.total_days ?? item.days_requested ?? item.days ?? 0);
+  }, 0);
+
+  const pendingRequests = safeRequests.filter((item) => {
+    const st = String(item?.status || "").toLowerCase().trim();
+    return st === "pending" || st === "รออนุมัติ" || st === "cancel_pending" || st === "cancel_requested" || st === "ขอยกเลิก";
+  });
+
+  setText("statEmployees", safeEmployees.length);
+  setText("statLeaves", safeRequests.length);
+  setText("statPending", pendingRequests.length);
+  setText("statDays", totalApprovedDays > 0 ? totalApprovedDays.toFixed(1).replace(/\.0$/, "") : (safeRequests.length > 0 ? "0" : "0"));
+
+  const typeData = groupByLeaveType();
+  const statusData = groupByStatus();
+
+  renderBarChart("typeChart", typeData, false);
+  renderBarChart("statusChart", statusData, true);
+}
+
+function groupByLeaveType() {
+  const safeRequests = Array.isArray(rawRequests) ? rawRequests : [];
+  const approvedRequests = safeRequests.filter((item) => {
+    const st = String(item?.status || "").toLowerCase().trim();
+    return st === "approved" || st === "อนุมัติ" || st === "pass";
+  });
+
+  const dataset = approvedRequests;
+  const noteEl = document.getElementById("typeChartNote");
+  if (noteEl) {
+    noteEl.textContent = approvedRequests.length > 0 ? "อนุมัติแล้ว" : "ยังไม่มีข้อมูลอนุมัติ";
+    noteEl.className = approvedRequests.length > 0 ? "status active" : "status";
+  }
+
+  const map = new Map();
+  dataset.forEach((request) => {
+    const type = request.leave_types?.leave_name || request.leave_name || "ไม่ระบุประเภท";
+    const days = Number(request.actual_days ?? request.total_days ?? request.days_requested ?? request.days ?? 1) || 1;
+    map.set(type, (map.get(type) || 0) + days);
+  });
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function groupByStatus() {
+  const safeRequests = Array.isArray(rawRequests) ? rawRequests : [];
+  const map = new Map();
+  safeRequests.forEach((request) => {
+    let label = "รอพิจารณา";
+    const st = String(request?.status || "").toLowerCase().trim();
+    if (st === "approved" || st === "อนุมัติ" || st === "pass") label = "อนุมัติแล้ว";
+    else if (st === "rejected" || st === "ไม่อนุมัติ") label = "ไม่อนุมัติ";
+    else if (st === "cancelled" || st === "ยกเลิก") label = "ยกเลิกแล้ว";
+    else if (st === "cancel_pending" || st === "cancel_requested" || st === "ขอยกเลิก") label = "ขอยกเลิก";
+    else if (st === "pending" || st === "รออนุมัติ") label = "รอพิจารณา";
+    else label = request.status || "อื่น ๆ";
+
+    map.set(label, (map.get(label) || 0) + 1);
+  });
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function renderBarChart(targetId, rows, countMode = false) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  if (!rows || !rows.length) {
+    target.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-soft); font-size:14px;">ยังไม่มีข้อมูลสำหรับแสดงกราฟ</div>`;
+    return;
+  }
+
+  const max = Math.max(...rows.map(([, value]) => Number(value) || 0), 1);
+  const statusColorMap = {
+    "อนุมัติแล้ว": "linear-gradient(90deg, #0fa472 0%, #34d399 100%)",
+    "รอพิจารณา": "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)",
+    "ขอยกเลิก": "linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%)",
+    "ไม่อนุมัติ": "linear-gradient(90deg, #ef4444 0%, #f87171 100%)",
+    "ยกเลิกแล้ว": "linear-gradient(90deg, #64748b 0%, #94a3b8 100%)"
+  };
+
+  const typeColorGradients = [
+    "linear-gradient(90deg, #0fa472 0%, #34d399 100%)",
+    "linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)",
+    "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)",
+    "linear-gradient(90deg, #8b5cf6 0%, #c084fc 100%)",
+    "linear-gradient(90deg, #ef4444 0%, #f87171 100%)",
+    "linear-gradient(90deg, #ec4899 0%, #f472b6 100%)"
+  ];
+
+  target.innerHTML = rows.map(([label, value], idx) => {
+    const numVal = Number(value) || 0;
+    const pct = Math.max(6, Math.min(100, Math.round((numVal / max) * 100)));
+    const display = countMode ? `${numVal} รายการ` : `${numVal.toFixed(1).replace(/\.0$/, "")} วัน`;
+    const barGradient = statusColorMap[label] || typeColorGradients[idx % typeColorGradients.length];
+
+    return `
+      <div class="bar-row">
+        <strong title="${escapeHtmlText(label)}">${escapeHtmlText(label)}</strong>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%; background: ${barGradient};"></div>
+        </div>
+        <span>${display}</span>
+      </div>
+    `;
+  }).join("");
+}

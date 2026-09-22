@@ -1,0 +1,572 @@
+/* ======================================================
+   Dedicated Stylesheet for HR Approval (/pages/hr/hr.html)
+   Mobile-First Architecture & Responsive UX
+   Scoped Page ID: #page-hr-approval
+   ====================================================== */
+@import url('/css/hr.css');
+@import url('/css/approved-leaves.css');
+@import url('/css/leave-sla-tracker.css');
+
+/* ======================================================
+   1. MOBILE-FIRST BASE STYLES & LAYOUT (#page-hr-approval)
+   ====================================================== */
+#page-hr-approval {
+  background-color: #f8fafc;
+  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #0f172a;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+#page-hr-approval .app-shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+#page-hr-approval .main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  padding: 10px 12px 40px 12px;
+  box-sizing: border-box;
+}
+
+/* ======================================================
+   2. TOPBAR & MOBILE HEADER CONTROL
+   ====================================================== */
+#page-hr-approval .topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+#page-hr-approval .topbar-row-main {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+#page-hr-approval .topbar-actions-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+#page-hr-approval .topbar-right-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+#page-hr-approval #userAvatarHeader {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+#page-hr-approval #mobileMenuBtn,
+#page-hr-approval .mobile-menu-btn,
+div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
+  display: none !important;
+}
+
+#page-hr-approval #mobileMenuBtn .material-symbols-outlined,
+#page-hr-approval .mobile-menu-btn .material-symbols-outlined {
+  font-size: 24px !important;
+  color: #334155 !important;
+  display: block !important;
+  pointer-events: none !important;
+}
+
+#page-hr-approval #mobileMenuBtn:active,
+#page-hr-approval .mobile-menu-btn:active {
+  background: #f1f5f9 !important;
+}
+
+#page-hr-approval .topbar-title-block {
+  width: 100%;
+  text-align: center;
+  padding-top: 6px;
+  border-top: 1px solid #f1f5f9;
+}
+
+#page-hr-approval .btn-mobile-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #f0fdfa;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+#page-hr-approval .btn-mobile-back:active {
+  background: #ccfbf1;
+  transform: scale(0.97);
+}
+
+#page-hr-approval .btn-mobile-back .material-symbols-outlined {
+  font-size: 18px;
+}
+
+#page-hr-approval #pageMainTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#page-hr-approval #pageSubTitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: #0d9488;
+  letter-spacing: 0.5px;
+  margin: 1px 0 0 0;
+  text-align: center;
+}
+
+#page-hr-approval #userRoleBadge {
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ======================================================
+   3. STATS SUMMARY CARDS (MOBILE 2x2 GRID)
+   ====================================================== */
+#page-hr-approval .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+#page-hr-approval .stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  transition: transform 0.15s ease;
+}
+
+#page-hr-approval .stat-card:active {
+  transform: scale(0.98);
+}
+
+#page-hr-approval .stat-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+}
+
+#page-hr-approval .stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+#page-hr-approval .stat-value small {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+#page-hr-approval .stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ======================================================
+   4. FILTER TABS (MOBILE TOUCH SCROLL)
+   ====================================================== */
+#page-hr-approval .leave-tab-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 2px 8px 2px;
+  margin-bottom: 10px;
+  scrollbar-width: none;
+}
+
+#page-hr-approval .leave-tab-container::-webkit-scrollbar {
+  display: none;
+}
+
+#page-hr-approval .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 42px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  transition: all 0.2s ease;
+}
+
+#page-hr-approval .tab-btn.active {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  border-color: #0d9488;
+  box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25);
+}
+
+#page-hr-approval .tab-btn .tab-count-badge {
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+#page-hr-approval .tab-btn.active .tab-count-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* ======================================================
+   5. PANEL CONTROLS & SEARCH BAR
+   ====================================================== */
+#page-hr-approval .panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  margin-bottom: 16px;
+}
+
+#page-hr-approval .panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+#page-hr-approval .panel-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#page-hr-approval .panel-header-title h2 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+#page-hr-approval .panel-header-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+#page-hr-approval .search-box-wrap {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+#page-hr-approval #hrLeaveSearchInput {
+  height: 42px;
+  font-size: 13.5px;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+#page-hr-approval .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+#page-hr-approval .filter-group label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+#page-hr-approval #filterStepSelect {
+  height: 42px;
+  font-size: 13px;
+  border-radius: 10px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  width: 100%;
+}
+
+#page-hr-approval .btn-pvt-refresh {
+  height: 42px;
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  transition: all 0.2s ease;
+}
+
+#page-hr-approval .btn-pvt-refresh:active {
+  background: #e2e8f0;
+}
+
+/* ======================================================
+   6. MOBILE LEAVE CARDS (#leaveListContainer)
+   ====================================================== */
+#page-hr-approval .leave-card-item {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+#page-hr-approval .leave-card-item.is-overdue {
+  border-color: #fdba74;
+  background: #fffbf5;
+}
+
+#page-hr-approval .profile-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 8px;
+}
+
+#page-hr-approval .card-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #cbd5e1;
+  flex-shrink: 0;
+}
+
+#page-hr-approval .profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+#page-hr-approval .emp-code {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #0d9488;
+  background: #f0fdfa;
+  padding: 1px 5px;
+  border-radius: 5px;
+  display: inline-block;
+  width: fit-content;
+}
+
+#page-hr-approval .emp-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+#page-hr-approval .emp-dept {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Action Buttons Group (Mobile First) */
+#page-hr-approval .action-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+#page-hr-approval .action-btn-group .btn-act {
+  min-height: 42px;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+#page-hr-approval .action-btn-group .btn-act:active {
+  transform: scale(0.97);
+}
+
+#page-hr-approval .action-btn-group .btn-act-approve {
+  flex: 2;
+  background: #0d9488;
+  color: #ffffff;
+}
+
+#page-hr-approval .action-btn-group .btn-act-reject {
+  flex: 1.2;
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3 !important;
+}
+
+#page-hr-approval .action-btn-group .btn-act-preview,
+#page-hr-approval .action-btn-group .btn-act-print {
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  padding: 0;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px;
+}
+
+/* ======================================================
+   7. DESKTOP ENHANCEMENTS (> 769px)
+   ====================================================== */
+@media screen and (min-width: 769px) {
+  #page-hr-approval .main-content {
+    padding: 20px 24px;
+  }
+
+  #page-hr-approval .topbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #page-hr-approval .topbar-row-main {
+    width: auto;
+    flex: 1;
+  }
+
+  #page-hr-approval .topbar-title-block {
+    width: auto;
+    border-top: none;
+    padding-top: 0;
+    text-align: left;
+  }
+
+  #page-hr-approval #pageMainTitle,
+  #page-hr-approval #pageSubTitle {
+    text-align: left;
+  }
+
+  #page-hr-approval .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  #page-hr-approval .panel-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #page-hr-approval .panel-header-controls {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+  }
+
+  #page-hr-approval .search-box-wrap {
+    width: 220px !important;
+    min-width: 220px !important;
+  }
+
+  #page-hr-approval .filter-group {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+  }
+
+  #page-hr-approval .btn-pvt-refresh {
+    width: auto;
+    padding: 0 16px;
+  }
+}

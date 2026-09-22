@@ -1,19 +1,19 @@
 <!doctype html>
 <html lang="th">
 <head>
+  <script src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <meta name="google" content="notranslate" />
   <title>ศูนย์วิเคราะห์สถิติวันลาทั้งหมด | PVT WORKFORCE HUB</title>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/hr.css" />
-  <link rel="stylesheet" href="/css/system-settings.css" />
+  <link rel="stylesheet" href="/css/hr-leave-stats.css" />
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -21,7 +21,7 @@
   <style>
     /*  Background & Layout Polish (Unified Luxury HR Style) */
     body {
-      font-family: 'Sarabun', 'Kanit', sans-serif !important;
+      font-family: 'Sarabun', sans-serif !important;
       background-color: #f0fdfa !important;
       background-image: 
         radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
@@ -237,7 +237,7 @@
     }
   </style>
 </head>
-<body>
+<body id="page-hr-leave-stats">
 
   <div class="app-shell" id="appLayout">
     
@@ -245,10 +245,11 @@
     <aside class="sidebar-light" id="mainSidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
-          <span class="material-symbols-outlined">groups</span>
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
-        <div class="brand-name">PVT WORKFORCE HUB</div>
-        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
+        <div class="brand-name">PVTT WORKFORCE HUB</div>
+        <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
       </div>
@@ -256,65 +257,67 @@
       <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
       <div class="sidebar-cta-wrap">
         <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
-          <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">fact_check</span>
           <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
         </a>
       </div>
 
       <nav class="nav-menu">
         <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
-          <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">dashboard</span>
           <span class="nav-label">หน้าหลัก</span>
         </a>
         <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
-          <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">fact_check</span>
           <span class="nav-label">ตรวจใบลา</span>
           <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
         <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
-          <img src="/assets/icons/management-gear.svg" alt="ระบบจัดการส่วนกลาง" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">tune</span>
           <span class="nav-label">ระบบจัดการส่วนกลาง</span>
         </a>
         <a href="/pages/user/leave-stats.html" class="nav-item active" title="สถิติวันลา">
-          <img src="/assets/icons/analytics-dashboard.svg" alt="สถิติวันลา" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">analytics</span>
           <span class="nav-label">สถิติวันลา</span>
         </a>
-        <a href="/pages/user/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
-          <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
-          <span class="nav-label">ปฏิทิน</span>
+        <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">จัดการวันหยุด</span>
         </a>
-
+        
         <div class="sidebar-divider"></div>
         <div class="sidebar-section-title">บริการด่วน</div>
-
+        
         <!--  ปุ่มจัดการข่าวสารองค์กร -->
         <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
-          <img src="/assets/icons/news-announcement.svg" alt="ข่าวสาร" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">campaign</span>
           <span class="nav-label">ข่าวสาร</span>
         </a>
 
         <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
-        <button type="button" class="nav-item" onclick="openEmployeeCardManagerPopup(); return false;" title="ระบบบัตรพนักงาน">
-          <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" class="nav-icon-custom" />
-          <span class="nav-label">บัตรพนักงาน</span>
-        </button>
+        <a href="/pages/hr/employee-cards.html" class="nav-item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="nav-label">บัตรพนักงาน (Admin)</span>
+        </a>
+        
+        <!-- ประวัติการเข้าสู่ระบบ -->
+        <a href="/pages/hr/login-logs.html" class="nav-item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
+        </a>
+
+        <div class="sidebar-divider"></div>
 
         <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
         <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
-          <img src="/assets/icons/user-profile.svg" alt="หน้าหลัก" class="nav-icon-custom" />
+          <span class="material-symbols-outlined">person</span>
           <span class="nav-label">หน้าหลักของพนักงาน</span>
         </a>
-
-        <!-- <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; display: inline-block;" /> ตั้งค่า -->
-        <button type="button" class="nav-item" onclick="openSystemSettingsModal(); return false;" title="การตั้งค่าระบบ">
-          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
-          <span class="nav-label">ตั้งค่า</span>
-        </button>
       </nav>
 
       <div class="sidebar-footer">
-        <button type="button" class="btn-logout" onclick="handleLogout()" title="ออกจากระบบ">
-          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
+        <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
           <span>ออกจากระบบ</span>
         </button>
       </div>
@@ -348,7 +351,7 @@
               <button type="button" onclick="exportStatsToExcel()" style="padding: 8px 16px; background: #107c41; color: #ffffff; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(16, 124, 65, 0.3);">
                 <img src="/assets/icons/excel.svg" alt="Excel" style="width: 20px; height: 20px; object-fit: contain;" /> ส่งออก Excel
               </button>
-              <a href="/pages/user/index-user.html" style="padding: 8px 16px; background: #2dd4bf; color: #0f172a; text-decoration: none; border-radius: 10px; font-size: 12.5px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+              <a href="/pages/hr/home.html" style="padding: 8px 16px; background: #2dd4bf; color: #0f172a; text-decoration: none; border-radius: 10px; font-size: 12.5px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span> กลับหน้าหลัก
               </a>
             </div>
@@ -529,6 +532,7 @@
   <script src="/js/auth-guard.js"></script>
   <script src="/js/system-settings.js"></script>
   <script src="/js/employee-card-modal.js"></script>
+  <script src="/js/components/login-logs-viewer.js"></script>
   <script src="/js/leave-stats.js"></script>
 </body>
 </html>

@@ -215,10 +215,16 @@ async function initSystemAndPermissions() {
     const empCode = String(empData?.employee_code || "").trim();
 
     // กำหนดกลุ่ม Role เพื่อใช้ในการ Filter ข้อมูล (ให้สิทธิ์ L3 Executive Approver เป็นอันดับสูงสุด)
+    window.isViewOnlyHR = false; // Flag สำหรับสิทธิ์การดูอย่างเดียว
+
     if (empCode === '19122') {
       // 🌟 น.ส. ปณัยยา บุญเกิด: ผู้จัดการฝ่ายบุคคล-ธุรการ
       // มีแอคเคาต์แยกสำหรับ HR กลาง (HR-001/002/003) ให้ทำหน้าที่เป็น Manager อนุมัติเฉพาะคนในแผนกตนเอง
       currentRole = "manager";
+    } else if (empCode === 'HR-001-3') {
+      // 🌟 เฉพาะรหัส HR-001-3: ให้มีสิทธิ์เป็น HR (ดูได้อย่างเดียว ไม่สามารถอนุมัติได้)
+      currentRole = "hr";
+      window.isViewOnlyHR = true;
     } else if (isExecutiveApprover || rawRole === "director" || rawRole === "executive" || rawRole === "owner" || rawPos.includes("ผู้อำนวยการ") || rawPos.includes("ผู้บริหาร") || rawPos.includes("director") || rawPos.includes("executive") || rawPos.includes("owner")) {
       currentRole = "director";
     } else if (rawRole === "admin" || rawRole === "superadmin" || rawRole.includes("admin")) {
@@ -418,15 +424,25 @@ function applyRoleBasedUI() {
    🛠️ HELPER FUNCTIONS & DATE UTILS
    ========================================================================== */
 
-function getAvatarUrl(imageUrl) {
-  if (imageUrl && imageUrl.trim() !== "") {
-    let url = imageUrl;
+function getAvatarUrl(imageUrl, title = "", gender = "", fullName = "") {
+  if (typeof imageUrl === 'object' && imageUrl !== null) {
+    const obj = imageUrl;
+    imageUrl = obj.image_url || obj.avatar_url || obj.avatar || obj.employees?.image_url || null;
+    title = title || obj.title || obj.prefix || obj.employees?.title || "";
+    gender = gender || obj.gender || obj.employees?.gender || "";
+    fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
+  }
+
+  if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== "" && imageUrl !== "null" && imageUrl !== "undefined" && imageUrl !== "/assets/img/default-avatar.jpg") {
+    let url = imageUrl.trim();
     if (!url.startsWith("http")) {
-      url = `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${url}`;
+      url = `https://pgogmhqjdchakcytsomx.supabase.co/storage/v1/object/public/employee-images/${url.replace(/^\//, '')}`;
     }
     return url;
   }
-  return "/assets/img/default-avatar.jpg";
+  return typeof window.getDefaultAvatarUrl === "function"
+    ? window.getDefaultAvatarUrl(title, gender, fullName)
+    : (title.includes('สาว') || title.includes('นาง') || title.includes('น.ส.') || gender === 'female' || fullName.includes('นาง') || fullName.includes('น.ส.') ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
 }
 
 function getAttachmentUrl(reqData) {
@@ -1935,7 +1951,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
           ` : ''}
         </div>
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          ${isPending ? `
+          ${isPending && !window.isViewOnlyHR ? `
             <button type="button" class="btn-act btn-act-approve" id="btnModalApprove" style="background: #10b981; color: #ffffff; border: none; padding: 7px 18px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);">
               <span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span> อนุมัติ
             </button>
@@ -3435,7 +3451,7 @@ async function exportLeaveReportExcel() {
       cellH.alignment = { vertical: "middle", horizontal: "center" };
       cellH.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
 
-      cellV.font = { name: "Kanit", size: 13, bold: true, color: { argb: c === 3 ? "FF059669" : c === 4 ? "FFD97706" : "FF0F172A" } };
+      cellV.font = { name: "Sarabun", size: 13, bold: true, color: { argb: c === 3 ? "FF059669" : c === 4 ? "FFD97706" : "FF0F172A" } };
       cellV.fill = { type: "pattern", pattern: "solid", fgColor: { argb: c === 3 ? "FFECFDF5" : c === 4 ? "FFFFFBEB" : "FFF8FAFC" } };
       cellV.alignment = { vertical: "middle", horizontal: "center" };
       cellV.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
@@ -3907,22 +3923,50 @@ window.submitBulkApproval = async function() {
   });
 };
 
-window.handleLogout = function() {
-  Swal.fire({
-    title: 'ยืนยันการออกจากระบบ',
-    text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    confirmButtonText: 'ออกจากระบบ',
-    cancelButtonText: 'ยกเลิก'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.href = "/index.html";
+window.handleLogout = function(event) {
+  if (event && event.preventDefault) event.preventDefault();
+  if (event && event.stopPropagation) event.stopPropagation();
+
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({
+      title: 'ยืนยันการออกจากระบบ',
+      text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+      icon: 'warning',
+      showConfirmButton: true,
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'ตกลง (ยืนยันการออก)',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: false,
+      focusConfirm: true,
+      customClass: {
+        popup: 'pvt-logout-popup'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        if (typeof window.executePvtLogout === 'function') {
+          window.executePvtLogout();
+        } else {
+          sessionStorage.setItem('pvt_explicit_logout', 'true');
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.replace("/index.html?logout=true");
+        }
+      }
+    });
+  } else {
+    if (confirm('คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่? (กด ตกลง / OK เพื่อยืนยันการออก)')) {
+      if (typeof window.executePvtLogout === 'function') {
+        window.executePvtLogout();
+      } else {
+        sessionStorage.setItem('pvt_explicit_logout', 'true');
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace("/index.html?logout=true");
+      }
     }
-  });
+  }
 };
 
 // 📱 Auto-sync on Android/Mobile WebView foreground resume for HR Dashboard

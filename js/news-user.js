@@ -148,10 +148,12 @@
   }
 
   function viewMyDigitalCard() {
-    if (window.openEmployeeCardManagerPopup) {
+    if (window.openMyEmployeeCardModal) {
+      window.openMyEmployeeCardModal();
+    } else if (window.openEmployeeCardManagerPopup) {
       window.openEmployeeCardManagerPopup();
     } else {
-      window.location.href = "/pages/user/profile-user.html#digital-card";
+      window.location.href = "/pages/user/index-user.html?action=digital_card";
     }
   }
 

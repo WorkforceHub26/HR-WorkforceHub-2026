@@ -785,8 +785,8 @@
     backdrop.classList.add("active");
     document.body.style.overflow = "hidden";
     
-    // Auto-close sidebar on mobile if it is open
-    if (window.innerWidth <= 1024 && typeof window.closeMobileSidebar === 'function') {
+    // Auto-close sidebar on mobile/desktop if it is open
+    if (typeof window.closeMobileSidebar === 'function') {
       window.closeMobileSidebar();
     }
     
