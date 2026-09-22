@@ -2965,6 +2965,15 @@ window.selectQuickLeaveType = function(leaveTypeId, element) {
 };
 
 window.submitQuickLeave = async function() {
+  if (!navigator.onLine) {
+    return Swal.fire({
+      icon: 'error',
+      title: '📡 ไม่พบการเชื่อมต่ออินเทอร์เน็ต',
+      text: 'อุปกรณ์ของคุณไม่ได้เชื่อมต่ออินเทอร์เน็ตในขณะนี้ กรุณาตรวจสอบสัญญาณ Wi-Fi หรือ Cellular แล้วลองใหม่อีกครั้งครับ',
+      confirmButtonColor: '#ef4444'
+    });
+  }
+
   const sb = getSafeSupabaseClient();
   if (!sb) return;
   
@@ -3111,12 +3120,40 @@ window.submitQuickLeave = async function() {
 
   } catch (err) {
     console.error("Quick Leave submission failed:", err);
-    Swal.fire({
-      icon: 'error',
-      title: 'เกิดข้อผิดพลาด',
-      text: err.message || 'ไม่สามารถบันทึกข้อมูลได้',
-      confirmButtonColor: '#ef4444'
-    });
+    const isNetworkErr = !navigator.onLine || 
+      (err && (err.message?.toLowerCase().includes('fetch') || 
+               err.message?.toLowerCase().includes('network') || 
+               err.message?.toLowerCase().includes('timeout') || 
+               err.name === 'AbortError'));
+
+    if (isNetworkErr) {
+      Swal.fire({
+        icon: 'warning',
+        title: '📡 สัญญาณอินเทอร์เน็ตไม่เสถียร',
+        html: `ไม่สามารถยื่นคำขอลาได้เนื่องจากสัญญาณอินเทอร์เน็ตช้าหรือขัดข้อง<br/><br/>
+               <span style="color:#64748b; font-size:13px; text-align:left; display:block; line-height:1.6;">
+               <b>คำแนะนำ:</b><br/>
+               • ตรวจสอบสัญญาณ Wi-Fi หรือ Mobile Data (4G/5G)<br/>
+               • เมื่อสัญญาณกลับมาปกติแล้ว สามารถกดปุ่ม <b>"ลองส่งใหม่อีกครั้ง"</b> ได้ทันที
+               </span>`,
+        showCancelButton: true,
+        confirmButtonText: '🔄 ลองส่งใหม่อีกครั้ง',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#0d9488',
+        cancelButtonColor: '#64748b'
+      }).then((res) => {
+        if (res.isConfirmed) {
+          window.submitQuickLeave();
+        }
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: err.message || 'ไม่สามารถบันทึกข้อมูลได้',
+        confirmButtonColor: '#ef4444'
+      });
+    }
   }
 };
 
@@ -4254,3 +4291,11 @@ function showRealtimeNotificationPopup(notif) {
     }
 window.filterUserNews = filterUserNews;
 window.triggerBiometricHelp = triggerBiometricHelp;
+window.handleYearChange = typeof handleYearChange !== 'undefined' ? handleYearChange : window.handleYearChange;
+window.showStaffCard = function() {
+  if (typeof window.viewMyDigitalCard === 'function') {
+    window.viewMyDigitalCard();
+  } else if (typeof viewMyDigitalCard === 'function') {
+    viewMyDigitalCard();
+  }
+};

@@ -2846,6 +2846,7 @@ window.markAllNotificationsAsRead = typeof markAllNotificationsAsRead !== 'undef
 window.openAllNotificationsModal = typeof openAllNotificationsModal !== 'undefined' ? openAllNotificationsModal : window.openAllNotificationsModal;
 window.handlePrintSelectedCardsFromPopup = typeof handlePrintSelectedCardsFromPopup !== 'undefined' ? handlePrintSelectedCardsFromPopup : window.handlePrintSelectedCardsFromPopup;
 window.toggleSelectAllCards = typeof toggleSelectAllCards !== 'undefined' ? toggleSelectAllCards : window.toggleSelectAllCards;
+window.drawCharts = typeof drawCharts !== 'undefined' ? drawCharts : window.drawCharts;
 
 /* ==========================================================================
    7. 🎯 ACTION-FIRST DASHBOARD ENGINE

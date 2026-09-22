@@ -2869,9 +2869,19 @@ document.addEventListener("DOMContentLoaded", () => {
       window.protectIconsFromTranslation(document.body);
     }
     const currentLang = (localStorage.getItem("pvt_login_lang") || localStorage.getItem("pvt_language") || "th").toLowerCase();
-    if (['th', 'lo', 'my', 'en'].includes(currentLang)) {
+    if (currentLang === 'th') {
       if (document.cookie.includes("googtrans") && typeof window.purgeGoogleTranslate === 'function') {
         window.purgeGoogleTranslate();
+      }
+    } else {
+      // 🌐 หากเลือกภาษาอื่นไว้ (en, lo, my): คงค่า googtrans cookie และปรับภาษาให้อัตโนมัติเมื่อรีโหลดหน้า
+      let googleLang = currentLang;
+      if (currentLang === 'zh') googleLang = 'zh-CN';
+      const cookieValue = '/th/' + googleLang;
+      document.cookie = 'googtrans=' + cookieValue + '; path=/';
+      document.cookie = 'googtrans=' + cookieValue + '; path=/; domain=' + window.location.hostname;
+      if (typeof window.setGlobalLanguage === 'function') {
+        window.setGlobalLanguage(currentLang, false, { forceBroadcast: true });
       }
     }
   }
@@ -3129,7 +3139,259 @@ if ('serviceWorker' in navigator) {
   } else {
     checkPendingToasts();
   }
+
+  // 📡 Global Internet Connection Monitor & Offline Alert
+  function showOfflineAlert() {
+    let offlineBanner = document.getElementById('globalOfflineBanner');
+    if (!offlineBanner) {
+      offlineBanner = document.createElement('div');
+      offlineBanner.id = 'globalOfflineBanner';
+      offlineBanner.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+        background: linear-gradient(90deg, #dc2626, #b91c1c); color: #ffffff; text-align: center;
+        padding: 10px 16px; font-size: 13.5px; font-weight: 600;
+        box-shadow: 0 4px 14px rgba(220,38,38,0.4);
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        transition: all 0.3s ease; animation: slideDown 0.3s ease;
+      `;
+      offlineBanner.innerHTML = `
+        <span class="material-symbols-outlined" style="font-size:20px; animation: pulse 1.5s infinite;">wifi_off</span>
+        <span>คุณกำลังอยู่ในสถานะออฟไลน์ — สัญญาณอินเทอร์เน็ตขาดหาย กรุณาตรวจสอบ Wi-Fi / 4G</span>
+      `;
+      document.body.appendChild(offlineBanner);
+    } else {
+      offlineBanner.style.background = 'linear-gradient(90deg, #dc2626, #b91c1c)';
+      offlineBanner.innerHTML = `
+        <span class="material-symbols-outlined" style="font-size:20px; animation: pulse 1.5s infinite;">wifi_off</span>
+        <span>คุณกำลังอยู่ในสถานะออฟไลน์ — สัญญาณอินเทอร์เน็ตขาดหาย กรุณาตรวจสอบ Wi-Fi / 4G</span>
+      `;
+      offlineBanner.style.display = 'flex';
+    }
+
+    if (window.Swal && typeof window.Swal.fire === 'function') {
+      window.Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'error',
+        title: '📡 ไม่พบสัญญาณอินเทอร์เน็ต',
+        text: 'ระบบเข้าสู่โหมดออฟไลน์ กรุณาเช็กการเชื่อมต่อ',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true
+      });
+    }
+  }
+
+  async function showOnlineAlert() {
+    const offlineBanner = document.getElementById('globalOfflineBanner');
+    if (offlineBanner) {
+      offlineBanner.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+      offlineBanner.innerHTML = `
+        <span class="material-symbols-outlined" style="font-size:20px;">wifi</span>
+        <span>เชื่อมต่ออินเทอร์เน็ตเรียบร้อยแล้ว</span>
+      `;
+      setTimeout(() => {
+        if (offlineBanner) offlineBanner.style.display = 'none';
+      }, 3500);
+    }
+
+    // Check if there are pending offline requests in the queue
+    let queue = [];
+    try {
+      queue = JSON.parse(localStorage.getItem("pvt_offline_queue") || "[]");
+    } catch (e) {
+      queue = [];
+    }
+
+    if (queue && queue.length > 0) {
+      const pendingCount = queue.length;
+      
+      // 🔄 Non-intrusive Sync Toast
+      if (window.Swal && typeof window.Swal.fire === 'function') {
+        window.Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'info',
+          title: '🔄 กำลังซิงค์ข้อมูล...',
+          text: `กำลังส่งคำขอลาที่ค้างไว้ (${pendingCount} รายการ) ไปยังเซิร์ฟเวอร์`,
+          showConfirmButton: false,
+          timer: 4500,
+          timerProgressBar: true
+        });
+      }
+
+      // Automatically process offline queue
+      try {
+        if (window.PVTSDK?.offline?.processQueue) {
+          await window.PVTSDK.offline.processQueue();
+        } else {
+          // Fallback queue processor
+          const sb = window.pvtSupabase?.getClient();
+          if (sb) {
+            const remaining = [];
+            for (const item of queue) {
+              try {
+                await sb.from(item.table || 'leave_requests').insert(item.payload);
+              } catch (err) {
+                console.error("[Offline Sync] Failed to insert item:", item, err);
+                remaining.push(item);
+              }
+            }
+            localStorage.setItem("pvt_offline_queue", JSON.stringify(remaining));
+          }
+        }
+
+        // Verify if queue cleared successfully
+        let remainingAfter = [];
+        try {
+          remainingAfter = JSON.parse(localStorage.getItem("pvt_offline_queue") || "[]");
+        } catch(e) {}
+
+        if (remainingAfter.length === 0) {
+          if (window.Swal && typeof window.Swal.fire === 'function') {
+            setTimeout(() => {
+              window.Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: '✅ ซิงค์สำเร็จ!',
+                text: 'คำขอลาที่ค้างไว้ถูกส่งเข้าระบบเรียบร้อยแล้ว',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true
+              });
+            }, 600);
+          }
+          window.dispatchEvent(new CustomEvent("pvt-leave-synced"));
+        }
+      } catch (syncErr) {
+        console.warn("[Offline Sync] Error during queue processing:", syncErr);
+      }
+    } else {
+      if (window.Swal && typeof window.Swal.fire === 'function') {
+        window.Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: '🟢 เชื่อมต่ออินเทอร์เน็ตแล้ว',
+          text: 'สัญญาณอินเทอร์เน็ตกลับมาใช้งานได้ปกติ',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      }
+    }
+  }
+
+  window.addEventListener('offline', showOfflineAlert);
+  window.addEventListener('online', showOnlineAlert);
+
+  // ตรวจสอบสถานะ ณ ตอนเปิดหน้าเว็บครั้งแรก
+  if (!navigator.onLine) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', showOfflineAlert);
+    } else {
+      showOfflineAlert();
+    }
+  }
 })();
+
+// 🌐 Universal Global Window Bindings for Navigation & User Actions
+if (typeof window.logout !== 'function') {
+  window.logout = window.handleLogout = function() {
+    if (window.Swal) {
+      window.Swal.fire({
+        title: 'ยืนยันการออกจากระบบ?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'ออกจากระบบ',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#ef4444'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          if (window.pvtSupabase && typeof window.pvtSupabase.logout === 'function') {
+            window.pvtSupabase.logout();
+          } else {
+            sessionStorage.clear();
+            localStorage.clear();
+            window.location.replace('/index.html');
+          }
+        }
+      });
+    } else {
+      if (confirm('ยืนยันการออกจากระบบ?')) {
+        if (window.pvtSupabase && typeof window.pvtSupabase.logout === 'function') {
+          window.pvtSupabase.logout();
+        } else {
+          sessionStorage.clear();
+          localStorage.clear();
+          window.location.replace('/index.html');
+        }
+      }
+    }
+  };
+}
+if (typeof window.handleLogout !== 'function') {
+  window.handleLogout = window.logout;
+}
+
+if (typeof window.back !== 'function') {
+  window.back = function() {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '/pages/user/index-user.html';
+    }
+  };
+}
+
+if (typeof window.triggerBiometricHelp !== 'function') {
+  window.triggerBiometricHelp = function() {
+    if (window.Swal) {
+      window.Swal.fire({
+        title: '🔑 ยืนยันตัวตนด้วยชีวมิติ (Biometric Passkey)',
+        html: `<p style="font-size:14px; color:#475569; text-align:left; line-height:1.6;">
+          ระบบรองรับการเข้าสู่ระบบด่วนด้วย Touch ID / Face ID / Passkey บนอุปกรณ์ของคุณ<br/><br/>
+          <b>วิธีเปิดใช้งาน:</b><br/>
+          1. เข้าหน้าโปรไฟล์ส่วนตัว<br/>
+          2. กดปุ่ม "ตั้งค่าความปลอดภัย / Passkey"<br/>
+          3. สแกนนิ้วหรือใบหน้าเพื่อผูกอุปกรณ์
+        </p>`,
+        icon: 'info',
+        confirmButtonText: 'เข้าใจแล้ว',
+        confirmButtonColor: '#0d9488'
+      });
+    }
+  };
+}
+
+if (typeof window.toggleUserNotifDropdown !== 'function') {
+  window.toggleUserNotifDropdown = function(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const dropdown = document.getElementById("userNotifDropdown") || document.getElementById("notifDropdown");
+    if (dropdown) {
+      dropdown.classList.toggle("show");
+    }
+  };
+}
+
+if (typeof window.markAllUserNotificationsAsRead !== 'function') {
+  window.markAllUserNotificationsAsRead = async function(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const badges = document.querySelectorAll(".notif-badge, .badge-count");
+    badges.forEach(b => b.style.display = 'none');
+    if (window.Swal) {
+      window.Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'อ่านการแจ้งเตือนทั้งหมดแล้ว',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    }
+  };
+}
+
 
 
 

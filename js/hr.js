@@ -3770,6 +3770,7 @@ window.closePreviewModal = closePreviewModal;
 window.openImageLightbox = openImageLightbox;
 window.closeImageLightbox = closeImageLightbox;
 window.exportLeaveReportExcel = exportLeaveReportExcel;
+window.renderLeaveTable = renderLeaveTable;
 
 /* ==========================================================================
    ⚡ BULK ACTION WORKFLOW (อนุมัติหลายรายการพร้อมกัน)

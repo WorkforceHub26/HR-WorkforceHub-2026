@@ -1422,6 +1422,32 @@ async function uploadAttachment(file, employeeId) {
   }
 }
 
+function enqueueLeaveForOfflineSync(payloadItems) {
+  try {
+    const queue = JSON.parse(localStorage.getItem("pvt_offline_queue") || "[]");
+    for (const item of payloadItems) {
+      queue.push({
+        table: "leave_requests",
+        payload: item,
+        timestamp: Date.now()
+      });
+    }
+    localStorage.setItem("pvt_offline_queue", JSON.stringify(queue));
+
+    Swal.fire({
+      icon: 'success',
+      title: '📥 บันทึกลงคิวออฟไลน์เรียบร้อย!',
+      html: 'คำขอลาถูกเก็บไว้ในคิวเรียบร้อยแล้ว<br/><span style="color:#0d9488; font-weight:600; font-size:13.5px;">ระบบจะทำการส่งคำขอลานี้ไปยังเซิร์ฟเวอร์ให้อัตโนมัติ พร้อมแสดงแถบแจ้งเตือน ซิงค์สำเร็จ ทันทีที่อินเทอร์เน็ตกลับมาครับ</span>',
+      confirmButtonText: 'รับทราบ',
+      confirmButtonColor: '#0d9488'
+    }).then(() => {
+      window.location.href = "/pages/user/index-user.html";
+    });
+  } catch (e) {
+    console.error("Enqueue offline leave error:", e);
+  }
+}
+
 let isSavingLeave = false;
 
 // ==========================================
@@ -1435,6 +1461,19 @@ async function saveLeave() {
   if (btnSaveLeave) {
     btnSaveLeave.disabled = true;
     btnSaveLeave.innerHTML = `<span class="material-symbols-outlined spin" style="font-size:16px;">sync</span> กำลังบันทึก...`;
+  }
+
+  // 📡 ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตก่อนเริ่มส่งข้อมูล
+  if (!navigator.onLine) {
+    Swal.fire({
+      icon: 'error',
+      title: '📡 ไม่พบการเชื่อมต่ออินเทอร์เน็ต',
+      text: 'อุปกรณ์ของคุณไม่ได้เชื่อมต่ออินเทอร์เน็ตในขณะนี้ กรุณาตรวจสอบสัญญาณ Wi-Fi หรือ Cellular แล้วลองใหม่อีกครั้งครับ',
+      confirmButtonColor: '#ef4444'
+    });
+    isSavingLeave = false;
+    if (btnSaveLeave) { btnSaveLeave.disabled = false; btnSaveLeave.innerHTML = "💾 บันทึกคำขอลา"; }
+    return;
   }
 
   const sb = window.pvtSupabase?.getClient();
@@ -2128,15 +2167,48 @@ async function saveLeave() {
   } catch (err) {
     console.error("❌ System Error:", err);
     if (uploadedPaths.length > 0) {
-      await sb.storage.from('leave-attachments').remove(uploadedPaths);
+      try {
+        await sb.storage.from('leave-attachments').remove(uploadedPaths);
+      } catch(e) {}
     }
 
-    Swal.fire({
-      icon: 'error',
-      title: 'ระบบขัดข้อง',
-      text: err.message || "เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง",
-      confirmButtonColor: '#ef4444'
-    });
+    const isNetworkErr = !navigator.onLine || 
+      (err && (err.message?.toLowerCase().includes('fetch') || 
+               err.message?.toLowerCase().includes('network') || 
+               err.message?.toLowerCase().includes('timeout') || 
+               err.name === 'AbortError'));
+
+    if (isNetworkErr) {
+      Swal.fire({
+        icon: 'warning',
+        title: '📡 สัญญาณอินเทอร์เน็ตไม่เสถียร',
+        html: `ไม่สามารถส่งใบลาเข้าระบบได้เนื่องจากการเชื่อมต่ออินเทอร์เน็ตช้าหรือขาดหาย<br/><br/>
+               <span style="color:#64748b; font-size:13px; text-align:left; display:block; line-height:1.6;">
+               คุณต้องการลองส่งอีกครั้ง หรือบันทึกไว้ใน<b>คิวออฟไลน์ (Offline Queue)</b> เพื่อให้ระบบซิงค์ให้อัตโนมัติเมื่ออินเทอร์เน็ตกลับมา?
+               </span>`,
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonText: '🔄 ลองส่งใหม่อีกครั้ง',
+        denyButtonText: '📥 บันทึกไว้ส่งอัตโนมัติ',
+        cancelButtonText: 'ปิดหน้าต่าง',
+        confirmButtonColor: '#0d9488',
+        denyButtonColor: '#0284c7',
+        cancelButtonColor: '#64748b'
+      }).then((res) => {
+        if (res.isConfirmed) {
+          saveLeave();
+        } else if (res.isDenied && payload && payload.length > 0) {
+          enqueueLeaveForOfflineSync(payload);
+        }
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'ระบบขัดข้อง',
+        text: err.message || "เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง",
+        confirmButtonColor: '#ef4444'
+      });
+    }
   } finally {
     isSavingLeave = false;
     const saveBtn = document.getElementById("btnSaveLeave");

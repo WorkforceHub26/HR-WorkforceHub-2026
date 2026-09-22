@@ -1592,3 +1592,6 @@ setInterval(() => {
         confirmButtonColor: '#0f766e'
       });
     }
+
+    window.toggleYearDropdown = typeof toggleYearDropdown !== 'undefined' ? toggleYearDropdown : window.toggleYearDropdown;
+    window.toggleUserNotifications = typeof toggleUserNotifications !== 'undefined' ? toggleUserNotifications : window.toggleUserNotifications;
