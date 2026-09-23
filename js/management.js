@@ -255,15 +255,28 @@ async function initManagementSystem() {
   }
 
   try {
-    const cachedUser = window.pvtSupabase?.getCachedUser?.();
-    const session = await window.pvtSupabase?.getSession?.();
-    const currentUserId = session?.user?.id || cachedUser?.id || cachedUser?.employee_code;
+    // SDK v3 แยก Auth/Profile เป็น pvtSupabase.auth และ pvtSupabase.hr แล้ว
+    // เดิมหน้านี้เรียก getSession()/getCurrentProfile() ที่ root ของ SDK ซึ่งไม่มีอยู่
+    // ทำให้ profile เป็น null -> ไปหน้า login -> auth guard พากลับ home อีกครั้ง
+    const cachedUser = getCachedUser();
+    const session = await window.pvtSupabase?.auth?.getSession?.();
 
     let profile = null;
-    if (currentUserId) {
-      profile = await window.pvtSupabase?.getCurrentProfile?.(currentUserId);
+
+    // ใช้ Profile Engine ของ SDK ปัจจุบันเป็นทางหลัก (ดึงข้อมูลสิทธิ์ล่าสุดจาก employees)
+    if (typeof window.pvtSupabase?.hr?.getProfile === 'function') {
+      profile = await window.pvtSupabase.hr.getProfile(true);
     }
 
+    // Fallback สำหรับกรณี SDK Profile Engine ใช้งานไม่ได้ชั่วคราว
+    if (!profile) {
+      const currentUserId = session?.user?.id || cachedUser?.id;
+      if (currentUserId) {
+        profile = await getCurrentProfile(currentUserId);
+      }
+    }
+
+    // รองรับระบบ Login แบบ RPC/Local session เดิม เพื่อไม่ให้เด้งออกจากหน้า Management
     if (!profile && cachedUser) {
       profile = cachedUser;
     }
