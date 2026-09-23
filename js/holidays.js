@@ -1672,6 +1672,43 @@ window.toggleCompanySidebar = function() {
   }
 };
 
+// Toggle the annual holiday summary without hiding the panel header.
+// Kept on window because holidays.html calls this function from an inline onclick handler.
+window.toggleHolidaySummarySection = function() {
+  const panel = document.getElementById('companySummarySidebar');
+  const content = panel?.querySelector('.sidebar-content');
+  const icon = document.getElementById('btnToggleSummaryIcon');
+  const text = document.getElementById('btnToggleSummaryText');
+  const button = document.getElementById('btnToggleSummary');
+
+  if (!content) return;
+
+  const isHidden = content.style.display === 'none';
+  content.style.display = isHidden ? '' : 'none';
+
+  if (icon) icon.innerText = isHidden ? 'visibility_off' : 'visibility';
+  if (text) text.innerText = isHidden ? 'ซ่อนรายการสรุป' : 'แสดงรายการสรุป';
+  if (button) button.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+};
+
+// The calendar header has the same toggle control pattern as the summary panel.
+// Define it here as well so the page never falls through to the "not loaded yet" warning.
+window.toggleHolidayCalendarBody = function() {
+  const body = document.getElementById('companyCalendarBody');
+  const icon = document.getElementById('btnToggleCalendarIcon');
+  const text = document.getElementById('btnToggleCalendarText');
+  const button = document.getElementById('btnToggleCalendar');
+
+  if (!body) return;
+
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? '' : 'none';
+
+  if (icon) icon.innerText = isHidden ? 'visibility_off' : 'visibility';
+  if (text) text.innerText = isHidden ? 'ซ่อนปฏิทิน' : 'แสดงปฏิทิน';
+  if (button) button.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+};
+
 window.renderCompanyCalendarGrid = function(year, month, holidaysList) {
   const grid = document.getElementById('companyCalGrid');
   if (!grid) return;
