@@ -120,9 +120,22 @@ window.logout = function(event) {
   }
   
   try {
+    // เก็บสถานะอ่านแจ้งเตือนไว้ แม้ออกจากระบบแล้วกลับเข้ามาใหม่
+    const notifReadStateBackup = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('pvt_user_notification_read_state_')) {
+        notifReadStateBackup[key] = localStorage.getItem(key);
+      }
+    }
+
     localStorage.removeItem("currentUser"); 
     localStorage.removeItem("userRole"); 
     localStorage.clear();
+
+    Object.entries(notifReadStateBackup).forEach(([key, value]) => {
+      if (value !== null) localStorage.setItem(key, value);
+    });
     sessionStorage.clear();
   } catch (e) {}
   window.location.replace("/index.html?logout=true");
@@ -938,20 +951,96 @@ async function loadDepartmentTeam(profileData) {
 }
 
 // --- UNIFIED USER NOTIFICATION DROPDOWN SYSTEM ---
+// สถานะอ่านแจ้งเตือนต้องแยกตามผู้ใช้ และต้องอยู่ต่อเมื่อรีเฟรช/กลับเข้าหน้านี้ใหม่
 let localReadNotifIds = [];
-try {
-  localReadNotifIds = JSON.parse(localStorage.getItem("userReadNotifIds") || "[]");
-} catch(e) {}
+let notificationLastReadAt = null;
+let notificationReadStateUserKey = null;
+
+function getNotificationReadStateStorageKey() {
+  const profile = window.currentProfile || {};
+  const userId = profile.id || profile.employee_id || profile.employee_code || 'anonymous';
+  return `pvt_user_notification_read_state_${String(userId)}`;
+}
+
+function ensureUserNotificationReadState() {
+  const storageKey = getNotificationReadStateStorageKey();
+  if (notificationReadStateUserKey === storageKey) return;
+
+  notificationReadStateUserKey = storageKey;
+  localReadNotifIds = [];
+  notificationLastReadAt = null;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    if (Array.isArray(saved.ids)) localReadNotifIds = saved.ids.map(String);
+    if (saved.lastReadAt) notificationLastReadAt = saved.lastReadAt;
+
+    // รองรับข้อมูลเก่าก่อนเปลี่ยนระบบ โดยย้าย ID เดิมเข้ามาให้ผู้ใช้ปัจจุบันหนึ่งครั้ง
+    if (localReadNotifIds.length === 0) {
+      const legacy = JSON.parse(localStorage.getItem('userReadNotifIds') || '[]');
+      if (Array.isArray(legacy) && legacy.length) {
+        localReadNotifIds = legacy.map(String);
+        saveUserNotificationReadState();
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load notification read state:', e);
+  }
+}
+
+function saveUserNotificationReadState() {
+  if (!notificationReadStateUserKey) {
+    notificationReadStateUserKey = getNotificationReadStateStorageKey();
+  }
+
+  try {
+    // จำกัดขนาด ID เก่าไว้เพื่อไม่ให้ localStorage โตไม่สิ้นสุด
+    if (localReadNotifIds.length > 500) {
+      localReadNotifIds = localReadNotifIds.slice(-500);
+    }
+    localStorage.setItem(notificationReadStateUserKey, JSON.stringify({
+      ids: localReadNotifIds,
+      lastReadAt: notificationLastReadAt
+    }));
+  } catch (e) {
+    console.warn('Could not save notification read state:', e);
+  }
+}
 
 function getUserReadNotifIds() {
+  ensureUserNotificationReadState();
   return localReadNotifIds;
 }
 
 function addUserReadNotifId(id) {
-  if (!localReadNotifIds.includes(id)) {
-    localReadNotifIds.push(id);
-    localStorage.setItem("userReadNotifIds", JSON.stringify(localReadNotifIds));
+  if (id === undefined || id === null) return;
+  ensureUserNotificationReadState();
+  const normalizedId = String(id);
+  if (!localReadNotifIds.includes(normalizedId)) {
+    localReadNotifIds.push(normalizedId);
+    saveUserNotificationReadState();
   }
+}
+
+function setAllUserNotificationsReadThrough(isoDate) {
+  ensureUserNotificationReadState();
+  notificationLastReadAt = isoDate || new Date().toISOString();
+  saveUserNotificationReadState();
+}
+
+function isUserNotificationRead(id, createdAt, dbIsRead = false) {
+  ensureUserNotificationReadState();
+  if (dbIsRead === true) return true;
+  if (id !== undefined && id !== null && localReadNotifIds.includes(String(id))) return true;
+
+  if (notificationLastReadAt && createdAt) {
+    const itemTime = new Date(createdAt).getTime();
+    const readTime = new Date(notificationLastReadAt).getTime();
+    if (Number.isFinite(itemTime) && Number.isFinite(readTime) && itemTime <= readTime) {
+      return true;
+    }
+  }
+  return false;
 }
 
 async function initUserNotifications(profile) {
@@ -1061,7 +1150,7 @@ async function fetchUserNotifications() {
         title: n.title,
         message: n.message,
         created_at: n.created_at,
-        is_read: n.is_read || getUserReadNotifIds().includes(n.id),
+        is_read: isUserNotificationRead(n.id, n.created_at, n.is_read),
         type: 'general',
         link: myRole === 'user' ? '/pages/user/leave-history.html' : '/pages/hr/hr.html'
       });
@@ -1122,7 +1211,7 @@ async function fetchUserNotifications() {
             title: `📥 คำขอใหม่: ${empName}`,
             message: `ขอลา ${leaveName} จำนวน ${req.total_days} วัน (${formatThaiDate(req.start_date)} - ${formatThaiDate(req.end_date)})`,
             created_at: req.created_at,
-            is_read: getUserReadNotifIds().includes(`pending-${req.id}`),
+            is_read: isUserNotificationRead(`pending-${req.id}`, req.created_at),
             type: 'pending_leave',
             link: '/pages/hr/hr.html'
           });
@@ -1194,7 +1283,7 @@ async function fetchUserNotifications() {
           title,
           message,
           created_at: req.updated_at,
-          is_read: getUserReadNotifIds().includes(notifId),
+          is_read: isUserNotificationRead(notifId, req.updated_at),
           type: 'leave_status',
           link: '/pages/user/leave-history.html'
         });
@@ -1362,6 +1451,10 @@ async function markAllUserNotificationsAsRead(event) {
   const myId = profile.id || profile.employee_id;
 
   try {
+    // จำเวลาที่ผู้ใช้กด “อ่านทั้งหมด” ไว้ถาวรในเครื่อง
+    // ครั้งถัดไปจะแสดงเฉพาะเหตุการณ์ที่ใหม่กว่านี้เท่านั้น
+    setAllUserNotificationsReadThrough(new Date().toISOString());
+
     // โหลดแจ้งเตือนทั้งหมดเพื่อกวาด ID
     const { data: dbNotifs } = await sb
       .from("notifications")
