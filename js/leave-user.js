@@ -10,6 +10,7 @@ console.log("📢 [SYSTEM] เปิดใช้งานระบบติด�
 let employees = [];
 let leaveTypes = [];          
 let cachedHolidays = [];      
+let holidaysData = [];        // ข้อมูลวันหยุดบริษัทที่โหลดจาก Supabase/ข้อมูลสำรอง
 let currentProfile = null;
 let currentDeptApproverConfig = null;
 
@@ -1363,7 +1364,7 @@ function handleFileChange(input, labelId) {
 // ==========================================
 // 🔔 10. ระบบแจ้งเตือน และ อัปโหลดไฟล์
 // ==========================================
-async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/approver/leave-approvals.html', recipientId = null) {
+async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/hr/hr.html', recipientId = null) {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
@@ -1372,7 +1373,7 @@ async function sendNotification(title, message, type = 'leave', targetUrl = '/pa
       title: title,
       message: message,
       type: 'leave',
-      link_url: '/pages/approver/leave-approvals.html',
+      link_url: '/pages/hr/hr.html',
       is_read: false
     };
     
@@ -2084,7 +2085,7 @@ async function saveLeave() {
             title: notificationTitle,
             message: notificationMessage,
             type: 'leave',
-            link_url: '/pages/approver/leave-approvals.html'
+            link_url: '/pages/hr/hr.html'
           });
 
           // โค้ดเดิม (Workflow SDK) - ส่ง Flex Message สวยงามพร้อมปุ่มกด
