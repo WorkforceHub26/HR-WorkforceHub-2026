@@ -12,8 +12,62 @@
   let newsData = [];
 
   document.addEventListener("DOMContentLoaded", async () => {
+    setupNewsHeaderControls();
+    removeNewsLanguageSwitcher();
+    watchAndRemoveNewsLanguageSwitcher();
     await loadNewsHub();
   });
+
+  function setupNewsHeaderControls() {
+    const btn = document.getElementById("mobileMenuBtn");
+    if (!btn || btn.dataset.newsMenuBound === "1") return;
+    btn.dataset.newsMenuBound = "1";
+
+    // Use capture phase and stopImmediatePropagation to prevent the global
+    // auth-guard handler from toggling the same drawer a second time.
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
+      if (!sidebar) return;
+
+      if (window.innerWidth <= 1024) {
+        const isOpen = sidebar.classList.contains("mobile-open") || document.body.classList.contains("sidebar-open");
+
+        if (isOpen) {
+          if (typeof window.closeMobileSidebar === "function") {
+            window.closeMobileSidebar();
+          } else {
+            sidebar.classList.remove("mobile-open");
+            document.body.classList.remove("sidebar-open");
+            document.getElementById("mobileSidebarBackdrop")?.classList.remove("active");
+          }
+        } else {
+          if (typeof window.openMobileSidebar === "function") {
+            window.openMobileSidebar();
+          } else {
+            sidebar.classList.add("mobile-open");
+            document.body.classList.add("sidebar-open");
+          }
+        }
+      } else if (typeof window.toggleDesktopSidebar === "function") {
+        window.toggleDesktopSidebar();
+      }
+    }, true);
+  }
+
+  function removeNewsLanguageSwitcher() {
+    document.getElementById("globalLangSwitcherContainer")?.remove();
+  }
+
+  function watchAndRemoveNewsLanguageSwitcher() {
+    if (window.__newsLangObserver) return;
+    const observer = new MutationObserver(() => removeNewsLanguageSwitcher());
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    window.__newsLangObserver = observer;
+  }
 
   async function loadNewsHub() {
     try {

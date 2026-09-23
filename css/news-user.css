@@ -1,6 +1,6 @@
 /* ==========================================================================
    📢 USER NEWS HUB STYLES - PVT WORKFORCE HUB
-   สไตล์สำหรับการแสดงผลกระดานข่าวสารและประชาสัมพันธ์ฝั่งพนักงาน 0000000
+   สไตล์สำหรับการแสดงผลกระดานข่าวสารและประชาสัมพันธ์ฝั่งพนักงาน
    ========================================================================== */
 
 .news-hub-container {
@@ -591,5 +591,191 @@
   #page-user-news .cat-pill,
   #page-user-news .pinned-hero-btn {
     transition: none !important;
+  }
+}
+
+/* ========================================================================== 
+   NEWS HEADER CONTROLS — no language switcher, borderless menu at far right
+   ========================================================================== */
+#page-user-news #globalLangSwitcherContainer,
+#page-user-news .lang-switcher {
+  display: none !important;
+}
+
+#page-user-news .topbar {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+}
+
+#page-user-news .topbar-left {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+#page-user-news .news-topbar-actions,
+#page-user-news .topbar-right.news-topbar-actions {
+  display: flex !important;
+  width: auto !important;
+  min-width: 44px !important;
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0 !important;
+}
+
+#page-user-news .news-menu-btn,
+#page-user-news #mobileMenuBtn.news-menu-btn {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #334155 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: manipulation;
+}
+
+#page-user-news .news-menu-btn:hover,
+#page-user-news .news-menu-btn:active,
+#page-user-news .news-menu-btn:focus,
+#page-user-news .news-menu-btn:focus-visible {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: rgba(15, 118, 110, 0.06) !important;
+}
+
+#page-user-news .news-menu-btn .material-symbols-outlined {
+  font-size: 26px !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 1024px) {
+  #page-user-news .topbar {
+    padding-left: 14px !important;
+    padding-right: 6px !important;
+  }
+
+  #page-user-news .topbar-left {
+    width: auto !important;
+    gap: 0 !important;
+  }
+
+  #page-user-news .topbar-right.news-topbar-actions {
+    display: flex !important;
+    width: auto !important;
+    margin-left: auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  #page-user-news .topbar,
+  #page-user-news .topbar-right.news-topbar-actions {
+    flex-wrap: nowrap !important;
+  }
+
+  #page-user-news .topbar-right.news-topbar-actions {
+    width: auto !important;
+    justify-content: flex-end !important;
+  }
+}
+
+
+/* ========================================================================== 
+   NEWS TOPBAR — back button left / title center / menu right
+   ========================================================================== */
+#page-user-news .topbar {
+  display: grid !important;
+  grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+  align-items: center !important;
+  column-gap: 4px !important;
+}
+
+#page-user-news .news-back-btn {
+  grid-column: 1 !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #334155 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: manipulation !important;
+}
+
+#page-user-news .news-back-btn:hover,
+#page-user-news .news-back-btn:active,
+#page-user-news .news-back-btn:focus,
+#page-user-news .news-back-btn:focus-visible {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: rgba(15, 118, 110, 0.06) !important;
+}
+
+#page-user-news .news-back-btn .material-symbols-outlined {
+  font-size: 25px !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+}
+
+#page-user-news .topbar-left {
+  grid-column: 2 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#page-user-news .news-page-heading {
+  width: 100% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+
+#page-user-news .topbar-right.news-topbar-actions {
+  grid-column: 3 !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+@media (max-width: 1024px) {
+  #page-user-news .topbar {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+
+  #page-user-news .topbar-left,
+  #page-user-news .topbar-right.news-topbar-actions {
+    width: auto !important;
   }
 }

@@ -172,7 +172,7 @@ async function handleUserHomeAutoSync() {
         if (window.currentProfile) {
           await loadRecentLeaves(window.currentProfile);
           if (typeof initQuotaSystem === 'function') initQuotaSystem();
-          if (typeof checkUserNotifications === 'function') checkUserNotifications();
+          if (typeof fetchUserNotifications === 'function') await fetchUserNotifications();
           if (typeof checkApproverPermission === 'function') checkApproverPermission(window.currentProfile);
         } else {
           await initUserHome();
@@ -192,7 +192,7 @@ window.addEventListener("focus", handleUserHomeAutoSync);
 setInterval(() => {
   if (document.visibilityState === 'visible' && !document.hidden && window.currentProfile) {
     loadRecentLeaves(window.currentProfile);
-    if (typeof checkUserNotifications === 'function') checkUserNotifications();
+    if (typeof fetchUserNotifications === 'function') fetchUserNotifications();
   }
 }, 25000);
 
@@ -1008,16 +1008,8 @@ async function fetchUserNotifications() {
   const myId = profile.id || profile.employee_id;
   const myEmpCode = String(profile.employee_code || "").trim();
   let myRole = (profile.role || "user").toLowerCase();
-  const myPositionName = String(profile.positions?.position_name || profile.position_name || '').toLowerCase();
   if (myEmpCode === '19122') {
     myRole = 'manager';
-  } else if (myRole === 'user' || myRole === 'employee' || myRole === 'staff') {
-    if (myPositionName.includes('ผู้จัดการ') || myPositionName.includes('manager')) {
-      myRole = 'manager';
-    } else if ((myPositionName.includes('หัวหน้า') && !myPositionName.includes('หัวหน้ากะ') && !myPositionName.includes('หัวหน้าส่วน')) ||
-               myPositionName.includes('leader') || myPositionName.includes('supervisor')) {
-      myRole = 'leader';
-    }
   }
   const myDeptName = profile.departments?.department_name || profile.department_name || "";
   const myDeptId = profile.department_id || (myEmpCode === '19122' ? 'a318f70f-8e24-4e36-958a-7726d6c9da4d' : "");
@@ -1071,7 +1063,7 @@ async function fetchUserNotifications() {
         created_at: n.created_at,
         is_read: n.is_read || getUserReadNotifIds().includes(n.id),
         type: 'general',
-        link: myRole === 'user' ? '/pages/user/leave-history.html' : '/pages/approver/leave-approvals.html'
+        link: myRole === 'user' ? '/pages/user/leave-history.html' : '/pages/hr/hr.html'
       });
     });
 
@@ -1132,35 +1124,81 @@ async function fetchUserNotifications() {
             created_at: req.created_at,
             is_read: getUserReadNotifIds().includes(`pending-${req.id}`),
             type: 'pending_leave',
-            link: '/pages/approver/leave-approvals.html'
+            link: '/pages/hr/hr.html'
           });
         });
       }
-    } else {
-      // สำหรับพนักงานทั่วไป ดึงข้อมูลความคืบหน้าคำขอล่าสุดมาแสดงด้วย
-      const { data: myLeaves } = await sb
-        .from("leave_requests")
-        .select("id, updated_at, status, start_date, end_date, leave_types(leave_name)")
-        .eq("employee_id", myId)
-        .order("updated_at", { ascending: false })
-        .limit(10);
+    }
 
-      if (myLeaves) {
-        myLeaves.forEach(req => {
-          if (req.status !== "pending") {
-            const statusThai = req.status === "approved" ? "✅ อนุมัติแล้ว" : "❌ ปฏิเสธแล้ว";
-            notificationsList.push({
-              id: `status-${req.id}-${req.status}`,
-              title: `📢 สถานะใบลา: ${statusThai}`,
-              message: `ใบลา ${req.leave_types?.leave_name} ของคุณได้รับการพิจารณาเรียบร้อยแล้ว`,
-              created_at: req.updated_at,
-              is_read: getUserReadNotifIds().includes(`status-${req.id}-${req.status}`),
-              type: 'leave_status',
-              link: '/pages/user/leave-history.html'
-            });
-          }
+    // 3. ผู้ใช้ทุกบทบาทต้องเห็นความคืบหน้า "ใบลาของตัวเอง" เสมอ
+    //    เดิมใช้ else ทำให้หัวหน้า/ผู้จัดการเห็นเฉพาะงานอนุมัติลูกน้อง แต่ไม่เห็นสถานะใบลาของตนเอง
+    const { data: myLeaves } = await sb
+      .from("leave_requests")
+      .select("id, updated_at, status, start_date, end_date, manager_status, director_status, executive_status, leave_types(leave_name)")
+      .eq("employee_id", myId)
+      .order("updated_at", { ascending: false })
+      .limit(20);
+
+    if (myLeaves) {
+      myLeaves.forEach(req => {
+        const leaveName = req.leave_types?.leave_name || "ใบลา";
+        const status = String(req.status || "pending").toLowerCase();
+        const l1 = String(req.manager_status || "pending").toLowerCase();
+        const l2 = String(req.director_status || "pending").toLowerCase();
+        const l3 = String(req.executive_status || "pending").toLowerCase();
+
+        let stageKey = "";
+        let title = "";
+        let message = "";
+
+        if (status === "approved") {
+          stageKey = "approved";
+          title = "✅ ใบลาอนุมัติครบแล้ว";
+          message = `ใบลา ${leaveName} ของคุณได้รับการอนุมัติเรียบร้อยแล้ว`;
+        } else if (status === "rejected") {
+          stageKey = "rejected";
+          title = "❌ ใบลาไม่ผ่านการอนุมัติ";
+          message = `ใบลา ${leaveName} ของคุณถูกปฏิเสธ กรุณาเปิดประวัติการลาเพื่อดูรายละเอียด`;
+        } else if (status === "cancel_requested") {
+          stageKey = "cancel-requested";
+          title = "🕒 รอ HR ตรวจสอบการยกเลิก";
+          message = `คำขอยกเลิกใบลา ${leaveName} ถูกส่งแล้ว และกำลังรอ HR ตรวจสอบ`;
+        } else if (status === "cancelled" || status === "canceled") {
+          stageKey = "cancelled";
+          title = "✅ ยกเลิกใบลาเรียบร้อยแล้ว";
+          message = `ใบลา ${leaveName} ของคุณถูกยกเลิกเรียบร้อยแล้ว`;
+        } else if (l1 === "rejected" || l2 === "rejected" || l3 === "rejected") {
+          stageKey = `stage-rejected-${l3 === "rejected" ? "l3" : l2 === "rejected" ? "l2" : "l1"}`;
+          title = "❌ ใบลาไม่ผ่านการอนุมัติ";
+          message = `ใบลา ${leaveName} ของคุณมีผู้อนุมัติปฏิเสธ กรุณาเปิดประวัติการลาเพื่อดูรายละเอียด`;
+        } else if (l3 === "approved") {
+          stageKey = "l3-approved";
+          title = "✅ ผู้บริหาร (L3) อนุมัติแล้ว";
+          message = `ใบลา ${leaveName} ผ่านการอนุมัติขั้นผู้บริหารแล้ว`;
+        } else if (l2 === "approved") {
+          stageKey = "l2-approved";
+          title = "✅ ผู้จัดการ (L2) อนุมัติแล้ว";
+          message = `ใบลา ${leaveName} ผ่านการอนุมัติจากผู้จัดการแล้ว และกำลังดำเนินการขั้นถัดไป`;
+        } else if (l1 === "approved") {
+          stageKey = "l1-approved";
+          title = "✅ หัวหน้างาน (L1) อนุมัติแล้ว";
+          message = `ใบลา ${leaveName} ผ่านการอนุมัติจากหัวหน้างานแล้ว และกำลังรอขั้นถัดไป`;
+        }
+
+        // สถานะ pending ที่ยังไม่มีใครพิจารณา ไม่ถือเป็นข้อความใหม่
+        if (!stageKey) return;
+
+        const notifId = `status-${req.id}-${stageKey}`;
+        notificationsList.push({
+          id: notifId,
+          title,
+          message,
+          created_at: req.updated_at,
+          is_read: getUserReadNotifIds().includes(notifId),
+          type: 'leave_status',
+          link: '/pages/user/leave-history.html'
         });
-      }
+      });
     }
 
     // เรียงตามเวลาล่าสุด
@@ -1175,8 +1213,11 @@ async function fetchUserNotifications() {
     const totalUnread = unreadNotifications.length;
 
     if (badge) {
-      badge.innerText = totalUnread;
-      badge.style.display = totalUnread > 0 ? "flex" : "none";
+      badge.innerText = totalUnread > 99 ? "99+" : String(totalUnread);
+      badge.dataset.count = String(totalUnread);
+      badge.classList.toggle("is-empty", totalUnread === 0);
+      badge.style.setProperty("display", totalUnread > 0 ? "flex" : "none", "important");
+      badge.setAttribute("aria-hidden", totalUnread > 0 ? "false" : "true");
     }
 
     if (countPill) {
@@ -1572,7 +1613,7 @@ function openApproverNotificationModal() {
       cancelButtonText: 'ปิด',
       confirmButtonColor: '#0284c7'
     }).then((result) => {
-      if (result.isConfirmed) window.location.href = '/pages/approver/leave-approvals.html';
+      if (result.isConfirmed) window.location.href = '/pages/hr/hr.html';
     });
   }
 }
@@ -3184,7 +3225,7 @@ window.submitQuickLeave = async function() {
           title: notifTitle,
           message: notifMsg,
           type: 'leave',
-          link_url: '/pages/approver/leave-approvals.html',
+          link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
           is_read: false
         }]);
       }

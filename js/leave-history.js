@@ -1,6 +1,7 @@
 let myLeaveRows = [];
 let filteredLeaveRows = [];
 let myProfile = null;
+let leaveHistoryApproverMap = new Map();
 let currentFilter = 'all';
 let selectedYear = new Date().getFullYear().toString();
 let currentTypeFilter = "all";
@@ -233,6 +234,146 @@ function normalizeProfileData(raw) {
   };
 }
 
+
+// 🔐 กติกาการยกเลิกใบลา:
+// - ก่อนผู้อนุมัติคนแรกอนุมัติ: พนักงานยกเลิกคำขอเองได้
+// - หลังผู้อนุมัติคนแรกอนุมัติ: ต้องส่ง "คำขอยกเลิก" ไปให้ HR/Admin ตรวจสอบ
+function getLeaveApplicantRoleInfo(item) {
+  const emp = item?.employees || {};
+  const rawRole = String(emp.role || '').toLowerCase();
+  const rawPos = String(emp.positions?.position_name || emp.position_name || '').toLowerCase();
+
+  return {
+    isLeader: rawRole.includes('leader') || rawRole.includes('supervisor') || rawRole.includes('head') ||
+      rawRole.includes('หัวหน้า') || rawPos.includes('หัวหน้า') || rawPos.includes('leader') || rawPos.includes('supervisor'),
+    isManager: rawRole.includes('manager') || rawRole.includes('ผู้จัดการ') ||
+      rawPos.includes('ผู้จัดการ') || rawPos.includes('manager') || rawPos.includes('ผจก'),
+    isExecutive: rawRole.includes('director') || rawRole.includes('executive') || rawRole.includes('owner') ||
+      rawRole.includes('ผู้บริหาร') || rawPos.includes('ผู้อำนวยการ') || rawPos.includes('ผู้บริหาร') ||
+      rawPos.includes('director') || rawPos.includes('executive') || rawPos.includes('owner')
+  };
+}
+
+function getFirstActualApprovalField(item) {
+  if (!item) return null;
+
+  const emp = item.employees || {};
+  const deptId = emp.department_id || item.department_id || null;
+  const deptCfg = deptId ? (leaveHistoryApproverMap.get(String(deptId)) || {}) : {};
+
+  let l1Id = emp.l1_approver_id || deptCfg.supervisor_id || null;
+  let l2Id = emp.l2_approver_id || deptCfg.manager_id || null;
+  const l3Id = emp.l3_approver_id || null;
+
+  // ถ้า L1/L2 เป็นคนเดียวกัน ให้ถือว่าไม่มี L1 จริง และให้ L2 เป็นด่านแรก
+  if (l1Id && l2Id && String(l1Id) === String(l2Id)) {
+    l1Id = null;
+  }
+
+  const roleInfo = getLeaveApplicantRoleInfo(item);
+
+  if (roleInfo.isExecutive) return l3Id ? 'executive_status' : null;
+  if (roleInfo.isManager) return l3Id ? 'executive_status' : null;
+
+  if (roleInfo.isLeader) {
+    if (l2Id) return 'director_status';
+    if (l3Id) return 'executive_status';
+    return null;
+  }
+
+  if (l1Id) return 'manager_status';
+  if (l2Id) return 'director_status';
+  if (l3Id) return 'executive_status';
+  return null;
+}
+
+function getEmployeeCancellationMode(item) {
+  if (!item) return 'none';
+
+  const st = String(item.status || '').trim().toLowerCase();
+  if (st === 'cancel_requested' || st === 'cancel_pending' || st === 'cancelled' || st === 'rejected') {
+    return 'none';
+  }
+
+  if (st === 'approved') return 'request';
+
+  if (st === 'pending' || st === 'รออนุมัติ' || st.startsWith('pending_')) {
+    const firstField = getFirstActualApprovalField(item);
+
+    if (firstField && String(item[firstField] || '').toLowerCase() === 'approved') {
+      return 'request';
+    }
+
+    if (item.approved_by || item.approved_at) {
+      return 'request';
+    }
+
+    return 'direct';
+  }
+
+  return 'none';
+}
+
+async function ensureLeaveApproverContext(item, sb) {
+  if (!item || !sb) return item;
+
+  const emp = item.employees || {};
+  const deptId = emp.department_id || item.department_id || null;
+  if (deptId && !leaveHistoryApproverMap.has(String(deptId))) {
+    try {
+      const { data: deptCfg } = await sb
+        .from('department_approvers')
+        .select('department_id, supervisor_id, manager_id')
+        .eq('department_id', deptId)
+        .maybeSingle();
+
+      if (deptCfg) leaveHistoryApproverMap.set(String(deptId), deptCfg);
+    } catch (err) {
+      console.warn('⚠️ ไม่สามารถโหลดสายอนุมัติเพิ่มเติมสำหรับการยกเลิกใบลา:', err);
+    }
+  }
+  return item;
+}
+
+async function fetchFreshLeaveForCancellation(requestId, sb) {
+  if (!requestId || !sb) return null;
+
+  const selectWithJoin = `
+    id, employee_id, status, manager_status, director_status, executive_status,
+    approved_by, approved_at, cancel_reason, cancel_status,
+    employees(*, positions(*))
+  `;
+
+  let { data, error } = await sb
+    .from('leave_requests')
+    .select(selectWithJoin)
+    .eq('id', requestId)
+    .maybeSingle();
+
+  if (error) {
+    const fallback = await sb
+      .from('leave_requests')
+      .select('id, employee_id, status, manager_status, director_status, executive_status, approved_by, approved_at, cancel_reason, cancel_status')
+      .eq('id', requestId)
+      .maybeSingle();
+
+    if (fallback.error) throw fallback.error;
+    data = fallback.data;
+
+    if (data?.employee_id) {
+      const empRes = await sb
+        .from('employees')
+        .select('*, positions(*)')
+        .eq('id', data.employee_id)
+        .maybeSingle();
+      if (!empRes.error && empRes.data) data.employees = empRes.data;
+    }
+  }
+
+  if (data) await ensureLeaveApproverContext(data, sb);
+  return data;
+}
+
 // 🎨 วาดข้อมูลลงส่วนหัว (ถอด Logic จัดการ URL รูปภาพจาก index-user.js)
 function renderProfileHeader() {
   const nameEl = document.getElementById("emp-name");
@@ -311,7 +452,7 @@ async function loadMyLeaveHistory() {
   try {
     let { data, error } = await sb
       .from("leave_requests")
-      .select("id, leave_type_id, start_date, end_date, total_days, reason, status, approval_comment, cancel_reason, created_at, leave_types(leave_name), employees(*, positions(*))")
+      .select("id, employee_id, leave_type_id, start_date, end_date, total_days, leave_hours, reason, attachment_url, status, manager_status, director_status, executive_status, approved_by, approved_at, approval_comment, cancel_reason, cancel_status, created_at, leave_types(leave_name), employees(*, positions(*))")
       .eq("employee_id", empId)
       .order("created_at", { ascending: false });
 
@@ -319,7 +460,7 @@ async function loadMyLeaveHistory() {
       console.warn("⚠️ Foreign Key Join Fail, fallback to manual join:", error.message);
       const res = await sb
         .from("leave_requests")
-        .select("id, leave_type_id, start_date, end_date, total_days, reason, status, approval_comment, cancel_reason, created_at")
+        .select("id, employee_id, leave_type_id, start_date, end_date, total_days, leave_hours, reason, attachment_url, status, manager_status, director_status, executive_status, approved_by, approved_at, approval_comment, cancel_reason, cancel_status, created_at")
         .eq("employee_id", empId)
         .order("created_at", { ascending: false });
 
@@ -329,10 +470,48 @@ async function loadMyLeaveHistory() {
       const { data: typeList } = await sb.from("leave_types").select("id, leave_name");
       const typeMap = new Map((typeList || []).map(t => [String(t.id), t.leave_name]));
 
+      let freshEmployee = null;
+      try {
+        const empRes = await sb
+          .from("employees")
+          .select("*, positions(*)")
+          .eq("id", empId)
+          .maybeSingle();
+        if (!empRes.error) freshEmployee = empRes.data || null;
+      } catch (empErr) {
+        console.warn("⚠️ Fallback employee join warning:", empErr);
+      }
+
       data = data.map(item => ({
         ...item,
-        leave_types: { leave_name: typeMap.get(String(item.leave_type_id)) || "ไม่ระบุ" }
+        leave_types: { leave_name: typeMap.get(String(item.leave_type_id)) || "ไม่ระบุ" },
+        employees: freshEmployee || item.employees || null
       }));
+    }
+
+    // โหลดสายอนุมัติจริงของแผนก เพื่อแยก "ข้ามขั้น" ออกจาก "หัวหน้าอนุมัติจริง"
+    try {
+      const deptIds = [...new Set((data || [])
+        .map(item => item?.employees?.department_id || item?.department_id)
+        .filter(Boolean)
+        .map(String))];
+
+      if (deptIds.length > 0) {
+        const { data: approvers, error: apprErr } = await sb
+          .from("department_approvers")
+          .select("department_id, supervisor_id, manager_id")
+          .in("department_id", deptIds);
+
+        if (!apprErr) {
+          leaveHistoryApproverMap = new Map(
+            (approvers || []).map(row => [String(row.department_id), row])
+          );
+        } else {
+          console.warn("⚠️ Approver route warning:", apprErr.message);
+        }
+      }
+    } catch (routeErr) {
+      console.warn("⚠️ ไม่สามารถโหลดสายอนุมัติสำหรับประวัติการลา:", routeErr);
     }
 
     // ⏱️ ตรวจสอบและตัดใบลาที่ค้างเกิน 2 วัน (48 ชม.) เป็น "ไม่อนุมัติ" อัตโนมัติ
@@ -621,7 +800,7 @@ function renderRows() {
     emptyHistory: "ไม่พบรายการใบลาตามเงื่อนไขที่เลือก",
     statusPending: "รออนุมัติ",
     statusApproved: "อนุมัติแล้ว",
-    statusCancelReq: "รอพิจารณายกเลิก",
+    statusCancelReq: "รอ HR ตรวจสอบยกเลิก",
     statusCancelled: "ยกเลิกแล้ว",
     statusRejected: "ไม่อนุมัติ",
     btnDirectCancel: "ยกเลิกคำขอ",
@@ -698,7 +877,7 @@ function renderRows() {
       displayStatus = t.statusApproved || "อนุมัติแล้ว";
     } 
     else if (item.status === "cancel_requested") {
-      displayStatus = t.statusCancelReq || "รอพิจารณายกเลิก";
+      displayStatus = t.statusCancelReq || "รอ HR ตรวจสอบยกเลิก";
       statusClass = "pending";
     } 
     else if (item.status === "cancelled") {
@@ -723,18 +902,27 @@ function renderRows() {
     const displayReason = highlightMatch(item.reason || "ไม่มีระบุเหตุผล", searchTerm);
 
     let cardActionHtml = "";
-    if (item.status === "pending" || item.status === "approved") {
+    const cancellationMode = getEmployeeCancellationMode(item);
+
+    if (cancellationMode === "direct") {
       cardActionHtml = `
-        <button type="button" class="btn-cancel-card-action" onclick="event.stopPropagation(); directCancelLeave('${item.id}')" title="ยกเลิกใบลา">
+        <button type="button" class="btn-cancel-card-action" onclick="event.stopPropagation(); directCancelLeave('${item.id}')" title="ยกเลิกคำขอลา">
           <span class="material-symbols-outlined">cancel</span>
-          <span>ยกเลิกใบลา</span>
+          <span>ยกเลิกคำขอลา</span>
+        </button>
+      `;
+    } else if (cancellationMode === "request") {
+      cardActionHtml = `
+        <button type="button" class="btn-cancel-card-action" onclick="event.stopPropagation(); requestCancelApprovedLeave('${item.id}')" title="ส่งคำขอยกเลิกให้ HR ตรวจสอบ" style="background:#fffbeb; border-color:#fde68a; color:#b45309;">
+          <span class="material-symbols-outlined">assignment_return</span>
+          <span>ส่งคำขอยกเลิก</span>
         </button>
       `;
     } else if (item.status === "cancel_requested") {
       cardActionHtml = `
         <span class="status-badge-pending-cancel">
           <span class="material-symbols-outlined" style="font-size: 14px;">hourglass_top</span>
-          <span>รอพิจารณายกเลิก</span>
+          <span>รอ HR ตรวจสอบยกเลิก</span>
         </span>
       `;
     }
@@ -826,6 +1014,42 @@ function renderRows() {
 async function directCancelLeave(requestId) {
   if (!requestId) return;
 
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) {
+    await Swal.fire({ icon: 'error', title: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', confirmButtonColor: '#ef4444' });
+    return;
+  }
+
+  try {
+    const freshItem = await fetchFreshLeaveForCancellation(requestId, sb);
+    const freshMode = getEmployeeCancellationMode(freshItem);
+
+    if (freshMode === 'request') {
+      await Swal.fire({
+        icon: 'info',
+        title: 'ใบลาผ่านการอนุมัติแล้ว',
+        html: 'รายการนี้ผ่านผู้อนุมัติคนแรกแล้ว จึงไม่สามารถยกเลิกเองได้<br><b>ระบบจะเปลี่ยนเป็นการส่งคำขอยกเลิกให้ HR/Admin ตรวจสอบ</b>',
+        confirmButtonText: 'ส่งคำขอยกเลิก',
+        confirmButtonColor: '#d97706'
+      });
+      return requestCancelApprovedLeave(requestId);
+    }
+
+    if (freshMode === 'none') {
+      await Swal.fire({
+        icon: 'info',
+        title: 'ไม่สามารถยกเลิกรายการนี้ได้',
+        text: freshItem?.status === 'cancel_requested' ? 'รายการนี้ส่งคำขอยกเลิกไปยัง HR แล้ว' : 'สถานะปัจจุบันไม่อนุญาตให้ยกเลิก',
+        confirmButtonColor: '#64748b'
+      });
+      return;
+    }
+  } catch (guardErr) {
+    console.error('❌ Cancellation guard error:', guardErr);
+    await Swal.fire({ icon: 'error', title: 'ตรวจสอบสถานะไม่สำเร็จ', text: guardErr.message || 'กรุณาลองใหม่อีกครั้ง', confirmButtonColor: '#ef4444' });
+    return;
+  }
+
   const { value: cancelReason, isConfirmed } = await Swal.fire({
     title: '⚠️ ยืนยันการยกเลิกคำขอลา?',
     html: `
@@ -854,9 +1078,6 @@ async function directCancelLeave(requestId) {
 
   if (isConfirmed && cancelReason) {
     try {
-      const sb = window.pvtSupabase?.getClient();
-      if (!sb) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
-
       const trimmedReason = cancelReason.trim();
 
       // Ensure the status is set to 'cancelled' and approval_comment reflects it clearly
@@ -884,7 +1105,7 @@ async function directCancelLeave(requestId) {
 
       if (error) throw error;
 
-      await Swal.fire({ icon: 'success', title: 'ยกเลิกเรียบร้อย!', text: 'ยกเลิกคำขอลาและคืนสิทธิเรียบร้อยแล้ว', timer: 1800, showConfirmButton: false });
+      await Swal.fire({ icon: 'success', title: 'ยกเลิกเรียบร้อย!', text: 'ยกเลิกคำขอลาเรียบร้อยแล้ว', timer: 1800, showConfirmButton: false });
       await loadMyLeaveHistory();
     } catch (err) {
       console.error("❌ เกิดข้อผิดพลาดในการยกเลิก:", err);
@@ -896,12 +1117,51 @@ async function directCancelLeave(requestId) {
 async function requestCancelApprovedLeave(requestId) {
   if (!requestId) return;
 
+  const sb = window.pvtSupabase?.getClient();
+  if (!sb) {
+    await Swal.fire({ icon: 'error', title: 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', confirmButtonColor: '#ef4444' });
+    return;
+  }
+
+  let originalStatusForCancel = 'pending';
+
+  try {
+    const freshItem = await fetchFreshLeaveForCancellation(requestId, sb);
+    originalStatusForCancel = String(freshItem?.status || 'pending').toLowerCase() === 'approved' ? 'approved' : 'pending';
+    const freshMode = getEmployeeCancellationMode(freshItem);
+
+    if (freshMode === 'direct') {
+      await Swal.fire({
+        icon: 'info',
+        title: 'หัวหน้ายังไม่ได้อนุมัติ',
+        text: 'รายการนี้ยังสามารถยกเลิกคำขอลาได้ทันที โดยไม่ต้องส่งให้ HR ตรวจสอบ',
+        confirmButtonText: 'ยกเลิกคำขอลา',
+        confirmButtonColor: '#dc2626'
+      });
+      return directCancelLeave(requestId);
+    }
+
+    if (freshMode === 'none') {
+      await Swal.fire({
+        icon: 'info',
+        title: 'ไม่สามารถส่งคำขอยกเลิกได้',
+        text: freshItem?.status === 'cancel_requested' ? 'รายการนี้อยู่ระหว่างรอ HR/Admin ตรวจสอบการยกเลิกแล้ว' : 'สถานะปัจจุบันไม่อนุญาตให้ส่งคำขอยกเลิก',
+        confirmButtonColor: '#64748b'
+      });
+      return;
+    }
+  } catch (guardErr) {
+    console.error('❌ Cancel request guard error:', guardErr);
+    await Swal.fire({ icon: 'error', title: 'ตรวจสอบสถานะไม่สำเร็จ', text: guardErr.message || 'กรุณาลองใหม่อีกครั้ง', confirmButtonColor: '#ef4444' });
+    return;
+  }
+
   const { value: cancelReason, isConfirmed } = await Swal.fire({
     title: '⚠️ ยืนยันส่งคำร้องขอยกเลิกใบลา?',
     html: `
       <div style="text-align: left; background: #fffbeb; border: 1px solid #fde68a; padding: 14px 16px; border-radius: 12px; margin-bottom: 14px;">
-        <p style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #92400e;">⚠️ ใบลานี้ได้รับการอนุมัติเรียบร้อยแล้ว:</p>
-        <p style="margin: 0; font-size: 13px; color: #b45309; line-height: 1.5;">การขอยกเลิกจะต้องส่งคำร้องไปยังหัวหน้างาน/ผู้จัดการเพื่อพิจารณาอนุมัติยกเลิกและคืนโควตาวันลา กรุณาระบุเหตุผลความจำเป็นด้านล่างนี้</p>
+        <p style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #92400e;">⚠️ ใบลานี้ผ่านผู้อนุมัติคนแรกแล้ว:</p>
+        <p style="margin: 0; font-size: 13px; color: #b45309; line-height: 1.5;">พนักงานไม่สามารถยกเลิกใบลาด้วยตนเองได้แล้ว คำขอยกเลิกนี้จะส่งตรงไปยัง <strong>HR/Admin</strong> เพื่อตรวจสอบว่าพนักงานมาทำงานจริงในวันดังกล่าว และ HR/Admin จะเป็นผู้อนุมัติหรือปฏิเสธการยกเลิก</p>
       </div>
     `,
     input: 'textarea',
@@ -919,13 +1179,11 @@ async function requestCancelApprovedLeave(requestId) {
 
   if (isConfirmed && cancelReason) {
     try {
-      const sb = window.pvtSupabase?.getClient();
-      if (!sb) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
-
       let { error } = await sb
         .from("leave_requests")
         .update({
           status: "cancel_requested",
+          cancel_status: `pending_hr:${originalStatusForCancel}`,
           cancel_reason: cancelReason.trim()
         })
         .eq("id", requestId);
@@ -935,13 +1193,13 @@ async function requestCancelApprovedLeave(requestId) {
         const randomFutureDay = Math.floor(Math.random() * 20000) + 2000;
         const safeFutureDate = new Date(Date.now() + randomFutureDay * 86400000).toISOString().split('T')[0];
         await sb.from("leave_requests").update({ start_date: safeFutureDate, end_date: safeFutureDate }).eq("id", requestId);
-        const retry = await sb.from("leave_requests").update({ status: "cancel_requested", cancel_reason: cancelReason.trim() }).eq("id", requestId);
+        const retry = await sb.from("leave_requests").update({ status: "cancel_requested", cancel_status: `pending_hr:${originalStatusForCancel}`, cancel_reason: cancelReason.trim() }).eq("id", requestId);
         error = retry.error;
       }
 
       if (error) throw error;
 
-      await Swal.fire({ icon: 'success', title: 'ส่งคำร้องสำเร็จ!', text: 'ส่งคำร้องขอยกเลิกคำขอลาเรียบร้อยแล้ว', confirmButtonColor: '#0f766e' });
+      await Swal.fire({ icon: 'success', title: 'ส่งคำขอสำเร็จ!', text: 'ส่งคำขอยกเลิกไปยัง HR/Admin เพื่อรอตรวจสอบแล้ว', confirmButtonColor: '#0f766e' });
       await loadMyLeaveHistory();
     } catch (err) {
       console.error("❌ เกิดข้อผิดพลาดในการส่งคำร้อง:", err);
@@ -980,7 +1238,7 @@ function downloadLeaveHistoryCSV() {
     
     let statusText = "รออนุมัติ";
     if (item.status === "approved") statusText = "อนุมัติแล้ว";
-    else if (item.status === "cancel_requested") statusText = "รออนุมัติยกเลิก";
+    else if (item.status === "cancel_requested") statusText = "รอ HR ตรวจสอบยกเลิก";
     else if (item.status === "cancelled") statusText = "ยกเลิกแล้ว";
     else if (item.status === "rejected") statusText = "ไม่อนุมัติ";
 
@@ -1088,21 +1346,30 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
     const endStr = formatDate(item.end_date);
     const duration = typeof formatDuration === 'function' ? formatDuration(item.total_days, item.leave_hours) : (item.total_days ? `${item.total_days} วัน` : "-");
 
-    // Determine actions buttons
+    // Determine actions buttons ตามสถานะ "ผู้อนุมัติคนแรก" ไม่ใช่ดูเฉพาะ status หลัก
     let actionButtonsHtml = "";
-    if (item.status === "pending") {
+    const modalCancellationMode = getEmployeeCancellationMode(item);
+
+    if (modalCancellationMode === "direct") {
       actionButtonsHtml = `
         <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
           <button onclick="if(typeof Swal!=='undefined')Swal.close(); directCancelLeave('${item.id}')" style="background: #fef2f2; border: 1px solid #fecaca; padding: 10px 18px; border-radius: 10px; color: #dc2626; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
             <span class="material-symbols-outlined" style="font-size: 18px;">close</span> ยกเลิกคำขอลาทันที
           </button>
         </div>`;
-    } else if (item.status === "approved") {
+    } else if (modalCancellationMode === "request") {
       actionButtonsHtml = `
         <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
           <button onclick="if(typeof Swal!=='undefined')Swal.close(); requestCancelApprovedLeave('${item.id}')" style="background: #fffbeb; border: 1px solid #fde68a; padding: 10px 18px; border-radius: 10px; color: #b45309; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">assignment_return</span> ส่งคำร้องขอยกเลิกคำขอลาพนักงาน (คืนโควต้า)
+            <span class="material-symbols-outlined" style="font-size: 18px;">assignment_return</span> ส่งคำขอยกเลิกให้ HR ตรวจสอบ
           </button>
+        </div>`;
+    } else if (item.status === "cancel_requested") {
+      actionButtonsHtml = `
+        <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+          <div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; padding:10px 12px; border-radius:10px; font-size:13px; font-weight:600; text-align:center;">
+            รอ HR/Admin ตรวจสอบคำขอยกเลิก
+          </div>
         </div>`;
     }
 
@@ -1193,7 +1460,7 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
       label: `${stepIdx}. สถานะการอนุมัติ (Final Decision)`,
       icon: isHrApp ? 'verified' : isHrRej ? 'cancel' : isCancelled ? 'cancel' : isCancelReq ? 'schedule' : 'pending',
       iconColor: isHrApp ? '#10b981' : isHrRej ? '#ef4444' : isCancelled ? '#64748b' : isCancelReq ? '#f59e0b' : '#94a3b8',
-      statusText: isHrApp ? 'อนุมัติสำเร็จสมบูรณ์' : isHrRej ? 'ไม่อนุมัติ' : isCancelled ? 'ยกเลิกคำขอแล้ว' : isCancelReq ? 'รออนุมัติยกเลิก' : isPendingPrev ? 'รอดำเนินการ' : 'กำลังพิจารณา',
+      statusText: isHrApp ? 'อนุมัติสำเร็จสมบูรณ์' : isHrRej ? 'ไม่อนุมัติ' : isCancelled ? 'ยกเลิกคำขอแล้ว' : isCancelReq ? 'รอ HR ตรวจสอบยกเลิก' : isPendingPrev ? 'รอดำเนินการ' : 'กำลังพิจารณา',
       statusColor: isHrApp ? '#15803d' : isHrRej ? '#b91c1c' : isCancelled ? '#64748b' : isCancelReq ? '#b45309' : '#94a3b8'
     });
 

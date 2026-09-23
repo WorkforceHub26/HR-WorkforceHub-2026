@@ -1289,19 +1289,78 @@
       link.click();
       document.body.removeChild(link);
 
-      if (typeof Swal !== 'undefined') {
-        const Toast = Swal.mixin({
-          toast: true,
-          position: 'top-end',
-          showConfirmButton: false,
-          timer: 3000,
-          timerProgressBar: true
-        });
-        Toast.fire({
-          icon: 'success',
-          title: `📥 ดาวน์โหลดบัตร #${empCode} ลงเครื่องเรียบร้อยแล้ว`
-        });
-      }
+      // แจ้งเตือนดาวน์โหลดแบบ custom fixed เพื่อให้อยู่กึ่งกลาง viewport จริง ๆ
+      // และไม่ชน/แทนที่ SweetAlert popup บัตรพนักงานที่กำลังเปิดอยู่
+      const oldNotice = document.getElementById('employeeCardDownloadNotice');
+      if (oldNotice) oldNotice.remove();
+
+      const notice = document.createElement('div');
+      notice.id = 'employeeCardDownloadNotice';
+      notice.setAttribute('role', 'status');
+      notice.setAttribute('aria-live', 'polite');
+      notice.style.cssText = `
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2147483647;
+        width: min(340px, calc(100vw - 32px));
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        background: #ffffff;
+        color: #0f172a;
+        border: 1px solid #dbeafe;
+        border-radius: 16px;
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
+        font-family: inherit;
+        opacity: 0;
+        transition: opacity .18s ease, transform .18s ease;
+        pointer-events: none;
+      `;
+
+      const icon = document.createElement('div');
+      icon.style.cssText = `
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #dcfce7;
+        color: #16a34a;
+        font-size: 22px;
+        font-weight: 900;
+      `;
+      icon.textContent = '✓';
+
+      const message = document.createElement('div');
+      message.style.cssText = `
+        min-width: 0;
+        font-size: 15px;
+        line-height: 1.45;
+        font-weight: 700;
+        text-align: left;
+        word-break: break-word;
+      `;
+      message.textContent = `ดาวน์โหลดบัตร #${empCode || 'PVT'} เรียบร้อยแล้ว`;
+
+      notice.appendChild(icon);
+      notice.appendChild(message);
+      document.body.appendChild(notice);
+
+      requestAnimationFrame(() => {
+        notice.style.opacity = '1';
+        notice.style.transform = 'translate(-50%, -50%) scale(1)';
+      });
+
+      setTimeout(() => {
+        notice.style.opacity = '0';
+        notice.style.transform = 'translate(-50%, -50%) scale(.97)';
+        setTimeout(() => notice.remove(), 220);
+      }, 2200);
     } catch (err) {
       console.error("❌ Error downloading card PNG:", err);
       window.open(dataUrl, '_blank');
@@ -1484,6 +1543,17 @@
     let currentThemeKey = localStorage.getItem('pvt_emp_card_theme') || 'royal_blue';
     if (!CARD_THEMES[currentThemeKey]) currentThemeKey = 'royal_blue';
 
+    // Normalize legacy duplicate theme keys so the dropdown shows each color once.
+    const themeAliases = {
+      emerald_green: 'emerald_teal',
+      pearl_white: 'modern_white',
+      purple_luxury: 'violet_platinum'
+    };
+    if (themeAliases[currentThemeKey]) {
+      currentThemeKey = themeAliases[currentThemeKey];
+      localStorage.setItem('pvt_emp_card_theme', currentThemeKey);
+    }
+
     // สำหรับ Admin: ดึงรายชื่อพนักงานทั้งหมดสร้าง Dropdown Selector
     let adminSelectHtml = '';
     if (isAdmin) {
@@ -1543,17 +1613,22 @@
       themeKey: currentThemeKey
     });
 
-    // สร้างปุ่มเลือกสีบัตร (Palette Chips)
-    const colorChipsHtml = Object.values(CARD_THEMES).map(t => {
-      const isAct = t.id === currentThemeKey;
-      return `
-        <button type="button" class="btn-card-theme-chip" data-theme="${t.id}"
-                title="${t.name}"
-                style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 600; cursor: pointer; border: 2px solid ${isAct ? '#0284c7' : '#e2e8f0'}; background: ${isAct ? '#f0f9ff' : '#ffffff'}; color: ${isAct ? '#0369a1' : '#475569'}; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.15s ease;">
-          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: ${t.chipBg}; border: 1px solid ${t.chipBorder || 'transparent'}; flex-shrink: 0;"></span>
-          <span>${t.name}</span>
-        </button>
-      `;
+    // สร้างรายการสีบัตรแบบ Dropdown (แสดงเฉพาะธีมที่ไม่ซ้ำกัน)
+    const visibleThemeKeys = [
+      'royal_blue',
+      'emerald_teal',
+      'luxury_gold',
+      'modern_white',
+      'dark_navy',
+      'violet_platinum',
+      'rose_crimson',
+      'ocean_cyan',
+      'midnight_dark'
+    ];
+    const colorThemeOptionsHtml = visibleThemeKeys.map(key => {
+      const t = CARD_THEMES[key];
+      if (!t) return '';
+      return `<option value="${t.id}" ${t.id === currentThemeKey ? 'selected' : ''}>${t.emoji || '🎨'} ${t.name}</option>`;
     }).join('');
 
     const adminFilterHtml = isAdmin ? `
@@ -1581,14 +1656,19 @@
       html: `
         ${adminSelectHtml}
 
-        <!-- แถบเลือกชุดสีบัตร (Color Themes) -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin: 4px 0 14px 0; text-align: center;">
-          <div style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <!-- เลือกชุดสีบัตรแบบ Dropdown -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin: 4px 0 14px 0; text-align: left;">
+          <label for="cardThemeSelect" style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 7px; display: flex; align-items: center; gap: 6px;">
             <span>🎨</span>
-            <span>เลือกสีบัตรพนักงาน (Card Theme):</span>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;" id="cardThemeChipsContainer">
-            ${colorChipsHtml}
+            <span>เลือกสีบัตรพนักงาน (Card Theme)</span>
+          </label>
+          <div style="position: relative; display: flex; align-items: center; gap: 8px;">
+            <span id="cardThemeColorPreview" aria-hidden="true"
+                  style="width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; background: ${CARD_THEMES[currentThemeKey]?.chipBg || '#e0f2fe'}; border: 1px solid ${CARD_THEMES[currentThemeKey]?.chipBorder || '#0284c7'};"></span>
+            <select id="cardThemeSelect" aria-label="เลือกสีบัตรพนักงาน"
+                    style="width: 100%; min-width: 0; padding: 9px 36px 9px 11px; font-family: inherit; font-size: 13px; font-weight: 600; color: #0f172a; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 9px; outline: none; cursor: pointer; box-shadow: 0 1px 2px rgba(15,23,42,0.04);">
+              ${colorThemeOptionsHtml}
+            </select>
           </div>
         </div>
 
@@ -1645,30 +1725,31 @@
           }
         }
 
-        // ผูกการเปลี่ยนสีบัตรพนักงานแบบตอบสนองทันที
-        const themeChips = document.querySelectorAll('.btn-card-theme-chip');
+        // ผูก Dropdown เปลี่ยนสีบัตรพนักงานแบบตอบสนองทันที
+        const themeSelect = document.getElementById('cardThemeSelect');
+        const themeColorPreview = document.getElementById('cardThemeColorPreview');
         const previewImg = document.getElementById('myEmpCardImgPreview');
         const spinner = document.getElementById('cardRenderingSpinner');
 
-        themeChips.forEach(chip => {
-          chip.addEventListener('click', async () => {
-            const selectedKey = chip.getAttribute('data-theme');
-            if (!selectedKey || selectedKey === currentThemeKey) return;
+        if (themeSelect) {
+          themeSelect.addEventListener('change', async () => {
+            const selectedKey = themeSelect.value;
+            if (!selectedKey || !CARD_THEMES[selectedKey] || selectedKey === currentThemeKey) return;
 
             currentThemeKey = selectedKey;
             localStorage.setItem('pvt_emp_card_theme', currentThemeKey);
 
-            // อัปเดตสไตล์ของปุ่มเลือกสี
-            themeChips.forEach(c => {
-              const isAct = c.getAttribute('data-theme') === currentThemeKey;
-              c.style.border = isAct ? '2px solid #0284c7' : '2px solid #e2e8f0';
-              c.style.background = isAct ? '#f0f9ff' : '#ffffff';
-              c.style.color = isAct ? '#0369a1' : '#475569';
-            });
+            // อัปเดตจุดตัวอย่างสีข้าง Dropdown
+            const selectedTheme = CARD_THEMES[currentThemeKey];
+            if (themeColorPreview && selectedTheme) {
+              themeColorPreview.style.background = selectedTheme.chipBg;
+              themeColorPreview.style.borderColor = selectedTheme.chipBorder || 'transparent';
+            }
 
             // สร้างรูปบัตรใหม่ตามสีที่เลือก
             if (previewImg) previewImg.style.opacity = '0.4';
             if (spinner) spinner.style.display = 'block';
+            themeSelect.disabled = true;
 
             try {
               cardImageDataUrl = await generateEmployeeCardPNG({
@@ -1686,9 +1767,10 @@
             } finally {
               if (previewImg) previewImg.style.opacity = '1';
               if (spinner) spinner.style.display = 'none';
+              themeSelect.disabled = false;
             }
           });
-        });
+        }
 
         // ผูกปุ่มดาวน์โหลดรูปบัตร
         const dlBtn = document.getElementById('btnDownloadCardPng');
