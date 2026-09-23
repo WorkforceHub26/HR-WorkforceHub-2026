@@ -102,7 +102,7 @@ window.handleLogout = function(event) {
   }
 };
 
-window.goToLeaveForm = () => window.location.href = "/pages/hr/hr.html";
+window.goToLeaveForm = () => window.location.href = "/pages/approver/leave-approvals.html";
 window.viewMyDigitalCard = () => window.location.href = "/pages/user/index-user.html?action=digital_card";
 window.generateLineLinkToken = () => window.location.href = "/pages/user/index-user.html?action=line_link";
 window.triggerBiometricHelp = () => window.location.href = "/pages/user/index-user.html?action=help";

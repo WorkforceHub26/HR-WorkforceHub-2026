@@ -2408,7 +2408,10 @@ class LineOAEngine {
     const origin = (typeof window !== 'undefined' && window.location.origin) 
       ? window.location.origin 
       : 'https://ais-dev-65m6k5jsxexajsrlv3c3x6-414501392488.asia-southeast1.run.app';
-    const approvalUrl = `${origin}/pages/hr/hr.html`;
+    const recipientRoleLower = String(recipientRole || '').toLowerCase();
+    const usesApproverPortal = ['leader', 'manager', 'supervisor', 'head'].some(r => recipientRoleLower === r || recipientRoleLower.includes(r));
+    const approvalPath = usesApproverPortal ? '/pages/approver/leave-approvals.html' : '/pages/hr/hr.html';
+    const approvalUrl = `${origin}${approvalPath}`;
     const historyUrl = `${origin}/pages/user/leave-history.html`;
 
     // แปลงระยะเวลาลาและวันที่ให้เป็นข้อความเข้าใจง่าย
@@ -2578,7 +2581,7 @@ class LineOAEngine {
 
     // 1. บันทึกแจ้งเตือนลงฐานข้อมูล (In-App Notifications)
     const isApprovalNotice = ['NEW_REQUEST', 'LEADER_APPROVED', 'MANAGER_APPROVED', 'CANCELLATION'].includes(type);
-    const targetLinkUrl = isApprovalNotice ? '/pages/hr/hr.html' : '/pages/user/leave-history.html';
+    const targetLinkUrl = isApprovalNotice ? approvalPath : '/pages/user/leave-history.html';
 
     if (this.client && recipientId) {
       try {

@@ -54,12 +54,6 @@ window.getUserRoleCategory = function(userSession) {
     return { isAuth: true, category: 'hr_exec', role: role || 'admin', position, dept, isViewOnly: code === 'HR-001-3' };
   }
 
-  // 0.1 ตรวจสอบกรณีเป็น Role พนักงานทั่วไป (User / Employee / Staff)
-  // ให้เป็น employee สิทธิ์พนักงานทั่วไปเสมอ แม้จะอยู่แผนกบุคคล เพื่อให้ HR มีแอคเคาท์ธรรมดาสำหรับยื่นลาได้
-  if (role === 'user' || role === 'employee' || role === 'staff') {
-    return { isAuth: true, category: 'employee', role, position, dept };
-  }
-
   // พนักงานบริการ / แม่บ้าน / พ่อบ้าน / คนสวน -> บังคับเป็น employee (พนักงานทั่วไป) เสมอ
   const isServiceStaff = position.includes('แม่บ้าน') || position.includes('พ่อบ้าน') || position.includes('คนสวน') ||
                          duty.includes('แม่บ้าน') || duty.includes('พ่อบ้าน') || duty.includes('คนสวน');
@@ -67,7 +61,8 @@ window.getUserRoleCategory = function(userSession) {
     return { isAuth: true, category: 'employee', role, position, dept };
   }
 
-  // 19122 (น.ส. ปณัยยา บุญเกิด): ผู้จัดการฝ่าย - บุคคล-ธุรการ ให้สิทธิ์เป็น leader_manager (ผู้จัดการฝ่าย HR) มีปุ่มสลับเพื่ออนุมัติคนในแผนก
+  // บัญชีพิเศษต้องตรวจให้เสร็จก่อน generic role=user/employee/staff
+  // 19122 (น.ส. ปณัยยา บุญเกิด): ผู้จัดการฝ่าย - บุคคล-ธุรการ
   if (code === '19122') {
     return { isAuth: true, category: 'leader_manager', role: 'manager', position: 'ผู้จัดการฝ่าย', dept: 'บุคคล-ธุรการ' };
   }
@@ -87,13 +82,25 @@ window.getUserRoleCategory = function(userSession) {
     return { isAuth: true, category: 'hr_exec', role, position, dept, isViewOnly: code === 'HR-001-3' };
   }
 
-  // 2. หัวหน้างาน และ ผู้จัดการแผนก (Leader / Manager / Supervisor)
+  // 2. หัวหน้างาน และ ผู้จัดการแผนก
+  // หมายเหตุ: บัญชีเดิมบางรายเก็บ role=user/employee แต่ position_name เป็นหัวหน้างาน
+  // จึงต้องตรวจตำแหน่งก่อน generic employee role เพื่อไม่ให้ถูกเด้งออกจากหน้าอนุมัติใบลา
+  const isLeadershipPosition =
+    position.includes('ผู้จัดการ') ||
+    (position.includes('หัวหน้า') && !position.includes('หัวหน้ากะ') && !position.includes('หัวหน้าส่วน')) ||
+    position.includes('manager') || position.includes('leader') || position.includes('supervisor') || position.includes('head');
+
   const isManagerOrLeader = 
     role === 'manager' || role === 'leader' || role === 'supervisor' || role === 'head' ||
-    role.includes('manager') || role.includes('leader');
+    role.includes('manager') || role.includes('leader') || role.includes('supervisor');
 
-  if (isManagerOrLeader) {
-    return { isAuth: true, category: 'leader_manager', role, position, dept };
+  if (isManagerOrLeader || isLeadershipPosition) {
+    return { isAuth: true, category: 'leader_manager', role: role || 'leader', position, dept };
+  }
+
+  // 2.1 พนักงานทั่วไป (ตรวจหลังหัวหน้า/ผู้จัดการ)
+  if (role === 'user' || role === 'employee' || role === 'staff') {
+    return { isAuth: true, category: 'employee', role, position, dept };
   }
 
   // 3. Fallback ตามตำแหน่งงาน (กรณี role ในฐานข้อมูลว่าง)
@@ -125,6 +132,7 @@ window.getUserRoleCategory = function(userSession) {
   const path = window.location.pathname.toLowerCase();
   const isLoginPage = path === "/" || path === "/index.html" || (path.endsWith("/index.html") && !path.includes("/pages/"));
   const isHrArea = path.includes("/pages/hr/");
+  const isApproverArea = path.includes("/pages/approver/");
   const isManagementOrSettings = path.includes("management") || path.includes("approval-settings") || path.includes("test.html");
 
   const userStatus = window.getUserRoleCategory(session);
@@ -245,16 +253,30 @@ window.getUserRoleCategory = function(userSession) {
     }
   }
 
-  // 4. กรณีหัวหน้างาน / ผู้จัดการ (Leader / Manager) - อนุญาตให้เข้าเฉพาะหน้าตรวจและอนุมัติใบลา (/pages/hr/hr.html)
-  if (userStatus.category === 'leader_manager') {
-    const isHrApprovalPage = path.includes("/pages/hr/hr.html") || path.includes("/pages/hr/leave-stats.html");
-    if (isHrArea && !isHrApprovalPage) {
-      console.warn("🚫 [Auth Guard]: หัวหน้า/ผู้จัดการได้รับอนุญาตเฉพาะหน้าอนุมัติใบลา (hr.html) -> เด้งไปหน้าพนักงาน");
-      try { if (document.body) document.body.innerHTML = ''; } catch(e){}
-      window.location.replace("/pages/user/index-user.html");
-      return;
+  // 4. หัวหน้างาน / ผู้จัดการ ไม่มีสิทธิ์เข้า HR Area โดยตรง
+  // หน้าอนุมัติของสายบังคับบัญชาแยกอยู่ที่ /pages/approver/leave-approvals.html
+  if (userStatus.category === 'leader_manager' && isHrArea) {
+    console.warn("🚫 [Auth Guard]: Approver ถูกแยกออกจาก HR Area");
+    try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+    if (path.includes('/pages/hr/hr.html')) {
+      window.location.replace('/pages/approver/leave-approvals.html' + (window.location.search || ''));
+    } else if (path.includes('/pages/hr/leave-stats.html')) {
+      window.location.replace('/pages/user/leave-stats.html' + (window.location.search || ''));
+    } else {
+      window.location.replace('/pages/user/index-user.html');
     }
+    return;
   }
+
+  // 4.1 HR/Admin/Executive ใช้ HR Area ไม่ใช้ Approver Portal ของหัวหน้างาน
+  if (isApproverArea && userStatus.category === 'hr_exec') {
+    try { if (document.body) document.body.innerHTML = ''; } catch(e){}
+    window.location.replace('/pages/hr/home.html');
+    return;
+  }
+
+  // employee ที่เข้าหน้า Approver Portal จะถูกตรวจสิทธิ์ซ้ำแบบ async ใน hr.js
+  // เพื่อรองรับผู้ที่ถูกผูกเป็น supervisor_id / manager_id แต่ฐานข้อมูล role ยังเป็น user
 
   // 5. กรณีผู้บริหาร / HR / Admin (hr_exec) - ห้ามเข้าหน้าแดชบอร์ดส่วนตัวพนักงาน (/pages/user/index-user.html ฯลฯ) ให้อยู่เฉพาะส่วนงานแอดมิน (/pages/hr/)
   const isUserDashboardArea = 
@@ -331,6 +353,7 @@ function applyNavPermissions() {
       const selectors = [
         'a[href*="home.html"]',
         'a[href*="hr.html"]',
+        'a[href*="/pages/approver/"]',
         'a[href*="management"]',
         'a[href*="approval-settings"]',
         'a[href*="/pages/hr/holidays.html"]',
@@ -344,9 +367,9 @@ function applyNavPermissions() {
         el.style.setProperty("display", "none", "important");
       });
     } else if (userStatus.category === 'leader_manager') {
-      // หัวหน้า/ผู้จัดการ: เข้าได้เฉพาะหน้าอนุมัติใบลา (hr.html) ซ่อนหน้า Dashboard ใหญ่, Management, และ Settings
+      // หัวหน้า/ผู้จัดการ: ซ่อน HR Area ทั้งหมด และเปิดเฉพาะ Approver Portal
       const selectors = [
-        'a[href*="home.html"]',
+        'a[href*="/pages/hr/"]',
         'a[href*="management"]',
         'a[href*="approval-settings"]',
         'a[href*="admin-dashboard"]',
@@ -356,7 +379,7 @@ function applyNavPermissions() {
       document.querySelectorAll(selectors.join(', ')).forEach(el => {
         el.style.setProperty("display", "none", "important");
       });
-      document.querySelectorAll('a[href*="hr.html"]').forEach(el => {
+      document.querySelectorAll('a[href*="/pages/approver/leave-approvals.html"]').forEach(el => {
         el.style.setProperty("display", "flex", "important");
       });
     }
@@ -367,6 +390,44 @@ function applyNavPermissions() {
 
 document.addEventListener("DOMContentLoaded", applyNavPermissions);
 
+// ตรวจ mapping ผู้อนุมัติจากฐานข้อมูลอีกชั้น เพื่อรองรับบัญชีที่ role ยังเป็น user
+// แต่ถูกกำหนดเป็น supervisor_id / manager_id / l1_approver_id / l2_approver_id แล้ว
+async function resolveAsyncApproverMenuPermission() {
+  try {
+    const raw = localStorage.getItem("currentUser");
+    const session = raw ? JSON.parse(raw) : null;
+    if (!session) return;
+
+    const status = window.getUserRoleCategory(session);
+    if (status.category === 'hr_exec') return;
+
+    const emp = session.employees || session || {};
+    const empId = emp.id || session.employee_id || null;
+    if (!empId) return;
+
+    let isApprover = status.category === 'leader_manager';
+    if (!isApprover) {
+      const sb = getSbClient();
+      if (!sb?.from) return;
+      const id = String(empId);
+      const [cfgRes, directRes, deptRes] = await Promise.all([
+        sb.from('department_approvers').select('department_id').or(`supervisor_id.eq.${id},manager_id.eq.${id}`).limit(1),
+        sb.from('employees').select('id').or(`l1_approver_id.eq.${id},l2_approver_id.eq.${id}`).limit(1),
+        sb.from('departments').select('id').or(`approver_id.eq.${id},backup_approver_id.eq.${id}`).limit(1)
+      ]);
+      isApprover = Boolean((cfgRes.data && cfgRes.data.length) || (directRes.data && directRes.data.length) || (deptRes.data && deptRes.data.length));
+    }
+
+    document.querySelectorAll('a[href*="/pages/approver/leave-approvals.html"]').forEach(el => {
+      el.style.setProperty('display', isApprover ? 'flex' : 'none', 'important');
+    });
+    window.__PVT_IS_APPROVER__ = isApprover;
+  } catch (err) {
+    console.warn('[Auth Guard] async approver permission check failed:', err);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", resolveAsyncApproverMenuPermission);
 
 document.addEventListener("DOMContentLoaded", async () => {
   const loginForm = document.getElementById("loginForm");

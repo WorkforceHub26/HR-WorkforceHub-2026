@@ -701,7 +701,7 @@ function setupSidebarForUserRole() {
           <img src="/assets/icons/home-dashboard.svg" alt="หน้าหลัก" class="nav-icon-custom" />
           <span>หน้าหลัก (Admin)</span>
         </a>
-        <a href="/pages/hr/hr.html" class="menu-item">
+        <a href="/pages/approver/leave-approvals.html" class="menu-item">
           <img src="/assets/icons/leave-document.svg" alt="ตรวจใบลา" class="nav-icon-custom" />
           <span>ตรวจใบลา</span>
         </a>

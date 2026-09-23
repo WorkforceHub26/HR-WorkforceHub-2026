@@ -10,6 +10,7 @@
     var path = window.location.pathname.toLowerCase();
     var isLoginPage = path === "/" || path === "/index.html" || (path.endsWith("/index.html") && !path.includes("/pages/"));
     var isHrArea = path.includes("/pages/hr/");
+    var isApproverArea = path.includes("/pages/approver/");
 
     function getRoleCat(user) {
       if (!user || (!user.id && !user.employee_code)) return { isAuth: false, category: 'guest' };
@@ -17,7 +18,11 @@
       var role = String(user.role || emp.role || '').toLowerCase().trim();
       var code = String(user.employee_code || emp.employee_code || '').trim();
       var codeLower = code.toLowerCase();
-      var pos = String(user.position_name || user.position || emp.position_name || '').toLowerCase().trim();
+      var pos = String(
+        user.position_name || user.position ||
+        (user.positions && user.positions.position_name) ||
+        emp.position_name || (emp.positions && emp.positions.position_name) || ''
+      ).toLowerCase().trim();
       var duty = String(user.duty_name || emp.duty_name || '').toLowerCase().trim();
 
       var isExplicitAdminOrHr = 
@@ -34,16 +39,14 @@
         return { isAuth: true, category: 'hr_exec', role: role || 'admin' };
       }
 
-      if (role === 'user' || role === 'employee' || role === 'staff') {
-        return { isAuth: true, category: 'employee', role: role };
-      }
-
+      // พนักงานบริการให้คงสิทธิ์พนักงานทั่วไป แม้ชื่อตำแหน่งจะมีคำที่คล้ายหัวหน้า
       var isServiceStaff = pos.includes('แม่บ้าน') || pos.includes('พ่อบ้าน') || pos.includes('คนสวน') ||
                            duty.includes('แม่บ้าน') || duty.includes('พ่อบ้าน') || duty.includes('คนสวน');
       if (isServiceStaff) {
         return { isAuth: true, category: 'employee', role: role };
       }
 
+      // บัญชีพิเศษต้องตรวจให้เสร็จก่อน generic role=user/employee/staff
       if (code === '19122') {
         return { isAuth: true, category: 'leader_manager', role: 'manager' };
       }
@@ -58,10 +61,23 @@
         return { isAuth: true, category: 'hr_exec', role: role };
       }
 
-      var isManagerOrLeader = role === 'manager' || role === 'leader' || role === 'supervisor' || role === 'head' || role.includes('manager') || role.includes('leader');
+      // สำคัญ: บางบัญชีในฐานข้อมูลยังมี role=user แต่ตำแหน่งจริงเป็นหัวหน้างาน/ผู้จัดการ
+      // จึงต้องตรวจ role + position ก่อนตัดสินว่าเป็นพนักงานทั่วไป
+      var isLeaderPosition =
+        pos.includes('ผู้จัดการ') ||
+        (pos.includes('หัวหน้า') && !pos.includes('หัวหน้ากะ') && !pos.includes('หัวหน้าส่วน')) ||
+        pos.includes('manager') || pos.includes('leader') || pos.includes('supervisor') || pos.includes('head');
 
-      if (isManagerOrLeader) {
-        return { isAuth: true, category: 'leader_manager', role: role };
+      var isManagerOrLeader =
+        role === 'manager' || role === 'leader' || role === 'supervisor' || role === 'head' ||
+        role.includes('manager') || role.includes('leader') || role.includes('supervisor');
+
+      if (isManagerOrLeader || isLeaderPosition) {
+        return { isAuth: true, category: 'leader_manager', role: role || 'leader' };
+      }
+
+      if (role === 'user' || role === 'employee' || role === 'staff') {
+        return { isAuth: true, category: 'employee', role: role };
       }
 
       return { isAuth: true, category: 'employee', role: role };
@@ -98,7 +114,17 @@
       if (redirectUrl) {
         var decodedRedirect = decodeURIComponent(redirectUrl);
         if (decodedRedirect.startsWith("/") && !decodedRedirect.startsWith("//")) {
-          var isUserPage = decodedRedirect.toLowerCase().includes("/pages/user/");
+          var decodedLower = decodedRedirect.toLowerCase();
+          var isUserPage = decodedLower.includes("/pages/user/");
+
+          // หัวหน้า/ผู้จัดการห้ามถูกส่งเข้า HR Area จาก redirect เดิม
+          if (status.category === 'leader_manager' && decodedLower.includes('/pages/hr/')) {
+            triggerRedirect(decodedLower.includes('/pages/hr/hr.html')
+              ? '/pages/approver/leave-approvals.html'
+              : '/pages/user/index-user.html');
+            return;
+          }
+
           if (!isUserPage || !isHrExec) {
             triggerRedirect(decodedRedirect);
             return;
@@ -159,14 +185,27 @@
       return;
     }
 
-    // 8. Leader/Manager in HR Area
+    // 8. Leader/Manager ต้องไม่เข้า HR Area โดยตรง
+    // ลิงก์อนุมัติเดิม /pages/hr/hr.html จะถูกส่งไป Approver Portal แยกต่างหาก
     if (status.category === 'leader_manager' && isHrArea) {
-      var isHrApprovalPage = path.includes("/pages/hr/hr.html") || path.includes("/pages/hr/leave-stats.html");
-      if (!isHrApprovalPage) {
+      if (path.includes("/pages/hr/hr.html")) {
+        triggerRedirect("/pages/approver/leave-approvals.html" + (window.location.search || ""));
+      } else if (path.includes("/pages/hr/leave-stats.html")) {
+        triggerRedirect("/pages/user/leave-stats.html" + (window.location.search || ""));
+      } else {
         triggerRedirect("/pages/user/index-user.html");
-        return;
       }
+      return;
     }
+
+    // 8.1 HR/Admin/Executive ไม่ใช้หน้า Approver Portal ของหัวหน้างาน
+    if (isApproverArea && status.category === 'hr_exec') {
+      triggerRedirect("/pages/hr/home.html");
+      return;
+    }
+
+    // หมายเหตุ: employee ที่เปิด Approver Portal จะถูกตรวจสิทธิ์แบบ async ซ้ำใน hr.js
+    // เพื่อรองรับกรณีถูกกำหนดเป็น approver ใน department_approvers แต่ role เดิมยังเป็น user
 
     // 9. HR Exec in User Dashboard Area
     var isUserDashboardArea = 
@@ -222,17 +261,18 @@
         }
       }
 
-      // Case B: Leader/Manager clicking on HR Home link -> Route directly to /pages/user/index-user.html
-      if (status.category === "leader_manager") {
-        if (destination.includes("/pages/hr/home.html") ||
-            destination.includes("/pages/hr/management.html") ||
-            destination.includes("/pages/hr/approval-settings.html") ||
-            destination.includes("/pages/hr/admin-dashboard.html")) {
-          e.preventDefault();
-          e.stopPropagation();
+      // Case B: Leader/Manager ห้ามเข้า HR Area ทุกหน้า
+      if (status.category === "leader_manager" && destination.includes("/pages/hr/")) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (destination.includes("/pages/hr/hr.html")) {
+          window.location.href = "/pages/approver/leave-approvals.html";
+        } else if (destination.includes("/pages/hr/leave-stats.html")) {
+          window.location.href = "/pages/user/leave-stats.html";
+        } else {
           window.location.href = "/pages/user/index-user.html";
-          return;
         }
+        return;
       }
 
       // Case C: Regular employee clicking on HR link -> Route directly to /pages/user/index-user.html
@@ -265,6 +305,10 @@
           var hrHomeLinks = document.querySelectorAll('a[href*="/pages/hr/home.html"]');
           for (var k = 0; k < hrHomeLinks.length; k++) {
             hrHomeLinks[k].setAttribute("href", "/pages/user/index-user.html");
+          }
+          var oldApprovalLinks = document.querySelectorAll('a[href*="/pages/hr/hr.html"]');
+          for (var m = 0; m < oldApprovalLinks.length; m++) {
+            oldApprovalLinks[m].setAttribute("href", "/pages/approver/leave-approvals.html");
           }
           var backBtnsLM = document.querySelectorAll(".btn-mobile-back");
           for (var l = 0; l < backBtnsLM.length; l++) {
@@ -309,11 +353,19 @@
         }
 
         if (reCheckStatus.category === 'leader_manager' && isHrArea) {
-          var isHrApprovalPage = path.includes("/pages/hr/hr.html") || path.includes("/pages/hr/leave-stats.html");
-          if (!isHrApprovalPage) {
+          if (path.includes("/pages/hr/hr.html")) {
+            triggerRedirect("/pages/approver/leave-approvals.html" + (window.location.search || ""));
+          } else if (path.includes("/pages/hr/leave-stats.html")) {
+            triggerRedirect("/pages/user/leave-stats.html" + (window.location.search || ""));
+          } else {
             triggerRedirect("/pages/user/index-user.html");
-            return;
           }
+          return;
+        }
+
+        if (reCheckStatus.category === 'hr_exec' && isApproverArea) {
+          triggerRedirect("/pages/hr/home.html");
+          return;
         }
       }
     });

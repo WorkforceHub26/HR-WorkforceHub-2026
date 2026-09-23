@@ -8,9 +8,8 @@ console.log("📢 [SYSTEM] เปิดใช้งานระบบติด�
 // 📦 GLOBAL VARIABLES
 // ==========================================
 let employees = [];
-let leaveTypes = [];
-let holidaysData = [];        // ข้อมูลวันหยุดบริษัท ต้องมีค่าเริ่มต้นก่อนโหลดจาก Supabase
-let cachedHolidays = [];
+let leaveTypes = [];          
+let cachedHolidays = [];      
 let currentProfile = null;
 let currentDeptApproverConfig = null;
 
@@ -715,8 +714,6 @@ function initDatePickerWithDisabledDates(container = document, disabledDates = [
   if (typeof flatpickr === "undefined") return;
 
   const currentYear = new Date().getFullYear();
-  const calendarMinDate = `${currentYear}-01-01`;
-  const calendarMaxDate = `${currentYear}-12-31`;
 
   const formattedDisabled = disabledDates.map(item => {
     if (typeof item === 'object' && item.from && item.to) {
@@ -728,6 +725,23 @@ function initDatePickerWithDisabledDates(container = document, disabledDates = [
     return String(item).split('T')[0];
   });
 
+  const baseConfig = {
+    locale: "th",
+    dateFormat: "Y-m-d",
+    altInput: true,
+    altFormat: "d/m/Y",
+    disableMobile: true, // 👈 บังคับใช้ Flatpickr Calendar บน Android/iOS ป้องกัน Native Picker บล็อกการกด
+    minDate: `${currentYear}-01-01`,
+    maxDate: `${currentYear}-12-31`,
+    disable: formattedDisabled,
+    onChange: function (selectedDates, dateStr, instance) {
+      instance.close();
+      if (typeof handleDateChange === "function") {
+        handleDateChange(instance.element);
+      }
+    }
+  };
+
   const targetContainer = container instanceof HTMLElement ? container : document;
   const inputs = targetContainer.querySelectorAll('input[name="start_date"], input[name="end_date"], #startDate, #endDate');
 
@@ -735,71 +749,7 @@ function initDatePickerWithDisabledDates(container = document, disabledDates = [
     if (input._flatpickr) {
       input._flatpickr.destroy();
     }
-
-    const isEndDateInput = input.matches('input[name="end_date"], #endDate');
-
-    const picker = flatpickr(input, {
-      locale: "th",
-      dateFormat: "Y-m-d",
-      altInput: true,
-      altFormat: "d/m/Y",
-      disableMobile: true, // บังคับใช้ Flatpickr Calendar บน Android/iOS
-      minDate: calendarMinDate,
-      maxDate: calendarMaxDate,
-      disable: formattedDisabled,
-      onOpen: function (selectedDates, dateStr, instance) {
-        // FIX: ห้ามใช้ disabled กับ input ของ Flatpickr เพราะ altInput บางเบราว์เซอร์
-        // จะไม่กลับมารับ click หลังเปิดใช้งานอีกครั้ง
-        if (!isEndDateInput) return;
-
-        const boxItem = instance.element.closest('.leave-box-item');
-        const startDateEl = boxItem?.querySelector('input[name="start_date"]') || document.querySelector('#startDate');
-
-        if (!startDateEl?.value) {
-          instance.close();
-          window.setTimeout(() => {
-            if (startDateEl?._flatpickr) {
-              startDateEl._flatpickr.open();
-            } else {
-              startDateEl?.focus();
-            }
-          }, 0);
-          return;
-        }
-
-        // วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มลา
-        instance.set('minDate', startDateEl.value);
-      },
-      onChange: function (selectedDates, dateStr, instance) {
-        const boxItem = instance.element.closest('.leave-box-item');
-
-        // เปิดช่องวันที่สิ้นสุดทันทีหลังเลือกวันที่เริ่ม และกำหนด minDate ให้ตรงกัน
-        if (!isEndDateInput && boxItem) {
-          const endDateEl = boxItem.querySelector('input[name="end_date"]');
-          if (endDateEl?._flatpickr && dateStr) {
-            endDateEl._flatpickr.set('minDate', dateStr);
-            if (endDateEl.value && endDateEl.value < dateStr) {
-              endDateEl._flatpickr.clear(false);
-            }
-          }
-          updateFormSequence(boxItem);
-        }
-
-        instance.close();
-        if (typeof handleDateChange === "function") {
-          handleDateChange(instance.element);
-        }
-      }
-    });
-
-    // ถ้ามีวันเริ่มอยู่แล้ว (เช่น OCR/คืนค่าฟอร์ม) ให้ sync วันขั้นต่ำของวันสิ้นสุดทันที
-    if (isEndDateInput && picker) {
-      const boxItem = input.closest('.leave-box-item');
-      const startDateEl = boxItem?.querySelector('input[name="start_date"]') || document.querySelector('#startDate');
-      if (startDateEl?.value) {
-        picker.set('minDate', startDateEl.value);
-      }
-    }
+    flatpickr(input, baseConfig);
   });
 }
 
@@ -821,27 +771,29 @@ function updateFormSequence(boxItem) {
     const fp = endDateEl._flatpickr;
     const targetAltInput = fp ? fp.altInput : null;
 
-    // FIX: ไม่ใช้ disabled กับ original/alt input ของ Flatpickr
-    // เพราะ Chrome/Android/iOS บางรุ่นจะไม่คืน click handler ให้ altInput หลังปลด disabled
-    endDateEl.removeAttribute('disabled');
-    endDateEl.disabled = false;
-    endDateEl.setAttribute('aria-disabled', hasStart ? 'false' : 'true');
-
-    if (targetAltInput) {
-      targetAltInput.removeAttribute('disabled');
-      targetAltInput.disabled = false;
-      targetAltInput.setAttribute('aria-disabled', hasStart ? 'false' : 'true');
-      targetAltInput.style.pointerEvents = 'auto';
-      targetAltInput.style.cursor = 'pointer';
-      targetAltInput.style.backgroundColor = hasStart ? '#ffffff' : '#f8fafc';
-    }
-
     if (hasStart) {
-      // ป้องกันเลือกวันสิ้นสุดย้อนหลังจากวันเริ่ม
-      if (fp) fp.set('minDate', startDateEl.value);
+      endDateEl.removeAttribute('disabled');
+      endDateEl.disabled = false;
+
+      if (targetAltInput) {
+        targetAltInput.removeAttribute('disabled');
+        targetAltInput.disabled = false;
+        targetAltInput.style.pointerEvents = 'auto';
+        targetAltInput.style.backgroundColor = '#ffffff';
+        targetAltInput.style.cursor = 'pointer';
+      }
     } else {
-      // ก่อนเลือกวันเริ่ม ช่องสิ้นสุดยังรับ click ได้ เพื่อให้ onOpen พาไปเปิดวันเริ่ม
-      // แต่ไม่ควรเก็บค่าค้างจากรอบก่อน
+      endDateEl.setAttribute('disabled', 'disabled');
+      endDateEl.disabled = true;
+
+      if (targetAltInput) {
+        targetAltInput.setAttribute('disabled', 'disabled');
+        targetAltInput.disabled = true;
+        targetAltInput.style.pointerEvents = 'none';
+        targetAltInput.style.backgroundColor = '#f1f5f9';
+        targetAltInput.style.cursor = 'not-allowed';
+      }
+
       if (endDateEl.value && fp) {
         fp.clear(false);
       }
@@ -1411,7 +1363,7 @@ function handleFileChange(input, labelId) {
 // ==========================================
 // 🔔 10. ระบบแจ้งเตือน และ อัปโหลดไฟล์
 // ==========================================
-async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/hr/hr.html', recipientId = null) {
+async function sendNotification(title, message, type = 'leave', targetUrl = '/pages/approver/leave-approvals.html', recipientId = null) {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
@@ -1420,7 +1372,7 @@ async function sendNotification(title, message, type = 'leave', targetUrl = '/pa
       title: title,
       message: message,
       type: 'leave',
-      link_url: '/pages/hr/hr.html',
+      link_url: '/pages/approver/leave-approvals.html',
       is_read: false
     };
     
@@ -2132,7 +2084,7 @@ async function saveLeave() {
             title: notificationTitle,
             message: notificationMessage,
             type: 'leave',
-            link_url: '/pages/hr/hr.html'
+            link_url: '/pages/approver/leave-approvals.html'
           });
 
           // โค้ดเดิม (Workflow SDK) - ส่ง Flex Message สวยงามพร้อมปุ่มกด
@@ -2229,36 +2181,16 @@ window.addEventListener("pageshow", function (event) {
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // โหลดข้อมูลประกอบทีละส่วน แต่ไม่ให้ความผิดพลาดของส่วนใดส่วนหนึ่ง
-  // ขัดขวางการแสดงฟอร์มใบลาเริ่มต้น
-  try {
-    await loadCompanyHolidays();
-  } catch (err) {
-    console.error('❌ โหลดวันหยุดบริษัทไม่สำเร็จ:', err);
+  await loadCompanyHolidays(); 
+  await loadLeaveTypes();      
+  await fetchCurrentUserData(); 
+  
+  const currentEmpId = currentProfile?.id || currentProfile?.employee_id;
+  if (currentEmpId) {
+    await fetchUserExistingLeaveDates(currentEmpId);
   }
 
-  try {
-    await loadLeaveTypes();
-  } catch (err) {
-    console.error('❌ โหลดประเภทการลาไม่สำเร็จ:', err);
-  }
-
-  try {
-    await fetchCurrentUserData();
-
-    const currentEmpId = currentProfile?.id || currentProfile?.employee_id;
-    if (currentEmpId) {
-      await fetchUserExistingLeaveDates(currentEmpId);
-    }
-  } catch (err) {
-    console.error('❌ โหลดข้อมูลผู้ใช้/วันลาเดิมไม่สำเร็จ:', err);
-  }
-
-  // หน้าเขียนใบลาต้องมีฟอร์มอย่างน้อย 1 รายการทันทีเสมอ
-  const leaveCardsList = document.getElementById('leaveCardsList');
-  if (leaveCardsList && !leaveCardsList.querySelector('.leave-box-item')) {
-    await addLeaveRow();
-  }
+  addLeaveRow(); 
 });
 
 // ฟังก์ชันคำนวณการกดปุ่ม + และ -

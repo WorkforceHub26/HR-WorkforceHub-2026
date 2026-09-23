@@ -1008,8 +1008,16 @@ async function fetchUserNotifications() {
   const myId = profile.id || profile.employee_id;
   const myEmpCode = String(profile.employee_code || "").trim();
   let myRole = (profile.role || "user").toLowerCase();
+  const myPositionName = String(profile.positions?.position_name || profile.position_name || '').toLowerCase();
   if (myEmpCode === '19122') {
     myRole = 'manager';
+  } else if (myRole === 'user' || myRole === 'employee' || myRole === 'staff') {
+    if (myPositionName.includes('ผู้จัดการ') || myPositionName.includes('manager')) {
+      myRole = 'manager';
+    } else if ((myPositionName.includes('หัวหน้า') && !myPositionName.includes('หัวหน้ากะ') && !myPositionName.includes('หัวหน้าส่วน')) ||
+               myPositionName.includes('leader') || myPositionName.includes('supervisor')) {
+      myRole = 'leader';
+    }
   }
   const myDeptName = profile.departments?.department_name || profile.department_name || "";
   const myDeptId = profile.department_id || (myEmpCode === '19122' ? 'a318f70f-8e24-4e36-958a-7726d6c9da4d' : "");
@@ -1063,7 +1071,7 @@ async function fetchUserNotifications() {
         created_at: n.created_at,
         is_read: n.is_read || getUserReadNotifIds().includes(n.id),
         type: 'general',
-        link: myRole === 'user' ? '/pages/user/leave-history.html' : '/pages/hr/hr.html'
+        link: myRole === 'user' ? '/pages/user/leave-history.html' : '/pages/approver/leave-approvals.html'
       });
     });
 
@@ -1124,7 +1132,7 @@ async function fetchUserNotifications() {
             created_at: req.created_at,
             is_read: getUserReadNotifIds().includes(`pending-${req.id}`),
             type: 'pending_leave',
-            link: '/pages/hr/hr.html'
+            link: '/pages/approver/leave-approvals.html'
           });
         });
       }
@@ -1564,7 +1572,7 @@ function openApproverNotificationModal() {
       cancelButtonText: 'ปิด',
       confirmButtonColor: '#0284c7'
     }).then((result) => {
-      if (result.isConfirmed) window.location.href = '/pages/hr/hr.html';
+      if (result.isConfirmed) window.location.href = '/pages/approver/leave-approvals.html';
     });
   }
 }
@@ -3176,7 +3184,7 @@ window.submitQuickLeave = async function() {
           title: notifTitle,
           message: notifMsg,
           type: 'leave',
-          link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
+          link_url: '/pages/approver/leave-approvals.html',
           is_read: false
         }]);
       }

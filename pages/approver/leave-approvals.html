@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <script>window.PVT_APPROVER_PORTAL = true;</script>
+  <script type="module" src="/js/early-auth-guard.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0d9488" />
+  <meta name="google" content="notranslate" />
+  <title>อนุมัติใบลาสำหรับหัวหน้างาน | PVT Workforce Hub</title>
+  
+  <!-- Preconnect สำหรับ Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"> 
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Google Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/css/global.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+  <link rel="stylesheet" href="/css/hr-approval.css" /> 
+</head>
+
+<body id="page-approver-leave" data-portal="approver">
+  <div class="app-shell" id="appShell">
+    
+    <!--  SIDEBAR ด้านซ้าย (Unified Luxury Sidebar) -->
+    <aside class="sidebar-light" id="mainSidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div class="brand-name">PVTT WORKFORCE HUB</div>
+        <div class="brand-subname">พื้นที่หัวหน้างาน / ผู้อนุมัติ</div>
+        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
+          <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+        </button>
+      </div>
+
+      <div class="sidebar-cta-wrap">
+        <a href="/pages/approver/leave-approvals.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
+        </a>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="/pages/user/index-user.html" class="nav-item" title="หน้าหลักพนักงาน">
+          <span class="material-symbols-outlined">home</span>
+          <span class="nav-label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/approver/leave-approvals.html" class="nav-item active" title="อนุมัติใบลา" id="navItemLeaveCheck">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="nav-label">อนุมัติใบลา</span>
+          <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
+        </a>
+        <a href="/pages/user/leave-history.html" class="nav-item" title="ประวัติการลาของฉัน">
+          <span class="material-symbols-outlined">history</span>
+          <span class="nav-label">ประวัติการลา</span>
+        </a>
+        <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลาของฉัน">
+          <span class="material-symbols-outlined">analytics</span>
+          <span class="nav-label">สถิติวันลา</span>
+        </a>
+        <a href="/pages/user/holidays.html" class="nav-item" title="ปฏิทินวันหยุด">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="nav-label">ปฏิทินวันหยุด</span>
+        </a>
+        <a href="/pages/user/profile-user.html" class="nav-item" title="ข้อมูลส่วนตัว">
+          <span class="material-symbols-outlined">person</span>
+          <span class="nav-label">ข้อมูลส่วนตัว</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </aside>
+
+    <!--  MAIN CONTENT CONTAINER -->
+    <main class="main-content" id="mainContent">
+      
+      <!-- Topbar / Header Glass Card -->
+      <header class="topbar">
+        <div class="topbar-row-main">
+          <div class="topbar-actions-left">
+            <a href="/pages/user/index-user.html" class="btn-mobile-back" title="กลับหน้าหลัก">
+              <span class="material-symbols-outlined">arrow_back</span>
+              <span>หน้าหลัก</span>
+            </a>
+          </div>
+
+          <div class="topbar-right-actions">
+            <!-- Hidden containers so JS references remain valid -->
+            <div class="info" style="display: none !important;">
+              <strong id="userNameHeader">กำลังโหลด...</strong>
+              <span id="userPositionHeader">-</span>
+            </div>
+            <span id="userRoleBadge" class="status-badge status-approved" style="display: none !important;">
+              ตรวจสอบสิทธิ์...
+            </span>
+
+            <img id="userAvatarHeader" src="/assets/img/default-avatar.jpg" alt="Profile" onerror="this.src='/assets/img/default-avatar.jpg';" />
+          </div>
+        </div>
+
+        <div class="topbar-title-block">
+          <h1 id="pageMainTitle">อนุมัติใบลาสำหรับหัวหน้างาน</h1>
+          <p id="pageSubTitle">เฉพาะรายการที่อยู่ในสายอนุมัติของคุณ</p>
+        </div>
+      </header>
+
+      <!--   STATS SUMMARY CARDS -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-info">
+            <span class="stat-label">รอพิจารณาอนุมัติ</span>
+            <div class="stat-value" id="statPendingCount">0 <small>รายการ</small></div>
+          </div>
+          <div class="stat-icon icon-pending">
+            <img src="/assets/icons/pending.svg" style="width: 28px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-info">
+            <span class="stat-label">คำร้องขอยกเลิก</span>
+            <div class="stat-value" id="statCancelCount">0 <small>รายการ</small></div>
+          </div>
+          <div class="stat-icon icon-cancel">
+            <span class="material-symbols-outlined">published_with_changes</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-info">
+            <span class="stat-label">อนุมัติแล้ว</span>
+            <div class="stat-value" id="statApprovedCount">0 <small>รายการ</small></div>
+          </div>
+          <div class="stat-icon icon-approved">
+            <img src="/assets/icons/check-circle.svg" alt="อนุมัติแล้ว" style="width: 28px; height: 28px; object-fit: contain;" />
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-info">
+            <span class="stat-label">ประวัติรวมทั้งหมด</span>
+            <div class="stat-value" id="statTotalCount">0 <small>รายการ</small></div>
+          </div>
+          <div class="stat-icon icon-total">
+            <span class="material-symbols-outlined">folder_open</span>
+          </div>
+        </div>
+      </section>
+
+      <!--  TAB NAVIGATOR (FILTER CHIPS) -->
+      <div class="leave-tab-container" style="overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 8px;">
+        <button class="tab-btn active" onclick="switchLeaveTab('pending', this)" style="display: inline-flex; flex-shrink: 0;">
+          <img src="/assets/icons/pending.svg" style="width: 28px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
+            รออนุมัติ
+          <span id="pendingCountBadge" class="tab-count-badge">0</span>
+        </button>
+
+        <button class="tab-btn warning-tab" onclick="switchLeaveTab('cancellation', this)">
+          <span class="material-symbols-outlined">published_with_changes</span>
+           คำร้องขอยกเลิก
+          <span id="cancelCountBadge" class="tab-count-badge">0</span>
+        </button>
+
+        <button class="tab-btn" onclick="switchLeaveTab('history', this)">
+          <span class="material-symbols-outlined">history</span>
+           ประวัติรายการทั้งหมด
+          <span id="historyCountBadge" class="tab-count-badge">0</span>
+        </button>
+      </div>
+
+      <!-- ⏱️ 2-DAY APPROVAL SLA COUNTDOWN TRACKER WIDGET -->
+      <div id="leaveSlaTrackerContainer"></div>
+
+      <!-- PANEL ตารางข้อมูล (ยุบซ่อนเมื่ออยู่ในแท็บ 'รออนุมัติ' และแสดงเมื่อเปลี่ยนไปแท็บยกเลิก/ประวัติ) -->
+      <section class="panel" id="leaveTablePanel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="material-symbols-outlined" id="sectionHeaderIcon">hourglass_top</span>
+            <h2 id="sectionHeaderTitle">คำขออนุมัติลาค้างพิจารณา</h2>
+          </div>
+
+          <!--  แถบเครื่องมือการกรองข้อมูล และ ปุ่มรีเฟรช -->
+          <div class="panel-header-controls">
+            <div class="search-box-wrap" style="position: relative; min-width: 220px;">
+              <span class="material-symbols-outlined" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; color: #94a3b8; pointer-events: none;">search</span>
+              <input type="text" id="hrLeaveSearchInput" placeholder="ค้นหาชื่อ, รหัส, แผนก, ประเภท..." 
+                     oninput="renderLeaveTable()" 
+                     style="padding: 7px 12px 7px 34px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; background: #ffffff;">
+            </div>
+            <div class="filter-group">
+              <label for="filterStepSelect">สถานะ:</label>
+              <select id="filterStepSelect" class="form-select" onchange="renderLeaveTable()">
+                <option value="all">-- แสดงทั้งหมด --</option>
+                <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
+                <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
+                <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
+                <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
+              </select>
+            </div>
+            <button type="button" class="btn-pvt-refresh" onclick="loadPendingLeavesHR()" title="รีเฟรชข้อมูลคำขอล่าสุด">
+              <img src="/assets/icons/sync-refresh.svg" alt="รีเฟรช" class="btn-icon-graphic" />
+              <span>รีเฟรชข้อมูล</span>
+            </button>
+          </div>
+        </div>
+
+        <!--  BULK ACTION HEADER BAR -->
+        <div id="bulkActionBar" style="display: none; background: #f0fdfa; border: 1.5px solid #5eead4; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="selectAllBulk" onclick="toggleSelectAllBulk(this)" style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
+            <div style="text-align: left;">
+              <strong style="color: #0f766e; font-size: 14px; display: block;"> จัดการกลุ่ม (Bulk Actions)</strong>
+              <span id="bulkSelectedCount" style="color: #0d9488; font-size: 12px; font-weight: 600;">เลือกแล้ว 0 รายการ</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="btn btn-sm" onclick="submitBulkApproval()" style="background: #0d9488; color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(13, 148, 136, 0.15);">
+              <img src="/assets/icons/check-circle.svg" alt="อนุมัติ" style="width: 18px; height: 18px; object-fit: contain;" />
+              อนุมัติกลุ่มที่เลือก
+            </button>
+            <button type="button" class="btn btn-sm" onclick="cancelBulkSelection()" style="background: #ffffff; color: #64748b; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+              ยกเลิกเลือก
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container" id="leaveListContainer">
+          <!-- ข้อมูลจะถูก Render เป็น Card List โดย js/hr.js -->
+          <div class="loading-state" style="padding: 60px; text-align: center; color: var(--text-soft);">
+            <span class="material-symbols-outlined spin" style="font-size: 40px; margin-bottom: 12px; display: block;">sync</span>
+            <p>กำลังโหลดข้อมูลคำขออนุมัติ...</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ️ LEAVE PREVIEW MODAL -->
+  <div class="pvt-modal-overlay" id="leavePreviewModal">
+    <div class="pvt-modal-card">
+      <div class="modal-header">
+        <h3><span class="material-symbols-outlined">description</span> ตรวจสอบรายละเอียดใบขออนุมัติลา</h3>
+        <button class="modal-close-btn" onclick="closePreviewModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="leavePreviewModalBody">
+        <!-- Content dynamic insertion -->
+      </div>
+      <div class="modal-footer" id="leavePreviewModalFooter">
+        <button class="btn-act btn-act-print" id="btnModalPrint">
+          <span class="material-symbols-outlined">print</span> พิมพ์ใบลา A4
+        </button>
+        <button class="tab-btn" onclick="closePreviewModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module" src="/auth/supabase-config.js"></script>
+  <script type="module" src="/js/auth-guard.js"></script>
+  <script type="module" src="/js/system-settings.js"></script>
+  <script type="module" src="/js/delegation-service.js"></script>
+  <script type="module" src="/js/components/leave-sla-tracker.js"></script>
+  <script type="module" src="/js/hr.js"></script>
+</body>
+</html>

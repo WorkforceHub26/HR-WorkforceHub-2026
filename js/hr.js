@@ -21,11 +21,19 @@ let deptApproversMap = {};
 
     const isAllowedRole = (
       fastRole === "hr" || fastRole === "admin" || fastRole === "director" || 
-      fastRole === "manager" || fastRole === "leader" || fastRole === "executive" || fastRole === "owner" ||
-      fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า") || fastPosition.includes("บริหาร")
+      fastRole === "manager" || fastRole === "leader" || fastRole === "supervisor" || fastRole === "head" ||
+      fastRole === "executive" || fastRole === "owner" ||
+      fastRole.includes("manager") || fastRole.includes("leader") || fastRole.includes("supervisor") ||
+      fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า") ||
+      fastPosition.includes("บริหาร") || fastPosition.includes("manager") || fastPosition.includes("leader") || fastPosition.includes("supervisor")
     );
 
-    if (!isAllowedRole) {
+    const isApproverPortal = window.PVT_APPROVER_PORTAL === true ||
+      window.location.pathname.toLowerCase().includes('/pages/approver/');
+
+    // Approver Portal ต้องตรวจสิทธิ์จริงจาก department_approvers / l1-l2 mapping แบบ async ต่อใน initSystemAndPermissions()
+    // จึงยังไม่ตัดสิทธิ์จาก role ใน localStorage เพียงอย่างเดียว
+    if (!isAllowedRole && !isApproverPortal) {
       document.documentElement.style.visibility = 'hidden';
       window.__PVT_ACCESS_DENIED__ = true;
     }
@@ -233,13 +241,39 @@ async function initSystemAndPermissions() {
       currentRole = "hr";
     } else if (rawRole === "manager" || isDeptManager || rawPos.includes("ผู้จัดการ") || rawPos.includes("manager")) {
       currentRole = "manager";
-    } else if (rawRole === "leader" || isDeptSupervisor || rawPos.includes("หัวหน้า") || rawPos.includes("leader") || rawPos.includes("supervisor")) {
+    } else if (rawRole === "leader" || rawRole === "supervisor" || rawRole === "head" ||
+               rawRole.includes("leader") || rawRole.includes("supervisor") || isDeptSupervisor ||
+               rawPos.includes("หัวหน้า") || rawPos.includes("leader") || rawPos.includes("supervisor")) {
       currentRole = "leader";
     } else {
       currentRole = "user"; // Default สำหรับพนักงานทั่วไป
     }
     
     console.log("[HR Init] Assigned System Role:", currentRole);
+
+    // 🔐 Approver Portal แยกจาก HR Area: ต้องเป็นผู้อนุมัติ L1/L2 ที่ตรวจสอบจากฐานข้อมูลแล้วเท่านั้น
+    const isApproverPortal = window.PVT_APPROVER_PORTAL === true ||
+      window.location.pathname.toLowerCase().includes('/pages/approver/');
+    if (isApproverPortal && currentRole !== 'leader' && currentRole !== 'manager') {
+      document.documentElement.style.visibility = 'hidden';
+      if (typeof Swal !== 'undefined') {
+        await Swal.fire({
+          title: 'ไม่มีสิทธิ์อนุมัติใบลา',
+          text: 'บัญชีนี้ไม่ได้ถูกกำหนดเป็นหัวหน้างานหรือผู้จัดการในสายอนุมัติ',
+          icon: 'warning',
+          confirmButtonText: 'กลับหน้าหลัก',
+          confirmButtonColor: '#0d9488',
+          allowOutsideClick: false
+        });
+      }
+      window.location.replace('/pages/user/index-user.html');
+      return;
+    }
+
+    if (isApproverPortal) {
+      const approvalNav = document.getElementById('navItemLeaveCheck');
+      if (approvalNav) approvalNav.style.setProperty('display', 'flex', 'important');
+    }
 
     document.documentElement.style.visibility = 'visible';
 
@@ -845,7 +879,60 @@ async function loadPendingLeavesHR(isSilent = false) {
         </div>`;
     }
 
-    let queryResult = await sb
+    // 🔐 Approver Portal: จำกัด leave_requests ตั้งแต่ระดับ query ให้เหลือเฉพาะพนักงานในสายอนุมัติ
+    // (ยังมี client-side hierarchy filter ซ้ำอีกชั้นด้านล่างเพื่อความปลอดภัย)
+    const isApproverPortal = window.PVT_APPROVER_PORTAL === true ||
+      window.location.pathname.toLowerCase().includes('/pages/approver/');
+    let approverScopedEmployeeIds = null;
+
+    if (isApproverPortal) {
+      const savedSessionForScope = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+      const sessionForScope = savedSessionForScope ? JSON.parse(savedSessionForScope) : {};
+      const meForScope = currentUserProfile?.employees || sessionForScope?.employees || sessionForScope || {};
+      const myIdForScope = String(meForScope?.id || meForScope?.employee_id || currentUserProfile?.employee_id || '');
+      const myDeptForScope = String(meForScope?.department_id || sessionForScope?.department_id || '');
+
+      if (myIdForScope) {
+        const { data: scopeEmployees, error: scopeErr } = await sb
+          .from('employees')
+          .select('id, department_id, role, l1_approver_id, l2_approver_id, status, positions!position_id(position_name)');
+
+        if (scopeErr) {
+          console.warn('[Approver Scope] employee scope query failed; client filter will be used as fallback:', scopeErr);
+        } else {
+          approverScopedEmployeeIds = (scopeEmployees || []).filter(emp => {
+            const empId = String(emp.id || '');
+            if (!empId || empId === myIdForScope) return false;
+            if (emp.status && String(emp.status).toLowerCase() !== 'active') return false;
+
+            const empDeptId = String(emp.department_id || '');
+            const cfg = emp.department_id ? (deptApproversMap[emp.department_id] || {}) : {};
+            const directL1 = String(emp.l1_approver_id || '') === myIdForScope;
+            const directL2 = String(emp.l2_approver_id || '') === myIdForScope;
+            const deptL1 = String(cfg.supervisor_id || '') === myIdForScope;
+            const deptL2 = String(cfg.manager_id || '') === myIdForScope;
+            const sameDept = Boolean(myDeptForScope && empDeptId && myDeptForScope === empDeptId);
+            const empRole = String(emp.role || '').toLowerCase();
+            const empPos = String(emp.positions?.position_name || '').toLowerCase();
+            const isHigher = ['director', 'executive', 'owner', 'superadmin'].includes(empRole);
+            const isLeaderOrManager = empRole.includes('leader') || empRole.includes('supervisor') || empRole.includes('manager') ||
+              empPos.includes('หัวหน้า') || empPos.includes('ผู้จัดการ');
+
+            if (currentRole === 'leader') {
+              return directL1 || deptL1 || (sameDept && !isLeaderOrManager && !isHigher);
+            }
+            if (currentRole === 'manager') {
+              return directL2 || deptL2 || (sameDept && !isHigher);
+            }
+            return false;
+          }).map(emp => emp.id);
+
+          console.log('[Approver Scope] Allowed employee ids:', approverScopedEmployeeIds.length);
+        }
+      }
+    }
+
+    let leaveQuery = sb
       .from("leave_requests")
       .select(`
         *,
@@ -856,12 +943,33 @@ async function loadPendingLeavesHR(isSilent = false) {
           positions!position_id (position_name, level_type) 
         ),
         leave_types!leave_type_id (id, leave_name, leave_code) 
-      `)
-      .order("created_at", { ascending: false });
+      `);
+
+    if (Array.isArray(approverScopedEmployeeIds)) {
+      if (approverScopedEmployeeIds.length === 0) {
+        leaveQuery = null;
+      } else {
+        leaveQuery = leaveQuery.in('employee_id', approverScopedEmployeeIds);
+      }
+    }
+
+    let queryResult = leaveQuery
+      ? await leaveQuery.order("created_at", { ascending: false })
+      : { data: [], error: null };
 
     if (queryResult.error) {
       console.warn("⚠️ Complex Join Query Failed in HR load, retrying fallback fetch:", queryResult.error);
-      const simpleRes = await sb.from("leave_requests").select("*").order("created_at", { ascending: false });
+      let simpleQuery = sb.from("leave_requests").select("*");
+      if (Array.isArray(approverScopedEmployeeIds)) {
+        if (approverScopedEmployeeIds.length === 0) {
+          simpleQuery = null;
+        } else {
+          simpleQuery = simpleQuery.in('employee_id', approverScopedEmployeeIds);
+        }
+      }
+      const simpleRes = simpleQuery
+        ? await simpleQuery.order("created_at", { ascending: false })
+        : { data: [], error: null };
       if (simpleRes.data && simpleRes.data.length > 0) {
         try {
           const [empsRes, typesRes, deptsRes] = await Promise.all([
@@ -2367,7 +2475,7 @@ async function approveLeave(leaveId) {
                     title: `ใบลาจาก ${applicantName} ส่งหาผู้บริหาร (เนื่องจากแผนกไม่มีผู้จัดการ)`,
                     message: `พนักงาน: ${applicantName} (${applicantCode})\nแผนก: ${deptName}\nประเภท: ${leaveTypeName}\nวันที่: ${reqData.start_date} ถึง ${reqData.end_date}\n(แผนกไม่มีผู้จัดการฝ่าย)`,
                     type: 'leave',
-                    link_url: '/pages/hr/hr.html'
+                    link_url: '/pages/approver/leave-approvals.html'
                   });
 
                   if (window.PVTSDK?.line) {

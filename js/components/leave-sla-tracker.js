@@ -19,6 +19,14 @@
   const SLA_TOTAL_HOURS = 48; // 2 วัน = 48 ชั่วโมง
   const SLA_TOTAL_MS = SLA_TOTAL_HOURS * 60 * 60 * 1000;
 
+  // ใช้ component เดียวกันได้ทั้ง HR Portal และ Approver Portal โดยไม่พาหัวหน้างานเข้า /pages/hr/
+  function getApprovalPageUrl() {
+    return window.location.pathname.toLowerCase().includes('/pages/approver/')
+      ? '/pages/approver/leave-approvals.html'
+      : '/pages/hr/hr.html';
+  }
+  window.PVT_APPROVAL_PAGE_URL = getApprovalPageUrl();
+
   /**
    * คำนวณสถานะ SLA และเวลาที่เหลือ
    */
@@ -889,7 +897,7 @@
 
         <!-- Actions moved here: ปริ้นเอกสาร และดูรูปภาพแนบ -->
         <div style="display: flex; gap: 10px; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-          <button type="button" class="btn-sla-action btn-sla-print" onclick="typeof window.printLeaveA4 === 'function' ? window.printLeaveA4('${req.id}') : (window.location.href='/pages/hr/hr.html?id=${req.id}&action=print')" 
+          <button type="button" class="btn-sla-action btn-sla-print" onclick="typeof window.printLeaveA4 === 'function' ? window.printLeaveA4('${req.id}') : (window.location.href=(window.PVT_APPROVAL_PAGE_URL || '/pages/hr/hr.html') + '?id=${req.id}&action=print')" 
                   style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #0284c7; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13.5px; font-family: inherit; transition: background 0.2s;">
             <span class="material-symbols-outlined" style="font-size: 18px;">print</span>
             <span>ปริ้นเอกสาร</span>
@@ -925,7 +933,7 @@
         confirmButtonColor: '#0d9488'
       }).then((res) => {
         if (res.isConfirmed) {
-          window.location.href = `/pages/hr/hr.html?id=${leaveId}`;
+          window.location.href = `${getApprovalPageUrl()}?id=${leaveId}`;
         }
       });
     } else {
@@ -943,7 +951,7 @@
       return;
     }
 
-    if (window.location.pathname.includes('/pages/hr/hr.html')) {
+    if (window.location.pathname.includes('/pages/hr/hr.html') || window.location.pathname.includes('/pages/approver/leave-approvals.html')) {
       if (typeof window.previewLeaveModal === 'function') {
         window.previewLeaveModal(leaveId, true);
       } else {
@@ -951,7 +959,7 @@
       }
     } else {
       // หน้า home.html หรือหน้าอื่นๆ -> ส่งต่อไปยังหน้าตรวจใบลาพร้อมเปิดพิจารณา
-      window.location.href = `/pages/hr/hr.html?id=${leaveId}&action=review`;
+      window.location.href = `${getApprovalPageUrl()}?id=${leaveId}&action=review`;
     }
   };
 
