@@ -21,19 +21,11 @@ let deptApproversMap = {};
 
     const isAllowedRole = (
       fastRole === "hr" || fastRole === "admin" || fastRole === "director" || 
-      fastRole === "manager" || fastRole === "leader" || fastRole === "supervisor" || fastRole === "head" ||
-      fastRole === "executive" || fastRole === "owner" ||
-      fastRole.includes("manager") || fastRole.includes("leader") || fastRole.includes("supervisor") ||
-      fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า") ||
-      fastPosition.includes("บริหาร") || fastPosition.includes("manager") || fastPosition.includes("leader") || fastPosition.includes("supervisor")
+      fastRole === "manager" || fastRole === "leader" || fastRole === "executive" || fastRole === "owner" ||
+      fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า") || fastPosition.includes("บริหาร")
     );
 
-    const isApproverPortal = window.PVT_APPROVER_PORTAL === true ||
-      window.location.pathname.toLowerCase().includes('/pages/approver/');
-
-    // Approver Portal ต้องตรวจสิทธิ์จริงจาก department_approvers / l1-l2 mapping แบบ async ต่อใน initSystemAndPermissions()
-    // จึงยังไม่ตัดสิทธิ์จาก role ใน localStorage เพียงอย่างเดียว
-    if (!isAllowedRole && !isApproverPortal) {
+    if (!isAllowedRole) {
       document.documentElement.style.visibility = 'hidden';
       window.__PVT_ACCESS_DENIED__ = true;
     }
@@ -241,39 +233,13 @@ async function initSystemAndPermissions() {
       currentRole = "hr";
     } else if (rawRole === "manager" || isDeptManager || rawPos.includes("ผู้จัดการ") || rawPos.includes("manager")) {
       currentRole = "manager";
-    } else if (rawRole === "leader" || rawRole === "supervisor" || rawRole === "head" ||
-               rawRole.includes("leader") || rawRole.includes("supervisor") || isDeptSupervisor ||
-               rawPos.includes("หัวหน้า") || rawPos.includes("leader") || rawPos.includes("supervisor")) {
+    } else if (rawRole === "leader" || isDeptSupervisor || rawPos.includes("หัวหน้า") || rawPos.includes("leader") || rawPos.includes("supervisor")) {
       currentRole = "leader";
     } else {
       currentRole = "user"; // Default สำหรับพนักงานทั่วไป
     }
     
     console.log("[HR Init] Assigned System Role:", currentRole);
-
-    // 🔐 Approver Portal แยกจาก HR Area: ต้องเป็นผู้อนุมัติ L1/L2 ที่ตรวจสอบจากฐานข้อมูลแล้วเท่านั้น
-    const isApproverPortal = window.PVT_APPROVER_PORTAL === true ||
-      window.location.pathname.toLowerCase().includes('/pages/approver/');
-    if (isApproverPortal && currentRole !== 'leader' && currentRole !== 'manager') {
-      document.documentElement.style.visibility = 'hidden';
-      if (typeof Swal !== 'undefined') {
-        await Swal.fire({
-          title: 'ไม่มีสิทธิ์อนุมัติใบลา',
-          text: 'บัญชีนี้ไม่ได้ถูกกำหนดเป็นหัวหน้างานหรือผู้จัดการในสายอนุมัติ',
-          icon: 'warning',
-          confirmButtonText: 'กลับหน้าหลัก',
-          confirmButtonColor: '#0d9488',
-          allowOutsideClick: false
-        });
-      }
-      window.location.replace('/pages/user/index-user.html');
-      return;
-    }
-
-    if (isApproverPortal) {
-      const approvalNav = document.getElementById('navItemLeaveCheck');
-      if (approvalNav) approvalNav.style.setProperty('display', 'flex', 'important');
-    }
 
     document.documentElement.style.visibility = 'visible';
 
@@ -393,6 +359,11 @@ function applyRoleBasedUI() {
   const mainContent = document.getElementById("mainContent");
   const btnBack = document.getElementById("btnHeaderBack");
   const roleBadge = document.getElementById("userRoleBadge");
+  const cancellationTabBtn = document.querySelector('[onclick*="cancellation"]');
+
+  if (cancellationTabBtn) {
+    cancellationTabBtn.style.display = canReviewCancellationRequests() ? 'inline-flex' : 'none';
+  }
 
   // กรองเมนูด้านข้างสำหรับ Leader/Manager
   if (sidebar) {
@@ -516,6 +487,17 @@ function isCancelRequestStatus(status) {
   const s = String(status).trim().toLowerCase();
   return s === 'cancel_requested' || s === 'cancel_pending' || s === 'ขอยกเลิก' || s === 'รออนุมัติยกเลิก';
 }
+
+function canReviewCancellationRequests() {
+  const role = String(currentRole || '').toLowerCase();
+  return role === 'hr' || role === 'admin';
+}
+
+function canDecideCancellationRequests() {
+  return canReviewCancellationRequests() && !window.isViewOnlyHR;
+}
+window.canReviewCancellationRequests = canReviewCancellationRequests;
+window.canDecideCancellationRequests = canDecideCancellationRequests;
 
 function isPendingForRole(r, role) {
   if (!isPendingStatus(r.status)) return false;
@@ -879,60 +861,7 @@ async function loadPendingLeavesHR(isSilent = false) {
         </div>`;
     }
 
-    // 🔐 Approver Portal: จำกัด leave_requests ตั้งแต่ระดับ query ให้เหลือเฉพาะพนักงานในสายอนุมัติ
-    // (ยังมี client-side hierarchy filter ซ้ำอีกชั้นด้านล่างเพื่อความปลอดภัย)
-    const isApproverPortal = window.PVT_APPROVER_PORTAL === true ||
-      window.location.pathname.toLowerCase().includes('/pages/approver/');
-    let approverScopedEmployeeIds = null;
-
-    if (isApproverPortal) {
-      const savedSessionForScope = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
-      const sessionForScope = savedSessionForScope ? JSON.parse(savedSessionForScope) : {};
-      const meForScope = currentUserProfile?.employees || sessionForScope?.employees || sessionForScope || {};
-      const myIdForScope = String(meForScope?.id || meForScope?.employee_id || currentUserProfile?.employee_id || '');
-      const myDeptForScope = String(meForScope?.department_id || sessionForScope?.department_id || '');
-
-      if (myIdForScope) {
-        const { data: scopeEmployees, error: scopeErr } = await sb
-          .from('employees')
-          .select('id, department_id, role, l1_approver_id, l2_approver_id, status, positions!position_id(position_name)');
-
-        if (scopeErr) {
-          console.warn('[Approver Scope] employee scope query failed; client filter will be used as fallback:', scopeErr);
-        } else {
-          approverScopedEmployeeIds = (scopeEmployees || []).filter(emp => {
-            const empId = String(emp.id || '');
-            if (!empId || empId === myIdForScope) return false;
-            if (emp.status && String(emp.status).toLowerCase() !== 'active') return false;
-
-            const empDeptId = String(emp.department_id || '');
-            const cfg = emp.department_id ? (deptApproversMap[emp.department_id] || {}) : {};
-            const directL1 = String(emp.l1_approver_id || '') === myIdForScope;
-            const directL2 = String(emp.l2_approver_id || '') === myIdForScope;
-            const deptL1 = String(cfg.supervisor_id || '') === myIdForScope;
-            const deptL2 = String(cfg.manager_id || '') === myIdForScope;
-            const sameDept = Boolean(myDeptForScope && empDeptId && myDeptForScope === empDeptId);
-            const empRole = String(emp.role || '').toLowerCase();
-            const empPos = String(emp.positions?.position_name || '').toLowerCase();
-            const isHigher = ['director', 'executive', 'owner', 'superadmin'].includes(empRole);
-            const isLeaderOrManager = empRole.includes('leader') || empRole.includes('supervisor') || empRole.includes('manager') ||
-              empPos.includes('หัวหน้า') || empPos.includes('ผู้จัดการ');
-
-            if (currentRole === 'leader') {
-              return directL1 || deptL1 || (sameDept && !isLeaderOrManager && !isHigher);
-            }
-            if (currentRole === 'manager') {
-              return directL2 || deptL2 || (sameDept && !isHigher);
-            }
-            return false;
-          }).map(emp => emp.id);
-
-          console.log('[Approver Scope] Allowed employee ids:', approverScopedEmployeeIds.length);
-        }
-      }
-    }
-
-    let leaveQuery = sb
+    let queryResult = await sb
       .from("leave_requests")
       .select(`
         *,
@@ -943,33 +872,12 @@ async function loadPendingLeavesHR(isSilent = false) {
           positions!position_id (position_name, level_type) 
         ),
         leave_types!leave_type_id (id, leave_name, leave_code) 
-      `);
-
-    if (Array.isArray(approverScopedEmployeeIds)) {
-      if (approverScopedEmployeeIds.length === 0) {
-        leaveQuery = null;
-      } else {
-        leaveQuery = leaveQuery.in('employee_id', approverScopedEmployeeIds);
-      }
-    }
-
-    let queryResult = leaveQuery
-      ? await leaveQuery.order("created_at", { ascending: false })
-      : { data: [], error: null };
+      `)
+      .order("created_at", { ascending: false });
 
     if (queryResult.error) {
       console.warn("⚠️ Complex Join Query Failed in HR load, retrying fallback fetch:", queryResult.error);
-      let simpleQuery = sb.from("leave_requests").select("*");
-      if (Array.isArray(approverScopedEmployeeIds)) {
-        if (approverScopedEmployeeIds.length === 0) {
-          simpleQuery = null;
-        } else {
-          simpleQuery = simpleQuery.in('employee_id', approverScopedEmployeeIds);
-        }
-      }
-      const simpleRes = simpleQuery
-        ? await simpleQuery.order("created_at", { ascending: false })
-        : { data: [], error: null };
+      const simpleRes = await sb.from("leave_requests").select("*").order("created_at", { ascending: false });
       if (simpleRes.data && simpleRes.data.length > 0) {
         try {
           const [empsRes, typesRes, deptsRes] = await Promise.all([
@@ -1257,7 +1165,9 @@ async function loadPendingLeavesHR(isSilent = false) {
 
 function updateTabAndStatBadges() {
   const pendingRequests = allLeaveRequests.filter(r => isPendingForRole(r, currentRole));
-  const cancelRequests = allLeaveRequests.filter(r => isCancelRequestStatus(r.status));
+  const cancelRequests = canReviewCancellationRequests()
+    ? allLeaveRequests.filter(r => isCancelRequestStatus(r.status))
+    : [];
   const approvedRequests = allLeaveRequests.filter(r => String(r.status).toLowerCase() === 'approved');
   const historyRequests = allLeaveRequests.filter(r => isHistoryForRole(r, currentRole));
 
@@ -1276,6 +1186,16 @@ function updateTabAndStatBadges() {
 }
 
 window.switchLeaveTab = function(tabName, btnEl) {
+  if (tabName === 'cancellation' && !canReviewCancellationRequests()) {
+    Swal.fire({
+      icon: 'info',
+      title: 'คำขอยกเลิกส่งให้ HR/Admin',
+      text: 'ขั้นตอนการยกเลิกหลังผ่านการอนุมัติจะถูกตรวจสอบโดย HR/Admin เท่านั้น',
+      confirmButtonColor: '#0f766e'
+    });
+    return;
+  }
+
   currentLeaveTab = tabName;
   
   document.querySelectorAll('.leave-tab-container .tab-btn').forEach(b => b.classList.remove('active'));
@@ -1419,7 +1339,9 @@ function renderLeaveTable() {
   if (currentLeaveTab === "pending") {
     filteredRequests = allLeaveRequests.filter(r => isPendingForRole(r, currentRole));
   } else if (currentLeaveTab === "cancellation") {
-    filteredRequests = allLeaveRequests.filter(r => isCancelRequestStatus(r.status));
+    filteredRequests = canReviewCancellationRequests()
+      ? allLeaveRequests.filter(r => isCancelRequestStatus(r.status))
+      : [];
   } else {
     filteredRequests = allLeaveRequests.filter(r => isHistoryForRole(r, currentRole));
   }
@@ -1553,17 +1475,20 @@ function renderLeaveTable() {
 
     let actionButtons = "";
 
-    const isHrOrAdmin = (currentRole === 'hr' || currentRole === 'admin');
+    const isHrOrAdmin = canReviewCancellationRequests();
 
     if (currentLeaveTab === "cancellation") {
+      const canDecideCancellation = canDecideCancellationRequests();
       actionButtons = `
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span></button>
           <button class="btn-act btn-act-print" onclick="printLeaveA4('${req.id}')" title="พิมพ์ใบลา" style="background:#f1f5f9; color:#475569; border-color:#e2e8f0;"><span class="material-symbols-outlined">print</span></button>
-          ${!isHrOrAdmin ? `
+          ${canDecideCancellation ? `
             <button class="btn-act btn-act-approve" onclick="approveCancellation('${req.id}')"><span class="material-symbols-outlined">check_circle</span> อนุมัติยกเลิก</button>
             <button class="btn-act btn-act-reject" onclick="rejectCancellation('${req.id}')"><span class="material-symbols-outlined">cancel</span> ปฏิเสธ</button>
-          ` : ''}
+          ` : `
+            <span style="font-size:12px; color:#64748b; font-weight:600;">สิทธิ์ดูข้อมูลเท่านั้น</span>
+          `}
         </div>
       `;
     } else if (currentLeaveTab === "history") {
@@ -2475,7 +2400,7 @@ async function approveLeave(leaveId) {
                     title: `ใบลาจาก ${applicantName} ส่งหาผู้บริหาร (เนื่องจากแผนกไม่มีผู้จัดการ)`,
                     message: `พนักงาน: ${applicantName} (${applicantCode})\nแผนก: ${deptName}\nประเภท: ${leaveTypeName}\nวันที่: ${reqData.start_date} ถึง ${reqData.end_date}\n(แผนกไม่มีผู้จัดการฝ่าย)`,
                     type: 'leave',
-                    link_url: '/pages/approver/leave-approvals.html'
+                    link_url: '/pages/hr/hr.html'
                   });
 
                   if (window.PVTSDK?.line) {
@@ -2889,6 +2814,16 @@ async function forceCancelLeave(leaveId) {
 }
 
 async function approveCancellation(leaveId) {
+  if (!canDecideCancellationRequests()) {
+    await Swal.fire({
+      icon: 'warning',
+      title: 'ไม่มีสิทธิ์อนุมัติคำขอยกเลิก',
+      text: 'คำขอยกเลิกหลังผ่านการอนุมัติ ให้ HR/Admin เป็นผู้ตรวจสอบและตัดสินเท่านั้น',
+      confirmButtonColor: '#0f766e'
+    });
+    return;
+  }
+
   const reqData = allLeaveRequests.find(r => r.id === leaveId);
   const empName = reqData?.employees?.full_name || reqData?.employees?.name || 'พนักงาน';
   const leaveName = reqData?.leave_types?.leave_name || 'ใบลา';
@@ -2910,10 +2845,17 @@ async function approveCancellation(leaveId) {
             </div>
           ` : ''}
         </div>
-        <div style="font-size: 13px; color: #065f46; background: #ecfdf5; border-radius: 8px; padding: 8px 12px; border: 1px solid #a7f3d0; display: flex; align-items: center; gap: 6px;">
-          <span class="material-symbols-outlined" style="font-size: 18px; color: #10b981;">restart_alt</span>
-          <span>ระบบจะทำรายการยกเลิกใบลา และคืนจำนวนวันลาที่หักไปกลับเข้าโควตาพนักงานทันที</span>
+
+        <div style="font-size: 13px; color: #92400e; background: #fffbeb; border-radius: 8px; padding: 10px 12px; border: 1px solid #fde68a; margin-bottom: 10px;">
+          <strong>ขั้นตอน HR:</strong> กรุณาตรวจสอบข้อมูลลงเวลาหรือหลักฐานการมาทำงานก่อนอนุมัติยกเลิก
         </div>
+
+        <label style="display:flex; align-items:flex-start; gap:8px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; cursor:pointer;">
+          <input type="checkbox" id="hr-cancel-attendance-confirm" style="margin-top:3px; width:17px; height:17px;">
+          <span style="font-size:13px; color:#334155;">
+            ฉันตรวจสอบแล้วว่า <strong>พนักงานมาทำงานจริงในวัน/ช่วงวันที่ที่ขอยกเลิก</strong>
+          </span>
+        </label>
       </div>
     `,
     icon: 'warning',
@@ -2922,14 +2864,22 @@ async function approveCancellation(leaveId) {
     showDenyButton: false,
     confirmButtonColor: '#10b981',
     cancelButtonColor: '#64748b',
-    confirmButtonText: '✔️ อนุมัติยกเลิก (คืนโควตา)',
-    cancelButtonText: 'ยกเลิก',
+    confirmButtonText: '✔️ อนุมัติการยกเลิก',
+    cancelButtonText: 'ยังไม่อนุมัติ',
     focusCancel: true,
     allowOutsideClick: false,
     customClass: {
       popup: 'swal-refined-popup',
       confirmButton: 'swal-btn-success',
       cancelButton: 'swal-btn-cancel'
+    },
+    preConfirm: () => {
+      const checked = document.getElementById('hr-cancel-attendance-confirm')?.checked;
+      if (!checked) {
+        Swal.showValidationMessage('กรุณายืนยันว่าตรวจสอบแล้วว่าพนักงานมาทำงานจริง');
+        return false;
+      }
+      return true;
     }
   });
 
@@ -2939,34 +2889,48 @@ async function approveCancellation(leaveId) {
   if (!sb) return;
 
   Swal.fire({
-    title: 'กำลังคืนโควตาวันลา...',
+    title: 'กำลังอนุมัติการยกเลิก...',
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading()
   });
 
   try {
-    const { data: reqData, error: reqErr } = await sb
+    const { data: freshReq, error: reqErr } = await sb
       .from('leave_requests')
       .select('*, leave_types!leave_type_id(leave_code, leave_name)')
       .eq('id', leaveId)
       .single();
 
-    if (reqErr || !reqData) throw new Error("ไม่พบข้อมูลใบลา");
-
-    const daysToReturn = await getEffectiveLeaveDays(reqData);
-    const currentYear = getADYear(reqData.start_date);
-
-    if (window.PVTSDK?.user?.updateLeaveBalance) {
-      const lCode = reqData.leave_types?.leave_code || null;
-      await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, -daysToReturn);
+    if (reqErr || !freshReq) throw new Error("ไม่พบข้อมูลใบลา");
+    if (!isCancelRequestStatus(freshReq.status)) {
+      throw new Error("รายการนี้ไม่ได้อยู่ในสถานะรอตรวจสอบคำขอยกเลิก");
     }
+
+    const wasFinalApproved = Boolean(freshReq.approved_at || freshReq.approved_by);
+    const daysToReturn = await getEffectiveLeaveDays(freshReq);
+    const currentYear = getADYear(freshReq.start_date);
+
+    if (wasFinalApproved && window.PVTSDK?.user?.updateLeaveBalance) {
+      const lCode = freshReq.leave_types?.leave_code || null;
+      await window.PVTSDK.user.updateLeaveBalance(
+        freshReq.employee_id,
+        freshReq.leave_type_id,
+        lCode,
+        currentYear,
+        -daysToReturn
+      );
+    }
+
+    const approvalComment = wasFinalApproved
+      ? '[HR อนุมัติยกเลิก] ตรวจสอบแล้วว่าพนักงานมาทำงานจริง และคืนโควตาวันลาแล้ว'
+      : '[HR อนุมัติยกเลิก] ตรวจสอบแล้วว่าพนักงานมาทำงานจริง (ใบลายังไม่เคยหักโควตา)';
 
     let { error: updateErr } = await sb
       .from('leave_requests')
       .update({
         status: 'cancelled',
-        approval_comment: '[อนุมัติยกเลิกคำร้อง] คืนวันลาเข้าระบบเรียบร้อย',
-        approved_at: new Date().toISOString()
+        cancel_status: 'approved_by_hr',
+        approval_comment: approvalComment
       })
       .eq('id', leaveId);
 
@@ -2974,15 +2938,19 @@ async function approveCancellation(leaveId) {
       await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId);
       const retry = await sb.from('leave_requests').update({
         status: 'cancelled',
-        approval_comment: '[อนุมัติยกเลิกคำร้อง] คืนวันลาเข้าระบบเรียบร้อย',
-        approved_at: new Date().toISOString()
+        cancel_status: 'approved_by_hr',
+        approval_comment: approvalComment
       }).eq('id', leaveId);
       updateErr = retry.error;
     }
 
     if (updateErr) throw updateErr;
 
-    await Swal.fire('ยกเลิกใบลาสำเร็จ!', `อนุมัติการยกเลิกเรียบร้อยแล้ว คืนโควตาวันลาจำนวน ${daysToReturn} วัน ให้พนักงานแล้ว`, 'success');
+    const successText = wasFinalApproved
+      ? `อนุมัติการยกเลิกเรียบร้อยแล้ว และคืนโควตาวันลา ${daysToReturn} วัน ให้พนักงานแล้ว`
+      : 'อนุมัติการยกเลิกเรียบร้อยแล้ว รายการนี้ยังไม่เคยหักโควตา จึงไม่มีการคืนโควตาซ้ำ';
+
+    await Swal.fire('ยกเลิกใบลาสำเร็จ!', successText, 'success');
     loadPendingLeavesHR();
 
   } catch (err) {
@@ -2992,6 +2960,16 @@ async function approveCancellation(leaveId) {
 }
 
 async function rejectCancellation(leaveId) {
+  if (!canDecideCancellationRequests()) {
+    await Swal.fire({
+      icon: 'warning',
+      title: 'ไม่มีสิทธิ์ปฏิเสธคำขอยกเลิก',
+      text: 'คำขอยกเลิกหลังผ่านการอนุมัติ ให้ HR/Admin เป็นผู้ตรวจสอบและตัดสินเท่านั้น',
+      confirmButtonColor: '#0f766e'
+    });
+    return;
+  }
+
   const reqData = allLeaveRequests.find(r => r.id === leaveId);
   const empName = reqData?.employees?.full_name || reqData?.employees?.name || 'พนักงาน';
   const leaveName = reqData?.leave_types?.leave_name || 'ใบลา';
@@ -3011,7 +2989,7 @@ async function rejectCancellation(leaveId) {
         <label for="swal-reject-cancel-input" style="font-size: 13px; font-weight: 700; color: #b91c1c; display: block; margin-bottom: 6px;">
           โปรดระบุเหตุผลที่ไม่อนุมัติให้ยกเลิก (บังคับกรอก):
         </label>
-        <textarea id="swal-reject-cancel-input" class="swal2-textarea" placeholder="พิมพ์เหตุผลการปฏิเสธคำร้องขอยกเลิก..." style="width: 100%; min-height: 75px; margin: 0; box-sizing: border-box; font-size: 13.5px; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 10px; font-family: inherit;"></textarea>
+        <textarea id="swal-reject-cancel-input" class="swal2-textarea" placeholder="เช่น ตรวจสอบแล้วไม่พบการมาทำงานในวันดังกล่าว..." style="width: 100%; min-height: 75px; margin: 0; box-sizing: border-box; font-size: 13.5px; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 10px; font-family: inherit;"></textarea>
       </div>
     `,
     icon: 'warning',
@@ -3040,25 +3018,54 @@ async function rejectCancellation(leaveId) {
   });
 
   if (!isConfirmed || !reason) return;
+
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
   try {
+    const { data: freshReq, error: reqErr } = await sb
+      .from('leave_requests')
+      .select('id, status, cancel_status, approved_by, approved_at')
+      .eq('id', leaveId)
+      .single();
+
+    if (reqErr || !freshReq) throw new Error('ไม่พบข้อมูลใบลา');
+    if (!isCancelRequestStatus(freshReq.status)) {
+      throw new Error('รายการนี้ไม่ได้อยู่ในสถานะรอตรวจสอบคำขอยกเลิก');
+    }
+
+    let restoreStatus = null;
+    const cancelState = String(freshReq.cancel_status || '');
+    const originalMatch = cancelState.match(/^pending_hr:(pending|approved)$/i);
+    if (originalMatch) {
+      restoreStatus = originalMatch[1].toLowerCase();
+    }
+
+    if (!restoreStatus) {
+      restoreStatus = (freshReq.approved_at || freshReq.approved_by) ? 'approved' : 'pending';
+    }
+
     const { error } = await sb
       .from('leave_requests')
       .update({
-        status: 'approved',
-        approval_comment: `[ไม่อนุมัติให้ยกเลิก] ${reason.trim()}`
+        status: restoreStatus,
+        cancel_status: `rejected_by_hr:${restoreStatus}`,
+        approval_comment: `[HR ไม่อนุมัติให้ยกเลิก] ${reason.trim()}`
       })
       .eq('id', leaveId);
 
     if (error) throw error;
 
-    await Swal.fire('ปฏิเสธคำร้องแล้ว', 'ใบลาจะยังคงสถานะอนุมัติตามเดิม', 'success');
+    const restoreLabel = restoreStatus === 'approved'
+      ? 'ใบลายังคงสถานะอนุมัติเดิม'
+      : 'ใบลาถูกส่งกลับเข้าสู่ขั้นตอนอนุมัติเดิมต่อไป';
+
+    await Swal.fire('ปฏิเสธคำร้องแล้ว', restoreLabel, 'success');
     loadPendingLeavesHR();
 
   } catch (err) {
-    Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+    console.error('💥 Reject Cancellation Error:', err);
+    Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถปฏิเสธคำร้องได้', 'error');
   }
 }
 

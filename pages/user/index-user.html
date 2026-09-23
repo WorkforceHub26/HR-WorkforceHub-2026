@@ -170,7 +170,7 @@
               <div class="notif-wrapper" style="position: relative; display: inline-block;">
                 <button id="notificationBtn" class="notif-btn" onclick="toggleUserNotifDropdown(event)" title="การแจ้งเตือนใบลา" aria-label="การแจ้งเตือน">
                   <span class="material-symbols-outlined">notifications</span>
-                  <span id="notifBadge" class="notif-badge" style="display: none;">0</span>
+                  <span id="notifBadge" class="notif-badge is-empty" data-count="0" aria-hidden="true" style="display: none !important;">0</span>
                 </button>
 
                 <div class="notif-dropdown" id="userNotifDropdown" style="position: absolute; top: calc(100% + 14px); right: 0; width: 440px; background: #ffffff; border: 1.5px solid #cbd5e1; max-width: calc(100vw - 24px); border-radius: 20px; box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.22), 0 10px 20px -5px rgba(0, 0, 0, 0.12); z-index: 99999; display: none; flex-direction: column; overflow: hidden;">
@@ -296,8 +296,8 @@
             <div class="leave-header-controls">
               <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
               </select>
-              <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ซ่อน/แสดง สิทธิ์วันลา">
-                <img class="toggle-eye-icon" src="/assets/icons/eye-open.svg" style="width: 22px; height: 22px; color: currentColor;" />
+              <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ย่อ สิทธิ์วันลา" aria-label="ย่อ สิทธิ์วันลา" aria-expanded="true" aria-controls="leaveBalancesContainer" data-toggle-label="สิทธิ์วันลา">
+                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_less</span>
               </button>
             </div>
           </div>
@@ -316,8 +316,8 @@
                 <span>ดูทั้งหมด</span>
                 <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
               </button>
-              <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)" title="ซ่อน/แสดง รายการล่าสุด">
-                <img class="toggle-eye-icon" src="/assets/icons/eye-open.svg" alt="toggle" style="width: 18px; height: 18px; object-fit: contain; display: block;" />
+              <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)" title="ย่อ รายการล่าสุด" aria-label="ย่อ รายการล่าสุด" aria-expanded="true" aria-controls="recentList" data-toggle-label="รายการล่าสุด">
+                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_less</span>
               </button>
             </div>
           </div>
@@ -338,8 +338,8 @@
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <span id="teamCountBadge" style="background: var(--primary-soft, #e0f2fe); color: var(--primary, #0284c7); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 20px;">0 คน</span>
-              <button type="button" class="btn-toggle-icon" onclick="toggleSection('teamMembersContainer', this)" title="ซ่อน/แสดง รายชื่อสมาชิก" style="background: transparent; border: none; cursor: pointer; color: var(--text-soft); display: flex; align-items: center; justify-content: center;">
-                <img class="toggle-eye-icon" src="/assets/icons/eye-open.svg" style="width: 24px; height: 24px; color: currentColor;" />
+              <button type="button" class="btn-toggle-icon" onclick="toggleSection('teamMembersContainer', this)" title="ย่อ รายชื่อสมาชิก" aria-label="ย่อ รายชื่อสมาชิก" aria-expanded="true" aria-controls="teamMembersContainer" data-toggle-label="รายชื่อสมาชิก">
+                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_less</span>
               </button>
             </div>
           </div>
@@ -364,15 +364,8 @@
                 <p>ข้อมูลอัปเดต สวัสดิการ และข่าวสารล่าสุดจากฝ่ายบุคคล</p>
               </div>
             </div>
-            <div class="news-filter-chips" id="newsFilterChips">
-              <button type="button" class="news-chip active" onclick="filterUserNews('all', this)">ทั้งหมด</button>
-              <button type="button" class="news-chip" onclick="filterUserNews('urgent', this)"> ด่วน</button>
-              <button type="button" class="news-chip" onclick="filterUserNews('announcement', this)"> ประชาสัมพันธ์</button>
-              <button type="button" class="news-chip" onclick="filterUserNews('holiday', this)"> วันหยุด</button>
-              <button type="button" class="news-chip" onclick="filterUserNews('welfare', this)"> สวัสดิการ</button>
-              <a href="/pages/user/news.html" class="news-chip" style="text-decoration: none; background: #f0fdfa; color: #0f766e; border-color: #99f6e4; font-weight: 700;" title="เปิดดูศูนย์ข่าวสารฉบับเต็ม">
-                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: -2px;">open_in_new</span> ดูทั้งหมด
-              </a>
+            <div class="news-filter-chips news-view-all-wrap" id="newsFilterChips">
+              <a href="/pages/user/news.html" class="news-chip news-view-all-chip" title="เปิดดูข่าวสารทั้งหมด">ดูทั้งหมด</a>
             </div>
           </div>
 

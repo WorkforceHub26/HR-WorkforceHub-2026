@@ -3252,7 +3252,7 @@ section.quick-menu-section,
 }
 
 /* ==========================================================================
-   👁️ Button Toggle Icon Style (ใช้ร่วมกันได้ทุกเมนู)
+   ↕️ Expand / Collapse Button
    ========================================================================== */
 .btn-toggle-icon {
   display: inline-flex;
@@ -3284,12 +3284,17 @@ section.quick-menu-section,
 }
 
 .btn-toggle-icon .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 24px;
+  line-height: 1;
   user-select: none;
-  transition: color 0.2s ease;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
-/* สไตล์เมื่อกดซ่อนส่วนนั้นๆ */
+.btn-toggle-icon.is-hidden .material-symbols-outlined {
+  transform: translateY(1px);
+}
+
+/* สไตล์เมื่อ Section ถูกย่อ */
 .btn-toggle-icon.is-hidden {
   background-color: #f1f5f9;
   color: #94a3b8;
@@ -3299,6 +3304,62 @@ section.quick-menu-section,
 /* บังคับซ่อนองค์ประกอบด้วย !important */
 .hidden-section {
   display: none !important;
+}
+
+/* ==========================================================================
+   🗂️ FULL CARD COLLAPSE — ย่อทั้งการ์ด เหลือเฉพาะหัวข้อ + ปุ่มขยาย
+   ========================================================================== */
+
+/* สิทธิ์วันลา */
+.leave-section.card-collapsed > :not(.leave-header-row) {
+  display: none !important;
+}
+
+.leave-section.card-collapsed .leave-header-row {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.leave-section.card-collapsed .leave-header-controls > :not(.btn-toggle-icon) {
+  display: none !important;
+}
+
+/* รายการล่าสุด */
+.recent-card.card-collapsed > :not(.section-head) {
+  display: none !important;
+}
+
+.recent-card.card-collapsed .section-head {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.recent-card.card-collapsed .section-head-controls > :not(.btn-toggle-icon) {
+  display: none !important;
+}
+
+/* สมาชิกพนักงานในแผนก */
+#departmentTeamSection.card-collapsed > :not(.panel-header) {
+  display: none !important;
+}
+
+#departmentTeamSection.card-collapsed .panel-header {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+#departmentTeamSection.card-collapsed .panel-header > div:last-child > :not(.btn-toggle-icon) {
+  display: none !important;
+}
+
+/* ทำให้การ์ดที่ย่อแล้วกระชับบนมือถือ */
+.leave-section.card-collapsed,
+.recent-card.card-collapsed,
+#departmentTeamSection.card-collapsed {
+  min-height: 0 !important;
 }
 
 /* ==========================================================================
@@ -6174,3 +6235,76 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 
 
 
+
+
+/* ================================================================
+   INDEX USER — Company News: single centered "ดูทั้งหมด" button
+   2026-09-23
+   ================================================================ */
+.news-section .news-view-all-wrap {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  gap: 0 !important;
+}
+
+.news-section .news-view-all-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 124px !important;
+  min-height: 38px !important;
+  padding: 8px 22px !important;
+  margin: 0 auto !important;
+  border: 1px solid #99f6e4 !important;
+  border-radius: 12px !important;
+  background: #f0fdfa !important;
+  color: #0f766e !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  box-shadow: 0 2px 7px rgba(15, 118, 110, 0.08) !important;
+}
+
+.news-section .news-view-all-chip:hover,
+.news-section .news-view-all-chip:active {
+  background: #ccfbf1 !important;
+  color: #115e59 !important;
+}
+
+@media (max-width: 768px) {
+  .news-section .news-view-all-wrap {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: visible !important;
+  }
+
+  .news-section .news-view-all-chip {
+    min-width: 132px !important;
+    min-height: 40px !important;
+    padding: 9px 24px !important;
+    font-size: 12.5px !important;
+  }
+}
+
+
+/* FIX 2026-09-23: ซ่อน notification badge เมื่อไม่มีข้อความจริง */
+#notifBadge.is-empty,
+#notifBadge[data-count="0"] {
+  display: none !important;
+  visibility: hidden !important;
+  animation: none !important;
+}
+
+#notifBadge:not(.is-empty):not([data-count="0"]) {
+  visibility: visible;
+}

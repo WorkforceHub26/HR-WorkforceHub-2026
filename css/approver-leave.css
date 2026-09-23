@@ -1,0 +1,607 @@
+/* ==============================================================
+   Approver Portal — Mobile header refinements
+   Dedicated to /pages/approver/leave-approvals.html
+   ============================================================== */
+
+#page-approver-leave .approver-mobile-title {
+  display: none;
+}
+
+#page-approver-leave .approver-menu-btn {
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+@media (min-width: 1025px) {
+  #page-approver-leave .approver-menu-btn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  #page-approver-leave .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px 10px 92px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 768px) {
+  #page-approver-leave .approver-topbar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 2px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 950 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 0 10px !important;
+    padding: 7px 8px 6px !important;
+    background: rgba(255, 255, 255, 0.97) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.08) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+  }
+
+  #page-approver-leave .topbar-row-main {
+    display: grid !important;
+    grid-template-columns: 42px minmax(0, 1fr) 42px !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    min-height: 42px !important;
+  }
+
+  #page-approver-leave .topbar-actions-left,
+  #page-approver-leave .topbar-right-actions {
+    display: flex !important;
+    align-items: center !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #page-approver-leave .topbar-actions-left {
+    justify-content: flex-start !important;
+  }
+
+  #page-approver-leave .topbar-right-actions {
+    justify-content: flex-end !important;
+  }
+
+  #page-approver-leave .btn-mobile-back,
+  #page-approver-leave .approver-menu-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #page-approver-leave .btn-mobile-back {
+    background: #f0fdfa !important;
+    border: 1px solid #ccfbf1 !important;
+    color: #0f766e !important;
+  }
+
+  #page-approver-leave .approver-menu-btn {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #334155 !important;
+  }
+
+  #page-approver-leave .btn-mobile-back:active,
+  #page-approver-leave .approver-menu-btn:active {
+    transform: scale(0.94) !important;
+    background: #ecfeff !important;
+  }
+
+  #page-approver-leave .btn-mobile-back .material-symbols-outlined,
+  #page-approver-leave .approver-menu-btn .material-symbols-outlined {
+    font-size: 22px !important;
+    line-height: 1 !important;
+    pointer-events: none !important;
+  }
+
+  #page-approver-leave .btn-back-label {
+    display: none !important;
+  }
+
+  #page-approver-leave .approver-mobile-title {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+    gap: 6px !important;
+    color: #0f172a !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+  }
+
+  #page-approver-leave .approver-mobile-title .material-symbols-outlined {
+    flex: 0 0 auto !important;
+    font-size: 19px !important;
+    color: #0d9488 !important;
+  }
+
+  #page-approver-leave #userAvatarHeader {
+    display: none !important;
+  }
+
+  #page-approver-leave .topbar-title-block {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 44px 2px !important;
+    border: 0 !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+  }
+
+  #page-approver-leave #pageMainTitle {
+    display: none !important;
+  }
+
+  #page-approver-leave #pageSubTitle {
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #64748b !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+@media (max-width: 360px) {
+  #page-approver-leave .approver-mobile-title {
+    font-size: 14px !important;
+    gap: 4px !important;
+  }
+
+  #page-approver-leave .approver-mobile-title .material-symbols-outlined {
+    font-size: 18px !important;
+  }
+
+  #page-approver-leave #pageSubTitle {
+    font-size: 10px !important;
+  }
+}
+
+
+/* ==============================================================
+   Approver Portal — Mobile-first content + bottom navigation
+   ============================================================== */
+
+#page-approver-leave .approver-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  #page-approver-leave {
+    --approver-bottom-nav-height: 66px;
+  }
+
+  #page-approver-leave .main-content {
+    padding-bottom: calc(var(--approver-bottom-nav-height) + 28px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #page-approver-leave .approver-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    min-height: var(--approver-bottom-nav-height);
+    padding: 4px 5px max(5px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.97);
+    border-top: 1px solid rgba(226, 232, 240, 0.92);
+    box-shadow: 0 -5px 20px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  #page-approver-leave .approver-bottom-nav__item {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 20%;
+    min-height: 52px;
+    padding: 5px 2px 3px;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    color: #64748b;
+    text-decoration: none;
+    border-radius: 12px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  #page-approver-leave .approver-bottom-nav__item > .material-symbols-outlined {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  #page-approver-leave .approver-bottom-nav__label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    color: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.2px;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #page-approver-leave .approver-bottom-nav__item:active {
+    background: #f8fafc;
+    transform: scale(0.97);
+  }
+
+  #page-approver-leave .approver-bottom-nav__item.active {
+    color: #0d9488;
+  }
+
+  #page-approver-leave .approver-bottom-nav__item--primary {
+    justify-content: flex-end;
+    margin-top: -22px;
+    padding-top: 0;
+  }
+
+  #page-approver-leave .approver-bottom-nav__fab {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+    border: 3px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 5px 16px rgba(13, 148, 136, 0.32);
+  }
+
+  #page-approver-leave .approver-bottom-nav__fab .material-symbols-outlined {
+    font-size: 23px;
+    font-variation-settings: 'FILL' 1, 'wght' 650;
+  }
+
+  #page-approver-leave .approver-bottom-nav__item--primary .approver-bottom-nav__label {
+    color: #0f766e;
+    font-weight: 800;
+  }
+
+  #page-approver-leave .approver-bottom-nav__dot {
+    width: 4px;
+    height: 4px;
+    margin-top: 0;
+    background: #0d9488;
+    border-radius: 50%;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Denser mobile-first page rhythm */
+  #page-approver-leave .main-content {
+    padding: 8px 8px calc(var(--approver-bottom-nav-height) + 24px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #page-approver-leave .approver-topbar {
+    margin-bottom: 8px !important;
+  }
+
+  /* KPIs become a compact 2 × 2 grid */
+  #page-approver-leave .stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin: 0 0 9px !important;
+  }
+
+  #page-approver-leave .stat-card {
+    min-width: 0 !important;
+    min-height: 78px !important;
+    padding: 10px 10px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  #page-approver-leave .stat-info {
+    min-width: 0 !important;
+  }
+
+  #page-approver-leave .stat-label {
+    display: block !important;
+    overflow: hidden !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  #page-approver-leave .stat-value {
+    margin-top: 5px !important;
+    font-size: 20px !important;
+    line-height: 1.05 !important;
+  }
+
+  #page-approver-leave .stat-value small {
+    font-size: 9.5px !important;
+  }
+
+  #page-approver-leave .stat-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border-radius: 10px !important;
+  }
+
+  #page-approver-leave .stat-icon img,
+  #page-approver-leave .stat-icon .material-symbols-outlined {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 20px !important;
+  }
+
+  /* Three workflow tabs stay thumb-friendly and horizontally scroll only when needed */
+  #page-approver-leave .leave-tab-container {
+    display: flex !important;
+    gap: 6px !important;
+    width: 100% !important;
+    margin: 0 0 8px !important;
+    padding: 2px 1px 6px !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+
+  #page-approver-leave .leave-tab-container::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #page-approver-leave .leave-tab-container .tab-btn {
+    display: inline-flex !important;
+    min-height: 42px !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    padding: 7px 10px !important;
+    border-radius: 12px !important;
+    font-size: 11.5px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+  }
+
+  #page-approver-leave .leave-tab-container .tab-btn img,
+  #page-approver-leave .leave-tab-container .tab-btn > .material-symbols-outlined {
+    width: 19px !important;
+    height: 19px !important;
+    font-size: 19px !important;
+  }
+
+  #page-approver-leave .tab-count-badge {
+    min-width: 18px !important;
+    height: 18px !important;
+    padding: 0 4px !important;
+    font-size: 9.5px !important;
+    line-height: 18px !important;
+  }
+
+  #page-approver-leave #leaveSlaTrackerContainer {
+    margin-bottom: 8px !important;
+  }
+
+  /* Filter/search panel stacks vertically */
+  #page-approver-leave .panel {
+    margin: 0 0 10px !important;
+    padding: 10px !important;
+    border-radius: 15px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  #page-approver-leave .panel-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 9px !important;
+    margin-bottom: 10px !important;
+  }
+
+  #page-approver-leave .panel-header-title {
+    display: flex !important;
+    min-width: 0 !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  #page-approver-leave .panel-header-title h2 {
+    margin: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+  }
+
+  #page-approver-leave .panel-header-controls {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 7px !important;
+    width: 100% !important;
+  }
+
+  #page-approver-leave .panel-header-controls .search-box-wrap {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #page-approver-leave #hrLeaveSearchInput {
+    width: 100% !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    font-size: 13px !important;
+  }
+
+  #page-approver-leave .panel-header-controls .filter-group {
+    display: grid !important;
+    grid-template-columns: 58px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 7px !important;
+    width: 100% !important;
+  }
+
+  #page-approver-leave .panel-header-controls .filter-group label {
+    margin: 0 !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  #page-approver-leave #filterStepSelect {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    font-size: 12px !important;
+  }
+
+  #page-approver-leave .btn-pvt-refresh {
+    width: 100% !important;
+    min-height: 42px !important;
+    justify-content: center !important;
+    border-radius: 11px !important;
+  }
+
+  /* Bulk controls are usable with one thumb */
+  #page-approver-leave #bulkActionBar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 10px !important;
+    gap: 9px !important;
+  }
+
+  #page-approver-leave #bulkActionBar > div:last-child {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr) !important;
+    gap: 7px !important;
+    width: 100% !important;
+  }
+
+  #page-approver-leave #bulkActionBar button {
+    min-height: 40px !important;
+    padding: 7px 9px !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+  }
+
+  #page-approver-leave .table-container,
+  #page-approver-leave #leaveListContainer {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  #page-approver-leave .loading-state {
+    padding: 36px 12px !important;
+  }
+
+  /* Modal becomes a mobile bottom sheet */
+  #page-approver-leave .pvt-modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  #page-approver-leave .pvt-modal-card {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 90dvh !important;
+    margin: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  #page-approver-leave .modal-header {
+    padding: 12px 14px !important;
+  }
+
+  #page-approver-leave .modal-header h3 {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  #page-approver-leave .modal-body {
+    padding: 12px !important;
+    overflow-y: auto !important;
+  }
+
+  #page-approver-leave .modal-footer {
+    position: sticky !important;
+    bottom: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr) !important;
+    gap: 8px !important;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) !important;
+    background: #fff !important;
+  }
+
+  #page-approver-leave .modal-footer button {
+    min-height: 42px !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 390px) {
+  #page-approver-leave .stat-card {
+    min-height: 74px !important;
+    padding: 9px !important;
+  }
+
+  #page-approver-leave .stat-label {
+    font-size: 10.5px !important;
+  }
+
+  #page-approver-leave .stat-value {
+    font-size: 18px !important;
+  }
+
+  #page-approver-leave .approver-bottom-nav__label {
+    font-size: 10px !important;
+  }
+}

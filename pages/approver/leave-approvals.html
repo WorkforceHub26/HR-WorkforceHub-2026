@@ -21,7 +21,8 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/hr-approval.css" /> 
+  <link rel="stylesheet" href="/css/hr-approval.css" />
+  <link rel="stylesheet" href="/css/approver-leave.css" />
 </head>
 
 <body id="page-approver-leave" data-portal="approver">
@@ -87,13 +88,18 @@
     <main class="main-content" id="mainContent">
       
       <!-- Topbar / Header Glass Card -->
-      <header class="topbar">
+      <header class="topbar approver-topbar">
         <div class="topbar-row-main">
           <div class="topbar-actions-left">
-            <a href="/pages/user/index-user.html" class="btn-mobile-back" title="กลับหน้าหลัก">
-              <span class="material-symbols-outlined">arrow_back</span>
-              <span>หน้าหลัก</span>
+            <a href="/pages/user/index-user.html" class="btn-mobile-back" title="กลับหน้าหลัก" aria-label="กลับหน้าหลัก">
+              <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+              <span class="btn-back-label">หน้าหลัก</span>
             </a>
+          </div>
+
+          <div class="approver-mobile-title" aria-hidden="true">
+            <span class="material-symbols-outlined">fact_check</span>
+            <span>อนุมัติใบลา</span>
           </div>
 
           <div class="topbar-right-actions">
@@ -107,6 +113,9 @@
             </span>
 
             <img id="userAvatarHeader" src="/assets/img/default-avatar.jpg" alt="Profile" onerror="this.src='/assets/img/default-avatar.jpg';" />
+            <button type="button" id="mobileMenuBtn" class="mobile-menu-btn approver-menu-btn" title="เปิดเมนู" aria-label="เปิดเมนู">
+              <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+            </button>
           </div>
         </div>
 
@@ -244,6 +253,33 @@
           </div>
         </div>
       </section>
+
+      <!-- Mobile-first bottom navigation for approvers -->
+      <nav class="approver-bottom-nav" aria-label="เมนูหลักบนมือถือ">
+        <a href="/pages/user/index-user.html" class="approver-bottom-nav__item">
+          <span class="material-symbols-outlined" aria-hidden="true">home</span>
+          <span class="approver-bottom-nav__label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/user/leave-history.html" class="approver-bottom-nav__item">
+          <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+          <span class="approver-bottom-nav__label">ประวัติลา</span>
+        </a>
+        <a href="/pages/approver/leave-approvals.html" class="approver-bottom-nav__item approver-bottom-nav__item--primary active" aria-current="page">
+          <span class="approver-bottom-nav__fab">
+            <span class="material-symbols-outlined" aria-hidden="true">fact_check</span>
+          </span>
+          <span class="approver-bottom-nav__label">อนุมัติ</span>
+          <span class="approver-bottom-nav__dot" aria-hidden="true"></span>
+        </a>
+        <a href="/pages/user/holidays.html" class="approver-bottom-nav__item">
+          <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+          <span class="approver-bottom-nav__label">วันหยุด</span>
+        </a>
+        <a href="/pages/user/profile-user.html" class="approver-bottom-nav__item">
+          <span class="material-symbols-outlined" aria-hidden="true">person</span>
+          <span class="approver-bottom-nav__label">ข้อมูลส่วนตัว</span>
+        </a>
+      </nav>
 
     </main>
   </div>

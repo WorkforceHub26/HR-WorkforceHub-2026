@@ -114,16 +114,19 @@
       
       <!-- Topbar Header -->
       <header class="topbar">
+        <button type="button" class="news-back-btn notranslate" id="newsBackBtn" title="กลับ" aria-label="กลับ" translate="no" onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href='/pages/user/index-user.html'; }">
+          <span class="material-symbols-outlined notranslate" translate="no">arrow_back</span>
+        </button>
         <div class="topbar-left">
-          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิด/ปิด เมนู">
-            <span class="material-symbols-outlined" style="font-size: 24px;">more_vert</span>
-          </button>
-          <div>
-            <h1 class="page-title" style="margin: 0; font-size: 20px; font-weight: 800; color: #0f172a;"> ศูนย์ข่าวสารและประกาศองค์กร</h1>
-            <p style="margin: 2px 0 0 0; font-size: 13px; color: #64748b;">ติดตามข่าวสาร ประชาสัมพันธ์ และกิจกรรมภายในองค์กร พี.วี.ที. แอนด์ ที.พลาส</p>
+          <div class="news-page-heading">
+            <h1 class="page-title">ข่าวสารและประกาศองค์กร</h1>
+            <p class="page-subtitle">ติดตามข่าวสาร ประชาสัมพันธ์ และกิจกรรมภายในองค์กร</p>
           </div>
         </div>
-        <div class="topbar-right">
+        <div class="topbar-right news-topbar-actions">
+          <button type="button" class="mobile-menu-btn news-menu-btn notranslate" id="mobileMenuBtn" title="เปิด/ปิด เมนู" aria-label="เปิด/ปิด เมนู" translate="no">
+            <span class="material-symbols-outlined notranslate" translate="no">more_vert</span>
+          </button>
         </div>
       </header>
 
@@ -135,22 +138,22 @@
 
           <!-- Category Pills Filter -->
           <div class="category-pills-bar">
-            <button class="cat-pill active" onclick="selectUserNewsCategory('all', this)">
+            <button type="button" class="cat-pill active" onclick="selectUserNewsCategory('all', this)">
               <span> ทั้งหมด</span>
             </button>
-            <button class="cat-pill" onclick="selectUserNewsCategory('urgent', this)">
+            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('urgent', this)">
               <span> ประกาศด่วน</span>
             </button>
-            <button class="cat-pill" onclick="selectUserNewsCategory('announcement', this)">
+            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('announcement', this)">
               <span> ประชาสัมพันธ์</span>
             </button>
-            <button class="cat-pill" onclick="selectUserNewsCategory('holiday', this)">
+            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('holiday', this)">
               <span> วันหยุด/ปฏิทิน</span>
             </button>
-            <button class="cat-pill" onclick="selectUserNewsCategory('welfare', this)">
+            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('welfare', this)">
               <span> สวัสดิการ</span>
             </button>
-            <button class="cat-pill" onclick="selectUserNewsCategory('activity', this)">
+            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('activity', this)">
               <span> กิจกรรมองค์กร</span>
             </button>
           </div>
@@ -161,8 +164,9 @@
               <span class="material-symbols-outlined">search</span>
               <input type="text" id="userNewsSearchInput" class="user-search-input" placeholder="ค้นหาข่าวสาร, สวัสดิการ, ประกาศ..." oninput="renderUserNewsGrid()" />
             </div>
-            <div style="font-size: 13px; color: #64748b;">
-              พบ <strong id="userNewsCount" style="color: #0f766e;">0</strong> รายการ
+            <div class="user-news-count" aria-live="polite">
+              <span class="material-symbols-outlined" aria-hidden="true">feed</span>
+              <span>พบ <strong id="userNewsCount">0</strong> รายการ</span>
             </div>
           </div>
 

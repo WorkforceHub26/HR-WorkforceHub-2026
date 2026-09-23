@@ -2114,7 +2114,7 @@ window.openTestLineStepModal = function(defaultStepKey) {
     { key: "manager_approved", name: "4. ผู้จัดการ L2 อนุมัติ ➔ ส่งต่อ HR / ผู้บริหาร" },
     { key: "final_approved", name: "5. อนุมัติเสร็จสมบูรณ์ ➔ ส่งสลิปอนุมัติหาพนักงาน" },
     { key: "rejected", name: "6. ปฏิเสธใบลา (ไม่อนุมัติ) ➔ ส่งหาพนักงาน" },
-    { key: "cancellation", name: "7. ขอยกเลิกคำขอลา ➔ แจ้งผู้อนุมัติ / HR" },
+    { key: "cancellation", name: "7. ขอยกเลิกคำขอลา ➔ แจ้ง HR/Admin" },
     { key: "hr_review", name: "8. ถึงคิว HR ตรวจสอบ ➔ แจ้งเตือนฝ่ายบุคคล" },
     { key: "hr_notify", name: "9. สรุปผลใบลาสมบูรณ์ ➔ แจ้งฝ่ายบุคคล" }
   ];
