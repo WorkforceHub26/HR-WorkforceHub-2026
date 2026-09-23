@@ -63,7 +63,7 @@
           <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
           <span>ปฏิทิน</span>
         </a>
-        <a href="/pages/hr/hr.html" class="menu-item" id="navItemLeaveCheck" title="ตรวจและอนุมัติใบลาพนักงาน">
+        <a href="/pages/approver/leave-approvals.html" class="menu-item" id="navItemLeaveCheck" title="ตรวจและอนุมัติใบลาพนักงาน">
           <img src="/assets/icons/leave-approval.svg" alt="อนุมัติใบลา" class="nav-icon-custom" />
           <span>อนุมัติใบลา</span>
         </a>
@@ -118,9 +118,9 @@
           <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิด/ปิด เมนู">
             <span class="material-symbols-outlined" style="font-size: 24px;">more_vert</span>
           </button>
-          <div class="news-page-heading">
-            <h1 class="page-title">ข่าวสารและประกาศองค์กร</h1>
-            <p class="page-subtitle">ติดตามข่าวสาร ประชาสัมพันธ์ และกิจกรรมภายในองค์กร</p>
+          <div>
+            <h1 class="page-title" style="margin: 0; font-size: 20px; font-weight: 800; color: #0f172a;"> ศูนย์ข่าวสารและประกาศองค์กร</h1>
+            <p style="margin: 2px 0 0 0; font-size: 13px; color: #64748b;">ติดตามข่าวสาร ประชาสัมพันธ์ และกิจกรรมภายในองค์กร พี.วี.ที. แอนด์ ที.พลาส</p>
           </div>
         </div>
         <div class="topbar-right">
@@ -135,22 +135,22 @@
 
           <!-- Category Pills Filter -->
           <div class="category-pills-bar">
-            <button type="button" class="cat-pill active" onclick="selectUserNewsCategory('all', this)">
+            <button class="cat-pill active" onclick="selectUserNewsCategory('all', this)">
               <span> ทั้งหมด</span>
             </button>
-            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('urgent', this)">
+            <button class="cat-pill" onclick="selectUserNewsCategory('urgent', this)">
               <span> ประกาศด่วน</span>
             </button>
-            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('announcement', this)">
+            <button class="cat-pill" onclick="selectUserNewsCategory('announcement', this)">
               <span> ประชาสัมพันธ์</span>
             </button>
-            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('holiday', this)">
+            <button class="cat-pill" onclick="selectUserNewsCategory('holiday', this)">
               <span> วันหยุด/ปฏิทิน</span>
             </button>
-            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('welfare', this)">
+            <button class="cat-pill" onclick="selectUserNewsCategory('welfare', this)">
               <span> สวัสดิการ</span>
             </button>
-            <button type="button" class="cat-pill" onclick="selectUserNewsCategory('activity', this)">
+            <button class="cat-pill" onclick="selectUserNewsCategory('activity', this)">
               <span> กิจกรรมองค์กร</span>
             </button>
           </div>
@@ -161,9 +161,8 @@
               <span class="material-symbols-outlined">search</span>
               <input type="text" id="userNewsSearchInput" class="user-search-input" placeholder="ค้นหาข่าวสาร, สวัสดิการ, ประกาศ..." oninput="renderUserNewsGrid()" />
             </div>
-            <div class="user-news-count" aria-live="polite">
-              <span class="material-symbols-outlined" aria-hidden="true">feed</span>
-              <span>พบ <strong id="userNewsCount">0</strong> รายการ</span>
+            <div style="font-size: 13px; color: #64748b;">
+              พบ <strong id="userNewsCount" style="color: #0f766e;">0</strong> รายการ
             </div>
           </div>
 
