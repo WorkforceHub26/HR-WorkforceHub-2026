@@ -2396,7 +2396,8 @@ span#notifBadge {
   border: 2px solid #ffffff !important;
   box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4) !important;
   z-index: 10 !important;
-  display: inline-flex !important;
+  /* IMPORTANT: allow inline/JS display:none to hide badge when count = 0 */
+  display: inline-flex;
   align-items: center !important;
   justify-content: center !important;
   white-space: nowrap !important;
@@ -2801,7 +2802,8 @@ button:active,
   height: 22px !important;
   border-radius: 11px !important;
   padding: 0 6px !important;
-  display: flex !important;
+  /* IMPORTANT: do not force badge visible; JS controls zero/non-zero state */
+  display: flex;
   align-items: center !important;
   justify-content: center !important;
   border: 2.5px solid #ffffff !important;
@@ -3984,7 +3986,17 @@ div#appLayout > aside#mainSidebar > button#desktopSidebarEdgeToggle:active,
   transform: translateY(-50%) scale(0.92) !important;
 }
 
-
-
-
+/* ==========================================================================
+   🔔 GLOBAL NOTIFICATION BADGE ZERO-STATE SAFETY
+   Hide zero/empty badges even if a page stylesheet declares display:flex.
+   JS may set display:none inline; these selectors make that state authoritative.
+   ========================================================================== */
+#notifBadge[style*="display: none"],
+#notifBadge[style*="display:none"],
+.notif-badge[style*="display: none"],
+.notif-badge[style*="display:none"],
+#notifBadge[hidden],
+.notif-badge[hidden] {
+  display: none !important;
+}
 
