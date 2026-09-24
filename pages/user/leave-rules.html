@@ -70,7 +70,7 @@
           <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
           <span>ปฏิทิน</span>
         </a>
-        <a href="/pages/approver/leave-approvals.html" class="menu-item" id="navItemLeaveCheck" title="ตรวจและอนุมัติใบลาพนักงาน">
+        <a href="/pages/hr/hr.html" class="menu-item" id="navItemLeaveCheck" title="ตรวจและอนุมัติใบลาพนักงาน">
           <img src="/assets/icons/leave-approval.svg" alt="อนุมัติใบลา" class="nav-icon-custom" />
           <span>อนุมัติใบลา</span>
         </a>
@@ -115,18 +115,32 @@
       <div class="rules-page-container">
         
         <header class="rules-top-bar">
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <!-- Mobile Menu Toggle Button -->
-            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" title="เปิดเมนู" style="display: none; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 8px; cursor: pointer; color: #64748b; margin-right: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 22px; display: block;">more_vert</span>
+          <div class="rules-header-nav">
+            <button type="button" class="btn-header-back" onclick="history.back()" title="ย้อนกลับ">
+              <span class="material-symbols-outlined">arrow_back</span>
+              <span class="btn-label">ย้อนกลับ</span>
             </button>
-            <button class="btn-header-back" onclick="history.back()"><span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">arrow_back</span> ย้อนกลับ</button>
-            <button class="btn-header-action" onclick="window.location.href='/pages/user/full-guide.html'" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;"> คู่มือใช้งานฉบับเต็ม</button>
+            <button type="button" class="btn-header-action" onclick="window.location.href='/pages/user/full-guide.html'" title="คู่มือใช้งานฉบับเต็ม">
+              <span class="material-symbols-outlined">menu_book</span>
+              <span class="btn-label">คู่มือฉบับเต็ม</span>
+            </button>
+            
+            
+
+            <button type="button" class="mobile-menu-btn rules-icon-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" title="เปิดเมนู" aria-label="เปิดเมนู">
+              <span class="material-symbols-outlined">more_vert</span>
+            </button>
           </div>
-          
-          <div class="rules-title-section" style="text-align: right;">
-            <h1>หลักเกณฑ์และเงื่อนไขการลา</h1>
-            <p>สิทธิประโยชน์และข้อกำหนดทางวินัยพนักงาน PVT</p>
+
+          <div class="rules-title-section">
+            <div class="rules-title-icon" aria-hidden="true">
+              <span class="material-symbols-outlined">policy</span>
+            </div>
+            <div class="rules-title-copy">
+              <span class="rules-eyebrow">LEAVE POLICY</span>
+              <h1>หลักเกณฑ์และเงื่อนไขการลา</h1>
+              <p>สิทธิประโยชน์และข้อกำหนดทางวินัยพนักงาน PVT</p>
+            </div>
           </div>
         </header>
 
