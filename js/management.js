@@ -955,12 +955,6 @@ async function refreshDashboard() {
     renderSummary();
     renderEmployeeTable();
 
-    // เติมพนักงานเข้าแผง Roster พนักงานด้านล่างสุดของหน้าจอจัดการส่วนกลาง
-    if (typeof renderHomeDepartmentTeam === 'function') {
-      const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
-      const sessionUser = savedSession ? JSON.parse(savedSession) : {};
-      renderHomeDepartmentTeam(employees, sessionUser);
-    }
 
     // Rerender the Recharts Summary panel
     if (typeof window.renderRechartsDashboard === 'function') {
@@ -1367,6 +1361,35 @@ function buildGroupedPositionOptions(positionsList, selectedIdOrName) {
 }
 
 let currentPosCategoryFilter = 'all';
+let currentSystemRoleFilter = 'all';
+
+function isLeadershipSystemRole(role) {
+  const value = String(role || '').toLowerCase();
+  return ['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner']
+    .some(item => value.includes(item));
+}
+
+function getSystemRoleLabel(role) {
+  const value = String(role || '').toLowerCase();
+  if (value.includes('owner')) return 'เจ้าของระบบ';
+  if (value.includes('executive') || value.includes('director')) return 'ผู้บริหาร';
+  if (value.includes('manager')) return 'ผู้จัดการ';
+  if (value.includes('leader') || value.includes('supervisor') || value.includes('head')) return 'หัวหน้างาน';
+  if (value.includes('hr')) return 'HR';
+  if (value.includes('admin')) return 'Admin';
+  return 'พนักงาน';
+}
+
+window.filterBySystemRole = function(role, btn) {
+  currentSystemRoleFilter = ['all', 'leader', 'staff'].includes(role) ? role : 'all';
+
+  document.querySelectorAll('#systemRoleFilters .system-role-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.systemRole === currentSystemRoleFilter);
+  });
+
+  if (btn) btn.classList.add('active');
+  renderEmployeeTable();
+};
 
 window.filterByPosCategory = function(category) {
   currentPosCategoryFilter = category;
@@ -1397,6 +1420,11 @@ window.clearEmployeeFilters = function() {
   if (typeof window.fillPositionFilter === "function") {
     window.fillPositionFilter();
   }
+
+  currentSystemRoleFilter = 'all';
+  document.querySelectorAll('#systemRoleFilters .system-role-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.systemRole === 'all');
+  });
 
   if (typeof window.filterByPosCategory === "function") {
     window.filterByPosCategory('all');
@@ -1680,6 +1708,22 @@ function renderEmployeeTable() {
   setTextIfEl('count-officer', `${cOfficer} คน`);
   setTextIfEl('count-staff', `${cStaff} คน`);
 
+  // จำนวนตามบทบาทระบบ (ย้ายมาจากการ์ดสมาชิกพนักงานในองค์กรทั้งหมด)
+  const roleCountBase = employees.filter((emp) => {
+    const department = emp.departments?.department_name || "";
+    const posName = emp.positions?.position_name || emp.position_name || "";
+    const empCat = classifyPositionCategory(posName);
+    if (dept && department !== dept) return false;
+    if (specificPos && posName !== specificPos) return false;
+    if (currentPosCategoryFilter && currentPosCategoryFilter !== 'all' && empCat !== currentPosCategoryFilter) return false;
+    return true;
+  });
+  const systemLeaderCount = roleCountBase.filter(emp => isLeadershipSystemRole(emp.role)).length;
+  const systemStaffCount = roleCountBase.length - systemLeaderCount;
+  setTextIfEl('count-role-all', `${roleCountBase.length}`);
+  setTextIfEl('count-role-leader', `${systemLeaderCount}`);
+  setTextIfEl('count-role-staff', `${systemStaffCount}`);
+
   const filtered = employees.filter((emp) => {
     const department = emp.departments?.department_name || "";
     const posName = emp.positions?.position_name || emp.position_name || "";
@@ -1695,12 +1739,18 @@ function renderEmployeeTable() {
       return false;
     }
 
+    // กรองตามบทบาทระบบที่ย้ายมาจากการ์ดสมาชิกพนักงาน
+    if (currentSystemRoleFilter === 'leader' && !isLeadershipSystemRole(emp.role)) return false;
+    if (currentSystemRoleFilter === 'staff' && isLeadershipSystemRole(emp.role)) return false;
+
     const haystack = [
       emp.employee_code,
       emp.full_name,
       posName,
       department,
       emp.hospital,
+      emp.role,
+      getSystemRoleLabel(emp.role),
     ].join(" ").toLowerCase();
 
     return (!search || haystack.includes(search)) && (!dept || department === dept);
@@ -1717,10 +1767,12 @@ function renderEmployeeTable() {
                           currentPosCategoryFilter === 'officer' ? 'เจ้าหน้าที่/ผู้ช่วย' :
                           currentPosCategoryFilter === 'staff' ? 'พนักงานทั่วไป' : 'ทุกกลุ่มตำแหน่ง';
     const posSubTitle = specificPos ? ` | ตำแหน่ง "${specificPos}"` : '';
+    const systemRoleTitle = currentSystemRoleFilter === 'leader' ? ' | บทบาท หัวหน้า/ผจก.'
+                          : currentSystemRoleFilter === 'staff' ? ' | บทบาท พนักงาน' : '';
 
     leftTextEl.innerHTML = `
       <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488;">analytics</span>
-      <span>${escapeHtml(deptTitle)} (${filterCatName}${escapeHtml(posSubTitle)}): แสดง ${filtered.length} คน (จากทั้งหมด ${cAll} คน)</span>
+      <span>${escapeHtml(deptTitle)} (${filterCatName}${escapeHtml(posSubTitle)}${escapeHtml(systemRoleTitle)}): แสดง ${filtered.length} คน (จากทั้งหมด ${cAll} คน)</span>
     `;
 
     rightTextEl.innerHTML = `
@@ -1770,6 +1822,11 @@ function renderEmployeeTable() {
     const displayCode = highlightMatch(emp.employee_code || "-", search);
     const displayPos = highlightMatch(emp.positions?.position_name || emp.position_name || "ไม่ระบุตำแหน่ง", search);
     const displayDept = highlightMatch(emp.departments?.department_name || "ไม่ระบุแผนก", search);
+    const systemRoleLabel = getSystemRoleLabel(emp.role);
+    const systemRoleBadge = `<span class="emp-system-role-badge">${escapeHtml(systemRoleLabel)}</span>`;
+    const lineStatusBadge = emp.line_id
+      ? `<span class="emp-line-status linked"><span class="status-dot"></span>LINE ผูกแล้ว</span>`
+      : `<span class="emp-line-status unlinked"><span class="status-dot"></span>ยังไม่ผูก LINE</span>`;
 
     return `
       <div class="emp-card-item ${posCategory === 'executive' ? 'is-executive' : ''}">
@@ -1788,6 +1845,10 @@ function renderEmployeeTable() {
             ${roleBadgeHtml}
           </div>
           <span class="emp-pos">${displayPos}</span>
+          <div class="emp-meta-row">
+            ${systemRoleBadge}
+            ${lineStatusBadge}
+          </div>
         </div>
         <div class="col-dept">
           <span class="emp-dept-chip">
@@ -1831,6 +1892,9 @@ function renderEmployeeTable() {
     `;
   }).join("");
 }
+
+// Expose for inline handlers in management.html
+window.renderEmployeeTable = renderEmployeeTable;
 
 // ==========================================
 // 6. EMPLOYEE DETAIL MODAL & EXPORT
@@ -6607,293 +6671,6 @@ window.resetYearlyLeave = typeof resetYearlyLeave !== 'undefined' ? resetYearlyL
 window.importEmployeesExcel = importEmployeesExcel;
 window.downloadExcelTemplate = downloadExcelTemplate;
 
-// ==========================================
-// 🏢 ROSTER / HOME TEAM IN MANAGEMENT PAGE
-// ==========================================
-let homeTeamFullList = [];
-let homeTeamCurrentRoleFilter = 'all';
-let homeTeamCurrentDeptFilter = 'all';
-let homeTeamSearchKeyword = '';
-let homeTeamIsExpandedHeight = false;
 
-function populateHomeTeamDepartments() {
-  const select = document.getElementById("homeTeamDeptSelect");
-  if (!select) return;
-
-  const currentVal = select.value || "all";
-
-  // ดึงชื่อแผนกที่ไม่ซ้ำกันของพนักงานทั้งหมดในชุด
-  const depts = new Set();
-  homeTeamFullList.forEach(emp => {
-    const deptName = emp.departments?.department_name || emp.department_name;
-    if (deptName) {
-      depts.add(deptName.trim());
-    }
-  });
-
-  const sortedDepts = Array.from(depts).sort((a, b) => a.localeCompare(b, 'th'));
-
-  // เติมตัวเลือกใน Select แบบไดนามิก
-  select.innerHTML = '<option value="all">ทั้งหมด (ทุกแผนก)</option>' + 
-    sortedDepts.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
-
-  if (sortedDepts.includes(currentVal)) {
-    select.value = currentVal;
-    homeTeamCurrentDeptFilter = currentVal;
-  } else {
-    select.value = "all";
-    homeTeamCurrentDeptFilter = "all";
-  }
-}
-
-function handleHomeTeamDeptChange(value) {
-  homeTeamCurrentDeptFilter = value || 'all';
-  applyHomeTeamRender();
-}
-
-function renderHomeDepartmentTeam(employeesList, sessionUser) {
-  const container = document.getElementById("homeTeamMembersGrid");
-  const titleEl = document.getElementById("homeTeamSectionTitle");
-  const subtitleEl = document.getElementById("homeTeamSectionSubtitle");
-  const badgeEl = document.getElementById("homeTeamCountBadge");
-  const sectionEl = document.getElementById("homeDepartmentTeamSection");
-
-  if (!container) return;
-
-  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
-  const userObj = sessionUser || (savedSession ? JSON.parse(savedSession) : {});
-  const userRole = String(userObj.role || 'user').toLowerCase();
-
-  // ไม่ต้องซ่อนสำหรับ HR ในหน้าจัดการส่วนกลาง!
-  if (sectionEl) {
-    sectionEl.style.setProperty("display", "block", "important");
-  }
-  
-  let deptId = userObj.department_id;
-  let deptName = userObj.department_name || userObj.departments?.department_name;
-
-  if (!deptId && Array.isArray(employeesList)) {
-    const me = employeesList.find(e => String(e.id) === String(userObj.id));
-    if (me) {
-      deptId = me.department_id;
-      deptName = me.departments?.department_name || me.department_name;
-    }
-  }
-
-  const isLeaderOrManager = ['leader', 'manager', 'supervisor', 'head'].includes(userRole);
-  const isHrOrAdmin = ['hr', 'admin', 'director', 'executive', 'owner'].includes(userRole);
-
-  let filteredList = Array.isArray(employeesList) ? [...employeesList] : [];
-
-  if (titleEl) {
-    titleEl.textContent = `สมาชิกพนักงานในองค์กรทั้งหมด`;
-  }
-
-  if (subtitleEl) {
-    subtitleEl.textContent = `ข้อมูลสมาชิกและตำแหน่งงานสังกัดแผนกต่างๆ ในบริษัท`;
-  }
-
-  if (badgeEl) {
-    badgeEl.textContent = `${filteredList.length} คน`;
-  }
-
-  // บันทึกรายการทั้งหมดสำหรับค้นหา/กรอง
-  homeTeamFullList = filteredList;
-  populateHomeTeamDepartments();
-  updateHomeTeamFilterCounts(filteredList);
-  applyHomeTeamRender();
-}
-
-function updateHomeTeamFilterCounts(list) {
-  const allCount = list.length;
-  let leaderCount = 0;
-  let staffCount = 0;
-
-  list.forEach(emp => {
-    const r = String(emp.role || '').toLowerCase();
-    if (['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x))) {
-      leaderCount++;
-    } else {
-      staffCount++;
-    }
-  });
-
-  const chipAll = document.getElementById("chipCountAll");
-  const chipLeader = document.getElementById("chipCountLeader");
-  const chipStaff = document.getElementById("chipCountStaff");
-
-  if (chipAll) chipAll.textContent = allCount;
-  if (chipLeader) chipLeader.textContent = leaderCount;
-  if (chipStaff) chipStaff.textContent = staffCount;
-}
-
-function applyHomeTeamRender() {
-  const container = document.getElementById("homeTeamMembersGrid");
-  const showingInfo = document.getElementById("homeTeamShowingInfo");
-  if (!container) return;
-
-  const deptFilterContainer = document.getElementById("homeTeamDeptFilterContainer");
-  if (deptFilterContainer) {
-    if (homeTeamCurrentRoleFilter === 'staff') {
-      deptFilterContainer.style.setProperty("display", "flex", "important");
-    } else {
-      deptFilterContainer.style.setProperty("display", "none", "important");
-      homeTeamCurrentDeptFilter = 'all';
-      const select = document.getElementById("homeTeamDeptSelect");
-      if (select) select.value = 'all';
-    }
-  }
-
-  let displayList = [...homeTeamFullList];
-
-  // กรองตามบทบาท
-  if (homeTeamCurrentRoleFilter === 'leader') {
-    displayList = displayList.filter(emp => {
-      const r = String(emp.role || '').toLowerCase();
-      return ['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x));
-    });
-  } else if (homeTeamCurrentRoleFilter === 'staff') {
-    displayList = displayList.filter(emp => {
-      const r = String(emp.role || '').toLowerCase();
-      const isStaff = !['leader', 'manager', 'supervisor', 'head', 'director', 'executive', 'owner'].some(x => r.includes(x));
-      if (!isStaff) return false;
-
-      if (homeTeamCurrentDeptFilter && homeTeamCurrentDeptFilter !== 'all') {
-        const d = emp.departments?.department_name || emp.department_name || '';
-        return String(d).trim() === String(homeTeamCurrentDeptFilter).trim();
-      }
-      return true;
-    });
-  }
-
-  // ค้นหาข้อความ
-  if (homeTeamSearchKeyword) {
-    const kw = homeTeamSearchKeyword.toLowerCase();
-    displayList = displayList.filter(emp => {
-      const name = `${emp.first_name || ''} ${emp.last_name || ''} ${emp.full_name || ''} ${emp.nickname || ''}`.toLowerCase();
-      const code = String(emp.employee_code || '').toLowerCase();
-      const pos = String(emp.positions?.position_name || emp.position_name || '').toLowerCase();
-      return name.includes(kw) || code.includes(kw) || pos.includes(kw);
-    });
-  }
-
-  if (showingInfo) {
-    showingInfo.textContent = `กำลังแสดง ${displayList.length} จากทั้งหมด ${homeTeamFullList.length} คน`;
-  }
-
-  if (displayList.length === 0) {
-    container.innerHTML = `
-      <div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--text-soft); font-size: 12.5px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
-        <span class="material-symbols-outlined" style="font-size: 28px; color: #94a3b8; display: block; margin-bottom: 4px;">person_search</span>
-        ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไขการค้นหา
-      </div>`;
-    return;
-  }
-
-  container.className = "team-grid-4col";
-
-  container.innerHTML = displayList.map(emp => {
-    const avatar = (window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : emp.image_url) || "/assets/img/default-avatar.jpg";
-    const pos = emp.positions?.position_name || emp.position_name || "พนักงาน";
-    const empCode = emp.employee_code ? `${emp.employee_code}` : "-";
-    const nickStr = emp.nickname ? `(${emp.nickname})` : "";
-    const roleStr = String(emp.role || "").toLowerCase();
-    const fullName = emp.full_name || (emp.first_name ? `${emp.first_name} ${emp.last_name || ''}` : 'พนักงาน');
-
-    let roleBadge = '<span style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 6px; font-weight: 600;">👤 พนักงาน</span>';
-    if (roleStr === "leader" || roleStr.includes("leader")) {
-      roleBadge = '<span style="font-size: 11px; background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 6px; font-weight: 700;">👑 หัวหน้า</span>';
-    } else if (roleStr === "manager" || roleStr.includes("manager")) {
-      roleBadge = '<span style="font-size: 11px; background: #dbeafe; color: #1d4ed8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผจก.</span>';
-    } else if (["hr", "admin", "superadmin"].includes(roleStr)) {
-      roleBadge = '<span style="font-size: 11px; background: #f3e8ff; color: #6b21a8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
-    } else if (["director", "executive", "owner"].includes(roleStr)) {
-      roleBadge = '<span style="font-size: 11px; background: #ecfdf5; color: #047857; padding: 2px 7px; border-radius: 6px; font-weight: 700;">🏛️ ผู้บริหาร</span>';
-    }
-
-    const lineIndicator = emp.line_id 
-      ? '<span title="เชื่อมต่อ LINE แล้ว" style="font-size: 11.5px; color: #16a34a; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block;"></span> LINE</span>'
-      : '<span title="ยังไม่ผูก LINE" style="font-size: 11.5px; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px;"><span style="width:6px;height:6px;border-radius:50%;background:#cbd5e1;display:inline-block;"></span> ไม่ผูก</span>';
-
-    return `
-      <div class="team-member-card">
-        <img src="${avatar}" class="team-member-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
-        <div style="flex: 1; min-width: 0; overflow: hidden;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
-            <span style="font-weight: 700; font-size: 14px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(fullName)}">
-              ${escapeHtml(fullName)} ${nickStr}
-            </span>
-            <span style="font-size: 12px; color: #64748b; font-weight: 600; flex-shrink: 0;">#${escapeHtml(empCode)}</span>
-          </div>
-          <div style="font-size: 12.5px; color: #0284c7; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            ${escapeHtml(pos)}
-          </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
-            ${roleBadge}
-            ${lineIndicator}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-function handleHomeTeamSearch(keyword) {
-  homeTeamSearchKeyword = (keyword || '').trim();
-  applyHomeTeamRender();
-}
-
-function filterHomeTeamByRole(role, btn) {
-  homeTeamCurrentRoleFilter = role;
-  const chips = document.querySelectorAll("#homeTeamRoleFilters .team-filter-chip");
-  chips.forEach(c => {
-    c.classList.remove("active");
-    c.style.background = "";
-    c.style.color = "";
-    c.style.borderColor = "";
-  });
-  if (btn) {
-    btn.classList.add("active");
-  }
-  applyHomeTeamRender();
-}
-
-function toggleHomeTeamScrollHeight() {
-  const scrollArea = document.getElementById("homeTeamScrollContainer");
-  const txt = document.getElementById("txtToggleTeamHeight");
-  const ico = document.getElementById("icoToggleTeamHeight");
-  if (!scrollArea) return;
-
-  homeTeamIsExpandedHeight = !homeTeamIsExpandedHeight;
-  if (homeTeamIsExpandedHeight) {
-    scrollArea.classList.add("expanded");
-    scrollArea.style.maxHeight = "none";
-    if (txt) txt.textContent = "ย่อความสูง (ประหยัดพื้นที่)";
-    if (ico) ico.textContent = "unfold_less";
-  } else {
-    scrollArea.classList.remove("expanded");
-    scrollArea.style.maxHeight = "380px";
-    if (txt) txt.textContent = "ขยายดูทั้งหมด";
-    if (ico) ico.textContent = "unfold_more";
-  }
-}
-
-function toggleHomeTeamContainer(btn) {
-  const body = document.getElementById("homeTeamBodyWrapper");
-  const icon = document.getElementById("homeTeamToggleIcon");
-  if (!body) return;
-  const isHidden = body.classList.toggle("collapsed");
-  if (icon) {
-    icon.textContent = isHidden ? "expand_more" : "expand_less";
-  }
-}
-
-// ผูกเข้ากับ window
-window.renderHomeDepartmentTeam = renderHomeDepartmentTeam;
-window.handleHomeTeamDeptChange = handleHomeTeamDeptChange;
-window.handleHomeTeamSearch = handleHomeTeamSearch;
-window.filterHomeTeamByRole = filterHomeTeamByRole;
-window.toggleHomeTeamScrollHeight = toggleHomeTeamScrollHeight;
-window.toggleHomeTeamContainer = toggleHomeTeamContainer;
 
 

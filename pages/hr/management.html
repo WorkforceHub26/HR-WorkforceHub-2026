@@ -261,6 +261,20 @@
               <span class="pos-tab-count" id="count-staff">0</span>
             </button>
           </div>
+
+          <!-- ตัวกรองบทบาทระบบ: ย้ายมาจากการ์ด “สมาชิกพนักงานในองค์กรทั้งหมด” -->
+          <div class="system-role-filter-row" id="systemRoleFilters" aria-label="กรองตามบทบาทระบบ">
+            <span class="system-role-filter-label">บทบาทระบบ:</span>
+            <button type="button" class="system-role-chip active" data-system-role="all" onclick="filterBySystemRole('all', this)">
+              ทั้งหมด <span class="system-role-count" id="count-role-all">0</span>
+            </button>
+            <button type="button" class="system-role-chip" data-system-role="leader" onclick="filterBySystemRole('leader', this)">
+              หัวหน้า/ผจก. <span class="system-role-count" id="count-role-leader">0</span>
+            </button>
+            <button type="button" class="system-role-chip" data-system-role="staff" onclick="filterBySystemRole('staff', this)">
+              พนักงาน <span class="system-role-count" id="count-role-staff">0</span>
+            </button>
+          </div>
           
           <div class="filter-panel" style="display: flex; gap: 10px; width: 100%; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
             <!-- ช่องค้นหาขยายเต็มพื้นที่ (Flex: 1) และเพิ่ม oninput -->
@@ -344,77 +358,6 @@
           </div>
         </section>
 
-        <!--  PANEL: รายชื่อพนักงานในองค์กร (Roster) ย้ายมาอยู่ท้ายสุดหน้าระบบจัดการส่วนกลาง -->
-        <section class="panel mb-6 home-team-panel" id="homeDepartmentTeamSection" style="margin-top: 24px;">
-          <div class="panel-header">
-            <div class="home-team-header-left">
-              <div class="panel-icon-circle">
-                <span class="material-symbols-outlined">group</span>
-              </div>
-              <div>
-                <div class="home-team-title-wrap">
-                  <h2 id="homeTeamSectionTitle">สมาชิกพนักงานในองค์กรทั้งหมด</h2>
-                  <span id="homeTeamCountBadge">0 คน</span>
-                </div>
-                <p id="homeTeamSectionSubtitle">ข้อมูลสมาชิกและตำแหน่งงานสังกัดแผนกต่างๆ ในบริษัท</p>
-              </div>
-            </div>
-            
-            <div class="home-team-controls">
-              <!-- ช่องค้นหา -->
-              <div class="home-team-search">
-                <span class="material-symbols-outlined search-icon">search</span>
-                <input type="text" id="homeTeamSearchInput" placeholder="ค้นหาชื่อ, รหัส, ตำแหน่ง..." oninput="handleHomeTeamSearch(this.value)" autocomplete="off">
-              </div>
-
-              <!-- ปุ่มย้อนกลับ/ขยาย -->
-              <button type="button" class="btn-toggle-icon" onclick="toggleHomeTeamContainer(this)" title="ซ่อน/แสดง รายชื่อสมาชิก" aria-label="ซ่อน/แสดง รายชื่อสมาชิก">
-                <span class="material-symbols-outlined" id="homeTeamToggleIcon">expand_less</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="card-body" id="homeTeamBodyWrapper">
-            <!-- Filter chips & Department Filter (อยู่ในคอนเทนเนอร์เดียวกันเพื่อให้เรียงต่อกันในแนวนอนเสมอตลอดย่านความกว้างหน้าจอ) -->
-            <div id="homeTeamRoleFilters" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; width: 100%;">
-              <button type="button" class="team-filter-chip active" onclick="filterHomeTeamByRole('all', this)">
-                ทั้งหมด (<span id="chipCountAll">0</span>)
-              </button>
-              <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('leader', this)">
-                 หัวหน้า/ผจก. (<span id="chipCountLeader">0</span>)
-              </button>
-              <button type="button" class="team-filter-chip" onclick="filterHomeTeamByRole('staff', this)">
-                 พนักงาน (<span id="chipCountStaff">0</span>)
-              </button>
-
-              <!-- ช่องเลือกแผนกสำหรับกรองพนักงาน (จะแสดงด้านขวาต่อจากปุ่มพนักงานโดยตรงเมื่อคลิกเลือกกลุ่มพนักงาน) -->
-              <div id="homeTeamDeptFilterContainer" style="display: none; align-items: center; gap: 8px; margin-left: 4px;">
-                <span style="font-size: 13px; font-weight: 600; color: #475569; white-space: nowrap;">กรองแผนก:</span>
-                <select id="homeTeamDeptSelect" onchange="handleHomeTeamDeptChange(this.value)" style="padding: 6px 12px; border-radius: 5px; border: 1px solid #cbd5e1; font-size: 13px; font-weight: 600; outline: none; background: #ffffff; color: #1e293b; min-width: 150px; cursor: pointer;">
-                  <option value="all">ทั้งหมด (ทุกแผนก)</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Roster Grid Container (3-4 columns) -->
-            <div id="homeTeamScrollContainer" class="home-team-scroll-area">
-              <div id="homeTeamMembersGrid" class="team-grid-4col">
-                <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-soft); font-size: 14px;">
-                  ⏳ กำลังโหลดข้อมูลสมาชิกพนักงาน...
-                </div>
-              </div>
-            </div>
-
-            <!-- Footer summary -->
-            <div id="homeTeamFooterBar">
-              <span id="homeTeamShowingInfo">กำลังแสดง 0 คน</span>
-              <button type="button" id="btnToggleTeamHeight" onclick="toggleHomeTeamScrollHeight()">
-                <span id="txtToggleTeamHeight">ขยายดูทั้งหมด</span>
-                <span class="material-symbols-outlined" id="icoToggleTeamHeight">unfold_more</span>
-              </button>
-            </div>
-          </div>
-        </section>
 
     </main>
   </div>

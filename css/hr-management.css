@@ -5,3 +5,122 @@
 @import url('/css/Management.css');
 @import url('/css/company-news.css');
 @import url('/css/health-wellness.css');
+
+/* ======================================================
+   Employee history: merged controls from removed roster card
+   ====================================================== */
+#page-hr-management .system-role-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+#page-hr-management .system-role-filter-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  margin-right: 2px;
+}
+
+#page-hr-management .system-role-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#page-hr-management .system-role-chip.active {
+  border-color: #14b8a6;
+  background: #ecfdf5;
+  color: #0f766e;
+}
+
+#page-hr-management .system-role-count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.10);
+  text-align: center;
+  font-size: 11px;
+}
+
+#page-hr-management .emp-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+#page-hr-management .emp-system-role-badge,
+#page-hr-management .emp-line-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+#page-hr-management .emp-system-role-badge {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+#page-hr-management .emp-line-status.linked {
+  background: #ecfdf5;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+#page-hr-management .emp-line-status.unlinked {
+  background: #f8fafc;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+
+#page-hr-management .emp-line-status .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  #page-hr-management .system-role-filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #page-hr-management .system-role-filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  #page-hr-management .system-role-filter-label,
+  #page-hr-management .system-role-chip {
+    flex: 0 0 auto;
+  }
+}
