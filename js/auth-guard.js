@@ -3426,9 +3426,105 @@ document.addEventListener('click', function(e) {
   }
 }, true);
 
+// ============================================================================
+// 🔔 GLOBAL NOTIFICATION BADGE ZERO-GUARD
+// Ensures every page hides the red notification badge when count is 0/empty.
+// This is intentionally global because multiple pages share #notifBadge.
+// ============================================================================
+(function installGlobalNotificationBadgeZeroGuard() {
+  if (window.__pvtNotifBadgeZeroGuardInstalled) return;
+  window.__pvtNotifBadgeZeroGuardInstalled = true;
 
+  const BADGE_SELECTOR = '#notifBadge';
 
+  function parseBadgeCount(el) {
+    if (!el) return 0;
+    const text = String(el.textContent || '').trim();
+    if (!text) return 0;
 
+    // Handles "99+", Thai/English text around numbers, etc.
+    const match = text.replace(/,/g, '').match(/\d+/);
+    return match ? Number(match[0]) : 0;
+  }
 
+  function syncBadge(el) {
+    if (!el || !el.matches?.(BADGE_SELECTOR)) return;
 
+    const count = parseBadgeCount(el);
+
+    if (count <= 0) {
+      if (el.dataset.pvtZeroHidden !== '1') {
+        el.dataset.pvtZeroHidden = '1';
+        el.style.setProperty('display', 'none', 'important');
+      }
+      return;
+    }
+
+    // A real unread count exists. Release only the guard-owned hidden state;
+    // page CSS/JS remains responsible for its preferred visible display mode.
+    if (el.dataset.pvtZeroHidden === '1') {
+      delete el.dataset.pvtZeroHidden;
+      const priority = el.style.getPropertyPriority('display');
+      const value = el.style.getPropertyValue('display');
+      if (priority === 'important' && value === 'none') {
+        el.style.removeProperty('display');
+      }
+    }
+  }
+
+  function syncAll() {
+    document.querySelectorAll(BADGE_SELECTOR).forEach(syncBadge);
+  }
+
+  function start() {
+    syncAll();
+
+    const observer = new MutationObserver((mutations) => {
+      let shouldSyncAll = false;
+
+      for (const mutation of mutations) {
+        const target = mutation.target?.nodeType === Node.TEXT_NODE
+          ? mutation.target.parentElement
+          : mutation.target;
+
+        if (target?.matches?.(BADGE_SELECTOR)) {
+          syncBadge(target);
+          continue;
+        }
+
+        if (target?.closest?.(BADGE_SELECTOR)) {
+          syncBadge(target.closest(BADGE_SELECTOR));
+          continue;
+        }
+
+        if (mutation.type === 'childList') {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType !== Node.ELEMENT_NODE) continue;
+            if (node.matches?.(BADGE_SELECTOR) || node.querySelector?.(BADGE_SELECTOR)) {
+              shouldSyncAll = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (shouldSyncAll) syncAll();
+    });
+
+    observer.observe(document.documentElement, {
+      subtree: true,
+      childList: true,
+      characterData: true
+    });
+
+    // Public helper for page-specific notification code if needed.
+    window.syncPvtNotificationBadge = syncAll;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+})();
 
