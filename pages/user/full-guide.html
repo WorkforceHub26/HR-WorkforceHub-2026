@@ -13,295 +13,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/user-full-guide.css" />
   <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/system-settings.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root {
-      --primary: #06b6d4;
-      --primary-dark: #0891b2;
-      --primary-soft: #ecfeff;
-      --bg: #f0fdfa;
-      --card-bg: rgba(255, 255, 255, 0.55);
-      --text: #0f172a;
-      --text-muted: #475569;
-      --border-light: rgba(255, 255, 255, 0.8);
-    }
-    
-    body {
-      font-family: 'Sarabun', sans-serif;
-      background-color: var(--bg);
-      background-image: 
-        radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
-        radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
-        radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
-        radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
-      background-attachment: fixed;
-      color: var(--text);
-    }
-
-    .heading-font {
-      font-family: 'Sarabun', sans-serif;
-    }
-
-    .glass-card {
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border-light);
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
-    }
-
-    .sidebar-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 20px;
-      padding: 16px;
-      border: 1px solid var(--border-light);
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
-    }
-
-    .content-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 24px;
-      padding: 32px;
-      border: 1px solid var(--border-light);
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      animation: slideUp 0.6s ease-out backwards;
-    }
-
-    .content-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 36px rgba(6, 182, 212, 0.15);
-      border-color: var(--primary);
-    }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .step-number {
-      width: 32px;
-      height: 32px;
-      background: var(--primary);
-      color: white;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 16px;
-      flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
-    }
-
-    .nav-link {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border-left: 4px solid transparent;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-
-    .nav-link:hover {
-      background: rgba(6, 182, 212, 0.1);
-      color: var(--primary);
-      padding-left: 20px;
-    }
-
-    .nav-link.active {
-      background: rgba(6, 182, 212, 0.15);
-      color: var(--primary-dark);
-      border-left-color: var(--primary);
-      font-weight: 700;
-      padding-left: 24px;
-    }
-
-    .sub-card {
-      background: rgba(255, 255, 255, 0.5);
-      border: 1px solid rgba(0, 0, 0, 0.05);
-      border-radius: 16px;
-    }
-
-    /* Staggered animation for cards */
-    section:nth-child(1) .content-card { animation-delay: 0.1s; }
-    section:nth-child(2) .content-card { animation-delay: 0.2s; }
-    section:nth-child(3) .content-card { animation-delay: 0.3s; }
-    section:nth-child(4) .content-card { animation-delay: 0.4s; }
-    section:nth-child(5) .content-card { animation-delay: 0.5s; }
-    section:nth-child(6) .content-card { animation-delay: 0.6s; }
-
-    pre {
-      font-family: monospace;
-      background: #1e293b;
-      color: #e2e8f0;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 13px;
-    }
-
-    /* 📱 MOBILE TYPOGRAPHY & SPARE SPACING OVERHAUL */
-    @media screen and (max-width: 768px) {
-      /* Shrink padding to maximize readable text width on narrow screens */
-      .content-card {
-        padding: 20px 16px !important;
-        border-radius: 18px !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.04) !important;
-      }
-      
-      /* Increase base font-size to 16.5px to guarantee high legibility */
-      .content-card p,
-      .content-card li,
-      .content-card span,
-      .content-card div {
-        font-size: 16px !important;
-        line-height: 1.85 !important;
-        letter-spacing: 0.015em !important;
-      }
-      
-      /* Distinct headings for clear hierarchical division */
-      .content-card h4 {
-        font-size: 18px !important;
-        margin-top: 20px !important;
-        margin-bottom: 12px !important;
-        font-weight: 700 !important;
-        color: #0f172a !important;
-        line-height: 1.4 !important;
-        border-bottom: 2px solid rgba(6, 182, 212, 0.1) !important;
-        padding-bottom: 8px !important;
-      }
-      
-      /* Generous breathing room between blocks */
-      .content-card > p,
-      .content-card > div,
-      .content-card > section,
-      .grid {
-        margin-bottom: 28px !important;
-      }
-
-      /* Highlight key takeaways with vivid, eye-catching text treatments */
-      .content-card strong {
-        font-size: 16px !important;
-        font-weight: 700 !important;
-        color: #0369a1 !important;
-        background-color: #f0f9ff !important;
-        padding: 2px 6px !important;
-        border-radius: 6px !important;
-        border: 1px solid rgba(3, 105, 161, 0.15) !important;
-        display: inline !important;
-      }
-      
-      /* Space list rows as separate readable units instead of dense bullets */
-      .content-card ul {
-        margin-top: 14px !important;
-        margin-bottom: 14px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 16px !important;
-      }
-      
-      .content-card ul li {
-        padding-bottom: 12px !important;
-        border-bottom: 1px dashed rgba(6, 182, 212, 0.15) !important;
-        align-items: flex-start !important;
-      }
-      
-      .content-card ul li:last-child {
-        border-bottom: none !important;
-        padding-bottom: 0 !important;
-      }
-
-      /* Takeaway/Warning Banner enhancements with high contrast */
-      .p-5, .p-6, .p-4 {
-        padding: 20px 16px !important;
-        margin-top: 20px !important;
-        margin-bottom: 20px !important;
-        border-radius: 16px !important;
-        border-width: 1px !important;
-      }
-      
-      .bg-emerald-50, .bg-amber-50, .bg-rose-50, .bg-teal-50, .bg-teal-50\/50, .bg-cyan-50\/60 {
-        border-left-width: 5px !important;
-        font-size: 15.5px !important;
-        line-height: 1.8 !important;
-        color: #1e293b !important;
-      }
-
-      .bg-amber-50 {
-        background-color: #fffbeb !important;
-        border-color: #f59e0b !important;
-      }
-      .bg-rose-50 {
-        background-color: #fff1f2 !important;
-        border-color: #f43f5e !important;
-      }
-      .bg-emerald-50 {
-        background-color: #f0fdf4 !important;
-        border-color: #10b981 !important;
-      }
-      .bg-cyan-50\/60, .bg-teal-50\/50, .bg-teal-50 {
-        background-color: #f0fdfa !important;
-        border-color: #06b6d4 !important;
-      }
-
-      /* Quick scroll navigation bar */
-      .mobile-nav-chip {
-        font-size: 14px !important;
-        padding: 8px 16px !important;
-        border-radius: 9999px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        font-weight: 700 !important;
-        transition: all 0.2s ease !important;
-      }
-      
-      .mobile-nav-chip.active {
-        background-color: #06b6d4 !important;
-        color: white !important;
-        border-color: #06b6d4 !important;
-        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3) !important;
-      }
-
-      /* Clean Language Switcher on mobile - prevents horizontal overflow and scrollbars */
-      #globalLangSwitcherContainer, .lang-switcher {
-        margin: 6px auto 0 auto !important;
-        justify-content: center !important;
-        overflow: hidden !important;
-        max-width: 100% !important;
-      }
-      .lang-switcher {
-        gap: 2px !important;
-        padding: 2px !important;
-        border-radius: 9999px !important;
-        border: 1px solid rgba(13, 148, 136, 0.15) !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.03) !important;
-      }
-      .lang-switcher button, .lang-switcher .lang-btn {
-        padding: 3px 8px !important;
-        font-size: 11px !important;
-        height: 22px !important;
-        min-height: 22px !important;
-        line-height: 1 !important;
-      }
-    }
-
-    /* Hide scrollbars globally on any element using scrollbar-none */
-    .scrollbar-none {
-      -ms-overflow-style: none !important;  /* IE and Edge */
-      scrollbar-width: none !important;  /* Firefox */
-    }
-    .scrollbar-none::-webkit-scrollbar {
-      display: none !important;
-      width: 0 !important;
-      height: 0 !important;
-    }
-  </style>
+  <link rel="stylesheet" href="/css/user-full-guide.css" />
 </head>
 <body id="page-user-full-guide" class="min-h-screen">
 
@@ -311,19 +26,19 @@
     <aside class="sidebar" id="sidebarMenu">
       <div class="sidebar-brand">
         <div class="brand-icon">
-          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" class="guide-brand-logo" />
         </div>
         <div class="brand-name">PVTT WORKFORCE HUB</div>
         <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}" style="display: none;" title="ปิดเมนู">
-          <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+          <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
       <!--  ปุ่มกดยื่นใบลา (Action CTA) -->
       <div class="sidebar-cta-wrap">
         <button type="button" class="sidebar-cta-btn" onclick="window.location.href='/pages/user/leave-user.html'" title="ยื่นใบลาออนไลน์">
-          <img src="/assets/icons/leave-document.svg" alt="ยื่นใบลา" class="nav-icon-custom" style="width: 24px; height: 24px; object-fit: contain;" />
+          <img src="/assets/icons/leave-document.svg" alt="ยื่นใบลา" class="nav-icon-custom" />
           <span class="sidebar-cta-label">ยื่นใบลาออนไลน์</span>
         </button>
       </div>
@@ -362,66 +77,69 @@
           <span>ข่าวสาร</span>
         </a>
         <button type="button" class="menu-item" onclick="if(typeof openSystemSettingsModal==='function')openSystemSettingsModal()" title="การตั้งค่าระบบ">
-          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom" style="border-radius: 6px;" />
+          <img src="/assets/icons/settings.svg" alt="ตั้งค่า" class="nav-icon-custom guide-settings-icon" />
           <span>ตั้งค่า</span>
         </button>
       </nav>
       
-      <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-top: 1px solid #f1f5f9;">
-        <button type="button" class="btn-logout menu-item" onclick="if(typeof logout==='function')logout(); else history.back();" title="ออกจากระบบ" style="color: #ef4444; width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: 500;">
-          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" style="width: 20px; height: 20px;" />
+      <div class="sidebar-footer">
+        <button type="button" class="btn-logout menu-item" onclick="if(typeof logout==='function')logout(); else history.back();" title="ออกจากระบบ">
+          <img src="/assets/icons/logout.svg" alt="ออกจากระบบ" class="nav-icon-custom" />
           <span>ออกจากระบบ</span>
         </button>
       </div>
     </aside>
 
     <!--  2. MAIN WORKSPACE CONTENT -->
-    <main class="main-content" style="width: 100%; flex: 1; overflow-y: auto;">
-      <!-- Sticky Unified Navigation Container (Prevents overlapping and layout bugs) -->
-      <div class="sticky top-0 z-50 w-full">
-        <!-- Header -->
-        <header class="glass-card px-3 py-2.5 md:px-6 md:py-4">
-          <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
-            <div class="flex items-center gap-2 md:gap-3 min-w-0">
-              <button type="button" class="mobile-menu-btn lg:hidden flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-white border border-slate-200 rounded-lg text-slate-600" onclick="toggleMobileSidebar()">
-                <span class="material-symbols-outlined">menu</span>
-              </button>
-              <div class="w-8 h-8 md:w-10 md:h-10 bg-cyan-500 rounded-lg md:rounded-xl flex items-center justify-center text-white shadow-lg shadow-cyan-200 flex-shrink-0">
-                <span class="material-symbols-outlined text-lg md:text-2xl">menu_book</span>
-              </div>
-              <div class="min-w-0">
-                <h1 class="heading-font text-sm md:text-lg font-bold text-slate-800 leading-tight truncate">PVT User Manual</h1>
-                <p class="text-[10px] md:text-xs text-cyan-600 font-medium truncate">คู่มือการใช้งานระบบพนักงาน (ฉบับสมบูรณ์)</p>
+    <main class="main-content">
+      <!-- Full Guide Header V3: self-contained to avoid global header overrides -->
+      <div class="guide-v3-shell">
+        <header class="guide-v3-topbar">
+          <button type="button" class="guide-v3-menu" onclick="toggleMobileSidebar()" aria-label="เปิดเมนู">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+
+          <div class="guide-v3-brand" aria-label="คู่มือการใช้งาน">
+            <span class="material-symbols-outlined guide-v3-book">menu_book</span>
+            <div class="guide-v3-brand-text">
+              <strong>PVT User Manual</strong>
+              <small>คู่มือการใช้งานระบบพนักงาน</small>
+            </div>
+          </div>
+
+          <div class="guide-v3-actions user-header-actions">
+            <div id="globalLangSwitcherContainer" class="guide-v3-lang">
+              <div class="lang-switcher">
+                <button type="button" class="lang-btn" id="globalLangTh" onclick="window.setGlobalLanguage('th', false, { forceBroadcast: true })" title="ภาษาไทย"><span>TH</span></button>
+                <button type="button" class="lang-btn" id="globalLangEn" onclick="window.setGlobalLanguage('en', false, { forceBroadcast: true })" title="English"><span>EN</span></button>
               </div>
             </div>
-            <div class="flex items-center gap-1.5 md:gap-3 flex-shrink-0">
-              <button type="button" onclick="if(window.history.length > 1 && document.referrer){window.history.back();}else{window.location.href=document.referrer || '/pages/user/index-user.html';}" class="flex items-center gap-1 md:gap-2 px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl bg-slate-100 hover:bg-cyan-500 hover:text-white text-slate-600 font-bold text-xs md:text-sm transition-all border border-slate-200 cursor-pointer">
-                <span class="material-symbols-outlined text-base md:text-lg">arrow_back</span>
-                <span class="hidden md:inline">ย้อนกลับ</span>
-              </button>
-            </div>
+            <button type="button" class="guide-v3-back" onclick="if(window.history.length > 1 && document.referrer){window.history.back();}else{window.location.href='/pages/user/leave-rules.html';}" aria-label="ย้อนกลับ">
+              <span class="material-symbols-outlined">arrow_back</span>
+            </button>
           </div>
         </header>
 
-    <!-- Mobile Horizontal Scroll Navigation (Hides on Desktop) -->
-    <div class="block lg:hidden bg-white/95 backdrop-blur-md border-b border-slate-200 overflow-x-auto py-2.5 px-4 shadow-sm scrollbar-none" style="-webkit-overflow-scrolling: touch;">
-      <div class="flex gap-2 whitespace-nowrap">
-        <a href="#login" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">การเข้าสู่ระบบ</a>
-        <a href="#dashboard" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">หน้าแผงควบคุม (Dashboard)</a>
-        <a href="#leave-request" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">ขั้นตอนการยื่นใบลา</a>
-        <a href="#sla-tracker" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">ระบบติดตามนโยบาย SLA 2 วัน</a>
-        <a href="#leave-history" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">ตรวจสอบสถานะและประวัติ</a>
-        <a href="#line-link" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">การเชื่อมต่อ LINE</a>
-        <a href="#calendar" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">การใช้งานปฏิทิน</a>
-        <a id="chip-manager-section" href="#manager" style="display: none;" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">สำหรับหัวหน้าแผนก (L1)</a>
-        <a id="chip-hr-section" href="#hr" style="display: none;" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">สำหรับฝ่ายบุคคล (HR L2)</a>
-        <a href="#faq" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 transition-all border border-slate-200/85">คำถามพบบ่อย (FAQ)</a>
-        <a href="#pwa" class="mobile-nav-chip px-3.5 py-1.5 rounded-full text-xs font-bold bg-cyan-600 text-white transition-all border border-cyan-500">ติดตั้งเป็นแอปมือถือ</a>
+        <div class="guide-v3-jump lg:hidden">
+          <span class="material-symbols-outlined">format_list_bulleted</span>
+          <select id="guideMobileSectionSelect" aria-label="เลือกหัวข้อคู่มือ">
+            <option value="login">การเข้าสู่ระบบ</option>
+            <option value="dashboard">หน้าแผงควบคุม (Dashboard)</option>
+            <option value="leave-request">ขั้นตอนการยื่นใบลา</option>
+            <option value="sla-tracker">ระบบติดตามนโยบาย SLA 2 วัน</option>
+            <option value="leave-history">ตรวจสอบสถานะและประวัติ</option>
+            <option value="line-link">การเชื่อมต่อ LINE</option>
+            <option value="calendar">การใช้งานปฏิทิน</option>
+            <option id="mobile-option-manager" value="manager" hidden>สำหรับหัวหน้าแผนก (L1)</option>
+            <option id="mobile-option-hr" value="hr" hidden>สำหรับฝ่ายบุคคล (HR L2)</option>
+            <option value="faq">คำถามพบบ่อย (FAQ)</option>
+            <option value="pwa">ติดตั้งเป็นแอปมือถือ</option>
+          </select>
+          <span class="material-symbols-outlined guide-v3-jump-arrow">expand_more</span>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <div class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-10">
+  <div class="guide-layout max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-4 gap-10">
     
     <!-- Sidebar Navigation -->
     <aside class="hidden lg:block sticky top-28 h-fit">
@@ -452,7 +170,7 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="lg:col-span-3 space-y-12">
+    <main class="guide-content lg:col-span-3 space-y-12">
 
       <!-- Section: Login -->
       <section id="login" class="scroll-mt-32">
@@ -460,7 +178,7 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">login</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">การเข้าสู่ระบบ (Authentication)</h2>
         </div>
-        <div class="content-card space-y-6" style="animation-delay: 0.1s">
+        <div class="content-card space-y-6">
           <p class="text-slate-600 leading-relaxed text-sm md:text-base">
             ระบบจัดสรรวันลา <strong class="text-cyan-700 font-semibold">PVT Workforce Hub</strong> มุ่งเน้นการเข้าถึงข้อมูลที่รวดเร็ว โดยคุณสามารถยืนยันตัวตนเพื่อเข้าใช้งานได้ <span class="px-2.5 py-0.5 bg-cyan-100 text-cyan-800 rounded-full text-xs font-bold">2 ช่องทางหลัก</span> ดังนี้:
           </p>
@@ -529,7 +247,7 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">dashboard</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">หน้าแผงควบคุมหลักพนักงาน (Dashboard)</h2>
         </div>
-        <div class="content-card space-y-6" style="animation-delay: 0.2s">
+        <div class="content-card space-y-6">
           <p class="text-slate-600 leading-relaxed text-sm">
             เมื่อเข้าสู่ระบบเรียบร้อยแล้ว แผงควบคุมจะแสดงข้อมูลสรุปผลวันลาและการทำงานของคุณแบบเรียลไทม์:
           </p>
@@ -586,14 +304,14 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">edit_document</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">ขั้นตอนการยื่นใบลาอย่างละเอียด (Leave Submission Steps)</h2>
         </div>
-        <div class="content-card space-y-8" style="animation-delay: 0.3s">
+        <div class="content-card space-y-8">
           <p class="text-slate-600 leading-relaxed text-sm">
             ขั้นตอนการเปิดเอกสารคำขอใบลาเพื่อส่งให้ผู้อนุมัติพิจารณาในระบบออนไลน์:
           </p>
 
           <!-- Step 1 -->
           <div class="flex gap-6 items-start">
-            <div class="step-number" style="background: #0f766e; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2)">1</div>
+            <div class="step-number">1</div>
             <div class="space-y-1">
               <h4 class="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
                 เลือกประเภทวันลาให้ตรงการใช้งาน
@@ -607,7 +325,7 @@
 
           <!-- Step 2 -->
           <div class="flex gap-6 items-start">
-            <div class="step-number" style="background: #0f766e; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2)">2</div>
+            <div class="step-number">2</div>
             <div class="space-y-1">
               <h4 class="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
                 ระบุเวลาและวันที่ต้องการลาหยุดงาน
@@ -631,7 +349,7 @@
 
           <!-- Step 3 -->
           <div class="flex gap-6 items-start">
-            <div class="step-number" style="background: #0f766e; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2)">3</div>
+            <div class="step-number">3</div>
             <div class="space-y-1">
               <h4 class="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
                 ป้อนเหตุผลและแนบไฟล์หลักฐานประกอบ
@@ -648,7 +366,7 @@
 
           <!-- Step 4 -->
           <div class="flex gap-6 items-start">
-            <div class="step-number" style="background: #0f766e; box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2)">4</div>
+            <div class="step-number">4</div>
             <div class="space-y-1">
               <h4 class="font-bold text-slate-800 text-sm md:text-base">ยืนยันสายงานผู้อนุมัติและกดส่งคำขอ</h4>
               <p class="text-xs md:text-sm text-slate-500 leading-relaxed">
@@ -668,7 +386,7 @@
             <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">New Feature</span>
           </div>
         </div>
-        <div class="content-card space-y-6" style="animation-delay: 0.35s">
+        <div class="content-card space-y-6">
           <p class="text-slate-600 leading-relaxed text-sm">
             เพื่อสร้างมาตรฐานการทำงานที่โปร่งใสและรวดเร็ว PVT ได้กำหนด <strong>นโยบายระยะเวลาการพิจารณาคำขอลา (Approval SLA) ภายใน 48 ชั่วโมง (2 วันทำการ)</strong> นับจากวินาทีที่พนักงานกดยื่นคำขอเข้ามาในระบบ ระบบจะแสดงตัวนับเวลาถอยหลังแบบสด (Live Countdown) ให้ทั้งพนักงาน, หัวหน้างาน (L1) และฝ่ายบุคคล (HR L2) มองเห็นตรงกันแบบเรียลไทม์
           </p>
@@ -768,7 +486,7 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">history</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">การติดตามผลสถานะใบลา สั่งพิมพ์ และการขอยกเลิก</h2>
         </div>
-        <div class="content-card space-y-6" style="animation-delay: 0.4s">
+        <div class="content-card space-y-6">
           <p class="text-slate-600 leading-relaxed text-sm">
             คุณสามารถตรวจสอบความเคลื่อนไหวของใบลาที่ยื่นขอไปแล้วได้ผ่านตารางในหน้าเมนูหลัก ซึ่งแยกแยะตามสีสัญญลักษณ์ที่เข้าใจง่าย:
           </p>
@@ -834,7 +552,7 @@
           <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" class="w-8 h-8" alt="LINE" />
           <h2 class="heading-font text-2xl font-bold text-slate-800">การเปิดเชื่อมแจ้งเตือนด่วนทางแอป LINE (LINE Notify)</h2>
         </div>
-        <div class="content-card space-y-4" style="animation-delay: 0.5s">
+        <div class="content-card space-y-4">
           <p class="text-slate-600 leading-relaxed text-sm">
             คุณสามารถเปิดเชื่อมต่อบัญชีกับบอทแจ้งเตือนเพื่อรับสติกเกอร์และข้อความระบุทันทีเมื่อใบลาได้รับการอนุมัติหรือปฏิเสธ โดยทำตามขั้นตอนง่ายๆ:
           </p>
@@ -864,7 +582,7 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">calendar_month</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">การใช้งานแผงควบคุมปฏิทินวันหยุดบริษัทและวันลาทีม</h2>
         </div>
-        <div class="content-card space-y-8" style="animation-delay: 0.6s">
+        <div class="content-card space-y-8">
           <p class="text-slate-600 leading-relaxed text-sm">
             ปฏิทินเป็นเครื่องมือสำคัญสำหรับการเช็คข้อมูลทีมเพื่อร่วมวางแผนสิทธิ์ประโยชน์ล่วงหน้า:
           </p>
@@ -905,7 +623,7 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">admin_panel_settings</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">คู่มือปฏิบัติงานสำหรับผู้อนุมัติขั้น L1 (Manager Portal)</h2>
         </div>
-        <div class="content-card space-y-6" style="animation-delay: 0.7s">
+        <div class="content-card space-y-6">
           <p class="text-slate-600 leading-relaxed text-sm">
             เมื่อได้รับการแต่งตั้งเป็นหัวหน้าแผนก (L1 Approval) บัญชีผู้ใช้ของคุณจะมีระบบการตรวจสอบใบลาของลูกทีมเพิ่มขึ้นมาอัตโนมัติ โดยมีหน้าที่สำคัญตามนโยบาย SLA 48 ชั่วโมง:
           </p>
@@ -949,7 +667,7 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">manage_accounts</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">คู่มือการบริหารงานและสิทธิ์สำหรับระดับฝ่ายบุคคล (HR L2 / Admin)</h2>
         </div>
-        <div class="content-card space-y-8" style="animation-delay: 0.8s">
+        <div class="content-card space-y-8">
           <p class="text-slate-600 leading-relaxed text-sm">
             สิทธิ์ระดับฝ่ายบุคคล (HR L2 / Admin) มีอำนาจสูงสุดในการควบคุมและบริหารจัดการระบบบุคลากรทั้งองค์กร:
           </p>
@@ -1011,7 +729,7 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600 font-bold">help</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">คำถามที่พบบ่อย (Frequently Asked Questions)</h2>
         </div>
-        <div class="content-card space-y-4" style="animation-delay: 0.85s">
+        <div class="content-card space-y-4">
           <div class="space-y-4">
             <!-- Q1 -->
             <div class="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm space-y-1.5">
@@ -1062,21 +780,21 @@
           <span class="material-symbols-outlined text-3xl text-cyan-600">install_mobile</span>
           <h2 class="heading-font text-2xl font-bold text-slate-800">ติดตั้งเป็นแอปมือถือ (PWA)</h2>
         </div>
-        <div class="rounded-[24px] p-10 text-white shadow-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #0f766e 0%, #115e59 100%); border: 1px solid rgba(255, 255, 255, 0.15); animation: slideUp 0.6s ease-out backwards; animation-delay: 0.9s">
+        <div class="guide-pwa-card rounded-[24px] p-10 text-white shadow-2xl relative overflow-hidden">
           <div class="relative z-10 space-y-8">
-            <p class="text-white text-lg font-medium leading-relaxed" style="color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.15);">คุณสามารถใช้งาน PVT เหมือนเป็นแอปพลิเคชันจริงบนมือถือได้โดยไม่ต้องผ่าน Store:</p>
+            <p class="guide-pwa-intro text-white text-lg font-medium leading-relaxed">คุณสามารถใช้งาน PVT เหมือนเป็นแอปพลิเคชันจริงบนมือถือได้โดยไม่ต้องผ่าน Store:</p>
             <div class="grid md:grid-cols-2 gap-8">
-              <div class="space-y-4 p-6 rounded-2xl" style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25); backdrop-filter: blur(8px);">
-                <div class="flex items-center gap-3 font-black uppercase tracking-widest text-xs" style="color: #e2fbf5;">
-                  <span class="material-symbols-outlined text-xl" style="color: #e2fbf5;">apple</span> iOS (Safari)
+              <div class="guide-pwa-platform space-y-4 p-6 rounded-2xl">
+                <div class="guide-pwa-platform-title flex items-center gap-3 font-black uppercase tracking-widest text-xs">
+                  <span class="material-symbols-outlined text-xl">apple</span> iOS (Safari)
                 </div>
-                <p class="text-sm leading-relaxed" style="color: #ffffff;">กดปุ่ม <strong style="color: #6ee7b7; font-weight: 800;">แชร์ (Share)</strong> ด้านล่างจอ แล้วเลือก <strong style="color: #6ee7b7; font-weight: 800;">"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</strong></p>
+                <p class="text-sm leading-relaxed">กดปุ่ม <strong>แชร์ (Share)</strong> ด้านล่างจอ แล้วเลือก <strong>"เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</strong></p>
               </div>
-              <div class="space-y-4 p-6 rounded-2xl" style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25); backdrop-filter: blur(8px);">
-                <div class="flex items-center gap-3 font-black uppercase tracking-widest text-xs" style="color: #e2fbf5;">
-                  <span class="material-symbols-outlined text-xl" style="color: #e2fbf5;">android</span> Android (Chrome)
+              <div class="guide-pwa-platform space-y-4 p-6 rounded-2xl">
+                <div class="guide-pwa-platform-title flex items-center gap-3 font-black uppercase tracking-widest text-xs">
+                  <span class="material-symbols-outlined text-xl">android</span> Android (Chrome)
                 </div>
-                <p class="text-sm leading-relaxed" style="color: #ffffff;">กดปุ่ม <strong style="color: #6ee7b7; font-weight: 800;">จุดสามจุด</strong> มุมขวาบน แล้วเลือก <strong style="color: #6ee7b7; font-weight: 800;">"ติดตั้งแอป" (Install App)</strong></p>
+                <p class="text-sm leading-relaxed">กดปุ่ม <strong>จุดสามจุด</strong> มุมขวาบน แล้วเลือก <strong>"ติดตั้งแอป" (Install App)</strong></p>
               </div>
             </div>
           </div>
@@ -1104,55 +822,56 @@
       if (userRole === 'manager' || userRole === 'admin' || userRole === 'hr') {
         const sidebarManager = document.getElementById('sidebar-manager-section');
         const contentManager = document.getElementById('manager');
-        const chipManager = document.getElementById('chip-manager-section');
+        const mobileManagerOption = document.getElementById('mobile-option-manager');
         if(sidebarManager) sidebarManager.style.display = 'block';
         if(contentManager) contentManager.style.display = 'block';
-        if(chipManager) chipManager.style.display = 'inline-flex';
+        if(mobileManagerOption) mobileManagerOption.hidden = false;
       }
       
       if (userRole === 'hr' || userRole === 'admin') {
         const sidebarHR = document.getElementById('sidebar-hr-section');
         const contentHR = document.getElementById('hr');
-        const chipHR = document.getElementById('chip-hr-section');
+        const mobileHROption = document.getElementById('mobile-option-hr');
         if(sidebarHR) sidebarHR.style.display = 'block';
         if(contentHR) contentHR.style.display = 'block';
-        if(chipHR) chipHR.style.display = 'inline-flex';
+        if(mobileHROption) mobileHROption.hidden = false;
       }
     });
 
-    // Simple Active Nav Highlighting
-    const sections = document.querySelectorAll('section');
+    // Active desktop navigation + mobile section dropdown
+    const sections = document.querySelectorAll('section[id]');
     const navLinks = document.querySelectorAll('.nav-link');
-    const mobileChips = document.querySelectorAll('.mobile-nav-chip');
+    const mobileSectionSelect = document.getElementById('guideMobileSectionSelect');
 
-    window.addEventListener('scroll', () => {
+    if (mobileSectionSelect) {
+      mobileSectionSelect.addEventListener('change', () => {
+        const target = document.getElementById(mobileSectionSelect.value);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    const syncGuideNav = () => {
       let current = '';
       sections.forEach(section => {
-        // Only consider sections that are actually visible
         if (section.style.display !== 'none') {
-          const sectionTop = section.offsetTop;
-          if (window.pageYOffset >= sectionTop - 200) {
-            current = section.getAttribute('id');
-          }
+          const rect = section.getBoundingClientRect();
+          if (rect.top <= 150) current = section.id;
         }
       });
+      if (!current && sections[0]) current = sections[0].id;
 
       navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('href').includes('#' + current)) {
-          link.classList.add('active');
-        }
+        link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
       });
 
-      mobileChips.forEach(chip => {
-        chip.classList.remove('active');
-        if (chip.getAttribute('href').includes('#' + current)) {
-          chip.classList.add('active');
-          // Auto-scroll the chips row horizontally to keep the active chip visible
-          chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-      });
-    });
+      if (mobileSectionSelect && current) {
+        const opt = Array.from(mobileSectionSelect.options).find(o => o.value === current && !o.hidden);
+        if (opt) mobileSectionSelect.value = current;
+      }
+    };
+
+    window.addEventListener('scroll', syncGuideNav, { passive: true });
+    syncGuideNav();
   </script>
 
 
@@ -1224,6 +943,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   </main>
   </div>
+
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const select = document.getElementById('guideMobileSectionSelect');
+      if (!select) return;
+      if (location.hash) {
+        const id = location.hash.slice(1);
+        const option = Array.from(select.options).find(opt => opt.value === id && !opt.hidden);
+        if (option) select.value = id;
+      }
+    });
+  </script>
 
   <script>
     function toggleMobileSidebar() {

@@ -2,4 +2,1215 @@
    Dedicated Stylesheet for Full Guide (/pages/user/full-guide.html)
    Scoped Page ID: #page-user-full-guide
    ====================================================== */
+
 @import url('/css/system-settings.css');
+
+#page-user-full-guide {
+      --primary: #06b6d4;
+      --primary-dark: #0891b2;
+      --primary-soft: #ecfeff;
+      --bg: #f0fdfa;
+      --card-bg: rgba(255, 255, 255, 0.55);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border-light: rgba(255, 255, 255, 0.8);
+    }
+body#page-user-full-guide {
+      font-family: 'Sarabun', sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
+        radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
+        radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
+        radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text);
+    }
+#page-user-full-guide .heading-font {
+      font-family: 'Sarabun', sans-serif;
+    }
+#page-user-full-guide .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    }
+#page-user-full-guide .sidebar-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 16px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    }
+#page-user-full-guide .content-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 32px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: slideUp 0.6s ease-out backwards;
+    }
+#page-user-full-guide .content-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 36px rgba(6, 182, 212, 0.15);
+      border-color: var(--primary);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+#page-user-full-guide .step-number {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      color: white;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+    }
+#page-user-full-guide .nav-link {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 4px solid transparent;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+#page-user-full-guide .nav-link:hover {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--primary);
+      padding-left: 20px;
+    }
+#page-user-full-guide .nav-link.active {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--primary-dark);
+      border-left-color: var(--primary);
+      font-weight: 700;
+      padding-left: 24px;
+    }
+#page-user-full-guide .sub-card {
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 16px;
+    }
+
+    /* Staggered animation for cards */
+#page-user-full-guide .guide-content section:nth-child(1) .content-card { animation-delay: 0.1s; }
+#page-user-full-guide .guide-content section:nth-child(2) .content-card { animation-delay: 0.2s; }
+#page-user-full-guide .guide-content section:nth-child(3) .content-card { animation-delay: 0.3s; }
+#page-user-full-guide .guide-content section:nth-child(4) .content-card { animation-delay: 0.4s; }
+#page-user-full-guide .guide-content section:nth-child(5) .content-card { animation-delay: 0.5s; }
+#page-user-full-guide .guide-content section:nth-child(6) .content-card { animation-delay: 0.6s; }
+#page-user-full-guide pre {
+      font-family: monospace;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    /* 📱 MOBILE-FIRST GUIDE LAYOUT */
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 118px;
+    }
+
+    @media screen and (max-width: 768px) {
+      html, body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      body#page-user-full-guide {
+        background-attachment: scroll;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      /* Compact sticky header */
+      #page-user-full-guide .guide-header {
+        padding: 8px 10px !important;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      #page-user-full-guide .guide-header-inner {
+        min-height: 46px;
+        gap: 8px;
+      }
+
+      #page-user-full-guide .mobile-menu-btn,
+      #page-user-full-guide .guide-back-btn {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px;
+        min-height: 40px;
+        padding: 0 !important;
+        border-radius: 12px !important;
+        touch-action: manipulation;
+      }
+
+      #page-user-full-guide .guide-title-icon {
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 12px !important;
+      }
+
+      #page-user-full-guide .guide-title-wrap {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      #page-user-full-guide .guide-title-wrap h1 {
+        font-size: 15px !important;
+        line-height: 1.25 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      #page-user-full-guide .guide-title-wrap p {
+        font-size: 11px !important;
+        line-height: 1.3 !important;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Horizontal quick index: thumb-friendly, compact, sticky */
+      #page-user-full-guide .guide-mobile-index {
+        padding: 8px 10px 9px !important;
+        background: rgba(255,255,255,.96) !important;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05) !important;
+        scroll-snap-type: x proximity;
+        overscroll-behavior-inline: contain;
+      }
+
+      #page-user-full-guide .guide-mobile-index > div {
+        gap: 7px !important;
+      }
+
+      #page-user-full-guide .mobile-nav-chip {
+        min-height: 36px;
+        padding: 7px 12px !important;
+        font-size: 12.5px !important;
+        line-height: 1.2 !important;
+        font-weight: 700 !important;
+        border-radius: 9999px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+        box-shadow: none !important;
+        touch-action: manipulation;
+      }
+
+      #page-user-full-guide .mobile-nav-chip.active {
+        background: #0891b2 !important;
+        color: #fff !important;
+        border-color: #0891b2 !important;
+        box-shadow: 0 3px 10px rgba(8,145,178,.18) !important;
+      }
+
+      /* Main page gutters */
+      #page-user-full-guide .guide-layout {
+        width: 100%;
+        padding: 16px 12px 110px !important;
+        gap: 0 !important;
+      }
+
+      #page-user-full-guide .guide-content {
+        width: 100%;
+        min-width: 0;
+      }
+
+      #page-user-full-guide .guide-content > section {
+        margin-bottom: 28px !important;
+        scroll-margin-top: 118px !important;
+      }
+
+      /* Section title */
+      #page-user-full-guide .guide-content > section > .flex.items-center {
+        gap: 9px !important;
+        margin-bottom: 12px !important;
+        align-items: flex-start !important;
+      }
+
+      #page-user-full-guide .guide-content > section > .flex.items-center > .material-symbols-outlined {
+        font-size: 24px !important;
+        line-height: 1.25 !important;
+        margin-top: 1px;
+        flex-shrink: 0;
+      }
+
+      #page-user-full-guide .guide-content h2 {
+        font-size: 20px !important;
+        line-height: 1.35 !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.01em;
+        overflow-wrap: anywhere;
+      }
+
+      /* Primary cards */
+      #page-user-full-guide .content-card {
+        width: 100%;
+        padding: 16px 14px !important;
+        border-radius: 18px !important;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.055) !important;
+        animation: none !important;
+        transform: none !important;
+        overflow: hidden;
+      }
+
+      #page-user-full-guide .content-card:hover {
+        transform: none !important;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.055) !important;
+        border-color: var(--border-light) !important;
+      }
+
+      #page-user-full-guide .content-card p,
+      #page-user-full-guide .content-card li {
+        font-size: 15px !important;
+        line-height: 1.72 !important;
+        letter-spacing: 0 !important;
+        overflow-wrap: anywhere;
+      }
+
+      #page-user-full-guide .content-card h4 {
+        font-size: 16.5px !important;
+        line-height: 1.45 !important;
+        margin-top: 0 !important;
+        margin-bottom: 8px !important;
+        padding-bottom: 0 !important;
+        border-bottom: 0 !important;
+        font-weight: 800 !important;
+      }
+
+      #page-user-full-guide .content-card h5 {
+        font-size: 15.5px !important;
+        line-height: 1.45 !important;
+      }
+
+      #page-user-full-guide .content-card strong {
+        font-size: inherit !important;
+        line-height: inherit !important;
+        font-weight: 700 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+      }
+
+      #page-user-full-guide .content-card .material-symbols-outlined {
+        line-height: 1 !important;
+      }
+
+      #page-user-full-guide .content-card ul,
+      #page-user-full-guide .content-card ol {
+        margin-top: 8px !important;
+        margin-bottom: 8px !important;
+      }
+
+      #page-user-full-guide .content-card ul {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+      }
+
+      #page-user-full-guide .content-card ul li {
+        padding-bottom: 9px !important;
+        border-bottom: 1px dashed rgba(6,182,212,.14) !important;
+      }
+
+      #page-user-full-guide .content-card ul li:last-child {
+        padding-bottom: 0 !important;
+        border-bottom: 0 !important;
+      }
+
+      /* Tighten utility spacing only inside guide cards */
+      #page-user-full-guide .content-card .p-6,
+      #page-user-full-guide .content-card .p-5,
+      #page-user-full-guide .content-card .p-4 {
+        padding: 14px !important;
+        border-radius: 14px !important;
+      }
+
+      #page-user-full-guide .content-card .gap-8,
+      #page-user-full-guide .content-card .gap-6 {
+        gap: 14px !important;
+      }
+
+      #page-user-full-guide .content-card .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 18px !important;
+      }
+
+      #page-user-full-guide .content-card .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 14px !important;
+      }
+
+      #page-user-full-guide .content-card .grid {
+        margin-bottom: 0 !important;
+      }
+
+      /* Step rows should fit narrow screens */
+      #page-user-full-guide .content-card > .flex.gap-6.items-start {
+        gap: 10px !important;
+      }
+
+      #page-user-full-guide .step-number {
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 9px !important;
+        font-size: 14px !important;
+        margin-top: 1px;
+      }
+
+      /* Alert / takeaway blocks */
+      #page-user-full-guide .bg-emerald-50,
+      #page-user-full-guide .bg-amber-50,
+      #page-user-full-guide .bg-rose-50,
+      #page-user-full-guide .bg-teal-50,
+      #page-user-full-guide .bg-teal-50\/50,
+      #page-user-full-guide .bg-cyan-50\/60 {
+        border-left-width: 4px !important;
+      }
+
+      /* Code / long text safety */
+      #page-user-full-guide pre {
+        max-width: 100%;
+        overflow-x: auto;
+        font-size: 12px;
+        line-height: 1.6;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #page-user-full-guide img,
+      #page-user-full-guide video,
+      #page-user-full-guide iframe {
+        max-width: 100%;
+        height: auto;
+      }
+
+      /* Compact language control if auth-guard injects it */
+      #page-user-full-guide #globalLangSwitcherContainer,
+      #page-user-full-guide .lang-switcher {
+        max-width: 100% !important;
+      }
+
+      #page-user-full-guide .lang-switcher {
+        gap: 2px !important;
+        padding: 2px !important;
+        border-radius: 9999px !important;
+      }
+
+      #page-user-full-guide .lang-switcher button,
+      #page-user-full-guide .lang-switcher .lang-btn {
+        min-height: 30px !important;
+        height: 30px !important;
+        padding: 4px 9px !important;
+        font-size: 11px !important;
+      }
+
+      /* Keep final content clear of fixed bottom navigation */
+      #page-user-full-guide .main-content {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+      #page-user-full-guide .mobile-bottom-nav {
+        padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+      }
+
+      /* Keep language switcher inside the top header action row */
+      #page-user-full-guide .user-header-actions {
+        gap: 5px !important;
+      }
+
+      #page-user-full-guide .user-header-actions #globalLangSwitcherContainer {
+        margin: 0 !important;
+        flex: 0 0 auto !important;
+      }
+
+      #page-user-full-guide .user-header-actions .lang-switcher {
+        margin: 0 !important;
+        padding: 2px !important;
+        gap: 1px !important;
+        min-height: 30px !important;
+        background: rgba(255,255,255,.86) !important;
+        border: 1px solid rgba(148,163,184,.24) !important;
+      }
+
+      #page-user-full-guide .user-header-actions .lang-switcher button,
+      #page-user-full-guide .user-header-actions .lang-switcher .lang-btn {
+        min-width: 31px !important;
+        width: 31px !important;
+        min-height: 26px !important;
+        height: 26px !important;
+        padding: 0 5px !important;
+        font-size: 10px !important;
+        line-height: 1 !important;
+      }
+
+      /* More reading space on phones */
+      #page-user-full-guide .guide-layout {
+        padding-top: 12px !important;
+      }
+    }
+
+    @media screen and (max-width: 480px) {
+      #page-user-full-guide .guide-title-icon {
+        display: none !important;
+      }
+
+      #page-user-full-guide .guide-header-inner {
+        gap: 6px !important;
+      }
+
+      #page-user-full-guide .guide-title-wrap h1 {
+        font-size: 14px !important;
+      }
+
+      #page-user-full-guide .guide-title-wrap p {
+        font-size: 9.5px !important;
+      }
+
+      #page-user-full-guide .mobile-menu-btn,
+      #page-user-full-guide .guide-back-btn {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+      }
+    }
+
+    @media screen and (max-width: 390px) {
+      #page-user-full-guide .guide-title-icon {
+        display: none !important;
+      }
+
+      #page-user-full-guide .guide-title-wrap h1 {
+        font-size: 14px !important;
+      }
+
+      #page-user-full-guide .guide-title-wrap p {
+        font-size: 10.5px !important;
+      }
+
+      #page-user-full-guide .guide-layout {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+      }
+
+      #page-user-full-guide .content-card {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+      }
+    }
+
+    /* Hide scrollbars globally on any element using scrollbar-none */
+#page-user-full-guide .scrollbar-none {
+      -ms-overflow-style: none !important;  /* IE and Edge */
+      scrollbar-width: none !important;  /* Firefox */
+    }
+#page-user-full-guide .scrollbar-none::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+/* --------------------------------------------------------------------------
+   HTML inline-style cleanup helpers
+   -------------------------------------------------------------------------- */
+#page-user-full-guide .guide-brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+#page-user-full-guide .btn-close-sidebar .material-symbols-outlined {
+  font-size: 20px;
+}
+
+#page-user-full-guide .sidebar-cta-btn .nav-icon-custom {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+#page-user-full-guide .guide-settings-icon {
+  border-radius: 6px;
+}
+
+#page-user-full-guide .sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+#page-user-full-guide .sidebar-footer .btn-logout {
+  color: #ef4444;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#page-user-full-guide .sidebar-footer .btn-logout .nav-icon-custom {
+  width: 20px;
+  height: 20px;
+}
+
+#page-user-full-guide .main-content {
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+}
+
+#page-user-full-guide .guide-mobile-index {
+  -webkit-overflow-scrolling: touch;
+}
+
+#page-user-full-guide .step-number {
+  background: #0f766e;
+  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2);
+}
+
+#page-user-full-guide #login .content-card { animation-delay: 0.1s; }
+#page-user-full-guide #dashboard .content-card { animation-delay: 0.2s; }
+#page-user-full-guide #leave-request .content-card { animation-delay: 0.3s; }
+#page-user-full-guide #sla-tracker .content-card { animation-delay: 0.35s; }
+#page-user-full-guide #leave-history .content-card { animation-delay: 0.4s; }
+#page-user-full-guide #line-link .content-card { animation-delay: 0.5s; }
+#page-user-full-guide #calendar .content-card { animation-delay: 0.6s; }
+#page-user-full-guide #manager .content-card { animation-delay: 0.7s; }
+#page-user-full-guide #hr .content-card { animation-delay: 0.8s; }
+#page-user-full-guide #faq .content-card { animation-delay: 0.85s; }
+
+#page-user-full-guide .guide-pwa-card {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: slideUp 0.6s ease-out backwards;
+  animation-delay: 0.9s;
+}
+
+#page-user-full-guide .guide-pwa-intro,
+#page-user-full-guide .guide-pwa-platform p {
+  color: #ffffff;
+}
+
+#page-user-full-guide .guide-pwa-intro {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+#page-user-full-guide .guide-pwa-platform {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+#page-user-full-guide .guide-pwa-platform-title,
+#page-user-full-guide .guide-pwa-platform-title .material-symbols-outlined {
+  color: #e2fbf5;
+}
+
+#page-user-full-guide .guide-pwa-platform strong {
+  color: #6ee7b7;
+  font-weight: 800;
+}
+
+/* ======================================================
+   FULL GUIDE HEADER REFINEMENT — MOBILE FIRST
+   Keeps menu, title, language and back action inside viewport.
+   ====================================================== */
+#page-user-full-guide .guide-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#page-user-full-guide .guide-title-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+#page-user-full-guide .user-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+@media screen and (max-width: 768px) {
+  #page-user-full-guide .guide-header {
+    padding: 6px 8px !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+  }
+
+  #page-user-full-guide .guide-header-inner {
+    display: grid !important;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 7px !important;
+    min-height: 42px !important;
+    width: 100%;
+  }
+
+  #page-user-full-guide .mobile-menu-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 10px !important;
+    padding: 0 !important;
+    grid-column: 1;
+  }
+
+  #page-user-full-guide .mobile-menu-btn .material-symbols-outlined {
+    font-size: 21px !important;
+  }
+
+  #page-user-full-guide .guide-title-cluster {
+    grid-column: 2;
+    gap: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden;
+  }
+
+  #page-user-full-guide .guide-title-icon {
+    display: none !important;
+  }
+
+  #page-user-full-guide .guide-title-wrap {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  #page-user-full-guide .guide-title-wrap h1 {
+    margin: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.12 !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em;
+  }
+
+  #page-user-full-guide .guide-title-wrap p {
+    margin: 2px 0 0 !important;
+    font-size: 9.5px !important;
+    line-height: 1.15 !important;
+    color: #0891b2 !important;
+  }
+
+  #page-user-full-guide .user-header-actions {
+    grid-column: 3;
+    gap: 4px !important;
+    max-width: 98px;
+    justify-self: end;
+  }
+
+  #page-user-full-guide .user-header-actions #globalLangSwitcherContainer {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 58px !important;
+    flex: 0 0 58px !important;
+  }
+
+  #page-user-full-guide .user-header-actions .lang-switcher {
+    width: 58px !important;
+    min-width: 58px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 2px !important;
+    gap: 0 !important;
+    border-radius: 999px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  #page-user-full-guide .user-header-actions .lang-switcher .lang-btn,
+  #page-user-full-guide .user-header-actions .lang-switcher button {
+    width: 27px !important;
+    min-width: 27px !important;
+    max-width: 27px !important;
+    height: 27px !important;
+    min-height: 27px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 9.5px !important;
+    line-height: 27px !important;
+    border-radius: 999px !important;
+  }
+
+  #page-user-full-guide .user-header-actions .lang-text-full {
+    display: none !important;
+  }
+
+  #page-user-full-guide .user-header-actions .lang-text-short {
+    display: inline !important;
+  }
+
+  #page-user-full-guide .guide-back-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    flex: 0 0 34px !important;
+  }
+
+  #page-user-full-guide .guide-back-btn .material-symbols-outlined {
+    font-size: 18px !important;
+  }
+
+  /* Slim section index directly under the header */
+  #page-user-full-guide .guide-mobile-index {
+    padding: 6px 8px 7px !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16) !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+  }
+
+  #page-user-full-guide .guide-mobile-index > div {
+    gap: 6px !important;
+  }
+
+  #page-user-full-guide .mobile-nav-chip {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 11.5px !important;
+    line-height: 32px !important;
+    white-space: nowrap !important;
+  }
+
+  #page-user-full-guide .guide-layout {
+    padding-top: 10px !important;
+  }
+
+  #page-user-full-guide .guide-content > section {
+    scroll-margin-top: 96px !important;
+  }
+}
+
+@media screen and (max-width: 390px) {
+  #page-user-full-guide .guide-header-inner {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 5px !important;
+  }
+
+  #page-user-full-guide .mobile-menu-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+
+  #page-user-full-guide .guide-title-wrap h1 {
+    font-size: 13px !important;
+  }
+
+  #page-user-full-guide .guide-title-wrap p {
+    font-size: 8.5px !important;
+  }
+
+  #page-user-full-guide .user-header-actions {
+    max-width: 91px;
+    gap: 3px !important;
+  }
+
+  #page-user-full-guide .user-header-actions #globalLangSwitcherContainer,
+  #page-user-full-guide .user-header-actions .lang-switcher {
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    flex-basis: 54px !important;
+  }
+
+  #page-user-full-guide .user-header-actions .lang-switcher .lang-btn,
+  #page-user-full-guide .user-header-actions .lang-switcher button {
+    width: 25px !important;
+    min-width: 25px !important;
+    max-width: 25px !important;
+  }
+
+  #page-user-full-guide .guide-back-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
+  }
+}
+
+/* ======================================================
+   FULL GUIDE GLOBAL-CSS CONFLICT SHIELD
+   Isolates /pages/user/full-guide.html from mobile rules
+   in /css/global.css without changing other pages.
+   ====================================================== */
+
+@media screen and (max-width: 768px) {
+  html body#page-user-full-guide,
+  body#page-user-full-guide #appLayout {
+    width: 100% !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: clip !important;
+  }
+
+  body#page-user-full-guide #appLayout > main.main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 0 max(82px, calc(72px + env(safe-area-inset-bottom))) !important;
+    overflow-x: clip !important;
+    box-sizing: border-box !important;
+  }
+
+  body#page-user-full-guide .guide-sticky-shell {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1200 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body#page-user-full-guide .guide-header {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 50px !important;
+    margin: 0 !important;
+    padding: 6px 8px !important;
+    border-radius: 0 !important;
+    box-sizing: border-box !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.20) !important;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
+  }
+
+  body#page-user-full-guide .guide-header-inner {
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) 94px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    column-gap: 6px !important;
+    row-gap: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  body#page-user-full-guide .guide-header .mobile-menu-btn {
+    grid-column: 1 !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    max-width: 34px !important;
+    max-height: 34px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 9px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transform: none !important;
+  }
+
+  body#page-user-full-guide .guide-header .mobile-menu-btn .material-symbols-outlined {
+    font-size: 20px !important;
+  }
+
+  body#page-user-full-guide .guide-title-cluster {
+    grid-column: 2 !important;
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body#page-user-full-guide .guide-title-icon {
+    display: none !important;
+  }
+
+  body#page-user-full-guide .guide-title-wrap {
+    min-width: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  body#page-user-full-guide .guide-title-wrap h1 {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 13.5px !important;
+    line-height: 1.12 !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  body#page-user-full-guide .guide-title-wrap p {
+    margin: 2px 0 0 !important;
+    padding: 0 !important;
+    font-size: 9px !important;
+    line-height: 1.12 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  body#page-user-full-guide .user-header-actions {
+    grid-column: 3 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    justify-self: end !important;
+    width: 94px !important;
+    min-width: 94px !important;
+    max-width: 94px !important;
+    gap: 4px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* global.css sets this fixed/full-width on mobile; force it inline */
+  body#page-user-full-guide .user-header-actions #globalLangSwitcherContainer {
+    position: static !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 58px !important;
+    min-width: 58px !important;
+    max-width: 58px !important;
+    height: 30px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 0 0 58px !important;
+    transform: none !important;
+    z-index: auto !important;
+    background: transparent !important;
+  }
+
+  body#page-user-full-guide .user-header-actions #globalLangSwitcherContainer .lang-switcher {
+    position: static !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 58px !important;
+    min-width: 58px !important;
+    max-width: 58px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    margin: 0 !important;
+    padding: 2px !important;
+    gap: 0 !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  body#page-user-full-guide .user-header-actions #globalLangSwitcherContainer .lang-btn {
+    width: 27px !important;
+    min-width: 27px !important;
+    max-width: 27px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    font-size: 9.5px !important;
+    line-height: 26px !important;
+    transform: none !important;
+  }
+
+  body#page-user-full-guide .user-header-actions .lang-text-full {
+    display: none !important;
+  }
+
+  body#page-user-full-guide .user-header-actions .lang-text-short {
+    display: inline !important;
+  }
+
+  body#page-user-full-guide .guide-back-btn {
+    position: static !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 0 0 32px !important;
+    border-radius: 9px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transform: none !important;
+  }
+
+  body#page-user-full-guide .guide-back-btn .material-symbols-outlined {
+    font-size: 18px !important;
+  }
+
+  body#page-user-full-guide .guide-back-label {
+    display: none !important;
+  }
+
+  body#page-user-full-guide .guide-mobile-index {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    padding: 5px 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+  }
+
+  body#page-user-full-guide .guide-mobile-index > div {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    width: max-content !important;
+    min-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body#page-user-full-guide .guide-mobile-index .mobile-nav-chip {
+    width: auto !important;
+    min-width: auto !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    line-height: 30px !important;
+    flex: 0 0 auto !important;
+  }
+
+  body#page-user-full-guide .guide-layout {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 12px 12px 24px !important;
+    box-sizing: border-box !important;
+  }
+
+  body#page-user-full-guide .guide-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  body#page-user-full-guide .guide-content > section {
+    scroll-margin-top: 96px !important;
+  }
+}
+
+@media screen and (max-width: 390px) {
+  body#page-user-full-guide .guide-header-inner {
+    grid-template-columns: 32px minmax(0, 1fr) 91px !important;
+    column-gap: 5px !important;
+  }
+
+  body#page-user-full-guide .guide-header .mobile-menu-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+  }
+
+  body#page-user-full-guide .user-header-actions {
+    width: 91px !important;
+    min-width: 91px !important;
+    max-width: 91px !important;
+    gap: 3px !important;
+  }
+
+  body#page-user-full-guide .guide-title-wrap h1 {
+    font-size: 12.5px !important;
+  }
+
+  body#page-user-full-guide .guide-title-wrap p {
+    font-size: 8.25px !important;
+  }
+}
+
+/* ================= FULL GUIDE HEADER V3 ================= */
+#page-user-full-guide .guide-v3-shell{position:sticky!important;top:0!important;z-index:1500!important;width:100%!important;margin:0!important;padding:0!important;background:rgba(255,255,255,.98)!important;border-bottom:1px solid #e2e8f0!important;box-shadow:0 2px 10px rgba(15,23,42,.05)!important}
+#page-user-full-guide .guide-v3-topbar{width:100%!important;min-height:52px!important;margin:0!important;padding:7px 10px!important;display:grid!important;grid-template-columns:36px minmax(0,1fr) auto!important;align-items:center!important;column-gap:7px!important;background:#fff!important;box-sizing:border-box!important}
+#page-user-full-guide .guide-v3-menu,#page-user-full-guide .guide-v3-back{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;max-width:34px!important;max-height:34px!important;margin:0!important;padding:0!important;border:1px solid #dbe3ec!important;border-radius:10px!important;background:#fff!important;color:#475569!important;box-shadow:0 2px 6px rgba(15,23,42,.06)!important;transform:none!important}
+#page-user-full-guide .guide-v3-menu .material-symbols-outlined,#page-user-full-guide .guide-v3-back .material-symbols-outlined{font-size:19px!important;line-height:1!important}
+#page-user-full-guide .guide-v3-brand{min-width:0!important;display:flex!important;align-items:center!important;gap:7px!important;overflow:hidden!important}
+#page-user-full-guide .guide-v3-book{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;min-width:30px!important;border-radius:9px!important;background:#06b6d4!important;color:#fff!important;font-size:18px!important}
+#page-user-full-guide .guide-v3-brand-text{min-width:0!important;overflow:hidden!important}
+#page-user-full-guide .guide-v3-brand-text strong{display:block!important;margin:0!important;padding:0!important;color:#0f172a!important;font-size:14px!important;font-weight:800!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#page-user-full-guide .guide-v3-brand-text small{display:block!important;margin-top:2px!important;color:#0891b2!important;font-size:9.5px!important;font-weight:600!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#page-user-full-guide .guide-v3-actions{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-end!important;gap:4px!important;width:auto!important;margin:0!important;padding:0!important;overflow:visible!important}
+#page-user-full-guide .guide-v3-actions #globalLangSwitcherContainer{position:static!important;inset:auto!important;display:flex!important;width:auto!important;height:28px!important;margin:0!important;padding:0!important;background:transparent!important;z-index:auto!important;transform:none!important}
+#page-user-full-guide .guide-v3-actions #globalLangSwitcherContainer .lang-switcher{position:static!important;display:inline-flex!important;align-items:center!important;width:56px!important;height:28px!important;min-height:28px!important;margin:0!important;padding:2px!important;gap:0!important;border:1px solid #e2e8f0!important;border-radius:999px!important;background:#f8fafc!important;overflow:hidden!important;box-shadow:none!important}
+#page-user-full-guide .guide-v3-actions #globalLangSwitcherContainer .lang-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:25px!important;height:24px!important;min-width:25px!important;min-height:24px!important;max-width:25px!important;max-height:24px!important;margin:0!important;padding:0!important;border:0!important;border-radius:999px!important;font-size:9px!important;line-height:1!important;transform:none!important}
+#page-user-full-guide .guide-v3-jump{position:relative!important;display:flex!important;align-items:center!important;width:100%!important;height:40px!important;margin:0!important;padding:4px 10px!important;border-top:1px solid #f1f5f9!important;background:#fff!important;box-sizing:border-box!important}
+#page-user-full-guide .guide-v3-jump>.material-symbols-outlined:first-child{position:absolute!important;left:20px!important;z-index:2!important;font-size:17px!important;color:#0891b2!important;pointer-events:none!important}
+#page-user-full-guide #guideMobileSectionSelect{appearance:none!important;-webkit-appearance:none!important;width:100%!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 34px!important;border:1px solid #dbe3ec!important;border-radius:10px!important;background:#f8fafc!important;color:#334155!important;font-family:'Sarabun',sans-serif!important;font-size:12px!important;font-weight:700!important;line-height:32px!important;outline:none!important;box-shadow:none!important}
+#page-user-full-guide .guide-v3-jump-arrow{position:absolute!important;right:20px!important;z-index:2!important;font-size:18px!important;color:#64748b!important;pointer-events:none!important}
+@media screen and (max-width:768px){html{scroll-padding-top:98px!important}body#page-user-full-guide #appLayout>main.main-content{width:100%!important;max-width:100vw!important;margin:0!important;padding:0 0 max(82px,calc(72px + env(safe-area-inset-bottom)))!important;overflow-x:clip!important}#page-user-full-guide .guide-v3-brand-text small,#page-user-full-guide .guide-v3-book{display:none!important}#page-user-full-guide .guide-v3-brand-text strong{font-size:13px!important}#page-user-full-guide .guide-layout{width:100%!important;max-width:100%!important;margin:0!important;padding:12px 12px 24px!important;box-sizing:border-box!important}#page-user-full-guide .guide-content>section{scroll-margin-top:98px!important}#page-user-full-guide .guide-content>section>.flex.items-center.gap-3.mb-6{margin-bottom:10px!important;gap:7px!important}#page-user-full-guide .guide-content>section>.flex.items-center.gap-3.mb-6>.material-symbols-outlined{font-size:22px!important}#page-user-full-guide .guide-content>section>.flex.items-center.gap-3.mb-6 h2{font-size:18px!important;line-height:1.25!important}}
+@media screen and (max-width:390px){#page-user-full-guide .guide-v3-topbar{grid-template-columns:34px minmax(0,1fr) auto!important;column-gap:5px!important;padding-left:8px!important;padding-right:8px!important}#page-user-full-guide .guide-v3-actions #globalLangSwitcherContainer .lang-switcher{width:53px!important}#page-user-full-guide .guide-v3-actions #globalLangSwitcherContainer .lang-btn{width:24px!important;min-width:24px!important;max-width:24px!important;font-size:8.5px!important}}
+@media screen and (min-width:769px){#page-user-full-guide .guide-v3-jump{display:none!important}#page-user-full-guide .guide-v3-topbar{min-height:68px!important;padding:12px 24px!important;grid-template-columns:42px minmax(0,1fr) auto!important}#page-user-full-guide .guide-v3-menu{display:none!important}#page-user-full-guide .guide-v3-brand-text strong{font-size:17px!important}#page-user-full-guide .guide-v3-brand-text small{font-size:11px!important}}
+

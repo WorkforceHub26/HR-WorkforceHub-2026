@@ -18,81 +18,68 @@ window.getUserRoleCategory = window.getUserRoleCategory || function(userSession)
   const emp = userSession.employees || userSession;
   const role = String(userSession.role || emp.role || '').toLowerCase().trim();
   const position = String(
-    userSession.position_name ||
-    userSession.position ||
-    userSession.positions?.position_name ||
-    emp.position_name ||
+    userSession.position_name || 
+    userSession.position || 
+    userSession.positions?.position_name || 
+    emp.position_name || 
     emp.positions?.position_name || ''
   ).toLowerCase().trim();
   const dept = String(
-    userSession.department_name ||
-    userSession.departments?.department_name ||
-    emp.department_name ||
+    userSession.department_name || 
+    userSession.departments?.department_name || 
+    emp.department_name || 
     emp.departments?.department_name || ''
   ).toLowerCase().trim();
   const duty = String(
-    userSession.duty_name ||
-    emp.duty_name ||
-    userSession.positions?.duty_name ||
+    userSession.duty_name || 
+    emp.duty_name || 
+    userSession.positions?.duty_name || 
     emp.positions?.duty_name || ''
   ).toLowerCase().trim();
   const code = String(userSession.employee_code || emp.employee_code || '').trim();
-  const codeLower = code.toLowerCase();
 
-  const isExplicitAdminOrHr =
-    codeLower === 'admin' ||
-    codeLower === 'superadmin' ||
-    codeLower.startsWith('hr-') ||
-    code === '10001' ||
-    role === 'admin' ||
-    role === 'superadmin' ||
-    role === 'hr' ||
-    role === 'hr_manager';
-
-  if (isExplicitAdminOrHr && !['19122', '19072', '19128'].includes(code)) {
-    return { isAuth: true, category: 'hr_exec', role: role || 'admin', position, dept };
+  // 0. ตรวจสอบกรณีเป็น Role พนักงานทั่วไป (User / Employee / Staff)
+  // ให้เป็น employee สิทธิ์พนักงานทั่วไปเสมอ แม้จะอยู่แผนกบุคคล เพื่อให้ HR มีแอคเคาท์ธรรมดาสำหรับยื่นลาได้
+  if (role === 'user' || role === 'employee' || role === 'staff') {
+    return { isAuth: true, category: 'employee', role, position, dept };
   }
 
-  const isServiceStaff = position.includes('แม่บ้าน') || position.includes('พ่อบ้าน') || position.includes('คนสวน') ||
-                         duty.includes('แม่บ้าน') || duty.includes('พ่อบ้าน') || duty.includes('คนสวน');
+  // พนักงานบริการ / แม่บ้าน / พ่อบ้าน / คนสวน -> Employee เสมอ
+  const isServiceStaff = position.includes('แม่บ้าน') || position.includes('พ่อบ้าน') || position.includes('คนสวน');
   if (isServiceStaff) {
     return { isAuth: true, category: 'employee', role, position, dept };
   }
 
-  if (code === '19122') {
-    return { isAuth: true, category: 'leader_manager', role: 'manager', position: 'ผู้จัดการฝ่าย', dept: 'บุคคล-ธุรการ' };
-  }
-
-  if (['19072', '19128'].includes(code)) {
-    return { isAuth: true, category: 'employee', role: 'employee', position, dept };
-  }
-
-  const isHrOrExecutive =
+  // 1. HR และผู้บริหารระดับสูง (HR Approver / Admin / Executive / Director / Owner)
+  const isHrOrExecutive = 
     role === 'hr' || role === 'admin' || role === 'superadmin' || role === 'executive' || role === 'director' || role === 'owner' || role === 'hr_manager' ||
     role.includes('hr') || role.includes('admin') || role.includes('executive') || role.includes('director') || role.includes('owner') ||
-    code === '10001' || code.startsWith('HR-');
+    code === '19122' || code === '10001';
 
   if (isHrOrExecutive) {
     return { isAuth: true, category: 'hr_exec', role, position, dept };
   }
 
-  const isLeadershipPosition =
-    position.includes('ผู้จัดการ') ||
-    (position.includes('หัวหน้า') && !position.includes('หัวหน้ากะ') && !position.includes('หัวหน้าส่วน')) ||
-    position.includes('manager') || position.includes('leader') || position.includes('supervisor') || position.includes('head');
-
-  const isManagerOrLeader =
+  // 2. หัวหน้างาน / ผู้จัดการแผนก (Leader / Manager / Supervisor)
+  const isManagerOrLeader = 
     role === 'manager' || role === 'leader' || role === 'supervisor' || role === 'head' ||
-    role.includes('manager') || role.includes('leader') || role.includes('supervisor');
+    role.includes('manager') || role.includes('leader');
 
-  if (isManagerOrLeader || isLeadershipPosition) {
-    return { isAuth: true, category: 'leader_manager', role: role || 'leader', position, dept };
+  if (isManagerOrLeader) {
+    return { isAuth: true, category: 'leader_manager', role, position, dept };
   }
 
-  if (role === 'user' || role === 'employee' || role === 'staff') {
-    return { isAuth: true, category: 'employee', role, position, dept };
+  // 3. Fallback ตามตำแหน่งงาน (กรณี role ในฐานข้อมูลว่าง)
+  if (!role || role === '') {
+    if (position.includes('ผู้บริหาร') || position.includes('director') || position.includes('executive')) {
+      return { isAuth: true, category: 'hr_exec', role: 'executive', position, dept };
+    }
+    if (position.includes('ผู้จัดการ') || position.includes('หัวหน้า') || position.includes('manager') || position.includes('leader')) {
+      return { isAuth: true, category: 'leader_manager', role: 'leader', position, dept };
+    }
   }
 
+  // ค่าเริ่มต้น -> พนักงานทั่วไป
   return { isAuth: true, category: 'employee', role, position, dept };
 };
 
@@ -116,10 +103,9 @@ function redirectToDashboard(role, userObj) {
   }
 
   let targetPath = "/pages/user/index-user.html";
-  if (userStatus.category === 'hr_exec') {
+  if (userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager') {
     targetPath = "/pages/hr/home.html";
-  } else if (userStatus.category === 'leader_manager') {
-    // หัวหน้า/ผู้จัดการใช้หน้าหลักพนักงาน และเข้าหน้าอนุมัติผ่านเมนู /pages/hr/hr.html
+  } else {
     targetPath = "/pages/user/index-user.html";
   }
 
@@ -151,6 +137,27 @@ async function checkAndToggleBiometricButton() {
   }
 }
 window.checkAndToggleBiometricButton = checkAndToggleBiometricButton;
+
+// 🔗 Alternative login toggle must always be globally available.
+// Important: keep this OUTSIDE autoSessionCheckAndRedirect().
+// When the page is opened after an explicit logout, autoSessionCheckAndRedirect()
+// returns early; a nested definition would never be created and the inline
+// onclick="toggleAltLoginOptions()" button would stop working.
+window.toggleAltLoginOptions = function toggleAltLoginOptions() {
+  const group = document.getElementById("altLoginGroup");
+  const btn = document.getElementById("altLoginToggleBtn");
+  const chevron = document.getElementById("altToggleChevron");
+  if (!group || !btn) return;
+
+  const isCollapsed = group.classList.contains("collapsed");
+  group.classList.toggle("collapsed", !isCollapsed);
+  btn.setAttribute("aria-expanded", isCollapsed ? "true" : "false");
+  btn.classList.toggle("active", isCollapsed);
+
+  if (chevron) {
+    chevron.style.transform = isCollapsed ? "rotate(180deg)" : "rotate(0deg)";
+  }
+};
 
 /**
  * ⚡ ตรวจสอบ Session และ Supabase Token อัตโนมัติ (Seamless Auto-Redirect)
@@ -201,26 +208,6 @@ async function autoSessionCheckAndRedirect() {
   }
 
   const hasRedirectAttempt = sessionStorage.getItem("redirect_attempt");
-
-  window.toggleAltLoginOptions = function() {
-    const group = document.getElementById("altLoginGroup");
-    const btn = document.getElementById("altLoginToggleBtn");
-    const chevron = document.getElementById("altToggleChevron");
-    if (!group || !btn) return;
-
-    const isCollapsed = group.classList.contains("collapsed");
-    if (isCollapsed) {
-      group.classList.remove("collapsed");
-      btn.setAttribute("aria-expanded", "true");
-      btn.classList.add("active");
-      if (chevron) chevron.style.transform = "rotate(180deg)";
-    } else {
-      group.classList.add("collapsed");
-      btn.setAttribute("aria-expanded", "false");
-      btn.classList.remove("active");
-      if (chevron) chevron.style.transform = "rotate(0deg)";
-    }
-  };
 
   const showSessionVerifyingUI = (show) => {
     const overlay = document.getElementById("sessionCheckOverlay");
@@ -2059,6 +2046,9 @@ async function loginByQr() {
   modalOverlay.classList.add("active");
   startCamera();
 }
+
+// index.html calls loginByQr() from an inline onclick, so it must be on window.
+window.loginByQr = loginByQr;
 
 /// 📖 หน้าต่างแสดงคู่มือวิธีแสดงบัตรพนักงานสำหรับสแกน (How-to Guide Modal)
 function showQrGuideModal() {
