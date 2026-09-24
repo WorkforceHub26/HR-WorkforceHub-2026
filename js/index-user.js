@@ -2723,39 +2723,72 @@ function checkUserNotifications() {
 /* [DEPRECATED] toggleUserGuide is now handled by SystemDiagnostics unified button */
 
 /* ==========================================================================
-   👁️ ฟังก์ชันซ่อน/แสดง (ระบบ Toggle Class เสถียรสูง)
+   ↕️ ฟังก์ชันย่อ/ขยายการ์ด (Expand / Collapse)
    ========================================================================== */
 window.toggleSection = function(sectionId, btnElement) {
   const targetSection = document.getElementById(sectionId);
-  
+
   if (!targetSection) {
     console.warn("⚠️ ไม่พบ Element ที่มี ID:", sectionId);
     return;
   }
 
-  // สลับ Class hidden-section
-  const isHidden = targetSection.classList.toggle('hidden-section');
+  // ระบุการ์ดหลักของแต่ละส่วน เพื่อให้ย่อ/ขยายทั้งการ์ด ไม่ใช่แค่ซ่อนเนื้อหา
+  let cardElement = null;
+  if (sectionId === 'leaveBalancesContainer' || sectionId === 'leaveBalancesSection') {
+    cardElement = targetSection.closest('.leave-section');
+  } else if (sectionId === 'recentList') {
+    cardElement = targetSection.closest('.recent-card');
+  } else if (sectionId === 'teamMembersContainer') {
+    cardElement = targetSection.closest('#departmentTeamSection');
+  }
 
-  // เปลี่ยนไอคอนและสไตล์ปุ่ม
-  // เปลี่ยนไอคอนและสไตล์ปุ่ม
+  const isCollapsed = cardElement
+    ? cardElement.classList.toggle('card-collapsed')
+    : targetSection.classList.toggle('hidden-section');
+
+  // ถ้ามีการ์ดหลัก ให้ซ่อน/แสดง target แบบบังคับด้วย inline !important
+  // เพื่อไม่ให้ CSS responsive หรือ CSS กลางของหน้าอื่น override สถานะย่อได้
+  if (cardElement) {
+    targetSection.classList.toggle('hidden-section', isCollapsed);
+    if (isCollapsed) {
+      targetSection.style.setProperty('display', 'none', 'important');
+      targetSection.setAttribute('aria-hidden', 'true');
+    } else {
+      targetSection.style.removeProperty('display');
+      targetSection.removeAttribute('aria-hidden');
+    }
+
+    // การ์ดสิทธิ์วันลา: ตอนย่อให้เหลือเฉพาะหัวข้อ + ปุ่มขยายจริง ๆ
+    if (sectionId === 'leaveBalancesContainer' || sectionId === 'leaveBalancesSection') {
+      const yearFilter = cardElement.querySelector('#yearFilter');
+      if (yearFilter) {
+        if (isCollapsed) {
+          yearFilter.style.setProperty('display', 'none', 'important');
+        } else {
+          yearFilter.style.removeProperty('display');
+        }
+      }
+    }
+  }
+
+  // ใช้ไอคอนย่อ/ขยายเท่านั้น — ไม่ใช้ visibility / visibility_off อีก
   const iconSpan = btnElement?.querySelector('.material-symbols-outlined');
   if (iconSpan) {
-    iconSpan.textContent = isHidden ? 'visibility_off' : 'visibility';
-  }
-  
-  const iconImg = btnElement?.querySelector('.toggle-eye-icon');
-  if (iconImg) {
-    iconImg.src = isHidden ? '/assets/icons/eye-closed.svg' : '/assets/icons/eye-open.svg';
-  }
-  if (btnElement) {
-    btnElement.classList.toggle('is-hidden', isHidden);
+    iconSpan.textContent = isCollapsed ? 'expand_more' : 'expand_less';
   }
 
-  // กรณีเป็นส่วนสิทธิ์วันลา ให้ซ่อนตัวเลือกปี (yearFilter) ด้วย
-  if (sectionId === 'leaveBalancesContainer' || sectionId === 'leaveBalancesSection') {
-    const yearFilter = document.getElementById('yearFilter');
-    if (yearFilter) yearFilter.classList.toggle('hidden-section', isHidden);
+  if (btnElement) {
+    const label = btnElement.dataset.toggleLabel || 'ส่วนนี้';
+    const action = isCollapsed ? 'ขยาย' : 'ย่อ';
+    btnElement.classList.toggle('is-hidden', isCollapsed);
+    btnElement.setAttribute('aria-expanded', String(!isCollapsed));
+    btnElement.setAttribute('title', `${action} ${label}`);
+    btnElement.setAttribute('aria-label', `${action} ${label}`);
   }
+
+  // yearFilter อยู่ใน header ของการ์ดสิทธิ์วันลา และ CSS จะซ่อนเมื่อ card-collapsed
+  // ไม่ต้องซ่อนด้วย JS แยกอีก เพื่อให้เปิดกลับมาได้พร้อมการ์ดอย่างสม่ำเสมอ
 };
 
 // 🌐 Global Window Function Bindings for User Dashboard Page
