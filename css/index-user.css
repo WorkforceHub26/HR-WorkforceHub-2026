@@ -6308,3 +6308,44 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 #notifBadge:not(.is-empty):not([data-count="0"]) {
   visibility: visible;
 }
+
+/* ==========================================================================\n   ✅ FINAL OVERRIDE: Leave balance card collapsed state\n   Keep this block at the end of the file so mobile rules cannot override it.\n   ========================================================================== */
+.leave-section.card-collapsed {
+  padding: 8px 12px !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+.leave-section.card-collapsed > .leave-header-row {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 32px !important;
+  border: 0 !important;
+}
+
+.leave-section.card-collapsed > #leaveBalancesContainer,
+.leave-section.card-collapsed > .leave-grid {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+.leave-section.card-collapsed #yearFilter {
+  display: none !important;
+}
+
+.leave-section.card-collapsed .leave-header-controls {
+  margin-left: auto !important;
+}
+
+.leave-section.card-collapsed .btn-toggle-icon {
+  margin-left: auto !important;
+}

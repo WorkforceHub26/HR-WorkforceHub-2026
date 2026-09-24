@@ -1373,108 +1373,70 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
         </div>`;
     }
 
-    // Dynamic Stepper Steps Calculation
-    const deptName = String(item.departments?.department_name || reqEmp.departments?.department_name || '').toLowerCase();
-    const applicantRole = String(reqEmp.role || '').toLowerCase();
-    const applicantPos = String(reqEmp.positions?.position_name || '').toLowerCase();
-    const isApplicantLeader = applicantRole === 'leader' || applicantRole.includes('leader') || applicantRole.includes('supervisor') || applicantPos.includes('หัวหน้า');
-    const isApplicantManager = applicantRole === 'manager' || applicantRole.includes('manager') || applicantPos.includes('ผู้จัดการ');
-    const isApplicantExecutive = applicantRole === 'director' || applicantRole === 'executive' || applicantRole === 'owner' || applicantPos.includes('ผู้อำนวยการ') || applicantPos.includes('ผู้บริหาร');
-    const isHrDept = deptName.includes('บุคคล') || deptName.includes('hr') || deptName.includes('ทรัพยากรบุคคล') || applicantRole === 'hr' || applicantRole.includes('hr');
+    // Simplified overall approval status for employee view
+    // Keep this intentionally simple: employees only need the final/current state,
+    // not the internal L1/L2/L3 approval workflow.
+    const approvalStatus = (() => {
+      const status = String(item.status || '').toLowerCase();
 
-    let hasL1 = Boolean(supervisorId || reqEmp.l1_approver_id);
-    let hasL2 = Boolean(managerId || reqEmp.l2_approver_id);
-
-    // แผนกบุคคลไม่มีหัวหน้า มีแต่ผู้จัดการ
-    if (isHrDept) {
-      hasL1 = false;
-      hasL2 = true;
-    }
-
-    if (isApplicantLeader) hasL1 = false;
-    if (isApplicantManager || isApplicantExecutive) {
-      hasL1 = false;
-      hasL2 = false;
-    }
-
-    const stepsList = [
-      {
-        label: '1. ยื่นคำขอลา',
-        icon: 'check_circle',
-        iconColor: '#10b981',
-        statusText: 'สำเร็จ',
-        statusColor: '#15803d'
+      if (status === 'approved') {
+        return {
+          label: 'อนุมัติ',
+          icon: 'check_circle',
+          color: '#15803d',
+          bg: '#f0fdf4',
+          border: '#bbf7d0'
+        };
       }
-    ];
 
-    let stepIdx = 2;
-    if (hasL1) {
-      const isApp = item.manager_status === 'approved';
-      const isRej = item.manager_status === 'rejected';
-      stepsList.push({
-        label: `${stepIdx}. หัวหน้างาน (L1)`,
-        icon: isApp ? 'check_circle' : isRej ? 'cancel' : 'hourglass_top',
-        iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : '#f59e0b',
-        statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : 'รอพิจารณา (48 ชม.)',
-        statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#b45309'
-      });
-      stepIdx++;
-    }
+      if (status === 'rejected') {
+        return {
+          label: 'ไม่อนุมัติ',
+          icon: 'cancel',
+          color: '#b91c1c',
+          bg: '#fef2f2',
+          border: '#fecaca'
+        };
+      }
 
-    if (hasL2) {
-      const isApp = item.director_status === 'approved';
-      const isRej = item.director_status === 'rejected';
-      const isPendingL1 = hasL1 && item.manager_status !== 'approved';
-      stepsList.push({
-        label: `${stepIdx}. ผู้จัดการฝ่าย (L2)`,
-        icon: isApp ? 'check_circle' : isRej ? 'cancel' : isPendingL1 ? 'schedule' : 'hourglass_top',
-        iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : isPendingL1 ? '#94a3b8' : '#f59e0b',
-        statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : isPendingL1 ? 'รอดำเนินการ' : 'รอพิจารณา (ผู้จัดการฝ่าย L2)',
-        statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#94a3b8'
-      });
-      stepIdx++;
-    }
+      if (status === 'cancelled') {
+        return {
+          label: 'ยกเลิกแล้ว',
+          icon: 'do_not_disturb_on',
+          color: '#475569',
+          bg: '#f8fafc',
+          border: '#cbd5e1'
+        };
+      }
 
-    let hasL3 = Boolean(reqEmp.l3_approver_id || isApplicantManager || (isApplicantLeader && !hasL2) || (item.executive_status && item.executive_status !== 'none'));
-    if (hasL3) {
-      const isApp = item.executive_status === 'approved';
-      const isRej = item.executive_status === 'rejected';
-      const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved');
-      stepsList.push({
-        label: `${stepIdx}. ผู้บริหารสูงสุด (L3)`,
-        icon: isApp ? 'check_circle' : isRej ? 'cancel' : isPendingPrev ? 'schedule' : 'hourglass_top',
-        iconColor: isApp ? '#10b981' : isRej ? '#ef4444' : isPendingPrev ? '#94a3b8' : '#a855f7',
-        statusText: isApp ? 'อนุมัติแล้ว' : isRej ? 'ไม่อนุมัติ' : isPendingPrev ? 'รอดำเนินการ' : 'รอพิจารณา (ผู้บริหาร L3)',
-        statusColor: isApp ? '#15803d' : isRej ? '#b91c1c' : '#7e22ce'
-      });
-      stepIdx++;
-    }
+      if (status === 'cancel_requested') {
+        return {
+          label: 'รอตรวจสอบการยกเลิก',
+          icon: 'hourglass_top',
+          color: '#b45309',
+          bg: '#fffbeb',
+          border: '#fde68a'
+        };
+      }
 
-    const isHrApp = item.status === 'approved';
-    const isHrRej = item.status === 'rejected';
-    const isCancelled = item.status === 'cancelled';
-    const isCancelReq = item.status === 'cancel_requested';
-    const isPendingPrev = (hasL1 && item.manager_status !== 'approved') || (hasL2 && item.director_status !== 'approved') || (hasL3 && item.executive_status !== 'approved');
+      return {
+        label: 'รออนุมัติ',
+        icon: 'schedule',
+        color: '#b45309',
+        bg: '#fffbeb',
+        border: '#fde68a'
+      };
+    })();
 
-    stepsList.push({
-      label: `${stepIdx}. สถานะการอนุมัติ (Final Decision)`,
-      icon: isHrApp ? 'verified' : isHrRej ? 'cancel' : isCancelled ? 'cancel' : isCancelReq ? 'schedule' : 'pending',
-      iconColor: isHrApp ? '#10b981' : isHrRej ? '#ef4444' : isCancelled ? '#64748b' : isCancelReq ? '#f59e0b' : '#94a3b8',
-      statusText: isHrApp ? 'อนุมัติสำเร็จสมบูรณ์' : isHrRej ? 'ไม่อนุมัติ' : isCancelled ? 'ยกเลิกคำขอแล้ว' : isCancelReq ? 'รอ HR ตรวจสอบยกเลิก' : isPendingPrev ? 'รอดำเนินการ' : 'กำลังพิจารณา',
-      statusColor: isHrApp ? '#15803d' : isHrRej ? '#b91c1c' : isCancelled ? '#64748b' : isCancelReq ? '#b45309' : '#94a3b8'
-    });
-
-    const stepperHtml = stepsList.map(s => `
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <span style="display: flex; align-items: center; gap: 6px;">
-          <span class="material-symbols-outlined" style="color: ${s.iconColor}; font-size: 16px;">${s.icon}</span>
-          ${s.label}
-        </span>
-        <span style="font-weight: 600; color: ${s.statusColor};">
-          ${s.statusText}
-        </span>
+    const approvalStatusHtml = `
+      <div style="margin-top: 18px; margin-bottom: 16px; background: ${approvalStatus.bg}; border: 1px solid ${approvalStatus.border}; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+          <span class="material-symbols-outlined" style="font-size: 20px; color: ${approvalStatus.color}; flex-shrink: 0;">${approvalStatus.icon}</span>
+          <span style="font-size: 13px; font-weight: 700; color: #475569;">สถานะการอนุมัติ</span>
+        </div>
+        <span style="font-size: 14px; font-weight: 800; color: ${approvalStatus.color}; white-space: nowrap;">${approvalStatus.label}</span>
       </div>
-    `).join('');
+    `;
 
     const modalHtml = `
       <div style="text-align: left; font-size: 14px; line-height: 1.6; color: #334155; padding: 4px 8px;">
@@ -1502,18 +1464,7 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
           <span>${item.created_at ? new Date(item.created_at).toLocaleString('th-TH') : '-'}</span>
         </div>
 
-        <!-- 📍 VISUAL PROGRESS TRACKER (STEPPER) -->
-        <div style="margin-top: 18px; margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px;">
-          <div style="font-weight: 700; color: #0f766e; font-size: 13px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">timeline</span> ขั้นตอนการอนุมัติ (Visual Stepper)
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
-            ${stepperHtml}
-          </div>
-          <div style="margin-top: 10px; font-size: 11px; color: #0f766e; background: #f0fdfa; padding: 6px 10px; border-radius: 8px;">
-            💡 ติดตามสถานะผ่านระบบได้โดยตรง ไม่ต้องทักไลน์สอบถามหัวหน้างาน
-          </div>
-        </div>
+        ${approvalStatusHtml}
 
         ${(item.cancel_reason || (item.approval_comment && item.approval_comment.includes('ยกเลิก')) || item.status === 'cancelled' || item.status === 'cancel_requested') ? `
           <div style="margin-top: 14px; background: #fff1f2; border: 1.5px solid #fecdd3; padding: 12px 14px; border-radius: 12px; color: #9f1239;">

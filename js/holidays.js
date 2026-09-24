@@ -2095,3 +2095,52 @@ window.addEventListener("pvt-lang-changed", () => {
     }
   }
 });
+
+// ============================================================================
+// Holidays page: collapse / expand cards
+// Kept in this page's own JS so behavior does not depend on another page.
+// ============================================================================
+window.toggleHolidaySummarySection = function () {
+  const panel = document.getElementById('companySummarySidebar');
+  const body = document.getElementById('companySummaryBody');
+  const button = document.getElementById('btnToggleSummary');
+  const icon = document.getElementById('btnToggleSummaryIcon');
+  const text = document.getElementById('btnToggleSummaryText');
+  if (!panel || !body || !button || !icon || !text) return;
+
+  const collapsed = panel.classList.toggle('is-collapsed');
+  if (collapsed) {
+    body.style.setProperty('display', 'none', 'important');
+  } else {
+    body.style.removeProperty('display');
+  }
+
+  icon.textContent = collapsed ? 'expand_more' : 'expand_less';
+  text.textContent = collapsed ? 'ขยาย' : 'ย่อ';
+  button.title = collapsed ? 'ขยายรายการสรุปวันหยุด' : 'ย่อรายการสรุปวันหยุด';
+  button.setAttribute('aria-label', button.title);
+  button.setAttribute('aria-expanded', String(!collapsed));
+};
+
+window.toggleHolidayCalendarBody = function () {
+  const panel = document.getElementById('companyCalendarPanel');
+  const body = document.getElementById('companyCalendarBody');
+  const button = document.getElementById('btnToggleCalendar');
+  const icon = document.getElementById('btnToggleCalendarIcon');
+  const text = document.getElementById('btnToggleCalendarText');
+  if (!panel || !body || !button || !icon || !text) return;
+
+  const collapsed = panel.classList.toggle('is-collapsed');
+  if (collapsed) {
+    body.style.setProperty('display', 'none', 'important');
+  } else {
+    body.style.removeProperty('display');
+  }
+
+  icon.textContent = collapsed ? 'expand_more' : 'expand_less';
+  text.textContent = collapsed ? 'ขยาย' : 'ย่อ';
+  button.title = collapsed ? 'ขยายปฏิทิน' : 'ย่อปฏิทิน';
+  button.setAttribute('aria-label', button.title);
+  button.setAttribute('aria-expanded', String(!collapsed));
+};
+
