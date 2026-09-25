@@ -958,3 +958,361 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
   color: #94a3b8 !important;
   cursor: not-allowed !important;
 }
+/* ==========================================
+   🎯 LEAVE FORM FIELD PROGRESS — MOBILE FIRST
+   กำลังกรอก = ไฮไลท์ / กรอกแล้ว = สีเทา
+   ========================================== */
+.leave-box-item .input-group,
+.leave-box-item .leave-duration-mode-options {
+  transition: outline-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+  border-radius: 12px;
+}
+
+/* ช่องที่กรอกเสร็จแล้ว: ใช้เทาโทนเดียวกัน */
+.leave-box-item .leave-field-completed:not(.leave-field-active) input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.leave-box-item .leave-field-completed:not(.leave-field-active) select,
+.leave-box-item .leave-field-completed:not(.leave-field-active) textarea,
+.leave-box-item .leave-field-completed:not(.leave-field-active) .file-upload-label {
+  background: #eef1f4 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .date-input-card.leave-field-completed:not(.leave-field-active) {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.leave-box-item .leave-duration-mode-options.leave-field-completed:not(.leave-field-active) .leave-duration-option:has(input:checked) {
+  background: #eef1f4 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+/* ช่องที่กำลังกรอก: ให้เด่นกว่าส่วนอื่น โดยไม่ขยับ layout */
+.leave-box-item .leave-field-active {
+  outline: 2px solid #06b6d4 !important;
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.leave-box-item .leave-field-active input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.leave-box-item .leave-field-active select,
+.leave-box-item .leave-field-active textarea,
+.leave-box-item .leave-field-active .file-upload-label {
+  background: #ecfeff !important;
+  border-color: #06b6d4 !important;
+  color: #0f172a !important;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, .10) !important;
+}
+
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:focus-within {
+  background: #ecfeff !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, .10) !important;
+}
+
+/* ช่องที่ยังล็อกและยังไม่กรอก ไม่ใช้สีเทาเดียวกับ completed */
+.leave-box-item .input-group:not(.leave-field-completed) input:disabled:not([type="hidden"]),
+.leave-box-item .input-group:not(.leave-field-completed) select:disabled,
+.leave-box-item .input-group:not(.leave-field-completed) textarea:disabled {
+  background: #ffffff !important;
+  border-color: #dbe4ee !important;
+  border-style: dashed !important;
+  color: #94a3b8 !important;
+  opacity: .72;
+}
+
+.leave-box-item .leave-duration-mode-options:not(.leave-field-completed) .leave-duration-option:has(input:disabled) {
+  background: #ffffff !important;
+  border-color: #dbe4ee !important;
+  border-style: dashed !important;
+  opacity: .62;
+}
+
+/* ช่องสรุปที่ระบบคำนวณให้เอง คงสี teal เดิม ไม่ใช้สถานะ completed */
+.leave-box-item input[name="leave_days_display"] {
+  background: #f0fdfa !important;
+  border-color: #99f6e4 !important;
+  color: #0f766e !important;
+}
+
+@media screen and (max-width: 768px) {
+  .leave-box-item .leave-field-active {
+    outline-width: 2px !important;
+    outline-offset: 3px !important;
+  }
+}
+
+/* ==========================================
+   🎯 SEQUENTIAL FIELD HIGHLIGHT OVERRIDE
+   ฟ้า = ช่องถัดไปเพียงช่องเดียว / เทา = เสร็จแล้ว / ขาว = ยังไม่ถึง
+   ========================================== */
+
+/* ยกเลิกสีประจำ start/end เดิม เพื่อไม่ให้สับสนกับสถานะ progress */
+.leave-box-item .date-input-card.highlight-start-card:not(.leave-field-active):not(.leave-field-completed),
+.leave-box-item .date-input-card.highlight-end-card:not(.leave-field-active):not(.leave-field-completed) {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .date-input-card.highlight-start-card:not(.leave-field-active):not(.leave-field-completed):hover,
+.leave-box-item .date-input-card.highlight-start-card:not(.leave-field-active):not(.leave-field-completed):focus-within,
+.leave-box-item .date-input-card.highlight-end-card:not(.leave-field-active):not(.leave-field-completed):hover,
+.leave-box-item .date-input-card.highlight-end-card:not(.leave-field-active):not(.leave-field-completed):focus-within {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+/* active มีได้เพียงกลุ่มเดียวจาก JS */
+.leave-box-item .leave-field-active {
+  background: #ecfeff !important;
+  outline: 2px solid #06b6d4 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, .08) !important;
+}
+
+.leave-box-item .leave-field-active input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.leave-box-item .leave-field-active select,
+.leave-box-item .leave-field-active textarea,
+.leave-box-item .leave-field-active .file-upload-label {
+  background: #ecfeff !important;
+  border-color: #06b6d4 !important;
+  color: #0f172a !important;
+  box-shadow: none !important;
+}
+
+/* โหมดเต็มวัน/ไม่เต็มวัน: ทั้งกลุ่มเป็นขั้นตอนเดียว */
+.leave-box-item .leave-duration-mode-options.leave-field-active {
+  padding: 6px !important;
+}
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option {
+  background: #ffffff !important;
+  border-color: #a5f3fc !important;
+}
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked) {
+  background: #cffafe !important;
+  border-color: #06b6d4 !important;
+}
+
+/* ชั่วโมงเช้า/บ่ายถือเป็นขั้นตอนเดียว: ไฮไลท์กรอบ partial ทั้งก้อน */
+.leave-box-item .partial-leave-controls.leave-field-active {
+  background: #ecfeff !important;
+  border-color: #06b6d4 !important;
+}
+.leave-box-item .partial-leave-controls.leave-field-active .input-group input {
+  background: #ffffff !important;
+  border-color: #a5f3fc !important;
+}
+
+.leave-box-item .partial-leave-controls.leave-field-completed:not(.leave-field-active) {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+.leave-box-item .partial-leave-controls.leave-field-completed:not(.leave-field-active) .input-group input {
+  background: #eef1f4 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+/* กรอกเสร็จแล้ว = เทา แม้ start/end เคยมีสีเฉพาะ */
+.leave-box-item .date-input-card.leave-field-completed:not(.leave-field-active) {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+/* ==========================================
+   🎯 ACTIVE STEP — BACKGROUND ONLY
+   ไฮไลท์เฉพาะพื้นฟ้าอ่อน ไม่มีเส้นขอบ/outline/shadow
+   ========================================== */
+.leave-box-item .leave-field-active {
+  background: #ecfeff !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+.leave-box-item .leave-field-active input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.leave-box-item .leave-field-active select,
+.leave-box-item .leave-field-active textarea,
+.leave-box-item .leave-field-active .file-upload-label {
+  background: #ecfeff !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .leave-duration-mode-options.leave-field-active,
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option,
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:focus-within,
+.leave-box-item .partial-leave-controls.leave-field-active,
+.leave-box-item .partial-leave-controls.leave-field-active .input-group input {
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
+.leave-box-item .partial-leave-controls.leave-field-active {
+  background: #ecfeff !important;
+}
+
+/* ==========================================
+   🎯 ACTIVE STEP — SOFT BACKGROUND + THIN BORDER
+   ฟ้าอ่อน + ขอบบาง 1px ไม่มี shadow/glow
+   ========================================== */
+.leave-box-item .leave-field-active {
+  background: #ecfeff !important;
+  border: 1px solid #a5f3fc !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .leave-field-active input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.leave-box-item .leave-field-active select,
+.leave-box-item .leave-field-active textarea,
+.leave-box-item .leave-field-active .file-upload-label {
+  background: #ecfeff !important;
+  border: 1px solid #a5f3fc !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .leave-duration-mode-options.leave-field-active,
+.leave-box-item .partial-leave-controls.leave-field-active {
+  border: 1px solid #a5f3fc !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option {
+  border: 1px solid #bae6fd !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:focus-within {
+  background: #cffafe !important;
+  border: 1px solid #67e8f9 !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .partial-leave-controls.leave-field-active .input-group input {
+  border: 1px solid #bae6fd !important;
+  box-shadow: none !important;
+}
+
+/* ==========================================
+   🎯 INNER CONTROL HIGHLIGHT ONLY
+   ไฮไลท์เฉพาะช่องกรอกด้านใน ไม่ทำสีกรอบกลุ่มด้านนอก
+   ========================================== */
+
+/* กลุ่มด้านนอกกลับเป็นหน้าตาปกติ ไม่ว่ากำลังกรอกหรือกรอกแล้ว */
+.leave-box-item .input-group.leave-field-active,
+.leave-box-item .input-group.leave-field-completed,
+.leave-box-item .date-input-card.leave-field-active,
+.leave-box-item .date-input-card.leave-field-completed,
+.leave-box-item .leave-duration-mode-options.leave-field-active,
+.leave-box-item .leave-duration-mode-options.leave-field-completed,
+.leave-box-item .partial-leave-controls.leave-field-active,
+.leave-box-item .partial-leave-controls.leave-field-completed {
+  background: transparent !important;
+  border-color: initial !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* input/select/textarea ปัจจุบัน = ฟ้าอ่อน + ขอบบาง */
+.leave-box-item .leave-field-active input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.leave-box-item .leave-field-active select,
+.leave-box-item .leave-field-active textarea,
+.leave-box-item .leave-field-active .file-upload-label {
+  background: #ecfeff !important;
+  border: 1px solid #a5f3fc !important;
+  color: #0f172a !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ช่องที่กรอกแล้ว = เทา เฉพาะช่องด้านใน */
+.leave-box-item .leave-field-completed:not(.leave-field-active) input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.leave-box-item .leave-field-completed:not(.leave-field-active) select,
+.leave-box-item .leave-field-completed:not(.leave-field-active) textarea,
+.leave-box-item .leave-field-completed:not(.leave-field-active) .file-upload-label {
+  background: #eef1f4 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ปุ่มตัวเลือก เต็มวัน / ไม่เต็มวัน: ทำสีเฉพาะการ์ดตัวเลือก ไม่ทำสีกรอบชุด */
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option {
+  background: #ffffff !important;
+  border: 1px solid #dbe4ee !important;
+  box-shadow: none !important;
+}
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
+.leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:focus-within {
+  background: #ecfeff !important;
+  border: 1px solid #a5f3fc !important;
+}
+.leave-box-item .leave-duration-mode-options.leave-field-completed:not(.leave-field-active) .leave-duration-option:has(input:checked) {
+  background: #eef1f4 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* ลาไม่เต็มวัน: ทำสีเฉพาะช่องจำนวนชั่วโมงด้านใน */
+.leave-box-item .partial-leave-controls.leave-field-active .input-group {
+  background: transparent !important;
+  border-color: initial !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.leave-box-item .partial-leave-controls.leave-field-active .input-group input {
+  background: #ecfeff !important;
+  border: 1px solid #a5f3fc !important;
+  box-shadow: none !important;
+}
+.leave-box-item .partial-leave-controls.leave-field-completed:not(.leave-field-active) .input-group {
+  background: transparent !important;
+  border-color: initial !important;
+}
+.leave-box-item .partial-leave-controls.leave-field-completed:not(.leave-field-active) .input-group input {
+  background: #eef1f4 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+/* ช่องสรุประยะเวลาเป็นค่าที่ระบบคำนวณเอง คงสีเดิม */
+.leave-box-item input[name="leave_days_display"] {
+  background: #f0fdfa !important;
+  border-color: #99f6e4 !important;
+  color: #0f766e !important;
+}
+
+/* ==========================================
+   FIX: remove accidental dark outer border
+   กรอบนอกของ input group ไม่ต้องมีเส้นขอบ
+   ไฮไลท์แสดงเฉพาะช่องกรอกด้านใน
+   ========================================== */
+.leave-box-item .input-group.leave-field-active:not(.date-input-card),
+.leave-box-item .input-group.leave-field-completed:not(.date-input-card) {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.leave-box-item .partial-leave-controls .input-group.leave-field-active,
+.leave-box-item .partial-leave-controls .input-group.leave-field-completed {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}

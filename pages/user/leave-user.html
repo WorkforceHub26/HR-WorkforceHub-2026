@@ -28,7 +28,7 @@
            <!-- เปลี่ยนจาก ← เป็น arrow_back เพื่อให้ Material Symbols แสดงผลตรงตามมาตรฐานทุกระบบ -->
            <span class="material-symbols-outlined">arrow_back</span>ย้อนกลับ
           <span style="color: var(--border); margin: 0 2px;">|</span>
-          <img src="/assets/icons/PVTT_FLOW.png" alt="PVT" style="height: 32px; width: auto; object-fit: contain; vertical-align: middle; mix-blend-mode: multiply; border-radius: 6px;"/>
+          <img src="/assets/icons/PVTT_LEAVE.png" alt="PVT" style="height: 32px; width: auto; object-fit: contain; vertical-align: middle; mix-blend-mode: multiply; border-radius: 6px;"/>
         </button>
       </div>
       
@@ -53,10 +53,12 @@
     </div>
 
     <div class="notice-box no-print">
-       <strong>แจ้งเตือนผ่าน LINE:</strong> ระบบจะส่งแจ้งเตือนสถานะใบลานี้ไปยัง LINE ของท่านและหัวหน้างานทันทีที่กดส่งคำขอ และเมื่อได้รับการอนุมัติ/ปฏิเสธ<br/>
-      ️ <strong>ตรวจสอบก่อนบันทึก:</strong> ลาพักผ่อนล่วงหน้าอย่างน้อย 3 วัน · ลากิจแจ้งล่วงหน้า 1 วัน · ลาป่วยแจ้งภายใน 4 ชั่วโมงแรก พร้อมใบรับรองแพทย์
+      <strong>แจ้งเตือนผ่าน LINE:<br/>
+      </strong> ระบบจะส่งแจ้งเตือนสถานะใบลานี้ไปยัง LINE ของหัวหน้างานของท่านทันทีที่กดส่งคำขอ
+      ️ 
     </div>
 
+    
     <div class="leave-cards-container">
       <div class="container-head">
         <h2>ใบขออนุญาติลา</h2>
@@ -64,10 +66,25 @@
       
       <div id="leaveCardsList"></div>
 
+      <div class="notice-box no-print">      
+      ️<strong>ตรวจสอบก่อนบันทึก:<br/>
+      </strong> ลาพักผ่อนล่วงหน้าอย่างน้อย 3 วัน · ลากิจแจ้งล่วงหน้า 1 วัน · ลาป่วยแจ้งภายใน 4 ชั่วโมงแรก พร้อมใบรับรองแพทย์
+    </div>
+
+
+    <div class="notice-box no-print">      
+      ️<strong>
+      </strong> กรณีต้องการทำรายการลาเพิ่ม สามารถกดปุ่ม <span style="color:#10b981">＋ เพิ่มรายการลา</span> ด้านล่างเพื่อสร้างรายการลาใหม่ได้เลยครับ 
+    
       <div class="add-leave-btn-wrap" style="margin-top: 16px; padding-top: 8px;">
         <button class="btn btn-green" type="button" onclick="addLeaveRow()" style="width: 100%; min-height: 48px; font-size: 15px; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">＋ เพิ่มรายการลา</button>
       </div>
     </div>
+</div>
+    </div>
+    
+
+    
 
    <div class="bottom-actions no-print">
       <button class="btn btn-primary" type="button" id="btnSaveLeave" onclick="saveLeave()"><span class="material-symbols-outlined">send</span> ส่งคำขอ</button>
@@ -120,6 +137,8 @@
       <span class="form-fab-text">แนะนำการกรอกฟอร์ม</span>
     </button>
   </div>
+  
+
 
   <div id="statusToast" class="status-toast"></div>
 
