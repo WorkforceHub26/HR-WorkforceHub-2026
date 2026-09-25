@@ -287,6 +287,16 @@ function applyNavPermissions() {
     const rawRoleVal = String(session?.role || empObj.role || userStatus?.role || '').toLowerCase().trim();
     const isTrueAdminUser = rawRoleVal === 'admin' || rawRoleVal === 'superadmin' || empCode === 'admin' || empCode === 'hr-001';
 
+    // 👥 เมนู Sidebar "อนุมัติใบลา" ในหน้าพนักงาน
+    // แสดงเฉพาะกลุ่มหัวหน้างาน/ผู้จัดการ (leader_manager) เท่านั้น
+    const isUserArea = window.location.pathname.toLowerCase().includes('/pages/user/');
+    if (isUserArea) {
+      const canSeeApprovalMenu = userStatus.category === 'leader_manager';
+      document.querySelectorAll('#navItemLeaveCheck').forEach(el => {
+        el.style.setProperty('display', canSeeApprovalMenu ? 'flex' : 'none', 'important');
+      });
+    }
+
     // ตัดหน้าพนักงานออกสำหรับบัญชี HR และ Admin โดยตรง
     if (userStatus.category === 'hr_exec' || empCode.startsWith('hr-') || empCode === 'admin' || ['admin', 'superadmin', 'hr', 'hr_manager'].includes(rawRoleVal)) {
       document.querySelectorAll('a[href*="/pages/user/index-user.html"]').forEach(el => {
@@ -357,6 +367,9 @@ function applyNavPermissions() {
         el.style.setProperty("display", "none", "important");
       });
       document.querySelectorAll('a[href*="hr.html"]').forEach(el => {
+        el.style.setProperty("display", "flex", "important");
+      });
+      document.querySelectorAll('#navItemLeaveCheck').forEach(el => {
         el.style.setProperty("display", "flex", "important");
       });
     }
@@ -3355,6 +3368,15 @@ window.executePvtLogout = async function() {
   }
 
   try {
+    // เก็บเฉพาะสถานะ "อ่านแล้ว" ของ Bell ไว้ข้ามการ Logout
+    // ข้อมูลนี้ไม่ใช่ Session/Token และถูกแยกตาม user id อยู่แล้ว
+    const persistentNotificationState = {};
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('pvt_user_notification_read_state_')) {
+        persistentNotificationState[key] = localStorage.getItem(key);
+      }
+    });
+
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('sb-') || key.includes('supabase') || key.includes('user') || key.includes('token') || key.includes('auth')) {
         localStorage.removeItem(key);
@@ -3366,8 +3388,15 @@ window.executePvtLogout = async function() {
     localStorage.removeItem('pvt_auth_token');
     localStorage.removeItem('supabase_session');
     localStorage.clear();
+
+    Object.entries(persistentNotificationState).forEach(([key, value]) => {
+      if (value !== null) localStorage.setItem(key, value);
+    });
+
     sessionStorage.clear();
-  } catch (err) {}
+  } catch (err) {
+    console.warn('[AuthGuard] Could not preserve notification read state during logout:', err);
+  }
 
   window.location.replace('/index.html?logout=true');
 };

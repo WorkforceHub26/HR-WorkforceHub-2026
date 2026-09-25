@@ -1424,9 +1424,15 @@ async function handleUserNotifClick(notifId, redirectUrl) {
   const sb = getSafeSupabaseClient();
   if (sb && notifId && !String(notifId).startsWith("pending-") && !String(notifId).startsWith("status-")) {
     try {
-      await sb.from("notifications").update({ is_read: true }).eq("id", notifId);
+      const myId = window.currentProfile?.id || window.currentProfile?.employee_id;
+      let query = sb.from("notifications").update({ is_read: true }).eq("id", notifId);
+      if (myId) query = query.eq("employee_id", myId);
+      const { error } = await query;
+      if (error) {
+        console.warn("❌ DB read update failed (kept local read state):", error);
+      }
     } catch (e) {
-      console.warn("❌ DB read update failed:", e);
+      console.warn("❌ DB read update failed (kept local read state):", e);
     }
   }
 
@@ -1466,9 +1472,16 @@ async function markAllUserNotificationsAsRead(event) {
       dbNotifs.forEach(n => addUserReadNotifId(n.id));
     }
 
-    // มาร์กใน DB
+    // มาร์กใน DB และตรวจ error จริงจาก Supabase
     if (sb) {
-      await sb.from("notifications").update({ is_read: true }).eq("employee_id", myId);
+      const { error: markAllError } = await sb
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("employee_id", myId)
+        .eq("is_read", false);
+      if (markAllError) {
+        console.warn("❌ DB mark-all update failed (kept local read state):", markAllError);
+      }
     }
 
     // กวาดรายการค้างอ่านที่ปรากฏทั้งหมด
