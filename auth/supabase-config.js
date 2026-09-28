@@ -25,8 +25,8 @@
     DEV: {
       key: "DEV",
       label: "DEV (Development / Staging)",
-      URL: "https://pgogmhqjdchakcytsomx.supabase.co", // Default fallback URL (customizable via UI / env / localStorage)
-      ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8",
+      URL: "https://nfksbyptpfvoihybejjt.supabase.co", // Default fallback URL (customizable via UI / env / localStorage)
+      ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ma3NieXB0cGZ2b2loeWJlamp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzAsImV4cCI6MjA5NzM0MTEzMH0.hzUQn-OyF0JRWVbdUnPj8XB-YIXyVI_yOd4nNwblhOM",
       CACHE_PREFIX: "pvt_hr_cache_dev_",
       OFFLINE_QUEUE_KEY: "pvt_offline_queue_dev"
     }
