@@ -141,17 +141,8 @@ window.logout = function(event) {
   window.location.replace("/index.html?logout=true");
 };
 
-// 🛠️ บังคับอัปเดตไฟล์ CSS ใหม่ล่าสุดเสมอ
-(function forceLoadNewCSS() {
-  const links = document.getElementsByTagName('link');
-  for (let i = 0; i < links.length; i++) {
-    if (links[i].rel === 'stylesheet' && links[i].href.includes('index-user.css')) {
-      const oldHref = links[i].href.split('?')[0]; 
-      links[i].href = `${oldHref}?v=${new Date().getTime()}`;
-      break;
-    }
-  }
-})();
+// ✅ ไม่บังคับ reload index-user.css ระหว่างเปิดหน้า
+// การเปลี่ยน href ด้วย timestamp ทำให้ stylesheet ถูกโหลดซ้ำและเกิด layout flash ตอน refresh
 
 // 🟢 ประกาศตัวแปร Global
 window.currentProfile = window.currentProfile || null;
@@ -159,64 +150,29 @@ window.remainingDays = window.remainingDays || 0;
 window.currentSelectedYear = window.currentSelectedYear || new Date().getFullYear();
 
 /* ==========================================================================
-   📦 ค่าเริ่มต้นของการ์ดหน้าแรก: ย่อทุกครั้งที่โหลดหน้าใหม่
-   - ไม่บันทึกสถานะขยาย/ย่อไว้ใน localStorage
-   - ผู้ใช้ยังสามารถกดขยายระหว่างใช้งานได้ตามปกติ
-   ========================================================================== */
-function applyDefaultCollapsedUserCards() {
-  const sections = [
-    { id: 'leaveBalancesContainer', cardSelector: '.leave-section', label: 'สิทธิ์วันลา' },
-    { id: 'recentList', cardSelector: '.recent-card', label: 'รายการล่าสุด' }
-  ];
-
-  sections.forEach(({ id, cardSelector, label }) => {
-    const target = document.getElementById(id);
-    if (!target) return;
-
-    const card = target.closest(cardSelector);
-    if (card) card.classList.add('card-collapsed');
-
-    target.classList.add('hidden-section');
-    target.style.setProperty('display', 'none', 'important');
-    target.setAttribute('aria-hidden', 'true');
-
-    // สิทธิ์วันลา: ซ่อนตัวเลือกปีเมื่อเริ่มต้นแบบย่อ
-    if (id === 'leaveBalancesContainer' && card) {
-      const yearFilter = card.querySelector('#yearFilter');
-      if (yearFilter) yearFilter.style.setProperty('display', 'none', 'important');
-    }
-
-    const button = document.querySelector(`[aria-controls="${id}"]`);
-    if (button) {
-      const icon = button.querySelector('.material-symbols-outlined');
-      if (icon) icon.textContent = 'expand_more';
-
-      button.classList.add('is-hidden');
-      button.setAttribute('aria-expanded', 'false');
-      button.setAttribute('title', `ขยาย ${label}`);
-      button.setAttribute('aria-label', `ขยาย ${label}`);
-    }
-  });
-}
-
-/* ==========================================================================
    📌 3. Main Lifecycle Entrypoint (จุดรันหลักจุดเดียว)
    ========================================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("📌 [LIFECYCLE] โครงสร้าง HTML โหลดเสร็จสิ้น เริ่มต้นดึงข้อมูล...");
+  try {
+    await initUserHome();
 
-  // ทุกครั้งที่เข้าหรือรีเฟรชหน้า ให้ 2 การ์ดนี้เริ่มต้นเป็นสถานะย่อเสมอ
-  applyDefaultCollapsedUserCards();
-
-  await initUserHome();
-  
-  // เปิดระบบ Realtime Notification 
-  if (window.currentProfile && window.currentProfile.id) {
-    setupRealtimeNotifications(window.currentProfile.id);
+    // เปิดระบบ Realtime Notification
+    if (window.currentProfile && window.currentProfile.id) {
+      setupRealtimeNotifications(window.currentProfile.id);
+    }
+    initQuotaSystem();
+    checkUserNotifications();
+  } finally {
+    // แสดงหน้าเพียงครั้งเดียว หลังข้อมูล/สิทธิ์หลักพร้อมแล้ว
+    document.documentElement.classList.remove("pvt-user-boot");
   }
-  initQuotaSystem();
-  checkUserNotifications();
 });
+
+// Fail-safe: หาก service ภายนอกช้าหรือเกิด error ไม่ปล่อยให้หน้าถูกซ่อนค้าง
+setTimeout(() => {
+  document.documentElement.classList.remove("pvt-user-boot");
+}, 5000);
 
 // 📱 Auto-sync on Android/Mobile WebView foreground resume (ไม่จำเป็นต้องกดรีเฟรชหน้าจอเอง)
 let lastUserHomeSync = Date.now();
@@ -1469,15 +1425,9 @@ async function handleUserNotifClick(notifId, redirectUrl) {
   const sb = getSafeSupabaseClient();
   if (sb && notifId && !String(notifId).startsWith("pending-") && !String(notifId).startsWith("status-")) {
     try {
-      const myId = window.currentProfile?.id || window.currentProfile?.employee_id;
-      let query = sb.from("notifications").update({ is_read: true }).eq("id", notifId);
-      if (myId) query = query.eq("employee_id", myId);
-      const { error } = await query;
-      if (error) {
-        console.warn("❌ DB read update failed (kept local read state):", error);
-      }
+      await sb.from("notifications").update({ is_read: true }).eq("id", notifId);
     } catch (e) {
-      console.warn("❌ DB read update failed (kept local read state):", e);
+      console.warn("❌ DB read update failed:", e);
     }
   }
 
@@ -1517,16 +1467,9 @@ async function markAllUserNotificationsAsRead(event) {
       dbNotifs.forEach(n => addUserReadNotifId(n.id));
     }
 
-    // มาร์กใน DB และตรวจ error จริงจาก Supabase
+    // มาร์กใน DB
     if (sb) {
-      const { error: markAllError } = await sb
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("employee_id", myId)
-        .eq("is_read", false);
-      if (markAllError) {
-        console.warn("❌ DB mark-all update failed (kept local read state):", markAllError);
-      }
+      await sb.from("notifications").update({ is_read: true }).eq("employee_id", myId);
     }
 
     // กวาดรายการค้างอ่านที่ปรากฏทั้งหมด

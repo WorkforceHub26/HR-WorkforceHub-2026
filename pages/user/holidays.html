@@ -32,7 +32,36 @@
     <meta name="apple-mobile-web-app-title" content="PVT Hub" />
     <meta name="format-detection" content="telephone=no" />
     <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
-  </head>
+  
+    <style>
+      /* Holiday calendar polish */
+      #yearlyCalendarGrid {
+        row-gap: 18px !important;
+        column-gap: 12px !important;
+      }
+      #yearlyCalendarGrid > * {
+        margin: 0 !important;
+      }
+    </style>
+
+  
+    <style>
+      /* Robust month/year view separation */
+      #companyCalendarPanel.pvt-year-mode #companyCalDaysHeader,
+      #companyCalendarPanel.pvt-year-mode #companyCalGrid {
+        display: none !important;
+      }
+      #companyCalendarPanel:not(.pvt-year-mode) #yearlyCalendarGrid {
+        display: none !important;
+      }
+      #companyCalendarPanel.pvt-year-mode #yearlyCalendarGrid {
+        display: grid !important;
+        margin-top: 18px !important;
+        row-gap: 18px !important;
+      }
+    </style>
+
+</head>
 
   <body>
     <div class="app-container" id="appLayout">
@@ -41,7 +70,7 @@
         <div class="sidebar-brand brand-zone">
           <div class="brand-icon">
             <img
-              src="/assets/icons/PVTT_LEAVE.png"
+              src="/assets/icons/PVTT_FLOW.png"
               alt="PVTT Logo"
               style="width: 100%; height: 100%; object-fit: contain"
             />
@@ -298,101 +327,7 @@
             <!-- Injected Language Switcher Container (.history-actions) -->
             <div class="history-actions" id="historyActionsZone"></div>
 
-            <!-- Notification Bell -->
-            <div
-              class="notif-wrapper"
-              style="position: relative; display: inline-block"
-            >
-              <button
-                id="notificationBtn"
-                class="app-icon-btn notif-btn"
-                onclick="toggleUserNotifDropdown(event)"
-                title="การแจ้งเตือนใบลา"
-                aria-label="การแจ้งเตือน"
-              >
-                <span class="material-symbols-outlined" style="font-size: 28px">
-                  notifications
-                </span>
-
-                <span id="notifBadge" class="notif-badge" style="display: none"
-                  >0</span
-                >
-              </button>
-              <div
-                class="notif-dropdown"
-                id="userNotifDropdown"
-                style="
-                  display: none;
-                  position: absolute;
-                  right: 0;
-                  top: calc(100% + 8px);
-                  width: 320px;
-                  background: #ffffff;
-                  border-radius: 16px;
-                  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-                  border: 1px solid #e2e8f0;
-                  z-index: 1000;
-                  overflow: hidden;
-                "
-              >
-                <div
-                  style="
-                    padding: 14px 16px;
-                    border-bottom: 1px solid #f1f5f9;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    background: #f8fafc;
-                  "
-                >
-                  <span
-                    style="font-weight: 700; font-size: 14px; color: #0f172a"
-                    >การแจ้งเตือน</span
-                  >
-                  <span
-                    id="notifCountText"
-                    style="
-                      font-size: 11px;
-                      background: #e0f2fe;
-                      color: #0369a1;
-                      padding: 2px 8px;
-                      border-radius: 9999px;
-                      font-weight: 600;
-                    "
-                    >0 รายการ</span
-                  >
-                </div>
-                <div
-                  id="notifList"
-                  style="max-height: 280px; overflow-y: auto; padding: 8px"
-                >
-                  <div
-                    style="
-                      text-align: center;
-                      padding: 20px;
-                      color: #94a3b8;
-                      font-size: 13px;
-                    "
-                  >
-                    ไม่มีการแจ้งเตือนใหม่
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- User Profile Avatar -->
-            <div
-              class="user-profile-pill"
-              onclick="window.location.href = '/pages/user/profile-user.html'"
-              title="ข้อมูลส่วนตัว"
-            >
-              <img
-                src="/assets/img/default-avatar.jpg"
-                alt="Avatar"
-                id="userAvatar"
-                class="user-profile-avatar"
-              />
-            </div>
+            <!-- Notification bell and profile avatar intentionally removed on Holidays page -->
 
             <!-- Mobile Sidebar Drawer Trigger (3 Dots Menu - Borderless) -->
             <button
@@ -889,6 +824,32 @@
                 >
                   <!-- Yearly view mini calendars will be generated by JS -->
                 </div>
+              </div>
+
+              <div style="display:flex; justify-content:center; padding-top:10px; padding-bottom:14px;">
+                <button
+                  type="button"
+                  id="btnToggleYearView"
+                  onclick="window.toggleHolidayYearView && window.toggleHolidayYearView()"
+                  style="
+                    border: 1px solid #cbd5e1;
+                    background: #ffffff;
+                    color: #0f766e;
+                    border-radius: 999px;
+                    padding: 8px 16px;
+                    font-size: 13px;
+                    font-weight: 700;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    cursor: pointer;
+                    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+                  "
+                  title="ดูปฏิทินทั้งปี"
+                >
+                  <span class="material-symbols-outlined" id="btnToggleYearViewIcon" style="font-size:18px;">calendar_view_month</span>
+                  <span id="btnToggleYearViewText">ดูทั้งปี</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1440,5 +1401,164 @@
     <script type="module" src="/js/auth-guard.js"></script>
     <script type="module" src="/js/system-settings.js"></script>
     <script type="module" src="/js/holidays.js"></script>
+
+    <script>
+      // Keep calendar title aligned with the month currently displayed.
+      (function () {
+        const THAI_MONTHS_PVT = [
+          'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+          'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'
+        ];
+
+        function updateVisibleCalendarHeading() {
+          const titleEl = document.getElementById('companyCalMonthYear');
+          const monthSelect = document.getElementById('monthSelect');
+          const yearSelect = document.getElementById('yearSelect');
+          if (!titleEl || !monthSelect) return;
+
+          const monthValue = monthSelect.value;
+          const yearAD = Number(yearSelect?.value || new Date().getFullYear());
+          const yearBE = yearAD + 543;
+
+          if (monthValue === 'all') {
+            titleEl.textContent = `สรุปวันหยุดปี ${yearBE}`;
+          } else {
+            const monthIndex = Number(monthValue);
+            if (Number.isInteger(monthIndex) && monthIndex >= 0 && monthIndex < 12) {
+              titleEl.textContent = `${THAI_MONTHS_PVT[monthIndex]} ${yearBE}`;
+            }
+          }
+        }
+
+        window.addEventListener('load', function () {
+          setTimeout(updateVisibleCalendarHeading, 180);
+
+          const monthSelect = document.getElementById('monthSelect');
+          const yearSelect = document.getElementById('yearSelect');
+          monthSelect?.addEventListener('change', () => setTimeout(updateVisibleCalendarHeading, 40));
+          yearSelect?.addEventListener('change', () => setTimeout(updateVisibleCalendarHeading, 40));
+
+          const titleEl = document.getElementById('companyCalMonthYear');
+          if (titleEl && window.MutationObserver) {
+            const observer = new MutationObserver(() => {
+              setTimeout(updateVisibleCalendarHeading, 0);
+            });
+            observer.observe(titleEl, { childList: true, characterData: true, subtree: true });
+          }
+        });
+      })();
+    </script>
+
+    <script>
+      // Calendar default: current month. Toggle button switches current month <-> full year.
+      (function () {
+        let showingYear = false;
+
+        function getCurrentMonthValue() {
+          return String(new Date().getMonth());
+        }
+
+        function getCurrentYearValue() {
+          return String(new Date().getFullYear());
+        }
+
+        function refreshCalendarView() {
+          if (typeof window.changeYearOrMonth === 'function') {
+            window.changeYearOrMonth();
+          } else {
+            const monthSelect = document.getElementById('monthSelect');
+            if (monthSelect) {
+              monthSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+        }
+
+        function setCalendarView(showYear) {
+          const monthSelect = document.getElementById('monthSelect');
+          const yearSelect = document.getElementById('yearSelect');
+          const button = document.getElementById('btnToggleYearView');
+          const icon = document.getElementById('btnToggleYearViewIcon');
+          const label = document.getElementById('btnToggleYearViewText');
+
+          if (!monthSelect) return;
+
+          showingYear = !!showYear;
+
+          // ให้ปีปัจจุบันเป็นค่าเริ่มต้น ถ้ามี option ปีนั้นอยู่
+          if (yearSelect) {
+            const currentYear = getCurrentYearValue();
+            const hasCurrentYear = Array.from(yearSelect.options || []).some(
+              opt => String(opt.value) === currentYear
+            );
+            if (hasCurrentYear) yearSelect.value = currentYear;
+          }
+
+          monthSelect.value = showingYear ? 'all' : getCurrentMonthValue();
+          refreshCalendarView();
+
+          // แยกโหมดรายเดือนกับทั้งปีออกจากกันชัดเจน
+          const monthDaysHeader = document.getElementById('companyCalDaysHeader');
+          const monthGrid = document.getElementById('companyCalGrid');
+          const yearGrid = document.getElementById('yearlyCalendarGrid');
+
+          const calendarPanel = document.getElementById('companyCalendarPanel');
+          if (calendarPanel) {
+            calendarPanel.classList.toggle('pvt-year-mode', showingYear);
+          }
+
+          // Keep inline state aligned too, but CSS class above is the source of truth.
+          if (showingYear) {
+            if (monthDaysHeader) monthDaysHeader.style.display = 'none';
+            if (monthGrid) monthGrid.style.display = 'none';
+            if (yearGrid) yearGrid.style.display = 'grid';
+          } else {
+            if (monthDaysHeader) monthDaysHeader.style.display = 'grid';
+            if (monthGrid) monthGrid.style.display = 'grid';
+            if (yearGrid) yearGrid.style.display = 'none';
+          }
+
+          if (button) {
+            button.setAttribute('aria-pressed', showingYear ? 'true' : 'false');
+            button.title = showingYear ? 'กลับไปดูเดือนปัจจุบัน' : 'ดูปฏิทินทั้งปี';
+          }
+          if (icon) icon.textContent = showingYear ? 'calendar_month' : 'calendar_view_month';
+          if (label) label.textContent = showingYear ? 'กลับเดือนนี้' : 'ดูทั้งปี';
+        }
+
+        window.toggleHolidayYearView = function () {
+          setCalendarView(!showingYear);
+        };
+
+        // รอให้ holidays.js โหลดและ render ข้อมูลก่อน แล้วค่อยบังคับเป็นเดือนปัจจุบัน
+        window.addEventListener('load', function () {
+          setTimeout(function () {
+            setCalendarView(false);
+          }, 120);
+        });
+      })();
+    </script>
+
+    <script>
+      // Force annual holiday summary to start collapsed after all page scripts finish.
+      window.addEventListener('load', function () {
+        const panel = document.getElementById('companySummarySidebar');
+        const body = document.getElementById('companySummaryBody');
+        const button = document.getElementById('btnToggleSummary');
+        const icon = document.getElementById('btnToggleSummaryIcon');
+        const label = document.getElementById('btnToggleSummaryText');
+
+        if (panel) panel.classList.add('is-collapsed');
+        if (body) body.style.setProperty('display', 'none', 'important');
+
+        if (button) {
+          button.setAttribute('aria-expanded', 'false');
+          button.setAttribute('aria-label', 'ขยายรายการสรุปวันหยุด');
+          button.title = 'ขยายรายการสรุปวันหยุด';
+        }
+
+        if (icon) icon.textContent = 'expand_more';
+        if (label) label.textContent = 'ขยาย';
+      });
+    </script>
   </body>
 </html>

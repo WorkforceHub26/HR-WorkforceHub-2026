@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" class="pvt-user-boot">
 <head>
   <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
@@ -8,6 +8,62 @@
   <meta name="theme-color" content="#0d9488" />
   <meta name="google" content="notranslate" />
   <title>หน้าหลัก | PVTT WORKFORCE HUB</title>
+
+  <!-- Prevent index-user layout flash while profile data initializes -->
+  <style>
+    html.pvt-user-boot body { background: #f8fafc; }
+    html.pvt-user-boot #appLayout { opacity: 0 !important; visibility: hidden !important; }
+    #appLayout { transition: opacity .12s ease; }
+
+    #pvtUserBootLoader {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+    }
+    html.pvt-user-boot #pvtUserBootLoader { display: flex; }
+    .pvt-user-loader-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: #0f766e;
+      font-family: 'Sarabun', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .pvt-user-loader-logo-wrap {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      display: grid;
+      place-items: center;
+    }
+    .pvt-user-loader-logo-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 4px solid #ccfbf1;
+      border-top-color: #0d9488;
+      border-right-color: #14b8a6;
+      border-radius: 50%;
+      animation: pvtUserSpin .8s linear infinite;
+    }
+    .pvt-user-loader-logo {
+      width: 62px;
+      height: 62px;
+      border-radius: 18px;
+      object-fit: contain;
+      background: #ffffff;
+      padding: 5px;
+      box-sizing: border-box;
+      box-shadow: 0 6px 18px rgba(13, 148, 136, .12);
+    }
+    @keyframes pvtUserSpin { to { transform: rotate(360deg); } }
+  </style>
   
   <!-- 1. โหลด Stylesheet หลักภายในระบบก่อนทันที เพื่อให้แสดงผล Layout มินิมอลบนมือถือได้เสถียรที่สุดตั้งแต่เริ่มโหลด (Zero-FOUC) -->
   <link rel="stylesheet" href="/css/global.css" />
@@ -54,6 +110,14 @@
 </head>
 
 <body>
+  <div id="pvtUserBootLoader" role="status" aria-live="polite" aria-label="กำลังโหลดข้อมูล">
+    <div class="pvt-user-loader-box">
+      <div class="pvt-user-loader-logo-wrap" aria-hidden="true">
+        <img class="pvt-user-loader-logo" src="/assets/icons/PVTT_LEAVE.png" alt="" />
+      </div>
+      <div>กำลังโหลดข้อมูล...</div>
+    </div>
+  </div>
 
   <div class="app-container" id="appLayout">
     
@@ -61,7 +125,7 @@
     <aside class="sidebar" id="sidebarMenu">
       <div class="sidebar-brand" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" style="cursor: pointer;" title="เปิด/ปิด เมนู">
         <div class="brand-icon">
-          <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+          <img src="/assets/icons/PVTT_FLOW.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
         <div class="brand-name">PVTT WORKFORCE HUB</div>
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(false);}else if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}" style="display: none;" title="ปิดเมนู">
@@ -290,25 +354,25 @@
         </section>
 
         <!-- ส่วนแสดงสิทธิ์วันลาคงเหลือ -->
-        <div class="leave-section">
+        <div class="leave-section card-collapsed">
           <div class="leave-header-row">
             <h2>สิทธิ์วันลาคงเหลือ</h2>
             <div class="leave-header-controls">
-              <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
+              <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select" style="display:none !important;">
               </select>
-              <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ย่อ สิทธิ์วันลา" aria-label="ย่อ สิทธิ์วันลา" aria-expanded="true" aria-controls="leaveBalancesContainer" data-toggle-label="สิทธิ์วันลา">
-                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_less</span>
+              <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ขยาย สิทธิ์วันลา" aria-label="ขยาย สิทธิ์วันลา" aria-expanded="false" aria-controls="leaveBalancesContainer" data-toggle-label="สิทธิ์วันลา">
+                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_more</span>
               </button>
             </div>
           </div>
 
-          <div id="leaveBalancesContainer" class="leave-grid">
+          <div id="leaveBalancesContainer" class="leave-grid hidden-section" style="display:none !important;" aria-hidden="true">
             <span class="loading-text">กำลังโหลดข้อมูลสิทธิ์วันลา...</span>
           </div>
         </div>
 
         <!-- รายการลาล่าสุด -->
-        <section class="recent-card">
+        <section class="recent-card card-collapsed">
           <div class="section-head">
             <h2>รายการล่าสุด</h2>
             <div class="section-head-controls">
@@ -316,12 +380,12 @@
                 <span>ดูทั้งหมด</span>
                 <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
               </button>
-              <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)" title="ย่อ รายการล่าสุด" aria-label="ย่อ รายการล่าสุด" aria-expanded="true" aria-controls="recentList" data-toggle-label="รายการล่าสุด">
-                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_less</span>
+              <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)" title="ขยาย รายการล่าสุด" aria-label="ขยาย รายการล่าสุด" aria-expanded="false" aria-controls="recentList" data-toggle-label="รายการล่าสุด">
+                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_more</span>
               </button>
             </div>
           </div>
-          <div id="recentList" class="recent-list">
+          <div id="recentList" class="recent-list hidden-section" style="display:none !important;" aria-hidden="true">
             <div class="empty-state">กำลังโหลดรายการลา...</div>
           </div>
         </section>

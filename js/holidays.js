@@ -251,21 +251,44 @@ async function loadUserProfile() {
     if (!rawSession) return;
     
     const sessionUser = JSON.parse(rawSession);
-    currentUserProfile = sessionUser;
+
+    // ดึงข้อมูลพนักงานล่าสุดจาก Supabase ก่อน เพื่อให้รูป Avatar ตรงกับหน้าอื่น
+    // (localStorage อาจยังเป็นข้อมูลเก่าหลัง Admin/พนักงานเปลี่ยนรูป)
+    let freshEmployee = null;
+    try {
+      const sb = window.pvtSupabase?.getClient?.() || window.PVTSDK?.client || window.supabaseClient || null;
+      const employeeId = sessionUser?.id || sessionUser?.employee_id || sessionUser?.employees?.id;
+      const employeeCode = sessionUser?.employee_code || sessionUser?.employees?.employee_code;
+
+      if (sb && (employeeId || employeeCode)) {
+        let q = sb
+          .from('employees')
+          .select('id, employee_code, full_name, role, image_url, title, prefix, gender, department_id, position_id');
+
+        q = employeeId ? q.eq('id', employeeId) : q.eq('employee_code', employeeCode);
+        const { data, error } = await q.maybeSingle();
+        if (!error && data) freshEmployee = data;
+      }
+    } catch (avatarProfileErr) {
+      console.warn('Holidays: โหลดข้อมูลพนักงานล่าสุดไม่สำเร็จ ใช้ session เดิมแทน', avatarProfileErr);
+    }
+
+    const activeUser = freshEmployee ? { ...sessionUser, ...freshEmployee } : sessionUser;
+    currentUserProfile = activeUser;
     
     const elName = document.getElementById('userName');
     const elRole = document.getElementById('userRole');
     const elAvatar = document.getElementById('userAvatar');
     const btnAdd = document.getElementById('btnAddHoliday');
 
-    if (elName) elName.innerText = sessionUser.full_name || 'เจ้าหน้าที่';
-    if (elRole) elRole.innerText = sessionUser.role ? sessionUser.role.toUpperCase() : 'PVT USER';
+    if (elName) elName.innerText = activeUser.full_name || 'เจ้าหน้าที่';
+    if (elRole) elRole.innerText = activeUser.role ? activeUser.role.toUpperCase() : 'PVT USER';
     if (elAvatar) {
-      const emp = sessionUser.employees || sessionUser;
-      const rawAvatarUrl = emp.image_url || emp.avatar_url || sessionUser.image_url || sessionUser.avatar_url;
-      const empTitle = emp.title || emp.prefix || sessionUser.title || sessionUser.prefix || "";
-      const empGender = emp.gender || sessionUser.gender || "";
-      const empName = emp.full_name || sessionUser.full_name || sessionUser.display_name || "";
+      const emp = freshEmployee || activeUser.employees || activeUser;
+      const rawAvatarUrl = emp.image_url || emp.avatar_url || activeUser.image_url || activeUser.avatar_url;
+      const empTitle = emp.title || emp.prefix || activeUser.title || activeUser.prefix || "";
+      const empGender = emp.gender || activeUser.gender || "";
+      const empName = emp.full_name || activeUser.full_name || activeUser.display_name || "";
 
       const fallbackAvatar = (typeof window.getDefaultAvatarUrl === "function")
         ? window.getDefaultAvatarUrl(empTitle, empGender, empName)
@@ -291,8 +314,8 @@ async function loadUserProfile() {
       }
     }
 
-    const role = sessionUser.role ? sessionUser.role.toLowerCase() : '';
-    const isPowerUser = ['admin', 'hr', 'executive', 'director', 'manager', 'supervisor', 'leader'].includes(role) || Boolean(sessionUser.is_hr) || Boolean(sessionUser.is_admin);
+    const role = activeUser.role ? activeUser.role.toLowerCase() : '';
+    const isPowerUser = ['admin', 'hr', 'executive', 'director', 'manager', 'supervisor', 'leader'].includes(role) || Boolean(activeUser.is_hr) || Boolean(activeUser.is_admin);
     
     // 🧭 ปรับเมนูแถบข้าง (Sidebar) ให้ตรงตามสิทธิ์ของผู้ใช้งาน (HR/ผู้บริหาร vs พนักงาน)
     updateSidebarForRole(role, isPowerUser);

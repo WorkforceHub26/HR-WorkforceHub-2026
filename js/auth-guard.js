@@ -110,6 +110,41 @@ window.getUserRoleCategory = function(userSession) {
   return { isAuth: true, category: 'employee', role, position, dept };
 };
 
+
+// 📱 จัดกึ่งกลาง SweetAlert สำหรับการยืนยันเข้าใช้งาน โดยเฉพาะบนมือถือ
+(function installLoginConfirmCenterStyle() {
+  if (document.getElementById('pvt-login-confirm-center-style')) return;
+  const style = document.createElement('style');
+  style.id = 'pvt-login-confirm-center-style';
+  style.textContent = `
+    .swal2-container.pvt-login-confirm-container {
+      position: fixed !important;
+      inset: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 16px !important;
+      box-sizing: border-box !important;
+    }
+    .pvt-login-confirm-popup {
+      margin: 0 auto !important;
+      width: min(92vw, 430px) !important;
+      max-width: 430px !important;
+      box-sizing: border-box !important;
+    }
+    @media (max-width: 600px) {
+      .swal2-container.pvt-login-confirm-container {
+        padding: 14px !important;
+      }
+      .pvt-login-confirm-popup {
+        width: 100% !important;
+        max-width: 390px !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
 // =========================================================================
 // 🔒 [GLOBAL AUTH GUARD]: ตรวจสอบสิทธิ์ทันทีแบบ Synchronous
 // =========================================================================
@@ -287,16 +322,6 @@ function applyNavPermissions() {
     const rawRoleVal = String(session?.role || empObj.role || userStatus?.role || '').toLowerCase().trim();
     const isTrueAdminUser = rawRoleVal === 'admin' || rawRoleVal === 'superadmin' || empCode === 'admin' || empCode === 'hr-001';
 
-    // 👥 เมนู Sidebar "อนุมัติใบลา" ในหน้าพนักงาน
-    // แสดงเฉพาะกลุ่มหัวหน้างาน/ผู้จัดการ (leader_manager) เท่านั้น
-    const isUserArea = window.location.pathname.toLowerCase().includes('/pages/user/');
-    if (isUserArea) {
-      const canSeeApprovalMenu = userStatus.category === 'leader_manager';
-      document.querySelectorAll('#navItemLeaveCheck').forEach(el => {
-        el.style.setProperty('display', canSeeApprovalMenu ? 'flex' : 'none', 'important');
-      });
-    }
-
     // ตัดหน้าพนักงานออกสำหรับบัญชี HR และ Admin โดยตรง
     if (userStatus.category === 'hr_exec' || empCode.startsWith('hr-') || empCode === 'admin' || ['admin', 'superadmin', 'hr', 'hr_manager'].includes(rawRoleVal)) {
       document.querySelectorAll('a[href*="/pages/user/index-user.html"]').forEach(el => {
@@ -367,9 +392,6 @@ function applyNavPermissions() {
         el.style.setProperty("display", "none", "important");
       });
       document.querySelectorAll('a[href*="hr.html"]').forEach(el => {
-        el.style.setProperty("display", "flex", "important");
-      });
-      document.querySelectorAll('#navItemLeaveCheck').forEach(el => {
         el.style.setProperty("display", "flex", "important");
       });
     }
@@ -486,6 +508,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (isUsingDefaultPassword) {
         const riskChoice = await Swal.fire({
+          position: 'center',
+          heightAuto: false,
+          customClass: {
+            container: 'pvt-login-confirm-container',
+            popup: 'pvt-login-confirm-popup'
+          },
           icon: 'warning',
           title: '⚠️ แจ้งเตือนความปลอดภัยบัญชี',
           html: `
@@ -3264,18 +3292,11 @@ if ('serviceWorker' in navigator) {
 
   // Check and process pending toasts on load
   function checkPendingToasts() {
+    // Login success toast intentionally disabled.
+    // Clear any pending legacy login toast so it does not appear after redirect.
     try {
-      const pending = sessionStorage.getItem("login_toast_pending");
-      if (pending) {
-        const data = JSON.parse(pending);
-        if (data && data.title) {
-          window.showSuccessToast(data.title, data.message, data.isBiometric);
-        }
-        sessionStorage.removeItem("login_toast_pending");
-      }
-    } catch (e) {
-      console.warn("Notice: Failed checking pending toasts:", e);
-    }
+      sessionStorage.removeItem("login_toast_pending");
+    } catch (e) {}
   }
 
   if (document.readyState === 'loading') {
@@ -3368,15 +3389,6 @@ window.executePvtLogout = async function() {
   }
 
   try {
-    // เก็บเฉพาะสถานะ "อ่านแล้ว" ของ Bell ไว้ข้ามการ Logout
-    // ข้อมูลนี้ไม่ใช่ Session/Token และถูกแยกตาม user id อยู่แล้ว
-    const persistentNotificationState = {};
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('pvt_user_notification_read_state_')) {
-        persistentNotificationState[key] = localStorage.getItem(key);
-      }
-    });
-
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('sb-') || key.includes('supabase') || key.includes('user') || key.includes('token') || key.includes('auth')) {
         localStorage.removeItem(key);
@@ -3388,15 +3400,8 @@ window.executePvtLogout = async function() {
     localStorage.removeItem('pvt_auth_token');
     localStorage.removeItem('supabase_session');
     localStorage.clear();
-
-    Object.entries(persistentNotificationState).forEach(([key, value]) => {
-      if (value !== null) localStorage.setItem(key, value);
-    });
-
     sessionStorage.clear();
-  } catch (err) {
-    console.warn('[AuthGuard] Could not preserve notification read state during logout:', err);
-  }
+  } catch (err) {}
 
   window.location.replace('/index.html?logout=true');
 };
