@@ -1540,20 +1540,93 @@ window.addEventListener("pvt-lang-changed", () => {
 
 
 // ==========================================
-// 🔔 NOTIFICATION SYSTEM (DUPLICATED FOR LEAVE-HISTORY)
+// 🔔 NOTIFICATION SYSTEM (LEAVE-HISTORY)
 // ==========================================
+// ใช้สถานะอ่านชุดเดียวกับ index-user และแยกตาม user id
 let localReadNotifIds = [];
-try {
-  const stored = localStorage.getItem("userReadNotifIds");
-  if (stored) localReadNotifIds = JSON.parse(stored);
-} catch(e){}
+let notificationLastReadAt = null;
+let notificationReadStateUserKey = null;
 
-function getUserReadNotifIds() { return localReadNotifIds; }
-function addUserReadNotifId(id) {
-  if (!localReadNotifIds.includes(id)) {
-    localReadNotifIds.push(id);
-    localStorage.setItem("userReadNotifIds", JSON.stringify(localReadNotifIds));
+function getNotificationReadStateStorageKey() {
+  const profile = window.currentProfile || {};
+  const userId = profile.id || profile.employee_id || profile.employee_code || 'anonymous';
+  return `pvt_user_notification_read_state_${String(userId)}`;
+}
+
+function ensureUserNotificationReadState() {
+  const storageKey = getNotificationReadStateStorageKey();
+  if (notificationReadStateUserKey === storageKey) return;
+
+  notificationReadStateUserKey = storageKey;
+  localReadNotifIds = [];
+  notificationLastReadAt = null;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    if (Array.isArray(saved.ids)) localReadNotifIds = saved.ids.map(String);
+    if (saved.lastReadAt) notificationLastReadAt = saved.lastReadAt;
+
+    // ย้ายข้อมูลรูปแบบเก่าเข้าระบบใหม่หนึ่งครั้ง
+    if (localReadNotifIds.length === 0) {
+      const legacy = JSON.parse(localStorage.getItem('userReadNotifIds') || '[]');
+      if (Array.isArray(legacy) && legacy.length) {
+        localReadNotifIds = legacy.map(String);
+        saveUserNotificationReadState();
+      }
+    }
+  } catch (e) {
+    console.warn('Could not load notification read state:', e);
   }
+}
+
+function saveUserNotificationReadState() {
+  if (!notificationReadStateUserKey) {
+    notificationReadStateUserKey = getNotificationReadStateStorageKey();
+  }
+  try {
+    if (localReadNotifIds.length > 500) {
+      localReadNotifIds = localReadNotifIds.slice(-500);
+    }
+    localStorage.setItem(notificationReadStateUserKey, JSON.stringify({
+      ids: localReadNotifIds,
+      lastReadAt: notificationLastReadAt
+    }));
+  } catch (e) {
+    console.warn('Could not save notification read state:', e);
+  }
+}
+
+function getUserReadNotifIds() {
+  ensureUserNotificationReadState();
+  return localReadNotifIds;
+}
+
+function addUserReadNotifId(id) {
+  if (id === undefined || id === null) return;
+  ensureUserNotificationReadState();
+  const normalizedId = String(id);
+  if (!localReadNotifIds.includes(normalizedId)) {
+    localReadNotifIds.push(normalizedId);
+    saveUserNotificationReadState();
+  }
+}
+
+function setAllUserNotificationsReadThrough(isoDate) {
+  ensureUserNotificationReadState();
+  notificationLastReadAt = isoDate || new Date().toISOString();
+  saveUserNotificationReadState();
+}
+
+function isUserNotificationRead(id, createdAt, dbIsRead = false) {
+  ensureUserNotificationReadState();
+  if (dbIsRead === true) return true;
+  if (id !== undefined && id !== null && localReadNotifIds.includes(String(id))) return true;
+  if (notificationLastReadAt && createdAt) {
+    const itemTime = new Date(createdAt).getTime();
+    const readTime = new Date(notificationLastReadAt).getTime();
+    if (Number.isFinite(itemTime) && Number.isFinite(readTime) && itemTime <= readTime) return true;
+  }
+  return false;
 }
 
 window.toggleUserNotifDropdown = function(event) {
@@ -1612,7 +1685,7 @@ async function fetchUserNotifications() {
           title: n.title,
           message: n.message,
           created_at: n.created_at,
-          is_read: n.is_read || getUserReadNotifIds().includes(n.id),
+          is_read: isUserNotificationRead(n.id, n.created_at, n.is_read),
           link: '/pages/user/leave-history.html'
         });
       });
@@ -1666,26 +1739,51 @@ async function fetchUserNotifications() {
 }
 
 window.handleUserNotifClick = async function(id, link) {
+  // บันทึก local ก่อน เพื่อให้สถานะอ่านไม่เด้งกลับแม้ DB update ล้มเหลว
   addUserReadNotifId(id);
   const sb = window.pvtSupabase?.getClient();
+  const myId = window.currentProfile?.id || window.currentProfile?.employee_id;
   if (sb) {
-    await sb.from("notifications").update({ is_read: true }).eq("id", id);
+    try {
+      let query = sb.from("notifications").update({ is_read: true }).eq("id", id);
+      if (myId) query = query.eq("employee_id", myId);
+      const { error } = await query;
+      if (error) console.warn("DB read update failed (kept local read state):", error);
+    } catch (e) {
+      console.warn("DB read update failed (kept local read state):", e);
+    }
   }
   if (link) window.location.href = link;
+  else fetchUserNotifications();
 };
 
 window.markAllUserNotificationsAsRead = async function(event) {
   if (event) event.stopPropagation();
   const sb = window.pvtSupabase?.getClient();
   const myId = window.currentProfile?.id || window.currentProfile?.employee_id;
-  if (sb && myId) {
-    await sb.from("notifications").update({ is_read: true }).eq("employee_id", myId);
-  }
+
+  // จำว่าแจ้งเตือนทั้งหมดก่อนเวลานี้ถูกอ่านแล้ว
+  setAllUserNotificationsReadThrough(new Date().toISOString());
+
   document.querySelectorAll("#userNotifList [onclick]").forEach(el => {
     const match = el.getAttribute("onclick")?.match(/handleUserNotifClick\('([^']+)'/);
     if (match) addUserReadNotifId(match[1]);
   });
-  fetchUserNotifications();
+
+  if (sb && myId) {
+    try {
+      const { error } = await sb
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("employee_id", myId)
+        .eq("is_read", false);
+      if (error) console.warn("DB mark-all update failed (kept local read state):", error);
+    } catch (e) {
+      console.warn("DB mark-all update failed (kept local read state):", e);
+    }
+  }
+
+  await fetchUserNotifications();
   if (typeof Swal !== 'undefined') Swal.fire({ icon: "success", title: "อ่านทั้งหมดแล้ว", timer: 1000, showConfirmButton: false });
 };
 

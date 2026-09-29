@@ -87,6 +87,15 @@
     var currentEmpCode = session ? String(session.employee_code || (session.employees && session.employees.employee_code) || '').toLowerCase().trim() : '';
     var isHrExecUser = status.category === 'hr_exec' || currentEmpCode === 'admin' || currentEmpCode.startsWith('hr-');
 
+    // Sidebar permission (employee area): เมนู "อนุมัติใบลา" แสดงเฉพาะหัวหน้างาน/ผู้จัดการ
+    // ทำตั้งแต่ <head> เพื่อไม่ให้เมนูกระพริบให้พนักงานทั่วไปเห็นระหว่างโหลดหน้า
+    if (path.includes('/pages/user/') && status.category !== 'leader_manager') {
+      var approvalNavStyle = document.createElement('style');
+      approvalNavStyle.id = 'pvt-approval-nav-visibility';
+      approvalNavStyle.textContent = '#navItemLeaveCheck{display:none!important;}';
+      (document.head || document.documentElement).appendChild(approvalNavStyle);
+    }
+
     function triggerRedirect(targetUrl) {
       if (document.documentElement) {
         document.documentElement.style.display = "none";

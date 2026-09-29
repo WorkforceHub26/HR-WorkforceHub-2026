@@ -754,6 +754,104 @@ function initDatePickerWithDisabledDates(container = document, disabledDates = [
   });
 }
 
+
+// ==========================================
+// 🎯 FIELD PROGRESS HIGHLIGHT — SEQUENTIAL
+// ฟ้าอ่อน = ขั้นตอนถัดไปที่ต้องกรอกเพียงจุดเดียว
+// เทา = กรอกเสร็จแล้ว / ขาว = ยังไม่ถึงขั้นตอน
+// ==========================================
+function setLeaveFieldCompleted(group, completed) {
+  if (!group) return;
+  group.classList.toggle('leave-field-completed', !!completed);
+}
+
+function getLeaveInputGroup(boxItem, selector) {
+  return boxItem?.querySelector(selector)?.closest('.input-group') || null;
+}
+
+function refreshLeaveFieldStates(boxItem) {
+  if (!boxItem) return;
+
+  const writeDate = boxItem.querySelector('input[name="write_date"]');
+  const startDate = boxItem.querySelector('input[name="start_date"]');
+  const endDate = boxItem.querySelector('input[name="end_date"]');
+  const leaveType = boxItem.querySelector('select[name="leave_type_id"]');
+  const reason = boxItem.querySelector('input[name="reason"]');
+  const fileInput = boxItem.querySelector('input[type="file"]');
+  const morning = boxItem.querySelector('input[name="hours_morning"]');
+  const afternoon = boxItem.querySelector('input[name="hours_afternoon"]');
+  const durationGroup = boxItem.querySelector('.leave-duration-mode-options');
+  const partialControls = boxItem.querySelector('.partial-leave-controls');
+  const selectedMode = boxItem.querySelector('input[name="leave_duration_mode"]:checked')?.value || '';
+
+  const writeGroup = getLeaveInputGroup(boxItem, 'input[name="write_date"]');
+  const startGroup = getLeaveInputGroup(boxItem, 'input[name="start_date"]');
+  const endGroup = getLeaveInputGroup(boxItem, 'input[name="end_date"]');
+  const typeGroup = getLeaveInputGroup(boxItem, 'select[name="leave_type_id"]');
+  const reasonGroup = getLeaveInputGroup(boxItem, 'input[name="reason"]');
+  const fileGroup = fileInput?.closest('.input-group') || null;
+
+  const hasStart = !!startDate?.value;
+  const hasEnd = !!endDate?.value;
+  const hasType = !!leaveType?.value;
+  const hasReason = !!reason?.value?.trim();
+  const hasDuration = !!selectedMode;
+  const partialHours = (parseFloat(morning?.value) || 0) + (parseFloat(afternoon?.value) || 0);
+  const hasPartialHours = selectedMode === 'partial' && partialHours > 0;
+
+  // ล้างสถานะก่อน เพื่อรับประกันว่ามีสีฟ้าได้เพียงจุดเดียว
+  boxItem.querySelectorAll('.leave-field-active').forEach(el => el.classList.remove('leave-field-active'));
+
+  // สถานะกรอกเสร็จแล้ว
+  setLeaveFieldCompleted(writeGroup, !!writeDate?.value);
+  setLeaveFieldCompleted(startGroup, hasStart);
+  setLeaveFieldCompleted(endGroup, hasEnd);
+  setLeaveFieldCompleted(typeGroup, hasType);
+  setLeaveFieldCompleted(reasonGroup, hasReason);
+  setLeaveFieldCompleted(fileGroup, !!(fileInput?.files && fileInput.files.length));
+  setLeaveFieldCompleted(durationGroup, hasDuration);
+  setLeaveFieldCompleted(partialControls, hasPartialHours);
+
+  // ชั่วโมงเป็นหนึ่งขั้นตอนเดียว ไม่ทำให้เช้า/บ่ายมีสีฟ้าพร้อมกัน
+  getLeaveInputGroup(boxItem, 'input[name="hours_morning"]')?.classList.remove('leave-field-active', 'leave-field-completed');
+  getLeaveInputGroup(boxItem, 'input[name="hours_afternoon"]')?.classList.remove('leave-field-active', 'leave-field-completed');
+
+  // เลือกขั้นตอนแรกที่ยังไม่เสร็จ ตามลำดับการกรอกจริง
+  let nextGroup = null;
+  if (!hasStart) {
+    nextGroup = startGroup;
+  } else if (!hasEnd) {
+    nextGroup = endGroup;
+  } else if (!hasType) {
+    nextGroup = typeGroup;
+  } else if (!hasReason) {
+    nextGroup = reasonGroup;
+  } else if (!hasDuration) {
+    nextGroup = durationGroup;
+  } else if (selectedMode === 'partial' && !hasPartialHours) {
+    nextGroup = partialControls;
+  }
+
+  if (nextGroup) nextGroup.classList.add('leave-field-active');
+}
+
+function initLeaveFieldHighlighting(boxItem) {
+  if (!boxItem || boxItem.dataset.fieldHighlightReady === '1') return;
+  boxItem.dataset.fieldHighlightReady = '1';
+
+  // ไม่ไฮไลท์ตาม focus เพื่อไม่ให้มีหลายความหมายของสี
+  // ทุกการเปลี่ยนแปลงจะคำนวณ "ขั้นตอนถัดไป" ใหม่เสมอ
+  const refresh = () => refreshLeaveFieldStates(boxItem);
+  boxItem.addEventListener('input', refresh);
+  boxItem.addEventListener('change', refresh);
+  boxItem.addEventListener('click', () => {
+    // รองรับปุ่ม +/- และ Flatpickr บนมือถือที่ไม่ยิง input ทันที
+    setTimeout(refresh, 0);
+  });
+
+  refresh();
+}
+
 function updateFormSequence(boxItem) {
   if (!boxItem) return;
 
@@ -762,6 +860,8 @@ function updateFormSequence(boxItem) {
   const leaveTypeEl = boxItem.querySelector('select[name="leave_type_id"]');
   const hoursMorningEl = boxItem.querySelector('input[name="hours_morning"]');
   const hoursAfternoonEl = boxItem.querySelector('input[name="hours_afternoon"]');
+  const durationModeEls = boxItem.querySelectorAll('input[name="leave_duration_mode"]');
+  const partialControlsEl = boxItem.querySelector('.partial-leave-controls');
   const reasonEl = boxItem.querySelector('input[name="reason"]');
   const fileInputEl = boxItem.querySelector('input[type="file"]');
   const fileLabelEl = boxItem.querySelector('.file-upload-label');
@@ -807,8 +907,23 @@ function updateFormSequence(boxItem) {
   }
 
   const hasType = hasEnd && !!leaveTypeEl?.value;
-  if (hoursMorningEl) hoursMorningEl.disabled = !hasType;
-  if (hoursAfternoonEl) hoursAfternoonEl.disabled = !hasType;
+
+  durationModeEls.forEach(el => {
+    el.disabled = !hasType;
+  });
+
+  const selectedDurationMode = boxItem.querySelector('input[name="leave_duration_mode"]:checked')?.value || "";
+  const isPartialLeave = hasType && selectedDurationMode === "partial";
+
+  if (hoursMorningEl) hoursMorningEl.disabled = !isPartialLeave;
+  if (hoursAfternoonEl) hoursAfternoonEl.disabled = !isPartialLeave;
+  boxItem.querySelectorAll('.partial-leave-controls .btn-stepper').forEach(btn => {
+    btn.disabled = !isPartialLeave;
+  });
+
+  if (partialControlsEl) {
+    partialControlsEl.style.display = isPartialLeave ? "block" : "none";
+  }
 
   if (reasonEl) reasonEl.disabled = !hasType;
   if (fileInputEl) fileInputEl.disabled = !hasType;
@@ -821,6 +936,8 @@ function updateFormSequence(boxItem) {
       fileLabelEl.style.pointerEvents = "auto";
     }
   }
+
+  refreshLeaveFieldStates(boxItem);
 }
 
 // ==========================================
@@ -964,8 +1081,6 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
       conditionHtml += `<div style="margin-top:10px; padding:10px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; color:#dc2626; font-size:13px; font-weight:600;">⚠️ หมายเหตุ: สิทธิ์วันลาประเภทนี้หมดแล้วหรือคงเหลือ 0 วัน</div>`;
     }
 
-    conditionHtml += `<div style="margin-top:10px; padding:10px 14px; background:#fff7ed; border:1px solid #ffedd5; border-radius:8px; color:#c2410c; font-size:13px;">🚨 <b>หมายเหตุการลาฉุกเฉิน:</b> การลาทุกประเภทกรณีลาฉุกเฉิน กำหนดขั้นต่ำอย่างน้อย 1 วันเต็ม</div>`;
-
     if (typeof Swal !== 'undefined') {
       Swal.fire({
         icon: remainingDays <= 0 ? 'warning' : 'info',
@@ -1045,28 +1160,6 @@ async function addLeaveRow() {
       </div>
     </div>
 
-    <div class="emergency-leave-banner" style="margin: 18px 0; padding: 16px 20px; background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border: 2.5px solid #f87171; border-radius: 16px; box-shadow: 0 8px 24px rgba(225, 29, 72, 0.12); transition: all 0.25s ease;">
-      <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; margin: 0; width: 100%; user-select: none;">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <div style="width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);">
-            <span class="material-symbols-outlined" style="font-size: 28px;">warning</span>
-          </div>
-          <div>
-            <div style="font-size: 16px; font-weight: 800; color: #9f1239; line-height: 1.3; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              🚨 เป็นกรณีลาฉุกเฉิน / ลากะทันหัน (Emergency Leave)
-              <span style="font-size: 11px; font-weight: 800; background: #be123c; color: #ffffff; padding: 3px 10px; border-radius: 12px; white-space: nowrap;">กำหนดขั้นต่ำ 1 วันเต็ม</span>
-            </div>
-            <div style="font-size: 13px; color: #881337; margin-top: 3px; font-weight: 600;">
-              คลิกติ๊กเลือกช่องนี้หากเป็นการยื่นใบลาเร่งด่วน ระบบจะติดธงแจ้งเตือนด่วนไปยังหัวหน้างานและ HR ทันที
-            </div>
-          </div>
-        </div>
-        <div style="flex-shrink: 0; padding-right: 4px;">
-          <input type="checkbox" name="is_emergency" value="true" onchange="if(typeof toggleEmergencyStyle==='function'){toggleEmergencyStyle(this);} calculateLeaveDays(this);" style="width: 26px; height: 26px; accent-color: #dc2626; cursor: pointer; transform: scale(1.3);">
-        </div>
-      </label>
-    </div>
-
     <div class="row-divider">
       <span>หมวดหมู่ที่ 2: รายละเอียดประเภทการลาและหลักฐาน</span>
     </div>
@@ -1090,29 +1183,51 @@ async function addLeaveRow() {
       </div>
     </div>
 
-    <div class="row-divider">หมวดหมู่ที่ 3: จำนวนเวลาและชั่วโมงที่ขอลา</div>
-    <div class="grid-row-3">
-      <div class="input-group">
-        <label>จำนวนชั่วโมงเช้า (0-4)</label>
-        <div class="stepper-container">
-          <button type="button" class="btn-stepper" onclick="stepHours(this, -1)">-</button>
-          <input type="number" placeholder="0" name="hours_morning" min="0" max="4" value="0" step="0.5" disabled readonly oninput="calculateLeaveDays(this)">
-          <button type="button" class="btn-stepper" onclick="stepHours(this, 1)">+</button>
+    <div class="row-divider">หมวดหมู่ที่ 3: รูปแบบและช่วงเวลาที่ขอลา</div>
+
+    <div class="leave-duration-mode-options" style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:2px 0 12px;">
+      <label class="leave-duration-option" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:12px; background:#ffffff; cursor:pointer; min-width:0;">
+        <input type="radio" name="leave_duration_mode" value="full" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:#0d9488; flex:0 0 auto;">
+        <span style="min-width:0;">
+          <strong style="display:block; color:#0f172a; font-size:14px;">ลาเต็มวัน</strong>
+          <small style="display:block; color:#64748b; margin-top:2px; font-size:11px; line-height:1.25;">คิดตามวันที่ที่เลือก</small>
+        </span>
+      </label>
+      <label class="leave-duration-option" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:12px; background:#ffffff; cursor:pointer; min-width:0;">
+        <input type="radio" name="leave_duration_mode" value="partial" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:#0d9488; flex:0 0 auto;">
+        <span style="min-width:0;">
+          <strong style="display:block; color:#0f172a; font-size:14px;">ลาไม่เต็มวัน</strong>
+          <small style="display:block; color:#64748b; margin-top:2px; font-size:11px; line-height:1.25;">ระบุช่วงเวลาและชั่วโมง</small>
+        </span>
+      </label>
+    </div>
+
+    <div class="partial-leave-controls" style="display:none; margin-top:10px; padding:12px; border:1px solid #ccfbf1; border-radius:12px; background:#f0fdfa;">
+      <div style="font-size:12px; font-weight:700; color:#0f766e; margin-bottom:10px;">⏱️ เลือกช่วงเวลาที่ขอลาและจำนวนชั่วโมง</div>
+      <div class="grid-row-3">
+        <div class="input-group">
+          <label>ช่วงเช้า (0-4 ชั่วโมง)</label>
+          <div class="stepper-container">
+            <button type="button" class="btn-stepper" onclick="stepHours(this, -1)" disabled>-</button>
+            <input type="number" placeholder="0" name="hours_morning" min="0" max="4" value="0" step="0.5" disabled readonly oninput="calculateLeaveDays(this)">
+            <button type="button" class="btn-stepper" onclick="stepHours(this, 1)" disabled>+</button>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>ช่วงบ่าย (0-4 ชั่วโมง)</label>
+          <div class="stepper-container">
+            <button type="button" class="btn-stepper" onclick="stepHours(this, -1)" disabled>-</button>
+            <input type="number" placeholder="0" name="hours_afternoon" min="0" max="4" value="0" step="0.5" disabled readonly oninput="calculateLeaveDays(this)">
+            <button type="button" class="btn-stepper" onclick="stepHours(this, 1)" disabled>+</button>
+          </div>
         </div>
       </div>
-      <div class="input-group">
-        <label>จำนวนชั่วโมงบ่าย (0-4)</label>
-        <div class="stepper-container">
-          <button type="button" class="btn-stepper" onclick="stepHours(this, -1)">-</button>
-          <input type="number" placeholder="0" name="hours_afternoon" min="0" max="4" value="0" step="0.5" disabled readonly oninput="calculateLeaveDays(this)">
-          <button type="button" class="btn-stepper" onclick="stepHours(this, 1)">+</button>
-        </div>
-      </div>
-      <div class="input-group">
-        <label>สรุปรวมระยะเวลาที่ขอลา</label>
-        <input type="text" placeholder="0 วัน" readonly name="leave_days_display" class="readonly-highlight" value="0 วัน" style="font-weight:700; color:#0f766e !important; background:#f0fdfa !important; border-color:#99f6e4 !important;">
-        <input type="hidden" name="leave_days" value="0">
-      </div>
+    </div>
+
+    <div class="input-group" style="margin-top:12px;">
+      <label>สรุปรวมระยะเวลาที่ขอลา</label>
+      <input type="text" placeholder="กรุณาเลือกรูปแบบการลา" readonly name="leave_days_display" class="readonly-highlight" value="กรุณาเลือกรูปแบบการลา" style="font-weight:700; color:#0f766e !important; background:#f0fdfa !important; border-color:#99f6e4 !important;">
+      <input type="hidden" name="leave_days" value="0">
     </div>
 
     <div class="split-preview-container" style="display:none; margin-top:15px;"></div>
@@ -1141,7 +1256,42 @@ async function addLeaveRow() {
   renderLeaveTypeOptions(selectEl);
 
   initDatePickerWithDisabledDates(boxItem, userDisabledLeaveDates);
+  initLeaveFieldHighlighting(boxItem);
   updateFormSequence(boxItem);
+  refreshLeaveFieldStates(boxItem);
+}
+
+// เลือกรูปแบบการลา: เต็มวัน / ไม่เต็มวัน
+function handleLeaveDurationMode(input) {
+  const boxItem = input?.closest('.leave-box-item');
+  if (!boxItem) return;
+
+  const mode = input.value;
+  const morningInput = boxItem.querySelector('input[name="hours_morning"]');
+  const afternoonInput = boxItem.querySelector('input[name="hours_afternoon"]');
+  const partialControls = boxItem.querySelector('.partial-leave-controls');
+
+  // เน้นตัวเลือกที่กำลังเลือก ให้เห็นชัดบนมือถือ
+  boxItem.querySelectorAll('.leave-duration-option').forEach(label => {
+    const radio = label.querySelector('input[name="leave_duration_mode"]');
+    const selected = !!radio?.checked;
+    label.style.borderColor = selected ? '#14b8a6' : '#cbd5e1';
+    label.style.background = selected ? '#f0fdfa' : '#ffffff';
+    label.style.boxShadow = selected ? '0 0 0 2px rgba(20,184,166,0.10)' : 'none';
+  });
+
+  if (mode === 'full') {
+    // เต็มวันไม่ใช้จำนวนชั่วโมง
+    if (morningInput) morningInput.value = '0';
+    if (afternoonInput) afternoonInput.value = '0';
+    if (partialControls) partialControls.style.display = 'none';
+  } else if (mode === 'partial') {
+    if (partialControls) partialControls.style.display = 'block';
+  }
+
+  updateFormSequence(boxItem);
+  calculateLeaveDays(input);
+  refreshLeaveFieldStates(boxItem);
 }
 
 // ==========================================
@@ -1158,8 +1308,10 @@ function calculateLeaveDays(element) {
   const morningInput = boxItem.querySelector('input[name="hours_morning"]');
   const afternoonInput = boxItem.querySelector('input[name="hours_afternoon"]');
   const resultInput = boxItem.querySelector('input[name="leave_days"]');
+  const displayInput = boxItem.querySelector('input[name="leave_days_display"]');
   const leaveTypeSelect = boxItem.querySelector('select[name="leave_type_id"]');
-  
+  const durationMode = boxItem.querySelector('input[name="leave_duration_mode"]:checked')?.value || '';
+
   let textDisplay = boxItem.querySelector('.hours-text-display');
   if (!textDisplay && resultInput) {
     textDisplay = document.createElement('small');
@@ -1168,63 +1320,92 @@ function calculateLeaveDays(element) {
     resultInput.parentNode.appendChild(textDisplay);
   }
 
-  let hrMorning = parseFloat(morningInput?.value) || 0;
-  let hrAfternoon = parseFloat(afternoonInput?.value) || 0;
+  if (!durationMode) {
+    if (resultInput) resultInput.value = 0;
+    if (displayInput) displayInput.value = 'กรุณาเลือกลาเต็มวัน หรือ ลาไม่เต็มวัน';
+    if (textDisplay) textDisplay.innerText = '';
+    return;
+  }
+
+  let hrMorning = durationMode === 'partial' ? (parseFloat(morningInput?.value) || 0) : 0;
+  let hrAfternoon = durationMode === 'partial' ? (parseFloat(afternoonInput?.value) || 0) : 0;
+
+  if (durationMode === 'full') {
+    if (morningInput) morningInput.value = '0';
+    if (afternoonInput) afternoonInput.value = '0';
+  }
 
   const selectedTypeId = leaveTypeSelect?.value;
   const leaveTypeObj = (leaveTypes || []).find(t => String(t.id) === String(selectedTypeId));
-  const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : "";
+  const leaveName = leaveTypeObj ? leaveTypeObj.leave_name : '';
 
-  if (leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน")) {
-    if (hrMorning > 0 && hrMorning < 4) { hrMorning = 4; if (morningInput) morningInput.value = 4; }
-    if (hrAfternoon > 0 && hrAfternoon < 4) { hrAfternoon = 4; if (afternoonInput) afternoonInput.value = 4; }
+  if (durationMode === 'partial' && (leaveName.includes('พักผ่อน') || leaveName.includes('พักร้อน'))) {
+    if (hrMorning > 0 && hrMorning < 4) {
+      hrMorning = 4;
+      if (morningInput) morningInput.value = 4;
+    }
+    if (hrAfternoon > 0 && hrAfternoon < 4) {
+      hrAfternoon = 4;
+      if (afternoonInput) afternoonInput.value = 4;
+    }
   }
 
   const totalHours = hrMorning + hrAfternoon;
 
-  if (totalHours > 0) {
-    const thaiFormattedText = formatHoursToThaiText(totalHours);
-    if (textDisplay) textDisplay.innerHTML = `⏱️ ลาจำนวน: <b>${thaiFormattedText}</b>`;
+  if (durationMode === 'partial') {
+    if (totalHours > 0) {
+      const thaiFormattedText = formatHoursToThaiText(totalHours);
+      if (textDisplay) textDisplay.innerHTML = `⏱️ ลาไม่เต็มวัน: <b>${thaiFormattedText}</b>`;
+    } else if (textDisplay) {
+      textDisplay.innerText = 'กรุณาระบุจำนวนชั่วโมงในช่วงเช้า หรือ ช่วงบ่าย';
+    }
   } else if (textDisplay) {
-    textDisplay.innerText = "";
+    textDisplay.innerHTML = '✅ <b>ลาเต็มวัน</b> ระบบจะคำนวณตามวันที่ที่เลือก';
   }
 
   if (!startDateInput || !endDateInput) {
-    resultInput.value = 0;
+    if (resultInput) resultInput.value = 0;
+    if (displayInput) displayInput.value = '0 วัน';
     return;
   }
 
   const start = parseLocalDate(startDateInput);
   const end = parseLocalDate(endDateInput);
   if (end < start) {
-    resultInput.value = 0;
+    if (resultInput) resultInput.value = 0;
+    if (displayInput) displayInput.value = '0 วัน';
     return;
   }
 
-  let totalWorkDays = countWorkDaysInRange(startDateInput, endDateInput);
+  const totalWorkDays = countWorkDaysInRange(startDateInput, endDateInput);
   let totalDays = totalWorkDays;
 
-  const extraDays = totalHours / 8;
-  if (startDateInput === endDateInput && totalHours > 0) {
-    totalDays = extraDays;
-  } else if (totalHours > 0) {
-    totalDays = (totalDays > 0 ? totalDays - 1 : 0) + extraDays;
+  if (durationMode === 'partial') {
+    if (totalHours <= 0) {
+      totalDays = 0;
+    } else {
+      const extraDays = totalHours / 8;
+      if (startDateInput === endDateInput) {
+        totalDays = extraDays;
+      } else {
+        // รักษาพฤติกรรมเดิมของระบบ: วันอื่นเป็นเต็มวัน และหนึ่งวันเป็นชั่วโมงที่ระบุ
+        totalDays = (totalDays > 0 ? totalDays - 1 : 0) + extraDays;
+      }
+    }
   }
 
   const cleanDays = Math.round(totalDays * 100) / 100;
-  if (resultInput) {
-    resultInput.value = cleanDays;
-  }
+  if (resultInput) resultInput.value = cleanDays;
 
-  const displayInput = boxItem.querySelector('input[name="leave_days_display"]');
   if (displayInput) {
-    displayInput.value = formatLeaveDurationText(cleanDays, (startDateInput === endDateInput && totalHours > 0) ? totalHours : 0);
-  }
-
-  // 🚨 ตรวจสอบการลาฉุกเฉิน (ขั้นต่ำ 1 วันเต็ม)
-  const isEmergency = boxItem.querySelector('input[name="is_emergency"]')?.checked;
-  if (isEmergency && cleanDays < 1 && startDateInput && endDateInput && textDisplay) {
-    textDisplay.innerHTML += `<br><span style="color:#dc2626; font-weight:700; font-size:12px; background:#fef2f2; padding:2px 8px; border-radius:6px; border:1px solid #fecaca; display:inline-block; margin-top:4px;">🚨 การลาฉุกเฉินทุกประเภท กำหนดขั้นต่ำอย่างน้อย 1 วันเต็ม</span>`;
+    if (durationMode === 'partial' && totalHours <= 0) {
+      displayInput.value = 'กรุณาระบุจำนวนชั่วโมง';
+    } else {
+      displayInput.value = formatLeaveDurationText(
+        cleanDays,
+        (durationMode === 'partial' && startDateInput === endDateInput && totalHours > 0) ? totalHours : 0
+      );
+    }
   }
 
   // 🔔 ตรวจสอบและแสดงเตือนสิทธิ์วันลาคงเหลือทันที
@@ -1263,12 +1444,14 @@ function handleFileChange(input, labelId) {
       label.innerText = '📁 เลือกรูปภาพหลักฐาน';
       label.style.borderColor = 'var(--border)';
       label.style.color = 'var(--muted)';
+      refreshLeaveFieldStates(boxItem);
       return;
     }
 
     label.innerText = '✅ ' + file.name;
     label.style.borderColor = 'var(--green)';
     label.style.color = 'var(--green-dark)';
+    refreshLeaveFieldStates(boxItem);
 
     // 🔍 Auto OCR Scanning for Medical Certificates / Attachments
     const reader = new FileReader();
@@ -1358,6 +1541,7 @@ function handleFileChange(input, labelId) {
     label.innerText = '📁 เลือกรูปภาพหลักฐาน';
     label.style.borderColor = 'var(--border)';
     label.style.color = 'var(--muted)';
+    refreshLeaveFieldStates(boxItem);
   }
 }
 
@@ -1627,9 +1811,14 @@ async function saveLeave() {
     const leaveTypeId = card.querySelector('select[name="leave_type_id"]')?.value;
     const startDate = card.querySelector('input[name="start_date"]')?.value;
     const endDate = card.querySelector('input[name="end_date"]')?.value;
-    let reason = card.querySelector('input[name="reason"]')?.value || ""; 
-    const hoursMorning = parseFloat(card.querySelector('input[name="hours_morning"]')?.value) || 0;
-    const hoursAfternoon = parseFloat(card.querySelector('input[name="hours_afternoon"]')?.value) || 0;
+    let reason = card.querySelector('input[name="reason"]')?.value || "";
+    const leaveDurationMode = card.querySelector('input[name="leave_duration_mode"]:checked')?.value || "";
+    let hoursMorning = parseFloat(card.querySelector('input[name="hours_morning"]')?.value) || 0;
+    let hoursAfternoon = parseFloat(card.querySelector('input[name="hours_afternoon"]')?.value) || 0;
+    if (leaveDurationMode === "full") {
+      hoursMorning = 0;
+      hoursAfternoon = 0;
+    }
     const fileInput = card.querySelector('input[type="file"]');
     const file = fileInput && fileInput.files && fileInput.files[0];
     
@@ -1638,7 +1827,27 @@ async function saveLeave() {
 
     if (!leaveTypeId || !startDate || !endDate) {
       Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่สมบูรณ์', text: `กรุณากรอกวันที่และประเภทการลาให้ครบในรายการที่ ${index + 1}`, confirmButtonColor: '#f59e0b' });
-      hasError = true; break; 
+      hasError = true; break;
+    }
+
+    if (!leaveDurationMode) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'กรุณาเลือกรูปแบบการลา',
+        text: `รายการที่ ${index + 1} กรุณาเลือก "ลาเต็มวัน" หรือ "ลาไม่เต็มวัน" ก่อนส่งคำขอครับ`,
+        confirmButtonColor: '#f59e0b'
+      });
+      hasError = true; break;
+    }
+
+    if (leaveDurationMode === 'partial' && (hoursMorning + hoursAfternoon) <= 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'กรุณาระบุช่วงเวลาที่ขอลา',
+        text: `รายการที่ ${index + 1} เลือกลาไม่เต็มวัน กรุณาระบุจำนวนชั่วโมงในช่วงเช้า หรือ ช่วงบ่ายครับ`,
+        confirmButtonColor: '#f59e0b'
+      });
+      hasError = true; break;
     }
 
     const isStartValid = await validateLeaveDate(startDate);
@@ -1684,23 +1893,6 @@ async function saveLeave() {
           confirmButtonColor: '#ef4444'
         });
         hasError = true; break;
-      }
-    }
-
-    // 🚨 ตรวจสอบการลาฉุกเฉินสำหรับทุกประเภทการลา (ต้องลาขั้นต่ำอย่างน้อย 1 วันเต็ม)
-    const isEmergency = card.querySelector('input[name="is_emergency"]')?.checked;
-    if (isEmergency) {
-      if (totalDays < 1) {
-        Swal.fire({
-          icon: 'warning',
-          title: '⚠️ เงื่อนไขการลาฉุกเฉิน',
-          html: `รายการที่ ${index + 1}: การลาฉุกเฉินสำหรับ<b>ทุกประเภทการลา</b> กำหนดวันลาขั้นต่ำอย่างน้อย <b>1 วันเต็ม</b> ครับ (ปัจจุบันเลือก ${totalDays} วัน)`,
-          confirmButtonColor: '#f59e0b'
-        });
-        hasError = true; break;
-      }
-      if (!reason.includes("[ลาฉุกเฉิน]")) {
-        reason = `[ลาฉุกเฉิน] ${reason.trim()}`;
       }
     }
 
@@ -2213,45 +2405,16 @@ function stepHours(btn, direction) {
 
   input.value = Math.round(newVal * 100) / 100; // ป้องกันปัญหา Floating point บน JS
   calculateLeaveDays(input);
+  refreshLeaveFieldStates(btn.closest('.leave-box-item'));
 }
 
-window.toggleEmergencyStyle = function(checkbox) {
-  const banner = checkbox.closest('.leave-row-box') || checkbox.closest('.emergency-leave-banner')?.parentElement;
-  const bannerBox = checkbox.closest('.emergency-leave-banner');
-  if (bannerBox) {
-    if (checkbox.checked) {
-      bannerBox.style.border = '2.5px solid #dc2626';
-      bannerBox.style.boxShadow = '0 0 0 4px rgba(220, 38, 38, 0.25), 0 10px 28px rgba(220, 38, 38, 0.22)';
-      bannerBox.style.background = 'linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%)';
-    } else {
-      bannerBox.style.border = '2.5px solid #f87171';
-      bannerBox.style.boxShadow = '0 8px 24px rgba(225, 29, 72, 0.12)';
-      bannerBox.style.background = 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)';
-    }
-  }
 
-  if (banner) {
-    const reasonInput = banner.querySelector('input[name="reason"]');
-    if (reasonInput) {
-      if (checkbox.checked) {
-        reasonInput.style.borderColor = '#ef4444';
-        reasonInput.style.backgroundColor = '#fef2f2';
-        reasonInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.2)';
-        reasonInput.placeholder = '🚨 [ลาฉุกเฉิน] ระบุเหตุผลความจำเป็นเร่งด่วน...';
-      } else {
-        reasonInput.style.borderColor = '';
-        reasonInput.style.backgroundColor = '';
-        reasonInput.style.boxShadow = '';
-        reasonInput.placeholder = 'ระบุเหตุผลความจำเป็น...';
-      }
-    }
-  }
-};
 
 // 🌐 Global Window Function Bindings for Leave Form Page
 window.saveLeave = saveLeave;
 window.toggleFormLeaveGuide = typeof toggleFormLeaveGuide !== 'undefined' ? toggleFormLeaveGuide : window.toggleFormLeaveGuide;
 window.handleDateChange = typeof handleDateChange !== 'undefined' ? handleDateChange : window.handleDateChange;
+window.handleLeaveDurationMode = typeof handleLeaveDurationMode !== 'undefined' ? handleLeaveDurationMode : window.handleLeaveDurationMode;
 window.stepHours = typeof stepHours !== 'undefined' ? stepHours : window.stepHours;
 window.removeLeaveRow = typeof removeLeaveRow !== 'undefined' ? removeLeaveRow : window.removeLeaveRow;
 window.addLeaveRow = typeof addLeaveRow !== 'undefined' ? addLeaveRow : window.addLeaveRow;
