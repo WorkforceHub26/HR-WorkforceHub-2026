@@ -229,7 +229,7 @@ function getLocalizedHolidayDesc(desc) {
 // 🚀 INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
   await loadUserProfile();
-  initNotificationBell();
+  initHolidayPageUi();
   await fetchHolidays();
 });
 
@@ -252,67 +252,11 @@ async function loadUserProfile() {
     
     const sessionUser = JSON.parse(rawSession);
 
-    // ดึงข้อมูลพนักงานล่าสุดจาก Supabase ก่อน เพื่อให้รูป Avatar ตรงกับหน้าอื่น
-    // (localStorage อาจยังเป็นข้อมูลเก่าหลัง Admin/พนักงานเปลี่ยนรูป)
-    let freshEmployee = null;
-    try {
-      const sb = window.pvtSupabase?.getClient?.() || window.PVTSDK?.client || window.supabaseClient || null;
-      const employeeId = sessionUser?.id || sessionUser?.employee_id || sessionUser?.employees?.id;
-      const employeeCode = sessionUser?.employee_code || sessionUser?.employees?.employee_code;
-
-      if (sb && (employeeId || employeeCode)) {
-        let q = sb
-          .from('employees')
-          .select('id, employee_code, full_name, role, image_url, title, prefix, gender, department_id, position_id');
-
-        q = employeeId ? q.eq('id', employeeId) : q.eq('employee_code', employeeCode);
-        const { data, error } = await q.maybeSingle();
-        if (!error && data) freshEmployee = data;
-      }
-    } catch (avatarProfileErr) {
-      console.warn('Holidays: โหลดข้อมูลพนักงานล่าสุดไม่สำเร็จ ใช้ session เดิมแทน', avatarProfileErr);
-    }
-
-    const activeUser = freshEmployee ? { ...sessionUser, ...freshEmployee } : sessionUser;
+    // Holidays page no longer renders avatar/profile header.
+    // Keep the current authenticated session as the page profile; no extra employees query is needed.
+    const activeUser = sessionUser;
     currentUserProfile = activeUser;
-    
-    const elName = document.getElementById('userName');
-    const elRole = document.getElementById('userRole');
-    const elAvatar = document.getElementById('userAvatar');
     const btnAdd = document.getElementById('btnAddHoliday');
-
-    if (elName) elName.innerText = activeUser.full_name || 'เจ้าหน้าที่';
-    if (elRole) elRole.innerText = activeUser.role ? activeUser.role.toUpperCase() : 'PVT USER';
-    if (elAvatar) {
-      const emp = freshEmployee || activeUser.employees || activeUser;
-      const rawAvatarUrl = emp.image_url || emp.avatar_url || activeUser.image_url || activeUser.avatar_url;
-      const empTitle = emp.title || emp.prefix || activeUser.title || activeUser.prefix || "";
-      const empGender = emp.gender || activeUser.gender || "";
-      const empName = emp.full_name || activeUser.full_name || activeUser.display_name || "";
-
-      const fallbackAvatar = (typeof window.getDefaultAvatarUrl === "function")
-        ? window.getDefaultAvatarUrl(empTitle, empGender, empName)
-        : (empTitle.includes('สาว') || empTitle.includes('นาง') || empTitle.includes('น.ส.') || empGender === 'female' || empName.includes('นาง') || empName.includes('น.ส.') ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
-
-      elAvatar.onerror = function() {
-        this.onerror = null;
-        this.src = fallbackAvatar;
-      };
-
-      if (window.pvtSupabase && typeof window.pvtSupabase.getAvatarUrl === "function") {
-        elAvatar.src = window.pvtSupabase.getAvatarUrl(rawAvatarUrl, empTitle, empGender, empName);
-      } else if (window.PVTSDK && window.PVTSDK.storage && typeof window.PVTSDK.storage.getAvatarUrl === "function") {
-        elAvatar.src = window.PVTSDK.storage.getAvatarUrl(rawAvatarUrl, empTitle, empGender, empName);
-      } else if (typeof window.getAvatarUrl === "function") {
-        elAvatar.src = window.getAvatarUrl(rawAvatarUrl, empTitle, empGender, empName);
-      } else if (rawAvatarUrl && String(rawAvatarUrl).trim() !== "" && rawAvatarUrl !== "null" && rawAvatarUrl !== "/assets/img/default-avatar.jpg") {
-        const clean = String(rawAvatarUrl).trim();
-        const baseUrl = window.SUPABASE_URL || 'https://pgogmhqjdchakcytsomx.supabase.co';
-        elAvatar.src = clean.startsWith("http") ? clean : `${baseUrl}/storage/v1/object/public/employee-images/${clean.replace(/^\//, '')}`;
-      } else {
-        elAvatar.src = fallbackAvatar;
-      }
-    }
 
     const role = activeUser.role ? activeUser.role.toLowerCase() : '';
     const isPowerUser = ['admin', 'hr', 'executive', 'director', 'manager', 'supervisor', 'leader'].includes(role) || Boolean(activeUser.is_hr) || Boolean(activeUser.is_admin);
@@ -510,58 +454,17 @@ function animateHeroDaysCount(targetDays) {
   }, stepTime);
 }
 
-function startHeroLiveCountdown(holidayDateStr) {
+function startHeroLiveCountdown() {
   if (heroCountdownInterval) {
     clearInterval(heroCountdownInterval);
     heroCountdownInterval = null;
   }
 
-  const elTicker = document.getElementById('heroCountdownTicker');
-  const elLabel = document.getElementById('heroCountdownLabel');
-  const elHeroCountdown = document.getElementById('heroCountdownDays');
-
-  if (!holidayDateStr) {
-    if (elTicker) elTicker.style.display = 'none';
-    return;
+  const ticker = document.getElementById('heroCountdownTicker');
+  if (ticker) {
+    ticker.innerHTML = '';
+    ticker.style.display = 'none';
   }
-
-  const targetDate = parseLocalDate(holidayDateStr);
-  targetDate.setHours(0, 0, 0, 0);
-
-  function updateTicker() {
-    const now = new Date();
-    const diffMs = targetDate.getTime() - now.getTime();
-
-    if (diffMs <= 0) {
-      if (elHeroCountdown) elHeroCountdown.innerText = '📌';
-      if (elLabel) elLabel.innerText = 'วันนี้วันหยุด!';
-      if (elTicker) {
-        elTicker.style.display = 'block';
-        elTicker.innerHTML = `<span class="ticker-live-tag today">🎉 สุขสันต์วันหยุด!</span>`;
-      }
-      if (heroCountdownInterval) clearInterval(heroCountdownInterval);
-      return;
-    }
-
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-
-    if (elLabel) elLabel.innerText = 'วันข้างหน้า';
-
-    if (elTicker) {
-      elTicker.style.display = 'flex';
-      elTicker.innerHTML = `
-        <div class="ticker-live-pill">
-          <span class="ticker-dot"></span>
-          <span class="ticker-time">${hours.toString().padStart(2, '0')} : ${minutes.toString().padStart(2, '0')} : ${seconds.toString().padStart(2, '0')}</span>
-        </div>
-      `;
-    }
-  }
-
-  updateTicker();
-  heroCountdownInterval = setInterval(updateTicker, 1000);
 }
 
 // 📊 อัปเดต Banner และ KPI Cards
@@ -596,6 +499,8 @@ function updateStatsAndHero() {
   const elHeroTitle = document.getElementById('heroHolidayTitle');
   const elHeroDetails = document.getElementById('heroHolidayDateDetails');
   const elHeroCountdown = document.getElementById('heroCountdownDays');
+  const elNextCardName = document.getElementById('heroNextHolidayNameDisplay');
+  const elNextCardDate = document.getElementById('heroNextHolidayDateDisplay');
 
   if (nextHoliday) {
     const hDate = parseLocalDate(nextHoliday.holiday_date);
@@ -610,6 +515,8 @@ function updateStatsAndHero() {
     if (elNextDate) elNextDate.innerText = formatLocalDateShort(nextHoliday.holiday_date);
     if (elHeroTitle) elHeroTitle.innerText = locName;
     if (elHeroDetails) elHeroDetails.innerText = `${formatLocalDateFull(nextHoliday.holiday_date)} (${locDesc})`;
+    if (elNextCardName) elNextCardName.innerText = locName;
+    if (elNextCardDate) elNextCardDate.innerText = `วันที่หยุดครั้งต่อไป ${formatLocalDateShort(nextHoliday.holiday_date)}`;
     
     if (diffDays === 0) {
       if (elHeroCountdown) elHeroCountdown.innerText = strings.statusToday;
@@ -625,6 +532,8 @@ function updateStatsAndHero() {
     if (elHeroTitle) elHeroTitle.innerText = strings.noNextHolidayYear;
     if (elHeroDetails) elHeroDetails.innerText = strings.allPassedDesc;
     if (elHeroCountdown) elHeroCountdown.innerText = '0';
+    if (elNextCardName) elNextCardName.innerText = strings.noNextHoliday;
+    if (elNextCardDate) elNextCardDate.innerText = '-';
     startHeroLiveCountdown(null);
   }
 }
@@ -902,12 +811,86 @@ function switchView(view) {
   filterHolidays();
 }
 
+function syncHolidayCalendarModeUi(showYear) {
+  const panel = document.getElementById('companyCalendarPanel');
+  const button = document.getElementById('btnToggleYearView');
+  const icon = document.getElementById('btnToggleYearViewIcon');
+  const text = document.getElementById('btnToggleYearViewText');
+
+  if (panel) panel.classList.toggle('pvt-year-mode', Boolean(showYear));
+  if (button) {
+    button.setAttribute('aria-pressed', String(Boolean(showYear)));
+    button.title = showYear ? 'กลับไปดูเดือนปัจจุบัน' : 'ดูปฏิทินทั้งปี';
+  }
+  if (icon) icon.textContent = showYear ? 'calendar_month' : 'calendar_view_month';
+  if (text) text.textContent = showYear ? 'กลับเดือนนี้' : 'ดูทั้งปี';
+}
+
+function initHolidayPageUi() {
+  const now = new Date();
+  const yearSelect = document.getElementById('yearSelect');
+  const monthSelect = document.getElementById('monthSelect');
+
+  const currentYearValue = String(now.getFullYear());
+  const hasCurrentYear = yearSelect && Array.from(yearSelect.options || []).some(
+    option => String(option.value) === currentYearValue
+  );
+  if (hasCurrentYear) yearSelect.value = currentYearValue;
+  if (monthSelect) monthSelect.value = String(now.getMonth());
+
+  companyCalCurrentDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  syncHolidayCalendarModeUi(false);
+
+  const summaryPanel = document.getElementById('companySummarySidebar');
+  const summaryBody = document.getElementById('companySummaryBody');
+  const summaryButton = document.getElementById('btnToggleSummary');
+  const summaryIcon = document.getElementById('btnToggleSummaryIcon');
+  const summaryText = document.getElementById('btnToggleSummaryText');
+
+  if (summaryPanel) summaryPanel.classList.add('is-collapsed');
+  if (summaryBody) summaryBody.style.setProperty('display', 'none', 'important');
+  if (summaryButton) {
+    summaryButton.setAttribute('aria-expanded', 'false');
+    summaryButton.setAttribute('aria-label', 'ขยายรายการสรุปวันหยุด');
+    summaryButton.title = 'ขยายรายการสรุปวันหยุด';
+  }
+  if (summaryIcon) summaryIcon.textContent = 'expand_more';
+  if (summaryText) summaryText.textContent = 'ขยาย';
+}
+
+window.toggleHolidayYearView = function () {
+  const now = new Date();
+  const yearSelect = document.getElementById('yearSelect');
+  const monthSelect = document.getElementById('monthSelect');
+  if (!monthSelect) return;
+
+  const currentlyYear = monthSelect.value === 'all';
+  const showYear = !currentlyYear;
+
+  if (showYear) {
+    monthSelect.value = 'all';
+  } else {
+    const currentYearValue = String(now.getFullYear());
+    const hasCurrentYear = yearSelect && Array.from(yearSelect.options || []).some(
+      option => String(option.value) === currentYearValue
+    );
+    if (hasCurrentYear) yearSelect.value = currentYearValue;
+    monthSelect.value = String(now.getMonth());
+    companyCalCurrentDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  syncHolidayCalendarModeUi(showYear);
+  changeYearOrMonth();
+};
+
 function changeYearOrMonth() {
   const yearSelect = document.getElementById('yearSelect');
   const monthSelect = document.getElementById('monthSelect');
   const year = yearSelect ? parseInt(yearSelect.value, 10) : new Date().getFullYear();
   const monthVal = monthSelect ? monthSelect.value : 'all';
   
+  syncHolidayCalendarModeUi(monthVal === 'all');
+
   if (window.companyCalCurrentDate) {
     companyCalCurrentDate.setFullYear(year);
     if (monthVal !== 'all') {

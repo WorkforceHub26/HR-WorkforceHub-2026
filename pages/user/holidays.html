@@ -32,34 +32,7 @@
     <meta name="apple-mobile-web-app-title" content="PVT Hub" />
     <meta name="format-detection" content="telephone=no" />
     <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
-  
-    <style>
-      /* Holiday calendar polish */
-      #yearlyCalendarGrid {
-        row-gap: 18px !important;
-        column-gap: 12px !important;
-      }
-      #yearlyCalendarGrid > * {
-        margin: 0 !important;
-      }
-    </style>
 
-  
-    <style>
-      /* Robust month/year view separation */
-      #companyCalendarPanel.pvt-year-mode #companyCalDaysHeader,
-      #companyCalendarPanel.pvt-year-mode #companyCalGrid {
-        display: none !important;
-      }
-      #companyCalendarPanel:not(.pvt-year-mode) #yearlyCalendarGrid {
-        display: none !important;
-      }
-      #companyCalendarPanel.pvt-year-mode #yearlyCalendarGrid {
-        display: grid !important;
-        margin-top: 18px !important;
-        row-gap: 18px !important;
-      }
-    </style>
 
 </head>
 
@@ -70,7 +43,7 @@
         <div class="sidebar-brand brand-zone">
           <div class="brand-icon">
             <img
-              src="/assets/icons/PVTT_FLOW.png"
+              src="/assets/icons/PVTT_LEAVE.png"
               alt="PVTT Logo"
               style="width: 100%; height: 100%; object-fit: contain"
             />
@@ -391,36 +364,37 @@
               </p>
             </div>
             <div class="hero-countdown-box">
+              <span class="countdown-prefix-soft">อีก</span>
               <span class="countdown-number" id="heroCountdownDays">0</span>
-              <span class="countdown-label" id="heroCountdownLabel"
-                >วันข้างหน้า</span
-              >
+              <span class="countdown-unit-soft">วัน</span>
+              <span class="countdown-label" id="heroCountdownLabel">วันข้างหน้า</span>
               <div class="hero-countdown-ticker" id="heroCountdownTicker"></div>
             </div>
           </section>
 
           <!-- 📊 2. KPI STATS SUMMARY CARDS -->
           <div class="stats-grid">
-            <div class="stat-card border-blue">
-              <div
-                class="icon-box bg-blue"
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                "
-              >
-                <img
-                  src="/assets/icons/calendar-event.svg"
-                  alt="วันหยุด"
-                  style="width: 28px; height: 28px; object-fit: contain"
-                />
+
+             <div class="stat-card border-pink">
+              <div class="icon-box bg-pink">
+                <span class="material-symbols-outlined">alarm</span>
               </div>
               <div class="stat-info">
-                <span class="label">วันหยุดรวมทั้งหมด (ปีนี้)</span>
-                <span class="value" id="statTotalHolidays">0 วัน</span>
+                <span class="label">วันหยุดครั้งต่อไป</span>               
+                
+                <span
+                  id="statNextHolidayDate"
+                  style="
+                    font-size: 24px;
+                    color: #ca2bf1;
+                    font-weight: 800;
+                  "
+                  >-</span>
+
+
               </div>
             </div>
+
 
             <div class="stat-card border-green">
               <div class="icon-box bg-green">
@@ -431,20 +405,14 @@
                 <span
                   class="value"
                   id="statNextHolidayName"
-                  style="font-size: 18px; line-height: 1.2"
+                  style="font-size: 16px; line-height: 1.2"
                   >-</span
                 >
-                <span
-                  id="statNextHolidayDate"
-                  style="
-                    font-size: 12px;
-                    color: var(--primary, #0fa472);
-                    font-weight: 600;
-                  "
-                  >-</span
-                >
+                
               </div>
             </div>
+
+
 
             <div class="stat-card border-orange">
               <div class="icon-box bg-orange">
@@ -455,7 +423,41 @@
                 <span class="value" id="statRemainingHolidays">0 วัน</span>
               </div>
             </div>
+
+
+            <div class="stat-card border-blue">
+              <div
+                class="icon-box bg-blue"
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                "
+              >
+              <span class="material-symbols-outlined">calendar_month</span>
+                
+              </div>
+              <div class="stat-info">
+                <span class="label">วันหยุดรวมทั้งหมด (ปีนี้)</span>
+                <span class="value" id="statTotalHolidays">0 วัน</span>
+              </div>
+            </div>
+
+            
+
+            
           </div>
+
+          <section class="holiday-next-card-hero" id="holidayNextCardHero">
+            <div class="next-card-icon">
+              <span class="material-symbols-outlined">event_upcoming</span>
+            </div>
+            <div class="next-card-content">
+              <span class="next-card-label">หยุดครั้งต่อไป</span>
+              <span class="next-card-name" id="heroNextHolidayNameDisplay">กำลังโหลดข้อมูล...</span>
+              <span class="next-card-date" id="heroNextHolidayDateDisplay">กำลังโหลดวันที่หยุดครั้งต่อไป...</span>
+            </div>
+          </section>
 
           <!-- Summary + calendar cards: always one full-width card per row; card headers stay horizontal -->
           <div class="holiday-overview-row">
@@ -472,9 +474,8 @@
           >
             <div class="holiday-summary-header">
               <h3 class="holiday-summary-title">
-                <span class="material-symbols-outlined" style="color: #0d9488"
-                  >calendar_view_month</span
-                >
+                <!-- <span class="material-symbols-outlined">calendar_view_month</span
+                > -->
                 <span>รายการสรุปวันหยุดประจำปี</span>
               </h3>
               <button
@@ -826,28 +827,15 @@
                 </div>
               </div>
 
-              <div style="display:flex; justify-content:center; padding-top:10px; padding-bottom:14px;">
+              <div class="calendar-year-toggle-wrap">
                 <button
                   type="button"
                   id="btnToggleYearView"
                   onclick="window.toggleHolidayYearView && window.toggleHolidayYearView()"
-                  style="
-                    border: 1px solid #cbd5e1;
-                    background: #ffffff;
-                    color: #0f766e;
-                    border-radius: 999px;
-                    padding: 8px 16px;
-                    font-size: 13px;
-                    font-weight: 700;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    cursor: pointer;
-                    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-                  "
+                  class="calendar-year-toggle-btn"
                   title="ดูปฏิทินทั้งปี"
                 >
-                  <span class="material-symbols-outlined" id="btnToggleYearViewIcon" style="font-size:18px;">calendar_view_month</span>
+                  <span class="material-symbols-outlined" id="btnToggleYearViewIcon">calendar_view_month</span>
                   <span id="btnToggleYearViewText">ดูทั้งปี</span>
                 </button>
               </div>
@@ -1402,163 +1390,6 @@
     <script type="module" src="/js/system-settings.js"></script>
     <script type="module" src="/js/holidays.js"></script>
 
-    <script>
-      // Keep calendar title aligned with the month currently displayed.
-      (function () {
-        const THAI_MONTHS_PVT = [
-          'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
-          'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'
-        ];
 
-        function updateVisibleCalendarHeading() {
-          const titleEl = document.getElementById('companyCalMonthYear');
-          const monthSelect = document.getElementById('monthSelect');
-          const yearSelect = document.getElementById('yearSelect');
-          if (!titleEl || !monthSelect) return;
-
-          const monthValue = monthSelect.value;
-          const yearAD = Number(yearSelect?.value || new Date().getFullYear());
-          const yearBE = yearAD + 543;
-
-          if (monthValue === 'all') {
-            titleEl.textContent = `สรุปวันหยุดปี ${yearBE}`;
-          } else {
-            const monthIndex = Number(monthValue);
-            if (Number.isInteger(monthIndex) && monthIndex >= 0 && monthIndex < 12) {
-              titleEl.textContent = `${THAI_MONTHS_PVT[monthIndex]} ${yearBE}`;
-            }
-          }
-        }
-
-        window.addEventListener('load', function () {
-          setTimeout(updateVisibleCalendarHeading, 180);
-
-          const monthSelect = document.getElementById('monthSelect');
-          const yearSelect = document.getElementById('yearSelect');
-          monthSelect?.addEventListener('change', () => setTimeout(updateVisibleCalendarHeading, 40));
-          yearSelect?.addEventListener('change', () => setTimeout(updateVisibleCalendarHeading, 40));
-
-          const titleEl = document.getElementById('companyCalMonthYear');
-          if (titleEl && window.MutationObserver) {
-            const observer = new MutationObserver(() => {
-              setTimeout(updateVisibleCalendarHeading, 0);
-            });
-            observer.observe(titleEl, { childList: true, characterData: true, subtree: true });
-          }
-        });
-      })();
-    </script>
-
-    <script>
-      // Calendar default: current month. Toggle button switches current month <-> full year.
-      (function () {
-        let showingYear = false;
-
-        function getCurrentMonthValue() {
-          return String(new Date().getMonth());
-        }
-
-        function getCurrentYearValue() {
-          return String(new Date().getFullYear());
-        }
-
-        function refreshCalendarView() {
-          if (typeof window.changeYearOrMonth === 'function') {
-            window.changeYearOrMonth();
-          } else {
-            const monthSelect = document.getElementById('monthSelect');
-            if (monthSelect) {
-              monthSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          }
-        }
-
-        function setCalendarView(showYear) {
-          const monthSelect = document.getElementById('monthSelect');
-          const yearSelect = document.getElementById('yearSelect');
-          const button = document.getElementById('btnToggleYearView');
-          const icon = document.getElementById('btnToggleYearViewIcon');
-          const label = document.getElementById('btnToggleYearViewText');
-
-          if (!monthSelect) return;
-
-          showingYear = !!showYear;
-
-          // ให้ปีปัจจุบันเป็นค่าเริ่มต้น ถ้ามี option ปีนั้นอยู่
-          if (yearSelect) {
-            const currentYear = getCurrentYearValue();
-            const hasCurrentYear = Array.from(yearSelect.options || []).some(
-              opt => String(opt.value) === currentYear
-            );
-            if (hasCurrentYear) yearSelect.value = currentYear;
-          }
-
-          monthSelect.value = showingYear ? 'all' : getCurrentMonthValue();
-          refreshCalendarView();
-
-          // แยกโหมดรายเดือนกับทั้งปีออกจากกันชัดเจน
-          const monthDaysHeader = document.getElementById('companyCalDaysHeader');
-          const monthGrid = document.getElementById('companyCalGrid');
-          const yearGrid = document.getElementById('yearlyCalendarGrid');
-
-          const calendarPanel = document.getElementById('companyCalendarPanel');
-          if (calendarPanel) {
-            calendarPanel.classList.toggle('pvt-year-mode', showingYear);
-          }
-
-          // Keep inline state aligned too, but CSS class above is the source of truth.
-          if (showingYear) {
-            if (monthDaysHeader) monthDaysHeader.style.display = 'none';
-            if (monthGrid) monthGrid.style.display = 'none';
-            if (yearGrid) yearGrid.style.display = 'grid';
-          } else {
-            if (monthDaysHeader) monthDaysHeader.style.display = 'grid';
-            if (monthGrid) monthGrid.style.display = 'grid';
-            if (yearGrid) yearGrid.style.display = 'none';
-          }
-
-          if (button) {
-            button.setAttribute('aria-pressed', showingYear ? 'true' : 'false');
-            button.title = showingYear ? 'กลับไปดูเดือนปัจจุบัน' : 'ดูปฏิทินทั้งปี';
-          }
-          if (icon) icon.textContent = showingYear ? 'calendar_month' : 'calendar_view_month';
-          if (label) label.textContent = showingYear ? 'กลับเดือนนี้' : 'ดูทั้งปี';
-        }
-
-        window.toggleHolidayYearView = function () {
-          setCalendarView(!showingYear);
-        };
-
-        // รอให้ holidays.js โหลดและ render ข้อมูลก่อน แล้วค่อยบังคับเป็นเดือนปัจจุบัน
-        window.addEventListener('load', function () {
-          setTimeout(function () {
-            setCalendarView(false);
-          }, 120);
-        });
-      })();
-    </script>
-
-    <script>
-      // Force annual holiday summary to start collapsed after all page scripts finish.
-      window.addEventListener('load', function () {
-        const panel = document.getElementById('companySummarySidebar');
-        const body = document.getElementById('companySummaryBody');
-        const button = document.getElementById('btnToggleSummary');
-        const icon = document.getElementById('btnToggleSummaryIcon');
-        const label = document.getElementById('btnToggleSummaryText');
-
-        if (panel) panel.classList.add('is-collapsed');
-        if (body) body.style.setProperty('display', 'none', 'important');
-
-        if (button) {
-          button.setAttribute('aria-expanded', 'false');
-          button.setAttribute('aria-label', 'ขยายรายการสรุปวันหยุด');
-          button.title = 'ขยายรายการสรุปวันหยุด';
-        }
-
-        if (icon) icon.textContent = 'expand_more';
-        if (label) label.textContent = 'ขยาย';
-      });
-    </script>
-  </body>
+</body>
 </html>
