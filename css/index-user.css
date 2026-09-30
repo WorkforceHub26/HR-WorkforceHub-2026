@@ -4757,15 +4757,17 @@ button.menu-item.active {
 div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1),
 div#appLayout:nth-of-type(2) > main:nth-of-type(1) > header:nth-of-type(1),
 .page-header-row.mobile-appbar {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  flex-wrap: nowrap !important;
-  gap: 12px !important;
-  padding: 12px 16px !important;
-  box-sizing: border-box !important;
-  min-height: 56px !important;
-  overflow: visible !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 12px;
+
+  padding: 16px;
+  min-height: 76px;
+
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 /* Remove name and role/rights text from top header */
