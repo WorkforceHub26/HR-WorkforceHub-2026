@@ -491,7 +491,7 @@ function updateStatsAndHero() {
     if (elHeroTitle) elHeroTitle.innerText = locName;
     if (elHeroDetails) elHeroDetails.innerText = `${formatLocalDateFull(nextHoliday.holiday_date)} (${locDesc})`;
     if (elNextCardName) elNextCardName.innerText = locName;
-    if (elNextCardDate) elNextCardDate.innerText = `วันที่หยุดครั้งต่อไป ${formatLocalDateShort(nextHoliday.holiday_date)}`;
+    if (elNextCardDate) elNextCardDate.innerText = `หยุดครั้งต่อไป    ${formatLocalDateShort(nextHoliday.holiday_date)}`;
 
     if (diffDays === 0) {
       if (elHeroCountdown) elHeroCountdown.innerText = strings.statusToday;

@@ -2515,7 +2515,7 @@ body{top:0px;margin-top:0px}
 .holiday-next-card-hero .next-card-icon .material-symbols-outlined{font-size:28px}
 .holiday-next-card-hero .next-card-content{min-width:0;display:flex;flex-direction:column}
 .holiday-next-card-hero .next-card-label{margin-bottom:4px;color:#6b7280;font-size:13px;font-weight:700}
-.holiday-next-card-hero .next-card-name{margin-bottom:4px;color:#111827;font-size:22px;line-height:1.2;font-weight:900}
+.holiday-next-card-hero .next-card-name{margin-bottom:4px;color:#111827;font-size:18px;line-height:1.2;font-weight:900}
 .holiday-next-card-hero .next-card-date{color:#0f9f74;font-size:14px;font-weight:800}
 
 /* ===== Holidays mobile header: single final override ===== */
@@ -3212,3 +3212,51 @@ html body.holidays-page #holidaysBottomNav.mobile-bottom-nav {
     font-size: 16px;
   }
 }
+
+
+/* ==========================================================================
+   13. SUMMARY HEADER — EXACTLY MATCH CALENDAR HEADER
+   ========================================================================== */
+#companySummarySidebar .holiday-summary-header {
+  padding: 16px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+#companySummarySidebar .calendar-title-heading.holiday-summary-title {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 18px;
+}
+
+
+#companySummarySidebar .calendar-title-heading.holiday-summary-title .cal-title-text {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+
+#companySummarySidebar .summary-toggle-btn {
+  color: #0f766e;
+  background: #ffffff;
+}
+
+@media (max-width: 480px) {
+  #companySummarySidebar .holiday-summary-header {
+    padding: 14px 16px;
+  }
+
+  #companySummarySidebar .calendar-title-heading.holiday-summary-title .cal-title-text {
+    font-size: 18px;
+  }
+}
+
+
