@@ -143,21 +143,103 @@ window.checkAndToggleBiometricButton = checkAndToggleBiometricButton;
 // When the page is opened after an explicit logout, autoSessionCheckAndRedirect()
 // returns early; a nested definition would never be created and the inline
 // onclick="toggleAltLoginOptions()" button would stop working.
-window.toggleAltLoginOptions = function toggleAltLoginOptions() {
+let altLoginOriginalParent = null;
+let altLoginOriginalNextSibling = null;
+
+function ensureAltLoginSheetUI() {
   const group = document.getElementById("altLoginGroup");
+  if (!group) return null;
+
+  if (!altLoginOriginalParent) {
+    altLoginOriginalParent = group.parentNode;
+    altLoginOriginalNextSibling = group.nextSibling;
+  }
+
+  let backdrop = document.getElementById("altLoginBackdrop");
+  if (!backdrop) {
+    backdrop = document.createElement("div");
+    backdrop.id = "altLoginBackdrop";
+    backdrop.className = "alt-login-backdrop";
+    backdrop.setAttribute("aria-hidden", "true");
+    backdrop.addEventListener("click", () => window.closeAltLoginOptions());
+    document.body.appendChild(backdrop);
+  }
+
+  if (!group.querySelector(".alt-login-sheet-header")) {
+    const header = document.createElement("div");
+    header.className = "alt-login-sheet-header";
+    header.innerHTML = `
+      <div class="alt-login-sheet-heading">
+        <span class="material-symbols-outlined">login</span>
+        <span>เข้าสู่ระบบวิธีอื่น</span>
+      </div>
+      <button type="button" class="alt-login-sheet-close" aria-label="ปิด">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    `;
+    header.querySelector(".alt-login-sheet-close").addEventListener("click", () => window.closeAltLoginOptions());
+    group.prepend(header);
+  }
+
+  return { group, backdrop };
+}
+
+function restoreAltLoginGroupPosition(group) {
+  if (!group || !altLoginOriginalParent || group.parentNode === altLoginOriginalParent) return;
+
+  if (altLoginOriginalNextSibling && altLoginOriginalNextSibling.parentNode === altLoginOriginalParent) {
+    altLoginOriginalParent.insertBefore(group, altLoginOriginalNextSibling);
+  } else {
+    altLoginOriginalParent.appendChild(group);
+  }
+}
+
+function setAltLoginOptionsOpen(open) {
+  const ui = ensureAltLoginSheetUI();
   const btn = document.getElementById("altLoginToggleBtn");
   const chevron = document.getElementById("altToggleChevron");
-  if (!group || !btn) return;
+  if (!ui || !btn) return;
 
-  const isCollapsed = group.classList.contains("collapsed");
-  group.classList.toggle("collapsed", !isCollapsed);
-  btn.setAttribute("aria-expanded", isCollapsed ? "true" : "false");
-  btn.classList.toggle("active", isCollapsed);
+  const mobileSheet = window.matchMedia("(max-width: 520px)").matches;
+
+  if (open && mobileSheet && ui.group.parentNode !== document.body) {
+    document.body.appendChild(ui.group);
+  }
+
+  ui.group.classList.toggle("collapsed", !open);
+  ui.backdrop.classList.toggle("show", open && mobileSheet);
+  document.body.classList.toggle("alt-login-open", open && mobileSheet);
+
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+  btn.classList.toggle("active", open);
 
   if (chevron) {
-    chevron.style.transform = isCollapsed ? "rotate(180deg)" : "rotate(0deg)";
+    chevron.style.transform = open ? "rotate(180deg)" : "rotate(0deg)";
   }
+
+  if (!open && mobileSheet) {
+    window.setTimeout(() => restoreAltLoginGroupPosition(ui.group), 300);
+  } else if (!mobileSheet) {
+    restoreAltLoginGroupPosition(ui.group);
+  }
+}
+
+window.toggleAltLoginOptions = function toggleAltLoginOptions() {
+  const group = document.getElementById("altLoginGroup");
+  if (!group) return;
+  setAltLoginOptionsOpen(group.classList.contains("collapsed"));
 };
+
+window.closeAltLoginOptions = function closeAltLoginOptions() {
+  setAltLoginOptionsOpen(false);
+};
+
+if (!window.__pvtAltLoginEscapeBound) {
+  window.__pvtAltLoginEscapeBound = true;
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") window.closeAltLoginOptions();
+  });
+}
 
 /**
  * ⚡ ตรวจสอบ Session และ Supabase Token อัตโนมัติ (Seamless Auto-Redirect)

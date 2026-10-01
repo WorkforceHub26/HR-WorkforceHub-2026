@@ -109,62 +109,37 @@
     <!-- 💻 2. MAIN WORKSPACE CONTENT -->
     <main class="main-content">
       
-      <!-- 📱 1. NATIVE MOBILE APP BAR (HEADER) -->
-      <header class="page-header-row mobile-appbar">
-        <div class="appbar-left-zone">
-          <div class="appbar-title-wrap">
-            <h1 class="appbar-main-title">ประวัติการลา</h1>
-            <div class="appbar-subtitle-row">
-              <span class="appbar-live-dot"></span>
-              <span class="appbar-subtext">อัปเดตแบบเรียลไทม์</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="appbar-right-zone">
-          <!-- Notification Bell -->
-          <div class="notif-wrapper" style="position: relative; display: inline-block;">
-            <button id="notificationBtn" class="app-icon-btn notif-btn" onclick="toggleUserNotifDropdown(event)" title="การแจ้งเตือนใบลา" aria-label="การแจ้งเตือน">
-              <img src="/assets/icons/bell-new.svg" alt="การแจ้งเตือน" style="width: 20px; height: 20px; object-fit: contain;" />
-              <span id="notifBadge" class="notif-badge" style="display: none;">0</span>
-            </button>
-            <div class="notif-dropdown" id="userNotifDropdown" style="position: absolute; top: calc(100% + 10px); right: 0; width: 380px; background: #ffffff; border: 1px solid #e2e8f0; max-width: calc(100vw - 24px); border-radius: 18px; box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.15); z-index: 999999; display: none; flex-direction: column; overflow: hidden;">
-              <div class="notif-header" style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
-                <div class="notif-title" style="display: flex; align-items: center; gap: 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 20px; color: #0f766e;">notifications</span>
-                  <strong style="font-size: 15px; color: #0f172a; font-weight: 700;">การแจ้งเตือน</strong>
-                  <span class="notif-count-pill" id="userNotifCount" style="font-size: 11px; font-weight: 700; background: #ccfbf1; color: #0f766e; padding: 2px 7px; border-radius: 10px;">0 รายการ</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <button type="button" class="btn-mark-read" onclick="markAllUserNotificationsAsRead(event)" style="background: #f0fdfa; border: 1px solid #99f6e4; font-size: 11px; color: #0f766e; font-weight: 700; cursor: pointer; padding: 4px 8px; border-radius: 6px;">อ่านทั้งหมด</button>
-                  <button type="button" class="btn-close-notif" onclick="toggleUserNotifDropdown(event)" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid #e2e8f0; background: #ffffff; color: #64748b; cursor: pointer;" title="ปิดหน้าต่าง">
-                    <span class="material-symbols-outlined" style="font-size: 15px;">close</span>
-                  </button>
-                </div>
-              </div>
-              <div class="notif-body" id="userNotifList" style="max-height: 300px; overflow-y: auto;">
-                <div style="padding: 24px; text-align: center; color: #64748b; font-size: 13px;">
-                  ⌛ กำลังโหลดแจ้งเตือน...
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- User Profile Avatar -->
-          <div class="user-profile-pill" onclick="window.location.href='/pages/user/profile-user.html'" title="ข้อมูลส่วนตัว">
-            <img src="/assets/img/default-avatar.jpg" alt="Avatar" id="user-avatar" class="user-profile-avatar" />
-            <div class="user-profile-meta desktop-only">
-              <span id="emp-name" class="user-profile-name">กำลังโหลด...</span>
-              <span id="emp-detail" class="user-profile-desc">พนักงานประจำ</span>
-            </div>
-          </div>
+      <!-- 📱 1. PAGE-SPECIFIC MOBILE HEADER -->
+      <div class="history-topbar" role="banner">
+        <button
+          type="button"
+          class="history-topbar__back"
+          onclick="handleGoBack()"
+          title="กลับ"
+          aria-label="กลับ"
+        >
+          <span class="material-symbols-outlined">arrow_back</span>
+        </button>
 
-          <!-- Mobile Sidebar Drawer Trigger (3 Dots Menu - Borderless) -->
-          <button type="button" class="app-icon-btn mobile-menu-btn borderless-action-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิดเมนูอื่น ๆ" aria-label="เมนู">
-            <span class="material-symbols-outlined" style="font-size: 24px;">more_vert</span>
-          </button>
+        <div class="history-topbar__center">
+          <h1 class="history-topbar__title">ประวัติการลา</h1>
+          <div class="history-topbar__subtitle">
+            <span class="history-topbar__dot"></span>
+            <span>อัปเดตแบบเรียลไทม์</span>
+          </div>
         </div>
-      </header>
+
+        <button
+          type="button"
+          class="history-topbar__menu"
+          id="mobileMenuBtn"
+          onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}"
+          title="เปิดเมนูอื่น ๆ"
+          aria-label="เมนู"
+        >
+          <span class="material-symbols-outlined">more_vert</span>
+        </button>
+      </div>
 
       <!-- 📊 2. NATIVE MOBILE SUMMARY CARD (COMPACT OVERVIEW) -->
       <section class="mobile-summary-card">
@@ -276,7 +251,7 @@
         </a>
         <a href="/pages/user/profile-user.html" class="bottom-nav-item">
           <span class="material-symbols-outlined">person</span>
-          <span class="nav-label">ข้อมูลฉัน</span>
+          <span class="nav-label">ข้อมูลส่วนตัว</span>
         </a>
       </nav>
       

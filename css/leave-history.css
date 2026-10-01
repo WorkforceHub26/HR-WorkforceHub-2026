@@ -1915,3 +1915,214 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 
 
 
+
+/* ========================================================================== 
+   FINAL UI ALIGNMENT — MATCH HOLIDAYS PAGE HEADER + BOTTOM NAV
+   ========================================================================== */
+@media (max-width: 1024px) {
+  /* Header: same clean white app bar used on Holidays page */
+  #page-user-history .page-header-row.mobile-appbar.history-holiday-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 54px !important;
+    margin: 0 !important;
+    margin-bottom: 10px !important;
+    padding: 8px 0 !important;
+    background: #ffffff !important;
+    border: 0 !important;
+    border-bottom: 1px solid #eef2f7 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  #page-user-history .page-header-row.mobile-appbar.history-holiday-header::before,
+  #page-user-history .page-header-row.mobile-appbar.history-holiday-header::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  #page-user-history .history-holiday-header .appbar-left-zone {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  #page-user-history .history-holiday-header .appbar-title-wrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  #page-user-history .history-holiday-header .appbar-main-title {
+    margin: 0;
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.18;
+    letter-spacing: -0.2px;
+  }
+
+  #page-user-history .history-holiday-header .appbar-subtitle-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+  }
+
+  #page-user-history .history-holiday-header .appbar-live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.16);
+    flex-shrink: 0;
+  }
+
+  #page-user-history .history-holiday-header .appbar-subtext {
+    color: #64748b;
+    font-size: 10.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  #page-user-history .history-holiday-header .appbar-right-zone {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+  }
+
+  #page-user-history .history-holiday-header .history-actions:empty {
+    display: none !important;
+  }
+
+  #page-user-history .history-holiday-header .mobile-menu-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    color: #334155 !important;
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Bottom nav: same proportions as Holidays page */
+  #page-user-history .mobile-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 64px;
+    min-height: 64px;
+    padding: 0 12px max(6px, env(safe-area-inset-bottom)) 12px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(226, 232, 240, 0.85);
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 1000;
+  }
+
+  #page-user-history .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 58px;
+    max-width: none;
+    flex: 0 1 auto;
+    padding: 4px 10px;
+    border-radius: 12px;
+    color: #64748b;
+    text-decoration: none;
+  }
+
+  #page-user-history .bottom-nav-item .material-symbols-outlined {
+    font-size: 22px;
+  }
+
+  #page-user-history .bottom-nav-item .nav-label {
+    display: block;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+    color: inherit;
+    font-size: 10.5px !important;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+
+  #page-user-history .bottom-nav-item.active {
+    color: #1d4ed8;
+  }
+
+  #page-user-history .bottom-nav-item.active .nav-label {
+    font-weight: 800;
+  }
+
+  #page-user-history .nav-active-dot {
+    bottom: 0;
+    width: 4px;
+    height: 4px;
+    background: #1d4ed8;
+  }
+
+  #page-user-history .bottom-nav-item.primary-action {
+    flex: 0 1 auto;
+    min-width: 58px;
+    margin-top: -16px;
+    padding: 4px 10px;
+    color: #1d4ed8;
+  }
+
+  #page-user-history .bottom-nav-item.primary-action .center-fab-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+  }
+
+  #page-user-history .bottom-nav-item.primary-action .center-fab-icon .material-symbols-outlined {
+    font-size: 24px;
+    color: #ffffff;
+  }
+
+  #page-user-history .bottom-nav-item.primary-action .nav-label {
+    margin-top: 0;
+    font-weight: 600;
+    color: #1d4ed8;
+  }
+
+  #page-user-history .main-content {
+    padding-bottom: max(110px, calc(96px + env(safe-area-inset-bottom))) !important;
+  }
+}
