@@ -26,7 +26,34 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="PVT Hub" />
     <meta name="format-detection" content="telephone=no" />
-    <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
+    <!-- Favicon -->
+<link href="/favicon.ico" rel="icon" type="image/x-icon"/>
+<link href="/manifest.json" rel="manifest"/>
+<meta content="#0d9488" name="theme-color"/>
+<!-- PNG icon -->
+<link href="/assets/icons/PVTT_LEAVE.png" rel="icon" sizes="32x32" type="image/png"/>
+<link href="/assets/icons/PVTT_LEAVE.png" rel="icon" sizes="192x192" type="image/png"/>
+<!-- Apple -->
+<link href="/assets/icons/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
+
+
+<style>
+  /* จัดหัวข้อหน้า Holidays ให้อยู่กึ่งกลางจริง */
+  #holidaysHeader {
+    position: relative;
+  }
+
+  #holidaysHeader .holidays-title-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+
+  #holidaysHeader .appbar-subtitle-row {
+    justify-content: center;
+  }
+</style>
 
 </head>
 
@@ -275,7 +302,17 @@
 
         <header id="holidaysHeader" class="page-header-row mobile-appbar">
           <div class="appbar-left-zone">
-            <div class="appbar-title-wrap">
+            <button
+              type="button"
+              class="btn-header-back-app"
+              onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href='/pages/user/index-user.html'; }"
+              title="กลับ"
+              aria-label="กลับ"
+            >
+              <span class="material-symbols-outlined">arrow_back</span>
+            </button>
+
+            <div class="appbar-title-wrap holidays-title-center">
               <h1 class="appbar-main-title">ปฏิทินวันหยุด</h1>
               <div class="appbar-subtitle-row">
                 <span class="appbar-live-dot"></span>

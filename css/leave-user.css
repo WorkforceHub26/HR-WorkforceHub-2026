@@ -1331,3 +1331,113 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
   outline: none !important;
   box-shadow: none !important;
 }
+
+
+/* ==========================================================================
+   LEAVE PAGE TOPBAR
+   แก้ส่วนหัวหน้านี้ได้จาก class ตรง ๆ
+   ========================================================================== */
+.leave-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+
+  width: 100%;
+  min-height: 64px;
+  padding: max(8px, env(safe-area-inset-top)) 10px 8px;
+
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.leave-topbar-center {
+  min-width: 0;
+  text-align: center;
+}
+
+.leave-topbar-title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.leave-topbar-subtitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.1;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.leave-topbar-dot {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.leave-topbar-back,
+.leave-topbar-menu {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #334155;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.leave-topbar-back {
+  justify-self: start;
+}
+
+.leave-topbar-menu {
+  justify-self: end;
+}
+
+.leave-topbar-back .material-symbols-outlined,
+.leave-topbar-menu .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.leave-topbar-back:active,
+.leave-topbar-menu:active {
+  background: #f1f5f9;
+  transform: scale(0.94);
+}
+
+@media screen and (max-width: 768px) {
+  .leave-topbar {
+    min-height: 64px;
+  }
+}
+
+@media print {
+  .leave-topbar {
+    display: none;
+  }
+}
+

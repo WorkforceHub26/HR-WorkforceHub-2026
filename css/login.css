@@ -12,7 +12,7 @@
   --primary-dark: #0f766e;
   --primary-light: #ccfbf1;
   --primary-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
-  --primary-glow: rgba(13, 148, 136, 0.35);
+  --primary-glow: rgba(0, 174, 255, 0.30);
 
   --text-dark: #0f172a;
   --text-main: #334155;
@@ -21,7 +21,9 @@
   --border-focus: #0d9488;
 
   --bg-card: rgba(255, 255, 255, 0.88);
-  --shadow-card: 0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 0 1px 1px rgba(255, 255, 255, 0.9) inset;
+  --shadow-card:
+    0 20px 40px -15px rgba(15, 23, 42, 0.08),
+    0 0 1px 1px rgba(255, 255, 255, 0.9) inset;
 }
 
 * {
@@ -32,7 +34,13 @@
 }
 
 body {
-  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    "Sarabun",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   background-color: #f0fdfa;
   background-image:
     radial-gradient(circle at 15% 15%, #cffafe 0px, transparent 40%),
@@ -47,7 +55,7 @@ body {
   min-height: 100dvh;
   margin: 0;
   padding: clamp(16px, 3vw, 28px);
-  color: var(--text-dark);
+  color: var(--primary-light);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -73,20 +81,35 @@ body {
   -webkit-backdrop-filter: blur(16px);
   animation: smoothEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   box-sizing: border-box;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 /* 💥 Shake Animation & Visual Error on Failed Authentication */
 @keyframes loginCardShake {
-  0%, 100% { transform: translateX(0); }
-  15%, 45%, 75% { transform: translateX(-8px); }
-  30%, 60%, 90% { transform: translateX(8px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15%,
+  45%,
+  75% {
+    transform: translateX(-8px);
+  }
+  30%,
+  60%,
+  90% {
+    transform: translateX(8px);
+  }
 }
 
 .login-card.shake {
   animation: loginCardShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   border-color: #f87171;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4), 0 20px 35px -8px rgba(239, 68, 68, 0.25);
+  box-shadow:
+    0 0 0 2px rgba(239, 68, 68, 0.4),
+    0 20px 35px -8px rgba(239, 68, 68, 0.25);
 }
 
 /* 🚨 Color-Coded Alert Banner inside Login Card */
@@ -197,7 +220,10 @@ body {
   border-radius: 6px;
   font-weight: bold;
   margin-left: 8px;
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
 }
 
 #btnDismissCameraAlert:hover {
@@ -312,9 +338,18 @@ body {
 }
 
 @keyframes pulseDot {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 
 /* ================== ฟอร์มและช่องกรอกข้อมูล ================== */
@@ -366,7 +401,11 @@ body {
   color: #0f172a;
   box-sizing: border-box;
   transform-origin: center;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, background-color 0.2s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .input-field:hover {
@@ -379,7 +418,9 @@ body {
   border-color: #0d9488;
   background: #ffffff;
   transform: scale(1.012);
-  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.16), 0 4px 12px rgba(13, 148, 136, 0.08);
+  box-shadow:
+    0 0 0 4px rgba(13, 148, 136, 0.16),
+    0 4px 12px rgba(13, 148, 136, 0.08);
   animation: inputFocusScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
@@ -394,7 +435,9 @@ body {
   }
   100% {
     transform: scale(1.012);
-    box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.16), 0 4px 12px rgba(13, 148, 136, 0.08);
+    box-shadow:
+      0 0 0 4px rgba(13, 148, 136, 0.16),
+      0 4px 12px rgba(13, 148, 136, 0.08);
   }
 }
 
@@ -505,7 +548,11 @@ body {
 
 .lang-switcher .lang-btn,
 .lang-switcher button,
-#langThBtn, #langEnBtn, #langLoBtn, #langMyBtn, #langSettingsBtn {
+#langThBtn,
+#langEnBtn,
+#langLoBtn,
+#langMyBtn,
+#langSettingsBtn {
   min-height: 22px;
   min-width: 22px;
   height: 22px;
@@ -533,7 +580,10 @@ body {
 .lang-switcher .lang-btn.active,
 .lang-switcher button[style*="background-color: rgb(255, 255, 255)"],
 .lang-switcher button[style*="background: rgb(255, 255, 255)"],
-#langThBtn.active, #langEnBtn.active, #langLoBtn.active, #langMyBtn.active {
+#langThBtn.active,
+#langEnBtn.active,
+#langLoBtn.active,
+#langMyBtn.active {
   background: #ffffff;
   background-color: #ffffff;
   color: #0d9488;
@@ -562,11 +612,12 @@ body {
 .biometric-btn,
 .qr-guide-link-btn,
 .biometric-guide-btn {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              filter 0.2s ease,
-              background 0.2s ease,
-              opacity 0.2s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .login-btn:not(:disabled):not(.loading):hover,
@@ -575,7 +626,9 @@ body {
 .qr-guide-link-btn:hover,
 .biometric-guide-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow:
+  0 8px 20px rgba(37, 86, 210, 0.35),
+  0 3px 8px rgba(0, 123, 255, 0.18);
 }
 
 /* Shared Active State for Tactile Feedback */
@@ -590,20 +643,29 @@ body {
 
 /* Border Gradient Glow Animation */
 @keyframes border-gradient-glow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Button Breathing Pulse Animation */
 @keyframes button-breathing-pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 4px 14px var(--primary-glow);
+    box-shadow: 0 4px 14px rgba(37, 86, 210, 0.30);
   }
+
   50% {
     transform: scale(1.012);
-    box-shadow: 0 6px 22px var(--primary-glow);
+    box-shadow:
+      0 8px 22px rgba(37, 86, 210, 0.34),
+      0 0 14px rgba(32, 174, 244, 0.20);
   }
 }
 
@@ -622,7 +684,9 @@ body {
     transparent
   );
   background-size: 200% 100%;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0;
@@ -689,8 +753,9 @@ body {
   position: absolute;
   inset: 0;
   overflow: visible;
-  transition: opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: transform, opacity;
 }
 
@@ -706,7 +771,8 @@ body {
 }
 
 @keyframes readyBeaconPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(0.96);
     opacity: 0.35;
   }
@@ -739,8 +805,12 @@ body {
 }
 
 @keyframes statusSpinnerSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .login-btn .btn-content {
@@ -754,8 +824,9 @@ body {
   z-index: 2;
   transform: translateY(0) scale(1);
   opacity: 1;
-  transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .login-btn .btn-spinner {
@@ -770,9 +841,10 @@ body {
   visibility: hidden;
   transform: translateY(8px) scale(0.92);
   pointer-events: none;
-  transition: opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
-              visibility 0.24s ease;
+  transition:
+    opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.24s ease;
   font-size: 14.5px;
   font-weight: 600;
   color: #ffffff;
@@ -799,13 +871,19 @@ body {
 }
 
 @keyframes loginBtnSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Hover & Active States (Only when not loading and not disabled) */
 .login-btn:not(:disabled):not(.loading):active {
-  box-shadow: 0 2px 6px var(--primary-glow);
+  box-shadow:
+    0 4px 12px rgba(37, 86, 210, 0.30),
+    0 0 12px rgba(32, 174, 244, 0.18);
   filter: brightness(0.96);
 }
 
@@ -813,7 +891,9 @@ body {
 .login-btn.loading {
   cursor: wait;
   pointer-events: none;
-  box-shadow: 0 4px 12px var(--primary-glow);
+  box-shadow:
+    0 6px 18px rgba(37, 86, 210, 0.32),
+    0 0 14px rgba(32, 174, 244, 0.20);
   filter: brightness(0.98);
 }
 
@@ -935,8 +1015,14 @@ body {
 
 /* Fade In / Fade Out Transitions */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .fade-in {
@@ -959,7 +1045,7 @@ body {
   gap: 6px;
   background: transparent;
   border: none;
-  color: #0d9488;
+  color: #747fdd;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
@@ -998,7 +1084,11 @@ body {
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   box-sizing: border-box;
-  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, margin 0.25s ease, padding 0.25s ease;
+  transition:
+    max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.25s ease,
+    margin 0.25s ease,
+    padding 0.25s ease;
   overflow: hidden;
   max-height: 500px;
   opacity: 1;
@@ -1154,7 +1244,11 @@ body {
   border-radius: 16px;
   margin-top: 0;
   box-shadow: 0 15px 30px -5px rgba(15, 23, 42, 0.12);
-  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, margin-top 0.25s ease, padding 0.25s ease;
+  transition:
+    max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.25s ease,
+    margin-top 0.25s ease,
+    padding 0.25s ease;
   padding: 0 16px;
   box-sizing: border-box;
 }
@@ -1245,7 +1339,7 @@ body {
 }
 
 #loginForm .login-btn {
-  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
+  animation: fieldSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
 }
 
 #loginForm .qr-btn {
@@ -1275,7 +1369,11 @@ body {
 }
 
 .swal2-popup {
-  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    "Sarabun",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   border-radius: 20px;
   padding: 1.8em;
   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
@@ -1354,7 +1452,8 @@ body {
     border-radius: 14px;
   }
 
-  .qr-btn, .biometric-btn {
+  .qr-btn,
+  .biometric-btn {
     height: clamp(44px, 5.5vh, 50px);
     min-height: 44px;
     font-size: 14.5px;
@@ -1426,12 +1525,14 @@ body {
     font-size: 13px;
   }
 
-  .input-field, .login-btn {
+  .input-field,
+  .login-btn {
     height: 44px;
     min-height: 44px;
   }
 
-  .qr-btn, .biometric-btn {
+  .qr-btn,
+  .biometric-btn {
     height: 42px;
     min-height: 42px;
     font-size: 13.5px;
@@ -1462,7 +1563,9 @@ body {
   padding: 0;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+  transition:
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.3s;
   box-sizing: border-box;
 }
 
@@ -1495,7 +1598,9 @@ body {
     max-height: 92vh;
     border-radius: 28px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 }
 
@@ -1719,7 +1824,9 @@ body {
   border: 1px solid rgba(16, 185, 129, 0.35);
   border-radius: 20px;
   padding: 5px 12px 5px 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 0 14px rgba(16, 185, 129, 0.25);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px) scale(0.95);
@@ -1778,8 +1885,14 @@ body {
 }
 
 @keyframes pulseEcoLeaf {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.18); color: #10b981; }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+    color: #10b981;
+  }
 }
 
 /* ==========================================================================
@@ -1795,7 +1908,11 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.94), rgba(2, 132, 199, 0.94));
+  background: linear-gradient(
+    135deg,
+    rgba(13, 148, 136, 0.94),
+    rgba(2, 132, 199, 0.94)
+  );
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.35);
@@ -1836,42 +1953,73 @@ body {
 }
 
 @keyframes detectIconSpin {
-  0% { transform: scale(0.5) rotate(-45deg); }
-  70% { transform: scale(1.25) rotate(10deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0% {
+    transform: scale(0.5) rotate(-45deg);
+  }
+  70% {
+    transform: scale(1.25) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 @keyframes detectPulseRing {
-  0% { transform: scale(0.95); opacity: 0.9; }
-  100% { transform: scale(1.15); opacity: 0; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
 }
 
 /* Container Highlight Effect when QR Code is Detected */
 .pvt-qr-viewport-container.qr-detected {
-  box-shadow: inset 0 0 60px rgba(16, 185, 129, 0.55), inset 0 0 20px rgba(52, 211, 153, 0.85);
+  box-shadow:
+    inset 0 0 60px rgba(16, 185, 129, 0.55),
+    inset 0 0 20px rgba(52, 211, 153, 0.85);
   transition: box-shadow 0.2s ease;
 }
 
 .pvt-qr-viewport-container.qr-detected .pvt-qr-reticle-box {
   transform: scale(1.05);
-  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65), 0 0 30px rgba(52, 211, 153, 0.6);
+  box-shadow:
+    0 0 0 9999px rgba(15, 23, 42, 0.65),
+    0 0 30px rgba(52, 211, 153, 0.6);
 }
 
 .pvt-qr-viewport-container.qr-detected .pvt-qr-corner {
   border-color: #34d399;
-  box-shadow: 0 0 14px #34d399, inset 0 0 8px #34d399;
+  box-shadow:
+    0 0 14px #34d399,
+    inset 0 0 8px #34d399;
   animation: cornerGlowPulse 0.4s ease-in-out infinite alternate;
 }
 
 .pvt-qr-viewport-container.qr-detected .pvt-qr-laser {
-  background: linear-gradient(90deg, transparent 0%, #34d399 20%, #a7f3d0 50%, #34d399 80%, transparent 100%);
-  box-shadow: 0 0 24px 4px #34d399, 0 0 8px 2px #ffffff;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #34d399 20%,
+    #a7f3d0 50%,
+    #34d399 80%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 24px 4px #34d399,
+    0 0 8px 2px #ffffff;
   height: 5px;
 }
 
 @keyframes cornerGlowPulse {
-  0% { filter: brightness(1); }
-  100% { filter: brightness(1.4); }
+  0% {
+    filter: brightness(1);
+  }
+  100% {
+    filter: brightness(1.4);
+  }
 }
 
 #pvt-qr-video-host {
@@ -1945,21 +2093,45 @@ body {
   left: 5%;
   right: 5%;
   height: 3px;
-  background: linear-gradient(90deg, transparent 0%, #10b981 30%, #34d399 50%, #10b981 70%, transparent 100%);
-  box-shadow: 0 0 14px 2px #10b981, 0 0 4px 1px #a7f3d0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #10b981 30%,
+    #34d399 50%,
+    #10b981 70%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 14px 2px #10b981,
+    0 0 4px 1px #a7f3d0;
   border-radius: 9999px;
   animation: pvtLaserSweep 2.2s ease-in-out infinite alternate;
 }
 
 @keyframes pvtLaserSweep {
-  0% { top: 6%; opacity: 0.9; }
-  50% { opacity: 1; }
-  100% { top: 92%; opacity: 0.9; }
+  0% {
+    top: 6%;
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    opacity: 0.9;
+  }
 }
 
 @keyframes pulseScanner {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.5; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.5;
+  }
 }
 
 /* Dynamic Scan Guide Text */
@@ -1986,7 +2158,11 @@ body {
 .pvt-qr-success-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(16, 185, 129, 0.35) 0%,
+    transparent 70%
+  );
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2015,7 +2191,9 @@ body {
 }
 
 .pvt-qr-reticle-box.scan-success {
-  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.85), 0 0 30px #10b981;
+  box-shadow:
+    0 0 0 9999px rgba(15, 23, 42, 0.85),
+    0 0 30px #10b981;
 }
 
 .pvt-qr-reticle-box.scan-success .pvt-qr-corner {
@@ -2029,8 +2207,14 @@ body {
 }
 
 @keyframes pvtPopSuccess {
-  0% { transform: scale(0.4); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Camera Permission & Loading Card */
@@ -2273,7 +2457,9 @@ body {
   box-sizing: border-box;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.25s ease, visibility 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease;
 }
 
 .pvt-guide-modal-overlay.active {
@@ -2388,7 +2574,9 @@ body {
   background: #f8fafc;
   border: 1px solid #f1f5f9;
   border-radius: 16px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .pvt-guide-step-card:hover {
@@ -2598,7 +2786,9 @@ body {
   .pvt-guide-dos-donts {
     grid-template-columns: 1fr;
   }
-  .pvt-guide-header, .pvt-guide-body, .pvt-guide-footer {
+  .pvt-guide-header,
+  .pvt-guide-body,
+  .pvt-guide-footer {
     padding-left: 16px;
     padding-right: 16px;
   }
@@ -2666,11 +2856,19 @@ body {
 }
 
 @keyframes connectionPulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
-
 
 /* ==========================================================================
    FINAL LOGIN LAYOUT - GREEN / BLUE CURVED HEADER
@@ -2719,7 +2917,8 @@ body {
   height: 430px;
   transform: translateX(-50%);
   border-radius: 50%;
-  background: linear-gradient(150deg, #7fe4d7 0%, #79dce4 52%, #72c7f0 100%);
+  background:linear-gradient(135deg, #1e40af 0%, #2563eb 55%, #0284c7 100%);
+  
   z-index: 0;
 }
 
@@ -2750,12 +2949,34 @@ body {
   border: 0;
   border-radius: 0;
   box-shadow: none;
+   position: relative;
 }
+
+
+#page-login .logo-wrapper::before {
+  content: "";
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.22) 42%,
+    transparent 72%
+  );
+  filter: blur(10px);
+  z-index: 0;
+}
+
 
 #page-login .brand-logo {
   width: 140px;
   max-width: 100%;
   height: auto;
+  position: relative;
+  z-index: 1;
+  filter: none;
 }
 
 #page-login #pvtLoginHeader {
@@ -2764,7 +2985,7 @@ body {
   font-size: 22px;
   line-height: 1.35;
   font-weight: 800;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 #page-login .brand-badge {
@@ -2773,7 +2994,7 @@ body {
   background: transparent;
   border: 0;
   box-shadow: none;
-  color: #0d9488;
+  color: #88c4fc;
   font-size: 14px;
   font-weight: 700;
 }
@@ -2826,18 +3047,40 @@ body {
   margin-right: auto;
 }
 
-#page-login .form-group { margin-bottom: 18px; }
-#page-login .form-group label { font-size: 15px; font-weight: 700; color: #334155; }
+#page-login .form-group {
+  margin-bottom: 18px;
+}
+#page-login .form-group label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+}
 #page-login .input-wrapper {
   min-height: 56px;
   border-radius: 18px;
   background: #f8fbff;
   border: 1.5px solid #cbd5e1;
 }
-#page-login .input-field { min-height: 56px; font-size: 16px; }
-#page-login .login-btn { min-height: 58px; border-radius: 18px; }
-#page-login .alt-login-wrapper { margin-top: 24px; }
-#page-login .login-footer-info { margin-top: 26px; padding-top: 18px; }
+#page-login .input-field {
+  min-height: 56px;
+  font-size: 16px;
+}
+#page-login .login-btn,
+#page-login .login-btn:hover,
+#page-login .login-btn:active
+ {
+  min-height: 58px;
+  border-radius: 18px;
+  background:linear-gradient(135deg, #1e40af 0%, #2563eb 55%, #0284c7 100%);
+  color: #ffffff;
+}
+#page-login .alt-login-wrapper {
+  margin-top: 24px;
+}
+#page-login .login-footer-info {
+  margin-top: 26px;
+  padding-top: 18px;
+}
 
 @media (max-width: 520px) {
   html,
@@ -2878,50 +3121,60 @@ body {
     height: 440px;
   }
 
- /* ให้พื้นที่ฟอร์มเริ่มสูงขึ้นนิดหนึ่ง */
-#page-login .brand-area {
-  flex: 0 0 33%;
-  min-height: 0;
-  padding: calc(36px + env(safe-area-inset-top, 0px)) 18px 4px;
-}
+  /* ให้พื้นที่ฟอร์มเริ่มสูงขึ้นนิดหนึ่ง */
+  #page-login .brand-area {
+    flex: 0 0 33%;
+    min-height: 0;
+    padding: calc(36px + env(safe-area-inset-top, 0px)) 18px 4px;
+  }
 
- /* ขยับ LOGO + ชื่อระบบลง */
-#page-login .logo-wrapper {
-  width: 112px;
-  height: 112px;
-  margin-top: 18px;
-  margin-bottom: 8px;
-}
+  /* ขยับ LOGO + ชื่อระบบลง */
+  #page-login .logo-wrapper {
+    width: 140px;
+    height: 140px;
+    margin-top: 18px;
+    margin-bottom: 8px;
+  }
 
-  #page-login .brand-logo { width: 106px; }
-  #page-login #pvtLoginHeader { font-size: 16px; line-height: 1.25; }
-  #page-login .brand-badge { font-size: 11px; margin-top: 3px; }
+  #page-login .brand-logo {
+    width: 132px;
+  }
+  #page-login #pvtLoginHeader {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+  #page-login .brand-badge {
+    font-size: 11px;
+    margin-top: 3px;
+  }
 
   #page-login .login-sheet {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0 22px calc(10px + env(safe-area-inset-bottom, 0px));
-}
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0 22px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
 
- /* หัวเข้าสู่ระบบ - ห้ามใช้ค่าติดลบ */
-#page-login .login-sheet-title {
-  display: block;
-  position: static;
-  transform: none;
-  /* margin: 0 0 12px; */
-  padding: 0;
-  font-size: 25px;
-  line-height: 1.2;
-  text-align: center;
-  color: #141414;
-}
+  /* หัวเข้าสู่ระบบ - ห้ามใช้ค่าติดลบ */
+  #page-login .login-sheet-title {
+    display: block;
+    position: static;
+    transform: none;
+    /* margin: 0 0 12px; */
+    padding: 0;
+    font-size: 25px;
+    line-height: 1.2;
+    text-align: center;
+    color: #141414;
+  }
 
   #page-login #loginForm {
     max-width: 390px;
   }
 
-  #page-login .form-group { margin-bottom: 12px; }
+  #page-login .form-group {
+    margin-bottom: 12px;
+  }
   #page-login .form-group label {
     margin-bottom: 6px;
     font-size: 13px;
@@ -2942,9 +3195,15 @@ body {
     height: 50px;
   }
 
-  #page-login .alt-login-wrapper { margin-top: 10px; }
-  #page-login .alt-login-toggle-btn { min-height: 40px; }
-  #page-login .lang-switcher-wrapper { margin-top: 0; }
+  #page-login .alt-login-wrapper {
+    margin-top: 10px;
+  }
+  #page-login .alt-login-toggle-btn {
+    min-height: 40px;
+  }
+  #page-login .lang-switcher-wrapper {
+    margin-top: 0;
+  }
 
   #page-login .login-footer-info {
     margin-top: 6px;
@@ -2953,14 +3212,15 @@ body {
 }
 
 @media (min-width: 700px) {
-  #page-login { padding: 28px 0; }
+  #page-login {
+    padding: 28px 0;
+  }
   #page-login .login-card {
     min-height: calc(100dvh - 56px);
     border-radius: 38px;
-    box-shadow: 0 24px 70px rgba(15,23,42,.2);
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
   }
 }
-
 
 /* ==========================================================================\n   MOBILE ALTERNATIVE LOGIN BOTTOM SHEET\n   - Desktop keeps the existing inline expand/collapse behavior.\n   - Mobile opens alternative login methods as a bottom sheet.\n   ========================================================================== */
 .alt-login-backdrop,
@@ -2983,7 +3243,9 @@ body {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.24s ease, visibility 0.24s ease;
+    transition:
+      opacity 0.24s ease,
+      visibility 0.24s ease;
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
   }
@@ -3023,9 +3285,10 @@ body {
     visibility: visible;
     transform: translateY(0);
     pointer-events: auto;
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.2s ease,
-                visibility 0.2s ease;
+    transition:
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.2s ease,
+      visibility 0.2s ease;
     scrollbar-width: none;
   }
 
