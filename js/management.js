@@ -355,6 +355,15 @@ function renderHeaderProfile() {
   if (avatarEl) {
     avatarEl.src = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(profile.image_url) : '/assets/img/default-avatar.jpg';
   }
+
+  // ส่งชื่อ/รูปให้ Layout กลาง (layout.js) แสดงที่โปรไฟล์มุมขวาบน
+  // (ช่องรูปใน Layout ใหม่เป็น <div> ไม่ใช่ <img> จึงต้องตั้งผ่าน PVTLayout.setUser)
+  if (window.PVTLayout && typeof window.PVTLayout.setUser === "function") {
+    window.PVTLayout.setUser({
+      name: profile.full_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "ผู้ใช้งาน",
+      avatarUrl: window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(profile.image_url) : ''
+    });
+  }
 }
 
 
@@ -6670,7 +6679,3 @@ window.viewAuditLogs = typeof viewAuditLogs !== 'undefined' ? viewAuditLogs : wi
 window.resetYearlyLeave = typeof resetYearlyLeave !== 'undefined' ? resetYearlyLeave : window.resetYearlyLeave;
 window.importEmployeesExcel = importEmployeesExcel;
 window.downloadExcelTemplate = downloadExcelTemplate;
-
-
-
-

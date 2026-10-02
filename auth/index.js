@@ -2526,3 +2526,16 @@ async function loginByBiometrics() {
 
 window.loginByBiometrics = loginByBiometrics;
 
+
+
+
+
+window.toggleHeaderMore = function (event) {
+  if (event) event.stopPropagation();
+  const menu = document.getElementById('hdrMoreMenu');
+  if (menu) menu.classList.toggle('show');
+};
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('hdrMoreMenu');
+  if (menu && !e.target.closest('.hdr-more-wrap')) menu.classList.remove('show');
+});

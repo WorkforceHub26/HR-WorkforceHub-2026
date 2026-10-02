@@ -6,3 +6,344 @@
 @import url('/css/hr.css');
 @import url('/css/company-news.css');
 @import url('/css/health-wellness.css');
+
+
+/* ======================================================
+   LAYOUT POLISH — HR Dashboard (Desktop-first)
+   วางไว้ท้ายไฟล์เพื่อ override CSS ที่ import มาด้านบน
+   ====================================================== */
+
+#page-hr-home {
+  --hr-gap: 20px;
+  --hr-radius: 16px;
+  --hr-border: #e2e8f0;
+  --hr-shadow: 0 1px 3px rgba(15, 23, 42, .05), 0 4px 14px rgba(15, 23, 42, .04);
+  --hr-shadow-hover: 0 8px 24px rgba(15, 23, 42, .10);
+  --hr-ease: cubic-bezier(.22, .61, .36, 1);
+  scroll-behavior: smooth;
+}
+html { scroll-behavior: smooth; }
+
+/* ---------- 1) โครงหลัก: เรียงเป็นคอลัมน์ ระยะห่างสม่ำเสมอ ---------- */
+#page-hr-home .main-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hr-gap);
+  min-width: 0;
+  box-sizing: border-box;
+}
+#page-hr-home .main-content > * { min-width: 0; margin-top: 0 !important; margin-bottom: 0 !important; }
+
+/* ---------- 2) Topbar ---------- */
+#page-hr-home .topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+#page-hr-home .topbar-left h1 { margin: 0; line-height: 1.2; }
+#page-hr-home .topbar-left p  { margin: 2px 0 0; }
+#page-hr-home .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+#page-hr-home .user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+#page-hr-home .user-profile .info { display: flex; flex-direction: column; min-width: 0; }
+#page-hr-home .user-profile .info strong,
+#page-hr-home .user-profile .info span {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;
+}
+
+/* ---------- 3) SLA banner ---------- */
+#page-hr-home .sla-alert-banner {
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-sizing: border-box;
+}
+#page-hr-home .sla-banner-left  { display: flex; align-items: flex-start; gap: 16px; flex: 1 1 auto; min-width: 0; }
+#page-hr-home .sla-banner-text  { min-width: 0; }
+#page-hr-home .sla-banner-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+#page-hr-home .sla-banner-title-row h4 { margin: 0; }
+#page-hr-home .sla-banner-text p { margin: 6px 0 10px; }
+#page-hr-home .sla-badges-group { display: flex; flex-wrap: wrap; gap: 8px; }
+#page-hr-home .sla-banner-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+#page-hr-home .btn-sla-action   { white-space: nowrap; }
+
+/* ---------- 4) KPI cards (4 คอลัมน์เท่ากัน) ---------- */
+#page-hr-home .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--hr-gap);
+}
+#page-hr-home .stats-grid > .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 104px;
+  padding: 18px 20px;
+  box-sizing: border-box;
+}
+#page-hr-home .stats-grid .icon-box {
+  flex: 0 0 56px;
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px;
+}
+#page-hr-home .stats-grid .stat-info {
+  display: flex; flex-direction: column; justify-content: center;
+  flex: 1 1 auto; min-width: 0; gap: 2px;
+}
+#page-hr-home .stats-grid .stat-info .label { line-height: 1.3; }
+#page-hr-home .stats-grid .stat-info .value { font-size: 32px; font-weight: 800; line-height: 1.1; }
+#page-hr-home .stat-sla-subbadges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+/* ---------- 5) การ์ดสัดส่วนประเภทการลา: กราฟซ้าย / รายละเอียดขวา ---------- */
+#page-hr-home .leave-analytics-card {
+  padding: 20px 24px 24px;
+  box-sizing: border-box;
+}
+#page-hr-home .leave-analytics-card .panel-header { margin-bottom: 16px; }
+#page-hr-home .leave-analytics-card .card-body {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  align-items: center;
+  gap: 40px;
+  padding: 0;
+}
+#page-hr-home .leave-analytics-card .chart-box {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+#page-hr-home .leave-analytics-card .chart-box canvas { max-width: 100%; }
+#page-hr-home .chart-center-text {
+  position: absolute;
+  inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#page-hr-home .leave-analytics-card .details-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 32px;
+  align-content: center;
+}
+#page-hr-home .details-list .detail-item { min-width: 0; }
+#page-hr-home .details-list .item-info {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+#page-hr-home .details-list .item-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#page-hr-home .details-list .item-val  { color: #64748b; font-size: 13px; white-space: nowrap; }
+#page-hr-home .details-list .item-pct  { min-width: 48px; text-align: right; font-weight: 700; }
+#page-hr-home .details-list .badge-dot { flex: 0 0 10px; width: 10px; height: 10px; border-radius: 50%; }
+#page-hr-home .details-list .progress-bar {
+  height: 8px; border-radius: 999px; background: #f1f5f9; overflow: hidden;
+}
+#page-hr-home .details-list .progress-bar .fill {
+  height: 100%; border-radius: inherit;
+  transition: width .6s var(--hr-ease);
+}
+
+/* ---------- 6) แถวกลาง: กราฟแผนก (ซ้าย) + อันดับ (ขวา) สูงเท่ากัน ---------- */
+#page-hr-home .middle-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: var(--hr-gap);
+  align-items: stretch;
+}
+#page-hr-home .middle-grid > .panel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 20px 24px 24px;
+  margin: 0;
+}
+#page-hr-home .middle-grid .panel-header { margin-bottom: 16px; flex: 0 0 auto; }
+#page-hr-home .chart-panel .chart-container {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 360px;   /* Chart.js ใช้ maintainAspectRatio:false ต้องมีความสูงชัดเจน */
+}
+#page-hr-home .chart-panel .chart-container canvas { position: absolute; inset: 0; }
+
+#page-hr-home .top-employees-wrapper {
+  display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
+}
+/* header กับการ์ดใช้ grid เดียวกัน คอลัมน์จะตรงกันพอดี */
+#page-hr-home .top-emp-header,
+#page-hr-home .top-emp-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 96px;
+  align-items: center;
+  column-gap: 12px;
+}
+#page-hr-home .top-emp-header { padding: 0 12px 8px; font-size: 12px; color: #94a3b8; font-weight: 600; }
+#page-hr-home .top-emp-header .col-stats,
+#page-hr-home .top-emp-card .col-stats { text-align: right; justify-self: end; }
+#page-hr-home .top-emp-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+#page-hr-home .top-emp-card {
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: transform .2s var(--hr-ease), box-shadow .2s var(--hr-ease), background-color .2s;
+}
+#page-hr-home .top-emp-card:hover { transform: translateX(2px); box-shadow: var(--hr-shadow); }
+#page-hr-home .top-emp-card .col-rank-box { display: flex; justify-content: center; }
+#page-hr-home .top-emp-card .col-profile-box { display: flex; align-items: center; gap: 12px; min-width: 0; }
+#page-hr-home .top-emp-card .col-name { display: flex; flex-direction: column; min-width: 0; }
+#page-hr-home .top-emp-card .emp-name,
+#page-hr-home .top-emp-card .emp-dept {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#page-hr-home .top-emp-avatar,
+#page-hr-home .top-emp-avatar-badge {
+  flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ---------- 7) หัวข้อ section ---------- */
+#page-hr-home .section-title {
+  display: flex; align-items: center; gap: 10px;
+  padding-top: 12px;
+  font-size: 18px; font-weight: 700;
+}
+#page-hr-home .section-title .material-symbols-outlined { font-size: 24px; color: var(--primary, #0d9488); }
+
+/* ---------- 8) Summary cards + กราฟแท่ง ---------- */
+#page-hr-home .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--hr-gap);
+}
+#page-hr-home .summary-grid > .stat-card {
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+  gap: 6px; min-height: 104px; padding: 18px 22px; box-sizing: border-box;
+}
+#page-hr-home .summary-grid .stat-val { font-size: 32px; line-height: 1.1; }
+
+#page-hr-home .chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hr-gap);
+  align-items: stretch;
+}
+#page-hr-home .chart-grid > .panel { padding: 20px 24px 24px; box-sizing: border-box; }
+#page-hr-home .chart-grid .panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px;
+}
+#page-hr-home .chart-grid .panel-head h2 { margin: 0; }
+#page-hr-home .chart-grid .bars { min-height: 200px; }
+
+/* ---------- 9) พนักงานที่ลาวันนี้ ---------- */
+#page-hr-home #todayLeavesPanel { padding: 20px 24px 24px; box-sizing: border-box; }
+#page-hr-home #todayLeavesPanel .panel-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+#page-hr-home #todayLeavesPanel .card-body { padding: 0; }
+#page-hr-home .today-leaves-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+#page-hr-home .today-leave-card-detail {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--hr-border);
+  border-radius: 14px;
+  background: #fff;
+  min-width: 0;
+  transition: transform .2s var(--hr-ease), box-shadow .2s var(--hr-ease);
+}
+#page-hr-home .today-leave-card-detail:hover { transform: translateY(-2px); box-shadow: var(--hr-shadow-hover); }
+#page-hr-home .today-leave-card-detail .emp-avatar {
+  flex: 0 0 52px; width: 52px; height: 52px; border-radius: 50%; object-fit: cover;
+}
+#page-hr-home .today-leave-card-detail .info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#page-hr-home .today-leave-card-detail .name,
+#page-hr-home .today-leave-card-detail .dept { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#page-hr-home .today-leave-card-detail .type-badge { align-self: flex-start; margin-top: 4px; }
+/* ข้อความ "ไม่มีข้อมูล" ให้กินเต็มแถว */
+#page-hr-home .today-leaves-grid > div:only-child:not(.today-leave-card-detail) { grid-column: 1 / -1; }
+
+/* ---------- 10) ความสมูท: hover + fade-in ตอนโหลด ---------- */
+#page-hr-home .stats-grid > .stat-card,
+#page-hr-home .summary-grid > .stat-card,
+#page-hr-home .leave-analytics-card,
+#page-hr-home .middle-grid > .panel,
+#page-hr-home .chart-grid > .panel {
+  transition: transform .25s var(--hr-ease), box-shadow .25s var(--hr-ease), border-color .25s;
+}
+@media (hover: hover) {
+  #page-hr-home .stats-grid > .stat-card:hover,
+  #page-hr-home .summary-grid > .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--hr-shadow-hover);
+  }
+}
+@keyframes hrFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+#page-hr-home .main-content > * { animation: hrFadeUp .5s var(--hr-ease) both; }
+#page-hr-home .main-content > *:nth-child(2) { animation-delay: .04s; }
+#page-hr-home .main-content > *:nth-child(3) { animation-delay: .08s; }
+#page-hr-home .main-content > *:nth-child(4) { animation-delay: .12s; }
+#page-hr-home .main-content > *:nth-child(5) { animation-delay: .16s; }
+#page-hr-home .main-content > *:nth-child(6) { animation-delay: .20s; }
+#page-hr-home .main-content > *:nth-child(n+7) { animation-delay: .24s; }
+
+@media (prefers-reduced-motion: reduce) {
+  html, #page-hr-home { scroll-behavior: auto; }
+  #page-hr-home *, #page-hr-home *::before, #page-hr-home *::after {
+    animation: none !important; transition: none !important;
+  }
+}
+
+/* ---------- 11) PC ขนาดใหญ่ ---------- */
+@media (min-width: 1025px) {
+  #page-hr-home .main-content { padding: 24px 32px 48px; }
+}
+@media (min-width: 1700px) {
+  #page-hr-home .stats-grid { gap: 24px; }
+  #page-hr-home .leave-analytics-card .card-body { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); }
+}
+
+/* ---------- 12) จอเล็กลง (โน้ตบุ๊ก / แท็บเล็ต / มือถือ) ---------- */
+@media (max-width: 1280px) {
+  #page-hr-home .middle-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  #page-hr-home .leave-analytics-card .card-body { gap: 28px; }
+  #page-hr-home .leave-analytics-card .details-list { grid-template-columns: 1fr; }
+  #page-hr-home .sla-alert-banner { flex-wrap: wrap; }
+}
+@media (max-width: 1024px) {
+  #page-hr-home .stats-grid,
+  #page-hr-home .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #page-hr-home .middle-grid,
+  #page-hr-home .chart-grid { grid-template-columns: 1fr; }
+  #page-hr-home .leave-analytics-card .card-body { grid-template-columns: 1fr; }
+  #page-hr-home .leave-analytics-card .chart-box { max-width: 320px; margin: 0 auto; }
+  #page-hr-home .top-emp-list { max-height: 420px; }
+}
+@media (max-width: 640px) {
+  #page-hr-home .stats-grid,
+  #page-hr-home .summary-grid { grid-template-columns: 1fr; }
+  #page-hr-home .today-leaves-grid { grid-template-columns: 1fr; }
+  #page-hr-home .user-profile .info { display: none; }
+  #page-hr-home .chart-panel .chart-container { min-height: 260px; }
+}
+

@@ -8,17 +8,17 @@
    ========================================================================== */
 
 :root {
-  --primary: #0d9488;
-  --primary-dark: #0f766e;
-  --primary-light: #ccfbf1;
-  --primary-gradient: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
-  --primary-glow: rgba(0, 174, 255, 0.30);
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #dbeafe;
+  --primary-gradient: linear-gradient(135deg, #315bd6 0%, #1f7bea 55%, #0ea5e9 100%);
+  --primary-glow: rgba(37, 99, 235, 0.30);
 
   --text-dark: #0f172a;
   --text-main: #334155;
   --text-muted: #64748b;
   --border-light: #e2e8f0;
-  --border-focus: #0d9488;
+  --border-focus: #2563eb;
 
   --bg-card: rgba(255, 255, 255, 0.88);
   --shadow-card:
@@ -324,7 +324,7 @@ body {
   align-items: center;
   gap: 0;
   background: transparent;
-  color: #0d9488;
+  color: #2563eb;
   border: none;
   padding: 0;
   border-radius: 0;
@@ -410,39 +410,39 @@ body {
 
 .input-field:hover {
   border-color: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.08);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 .input-field:focus {
   outline: none;
-  border-color: #0d9488;
+  border-color: #2563eb;
   background: #ffffff;
   transform: scale(1.012);
   box-shadow:
-    0 0 0 4px rgba(13, 148, 136, 0.16),
-    0 4px 12px rgba(13, 148, 136, 0.08);
+    0 0 0 4px rgba(37, 99, 235, 0.16),
+    0 4px 12px rgba(37, 99, 235, 0.08);
   animation: inputFocusScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes inputFocusScale {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.3);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3);
   }
   60% {
     transform: scale(1.018);
-    box-shadow: 0 0 0 6px rgba(13, 148, 136, 0.22);
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.22);
   }
   100% {
     transform: scale(1.012);
     box-shadow:
-      0 0 0 4px rgba(13, 148, 136, 0.16),
-      0 4px 12px rgba(13, 148, 136, 0.08);
+      0 0 0 4px rgba(37, 99, 235, 0.16),
+      0 4px 12px rgba(37, 99, 235, 0.08);
   }
 }
 
 .input-wrapper:focus-within .input-icon {
-  color: #0d9488;
+  color: #2563eb;
 }
 
 /* ================== กล่องรหัสผ่าน & ปุ่มดูรหัส ================== */
@@ -483,8 +483,8 @@ body {
 }
 
 .toggle-password:hover {
-  color: #0d9488;
-  background-color: rgba(13, 148, 136, 0.08);
+  color: #2563eb;
+  background-color: rgba(37, 99, 235, 0.08);
 }
 
 .toggle-password:active {
@@ -520,7 +520,7 @@ body {
 .remember-label:hover {
   background-color: transparent;
   border-color: transparent;
-  color: #0d9488;
+  color: #2563eb;
 }
 
 #loginForm .remember-checkbox,
@@ -529,7 +529,7 @@ body {
   height: 16px;
   min-width: 16px;
   min-height: 16px;
-  accent-color: #0d9488;
+  accent-color: #2563eb;
   cursor: pointer;
   border-radius: 4px;
   margin: 0;
@@ -586,7 +586,7 @@ body {
 #langMyBtn.active {
   background: #ffffff;
   background-color: #ffffff;
-  color: #0d9488;
+  color: #2563eb;
   border-radius: 50%;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
   border: none;
@@ -601,7 +601,7 @@ body {
 .lang-switcher button:hover:not(.active),
 #langSettingsBtn:hover {
   background: rgba(255, 255, 255, 0.7);
-  color: #0d9488;
+  color: #2563eb;
   border-radius: 50%;
 }
 
@@ -836,7 +836,12 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--primary-gradient);
+  background: linear-gradient(
+    135deg,
+    #315bd6 0%,
+    #1f7bea 55%,
+    #0ea5e9 100%
+  );
   opacity: 0;
   visibility: hidden;
   transform: translateY(8px) scale(0.92);
@@ -991,11 +996,11 @@ body {
   margin-top: 4px;
   background: linear-gradient(
     90deg,
-    #ccfbf1 0%,
-    #5eead4 35%,
-    #f0fdfa 50%,
-    #5eead4 65%,
-    #ccfbf1 100%
+    #dbeafe 0%,
+    #93c5fd 35%,
+    #eff6ff 50%,
+    #93c5fd 65%,
+    #dbeafe 100%
   );
   background-size: 200% 100%;
 }
@@ -1058,8 +1063,8 @@ body {
 
 .alt-login-toggle-btn:hover,
 .alt-login-toggle-btn.active {
-  background: rgba(13, 148, 136, 0.08);
-  color: #0f766e;
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
 }
 
 .alt-login-toggle-btn .alt-toggle-icon {
@@ -1110,10 +1115,10 @@ body {
   height: 50px;
   min-height: 50px;
   margin-top: 0;
-  border: 1.5px solid #0d9488;
+  border: 1.5px solid #2563eb;
   border-radius: 14px;
-  background: #f0fdfa;
-  color: #0f766e;
+  background: #eff6ff;
+  color: #1d4ed8;
   font-size: 14.5px;
   font-family: inherit;
   font-weight: 600;
@@ -1133,8 +1138,8 @@ body {
 
 .qr-btn:active {
   background: #bbf7d0;
-  border-color: #0d9488;
-  box-shadow: inset 0 2px 4px rgba(13, 148, 136, 0.12);
+  border-color: #2563eb;
+  box-shadow: inset 0 2px 4px rgba(37, 99, 235, 0.12);
 }
 
 /* ================== ปุ่มสแกน Biometrics ================== */
@@ -1213,14 +1218,14 @@ body {
 
 .instructions-toggle-btn:hover {
   background: #ffffff;
-  border-color: #0d9488;
-  color: #0d9488;
+  border-color: #2563eb;
+  color: #2563eb;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.12);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
 }
 
 .instructions-toggle-btn .icon-main {
-  color: #0d9488;
+  color: #2563eb;
   font-size: 18px;
 }
 
@@ -1288,8 +1293,8 @@ body {
 
 .instructions-list .icon-bullet {
   font-size: 18px;
-  color: #0d9488;
-  background: #f0fdfa;
+  color: #2563eb;
+  background: #eff6ff;
   padding: 4px;
   border-radius: 6px;
   flex-shrink: 0;
@@ -1626,12 +1631,12 @@ body {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 .pvt-qr-title-box h3 {
@@ -1788,10 +1793,10 @@ body {
 }
 
 .pvt-zoom-chip.active {
-  background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.4);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
 }
 
 /* Pulsing Feedback Animation when Zooming */
@@ -1910,7 +1915,7 @@ body {
   gap: 8px;
   background: linear-gradient(
     135deg,
-    rgba(13, 148, 136, 0.94),
+    rgba(37, 99, 235, 0.94),
     rgba(2, 132, 199, 0.94)
   );
   backdrop-filter: blur(12px);
@@ -1921,7 +1926,7 @@ body {
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 8px 24px rgba(13, 148, 136, 0.5);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
   opacity: 0;
   transform: translateY(-10px) scale(0.9);
   pointer-events: none;
@@ -2240,8 +2245,8 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: rgba(13, 148, 136, 0.15);
-  border: 1px solid rgba(13, 148, 136, 0.3);
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(37, 99, 235, 0.3);
   color: #2dd4bf;
   display: flex;
   align-items: center;
@@ -2280,7 +2285,7 @@ body {
   width: 100%;
   padding: 12px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
@@ -2386,10 +2391,10 @@ body {
 }
 
 .pvt-qr-tab-btn.active {
-  background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 
 .pvt-qr-tab-btn:not(.active):hover {
@@ -2414,18 +2419,18 @@ body {
 .session-check-spinner {
   width: 44px;
   height: 44px;
-  border: 3.5px solid rgba(13, 148, 136, 0.16);
-  border-top-color: #0d9488;
+  border: 3.5px solid rgba(37, 99, 235, 0.16);
+  border-top-color: #2563eb;
   border-right-color: #0284c7;
   border-radius: 50%;
   animation: spin 0.8s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
-  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.18);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.18);
 }
 
 .session-check-text {
   font-size: 14.5px;
   font-weight: 600;
-  color: #0f766e;
+  color: #1d4ed8;
   letter-spacing: -0.01em;
   margin: 0;
   line-height: 1.5;
@@ -2509,9 +2514,9 @@ body {
   height: 44px;
   min-width: 44px;
   border-radius: 14px;
-  background: #f0fdfa;
-  border: 1.5px solid #ccfbf1;
-  color: #0d9488;
+  background: #eff6ff;
+  border: 1.5px solid #dbeafe;
+  color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2602,8 +2607,8 @@ body {
 }
 
 .step-icon-box.teal {
-  background: #f0fdfa;
-  color: #0d9488;
+  background: #eff6ff;
+  color: #2563eb;
   border: 1px solid #99f6e4;
 }
 
@@ -2716,7 +2721,7 @@ body {
   min-height: 48px;
   border: none;
   border-radius: 14px;
-  background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #0284c7 100%);
   color: #ffffff;
   font-size: 15px;
   font-weight: 600;
@@ -2725,7 +2730,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
   transition: all 0.2s ease;
 }
 
@@ -2742,7 +2747,7 @@ body {
 .qr-guide-link-btn {
   background: transparent;
   border: none;
-  color: #0d9488;
+  color: #2563eb;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -3211,17 +3216,6 @@ body {
   }
 }
 
-@media (min-width: 700px) {
-  #page-login {
-    padding: 28px 0;
-  }
-  #page-login .login-card {
-    min-height: calc(100dvh - 56px);
-    border-radius: 38px;
-    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
-  }
-}
-
 /* ==========================================================================\n   MOBILE ALTERNATIVE LOGIN BOTTOM SHEET\n   - Desktop keeps the existing inline expand/collapse behavior.\n   - Mobile opens alternative login methods as a bottom sheet.\n   ========================================================================== */
 .alt-login-backdrop,
 .alt-login-sheet-header {
@@ -3328,7 +3322,7 @@ body {
   }
 
   body > #altLoginGroup .alt-login-sheet-heading .material-symbols-outlined {
-    color: #0d9488;
+    color: #2563eb;
     font-size: 21px;
   }
 
@@ -3351,5 +3345,321 @@ body {
 
   body > #altLoginGroup .alt-login-sheet-close:active {
     transform: scale(0.94);
+  }
+}
+
+/* ==========================================================================
+   DESKTOP / TABLET LOGIN LAYOUT
+   - Mobile <= 520px keeps the current mobile layout unchanged.
+   - Desktop/tablet uses a wider, content-height card.
+   ========================================================================== */
+@media (min-width: 521px) {
+  html,
+  body {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body#page-login,
+  #page-login {
+    position: relative;
+    inset: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 32px 20px;
+    overflow: visible;
+  }
+
+  #page-login .login-container {
+    width: 100%;
+    max-width: 560px;
+    min-height: auto;
+    margin: 0 auto;
+    padding: 0;
+    align-items: center;
+    background: transparent;
+    overflow: visible;
+  }
+
+  #page-login .login-card {
+    width: 100%;
+    max-width: 560px;
+    min-height: auto;
+    height: auto;
+    margin: 0 auto;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+  }
+
+  #page-login .login-card::before {
+    top: -150px;
+    width: 155%;
+    height: 430px;
+  }
+
+  #page-login .brand-area {
+    min-height: 300px;
+    padding: 48px 32px 22px;
+  }
+
+  #page-login .logo-wrapper {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 12px;
+  }
+
+  #page-login .brand-logo {
+    width: 140px;
+  }
+
+  #page-login #pvtLoginHeader {
+    max-width: 460px;
+    font-size: 20px;
+    line-height: 1.3;
+  }
+
+  #page-login .brand-badge {
+    margin-top: 5px;
+    font-size: 13px;
+  }
+
+  #page-login .login-sheet {
+    min-height: auto;
+    padding: 28px 44px 34px;
+  }
+
+  #page-login .login-sheet-title {
+    margin: 0 0 24px;
+    font-size: 30px;
+    line-height: 1.15;
+    transform: none;
+  }
+
+  #page-login #loginForm,
+  #page-login .login-alert-banner,
+  #page-login #biometricCameraAlertBanner,
+  #page-login .login-skeleton,
+  #page-login .session-check-overlay,
+  #page-login .login-footer-info {
+    max-width: 430px;
+  }
+
+  #page-login .form-group {
+    margin-bottom: 16px;
+  }
+
+  #page-login .input-wrapper,
+  #page-login .input-field {
+    min-height: 54px;
+  }
+
+  #page-login .login-btn,
+  #page-login .login-btn:hover,
+  #page-login .login-btn:active {
+    min-height: 56px;
+  }
+
+  #page-login .alt-login-wrapper {
+    margin-top: 20px;
+  }
+
+  #page-login .login-footer-info {
+    margin-top: 22px;
+    padding-top: 16px;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP LOGIN — TWO COLUMN
+   ใช้เฉพาะจอคอม >= 900px
+   มือถือและแท็บเล็ตเล็กยังใช้ layout เดิม
+   ========================================================================== */
+@media (min-width: 900px) {
+  html,
+  body {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body#page-login,
+  #page-login {
+    position: relative;
+    inset: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+  }
+
+  #page-login .login-container {
+    width: min(920px, calc(100vw - 72px));
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  #page-login .login-card {
+    width: 100%;
+    max-width: 920px;
+    min-height: 600px;
+    height: auto;
+    margin: 0 auto;
+
+    display: grid;
+    grid-template-columns: 42% 58%;
+    align-items: stretch;
+
+    background: #ffffff;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
+  }
+
+  /* ปิดวงโค้งแบบมือถือบน Desktop */
+  #page-login .login-card::before {
+    display: none;
+    content: none;
+  }
+
+  /* =========================
+     ฝั่งซ้าย: Brand
+     ========================= */
+  #page-login .brand-area {
+    min-height: 600px;
+    margin: 0;
+    padding: 56px 34px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    background:
+      radial-gradient(
+        ellipse at 48% 40%,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.08) 34%,
+        transparent 62%
+      ),
+      linear-gradient(
+        145deg,
+        #2859d8 0%,
+        #246ee9 48%,
+        #079fe7 100%
+      );
+
+    color: #ffffff;
+  }
+
+  #page-login .logo-wrapper {
+    width: 190px;
+    height: 190px;
+    margin: 0 auto 20px;
+  }
+
+  #page-login .brand-logo {
+    width: 170px;
+    max-width: 170px;
+  }
+
+  #page-login #pvtLoginHeader {
+    max-width: 340px;
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.35;
+    font-weight: 800;
+    color: #ffffff;
+    text-align: center;
+  }
+
+  #page-login .brand-badge {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.88);
+    text-align: center;
+  }
+
+  #page-login .company-name {
+    margin-top: 5px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.82);
+    text-align: center;
+  }
+
+  /* =========================
+     ฝั่งขวา: Login form
+     ========================= */
+  #page-login .login-sheet {
+    min-height: 600px;
+    margin: 0;
+    padding: 54px 54px 40px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    background: #ffffff;
+    border-radius: 0;
+  }
+
+  #page-login .login-sheet-title {
+    position: static;
+    width: 100%;
+    margin: 0 0 30px;
+    padding: 0;
+
+    font-size: 32px;
+    line-height: 1.15;
+    text-align: center;
+    color: #0f172a;
+    transform: none;
+  }
+
+  #page-login #loginForm,
+  #page-login .login-alert-banner,
+  #page-login #biometricCameraAlertBanner,
+  #page-login .login-skeleton,
+  #page-login .session-check-overlay,
+  #page-login .login-footer-info {
+    width: 100%;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #page-login #loginForm {
+    gap: 16px;
+  }
+
+  #page-login .input-field {
+    min-height: 54px;
+  }
+
+  #page-login .login-btn {
+    min-height: 56px;
+  }
+
+  #page-login .alt-login-wrapper {
+    margin-top: 18px;
+  }
+
+  #page-login .login-footer-info {
+    margin-top: 22px;
+    padding-top: 14px;
+  }
+
+  /* ให้ floating helper/dev badge อยู่ใน viewport เดิม */
+  #page-login .help-fab,
+  #page-login .floating-help,
+  #page-login .dev-mode-badge {
+    position: fixed;
   }
 }

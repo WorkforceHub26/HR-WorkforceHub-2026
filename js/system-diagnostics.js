@@ -854,7 +854,7 @@
         height: '50px',
         borderRadius: '50%',
         background: '#ffffff',
-        color: '#0d9488',
+        color: '#2563eb',
         border: '1px solid #e2e8f0',
         boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
         cursor: 'pointer',

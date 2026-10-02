@@ -1671,7 +1671,7 @@ button#tabCompanyHolidays,
 .holiday-tab-btn:hover{color:#0f172a}
 .holiday-tab-btn.active{background:#0d9488;color:#ffffff;font-weight:700;box-shadow:0 2px 6px rgba(13, 148, 136, 0.35)}
 #companyHolidaysWrapper{padding:0 24px}
-.holiday-hero-banner{background:linear-gradient(135deg, #0d9488 0%, #0f766e 50%, #115e59 100%);border-radius:18px;padding:24px 28px;color:#ffffff;margin-bottom:20px;box-shadow:0 10px 25px -5px rgba(13, 148, 136, 0.3);display:flex;justify-content:space-between;align-items:center;position:relative;overflow:hidden;animation:fluidPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both}
+.holiday-hero-banner{background:linear-gradient(135deg, #315bd6 0%, #1f7bea 55%, #0ea5e9 100%);border-radius:18px;padding:24px 28px;color:#ffffff;margin-bottom:20px;box-shadow:0 10px 25px -5px rgba(13, 148, 136, 0.3);display:flex;justify-content:space-between;align-items:center;position:relative;overflow:hidden;animation:fluidPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both}
 .holiday-hero-banner::before{content:"";position:absolute;top:-50%;right:-10%;width:320px;height:320px;background:radial-gradient(
     circle,
     rgba(255, 255, 255, 0.15) 0%,
@@ -3260,3 +3260,61 @@ html body.holidays-page #holidaysBottomNav.mobile-bottom-nav {
 }
 
 
+
+
+
+/* ==========================================================================
+   SHARED TOPBAR — แถบหัวเต็มความกว้าง + ล็อกชิดบนสุด (ใช้ร่วมทุกหน้า)
+   ไฟล์: /css/topbar-fixed.css
+   โครงที่รองรับ:  <main class="main-content"> <header class="topbar"> ... </header>
+   ต้องใช้คู่กับ /js/topbar-fixed.js
+   ========================================================================== */
+
+:root {
+  --topbar-h: 65px;                         /* JS จะวัดความสูงจริงมาเขียนทับให้ */
+  --topbar-left: 260px;                     /* ค่าสำรอง = ความกว้าง sidebar */
+  --topbar-width: calc(100vw - 260px);
+  --topbar-pad-x: 24px;
+  --topbar-gap: 20px;                       /* ระยะห่างใต้แถบ ก่อนถึงเนื้อหา */
+}
+
+.main-content > header.topbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: var(--topbar-left) !important;
+  right: auto !important;
+  width: var(--topbar-width) !important;
+  max-width: none !important;
+  min-height: 65px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 10px var(--topbar-pad-x) !important;
+  box-sizing: border-box !important;
+  z-index: 500 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px;
+
+  border: 0 !important;
+  border-bottom: 1px solid rgba(15, 23, 42, .08) !important;
+  border-radius: 0 !important;
+  background: rgba(255, 255, 255, .98) !important;   /* ไม่ใช้ backdrop-filter: จะทำให้ dropdown แบบ fixed ในแถบเพี้ยน */
+  box-shadow: 0 2px 10px rgba(15, 23, 42, .06) !important;
+  transition: left .25s ease, width .25s ease;
+}
+
+/* เว้นที่ให้เนื้อหา เพราะแถบ fixed ไม่กินพื้นที่ในหน้า */
+.main-content {
+  padding-top: calc(var(--topbar-h) + var(--topbar-gap)) !important;
+}
+
+@media (max-width: 768px) {
+  :root { --topbar-pad-x: 12px; --topbar-gap: 12px; }
+  .main-content > header.topbar { top: env(safe-area-inset-top, 0px) !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-content > header.topbar { transition: none; }
+}

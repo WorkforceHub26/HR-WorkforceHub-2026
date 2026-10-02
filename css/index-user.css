@@ -6351,3 +6351,35 @@ div#appLayout:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div
 .leave-section.card-collapsed .btn-toggle-icon {
   margin-left: auto !important;
 }
+
+
+
+
+
+
+/* ===== ข้อมูลพนักงานบนการ์ดด้านบน ===== */
+
+#userDepartment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+
+  width: 100%;
+  max-width: none;
+
+  overflow: visible;
+}
+
+#userDepartment .profile-meta-row {
+  display: inline-flex;
+  align-items: center;
+
+  max-width: 100%;
+
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+
+  font-size: 10px;
+  line-height: 1.3;
+}

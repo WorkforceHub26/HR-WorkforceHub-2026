@@ -124,3 +124,17 @@
     flex: 0 0 auto;
   }
 }
+
+
+/* ======================================================
+   Layout adapter: ใช้ Layout กลาง (Sidebar + Topbar) กับหน้านี้
+   ------------------------------------------------------
+   • .pvt-page ค่าเริ่มต้นเป็น flex + gap 20px แต่หน้านี้มี margin ของ
+     .section-title / .management-grid / .panel ใน Management.css อยู่แล้ว
+     จึงคืนเป็น block เพื่อคงระยะห่างเดิมไว้ ไม่ให้ระยะซ้อนกัน
+   • ถ้าอยากใช้ระยะห่างอัตโนมัติ 20px แทน ให้ลบกฎนี้ทิ้ง
+     แล้วเคลียร์ margin ของ section ใน Management.css
+   ====================================================== */
+#page-hr-management .pvt-page {
+  display: block;
+}
