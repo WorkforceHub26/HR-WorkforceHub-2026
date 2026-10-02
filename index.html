@@ -1,318 +1,682 @@
 <!doctype html>
 
 <html lang="th">
-<head>
-<script src="/js/early-auth-guard.js" type="module"></script>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
-<title>PVT Workforce Hub - เข้าสู่ระบบ</title>
-<meta content="Integrated HR Management &amp; Leave Dashboard System with Supabase authentication and approval workflows." name="description"/>
-<meta content="PVT Workforce Hub - เข้าสู่ระบบ" property="og:title"/>
-<meta content="Integrated HR Management &amp; Leave Dashboard System with Supabase authentication and approval workflows." property="og:description"/>
-<meta content="#0d9488" name="theme-color"/>
-<meta content="yes" name="mobile-web-app-capable"/>
-<meta content="yes" name="apple-mobile-web-app-capable"/>
-<meta content="default" name="apple-mobile-web-app-status-bar-style"/>
-<meta content="PVT Leave" name="apple-mobile-web-app-title"/>
-<meta content="notranslate" name="google"/>
-<!-- Favicon -->
-<link href="/favicon.ico" rel="icon" type="image/x-icon"/>
-<link href="/manifest.json" rel="manifest"/>
-<meta content="#0d9488" name="theme-color"/>
-<!-- PNG icon -->
-<link href="/assets/icons/PVTT_LEAVE.png" rel="icon" sizes="32x32" type="image/png"/>
-<link href="/assets/icons/PVTT_LEAVE.png" rel="icon" sizes="192x192" type="image/png"/>
-<!-- Apple -->
-<link href="/assets/icons/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
-<!-- Modern Thai & International Typography -->
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&amp;family=Noto+Sans+Lao:wght@400;500;600;700&amp;family=Noto+Sans+Myanmar:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-<link href="/css/global.css" rel="stylesheet"/>
-<link href="/css/login.css?v=20261001-clean" rel="stylesheet"/><link href="/css/system-settings.css" rel="stylesheet"/>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</link></link></head>
-<body id="page-login">
-<div class="login-container animate-fade">
-<main class="login-card animate-slide-up delay-100">
-<section class="brand-area animate-fade delay-200">
-  <div class="logo-wrapper hover-glow">
-    <img
-      alt="PVT Logo"
-      class="brand-logo"
-      src="/assets/icons/PVTT_LEAVE.png"
+  <head>
+    <script src="/js/early-auth-guard.js" type="module"></script>
+    <meta charset="utf-8" />
+    <meta
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+      name="viewport"
     />
-  </div>
+    <title>PVT Workforce Hub - เข้าสู่ระบบ</title>
+    <meta
+      content="Integrated HR Management &amp; Leave Dashboard System with Supabase authentication and approval workflows."
+      name="description"
+    />
+    <meta content="PVT Workforce Hub - เข้าสู่ระบบ" property="og:title" />
+    <meta
+      content="Integrated HR Management &amp; Leave Dashboard System with Supabase authentication and approval workflows."
+      property="og:description"
+    />
+    <meta content="#0d9488" name="theme-color" />
+    <meta content="yes" name="mobile-web-app-capable" />
+    <meta content="yes" name="apple-mobile-web-app-capable" />
+    <meta content="default" name="apple-mobile-web-app-status-bar-style" />
+    <meta content="PVT Leave" name="apple-mobile-web-app-title" />
+    <meta content="notranslate" name="google" />
+    <!-- Favicon -->
+    <link href="/favicon.ico" rel="icon" type="image/x-icon" />
+    <link href="/manifest.json" rel="manifest" />
+    <meta content="#0d9488" name="theme-color" />
+    <!-- PNG icon -->
+    <link
+      href="/assets/icons/PVTT_LEAVE.png"
+      rel="icon"
+      sizes="32x32"
+      type="image/png"
+    />
+    <link
+      href="/assets/icons/PVTT_LEAVE.png"
+      rel="icon"
+      sizes="192x192"
+      type="image/png"
+    />
+    <!-- Apple -->
+    <link
+      href="/assets/icons/apple-touch-icon.png"
+      rel="apple-touch-icon"
+      sizes="180x180"
+    />
+    <!-- Modern Thai & International Typography -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&amp;family=Noto+Sans+Lao:wght@400;500;600;700&amp;family=Noto+Sans+Myanmar:wght@400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      rel="stylesheet"
+    />
+    <link href="/css/global.css" rel="stylesheet" />
+    <link href="/css/login.css?v=20261001-clean" rel="stylesheet" />
+    <link href="/css/system-settings.css" rel="stylesheet" />
 
-  <h1 class="animate-slide-down delay-300" id="pvtLoginHeader">
-    ระบบบริหารจัดการบุคลากรและงานบุคคล
-  </h1>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body id="page-login">
+    <div class="login-container animate-fade">
+      <main class="login-card animate-slide-up delay-100">
+        <section class="brand-area animate-fade delay-200">
+          <div class="logo-wrapper hover-glow">
+            <img
+              alt="PVT Logo"
+              class="brand-logo"
+              src="/assets/icons/PVTT_LEAVE.png"
+            />
+          </div>
 
-  <div class="brand-badge">
-    <span id="i18nBadge">ระบบขออนุญาตลาออนไลน์</span>
-  </div>
+          <h1 class="animate-slide-down delay-300" id="pvtLoginHeader">
+            ระบบบริหารจัดการบุคลากรและงานบุคคล
+          </h1>
 
-  <div class="company-name">
-    บริษัท พี.วี.ที.แอนด์ ที. พลาส จำกัด
-  </div>
-</section>
-<section class="login-sheet">
-<div class="login-sheet-title" id="loginSheetTitle">เข้าสู่ระบบ</div>
-<!-- Color-Coded Validation Alert Banner -->
-<div aria-live="polite" class="login-alert-banner" id="loginAlertBanner" role="alert">
-<span class="material-symbols-outlined banner-icon" id="loginAlertIcon">error</span>
-<span class="banner-text" id="loginAlertText"></span>
-</div>
-<!-- Biometric Camera Browser Compatibility Diagnostic Alert Banner -->
-<div aria-live="polite" class="login-alert-banner warning" id="biometricCameraAlertBanner" role="alert" style="display: none;">
-<span class="material-symbols-outlined banner-icon" id="biometricCameraAlertIcon" style="color: #d97706; font-size: 22px; flex-shrink: 0; margin-top: 1px;">videocam_off</span>
-<div style="flex: 1; text-align: left;">
-<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
-<span id="biometricCameraAlertTitle" style="font-weight: 700; font-size: 13.5px; color: #92400e;">⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก</span>
-<button aria-label="ปิดการแจ้งเตือน" id="btnDismissCameraAlert" style="background: transparent; border: none; font-size: 18px; line-height: 1; color: #b45309; cursor: pointer; padding: 0 4px; font-weight: bold; margin-left: 8px;" type="button">✕</button>
-</div>
-<div id="biometricCameraAlertMsg" style="font-size: 12px; color: #78350f; line-height: 1.45;">
-              เบราว์เซอร์ของคุณเป็นรุ่นเก่าหรือไม่รองรับกล้องสแกนใบหน้า/QR Code แนะนำให้อัปเดตเบราว์เซอร์ หรือเปิดด้วย Google Chrome/Safari
+          <div class="brand-badge">
+            <span id="i18nBadge">ระบบขออนุญาตลาออนไลน์</span>
+          </div>
+
+          <div class="company-name">บริษัท พี.วี.ที.แอนด์ ที. พลาส จำกัด</div>
+        </section>
+        <section class="login-sheet">
+          <div class="login-sheet-title" id="loginSheetTitle">เข้าสู่ระบบ</div>
+          <!-- Color-Coded Validation Alert Banner -->
+          <div
+            aria-live="polite"
+            class="login-alert-banner"
+            id="loginAlertBanner"
+            role="alert"
+          >
+            <span
+              class="material-symbols-outlined banner-icon"
+              id="loginAlertIcon"
+              >error</span
+            >
+            <span class="banner-text" id="loginAlertText"></span>
+          </div>
+          <!-- Biometric Camera Browser Compatibility Diagnostic Alert Banner -->
+          <div
+            aria-live="polite"
+            class="login-alert-banner warning"
+            id="biometricCameraAlertBanner"
+            role="alert"
+            style="display: none"
+          >
+            <span
+              class="material-symbols-outlined banner-icon"
+              id="biometricCameraAlertIcon"
+              style="
+                color: #d97706;
+                font-size: 22px;
+                flex-shrink: 0;
+                margin-top: 1px;
+              "
+              >videocam_off</span
+            >
+            <div style="flex: 1; text-align: left">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: flex-start;
+                  margin-bottom: 2px;
+                "
+              >
+                <span
+                  id="biometricCameraAlertTitle"
+                  style="font-weight: 700; font-size: 13.5px; color: #92400e"
+                  >⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก</span
+                >
+                <button
+                  aria-label="ปิดการแจ้งเตือน"
+                  id="btnDismissCameraAlert"
+                  style="
+                    background: transparent;
+                    border: none;
+                    font-size: 18px;
+                    line-height: 1;
+                    color: #b45309;
+                    cursor: pointer;
+                    padding: 0 4px;
+                    font-weight: bold;
+                    margin-left: 8px;
+                  "
+                  type="button"
+                >
+                  ✕
+                </button>
+              </div>
+              <div
+                id="biometricCameraAlertMsg"
+                style="font-size: 12px; color: #78350f; line-height: 1.45"
+              >
+                เบราว์เซอร์ของคุณเป็นรุ่นเก่าหรือไม่รองรับกล้องสแกนใบหน้า/QR
+                Code แนะนำให้อัปเดตเบราว์เซอร์ หรือเปิดด้วย Google Chrome/Safari
+              </div>
+              <div style="margin-top: 8px; display: flex; gap: 8px">
+                <button
+                  id="btnCameraDetails"
+                  style="
+                    background: #fef3c7;
+                    border: 1px solid #fcd34d;
+                    color: #92400e;
+                    font-size: 12px;
+                    font-weight: 600;
+                    border-radius: 6px;
+                    padding: 4px 10px;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    transition: background 0.2s;
+                  "
+                  type="button"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 15px"
+                    >manage_search</span
+                  >
+                  <span id="i18nCamDiagBtn"
+                    >ผลตรวจวินิจฉัย &amp; วิธีแก้ไข</span
+                  >
+                </button>
+              </div>
             </div>
-<div style="margin-top: 8px; display: flex; gap: 8px;">
-<button id="btnCameraDetails" style="background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; font-size: 12px; font-weight: 600; border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: background 0.2s;" type="button">
-<span class="material-symbols-outlined" style="font-size: 15px;">manage_search</span>
-<span id="i18nCamDiagBtn">ผลตรวจวินิจฉัย &amp; วิธีแก้ไข</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Session Verification Splash State (When valid token is detected) -->
-<div class="session-check-overlay" id="sessionCheckOverlay" style="display: none;">
-<div class="session-check-spinner"></div>
-<div>
-<p class="session-check-text" id="sessionCheckText">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</p>
-<p class="session-check-subtext" id="sessionCheckSubtext">ระบบกำลังนำท่านเข้าสู่ระบบอัตโนมัติ</p>
-</div>
-</div>
-<!-- Skeleton Loading State (Displayed during page & session check initialization) -->
-<div aria-label="กำลังโหลดข้อมูล..." class="login-skeleton" id="loginSkeleton">
-<div class="skeleton-field-group">
-<div class="skeleton-line skeleton-label skeleton-shimmer" style="width: 42%;"></div>
-<div class="skeleton-box skeleton-input skeleton-shimmer"></div>
-</div>
-<div class="skeleton-field-group">
-<div class="skeleton-line skeleton-label skeleton-shimmer" style="width: 35%;"></div>
-<div class="skeleton-box skeleton-input skeleton-shimmer"></div>
-</div>
-<div class="skeleton-line skeleton-remember skeleton-shimmer" style="width: 60%;"></div>
-<div class="skeleton-box skeleton-btn skeleton-btn-primary skeleton-shimmer"></div>
-<div class="skeleton-alt-group">
-<div class="skeleton-box skeleton-btn skeleton-btn-secondary skeleton-shimmer"></div>
-</div>
-</div>
-<form class="animate-fade delay-400" id="loginForm" style="display: none;">
-
-<div class="form-group">
-<label for="username" id="i18nUserLabel">รหัสพนักงาน หรือ ชื่อ-นามสกุล</label>
-<div class="input-wrapper" id="usernameWrapper">
-<span class="material-symbols-outlined input-icon">badge</span>
-<input autocomplete="username" class="input-field" id="username" placeholder="กรอกรหัสพนักงาน หรือ ชื่อพนักงาน" required="" type="text"/>
-</div>
-<div class="input-error-hint" id="usernameErrorHint">
-<span class="material-symbols-outlined">info</span>
-<span id="usernameErrorText"></span>
-</div>
-</div>
-<div class="form-group">
-<label for="password" id="i18nPassLabel">รหัสผ่าน (Password)</label>
-<div class="input-wrapper password-wrapper" id="passwordWrapper">
-<span class="material-symbols-outlined input-icon">lock</span>
-<input autocomplete="current-password" class="input-field" id="password" placeholder="กรอกรหัสผ่านเข้าสู่ระบบ" required="" type="password"/>
-<!-- เรียกใช้ฟังก์ชัน togglePassword เมื่อคลิก -->
-<span class="toggle-password material-symbols-outlined" onclick="togglePassword()" title="แสดง/ซ่อนรหัสผ่าน">visibility_off</span>
-</div>
-<div class="input-error-hint" id="passwordErrorHint">
-<span class="material-symbols-outlined">info</span>
-<span id="passwordErrorText"></span>
-</div>
-</div>
-<div class="form-group remember-group">
-<label class="remember-label" for="rememberMe">
-<input class="remember-checkbox" id="rememberMe" type="checkbox"/>
-<span id="i18nRemember">จำรหัสพนักงาน</span>
-</label>
-</div>
-<button aria-live="polite" class="login-btn hover-lift" id="loginBtn" type="submit">
-<span class="btn-content">
-<span aria-hidden="true" class="btn-status-indicator">
-<!-- Ready Status Indicator SVG (Idle State) -->
-<svg aria-label="พร้อมเข้าสู่ระบบ" class="status-svg svg-ready" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<circle class="ready-beacon" cx="12" cy="12" r="9.5" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.5"></circle>
-<circle class="ready-ring" cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"></circle>
-<circle class="ready-dot" cx="12" cy="12" fill="currentColor" r="2"></circle>
-<path class="ready-symbol" d="M8.5 12.2l2.3 2.3L15.6 9.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path>
-</svg>
-<!-- Active Spinner SVG (Transforms during Authentication) -->
-<svg aria-label="กำลังตรวจสอบข้อมูล" class="status-svg svg-spinner" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<circle class="spinner-track" cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.28)" stroke-width="2.4"></circle>
-<path class="spinner-arc" d="M12 3a9 9 0 0 1 9 9" stroke="#ffffff" stroke-linecap="round" stroke-width="2.4"></path>
-</svg>
-</span>
-<span id="i18nLoginBtn">เข้าสู่ระบบ</span>
-</span>
-<span aria-hidden="true" class="btn-spinner">
-<span class="btn-status-indicator">
-<svg class="status-svg svg-spinner active" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-<circle class="spinner-track" cx="12" cy="12" r="9" stroke="rgba(255, 255, 255, 0.28)" stroke-width="2.4"></circle>
-<path class="spinner-arc" d="M12 3a9 9 0 0 1 9 9" stroke="#ffffff" stroke-linecap="round" stroke-width="2.4"></path>
-</svg>
-</span>
-<span class="spinner-text" id="i18nLoggingInText">กำลังเข้าสู่ระบบ...</span>
-</span>
-</button>
-<!-- 🔗 ลิงก์และกลุ่มทางเลือกเข้าสู่ระบบวิธีอื่น (Grouped Alt Login Methods) -->
-<div class="alt-login-wrapper">
-<button aria-expanded="false" class="alt-login-toggle-btn" id="altLoginToggleBtn" onclick="toggleAltLoginOptions()" title="ดูตัวเลือกการเข้าสู่ระบบแบบอื่น" type="button">
-<span class="material-symbols-outlined alt-toggle-icon">tune</span>
-<span id="i18nAltLoginToggleText">เข้าสู่ระบบวิธีอื่น</span>
-<span class="material-symbols-outlined toggle-chevron" id="altToggleChevron">expand_more</span>
-</button>
-<div class="alt-login-group collapsed" id="altLoginGroup">
-<button class="qr-btn hover-lift" onclick="loginByQr()" type="button">
-<span class="material-symbols-outlined">qr_code_scanner</span>
-<span id="i18nQrBtn">สแกนคิวอาร์โค้ดบัตรพนักงาน</span>
-</button>
-<button class="qr-guide-link-btn hover-lift" onclick="showQrGuideModal()" title="ดูวิธีแสดงบัตรพนักงานสำหรับสแกน" type="button">
-<span class="material-symbols-outlined" style="font-size: 16px;">help_outline</span>
-<span id="i18nQrGuideLink">วิธีถือบัตรสแกน (How-to Guide)</span>
-</button>
-<button class="biometric-btn" id="biometricLoginBtn" onclick="loginByBiometrics()" style="display: none;" type="button">
-<span class="material-symbols-outlined">fingerprint</span>
-<span id="i18nBiometricLoginBtn">เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า</span>
-</button>
-<button class="biometric-guide-btn" id="biometricGuideBtn" onclick="showBiometricGuideModal()" style="display: none;" title="ดูวิธีตั้งค่าและใช้งานระบบสแกนนิ้ว/ใบหน้า" type="button">
-<span class="material-symbols-outlined" style="font-size: 16px;">help_outline</span>
-<span id="i18nBiometricGuideLink">วิธีใช้สแกนนิ้ว/ใบหน้า (Biometric Guide)</span>
-</button>
-</div>
-</div>
-<!-- 🌐 Language & Settings Switcher Pill (Above Divider Line) -->
-<div class="lang-switcher-wrapper" style="display: flex; justify-content: center; width: 100%; margin-top: 2px;">
-<div class="lang-switcher" style="display: flex; gap: 3px; align-items: center; background: #f1f5f9; padding: 2px; border-radius: 9999px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-<button class="lang-btn" id="langThBtn" onclick="setLanguage('th')" title="ภาษาไทย" type="button">TH</button>
-<!-- <button type="button" class="lang-btn" id="langLoBtn" onclick="setLanguage('lo')" title="ພາສາລາວ">LO</button> -->
-<!-- <button type="button" class="lang-btn" id="langMyBtn" onclick="setLanguage('my')" title="မြန်မာစာ">MY</button> -->
-<button class="lang-btn" id="langEnBtn" onclick="setLanguage('en')" title="English" type="button">EN</button>
-<button class="lang-btn" id="langSettingsBtn" onclick="openSystemSettingsModal()" title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี)" type="button">
-<span class="material-symbols-outlined" style="font-size: 13px; line-height: 1;">settings</span>
-</button>
-</div>
-</div>
-</form>
-<!-- 🏷️ Footer Copyright Line inside Main Card -->
-<div class="login-footer-info" style="display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 6px; padding-top: 10px; border-top: 1px solid #f1f5f9;">
-<span style="font-size: 12.5px; color: #94a3b8; font-weight: 500; text-align: center; display: block; width: 100%;">© 2026 P.V.T.&amp; T.Plas Group </span>
-</div>
-</section>
-</main>
-</div>
-<!-- PVT QR Scan Guide Modal (Statically defined for performance & accessibility) -->
-<div class="pvt-guide-modal-overlay" id="pvtQrGuideModal">
-<div aria-labelledby="pvtGuideTitle" aria-modal="true" class="pvt-guide-modal-window" role="dialog">
-<div class="pvt-guide-header">
-<div class="pvt-guide-title-box">
-<div class="pvt-guide-icon-badge">
-<span class="material-symbols-outlined">badge</span>
-</div>
-<div>
-<h3 id="pvtGuideTitle">วิธีแสดงบัตรพนักงานสำหรับสแกน</h3>
-<p id="pvtGuideSubtitle">คำแนะนำการสแกน QR Code &amp; บาร์โค้ด ให้สำเร็จอย่างรวดเร็ว</p>
-</div>
-</div>
-<button class="pvt-guide-close-btn" id="btnCloseQrGuideStatic" title="ปิดหน้าต่าง" type="button">
-<span class="material-symbols-outlined">close</span>
-</button>
-</div>
-<div class="pvt-guide-body">
-<!-- Step Grid (Icons + Text) -->
-<div class="pvt-guide-steps-grid">
-<div class="pvt-guide-step-card">
-<div class="step-icon-box blue">
-<span class="material-symbols-outlined">badge</span>
-</div>
-<div class="step-text-box">
-<h4 id="guideStep1Title">1. ถือบัตรตั้งตรงและขนานกับกล้อง</h4>
-<p id="guideStep1Desc">หันหน้าที่มี QR Code หรือบาร์โค้ดเข้าหาเลนส์กล้องโดยตรง ไม่เอียงบัตร</p>
-</div>
-</div>
-<div class="pvt-guide-step-card">
-<div class="step-icon-box teal">
-<span class="material-symbols-outlined">straighten</span>
-</div>
-<div class="step-text-box">
-<h4 id="guideStep2Title">2. รักษาระยะห่าง 15 - 20 ซม.</h4>
-<p id="guideStep2Desc">เว้นระยะบัตรให้อยู่กึ่งกลางกรอบสแกน ไม่ใกล้หรือไกลเกินไป</p>
-</div>
-</div>
-<div class="pvt-guide-step-card">
-<div class="step-icon-box amber">
-<span class="material-symbols-outlined">light_mode</span>
-</div>
-<div class="step-text-box">
-<h4 id="guideStep3Title">3. ระวังแสงสะท้อนและเงามืด</h4>
-<p id="guideStep3Desc">หลีกเลี่ยงแสงสะท้อนบนซองพลาสติก สามารถเปิดไฟฉายช่วยส่องสว่างได้</p>
-</div>
-</div>
-<div class="pvt-guide-step-card">
-<div class="step-icon-box green">
-<span class="material-symbols-outlined">center_focus_strong</span>
-</div>
-<div class="step-text-box">
-<h4 id="guideStep4Title">4. ถือนิ่งไว้ 1 - 2 วินาที</h4>
-<p id="guideStep4Desc">ถือบัตรรอนิ่งๆ ให้กล้องปรับโฟกัส ระบบจะส่งเสียงสัญญาณเมื่อสแกนผ่าน</p>
-</div>
-</div>
-</div>
-<!-- Do's & Don'ts Comparison Section -->
-<div class="pvt-guide-dos-donts">
-<div class="guide-dos-box">
-<div class="guide-box-header green">
-<span class="material-symbols-outlined">check_circle</span>
-<span id="guideDosTitle">ข้อควรทำ</span>
-</div>
-<ul id="guideDosList">
-<li><span class="bullet">✓</span> อยู่กึ่งกลางกรอบ</li>
-<li><span class="bullet">✓</span> ระยะห่าง 15-20 ซม.</li>
-<li><span class="bullet">✓</span> แสงสว่างพอเหมาะ</li>
-</ul>
-</div>
-<div class="guide-donts-box">
-<div class="guide-box-header red">
-<span class="material-symbols-outlined">cancel</span>
-<span id="guideDontsTitle">ข้อควรระวัง</span>
-</div>
-<ul id="guideDontsList">
-<li><span class="bullet">✕</span> ไม่ถือบัตรเอียง</li>
-<li><span class="bullet">✕</span> ไม่เอานิ้ว บัง QR Code</li>
-<li><span class="bullet">✕</span> ไม่สแกนในที่มืดเกินไป</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="pvt-guide-footer">
-<button class="pvt-guide-btn-primary" id="btnGotItQrGuideStatic" type="button">
-<span class="material-symbols-outlined">qr_code_scanner</span>
-<span id="guideBtnGotIt">เข้าใจแล้ว / เริ่มสแกนบัตร</span>
-</button>
-</div>
-</div>
-</div>
-<!-- ส่วนโหลดสคริปต์ต่างๆ -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
-<script src="/auth/supabase-config.js" type="module"></script>
-<script src="/js/system-settings.js" type="module"></script>
-<script src="/js/system-diagnostics.js" type="module"></script>
-<script src="/auth/index.js" type="module"></script>
-<!-- 🌐 Supabase Connectivity Monitor -->
-
-</body>
+          </div>
+          <!-- Session Verification Splash State (When valid token is detected) -->
+          <div
+            class="session-check-overlay"
+            id="sessionCheckOverlay"
+            style="display: none"
+          >
+            <div class="session-check-spinner"></div>
+            <div>
+              <p class="session-check-text" id="sessionCheckText">
+                กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...
+              </p>
+              <p class="session-check-subtext" id="sessionCheckSubtext">
+                ระบบกำลังนำท่านเข้าสู่ระบบอัตโนมัติ
+              </p>
+            </div>
+          </div>
+          <!-- Skeleton Loading State (Displayed during page & session check initialization) -->
+          <div
+            aria-label="กำลังโหลดข้อมูล..."
+            class="login-skeleton"
+            id="loginSkeleton"
+          >
+            <div class="skeleton-field-group">
+              <div
+                class="skeleton-line skeleton-label skeleton-shimmer"
+                style="width: 42%"
+              ></div>
+              <div class="skeleton-box skeleton-input skeleton-shimmer"></div>
+            </div>
+            <div class="skeleton-field-group">
+              <div
+                class="skeleton-line skeleton-label skeleton-shimmer"
+                style="width: 35%"
+              ></div>
+              <div class="skeleton-box skeleton-input skeleton-shimmer"></div>
+            </div>
+            <div
+              class="skeleton-line skeleton-remember skeleton-shimmer"
+              style="width: 60%"
+            ></div>
+            <div
+              class="skeleton-box skeleton-btn skeleton-btn-primary skeleton-shimmer"
+            ></div>
+            <div class="skeleton-alt-group">
+              <div
+                class="skeleton-box skeleton-btn skeleton-btn-secondary skeleton-shimmer"
+              ></div>
+            </div>
+          </div>
+          <form
+            class="animate-fade delay-400"
+            id="loginForm"
+            style="display: none"
+          >
+            <div class="form-group">
+              <label for="password" id="i18nPassLabel"
+                >รหัสผ่าน (Password)</label
+              >
+              <div class="input-wrapper password-wrapper" id="passwordWrapper">
+                <span class="material-symbols-outlined input-icon">lock</span>
+                <input
+                  autocomplete="current-password"
+                  class="input-field"
+                  id="password"
+                  placeholder="กรอกรหัสผ่านเข้าสู่ระบบ"
+                  required=""
+                  type="password"
+                />
+                <!-- เรียกใช้ฟังก์ชัน togglePassword เมื่อคลิก -->
+                <span
+                  class="toggle-password material-symbols-outlined"
+                  onclick="togglePassword()"
+                  title="แสดง/ซ่อนรหัสผ่าน"
+                  >visibility_off</span
+                >
+              </div>
+              <div class="input-error-hint" id="passwordErrorHint">
+                <span class="material-symbols-outlined">info</span>
+                <span id="passwordErrorText"></span>
+              </div>
+            </div>
+            <div class="form-group remember-group">
+              <label class="remember-label" for="rememberMe">
+                <input
+                  class="remember-checkbox"
+                  id="rememberMe"
+                  type="checkbox"
+                />
+                <span id="i18nRemember">จำรหัสพนักงาน</span>
+              </label>
+            </div>
+            <button
+              aria-live="polite"
+              class="login-btn hover-lift"
+              id="loginBtn"
+              type="submit"
+            >
+              <span class="btn-content">
+                <span aria-hidden="true" class="btn-status-indicator">
+                  <!-- Ready Status Indicator SVG (Idle State) -->
+                  <svg
+                    aria-label="พร้อมเข้าสู่ระบบ"
+                    class="status-svg svg-ready"
+                    fill="none"
+                    viewbox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      class="ready-beacon"
+                      cx="12"
+                      cy="12"
+                      r="9.5"
+                      stroke="rgba(255, 255, 255, 0.45)"
+                      stroke-width="1.5"
+                    ></circle>
+                    <circle
+                      class="ready-ring"
+                      cx="12"
+                      cy="12"
+                      r="8"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    ></circle>
+                    <circle
+                      class="ready-dot"
+                      cx="12"
+                      cy="12"
+                      fill="currentColor"
+                      r="2"
+                    ></circle>
+                    <path
+                      class="ready-symbol"
+                      d="M8.5 12.2l2.3 2.3L15.6 9.6"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2.2"
+                    ></path>
+                  </svg>
+                  <!-- Active Spinner SVG (Transforms during Authentication) -->
+                  <svg
+                    aria-label="กำลังตรวจสอบข้อมูล"
+                    class="status-svg svg-spinner"
+                    fill="none"
+                    viewbox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      class="spinner-track"
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      stroke="rgba(255, 255, 255, 0.28)"
+                      stroke-width="2.4"
+                    ></circle>
+                    <path
+                      class="spinner-arc"
+                      d="M12 3a9 9 0 0 1 9 9"
+                      stroke="#ffffff"
+                      stroke-linecap="round"
+                      stroke-width="2.4"
+                    ></path>
+                  </svg>
+                </span>
+                <span id="i18nLoginBtn">เข้าสู่ระบบ</span>
+              </span>
+              <span aria-hidden="true" class="btn-spinner">
+                <span class="btn-status-indicator">
+                  <svg
+                    class="status-svg svg-spinner active"
+                    fill="none"
+                    viewbox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      class="spinner-track"
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      stroke="rgba(255, 255, 255, 0.28)"
+                      stroke-width="2.4"
+                    ></circle>
+                    <path
+                      class="spinner-arc"
+                      d="M12 3a9 9 0 0 1 9 9"
+                      stroke="#ffffff"
+                      stroke-linecap="round"
+                      stroke-width="2.4"
+                    ></path>
+                  </svg>
+                </span>
+                <span class="spinner-text" id="i18nLoggingInText"
+                  >กำลังเข้าสู่ระบบ...</span
+                >
+              </span>
+            </button>
+            <!-- 🔗 ลิงก์และกลุ่มทางเลือกเข้าสู่ระบบวิธีอื่น (Grouped Alt Login Methods) -->
+            <div class="alt-login-wrapper">
+              <button
+                aria-expanded="false"
+                class="alt-login-toggle-btn"
+                id="altLoginToggleBtn"
+                onclick="toggleAltLoginOptions()"
+                title="ดูตัวเลือกการเข้าสู่ระบบแบบอื่น"
+                type="button"
+              >
+                <span class="material-symbols-outlined alt-toggle-icon"
+                  >tune</span
+                >
+                <span id="i18nAltLoginToggleText">เข้าสู่ระบบวิธีอื่น</span>
+                <span
+                  class="material-symbols-outlined toggle-chevron"
+                  id="altToggleChevron"
+                  >expand_more</span
+                >
+              </button>
+              <div class="alt-login-group collapsed" id="altLoginGroup">
+                <button
+                  class="qr-btn hover-lift"
+                  onclick="loginByQr()"
+                  type="button"
+                >
+                  <span class="material-symbols-outlined">qr_code_scanner</span>
+                  <span id="i18nQrBtn">สแกนคิวอาร์โค้ดบัตรพนักงาน</span>
+                </button>
+                <button
+                  class="qr-guide-link-btn hover-lift"
+                  onclick="showQrGuideModal()"
+                  title="ดูวิธีแสดงบัตรพนักงานสำหรับสแกน"
+                  type="button"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 16px"
+                    >help_outline</span
+                  >
+                  <span id="i18nQrGuideLink"
+                    >วิธีถือบัตรสแกน (How-to Guide)</span
+                  >
+                </button>
+                <button
+                  class="biometric-btn"
+                  id="biometricLoginBtn"
+                  onclick="loginByBiometrics()"
+                  style="display: none"
+                  type="button"
+                >
+                  <span class="material-symbols-outlined">fingerprint</span>
+                  <span id="i18nBiometricLoginBtn"
+                    >เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า</span
+                  >
+                </button>
+                <button
+                  class="biometric-guide-btn"
+                  id="biometricGuideBtn"
+                  onclick="showBiometricGuideModal()"
+                  style="display: none"
+                  title="ดูวิธีตั้งค่าและใช้งานระบบสแกนนิ้ว/ใบหน้า"
+                  type="button"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 16px"
+                    >help_outline</span
+                  >
+                  <span id="i18nBiometricGuideLink"
+                    >วิธีใช้สแกนนิ้ว/ใบหน้า (Biometric Guide)</span
+                  >
+                </button>
+              </div>
+            </div>
+            <!-- 🌐 Language & Settings Switcher Pill (Above Divider Line) -->
+            <div
+              class="lang-switcher-wrapper"
+              style="
+                display: flex;
+                justify-content: center;
+                width: 100%;
+                margin-top: 2px;
+              "
+            >
+              <div
+                class="lang-switcher"
+                style="
+                  display: flex;
+                  gap: 3px;
+                  align-items: center;
+                  background: #f1f5f9;
+                  padding: 2px;
+                  border-radius: 9999px;
+                  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+                  border: 1px solid #e2e8f0;
+                "
+              >
+                <button
+                  class="lang-btn"
+                  id="langThBtn"
+                  onclick="setLanguage('th')"
+                  title="ภาษาไทย"
+                  type="button"
+                >
+                  TH
+                </button>
+                <!-- <button type="button" class="lang-btn" id="langLoBtn" onclick="setLanguage('lo')" title="ພາສາລາວ">LO</button> -->
+                <!-- <button type="button" class="lang-btn" id="langMyBtn" onclick="setLanguage('my')" title="မြန်မာစာ">MY</button> -->
+                <button
+                  class="lang-btn"
+                  id="langEnBtn"
+                  onclick="setLanguage('en')"
+                  title="English"
+                  type="button"
+                >
+                  EN
+                </button>
+                <button
+                  class="lang-btn"
+                  id="langSettingsBtn"
+                  onclick="openSystemSettingsModal()"
+                  title="ตั้งค่าระบบ (ขนาดตัวอักษร, ธีมสี)"
+                  type="button"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 13px; line-height: 1"
+                    >settings</span
+                  >
+                </button>
+              </div>
+            </div>
+          </form>
+          <!-- 🏷️ Footer Copyright Line inside Main Card -->
+          <div
+            class="login-footer-info"
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 100%;
+              margin-top: 6px;
+              padding-top: 10px;
+              border-top: 1px solid #f1f5f9;
+            "
+          >
+            <span
+              style="
+                font-size: 12.5px;
+                color: #94a3b8;
+                font-weight: 500;
+                text-align: center;
+                display: block;
+                width: 100%;
+              "
+              >© 2026 P.V.T.&amp; T.Plas Group
+            </span>
+          </div>
+        </section>
+      </main>
+    </div>
+    <!-- PVT QR Scan Guide Modal (Statically defined for performance & accessibility) -->
+    <div class="pvt-guide-modal-overlay" id="pvtQrGuideModal">
+      <div
+        aria-labelledby="pvtGuideTitle"
+        aria-modal="true"
+        class="pvt-guide-modal-window"
+        role="dialog"
+      >
+        <div class="pvt-guide-header">
+          <div class="pvt-guide-title-box">
+            <div class="pvt-guide-icon-badge">
+              <span class="material-symbols-outlined">badge</span>
+            </div>
+            <div>
+              <h3 id="pvtGuideTitle">วิธีแสดงบัตรพนักงานสำหรับสแกน</h3>
+              <p id="pvtGuideSubtitle">
+                คำแนะนำการสแกน QR Code &amp; บาร์โค้ด ให้สำเร็จอย่างรวดเร็ว
+              </p>
+            </div>
+          </div>
+          <button
+            class="pvt-guide-close-btn"
+            id="btnCloseQrGuideStatic"
+            title="ปิดหน้าต่าง"
+            type="button"
+          >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="pvt-guide-body">
+          <!-- Step Grid (Icons + Text) -->
+          <div class="pvt-guide-steps-grid">
+            <div class="pvt-guide-step-card">
+              <div class="step-icon-box blue">
+                <span class="material-symbols-outlined">badge</span>
+              </div>
+              <div class="step-text-box">
+                <h4 id="guideStep1Title">1. ถือบัตรตั้งตรงและขนานกับกล้อง</h4>
+                <p id="guideStep1Desc">
+                  หันหน้าที่มี QR Code หรือบาร์โค้ดเข้าหาเลนส์กล้องโดยตรง
+                  ไม่เอียงบัตร
+                </p>
+              </div>
+            </div>
+            <div class="pvt-guide-step-card">
+              <div class="step-icon-box teal">
+                <span class="material-symbols-outlined">straighten</span>
+              </div>
+              <div class="step-text-box">
+                <h4 id="guideStep2Title">2. รักษาระยะห่าง 15 - 20 ซม.</h4>
+                <p id="guideStep2Desc">
+                  เว้นระยะบัตรให้อยู่กึ่งกลางกรอบสแกน ไม่ใกล้หรือไกลเกินไป
+                </p>
+              </div>
+            </div>
+            <div class="pvt-guide-step-card">
+              <div class="step-icon-box amber">
+                <span class="material-symbols-outlined">light_mode</span>
+              </div>
+              <div class="step-text-box">
+                <h4 id="guideStep3Title">3. ระวังแสงสะท้อนและเงามืด</h4>
+                <p id="guideStep3Desc">
+                  หลีกเลี่ยงแสงสะท้อนบนซองพลาสติก
+                  สามารถเปิดไฟฉายช่วยส่องสว่างได้
+                </p>
+              </div>
+            </div>
+            <div class="pvt-guide-step-card">
+              <div class="step-icon-box green">
+                <span class="material-symbols-outlined"
+                  >center_focus_strong</span
+                >
+              </div>
+              <div class="step-text-box">
+                <h4 id="guideStep4Title">4. ถือนิ่งไว้ 1 - 2 วินาที</h4>
+                <p id="guideStep4Desc">
+                  ถือบัตรรอนิ่งๆ ให้กล้องปรับโฟกัส
+                  ระบบจะส่งเสียงสัญญาณเมื่อสแกนผ่าน
+                </p>
+              </div>
+            </div>
+          </div>
+          <!-- Do's & Don'ts Comparison Section -->
+          <div class="pvt-guide-dos-donts">
+            <div class="guide-dos-box">
+              <div class="guide-box-header green">
+                <span class="material-symbols-outlined">check_circle</span>
+                <span id="guideDosTitle">ข้อควรทำ</span>
+              </div>
+              <ul id="guideDosList">
+                <li><span class="bullet">✓</span> อยู่กึ่งกลางกรอบ</li>
+                <li><span class="bullet">✓</span> ระยะห่าง 15-20 ซม.</li>
+                <li><span class="bullet">✓</span> แสงสว่างพอเหมาะ</li>
+              </ul>
+            </div>
+            <div class="guide-donts-box">
+              <div class="guide-box-header red">
+                <span class="material-symbols-outlined">cancel</span>
+                <span id="guideDontsTitle">ข้อควรระวัง</span>
+              </div>
+              <ul id="guideDontsList">
+                <li><span class="bullet">✕</span> ไม่ถือบัตรเอียง</li>
+                <li><span class="bullet">✕</span> ไม่เอานิ้ว บัง QR Code</li>
+                <li><span class="bullet">✕</span> ไม่สแกนในที่มืดเกินไป</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="pvt-guide-footer">
+          <button
+            class="pvt-guide-btn-primary"
+            id="btnGotItQrGuideStatic"
+            type="button"
+          >
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+            <span id="guideBtnGotIt">เข้าใจแล้ว / เริ่มสแกนบัตร</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- ส่วนโหลดสคริปต์ต่างๆ -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+    <script src="/auth/supabase-config.js" type="module"></script>
+    <script src="/js/system-settings.js" type="module"></script>
+    <script src="/js/system-diagnostics.js" type="module"></script>
+    <script src="/auth/index.js" type="module"></script>
+    <!-- 🌐 Supabase Connectivity Monitor -->
+  </body>
 </html>
