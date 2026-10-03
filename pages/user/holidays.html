@@ -20,6 +20,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/css/holidays.css?v=20260930-12" />
+    <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง + ส่วนหัว (ต้องอยู่หลัง CSS ของหน้า) -->
+    <link rel="stylesheet" href="/css/mobile-shell.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -37,23 +39,6 @@
 <link href="/assets/icons/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
 
 
-<style>
-  /* จัดหัวข้อหน้า Holidays ให้อยู่กึ่งกลางจริง */
-  #holidaysHeader {
-    position: relative;
-  }
-
-  #holidaysHeader .holidays-title-center {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-  }
-
-  #holidaysHeader .appbar-subtitle-row {
-    justify-content: center;
-  }
-</style>
 
 </head>
 
@@ -300,48 +285,20 @@
 
       <main class="main-content">
 
-        <header id="holidaysHeader" class="page-header-row mobile-appbar">
-          <div class="appbar-left-zone">
-            <button
-              type="button"
-              class="btn-header-back-app"
-              onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href='/pages/user/index-user.html'; }"
-              title="กลับ"
-              aria-label="กลับ"
-            >
-              <span class="material-symbols-outlined">arrow_back</span>
-            </button>
-
-            <div class="appbar-title-wrap holidays-title-center">
-              <h1 class="appbar-main-title">ปฏิทินวันหยุด</h1>
-              <div class="appbar-subtitle-row">
-                <span class="appbar-live-dot"></span>
-                <span class="appbar-subtext">วันหยุดประจำปีบริษัท</span>
-              </div>
-            </div>
+<!-- 📱 ส่วนหัวมาตรฐาน (ดีไซน์ใน /css/mobile-shell.css) -->
+        <header class="pvt-appbar">
+          <a class="pvt-appbar-back" href="/pages/user/index-user.html" aria-label="กลับหน้าหลัก">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          </a>
+          <div class="pvt-appbar-titles">
+            <h1 class="pvt-appbar-title">ปฏิทินวันหยุด</h1>
+            <p class="pvt-appbar-sub">วันหยุดประจำปีบริษัท</p>
           </div>
-
-          <div class="appbar-right-zone">
-
+          <div class="pvt-appbar-actions">
+            <!-- ปุ่มเปลี่ยนภาษา (system-settings.js ใส่เข้ามาที่นี่) -->
             <div class="history-actions" id="historyActionsZone"></div>
-
-            <button
-              type="button"
-              class="app-icon-btn mobile-menu-btn borderless-action-btn"
-              id="mobileMenuBtn"
-              onclick="
-                if (typeof window.toggleMobileSidebar === 'function') {
-                  window.toggleMobileSidebar(event);
-                } else if (typeof toggleMobileSidebar === 'function') {
-                  toggleMobileSidebar();
-                }
-              "
-              title="เปิดเมนูอื่น ๆ"
-              aria-label="เมนู"
-            >
-              <span class="material-symbols-outlined" style="font-size: 24px"
-                >more_vert</span
-              >
+            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิดเมนู" aria-label="เปิดเมนูหลัก">
+              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
             </button>
           </div>
         </header>
@@ -1117,35 +1074,7 @@
         </div>
       </main>
 
-      <nav id="holidaysBottomNav" class="mobile-bottom-nav">
-                <a href="/pages/user/index-user.html" class="bottom-nav-item">
-                  <span class="material-symbols-outlined">home</span>
-                  <span class="nav-label">หน้าหลัก</span>
-                </a>
-                <a href="/pages/user/leave-history.html" class="bottom-nav-item">
-                  <span class="material-symbols-outlined">receipt_long</span>
-                  <span class="nav-label">ประวัติลา</span>
-                </a>
-                <a
-                  href="/pages/user/leave-user.html"
-                  class="bottom-nav-item primary-action"
-                  title="ยื่นใบลาใหม่"
-                >
-                  <div class="center-fab-icon">
-                    <span class="material-symbols-outlined">add</span>
-                  </div>
-                  <span class="nav-label">ยื่นใบลา</span>
-                </a>
-                <a href="/pages/user/holidays.html" class="bottom-nav-item active">
-                  <span class="material-symbols-outlined">calendar_month</span>
-                  <span class="nav-label">วันหยุด</span>
-                  <span class="nav-active-dot"></span>
-                </a>
-                <a href="/pages/user/profile-user.html" class="bottom-nav-item">
-                  <span class="material-symbols-outlined">person</span>
-                  <span class="nav-label">ข้อมูลส่วนตัว</span>
-                </a>
-              </nav>
+      <!-- 📱 แถบเมนูล่าง: สร้างอัตโนมัติโดย /js/mobile-shell.js (เหมือนกันทุกหน้า) -->
     </div>
 
     <div
@@ -1334,6 +1263,8 @@
       </div>
     </div>
 
+    <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง -->
+    <script src="/js/mobile-shell.js" defer></script>
     <script type="module" src="/auth/supabase-config.js"></script>
     <script type="module" src="/js/auth-guard.js"></script>
     <script type="module" src="/js/system-settings.js"></script>

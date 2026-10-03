@@ -26,48 +26,27 @@
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
   <link rel="stylesheet" href="/css/user-leave.css" />
+  <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง + ส่วนหัว (ต้องอยู่หลัง CSS ของหน้า) -->
+  <link rel="stylesheet" href="/css/mobile-shell.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body id="page-user-leave">
 
-  <!-- 📱 PAGE-SPECIFIC LEAVE HEADER -->
-  <header class="leave-topbar">
-    <button
-      type="button"
-      class="leave-topbar-back"
-      onclick="history.back(); return false;"
-      title="กลับ"
-      aria-label="กลับ"
-    >
-      <span class="material-symbols-outlined">arrow_back</span>
-    </button>
-
-    <div class="leave-topbar-center">
-      <h1 class="leave-topbar-title">ใบลาออนไลน์</h1>
-      <div class="leave-topbar-subtitle">
-        <span class="leave-topbar-dot"></span>
-        <span>ยื่นคำขอลาออนไลน์</span>
-      </div>
+<!-- 📱 ส่วนหัวมาตรฐาน (ดีไซน์ใน /css/mobile-shell.css) -->
+  <header class="pvt-appbar">
+    <a class="pvt-appbar-back" href="/pages/user/index-user.html" aria-label="กลับหน้าหลัก">
+      <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+    </a>
+    <div class="pvt-appbar-titles">
+      <h1 class="pvt-appbar-title">ใบลาออนไลน์</h1>
+      <p class="pvt-appbar-sub"><span class="pvt-appbar-live" aria-hidden="true"></span>ยื่นคำขอลาออนไลน์</p>
     </div>
-
-    <button
-      type="button"
-      class="leave-topbar-menu"
-      onclick="
-        if (typeof window.toggleMobileSidebar === 'function') {
-          window.toggleMobileSidebar(event);
-        } else if (typeof toggleMobileSidebar === 'function') {
-          toggleMobileSidebar();
-        } else if (typeof openSystemSettingsModal === 'function') {
-          openSystemSettingsModal();
-        }
-      "
-      title="เมนู"
-      aria-label="เมนู"
-    >
-      <span class="material-symbols-outlined">more_vert</span>
-    </button>
+    <div class="pvt-appbar-actions">
+      <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}else if(typeof openSystemSettingsModal==='function'){openSystemSettingsModal();}" title="เมนู" aria-label="เมนู">
+        <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+      </button>
+    </div>
   </header>
 
   <div class="page">
@@ -116,7 +95,6 @@
       <button class="btn btn-primary" type="button" id="btnSaveLeave" onclick="saveLeave()"><span class="material-symbols-outlined">send</span> ส่งคำขอ</button>
     </div>
 
-  </div>
 
   <div class="form-guide-wrapper">
     <div id="form-leave-guide-card" class="form-guide-popup" style="display: none;">
@@ -168,33 +146,10 @@
 
   <div id="statusToast" class="status-toast"></div>
 
-  <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR -->
-  <nav class="mobile-bottom-nav">
-    <a href="/pages/user/index-user.html" class="bottom-nav-item">
-      <span class="material-symbols-outlined">home</span>
-      <span class="nav-label">หน้าหลัก</span>
-    </a>
-    <a href="/pages/user/leave-history.html" class="bottom-nav-item">
-      <span class="material-symbols-outlined">receipt_long</span>
-      <span class="nav-label">ประวัติลา</span>
-    </a>
-    <a href="/pages/user/leave-user.html" class="bottom-nav-item primary-action active" title="ยื่นใบลาใหม่">
-      <div class="center-fab-icon">
-        <span class="material-symbols-outlined">add</span>
-      </div>
-      <span class="nav-label">ยื่นใบลา</span>
-      <span class="nav-active-dot"></span>
-    </a>
-    <a href="/pages/user/holidays.html" class="bottom-nav-item">
-      <span class="material-symbols-outlined">calendar_month</span>
-      <span class="nav-label">วันหยุด</span>
-    </a>
-    <a href="/pages/user/profile-user.html" class="bottom-nav-item">
-      <span class="material-symbols-outlined">person</span>
-      <span class="nav-label">ข้อมูลฉัน</span>
-    </a>
-  </nav>
+  <!-- 📱 แถบเมนูล่าง: สร้างอัตโนมัติโดย /js/mobile-shell.js (เหมือนกันทุกหน้า) -->
 
+  <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง -->
+  <script src="/js/mobile-shell.js" defer></script>
   <script type="module" src="/auth/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script type="module" src="/js/auth-guard.js"></script>

@@ -1,5 +1,1246 @@
-/* ======================================================
-   Dedicated Stylesheet for HR Leave Stats (/pages/hr/leave-stats.html)
-   Scoped Page ID: #page-hr-leave-stats
-   ====================================================== */
-@import url('/css/hr.css');
+/* ==========================================================================
+   PVT WORKFORCE HUB — หน้าสถิติวันลา HR (hr-leave-stats.css)
+   ใช้กับ /pages/hr/leave-stats.html (body id="page-hr-leave-stats")
+   ต้องวางไฟล์ไว้ที่ /css/hr-leave-stats.css
+   --------------------------------------------------------------------------
+   หลักการของไฟล์นี้ (แบบเดียวกับ hr-management.css)
+   1. ไม่ใช้ !important เลย  → ชนะกันด้วย "ลำดับไฟล์" + "ความเจาะจงของ selector"
+   2. Sidebar / Topbar เป็นของ layout-*.css (โหลดก่อนไฟล์นี้) ไม่เขียนซ้ำที่นี่
+   3. ทุกกฎของหน้านี้ขึ้นต้นด้วย #page-hr-leave-stats (id ของ <body>)
+   4. คลาสของหน้านี้ขึ้นต้นด้วย ls- (Leave Stats) ไม่ชนกับ CSS ไฟล์อื่น
+   5. ถ้าต้องการ override ให้ "เพิ่มความเจาะจง" อย่าเติม !important
+
+   สารบัญ
+   00. Design tokens
+   01. Base — พื้นหลังและฟอนต์
+   02. Layout adapter — .pvt-page + ปรับ Sidebar (02.1–02.3)
+   03. ปุ่ม (.ls-btn)
+   04. แถบเครื่องมือ — ตัวกรอง + ปุ่ม
+   05. การ์ดตัวเลขเด่น (KPI)
+   06. แท็บมุมมอง
+   07. Panel ของแต่ละแท็บ + ค้นหา + ปุ่มสลับขอบเขต
+   08. สถานะว่าง / กำลังโหลด / ผิดพลาด
+   09. แท็บรายแผนก
+   10. แท็บอันดับพนักงาน
+   11. แท็บประเภทวันลา
+   12. แท็บแนวโน้มรายเดือน
+   13. แท็บสถานะ & วันในสัปดาห์
+   14. Responsive
+   15. Print
+   16. Animations
+   ========================================================================== */
+
+
+/* ==========================================================================
+   00. DESIGN TOKENS
+   ========================================================================== */
+#page-hr-leave-stats {
+  --ls-primary: #0d9488;
+  --ls-primary-dark: #0f766e;
+  --ls-primary-soft: #f0fdfa;
+  --ls-blue: #0284c7;
+  --ls-amber: #d97706;
+  --ls-rose: #e11d48;
+  --ls-green: #16a34a;
+  --ls-red: #dc2626;
+
+  --ls-text: #0f172a;
+  --ls-text-2: #334155;
+  --ls-text-soft: #64748b;
+  --ls-text-muted: #94a3b8;
+  --ls-border: #e2e8f0;
+  --ls-border-strong: #cbd5e1;
+  --ls-surface: #ffffff;
+  --ls-surface-2: #f8fafc;
+  --ls-track: #f1f5f9;
+
+  --ls-radius-lg: 16px;
+  --ls-radius-md: 12px;
+  --ls-radius-sm: 10px;
+
+  --ls-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.04);
+  --ls-shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --ls-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+
+/* ==========================================================================
+   01. BASE
+   ========================================================================== */
+#page-hr-leave-stats {
+  font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--ls-text);
+  background-color: #f0fdfa;
+  background-image:
+    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#page-hr-leave-stats *,
+#page-hr-leave-stats *::before,
+#page-hr-leave-stats *::after {
+  box-sizing: border-box;
+}
+
+#page-hr-leave-stats h2,
+#page-hr-leave-stats h3,
+#page-hr-leave-stats p {
+  margin: 0;
+}
+
+
+/* ==========================================================================
+   02. LAYOUT ADAPTER
+   .pvt-page (จาก layout กลาง) เป็น flex คอลัมน์ → ใช้ gap คุมระยะห่างทุก section
+   ========================================================================== */
+#page-hr-leave-stats .pvt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+#page-hr-leave-stats .pvt-page > * {
+  min-width: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+
+/* ---- 02.1 Sidebar: ไอคอนเมนูสีเดียวกับตัวอักษร (ขาว) ---- */
+#page-hr-leave-stats .pvt-nav__item .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
+#page-hr-leave-stats .pvt-sidebar__toggle {
+  color: #ffffff;
+  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+}
+
+#page-hr-leave-stats .pvt-sidebar__toggle:hover {
+  background: linear-gradient(135deg, #2748a8, #1e3988);
+}
+
+#page-hr-leave-stats .pvt-sidebar__toggle .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.3 จอ PC: ไม่ต้องมีปุ่ม ✕ ปิดเมนู และปุ่ม ☰ (ใช้เฉพาะมือถือ/แท็บเล็ต) ---- */
+@media (min-width: 1025px) {
+  #page-hr-leave-stats .pvt-sidebar__close,
+  #page-hr-leave-stats .pvt-topbar__burger {
+    display: none;
+  }
+}
+
+
+/* ==========================================================================
+   03. ปุ่ม (.ls-btn)
+   ========================================================================== */
+#page-hr-leave-stats .ls-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ls-radius-sm);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.2s var(--ls-ease), box-shadow 0.2s;
+}
+
+#page-hr-leave-stats .ls-btn .material-symbols-outlined {
+  font-size: 19px;
+}
+
+#page-hr-leave-stats .ls-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ปุ่มขาว ขอบเทา (พิมพ์ / รีเฟรช) */
+#page-hr-leave-stats .ls-btn--light,
+#page-hr-leave-stats .ls-btn--icon {
+  background: var(--ls-surface);
+  color: var(--ls-text-2);
+  border-color: var(--ls-border-strong);
+}
+
+#page-hr-leave-stats .ls-btn--light:hover,
+#page-hr-leave-stats .ls-btn--icon:hover {
+  background: var(--ls-primary-soft);
+  color: var(--ls-primary-dark);
+  border-color: #99f6e4;
+}
+
+/* ปุ่มไอคอนสี่เหลี่ยม (รีเฟรช) */
+#page-hr-leave-stats .ls-btn--icon {
+  width: 40px;
+  padding: 0;
+}
+
+/* ปุ่มเขียว Excel */
+#page-hr-leave-stats .ls-btn--excel {
+  background: #107c41;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16, 124, 65, 0.25);
+}
+
+#page-hr-leave-stats .ls-btn--excel:hover {
+  background: #0c5e31;
+  box-shadow: 0 4px 12px rgba(16, 124, 65, 0.35);
+}
+
+
+/* ==========================================================================
+   04. แถบเครื่องมือ — ตัวกรอง (ซ้าย) + ปุ่ม (ขวา)
+   ========================================================================== */
+#page-hr-leave-stats .ls-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-lg);
+  box-shadow: var(--ls-shadow);
+}
+
+#page-hr-leave-stats .ls-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* ป้ายชื่อด้านบน + dropdown ด้านล่าง */
+#page-hr-leave-stats .ls-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 170px;
+}
+
+#page-hr-leave-stats .ls-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ls-text-soft);
+}
+
+#page-hr-leave-stats .ls-field-label .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--ls-primary);
+}
+
+#page-hr-leave-stats .ls-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 34px 0 12px;
+  background: var(--ls-surface) url('data:image/svg+xml;utf8,<svg fill="%230d9488" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 8px center;
+  color: var(--ls-text);
+  border: 1px solid var(--ls-border-strong);
+  border-radius: var(--ls-radius-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#page-hr-leave-stats .ls-select:focus {
+  border-color: var(--ls-primary);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+#page-hr-leave-stats .ls-select:disabled {
+  background-color: var(--ls-surface-2);
+  color: var(--ls-text-soft);
+  cursor: not-allowed;
+}
+
+/* margin-left: auto → ปุ่มชิดขวาเสมอ แม้แถบจะขึ้นบรรทัดใหม่ */
+#page-hr-leave-stats .ls-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+#page-hr-leave-stats .ls-updated {
+  margin-right: 4px;
+  font-size: 12px;
+  color: var(--ls-text-muted);
+}
+
+
+/* ==========================================================================
+   05. การ์ดตัวเลขเด่น (KPI)
+   แต่ละใบมีสีของตัวเอง (--kpi-color / --kpi-soft) ใช้ทั้งเส้นซ้าย ตัวเลข และไอคอน
+   ========================================================================== */
+#page-hr-leave-stats .ls-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+#page-hr-leave-stats .ls-kpi {
+  --kpi-color: var(--ls-primary);
+  --kpi-soft: #ccfbf1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px 20px;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-left: 4px solid var(--kpi-color);
+  border-radius: var(--ls-radius-lg);
+  box-shadow: var(--ls-shadow);
+  transition: transform 0.25s var(--ls-ease), box-shadow 0.25s var(--ls-ease);
+}
+
+#page-hr-leave-stats .ls-kpi--teal  { --kpi-color: var(--ls-primary); --kpi-soft: #ccfbf1; }
+#page-hr-leave-stats .ls-kpi--amber { --kpi-color: var(--ls-amber);   --kpi-soft: #fef3c7; }
+#page-hr-leave-stats .ls-kpi--blue  { --kpi-color: var(--ls-blue);    --kpi-soft: #e0f2fe; }
+#page-hr-leave-stats .ls-kpi--rose  { --kpi-color: var(--ls-rose);    --kpi-soft: #ffe4e6; }
+
+#page-hr-leave-stats .ls-kpi-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+#page-hr-leave-stats .ls-kpi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ls-text-soft);
+}
+
+#page-hr-leave-stats .ls-kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--kpi-color);
+}
+
+/* ชื่อแผนก / ชื่อคน: ตัวเล็กลง ตัดด้วย ... ถ้ายาวเกิน */
+#page-hr-leave-stats .ls-kpi-value--name {
+  overflow: hidden;
+  font-size: 17px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ls-text);
+}
+
+#page-hr-leave-stats .ls-kpi-sub {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ls-text-muted);
+}
+
+#page-hr-leave-stats .ls-kpi--blue .ls-kpi-sub,
+#page-hr-leave-stats .ls-kpi--rose .ls-kpi-sub {
+  color: var(--kpi-color);
+}
+
+/* กล่องไอคอนมุมขวา */
+#page-hr-leave-stats .ls-kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  font-size: 26px;
+  color: var(--kpi-color);
+  background: var(--kpi-soft);
+  border-radius: 14px;
+}
+
+
+/* ==========================================================================
+   06. แท็บมุมมอง — แถบปุ่มแบบ segmented ในกรอบสีขาว
+   ========================================================================== */
+#page-hr-leave-stats .ls-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  overflow-x: auto;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: 14px;
+  box-shadow: var(--ls-shadow);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+#page-hr-leave-stats .ls-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+#page-hr-leave-stats .ls-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 0 auto;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  background: transparent;
+  color: var(--ls-text-soft);
+  border: none;
+  border-radius: var(--ls-radius-sm);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+#page-hr-leave-stats .ls-tab .material-symbols-outlined {
+  font-size: 19px;
+}
+
+#page-hr-leave-stats .ls-tab:hover {
+  background: var(--ls-surface-2);
+  color: var(--ls-text);
+}
+
+/* แท็บที่เลือกอยู่ (วางหลัง :hover จึงชนะ) */
+#page-hr-leave-stats .ls-tab.active {
+  background: var(--ls-primary-dark);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+}
+
+
+/* ==========================================================================
+   07. PANEL ของแต่ละแท็บ + ค้นหา + ปุ่มสลับขอบเขต
+   ========================================================================== */
+#page-hr-leave-stats .ls-panel {
+  padding: 22px 24px 24px;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-lg);
+  box-shadow: var(--ls-shadow);
+  animation: lsFadeUp 0.35s var(--ls-ease) both;
+}
+
+/* หัว panel: ไอคอนกลม + ชื่อ/คำอธิบาย + เครื่องมือ (ขวา) */
+#page-hr-leave-stats .ls-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ls-border);
+}
+
+#page-hr-leave-stats .ls-panel-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+  color: var(--ls-primary);
+  background: var(--ls-primary-soft);
+  border-radius: 50%;
+}
+
+#page-hr-leave-stats .ls-panel-title {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+#page-hr-leave-stats .ls-panel-title h2 {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--ls-text);
+}
+
+#page-hr-leave-stats .ls-panel-title p {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--ls-text-soft);
+}
+
+#page-hr-leave-stats .ls-panel-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---- 07.1 ช่องค้นหา ---- */
+#page-hr-leave-stats .ls-search {
+  position: relative;
+}
+
+#page-hr-leave-stats .ls-search .material-symbols-outlined {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  font-size: 19px;
+  color: var(--ls-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+#page-hr-leave-stats .ls-search input {
+  width: 240px;
+  height: 38px;
+  padding: 0 12px 0 36px;
+  background: var(--ls-surface-2);
+  color: var(--ls-text);
+  border: 1px solid var(--ls-border-strong);
+  border-radius: var(--ls-radius-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+#page-hr-leave-stats .ls-search input:focus {
+  background: var(--ls-surface);
+  border-color: var(--ls-primary);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+/* ---- 07.2 ปุ่มสลับ "ทั้งบริษัท / แผนกของคุณ" ---- */
+#page-hr-leave-stats .ls-segment {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--ls-track);
+  border-radius: var(--ls-radius-sm);
+}
+
+#page-hr-leave-stats .btn-sub-rank {
+  height: 32px;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--ls-text-soft);
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+#page-hr-leave-stats .btn-sub-rank.active {
+  background: var(--ls-surface);
+  color: var(--ls-primary-dark);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1);
+}
+
+/* ---- 07.3 กล่องรายการ (JS render ใส่) ---- */
+#page-hr-leave-stats .ls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#page-hr-leave-stats .ls-list--tight {
+  gap: 8px;
+}
+
+
+/* ==========================================================================
+   08. สถานะว่าง / กำลังโหลด / ผิดพลาด
+   ========================================================================== */
+#page-hr-leave-stats .ls-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1 / -1;
+  padding: 44px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ls-text-muted);
+}
+
+#page-hr-leave-stats .ls-state .material-symbols-outlined {
+  font-size: 36px;
+  color: var(--ls-border-strong);
+}
+
+#page-hr-leave-stats .ls-state--loading .material-symbols-outlined {
+  color: var(--ls-primary);
+  animation: spin 1s linear infinite;
+}
+
+#page-hr-leave-stats .ls-state--error,
+#page-hr-leave-stats .ls-state--error .material-symbols-outlined {
+  color: var(--ls-red);
+}
+
+
+/* ==========================================================================
+   09. แท็บรายแผนก — การ์ดแผนก + แถบเปรียบเทียบ
+   ========================================================================== */
+#page-hr-leave-stats .ls-dept {
+  padding: 16px 18px;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  transition: transform 0.2s var(--ls-ease), box-shadow 0.2s var(--ls-ease), border-color 0.2s;
+}
+
+#page-hr-leave-stats .ls-dept:hover {
+  transform: translateY(-2px);
+  border-color: var(--ls-border-strong);
+  box-shadow: var(--ls-shadow-hover);
+}
+
+/* แผนกของผู้ใช้เอง: พื้นเขียวอ่อน */
+#page-hr-leave-stats .ls-dept.is-mine {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+#page-hr-leave-stats .ls-dept-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#page-hr-leave-stats .ls-dept-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+#page-hr-leave-stats .ls-dept-name strong {
+  font-size: 15px;
+  color: var(--ls-text);
+}
+
+/* ป้ายอันดับ #1 #2 … */
+#page-hr-leave-stats .ls-rank-chip {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ls-primary-dark);
+  background: #ccfbf1;
+  border-radius: 8px;
+}
+
+/* ป้าย "แผนกของคุณ" */
+#page-hr-leave-stats .ls-mine-chip {
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--ls-green);
+  border-radius: 6px;
+}
+
+#page-hr-leave-stats .ls-dept-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-align: right;
+}
+
+#page-hr-leave-stats .ls-dept-value strong {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ls-primary-dark);
+}
+
+#page-hr-leave-stats .ls-dept-value span {
+  font-size: 12px;
+  color: var(--ls-text-soft);
+}
+
+/* แถบเปรียบเทียบ (ใช้ร่วมกับแท็บสถานะ) */
+#page-hr-leave-stats .ls-bar {
+  height: 10px;
+  margin-top: 12px;
+  overflow: hidden;
+  background: var(--ls-track);
+  border-radius: 999px;
+}
+
+#page-hr-leave-stats .ls-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ls-primary), var(--ls-blue));
+  border-radius: inherit;
+  transition: width 0.6s var(--ls-ease);
+}
+
+#page-hr-leave-stats .ls-dept-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--ls-text-soft);
+}
+
+
+/* ==========================================================================
+   10. แท็บอันดับพนักงาน — แถวต่อคน
+   ========================================================================== */
+#page-hr-leave-stats .ls-emp {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  transition: transform 0.2s var(--ls-ease), box-shadow 0.2s var(--ls-ease), border-color 0.2s;
+}
+
+#page-hr-leave-stats .ls-emp:hover {
+  transform: translateX(3px);
+  border-color: #99f6e4;
+  box-shadow: var(--ls-shadow);
+}
+
+/* 3 อันดับแรก: พื้นอ่อนตามเหรียญ */
+#page-hr-leave-stats .ls-emp.is-top-1 { background: linear-gradient(90deg, #fffbeb, #fff 60%); border-color: #fde68a; }
+#page-hr-leave-stats .ls-emp.is-top-2 { background: linear-gradient(90deg, #f8fafc, #fff 60%); }
+#page-hr-leave-stats .ls-emp.is-top-3 { background: linear-gradient(90deg, #fff7ed, #fff 60%); }
+
+#page-hr-leave-stats .ls-emp-rank {
+  flex-shrink: 0;
+  width: 34px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--ls-text-soft);
+}
+
+#page-hr-leave-stats .ls-emp-rank.is-medal {
+  font-size: 24px;
+}
+
+#page-hr-leave-stats .ls-emp-avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--ls-border-strong);
+}
+
+#page-hr-leave-stats .ls-emp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+#page-hr-leave-stats .ls-emp-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+#page-hr-leave-stats .ls-emp-name strong {
+  font-size: 14.5px;
+  color: var(--ls-text);
+}
+
+/* ป้ายรหัสพนักงาน */
+#page-hr-leave-stats .ls-code-chip {
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ls-primary-dark);
+  background: var(--ls-primary-soft);
+  border: 1px solid #ccfbf1;
+  border-radius: 6px;
+}
+
+#page-hr-leave-stats .ls-emp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ls-text-soft);
+}
+
+#page-hr-leave-stats .ls-emp-meta b {
+  color: var(--ls-primary-dark);
+}
+
+#page-hr-leave-stats .ls-emp-total {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+#page-hr-leave-stats .ls-emp-total strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+  color: #b91c1c;
+}
+
+#page-hr-leave-stats .ls-emp-total span {
+  font-size: 11.5px;
+  color: var(--ls-text-soft);
+}
+
+
+/* ==========================================================================
+   11. แท็บประเภทวันลา — การ์ดต่อประเภท
+   สีของการ์ดมาจากคลาส ls-type--sick / --vacation / --personal (default = ฟ้า)
+   ========================================================================== */
+#page-hr-leave-stats .ls-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+#page-hr-leave-stats .ls-type {
+  --type-color: var(--ls-blue);
+  --type-soft: #e0f2fe;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  background: var(--ls-surface);
+  border: 1px solid var(--ls-border);
+  border-top: 4px solid var(--type-color);
+  border-radius: var(--ls-radius-md);
+  transition: transform 0.2s var(--ls-ease), box-shadow 0.2s var(--ls-ease);
+}
+
+#page-hr-leave-stats .ls-type:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ls-shadow-hover);
+}
+
+#page-hr-leave-stats .ls-type--sick     { --type-color: var(--ls-rose);    --type-soft: #ffe4e6; }
+#page-hr-leave-stats .ls-type--vacation { --type-color: var(--ls-primary); --type-soft: #ccfbf1; }
+#page-hr-leave-stats .ls-type--personal { --type-color: var(--ls-amber);   --type-soft: #fef3c7; }
+
+#page-hr-leave-stats .ls-type-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+#page-hr-leave-stats .ls-type-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+  color: var(--type-color);
+  background: var(--type-soft);
+  border-radius: 12px;
+}
+
+#page-hr-leave-stats .ls-type-pct {
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--type-color);
+  background: var(--type-soft);
+  border-radius: 999px;
+}
+
+#page-hr-leave-stats .ls-type-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ls-text);
+}
+
+#page-hr-leave-stats .ls-type-count {
+  font-size: 12px;
+  color: var(--ls-text-soft);
+}
+
+/* แถบสัดส่วน */
+#page-hr-leave-stats .ls-type .ls-bar {
+  height: 6px;
+}
+
+#page-hr-leave-stats .ls-type .ls-bar-fill {
+  background: var(--type-color);
+}
+
+#page-hr-leave-stats .ls-type-total {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ls-text);
+}
+
+#page-hr-leave-stats .ls-type-total small {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ls-text-soft);
+}
+
+
+/* ==========================================================================
+   12. แท็บแนวโน้มรายเดือน — กราฟแท่งแนวตั้ง 12 เดือน
+   ========================================================================== */
+#page-hr-leave-stats .ls-month-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#page-hr-leave-stats .ls-month-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 520px;
+  height: 260px;
+  padding: 8px 4px 0;
+  background-image: repeating-linear-gradient(to top, var(--ls-track) 0 1px, transparent 1px 25%);
+  border-bottom: 2px solid var(--ls-border);
+}
+
+#page-hr-leave-stats .ls-month {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 100%;
+}
+
+#page-hr-leave-stats .ls-month-val {
+  min-height: 15px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ls-primary-dark);
+}
+
+#page-hr-leave-stats .ls-month-bar {
+  width: 100%;
+  max-width: 36px;
+  background: linear-gradient(180deg, var(--ls-primary), var(--ls-blue));
+  border-radius: 8px 8px 0 0;
+  transition: height 0.5s var(--ls-ease), opacity 0.2s;
+}
+
+#page-hr-leave-stats .ls-month:hover .ls-month-bar {
+  opacity: 0.8;
+}
+
+/* เดือนที่ไม่มีวันลา: แท่งจาง */
+#page-hr-leave-stats .ls-month.is-empty .ls-month-bar {
+  background: var(--ls-border);
+}
+
+/* เดือนที่สูงสุด: เน้นสีส้ม */
+#page-hr-leave-stats .ls-month.is-peak .ls-month-bar {
+  background: linear-gradient(180deg, #f59e0b, #ea580c);
+}
+
+#page-hr-leave-stats .ls-month.is-peak .ls-month-val {
+  color: #c2410c;
+}
+
+#page-hr-leave-stats .ls-month-labels {
+  display: flex;
+  gap: 10px;
+  min-width: 520px;
+  padding: 8px 4px 0;
+}
+
+#page-hr-leave-stats .ls-month-labels span {
+  flex: 1;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ls-text-soft);
+}
+
+
+/* ==========================================================================
+   13. แท็บสถานะ & วันในสัปดาห์ — การ์ด 2 ใบ
+   ========================================================================== */
+#page-hr-leave-stats .ls-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+#page-hr-leave-stats .ls-subcard {
+  padding: 20px;
+  background: var(--ls-surface-2);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+}
+
+#page-hr-leave-stats .ls-subcard h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ls-text);
+}
+
+#page-hr-leave-stats .ls-subcard h3 .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--ls-primary);
+}
+
+/* ---- 13.1 อัตราอนุมัติ (ตัวเลขใหญ่ด้านบน) ---- */
+#page-hr-leave-stats .ls-rate {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+#page-hr-leave-stats .ls-rate strong {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ls-green);
+}
+
+#page-hr-leave-stats .ls-rate span {
+  font-size: 13px;
+  color: var(--ls-text-soft);
+}
+
+/* ---- 13.2 แถวสถานะ: ชื่อ + % + แถบ ---- */
+#page-hr-leave-stats .ls-status-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#page-hr-leave-stats .ls-status-row {
+  --row-color: var(--ls-green);
+}
+
+#page-hr-leave-stats .ls-status-row--pending  { --row-color: var(--ls-amber); }
+#page-hr-leave-stats .ls-status-row--rejected { --row-color: var(--ls-red); }
+
+#page-hr-leave-stats .ls-status-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+#page-hr-leave-stats .ls-status-label span:first-child {
+  color: var(--row-color);
+}
+
+#page-hr-leave-stats .ls-status-row .ls-bar {
+  height: 8px;
+  margin-top: 6px;
+  background: var(--ls-border);
+}
+
+#page-hr-leave-stats .ls-status-row .ls-bar-fill {
+  background: var(--row-color);
+}
+
+/* ---- 13.3 วันในสัปดาห์: ชื่อวัน | แถบ | จำนวน ---- */
+#page-hr-leave-stats .ls-weekday {
+  display: grid;
+  grid-template-columns: 76px 1fr 64px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+#page-hr-leave-stats .ls-weekday + .ls-weekday {
+  margin-top: 10px;
+}
+
+#page-hr-leave-stats .ls-weekday-name {
+  font-weight: 600;
+  color: var(--ls-text-2);
+}
+
+#page-hr-leave-stats .ls-weekday .ls-bar {
+  height: 8px;
+  margin-top: 0;
+  background: var(--ls-border);
+}
+
+#page-hr-leave-stats .ls-weekday .ls-bar-fill {
+  background: var(--ls-blue);
+}
+
+#page-hr-leave-stats .ls-weekday-val {
+  font-weight: 700;
+  text-align: right;
+  color: var(--ls-text);
+}
+
+/* วันเสาร์-อาทิตย์: สีจาง */
+#page-hr-leave-stats .ls-weekday.is-weekend .ls-weekday-name {
+  color: var(--ls-text-muted);
+}
+
+/* วันที่ลามากที่สุด: เน้นสีส้ม */
+#page-hr-leave-stats .ls-weekday.is-peak .ls-bar-fill {
+  background: #ea580c;
+}
+
+#page-hr-leave-stats .ls-weekday.is-peak .ls-weekday-val {
+  color: #c2410c;
+}
+
+
+/* ==========================================================================
+   14. RESPONSIVE
+   เรียงจากจอใหญ่ → เล็ก (max-width)
+   ========================================================================== */
+
+/* ---- ≤ 1280px : โน้ตบุ๊ก → KPI 2 คอลัมน์ ---- */
+@media (max-width: 1280px) {
+  #page-hr-leave-stats .ls-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---- ≤ 1024px : แท็บเล็ต → ตัวกรองยืดเต็มแถว ---- */
+@media (max-width: 1024px) {
+  #page-hr-leave-stats .ls-filters { flex: 1 1 100%; }
+  #page-hr-leave-stats .ls-field   { flex: 1 1 160px; min-width: 0; }
+  #page-hr-leave-stats .ls-actions { flex: 1 1 100%; justify-content: flex-end; }
+}
+
+/* ---- ≤ 768px : มือถือ ---- */
+@media (max-width: 768px) {
+  #page-hr-leave-stats .pvt-page { gap: 14px; }
+
+  #page-hr-leave-stats .ls-toolbar { padding: 14px; }
+  #page-hr-leave-stats .ls-field   { flex: 1 1 100%; }
+
+  /* ปุ่ม: เวลาอัปเดตอยู่บรรทัดบน ปุ่มแบ่งเท่ากัน */
+  #page-hr-leave-stats .ls-actions          { justify-content: stretch; }
+  #page-hr-leave-stats .ls-updated          { flex: 1 1 100%; margin: 0; }
+  #page-hr-leave-stats .ls-btn--light,
+  #page-hr-leave-stats .ls-btn--excel       { flex: 1; }
+
+  /* ฟอนต์ 15px ป้องกัน iOS ซูมเองตอนโฟกัส */
+  #page-hr-leave-stats .ls-select,
+  #page-hr-leave-stats .ls-search input { font-size: 15px; }
+
+  #page-hr-leave-stats .ls-kpi-grid  { gap: 10px; }
+  #page-hr-leave-stats .ls-kpi       { padding: 14px 16px; }
+  #page-hr-leave-stats .ls-kpi-value { font-size: 22px; }
+  #page-hr-leave-stats .ls-kpi-icon  { width: 40px; height: 40px; font-size: 22px; }
+
+  /* แท็บ: ไม่ยืด ให้เลื่อนแนวนอนได้ */
+  #page-hr-leave-stats .ls-tab { flex: 0 0 auto; padding: 0 14px; }
+
+  #page-hr-leave-stats .ls-panel { padding: 16px 14px; }
+
+  /* ค้นหา + ปุ่มสลับ เต็มความกว้าง */
+  #page-hr-leave-stats .ls-panel-tools,
+  #page-hr-leave-stats .ls-search,
+  #page-hr-leave-stats .ls-search input { width: 100%; }
+
+  #page-hr-leave-stats .ls-segment      { width: 100%; }
+  #page-hr-leave-stats .btn-sub-rank    { flex: 1; }
+
+  /* การ์ดแผนก: ตัวเลขลงมาใต้ชื่อ */
+  #page-hr-leave-stats .ls-dept-value { justify-content: space-between; width: 100%; text-align: left; }
+
+  /* อันดับพนักงาน: ย่อรูป */
+  #page-hr-leave-stats .ls-emp        { gap: 10px; padding: 10px 12px; }
+  #page-hr-leave-stats .ls-emp-avatar { width: 38px; height: 38px; }
+  #page-hr-leave-stats .ls-emp-rank   { width: 26px; }
+}
+
+/* ---- ≤ 480px : มือถือจอเล็ก → KPI 1 คอลัมน์ ---- */
+@media (max-width: 480px) {
+  #page-hr-leave-stats .ls-kpi-grid { grid-template-columns: 1fr; }
+  #page-hr-leave-stats .ls-split    { grid-template-columns: 1fr; }
+}
+
+
+/* ==========================================================================
+   15. PRINT — ซ่อนเมนู/ปุ่ม เหลือแต่ตัวเลขและข้อมูล
+   ========================================================================== */
+@media print {
+  #page-hr-leave-stats .pvt-sidebar,
+  #page-hr-leave-stats .pvt-overlay,
+  #page-hr-leave-stats .pvt-topbar,
+  #page-hr-leave-stats .no-print {
+    display: none;
+  }
+
+  #page-hr-leave-stats .ls-kpi,
+  #page-hr-leave-stats .ls-panel {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+
+
+/* ==========================================================================
+   16. ANIMATIONS
+   ========================================================================== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lsFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว → ปิด animation */
+@media (prefers-reduced-motion: reduce) {
+  #page-hr-leave-stats *,
+  #page-hr-leave-stats *::before,
+  #page-hr-leave-stats *::after {
+    animation: none;
+    transition: none;
+  }
+}

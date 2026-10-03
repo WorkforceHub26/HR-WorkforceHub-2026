@@ -366,29 +366,20 @@ function applyRoleBasedUI() {
   }
 
   // กรองเมนูด้านข้างสำหรับ Leader/Manager
+  // (layout ใหม่ใช้ .pvt-nav__item — selector เดิม .nav-menu .nav-item หาไม่เจอ เมนูจึงไม่เคยถูกซ่อน)
+  // ใช้ hidden แทน inline display + important เพื่อไม่ไปทับ CSS ของ layout
   if (sidebar) {
-    const navItems = sidebar.querySelectorAll(".nav-menu .nav-item");
+    const navItems = sidebar.querySelectorAll(".pvt-nav__item, .nav-menu .nav-item");
+    const isApproverOnly = currentRole === "leader" || currentRole === "manager";
     navItems.forEach(item => {
       const href = item.getAttribute("href") || "";
-      if (currentRole === "leader" || currentRole === "manager") {
-        // ซ่อนลิงก์ "แก้ไข/เพิ่ม ประวัติ" (Management) สำหรับผู้อนุมัติทั่วไป แต่ยังคงแสดง "หน้าหลัก" (Dashboard) ไว้ให้ใช้งานได้ปกติ
-        if (href.includes("management.html")) {
-          item.style.setProperty("display", "none", "important");
-        } else {
-          item.style.setProperty("display", "flex", "important");
-        }
-      } else {
-        // แอดมินและฝ่ายบุคคลสามารถเห็นเมนูทั้งหมดได้
-        item.style.setProperty("display", "flex", "important");
-      }
+      // ซ่อนเมนู "ระบบจัดการส่วนกลาง" สำหรับหัวหน้า/ผู้จัดการ, HR/Admin เห็นทั้งหมด
+      item.hidden = isApproverOnly && href.includes("management.html");
     });
   }
 
   if (currentRole === "leader" || currentRole === "manager") {
-    // แสดงแถบเมนูด้านข้างเสมอ เพื่อให้สามารถสลับเมนูและกดดูข้อมูลส่วนตัว/วันหยุดได้
-    if (sidebar) {
-      sidebar.style.display = "flex";
-    }
+    // แถบเมนูด้านข้าง: ให้ layout-sidebar.css คุมการแสดงผลเอง (ไม่ใส่ inline display)
     if (mainContent) {
       // ล้าง inline styles เพื่อให้สไตล์ CSS ปกติและระบบย่อขยายเมนูด้านข้าง (Collapsible Sidebar) ทำงานได้ปกติ
       mainContent.style.removeProperty("margin-left");
@@ -411,7 +402,6 @@ function applyRoleBasedUI() {
       roleBadge.className = "status-badge status-pending";
     }
   } else {
-    if (sidebar) sidebar.style.display = "flex";
     if (mainContent) {
       mainContent.style.removeProperty("margin-left");
       mainContent.style.removeProperty("width");
@@ -843,10 +833,13 @@ async function loadPendingLeavesHR(isSilent = false) {
   const container = document.getElementById("leaveListContainer");
   if (!container) return;
 
+  // รีเฟรชเบื้องหลัง (polling / realtime) ระหว่างที่ผู้ใช้ติ๊กเลือกหรือเปิดรายละเอียดอยู่ → ข้ามไปก่อน
+  if (isSilent && typeof isUserBusyOnHrPage === 'function' && isUserBusyOnHrPage()) return;
+
   const sb = window.pvtSupabase?.getClient();
   if (!sb) {
     if (!isSilent) {
-      container.innerHTML = `<div class="empty-state">❌ ระบบฐานข้อมูลไม่พร้อมใช้งาน</div>`;
+      container.innerHTML = `<div class="ap-empty is-error"><span class="material-symbols-outlined">cloud_off</span><strong>ระบบฐานข้อมูลไม่พร้อมใช้งาน</strong><small>กรุณารีเฟรชหน้านี้อีกครั้ง</small></div>`;
     }
     return;
   }
@@ -1153,12 +1146,17 @@ async function loadPendingLeavesHR(isSilent = false) {
     console.error("💥 Critical Failure in loadPendingLeavesHR:", err);
     if (container) {
       container.innerHTML = `
-        <div class="empty-state" style="padding: 60px 20px;">
-          <span class="material-symbols-outlined" style="font-size: 48px; color: var(--danger); margin-bottom: 16px;">error</span>
-          <h3 style="margin-bottom: 8px;">ไม่สามารถโหลดข้อมูลได้</h3>
-          <p style="color: var(--text-soft); font-size: 14px;">${err.message}</p>
-          <button onclick="loadPendingLeavesHR()" class="btn-primary" style="margin-top: 20px; padding: 8px 24px;">🔄 ลองใหม่อีกครั้ง</button>
+        <div class="ap-empty is-error">
+          <span class="material-symbols-outlined">error</span>
+          <strong>ไม่สามารถโหลดข้อมูลได้</strong>
+          <small>${escapeHtml(err?.message || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ')}</small>
+          <button type="button" onclick="loadPendingLeavesHR()" class="ap-btn ap-btn--primary">
+            <span class="material-symbols-outlined">refresh</span> ลองใหม่อีกครั้ง
+          </button>
         </div>`;
+      // แท็บ "รออนุมัติ" ซ่อนกล่องรายการไว้ → ต้องเปิดให้เห็นข้อความผิดพลาด
+      const panel = document.getElementById("leaveTablePanel");
+      if (panel) panel.style.display = "block";
     }
   }
 }
@@ -1402,9 +1400,10 @@ function renderLeaveTable() {
   }
 
   if (filteredRequests.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="padding: 80px 20px; text-align: center; color: var(--text-soft); font-style: italic;">
-      <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.2; display: block; margin-bottom: 12px;">inbox</span>
-      ไม่พบรายการใบลาตามเงื่อนไขที่เลือก
+    container.innerHTML = `<div class="ap-empty">
+      <span class="material-symbols-outlined">inbox</span>
+      <strong>ไม่พบรายการใบลาตามเงื่อนไขที่เลือก</strong>
+      <small>ลองล้างคำค้นหา หรือเปลี่ยนตัวกรองสถานะ</small>
     </div>`;
     return;
   }
@@ -3862,6 +3861,9 @@ window.approveCancellation = approveCancellation;
 window.rejectCancellation = rejectCancellation;
 window.printLeaveA4 = printLeaveA4;
 window.loadPendingLeavesHR = loadPendingLeavesHR;
+// ช่องค้นหา (oninput) และตัวกรองสถานะ (onchange) ใน hr.html เรียก renderLeaveTable()
+// แต่ hr.js โหลดแบบ module → ถ้าไม่ผูกกับ window ฟังก์ชันจะหาไม่เจอ ค้นหา/กรองไม่ทำงาน
+window.renderLeaveTable = renderLeaveTable;
 window.previewLeaveModal = previewLeaveModal;
 window.closePreviewModal = closePreviewModal;
 window.openImageLightbox = openImageLightbox;
@@ -4108,9 +4110,18 @@ document.addEventListener("visibilitychange", handleHrAutoSync);
 window.addEventListener("pageshow", handleHrAutoSync);
 window.addEventListener("focus", handleHrAutoSync);
 
+// ผู้ใช้กำลังทำงานค้างอยู่หรือไม่ (ติ๊กเลือกหลายรายการ / เปิดหน้ารายละเอียด / มีกล่องยืนยันเปิดอยู่)
+// ถ้าใช่ → ข้ามการรีเฟรชอัตโนมัติรอบนั้น เพราะการ render ใหม่จะล้างช่องที่ติ๊กไว้ทุก 15 วินาที
+function isUserBusyOnHrPage() {
+  const hasCheckedBulk = !!document.querySelector('.bulk-item-check:checked');
+  const isPreviewOpen = !!document.querySelector('#leavePreviewModal.active');
+  const isSwalOpen = typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible();
+  return hasCheckedBulk || isPreviewOpen || isSwalOpen;
+}
+
 // Polling ทุกๆ 15 วินาที
 setInterval(() => {
-  if (document.visibilityState === 'visible' && !document.hidden) {
+  if (document.visibilityState === 'visible' && !document.hidden && !isUserBusyOnHrPage()) {
     if (typeof loadPendingLeavesHR === 'function') loadPendingLeavesHR(true);
   }
 }, 15000);

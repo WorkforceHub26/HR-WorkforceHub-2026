@@ -246,6 +246,29 @@
             id="loginForm"
             style="display: none"
           >
+            <!-- รหัสพนักงาน: /auth/index.js อ่านค่าจาก id="username" ตอนกดเข้าสู่ระบบ
+                 (ถ้าช่องนี้หายไป ปุ่มเข้าสู่ระบบจะกดแล้วไม่เกิดอะไรขึ้นเลย) -->
+            <div class="form-group">
+              <label for="username" id="i18nUserLabel"
+                >รหัสพนักงาน หรือ ชื่อ-นามสกุล</label
+              >
+              <div class="input-wrapper" id="usernameWrapper">
+                <span class="material-symbols-outlined input-icon">badge</span>
+                <input
+                  autocomplete="username"
+                  class="input-field"
+                  id="username"
+                  inputmode="text"
+                  placeholder="กรอกรหัสพนักงาน หรือ ชื่อพนักงาน"
+                  required=""
+                  type="text"
+                />
+              </div>
+              <div class="input-error-hint" id="usernameErrorHint">
+                <span class="material-symbols-outlined">info</span>
+                <span id="usernameErrorText"></span>
+              </div>
+            </div>
             <div class="form-group">
               <label for="password" id="i18nPassLabel"
                 >รหัสผ่าน (Password)</label

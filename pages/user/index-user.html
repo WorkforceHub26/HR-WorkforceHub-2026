@@ -70,6 +70,10 @@
   <link rel="stylesheet" href="/css/sidebar.css" />
   <link rel="stylesheet" href="/css/index-user.css" />
   <link rel="stylesheet" href="/css/system-settings.css" />
+  <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง + ส่วนหัว -->
+  <link rel="stylesheet" href="/css/mobile-shell.css" />
+  <!-- 📱 Mobile overrides เฉพาะหน้า index (ต้องอยู่หลัง mobile-shell.css) -->
+  <link rel="stylesheet" href="/css/index-user-mobile.css" />
 
   <!-- 2. โหลดฟอนต์ภายนอกแบบ Non-blocking ไม่ให้รบกวนการคำนวณขนาดกรอบหน้าจอและดีไซน์หลัก -->
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Lao:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -442,32 +446,7 @@
 
       </div>
 
-      <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR -->
-      <nav class="mobile-bottom-nav">
-        <a href="/pages/user/index-user.html" class="bottom-nav-item active">
-          <span class="material-symbols-outlined">home</span>
-          <span class="nav-label">หน้าหลัก</span>
-          <span class="nav-active-dot"></span>
-        </a>
-        <a href="/pages/user/leave-history.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">receipt_long</span>
-          <span class="nav-label">ประวัติลา</span>
-        </a>
-        <a href="/pages/user/leave-user.html" class="bottom-nav-item primary-action" title="ยื่นใบลาใหม่">
-          <div class="center-fab-icon">
-            <span class="material-symbols-outlined">add</span>
-          </div>
-          <span class="nav-label">ยื่นใบลา</span>
-        </a>
-        <a href="/pages/user/holidays.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">calendar_month</span>
-          <span class="nav-label">วันหยุด</span>
-        </a>
-        <a href="/pages/user/profile-user.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">person</span>
-          <span class="nav-label">ข้อมูลส่วนตัว</span>
-        </a>
-      </nav>
+      <!-- 📱 แถบเมนูล่าง: สร้างอัตโนมัติโดย /js/mobile-shell.js (เหมือนกันทุกหน้า) -->
 
     </main>
   </div>
@@ -534,13 +513,13 @@
           🩺 ใบรับรองแพทย์ลาป่วย?
         </button>
         <button type="button" onclick="askHrQuestion('วันลาพักร้อนสะสมไปปีหน้าได้ไหม?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-          ️ สะสมวันลาพักร้อน?
+          🏖️ สะสมวันลาพักร้อน?
         </button>
         <button type="button" onclick="askHrQuestion('สิทธิการลาคลอดบุตรและการรับเงินสงเคราะห์เป็นอย่างไร?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-           สิทธิลาคลอดบุตร?
+          👶 สิทธิลาคลอดบุตร?
         </button>
         <button type="button" onclick="askHrQuestion('เงื่อนไขการเบิกค่ารักษาพยาบาลและเบี้ยเลี้ยงปฏิบัติงานนอกสถานที่?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-           เบิกค่ารักษา & เบี้ยเลี้ยง?
+          💊 เบิกค่ารักษา & เบี้ยเลี้ยง?
         </button>
       </div>
 
@@ -559,13 +538,16 @@
 
       <!-- Input Bar -->
       <div style="padding: 12px 14px; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; align-items: center;">
-        <input type="text" id="hrChatInput" placeholder="พิมพ์คำถามนโยบายหรือสวัสดิการ..." onkeydown="if(event.key==='Enter') sendHrChatMessage()" style="flex: 1; padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; outline: none; transition: border-color 0.2s;">
+        <input type="text" id="hrChatInput" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์คำถามนโยบายหรือสวัสดิการ..." onkeydown="if(event.key==='Enter') sendHrChatMessage()" style="flex: 1; padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; outline: none; transition: border-color 0.2s;">
         <button type="button" id="hrChatSendBtn" onclick="sendHrChatMessage()" style="width: 38px; height: 38px; border-radius: 50%; background: #0d9488; color: #ffffff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 6px rgba(13, 148, 136, 0.3);">
           <span class="material-symbols-outlined" style="font-size: 18px;">send</span>
         </button>
       </div>
     </div>
   </div>
+
+  <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง -->
+  <script src="/js/mobile-shell.js" defer></script>
 
   <!-- 1. สคริปต์ภายนอก -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -584,6 +566,8 @@
   <script type="module" src="/js/company-news.js"></script>
   <script type="module" src="/js/delegation-service.js"></script>
   <script type="module" src="/js/index-user.js"></script>
+  <!-- 📱 Mobile UX fixes (ต้องอยู่หลัง index-user.js) -->
+  <script type="module" src="/js/index-user-mobile.js"></script>
   <script type="module" src="/js/system-diagnostics.js"></script>
 
   </body>

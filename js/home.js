@@ -196,11 +196,16 @@ window.refreshDashboardData = async function(isManualClick = false) {
   ];
   const mockEmployees = [{ emp_code: "PVT-001", first_name: "สมศักดิ์", last_name: "ผลดี", full_name: "สมศักดิ์ ผลดี", department: "ฝ่ายผลิต" }];
 
+  // ⚠️ เดิมใช้ข้อมูลตัวอย่าง (mock) เมื่อเชื่อมต่อไม่ได้ → HR เห็นตัวเลขปลอมบนหน้าจริง
+  //    ตอนนี้แสดงเป็น 0 / ว่าง แทน และแจ้งเตือนให้รู้
   if (!sb) {
-    rawRequests = mockRequests;
-    rawEmployees = mockEmployees;
-    renderCounters(1, 1, 1);
+    rawRequests = [];
+    rawEmployees = [];
+    renderCounters(0, 0, 0, 0);
+    renderTodayLeavesDetail([]);
     drawCharts();
+    if (typeof renderSummary === "function") renderSummary();
+    showToast("เชื่อมต่อฐานข้อมูลไม่ได้ กรุณารีเฟรชหน้า", "error");
     if (syncBtn) syncBtn.classList.remove("refresh-spin-active");
     return;
   }
@@ -324,7 +329,7 @@ window.refreshDashboardData = async function(isManualClick = false) {
       rawRequests = rawRequests.filter(r => deptEmpIds.has(String(r.employee_id)));
       
       // เปลี่ยนหัวข้อให้ชัดเจน
-      const titleEl = document.querySelector('.topbar-left h1');
+      const titleEl = document.querySelector('.pvt-topbar__title h1, .topbar-left h1');
       if (titleEl) titleEl.textContent = `ภาพรวมข้อมูลแผนก (${rawEmployees[0]?.departments?.department_name || 'ฝ่ายบุคคล-ธุรการ'})`;
     }
 
@@ -341,10 +346,7 @@ window.refreshDashboardData = async function(isManualClick = false) {
       }
     });
 
-    if (rawRequests.length === 0 && rawEmployees.length === 0) {
-      rawRequests = mockRequests;
-      rawEmployees = mockEmployees;
-    }
+    // (เอาการเติมข้อมูลตัวอย่างออก: ถ้าไม่มีข้อมูลจริงก็แสดงเป็นว่าง)
 
     const myEmpId = sessionUser?.id || sessionUser?.employee_id || sessionUser?.employees?.id;
     const pendingCount = rawRequests.filter(r => {
@@ -358,21 +360,24 @@ window.refreshDashboardData = async function(isManualClick = false) {
       return isPendingForRoleHome(r, myRole);
     }).length;
     
+    // ใช้วันที่ตามเวลาเครื่อง (เวลาไทย) — เดิมใช้ toISOString() ซึ่งเป็นเวลา UTC
+    // ทำให้ช่วง 00:00–06:59 นับ "ลาวันนี้" เป็นของเมื่อวาน
+    const toLocalIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = toLocalIso(now);
     const tomorrow = new Date(now);
     tomorrow.setDate(now.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const tomorrowStr = toLocalIso(tomorrow);
 
     const todayLeaves = rawRequests.filter(r => {
       const isApproved = (r.status === "approved" || r.status === "อนุมัติ");
-      const inRange = r.start_date && r.end_date && (todayStr >= r.start_date && todayStr <= r.end_date);
+      const inRange = r.start_date && r.end_date && (todayStr >= String(r.start_date).slice(0, 10) && todayStr <= String(r.end_date).slice(0, 10));
       return isApproved && inRange;
     });
 
     const tomorrowLeaves = rawRequests.filter(r => {
       const isApproved = (r.status === "approved" || r.status === "อนุมัติ");
-      const inRange = r.start_date && r.end_date && (tomorrowStr >= r.start_date && tomorrowStr <= r.end_date);
+      const inRange = r.start_date && r.end_date && (tomorrowStr >= String(r.start_date).slice(0, 10) && tomorrowStr <= String(r.end_date).slice(0, 10));
       return isApproved && inRange;
     });
 
@@ -618,7 +623,7 @@ function renderLeaveBreakdownList(typeSummary, totalCount, colors) {
   const keys = Object.keys(typeSummary);
 
   if (keys.length === 0) {
-    detailsList.innerHTML = `<div style="color:var(--text-soft); font-size:14px; text-align:center; padding:20px;">ไม่มีข้อมูลประวัติการลา</div>`;
+    detailsList.innerHTML = `<div class="home-empty"><span class="material-symbols-outlined">donut_large</span><strong>ยังไม่มีใบลาที่อนุมัติแล้ว</strong></div>`;
     return;
   }
 
@@ -632,7 +637,7 @@ function renderLeaveBreakdownList(typeSummary, totalCount, colors) {
       <div class="detail-item">
         <div class="item-info">
           <span class="badge-dot" style="background-color: ${color};"></span>
-          <span class="item-name">${key}</span>
+          <span class="item-name" title="${escapeHtmlAttribute(key)}">${escapeHtmlText(key)}</span>
           <span class="item-val">${count} รายการ</span>
           <span class="item-pct" style="color: ${color};">${pct}%</span>
         </div>
@@ -661,10 +666,10 @@ function renderTopLeaveEmployees(approvedRequests) {
 
   if (validApproved.length === 0) {
     container.innerHTML = `
-      <div class="empty-state" style="padding: 28px 16px; text-align: center; color: var(--text-soft); background: #f8fafc; border-radius: var(--radius-md); border: 1px dashed #e2e8f0;">
-        <span class="material-symbols-outlined" style="font-size: 38px; color: #cbd5e1; margin-bottom: 8px; display: block;">event_busy</span>
-        <div style="font-weight: 700; color: #64748b; font-size: 14px;">ยังไม่มีข้อมูลการลาที่อนุมัติแล้ว</div>
-        <span style="font-size: 12px; color: #94a3b8; margin-top: 4px; display: block;">ระบบจะจัดอันดับอัตโนมัติเมื่อมีใบลาที่ได้รับการอนุมัติเรียบร้อย</span>
+      <div class="home-empty">
+        <span class="material-symbols-outlined">event_busy</span>
+        <strong>ยังไม่มีข้อมูลการลาที่อนุมัติแล้ว</strong>
+        <small>ระบบจะจัดอันดับอัตโนมัติเมื่อมีใบลาที่ได้รับการอนุมัติ</small>
       </div>
     `;
     return;
@@ -767,9 +772,9 @@ function renderTopLeaveEmployees(approvedRequests) {
 
   if (sortedEmployees.length === 0) {
     container.innerHTML = `
-      <div class="empty-state" style="padding: 24px 16px; text-align: center; color: var(--text-soft);">
-        <span class="material-symbols-outlined" style="font-size: 36px; color: #cbd5e1; margin-bottom: 6px; display: block;">event_busy</span>
-        <div>ไม่มีข้อมูลประวัติการลาที่อนุมัติ</div>
+      <div class="home-empty">
+        <span class="material-symbols-outlined">event_busy</span>
+        <strong>ไม่มีข้อมูลประวัติการลาที่อนุมัติ</strong>
       </div>
     `;
     return;
@@ -840,9 +845,10 @@ function renderTopLeaveEmployees(approvedRequests) {
 
     // Avatar
     const initials = getDisplayInitials(emp.name, emp.nickname);
+    const safeInitials = escapeHtmlText(initials).replace(/'/g, '');
     const avatarHtml = emp.avatar 
-      ? `<img src="${emp.avatar}" class="top-emp-avatar" alt="${emp.name}" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'top-emp-avatar-badge',textContent:'${initials}'}));">`
-      : `<div class="top-emp-avatar-badge">${initials}</div>`;
+      ? `<img src="${escapeHtmlAttribute(emp.avatar)}" class="top-emp-avatar" alt="${escapeHtmlAttribute(emp.name)}" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'top-emp-avatar-badge',textContent:'${safeInitials}'}));">`
+      : `<div class="top-emp-avatar-badge">${safeInitials}</div>`;
 
     html += `
       <div class="top-emp-card ${rankClass}">
@@ -852,8 +858,8 @@ function renderTopLeaveEmployees(approvedRequests) {
         <div class="col-profile-box">
           ${avatarHtml}
           <div class="col-name">
-            <span class="emp-name">${emp.name}</span>
-            <span class="emp-dept">${emp.dept} ${emp.code ? `• <span class="emp-code">${emp.code}</span>` : ''}</span>
+            <span class="emp-name">${escapeHtmlText(emp.name)}</span>
+            <span class="emp-dept">${escapeHtmlText(emp.dept)} ${emp.code ? `• <span class="emp-code">${escapeHtmlText(emp.code)}</span>` : ''}</span>
           </div>
         </div>
         <div class="col-stats">
@@ -1034,7 +1040,8 @@ function updateSlaBadges(slaStats) {
     if (totalPending > 0) {
       sidebarBadge.textContent = totalPending > 99 ? '99+' : totalPending;
       sidebarBadge.style.display = 'inline-flex';
-      sidebarBadge.className = 'sidebar-badge';
+      // คงคลาส pvt-nav__badge ของ layout ไว้ (เดิมเขียนทับเป็น sidebar-badge → ป้ายไม่มีสไตล์)
+      sidebarBadge.className = 'pvt-nav__badge sidebar-badge';
       if (overdueCount > 0) {
         sidebarBadge.classList.add('overdue');
         sidebarBadge.title = `มีคำขอลาเกินกำหนด SLA 2 วัน: ${overdueCount} รายการ`;
@@ -1165,7 +1172,7 @@ function renderTodayLeavesDetail(leaves) {
   if (!container) return;
 
   if (leaves.length === 0) {
-    container.innerHTML = `<div style="padding: 30px; text-align: center; color: #94a3b8; width: 100%;">วันนี้ไม่มีพนักงานลางาน ✨</div>`;
+    container.innerHTML = `<div class="home-empty"><span class="material-symbols-outlined">celebration</span><strong>วันนี้ไม่มีพนักงานลางาน</strong><small>ทุกคนเข้างานครบ</small></div>`;
     return;
   }
 
@@ -1180,7 +1187,7 @@ function renderTodayLeavesDetail(leaves) {
     
     return `
       <div class="today-leave-card-detail">
-        <img src="${img}" class="emp-avatar" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
+        <img src="${escapeHtmlAttribute(img)}" class="emp-avatar" alt="" onerror="this.onerror=null; this.src='${escapeHtmlAttribute(defaultAvatarFallback)}';">
         <div class="info">
           <div class="name">${escapeHtmlText(emp.full_name || "ไม่ระบุชื่อ")}</div>
           <div class="dept">${escapeHtmlText(dept)}</div>
@@ -2497,7 +2504,7 @@ async function fetchRealNotifications() {
           badge.style.background = '#f97316';
           badge.style.boxShadow = '0 0 10px rgba(249, 115, 22, 0.6)';
         } else {
-          badge.style.background = 'var(--primary)';
+          badge.style.background = 'var(--primary, #0d9488)';
           badge.style.boxShadow = 'none';
         }
       } else {
@@ -3571,7 +3578,7 @@ function renderBarChart(targetId, rows, countMode = false) {
   if (!target) return;
 
   if (!rows || !rows.length) {
-    target.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-soft); font-size:14px;">ยังไม่มีข้อมูลสำหรับแสดงกราฟ</div>`;
+    target.innerHTML = `<div class="home-empty"><span class="material-symbols-outlined">bar_chart</span><strong>ยังไม่มีข้อมูลสำหรับแสดงกราฟ</strong></div>`;
     return;
   }
 
