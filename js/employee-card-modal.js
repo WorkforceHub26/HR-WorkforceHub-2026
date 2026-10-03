@@ -1689,13 +1689,11 @@
         <div style="display: flex; flex-direction: column; gap: 8px;">
           <button type="button" id="btnDownloadCardPng"
                   style="width: 100%; background: #0284c7; color: #ffffff; border: none; padding: 12px; border-radius: 10px; font-size: 14.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.28); transition: all 0.2s ease;">
-            <img src="/assets/icons/download.svg" onerror="this.remove()" style="width: 18px; height: 18px; filter: brightness(0) invert(1);" alt="" />
             <span>📥 ดาวน์โหลดรูปลงเครื่อง (PNG)</span>
           </button>
 
           <button type="button" id="btnPrintCardSingle"
                   style="width: 100%; background: #0f766e; color: #ffffff; border: none; padding: 11px; border-radius: 10px; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(15, 118, 110, 0.25); transition: all 0.2s ease;">
-            <img src="/assets/icons/print.svg" onerror="this.remove()" style="width: 18px; height: 18px; filter: brightness(0) invert(1);" alt="" />
             <span>🖨️ สั่งพิมพ์บัตร / บันทึก PDF (CR80)</span>
           </button>
         </div>

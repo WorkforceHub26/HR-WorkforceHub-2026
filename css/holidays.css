@@ -3080,7 +3080,73 @@ html body.holidays-page #holidaysBottomNav.mobile-bottom-nav {
   padding-bottom: 0;
   border-bottom: 0;
 }
-\n\n/* ==========================================================================\n   10. SUMMARY + CALENDAR — INDEPENDENT CARD BEHAVIOR\n   Summary: collapsed by default, expands to annual list.\n   Calendar: always visible; no collapse control.\n   ========================================================================== */\n\n#companySummarySidebar.is-collapsed #companySummaryBody {\n  display: none;\n}\n\n#companySummarySidebar:not(.is-collapsed) #companySummaryBody {\n  display: flex;\n}\n\n/* Calendar is intentionally always open. */\n#companyCalendarPanel #companyCalendarBody {\n  display: block;\n}\n\n#companyCalendarPanel .calendar-nav-controls {\n  display: flex;\n}\n\n/* Old calendar-collapse button is no longer used. */\n#btnToggleCalendar {\n  display: none;\n}\n\n/* Keep the yearly/monthly switch centered under the calendar. */\n#companyCalendarPanel .calendar-year-toggle-wrap {\n  display: flex;\n  width: 100%;\n  justify-content: center;\n  align-items: center;\n  padding: 14px 0 4px;\n}\n\n#companyCalendarPanel .calendar-year-toggle-btn {\n  margin: 0 auto;\n}\n\n/* Calendar header now has only title + month navigation. */\n#companyCalendarPanel .calendar-view-header {\n  display: flex;\n  flex-direction: column;\n  align-items: stretch;\n  gap: 10px;\n}\n\n#companyCalendarPanel .calendar-title-heading {\n  width: 100%;\n  margin: 0;\n}\n\n#companyCalendarPanel .calendar-header-actions {\n  display: flex;\n  justify-content: center;\n  width: 100%;\n}\n\n#companyCalendarPanel .calendar-nav-controls {\n  width: min(100%, 280px);\n  margin: 0 auto;\n}\n
+
+
+/* ==========================================================================
+   10. SUMMARY + CALENDAR — INDEPENDENT CARD BEHAVIOR
+   Summary: collapsed by default, expands to annual list.
+   Calendar: always visible; no collapse control.
+   ========================================================================== */
+
+#companySummarySidebar.is-collapsed #companySummaryBody {
+  display: none;
+}
+
+#companySummarySidebar:not(.is-collapsed) #companySummaryBody {
+  display: flex;
+}
+
+/* Calendar is intentionally always open. */
+#companyCalendarPanel #companyCalendarBody {
+  display: block;
+}
+
+#companyCalendarPanel .calendar-nav-controls {
+  display: flex;
+}
+
+/* Old calendar-collapse button is no longer used. */
+#btnToggleCalendar {
+  display: none;
+}
+
+/* Keep the yearly/monthly switch centered under the calendar. */
+#companyCalendarPanel .calendar-year-toggle-wrap {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  padding: 14px 0 4px;
+}
+
+#companyCalendarPanel .calendar-year-toggle-btn {
+  margin: 0 auto;
+}
+
+/* Calendar header now has only title + month navigation. */
+#companyCalendarPanel .calendar-view-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+#companyCalendarPanel .calendar-title-heading {
+  width: 100%;
+  margin: 0;
+}
+
+#companyCalendarPanel .calendar-header-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+#companyCalendarPanel .calendar-nav-controls {
+  width: min(100%, 280px);
+  margin: 0 auto;
+}
+
 
 /* ==========================================================================
    11. CALENDAR YEAR TOGGLE — TOP RIGHT

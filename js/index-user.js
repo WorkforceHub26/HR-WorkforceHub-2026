@@ -37,7 +37,7 @@ window.goToLeaveForm = () => window.location.href = "/pages/user/leave-user.html
 window.goToRules = () => window.location.href = "/pages/user/leave-rules.html";
 window.goToLeaveHistory = () => window.location.href = "/pages/user/leave-history.html";
 window.goToProfile = () => window.location.href = "/pages/user/profile-user.html";
-window.goToContactHR = () => window.location.href = "/pages/user/contact-hr.html";
+window.goToContactHR = () => window.location.href = "/pages/user/full-guide.html";
 window.goToHolidays = () => {
   try {
     const raw = localStorage.getItem("currentUser");
@@ -3048,7 +3048,7 @@ window.submitQuickLeave = async function() {
           title: notifTitle,
           message: notifMsg,
           type: 'leave',
-          link_url: approverRole === 'manager' ? '/pages/management/management.html' : '/pages/hr/hr.html',
+          link_url: ['hr', 'admin', 'superadmin'].includes(approverRole) ? '/pages/hr/hr.html' : '/pages/approver/leave-approvals.html',
           is_read: false
         }]);
       }

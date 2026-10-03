@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite';
-import { resolve, join } from 'path';
+import { resolve } from 'path';
 import fs from 'fs';
-import tailwindcss from '@tailwindcss/vite';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
+import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
 
 export default defineConfig({
   plugins: [
-    tailwindcss(),
     {
       name: 'api-line-handler',
       configureServer(server) {
@@ -24,6 +22,10 @@ export default defineConfig({
         });
         server.middlewares.use('/api/send-notification', (req, res) => {
           if (req.method === 'POST') handleSendNotification(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/test-line-connection', (req, res) => {
+          if (req.method === 'POST') handleTestLineConnection(req, res);
           else res.end();
         });
         server.middlewares.use('/api/record-login-log', (req, res) => {
@@ -110,6 +112,7 @@ export default defineConfig({
         userHolidays: resolve(__dirname, 'pages/user/holidays.html'),
         userLeaveStats: resolve(__dirname, 'pages/user/leave-stats.html'),
         userNews: resolve(__dirname, 'pages/user/news.html'),
+        approverLeaveApprovals: resolve(__dirname, 'pages/approver/leave-approvals.html'),
         hrHome: resolve(__dirname, 'pages/hr/home.html'),
         hrLeave: resolve(__dirname, 'pages/hr/hr.html'),
         hrManagement: resolve(__dirname, 'pages/hr/management.html'),
