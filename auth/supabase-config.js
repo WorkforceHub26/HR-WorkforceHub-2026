@@ -140,16 +140,21 @@
       const cleanGender = String(gender || "").trim().toLowerCase();
       const cleanName = String(fullName || "").trim().toLowerCase();
 
-      const femaleTokens = ["นางสาว", "นาง", "น.ส.", "น.ส", "นส.", "นส", "สาว", "คุณหญิง", "ms.", "ms", "mrs.", "mrs", "miss.", "miss", "female", "หญิง", "f"];
-      const maleTokens = ["นาย", "นาย.", "mr.", "mr", "master.", "master", "male", "ชาย", "m"];
+      // ตัดสินจาก "คำนำหน้า" เป็นหลัก แล้วค่อยดูเพศ / คำนำหน้าที่พิมพ์ติดมากับชื่อ
+      // (เดิมค้น "f" / "m" / "นาง" ในชื่อทั้งชื่อ → ชื่อที่มีตัวอักษรเหล่านี้เลือกเพศผิด)
+      const femaleTitles = ["นางสาว", "นาง", "น.ส.", "น.ส", "นส.", "นส", "คุณหญิง", "ด.ญ.", "ด.ญ", "เด็กหญิง", "ms.", "ms", "mrs.", "mrs", "miss"];
+      const maleTitles = ["นาย", "ด.ช.", "ด.ช", "เด็กชาย", "mr.", "mr", "master"];
+      const startsWithAny = (text, list) => list.some(t => text === t || text.startsWith(t));
 
-      if (femaleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
-        return "/assets/img/avatar-female.jpg?v=2";
+      if (cleanTitle) {
+        if (startsWithAny(cleanTitle, femaleTitles)) return "/assets/img/avatar-female.jpg?v=2";
+        if (startsWithAny(cleanTitle, maleTitles)) return "/assets/img/avatar-male.jpg?v=2";
       }
-
-      if (maleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
-        return "/assets/img/avatar-male.jpg?v=2";
-      }
+      if (["female", "f", "หญิง", "w", "woman"].includes(cleanGender)) return "/assets/img/avatar-female.jpg?v=2";
+      if (["male", "m", "ชาย", "man"].includes(cleanGender)) return "/assets/img/avatar-male.jpg?v=2";
+      // คำนำหน้าที่พิมพ์ติดมากับชื่อ เช่น "นางสาวสมใจ ใจดี"
+      if (startsWithAny(cleanName, femaleTitles.filter(t => t.length > 2))) return "/assets/img/avatar-female.jpg?v=2";
+      if (startsWithAny(cleanName, maleTitles.filter(t => t.length > 2))) return "/assets/img/avatar-male.jpg?v=2";
 
       return "/assets/img/avatar-male.jpg?v=2";
     };
@@ -529,7 +534,10 @@
         gender = gender || obj.gender || obj.employees?.gender || "";
         fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
       }
-      if (!imageUrl || !String(imageUrl).trim() || imageUrl === "null" || imageUrl === "undefined" || imageUrl === "/assets/img/default-avatar.jpg") {
+      // รูปการ์ตูนเริ่มต้นที่เคยถูกบันทึกลงฐานข้อมูล (avatar-male / avatar-female / default-avatar) ไม่นับเป็นรูปจริง
+      // → เลือกใหม่ตามคำนำหน้า (เดิมถ้าบันทึกรูปผู้ชายไว้ ผู้หญิงจะได้รูปผู้ชายตลอด)
+      const isPlaceholderAvatar = /\/assets\/img\/(avatar-(male|female)|default-avatar)\.jpg/i.test(String(imageUrl || ""));
+      if (!imageUrl || !String(imageUrl).trim() || imageUrl === "null" || imageUrl === "undefined" || isPlaceholderAvatar) {
         return typeof window.getDefaultAvatarUrl === "function" 
           ? window.getDefaultAvatarUrl(title, gender, fullName) 
           : (title.includes('สาว') || title.includes('นาง') || title.includes('น.ส.') || gender === 'female' || fullName.includes('นาง') || fullName.includes('น.ส.') ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
@@ -1031,6 +1039,12 @@
       const fetchPromise = (async () => {
         let result = [];
         try {
+          // ดึงประเภทการลาไปพร้อมกับโควตา (เดิมรอโควตาเสร็จก่อนแล้วค่อยดึง = ช้า 2 รอบ)
+          const lTypesPromise = this.client
+            .from('leave_types')
+            .select('*')
+            .then((r) => r, () => ({ data: null }));
+
           const { data: empBalList, error: empBalErr } = await this.client
             .from('employee_leave_balances')
             .select('*')
@@ -1042,9 +1056,7 @@
           const empBal = (empBalList && empBalList.length > 0) ? empBalList[0] : null;
 
           if (!empBalErr && empBal) {
-            const { data: lTypes } = await this.client
-              .from('leave_types')
-              .select('*');
+            const { data: lTypes } = await lTypesPromise;
             result = this.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
           }
         } catch (e) {

@@ -205,7 +205,16 @@
 
   function applySavedPreferences() {
     startGoogleBannerKiller();
-    // Dynamically inject Google Translate script and placeholder if not present
+    // Google Translate: โหลดเฉพาะเมื่อผู้ใช้เคยเลือกแปลภาษา (มีคุกกี้ googtrans)
+    // ถ้ายังไม่เคยใช้ จะโหลดตอนเปิดหน้าต่างตั้งค่า (ensureGoogleTranslateLoaded) — เดิมโหลดทุกหน้า ทำให้หน้าช้า
+    if (/(^|;\s*)googtrans=/.test(document.cookie)) ensureGoogleTranslateLoaded();
+
+    startNativeLanguageObserver();
+
+    applyAllSavedSettings();
+  }
+
+  function ensureGoogleTranslateLoaded() {
     if (!document.getElementById('google_translate_element_hidden') && document.body) {
       const div = document.createElement('div');
       div.id = 'google_translate_element_hidden';
@@ -218,16 +227,30 @@
           includedLanguages: 'en,lo,my,th,zh-CN,ja,ko',
           autoDisplay: false
         }, 'google_translate_element_hidden');
+        // ถ้าหน้าต่างตั้งค่าเปิดอยู่ ย้ายตัวเลือกภาษาไปแสดงในหน้าต่างทันที
+        setTimeout(moveTranslateWidgetIntoModal, 200);
       };
       
       const script = document.createElement('script');
       script.type = 'text/javascript';
-      script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
       document.head.appendChild(script);
     }
+  }
 
-    startNativeLanguageObserver();
+  // ให้ auth-guard.js (ปุ่ม TH/EN ในหน้าอื่น) สั่งโหลดตัวแปลภาษาได้เมื่อผู้ใช้เลือกภาษาอื่น
+  window.pvtEnsureGoogleTranslate = ensureGoogleTranslateLoaded;
 
+  function moveTranslateWidgetIntoModal() {
+    const source = document.getElementById('google_translate_element_hidden');
+    const target = document.getElementById('google_translate_element_visible');
+    const modal = document.getElementById('systemSettingsModal');
+    if (!source || !target || !modal || !modal.classList.contains('active')) return;
+    const widget = source.querySelector('.skiptranslate');
+    if (widget) target.appendChild(widget);
+  }
+
+  function applyAllSavedSettings() {
     const savedFontSize = localStorage.getItem("pvt_user_font_size") || "normal";
     const savedTheme = localStorage.getItem("pvt_user_theme") || "teal";
     const savedCompact = localStorage.getItem("pvt_compact_mode") === "true";
@@ -307,15 +330,21 @@
     if (isNaN(seconds)) return;
 
     globalRefreshIntervalId = setInterval(() => {
-      console.log(`[Auto-Refresh] Quietly checking feed updates at ${seconds}s interval...`);
-      if (typeof window.reloadLeavesTable === "function") {
-        window.reloadLeavesTable();
-      } else if (typeof window.loadLeaveHistory === "function") {
-        window.loadLeaveHistory();
-      } else if (typeof window.fetchPendingRequests === "function") {
-        window.fetchPendingRequests();
-      } else if (typeof window.loadPendingLeaves === "function") {
-        window.loadPendingLeaves();
+      // ไม่รีเฟรชตอนแอปอยู่เบื้องหลัง / มีหน้าต่างหรือป๊อปอัปเปิดอยู่ / กำลังพิมพ์ในช่องกรอก
+      if (document.hidden) return;
+      if (document.querySelector('#systemSettingsModal.active, .pvt-modal-overlay.active, #pvtDrawer.is-open')) return;
+      if (window.Swal && typeof window.Swal.isVisible === 'function' && window.Swal.isVisible()) return;
+      const ae = document.activeElement;
+      if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+
+      // เดิมเรียกฟังก์ชันที่ไม่มีอยู่จริง (reloadLeavesTable / loadLeaveHistory / fetchPendingRequests / loadPendingLeaves)
+      // → ระบบอัปเดตอัตโนมัติไม่เคยทำงาน ตอนนี้ใช้ฟังก์ชันโหลดข้อมูลแบบเงียบของแต่ละหน้า
+      if (typeof window.loadMyLeaveHistory === "function") {          // ประวัติการลา
+        window.loadMyLeaveHistory();
+      } else if (typeof window.loadPendingLeavesHR === "function") {  // อนุมัติใบลา (หัวหน้า / HR)
+        window.loadPendingLeavesHR();
+      } else if (typeof window.loadRecentLeaves === "function" && window.currentProfile) { // หน้าหลักพนักงาน
+        window.loadRecentLeaves(window.currentProfile);
       }
     }, seconds * 1000);
   }
@@ -392,13 +421,9 @@
     const root = document.documentElement;
     root.setAttribute("data-font-size", sizeKey);
 
-    if (sizeKey === "large") {
-      root.style.fontSize = "19px";
-    } else if (sizeKey === "medium") {
-      root.style.fontSize = "17.5px";
-    } else {
-      root.style.fontSize = "16px";
-    }
+    // ขนาดจริงคุมด้วย CSS (zoom ที่เนื้อหา ใน system-settings.css)
+    // เดิมตั้ง font-size ที่ <html> ด้วย ทำให้ขยายซ้อนกับ CSS
+    root.style.removeProperty("font-size");
   }
 
   function applyThemeToDoc(themeKey) {
@@ -413,6 +438,16 @@
     root.style.setProperty("--primary-gradient", theme.gradient);
     root.setAttribute("data-theme", themeKey);
 
+    // แถบล่าง / เมนูข้างมือถือ (mobile-shell.css) ใช้ --pvt-brand
+    // ธีมเริ่มต้น (มินต์) คงสีน้ำเงินเดิมของแถบล่าง ธีมอื่นเปลี่ยนตามสีที่เลือก
+    if (themeKey && themeKey !== "teal" && THEMES[themeKey]) {
+      root.style.setProperty("--pvt-brand", theme.primary);
+      root.style.setProperty("--pvt-brand-soft", theme.primaryLight);
+    } else {
+      root.style.removeProperty("--pvt-brand");
+      root.style.removeProperty("--pvt-brand-soft");
+    }
+
     // Update dynamically styled elements if present
     document.querySelectorAll(".sidebar-cta-btn").forEach(el => {
       el.style.background = theme.gradient;
@@ -425,6 +460,35 @@
   // Re-check after DOM is ready to ensure components pick it up
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", applySavedPreferences);
+  }
+
+  // หน้า HR บางหน้า / สถิติวันลา ไม่ได้โหลด system-settings.css → หน้าต่างตั้งค่าไม่มีสไตล์
+  function hasSettingsStyles() {
+    const scan = (sheet, depth) => {
+      if (!sheet || depth > 3) return false;
+      let rules;
+      try { rules = sheet.cssRules; } catch (e) { return false; }
+      if (!rules) return false;
+      for (let i = 0; i < rules.length; i++) {
+        const r = rules[i];
+        if (r.styleSheet && scan(r.styleSheet, depth + 1)) return true;           // @import
+        if (r.selectorText && r.selectorText.indexOf('.settings-modal-backdrop') !== -1) return true;
+      }
+      return false;
+    };
+    for (let i = 0; i < document.styleSheets.length; i++) {
+      if (scan(document.styleSheets[i], 0)) return true;
+    }
+    return false;
+  }
+
+  function ensureSettingsStyles() {
+    if (document.getElementById('pvt-settings-css') || hasSettingsStyles()) return;
+    const link = document.createElement('link');
+    link.id = 'pvt-settings-css';
+    link.rel = 'stylesheet';
+    link.href = '/css/system-settings.css';
+    document.head.appendChild(link);
   }
 
   // 🪟 2. Modal HTML Builder & Injector
@@ -768,10 +832,13 @@
 
   // 🛠️ 3. Open Modal Handler
   window.openSystemSettingsModal = function() {
+    ensureSettingsStyles();
+    ensureGoogleTranslateLoaded();
     const backdrop = ensureSettingsModalInDom();
     populateThemeButtons();
     updateFontSizeButtonsUI();
     updateLineStatusUI();
+    refreshLineIdFromDb();
     updateSoundSwitchUI();
     updateCompactSwitchUI();
     updateLanguageButtonsUI();
@@ -790,22 +857,8 @@
       window.closeMobileSidebar();
     }
     
-    // Move Google Translate widget to the modal placeholder
-    setTimeout(() => {
-      const source = document.getElementById('google_translate_element_hidden');
-      const target = document.getElementById('google_translate_element_visible');
-      if (source && target) {
-        // Find the actual widget inside source (it's usually the first child after init)
-        const widget = source.querySelector('.skiptranslate');
-        if (widget) {
-          target.appendChild(widget);
-        } else {
-          // If not initialized yet, try to init or just move everything
-          target.appendChild(source);
-          source.style.display = 'block';
-        }
-      }
-    }, 300);
+    // ย้ายตัวเลือกภาษาของ Google มาแสดงในหน้าต่าง (ถ้ายังโหลดไม่เสร็จ googleTranslateElementInit จะย้ายให้เอง)
+    setTimeout(moveTranslateWidgetIntoModal, 300);
 
     if (window.playSystemChime) {
       window.playSystemChime("click");
@@ -1073,12 +1126,42 @@
   };
 
   // 💬 7. LINE Notification Status & Actions
+  // ผู้ใช้ปัจจุบัน: เดิมใช้ได้เฉพาะหน้าที่ตั้ง window.currentProfile ไว้ (หน้าอื่นบันทึก LINE ID ไม่ได้)
+  function getSettingsEmployee() {
+    const emp = window.currentProfile || window.currentEmpProfile;
+    if (emp && emp.id) return emp;
+    try {
+      const u = JSON.parse(localStorage.getItem("currentUser") || "null");
+      if (u && (u.id || u.employee_id)) {
+        if (!window.__pvtSettingsEmp || window.__pvtSettingsEmp.id !== (u.id || u.employee_id)) {
+          window.__pvtSettingsEmp = { ...u, id: u.id || u.employee_id };
+        }
+        return window.__pvtSettingsEmp;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // ดึงสถานะ LINE ล่าสุดจากฐานข้อมูล (ข้อมูลใน session อาจเก่า หรือไม่มี line_id)
+  async function refreshLineIdFromDb() {
+    const emp = getSettingsEmployee();
+    const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : null;
+    if (!emp || !emp.id || !client) return;
+    try {
+      const { data, error } = await client.from("employees").select("line_id").eq("id", emp.id).maybeSingle();
+      if (!error && data) {
+        emp.line_id = data.line_id || "";
+        updateLineStatusUI();
+      }
+    } catch (e) {}
+  }
+
   function updateLineStatusUI() {
     const titleEl = document.getElementById("lineStatusTitle");
     const descEl = document.getElementById("lineStatusDesc");
     const inputEl = document.getElementById("settingsLineIdInput");
 
-    const emp = window.currentProfile || window.currentEmpProfile;
+    const emp = getSettingsEmployee();
     const lineId = emp?.line_id || "";
 
     if (inputEl) inputEl.value = lineId;
@@ -1116,7 +1199,7 @@
   window.saveLineIdFromSettings = async function() {
     const inputEl = document.getElementById("settingsLineIdInput");
     const newLineId = inputEl ? inputEl.value.trim() : "";
-    const emp = window.currentProfile || window.currentEmpProfile;
+    const emp = getSettingsEmployee();
 
     if (!emp || !emp.id) {
       if (window.Swal) {

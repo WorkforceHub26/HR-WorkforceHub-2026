@@ -466,7 +466,7 @@ async function handleDateChange(inputElement) {
     const checkEnd = endDateStr || startDateStr;
 
     if (checkStart) {
-      const currentEmpId = currentProfile?.id || currentProfile?.employee_id;
+      const currentEmpId = currentProfile?.id || currentProfile?.employee_id || getStoredEmployeeId();
       const overlapResult = await checkAllOverlaps(currentEmpId, checkStart, checkEnd, boxItem);
 
       if (overlapResult.isOverlapped) {
@@ -578,19 +578,12 @@ async function fetchCurrentUserData() {
       return; 
     }
 
-    const { data: empData, error: empError } = await supabase
-      .from('employees')
-      .select(`*, departments!department_id ( department_name ), positions ( position_name )`)
-      .eq('id', currentUserId)
-      .single();
-
-    if (empError) throw empError;
-
+    // ดึงโควตาวันลาไปพร้อมกับข้อมูลพนักงาน (เดิมรอข้อมูลพนักงานเสร็จก่อน)
     const currentYear = new Date().getFullYear();
-    let leaveData = [];
-    if (window.PVTSDK?.user?.getLeaveBalances) {
-      leaveData = await window.PVTSDK.user.getLeaveBalances(currentUserId, currentYear);
-    } else {
+    const balancesPromise = (async () => {
+      if (window.PVTSDK?.user?.getLeaveBalances) {
+        return await window.PVTSDK.user.getLeaveBalances(currentUserId, currentYear);
+      }
       const { data: empBal } = await supabase
         .from('employee_leave_balances')
         .select('*')
@@ -600,11 +593,32 @@ async function fetchCurrentUserData() {
       if (empBal) {
         const { data: lTypes } = await supabase.from('leave_types').select('*');
         if (window.PVTSDK?.user?.transformEmployeeLeaveBalanceToItems) {
-          leaveData = window.PVTSDK.user.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
+          return window.PVTSDK.user.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
         }
       }
-    }
+      return [];
+    })().catch((err) => { console.warn("ดึงโควตาวันลาล้มเหลว:", err); return []; });
 
+    const { data: empData, error: empError } = await supabase
+      .from('employees')
+      .select(`*, departments!department_id ( department_name ), positions ( position_name )`)
+      .eq('id', currentUserId)
+      .single();
+
+    if (empError) throw empError;
+
+    // สายอนุมัติของแผนก: เริ่มดึงทันทีที่รู้แผนก (ทำงานพร้อมกับโควตา)
+    const deptIdEarly = empData.department_id || null;
+    const deptLookupPromise = (deptIdEarly && sb)
+      ? Promise.all([
+          sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptIdEarly).maybeSingle(),
+          sb.from("departments").select("approver_id").eq("id", deptIdEarly).maybeSingle(),
+          sb.from("employees").select("id, role, positions!position_id(position_name), status").eq("department_id", deptIdEarly)
+        ])
+      : null;
+    if (deptLookupPromise) deptLookupPromise.catch(() => {});
+
+    const leaveData = await balancesPromise;
     window.employeeLeaveBalances = leaveData || [];
 
     if (typeof window.renderAllLeaveBalances === 'function') {
@@ -637,12 +651,8 @@ async function fetchCurrentUserData() {
     // ดึงและวิเคราะห์สายอนุมัติของแผนกผู้ยื่น (ตรวจสอบทั้งตาราง department_approvers และตำแหน่งงานจริง)
     try {
       const deptId = realUser.department_id;
-      if (deptId && sb) {
-        const [apprvRes, deptRes, empsRes] = await Promise.all([
-          sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle(),
-          sb.from("departments").select("approver_id").eq("id", deptId).maybeSingle(),
-          sb.from("employees").select("id, role, positions!position_id(position_name), status").eq("department_id", deptId)
-        ]);
+      if (deptId && sb && deptLookupPromise) {
+        const [apprvRes, deptRes, empsRes] = await deptLookupPromise;
         const apprv = apprvRes.data;
         const deptData = deptRes.data;
         const emps = (empsRes.data || []).filter(e => e.status === 'active' || !e.status);
@@ -1613,6 +1623,9 @@ async function saveLeave() {
   if (isSavingLeave) return;
   isSavingLeave = true;
 
+  // ถ้ากดส่งเร็วมากตอนข้อมูลพนักงานยังโหลดไม่เสร็จ ให้รอก่อน
+  try { await profileReadyPromise; } catch (e) {}
+
   const btnSaveLeave = document.getElementById("btnSaveLeave");
   if (btnSaveLeave) {
     btnSaveLeave.disabled = true;
@@ -2373,17 +2386,45 @@ window.addEventListener("pageshow", function (event) {
   }
 });
 
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadCompanyHolidays(); 
-  await loadLeaveTypes();      
-  await fetchCurrentUserData(); 
-  
-  const currentEmpId = currentProfile?.id || currentProfile?.employee_id;
-  if (currentEmpId) {
-    await fetchUserExistingLeaveDates(currentEmpId);
-  }
+// รหัสพนักงานจาก session (ใช้ได้ทันทีโดยไม่ต้องรอดึงโปรไฟล์จากฐานข้อมูล)
+function getStoredEmployeeId() {
+  try {
+    const u = JSON.parse(localStorage.getItem("currentUser") || "null");
+    if (u && (u.id || u.employee_id)) return u.id || u.employee_id;
+  } catch (e) {}
+  return localStorage.getItem("currentUserId") || null;
+}
 
-  addLeaveRow(); 
+// โหลดโปรไฟล์/โควตาทำงานเบื้องหลัง — saveLeave() จะรอ promise นี้ก่อนส่งคำขอ
+let profileReadyPromise = Promise.resolve();
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // เดิมดึงข้อมูลทีละอย่างต่อกัน ~13 รอบ แล้วจึงแสดงฟอร์ม (ช้ามากบนมือถือ)
+  // ตอนนี้: เริ่มทุกอย่างพร้อมกัน และแสดงฟอร์มทันทีที่มีข้อมูลที่ฟอร์มต้องใช้
+  //   (ประเภทการลา + วันหยุด + วันที่เคยลา) ส่วนข้อมูลพนักงาน/โควตาตามมาทีหลัง
+  const storedEmpId = getStoredEmployeeId();
+  profileReadyPromise = fetchCurrentUserData().catch((err) => console.warn("โหลดข้อมูลพนักงานล้มเหลว:", err));
+
+  await Promise.allSettled([
+    loadCompanyHolidays(),
+    loadLeaveTypes(),
+    storedEmpId ? fetchUserExistingLeaveDates(storedEmpId) : Promise.resolve([])
+  ]);
+
+  const loadingEl = document.getElementById("leaveFormLoading");
+  if (loadingEl) loadingEl.remove();
+  addLeaveRow();
+
+  await profileReadyPromise;
+
+  // โควตาอาจวาดก่อนประเภทการลาโหลดเสร็จ → วาดซ้ำอีกครั้ง
+  if (typeof window.renderAllLeaveBalances === "function") window.renderAllLeaveBalances();
+
+  // กรณีพิเศษ: รหัสใน session ไม่ตรงกับโปรไฟล์จริง → ดึงวันลาเดิมใหม่
+  const realEmpId = currentProfile?.id || currentProfile?.employee_id;
+  if (realEmpId && realEmpId !== storedEmpId) {
+    await fetchUserExistingLeaveDates(realEmpId);
+  }
 });
 
 // ฟังก์ชันคำนวณการกดปุ่ม + และ -

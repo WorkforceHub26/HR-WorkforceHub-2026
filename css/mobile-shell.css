@@ -65,6 +65,11 @@ body,
     padding-bottom: calc(var(--pvt-nav-h) + var(--pvt-safe-b) + 16px) !important;
   }
 
+  /* ป้าย DEV MODE (สร้างจาก supabase-config.js) เดิมลอยทับปุ่ม "หน้าหลัก" → ยกขึ้นเหนือแถบเมนู */
+  body.pvt-has-tabbar #pvt-env-floating-badge {
+    bottom: calc(var(--pvt-nav-h) + var(--pvt-safe-b) + 10px) !important;
+  }
+
   .pvt-tabbar {
     position: fixed;
     left: 0;
@@ -106,7 +111,18 @@ body,
   }
 
   /* แคปซูลไอคอน */
+  /* จัดกึ่งกลางไอคอนเองทั้งหมด ไม่พึ่ง CSS ของแต่ละหน้า
+     (global.css / index-user.css ฯลฯ ตั้ง .material-symbols-outlined ต่างกัน → ไอคอนเคยชิดซ้าย) */
   .pvt-tab-icon {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    text-align: center;
+    vertical-align: middle;
     width: 52px;
     height: 30px;
     border-radius: 999px;
@@ -218,6 +234,13 @@ body,
     box-sizing: content-box;
   }
 
+  /* ตัวเลขบนปุ่มกลาง (เช่น จำนวนใบลารออนุมัติ) → มุมขวาบนของวงกลม */
+  .pvt-tab--primary .pvt-tab-badge {
+    top: -22px;
+    left: calc(50% + 14px);
+    z-index: 2;
+  }
+
   /* ซ่อนแถบล่างเมื่อ: คีย์บอร์ดขึ้น / เปิดเมนูข้าง / เปิดแชต */
   html.pvt-kb-open .pvt-tabbar {
     transform: translateY(110%);
@@ -227,7 +250,9 @@ body,
 
   body:has(.sidebar.mobile-open) .pvt-tabbar,
   body:has(.sidebar.show-mobile) .pvt-tabbar,
-  body:has(.sidebar.active) .pvt-tabbar {
+  body:has(.sidebar.active) .pvt-tabbar,
+  body:has(.sidebar-light.mobile-open) .pvt-tabbar,
+  body:has(.sidebar-light.active) .pvt-tabbar {
     display: none;
   }
 }
@@ -256,9 +281,11 @@ body,
 /* ==========================================================================
    2) ส่วนหัวมาตรฐาน (App bar) — หน้า ประวัติลา / ยื่นใบลา / วันหยุด / โปรไฟล์
    ใส่ !important ในบางจุดเพราะ CSS เดิมของบางหน้ามี selector แบบ
-   "#appLayout > main > header" ที่แรงมาก
+   "#appLayout > main > header" ที่แรงมาก (global.css ติด !important ด้วย)
+   → ขึ้นต้นทุก selector ด้วย :is(#pvtShell, html) :is(#pvtShell, body)
+     เพื่อยกความเจาะจงเป็นระดับ 2 id ให้ชนะเสมอ (#pvtShell ไม่ต้องมีอยู่จริง)
    ========================================================================== */
-.pvt-appbar {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar {
   position: sticky !important;
   top: 0 !important;
   z-index: 900 !important;
@@ -281,7 +308,7 @@ body,
   font-family: "Sarabun", "Kanit", system-ui, sans-serif;
 }
 
-.pvt-appbar::before {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar::before {
   content: "";
   position: absolute;
   top: 0;
@@ -292,14 +319,14 @@ body,
   pointer-events: none;
 }
 
-.pvt-appbar.is-scrolled {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar.is-scrolled {
   box-shadow: 0 6px 18px -10px rgba(15, 23, 42, 0.3) !important;
 }
 
-.pvt-appbar-back,
-.pvt-appbar-actions > button,
-.pvt-appbar-actions > a,
-.pvt-icon-btn {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-back,
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions > button,
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions > a,
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-icon-btn {
   position: relative;
   display: inline-flex !important;
   align-items: center !important;
@@ -308,6 +335,7 @@ body,
   width: 40px !important;
   height: 40px !important;
   min-width: 40px !important;
+  min-height: 40px !important;
   padding: 0 !important;
   margin: 0 !important;
   border: 0 !important;
@@ -321,31 +349,41 @@ body,
   transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
-.pvt-appbar-back {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-back {
   background: #f1f5f9 !important;
   color: var(--pvt-ink) !important;
 }
 
-.pvt-appbar-back .material-symbols-outlined,
-.pvt-appbar-actions .material-symbols-outlined {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-back .material-symbols-outlined,
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions .material-symbols-outlined {
   font-size: 22px !important;
 }
 
-.pvt-appbar-back:active,
-.pvt-appbar-actions > button:active,
-.pvt-appbar-actions > a:active,
-.pvt-icon-btn:active {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-back:active,
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions > button:active,
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions > a:active,
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-icon-btn:active {
   background: #e2e8f0 !important;
   transform: scale(0.92);
 }
 
-.pvt-appbar-titles {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-titles {
   flex: 1 1 auto !important;
   min-width: 0 !important;
   padding: 0 4px !important;
+  margin: 0 !important;
+  /* ชื่อหน้า + คำอธิบายอยู่บรรทัดเดียวกัน (แบบหน้าวันหยุด) */
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  text-align: left !important;
 }
 
-.pvt-appbar-title {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-title {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
   margin: 0 !important;
   font-size: 17px !important;
   font-weight: 800 !important;
@@ -357,7 +395,10 @@ body,
   text-overflow: ellipsis !important;
 }
 
-.pvt-appbar-sub {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-sub {
+  /* basis 0: คำอธิบายถูกตัด (…) ก่อน ชื่อหน้าจึงไม่ถูกตัด */
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
   margin: 1px 0 0 !important;
   font-size: 12px !important;
   font-weight: 500 !important;
@@ -369,7 +410,7 @@ body,
 }
 
 /* จุดเขียว "อัปเดตแบบเรียลไทม์" หน้าคำอธิบาย (ใส่หรือไม่ใส่ก็ได้) */
-.pvt-appbar-live {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-live {
   display: inline-block;
   width: 6px;
   height: 6px;
@@ -380,7 +421,7 @@ body,
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.22);
 }
 
-.pvt-appbar-actions {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions {
   display: inline-flex !important;
   align-items: center !important;
   gap: 2px !important;
@@ -389,7 +430,7 @@ body,
 }
 
 /* จุด/ตัวเลขแจ้งเตือนบนปุ่มในหัว */
-.pvt-appbar-actions .notif-badge {
+:is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions .notif-badge {
   position: absolute !important;
   top: 2px !important;
   right: 2px !important;
@@ -408,32 +449,35 @@ body,
   }
 
   /* --pvt-bleed-l/r ตั้งโดย mobile-shell.js จาก padding จริงของกล่องแม่ */
-  .pvt-appbar {
+  :is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar {
+    /* global.css บังคับ width:100% → หัวยืดเลยขอบ padding ไม่ได้ (เหลือ 416px บนจอ 440px) */
+    width: auto !important;
+    max-width: none !important;
     margin-left: calc(-1 * var(--pvt-bleed-l, var(--pvt-page-gutter))) !important;
     margin-right: calc(-1 * var(--pvt-bleed-r, var(--pvt-page-gutter))) !important;
   }
 
   /* ปุ่มเปิดเมนูข้างใช้บนมือถือเท่านั้น */
-  .pvt-appbar .mobile-menu-btn {
+  :is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar .mobile-menu-btn {
     display: inline-flex !important;
   }
 }
 
 @media (min-width: 1025px) {
-  .pvt-appbar {
+  :is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar {
     margin-bottom: 16px !important;
     border-radius: 0 0 16px 16px !important;
   }
 
-  .pvt-appbar .mobile-menu-btn {
+  :is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar .mobile-menu-btn {
     display: none !important;
   }
 }
 
 @media (hover: hover) {
-  .pvt-appbar-actions > button:hover,
-  .pvt-appbar-actions > a:hover,
-  .pvt-icon-btn:hover {
+  :is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions > button:hover,
+  :is(#pvtShell, html) :is(#pvtShell, body) .pvt-appbar-actions > a:hover,
+  :is(#pvtShell, html) :is(#pvtShell, body) .pvt-icon-btn:hover {
     background: #f1f5f9 !important;
   }
 }
@@ -463,4 +507,350 @@ body,
   body.pvt-has-tabbar#page-user-leave .status-toast {
     bottom: calc(var(--pvt-nav-h) + var(--pvt-safe-b) + 16px) !important;
   }
+}
+/* ==========================================================================
+   4) เมนูข้างบนมือถือ (Drawer) — ชุดเดียวทุกหน้า สร้างโดย /js/mobile-shell.js
+   - เมนูข้างเดิมของแต่ละหน้า (#sidebarMenu / #mainSidebar) ซ่อนบนมือถือ
+     ยังใช้บนจอคอมตามเดิม
+   ========================================================================== */
+@media (max-width: 1024px) {
+  body.pvt-has-drawer #sidebarMenu,
+  body.pvt-has-drawer #mainSidebar,
+  body.pvt-has-drawer .sidebar-backdrop,
+  body.pvt-has-drawer .sidebar-overlay,
+  body.pvt-has-drawer .mobile-sidebar-backdrop {
+    display: none !important;
+  }
+}
+
+.pvt-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  /* ล็อกค่าพื้นฐาน ไม่รับจาก CSS ของแต่ละหน้า → หน้าตาเหมือนกันทุกหน้า */
+  font-size: 15px;
+  line-height: 1.35;
+  letter-spacing: normal;
+  text-align: left;
+  visibility: hidden;
+  pointer-events: none;
+  font-family: "Sarabun", "Kanit", system-ui, sans-serif;
+}
+
+.pvt-drawer.is-open {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.pvt-drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.pvt-drawer.is-open .pvt-drawer__backdrop {
+  opacity: 1;
+}
+
+.pvt-drawer__panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(84vw, 320px);
+  box-sizing: border-box;
+  padding: calc(var(--pvt-safe-t) + 12px) 12px calc(var(--pvt-safe-b) + 12px);
+  background: #ffffff;
+  border-radius: 0 20px 20px 0;
+  box-shadow: 8px 0 32px rgba(15, 23, 42, 0.18);
+  transform: translateX(-104%);
+  transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+  outline: none;
+  overflow: hidden;
+}
+
+.pvt-drawer.is-open .pvt-drawer__panel {
+  transform: none;
+}
+
+.pvt-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 10px;
+}
+
+.pvt-drawer__brand {
+  display: flex;
+  line-height: 1.2;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--pvt-ink);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.pvt-drawer__brand img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.pvt-drawer__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #334155;
+  cursor: pointer;
+}
+
+.pvt-drawer__close .material-symbols-outlined,
+.pvt-drawer__item .material-symbols-outlined,
+.pvt-drawer__logout .material-symbols-outlined {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pvt-drawer__close .material-symbols-outlined {
+  width: 22px;
+  font-size: 22px;
+}
+
+/* การ์ดผู้ใช้ (แตะเพื่อไปหน้าโปรไฟล์) */
+.pvt-drawer__user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--pvt-brand-soft);
+  color: var(--pvt-ink);
+  text-decoration: none;
+}
+
+.pvt-drawer__avatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--pvt-brand);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.pvt-drawer__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pvt-drawer__who strong,
+.pvt-drawer__who small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pvt-drawer__who strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.pvt-drawer__who small {
+  margin-top: 1px;
+  color: var(--pvt-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pvt-drawer__nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.pvt-drawer__section + .pvt-drawer__section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.pvt-drawer__title {
+  padding: 8px 10px 4px;
+  color: var(--pvt-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.pvt-drawer__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #1e293b;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pvt-drawer__item:active {
+  background: #f1f5f9;
+}
+
+.pvt-drawer__item.is-active {
+  background: var(--pvt-brand-soft);
+  color: var(--pvt-brand);
+}
+
+.pvt-drawer__icon {
+  flex: 0 0 auto;
+  width: 24px;
+  font-size: 22px;
+  color: #475569;
+}
+
+.pvt-drawer__item.is-active .pvt-drawer__icon {
+  color: var(--pvt-brand);
+  font-variation-settings: 'FILL' 1;
+}
+
+.pvt-drawer__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pvt-drawer__chev {
+  flex: 0 0 auto;
+  width: 20px;
+  font-size: 20px;
+  color: #cbd5e1;
+}
+
+.pvt-drawer__foot {
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.pvt-drawer__logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pvt-drawer__logout .material-symbols-outlined {
+  width: 20px;
+  font-size: 20px;
+}
+
+/* เมนูเปิดอยู่: ล็อกการเลื่อนหน้า และซ่อนแถบล่าง */
+html.pvt-drawer-open,
+html.pvt-drawer-open body {
+  overflow: hidden !important;
+}
+
+html.pvt-drawer-open .pvt-tabbar {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pvt-drawer__panel,
+  .pvt-drawer__backdrop {
+    transition: none;
+  }
+}
+
+/* ปุ่มใน Drawer: global.css กำหนดขนาด/ระยะของ <button> ทั่วไปไว้ (เช่น min-height 44px)
+   → ล็อกค่าไว้ให้ปุ่มกับลิงก์ในเมนูสูงเท่ากันทุกหน้า */
+.pvt-drawer .pvt-drawer__item {
+  height: auto !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+  justify-content: flex-start !important;
+  transform: none !important;
+}
+
+.pvt-drawer .pvt-drawer__item:not(.is-active) {
+  background: transparent !important;
+  color: #1e293b !important;
+}
+
+.pvt-drawer .pvt-drawer__item:not(.is-active):active {
+  background: #f1f5f9 !important;
+}
+
+.pvt-drawer .pvt-drawer__close {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.pvt-drawer .pvt-drawer__logout {
+  height: auto !important;
+  min-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  box-shadow: none !important;
+  font-size: 15px !important;
+  line-height: 1.35 !important;
 }

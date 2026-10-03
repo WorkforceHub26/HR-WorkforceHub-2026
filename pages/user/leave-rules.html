@@ -9,12 +9,16 @@
   <title>หลักเกณฑ์การลา | PVT HR Hub</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link href="/favicon.ico" rel="icon" type="image/x-icon" />
+  <link href="/manifest.json" rel="manifest" />
   
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
   <link rel="stylesheet" href="/css/leave-rules.css" />
   <link rel="stylesheet" href="/css/system-settings.css" />
+  <!-- 📱 ส่วนกลางทุกหน้า: ส่วนหัว + แถบล่าง + เมนูข้างมือถือ (โหลดหลัง CSS ของหน้า) -->
+  <link rel="stylesheet" href="/css/mobile-shell.css" />
   
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
@@ -29,7 +33,7 @@
   <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
 </head>
 
-<body>
+<body id="page-user-leave-rules">
 
   <div class="app-container" id="appLayout">
     
@@ -70,7 +74,7 @@
           <img src="/assets/icons/calendar-event.svg" alt="ปฏิทิน" class="nav-icon-custom" />
           <span>ปฏิทิน</span>
         </a>
-        <a href="/pages/hr/hr.html" class="menu-item" id="navItemLeaveCheck" title="ตรวจและอนุมัติใบลาพนักงาน">
+        <a href="/pages/approver/leave-approvals.html" class="menu-item" id="navItemLeaveCheck" title="ตรวจและอนุมัติใบลาพนักงาน">
           <img src="/assets/icons/leave-approval.svg" alt="อนุมัติใบลา" class="nav-icon-custom" />
           <span>อนุมัติใบลา</span>
         </a>
@@ -111,40 +115,42 @@
     </aside>
 
     <!--  2. MAIN WORKSPACE CONTENT -->
-    <main class="main-content" style="width: 100%; flex: 1;">
+    <main class="main-content">
+
+      <!-- 📱 ส่วนหัวมาตรฐาน (ดีไซน์ใน /css/mobile-shell.css) — เหมือนหน้า ประวัติลา / วันหยุด / โปรไฟล์ -->
+      <header class="pvt-appbar">
+        <a class="pvt-appbar-back" href="/pages/user/index-user.html" aria-label="กลับหน้าหลัก">
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        </a>
+        <div class="pvt-appbar-titles">
+          <h1 class="pvt-appbar-title">กฎระเบียบการลา</h1>
+          <p class="pvt-appbar-sub">หลักเกณฑ์และเงื่อนไขการลา</p>
+        </div>
+        <div class="pvt-appbar-actions">
+          <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}" title="เปิดเมนู" aria-label="เปิดเมนูหลัก">
+            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
+        </div>
+      </header>
+
       <div class="rules-page-container">
-        
-        <header class="rules-top-bar">
-          <div class="rules-header-nav">
-            <button type="button" class="btn-header-back" onclick="history.back()" title="ย้อนกลับ">
-              <span class="material-symbols-outlined">arrow_back</span>
-              <span class="btn-label">ย้อนกลับ</span>
-            </button>
-            <button type="button" class="btn-header-action" onclick="window.location.href='/pages/user/full-guide.html'" title="คู่มือใช้งานฉบับเต็ม">
-              <span class="material-symbols-outlined">menu_book</span>
-              <span class="btn-label">คู่มือฉบับเต็ม</span>
-            </button>
-            
-            
 
-            <button type="button" class="mobile-menu-btn rules-icon-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" title="เปิดเมนู" aria-label="เปิดเมนู">
-              <span class="material-symbols-outlined">more_vert</span>
-            </button>
-          </div>
-
+        <!-- การ์ดหัวเรื่อง (ปุ่มย้อนกลับย้ายไปส่วนหัวด้านบน, คู่มือฉบับเต็มอยู่ในเมนู ⋮) -->
+        <section class="rules-top-bar rules-hero">
           <div class="rules-title-section">
             <div class="rules-title-icon" aria-hidden="true">
               <span class="material-symbols-outlined">policy</span>
             </div>
             <div class="rules-title-copy">
               <span class="rules-eyebrow">LEAVE POLICY</span>
-              <h1>หลักเกณฑ์และเงื่อนไขการลา</h1>
+              <h2>หลักเกณฑ์และเงื่อนไขการลา</h2>
               <p>สิทธิประโยชน์และข้อกำหนดทางวินัยพนักงาน PVT</p>
             </div>
           </div>
-        </header>
+        </section>
 
-    <main class="rules-grid-layout">
+    <!-- การ์ดกฎ: leave-rules.js วาดใหม่จากข้อมูลที่ HR แก้ไข (ด้านล่างคือค่าเริ่มต้น เผื่อ JS ยังไม่ทำงาน) -->
+    <section class="rules-grid-layout" id="rulesGridLayout">
 
       <article class="rule-box-card">
         <div class="card-header-tag">
@@ -265,37 +271,16 @@
         </ul>
       </article>
 
+    </section>
+
+      </div><!-- /.rules-page-container -->
+
+      <!-- 📱 แถบเมนูล่าง: สร้างอัตโนมัติโดย /js/mobile-shell.js (เหมือนกันทุกหน้า) -->
     </main>
+  </div><!-- /.app-container -->
 
-    <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR -->
-    <nav class="mobile-bottom-nav">
-      <a href="/pages/user/index-user.html" class="bottom-nav-item">
-        <span class="material-symbols-outlined">home</span>
-        <span class="nav-label">หน้าหลัก</span>
-      </a>
-      <a href="/pages/user/leave-history.html" class="bottom-nav-item">
-        <span class="material-symbols-outlined">receipt_long</span>
-        <span class="nav-label">ประวัติลา</span>
-      </a>
-      <a href="/pages/user/leave-user.html" class="bottom-nav-item primary-action" title="ยื่นใบลาใหม่">
-        <div class="center-fab-icon">
-          <span class="material-symbols-outlined">add</span>
-        </div>
-        <span class="nav-label">ยื่นใบลา</span>
-      </a>
-      <a href="/pages/user/holidays.html" class="bottom-nav-item">
-        <span class="material-symbols-outlined">calendar_month</span>
-        <span class="nav-label">วันหยุด</span>
-      </a>
-      <a href="/pages/user/profile-user.html" class="bottom-nav-item">
-        <span class="material-symbols-outlined">person</span>
-        <span class="nav-label">ข้อมูลส่วนตัว</span>
-      </a>
-    </nav>
-
-  </div>
-  </div>
-
+  <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง + เมนูข้างมือถือ -->
+  <script src="/js/mobile-shell.js" defer></script>
   <script type="module" src="/js/leave-rules.js"></script>
 </body>
 </html>

@@ -3,48 +3,21 @@
    ========================================================================== */
 
 /* 🔤 Font Scaling CSS Rules (มีผลครอบคลุมทุกหน้าและทุกองค์ประกอบข้อความ) */
-html[data-font-size="medium"] {
-  font-size: 16.5px !important;
-}
-html[data-font-size="large"] {
-  font-size: 18px !important;
-}
-
-html[data-font-size="medium"] body {
-  font-size: 16.5px !important;
-}
-html[data-font-size="large"] body {
-  font-size: 18px !important;
+/* ==========================================================================
+   ขนาดตัวอักษร (ตั้งค่า > ขนาดตัวอักษร)
+   เดิม: ตั้ง font-size: 106% / 114% ให้ p, span, li ... ทุกตัว → คิดจากขนาดกล่องแม่
+   ทำให้หัวข้อ/คำอธิบาย/ตัวเลขกลายเป็นขนาดเดียวกันหมด และข้อความซ้อนชั้นถูกขยายซ้ำ
+   ตอนนี้: ขยาย "เนื้อหาของหน้า" ทั้งก้อนด้วย zoom → สัดส่วนเดิมทุกอย่าง
+   ไม่ขยาย: ส่วนหัว (.pvt-appbar / topbar), แถบล่าง, เมนูข้าง, หน้าต่างตั้งค่า (ขนาดตายตัว)
+   ========================================================================== */
+html[data-font-size="medium"] .main-content > :not(.pvt-appbar):not(.topbar):not(.approver-topbar):not(.pvt-tabbar),
+html[data-font-size="medium"] #page-user-leave > .page {
+  zoom: 1.12;
 }
 
-html[data-font-size="medium"] p,
-html[data-font-size="medium"] span:not(.material-symbols-outlined):not(.sidebar-badge):not(.notif-badge):not(#notifBadge),
-html[data-font-size="medium"] li,
-html[data-font-size="medium"] td,
-html[data-font-size="medium"] th,
-html[data-font-size="medium"] label,
-html[data-font-size="medium"] input,
-html[data-font-size="medium"] select,
-html[data-font-size="medium"] textarea,
-html[data-font-size="medium"] .nav-label,
-html[data-font-size="medium"] .btn,
-html[data-font-size="medium"] .action-btn {
-  font-size: 106% !important;
-}
-
-html[data-font-size="large"] p,
-html[data-font-size="large"] span:not(.material-symbols-outlined):not(.sidebar-badge):not(.notif-badge):not(#notifBadge),
-html[data-font-size="large"] li,
-html[data-font-size="large"] td,
-html[data-font-size="large"] th,
-html[data-font-size="large"] label,
-html[data-font-size="large"] input,
-html[data-font-size="large"] select,
-html[data-font-size="large"] textarea,
-html[data-font-size="large"] .nav-label,
-html[data-font-size="large"] .btn,
-html[data-font-size="large"] .action-btn {
-  font-size: 114% !important;
+html[data-font-size="large"] .main-content > :not(.pvt-appbar):not(.topbar):not(.approver-topbar):not(.pvt-tabbar),
+html[data-font-size="large"] #page-user-leave > .page {
+  zoom: 1.25;
 }
 
 /* Adjust element spacing and elasticity for large font mode */
@@ -653,14 +626,32 @@ html[data-high-contrast="true"] .table-panel {
   box-shadow: none !important;
   background: #ffffff !important;
 }
+/* เดิมบังคับ span ทุกตัวเป็นสีดำ → ข้อความสีขาวบนปุ่ม/ป้ายสีกลายเป็นดำบนพื้นเข้ม อ่านไม่ออก
+   ตอนนี้: ทำตัวหนาทุกตัว แต่เปลี่ยนเป็นสีดำเฉพาะข้อความทั่วไปที่ไม่ได้อยู่บนปุ่ม/ป้ายสี */
 html[data-high-contrast="true"] p,
-html[data-high-contrast="true"] span,
+html[data-high-contrast="true"] span:not(.material-symbols-outlined),
 html[data-high-contrast="true"] small,
 html[data-high-contrast="true"] th,
 html[data-high-contrast="true"] td,
 html[data-high-contrast="true"] label {
-  color: #000000 !important;
   font-weight: 700 !important;
+}
+
+html[data-high-contrast="true"] p:not(button *):not(a *):not([class*="btn"] *):not([class*="badge"] *):not([class*="tag"] *):not([class*="hero"] *):not([class*="banner"] *):not(.pvt-tabbar *),
+html[data-high-contrast="true"] span:not(button *):not(a *):not([class*="btn"] *):not([class*="badge"] *):not([class*="tag"] *):not([class*="hero"] *):not([class*="banner"] *):not(.pvt-tabbar *),
+html[data-high-contrast="true"] small:not(button *):not(a *):not([class*="btn"] *):not([class*="badge"] *):not([class*="tag"] *):not([class*="hero"] *):not([class*="banner"] *):not(.pvt-tabbar *),
+html[data-high-contrast="true"] th:not(button *):not(a *):not([class*="btn"] *):not([class*="badge"] *):not([class*="tag"] *):not([class*="hero"] *):not([class*="banner"] *):not(.pvt-tabbar *),
+html[data-high-contrast="true"] td:not(button *):not(a *):not([class*="btn"] *):not([class*="badge"] *):not([class*="tag"] *):not([class*="hero"] *):not([class*="banner"] *):not(.pvt-tabbar *),
+html[data-high-contrast="true"] label:not(button *):not(a *):not([class*="btn"] *):not([class*="badge"] *):not([class*="tag"] *):not([class*="hero"] *):not([class*="banner"] *):not(.pvt-tabbar *) {
+  color: #000000 !important;
+}
+
+/* สีเทาอ่อนของข้อความรอง → เข้มขึ้น */
+html[data-high-contrast="true"] {
+  --text-soft: #1e293b;
+  --text-muted: #1e293b;
+  --muted: #1e293b;
+  --pvt-muted: #1e293b;
 }
 
 /* ⚡ REDUCED MOTION & BATTERY SAVER MODE */
@@ -684,7 +675,12 @@ html[data-privacy-shield="true"] .leave-days-count,
 html[data-privacy-shield="true"] .emp-salary,
 html[data-privacy-shield="true"] .personal-meta-val,
 html[data-privacy-shield="true"] .balance-num,
-html[data-privacy-shield="true"] .leave-days-badge {
+html[data-privacy-shield="true"] .leave-days-badge,
+/* ตัวเลขจริงในหน้าพนักงาน: ประวัติลา (.metric-*), หน้าหลัก (.stat-num), ยื่นใบลา (.leave-quota-days) */
+html[data-privacy-shield="true"] .metric-big-num,
+html[data-privacy-shield="true"] .metric-sub-detail,
+html[data-privacy-shield="true"] .stat-num,
+html[data-privacy-shield="true"] .leave-quota-days {
   filter: blur(5px) !important;
   transition: filter 0.15s ease !important;
 }
@@ -695,7 +691,18 @@ html[data-privacy-shield="true"] .quota-count:hover,
 html[data-privacy-shield="true"] .leave-days-count:hover,
 html[data-privacy-shield="true"] .personal-meta-val:hover,
 html[data-privacy-shield="true"] .balance-num:hover,
-html[data-privacy-shield="true"] .leave-days-badge:hover {
+html[data-privacy-shield="true"] .leave-days-badge:hover,
+html[data-privacy-shield="true"] .metric-big-num:hover,
+html[data-privacy-shield="true"] .metric-sub-detail:hover,
+html[data-privacy-shield="true"] .stat-num:hover,
+html[data-privacy-shield="true"] .leave-quota-days:hover,
+/* มือถือไม่มี hover → แตะค้างเพื่อดู */
+html[data-privacy-shield="true"] .metric-big-num:active,
+html[data-privacy-shield="true"] .metric-sub-detail:active,
+html[data-privacy-shield="true"] .stat-num:active,
+html[data-privacy-shield="true"] .leave-quota-days:active,
+html[data-privacy-shield="true"] .quota-count:active,
+html[data-privacy-shield="true"] .balance-num:active {
   filter: blur(0px) !important;
 }
 
@@ -902,3 +909,10 @@ html, body {
 }
 
 
+
+/* มือถือ: ปุ่มภาษา 4 ช่องแคบจนตัดคำ ("ภาษา / ไทย") → 2 คอลัมน์ */
+@media (max-width: 520px) {
+  #systemSettingsModal .lang-options-grid:has(#langBtnTh) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

@@ -196,7 +196,8 @@ function saveLeaveRules(rules) {
 // ตรวจสอบสิทธิ์ผู้ใช้ว่าเป็น Admin / HR หรือไม่
 function isUserAdminOrHr() {
   try {
-    const raw = localStorage.getItem("pvt_user_session") || localStorage.getItem("pvt_employee_session");
+    // ระบบปัจจุบันเก็บผู้ใช้ไว้ที่ "currentUser" (คีย์เดิม 2 ตัวยังรองรับไว้)
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("pvt_user_session") || localStorage.getItem("pvt_employee_session");
     if (!raw) return false;
     const session = JSON.parse(raw);
     const empCode = String(session?.employee_code || session?.employees?.employee_code || '').toLowerCase().trim();

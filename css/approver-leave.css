@@ -28,7 +28,7 @@
     margin-left: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
-    padding: 10px 10px 92px !important;
+    padding: 10px 10px 12px !important;
     box-sizing: border-box !important;
   }
 }
@@ -200,129 +200,128 @@
    Approver Portal — Mobile-first content + bottom navigation
    ============================================================== */
 
-#page-approver-leave .approver-bottom-nav {
-  display: none;
+/* ==============================================================
+   หน้าต่างดูรายละเอียดใบลา (#leavePreviewModal)
+   เดิม CSS ของ modal อยู่ใน hr.css แต่เขียนไว้เฉพาะ #page-hr-approval
+   → หน้านี้ (#page-approver-leave) ไม่มีกฎซ่อน กล่องจึงค้างอยู่ท้ายหน้าตลอด
+   และกด "ดูรายละเอียด" แล้วไม่เด้งเป็นหน้าต่าง
+   ============================================================== */
+#page-approver-leave .pvt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.5);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
+#page-approver-leave .pvt-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#page-approver-leave .pvt-modal-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: min(96vw, 680px);
+  max-height: min(92dvh, calc(100dvh - 20px));
+  margin: auto;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.25);
+  transform: scale(0.96) translateY(12px);
+  transition: transform 0.25s ease;
+}
+
+#page-approver-leave .pvt-modal-overlay.active .pvt-modal-card {
+  transform: none;
+}
+
+#page-approver-leave .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 10px;
+  padding: 18px 24px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+#page-approver-leave .modal-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+#page-approver-leave .modal-close-btn {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#page-approver-leave .modal-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+#page-approver-leave .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#page-approver-leave .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* แถบเมนูล่างใช้ .pvt-tabbar จาก /css/mobile-shell.css + /js/mobile-shell.js (เหมือนหน้าอื่น)
+   body.pvt-has-tabbar เว้นที่ด้านล่างให้แถบแล้ว → .main-content ไม่ต้องเว้นซ้ำ */
 @media (max-width: 1024px) {
-  #page-approver-leave {
-    --approver-bottom-nav-height: 66px;
-  }
-
   #page-approver-leave .main-content {
-    padding-bottom: calc(var(--approver-bottom-nav-height) + 28px + env(safe-area-inset-bottom)) !important;
-  }
-
-  #page-approver-leave .approver-bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1200;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-around;
-    min-height: var(--approver-bottom-nav-height);
-    padding: 4px 5px max(5px, env(safe-area-inset-bottom));
-    box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.97);
-    border-top: 1px solid rgba(226, 232, 240, 0.92);
-    box-shadow: 0 -5px 20px rgba(15, 23, 42, 0.08);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  #page-approver-leave .approver-bottom-nav__item {
-    position: relative;
-    display: flex;
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: 20%;
-    min-height: 52px;
-    padding: 5px 2px 3px;
-    box-sizing: border-box;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 2px;
-    color: #64748b;
-    text-decoration: none;
-    border-radius: 12px;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
-
-  #page-approver-leave .approver-bottom-nav__item > .material-symbols-outlined {
-    font-size: 22px;
-    line-height: 1;
-  }
-
-  #page-approver-leave .approver-bottom-nav__label {
-    display: block;
-    max-width: 100%;
-    overflow: hidden;
-    color: inherit;
-    font-size: 10.5px;
-    font-weight: 600;
-    line-height: 1.15;
-    letter-spacing: -0.2px;
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  #page-approver-leave .approver-bottom-nav__item:active {
-    background: #f8fafc;
-    transform: scale(0.97);
-  }
-
-  #page-approver-leave .approver-bottom-nav__item.active {
-    color: #0d9488;
-  }
-
-  #page-approver-leave .approver-bottom-nav__item--primary {
-    justify-content: flex-end;
-    margin-top: -22px;
-    padding-top: 0;
-  }
-
-  #page-approver-leave .approver-bottom-nav__fab {
-    display: flex;
-    width: 42px;
-    height: 42px;
-    flex: 0 0 42px;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
-    border: 3px solid #fff;
-    border-radius: 50%;
-    box-shadow: 0 5px 16px rgba(13, 148, 136, 0.32);
-  }
-
-  #page-approver-leave .approver-bottom-nav__fab .material-symbols-outlined {
-    font-size: 23px;
-    font-variation-settings: 'FILL' 1, 'wght' 650;
-  }
-
-  #page-approver-leave .approver-bottom-nav__item--primary .approver-bottom-nav__label {
-    color: #0f766e;
-    font-weight: 800;
-  }
-
-  #page-approver-leave .approver-bottom-nav__dot {
-    width: 4px;
-    height: 4px;
-    margin-top: 0;
-    background: #0d9488;
-    border-radius: 50%;
+    padding-bottom: 12px !important;
   }
 }
 
 @media (max-width: 768px) {
   /* Denser mobile-first page rhythm */
   #page-approver-leave .main-content {
-    padding: 8px 8px calc(var(--approver-bottom-nav-height) + 24px + env(safe-area-inset-bottom)) !important;
+    padding: 8px 8px 12px !important;
   }
 
   #page-approver-leave .approver-topbar {
@@ -599,10 +598,6 @@
 
   #page-approver-leave .stat-value {
     font-size: 18px !important;
-  }
-
-  #page-approver-leave .approver-bottom-nav__label {
-    font-size: 10px !important;
   }
 }
 

@@ -189,7 +189,9 @@ body {
       gap: 20px;
     }
 
-    .rules-title-section h1 {
+    .rules-title-section h1,
+
+    .rules-title-section h2 {
       font-size: 28px;
       color: var(--text, #0f172a);
       margin: 0 0 4px 0;
@@ -225,7 +227,8 @@ body {
       .rules-title-section {
         text-align: left !important;
       }
-      .rules-title-section h1 {
+      .rules-title-section h1,
+      .rules-title-section h2 {
         font-size: 20px !important;
       }
       .rules-title-section p {
@@ -3739,7 +3742,9 @@ input[type="file"]:hover {
   letter-spacing: 0.12em;
 }
 
-.rules-title-section h1 {
+.rules-title-section h1,
+
+.rules-title-section h2 {
   margin: 0;
   color: #0f172a;
   font-size: clamp(22px, 2.4vw, 30px);
@@ -3819,7 +3824,9 @@ input[type="file"]:hover {
     font-size: 24px;
   }
 
-  .rules-title-section h1 {
+  .rules-title-section h1,
+
+  .rules-title-section h2 {
     font-size: 20px !important;
   }
 
@@ -3844,5 +3851,102 @@ input[type="file"]:hover {
     width: 40px;
     min-width: 40px;
     padding: 0 !important;
+  }
+}
+
+
+/* ========================================================================== */
+/* 2026-10-03 — ส่วนหัว/แถบล่าง/เมนูข้างมาตรฐาน (mobile-shell) + การ์ดจาก JS     */
+/* ========================================================================== */
+
+/* ส่วนหัวย้ายไปเป็น .pvt-appbar แล้ว → การ์ดหัวเรื่องเหลือแค่ไอคอน + ชื่อ */
+#page-user-leave-rules .rules-hero {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* มือถือ: เนื้อหาเริ่มใต้ส่วนหัวพอดี (ระยะเท่าหน้าอื่น) */
+@media screen and (max-width: 1024px) {
+  #page-user-leave-rules .rules-page-container {
+    padding: 0 0 12px;
+  }
+
+  #page-user-leave-rules .rules-grid-layout {
+    padding: 14px 0 0;
+  }
+}
+
+/* การ์ดที่ leave-rules.js วาด: แถบหัวการ์ด (ป้ายสี + ปุ่มแก้ไข/ลบสำหรับ HR) */
+#page-user-leave-rules .card-header-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+#page-user-leave-rules .card-header-bar .card-header-tag {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+#page-user-leave-rules .card-actions-group {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+#page-user-leave-rules .btn-rule-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#page-user-leave-rules .btn-rule-action .material-symbols-outlined {
+  font-size: 18px;
+}
+
+#page-user-leave-rules .btn-rule-edit {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+#page-user-leave-rules .btn-rule-delete {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* จอคอม: เดิม .main-content กว้าง 100% ทั้งที่เว้นซ้าย 260px ให้เมนูข้าง → เนื้อหาล้นขอบขวา */
+@media screen and (min-width: 1025px) {
+  #page-user-leave-rules .main-content {
+    width: calc(100% - 260px) !important;
+    max-width: none !important;
+    margin-left: 260px !important;
+  }
+
+  #page-user-leave-rules.desktop-sidebar-collapsed .main-content,
+  #page-user-leave-rules .main-content.expanded {
+    width: calc(100% - 80px) !important;
+    margin-left: 80px !important;
+  }
+}
+
+@media screen and (min-width: 1025px) {
+  #page-user-leave-rules .rules-page-container {
+    padding-top: 8px;
   }
 }

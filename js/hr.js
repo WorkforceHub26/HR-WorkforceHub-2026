@@ -2182,7 +2182,9 @@ async function approveLeave(leaveId) {
     : 'ฝ่ายบุคคล HR / Admin';
 
   // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการอนุมัติเพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
-  const result = await Swal.fire({
+  // ⚡ ข้ามได้ถ้าเปิด "ระบบอนุมัติเร็วแบบคลิกเดียว" ในหน้าต่างตั้งค่า (pvt_double_confirm = "false")
+  const isQuickApprove = localStorage.getItem("pvt_double_confirm") === "false";
+  const result = isQuickApprove ? { isConfirmed: true } : await Swal.fire({
     title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ยืนยันอนุมัติคำขอลา</span>',
     html: buildLeaveActionConfirmDialogHtml(reqData, roleTitle, 'approve'),
     icon: 'question',

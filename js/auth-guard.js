@@ -2636,6 +2636,9 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       document.cookie = 'googtrans=' + cookieValue + '; path=/';
       document.cookie = 'googtrans=' + cookieValue + '; path=/; domain=' + window.location.hostname;
 
+      // ตัวแปลภาษา Google โหลดแบบ lazy (system-settings.js) → สั่งโหลดตอนเลือกภาษาที่ต้องแปล
+      if (typeof window.pvtEnsureGoogleTranslate === 'function') window.pvtEnsureGoogleTranslate();
+
       const combo = document.querySelector('select.goog-te-combo, .goog-te-combo');
       if (combo) {
         if (combo.value !== googleLang) {
@@ -2667,10 +2670,12 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
 function injectGlobalLangSwitcher() {
   if (document.getElementById('globalLangSwitcherContainer')) return;
 
-  // 🚫 Do not show language switcher on HR Administration pages or leave-history page
+  // 🚫 Do not show language switcher on HR Administration pages, leave-history, leave-rules, profile-user
+  //    (เปลี่ยนภาษาได้ที่ เมนู ⋮ > ตั้งค่า)
   const isHrPage = window.location.pathname.includes('/pages/hr/') || 
                    window.location.pathname.includes('/pages/user/leave-history.html') ||
                    window.location.pathname.includes('/pages/user/leave-rules.html') ||
+                   window.location.pathname.includes('/pages/user/profile-user.html') ||
                    document.querySelector('aside.sidebar-light') !== null ||
                    document.body.classList.contains('hr-layout');
   if (isHrPage) return;
@@ -3561,4 +3566,3 @@ document.addEventListener('click', function(e) {
     start();
   }
 })();
-
