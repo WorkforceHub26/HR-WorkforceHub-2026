@@ -2740,6 +2740,12 @@ function injectGlobalLangSwitcher() {
 window.ensureDesktopSidebarEdgeToggle = function() {
   const sidebar = document.querySelector(".sidebar-light, .sidebar, aside");
   if (!sidebar) return;
+  // หน้า HR แบบใหม่ (.pvt-sidebar) มีปุ่มวงกลมพับ/กางเมนูของตัวเองแล้ว → ไม่ต้องเพิ่มแถบปุ่มซ้ำด้านล่าง
+  if (sidebar.classList.contains("pvt-sidebar")) {
+    const dup = document.getElementById("desktopSidebarEdgeToggle");
+    if (dup) dup.remove();
+    return;
+  }
 
   let desktopToggle = document.getElementById("desktopSidebarEdgeToggle");
   if (!desktopToggle) {
