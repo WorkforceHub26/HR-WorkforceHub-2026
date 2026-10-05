@@ -4,6 +4,7 @@
   <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <script src="/js/theme-boot.js"></script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <meta name="google" content="notranslate" />
@@ -218,10 +219,7 @@
       <section class="mobile-feed-container">
         <!-- 📱 NATIVE MOBILE LEAVE CARDS FEED -->
         <div id="table-data-rows" class="leave-cards-feed">
-          <div class="empty-history-cell">
-            <div class="loading-spinner"></div>
-            <span>กำลังโหลดประวัติการลาของคุณ...</span>
-          </div>
+          <div role="status"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">กำลังโหลดประวัติการลาของคุณ...</span><div class="pvt-skel-card" aria-hidden="true" style="background:#fff;border-radius:18px;padding:14px;margin:0 0 12px;box-shadow:0 1px 3px rgba(15,23,42,.06);display:flex;gap:12px;align-items:center;"><span class="pvt-skel" style="width:44px;height:44px;border-radius:14px;flex:0 0 44px;"></span><span style="flex:1;display:flex;flex-direction:column;gap:8px;"><span class="pvt-skel" style="width:55%;height:14px;"></span><span class="pvt-skel" style="width:85%;height:12px;"></span><span class="pvt-skel" style="width:35%;height:12px;"></span></span></div><div class="pvt-skel-card" aria-hidden="true" style="background:#fff;border-radius:18px;padding:14px;margin:0 0 12px;box-shadow:0 1px 3px rgba(15,23,42,.06);display:flex;gap:12px;align-items:center;"><span class="pvt-skel" style="width:44px;height:44px;border-radius:14px;flex:0 0 44px;"></span><span style="flex:1;display:flex;flex-direction:column;gap:8px;"><span class="pvt-skel" style="width:55%;height:14px;"></span><span class="pvt-skel" style="width:85%;height:12px;"></span><span class="pvt-skel" style="width:35%;height:12px;"></span></span></div><div class="pvt-skel-card" aria-hidden="true" style="background:#fff;border-radius:18px;padding:14px;margin:0 0 12px;box-shadow:0 1px 3px rgba(15,23,42,.06);display:flex;gap:12px;align-items:center;"><span class="pvt-skel" style="width:44px;height:44px;border-radius:14px;flex:0 0 44px;"></span><span style="flex:1;display:flex;flex-direction:column;gap:8px;"><span class="pvt-skel" style="width:55%;height:14px;"></span><span class="pvt-skel" style="width:85%;height:12px;"></span><span class="pvt-skel" style="width:35%;height:12px;"></span></span></div><div class="pvt-skel-card" aria-hidden="true" style="background:#fff;border-radius:18px;padding:14px;margin:0 0 12px;box-shadow:0 1px 3px rgba(15,23,42,.06);display:flex;gap:12px;align-items:center;"><span class="pvt-skel" style="width:44px;height:44px;border-radius:14px;flex:0 0 44px;"></span><span style="flex:1;display:flex;flex-direction:column;gap:8px;"><span class="pvt-skel" style="width:55%;height:14px;"></span><span class="pvt-skel" style="width:85%;height:12px;"></span><span class="pvt-skel" style="width:35%;height:12px;"></span></span></div></div>
         </div>
       </section>
 
@@ -277,7 +275,7 @@
         icon: 'info',
         title: featureName,
         text: 'ระบบนี้อยู่ระหว่างเชื่อมต่อความปลอดภัยและระบบหลัก จะเปิดให้บริการเร็วๆ นี้ค่ะ',
-        confirmButtonColor: '#0f766e',
+        confirmButtonColor: 'var(--th-p-700, #0f766e)',
         timer: 3000
       });
     }
@@ -310,7 +308,7 @@
           icon: 'info',
           title: 'คู่มือลายนิ้วมือ/ใบหน้า',
           text: 'สามารถดูคู่มือและตั้งค่าระบบสแกนได้ที่หน้า ข้อมูลส่วนตัว หรือหน้าล็อกอินหลัก',
-          confirmButtonColor: '#0f766e'
+          confirmButtonColor: 'var(--th-p-700, #0f766e)'
         });
       }
     }
@@ -337,7 +335,7 @@
         icon: 'success',
         title: 'ระบบแจ้งเตือนล่าสุด',
         text: 'ท่านสามารถเข้าดูประวัติการแจ้งเตือนและการพิจารณาใบลาล่าสุดได้จากกระดิ่งหน้าหลัก',
-        confirmButtonColor: '#0f766e'
+        confirmButtonColor: 'var(--th-p-700, #0f766e)'
       });
     }
   </script>

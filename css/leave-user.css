@@ -12,14 +12,14 @@
 }
 
 :root {
-  --primary: #06b6d4;
-  --primary-light: rgba(6, 182, 212, 0.15);
-  --primary-dark: #0891b2;
+  --primary: var(--th-s-500, #06b6d4);
+  --primary-light: rgba(var(--th-s-500-rgb, 6, 182, 212), 0.15);
+  --primary-dark: var(--th-s-600, #0891b2);
   --green: #10b981;
   --green-light: #f0fdf4;
   --green-dark: #059669;
   --red: #ef4444;
-  --bg: #f0fdfa;        
+  --bg: var(--th-p-50, #f0fdfa);        
   --card: rgba(255, 255, 255, 0.85);
   --card-solid: #ffffff;
   --text: #0f172a;
@@ -41,10 +41,10 @@ body {
   font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg); 
   background-image: 
-    radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
-    radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
-    radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0px, transparent 50%), 
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0px, transparent 50%), 
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0px, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0px, transparent 50%);
   background-attachment: fixed;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -130,7 +130,7 @@ body {
   gap: 12px;
 }
 .info-card-head h2 { font-size: 18px; font-weight: 700; color: #1e293b; }
-.badge-autofill { font-size: 12px; font-weight: 600; background: var(--primary-light); color: var(--primary); padding: 4px 14px; border-radius: 99px; border: 1.5px solid #bfdbfe; }
+.badge-autofill { font-size: 12px; font-weight: 600; background: var(--primary-light); color: var(--primary); padding: 4px 14px; border-radius: 99px; border: 1.5px solid var(--th-b-200, #bfdbfe); }
 
 .info-grid { 
   display: grid; 
@@ -142,12 +142,12 @@ body {
 
 .notice-box { 
   background: var(--primary-light); 
-  border: 2px solid #bfdbfe; 
+  border: 2px solid var(--th-b-200, #bfdbfe); 
   border-radius: 12px; 
   padding: 16px 20px; 
   margin-bottom: 32px; 
   font-size: 14px; 
-  color: #1e40af; 
+  color: var(--th-b-800, #1e40af); 
   line-height: 1.5; 
 }
 
@@ -179,7 +179,7 @@ div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) > h2:nth-of-type(1)
   gap: 20px;
   transition: var(--ease);
 }
-.leave-box-item:hover { border-color: var(--primary); box-shadow: 0 12px 35px rgba(37, 99, 235, 0.07); }
+.leave-box-item:hover { border-color: var(--primary); box-shadow: 0 12px 35px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.07); }
 
 .row-divider {
   font-size: 13px;
@@ -230,7 +230,7 @@ textarea {
 .input-group input:focus, .input-group select:focus { 
   border-color: var(--primary); 
   background: #ffffff; 
-  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); 
+  box-shadow: 0 0 0 3px rgba(var(--th-s-500-rgb, 6, 182, 212), 0.15); 
 }
 
 .readonly-highlight { 
@@ -328,14 +328,14 @@ textarea {
 /* 🚀 Primary Submit Button Style for Leave Form (Primary Blue) */
 div:nth-of-type(2) > div:nth-of-type(4) > button#btnSaveLeave:nth-of-type(2),
 #btnSaveLeave {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, var(--th-b-600, #2563eb) 0%, var(--th-b-700, #1d4ed8) 100%) !important;
   color: #ffffff !important;
   font-weight: 700 !important;
   font-size: 15.5px !important;
   padding: 12px 28px !important;
   border-radius: 12px !important;
   border: none !important;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.35) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -346,14 +346,14 @@ div:nth-of-type(2) > div:nth-of-type(4) > button#btnSaveLeave:nth-of-type(2),
 }
 
 #btnSaveLeave:hover {
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+  background: linear-gradient(135deg, var(--th-b-700, #1d4ed8) 0%, var(--th-b-800, #1e40af) 100%) !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.45) !important;
+  box-shadow: 0 8px 22px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.45) !important;
 }
 
 #btnSaveLeave:active {
   transform: translateY(0) !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.3) !important;
 }
 
 #btnSaveLeave .material-symbols-outlined {
@@ -396,17 +396,17 @@ div:nth-of-type(2) > div:nth-of-type(4) > button#btnSaveLeave:nth-of-type(2),
 
 .date-input-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.12);
+  box-shadow: 0 4px 16px rgba(var(--th-s-500-rgb, 6, 182, 212), 0.12);
 }
 
 .date-input-card.highlight-start-card {
-  border-color: #a5f3fc;
-  background: #f0fdfa;
+  border-color: var(--th-s-200, #a5f3fc);
+  background: var(--th-p-50, #f0fdfa);
 }
 .date-input-card.highlight-start-card:focus-within,
 .date-input-card.highlight-start-card:hover {
-  border-color: #06b6d4;
-  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15);
+  border-color: var(--th-s-500, #06b6d4);
+  box-shadow: 0 0 0 4px rgba(var(--th-s-500-rgb, 6, 182, 212), 0.15);
 }
 
 .date-input-card.highlight-end-card {
@@ -445,8 +445,8 @@ div:nth-of-type(2) > div:nth-of-type(4) > button#btnSaveLeave:nth-of-type(2),
 
 .large-date-field:focus,
 .input-group input.flatpickr-input:focus {
-  border-color: #06b6d4 !important;
-  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2) !important;
+  border-color: var(--th-s-500, #06b6d4) !important;
+  box-shadow: 0 0 0 4px rgba(var(--th-s-500-rgb, 6, 182, 212), 0.2) !important;
 }
 
 /* 🗓️ FLATPICKR CALENDAR ENLARGEMENT (ปรับปฏิทินให้ใหญ่เต็มตา เลือกง่าย) */
@@ -503,8 +503,8 @@ div:nth-of-type(2) > div:nth-of-type(4) > button#btnSaveLeave:nth-of-type(2),
 
 .flatpickr-months .flatpickr-prev-month:hover, 
 .flatpickr-months .flatpickr-next-month:hover {
-  background: #e0f2fe !important;
-  color: #0284c7 !important;
+  background: var(--th-k-100, #e0f2fe) !important;
+  color: var(--th-k-600, #0284c7) !important;
 }
 
 .flatpickr-weekdays {
@@ -515,7 +515,7 @@ div:nth-of-type(2) > div:nth-of-type(4) > button#btnSaveLeave:nth-of-type(2),
 span.flatpickr-weekday {
   font-size: 15px !important;
   font-weight: 700 !important;
-  color: #0891b2 !important;
+  color: var(--th-s-600, #0891b2) !important;
 }
 
 .flatpickr-days {
@@ -544,31 +544,31 @@ span.flatpickr-weekday {
 }
 
 .flatpickr-day:hover {
-  background: #e0f2fe !important;
-  color: #0369a1 !important;
+  background: var(--th-k-100, #e0f2fe) !important;
+  color: var(--th-k-700, #0369a1) !important;
 }
 
 .flatpickr-day.today {
-  border: 2.5px solid #06b6d4 !important;
-  color: #0891b2 !important;
+  border: 2.5px solid var(--th-s-500, #06b6d4) !important;
+  color: var(--th-s-600, #0891b2) !important;
   font-weight: 800 !important;
-  background: #f0fdfa !important;
+  background: var(--th-p-50, #f0fdfa) !important;
 }
 
 .flatpickr-day.selected, 
 .flatpickr-day.startRange, 
 .flatpickr-day.endRange {
-  background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
+  background: linear-gradient(135deg, var(--th-s-500, #06b6d4), var(--th-s-600, #0891b2)) !important;
   color: #ffffff !important;
   font-weight: 800 !important;
   border: none !important;
-  box-shadow: 0 6px 16px rgba(6, 182, 212, 0.4) !important;
+  box-shadow: 0 6px 16px rgba(var(--th-s-500-rgb, 6, 182, 212), 0.4) !important;
 }
 
 .flatpickr-day.inRange {
-  background: #e0f2fe !important;
-  color: #0369a1 !important;
-  box-shadow: -4px 0 0 #e0f2fe, 4px 0 0 #e0f2fe !important;
+  background: var(--th-k-100, #e0f2fe) !important;
+  color: var(--th-k-700, #0369a1) !important;
+  box-shadow: -4px 0 0 var(--th-k-100, #e0f2fe), 4px 0 0 var(--th-k-100, #e0f2fe) !important;
 }
 
 .flatpickr-day.flatpickr-disabled, 
@@ -597,14 +597,14 @@ span.flatpickr-weekday {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(6, 182, 212, 0.18);
+  box-shadow: 0 12px 32px rgba(var(--th-s-500-rgb, 6, 182, 212), 0.18);
   margin-bottom: 12px;
   overflow: hidden;
   animation: formGuideFadeIn 0.25s ease-out;
 }
 
 .form-guide-header {
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  background: linear-gradient(135deg, var(--th-s-500, #06b6d4), var(--th-s-600, #0891b2));
   color: #ffffff;
   padding: 12px 16px;
   display: flex;
@@ -640,7 +640,7 @@ span.flatpickr-weekday {
   font-size: 13px;
   line-height: 1.5;
   color: #1e293b;
-  border-bottom: 1px dashed rgba(6, 182, 212, 0.15);
+  border-bottom: 1px dashed rgba(var(--th-s-500-rgb, 6, 182, 212), 0.15);
   padding-bottom: 10px;
 }
 
@@ -648,8 +648,8 @@ span.flatpickr-weekday {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: #0891b2;
-  border: 1px solid rgba(6, 182, 212, 0.4);
+  color: var(--th-s-600, #0891b2);
+  border: 1px solid rgba(var(--th-s-500-rgb, 6, 182, 212), 0.4);
   padding: 10px 18px;
   border-radius: 30px;
   font-weight: 600;
@@ -658,7 +658,7 @@ span.flatpickr-weekday {
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+  box-shadow: 0 4px 12px rgba(var(--th-s-500-rgb, 6, 182, 212), 0.15);
   transition: all 0.2s ease;
   float: left !important;
   touch-action: manipulation;
@@ -1007,7 +1007,7 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 
 /* ช่องที่กำลังกรอก: ให้เด่นกว่าส่วนอื่น โดยไม่ขยับ layout */
 .leave-box-item .leave-field-active {
-  outline: 2px solid #06b6d4 !important;
+  outline: 2px solid var(--th-s-500, #06b6d4) !important;
   outline-offset: 4px;
   border-radius: 12px;
 }
@@ -1016,17 +1016,17 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 .leave-box-item .leave-field-active select,
 .leave-box-item .leave-field-active textarea,
 .leave-box-item .leave-field-active .file-upload-label {
-  background: #ecfeff !important;
-  border-color: #06b6d4 !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border-color: var(--th-s-500, #06b6d4) !important;
   color: #0f172a !important;
-  box-shadow: 0 0 0 3px rgba(6, 182, 212, .10) !important;
+  box-shadow: 0 0 0 3px rgba(var(--th-s-500-rgb, 6, 182, 212), .10) !important;
 }
 
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:focus-within {
-  background: #ecfeff !important;
-  border-color: #06b6d4 !important;
-  box-shadow: 0 0 0 3px rgba(6, 182, 212, .10) !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border-color: var(--th-s-500, #06b6d4) !important;
+  box-shadow: 0 0 0 3px rgba(var(--th-s-500-rgb, 6, 182, 212), .10) !important;
 }
 
 /* ช่องที่ยังล็อกและยังไม่กรอก ไม่ใช้สีเทาเดียวกับ completed */
@@ -1049,9 +1049,9 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 
 /* ช่องสรุปที่ระบบคำนวณให้เอง คงสี teal เดิม ไม่ใช้สถานะ completed */
 .leave-box-item input[name="leave_days_display"] {
-  background: #f0fdfa !important;
-  border-color: #99f6e4 !important;
-  color: #0f766e !important;
+  background: var(--th-p-50, #f0fdfa) !important;
+  border-color: var(--th-p-200, #99f6e4) !important;
+  color: var(--th-p-700, #0f766e) !important;
 }
 
 @media screen and (max-width: 768px) {
@@ -1085,18 +1085,18 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 
 /* active มีได้เพียงกลุ่มเดียวจาก JS */
 .leave-box-item .leave-field-active {
-  background: #ecfeff !important;
-  outline: 2px solid #06b6d4 !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  outline: 2px solid var(--th-s-500, #06b6d4) !important;
   outline-offset: 3px !important;
-  box-shadow: 0 0 0 4px rgba(6, 182, 212, .08) !important;
+  box-shadow: 0 0 0 4px rgba(var(--th-s-500-rgb, 6, 182, 212), .08) !important;
 }
 
 .leave-box-item .leave-field-active input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
 .leave-box-item .leave-field-active select,
 .leave-box-item .leave-field-active textarea,
 .leave-box-item .leave-field-active .file-upload-label {
-  background: #ecfeff !important;
-  border-color: #06b6d4 !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border-color: var(--th-s-500, #06b6d4) !important;
   color: #0f172a !important;
   box-shadow: none !important;
 }
@@ -1107,21 +1107,21 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 }
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option {
   background: #ffffff !important;
-  border-color: #a5f3fc !important;
+  border-color: var(--th-s-200, #a5f3fc) !important;
 }
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked) {
-  background: #cffafe !important;
-  border-color: #06b6d4 !important;
+  background: var(--th-s-100, #cffafe) !important;
+  border-color: var(--th-s-500, #06b6d4) !important;
 }
 
 /* ชั่วโมงเช้า/บ่ายถือเป็นขั้นตอนเดียว: ไฮไลท์กรอบ partial ทั้งก้อน */
 .leave-box-item .partial-leave-controls.leave-field-active {
-  background: #ecfeff !important;
-  border-color: #06b6d4 !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border-color: var(--th-s-500, #06b6d4) !important;
 }
 .leave-box-item .partial-leave-controls.leave-field-active .input-group input {
   background: #ffffff !important;
-  border-color: #a5f3fc !important;
+  border-color: var(--th-s-200, #a5f3fc) !important;
 }
 
 .leave-box-item .partial-leave-controls.leave-field-completed:not(.leave-field-active) {
@@ -1147,7 +1147,7 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
    ไฮไลท์เฉพาะพื้นฟ้าอ่อน ไม่มีเส้นขอบ/outline/shadow
    ========================================== */
 .leave-box-item .leave-field-active {
-  background: #ecfeff !important;
+  background: var(--th-s-50, #ecfeff) !important;
   outline: none !important;
   box-shadow: none !important;
   border-color: transparent !important;
@@ -1157,7 +1157,7 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 .leave-box-item .leave-field-active select,
 .leave-box-item .leave-field-active textarea,
 .leave-box-item .leave-field-active .file-upload-label {
-  background: #ecfeff !important;
+  background: var(--th-s-50, #ecfeff) !important;
   border-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;
@@ -1176,7 +1176,7 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
 .leave-box-item .partial-leave-controls.leave-field-active {
-  background: #ecfeff !important;
+  background: var(--th-s-50, #ecfeff) !important;
 }
 
 /* ==========================================
@@ -1184,8 +1184,8 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
    ฟ้าอ่อน + ขอบบาง 1px ไม่มี shadow/glow
    ========================================== */
 .leave-box-item .leave-field-active {
-  background: #ecfeff !important;
-  border: 1px solid #a5f3fc !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border: 1px solid var(--th-s-200, #a5f3fc) !important;
   outline: none !important;
   box-shadow: none !important;
 }
@@ -1194,33 +1194,33 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 .leave-box-item .leave-field-active select,
 .leave-box-item .leave-field-active textarea,
 .leave-box-item .leave-field-active .file-upload-label {
-  background: #ecfeff !important;
-  border: 1px solid #a5f3fc !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border: 1px solid var(--th-s-200, #a5f3fc) !important;
   outline: none !important;
   box-shadow: none !important;
 }
 
 .leave-box-item .leave-duration-mode-options.leave-field-active,
 .leave-box-item .partial-leave-controls.leave-field-active {
-  border: 1px solid #a5f3fc !important;
+  border: 1px solid var(--th-s-200, #a5f3fc) !important;
   outline: none !important;
   box-shadow: none !important;
 }
 
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option {
-  border: 1px solid #bae6fd !important;
+  border: 1px solid var(--th-k-200, #bae6fd) !important;
   box-shadow: none !important;
 }
 
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:focus-within {
-  background: #cffafe !important;
-  border: 1px solid #67e8f9 !important;
+  background: var(--th-s-100, #cffafe) !important;
+  border: 1px solid var(--th-s-300, #67e8f9) !important;
   box-shadow: none !important;
 }
 
 .leave-box-item .partial-leave-controls.leave-field-active .input-group input {
-  border: 1px solid #bae6fd !important;
+  border: 1px solid var(--th-k-200, #bae6fd) !important;
   box-shadow: none !important;
 }
 
@@ -1249,8 +1249,8 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 .leave-box-item .leave-field-active select,
 .leave-box-item .leave-field-active textarea,
 .leave-box-item .leave-field-active .file-upload-label {
-  background: #ecfeff !important;
-  border: 1px solid #a5f3fc !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border: 1px solid var(--th-s-200, #a5f3fc) !important;
   color: #0f172a !important;
   outline: none !important;
   box-shadow: none !important;
@@ -1276,8 +1276,8 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 }
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:has(input:checked),
 .leave-box-item .leave-duration-mode-options.leave-field-active .leave-duration-option:focus-within {
-  background: #ecfeff !important;
-  border: 1px solid #a5f3fc !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border: 1px solid var(--th-s-200, #a5f3fc) !important;
 }
 .leave-box-item .leave-duration-mode-options.leave-field-completed:not(.leave-field-active) .leave-duration-option:has(input:checked) {
   background: #eef1f4 !important;
@@ -1292,8 +1292,8 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
   box-shadow: none !important;
 }
 .leave-box-item .partial-leave-controls.leave-field-active .input-group input {
-  background: #ecfeff !important;
-  border: 1px solid #a5f3fc !important;
+  background: var(--th-s-50, #ecfeff) !important;
+  border: 1px solid var(--th-s-200, #a5f3fc) !important;
   box-shadow: none !important;
 }
 .leave-box-item .partial-leave-controls.leave-field-completed:not(.leave-field-active) .input-group {
@@ -1308,9 +1308,9 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
 
 /* ช่องสรุประยะเวลาเป็นค่าที่ระบบคำนวณเอง คงสีเดิม */
 .leave-box-item input[name="leave_days_display"] {
-  background: #f0fdfa !important;
-  border-color: #99f6e4 !important;
-  color: #0f766e !important;
+  background: var(--th-p-50, #f0fdfa) !important;
+  border-color: var(--th-p-200, #99f6e4) !important;
+  color: var(--th-p-700, #0f766e) !important;
 }
 
 /* ==========================================

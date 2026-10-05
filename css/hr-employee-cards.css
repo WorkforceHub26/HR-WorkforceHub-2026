@@ -30,9 +30,9 @@
    00. DESIGN TOKENS
    ========================================================================== */
 #page-hr-employee-cards {
-  --ec-primary: #0d9488;
-  --ec-primary-dark: #0f766e;
-  --ec-primary-soft: #f0fdfa;
+  --ec-primary: var(--th-p-600, #0d9488);
+  --ec-primary-dark: var(--th-p-700, #0f766e);
+  --ec-primary-soft: var(--th-p-50, #f0fdfa);
 
   --ec-text: #0f172a;
   --ec-text-2: #334155;
@@ -60,12 +60,12 @@
 #page-hr-employee-cards {
   font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--ec-text);
-  background-color: #f0fdfa;
+  background-color: var(--th-p-50, #f0fdfa);
   background-image:
-    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
-    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
-    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -104,13 +104,13 @@
 /* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
 #page-hr-employee-cards .pvt-sidebar__toggle {
   color: #ffffff;
-  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
   border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 #page-hr-employee-cards .pvt-sidebar__toggle:hover {
-  background: linear-gradient(135deg, #2748a8, #1e3988);
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
 #page-hr-employee-cards .pvt-sidebar__toggle .material-symbols-outlined {
@@ -158,11 +158,11 @@
 #page-hr-employee-cards .ec-btn--primary {
   background: linear-gradient(135deg, var(--ec-primary), var(--ec-primary-dark));
   color: #fff;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 #page-hr-employee-cards .ec-btn--primary:hover {
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
 }
 
 /* ปุ่มรอง: ขาวขอบเทา (รีเฟรช / ป๊อปอัป) */
@@ -176,7 +176,7 @@
 #page-hr-employee-cards .ec-btn--light:hover {
   background: var(--ec-primary-soft);
   color: var(--ec-primary-dark);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 
@@ -244,7 +244,7 @@
 
 #page-hr-employee-cards .ec-stat {
   --stat-color: var(--ec-primary);
-  --stat-soft: #ccfbf1;
+  --stat-soft: var(--th-p-100, #ccfbf1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -264,8 +264,8 @@
   box-shadow: var(--ec-shadow-hover);
 }
 
-#page-hr-employee-cards .ec-stat--teal   { --stat-color: var(--ec-primary); --stat-soft: #ccfbf1; }
-#page-hr-employee-cards .ec-stat--blue   { --stat-color: #0284c7;           --stat-soft: #e0f2fe; }
+#page-hr-employee-cards .ec-stat--teal   { --stat-color: var(--ec-primary); --stat-soft: var(--th-p-100, #ccfbf1); }
+#page-hr-employee-cards .ec-stat--blue   { --stat-color: var(--th-k-600, #0284c7);           --stat-soft: var(--th-k-100, #e0f2fe); }
 #page-hr-employee-cards .ec-stat--amber  { --stat-color: #d97706;           --stat-soft: #fef3c7; }
 #page-hr-employee-cards .ec-stat--purple { --stat-color: #7c3aed;           --stat-soft: #ede9fe; }
 
@@ -368,7 +368,7 @@
 #page-hr-employee-cards .ec-search input:focus {
   background: var(--ec-surface);
   border-color: var(--ec-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ---- 06.2 Dropdown แผนก / สีบัตร (มีไอคอนนำหน้าในกรอบ) ---- */
@@ -412,7 +412,7 @@
 
 #page-hr-employee-cards .ec-select:focus {
   border-color: var(--ec-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ---- 06.3 แถวล่าง ---- */
@@ -481,7 +481,7 @@
 
 #page-hr-employee-cards .emp-card-preview-item:hover {
   transform: translateY(-3px);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
   box-shadow: var(--ec-shadow-hover);
 }
 
@@ -489,7 +489,7 @@
 #page-hr-employee-cards .emp-card-preview-item.selected {
   background: var(--ec-primary-soft);
   border-color: var(--ec-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* แถวบนของการ์ด: ช่องติ๊ก + ป้าย CR80 */
@@ -527,7 +527,7 @@
   overflow: hidden;
   text-align: center;
   border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
+  box-shadow: 0 4px 12px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.1);
 }
 
 #page-hr-employee-cards .emp-avatar-circle {
@@ -618,20 +618,20 @@
 #page-hr-employee-cards .ec-card-btn:hover {
   background: var(--ec-primary-soft);
   color: var(--ec-primary-dark);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 /* ปุ่มพิมพ์: ฟ้า */
 #page-hr-employee-cards .ec-card-btn--print {
-  background: #f0f9ff;
-  color: #0369a1;
-  border-color: #bae6fd;
+  background: var(--th-k-50, #f0f9ff);
+  color: var(--th-k-700, #0369a1);
+  border-color: var(--th-k-200, #bae6fd);
 }
 
 #page-hr-employee-cards .ec-card-btn--print:hover {
-  background: #0284c7;
+  background: var(--th-k-600, #0284c7);
   color: #fff;
-  border-color: #0284c7;
+  border-color: var(--th-k-600, #0284c7);
 }
 
 

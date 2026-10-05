@@ -405,12 +405,317 @@
     window.addEventListener("resize", function () { if (!isMobileWidth()) closeDrawer(); });
   }
 
+
+  /* ======================================================================
+     📲 ความรู้สึกแบบแอป: ดึงลงรีเฟรช · สั่นตอบสนอง · Bottom sheet ปัดลงปิด
+                         · ปุ่มแชทหลบตอนเลื่อน · ชวนติดตั้งแอป
+     ====================================================================== */
+  var reduceMotion = function () {
+    return root.getAttribute("data-reduced-motion") === "true" ||
+      (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  };
+
+  // สั่นเบา ๆ (Android; iPhone ไม่รองรับการสั่นจากเว็บ → เงียบ ๆ ไม่มีผล)
+  function haptic(pattern) {
+    try { if (navigator.vibrate && isMobileWidth()) navigator.vibrate(pattern || 10); } catch (e) {}
+  }
+
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+  }
+
+  function anOverlayIsOpen() {
+    if (root.classList.contains("pvt-user-boot") || root.classList.contains("pvt-drawer-open") || document.body.classList.contains("swal2-shown") ||
+        document.body.classList.contains("hr-chat-open")) return true;
+    var overlays = document.querySelectorAll(".holiday-modal-overlay, .pvt-modal-overlay, #hrChatbotModal, .notif-dropdown, .flatpickr-calendar.open");
+    for (var i = 0; i < overlays.length; i++) {
+      var o = overlays[i];
+      if (o.classList.contains("flatpickr-calendar")) return true;
+      var cs = getComputedStyle(o);
+      if (cs.display !== "none" && cs.visibility !== "hidden" && o.getClientRects().length) return true;
+    }
+    return false;
+  }
+
+  function scrolledAwayFromTop(el) {
+    var se = document.scrollingElement || document.documentElement;
+    if (se.scrollTop > 0 || window.scrollY > 0) return true;
+    for (var n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
+      if (n.scrollTop > 0) {
+        var oy = getComputedStyle(n).overflowY;
+        if (oy === "auto" || oy === "scroll") return true;
+      }
+    }
+    return false;
+  }
+
+  /* --- ดึงลงเพื่อรีเฟรช ---------------------------------------------- */
+  var PTR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>';
+
+  function defaultRefresh() {
+    // หน้าแรกมีฟังก์ชันโหลดข้อมูลใหม่โดยไม่ต้องรีโหลดหน้า
+    if (typeof window.refreshUserData === "function") {
+      try { return Promise.resolve(window.refreshUserData()); } catch (e) { return Promise.resolve(); }
+    }
+    location.reload();
+    return new Promise(function () {});
+  }
+
+  function setupPullToRefresh() {
+    // หน้ายื่นใบลามีแบบฟอร์ม → ไม่ใช้ (กันข้อมูลที่กรอกไว้หาย)
+    if (document.body.getAttribute("data-pvt-ptr") === "off" || /\/leave-user\.html$/.test(location.pathname)) return;
+
+    var ind = document.createElement("div");
+    ind.className = "pvt-ptr";
+    ind.setAttribute("aria-hidden", "true");
+    ind.innerHTML = PTR_SVG;
+    document.body.appendChild(ind);
+
+    var THRESHOLD = 72, MAX = 120;
+    var startY = 0, startX = 0, pulling = false, armed = false, dist = 0, busy = false;
+
+    function paint(d) {
+      var p = Math.min(d / THRESHOLD, 1);
+      ind.style.translate = "0 " + (Math.min(d, MAX) - 56) + "px";
+      ind.style.opacity = String(Math.min(1, p * 1.2));
+      ind.querySelector("svg").style.transform = "rotate(" + Math.round(p * 270) + "deg)";
+      var ready = d >= THRESHOLD;
+      if (ready !== armed) { armed = ready; ind.classList.toggle("is-ready", ready); if (ready) haptic(8); }
+    }
+    function reset() {
+      ind.classList.add("is-animating");
+      ind.classList.remove("is-ready", "is-loading");
+      ind.style.translate = ""; ind.style.opacity = "";
+      setTimeout(function () { ind.classList.remove("is-animating"); }, 260);
+    }
+
+    document.addEventListener("touchstart", function (e) {
+      if (busy || !isMobileWidth() || e.touches.length !== 1) return;
+      var t = e.target;
+      if (t.closest && t.closest("input, textarea, select, [contenteditable], .pvt-tabbar, .swal2-container")) return;
+      if (scrolledAwayFromTop(t) || anOverlayIsOpen()) return;
+      startY = e.touches[0].clientY; startX = e.touches[0].clientX;
+      pulling = true; armed = false; dist = 0;
+    }, { passive: true });
+
+    document.addEventListener("touchmove", function (e) {
+      if (!pulling) return;
+      var dy = e.touches[0].clientY - startY, dx = Math.abs(e.touches[0].clientX - startX);
+      if (dy <= 0 || dx > dy) { if (dist === 0 && (dy < -4 || dx > 10)) pulling = false; if (dist) { dist = 0; paint(0); } return; }
+      if (scrolledAwayFromTop(e.target)) { pulling = false; reset(); return; }
+      dist = dy * 0.5; // แรงต้านแบบแอป
+      paint(dist);
+    }, { passive: true });
+
+    function end() {
+      if (!pulling) return;
+      pulling = false;
+      if (dist >= THRESHOLD) {
+        busy = true; haptic(12);
+        ind.classList.add("is-animating", "is-loading", "is-ready");
+        ind.style.translate = "0 " + (THRESHOLD - 50) + "px"; ind.style.opacity = "1";
+        var fn = (window.PVTShell && typeof window.PVTShell.onRefresh === "function") ? window.PVTShell.onRefresh : defaultRefresh;
+        var done = function () { busy = false; reset(); };
+        var minWait = new Promise(function (r) { setTimeout(r, 600); });
+        Promise.all([Promise.resolve().then(fn).catch(function () {}), minWait]).then(done, done);
+      } else if (dist > 0) {
+        reset();
+      }
+      dist = 0;
+    }
+    document.addEventListener("touchend", end, { passive: true });
+    document.addEventListener("touchcancel", end, { passive: true });
+  }
+
+  /* --- ปุ่มแชทลอยหลบตอนเลื่อนลง ---------------------------------------- */
+  function setupFabAutoHide() {
+    var lastY = window.scrollY, ticking = false;
+    window.addEventListener("scroll", function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        var y = window.scrollY, d = y - lastY;
+        if (Math.abs(d) > 6) {
+          document.body.classList.toggle("pvt-fab-hidden", d > 0 && y > 80);
+          lastY = y;
+        }
+        ticking = false;
+      });
+    }, { passive: true });
+  }
+
+  /* --- Bottom sheet: ปัดลงเพื่อปิด + สั่นตอนสำเร็จ/ผิดพลาด -------------- */
+  var CLOSE_SEL = ".swal2-close, .swal2-cancel, .modal-close, .close-btn, .btn-close, .btn-close-modal, " +
+    "[aria-label^='ปิด'], [title^='ปิด'], button[onclick*='close' i]";
+
+  function visibleCloseButton(sheet, scope) {
+    var list = (scope || sheet).querySelectorAll(CLOSE_SEL);
+    for (var i = 0; i < list.length; i++) {
+      var b = list[i];
+      if (b.getClientRects().length && getComputedStyle(b).display !== "none" && !b.disabled) return b;
+    }
+    return null;
+  }
+
+  function makeSwipeable(sheet, scope) {
+    if (!sheet || sheet.__pvtSwipe) return;
+    sheet.__pvtSwipe = true;
+    sheet.classList.add("pvt-sheet-card");
+    var y0 = 0, dy = 0, t0 = 0, active = false;
+    sheet.addEventListener("touchstart", function (e) {
+      if (!isMobileWidth() || e.touches.length !== 1 || window.innerWidth > 640) return;
+      if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable]")) return;
+      if (sheet.scrollTop > 0) return;
+      if (window.Swal && sheet.classList.contains("swal2-popup") && Swal.isLoading && Swal.isLoading()) return;
+      if (!visibleCloseButton(sheet, scope)) return; // ป๊อปอัปที่ต้องเลือกตอบ (ไม่มีปุ่มปิด/ยกเลิก) ปัดปิดไม่ได้
+      y0 = e.touches[0].clientY; t0 = Date.now(); dy = 0; active = true;
+    }, { passive: true });
+    sheet.addEventListener("touchmove", function (e) {
+      if (!active) return;
+      dy = e.touches[0].clientY - y0;
+      if (dy <= 0) { sheet.style.transform = ""; return; }
+      if (sheet.scrollTop > 0) { active = false; sheet.style.transform = ""; return; }
+      sheet.classList.add("pvt-sheet-dragging");
+      sheet.style.transform = "translateY(" + dy + "px)";
+    }, { passive: true });
+    function end() {
+      if (!active) return;
+      active = false;
+      sheet.classList.remove("pvt-sheet-dragging");
+      var fast = dy > 40 && (dy / Math.max(1, Date.now() - t0)) > 0.6;
+      if (dy > 110 || fast) {
+        var btn = visibleCloseButton(sheet, scope);
+        sheet.style.transition = "transform 0.18s ease-in";
+        sheet.style.transform = "translateY(100%)";
+        haptic(8);
+        setTimeout(function () {
+          sheet.style.transition = ""; sheet.style.transform = "";
+          if (btn) btn.click();
+        }, 170);
+      } else {
+        sheet.style.transition = "transform 0.2s ease";
+        sheet.style.transform = "";
+        setTimeout(function () { sheet.style.transition = ""; }, 220);
+      }
+    }
+    sheet.addEventListener("touchend", end, { passive: true });
+    sheet.addEventListener("touchcancel", end, { passive: true });
+  }
+
+  function watchSheets() {
+    var seenIcon = new WeakSet();
+    function scan() {
+      var pop = document.querySelector(".swal2-container.swal2-center > .swal2-popup:not(.swal2-toast)");
+      if (pop) {
+        makeSwipeable(pop);
+        var icon = pop.querySelector(".swal2-icon.swal2-success, .swal2-icon.swal2-error");
+        if (icon && !seenIcon.has(icon) && getComputedStyle(icon).display !== "none") {
+          seenIcon.add(icon);
+          haptic(icon.classList.contains("swal2-success") ? [12, 60, 18] : [40, 50, 40]);
+        }
+      }
+      var cards = document.querySelectorAll(".holiday-modal-overlay > .holiday-modal-card, #visualTimelineModal > .pvt-modal-card, #leavePreviewModal > .pvt-modal-card");
+      for (var i = 0; i < cards.length; i++) makeSwipeable(cards[i], cards[i].parentElement);
+    }
+    scan();
+    var pending = false;
+    new MutationObserver(function () {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; scan(); });
+    }).observe(document.body, { childList: true, subtree: false, attributes: true, attributeFilter: ["class"] });
+    // หน้าต่างของหน้าเอง (มีอยู่แล้วใน HTML) อาจถูกสร้างช้ากว่า
+    setTimeout(scan, 1500);
+  }
+
+  /* --- ชวนติดตั้งแอป (Add to Home Screen) ------------------------------ */
+  var INSTALL_KEY = "pvt_install_prompt_dismissed_at";
+  function installDismissedRecently() {
+    try { var t = +localStorage.getItem(INSTALL_KEY) || 0; return Date.now() - t < 14 * 864e5; } catch (e) { return true; }
+  }
+  function showInstallBanner(kind, deferred) {
+    if (document.getElementById("pvtInstall") || isStandalone() || installDismissedRecently() || !isMobileWidth()) return;
+    var bar = document.createElement("div");
+    bar.id = "pvtInstall";
+    bar.className = "pvt-install";
+    bar.setAttribute("role", "dialog");
+    bar.setAttribute("aria-label", "ติดตั้งแอป");
+    var shareIcon = '<svg class="pvt-ios-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"/></svg>';
+    bar.innerHTML = '<img src="/assets/icons/icon-192.png" alt="" />' +
+      '<div class="pvt-install__text"><strong>ติดตั้งแอปบนหน้าจอโฮม</strong>' +
+      (kind === "ios"
+        ? "<small>แตะ " + shareIcon + " แชร์ แล้วเลือก “เพิ่มไปยังหน้าจอโฮม”</small></div>"
+        : "<small>เปิดเร็วขึ้น เต็มจอเหมือนแอป</small></div>" +
+          '<button type="button" class="pvt-install__btn">ติดตั้ง</button>') +
+      '<button type="button" class="pvt-install__close" aria-label="ปิด">×</button>';
+    function close(remember) {
+      if (remember) { try { localStorage.setItem(INSTALL_KEY, String(Date.now())); } catch (e) {} }
+      bar.remove();
+    }
+    bar.querySelector(".pvt-install__close").addEventListener("click", function () { close(true); });
+    var btn = bar.querySelector(".pvt-install__btn");
+    if (btn && deferred) {
+      btn.addEventListener("click", function () {
+        deferred.prompt();
+        (deferred.userChoice || Promise.resolve()).then(function () { close(true); });
+      });
+    }
+    document.body.appendChild(bar);
+  }
+  function setupInstallPrompt() {
+    if (isStandalone()) { root.classList.add("pvt-standalone"); return; }
+    // แสดงเฉพาะหน้าแรก เพื่อไม่รบกวนตอนทำงานหน้าอื่น
+    var onHome = /\/index-user\.html$/.test(location.pathname);
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      if (onHome) setTimeout(function () { showInstallBanner("android", e); }, 2500);
+    });
+    var ua = navigator.userAgent || "";
+    var isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var isSafari = /safari/i.test(ua) && !/crios|fxios|edgios|line\//i.test(ua);
+    if (onHome && isIOS && isSafari) setTimeout(function () { showInstallBanner("ios"); }, 3000);
+  }
+
+
+  /* --- หน้าโปรไฟล์: ปุ่ม "ตั้งค่า" + "ออกจากระบบ" ท้ายหน้า (แบบแอป) ---------- */
+  function addProfileActions() {
+    if (!/\/profile-user\.html$/.test(location.pathname) || document.getElementById("pvtProfileActions")) return;
+    var host = document.querySelector(".main-content .app");
+    if (!host) return;
+    var box = document.createElement("section");
+    box.id = "pvtProfileActions";
+    box.className = "pvt-profile-actions";
+    box.innerHTML =
+      '<button type="button" data-act="settings"><span class="material-symbols-outlined" aria-hidden="true">settings</span><span>ตั้งค่า</span><span class="material-symbols-outlined pvt-chev" aria-hidden="true">chevron_right</span></button>' +
+      '<button type="button" data-act="logout" class="is-danger"><span class="material-symbols-outlined" aria-hidden="true">logout</span><span>ออกจากระบบ</span></button>';
+    box.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-act]");
+      if (!b) return;
+      if (b.getAttribute("data-act") === "logout") runLogout(e);
+      else if (typeof window.openSystemSettingsModal === "function") window.openSystemSettingsModal();
+    });
+    host.appendChild(box);
+  }
+
+  function initAppFeel() {
+    setupPullToRefresh();
+    setupFabAutoHide();
+    watchSheets();
+    setupInstallPrompt();
+    addProfileActions();
+    // สั่นเบา ๆ ตอนแตะแถบล่าง
+    document.addEventListener("click", function (e) {
+      if (e.target.closest && e.target.closest(".pvt-tab")) haptic(8);
+    }, true);
+  }
+
   function init() {
     renderTabbar();
     watchKeyboard();
     enhanceAppbars();
     interceptMenuButtons();
     document.body.classList.add("pvt-has-drawer");
+    initAppFeel();
   }
 
   window.PVTShell = {
@@ -419,7 +724,10 @@
     refresh: renderTabbar,
     drawer: DRAWER_SECTIONS,
     openMenu: openDrawer,
-    closeMenu: closeDrawer
+    closeMenu: closeDrawer,
+    haptic: haptic,
+    // ตั้งเองได้ต่อหน้า: PVTShell.onRefresh = () => loadData();  (คืน Promise ได้)
+    onRefresh: null
   };
 
   if (document.readyState === "loading") {

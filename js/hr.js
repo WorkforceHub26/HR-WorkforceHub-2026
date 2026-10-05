@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         `,
         icon: 'error',
         confirmButtonText: '🏠 กลับหน้าหลักพนักงาน',
-        confirmButtonColor: '#06b6d4',
+        confirmButtonColor: 'var(--th-s-500, #06b6d4)',
         allowOutsideClick: false,
         allowEscapeKey: false
       });
@@ -1189,7 +1189,7 @@ window.switchLeaveTab = function(tabName, btnEl) {
       icon: 'info',
       title: 'คำขอยกเลิกส่งให้ HR/Admin',
       text: 'ขั้นตอนการยกเลิกหลังผ่านการอนุมัติจะถูกตรวจสอบโดย HR/Admin เท่านั้น',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
     return;
   }
@@ -1245,7 +1245,7 @@ function canApproveStep(req, role) {
       title: 'ไม่สามารถทำรายการได้',
       text: 'คุณไม่สามารถกดอนุมัติใบลาของตนเองได้ กรุณาให้ผู้จัดการฝ่าย หรือ ผู้บริหาร/HR เป็นผู้อนุมัติ',
       icon: 'warning',
-      confirmButtonColor: '#06b6d4'
+      confirmButtonColor: 'var(--th-s-500, #06b6d4)'
     });
     return false;
   }
@@ -1525,7 +1525,7 @@ function renderLeaveTable() {
     const isPendingTab = (currentLeaveTab === "pending" && currentRole !== 'hr' && currentRole !== 'admin');
     const checkboxHTML = isPendingTab ? `
       <div class="bulk-check-wrapper" style="display: flex; align-items: center; justify-content: center; padding-right: 12px; margin-right: 4px;">
-        <input type="checkbox" class="bulk-item-check" data-id="${req.id}" onclick="handleBulkItemCheckChange()" style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
+        <input type="checkbox" class="bulk-item-check" data-id="${req.id}" onclick="handleBulkItemCheckChange()" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--th-p-600, #0d9488);">
       </div>
     ` : '';
 
@@ -1725,7 +1725,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
 
   if (modalHeaderTitle) {
     modalHeaderTitle.innerHTML = isReviewMode
-      ? '<span class="material-symbols-outlined" style="color: #0d9488;">gavel</span> พิจารณาอนุมัติคำขอลาหยุดงาน'
+      ? '<span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488);">gavel</span> พิจารณาอนุมัติคำขอลาหยุดงาน'
       : '<span class="material-symbols-outlined">description</span> ตรวจสอบรายละเอียดใบขออนุมัติลา';
   }
 
@@ -1818,7 +1818,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
     <div class="workflow-section" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f0fdfa; color: #0d9488; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--th-p-50, #f0fdfa); color: var(--th-p-600, #0d9488); display: flex; align-items: center; justify-content: center;">
             <span class="material-symbols-outlined" style="font-size: 20px;">timeline</span>
           </div>
           <div>
@@ -2122,7 +2122,7 @@ function buildLeaveActionConfirmDialogHtml(reqData, roleTitle, actionType = 'app
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #ffffff; border-radius: 10px; padding: 10px 12px; border: 1px solid #e2e8f0; font-size: 13px;">
           <div>
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ประเภทการลา</span>
-            <strong style="color: #0d9488; font-size: 13.5px;">${escapeHtml(leaveName)}</strong>
+            <strong style="color: var(--th-p-600, #0d9488); font-size: 13.5px;">${escapeHtml(leaveName)}</strong>
           </div>
           <div>
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">จำนวนเวลาลา</span>
@@ -2575,7 +2575,7 @@ async function approveLeave(leaveId) {
             </p>
             
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #0d9488; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--th-p-600, #0d9488); font-weight: 700; display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-outlined" style="font-size: 18px;">calendar_month</span>
                 Auto-Sync Calendar (ซิงค์ปฏิทินทีม)
               </h4>
@@ -2597,7 +2597,7 @@ async function approveLeave(leaveId) {
           </div>
         `,
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     } else {
       await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
@@ -2820,7 +2820,7 @@ async function approveCancellation(leaveId) {
       icon: 'warning',
       title: 'ไม่มีสิทธิ์อนุมัติคำขอยกเลิก',
       text: 'คำขอยกเลิกหลังผ่านการอนุมัติ ให้ HR/Admin เป็นผู้ตรวจสอบและตัดสินเท่านั้น',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
     return;
   }
@@ -2966,7 +2966,7 @@ async function rejectCancellation(leaveId) {
       icon: 'warning',
       title: 'ไม่มีสิทธิ์ปฏิเสธคำขอยกเลิก',
       text: 'คำขอยกเลิกหลังผ่านการอนุมัติ ให้ HR/Admin เป็นผู้ตรวจสอบและตัดสินเท่านั้น',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
     return;
   }
@@ -3132,10 +3132,10 @@ async function printLeaveA4(leaveId) {
           .page { width: 100%; min-height: 270mm; background: #ffffff; position: relative; padding-bottom: 20mm; }
           
           /* Elegant modern company banner */
-          .doc-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 20px; }
+          .doc-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--th-p-700, #0f766e); padding-bottom: 12px; margin-bottom: 20px; }
           .logo-area { display: flex; align-items: center; gap: 12px; }
-          .logo-placeholder { width: 44px; height: 44px; background: linear-gradient(135deg, #0f766e, #0d9488); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(15, 118, 110, 0.15); }
-          .company-name { font-size: 18px; font-weight: 800; color: #0f766e; letter-spacing: -0.3px; line-height: 1.2; }
+          .logo-placeholder { width: 44px; height: 44px; background: linear-gradient(135deg, var(--th-p-700, #0f766e), var(--th-p-600, #0d9488)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.15); }
+          .company-name { font-size: 18px; font-weight: 800; color: var(--th-p-700, #0f766e); letter-spacing: -0.3px; line-height: 1.2; }
           .company-sub { font-size: 11px; color: #475569; font-weight: 500; margin-top: 1px; }
           
           .doc-meta { text-align: right; font-size: 11px; color: #475569; line-height: 1.4; }
@@ -3148,7 +3148,7 @@ async function printLeaveA4(leaveId) {
           
           /* Section separation */
           .section { margin-bottom: 20px; }
-          .section-label { font-size: 13px; font-weight: 800; color: #0f766e; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+          .section-label { font-size: 13px; font-weight: 800; color: var(--th-p-700, #0f766e); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
           .section-label::after { content: ''; flex: 1; height: 1px; background: #cbd5e1; margin-left: 8px; }
           
           /* Form Tables (Sleek corporate grids) */
@@ -3225,7 +3225,7 @@ async function printLeaveA4(leaveId) {
             <table class="info-table">
               <tr>
                 <td class="label">ประเภทการลา</td>
-                <td class="value"><strong style="color: #0f766e; font-size: 14px;">${leaveName}</strong></td>
+                <td class="value"><strong style="color: var(--th-p-700, #0f766e); font-size: 14px;">${leaveName}</strong></td>
                 <td class="label">สถานะคำขอ</td>
                 <td class="value">
                   <span class="status-indicator ${req.status === 'approved' ? 'status-approved' : req.status === 'rejected' ? 'status-rejected' : 'status-pending'}">
@@ -3241,7 +3241,7 @@ async function printLeaveA4(leaveId) {
               </tr>
               <tr>
                 <td class="label">รวมระยะเวลาการลา</td>
-                <td class="value" colspan="3"><strong style="font-size: 14px; color: #0f766e;">${printDurationFormatted}</strong></td>
+                <td class="value" colspan="3"><strong style="font-size: 14px; color: var(--th-p-700, #0f766e);">${printDurationFormatted}</strong></td>
               </tr>
             </table>
           </div>
@@ -3257,7 +3257,7 @@ async function printLeaveA4(leaveId) {
           <div class="signature-grid">
             <div class="sig-box">
               <div class="sig-space">
-                <span class="digital-stamp" style="border-color: #0d9488; color: #0d9488; background: #f0fdfa;">[ ส่งออนไลน์สำเร็จ ]</span>
+                <span class="digital-stamp" style="border-color: var(--th-p-600, #0d9488); color: var(--th-p-600, #0d9488); background: var(--th-p-50, #f0fdfa);">[ ส่งออนไลน์สำเร็จ ]</span>
               </div>
               <div class="sig-name">${emp.full_name || 'ผู้ยื่นคำขอ'}</div>
               <div class="sig-line" style="margin-top: 4px;"></div>
@@ -3279,7 +3279,7 @@ async function printLeaveA4(leaveId) {
             <div class="sig-box">
               <div class="sig-space">
                 ${req.status === 'approved' ? `
-                  <div class="digital-stamp" style="border-color: #0f766e; color: #0f766e;">
+                  <div class="digital-stamp" style="border-color: var(--th-p-700, #0f766e); color: var(--th-p-700, #0f766e);">
                     APPROVED L2 (HR)<br>
                     <span style="font-size:7px; font-weight:normal;">ผ่านระบบอนุมัติกลาง</span>
                   </div>
@@ -3913,7 +3913,7 @@ window.submitBulkApproval = async function() {
       icon: 'warning',
       title: 'ยังไม่ได้เลือกรายการ',
       text: 'กรุณาทำเครื่องหมายถูกที่ช่องหน้ารายการใบลาที่ต้องการอนุมัติครับ',
-      confirmButtonColor: '#0d9488'
+      confirmButtonColor: 'var(--th-p-600, #0d9488)'
     });
   }
 
@@ -3923,7 +3923,7 @@ window.submitBulkApproval = async function() {
     icon: 'question',
     showCancelButton: true,
     showDenyButton: false,
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     cancelButtonColor: '#64748b',
     confirmButtonText: `✔️ ยืนยันอนุมัติ (${checkedBoxes.length} รายการ)`,
     cancelButtonText: 'ยกเลิก'
@@ -4037,7 +4037,7 @@ window.submitBulkApproval = async function() {
     icon: 'success',
     title: 'อนุมัติกลุ่มสำเร็จ!',
     html: `ระบบดำเนินการอนุมัติเรียบร้อยทั้งหมด <strong>${successCount}</strong> รายการ${failCount > 0 ? `<br><small style="color:red">ไม่สำเร็จ ${failCount} รายการ</small>` : ''}`,
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     confirmButtonText: 'ตกลง'
   }).then(() => {
     loadPendingLeavesHR();

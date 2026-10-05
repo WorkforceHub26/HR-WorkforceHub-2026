@@ -1844,7 +1844,7 @@
       .pvt-card-popup .pvt-card-theme__field { position: relative; flex: 1 1 auto; min-width: 0; }
       .pvt-card-popup .pvt-card-theme__dot { display: none; } /* ชื่อสีในตัวเลือกมี emoji วงกลมสีอยู่แล้ว */
       .pvt-card-popup #cardThemeSelect { width: 100%; height: 40px; min-height: 40px; margin: 0; padding: 0 32px 0 12px; font: inherit; font-size: 13.5px; font-weight: 600; color: #0f172a; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; cursor: pointer; box-shadow: none; }
-      .pvt-card-popup #cardThemeSelect:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15); }
+      .pvt-card-popup #cardThemeSelect:focus { border-color: var(--th-p-600, #0d9488); box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15); }
       .pvt-card-popup .pvt-card-preview { position: relative; display: flex; justify-content: center; margin: 0 0 16px; }
       .pvt-card-popup #myEmpCardImgPreview { display: block; width: min(300px, 78vw); height: auto; border-radius: 18px; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22); transition: opacity 0.2s ease; }
       .pvt-card-popup .pvt-card-preview__spinner { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 8px 16px; border-radius: 20px; background: rgba(15, 23, 42, 0.75); color: #fff; font-size: 12px; font-weight: 600; }
@@ -1852,8 +1852,8 @@
       .pvt-card-popup .pvt-card-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; margin: 0; padding: 0 10px; border: 0; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; white-space: nowrap; transition: filter 0.15s ease, transform 0.15s ease; }
       .pvt-card-popup .pvt-card-btn:active { transform: scale(0.97); }
       .pvt-card-popup .pvt-card-btn:hover { filter: brightness(1.06); }
-      .pvt-card-popup .pvt-card-btn--download { background: #0284c7; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28); }
-      .pvt-card-popup .pvt-card-btn--print { background: #0f766e; box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25); }
+      .pvt-card-popup .pvt-card-btn--download { background: var(--th-k-600, #0284c7); box-shadow: 0 4px 12px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.28); }
+      .pvt-card-popup .pvt-card-btn--print { background: var(--th-p-700, #0f766e); box-shadow: 0 4px 12px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25); }
       @media (max-width: 360px) { .pvt-card-popup .pvt-card-actions { grid-template-columns: 1fr; } }
     `;
     document.head.appendChild(st);

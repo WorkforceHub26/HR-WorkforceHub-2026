@@ -19,16 +19,16 @@
   --pvt-font: 'Sarabun', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* สีหลักของแบรนด์ (ใช้กับปุ่มพับเมนู, ซับไตเติล, focus ring) */
-  --pvt-primary:       #0d9488;
-  --pvt-primary-dark:  #0f766e;
-  --pvt-primary-soft:  #ccfbf1;
+  --pvt-primary:       var(--th-p-600, #0d9488);
+  --pvt-primary-dark:  var(--th-p-700, #0f766e);
+  --pvt-primary-soft:  var(--th-p-100, #ccfbf1);
 
   /* พื้นหลัง Sidebar: ไล่สีบน -> ล่าง */
-  --pvt-sidebar-bg-from: #1e3a8a;
-  --pvt-sidebar-bg-to:   #172554;
+  --pvt-sidebar-bg-from: var(--th-b-900, #1e3a8a);
+  --pvt-sidebar-bg-to:   var(--th-b-950, #172554);
 
   /* พื้นหลังของทั้งหน้า (ไล่สีเขียวมิ้นต์ -> ฟ้าอ่อน) */
-  --pvt-page-bg: linear-gradient(135deg, #d1fae5 0%, #e0f7f4 45%, #e0f2fe 100%);
+  --pvt-page-bg: linear-gradient(135deg, #d1fae5 0%, #e0f7f4 45%, var(--th-k-100, #e0f2fe) 100%);
 
   /* สีตัวอักษร */
   --pvt-text:       #0f172a;   /* ข้อความหลัก  */

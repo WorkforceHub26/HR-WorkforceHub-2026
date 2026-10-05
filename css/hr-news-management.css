@@ -30,9 +30,9 @@
    00. DESIGN TOKENS
    ========================================================================== */
 #page-hr-news-management {
-  --nm-primary: #0d9488;
-  --nm-primary-dark: #0f766e;
-  --nm-primary-soft: #f0fdfa;
+  --nm-primary: var(--th-p-600, #0d9488);
+  --nm-primary-dark: var(--th-p-700, #0f766e);
+  --nm-primary-soft: var(--th-p-50, #f0fdfa);
 
   --nm-text: #0f172a;
   --nm-text-2: #334155;
@@ -60,12 +60,12 @@
 #page-hr-news-management {
   font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--nm-text);
-  background-color: #f0fdfa;
+  background-color: var(--th-p-50, #f0fdfa);
   background-image:
-    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
-    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
-    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -104,13 +104,13 @@
 /* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
 #page-hr-news-management .pvt-sidebar__toggle {
   color: #ffffff;
-  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
   border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 #page-hr-news-management .pvt-sidebar__toggle:hover {
-  background: linear-gradient(135deg, #2748a8, #1e3988);
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
 #page-hr-news-management .pvt-sidebar__toggle .material-symbols-outlined {
@@ -143,7 +143,7 @@
   height: 38px;
   padding: 0 14px;
   background: var(--nm-surface-2);
-  color: #0369a1;
+  color: var(--th-k-700, #0369a1);
   border: 1px solid var(--nm-border);
   border-radius: var(--nm-radius-sm);
   font-family: inherit;
@@ -160,8 +160,8 @@
 }
 
 #page-hr-news-management .nm-topbar-btn:hover {
-  background: #e0f2fe;
-  border-color: #bae6fd;
+  background: var(--th-k-100, #e0f2fe);
+  border-color: var(--th-k-200, #bae6fd);
 }
 
 /* ปุ่มไอคอนสี่เหลี่ยม (ตั้งค่า) */
@@ -189,7 +189,7 @@
 
 #page-hr-news-management .nm-stat {
   --stat-color: var(--nm-primary);
-  --stat-soft: #ccfbf1;
+  --stat-soft: var(--th-p-100, #ccfbf1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -209,10 +209,10 @@
   box-shadow: var(--nm-shadow-hover);
 }
 
-#page-hr-news-management .nm-stat--blue  { --stat-color: #0284c7; --stat-soft: #e0f2fe; }
+#page-hr-news-management .nm-stat--blue  { --stat-color: var(--th-k-600, #0284c7); --stat-soft: var(--th-k-100, #e0f2fe); }
 #page-hr-news-management .nm-stat--amber { --stat-color: #ea580c; --stat-soft: #ffedd5; }
 #page-hr-news-management .nm-stat--red   { --stat-color: #dc2626; --stat-soft: #fee2e2; }
-#page-hr-news-management .nm-stat--teal  { --stat-color: var(--nm-primary-dark); --stat-soft: #ccfbf1; }
+#page-hr-news-management .nm-stat--teal  { --stat-color: var(--nm-primary-dark); --stat-soft: var(--th-p-100, #ccfbf1); }
 
 #page-hr-news-management .nm-stat-text {
   display: flex;
@@ -315,7 +315,7 @@
 #page-hr-news-management .nm-search input:focus {
   background: var(--nm-surface);
   border-color: var(--nm-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ---- 05.2 Dropdown หมวดหมู่ / ปักหมุด ---- */
@@ -338,7 +338,7 @@
 
 #page-hr-news-management .nm-select:focus {
   border-color: var(--nm-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ---- 05.3 ปุ่มสร้างประกาศ ---- */
@@ -354,7 +354,7 @@
   color: #fff;
   border: none;
   border-radius: var(--nm-radius-sm);
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
   font-family: inherit;
   font-size: 13.5px;
   font-weight: 700;
@@ -369,7 +369,7 @@
 
 #page-hr-news-management .nm-btn-create:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
 }
 
 
@@ -387,7 +387,7 @@
 #page-hr-news-management .nm-card--urgent,
 #page-hr-news-management .nm-tag--urgent       { --cat-color: #dc2626; --cat-soft: #fee2e2; }
 #page-hr-news-management .nm-card--announcement,
-#page-hr-news-management .nm-tag--announcement { --cat-color: #0284c7; --cat-soft: #e0f2fe; }
+#page-hr-news-management .nm-tag--announcement { --cat-color: var(--th-k-600, #0284c7); --cat-soft: var(--th-k-100, #e0f2fe); }
 #page-hr-news-management .nm-card--holiday,
 #page-hr-news-management .nm-tag--holiday      { --cat-color: #d97706; --cat-soft: #fef3c7; }
 #page-hr-news-management .nm-card--welfare,
@@ -558,7 +558,7 @@
 #page-hr-news-management .nm-icon-btn:hover {
   background: var(--nm-primary-soft);
   color: var(--nm-primary-dark);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
   transform: translateY(-1px);
 }
 
@@ -697,7 +697,7 @@
 #page-hr-news-management .nm-form-field select:focus,
 #page-hr-news-management .nm-form-field textarea:focus {
   border-color: var(--nm-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ช่องติ๊กปักหมุด */

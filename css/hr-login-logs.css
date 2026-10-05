@@ -29,9 +29,9 @@
    00. DESIGN TOKENS
    ========================================================================== */
 #page-hr-login-logs {
-  --ll-primary: #0d9488;
-  --ll-primary-dark: #0f766e;
-  --ll-primary-soft: #f0fdfa;
+  --ll-primary: var(--th-p-600, #0d9488);
+  --ll-primary-dark: var(--th-p-700, #0f766e);
+  --ll-primary-soft: var(--th-p-50, #f0fdfa);
 
   --ll-text: #0f172a;
   --ll-text-2: #334155;
@@ -55,12 +55,12 @@
 #page-hr-login-logs {
   font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--ll-text);
-  background-color: #f0fdfa;
+  background-color: var(--th-p-50, #f0fdfa);
   background-image:
-    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
-    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
-    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -104,13 +104,13 @@
 /* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
 #page-hr-login-logs .pvt-sidebar__toggle {
   color: #ffffff;
-  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
   border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 #page-hr-login-logs .pvt-sidebar__toggle:hover {
-  background: linear-gradient(135deg, #2748a8, #1e3988);
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
 #page-hr-login-logs .pvt-sidebar__toggle .material-symbols-outlined {
@@ -164,11 +164,11 @@
 #page-hr-login-logs .ll-btn--primary {
   background: linear-gradient(135deg, var(--ll-primary), var(--ll-primary-dark));
   color: #fff;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 #page-hr-login-logs .ll-btn--primary:hover:not(:disabled) {
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
 }
 
 /* ปุ่มรอง: ขาวขอบเทา (รีเฟรช) */
@@ -182,7 +182,7 @@
 #page-hr-login-logs .ll-btn--light:hover:not(:disabled) {
   background: var(--ll-primary-soft);
   color: var(--ll-primary-dark);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 

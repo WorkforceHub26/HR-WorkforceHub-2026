@@ -695,9 +695,9 @@ async function fetchCurrentUserData() {
         el.value = value;
         el.style.fontSize = "15px";
         el.style.fontWeight = "500";
-        el.style.color = "#0f766e"; 
+        el.style.color = "var(--th-p-700, #0f766e)"; 
         el.style.background = "rgba(255, 255, 255, 0.7)";
-        el.style.border = "1px solid rgba(13, 148, 136, 0.2)";
+        el.style.border = "1px solid rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2)";
         el.style.borderRadius = "8px";
         el.style.padding = "8px 12px";
       }
@@ -1067,7 +1067,7 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
   if (balanceInput) {
     balanceInput.value = remainingText;
     balanceInput.style.fontWeight = "700";
-    balanceInput.style.color = remainingDays <= 0 ? "#ef4444" : "#0d9488";
+    balanceInput.style.color = remainingDays <= 0 ? "#ef4444" : "var(--th-p-600, #0d9488)";
     balanceInput.style.background = remainingDays <= 0 ? "#fef2f2" : "rgba(240, 253, 250, 0.8)";
   }
 
@@ -1084,7 +1084,7 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
     } else if (leaveName.includes("กิจ")) {
       conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; color:#166534; font-size:13px;">📌 <b>เงื่อนไขการลากิจ:</b> ขั้นต่ำ 0.5 ชั่วโมง (30 นาที) สามารถเลือกกรอกเป็น 0.5, 1, 1.5 ... ชั่วโมงได้ครับ</div>`;
     } else if (leaveName.includes("ป่วย")) {
-      conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; color:#1e40af; font-size:13px;">ℹ️ <b>เงื่อนไขการลาป่วย:</b> กรณีลาป่วย 3 วันขึ้นไป ต้องมีใบรับรองแพทย์แนบประกอบการลาครับ</div>`;
+      conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:var(--th-b-50, #eff6ff); border:1px solid var(--th-b-200, #bfdbfe); border-radius:8px; color:var(--th-b-800, #1e40af); font-size:13px;">ℹ️ <b>เงื่อนไขการลาป่วย:</b> กรณีลาป่วย 3 วันขึ้นไป ต้องมีใบรับรองแพทย์แนบประกอบการลาครับ</div>`;
     }
 
     if (remainingDays <= 0) {
@@ -1109,7 +1109,7 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
             ${conditionHtml}
           </div>
         `,
-        confirmButtonColor: '#0f766e',
+        confirmButtonColor: 'var(--th-p-700, #0f766e)',
         confirmButtonText: 'รับทราบ'
       });
     }
@@ -1157,7 +1157,7 @@ async function addLeaveRow() {
         </div>
       </div>
       <div class="input-group date-input-card highlight-start-card">
-        <label><span class="material-symbols-outlined" style="font-size: 18px; color: #0891b2;">calendar_today</span> เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
+        <label><span class="material-symbols-outlined" style="font-size: 18px; color: var(--th-s-600, #0891b2);">calendar_today</span> เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
         <div class="large-date-input-wrapper">
           <input type="text" name="start_date" placeholder="📅 คลิกเพื่อเลือกวันเริ่มลา..." readonly class="large-date-field start-date-picker" style="background-color: #fff; cursor: pointer;">
         </div>
@@ -1197,14 +1197,14 @@ async function addLeaveRow() {
 
     <div class="leave-duration-mode-options" style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:2px 0 12px;">
       <label class="leave-duration-option" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:12px; background:#ffffff; cursor:pointer; min-width:0;">
-        <input type="radio" name="leave_duration_mode" value="full" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:#0d9488; flex:0 0 auto;">
+        <input type="radio" name="leave_duration_mode" value="full" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:var(--th-p-600, #0d9488); flex:0 0 auto;">
         <span style="min-width:0;">
           <strong style="display:block; color:#0f172a; font-size:14px;">ลาเต็มวัน</strong>
           <small style="display:block; color:#64748b; margin-top:2px; font-size:11px; line-height:1.25;">คิดตามวันที่ที่เลือก</small>
         </span>
       </label>
       <label class="leave-duration-option" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:12px; background:#ffffff; cursor:pointer; min-width:0;">
-        <input type="radio" name="leave_duration_mode" value="partial" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:#0d9488; flex:0 0 auto;">
+        <input type="radio" name="leave_duration_mode" value="partial" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:var(--th-p-600, #0d9488); flex:0 0 auto;">
         <span style="min-width:0;">
           <strong style="display:block; color:#0f172a; font-size:14px;">ลาไม่เต็มวัน</strong>
           <small style="display:block; color:#64748b; margin-top:2px; font-size:11px; line-height:1.25;">ระบุช่วงเวลาและชั่วโมง</small>
@@ -1212,8 +1212,8 @@ async function addLeaveRow() {
       </label>
     </div>
 
-    <div class="partial-leave-controls" style="display:none; margin-top:10px; padding:12px; border:1px solid #ccfbf1; border-radius:12px; background:#f0fdfa;">
-      <div style="font-size:12px; font-weight:700; color:#0f766e; margin-bottom:10px;">⏱️ เลือกช่วงเวลาที่ขอลาและจำนวนชั่วโมง</div>
+    <div class="partial-leave-controls" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--th-p-100, #ccfbf1); border-radius:12px; background:var(--th-p-50, #f0fdfa);">
+      <div style="font-size:12px; font-weight:700; color:var(--th-p-700, #0f766e); margin-bottom:10px;">⏱️ เลือกช่วงเวลาที่ขอลาและจำนวนชั่วโมง</div>
       <div class="grid-row-3">
         <div class="input-group">
           <label>ช่วงเช้า (0-4 ชั่วโมง)</label>
@@ -1236,7 +1236,7 @@ async function addLeaveRow() {
 
     <div class="input-group" style="margin-top:12px;">
       <label>สรุปรวมระยะเวลาที่ขอลา</label>
-      <input type="text" placeholder="กรุณาเลือกรูปแบบการลา" readonly name="leave_days_display" class="readonly-highlight" value="กรุณาเลือกรูปแบบการลา" style="font-weight:700; color:#0f766e !important; background:#f0fdfa !important; border-color:#99f6e4 !important;">
+      <input type="text" placeholder="กรุณาเลือกรูปแบบการลา" readonly name="leave_days_display" class="readonly-highlight" value="กรุณาเลือกรูปแบบการลา" style="font-weight:700; color:var(--th-p-700, #0f766e) !important; background:var(--th-p-50, #f0fdfa) !important; border-color:var(--th-p-200, #99f6e4) !important;">
       <input type="hidden" name="leave_days" value="0">
     </div>
 
@@ -1285,9 +1285,9 @@ function handleLeaveDurationMode(input) {
   boxItem.querySelectorAll('.leave-duration-option').forEach(label => {
     const radio = label.querySelector('input[name="leave_duration_mode"]');
     const selected = !!radio?.checked;
-    label.style.borderColor = selected ? '#14b8a6' : '#cbd5e1';
-    label.style.background = selected ? '#f0fdfa' : '#ffffff';
-    label.style.boxShadow = selected ? '0 0 0 2px rgba(20,184,166,0.10)' : 'none';
+    label.style.borderColor = selected ? 'var(--th-p-500, #14b8a6)' : '#cbd5e1';
+    label.style.background = selected ? 'var(--th-p-50, #f0fdfa)' : '#ffffff';
+    label.style.boxShadow = selected ? '0 0 0 2px rgba(var(--th-p-500-rgb, 20, 184, 166), 0.10)' : 'none';
   });
 
   if (mode === 'full') {
@@ -1326,7 +1326,7 @@ function calculateLeaveDays(element) {
   if (!textDisplay && resultInput) {
     textDisplay = document.createElement('small');
     textDisplay.className = 'hours-text-display';
-    textDisplay.style.cssText = 'display:block; color:#0f766e; font-weight:600; margin-top:6px; font-size:13px;';
+    textDisplay.style.cssText = 'display:block; color:var(--th-p-700, #0f766e); font-weight:600; margin-top:6px; font-size:13px;';
     resultInput.parentNode.appendChild(textDisplay);
   }
 
@@ -1542,7 +1542,7 @@ function handleFileChange(input, labelId) {
           title: 'อัปโหลดหลักฐานเรียบร้อย',
           text: 'บันทึกไฟล์หลักฐานแล้วเรียบร้อย คุณสามารถกรอกหรือปรับปรุงรายละเอียดใบลาเพิ่มเติมได้เลยครับ',
           confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#0d9488'
+          confirmButtonColor: 'var(--th-p-600, #0d9488)'
         });
       }
     };
@@ -1968,9 +1968,9 @@ async function saveLeave() {
       const confirmResult = await Swal.fire({
         icon: 'info',
         title: '📌 แจ้งเตือนการยื่นใบรับรองแพทย์',
-        html: `รายการที่ ${index + 1} เป็นการ<b>ลาป่วย</b><br><br><span style="color:#0f766e; font-weight:600;">กรุณานำใบรับรองแพทย์ฉบับจริงมายื่นส่งให้ฝ่ายบุคคล (HR) หลังจากกลับมาทำงานครับ<br><small style="color:#e11d48;">(แม้ว่าจะทำการแนบไฟล์รูปภาพในระบบแล้วก็ตาม)</small></span>`,
+        html: `รายการที่ ${index + 1} เป็นการ<b>ลาป่วย</b><br><br><span style="color:var(--th-p-700, #0f766e); font-weight:600;">กรุณานำใบรับรองแพทย์ฉบับจริงมายื่นส่งให้ฝ่ายบุคคล (HR) หลังจากกลับมาทำงานครับ<br><small style="color:#e11d48;">(แม้ว่าจะทำการแนบไฟล์รูปภาพในระบบแล้วก็ตาม)</small></span>`,
         showCancelButton: true,
-        confirmButtonColor: '#0f766e',
+        confirmButtonColor: 'var(--th-p-700, #0f766e)',
         cancelButtonColor: '#64748b',
         confirmButtonText: 'รับทราบ และยื่นคำขอ',
         cancelButtonText: 'ยกเลิกเพื่อแก้ไข'
@@ -2318,9 +2318,9 @@ async function saveLeave() {
 
     Swal.fire({
       title: 'ส่งคำขอลาสำเร็จ!',
-      html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:#0f766e; font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,
+      html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:var(--th-p-700, #0f766e); font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,
       icon: 'success',
-      confirmButtonColor: '#0f766e',
+      confirmButtonColor: 'var(--th-p-700, #0f766e)',
       confirmButtonText: 'รับทราบ'
     }).then(() => {
       window.location.href = "/pages/user/index-user.html";
@@ -2373,7 +2373,7 @@ function toggleFormLeaveGuide() {
     if (icon) icon.innerText = "help";
     if (btn) {
       btn.style.background = "rgba(255, 255, 255, 0.9)";
-      btn.style.color = "#0891b2";
+      btn.style.color = "var(--th-s-600, #0891b2)";
       btn.style.borderColor = "rgba(6, 182, 212, 0.4)";
     }
   }

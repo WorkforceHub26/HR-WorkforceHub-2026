@@ -430,27 +430,29 @@
     const theme = THEMES[themeKey] || THEMES.teal;
     const root = document.documentElement;
 
-    root.style.setProperty("--primary", theme.primary);
-    root.style.setProperty("--primary-dark", theme.primaryDark);
-    root.style.setProperty("--primary-hover", theme.primaryHover);
-    root.style.setProperty("--primary-soft", theme.primarySoft);
-    root.style.setProperty("--primary-light", theme.primaryLight);
-    root.style.setProperty("--primary-gradient", theme.gradient);
-    root.setAttribute("data-theme", themeKey);
-
-    // แถบล่าง / เมนูข้างมือถือ (mobile-shell.css) ใช้ --pvt-brand
-    // ธีมเริ่มต้น (มินต์) คงสีน้ำเงินเดิมของแถบล่าง ธีมอื่นเปลี่ยนตามสีที่เลือก
-    if (themeKey && themeKey !== "teal" && THEMES[themeKey]) {
-      root.style.setProperty("--pvt-brand", theme.primary);
-      root.style.setProperty("--pvt-brand-soft", theme.primaryLight);
+    // ชุดสีทั้งระบบ (--th-p/s/b/k-*) มาจาก /js/theme-boot.js
+    if (window.PVTTheme && typeof window.PVTTheme.apply === "function") {
+      window.PVTTheme.apply(themeKey);
     } else {
-      root.style.removeProperty("--pvt-brand");
-      root.style.removeProperty("--pvt-brand-soft");
+      root.style.setProperty("--primary", theme.primary);
+      root.style.setProperty("--primary-dark", theme.primaryDark);
+      root.style.setProperty("--primary-hover", theme.primaryHover);
+      root.style.setProperty("--primary-soft", theme.primarySoft);
+      root.style.setProperty("--primary-light", theme.primaryLight);
+      root.style.setProperty("--primary-gradient", theme.gradient);
+      root.setAttribute("data-theme", THEMES[themeKey] ? themeKey : "teal");
+      // หน้าที่ยังไม่มี theme-boot.js → โหลดเพิ่มเพื่อให้สีทั้งหน้าเปลี่ยนตาม
+      if (!document.getElementById("pvt-theme-boot")) {
+        const sc = document.createElement("script");
+        sc.id = "pvt-theme-boot";
+        sc.src = "/js/theme-boot.js";
+        document.head.appendChild(sc);
+      }
     }
 
     // Update dynamically styled elements if present
     document.querySelectorAll(".sidebar-cta-btn").forEach(el => {
-      el.style.background = theme.gradient;
+      el.style.background = "var(--primary-gradient)";
     });
   }
 

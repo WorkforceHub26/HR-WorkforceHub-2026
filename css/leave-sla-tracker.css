@@ -39,7 +39,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #38bdf8;
+  color: var(--th-k-400, #38bdf8);
   position: relative;
 }
 
@@ -126,9 +126,9 @@
   border-color: rgba(255, 255, 255, 0.15);
 }
 .sla-metric-pill.pill-all.active {
-  background: #38bdf8;
+  background: var(--th-k-400, #38bdf8);
   color: #0f172a;
-  border-color: #38bdf8;
+  border-color: var(--th-k-400, #38bdf8);
 }
 
 .sla-metric-pill.pill-normal {
@@ -208,8 +208,8 @@
 }
 
 .sla-search-input-wrap input:focus {
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+  border-color: var(--th-p-600, #0d9488);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.1);
 }
 
 .sla-sort-select {
@@ -337,13 +337,13 @@
 }
 
 .sla-dept-tag {
-  background: #e0f2fe;
+  background: var(--th-k-100, #e0f2fe);
   padding: 1.5px 7px;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
+  color: var(--th-k-700, #0369a1);
+  border: 1px solid var(--th-k-200, #bae6fd);
 }
 
 /* ⏳ Countdown Banner & Progress */
@@ -487,8 +487,8 @@
 }
 
 .sla-duration-badge {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--th-k-100, #e0f2fe);
+  color: var(--th-k-700, #0369a1);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 6px;
@@ -565,16 +565,16 @@
 }
 
 .btn-sla-review {
-  background: #0d9488;
+  background: var(--th-p-600, #0d9488);
   color: #ffffff;
-  border-color: #0f766e;
-  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+  border-color: var(--th-p-700, #0f766e);
+  box-shadow: 0 2px 4px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2);
 }
 
 .btn-sla-review:hover {
-  background: #0f766e;
+  background: var(--th-p-700, #0f766e);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
+  box-shadow: 0 4px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3);
 }
 
 .btn-sla-details {
@@ -626,8 +626,8 @@
   align-items: center;
   gap: 4px;
   background: #ffffff;
-  color: #0d9488;
-  border: 1px solid #ccfbf1;
+  color: var(--th-p-600, #0d9488);
+  border: 1px solid var(--th-p-100, #ccfbf1);
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 12px;
@@ -637,8 +637,8 @@
 }
 
 .btn-sla-refresh:hover {
-  background: #f0fdfa;
-  border-color: #99f6e4;
+  background: var(--th-p-50, #f0fdfa);
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 /* 📭 Empty State inside SLA Tracker */

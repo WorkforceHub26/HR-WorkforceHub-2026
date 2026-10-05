@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <!-- เพิ่ม viewport-fit=cover เพื่อให้รองรับ Safe Area บน iOS/iPhone -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <script src="/js/theme-boot.js"></script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <meta name="google" content="notranslate" />
@@ -25,10 +26,13 @@
 
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
+  <!-- เดิม user-leave.css ใช้ @import ดึง leave-user.css + holidays.css ต่อกันเป็นทอด ๆ
+       → ใช้ <link> แทน และไม่โหลด holidays.css (161KB) เพราะหน้านี้ไม่ได้ใช้ (ทดสอบแล้วหน้าตาเหมือนเดิมทุกพิกเซล) -->
+  <link rel="stylesheet" href="/css/leave-user.css" />
   <link rel="stylesheet" href="/css/user-leave.css" />
   <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง + ส่วนหัว (ต้องอยู่หลัง CSS ของหน้า) -->
   <link rel="stylesheet" href="/css/mobile-shell.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 
 <body id="page-user-leave">
@@ -70,6 +74,10 @@
       </div>
       
       <div id="leaveCardsList"></div>
+      <div id="leaveFormLoading" class="leave-form-loading" role="status" aria-live="polite">
+        <span class="material-symbols-outlined spin" aria-hidden="true">progress_activity</span>
+        <span>กำลังเตรียมแบบฟอร์ม...</span>
+      </div>
 
       <div class="notice-box no-print">      
       ️<strong>ตรวจสอบก่อนบันทึก:<br/>
@@ -111,12 +119,12 @@
       <div class="form-guide-body">
         <div class="form-guide-item">
           <span class="form-guide-emoji"> </span>
-          <div><strong>เลือกกรอบเวลา:</strong> คลิกเลือก <span style="color:#0891b2">เริ่มวันที่ลา</span> และ <span style="color:#0891b2">ถึงวันที่ลา</span> ระบบจะล็อก "วันที่เขียนคำขอ" เป็นวันปัจจุบันให้อัตโนมัติ</div>
+          <div><strong>เลือกกรอบเวลา:</strong> คลิกเลือก <span style="color:var(--th-s-600, #0891b2)">เริ่มวันที่ลา</span> และ <span style="color:var(--th-s-600, #0891b2)">ถึงวันที่ลา</span> ระบบจะล็อก "วันที่เขียนคำขอ" เป็นวันปัจจุบันให้อัตโนมัติ</div>
         </div>
         
         <div class="form-guide-item">
           <span class="form-guide-emoji">⏱️</span>
-          <div><strong>กรณีลาครึ่งวัน / รายชั่วโมง:</strong> ให้กรอกจำนวนชั่วโมงในช่อง <span style="color:#0891b2">ช่วงเช้า</span> หรือ <span style="color:#0891b2">ช่วงบ่าย</span> (ใส่ได้ 0-4 ชั่วโมง) หากลาเต็มวันให้ปล่อยเป็น 0 ไว้ครับ</div>
+          <div><strong>กรณีลาครึ่งวัน / รายชั่วโมง:</strong> ให้กรอกจำนวนชั่วโมงในช่อง <span style="color:var(--th-s-600, #0891b2)">ช่วงเช้า</span> หรือ <span style="color:var(--th-s-600, #0891b2)">ช่วงบ่าย</span> (ใส่ได้ 0-4 ชั่วโมง) หากลาเต็มวันให้ปล่อยเป็น 0 ไว้ครับ</div>
         </div>
         
         <div class="form-guide-item">
@@ -151,12 +159,11 @@
   <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง -->
   <script src="/js/mobile-shell.js" defer></script>
   <script type="module" src="/auth/supabase-config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
   <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/system-settings.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
-  <script type="module" src="/js/holidays.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js" defer></script>
   <script type="module" src="/js/leave-user.js"></script>
 
   <script>
@@ -178,16 +185,28 @@
         });
       }
 
+      // ซ่อนด้วย CSS ทันที (ไม่ต้องรอ JS) แล้วค่อยลบออกจาก DOM
+      const style = document.createElement("style");
+      style.textContent = "#globalLangSwitcherContainer{display:none!important}";
+      document.head.appendChild(style);
+
       removeLanguageSwitcher();
 
-      const observer = new MutationObserver(removeLanguageSwitcher);
-      observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true
+      // เดิม: ค้นทั้งหน้าใหม่ "ทุกครั้ง" ที่ DOM เปลี่ยน ตลอดเวลาที่เปิดหน้า (หนักมากตอนกรอกฟอร์ม)
+      // ตอนนี้: รวบเป็นครั้งเดียวต่อเฟรม และหยุดดูหลังหน้าโหลดเสร็จ 5 วินาที
+      let scheduled = false;
+      const observer = new MutationObserver(() => {
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(() => { scheduled = false; removeLanguageSwitcher(); });
       });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
 
       window.addEventListener("DOMContentLoaded", removeLanguageSwitcher);
-      window.addEventListener("load", removeLanguageSwitcher);
+      window.addEventListener("load", () => {
+        removeLanguageSwitcher();
+        setTimeout(() => { observer.disconnect(); removeLanguageSwitcher(); }, 5000);
+      });
     })();
   </script>
 

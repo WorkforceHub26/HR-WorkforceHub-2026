@@ -34,12 +34,12 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0284c7, #06b6d4);
+  background: linear-gradient(135deg, var(--th-k-600, #0284c7), var(--th-s-500, #06b6d4));
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+  box-shadow: 0 4px 12px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.25);
 }
 
 .news-header-left h2 {
@@ -80,9 +80,9 @@
 }
 
 .news-chip.active {
-  background: #0f766e;
+  background: var(--th-p-700, #0f766e);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25);
 }
 
 /* News Cards Grid */
@@ -111,7 +111,7 @@
 .news-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 .news-card.pinned {
@@ -142,8 +142,8 @@
 }
 
 .news-badge.announcement {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--th-k-100, #e0f2fe);
+  color: var(--th-k-700, #0369a1);
 }
 
 .news-badge.holiday {
@@ -201,7 +201,7 @@
 }
 
 .news-read-more {
-  color: #0f766e;
+  color: var(--th-p-700, #0f766e);
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -254,7 +254,7 @@
 
 .news-modal-header {
   padding: 18px 24px;
-  background: linear-gradient(135deg, #0f766e, #0d9488);
+  background: linear-gradient(135deg, var(--th-p-700, #0f766e), var(--th-p-600, #0d9488));
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -326,9 +326,9 @@
 .news-form-group input:focus,
 .news-form-group select:focus,
 .news-form-group textarea:focus {
-  border-color: #0f766e;
+  border-color: var(--th-p-700, #0f766e);
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.15);
 }
 
 .news-form-row {
@@ -362,7 +362,7 @@
 }
 
 .news-btn-primary {
-  background: #0f766e;
+  background: var(--th-p-700, #0f766e);
   color: #ffffff;
   border: none;
   padding: 10px 20px;
@@ -377,8 +377,8 @@
 }
 
 .news-btn-primary:hover {
-  background: #115e59;
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+  background: var(--th-p-800, #115e59);
+  box-shadow: 0 4px 12px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25);
 }
 
 .news-btn-secondary {

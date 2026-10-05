@@ -31,9 +31,9 @@
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
     const css = `
-.llv{--llv-p:#0d9488;--llv-pd:#0f766e;--llv-t:#0f172a;--llv-t2:#475569;--llv-m:#94a3b8;--llv-b:#e2e8f0;--llv-s:#fff;
+.llv{--llv-p:var(--th-p-600, #0d9488);--llv-pd:var(--th-p-700, #0f766e);--llv-t:#0f172a;--llv-t2:#475569;--llv-m:#94a3b8;--llv-b:#e2e8f0;--llv-s:#fff;
   font-family:"Sarabun",system-ui,sans-serif;color:var(--llv-t);background:var(--llv-s);border:1px solid var(--llv-b);
-  border-radius:16px;box-shadow:0 1px 3px rgba(15,23,42,.05),0 4px 14px rgba(15,23,42,.04);overflow:hidden;text-align:left}
+  border-radius:16px;box-shadow:0 1px 3px rgba(15, 23, 42, .05),0 4px 14px rgba(15, 23, 42, .04);overflow:hidden;text-align:left}
 .llv *{box-sizing:border-box}
 .llv-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--llv-b);border-bottom:1px solid var(--llv-b)}
 .llv-stat{background:var(--llv-s);padding:14px 18px}
@@ -44,20 +44,20 @@
 .llv-field{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--llv-t2)}
 .llv-field input,.llv-field select{height:38px;padding:0 10px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:14px;color:var(--llv-t);background:#fff;min-width:0}
 .llv-field--grow{flex:1 1 220px}
-.llv-field input:focus,.llv-field select:focus{outline:2px solid rgba(13,148,136,.35);border-color:var(--llv-p)}
+.llv-field input:focus,.llv-field select:focus{outline:2px solid rgba(var(--th-p-600-rgb, 13, 148, 136), .35);border-color:var(--llv-p)}
 .llv-clear{height:38px;padding:0 14px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font:inherit;font-weight:700;font-size:13px;color:var(--llv-t2);cursor:pointer}
 .llv-clear:hover{background:#f1f5f9}
 .llv-tablewrap{overflow:auto;max-height:65vh}
 .llv-table{width:100%;border-collapse:collapse;font-size:13.5px}
 .llv-table th{position:sticky;top:0;z-index:1;background:#f1f5f9;color:var(--llv-t2);font-weight:700;text-align:left;padding:10px 14px;border-bottom:1px solid var(--llv-b);white-space:nowrap}
 .llv-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top}
-.llv-table tbody tr:hover{background:#f0fdfa}
+.llv-table tbody tr:hover{background:var(--th-p-50, #f0fdfa)}
 .llv-name{font-weight:700}.llv-sub{display:block;font-size:12px;color:var(--llv-m);margin-top:2px}
 .llv-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
 .llv-num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .llv-badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
 .llv-badge--ok{background:#dcfce7;color:#166534}.llv-badge--bad{background:#fee2e2;color:#991b1b}
-.llv-badge--m{background:#e0f2fe;color:#075985}
+.llv-badge--m{background:var(--th-k-100, #e0f2fe);color:var(--th-k-800, #075985)}
 .llv-empty{padding:40px 18px;text-align:center;color:var(--llv-t2)}
 .llv-empty .material-symbols-outlined{font-size:40px;color:var(--llv-m);display:block;margin-bottom:6px}
 .llv-foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 18px;font-size:12px;color:var(--llv-t2);background:#f8fafc}
@@ -327,7 +327,7 @@
       html: `<div id="${id}"></div>`,
       showConfirmButton: true,
       confirmButtonText: 'ส่งออก CSV',
-      confirmButtonColor: '#0d9488',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       showCancelButton: true,
       cancelButtonText: 'ปิด',
       customClass: { popup: 'llv-modal-popup' },

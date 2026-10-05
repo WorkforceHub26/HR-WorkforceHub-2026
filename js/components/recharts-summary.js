@@ -24,7 +24,7 @@
     const el = document.createElement('style');
     el.id = STYLE_ID;
     el.textContent = `
-.rcs{font-family:"Sarabun",system-ui,sans-serif;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,.05),0 4px 14px rgba(15,23,42,.04)}
+.rcs{font-family:"Sarabun",system-ui,sans-serif;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(15, 23, 42, .05),0 4px 14px rgba(15, 23, 42, .04)}
 .rcs-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .rcs-kpi{border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px}
 .rcs-kpi span{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#475569}

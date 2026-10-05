@@ -320,7 +320,7 @@ function openAddRuleModal() {
   `).join("");
 
   Swal.fire({
-    title: `<div style="display:flex; align-items:center; gap:8px; font-size:19px; color:#0f172a; font-weight:700;"><span class="material-symbols-outlined" style="color:#0d9488; font-size:24px;">add_circle</span> เพิ่มข้อกำหนด / กฎระเบียบใหม่</div>`,
+    title: `<div style="display:flex; align-items:center; gap:8px; font-size:19px; color:#0f172a; font-weight:700;"><span class="material-symbols-outlined" style="color:var(--th-p-600, #0d9488); font-size:24px;">add_circle</span> เพิ่มข้อกำหนด / กฎระเบียบใหม่</div>`,
     html: `
       <div style="text-align: left; display: flex; flex-direction: column; gap: 14px; font-family: 'Sarabun', sans-serif;">
         <div class="rule-form-group">
@@ -350,7 +350,7 @@ function openAddRuleModal() {
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
-          <input type="checkbox" id="swalRuleFullWidth" style="width: 17px; height: 17px; cursor: pointer; accent-color: #0d9488;" />
+          <input type="checkbox" id="swalRuleFullWidth" style="width: 17px; height: 17px; cursor: pointer; accent-color: var(--th-p-600, #0d9488);" />
           <label for="swalRuleFullWidth" style="font-size: 13.5px; color: #334155; cursor: pointer; user-select: none;">แสดงเป็นการ์ดยาวเต็มหน้า (Full width)</label>
         </div>
       </div>
@@ -362,7 +362,7 @@ function openAddRuleModal() {
     showCancelButton: true,
     confirmButtonText: "บันทึกข้อกำหนด",
     cancelButtonText: "ยกเลิก",
-    confirmButtonColor: "#0d9488",
+    confirmButtonColor: "var(--th-p-600, #0d9488)",
     cancelButtonColor: "#94a3b8",
     focusConfirm: false,
     preConfirm: () => {
@@ -445,7 +445,7 @@ function openEditRuleModal(index) {
   }).join("\n");
 
   Swal.fire({
-    title: `<div style="display:flex; align-items:center; gap:8px; font-size:19px; color:#0f172a; font-weight:700;"><span class="material-symbols-outlined" style="color:#2563eb; font-size:24px;">edit_note</span> แก้ไขข้อกำหนด: ${escapeHtml(rule.title)}</div>`,
+    title: `<div style="display:flex; align-items:center; gap:8px; font-size:19px; color:#0f172a; font-weight:700;"><span class="material-symbols-outlined" style="color:var(--th-b-600, #2563eb); font-size:24px;">edit_note</span> แก้ไขข้อกำหนด: ${escapeHtml(rule.title)}</div>`,
     html: `
       <div style="text-align: left; display: flex; flex-direction: column; gap: 14px; font-family: 'Sarabun', sans-serif;">
         <div class="rule-form-group">
@@ -475,7 +475,7 @@ function openEditRuleModal(index) {
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
-          <input type="checkbox" id="swalEditFullWidth" ${rule.isFullWidth ? "checked" : ""} style="width: 17px; height: 17px; cursor: pointer; accent-color: #2563eb;" />
+          <input type="checkbox" id="swalEditFullWidth" ${rule.isFullWidth ? "checked" : ""} style="width: 17px; height: 17px; cursor: pointer; accent-color: var(--th-b-600, #2563eb);" />
           <label for="swalEditFullWidth" style="font-size: 13.5px; color: #334155; cursor: pointer; user-select: none;">แสดงเป็นการ์ดยาวเต็มหน้า (Full width)</label>
         </div>
       </div>
@@ -487,7 +487,7 @@ function openEditRuleModal(index) {
     showCancelButton: true,
     confirmButtonText: "บันทึกการแก้ไข",
     cancelButtonText: "ยกเลิก",
-    confirmButtonColor: "#2563eb",
+    confirmButtonColor: "var(--th-b-600, #2563eb)",
     cancelButtonColor: "#94a3b8",
     focusConfirm: false,
     preConfirm: () => {
@@ -590,7 +590,7 @@ function resetLeaveRulesToDefault() {
     showCancelButton: true,
     confirmButtonText: "ใช่, คืนค่าเริ่มต้น",
     cancelButtonText: "ยกเลิก",
-    confirmButtonColor: "#0d9488",
+    confirmButtonColor: "var(--th-p-600, #0d9488)",
     cancelButtonColor: "#94a3b8"
   }).then(res => {
     if (res.isConfirmed) {
@@ -637,7 +637,7 @@ function openLeaveRulesManagerModal() {
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-          <button type="button" onclick="openEditRuleModal(${idx})" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="แก้ไขข้อนี้">
+          <button type="button" onclick="openEditRuleModal(${idx})" style="background: var(--th-b-50, #eff6ff); color: var(--th-b-600, #2563eb); border: 1px solid var(--th-b-200, #bfdbfe); border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="แก้ไขข้อนี้">
             <span class="material-symbols-outlined" style="font-size: 16px;">edit</span> แก้ไข
           </button>
           <button type="button" onclick="handleDeleteRule(${idx})" style="background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center;" title="ลบข้อนี้">
@@ -649,18 +649,18 @@ function openLeaveRulesManagerModal() {
   }).join('');
 
   Swal.fire({
-    title: `<div style="display:flex; align-items:center; gap:8px; font-size:18.5px; color:#0f172a; font-weight:700;"><span class="material-symbols-outlined" style="color:#0d9488; font-size:24px;">gavel</span> จัดการเงื่อนไขการลา (/pages/user/leave-rules.html)</div>`,
+    title: `<div style="display:flex; align-items:center; gap:8px; font-size:18.5px; color:#0f172a; font-weight:700;"><span class="material-symbols-outlined" style="color:var(--th-p-600, #0d9488); font-size:24px;">gavel</span> จัดการเงื่อนไขการลา (/pages/user/leave-rules.html)</div>`,
     html: `
       <div style="text-align: left; font-family: 'Sarabun', sans-serif;">
         <p style="margin: 0 0 12px 0; font-size: 13px; color: #64748b;">เพิ่ม แก้ไข หรือลบข้อกำหนดการลา ข้อมูลจะถูกบันทึกและอัปเดตไปแสดงผลที่หน้า <b>"หลักเกณฑ์และเงื่อนไขการลา"</b> สำหรับพนักงานทันที</p>
         <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
-          <button type="button" onclick="openAddRuleModal()" style="background: #0d9488; color: #ffffff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(13,148,136,0.3);">
+          <button type="button" onclick="openAddRuleModal()" style="background: var(--th-p-600, #0d9488); color: #ffffff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3);">
             <span class="material-symbols-outlined" style="font-size: 18px;">add_circle</span> เพิ่มหัวข้อ/เงื่อนไขใหม่
           </button>
           <button type="button" onclick="resetLeaveRulesToDefault()" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
             <span class="material-symbols-outlined" style="font-size: 18px;">restart_alt</span> คืนค่าเริ่มต้น (11 ข้อ)
           </button>
-          <a href="/pages/user/leave-rules.html" target="_blank" style="margin-left: auto; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; text-decoration: none;">
+          <a href="/pages/user/leave-rules.html" target="_blank" style="margin-left: auto; background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); border: 1px solid var(--th-k-200, #bae6fd); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; text-decoration: none;">
             <span class="material-symbols-outlined" style="font-size: 18px;">open_in_new</span> ดูหน้าแสดงผลจริง
           </a>
         </div>

@@ -1427,7 +1427,7 @@ function applyHomeTeamRender() {
     if (roleStr === "leader" || roleStr.includes("leader")) {
       roleBadge = '<span style="font-size: 11px; background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 6px; font-weight: 700;">👑 หัวหน้า</span>';
     } else if (roleStr === "manager" || roleStr.includes("manager")) {
-      roleBadge = '<span style="font-size: 11px; background: #dbeafe; color: #1d4ed8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผจก.</span>';
+      roleBadge = '<span style="font-size: 11px; background: var(--th-b-100, #dbeafe); color: var(--th-b-700, #1d4ed8); padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผจก.</span>';
     } else if (["hr", "admin", "superadmin"].includes(roleStr)) {
       roleBadge = '<span style="font-size: 11px; background: #f3e8ff; color: #6b21a8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
     } else if (["director", "executive", "owner"].includes(roleStr)) {
@@ -1448,7 +1448,7 @@ function applyHomeTeamRender() {
             </span>
             <span style="font-size: 12px; color: #64748b; font-weight: 600; flex-shrink: 0;">#${escapeHtmlText(empCode)}</span>
           </div>
-          <div style="font-size: 12.5px; color: #0284c7; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <div style="font-size: 12.5px; color: var(--th-k-600, #0284c7); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             ${escapeHtmlText(pos)}
           </div>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
@@ -1683,7 +1683,7 @@ if (false) {
                     data-role="${escapeHtmlAttribute(empRole)}" 
                     data-dept="${escapeHtmlAttribute(empDept)}"
                     data-avatar="${escapeHtmlAttribute(fullAvatarUrl)}"
-              style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+              style="background: var(--th-b-500, #3b82f6); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
               <span class="material-symbols-outlined" style="font-size:18px;">visibility</span>
             </button>
           </div>
@@ -1826,13 +1826,13 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept, avat
     title: '💳 ตัวอย่างบัตรพนักงานดิจิทัล',
     width: '420px',
     html: `
-      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 320px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 16px;">PVT WORKFORCE HUB</div>
-        <div style="width: 80px; height: 80px; margin: 0 auto 14px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #1e293b;">
+      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, var(--th-b-900, #1e3a8a) 100%); width: 320px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(var(--th-b-900-rgb, 30, 58, 138), 0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: var(--th-k-400, #38bdf8); margin-bottom: 16px;">PVT WORKFORCE HUB</div>
+        <div style="width: 80px; height: 80px; margin: 0 auto 14px auto; border-radius: 50%; border: 3px solid var(--th-k-400, #38bdf8); overflow: hidden; background: #1e293b;">
           <img src="${imgUrl}" onerror="this.src='/assets/img/default-avatar.jpg';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
         </div>
         <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">${escapeHtmlText(empName)}</div>
-        <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtmlText(empRole)}</div>
+        <div style="font-size: 13px; color: var(--th-k-400, #38bdf8); font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtmlText(empRole)}</div>
         <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 16px;">แผนก: ${escapeHtmlText(empDept)}</div>
         <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px;">
           <img src="${qrUrl}" alt="Employee QR Code" style="width: 130px; height: 130px; display: block;" 
@@ -1903,18 +1903,18 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
         body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f1f5f9; }
         .card {
           position: relative; width: 85.6mm; height: 53.98mm; border-radius: 8px; padding: 8px 12px;
-          background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: white;
+          background: linear-gradient(135deg, #0f172a 0%, var(--th-b-900, #1e3a8a) 100%); color: white;
           display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
           overflow: hidden;
         }
-        .card-header { font-size: 10px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
+        .card-header { font-size: 10px; font-weight: 700; color: var(--th-k-400, #38bdf8); text-align: center; letter-spacing: 1px; }
         .card-body { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
-        .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid #38bdf8; flex-shrink: 0; background: #1e293b; }
+        .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid var(--th-k-400, #38bdf8); flex-shrink: 0; background: #1e293b; }
         .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
         .details { flex: 1; font-size: 9px; line-height: 1.3; }
         .name { font-weight: 700; font-size: 11px; color: #fff; margin-bottom: 2px; }
         .meta { color: #94a3b8; font-size: 9px; }
-        .role { color: #38bdf8; font-weight: 600; }
+        .role { color: var(--th-k-400, #38bdf8); font-weight: 600; }
         .qr-box { background: white; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
         .qr-box img { width: 50px; height: 50px; display: block; }
         .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
@@ -2022,15 +2022,15 @@ window.printMultipleCards = function (selectedList = []) {
             text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column;
             justify-content: space-between; align-items: center; overflow: hidden; page-break-inside: avoid;
           }
-          .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1); }
+          .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, var(--th-s-500, #06b6d4), var(--th-b-500, #3b82f6), #6366f1); }
           .lanyard-hole { width: 32px; height: 6px; background: #020617; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.15); }
-          .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
+          .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: var(--th-k-400, #38bdf8); text-transform: uppercase; margin-bottom: 6px; }
           .profile-section { margin-bottom: 4px; width: 100%; }
           .name { font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; line-height: 1.2; word-break: break-word; }
           .badge-container { display: flex; flex-direction: column; gap: 3px; align-items: center; justify-content: center; }
-          .role-badge { font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+          .role-badge { font-size: 10px; color: var(--th-k-400, #38bdf8); background: rgba(var(--th-k-400-rgb, 56, 189, 248), 0.1); border: 1px solid rgba(var(--th-k-400-rgb, 56, 189, 248), 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
           .dept-text { font-size: 10px; color: #94a3b8; font-weight: 400; }
-          .qr-box { background: #ffffff; padding: 6px; border-radius: 10px; display: inline-block; border: 2px solid #38bdf8; }
+          .qr-box { background: #ffffff; padding: 6px; border-radius: 10px; display: inline-block; border: 2px solid var(--th-k-400, #38bdf8); }
           .qr-box img { width: 110px; height: 110px; display: block; }
           .footer-section { width: 100%; }
           .id-tag { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: #f8fafc; background: rgba(255, 255, 255, 0.08); padding: 4px 14px; border-radius: 20px; display: inline-block; border: 1px solid rgba(255,255,255,0.15); font-family: monospace, 'Sarabun'; }
@@ -2230,7 +2230,7 @@ function renderDropdownNotifsList() {
             ${slaTimeHtml}
           </div>
         </div>
-        ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: #0d9488; border-radius: 50%; flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);"></span>' : ''}
+        ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: var(--th-p-600, #0d9488); border-radius: 50%; flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);"></span>' : ''}
       </div>
     `;
   });
@@ -2271,7 +2271,7 @@ function formatCleanNotification(title, rawMessage) {
       return `<div style="background: #f0fdf4; color: #166534; padding: 5px 10px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 12.5px; font-weight: 600; margin-top: 3px; line-height: 1.4;">${line}</div>`;
     }
     if (line.startsWith('👉')) {
-      return `<div style="color: #0d9488; font-weight: 700; font-size: 13px; margin-top: 3px;">${line}</div>`;
+      return `<div style="color: var(--th-p-600, #0d9488); font-weight: 700; font-size: 13px; margin-top: 3px;">${line}</div>`;
     }
     return `<div style="line-height: 1.5; font-size: 13px; color: #334155;">${line}</div>`;
   });
@@ -2504,7 +2504,7 @@ async function fetchRealNotifications() {
           badge.style.background = '#f97316';
           badge.style.boxShadow = '0 0 10px rgba(249, 115, 22, 0.6)';
         } else {
-          badge.style.background = 'var(--primary, #0d9488)';
+          badge.style.background = 'var(--primary, var(--th-p-600, #0d9488))';
           badge.style.boxShadow = 'none';
         }
       } else {
@@ -2830,7 +2830,7 @@ window.openAllNotificationsModal = async function() {
         const timeText = formatTimeAgo(item.created_at);
         const bgStyle = item.is_read 
           ? 'background: #ffffff; border: 1px solid #e2e8f0;' 
-          : 'background: #f0fdfa; border: 1px solid #a7f3d0; border-left: 4px solid #0fa472;';
+          : 'background: var(--th-p-50, #f0fdfa); border: 1px solid #a7f3d0; border-left: 4px solid #0fa472;';
         const formatted = formatCleanNotification(item.title, item.message);
 
         listHtml += `
@@ -3114,7 +3114,7 @@ function buildDashboardLeaveConfirmHtml(reqData, roleTitle, actionType = 'approv
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #ffffff; border-radius: 10px; padding: 10px 12px; border: 1px solid #e2e8f0; font-size: 13px;">
           <div>
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ประเภทการลา</span>
-            <strong style="color: #0d9488; font-size: 13.5px;">${safeEscape(leaveName)}</strong>
+            <strong style="color: var(--th-p-600, #0d9488); font-size: 13.5px;">${safeEscape(leaveName)}</strong>
           </div>
           <div>
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">จำนวนเวลาลา</span>
@@ -3356,7 +3356,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
             </p>
             
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #0d9488; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--th-p-600, #0d9488); font-weight: 700; display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-outlined" style="font-size: 18px;">calendar_month</span>
                 Auto-Sync Calendar (ซิงค์ปฏิทินทีม)
               </h4>
@@ -3378,7 +3378,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
           </div>
         `,
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     } else {
       await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
@@ -3593,7 +3593,7 @@ function renderBarChart(targetId, rows, countMode = false) {
 
   const typeColorGradients = [
     "linear-gradient(90deg, #0fa472 0%, #34d399 100%)",
-    "linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)",
+    "linear-gradient(90deg, var(--th-k-600, #0284c7) 0%, var(--th-k-400, #38bdf8) 100%)",
     "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)",
     "linear-gradient(90deg, #8b5cf6 0%, #c084fc 100%)",
     "linear-gradient(90deg, #ef4444 0%, #f87171 100%)",

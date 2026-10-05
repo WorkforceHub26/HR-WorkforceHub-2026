@@ -4,6 +4,7 @@
   <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="/js/theme-boot.js"></script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <title>ตั้งค่าสายอนุมัติ & การแจ้งเตือน LINE | PVT Workforce Hub</title>
@@ -20,11 +21,11 @@
 
   <style>
     :root {
-      --primary: #0f766e;
-      --primary-hover: #115e59;
+      --primary: var(--th-p-700, #0f766e);
+      --primary-hover: var(--th-p-800, #115e59);
       --primary-subtle: #e0f2f1;
-      --primary-border: #99f6e4;
-      --accent-blue: #0284c7;
+      --primary-border: var(--th-p-200, #99f6e4);
+      --accent-blue: var(--th-k-600, #0284c7);
       --accent-purple: #7c3aed;
       --bg-base: #f1f5f9;
       --card-bg: #ffffff;
@@ -114,7 +115,7 @@
 
     /* Header Banner */
     .header-hero {
-      background: linear-gradient(135deg, #0d9488 0%, #0f766e 50%, #115e59 100%);
+      background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-p-700, #0f766e) 50%, var(--th-p-800, #115e59) 100%);
       border-radius: 20px;
       padding: 28px 32px;
       color: white;
@@ -124,7 +125,7 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 20px;
-      box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.25);
+      box-shadow: 0 10px 25px -5px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
     }
 
     .header-title-group {
@@ -159,7 +160,7 @@
 
     .header-desc {
       font-size: 14.5px;
-      color: #ccfbf1;
+      color: var(--th-p-100, #ccfbf1);
       margin: 0;
       line-height: 1.5;
     }
@@ -171,7 +172,7 @@
 
     .btn-header-action {
       background: rgba(255, 255, 255, 0.95);
-      color: #0f766e;
+      color: var(--th-p-700, #0f766e);
       border: none;
       padding: 10px 18px;
       border-radius: 12px;
@@ -227,8 +228,8 @@
     }
 
     @keyframes sectionHighlight {
-      0% { box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.4); transform: scale(1.01); }
-      50% { box-shadow: 0 0 0 8px rgba(13, 148, 136, 0.2); }
+      0% { box-shadow: 0 0 0 4px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.4); transform: scale(1.01); }
+      50% { box-shadow: 0 0 0 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2); }
       100% { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); transform: scale(1); }
     }
 
@@ -245,10 +246,10 @@
     }
 
     .flow-step.s0 .flow-step-icon { background: #f1f5f9; color: #475569; }
-    .flow-step.s1 .flow-step-icon { background: #e0f2fe; color: #0284c7; }
+    .flow-step.s1 .flow-step-icon { background: var(--th-k-100, #e0f2fe); color: var(--th-k-600, #0284c7); }
     .flow-step.s2 .flow-step-icon { background: #ede9fe; color: #7c3aed; }
     .flow-step.s3 .flow-step-icon { background: #fef3c7; color: #d97706; }
-    .flow-step.s4 .flow-step-icon { background: #ccfbf1; color: #0f766e; }
+    .flow-step.s4 .flow-step-icon { background: var(--th-p-100, #ccfbf1); color: var(--th-p-700, #0f766e); }
 
     .flow-step-text h4 {
       margin: 0;
@@ -356,7 +357,7 @@
 
     .field-select:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+      box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.12);
     }
 
     .field-select:disabled {
@@ -453,14 +454,14 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+      box-shadow: 0 2px 4px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2);
       transition: all 0.2s ease;
     }
 
     .btn-save:hover:not(:disabled) {
       background: var(--primary-hover);
       transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(13, 148, 136, 0.25);
+      box-shadow: 0 4px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
     }
 
     .btn-save:disabled {
@@ -491,8 +492,8 @@
     }
 
     .table-count-badge {
-      background: #e0f2fe;
-      color: #0369a1;
+      background: var(--th-k-100, #e0f2fe);
+      color: var(--th-k-700, #0369a1);
       font-size: 12.5px;
       font-weight: 700;
       padding: 3px 10px;
@@ -587,10 +588,10 @@
       width: 34px;
       height: 34px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
-      color: #0d9488;
+      background: linear-gradient(135deg, var(--th-p-50, #f0fdfa) 0%, var(--th-p-100, #ccfbf1) 100%);
+      color: var(--th-p-600, #0d9488);
       font-size: 18px;
-      box-shadow: 0 2px 4px rgba(13, 148, 136, 0.1);
+      box-shadow: 0 2px 4px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.1);
     }
 
     .approver-cell {
@@ -654,7 +655,7 @@
 
     .btn-table-edit {
       background: linear-gradient(to bottom, #ffffff, #f8fafc);
-      color: #0f766e;
+      color: var(--th-p-700, #0f766e);
       border: 1px solid #cbd5e1;
       padding: 8px 14px;
       border-radius: 8px;
@@ -669,11 +670,11 @@
     }
 
     .btn-table-edit:hover {
-      background: #f0fdfa;
-      border-color: #5eead4;
-      color: #0d9488;
+      background: var(--th-p-50, #f0fdfa);
+      border-color: var(--th-p-300, #5eead4);
+      color: var(--th-p-600, #0d9488);
       transform: translateY(-2px);
-      box-shadow: 0 4px 6px rgba(13, 148, 136, 0.1);
+      box-shadow: 0 4px 6px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.1);
     }
     
     .btn-table-edit:active {
@@ -744,7 +745,7 @@
     .line-stat-card:hover {
       transform: translateY(-4px);
       border-color: var(--primary);
-      box-shadow: 0 12px 24px -10px rgba(13, 148, 136, 0.15);
+      box-shadow: 0 12px 24px -10px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
     }
 
     .line-stat-icon {
@@ -776,15 +777,15 @@
     }
 
     .line-stat-icon.teal {
-      background: #f0fdfa;
-      color: #0f766e;
-      border: 1.5px solid #ccfbf1;
+      background: var(--th-p-50, #f0fdfa);
+      color: var(--th-p-700, #0f766e);
+      border: 1.5px solid var(--th-p-100, #ccfbf1);
     }
 
     .line-stat-icon.blue {
-      background: #f0f9ff;
-      color: #0369a1;
-      border: 1.5px solid #e0f2fe;
+      background: var(--th-k-50, #f0f9ff);
+      color: var(--th-k-700, #0369a1);
+      border: 1.5px solid var(--th-k-100, #e0f2fe);
     }
 
     .line-stat-info {
@@ -840,10 +841,10 @@
     }
 
     .filter-tab-btn.active {
-      background: #0f766e;
+      background: var(--th-p-700, #0f766e);
       color: #ffffff;
-      border-color: #0f766e;
-      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
+      border-color: var(--th-p-700, #0f766e);
+      box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2);
     }
 
     .filter-tab-btn .material-symbols-outlined {
@@ -907,12 +908,12 @@
       width: 48px;
       height: 48px;
       border-radius: 14px;
-      background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
-      color: #0f766e;
+      background: linear-gradient(135deg, var(--th-p-100, #ccfbf1) 0%, var(--th-p-200, #99f6e4) 100%);
+      color: var(--th-p-700, #0f766e);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 6px rgba(13, 148, 136, 0.15);
+      box-shadow: 0 4px 6px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
     }
     
     .modal-header-icon .material-symbols-outlined {
@@ -978,7 +979,7 @@
     }
 
     .btn-modal-save {
-      background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+      background: linear-gradient(135deg, var(--th-p-700, #0f766e) 0%, var(--th-p-600, #0d9488) 100%);
       border: none;
       color: white;
       padding: 12px 24px;
@@ -989,14 +990,14 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+      box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .btn-modal-save:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(13, 148, 136, 0.35);
-      background: linear-gradient(135deg, #115e59 0%, #0f766e 100%);
+      box-shadow: 0 6px 16px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
+      background: linear-gradient(135deg, var(--th-p-800, #115e59) 0%, var(--th-p-700, #0f766e) 100%);
     }
     
     .btn-modal-save:active {
@@ -1162,15 +1163,15 @@
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      background: #e0f2fe;
-      color: #0369a1;
+      background: var(--th-k-100, #e0f2fe);
+      color: var(--th-k-700, #0369a1);
       font-weight: 700;
       font-size: 13px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      border: 1.5px solid #bae6fd;
+      border: 1.5px solid var(--th-k-200, #bae6fd);
       overflow: hidden;
     }
 
@@ -1228,9 +1229,9 @@
     }
 
     .role-badge-tag.sup {
-      background: #ccfbf1;
-      color: #0f766e;
-      border: 1px solid #99f6e4;
+      background: var(--th-p-100, #ccfbf1);
+      color: var(--th-p-700, #0f766e);
+      border: 1px solid var(--th-p-200, #99f6e4);
     }
 
     .role-badge-tag.hr {
@@ -1315,8 +1316,8 @@
 
     .help-panel {
       margin-bottom: 28px;
-      border: 1px solid #bae6fd;
-      background: #f0f9ff;
+      border: 1px solid var(--th-k-200, #bae6fd);
+      background: var(--th-k-50, #f0f9ff);
     }
     .help-list {
       margin: 0;
@@ -1334,7 +1335,7 @@
     /* Custom Tom Select Styling to match theme */
     .ts-control { border-radius: 10px !important; padding: 10px 12px !important; border: 1px solid #e2e8f0 !important; font-family: 'Sarabun', sans-serif !important; }
     .ts-dropdown { border-radius: 12px !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; border: 1px solid #e2e8f0 !important; }
-    .ts-dropdown .optgroup-header { font-weight: 700; color: var(--primary); background: #f0fdfa; }
+    .ts-dropdown .optgroup-header { font-weight: 700; color: var(--primary); background: var(--th-p-50, #f0fdfa); }
   </style>
 </head>
 <body id="page-hr-approval-settings">
@@ -1390,8 +1391,8 @@
 
     <!-- Help & Rules Panel -->
     <section class="card-panel help-panel" id="helpPanel">
-      <div class="card-panel-header" style="background:#e0f2fe; border-bottom: 1px solid #bae6fd;">
-        <h2 class="card-panel-title" style="color: #0369a1;">
+      <div class="card-panel-header" style="background:var(--th-k-100, #e0f2fe); border-bottom: 1px solid var(--th-k-200, #bae6fd);">
+        <h2 class="card-panel-title" style="color: var(--th-k-700, #0369a1);">
           <span class="material-symbols-outlined">info</span>
           คำอธิบายและเงื่อนไขการทำงานของระบบ
         </h2>
@@ -1441,7 +1442,7 @@
       </div>
       <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
       <div class="flow-step s4" onclick="focusSection('autoDelegationSection')" title="ระบบโอนสิทธิ์อนุมัติอัตโนมัติเมื่อหัวหน้าลาพักร้อน">
-        <div class="flow-step-icon" style="background: #e0f2fe; color: #0284c7;"></div>
+        <div class="flow-step-icon" style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-600, #0284c7);"></div>
         <div class="flow-step-text">
           <h4>5. โอนสิทธิ์อัตโนมัติ</h4>
           <p>เมื่อหัวหน้าลาพักร้อน</p>
@@ -1458,17 +1459,17 @@
     </section>
 
     <!-- Panel 4: Auto-Delegation & SLA Protection (New) -->
-    <section class="card-panel" id="autoDelegationSection" style="margin-bottom: 32px; border-top: 4px solid #0284c7; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);">
-      <div class="card-panel-header" style="background: linear-gradient(to right, #f0f9ff, #ffffff); border-bottom: 1px solid #bae6fd;">
+    <section class="card-panel" id="autoDelegationSection" style="margin-bottom: 32px; border-top: 4px solid var(--th-k-600, #0284c7); box-shadow: 0 4px 12px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.08);">
+      <div class="card-panel-header" style="background: linear-gradient(to right, var(--th-k-50, #f0f9ff), #ffffff); border-bottom: 1px solid var(--th-k-200, #bae6fd);">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <h2 class="card-panel-title" style="color: #0369a1;">
-            <span class="material-symbols-outlined" style="color: #0284c7;">swap_calls</span>
+          <h2 class="card-panel-title" style="color: var(--th-k-700, #0369a1);">
+            <span class="material-symbols-outlined" style="color: var(--th-k-600, #0284c7);">swap_calls</span>
             ระบบโอนสิทธิ์อนุมัติอัตโนมัติ (Auto-Delegation & SLA Protection)
           </h2>
-          <span class="field-label-tag" style="background: #e0f2fe; color: #0369a1; font-weight: 700;">ป้องกันค้าง SLA 48 ชม.</span>
+          <span class="field-label-tag" style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); font-weight: 700;">ป้องกันค้าง SLA 48 ชม.</span>
         </div>
         <div>
-          <span id="activeDelegationsBadge" class="line-badge line-ok" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 700;">
+          <span id="activeDelegationsBadge" class="line-badge line-ok" style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-600, #0284c7); border: 1px solid var(--th-k-200, #bae6fd); font-weight: 700;">
             <span class="material-symbols-outlined" style="font-size: 14px;">bolt</span> ระบบเปิดใช้งาน
           </span>
         </div>
@@ -1479,7 +1480,7 @@
         <!-- Explanation box based on company policy -->
         <div style="background: #f8fafc; border-radius: 12px; padding: 16px; border: 1px dashed #cbd5e1; font-size: 13.5px; color: #334155; line-height: 1.6;">
           <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-            <span class="material-symbols-outlined" style="color: #0284c7; font-size: 20px;">verified_user</span>
+            <span class="material-symbols-outlined" style="color: var(--th-k-600, #0284c7); font-size: 20px;">verified_user</span>
             กฎระเบียบและเงื่อนไขการโอนสิทธิ์อัตโนมัติ (PVT Company Approval Policy)
           </div>
           • <strong>นโยบาย SLA 48 ชั่วโมง:</strong> ตามระเบียบบริษัท คำขอลาต้องได้รับการพิจารณาภายใน 48 ชั่วโมง (2 วันทำการ)<br>
@@ -1536,7 +1537,7 @@
         <!-- Setting Form: Assign Designated Delegate -->
         <div style="background: #fafafa; padding: 20px; border-radius: 14px; border: 1px solid #e2e8f0;">
           <h3 style="margin: 0 0 14px; font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-            <span class="material-symbols-outlined" style="color: #0284c7; font-size: 20px;">person_add</span>
+            <span class="material-symbols-outlined" style="color: var(--th-k-600, #0284c7); font-size: 20px;">person_add</span>
             กำหนดผู้รักษาการแทนรายบุคคล (Assign Designated Delegate)
           </h3>
 
@@ -1553,7 +1554,7 @@
             <div class="form-field">
               <label class="field-label">
                 <span>ผู้รักษาการแทน (Designated Delegate) <span style="color:#ef4444;">*</span></span>
-                <span class="field-label-tag" style="background:#e0f2fe; color:#0369a1;">รักษาการแทน</span>
+                <span class="field-label-tag" style="background:var(--th-k-100, #e0f2fe); color:var(--th-k-700, #0369a1);">รักษาการแทน</span>
               </label>
               <select id="delProxySelect" class="field-select">
                 <option value="">-- เลือกผู้ปฏิบัติหน้าที่แทน --</option>
@@ -1589,7 +1590,7 @@
           </div>
 
           <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
-            <button type="button" class="btn-save" onclick="saveDelegationRuleFromForm()" style="background: #0284c7; border-color: #0284c7;">
+            <button type="button" class="btn-save" onclick="saveDelegationRuleFromForm()" style="background: var(--th-k-600, #0284c7); border-color: var(--th-k-600, #0284c7);">
               <span class="material-symbols-outlined">save</span> บันทึกผู้รักษาการแทน
             </button>
           </div>
@@ -1617,7 +1618,7 @@
         <!-- Saved Delegation Rules Table -->
         <div style="margin-top: 8px;">
           <h4 style="margin: 0 0 10px; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
-            <span class="material-symbols-outlined" style="color: #0f766e; font-size: 18px;">rule</span>
+            <span class="material-symbols-outlined" style="color: var(--th-p-700, #0f766e); font-size: 18px;">rule</span>
             รายชื่อผู้รักษาการแทนที่ตั้งค่าไว้ในระบบ (Configured Rules)
           </h4>
           <div id="savedDelegationRulesContainer">
@@ -1788,7 +1789,7 @@
 
           <div style="background: #f8fafc; border-radius: 12px; padding: 14px; border: 1px dashed #cbd5e1; font-size: 13px; color: #475569; line-height: 1.6;">
             <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
-              <span class="material-symbols-outlined" style="font-size:18px; color:#0d9488;">info</span>
+              <span class="material-symbols-outlined" style="font-size:18px; color:var(--th-p-600, #0d9488);">info</span>
               บทบาทของผู้อนุมัติ L3 ในระบบ
             </div>
             • รับแจ้งเตือนและพิจารณาอนุมัติเมื่อ <b>หัวหน้างานหรือผู้จัดการเป็นผู้ยื่นลาเอง</b><br>
@@ -1828,7 +1829,7 @@
               <span class="material-symbols-outlined" style="color: #16a34a; font-size: 20px;">help</span>
               วิธีตั้งค่า LINE Official Account เพื่อส่งการแจ้งเตือนอัตโนมัติ
             </div>
-            1. เข้าสู่ระบบ <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" style="color:#0284c7; font-weight:600; text-decoration:underline;">LINE Developers Console</a> แล้วเลือก Channel แบบ <b>Messaging API</b><br>
+            1. เข้าสู่ระบบ <a href="https://developers.line.biz/console/" target="_blank" rel="noopener noreferrer" style="color:var(--th-k-600, #0284c7); font-weight:600; text-decoration:underline;">LINE Developers Console</a> แล้วเลือก Channel แบบ <b>Messaging API</b><br>
             2. คัดลอก <b>Webhook URL</b> ด้านล่างนี้ไปวางในหน้า Messaging API และกด Verify พร้อมเปิด <b>Use webhook</b><br>
             3. สร้าง <b>Channel access token (long-lived / v2.1)</b> นำมาวางในช่องด้านล่าง แล้วกด <b>"บันทึกการเชื่อมต่อ LINE OA"</b> และ <b>"ตรวจสอบการเชื่อมต่อ LINE API"</b>
           </div>
@@ -1852,7 +1853,7 @@
             <div class="form-field" style="grid-column: 1 / -1;">
               <label class="field-label" for="lineWebhookUrlInput">
                 <span>LINE Webhook URL (นำไปใส่ใน LINE Developers Console &gt; Messaging API)</span>
-                <span class="field-label-tag" style="background:#e0f2fe; color:#0369a1; font-weight:700;">Supabase Edge Function</span>
+                <span class="field-label-tag" style="background:var(--th-k-100, #e0f2fe); color:var(--th-k-700, #0369a1); font-weight:700;">Supabase Edge Function</span>
               </label>
               <div style="display: flex; gap: 8px;">
                 <input type="text" id="lineWebhookUrlInput" class="field-select" value="https://pgogmhqjdchakcytsomx.supabase.co/functions/v1/line-webhook" style="background: #f8fafc; font-family: monospace; color: #0f172a; font-weight: 600;" />
@@ -1876,7 +1877,7 @@
               </label>
               <div style="display: flex; gap: 8px;">
                 <input type="text" id="lineBasicIdInput" class="field-select" placeholder="เช่น @pvtleave หรือ @123abcde" />
-                <button type="button" class="quick-toggle-btn" onclick="openLineQrModal()" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; background:#f0fdfa; color:#0f766e; border-color:#99f6e4;">
+                <button type="button" class="quick-toggle-btn" onclick="openLineQrModal()" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; background:var(--th-p-50, #f0fdfa); color:var(--th-p-700, #0f766e); border-color:var(--th-p-200, #99f6e4);">
                   <span class="material-symbols-outlined" style="font-size: 16px;">qr_code_2</span> ดู QR Code
                 </button>
               </div>
@@ -1902,7 +1903,7 @@
         </div>
 
         <div class="card-panel-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <button type="button" class="btn-save" onclick="testLineOaConnection()" style="background: #0284c7; border-color: #0284c7;">
+          <button type="button" class="btn-save" onclick="testLineOaConnection()" style="background: var(--th-k-600, #0284c7); border-color: var(--th-k-600, #0284c7);">
             <span class="material-symbols-outlined" style="font-size: 18px;">sensors</span>
             ตรวจสอบการเชื่อมต่อ LINE API
           </button>
@@ -1921,12 +1922,12 @@
               <span class="material-symbols-outlined" style="color: #16a34a;">notifications_active</span>
               4. ตั้งค่าการแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
             </h2>
-            <span class="field-label-tag" style="background:#ccfbf1; color:#0f766e;">เปิด-ปิดแยกแต่ละสถานะ</span>
+            <span class="field-label-tag" style="background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e);">เปิด-ปิดแยกแต่ละสถานะ</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span id="lineNotifAutoSaveIndicator" style="display:none; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:4px 10px; border-radius:12px; background:#f0fdf4;"></span>
-            <button type="button" class="quick-toggle-btn" onclick="openTestLineStepModal()" style="display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight:600;">
-              <span class="material-symbols-outlined" style="font-size: 16px; color: #2563eb;">science</span> ทดสอบส่ง LINE
+            <button type="button" class="quick-toggle-btn" onclick="openTestLineStepModal()" style="display: inline-flex; align-items: center; gap: 6px; background: var(--th-b-50, #eff6ff); color: var(--th-b-700, #1d4ed8); border: 1px solid var(--th-b-200, #bfdbfe); font-weight:600;">
+              <span class="material-symbols-outlined" style="font-size: 16px; color: var(--th-b-600, #2563eb);">science</span> ทดสอบส่ง LINE
             </button>
             <button type="button" class="quick-toggle-btn" onclick="toggleAllLineNotifs(true)" style="display: inline-flex; align-items: center; gap: 6px;">
               <img src="/assets/icons/check-circle.svg" alt="เปิดทั้งหมด" style="width: 16px; height: 16px; object-fit: contain;" /> เปิดทั้งหมด
@@ -1986,8 +1987,8 @@
                 <span class="material-symbols-outlined" style="font-size: 18px;">sync_alt</span>
                 ในระหว่างขั้นตอนการพิจารณา
               </span>
-              <button type="button" onclick="openTestLineStepModal('leader_approved')" style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; cursor:pointer; color:#1d4ed8; display:inline-flex; align-items:center; gap:3px;">
-                <span class="material-symbols-outlined" style="font-size:13px; color:#2563eb;">send</span> ทดสอบ
+              <button type="button" onclick="openTestLineStepModal('leader_approved')" style="background:var(--th-b-50, #eff6ff); border:1px solid var(--th-b-200, #bfdbfe); border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; cursor:pointer; color:var(--th-b-700, #1d4ed8); display:inline-flex; align-items:center; gap:3px;">
+                <span class="material-symbols-outlined" style="font-size:13px; color:var(--th-b-600, #2563eb);">send</span> ทดสอบ
               </button>
             </div>
             
@@ -2077,13 +2078,13 @@
 
           <!-- Column 4: การแจ้งเตือนฝ่าย HR (HR Controls & Popups) -->
           <div class="notif-group-card">
-            <div style="font-weight: 800; font-size: 14px; color: #0d9488; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+            <div style="font-weight: 800; font-size: 14px; color: var(--th-p-600, #0d9488); display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
               <span style="display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-outlined" style="font-size: 18px;">manage_accounts</span>
                 การแจ้งเตือน LINE สำหรับฝ่าย HR
               </span>
-              <button type="button" onclick="openTestLineStepModal('hr_review')" style="background:#f0fdfa; border:1px solid #99f6e4; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; cursor:pointer; color:#0f766e; display:inline-flex; align-items:center; gap:3px;">
-                <span class="material-symbols-outlined" style="font-size:13px; color:#0d9488;">send</span> ทดสอบ
+              <button type="button" onclick="openTestLineStepModal('hr_review')" style="background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-200, #99f6e4); border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; cursor:pointer; color:var(--th-p-700, #0f766e); display:inline-flex; align-items:center; gap:3px;">
+                <span class="material-symbols-outlined" style="font-size:13px; color:var(--th-p-600, #0d9488);">send</span> ทดสอบ
               </button>
             </div>
             
@@ -2250,7 +2251,7 @@
         <span class="material-symbols-outlined" style="font-size:16px; color:#94a3b8;">link_off</span> ยังไม่เชื่อมต่อ (<span id="empCountUnconnected">0</span>)
       </button>
       <button type="button" class="filter-tab-btn" data-empfilter="approvers" onclick="setEmpLineFilter('approvers')">
-        <span class="material-symbols-outlined" style="font-size:16px; color:#0284c7;">shield_person</span> เฉพาะหัวหน้า & ผู้บริหาร (<span id="empCountApprovers">0</span>)
+        <span class="material-symbols-outlined" style="font-size:16px; color:var(--th-k-600, #0284c7);">shield_person</span> เฉพาะหัวหน้า & ผู้บริหาร (<span id="empCountApprovers">0</span>)
       </button>
     </div>
 
@@ -2336,7 +2337,7 @@
         </div>
 
         <!-- กล่องคำแนะนำ -->
-        <div style="margin-top:16px; background:#f0fdfa; border:1px solid #ccfbf1; border-radius:12px; padding:12px; font-size:12.5px; color:#0f766e; line-height:1.5;">
+        <div style="margin-top:16px; background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); border-radius:12px; padding:12px; font-size:12.5px; color:var(--th-p-700, #0f766e); line-height:1.5;">
           <b> หมายเหตุการคัดกรอง:</b> ระบบคัดกรองเฉพาะพนักงานที่มีบทบาทหรือตำแหน่งเป็น หัวหน้า (Leader/Supervisor) หรือ ผู้จัดการ (Manager/Director) และหัวหน้าในแผนก เพื่อให้เลือกได้แม่นยำและไม่ปะปนกับพนักงานทั่วไป
         </div>
       </div>

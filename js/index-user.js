@@ -472,7 +472,7 @@ window.loadRecentLeaves = async function(profile) {
 
         // 🎨 คู่สีและไอคอนตามประเภทวันลา
         let typeConfig = {
-          icon: "event_note", iconBg: "#e0f2fe", iconColor: "#0284c7",
+          icon: "event_note", iconBg: "#e0f2fe", iconColor: "var(--th-k-600, #0284c7)",
           borderAccent: "#0284c7", tagBg: "#f0f9ff", tagColor: "#0369a1"
         };
 
@@ -584,7 +584,7 @@ window.viewMyDigitalCard = async function(targetEmpCode) {
   }
   console.error("Failed to load employee-card-modal.js");
   if (typeof Swal !== 'undefined') {
-    Swal.fire({ icon: 'error', title: 'เปิดบัตรพนักงานไม่สำเร็จ', text: 'กรุณารีเฟรชหน้าแล้วลองใหม่อีกครั้ง', confirmButtonColor: '#0d9488' });
+    Swal.fire({ icon: 'error', title: 'เปิดบัตรพนักงานไม่สำเร็จ', text: 'กรุณารีเฟรชหน้าแล้วลองใหม่อีกครั้ง', confirmButtonColor: 'var(--th-p-600, #0d9488)' });
   }
 };
 window.showStaffCard = window.viewMyDigitalCard;
@@ -721,7 +721,7 @@ async function loadDepartmentTeam(profileData) {
       if (roleLower === "leader" || roleLower.includes("leader")) {
         roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 6px; font-weight: 700;">👑 หัวหน้างาน (L1)</span>';
       } else if (roleLower === "manager" || roleLower.includes("manager")) {
-        roleBadge = '<span style="font-size: 10px; background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (L2)</span>';
+        roleBadge = '<span style="font-size: 10px; background: var(--th-b-100, #dbeafe); color: var(--th-b-700, #1d4ed8); padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (L2)</span>';
       } else if (["hr", "admin", "superadmin"].includes(roleLower)) {
         roleBadge = '<span style="font-size: 10px; background: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
       }
@@ -741,7 +741,7 @@ async function loadDepartmentTeam(profileData) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
               <strong style="font-size: 13px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeEscapeHtml(emp.full_name)} ${nick}</strong>
             </div>
-            <div style="font-size: 12px; color: #0284c7; font-weight: 600; margin-bottom: 4px;">💼 ${safeEscapeHtml(pos)}</div>
+            <div style="font-size: 12px; color: var(--th-k-600, #0284c7); font-weight: 600; margin-bottom: 4px;">💼 ${safeEscapeHtml(pos)}</div>
             <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #64748b;">
               <span>${empCode}</span>
               ${lineBadge}
@@ -946,7 +946,7 @@ function formatCleanNotification(title, rawMessage) {
       return `<div style="background: #f0fdf4; color: #166534; padding: 6px 12px; border-radius: 8px; border: 1.5px solid #bbf7d0; font-size: 13.5px; font-weight: 600; margin-top: 4px; line-height: 1.45;">${safeLine}</div>`;
     }
     if (line.startsWith('👉')) {
-      return `<div style="color: #0d9488; font-weight: 700; font-size: 14px; margin-top: 4px;">${safeLine}</div>`;
+      return `<div style="color: var(--th-p-600, #0d9488); font-weight: 700; font-size: 14px; margin-top: 4px;">${safeLine}</div>`;
     }
     return `<div style="line-height: 1.55; font-size: 14px; color: #334155;">${safeLine}</div>`;
   });
@@ -1219,7 +1219,7 @@ async function fetchUserNotificationsCore() {
             ${formatted.bodyHtml}
             <span style="font-size: 13px; color: #64748b; font-weight: 500; display: block; margin-top: 6px;">🕒 ${thaiTime}</span>
           </div>
-          <div style="width: 10px; height: 10px; border-radius: 50%; background: #0284c7; flex-shrink: 0; margin-top: 6px; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);"></div>
+          <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--th-k-600, #0284c7); flex-shrink: 0; margin-top: 6px; box-shadow: 0 0 0 3px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.2);"></div>
         </div>
       `;
     });
@@ -1482,7 +1482,7 @@ async function openEmployeeStatusTrackerModal() {
         html: `<div style="max-height: 460px; overflow-y: auto; padding-right: 6px;">${cardsHtml}</div>`,
         width: '540px',
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0284c7'
+        confirmButtonColor: 'var(--th-k-600, #0284c7)'
       });
     }
 
@@ -1502,7 +1502,7 @@ function openApproverNotificationModal() {
       showCancelButton: true,
       confirmButtonText: '🔎 ไปยังระบบอนุมัติ',
       cancelButtonText: 'ปิด',
-      confirmButtonColor: '#0284c7'
+      confirmButtonColor: 'var(--th-k-600, #0284c7)'
     }).then((result) => {
       if (result.isConfirmed) window.location.href = '/pages/hr/hr.html';
     });
@@ -1750,7 +1750,7 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
     showCancelButton: true,
     confirmButtonText: 'ถัดไป (ยืนยันขั้นที่ 2) ➡️',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     cancelButtonColor: '#94a3b8'
   });
 
@@ -1760,7 +1760,7 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
     title: '🔐 ยืนยันการรีเซ็ตโควต้า (ขั้นที่ 2/2)',
     html: `
       <div style="font-size: 13px; color: #475569; margin-bottom: 14px;">
-        กรุณาพิมพ์คำว่า <b style="color:#0d9488; font-size: 16px; letter-spacing: 1px;">CONFIRM</b> ในช่องด้านล่างเพื่อยืนยัน
+        กรุณาพิมพ์คำว่า <b style="color:var(--th-p-600, #0d9488); font-size: 16px; letter-spacing: 1px;">CONFIRM</b> ในช่องด้านล่างเพื่อยืนยัน
       </div>
     `,
     input: 'text',
@@ -1835,7 +1835,7 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
           ระบบได้รวมข้อมูลที่ซ้ำซ้อน และคำนวณสิทธิ์วันลาคงเหลือประจำปี <b>${currentYear} (พ.ศ. ${thaiYear})</b> เรียบร้อยแล้ว
         </div>
       `,
-      confirmButtonColor: '#0d9488'
+      confirmButtonColor: 'var(--th-p-600, #0d9488)'
     });
   } catch (err) {
     console.error('❌ Reset quota error:', err);
@@ -2010,7 +2010,7 @@ function renderQuotaCards(quotas) {
       <div class="micro-card-body summary-mode">
         <div class="micro-card-header">
           <div class="micro-card-title-group">
-            <div class="micro-card-icon-badge" style="background: #0284c715; color: #0284c7;">
+            <div class="micro-card-icon-badge" style="background: rgba(var(--th-k-600-rgb, 2, 132, 199), 0.082); color: var(--th-k-600, #0284c7);">
               <span class="material-symbols-outlined">analytics</span>
             </div>
             <div>
@@ -2024,7 +2024,7 @@ function renderQuotaCards(quotas) {
           <div class="micro-stat-box used">
             <span class="stat-label">ใช้ไปแล้ว</span>
             <div class="stat-value-group">
-              <span class="stat-num" style="color: #2563eb;">${totalSumUsed}</span>
+              <span class="stat-num" style="color: var(--th-b-600, #2563eb);">${totalSumUsed}</span>
               <span class="stat-unit">วัน</span>
             </div>
           </div>
@@ -2169,7 +2169,7 @@ function renderQuotaCards(quotas) {
     <div class="quota-dropdown-micro-wrapper">
       <div class="quota-dropdown-bar">
         <label for="quotaMicroSelect" class="quota-dropdown-label">
-          <span class="material-symbols-outlined" style="font-size: 18px; color: #0284c7;">tune</span>
+          <span class="material-symbols-outlined" style="font-size: 18px; color: var(--th-k-600, #0284c7);">tune</span>
           <span>เลือกประเภทวันลา:</span>
         </label>
         <select id="quotaMicroSelect" class="quota-type-select" onchange="window.handleMicroQuotaChange(this.value)">
@@ -2334,7 +2334,7 @@ window.showLeaveTypeHistory = async function(leaveTypeId, leaveTypeName) {
           icon: 'info',
           title: `📊 ประวัติ ${leaveTypeName}`,
           text: `คุณยังไม่มีประวัติการยื่น ${leaveTypeName}`,
-          confirmButtonColor: '#3b82f6'
+          confirmButtonColor: 'var(--th-b-500, #3b82f6)'
         });
       }
       return;
@@ -2372,8 +2372,8 @@ window.showLeaveTypeHistory = async function(leaveTypeId, leaveTypeName) {
       Swal.fire({
         title: `📊 ประวัติ ${leaveTypeName}`,
         html: `
-          <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-around; font-size:12px;">
-            <div>ยื่นทั้งหมด: <strong style="color:#2563eb;">${totalTimes} ครั้ง</strong></div>
+          <div style="background:var(--th-k-50, #f0f9ff); border:1px solid var(--th-k-200, #bae6fd); border-radius:12px; padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-around; font-size:12px;">
+            <div>ยื่นทั้งหมด: <strong style="color:var(--th-b-600, #2563eb);">${totalTimes} ครั้ง</strong></div>
             <div>อนุมัติแล้ว: <strong style="color:#16a34a;">${approvedCount} ครั้ง</strong></div>
             <div>รอพิจารณา: <strong style="color:#d97706;">${pendingCount} ครั้ง</strong></div>
           </div>
@@ -2561,7 +2561,7 @@ window.handleQuickFileSelect = function(input) {
       icon: 'warning',
       title: 'ขนาดไฟล์เกินกำหนด',
       text: 'กรุณาเลือกไฟล์ขนาดไม่เกิน 10 MB ครับ',
-      confirmButtonColor: '#0d9488'
+      confirmButtonColor: 'var(--th-p-600, #0d9488)'
     });
     input.value = '';
     return;
@@ -2911,7 +2911,7 @@ window.initQuickForm = async function(profile, quotas) {
       noteEl.style.color = '#d97706';
       noteEl.style.fontWeight = '600';
     } else {
-      noteEl.style.color = '#0d9488';
+      noteEl.style.color = 'var(--th-p-600, #0d9488)';
       noteEl.style.fontWeight = '500';
     }
   }
@@ -2953,9 +2953,9 @@ window.selectQuickLeaveType = function(leaveTypeId, element) {
     btn.style.boxShadow = 'none';
   });
 
-  element.style.background = '#f0fdfa';
-  element.style.borderColor = '#0d9488';
-  element.style.boxShadow = '0 0 0 2px rgba(13, 148, 136, 0.15)';
+  element.style.background = 'var(--th-p-50, #f0fdfa)';
+  element.style.borderColor = 'var(--th-p-600, #0d9488)';
+  element.style.boxShadow = '0 0 0 2px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15)';
 };
 
 window.submitQuickLeave = async function() {
@@ -2969,19 +2969,19 @@ window.submitQuickLeave = async function() {
   const file = window.selectedQuickFile;
 
   if (!leaveTypeId) {
-    return Swal.fire({ icon: 'warning', title: 'กรุณาเลือกประเภทการลา', text: 'เลือกประเภทการลาโดยคลิกที่ปุ่มตัวเลือกสิทธิ์วันลาคงเหลือด้านบนครับ', confirmButtonColor: '#0d9488' });
+    return Swal.fire({ icon: 'warning', title: 'กรุณาเลือกประเภทการลา', text: 'เลือกประเภทการลาโดยคลิกที่ปุ่มตัวเลือกสิทธิ์วันลาคงเหลือด้านบนครับ', confirmButtonColor: 'var(--th-p-600, #0d9488)' });
   }
   if (!startDate || !endDate) {
-    return Swal.fire({ icon: 'warning', title: 'ระบุวันที่ลาให้ครบถ้วน', text: 'กรุณากรอกวันที่เริ่มและสิ้นสุดการลาด้วยครับ', confirmButtonColor: '#0d9488' });
+    return Swal.fire({ icon: 'warning', title: 'ระบุวันที่ลาให้ครบถ้วน', text: 'กรุณากรอกวันที่เริ่มและสิ้นสุดการลาด้วยครับ', confirmButtonColor: 'var(--th-p-600, #0d9488)' });
   }
   if (!reason) {
-    return Swal.fire({ icon: 'warning', title: 'ระบุเหตุผลการลา', text: 'กรุณาระบุเหตุผลในการลาพักในช่องข้อความด้วยครับ', confirmButtonColor: '#0d9488' });
+    return Swal.fire({ icon: 'warning', title: 'ระบุเหตุผลการลา', text: 'กรุณาระบุเหตุผลในการลาพักในช่องข้อความด้วยครับ', confirmButtonColor: 'var(--th-p-600, #0d9488)' });
   }
 
   const startD = new Date(startDate);
   const endD = new Date(endDate);
   if (startD > endD) {
-    return Swal.fire({ icon: 'warning', title: 'วันที่เริ่มต้นผิดพลาด', text: 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุดการลาครับ', confirmButtonColor: '#0d9488' });
+    return Swal.fire({ icon: 'warning', title: 'วันที่เริ่มต้นผิดพลาด', text: 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุดการลาครับ', confirmButtonColor: 'var(--th-p-600, #0d9488)' });
   }
 
   const diffTime = Math.abs(endD - startD);
@@ -3070,9 +3070,9 @@ window.submitQuickLeave = async function() {
 
     let successHtml = 'คำขอลาแบบด่วน (1-Click) ถูกส่งไปยังหัวหน้างานและฝ่าย HR เพื่อตรวจสอบเรียบร้อยแล้ว';
     if (!hasLeader && hasManager) {
-      successHtml = `แผนกของคุณไม่มีหัวหน้างาน/หัวหน้ากะ ระบบจึงได้ส่งคำขอตรงถึง <b>คุณ${safeEscapeHtml(window.quickFormApproverInfo?.name)} (ผู้จัดการฝ่าย)</b> เพื่อพิจารณาอนุมัติเรียบร้อยแล้ว${attachmentUrl ? '<br><span style="color:#0d9488; font-size:13px; font-weight:600; display:inline-block; margin-top:6px;">✓ แนบไฟล์เอกสารเรียบร้อย</span>' : ''}`;
+      successHtml = `แผนกของคุณไม่มีหัวหน้างาน/หัวหน้ากะ ระบบจึงได้ส่งคำขอตรงถึง <b>คุณ${safeEscapeHtml(window.quickFormApproverInfo?.name)} (ผู้จัดการฝ่าย)</b> เพื่อพิจารณาอนุมัติเรียบร้อยแล้ว${attachmentUrl ? '<br><span style="color:var(--th-p-600, #0d9488); font-size:13px; font-weight:600; display:inline-block; margin-top:6px;">✓ แนบไฟล์เอกสารเรียบร้อย</span>' : ''}`;
     } else if (attachmentUrl) {
-      successHtml += '<br><span style="color:#0d9488; font-size:13px; font-weight:600; display:inline-block; margin-top:6px;">✓ แนบไฟล์เอกสารเรียบร้อย</span>';
+      successHtml += '<br><span style="color:var(--th-p-600, #0d9488); font-size:13px; font-weight:600; display:inline-block; margin-top:6px;">✓ แนบไฟล์เอกสารเรียบร้อย</span>';
     }
 
     Swal.fire({
@@ -3080,7 +3080,7 @@ window.submitQuickLeave = async function() {
       title: '⚡ ยื่นคำขอลาสำเร็จ!',
       html: successHtml,
       confirmButtonText: 'ตกลง',
-      confirmButtonColor: '#0d9488'
+      confirmButtonColor: 'var(--th-p-600, #0d9488)'
     }).then(() => {
       location.reload();
     });
@@ -3149,19 +3149,19 @@ window.checkSmartNudges = async function(profile, quotas) {
 
         if (count && count > 0) {
           nudges.push(`
-            <div class="smart-nudge-card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08); margin-bottom: 10px;">
+            <div class="smart-nudge-card" style="background: linear-gradient(135deg, var(--th-b-50, #eff6ff) 0%, var(--th-b-100, #dbeafe) 100%); border: 1.5px solid var(--th-b-200, #bfdbfe); border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; box-shadow: 0 2px 6px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.08); margin-bottom: 10px;">
               <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 42px; height: 42px; border-radius: 12px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div style="width: 42px; height: 42px; border-radius: 12px; background: var(--th-b-500, #3b82f6); color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                   <span class="material-symbols-outlined" style="font-size: 24px;">alarm_on</span>
                 </div>
                 <div>
-                  <strong style="color: #1e40af; font-size: 14px; display: block;">⚡ การเตือนความเร็ว SLA (48 ชม.)</strong>
-                  <span style="font-size: 12px; color: #1d4ed8;">
+                  <strong style="color: var(--th-b-800, #1e40af); font-size: 14px; display: block;">⚡ การเตือนความเร็ว SLA (48 ชม.)</strong>
+                  <span style="font-size: 12px; color: var(--th-b-700, #1d4ed8);">
                     มีคำขอลาที่รอการพิจารณาในระบบ <strong>${count} รายการ</strong> โปรดพิจารณาอนุมัติให้เสร็จสิ้นภายใน 48 ชม. เพื่อไม่ให้หลุดกรอบเวลา
                   </span>
                 </div>
               </div>
-              <a href="/pages/hr/home.html" style="text-decoration: none; background: #2563eb; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+              <a href="/pages/hr/home.html" style="text-decoration: none; background: var(--th-b-600, #2563eb); color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
                 <span class="material-symbols-outlined" style="font-size: 16px;">checklist</span> ตรวจสอบทันที
               </a>
             </div>
@@ -3187,7 +3187,7 @@ window.checkSmartNudges = async function(profile, quotas) {
 function buildPopupCloseButton(label = 'ปิดหน้าต่าง') {
   return `
     <div style="display: flex; justify-content: center; margin-top: 18px;">
-      <button type="button" onclick="closeVisualTimelineModal()" class="btn-popup-close" style="min-width: 136px; height: 38px; padding: 0 24px; background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); color: #ffffff; border: none; border-radius: 9999px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);">
+      <button type="button" onclick="closeVisualTimelineModal()" class="btn-popup-close" style="min-width: 136px; height: 38px; padding: 0 24px; background: linear-gradient(135deg, var(--th-b-800, #1e40af) 0%, var(--th-b-600, #2563eb) 100%); color: #ffffff; border: none; border-radius: 9999px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.3);">
         <span>${label}</span>
       </button>
     </div>
@@ -3224,7 +3224,7 @@ function buildLeaveDetailCard({ leaveName, durationDisplay, dateDisplay, reason 
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
         ${rowLabel('category', 'ประเภทการลา')}
         <span style="color: #0f172a; font-weight: 700;">
-          ${leaveName} <span style="background: #e0f2fe; color: #0284c7; padding: 2px 7px; border-radius: 6px; font-size: 11.5px; margin-left: 4px;">${durationDisplay}</span>
+          ${leaveName} <span style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-600, #0284c7); padding: 2px 7px; border-radius: 6px; font-size: 11.5px; margin-left: 4px;">${durationDisplay}</span>
         </span>
       </div>
       ${divider}
@@ -3428,7 +3428,7 @@ window.sendHrChatMessage = async function() {
 
   chatContainer.insertAdjacentHTML('beforeend', `
     <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
-      <div style="background: #0d9488; color: #ffffff; border-radius: 14px 14px 0 14px; padding: 10px 14px; font-size: 13px; max-width: 85%; line-height: 1.4; box-shadow: 0 1px 3px rgba(13,148,136,0.2);">
+      <div style="background: var(--th-p-600, #0d9488); color: #ffffff; border-radius: 14px 14px 0 14px; padding: 10px 14px; font-size: 13px; max-width: 85%; line-height: 1.4; box-shadow: 0 1px 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2);">
         ${safeEscapeHtml(text)}
       </div>
     </div>
@@ -3533,7 +3533,7 @@ window.switchStatsTab = function(tabName) {
     const view = document.getElementById(viewId);
     const active = key === tabName;
     if (btn) {
-      btn.style.background = active ? '#0f766e' : '#ffffff';
+      btn.style.background = active ? 'var(--th-p-700, #0f766e)' : '#ffffff';
       btn.style.color = active ? '#ffffff' : '#475569';
     }
     if (view) view.style.display = active ? 'block' : 'none';
@@ -3551,11 +3551,11 @@ window.switchRankingScope = function(scope) {
   const btnDept = document.getElementById("btnScopeDept");
 
   if (btnCompany) {
-    btnCompany.style.background = scope === 'company' ? '#0284c7' : '#ffffff';
+    btnCompany.style.background = scope === 'company' ? 'var(--th-k-600, #0284c7)' : '#ffffff';
     btnCompany.style.color = scope === 'company' ? '#ffffff' : '#475569';
   }
   if (btnDept) {
-    btnDept.style.background = scope === 'dept' ? '#0284c7' : '#ffffff';
+    btnDept.style.background = scope === 'dept' ? 'var(--th-k-600, #0284c7)' : '#ffffff';
     btnDept.style.color = scope === 'dept' ? '#ffffff' : '#475569';
   }
 
@@ -3739,17 +3739,17 @@ function renderDepartmentStats(deptList, totalCompanyDays) {
       <div class="dept-stat-card ${isUserDept ? 'user-dept' : ''}">
         <div class="dept-stat-header">
           <div class="dept-stat-title-group">
-            <span style="font-size: 12px; font-weight: 800; color: #0d9488; background: #e0f2fe; padding: 2px 8px; border-radius: 6px;">#${index + 1}</span>
+            <span style="font-size: 12px; font-weight: 800; color: var(--th-p-600, #0d9488); background: var(--th-k-100, #e0f2fe); padding: 2px 8px; border-radius: 6px;">#${index + 1}</span>
             <strong style="font-size: 13.5px; color: #1e293b;">${safeEscapeHtml(dept.name)}</strong>
             ${isUserDept ? `<span style="font-size: 10px; background: #16a34a; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap;">แผนกของคุณ</span>` : ''}
           </div>
           <div class="dept-stat-value-group">
-            <strong style="font-size: 14px; color: #0f766e;">${dept.days.toFixed(1)} วัน</strong>
+            <strong style="font-size: 14px; color: var(--th-p-700, #0f766e);">${dept.days.toFixed(1)} วัน</strong>
             <span style="font-size: 11px; color: #64748b; margin-left: 6px;">(${dept.count} ครั้ง / ${dept.empCount} คน)</span>
           </div>
         </div>
         <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; display: flex;">
-          <div style="width: ${percentOfMax}%; background: linear-gradient(90deg, #0d9488, #0284c7); border-radius: 4px; transition: width 0.5s ease;"></div>
+          <div style="width: ${percentOfMax}%; background: linear-gradient(90deg, var(--th-p-600, #0d9488), var(--th-k-600, #0284c7)); border-radius: 4px; transition: width 0.5s ease;"></div>
         </div>
         <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 10.5px; color: #94a3b8;">
           <span>สัดส่วนเทียบกับแผนกสูงสุด: ${percentOfMax}%</span>
@@ -3843,7 +3843,7 @@ function renderEmployeeRanking(requests) {
             <div style="font-size: 11px; color: #64748b; margin-top: 1px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <span>🏢 ${safeEscapeHtml(emp.deptName)}</span>
               <span>•</span>
-              <span>ประเภทใช้มากสุด: <b style="color: #0f766e;">${safeEscapeHtml(topLeaveType)}</b></span>
+              <span>ประเภทใช้มากสุด: <b style="color: var(--th-p-700, #0f766e);">${safeEscapeHtml(topLeaveType)}</b></span>
             </div>
           </div>
         </div>
@@ -3945,7 +3945,7 @@ function showRealtimeNotificationPopup(notif) {
   const title = String(notif.title || 'มีการแจ้งเตือนใหม่');
   const msg = String(notif.message || '');
 
-  let iconHtml = '<div style="background: #e0f2fe; color: #0284c7; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">🔔</div>';
+  let iconHtml = '<div style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-600, #0284c7); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">🔔</div>';
   let badgeColor = '#0ea5e9';
 
   if (title.includes('อนุมัติแล้ว') || title.includes('✅')) {

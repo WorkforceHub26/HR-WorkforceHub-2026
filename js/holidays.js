@@ -1051,10 +1051,10 @@ window.switchHolidayTab = function(tab) {
   if (tab === 'company') {
     if (companyTab) {
       companyTab.classList.add('active');
-      companyTab.style.background = '#0f766e';
+      companyTab.style.background = 'var(--th-p-700, #0f766e)';
       companyTab.style.color = '#ffffff';
       companyTab.style.fontWeight = '700';
-      companyTab.style.boxShadow = '0 2px 6px rgba(15, 118, 110, 0.35)';
+      companyTab.style.boxShadow = '0 2px 6px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.35)';
     }
     if (teamTab) {
       teamTab.classList.remove('active');
@@ -1068,10 +1068,10 @@ window.switchHolidayTab = function(tab) {
   } else {
     if (teamTab) {
       teamTab.classList.add('active');
-      teamTab.style.background = '#0f766e';
+      teamTab.style.background = 'var(--th-p-700, #0f766e)';
       teamTab.style.color = '#ffffff';
       teamTab.style.fontWeight = '700';
-      teamTab.style.boxShadow = '0 2px 6px rgba(15, 118, 110, 0.35)';
+      teamTab.style.boxShadow = '0 2px 6px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.35)';
     }
     if (companyTab) {
       companyTab.classList.remove('active');
@@ -1396,7 +1396,7 @@ window.openLeaveApprovalOrDetail = function(leaveId) {
       <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
         <div>
           <span style="color: #64748b; font-size: 11px; display: block;">ประเภทการลา</span>
-          <strong style="color: #0d9488;">${leaveName}</strong>
+          <strong style="color: var(--th-p-600, #0d9488);">${leaveName}</strong>
         </div>
         <div>
           <span style="color: #64748b; font-size: 11px; display: block;">จำนวนวันลา</span>
@@ -1407,7 +1407,7 @@ window.openLeaveApprovalOrDetail = function(leaveId) {
       <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 13px;">
         <span style="color: #64748b; font-size: 11px; display: block;">ช่วงเวลาที่ลา</span>
         <strong style="color: #0f172a; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
-          <span class="material-symbols-outlined" style="font-size: 16px; color: #0d9488;">calendar_month</span> ${dateDisplay}
+          <span class="material-symbols-outlined" style="font-size: 16px; color: var(--th-p-600, #0d9488);">calendar_month</span> ${dateDisplay}
         </strong>
       </div>
 
@@ -1525,7 +1525,7 @@ window.renderTeamLeavesSidebar = function(data, specificDay = null, page = 1) {
         </div>
         <div style="font-size: 12px; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
           <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; color: #0fa472;">event</span><strong>${dateDisplay}</strong> (${leave.total_days} ${strings.daysUnit})</span>
-          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; color: #0284c7;">category</span><span class="leave-type-title" data-raw-cat="${rawLeaveName}">${leaveName}</span></span>
+          <span style="display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 14px; color: var(--th-k-600, #0284c7);">category</span><span class="leave-type-title" data-raw-cat="${rawLeaveName}">${leaveName}</span></span>
         </div>
         <div class="team-leave-actions-row" onclick="event.stopPropagation()">
           <button type="button" class="btn-leave-action btn-action-primary" onclick="window.focusTeamLeaveDate('${leave.start_date}', '${leave.id}')" title="ดูตำแหน่งวันที่บนปฏิทิน">
@@ -1779,8 +1779,8 @@ window.renderYearlyCalendarGrid = function(year, holidaysList) {
       const dayHolidays = holidaysList.filter(h => h.holiday_date === dayStr);
 
       if (isCurrentMonth && i === todayDate) {
-        cell.style.background = '#e0f2fe';
-        cell.style.color = '#0284c7';
+        cell.style.background = 'var(--th-k-100, #e0f2fe)';
+        cell.style.color = 'var(--th-k-600, #0284c7)';
         cell.style.fontWeight = '700';
       }
 

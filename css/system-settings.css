@@ -97,8 +97,8 @@ html[data-font-size="large"] .btn {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: var(--primary-soft, #f0fdfa);
-  color: var(--primary, #0d9488);
+  background: var(--primary-soft, var(--th-p-50, #f0fdfa));
+  color: var(--primary, var(--th-p-600, #0d9488));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,11 +222,11 @@ html[data-font-size="large"] .btn {
 }
 
 .font-size-btn.active {
-  background: var(--primary-soft, #f0fdfa);
-  border-color: var(--primary, #0d9488);
-  color: var(--primary, #0d9488);
+  background: var(--primary-soft, var(--th-p-50, #f0fdfa));
+  border-color: var(--primary, var(--th-p-600, #0d9488));
+  color: var(--primary, var(--th-p-600, #0d9488));
   font-weight: 700;
-  box-shadow: 0 0 0 2px var(--primary-light, #ccfbf1);
+  box-shadow: 0 0 0 2px var(--primary-light, var(--th-p-100, #ccfbf1));
 }
 
 .font-size-sample {
@@ -278,9 +278,9 @@ html[data-font-size="large"] .btn {
 }
 
 .theme-color-btn.active {
-  border-color: var(--primary, #0d9488);
-  background: var(--primary-soft, #f0fdfa);
-  box-shadow: 0 0 0 2px var(--primary-light, #ccfbf1);
+  border-color: var(--primary, var(--th-p-600, #0d9488));
+  background: var(--primary-soft, var(--th-p-50, #f0fdfa));
+  box-shadow: 0 0 0 2px var(--primary-light, var(--th-p-100, #ccfbf1));
 }
 
 .theme-swatch-circle {
@@ -425,7 +425,7 @@ html[data-font-size="large"] .btn {
 }
 
 .btn-settings-done {
-  background: var(--primary, #0d9488);
+  background: var(--primary, var(--th-p-600, #0d9488));
   color: #ffffff;
   border: none;
   padding: 10px 22px;
@@ -434,7 +434,7 @@ html[data-font-size="large"] .btn {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
   font-family: inherit;
 }
 
@@ -525,7 +525,7 @@ html[data-font-size="large"] .btn {
 }
 
 input:checked + .setting-slider {
-  background-color: var(--primary, #0d9488);
+  background-color: var(--primary, var(--th-p-600, #0d9488));
 }
 
 input:checked + .setting-slider:before {
@@ -563,9 +563,9 @@ input:checked + .setting-slider:before {
 }
 
 .lang-pills-btn.active {
-  background: var(--primary-soft, #f0fdfa);
-  border-color: var(--primary, #0d9488);
-  color: var(--primary, #0d9488);
+  background: var(--primary-soft, var(--th-p-50, #f0fdfa));
+  border-color: var(--primary, var(--th-p-600, #0d9488));
+  color: var(--primary, var(--th-p-600, #0d9488));
 }
 
 .lang-flag {
@@ -756,7 +756,7 @@ body {
 
 #globalLangSwitcherContainer .lang-btn.active {
   background: #ffffff !important;
-  color: #0d9488 !important;
+  color: var(--th-p-600, #0d9488) !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
   font-weight: 700 !important;
 }
@@ -786,9 +786,9 @@ body {
   white-space: nowrap !important;
 }
 .goog-te-menu-value:hover {
-  border-color: #3b82f6 !important;
-  background: #f0f9ff !important;
-  color: #2563eb !important;
+  border-color: var(--th-b-500, #3b82f6) !important;
+  background: var(--th-k-50, #f0f9ff) !important;
+  color: var(--th-b-600, #2563eb) !important;
 }
 .goog-te-menu-value span { 
   color: inherit !important; 
@@ -828,13 +828,13 @@ body {
   display: inline-block !important;
 }
 .goog-te-combo:hover {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08) !important;
+  border-color: var(--th-b-500, #3b82f6) !important;
+  box-shadow: 0 4px 12px rgba(var(--th-b-500-rgb, 59, 130, 246), 0.08) !important;
   background-color: #f8fafc !important;
 }
 .goog-te-combo:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  border-color: var(--th-b-500, #3b82f6) !important;
+  box-shadow: 0 0 0 3px rgba(var(--th-b-500-rgb, 59, 130, 246), 0.15) !important;
 }
 /* Only style skiptranslate inside settings modal or visible element */
 #google_translate_element_visible .skiptranslate,
@@ -904,8 +904,8 @@ html, body {
   margin-top: 0px !important;
 }
 .magic-translate-card:hover {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 8px 20px -10px rgba(59, 130, 246, 0.2) !important;
+  border-color: var(--th-b-500, #3b82f6) !important;
+  box-shadow: 0 8px 20px -10px rgba(var(--th-b-500-rgb, 59, 130, 246), 0.2) !important;
 }
 
 

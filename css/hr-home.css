@@ -39,10 +39,10 @@
    00. DESIGN TOKENS
    ========================================================================== */
 #page-hr-home {
-  --hm-primary: #0d9488;
-  --hm-primary-dark: #0f766e;
-  --hm-primary-soft: #f0fdfa;
-  --hm-blue: #0284c7;
+  --hm-primary: var(--th-p-600, #0d9488);
+  --hm-primary-dark: var(--th-p-700, #0f766e);
+  --hm-primary-soft: var(--th-p-50, #f0fdfa);
+  --hm-blue: var(--th-k-600, #0284c7);
   --hm-amber: #d97706;
   --hm-rose: #e11d48;
   --hm-violet: #7c3aed;
@@ -74,12 +74,12 @@
 #page-hr-home {
   font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--hm-text);
-  background-color: #f0fdfa;
+  background-color: var(--th-p-50, #f0fdfa);
   background-image:
-    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
-    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
-    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -121,13 +121,13 @@
 /* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
 #page-hr-home .pvt-sidebar__toggle {
   color: #ffffff;
-  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
   border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 #page-hr-home .pvt-sidebar__toggle:hover {
-  background: linear-gradient(135deg, #2748a8, #1e3988);
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
 #page-hr-home .pvt-sidebar__toggle .material-symbols-outlined {
@@ -175,11 +175,11 @@
 #page-hr-home .hm-btn--primary {
   background: linear-gradient(135deg, var(--hm-primary), var(--hm-primary-dark));
   color: #fff;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 #page-hr-home .hm-btn--primary:hover {
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
 }
 
 /* ปุ่มรอง: ขาวขอบเทา */
@@ -193,7 +193,7 @@
 #page-hr-home .hm-btn--light:hover {
   background: var(--hm-primary-soft);
   color: var(--hm-primary-dark);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 /* ระหว่างซิงค์ (home.js ใส่ class refresh-spin-active) → ไอคอนหมุน กดซ้ำไม่ได้ */
@@ -292,7 +292,7 @@
 
 #page-hr-home .notif-btn:hover {
   background: var(--hm-primary-soft);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 #page-hr-home .notif-btn img {
@@ -374,7 +374,7 @@
   font-weight: 700;
   white-space: nowrap;
   color: var(--hm-primary-dark);
-  background: #ccfbf1;
+  background: var(--th-p-100, #ccfbf1);
   border-radius: 999px;
 }
 
@@ -511,7 +511,7 @@
 /* ไอคอนในแถว: สีตามประเภท */
 #page-hr-home .notif-icon.bg-orange { color: #ea580c;            background: #fff7ed; }
 #page-hr-home .notif-icon.bg-green  { color: #047857;            background: #ecfdf5; }
-#page-hr-home .notif-icon.bg-blue   { color: var(--hm-blue);     background: #f0f9ff; }
+#page-hr-home .notif-icon.bg-blue   { color: var(--hm-blue);     background: var(--th-k-50, #f0f9ff); }
 #page-hr-home .notif-icon.bg-purple { color: var(--hm-violet);   background: #f5f3ff; }
 
 #page-hr-home .notif-sla-badge-tag,
@@ -743,7 +743,7 @@
 
 #page-hr-home .hm-kpi {
   --stat-color: var(--hm-primary);
-  --stat-soft: #ccfbf1;
+  --stat-soft: var(--th-p-100, #ccfbf1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -764,8 +764,8 @@
   box-shadow: var(--hm-shadow-hover);
 }
 
-#page-hr-home .hm-kpi.stat-teal   { --stat-color: var(--hm-primary); --stat-soft: #ccfbf1; }
-#page-hr-home .hm-kpi.stat-blue   { --stat-color: var(--hm-blue);    --stat-soft: #e0f2fe; }
+#page-hr-home .hm-kpi.stat-teal   { --stat-color: var(--hm-primary); --stat-soft: var(--th-p-100, #ccfbf1); }
+#page-hr-home .hm-kpi.stat-blue   { --stat-color: var(--hm-blue);    --stat-soft: var(--th-k-100, #e0f2fe); }
 #page-hr-home .hm-kpi.stat-amber  { --stat-color: var(--hm-amber);   --stat-soft: #fef3c7; }
 #page-hr-home .hm-kpi.stat-violet { --stat-color: var(--hm-violet);  --stat-soft: #ede9fe; }
 
@@ -942,7 +942,7 @@
 
 #page-hr-home .chart-type-select:focus {
   border-color: var(--hm-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ปุ่มพับ/กาง panel (home.js สร้าง) */
@@ -1154,7 +1154,7 @@
 
 #page-hr-home .top-emp-card:hover {
   transform: translateX(2px);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
   box-shadow: var(--hm-shadow);
 }
 
@@ -1211,7 +1211,7 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--hm-primary-dark);
-  background: #ccfbf1;
+  background: var(--th-p-100, #ccfbf1);
 }
 
 #page-hr-home .top-emp-card .col-name {
@@ -1255,7 +1255,7 @@
   font-weight: 700;
   white-space: nowrap;
   color: var(--hm-primary-dark);
-  background: #ccfbf1;
+  background: var(--th-p-100, #ccfbf1);
   border-radius: 999px;
 }
 
@@ -1344,7 +1344,7 @@
 
 #page-hr-home .summary-grid > .is-clickable:hover {
   transform: translateY(-3px);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
   box-shadow: var(--hm-shadow-hover);
 }
 
@@ -1499,7 +1499,7 @@
   font-size: 11.5px;
   font-weight: 700;
   color: var(--hm-primary-dark);
-  background: #ccfbf1;
+  background: var(--th-p-100, #ccfbf1);
   border-radius: 6px;
 }
 

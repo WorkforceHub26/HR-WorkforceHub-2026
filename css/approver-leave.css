@@ -98,9 +98,9 @@
   }
 
   #page-approver-leave .btn-mobile-back {
-    background: #f0fdfa !important;
-    border: 1px solid #ccfbf1 !important;
-    color: #0f766e !important;
+    background: var(--th-p-50, #f0fdfa) !important;
+    border: 1px solid var(--th-p-100, #ccfbf1) !important;
+    color: var(--th-p-700, #0f766e) !important;
   }
 
   #page-approver-leave .approver-menu-btn {
@@ -112,7 +112,7 @@
   #page-approver-leave .btn-mobile-back:active,
   #page-approver-leave .approver-menu-btn:active {
     transform: scale(0.94) !important;
-    background: #ecfeff !important;
+    background: var(--th-s-50, #ecfeff) !important;
   }
 
   #page-approver-leave .btn-mobile-back .material-symbols-outlined,
@@ -145,7 +145,7 @@
   #page-approver-leave .approver-mobile-title .material-symbols-outlined {
     flex: 0 0 auto !important;
     font-size: 19px !important;
-    color: #0d9488 !important;
+    color: var(--th-p-600, #0d9488) !important;
   }
 
   #page-approver-leave #userAvatarHeader {
@@ -767,7 +767,7 @@
   #page-approver-leave .approver-mobile-title .material-symbols-outlined {
     flex: 0 0 auto !important;
     font-size: 18px !important;
-    color: #0d9488 !important;
+    color: var(--th-p-600, #0d9488) !important;
   }
 
   /* Subtitle centered below the title */

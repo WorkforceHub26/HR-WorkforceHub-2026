@@ -4,6 +4,7 @@
   <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <script src="/js/theme-boot.js"></script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <title>ระบบจัดการ HR | PVT System</title>
@@ -144,7 +145,7 @@
             <button class="action-btn hover-lift" onclick="editEmployeeData()"><span class="material-symbols-outlined">manage_accounts</span> แก้ไขข้อมูล/ตำแหน่ง</button>
             <button class="action-btn hover-lift" onclick="manageDepartments()"><span class="material-symbols-outlined">corporate_fare</span> จัดการแผนก/ตำแหน่ง</button>
             <button class="action-btn hover-lift" onclick="location.href='/pages/hr/approval-settings.html'" style="border-left: 4px solid #ef4444;"><span class="material-symbols-outlined">rule_settings</span> ตั้งค่าผู้อนุมัติ</button>
-            <button class="action-btn hover-lift" onclick="openLeaveRulesManagerModal()" style="border-left: 4px solid #0d9488; font-weight: 700; color: #0f766e;"><span class="material-symbols-outlined" style="color: #0d9488;">gavel</span> เงื่อนไขการลา (แก้ไข/เพิ่ม/ลบ)</button>
+            <button class="action-btn hover-lift" onclick="openLeaveRulesManagerModal()" style="border-left: 4px solid var(--th-p-600, #0d9488); font-weight: 700; color: var(--th-p-700, #0f766e);"><span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488);">gavel</span> เงื่อนไขการลา (แก้ไข/เพิ่ม/ลบ)</button>
             <button class="action-btn success-zone hover-lift" onclick="importEmployeesExcel()"><span class="material-symbols-outlined">upload_file</span> อัปเดต/เพิ่มพนักงานด้วย Excel</button>
             <button class="action-btn hover-lift" onclick="clearEmployeeFilters()" style="border-left: 4px solid #f43f5e; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="color: #f43f5e;">restart_alt</span> ล้างคำขอ/ตัวกรองค้นหา</button>
           </div>
@@ -157,12 +158,12 @@
             <button class="action-btn hover-lift" onclick="editIndividualLeaveBalance()"><span class="material-symbols-outlined">tune</span> ปรับโควตารายบุคคล</button>
             <button class="action-btn hover-lift" onclick="openHolidayManagerModal()"><span class="material-symbols-outlined">calendar_month</span> ปฏิทินวันหยุด</button>
             <button class="action-btn success-zone hover-lift" onclick="checkAndCreateMissingQuotas()"><span class="material-symbols-outlined">sync_saved_locally</span> ตรวจสอบและสร้างโควตาวันลา</button>
-            <button class="action-btn hover-lift" onclick="resetYearlyLeave()" style="border-left: 4px solid #0d9488; font-weight: 700; color: #0f766e;" title="สร้างและรีเซ็ตโควตาวันลาล่วงหน้าสำหรับปีหน้า หรือเลือกปีที่ต้องการ"><span class="material-symbols-outlined" style="color: #0d9488;">calendar_add_on</span> สร้างโควตาปีหน้า</button>
-            <a href="/pages/hr/news-management.html" class="action-btn hover-lift" style="border-left: 4px solid #0284c7; font-weight: 700; color: #0369a1; text-decoration: none;">
-              <span class="material-symbols-outlined" style="color: #0284c7;">feed</span> ศูนย์จัดการข่าวสารองค์กร (Full Page)
+            <button class="action-btn hover-lift" onclick="resetYearlyLeave()" style="border-left: 4px solid var(--th-p-600, #0d9488); font-weight: 700; color: var(--th-p-700, #0f766e);" title="สร้างและรีเซ็ตโควตาวันลาล่วงหน้าสำหรับปีหน้า หรือเลือกปีที่ต้องการ"><span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488);">calendar_add_on</span> สร้างโควตาปีหน้า</button>
+            <a href="/pages/hr/news-management.html" class="action-btn hover-lift" style="border-left: 4px solid var(--th-k-600, #0284c7); font-weight: 700; color: var(--th-k-700, #0369a1); text-decoration: none;">
+              <span class="material-symbols-outlined" style="color: var(--th-k-600, #0284c7);">feed</span> ศูนย์จัดการข่าวสารองค์กร (Full Page)
             </a>
-            <button class="action-btn hover-lift" onclick="openNewsManagerModal()" style="border-left: 4px solid #0284c7;">
-              <span class="material-symbols-outlined" style="color: #0284c7;">campaign</span> จัดการข่าวสาร (Quick Modal)
+            <button class="action-btn hover-lift" onclick="openNewsManagerModal()" style="border-left: 4px solid var(--th-k-600, #0284c7);">
+              <span class="material-symbols-outlined" style="color: var(--th-k-600, #0284c7);">campaign</span> จัดการข่าวสาร (Quick Modal)
             </button>
           </div>
         </div>
@@ -172,7 +173,7 @@
           <div class="card-btn-group">
             <button class="action-btn success-zone hover-lift" onclick="exportAllLeaveHistoryExcel()" title="ส่งออกรายงานโควตาวันลา (employee_leave_balances) และประวัติการลา"><img src="/assets/icons/excel.svg" alt="Excel" class="btn-icon-graphic btn-icon-excel" style="width: 17px; height: 17px;" /> ดึงรายงานโควตา (Excel)</button>
             <button class="action-btn hover-lift" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
-            <a href="/pages/hr/login-logs.html" class="action-btn hover-lift" style="border-left: 4px solid #0d9488; text-decoration: none;" title="เปิดประวัติการเข้าสู่ระบบแบบเต็มหน้า"><span class="material-symbols-outlined">badge</span> ประวัติการเข้าสู่ระบบ (เต็มหน้า)</a>
+            <a href="/pages/hr/login-logs.html" class="action-btn hover-lift" style="border-left: 4px solid var(--th-p-600, #0d9488); text-decoration: none;" title="เปิดประวัติการเข้าสู่ระบบแบบเต็มหน้า"><span class="material-symbols-outlined">badge</span> ประวัติการเข้าสู่ระบบ (เต็มหน้า)</a>
             <button class="action-btn hover-lift" onclick="testLineNotificationFromHR()" style="border-left: 4px solid #4f46e5;"><span class="material-symbols-outlined">notifications_active</span> ทดสอบแจ้งเตือน LINE (Slip)</button>
             <button class="action-btn hover-lift" onclick="openAdminDashboardModal()" style="border-left: 4px solid #8b5cf6; font-weight: 700; color: #6d28d9;" title="เปิดดูแดชบอร์ดแอดมินในรูปแบบป๊อปอัป" data-role="admin-only">
               <span class="material-symbols-outlined" style="color: #8b5cf6;">widgets</span> แดชบอร์ดแอดมิน (Popup Modal)
@@ -197,7 +198,7 @@
                 <span class="material-symbols-outlined" style="font-size: 16px;">restart_alt</span>
                 <span>ล้างคำขอ / ตัวกรอง</span>
               </button>
-              <button type="button" class="btn-refresh-data" onclick="handleFetchDataClick()" style="background: #f0fdfa; border: 1px solid #99f6e4; color: #0f766e; border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="รีเฟรชดึงข้อมูลล่าสุดจากระบบ">
+              <button type="button" class="btn-refresh-data" onclick="handleFetchDataClick()" style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-200, #99f6e4); color: var(--th-p-700, #0f766e); border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="รีเฟรชดึงข้อมูลล่าสุดจากระบบ">
                 <span class="material-symbols-outlined" style="font-size: 16px;">sync</span>
                 <span>รีเฟรชข้อมูล</span>
               </button>
@@ -206,20 +207,20 @@
           </div>
 
           <!-- ข้อมูลคำอธิบายกลุ่มตำแหน่งงานตามหมวดหมู่ -->
-          <div class="category-description-panel" style="background: linear-gradient(135deg, #f8fafc 0%, #f0fdfa 100%); border: 1px solid #ccfbf1; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(13, 148, 136, 0.05);">
+          <div class="category-description-panel" style="background: linear-gradient(135deg, #f8fafc 0%, var(--th-p-50, #f0fdfa) 100%); border: 1px solid var(--th-p-100, #ccfbf1); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.05);">
             <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-              <span class="material-symbols-outlined" style="color: #0d9488; font-size: 20px;">info</span>
+              <span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488); font-size: 20px;">info</span>
               <span>หมวดหมู่โครงสร้างตำแหน่งงาน:</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; font-size: 12.5px;">
               <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
                 <span style="font-weight: 700; color: #0f172a;"> ทุกตำแหน่ง:</span> <span style="color: #64748b;">ภาพรวมพนักงานทั้งหมด</span>
               </div>
-              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
-                <span style="font-weight: 700; color: #1e40af;"> ผู้บริหาร:</span> <span style="color: #3b82f6;">CEO, MD, ผู้อำนวยการ</span>
+              <div style="background: var(--th-b-50, #eff6ff); border: 1px solid var(--th-b-200, #bfdbfe); border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.05);">
+                <span style="font-weight: 700; color: var(--th-b-800, #1e40af);"> ผู้บริหาร:</span> <span style="color: var(--th-b-500, #3b82f6);">CEO, MD, ผู้อำนวยการ</span>
               </div>
-              <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(13,148,136,0.05);">
-                <span style="font-weight: 700; color: #0f766e;"> ผู้จัดการ:</span> <span style="color: #14b8a6;">ผู้จัดการฝ่าย/สายงาน</span>
+              <div style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-200, #99f6e4); border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.05);">
+                <span style="font-weight: 700; color: var(--th-p-700, #0f766e);"> ผู้จัดการ:</span> <span style="color: var(--th-p-500, #14b8a6);">ผู้จัดการฝ่าย/สายงาน</span>
               </div>
               <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(217,119,6,0.05);">
                 <span style="font-weight: 700; color: #92400e;">️ หัวหน้างาน:</span> <span style="color: #d97706;">หัวหน้าแผนก / Supervisor</span>
@@ -333,7 +334,7 @@
           <!-- แถบสรุปจำนวนพนักงานตามตำแหน่งและแผนก -->
           <div id="empCategorySummaryBanner" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
             <div id="summaryTextLeft" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
-              <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488;">analytics</span>
+              <span class="material-symbols-outlined" style="font-size: 18px; color: var(--th-p-600, #0d9488);">analytics</span>
               <span>กำลังคำนวณจำนวนพนักงาน...</span>
             </div>
             <div id="summaryTextRight" style="font-size: 12px; color: #64748b; display: flex; gap: 10px; flex-wrap: wrap;"></div>

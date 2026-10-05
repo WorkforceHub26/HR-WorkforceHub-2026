@@ -280,7 +280,7 @@ window.addNewDepartmentPrompt = async function() {
     inputLabel: 'ชื่อแผนก',
     inputPlaceholder: 'เช่น ฝ่ายผลิต, ฝ่ายขาย',
     showCancelButton: true,
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     inputValidator: (value) => {
       if (!value) return 'กรุณาระบุชื่อแผนก';
     }
@@ -306,7 +306,7 @@ window.editDeptNamePrompt = async function(id, currentName) {
     inputLabel: 'ชื่อแผนกใหม่',
     inputValue: currentName,
     showCancelButton: true,
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     inputValidator: (value) => {
       if (!value) return 'กรุณาระบุชื่อแผนก';
     }
@@ -1445,7 +1445,7 @@ window.createLineLinkCode = async function(employeeId) {
         showCancelButton: true,
         confirmButtonText: "สร้างรหัสใหม่",
         cancelButtonText: "ยกเลิก",
-        confirmButtonColor: "#0f766e"
+        confirmButtonColor: "var(--th-p-700, #0f766e)"
       });
 
       if (!confirm.isConfirmed) return;
@@ -1516,9 +1516,9 @@ window.createLineLinkCode = async function(employeeId) {
           font-size:34px;
           font-weight:800;
           letter-spacing:8px;
-          color:#0f766e;
-          background:#f0fdfa;
-          border:1px dashed #5eead4;
+          color:var(--th-p-700, #0f766e);
+          background:var(--th-p-50, #f0fdfa);
+          border:1px dashed var(--th-p-300, #5eead4);
           border-radius:12px;
           padding:15px;
           margin:10px 0;
@@ -1544,7 +1544,7 @@ window.createLineLinkCode = async function(employeeId) {
       denyButtonText: "✏️ กรอก LINE ID โดยตรง",
       denyButtonColor: "#475569",
       confirmButtonText: "เสร็จสิ้น",
-      confirmButtonColor: "#0f766e"
+      confirmButtonColor: "var(--th-p-700, #0f766e)"
     });
 
     if (resModal.isDenied) {
@@ -1557,7 +1557,7 @@ window.createLineLinkCode = async function(employeeId) {
         showCancelButton: true,
         confirmButtonText: "บันทึก",
         cancelButtonText: "ยกเลิก",
-        confirmButtonColor: "#0f766e"
+        confirmButtonColor: "var(--th-p-700, #0f766e)"
       });
 
       if (inputLineId !== undefined) {
@@ -1951,8 +1951,8 @@ window.handleSwitchVisualChange = function(checkboxId, autoSave = true) {
     const indicator = document.getElementById("lineNotifAutoSaveIndicator");
     if (indicator) {
       indicator.style.display = "inline-flex";
-      indicator.style.color = "#0284c7";
-      indicator.style.background = "#f0f9ff";
+      indicator.style.color = "var(--th-k-600, #0284c7)";
+      indicator.style.background = "var(--th-k-50, #f0f9ff)";
       indicator.innerHTML = '<span class="material-symbols-outlined spinning-icon" style="font-size:14px;">sync</span> กำลังบันทึกอัตโนมัติ...';
     }
     clearTimeout(lineNotifSaveTimer);
@@ -2134,11 +2134,11 @@ window.openTestLineStepModal = function(defaultStepKey) {
   }).join("");
 
   Swal.fire({
-    title: '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:#2563eb;">science</span> ทดสอบส่ง LINE Notification</div>',
+    title: '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:var(--th-b-600, #2563eb);">science</span> ทดสอบส่ง LINE Notification</div>',
     width: 580,
     html: `
       <div style="text-align:left; font-size:13px; color:#334155; line-height:1.5;">
-        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#1e40af;">
+        <div style="background:var(--th-b-50, #eff6ff); border:1px solid var(--th-b-200, #bfdbfe); border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:var(--th-b-800, #1e40af);">
           ℹ️ ทดสอบส่งข้อความแจ้งเตือนตาม Step จริงไปยัง LINE User ID ของพนักงานหรือผู้บริหาร เพื่อตรวจสอบความถูกต้องของ Flex Message
         </div>
 
@@ -2182,7 +2182,7 @@ window.openTestLineStepModal = function(defaultStepKey) {
     showCancelButton: true,
     confirmButtonText: '<span class="material-symbols-outlined" style="font-size:18px;">send</span> ส่งข้อความทดสอบเดี๋ยวนี้',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#2563eb',
+    confirmButtonColor: 'var(--th-b-600, #2563eb)',
     showLoaderOnConfirm: true,
     preConfirm: async () => {
       const step = document.getElementById('testStepSelect')?.value;
@@ -2259,7 +2259,7 @@ window.openTestLineStepModal = function(defaultStepKey) {
         icon: 'success',
         title: 'ส่งข้อความทดสอบสำเร็จ!',
         text: `ส่งข้อความขั้นตอน ${res.value.step} ไปยัง LINE ID (${res.value.targetLineId}) เรียบร้อยแล้ว`,
-        confirmButtonColor: '#2563eb'
+        confirmButtonColor: 'var(--th-b-600, #2563eb)'
       });
     }
   });
@@ -2458,7 +2458,7 @@ function renderEmployeeLineTable() {
       workflowTags += `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #fde68a;">👑 ผู้อนุมัติ L3 (ผู้บริหาร)</span></div>`;
     }
     if (assignedDeptsL1.length > 0) {
-      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#ccfbf1; color:#0f766e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #99f6e4;" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ L1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
+      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e); padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid var(--th-p-200, #99f6e4);" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ L1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
     }
     if (assignedDeptsL2.length > 0) {
       workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#e0e7ff; color:#4338ca; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #c7d2fe;" title="${escapeAttr(assignedDeptsL2.join(', '))}">👔 ผู้อนุมัติ L2 (${escapeHtml(assignedDeptsL2[0])}${assignedDeptsL2.length > 1 ? ` +${assignedDeptsL2.length - 1}` : ''})</span></div>`;
@@ -2799,7 +2799,7 @@ window.editEmployeeLineIdDirectly = async function(employeeId, employeeName) {
     title: "ระบุ LINE User ID",
     html: `
       <div style="text-align: left; font-size: 13.5px; color: #334155; margin-bottom: 8px;">
-        พนักงาน: <b style="color: #0f766e;">${escapeHtml(name)}</b>
+        พนักงาน: <b style="color: var(--th-p-700, #0f766e);">${escapeHtml(name)}</b>
       </div>
       <p style="font-size: 12.5px; color: #64748b; text-align: left; margin: 0 0 12px; line-height: 1.5;">
         ระบุ LINE User ID ของพนักงาน (เช่น <code>U1234567890abcdef...</code>)<br>
@@ -2812,7 +2812,7 @@ window.editEmployeeLineIdDirectly = async function(employeeId, employeeName) {
     showCancelButton: true,
     confirmButtonText: "บันทึกข้อมูล",
     cancelButtonText: "ยกเลิก",
-    confirmButtonColor: "#0f766e"
+    confirmButtonColor: "var(--th-p-700, #0f766e)"
   });
 
   if (newLineId !== undefined) {
@@ -2982,9 +2982,9 @@ window.handleAutoDelegationMasterToggle = async function() {
   if (badge) {
     if (isChecked) {
       badge.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">bolt</span> ระบบเปิดใช้งาน';
-      badge.style.background = '#e0f2fe';
-      badge.style.color = '#0284c7';
-      badge.style.borderColor = '#bae6fd';
+      badge.style.background = 'var(--th-k-100, #e0f2fe)';
+      badge.style.color = 'var(--th-k-600, #0284c7)';
+      badge.style.borderColor = 'var(--th-k-200, #bae6fd)';
     } else {
       badge.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">pause_circle</span> ปิดการทำงาน';
       badge.style.background = '#f1f5f9';
@@ -3165,7 +3165,7 @@ function renderSavedDelegationRules() {
   `;
 
   currentDelegationRules.forEach(r => {
-    let condBadge = '<span class="status-badge" style="background:#e0f2fe; color:#0369a1; font-size:11.5px;">🌴 อัตโนมัติเมื่อลาพักร้อน</span>';
+    let condBadge = '<span class="status-badge" style="background:var(--th-k-100, #e0f2fe); color:var(--th-k-700, #0369a1); font-size:11.5px;">🌴 อัตโนมัติเมื่อลาพักร้อน</span>';
     if (r.condition === 'always') {
       condBadge = '<span class="status-badge" style="background:#fef3c7; color:#b45309; font-size:11.5px;">🔄 โอนสิทธิ์ถาวร</span>';
     } else if (r.condition === 'custom_date') {
@@ -3179,7 +3179,7 @@ function renderSavedDelegationRules() {
           <div style="font-size: 11.5px; color: #64748b;">${r.department_name ? `แผนก ${r.department_name}` : ''}</div>
         </td>
         <td style="padding: 12px 16px;">
-          <div style="font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 4px;">
+          <div style="font-weight: 700; color: var(--th-k-600, #0284c7); display: flex; align-items: center; gap: 4px;">
             <span class="material-symbols-outlined" style="font-size: 16px;">verified</span>
             ${r.delegate_name}
           </div>
@@ -3275,12 +3275,12 @@ window.refreshActiveDelegationsList = async function() {
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="text-align: right;">
               <span style="font-size: 11px; color: #92400e; font-weight: 600; display: block;">โอนสิทธิ์การอนุมัติให้:</span>
-              <strong style="color: #0284c7; font-size: 13.5px; display: flex; align-items: center; gap: 4px; justify-content: flex-end;">
+              <strong style="color: var(--th-k-600, #0284c7); font-size: 13.5px; display: flex; align-items: center; gap: 4px; justify-content: flex-end;">
                 <span class="material-symbols-outlined" style="font-size: 16px;">swap_calls</span>
                 ${item.delegateName}
               </strong>
             </div>
-            <span class="line-badge line-ok" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-size: 11px; padding: 4px 8px;">
+            <span class="line-badge line-ok" style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-600, #0284c7); border: 1px solid var(--th-k-200, #bae6fd); font-size: 11px; padding: 4px 8px;">
               รักษาการแทนสด
             </span>
           </div>

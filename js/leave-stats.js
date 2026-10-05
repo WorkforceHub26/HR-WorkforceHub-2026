@@ -55,7 +55,7 @@ window.openSystemSettingsModal = window.openSystemSettingsModal || function() {
       icon: 'info',
       title: 'การตั้งค่าระบบ',
       text: 'สามารถเข้าปรับแต่งขนาดตัวอักษร ธีมสี และการแจ้งเตือนได้จากหน้าหลักค่ะ',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
   }
 };

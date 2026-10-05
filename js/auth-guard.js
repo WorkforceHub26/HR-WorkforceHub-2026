@@ -433,7 +433,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         icon: 'warning',
         title: 'ข้อมูลไม่ครบ',
         text: 'กรุณากรอกข้อมูลผู้ใช้งานและรหัสผ่านให้ครบถ้วน',
-        confirmButtonColor: '#3b82f6'
+        confirmButtonColor: 'var(--th-b-500, #3b82f6)'
       });
       return;
     }
@@ -527,7 +527,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           showCancelButton: true,
           confirmButtonText: 'ยอมรับความเสี่ยง & เข้าใช้งาน',
           cancelButtonText: 'เปลี่ยนรหัสผ่านทันที',
-          confirmButtonColor: '#3b82f6',
+          confirmButtonColor: 'var(--th-b-500, #3b82f6)',
           cancelButtonColor: '#10b981',
           allowOutsideClick: false
         });
@@ -932,7 +932,7 @@ function loginByQr() {
       .pvt-qr-title-box { display: flex; align-items: center; gap: 10px; }
       .pvt-qr-icon-badge {
         width: 38px; height: 38px; border-radius: 10px;
-        background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-k-600, #0284c7) 100%);
         display: flex; align-items: center; justify-content: center; color: #ffffff;
       }
       .pvt-qr-title-box h3 { margin: 0; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 1.2; }
@@ -1048,15 +1048,15 @@ function loginByQr() {
         padding: 24px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; z-index: 8;
       }
       .pvt-qr-permission-icon-box {
-        width: 56px; height: 56px; border-radius: 16px; background: rgba(13, 148, 136, 0.15);
-        border: 1px solid rgba(13, 148, 136, 0.3); color: #2dd4bf; display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+        width: 56px; height: 56px; border-radius: 16px; background: rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
+        border: 1px solid rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3); color: var(--th-p-400, #2dd4bf); display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
       }
       .pvt-qr-permission-icon-box.error { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; }
       .pvt-qr-permission-card h4 { margin: 0 0 6px 0; font-size: 16px; color: #ffffff; font-weight: 700; }
       .pvt-qr-permission-card p { margin: 0 0 16px 0; font-size: 13px; color: #94a3b8; line-height: 1.5; }
       .pvt-qr-permission-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
       .pvt-qr-btn-primary {
-        width: 100%; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        width: 100%; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-k-600, #0284c7) 100%);
         color: #ffffff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
       }
       .pvt-qr-btn-secondary {
@@ -1078,8 +1078,8 @@ function loginByQr() {
         display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;
       }
       .pvt-qr-tab-btn.active {
-        background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: #ffffff; border-color: rgba(255, 255, 255, 0.2);
-        box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+        background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-k-600, #0284c7) 100%); color: #ffffff; border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 14px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
       }
       .pvt-qr-focus-progress-container {
         position: absolute; bottom: 105px; width: min(220px, 60vw); height: 4px;
@@ -1417,7 +1417,7 @@ function loginByQr() {
       <!-- 🖼️ File Upload View -->
       <div id="pvtQrFileView" class="pvt-qr-file-container">
         <div class="pvt-qr-file-dropzone" id="pvtQrDropzone">
-          <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(13, 148, 136, 0.15); border: 1px solid rgba(13, 148, 136, 0.3); color: #2dd4bf; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15); border: 1px solid rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3); color: var(--th-p-400, #2dd4bf); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
             <span class="material-symbols-outlined" style="font-size: 32px;">add_photo_alternate</span>
           </div>
           <h4 style="margin: 0 0 6px 0; font-size: 16px; color: #ffffff;">${i18n.dropTitle}</h4>
@@ -2094,7 +2094,7 @@ async function openChangePasswordModal(user) {
     showCancelButton: true,
     confirmButtonText: 'บันทึกรหัสผ่านใหม่',
     cancelButtonText: 'ข้ามไปก่อน',
-    confirmButtonColor: '#2563eb',
+    confirmButtonColor: 'var(--th-b-600, #2563eb)',
     preConfirm: () => {
       const newPassword = document.getElementById('swal-new-password').value;
       const confirmPassword = document.getElementById('swal-confirm-password').value;
@@ -2132,7 +2132,7 @@ async function openChangePasswordModal(user) {
         icon: 'success',
         title: 'เปลี่ยนรหัสผ่านเรียบร้อย',
         text: 'ระบบทำการอัปเดตรหัสผ่านใหม่เรียบร้อยแล้ว',
-        confirmButtonColor: '#2563eb'
+        confirmButtonColor: 'var(--th-b-600, #2563eb)'
       });
     } catch (err) {
       Swal.fire({
@@ -2593,7 +2593,7 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       // สไตล์ปุ่มที่เลือก (เฉพาะจุดที่ไม่ได้ใช้ CSS Class คุม)
       if (b.id.startsWith('globalLang')) {
         b.style.backgroundColor = '#ffffff';
-        b.style.color = '#0891b2';
+        b.style.color = 'var(--th-s-600, #0891b2)';
         b.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.08)';
         b.style.fontWeight = '700';
       }
@@ -2679,6 +2679,17 @@ function injectGlobalLangSwitcher() {
                    document.querySelector('aside.sidebar-light') !== null ||
                    document.body.classList.contains('hr-layout');
   if (isHrPage) return;
+
+  // 📱 มือถือ (แบบแอป): ไม่วางปุ่ม TH/EN บนหัวหน้า — เปลี่ยนภาษาได้ที่ เมนู ⋮ > ตั้งค่า
+  //    แต่ยังใช้ภาษาที่บันทึกไว้เหมือนเดิม
+  if (window.innerWidth <= 1024 && (window.PVTShell || document.querySelector('script[src*="mobile-shell"]'))) {
+    if (!window.__pvtLangAppliedNoSwitcher) {
+      window.__pvtLangAppliedNoSwitcher = true;
+      const savedLangMobile = localStorage.getItem('pvt_login_lang') || 'th';
+      window.setGlobalLanguage(savedLangMobile, false, { forceBroadcast: true });
+    }
+    return;
+  }
   
   const targetContainer = document.querySelector('.topbar-right') || 
                           document.querySelector('.topbar-actions') || 
@@ -3196,8 +3207,8 @@ if ('serviceWorker' in navigator) {
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      background: rgba(13, 148, 136, 0.1);
-      color: #0d9488;
+      background: rgba(var(--th-p-600-rgb, 13, 148, 136), 0.1);
+      color: var(--th-p-600, #0d9488);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -3566,3 +3577,4 @@ document.addEventListener('click', function(e) {
     start();
   }
 })();
+

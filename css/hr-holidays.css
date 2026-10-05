@@ -33,10 +33,10 @@
    00. DESIGN TOKENS
    ========================================================================== */
 #page-hr-holidays {
-  --hh-primary: #0d9488;
-  --hh-primary-dark: #0f766e;
-  --hh-primary-soft: #f0fdfa;
-  --hh-blue: #0284c7;
+  --hh-primary: var(--th-p-600, #0d9488);
+  --hh-primary-dark: var(--th-p-700, #0f766e);
+  --hh-primary-soft: var(--th-p-50, #f0fdfa);
+  --hh-blue: var(--th-k-600, #0284c7);
   --hh-amber: #d97706;
   --hh-rose: #e11d48;
 
@@ -74,12 +74,12 @@
 #page-hr-holidays {
   font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--hh-text);
-  background-color: #f0fdfa;
+  background-color: var(--th-p-50, #f0fdfa);
   background-image:
-    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
-    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
-    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -118,13 +118,13 @@
 /* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
 #page-hr-holidays .pvt-sidebar__toggle {
   color: #ffffff;
-  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
   border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 #page-hr-holidays .pvt-sidebar__toggle:hover {
-  background: linear-gradient(135deg, #2748a8, #1e3988);
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
 #page-hr-holidays .pvt-sidebar__toggle .material-symbols-outlined {
@@ -170,12 +170,12 @@
 #page-hr-holidays .btn-add-holiday-main {
   background: linear-gradient(135deg, var(--hh-primary), var(--hh-primary-dark));
   color: #fff;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 #page-hr-holidays .btn-add-holiday-main:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
 }
 
 /* นำเข้ามาตรฐาน: ขาวขอบเทา */
@@ -189,7 +189,7 @@
 #page-hr-holidays .btn-seed-holidays:hover {
   background: var(--hh-primary-soft);
   color: var(--hh-primary-dark);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
   transform: translateY(-1px);
 }
 
@@ -268,7 +268,7 @@
 
 #page-hr-holidays .admin-stat-card {
   --stat-color: var(--hh-primary);
-  --stat-soft: #ccfbf1;
+  --stat-soft: var(--th-p-100, #ccfbf1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -288,8 +288,8 @@
   box-shadow: var(--hh-shadow-hover);
 }
 
-#page-hr-holidays .admin-stat-card.stat-teal  { --stat-color: var(--hh-primary); --stat-soft: #ccfbf1; }
-#page-hr-holidays .admin-stat-card.stat-blue  { --stat-color: var(--hh-blue);    --stat-soft: #e0f2fe; }
+#page-hr-holidays .admin-stat-card.stat-teal  { --stat-color: var(--hh-primary); --stat-soft: var(--th-p-100, #ccfbf1); }
+#page-hr-holidays .admin-stat-card.stat-blue  { --stat-color: var(--hh-blue);    --stat-soft: var(--th-k-100, #e0f2fe); }
 #page-hr-holidays .admin-stat-card.stat-amber { --stat-color: var(--hh-amber);   --stat-soft: #fef3c7; }
 #page-hr-holidays .admin-stat-card.stat-rose  { --stat-color: var(--hh-rose);    --stat-soft: #ffe4e6; }
 
@@ -436,7 +436,7 @@
 #page-hr-holidays .admin-search-input:focus {
   background: var(--hh-surface);
   border-color: var(--hh-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ---- 06.2 Dropdown ปี / เดือน / ประเภท ---- */
@@ -463,7 +463,7 @@
 
 #page-hr-holidays .admin-select-filter:focus {
   border-color: var(--hh-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 #page-hr-holidays .admin-toolbar-right {
@@ -719,8 +719,8 @@
 
 #page-hr-holidays .hh-countdown--soon {
   color: var(--hh-blue);
-  background: #f0f9ff;
-  border-color: #bae6fd;
+  background: var(--th-k-50, #f0f9ff);
+  border-color: var(--th-k-200, #bae6fd);
 }
 
 #page-hr-holidays .hh-countdown--past {
@@ -770,7 +770,7 @@
 
 #page-hr-holidays .hh-act-btn--edit:hover {
   background: var(--hh-primary-soft);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 #page-hr-holidays .hh-act-btn--delete {
@@ -951,7 +951,7 @@
 #page-hr-holidays .admin-cal-nav-btn:hover {
   background: var(--hh-primary-soft);
   color: var(--hh-primary-dark);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 #page-hr-holidays .admin-cal-legend {
@@ -1021,8 +1021,8 @@
 }
 
 #page-hr-holidays .hh-cal-cell:hover {
-  border-color: #99f6e4;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.12);
+  border-color: var(--th-p-200, #99f6e4);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.12);
 }
 
 /* ช่องว่างก่อนวันที่ 1 */
@@ -1338,7 +1338,7 @@
 #page-hr-holidays .admin-form-group select:focus,
 #page-hr-holidays .admin-form-group textarea:focus {
   border-color: var(--hh-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ช่องติ๊ก "วันหยุดได้รับค่าจ้าง" */
@@ -1351,7 +1351,7 @@
   font-weight: 600;
   color: var(--hh-text-2);
   background: var(--hh-primary-soft);
-  border: 1px solid #ccfbf1;
+  border: 1px solid var(--th-p-100, #ccfbf1);
   border-radius: var(--hh-radius-sm);
   cursor: pointer;
 }
@@ -1399,11 +1399,11 @@
 #page-hr-holidays .btn-modal-submit {
   background: linear-gradient(135deg, var(--hh-primary), var(--hh-primary-dark));
   color: #fff;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 #page-hr-holidays .btn-modal-submit:hover {
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
 }
 
 

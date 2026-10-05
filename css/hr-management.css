@@ -35,8 +35,8 @@
   --primary-dark: #0b845c;
   --primary-soft: #ebf7f3;
   --primary-light: rgba(15, 164, 114, 0.15);
-  --teal: #0d9488;
-  --teal-dark: #0f766e;
+  --teal: var(--th-p-600, #0d9488);
+  --teal-dark: var(--th-p-700, #0f766e);
 
   /* สีสถานะ */
   --success: #10b981;
@@ -44,7 +44,7 @@
   --danger: #ef4444;
 
   /* พื้นผิว + ตัวอักษร */
-  --bg: #f0fdfa;
+  --bg: var(--th-p-50, #f0fdfa);
   --card: #ffffff;
   --text: #0f172a;
   --text-soft: #64748b;
@@ -88,10 +88,10 @@
   color: var(--text);
   background-color: var(--bg);
   background-image:
-    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
-    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
-    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -125,13 +125,13 @@
 /* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
 #page-hr-management .pvt-sidebar__toggle {
   color: #ffffff;
-  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
   border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 #page-hr-management .pvt-sidebar__toggle:hover {
-  background: linear-gradient(135deg, #2748a8, #1e3988);
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
 #page-hr-management .pvt-sidebar__toggle .material-symbols-outlined {
@@ -217,7 +217,7 @@
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
-  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+  box-shadow: 0 2px 4px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2);
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -228,7 +228,7 @@
 #page-hr-management .btn-primary:hover {
   background: var(--teal-dark);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(13, 148, 136, 0.3);
+  box-shadow: 0 4px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3);
 }
 
 #page-hr-management .btn-light {
@@ -387,11 +387,11 @@
   height: 38px;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  background: linear-gradient(135deg, #14b8a6, var(--teal) 55%, var(--teal-dark));
+  background: linear-gradient(135deg, var(--th-p-500, #14b8a6), var(--teal) 55%, var(--teal-dark));
   color: #fff;
   border: 2px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
   font-weight: 800;
   font-size: 15px;
   letter-spacing: 0.5px;
@@ -434,7 +434,7 @@
 
 /* สีเส้นบนของแต่ละใบ + ไอคอนหัวข้อ */
 #page-hr-management .manage-card:nth-child(1) { border-top: 4px solid var(--primary); animation-delay: 0.1s; }
-#page-hr-management .manage-card:nth-child(2) { border-top: 4px solid #3b82f6;        animation-delay: 0.2s; }
+#page-hr-management .manage-card:nth-child(2) { border-top: 4px solid var(--th-b-500, #3b82f6);        animation-delay: 0.2s; }
 #page-hr-management .manage-card:nth-child(3) { border-top: 4px solid #f59e0b;        animation-delay: 0.3s; }
 
 #page-hr-management .manage-card h3 {
@@ -460,7 +460,7 @@
   border-radius: 50%;
 }
 
-#page-hr-management .manage-card:nth-child(2) h3 .material-symbols-outlined { color: #3b82f6; background: #eff6ff; }
+#page-hr-management .manage-card:nth-child(2) h3 .material-symbols-outlined { color: var(--th-b-500, #3b82f6); background: var(--th-b-50, #eff6ff); }
 #page-hr-management .manage-card:nth-child(3) h3 .material-symbols-outlined { color: #f59e0b; background: #fffbeb; }
 
 /* กลุ่มปุ่มในการ์ด */
@@ -553,7 +553,7 @@
 }
 
 #page-hr-management .panel.stat-card:nth-child(1) { border-left: 4px solid var(--primary); background: linear-gradient(135deg, #fff, #f0fdf4); animation-delay: 0.1s; }
-#page-hr-management .panel.stat-card:nth-child(2) { border-left: 4px solid #3b82f6;        background: linear-gradient(135deg, #fff, #eff6ff); animation-delay: 0.2s; }
+#page-hr-management .panel.stat-card:nth-child(2) { border-left: 4px solid var(--th-b-500, #3b82f6);        background: linear-gradient(135deg, #fff, var(--th-b-50, #eff6ff)); animation-delay: 0.2s; }
 #page-hr-management .panel.stat-card:nth-child(3) { border-left: 4px solid #f59e0b;        background: linear-gradient(135deg, #fff, #fffbeb); animation-delay: 0.3s; }
 #page-hr-management .panel.stat-card:nth-child(4) { border-left: 4px solid #8b5cf6;        background: linear-gradient(135deg, #fff, #f5f3ff); animation-delay: 0.4s; }
 
@@ -719,8 +719,8 @@
 }
 
 /* สีตัวเลขแยกตามกลุ่ม (ตอนยังไม่ active) */
-#page-hr-management .pos-tab[data-pos-cat="executive"]  .pos-tab-count { background: #dbeafe; color: #1e40af; }
-#page-hr-management .pos-tab[data-pos-cat="manager"]    .pos-tab-count { background: #ccfbf1; color: #0f766e; }
+#page-hr-management .pos-tab[data-pos-cat="executive"]  .pos-tab-count { background: var(--th-b-100, #dbeafe); color: var(--th-b-800, #1e40af); }
+#page-hr-management .pos-tab[data-pos-cat="manager"]    .pos-tab-count { background: var(--th-p-100, #ccfbf1); color: var(--th-p-700, #0f766e); }
 #page-hr-management .pos-tab[data-pos-cat="supervisor"] .pos-tab-count { background: #fef3c7; color: #92400e; }
 #page-hr-management .pos-tab[data-pos-cat="officer"]    .pos-tab-count { background: #ede9fe; color: #5b21b6; }
 #page-hr-management .pos-tab[data-pos-cat="staff"]      .pos-tab-count { background: var(--border-subtle); color: var(--muted); }
@@ -730,7 +730,7 @@
   color: #fff;
   border-color: var(--teal);
   background: var(--teal);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.22);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.22);
 }
 
 #page-hr-management .pos-tab[data-pos-cat].active .pos-tab-count {
@@ -739,8 +739,8 @@
 }
 
 #page-hr-management .pos-tab[data-pos-cat="all"].active        { background: #0f172a; border-color: #0f172a; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2); }
-#page-hr-management .pos-tab[data-pos-cat="executive"].active  { background: linear-gradient(135deg, #2563eb, #1d4ed8); border-color: #1d4ed8; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25); }
-#page-hr-management .pos-tab[data-pos-cat="manager"].active    { background: linear-gradient(135deg, var(--teal), var(--teal-dark)); border-color: var(--teal-dark); box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25); }
+#page-hr-management .pos-tab[data-pos-cat="executive"].active  { background: linear-gradient(135deg, var(--th-b-600, #2563eb), var(--th-b-700, #1d4ed8)); border-color: var(--th-b-700, #1d4ed8); box-shadow: 0 4px 14px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.25); }
+#page-hr-management .pos-tab[data-pos-cat="manager"].active    { background: linear-gradient(135deg, var(--teal), var(--teal-dark)); border-color: var(--teal-dark); box-shadow: 0 4px 14px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25); }
 #page-hr-management .pos-tab[data-pos-cat="supervisor"].active { background: linear-gradient(135deg, #d97706, #b45309); border-color: #b45309; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.25); }
 #page-hr-management .pos-tab[data-pos-cat="officer"].active    { background: linear-gradient(135deg, #7c3aed, #6d28d9); border-color: #6d28d9; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25); }
 #page-hr-management .pos-tab[data-pos-cat="staff"].active      { background: linear-gradient(135deg, #475569, #334155); border-color: #334155; box-shadow: 0 4px 14px rgba(71, 85, 105, 0.25); }
@@ -786,13 +786,13 @@
 #page-hr-management .system-role-chip.active {
   background: #ecfdf5;
   color: var(--teal-dark);
-  border-color: #14b8a6;
+  border-color: var(--th-p-500, #14b8a6);
 }
 
 #page-hr-management .system-role-count {
   min-width: 20px;
   padding: 1px 6px;
-  background: rgba(15, 118, 110, 0.1);
+  background: rgba(var(--th-p-700-rgb, 15, 118, 110), 0.1);
   border-radius: 999px;
   font-size: 11px;
   text-align: center;
@@ -933,22 +933,22 @@
 }
 
 #page-hr-management .emp-card-item:hover {
-  background: #f0fdfa;
+  background: var(--th-p-50, #f0fdfa);
   border-color: var(--teal);
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.08);
 }
 
 /* ผู้บริหาร: เส้นซ้ายสีน้ำเงิน */
 #page-hr-management .emp-card-item.is-executive {
   background: linear-gradient(to right, #fff, #f8fafc);
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--th-b-500, #3b82f6);
 }
 
 #page-hr-management .emp-card-item.is-executive:hover {
-  background: linear-gradient(to right, #eff6ff, #f8fafc);
-  border-left-color: #2563eb;
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+  background: linear-gradient(to right, var(--th-b-50, #eff6ff), #f8fafc);
+  border-left-color: var(--th-b-600, #2563eb);
+  box-shadow: 0 6px 18px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.12);
 }
 
 /* คอลัมน์ย่อยทั้งหมดเป็น flex จัดกึ่งกลางแนวตั้ง */
@@ -1012,9 +1012,9 @@
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
-  background: #f0fdfa;
+  background: var(--th-p-50, #f0fdfa);
   color: var(--teal-dark);
-  border: 1px solid #ccfbf1;
+  border: 1px solid var(--th-p-100, #ccfbf1);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
@@ -1118,8 +1118,8 @@
   white-space: nowrap;
 }
 
-#page-hr-management .badge-role-exec { background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #1e40af; border: 1px solid #bfdbfe; }
-#page-hr-management .badge-role-mgr  { background: linear-gradient(135deg, #f0fdfa, #ccfbf1); color: #0f766e; border: 1px solid #99f6e4; }
+#page-hr-management .badge-role-exec { background: linear-gradient(135deg, var(--th-b-50, #eff6ff), var(--th-b-100, #dbeafe)); color: var(--th-b-800, #1e40af); border: 1px solid var(--th-b-200, #bfdbfe); }
+#page-hr-management .badge-role-mgr  { background: linear-gradient(135deg, var(--th-p-50, #f0fdfa), var(--th-p-100, #ccfbf1)); color: var(--th-p-700, #0f766e); border: 1px solid var(--th-p-200, #99f6e4); }
 #page-hr-management .badge-role-sup  { background: linear-gradient(135deg, #fffbeb, #fef3c7); color: #92400e; border: 1px solid #fde68a; }
 #page-hr-management .badge-role-off  { background: linear-gradient(135deg, #f5f3ff, #ede9fe); color: #5b21b6; border: 1px solid #ddd6fe; }
 
@@ -1134,7 +1134,7 @@
   width: 20px;
   height: 20px;
   background: #fff;
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--th-b-200, #bfdbfe);
   border-radius: 50%;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
   font-size: 14px;
@@ -1156,8 +1156,8 @@
   transition: all 0.2s;
 }
 
-#page-hr-management .btn-table-act.primary { background: #f0fdfa; color: var(--teal); border-color: #ccfbf1; }
-#page-hr-management .btn-table-act.primary:hover { background: var(--teal); color: #fff; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2); }
+#page-hr-management .btn-table-act.primary { background: var(--th-p-50, #f0fdfa); color: var(--teal); border-color: var(--th-p-100, #ccfbf1); }
+#page-hr-management .btn-table-act.primary:hover { background: var(--teal); color: #fff; box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2); }
 
 #page-hr-management .btn-table-act.danger { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
 #page-hr-management .btn-table-act.danger:hover { background: #e11d48; color: #fff; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2); }
@@ -1301,7 +1301,7 @@
   background: linear-gradient(135deg, var(--teal-dark), var(--teal));
   color: #fff;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 16px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 4px 16px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25);
 }
 
 #page-hr-management .modal.modal-fullscreen .modal-header h2,
@@ -1412,7 +1412,7 @@
   padding: 16px 28px;
   background: linear-gradient(135deg, var(--teal-dark), var(--teal));
   color: #fff;
-  box-shadow: 0 4px 16px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 4px 16px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25);
 }
 
 .pvt-fs-title-group  { display: flex; align-items: center; gap: 14px; }
@@ -1432,7 +1432,7 @@
 }
 
 .pvt-fs-title-text h3 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.3; color: #fff; }
-.pvt-fs-title-text p  { margin: 2px 0 0; font-size: 12.5px; color: #ccfbf1; }
+.pvt-fs-title-text p  { margin: 2px 0 0; font-size: 12.5px; color: var(--th-p-100, #ccfbf1); }
 
 .pvt-fs-badge {
   display: inline-flex;
@@ -1548,7 +1548,7 @@
 .pvt-input:focus,
 .pvt-select:focus {
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ช่อง "สิทธิ์ในระบบ" เน้นกรอบเขียว (เจาะจงด้วยการซ้อน class จึงชนะ .pvt-select โดยไม่ต้อง !important) */
@@ -1574,7 +1574,7 @@
 }
 
 .pvt-avatar-uploader:hover {
-  background: #f0fdfa;
+  background: var(--th-p-50, #f0fdfa);
   border-color: var(--teal);
 }
 
@@ -1598,7 +1598,7 @@
   background: var(--teal);
   color: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1678,8 +1678,8 @@
 }
 
 .pos-item-card:hover {
-  background: #f0fdfa;
-  border-color: #99f6e4;
+  background: var(--th-p-50, #f0fdfa);
+  border-color: var(--th-p-200, #99f6e4);
   transform: translateY(-1px);
 }
 
@@ -1692,8 +1692,8 @@
 
 .pos-item-badge {
   padding: 2px 7px;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--th-k-100, #e0f2fe);
+  color: var(--th-k-700, #0369a1);
   border-radius: 6px;
   font-size: 11px;
   font-weight: 700;

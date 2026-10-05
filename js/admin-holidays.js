@@ -635,7 +635,7 @@ window.handleBatchSeedHolidays = async function () {
     title: 'นำเข้าวันหยุดมาตรฐาน?',
     html: `นำเข้า <strong>วันหยุดมาตรฐาน 18 วัน</strong> ของปี ${year} (พ.ศ. ${year + 543})<br><small>วันที่มีวันหยุดอยู่แล้วจะข้าม ไม่บันทึกซ้ำ</small>`,
     icon: 'question',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     confirmButtonText: 'นำเข้า'
   });
   if (!ok) return;

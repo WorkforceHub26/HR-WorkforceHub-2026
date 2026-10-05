@@ -502,9 +502,9 @@
 
             <!-- Resolution Recommendations -->
             ${!isPassed ? `
-              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px; margin-bottom: 6px;">
-                <strong style="color: #1d4ed8; font-size: 13px; display: block; margin-bottom: 6px;"> วิธีแก้ไขที่แนะนำ:</strong>
-                <ol style="margin: 0; padding-left: 18px; line-height: 1.6; font-size: 12.5px; color: #1e40af;">
+              <div style="background: var(--th-b-50, #eff6ff); border: 1px solid var(--th-b-200, #bfdbfe); border-radius: 10px; padding: 12px; margin-bottom: 6px;">
+                <strong style="color: var(--th-b-700, #1d4ed8); font-size: 13px; display: block; margin-bottom: 6px;"> วิธีแก้ไขที่แนะนำ:</strong>
+                <ol style="margin: 0; padding-left: 18px; line-height: 1.6; font-size: 12.5px; color: var(--th-b-800, #1e40af);">
                   <li><b>อัปเดตเบราว์เซอร์:</b> อัปเดต Google Chrome, Safari หรือ Microsoft Edge เป็นเวอร์ชันล่าสุด</li>
                   <li><b>กรณีเปิดในแอป LINE / Facebook:</b> แตะที่ปุ่มเมนู <b>(⋮ หรือ ...)</b> แล้วเลือก <i>"เปิดด้วยเบราว์เซอร์ภายนอก"</i></li>
                   <li><b>ใช้รูปภาพแทนกล้องสด:</b> สามารถกดปุ่ม <b>"เลือกรูปภาพ"</b> เพื่ออัปโหลดภาพบัตรพนักงานหรือภาพ QR Code ได้โดยไม่ต้องใช้กล้องสด</li>
@@ -515,7 +515,7 @@
         `,
         width: 520,
         confirmButtonText: 'รับทราบ',
-        confirmButtonColor: '#0d9488',
+        confirmButtonColor: 'var(--th-p-600, #0d9488)',
         showCloseButton: true
       });
     },
@@ -768,10 +768,10 @@
             ${resultsHtml}
           </div>
           <div style="margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
-            <button type="button" id="btn-diag-auto-fix" class="swal2-confirm swal2-styled" style="background:#0d9488; margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+            <button type="button" id="btn-diag-auto-fix" class="swal2-confirm swal2-styled" style="background:var(--th-p-600, #0d9488); margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
               <span class="material-symbols-outlined" style="font-size:16px;">build</span>  ซ่อมแซมระบบอัตโนมัติ
             </button>
-            <button type="button" id="btn-diag-sync-role" class="swal2-styled" style="background:#2563eb; color:#fff; margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+            <button type="button" id="btn-diag-sync-role" class="swal2-styled" style="background:var(--th-b-600, #2563eb); color:#fff; margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
               <span class="material-symbols-outlined" style="font-size:16px;">sync</span>  ซิงค์สิทธิ์พนักงาน
             </button>
             <button type="button" id="btn-diag-clear-cache" class="swal2-styled" style="background:#64748b; color:#fff; margin:0; padding:8px 14px; font-size:13px; font-weight:600; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
@@ -794,7 +794,7 @@
               title: 'ซ่อมแซมระบบสำเร็จ! ',
               html: `<div style="text-align:left; font-size:13px; color:#334155; max-height:220px; overflow-y:auto;">${logs.map(l => `<p style="margin:4px 0;">${l}</p>`).join('')}</div>`,
               confirmButtonText: 'ตกลง',
-              confirmButtonColor: '#0d9488'
+              confirmButtonColor: 'var(--th-p-600, #0d9488)'
             });
           });
 
@@ -805,7 +805,7 @@
               icon: 'info',
               title: 'ซิงค์สิทธิ์และโปรไฟล์สำเร็จ',
               text: 'อัปเดตข้อมูลสิทธิ์และโปรไฟล์ล่าสุดเรียบร้อยแล้ว',
-              confirmButtonColor: '#2563eb'
+              confirmButtonColor: 'var(--th-b-600, #2563eb)'
             }).then(() => {
               window.location.reload();
             });
@@ -867,7 +867,7 @@
 
       btn.onmouseenter = () => {
         btn.style.transform = 'scale(1.1) rotate(5deg)';
-        btn.style.boxShadow = '0 12px 28px rgba(13, 148, 136, 0.2)';
+        btn.style.boxShadow = '0 12px 28px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2)';
       };
       btn.onmouseleave = () => {
         btn.style.transform = 'scale(1) rotate(0deg)';
@@ -896,7 +896,7 @@
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>สิทธิ์วันลาคงเหลือ:</b> แสดงสถิติโควตาวันลาสะสมปีนี้ที่ได้รับการจัดสรรตามตำแหน่งงานของคุณ</li>
-            <li style="margin-bottom: 6px;"><b>ยื่นใบลาแบบด่วน:</b> กดปุ่มสีเขียว <span style="color:#0d9488; font-weight:700;">"ยื่นใบลาออนไลน์"</span> เพื่อเริ่มเปิดฟอร์มยื่นคำขอใหม่</li>
+            <li style="margin-bottom: 6px;"><b>ยื่นใบลาแบบด่วน:</b> กดปุ่มสีเขียว <span style="color:var(--th-p-600, #0d9488); font-weight:700;">"ยื่นใบลาออนไลน์"</span> เพื่อเริ่มเปิดฟอร์มยื่นคำขอใหม่</li>
             <li style="margin-bottom: 6px;"><b>ตรวจสอบเพื่อนร่วมงาน:</b> แผงด้านล่างสุดจะแสดงรายชื่อและตารางของเพื่อนร่วมงานในแผนกเดียวกัน</li>
             <li style="margin-bottom: 6px;"><b>ประวัติคำขอลาล่าสุด:</b> ตรวจสอบรายการเดินเอกสารที่อยู่ระหว่างรอผลอนุมัติหรือประวัติสรุปล่าสุด</li>
           </ul>
@@ -906,9 +906,9 @@
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>เลือกประเภทวันลา:</b> คลิกเลือกประเภทการลาที่ถูกต้อง (เช่น ลาป่วย, ลากิจ, ลาพักร้อน) เพื่อตรวจสอบสิทธิ์คงเหลือ</li>
-            <li style="margin-bottom: 6px;"><b>ระบุเวลาการลา:</b> เลือกวันเริ่มต้นและวันสิ้นสุด หรือเลือกติ๊ก <span style="color:#0d9488; font-weight:700;">"ลาเป็นชั่วโมง"</span> เพื่อระบุเวลาแบบละเอียด</li>
+            <li style="margin-bottom: 6px;"><b>ระบุเวลาการลา:</b> เลือกวันเริ่มต้นและวันสิ้นสุด หรือเลือกติ๊ก <span style="color:var(--th-p-600, #0d9488); font-weight:700;">"ลาเป็นชั่วโมง"</span> เพื่อระบุเวลาแบบละเอียด</li>
             <li style="margin-bottom: 6px;"><b>ระบุเหตุผล:</b> กรอกรายละเอียดความจำเป็น และอัปโหลดรูปภาพหลักฐานประกอบ (เช่น ใบรับรองแพทย์)</li>
-            <li style="margin-bottom: 6px;"><b>ตรวจสอบผู้อนุมัติ:</b> ระบบแสดงสายงานการพิจารณา L1 และ L2 อัตโนมัติ ก่อนกดปุ่ม <span style="color:#0d9488; font-weight:700;">"ส่งคำขออนุมัติ"</span></li>
+            <li style="margin-bottom: 6px;"><b>ตรวจสอบผู้อนุมัติ:</b> ระบบแสดงสายงานการพิจารณา L1 และ L2 อัตโนมัติ ก่อนกดปุ่ม <span style="color:var(--th-p-600, #0d9488); font-weight:700;">"ส่งคำขออนุมัติ"</span></li>
           </ul>
         `;
       } else if (path.includes("leave-history.html")) {
@@ -916,8 +916,8 @@
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
             <li style="margin-bottom: 6px;"><b>สถานะใบลาปัจจุบัน:</b> แถบสีจะระบุสิทธิ์พิจารณา เช่น รออนุมัติ (สีส้ม), อนุมัติ (สีเขียว), หรือ ปฏิเสธ (สีแดง)</li>
-            <li style="margin-bottom: 6px;"><b>ดูรายละเอียดเชิงลึก:</b> คลิกปุ่มไอคอน <span style="color:#0d9488; font-weight:700;">"ดวงตา (ดูรายละเอียด)"</span> เพื่อเปิดอ่านความเห็นจากผู้อนุมัติ</li>
-            <li style="margin-bottom: 6px;"><b>พิมพ์เอกสาร A4:</b> กดปุ่มไอคอน <span style="color:#0d9488; font-weight:700;">"เครื่องพิมพ์"</span> เพื่อเปิดดูหน้าพิมพ์ใบลาที่เป็นทางการเพื่อเก็บหลักฐาน</li>
+            <li style="margin-bottom: 6px;"><b>ดูรายละเอียดเชิงลึก:</b> คลิกปุ่มไอคอน <span style="color:var(--th-p-600, #0d9488); font-weight:700;">"ดวงตา (ดูรายละเอียด)"</span> เพื่อเปิดอ่านความเห็นจากผู้อนุมัติ</li>
+            <li style="margin-bottom: 6px;"><b>พิมพ์เอกสาร A4:</b> กดปุ่มไอคอน <span style="color:var(--th-p-600, #0d9488); font-weight:700;">"เครื่องพิมพ์"</span> เพื่อเปิดดูหน้าพิมพ์ใบลาที่เป็นทางการเพื่อเก็บหลักฐาน</li>
             <li style="margin-bottom: 6px;"><b>การยกเลิกใบลา:</b> ใบลาที่ยื่นผิดพลาดหรือผ่านการอนุมัติแล้วต้องการขอสิทธิ์คืน สามารถส่งคำขอยกเลิกได้จากตาราง</li>
           </ul>
         `;
@@ -981,8 +981,8 @@
       } else {
         guideContent = `
           <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #334155; line-height: 1.7;">
-            <li style="margin-bottom: 6px;"><b>การลางาน:</b> เข้าสู่หน้าหลัก เลือก <span style="color:#0d9488; font-weight:700;">"ยื่นใบลาออนไลน์"</span> กรอกข้อมูล แล้วกดตกลง</li>
-            <li style="margin-bottom: 6px;"><b>ตรวจสอบผล:</b> เข้าหน้า <span style="color:#0d9488; font-weight:700;">"ประวัติการลา"</span> เพื่อตรวจประเมินสายอนุมัติเรียลไทม์</li>
+            <li style="margin-bottom: 6px;"><b>การลางาน:</b> เข้าสู่หน้าหลัก เลือก <span style="color:var(--th-p-600, #0d9488); font-weight:700;">"ยื่นใบลาออนไลน์"</span> กรอกข้อมูล แล้วกดตกลง</li>
+            <li style="margin-bottom: 6px;"><b>ตรวจสอบผล:</b> เข้าหน้า <span style="color:var(--th-p-600, #0d9488); font-weight:700;">"ประวัติการลา"</span> เพื่อตรวจประเมินสายอนุมัติเรียลไทม์</li>
             <li style="margin-bottom: 6px;"><b>วันลาคงเหลือ:</b> แผงควบคุมคำนวณวันคงเหลือในรูปการ์ดสวยงามให้อย่างรวดเร็วอัตโนมัติ</li>
             <li style="margin-bottom: 6px;"><b>ผูกแจ้งเตือน LINE:</b> ไปหน้าโปรไฟล์ ขอรับรหัสผูกแชท เพื่อรับข้อความแจ้งเตือนทางแอป LINE ได้ฟรี</li>
           </ul>
@@ -990,20 +990,20 @@
       }
 
       Swal.fire({
-        title: `<div style="font-size: 20px; font-weight: 800; color: #0d9488;"> ${pageTitle}</div>`,
+        title: `<div style="font-size: 20px; font-weight: 800; color: var(--th-p-600, #0d9488);"> ${pageTitle}</div>`,
         html: `
           <div style="text-align: left; font-family: 'Sarabun', sans-serif;">
-            <div style="background: #f0fdfa; border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid #ccfbf1; box-shadow: inset 0 1px 2px rgba(13,148,136,0.05);">
-              <strong style="color: #0f766e; display: block; margin-bottom: 10px; font-size: 14.5px; font-weight: 800; border-bottom: 1.5px solid #ccfbf1; padding-bottom: 6px;"> คู่มือแนะนำระบบฉบับย่อ (Quick Guide)</strong>
+            <div style="background: var(--th-p-50, #f0fdfa); border-radius: 12px; padding: 18px; margin-bottom: 20px; border: 1px solid var(--th-p-100, #ccfbf1); box-shadow: inset 0 1px 2px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.05);">
+              <strong style="color: var(--th-p-700, #0f766e); display: block; margin-bottom: 10px; font-size: 14.5px; font-weight: 800; border-bottom: 1.5px solid var(--th-p-100, #ccfbf1); padding-bottom: 6px;"> คู่มือแนะนำระบบฉบับย่อ (Quick Guide)</strong>
               ${guideContent}
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
               <button id="pvt-btn-full-guide" class="swal2-styled" style="background: #ffffff; color: #1e293b; border: 1.5px solid #cbd5e1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
-                <span class="material-symbols-outlined" style="font-size: 20px; color: #0d9488;">library_books</span> อ่านคู่มือการใช้งานฉบับเต็ม
+                <span class="material-symbols-outlined" style="font-size: 20px; color: var(--th-p-600, #0d9488);">library_books</span> อ่านคู่มือการใช้งานฉบับเต็ม
               </button>
-              <button id="pvt-btn-biometric-guide" class="swal2-styled" style="background: #ffffff; color: #0f766e; border: 1.5px solid #ccfbf1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
-                <span class="material-symbols-outlined" style="font-size: 20px; color: #0d9488;">fingerprint</span> คู่มือสแกนใบหน้า / นิ้วมือ
+              <button id="pvt-btn-biometric-guide" class="swal2-styled" style="background: #ffffff; color: var(--th-p-700, #0f766e); border: 1.5px solid var(--th-p-100, #ccfbf1); margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                <span class="material-symbols-outlined" style="font-size: 20px; color: var(--th-p-600, #0d9488);">fingerprint</span> คู่มือสแกนใบหน้า / นิ้วมือ
               </button>
               <button id="pvt-btn-diagnostics" class="swal2-styled" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; margin: 0; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
                 <span class="material-symbols-outlined" style="font-size: 20px; color: #64748b;">healing</span> ตรวจเช็ค & ซ่อมแซมระบบ
@@ -1021,11 +1021,11 @@
           const btnBio = document.getElementById('pvt-btn-biometric-guide');
           const btnDiag = document.getElementById('pvt-btn-diagnostics');
           
-          btnFull.onmouseenter = () => { btnFull.style.borderColor = '#0d9488'; btnFull.style.background = '#f0fdfa'; };
+          btnFull.onmouseenter = () => { btnFull.style.borderColor = 'var(--th-p-600, #0d9488)'; btnFull.style.background = 'var(--th-p-50, #f0fdfa)'; };
           btnFull.onmouseleave = () => { btnFull.style.borderColor = '#cbd5e1'; btnFull.style.background = '#ffffff'; };
 
-          btnBio.onmouseenter = () => { btnBio.style.borderColor = '#0d9488'; btnBio.style.background = '#f0fdfa'; };
-          btnBio.onmouseleave = () => { btnBio.style.borderColor = '#ccfbf1'; btnBio.style.background = '#ffffff'; };
+          btnBio.onmouseenter = () => { btnBio.style.borderColor = 'var(--th-p-600, #0d9488)'; btnBio.style.background = 'var(--th-p-50, #f0fdfa)'; };
+          btnBio.onmouseleave = () => { btnBio.style.borderColor = 'var(--th-p-100, #ccfbf1)'; btnBio.style.background = '#ffffff'; };
           
           btnDiag.onmouseenter = () => { btnDiag.style.borderColor = '#64748b'; btnDiag.style.background = '#f1f5f9'; };
           btnDiag.onmouseleave = () => { btnDiag.style.borderColor = '#cbd5e1'; btnDiag.style.background = '#f8fafc'; };

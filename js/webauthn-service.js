@@ -993,7 +993,7 @@
         .pvt-guide-modal-title {
           font-size: 18px;
           font-weight: 700;
-          color: #0f766e;
+          color: var(--th-p-700, #0f766e);
           margin: 0 0 4px 0;
           display: flex;
           align-items: center;
@@ -1037,7 +1037,7 @@
         }
         .pvt-tab-btn.active {
           background: #ffffff;
-          color: #0f766e;
+          color: var(--th-p-700, #0f766e);
           box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
         }
         .pvt-tab-content {
@@ -1056,7 +1056,7 @@
         .pvt-illustration-container {
           width: 100%;
           height: 120px;
-          background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%);
+          background: linear-gradient(135deg, var(--th-p-50, #f0fdfa) 0%, var(--th-k-100, #e0f2fe) 100%);
           border-radius: 14px;
           display: flex;
           align-items: center;
@@ -1075,7 +1075,7 @@
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          background: #0f766e;
+          background: var(--th-p-700, #0f766e);
           color: #ffffff;
           font-size: 12px;
           font-weight: 700;
@@ -1108,7 +1108,7 @@
           background: #f8fafc;
         }
         .pvt-btn-primary {
-          background: #0f766e;
+          background: var(--th-p-700, #0f766e);
           color: #ffffff;
           border: none;
           padding: 10px 20px;
@@ -1122,7 +1122,7 @@
           transition: all 0.2s;
         }
         .pvt-btn-primary:hover {
-          background: #0d9488;
+          background: var(--th-p-600, #0d9488);
         }
         .pvt-btn-secondary {
           background: transparent;
@@ -1195,7 +1195,7 @@
             <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
           </button>
           <h3 class="pvt-guide-modal-title">
-            <span class="material-symbols-outlined" style="color: #0d9488; font-size: 24px;">fingerprint</span>
+            <span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488); font-size: 24px;">fingerprint</span>
             ${t.title}
           </h3>
           <p class="pvt-guide-modal-subtitle">${t.subtitle}</p>

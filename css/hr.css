@@ -36,8 +36,8 @@
    ========================================================================== */
 #page-hr-approval {
   /* สีหลัก (เขียว PVT) */
-  --ap-primary: #0d9488;
-  --ap-primary-dark: #0f766e;
+  --ap-primary: var(--th-p-600, #0d9488);
+  --ap-primary-dark: var(--th-p-700, #0f766e);
   --ap-primary-soft: #ebf7f3;
   --ap-primary-light: rgba(15, 164, 114, 0.15);
 
@@ -45,11 +45,11 @@
   --ap-success: #10b981;
   --ap-warning: #f59e0b;
   --ap-danger: #ef4444;
-  --ap-info: #0284c7;
+  --ap-info: var(--th-k-600, #0284c7);
   --ap-purple: #8b5cf6;
 
   /* พื้นผิว + ตัวอักษร */
-  --ap-bg: #f0fdfa;
+  --ap-bg: var(--th-p-50, #f0fdfa);
   --ap-card: #ffffff;
   --ap-text: #0f172a;
   --ap-text-soft: #64748b;
@@ -100,10 +100,10 @@
   color: var(--ap-text);
   background-color: var(--ap-bg);
   background-image:
-    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
-    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
-    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -158,13 +158,13 @@
 /* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
 #page-hr-approval .pvt-sidebar__toggle {
   color: #ffffff;
-  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
   border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 #page-hr-approval .pvt-sidebar__toggle:hover {
-  background: linear-gradient(135deg, #2748a8, #1e3988);
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
 #page-hr-approval .pvt-sidebar__toggle .material-symbols-outlined {
@@ -212,7 +212,7 @@
 #page-hr-approval .ap-btn--primary {
   color: #fff;
   background: linear-gradient(135deg, var(--ap-primary), var(--ap-primary-dark));
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 /* ปุ่มรอง: ขาวขอบเทา */
@@ -225,8 +225,8 @@
 
 #page-hr-approval .ap-btn--light:hover {
   color: var(--ap-primary-dark);
-  background: #f0fdfa;
-  border-color: #99f6e4;
+  background: var(--th-p-50, #f0fdfa);
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 /* ปุ่ม Excel: เขียวแบบ Excel */
@@ -271,7 +271,7 @@
   height: 46px;
   font-size: 26px;
   color: var(--ap-primary);
-  background: #f0fdfa;
+  background: var(--th-p-50, #f0fdfa);
   border-radius: 14px;
 }
 
@@ -310,7 +310,7 @@
 
 #page-hr-approval .ap-kpi {
   --stat-color: var(--ap-primary);
-  --stat-soft: #ccfbf1;
+  --stat-soft: var(--th-p-100, #ccfbf1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -332,8 +332,8 @@
 
 #page-hr-approval .ap-kpi.stat-amber  { --stat-color: #d97706;          --stat-soft: #fef3c7; }
 #page-hr-approval .ap-kpi.stat-violet { --stat-color: #7c3aed;          --stat-soft: #ede9fe; }
-#page-hr-approval .ap-kpi.stat-teal   { --stat-color: var(--ap-primary); --stat-soft: #ccfbf1; }
-#page-hr-approval .ap-kpi.stat-blue   { --stat-color: var(--ap-info);    --stat-soft: #e0f2fe; }
+#page-hr-approval .ap-kpi.stat-teal   { --stat-color: var(--ap-primary); --stat-soft: var(--th-p-100, #ccfbf1); }
+#page-hr-approval .ap-kpi.stat-blue   { --stat-color: var(--ap-info);    --stat-soft: var(--th-k-100, #e0f2fe); }
 
 #page-hr-approval .ap-kpi-content {
   display: flex;
@@ -432,7 +432,7 @@
 #page-hr-approval .tab-btn.active {
   color: #fff;
   background: linear-gradient(135deg, var(--ap-primary), var(--ap-primary-dark));
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 /* แท็บ "ขอยกเลิก" ใช้สีม่วงตอน active */
@@ -611,8 +611,8 @@
   gap: 12px;
   margin-bottom: 16px;
   padding: 12px 18px;
-  background: #f0fdfa;
-  border: 1.5px solid #5eead4;
+  background: var(--th-p-50, #f0fdfa);
+  border: 1.5px solid var(--th-p-300, #5eead4);
   border-radius: 12px;
 }
 
@@ -670,7 +670,7 @@
   background: var(--ap-primary);
   color: #fff;
   border: none;
-  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 2px 4px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 #page-hr-approval .btn-bulk-approve:hover {
@@ -957,9 +957,9 @@
 
 /* พิมพ์ (ฟ้า) */
 #page-hr-approval .btn-act-print {
-  background: #f0f9ff;
-  color: #0369a1;
-  border-color: #bae6fd;
+  background: var(--th-k-50, #f0f9ff);
+  color: var(--th-k-700, #0369a1);
+  border-color: var(--th-k-200, #bae6fd);
 }
 
 #page-hr-approval .btn-act-print:hover {

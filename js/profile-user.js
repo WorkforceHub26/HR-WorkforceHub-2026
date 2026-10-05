@@ -191,14 +191,14 @@ async function loadProfile() {
       <div class="profile-avatar-card" style="padding: 24px 16px; background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid #e2e8f0; border-radius: 16px; text-align: center; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
         <div style="position: relative; width: 110px; height: 110px; margin: 0 auto 14px auto;">
           <img id="profileAvatarImg" src="${resolvedAvatarUrl}" alt="${escapeFn(empName)}" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid #ffffff; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);" onerror="this.onerror=null; this.src='${fallbackAvatarUrl}';" />
-          <button type="button" id="btnEditProfileAvatar" onclick="openProfileAvatarActions()" title="แก้ไขรูปโปรไฟล์" aria-label="แก้ไขรูปโปรไฟล์" style="position: absolute; bottom: 2px; right: 2px; width: 36px !important; height: 36px !important; min-width: 36px !important; min-height: 36px !important; max-width: 36px !important; max-height: 36px !important; aspect-ratio: 1 / 1; padding: 0 !important; border-radius: 50% !important; background: #0284c7; color: #ffffff; border: 2.5px solid #ffffff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; line-height: 1; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); transition: transform 0.2s; overflow: hidden; flex: 0 0 36px;">
+          <button type="button" id="btnEditProfileAvatar" onclick="openProfileAvatarActions()" title="แก้ไขรูปโปรไฟล์" aria-label="แก้ไขรูปโปรไฟล์" style="position: absolute; bottom: 2px; right: 2px; width: 36px !important; height: 36px !important; min-width: 36px !important; min-height: 36px !important; max-width: 36px !important; max-height: 36px !important; aspect-ratio: 1 / 1; padding: 0 !important; border-radius: 50% !important; background: var(--th-k-600, #0284c7); color: #ffffff; border: 2.5px solid #ffffff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; line-height: 1; box-shadow: 0 2px 8px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.4); transition: transform 0.2s; overflow: hidden; flex: 0 0 36px;">
             <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
           </button>
           <input type="file" id="profileAvatarFileInput" accept="image/*" style="display: none;" onchange="handleProfileAvatarUpload(this)" />
         </div>
         <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">${escapeFn(empName)}</h3>
         <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
-          <span style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600;">รหัส: ${escapeFn(empCode)}</span>
+          <span style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600;">รหัส: ${escapeFn(empCode)}</span>
           <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600;">${escapeFn(deptName)}</span>
         </div>
         <p style="font-size: 12px; color: #64748b; margin: 10px 0 0 0;">แตะไอคอนปากกาเพื่อแก้ไขรูปโปรไฟล์</p>
@@ -375,7 +375,7 @@ async function testLineNotification() {
             icon: 'success',
             title: 'ส่งข้อความทดสอบสำเร็จ! 🎉',
             text: 'ส่งข้อความไปยัง LINE เรียบร้อยแล้ว กรุณาเช็กข้อความในแอป LINE ของคุณ',
-            confirmButtonColor: '#0284c7'
+            confirmButtonColor: 'var(--th-k-600, #0284c7)'
           });
         }
       } else {
@@ -384,7 +384,7 @@ async function testLineNotification() {
             icon: 'info',
             title: 'บันทึกการส่งแล้ว',
             text: res?.message || 'ส่งแจ้งเตือนในระบบเรียบร้อย (หากยังไม่ได้รับใน LINE กรุณาตรวจสอบว่าบอท LINE OA เปิดทำงานและได้รับ LINE User ID ที่ถูกต้อง)',
-            confirmButtonColor: '#0284c7'
+            confirmButtonColor: 'var(--th-k-600, #0284c7)'
           });
         }
       }
@@ -559,7 +559,7 @@ async function openProfileAvatarActions() {
       title: "แก้ไขรูปโปรไฟล์",
       html: `
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
-          <button type="button" id="pvtAvatarUploadAction" style="width:100%;border:0;border-radius:12px;padding:13px 16px;background:#0284c7;color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <button type="button" id="pvtAvatarUploadAction" style="width:100%;border:0;border-radius:12px;padding:13px 16px;background:var(--th-k-600, #0284c7);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
             <span class="material-symbols-outlined" style="font-size:20px;">upload</span>
             อัปโหลดรูป
           </button>

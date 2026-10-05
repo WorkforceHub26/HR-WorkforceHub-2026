@@ -569,7 +569,7 @@
             <div class="sla-leave-info">
               <div class="sla-leave-info-row">
                 <span class="sla-leave-type-chip">
-                  <span class="material-symbols-outlined" style="font-size: 16px; color: #0d9488;">event_note</span>
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: var(--th-p-600, #0d9488);">event_note</span>
                   ${escapeHtml(leaveTypeName)}
                 </span>
                 <span class="sla-duration-badge">${durationFriendly}</span>
@@ -593,8 +593,8 @@
             </div>
 
             ${req.delegationInfo ? `
-              <div style="margin-top: 8px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #0369a1; display: flex; align-items: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="font-size: 16px; color: #0284c7; flex-shrink: 0;">swap_calls</span>
+              <div style="margin-top: 8px; background: var(--th-k-50, #f0f9ff); border: 1px solid var(--th-k-200, #bae6fd); border-radius: 8px; padding: 6px 10px; font-size: 12px; color: var(--th-k-700, #0369a1); display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 16px; color: var(--th-k-600, #0284c7); flex-shrink: 0;">swap_calls</span>
                 <div style="line-height: 1.3;">
                   <strong>โอนสิทธิ์อัตโนมัติ:</strong> คุณ ${escapeHtml(req.delegationInfo.delegateName)} รักษาการแทน (${escapeHtml(req.delegationInfo.reason)})
                 </div>
@@ -761,7 +761,7 @@
           icon: 'info',
           title: 'ไม่พบข้อมูลคำขอลา',
           text: 'อาจได้รับการพิจารณาหรืออัปเดตสถานะไปแล้ว',
-          confirmButtonColor: '#0d9488'
+          confirmButtonColor: 'var(--th-p-600, #0d9488)'
         });
       }
       return;
@@ -801,7 +801,7 @@
       } else {
         attachHtml = `
           <div style="margin-top: 12px;">
-            <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; color: #0284c7; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; border: 1px solid #cbd5e1;">
+            <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; color: var(--th-k-600, #0284c7); padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; border: 1px solid #cbd5e1;">
               <span class="material-symbols-outlined" style="font-size: 18px;">description</span> เปิดดูเอกสารแนบ
             </a>
           </div>
@@ -820,7 +820,7 @@
             </h3>
             <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; font-size: 12px; color: #64748b;">
               <span style="background: #f1f5f9; padding: 2px 7px; border-radius: 4px; font-weight: 600; color: #334155; border: 1px solid #e2e8f0;">รหัส: ${escapeHtml(emp.code)}</span>
-              <span style="background: #e0f2fe; padding: 2px 7px; border-radius: 4px; font-weight: 600; color: #0369a1; border: 1px solid #bae6fd;">แผนก: ${escapeHtml(emp.dept)}</span>
+              <span style="background: var(--th-k-100, #e0f2fe); padding: 2px 7px; border-radius: 4px; font-weight: 600; color: var(--th-k-700, #0369a1); border: 1px solid var(--th-k-200, #bae6fd);">แผนก: ${escapeHtml(emp.dept)}</span>
               ${emp.position ? `<span style="background: #f8fafc; padding: 2px 7px; border-radius: 4px; color: #475569; border: 1px solid #e2e8f0;">ตำแหน่ง: ${escapeHtml(emp.position)}</span>` : ''}
             </div>
           </div>
@@ -851,7 +851,7 @@
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 14px; font-size: 13px;">
           <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #f1f5f9;">
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ประเภทการลา</span>
-            <strong style="color: #0d9488; font-size: 14px; display: flex; align-items: center; gap: 4px;">
+            <strong style="color: var(--th-p-600, #0d9488); font-size: 14px; display: flex; align-items: center; gap: 4px;">
               <span class="material-symbols-outlined" style="font-size: 16px;">event_note</span> ${escapeHtml(typeName)}
             </strong>
           </div>
@@ -884,7 +884,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f1f5f9; border-radius: 8px; font-size: 12.5px; margin-bottom: 10px;">
           <span style="color: #475569; font-weight: 500;">ขั้นตอนปัจจุบัน:</span>
           <span style="font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 4px;">
-            <span class="material-symbols-outlined" style="font-size: 16px; color: #0d9488;">${sla.stageIcon || 'assignment_ind'}</span>
+            <span class="material-symbols-outlined" style="font-size: 16px; color: var(--th-p-600, #0d9488);">${sla.stageIcon || 'assignment_ind'}</span>
             ${sla.stepText}
           </span>
         </div>
@@ -898,7 +898,7 @@
         <!-- Actions moved here: ปริ้นเอกสาร และดูรูปภาพแนบ -->
         <div style="display: flex; gap: 10px; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
           <button type="button" class="btn-sla-action btn-sla-print" onclick="typeof window.printLeaveA4 === 'function' ? window.printLeaveA4('${req.id}') : (window.location.href=(window.PVT_APPROVAL_PAGE_URL || '/pages/hr/hr.html') + '?id=${req.id}&action=print')" 
-                  style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #0284c7; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13.5px; font-family: inherit; transition: background 0.2s;">
+                  style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--th-k-600, #0284c7); color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13.5px; font-family: inherit; transition: background 0.2s;">
             <span class="material-symbols-outlined" style="font-size: 18px;">print</span>
             <span>ปริ้นเอกสาร</span>
           </button>
@@ -922,7 +922,7 @@
 
     if (window.Swal) {
       Swal.fire({
-        title: `<div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px;font-weight:700;"><span class="material-symbols-outlined" style="color:#0d9488;font-size:24px;">description</span> รายละเอียดคำขอลาหยุดงาน</div>`,
+        title: `<div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px;font-weight:700;"><span class="material-symbols-outlined" style="color:var(--th-p-600, #0d9488);font-size:24px;">description</span> รายละเอียดคำขอลาหยุดงาน</div>`,
         html: modalContent,
         width: '600px',
         showCloseButton: true,
@@ -930,7 +930,7 @@
         cancelButtonText: 'ปิด',
         cancelButtonColor: '#94a3b8',
         confirmButtonText: '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">fact_check</span> ไปที่หน้าตรวจใบลา',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       }).then((res) => {
         if (res.isConfirmed) {
           window.location.href = `${getApprovalPageUrl()}?id=${leaveId}`;

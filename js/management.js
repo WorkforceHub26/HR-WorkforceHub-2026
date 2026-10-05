@@ -471,7 +471,7 @@ async function viewAuditLogs() {
         html: logTableHTML,
         width: 'min(92vw, 750px)',
         confirmButtonText: 'ปิดหน้าต่าง',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     }
 
@@ -584,7 +584,7 @@ async function viewLoginAuditLogs() {
 
         // Method formatting
         const method = String(log.login_method || 'password').toLowerCase();
-        let methodBadge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🔑 รหัสผ่าน</span>`;
+        let methodBadge = `<span style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🔑 รหัสผ่าน</span>`;
         if (method.includes('qr')) {
           methodBadge = `<span style="background: #ecfdf5; color: #047857; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">📱 QR Code</span>`;
         } else if (method.includes('token') || method.includes('auto')) {
@@ -623,10 +623,10 @@ async function viewLoginAuditLogs() {
       <div style="font-family: 'Sarabun', sans-serif; text-align: left;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
           <div style="font-size: 13px; color: #334155;">
-            <strong style="color: #0d9488;">ตาราง Supabase:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px;">login_logs</code>
+            <strong style="color: var(--th-p-600, #0d9488);">ตาราง Supabase:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px;">login_logs</code>
             <span style="margin-left: 10px; color: #64748b;">(ทั้งหมด ${logs.length} รายการล่าสุด)</span>
           </div>
-          <button type="button" onclick="copyLoginLogsMigrationSql()" style="background: white; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #475569; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.color='#0d9488'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#475569'">
+          <button type="button" onclick="copyLoginLogsMigrationSql()" style="background: white; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #475569; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.color='var(--th-p-600, #0d9488)'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#475569'">
             <span class="material-symbols-outlined" style="font-size: 15px;">content_copy</span> คัดลอก SQL สร้างตาราง
           </button>
         </div>
@@ -660,7 +660,7 @@ async function viewLoginAuditLogs() {
         html: modalHTML,
         width: 'min(94vw, 920px)',
         confirmButtonText: 'ปิดหน้าต่าง',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     }
 
@@ -765,7 +765,7 @@ async function resetYearlyLeave(isForce = false) {
             <span style="font-weight:400; color:#9f1239;">(ติ๊กช่องนี้เพื่อปรับปรุงโควตากลับไปเป็นค่าเริ่มต้นตามนโยบายบริษัท)</span>
           </label>
         </div>
-        <div style="font-size:11.5px; color:#0d9488; background:#f0fdfa; border:1px solid #ccfbf1; padding:8px 12px; border-radius:8px;">
+        <div style="font-size:11.5px; color:var(--th-p-600, #0d9488); background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:8px 12px; border-radius:8px;">
           💡 <strong>ระบบล้างและรีเซ็ตอัจฉริยะ</strong>: ระบบจะไม่ตั้งค่าวันลาเป็น 0 บลอนด์ๆ แต่จะดึงใบลาที่ผ่านการอนุมัติจริงในระบบมาคำนวณยอดใช้วันลาให้ตรงโดยอัตโนมัติ ทำให้สิทธิคงเหลือสมบูรณ์ 100%
         </div>
       </div>
@@ -773,7 +773,7 @@ async function resetYearlyLeave(isForce = false) {
     showCancelButton: true,
     confirmButtonText: '🚀 เริ่มซิงค์และคำนวณโควตา',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     cancelButtonColor: '#64748b',
     preConfirm: () => {
       const year = parseInt(document.getElementById('swal-target-year').value, 10);
@@ -919,7 +919,7 @@ async function resetYearlyLeave(isForce = false) {
       icon: 'success',
       title: 'รีเซ็ตและซิงค์โควตาสำเร็จ!',
       text: successMessage,
-      confirmButtonColor: '#0d9488'
+      confirmButtonColor: 'var(--th-p-600, #0d9488)'
     });
 
     // ดึงข้อมูลปีล่าสุดมาแสดงผลบน Dashboard ทันที
@@ -1650,7 +1650,7 @@ function renderBarChart(targetId, rows, countMode = false) {
 
   const typeColorGradients = [
     "linear-gradient(90deg, #0fa472 0%, #34d399 100%)",
-    "linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)",
+    "linear-gradient(90deg, var(--th-k-600, #0284c7) 0%, var(--th-k-400, #38bdf8) 100%)",
     "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)",
     "linear-gradient(90deg, #8b5cf6 0%, #c084fc 100%)",
     "linear-gradient(90deg, #ef4444 0%, #f87171 100%)",
@@ -1780,7 +1780,7 @@ function renderEmployeeTable() {
                           : currentSystemRoleFilter === 'staff' ? ' | บทบาท พนักงาน' : '';
 
     leftTextEl.innerHTML = `
-      <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488;">analytics</span>
+      <span class="material-symbols-outlined" style="font-size: 18px; color: var(--th-p-600, #0d9488);">analytics</span>
       <span>${escapeHtml(deptTitle)} (${filterCatName}${escapeHtml(posSubTitle)}${escapeHtml(systemRoleTitle)}): แสดง ${filtered.length} คน (จากทั้งหมด ${cAll} คน)</span>
     `;
 
@@ -1861,7 +1861,7 @@ function renderEmployeeTable() {
         </div>
         <div class="col-dept">
           <span class="emp-dept-chip">
-            <span class="material-symbols-outlined" style="font-size: 14px; color: #0d9488;">corporate_fare</span>
+            <span class="material-symbols-outlined" style="font-size: 14px; color: var(--th-p-600, #0d9488);">corporate_fare</span>
             ${displayDept}
           </span>
         </div>
@@ -1986,7 +1986,7 @@ async function renderCustomFieldsHTMLForView(supabase, employeeCode) {
 
   return `
     <div style="margin-top: 16px; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
-      <strong style="font-size:14px; display:block; margin-bottom:8px; color:#0d9488;">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</strong>
+      <strong style="font-size:14px; display:block; margin-bottom:8px; color:var(--th-p-600, #0d9488);">📌 ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)</strong>
       <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
         ${details}
       </div>
@@ -2075,12 +2075,12 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
       title.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px; flex-wrap:wrap;">
           <span style="display:flex; align-items:center; gap:8px; font-size:16px;">
-            <strong style="color:#0f766e;">${escapeHtml(emp.employee_code || "-")}</strong>
+            <strong style="color:var(--th-p-700, #0f766e);">${escapeHtml(emp.employee_code || "-")}</strong>
             <span style="color:#64748b;">·</span>
             <span>${escapeHtml(emp.full_name || "-")}</span>
           </span>
           ${window.isViewOnlyHR ? '' : `
-            <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:#0d9488; border:1px solid #0d9488; color:white; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+            <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:var(--th-p-600, #0d9488); border:1px solid var(--th-p-600, #0d9488); color:white; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
               <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไขข้อมูล
             </button>
           `}
@@ -2092,10 +2092,10 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
     if (body) {
       body.innerHTML = `
         <div style="display:flex; align-items:center; gap:14px; background:#f8fafc; padding:14px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px; flex-wrap:wrap;">
-          <img src="${getAvatarUrl(emp.image_url, emp.title)}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #0d9488; background:#fff; flex-shrink:0;" onerror="this.onerror=null; this.src=getDefaultAvatarUrl('${escapeHtml(emp.title || '')}');">
+          <img src="${getAvatarUrl(emp.image_url, emp.title)}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--th-p-600, #0d9488); background:#fff; flex-shrink:0;" onerror="this.onerror=null; this.src=getDefaultAvatarUrl('${escapeHtml(emp.title || '')}');">
           <div style="flex:1; min-width:180px;">
             <div style="font-size:15px; font-weight:700; color:#1e293b;">${escapeHtml(emp.full_name || "-")} ${emp.nickname ? `<span style="font-weight:400; color:#64748b;">(${escapeHtml(emp.nickname)})</span>` : ''}</div>
-            <div style="font-size:13px; color:#0d9488; font-weight:600; margin-top:2px;">${escapeHtml(emp.positions?.position_name || "-")} · ${escapeHtml(emp.departments?.department_name || "-")}</div>
+            <div style="font-size:13px; color:var(--th-p-600, #0d9488); font-weight:600; margin-top:2px;">${escapeHtml(emp.positions?.position_name || "-")} · ${escapeHtml(emp.departments?.department_name || "-")}</div>
             <div style="font-size:12px; color:#64748b; margin-top:2px;">ประเภท: ${formatEmploymentType(emp.employment_type)}</div>
           </div>
         </div>
@@ -2111,15 +2111,15 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
         ${customFieldsViewHTML}
         
         <div style="margin-bottom:20px; margin-top: 16px;">
-          <strong style="font-size:14px; display:flex; align-items:center; gap:6px; margin-bottom:10px; color:#0f766e;">
+          <strong style="font-size:14px; display:flex; align-items:center; gap:6px; margin-bottom:10px; color:var(--th-p-700, #0f766e);">
             <span class="material-symbols-outlined" style="font-size:18px;">analytics</span> สิทธิวันลาคงเหลือประจำปี
           </strong>
           ${renderBalanceCards(balances)}
         </div>
 
         <div style="margin-top: 20px;">
-          <strong style="font-size:14px; display:flex; align-items:center; gap:6px; margin-bottom:10px; color:#1e293b; border-left: 4px solid #0d9488; padding-left: 8px;">
-            <span class="material-symbols-outlined" style="font-size:18px; color:#0d9488;">history</span> ประวัติการลาทั้งหมด
+          <strong style="font-size:14px; display:flex; align-items:center; gap:6px; margin-bottom:10px; color:#1e293b; border-left: 4px solid var(--th-p-600, #0d9488); padding-left: 8px;">
+            <span class="material-symbols-outlined" style="font-size:18px; color:var(--th-p-600, #0d9488);">history</span> ประวัติการลาทั้งหมด
           </strong>
           <div class="leave-history-cards-container" style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px;">
             ${requests.length ? requests.sort((a,b) => new Date(b.start_date) - new Date(a.start_date)).map(renderLeaveCardItem).join("") : '<div style="text-align:center; padding:28px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">ยังไม่มีประวัติการลาในระบบ</div>'}
@@ -2211,7 +2211,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                   <input type="text" id="inline-edit-password" class="pvt-input" placeholder="ปล่อยว่างหากใช้รหัสผ่านเดิม">
                 </div>
                 <div class="pvt-field-group">
-                  <label for="inline-edit-system-role" style="color: #0d9488;">👑 สิทธิ์ในระบบ <span class="req">*</span></label>
+                  <label for="inline-edit-system-role" style="color: var(--th-p-600, #0d9488);">👑 สิทธิ์ในระบบ <span class="req">*</span></label>
                   <select id="inline-edit-system-role" class="pvt-select pvt-select-highlight" onchange="window.updateEmployeeEditFormRequirements()">
                     <option value="user" ${emp.role === 'user' || !emp.role ? 'selected' : ''}>👤 พนักงานทั่วไป (Employee)</option>
                     <option value="leader" ${emp.role === 'leader' ? 'selected' : ''}>🎖️ หัวหน้างาน (Supervisor - L1)</option>
@@ -2334,7 +2334,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                   <div class="pvt-fs-card-title" style="font-size: 14px; margin-bottom:0; border-bottom:none; padding-bottom:0;">
                     <span class="material-symbols-outlined" style="font-size:18px;">post_add</span> ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)
                   </div>
-                  <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => openEmployeeDetail('${emp.id}', true))" style="font-size: 11.5px; padding: 5px 12px; background: #0d9488; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                  <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => openEmployeeDetail('${emp.id}', true))" style="font-size: 11.5px; padding: 5px 12px; background: var(--th-p-600, #0d9488); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
                     ⚙️ จัดการคอลัมน์ระบบ
                   </button>
                 </div>
@@ -2346,14 +2346,14 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
 
           <div class="pvt-fs-footer" style="position: sticky; bottom: -24px; background: #ffffff; border-top: 1px solid #cbd5e1; padding: 14px 28px; margin: 24px -24px -24px -24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -4px 16px rgba(0,0,0,0.06); z-index: 20; flex-wrap: wrap; gap: 12px;">
             <div style="font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 8px;">
-              <span class="material-symbols-outlined" style="font-size:18px; color:#0d9488;">badge</span>
-              <span>กำลังแก้ไขข้อมูลพนักงาน: <strong style="color:#0f766e;">${escapeHtml(emp.employee_code || '-')}</strong> (${escapeHtml(emp.full_name || '-')})</span>
+              <span class="material-symbols-outlined" style="font-size:18px; color:var(--th-p-600, #0d9488);">badge</span>
+              <span>กำลังแก้ไขข้อมูลพนักงาน: <strong style="color:var(--th-p-700, #0f766e);">${escapeHtml(emp.employee_code || '-')}</strong> (${escapeHtml(emp.full_name || '-')})</span>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
               <button type="button" class="btn-light" onclick="openEmployeeDetail('${emp.id}', false)" style="padding: 10px 20px; font-weight: 600; font-size: 14px; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;">
                 ❌ ยกเลิก
               </button>
-              <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); border: none; color: white; border-radius: 8px; padding: 10px 28px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);">
+              <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, var(--th-p-700, #0f766e) 0%, var(--th-p-600, #0d9488) 100%); border: none; color: white; border-radius: 8px; padding: 10px 28px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);">
                 <span class="material-symbols-outlined" style="font-size:18px;">save</span> บันทึกการแก้ไขข้อมูล
               </button>
             </div>
@@ -2602,9 +2602,9 @@ function renderBalanceCards(rows) {
     const remaining = row.remaining_days !== undefined ? Number(row.remaining_days) : (entitlement - used);
 
     return `
-      <div style="background:#f0fdfa; border:1px solid #ccfbf1; padding:10px 14px; border-radius:10px;">
-        <span style="font-size:12px; color:#0d9488; font-weight:600; display:block; margin-bottom:4px;">${escapeHtml(type)}</span>
-        <div style="font-size:18px; font-weight:700; color:#0f766e;">
+      <div style="background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:10px 14px; border-radius:10px;">
+        <span style="font-size:12px; color:var(--th-p-600, #0d9488); font-weight:600; display:block; margin-bottom:4px;">${escapeHtml(type)}</span>
+        <div style="font-size:18px; font-weight:700; color:var(--th-p-700, #0f766e);">
           ${remaining} <span style="font-size:12px; font-weight:normal; color:#475569;">/ ${entitlement} วัน (ใช้ไป ${used})</span>
         </div>
       </div>
@@ -2624,7 +2624,7 @@ function renderLeaveCardItem(request) {
     <div class="leave-history-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
-          <span style="font-size: 13px; font-weight: 700; color: #0d9488; background: #f0fdfa; padding: 2px 8px; border-radius: 6px;">${escapeHtml(type)}</span>
+          <span style="font-size: 13px; font-weight: 700; color: var(--th-p-600, #0d9488); background: var(--th-p-50, #f0fdfa); padding: 2px 8px; border-radius: 6px;">${escapeHtml(type)}</span>
           <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 4px;">${startDate} - ${endDate}</div>
         </div>
         <span class="status ${statusClass}" style="font-size: 11px; padding: 2px 8px; border-radius: 20px;">${statusLabel}</span>
@@ -2642,7 +2642,7 @@ function renderLeaveCardItem(request) {
         </div>
       ` : ''}
       <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 4px;">
-        <span style="font-size: 13px; font-weight: 600; color: #475569;">จำนวน <strong style="color: #0d9488;">${request.total_days || 0}</strong> วัน</span>
+        <span style="font-size: 13px; font-weight: 600; color: #475569;">จำนวน <strong style="color: var(--th-p-600, #0d9488);">${request.total_days || 0}</strong> วัน</span>
         <button class="btn-light btn-sm" title="แก้ไขคำขอ" onclick="editSingleLeaveRequest('${request.id}')" style="display: flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; border-radius: 6px;">
           <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไข
         </button>
@@ -2662,7 +2662,7 @@ function renderLeaveRow(request) {
     <tr>
       <td>${escapeHtml(type)}</td>
       <td>${startDate} - ${endDate}</td>
-      <td><strong style="color:#0f766e;">${request.total_days || 0}</strong> วัน</td>
+      <td><strong style="color:var(--th-p-700, #0f766e);">${request.total_days || 0}</strong> วัน</td>
       <td>
         <div>${escapeHtml(request.reason || request.note || "-")}</div>
         ${((request.status === 'cancelled' || (request.approval_comment && request.approval_comment.includes('ยกเลิก'))) && cancelOrRejectReason) ? `
@@ -2729,7 +2729,7 @@ async function editSingleLeaveRequest(requestId) {
     showCancelButton: true,
     confirmButtonText: '💾 บันทึกการแก้ไข',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     preConfirm: () => {
       const days = parseFloat(document.getElementById('edit-days').value) || 0;
       const reason = document.getElementById('edit-reason').value.trim();
@@ -2883,7 +2883,7 @@ window.openCreateCustomFieldModal = async function(onSuccessCallback) {
         <div id="selectOptionsSection" style="display:none; margin-bottom: 12px; padding: 10px; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <label style="font-size:12px; font-weight:700; color:#334155;">รายการช้อยส์ตัวเลือก</label>
-            <button type="button" onclick="window.addChoiceInput()" style="font-size:11px; padding:3px 8px; background:#0d9488; color:white; border:none; border-radius:4px; cursor:pointer;">+ เพิ่มช้อยส์</button>
+            <button type="button" onclick="window.addChoiceInput()" style="font-size:11px; padding:3px 8px; background:var(--th-p-600, #0d9488); color:white; border:none; border-radius:4px; cursor:pointer;">+ เพิ่มช้อยส์</button>
           </div>
           <div id="choiceOptionsContainer"></div>
         </div>
@@ -2897,7 +2897,7 @@ window.openCreateCustomFieldModal = async function(onSuccessCallback) {
     showCancelButton: true,
     confirmButtonText: '💾 บันทึกสร้างคอลัมน์',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     didOpen: () => {
       window.addChoiceInput('');
       window.addChoiceInput('');
@@ -3057,7 +3057,7 @@ window.addNewEmployee = async function addNewEmployee() {
       showCancelButton: true,
       confirmButtonText: '💾 ตรวจสอบและบันทึกข้อมูล',
       cancelButtonText: '❌ ยกเลิก',
-      confirmButtonColor: '#0d9488',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       cancelButtonColor: '#64748b',
       focusConfirm: false,
       html: `
@@ -3116,7 +3116,7 @@ window.addNewEmployee = async function addNewEmployee() {
                     <input type="text" id="swal-password" class="pvt-input" placeholder="รหัสผ่านเข้าสู่ระบบ" required>
                   </div>
                   <div class="pvt-field-group">
-                    <label for="swal-system-role" style="color: #0d9488;">👑 สิทธิ์ในระบบ (System Role) <span class="req">*</span></label>
+                    <label for="swal-system-role" style="color: var(--th-p-600, #0d9488);">👑 สิทธิ์ในระบบ (System Role) <span class="req">*</span></label>
                     <select id="swal-system-role" class="pvt-select pvt-select-highlight" onchange="window.updateEmployeeFormRequirements()">
                       <option value="user" selected>👤 พนักงานทั่วไป (Employee / Staff)</option>
                       <option value="leader">🎖️ หัวหน้างาน (Supervisor / Leader - L1)</option>
@@ -3236,7 +3236,7 @@ window.addNewEmployee = async function addNewEmployee() {
                     <div class="pvt-fs-card-title" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">
                       <span class="material-symbols-outlined" style="font-size:20px;">post_add</span> ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)
                     </div>
-                    <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => window.addNewEmployee())" style="font-size: 12px; padding: 6px 14px; background: #0d9488; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                    <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => window.addNewEmployee())" style="font-size: 12px; padding: 6px 14px; background: var(--th-p-600, #0d9488); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
                       <span class="material-symbols-outlined" style="font-size:16px;">settings</span> จัดการคอลัมน์ระบบ
                     </button>
                   </div>
@@ -3366,7 +3366,7 @@ window.addNewEmployee = async function addNewEmployee() {
         showCancelButton: true,
         confirmButtonText: '💾 บันทึกข้อมูล',
         cancelButtonText: 'แก้ไขข้อมูล',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
 
       if (!confirm1.isConfirmed) return;
@@ -3563,7 +3563,7 @@ async function editEmployeeData(presetSearchKey = null) {
     showCancelButton: true,
     confirmButtonText: 'ดึงข้อมูล',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     preConfirm: () => {
       const val = document.getElementById('swal-search-emp')?.value.trim();
       if (!val) {
@@ -4000,7 +4000,7 @@ window.quickAddPositionOrDept = async function() {
       inputPlaceholder: 'เช่น ฝ่ายการเงิน, ฝ่ายโลจิสติกส์...',
       showCancelButton: true,
       confirmButtonText: '💾 บันทึกแผนก',
-      confirmButtonColor: '#0d9488',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       inputValidator: (value) => { if (!value || !value.trim()) return '❌ จำเป็นต้องระบุชื่อแผนก!'; }
     });
 
@@ -4031,7 +4031,7 @@ window.quickAddPositionOrDept = async function() {
       inputPlaceholder: placeholders[activePosModalTab] || 'ระบุชื่อตำแหน่ง...',
       showCancelButton: true,
       confirmButtonText: '💾 บันทึกตำแหน่ง',
-      confirmButtonColor: '#0d9488',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       inputValidator: (value) => { if (!value || !value.trim()) return '❌ จำเป็นต้องระบุชื่อตำแหน่งงาน!'; }
     });
 
@@ -4061,7 +4061,7 @@ window.editPositionName = async function(posId, currentName) {
     inputValue: currentName,
     showCancelButton: true,
     confirmButtonText: '💾 บันทึกการแก้ไข',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     inputValidator: (value) => { if (!value || !value.trim()) return '❌ กรุณาระบุชื่อตำแหน่ง!'; }
   });
 
@@ -4089,7 +4089,7 @@ window.editDepartmentName = async function(deptId, currentName) {
     inputValue: currentName,
     showCancelButton: true,
     confirmButtonText: '💾 บันทึกการแก้ไข',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     inputValidator: (value) => { if (!value || !value.trim()) return '❌ กรุณาระบุชื่อแผนก!'; }
   });
 
@@ -4196,7 +4196,7 @@ async function editGlobalLeaveRules() {
           <input type="number" id="rule-quota-${r.id}" class="swal2-input" value="${r.yearly_quota || 0}" step="0.5" min="0" style="margin:0; height:36px; font-size:13px; text-align:center; width:80px;">
         </td>
         <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
-          <button type="button" onclick="saveSingleLeaveRule('${r.id}')" style="padding:4px 8px; background:#0d9488; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px;">💾 บันทึก</button>
+          <button type="button" onclick="saveSingleLeaveRule('${r.id}')" style="padding:4px 8px; background:var(--th-p-600, #0d9488); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px;">💾 บันทึก</button>
         </td>
       </tr>
     `).join('');
@@ -4357,7 +4357,7 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
         inputLabel: 'กรอกรหัสพนักงานที่ต้องการปรับยอดสิทธิ์',
         inputPlaceholder: 'เช่น 19001',
         showCancelButton: true,
-        confirmButtonColor: '#0d9488',
+        confirmButtonColor: 'var(--th-p-600, #0d9488)',
         inputValidator: (value) => { if (!value) return '❌ กรุณาระบุรหัสพนักงาน'; }
       });
       empCode = inputCode;
@@ -4397,7 +4397,7 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
 
       formHTML += `
         <div style="margin-bottom:12px; padding:10px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px;">
-          <div style="font-weight:700; color:#0f766e; font-size:14px; margin-bottom:6px;">${escapeHtml(typeName)}</div>
+          <div style="font-weight:700; color:var(--th-p-700, #0f766e); font-size:14px; margin-bottom:6px;">${escapeHtml(typeName)}</div>
           <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; align-items:center;">
 
             <div>
@@ -4419,8 +4419,8 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
             </div>
 
             <div>
-              <span style="font-size:11px; color:#0d9488; font-weight:600; display:block;">คงเหลือ (วัน)</span>
-              <input type="number" id="remain-${b.id}" class="swal2-input" step="0.5" style="width:100%; height:32px; margin:2px 0 0 0; font-size:12px; text-align:center; font-weight:700; color:#0f766e; background:#e6fffa;" value="${rem}">
+              <span style="font-size:11px; color:var(--th-p-600, #0d9488); font-weight:600; display:block;">คงเหลือ (วัน)</span>
+              <input type="number" id="remain-${b.id}" class="swal2-input" step="0.5" style="width:100%; height:32px; margin:2px 0 0 0; font-size:12px; text-align:center; font-weight:700; color:var(--th-p-700, #0f766e); background:#e6fffa;" value="${rem}">
             </div>
 
           </div>
@@ -4444,7 +4444,7 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
       showCancelButton: true,
       confirmButtonText: '💾 อัปเดตยอดโควตา',
       cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#0d9488',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       preConfirm: () => {
         const listBalances = [];
         balances.forEach(b => {
@@ -4534,7 +4534,7 @@ async function openHolidayManagerModal() {
   const holidays = await fetchCompanyHolidaysData();
 
   const typeMap = {
-    public_holiday: { label: 'วันหยุดนักขัตฤกษ์', style: 'background:#ccfbf1; color:#0f766e;' },
+    public_holiday: { label: 'วันหยุดนักขัตฤกษ์', style: 'background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e);' },
     company_holiday: { label: 'วันหยุดพิเศษบริษัท', style: 'background:#e0e7ff; color:#3730a3;' },
     tradition_holiday: { label: 'วันหยุดตามประเพณี', style: 'background:#fef3c7; color:#92400e;' }
   };
@@ -4563,7 +4563,7 @@ async function openHolidayManagerModal() {
               </span>
             </td>
             <td style="padding: 10px; text-align: center; white-space: nowrap;">
-              <button onclick="openEditHolidayModal('${h.id}')" style="background:#f8fafc; color:#0284c7; border:1px solid #bae6fd; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px; margin-right:4px;">
+              <button onclick="openEditHolidayModal('${h.id}')" style="background:#f8fafc; color:var(--th-k-600, #0284c7); border:1px solid var(--th-k-200, #bae6fd); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px; margin-right:4px;">
                 ✏️ แก้ไข
               </button>
                 <button onclick="deleteHoliday('${h.id}')" style="background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px;">
@@ -4581,7 +4581,7 @@ async function openHolidayManagerModal() {
       <div style="font-family: 'Sarabun', sans-serif;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
           <span style="font-size: 13px; color: #64748b;">รายการวันหยุดทั้งหมดประจำปี</span>
-          <button onclick="openAddHolidayModal()" style="display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: #0d9488; color: #fff; border: none; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer;">
+          <button onclick="openAddHolidayModal()" style="display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--th-p-600, #0d9488); color: #fff; border: none; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer;">
             ➕ เพิ่มวันหยุดใหม่
           </button>
         </div>
@@ -4649,7 +4649,7 @@ async function openAddHolidayModal() {
     showCancelButton: true,
     confirmButtonText: '💾 บันทึกวันหยุด',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     preConfirm: () => {
       const name = document.getElementById('swal-holiday-name').value.trim();
       const date = document.getElementById('swal-holiday-date').value;
@@ -4717,7 +4717,7 @@ async function openEditHolidayModal(holidayId) {
           <textarea id="swal-edit-holiday-desc" class="swal2-textarea" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)" style="width: 100%; margin: 4px 0 0 0; height: 70px; font-size: 14px;">${escapeHtml(holiday.description || '')}</textarea>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-          <input type="checkbox" id="swal-edit-holiday-paid" ${holiday.is_paid !== false ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
+          <input type="checkbox" id="swal-edit-holiday-paid" ${holiday.is_paid !== false ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--th-p-600, #0d9488);">
           <label for="swal-edit-holiday-paid" style="font-size: 13px; font-weight: 500; cursor: pointer;">เป็นวันหยุดที่ได้รับค่าจ้าง (Paid Holiday)</label>
         </div>
       </div>
@@ -4725,7 +4725,7 @@ async function openEditHolidayModal(holidayId) {
     showCancelButton: true,
     confirmButtonText: 'บันทึกการแก้ไข',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     focusConfirm: false,
     preConfirm: () => {
       const date = document.getElementById('swal-edit-holiday-date').value;
@@ -4871,8 +4871,8 @@ async function exportAllLeaveHistoryExcel() {
       <div style="text-align: left; font-family: 'Sarabun', sans-serif; font-size: 13.5px; color: #334155;">
         <div style="margin-bottom: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 13px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>👥 พนักงานทั้งหมด: <strong style="color: #0d9488;">${empCount} คน</strong></span>
-            <span>📋 ใบลาในระบบ: <strong style="color: #2563eb;">${leaveCount} รายการ</strong></span>
+            <span>👥 พนักงานทั้งหมด: <strong style="color: var(--th-p-600, #0d9488);">${empCount} คน</strong></span>
+            <span>📋 ใบลาในระบบ: <strong style="color: var(--th-b-600, #2563eb);">${leaveCount} รายการ</strong></span>
           </div>
           <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">
             อิงตามฐานข้อมูลตาราง <code style="background: #e2e8f0; padding: 1px 5px; border-radius: 4px;">employee_leave_balances</code> และ <code style="background: #e2e8f0; padding: 1px 5px; border-radius: 4px;">leave_requests</code>
@@ -4881,8 +4881,8 @@ async function exportAllLeaveHistoryExcel() {
 
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <!-- 1. พนักงานทุกคน -->
-          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
-            <input type="radio" name="exportChoiceRadio" value="all_employees" checked style="margin-top: 3px; accent-color: #0d9488; transform: scale(1.2);">
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+            <input type="radio" name="exportChoiceRadio" value="all_employees" checked style="margin-top: 3px; accent-color: var(--th-p-600, #0d9488); transform: scale(1.2);">
             <div>
               <div style="font-weight: 700; color: #0f172a; font-size: 14px;">👥 1. ดึงข้อมูลพนักงานทั้งหมด (ไม่สนใบลารวม)</div>
               <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
@@ -4892,8 +4892,8 @@ async function exportAllLeaveHistoryExcel() {
           </label>
 
           <!-- 2. เฉพาะคนที่ลา -->
-          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
-            <input type="radio" name="exportChoiceRadio" value="active_only" style="margin-top: 3px; accent-color: #0d9488; transform: scale(1.2);">
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+            <input type="radio" name="exportChoiceRadio" value="active_only" style="margin-top: 3px; accent-color: var(--th-p-600, #0d9488); transform: scale(1.2);">
             <div>
               <div style="font-weight: 700; color: #0f172a; font-size: 14px;">🏃 2. เอาเฉพาะคนที่ลา (Employees with Leave Requests)</div>
               <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
@@ -4903,8 +4903,8 @@ async function exportAllLeaveHistoryExcel() {
           </label>
 
           <!-- 3. รวมทุกอย่างในไฟล์เดียว -->
-          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
-            <input type="radio" name="exportChoiceRadio" value="all_in_one" style="margin-top: 3px; accent-color: #0d9488; transform: scale(1.2);">
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+            <input type="radio" name="exportChoiceRadio" value="all_in_one" style="margin-top: 3px; accent-color: var(--th-p-600, #0d9488); transform: scale(1.2);">
             <div>
               <div style="font-weight: 700; color: #0f172a; font-size: 14px;">📑 3. รวมทุกข้อมูลในไฟล์เดียว (All-in-One Complete Workbook)</div>
               <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
@@ -4914,8 +4914,8 @@ async function exportAllLeaveHistoryExcel() {
           </label>
 
           <!-- 4. ประวัติใบลาดิบ -->
-          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#0d9488'; this.style.background='#f0fdfa';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
-            <input type="radio" name="exportChoiceRadio" value="raw_leaves" style="margin-top: 3px; accent-color: #0d9488; transform: scale(1.2);">
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+            <input type="radio" name="exportChoiceRadio" value="raw_leaves" style="margin-top: 3px; accent-color: var(--th-p-600, #0d9488); transform: scale(1.2);">
             <div>
               <div style="font-weight: 700; color: #0f172a; font-size: 14px;">📄 4. ข้อมูลประวัติใบลาแบบละเอียดรายใบ (Raw Leave Requests Only)</div>
               <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
@@ -4929,7 +4929,7 @@ async function exportAllLeaveHistoryExcel() {
     showCancelButton: true,
     confirmButtonText: '<span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">download</span> ดาวน์โหลด Excel',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     cancelButtonColor: '#94a3b8',
     width: 'min(94vw, 580px)',
     preConfirm: () => {
@@ -5186,7 +5186,7 @@ async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees') {
         </div>
       `,
       confirmButtonText: 'ตกลง',
-      confirmButtonColor: '#0d9488',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       showDenyButton: false,
       showCancelButton: false,
       showCloseButton: false
@@ -5714,8 +5714,8 @@ async function handleFetchDataClick() {
   if (window.Swal) {
     const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     Swal.fire({
-      title: `<div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:18px; font-weight:700; color:#0f766e;">
-        <span class="material-symbols-outlined" style="font-size:26px; color:#0d9488;">cloud_done</span>
+      title: `<div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:18px; font-weight:700; color:var(--th-p-700, #0f766e);">
+        <span class="material-symbols-outlined" style="font-size:26px; color:var(--th-p-600, #0d9488);">cloud_done</span>
         ซิงค์และอัปเดตข้อมูลสำเร็จ
       </div>`,
       html: `
@@ -5725,7 +5725,7 @@ async function handleFetchDataClick() {
       `,
       showConfirmButton: true,
       confirmButtonText: '<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;font-size:14px;font-weight:700;"><span class="material-symbols-outlined" style="font-size:18px;">check_circle</span> ตกลง</span>',
-      confirmButtonColor: '#0d9488',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       showDenyButton: false,
       showCancelButton: false,
       timer: 15000,
@@ -5881,12 +5881,12 @@ window.importEmployeesExcel = function importEmployeesExcel() {
         </p>
         
         <!-- Step 1: Download Template -->
-        <div style="background: #f0fdfa; border: 1px solid #ccfbf1; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-100, #ccfbf1); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <div style="flex: 1;">
-            <h4 style="font-size: 14px; font-weight: 700; color: #0f766e; margin: 0 0 2px 0;">1. ดาวน์โหลดไฟล์เทมเพลตมาตรฐาน</h4>
-            <p style="font-size: 12px; color: #0d9488; margin: 0;">ดาวน์โหลดไฟล์ Excel (.xlsx) เพื่อกรอกข้อมูลพนักงานตามโครงสร้างที่ถูกต้อง</p>
+            <h4 style="font-size: 14px; font-weight: 700; color: var(--th-p-700, #0f766e); margin: 0 0 2px 0;">1. ดาวน์โหลดไฟล์เทมเพลตมาตรฐาน</h4>
+            <p style="font-size: 12px; color: var(--th-p-600, #0d9488); margin: 0;">ดาวน์โหลดไฟล์ Excel (.xlsx) เพื่อกรอกข้อมูลพนักงานตามโครงสร้างที่ถูกต้อง</p>
           </div>
-          <button type="button" onclick="downloadExcelTemplate()" class="swal2-styled" style="background: #0f766e; color: #fff; margin: 0; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 6px; box-shadow: none; white-space: nowrap; display: flex; align-items: center; gap: 4px; border: none; cursor: pointer;">
+          <button type="button" onclick="downloadExcelTemplate()" class="swal2-styled" style="background: var(--th-p-700, #0f766e); color: #fff; margin: 0; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 6px; box-shadow: none; white-space: nowrap; display: flex; align-items: center; gap: 4px; border: none; cursor: pointer;">
             <span class="material-symbols-outlined" style="font-size: 16px;">download</span> ดาวน์โหลด
           </button>
         </div>
@@ -5918,9 +5918,9 @@ window.importEmployeesExcel = function importEmployeesExcel() {
           dropZone.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.style.borderColor = '#0f766e';
-            dropZone.style.background = '#f0fdfa';
-            if (dropIcon) dropIcon.style.color = '#0f766e';
+            dropZone.style.borderColor = 'var(--th-p-700, #0f766e)';
+            dropZone.style.background = 'var(--th-p-50, #f0fdfa)';
+            if (dropIcon) dropIcon.style.color = 'var(--th-p-700, #0f766e)';
           }, false);
         });
 
@@ -5972,7 +5972,7 @@ async function processExcelImport(file) {
 
   Swal.fire({
     title: '⚙️ กำลังประมวลผลไฟล์...',
-    html: '<div style="font-size:14px; color:#0d9488; font-weight:600;">⌛ ระบบกำลังเปิดและอ่านโครงสร้างไฟล์ Excel...</div>',
+    html: '<div style="font-size:14px; color:var(--th-p-600, #0d9488); font-weight:600;">⌛ ระบบกำลังเปิดและอ่านโครงสร้างไฟล์ Excel...</div>',
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading()
   });
@@ -6205,11 +6205,11 @@ async function executeDatabaseImport(rows) {
       title: '💾 กำลังนำเข้าข้อมูล...',
       html: `
         <div style="text-align:left; font-size:13px; font-family:'Sarabun', sans-serif;">
-          <div style="font-weight:600; font-size:14px; margin-bottom:8px; color:#0f766e;">แถวที่ ${i+1} จากทั้งหมด ${totalCount} รายการ</div>
+          <div style="font-weight:600; font-size:14px; margin-bottom:8px; color:var(--th-p-700, #0f766e);">แถวที่ ${i+1} จากทั้งหมด ${totalCount} รายการ</div>
           <p style="margin:0 0 4px 0;"><strong>ชื่อพนักงาน:</strong> ${row.full_name}</p>
           <p style="margin:0 0 8px 0;"><strong>รหัสพนักงาน:</strong> ${row.employee_code}</p>
           <div style="background:#f1f5f9; border-radius:6px; height:8px; overflow:hidden;">
-            <div style="background:#0f766e; height:100%; width:${((i+1)/totalCount)*100}%"></div>
+            <div style="background:var(--th-p-700, #0f766e); height:100%; width:${((i+1)/totalCount)*100}%"></div>
           </div>
         </div>
       `,
@@ -6295,9 +6295,9 @@ async function executeDatabaseImport(rows) {
           <div style="font-size:20px; font-weight:700; color:#047857;">${successCount}</div>
           <div style="font-size:12px; color:#065f46;">สำเร็จทั้งหมด</div>
         </div>
-        <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:10px; border-radius:8px;">
-          <div style="font-size:20px; font-weight:700; color:#1d4ed8;">${insertCount}</div>
-          <div style="font-size:12px; color:#1e40af;">พนักงานใหม่</div>
+        <div style="background:var(--th-b-50, #eff6ff); border:1px solid var(--th-b-200, #bfdbfe); padding:10px; border-radius:8px;">
+          <div style="font-size:20px; font-weight:700; color:var(--th-b-700, #1d4ed8);">${insertCount}</div>
+          <div style="font-size:12px; color:var(--th-b-800, #1e40af);">พนักงานใหม่</div>
         </div>
         <div style="background:#fef3c7; border:1px solid #fde68a; padding:10px; border-radius:8px;">
           <div style="font-size:20px; font-weight:700; color:#b45309;">${updateCount}</div>
@@ -6329,7 +6329,7 @@ async function executeDatabaseImport(rows) {
     width: 'min(92vw, 600px)',
     html: logHTML,
     confirmButtonText: '🔄 อัปเดตหน้าจอหลัก',
-    confirmButtonColor: '#0f766e'
+    confirmButtonColor: 'var(--th-p-700, #0f766e)'
   }).then(() => {
     if (typeof refreshDashboard === 'function') {
       refreshDashboard();
@@ -6370,7 +6370,7 @@ async function checkAndCreateMissingQuotas() {
         title: 'ไม่พบพนักงาน',
         text: 'ไม่มีข้อมูลพนักงานที่มีสถานะปกติ (Active) ในระบบ',
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0f766e'
+        confirmButtonColor: 'var(--th-p-700, #0f766e)'
       });
       return;
     }
@@ -6389,7 +6389,7 @@ async function checkAndCreateMissingQuotas() {
         title: 'ไม่พบประเภทวันลา',
         text: 'ไม่มีข้อมูลประเภทการลาที่เปิดใช้งานในระบบ',
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0f766e'
+        confirmButtonColor: 'var(--th-p-700, #0f766e)'
       });
       return;
     }
@@ -6415,7 +6415,7 @@ async function checkAndCreateMissingQuotas() {
         title: 'มีข้อมูลแล้ว ✨',
         html: `พนักงานทุกคนในระบบ (จำนวน <b>${employees.length}</b> คน) มีข้อมูลโควตาวันลาประจำปี ${currentYear} (employee_leave_balances) ครบถ้วนเรียบร้อยแล้ว`,
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0f766e'
+        confirmButtonColor: 'var(--th-p-700, #0f766e)'
       });
       return;
     }
@@ -6429,7 +6429,7 @@ async function checkAndCreateMissingQuotas() {
       showCancelButton: true,
       confirmButtonText: 'ใช่, สร้างโควตาเริ่มต้นให้ทันที',
       cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#0f766e',
+      confirmButtonColor: 'var(--th-p-700, #0f766e)',
       cancelButtonColor: '#64748b'
     });
 
@@ -6460,7 +6460,7 @@ async function checkAndCreateMissingQuotas() {
       title: 'สร้างโควตาวันลาสำเร็จ! 🎉',
       html: `ระบบสร้างโควตาวันลาเริ่มต้นให้กับพนักงานจำนวน <b>${successCount}</b> คน ครบถ้วนแล้ว`,
       confirmButtonText: 'ตกลง',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
 
   } catch (err) {
@@ -6639,7 +6639,7 @@ async function testLineNotificationFromHR() {
         icon: 'info',
         title: 'บันทึกการส่งสำเร็จ',
         text: res?.message || 'ระบบบันทึกการส่งทดสอบแล้ว (หากยังไม่ได้รับใน LINE กรุณาตรวจสอบว่าบอท LINE OA ได้รับ LINE User ID ที่ถูกต้อง)',
-        confirmButtonColor: '#0284c7'
+        confirmButtonColor: 'var(--th-k-600, #0284c7)'
       });
     }
   } catch (err) {

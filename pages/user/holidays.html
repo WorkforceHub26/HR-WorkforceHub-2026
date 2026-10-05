@@ -7,6 +7,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
+    <script src="/js/theme-boot.js"></script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#0d9488" />
     <title>ปฏิทินวันหยุดประจำปี | PVT HR Management</title>
@@ -21,6 +22,8 @@
     />
     <link rel="stylesheet" href="/css/holidays.css?v=20260930-12" />
     <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง + ส่วนหัว (ต้องอยู่หลัง CSS ของหน้า) -->
+    <!-- หน้าต่างตั้งค่า + โหมดการแสดงผล (เดิมมีสำเนาอยู่ใน holidays.css) -->
+    <link rel="stylesheet" href="/css/system-settings.css" />
     <link rel="stylesheet" href="/css/mobile-shell.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -835,16 +838,16 @@
                       border-radius: 10px;
                       background: linear-gradient(
                         135deg,
-                        #eff6ff 0%,
-                        #dbeafe 100%
+                        var(--th-b-50, #eff6ff) 0%,
+                        var(--th-b-100, #dbeafe) 100%
                       );
-                      color: #2563eb;
+                      color: var(--th-b-600, #2563eb);
                       display: inline-flex;
                       align-items: center;
                       justify-content: center;
                       flex-shrink: 0;
-                      border: 1px solid #bfdbfe;
-                      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.12);
+                      border: 1px solid var(--th-b-200, #bfdbfe);
+                      box-shadow: 0 1px 3px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.12);
                     "
                     ><span
                       class="material-symbols-outlined"
@@ -1251,7 +1254,7 @@
               display: inline-flex;
               align-items: center;
               gap: 4px;
-              background: #0d9488;
+              background: var(--th-p-600, #0d9488);
             "
           >
             <span class="material-symbols-outlined" style="font-size: 16px"

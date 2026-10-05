@@ -149,7 +149,7 @@
 
   #indexUserHeader #refreshBtn .material-symbols-outlined,
   #indexUserHeader #notificationBtn .material-symbols-outlined {
-    color: #0284c7 !important;
+    color: var(--th-k-600, #0284c7) !important;
   }
 
   #indexUserHeader .logout-btn .material-symbols-outlined {
@@ -157,7 +157,7 @@
   }
 
   #indexUserHeader .mobile-menu-btn .material-symbols-outlined {
-    color: #0f766e !important;
+    color: var(--th-p-700, #0f766e) !important;
   }
 
   #indexUserHeader .logout-btn span:not(.material-symbols-outlined) {
@@ -205,7 +205,7 @@
 
   #indexUserHeader #userHelloText {
     font-size: 12.5px !important;
-    color: #0f766e !important;
+    color: var(--th-p-700, #0f766e) !important;
   }
 
   #indexUserHeader #userName {

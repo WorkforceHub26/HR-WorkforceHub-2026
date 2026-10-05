@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d9488" />
+  <script src="/js/theme-boot.js"></script>
+  <title>ไม่มีการเชื่อมต่ออินเทอร์เน็ต | PVTT WORKFORCE HUB</title>
+  <style>
+    :root { --c: var(--th-p-600, #0d9488); --c-soft: var(--th-p-50, #f0fdfa); }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: 'Sarabun', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #f8fafc; color: #0f172a;
+      display: flex; align-items: center; justify-content: center;
+      padding: calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);
+      -webkit-user-select: none; user-select: none;
+    }
+    .box { width: 100%; max-width: 360px; text-align: center; }
+    .icon {
+      width: 96px; height: 96px; margin: 0 auto 20px; border-radius: 28px;
+      background: var(--c-soft); color: var(--c);
+      display: flex; align-items: center; justify-content: center;
+    }
+    h1 { font-size: 21px; margin: 0 0 8px; }
+    p { margin: 0 0 24px; color: #64748b; font-size: 15px; line-height: 1.6; }
+    button {
+      width: 100%; height: 50px; border: 0; border-radius: 14px;
+      background: var(--c); color: #fff; font: inherit; font-size: 16px; font-weight: 700;
+      cursor: pointer; -webkit-tap-highlight-color: transparent; transition: scale .12s ease;
+    }
+    button:active { scale: .97; }
+    small { display: block; margin-top: 14px; color: #94a3b8; font-size: 12.5px; }
+  </style>
+</head>
+<body>
+  <main class="box">
+    <div class="icon" aria-hidden="true">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><circle cx="12" cy="20" r="1"/></svg>
+    </div>
+    <h1>ไม่มีการเชื่อมต่ออินเทอร์เน็ต</h1>
+    <p>หน้านี้ยังไม่เคยเปิดไว้ในเครื่อง กรุณาเชื่อมต่อ Wi-Fi หรืออินเทอร์เน็ตมือถือ แล้วลองใหม่อีกครั้ง</p>
+    <button type="button" onclick="location.reload()">ลองอีกครั้ง</button>
+    <small>ระบบจะโหลดให้อัตโนมัติเมื่อกลับมาออนไลน์</small>
+  </main>
+  <script>window.addEventListener('online', function () { location.reload(); });</script>
+</body>
+</html>

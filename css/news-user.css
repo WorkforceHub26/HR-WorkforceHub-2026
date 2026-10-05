@@ -11,12 +11,12 @@
 
 /* 📌 Pinned Highlights Hero Banner */
 .pinned-hero {
-  background: linear-gradient(135deg, #0f766e, #0e7490);
+  background: linear-gradient(135deg, var(--th-p-700, #0f766e), var(--th-s-700, #0e7490));
   border-radius: 16px;
   padding: 24px 28px;
   color: #ffffff;
   margin-bottom: 24px;
-  box-shadow: 0 10px 25px -5px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 10px 25px -5px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25);
   position: relative;
   overflow: hidden;
 }
@@ -68,7 +68,7 @@
 
 .pinned-hero-btn {
   background: #ffffff;
-  color: #0f766e;
+  color: var(--th-p-700, #0f766e);
   border: none;
   padding: 9px 18px;
   border-radius: 10px;
@@ -82,7 +82,7 @@
 }
 
 .pinned-hero-btn:hover {
-  background: #f0fdfa;
+  background: var(--th-p-50, #f0fdfa);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -125,10 +125,10 @@
 }
 
 .cat-pill.active {
-  background: #0f766e;
+  background: var(--th-p-700, #0f766e);
   color: #ffffff;
-  border-color: #0f766e;
-  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.2);
+  border-color: var(--th-p-700, #0f766e);
+  box-shadow: 0 4px 10px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.2);
 }
 
 /* 🔍 Search & Filter bar */
@@ -174,8 +174,8 @@
 
 .user-search-input:focus {
   background: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  border-color: var(--th-p-600, #0d9488);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* 📰 News Cards Grid */
@@ -244,7 +244,7 @@
 }
 
 .read-more-text {
-  color: #0f766e;
+  color: var(--th-p-700, #0f766e);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -280,11 +280,11 @@
 
 #page-user-news .user-news-count .material-symbols-outlined {
   font-size: 17px;
-  color: #0d9488;
+  color: var(--th-p-600, #0d9488);
 }
 
 #page-user-news .user-news-count strong {
-  color: #0f766e;
+  color: var(--th-p-700, #0f766e);
   font-weight: 800;
 }
 
@@ -370,7 +370,7 @@
     margin-bottom: 14px;
     padding: 18px;
     border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(15, 118, 110, 0.18);
+    box-shadow: 0 8px 24px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.18);
   }
 
   #page-user-news .pinned-hero-title {
@@ -452,7 +452,7 @@
 
   #page-user-news .user-news-card:active {
     transform: scale(0.992);
-    border-color: #99f6e4;
+    border-color: var(--th-p-200, #99f6e4);
     background: #fcfffe;
   }
 
@@ -654,7 +654,7 @@
   border: 0 !important;
   outline: 0 !important;
   box-shadow: none !important;
-  background: rgba(15, 118, 110, 0.06) !important;
+  background: rgba(var(--th-p-700-rgb, 15, 118, 110), 0.06) !important;
 }
 
 #page-user-news .news-menu-btn .material-symbols-outlined {
@@ -733,7 +733,7 @@
   border: 0 !important;
   outline: 0 !important;
   box-shadow: none !important;
-  background: rgba(15, 118, 110, 0.06) !important;
+  background: rgba(var(--th-p-700-rgb, 15, 118, 110), 0.06) !important;
 }
 
 #page-user-news .news-back-btn .material-symbols-outlined {

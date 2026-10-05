@@ -99,11 +99,11 @@
   transition: background-color .2s var(--pvt-ease), transform .2s var(--pvt-ease), color .2s;
 }
 .pvt-nav__item:hover { background: rgba(255, 255, 255, .10); transform: translateX(2px); }
-.pvt-nav__item:focus-visible { outline: 2px solid #5eead4; outline-offset: 2px; }
+.pvt-nav__item:focus-visible { outline: 2px solid var(--th-p-300, #5eead4); outline-offset: 2px; }
 
 /* เมนูที่กำลังเปิดอยู่ (JS เติมคลาส .active และ aria-current ให้อัตโนมัติ) */
 .pvt-nav__item.active {
-  background: rgba(96, 165, 250, .28);
+  background: rgba(var(--th-b-400-rgb, 96, 165, 250), .28);
   color: #fff;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
 }

@@ -707,8 +707,8 @@ function setLanguage(lang) {
   const activeBtn = lang === 'th' ? btnTh : lang === 'lo' ? btnLo : lang === 'en' ? btnEn : btnMy;
   if (activeBtn) {
     activeBtn.style.backgroundColor = "#ffffff";
-    activeBtn.style.color = "#0d9488";
-    activeBtn.style.boxShadow = "0 2px 5px rgba(13, 148, 136, 0.12)";
+    activeBtn.style.color = "var(--th-p-600, #0d9488)";
+    activeBtn.style.boxShadow = "0 2px 5px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.12)";
     activeBtn.style.fontWeight = "700";
     activeBtn.style.transform = "scale(1.08)";
   }
@@ -1633,7 +1633,7 @@ async function loginByQr() {
       <!-- 🖼️ File Upload View -->
       <div id="pvtQrFileView" class="pvt-qr-file-container">
         <div class="pvt-qr-file-dropzone" id="pvtQrDropzone">
-          <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(13, 148, 136, 0.15); border: 1px solid rgba(13, 148, 136, 0.3); color: #2dd4bf; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15); border: 1px solid rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3); color: var(--th-p-400, #2dd4bf); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
             <span class="material-symbols-outlined" style="font-size: 32px;">add_photo_alternate</span>
           </div>
           <h4 style="margin: 0 0 6px 0; font-size: 16px; color: #ffffff;">${i18n.dropTitle}</h4>
@@ -2415,8 +2415,8 @@ async function loginByBiometrics() {
     Swal.fire({
       icon: 'success',
       title: 'ยืนยันตัวตนด้วยไบโอเมตริกสำเร็จ',
-      html: `<div style="font-size: 15px; color: #0d9488; font-weight: 600; margin-top: 6px;">ยินดีต้อนรับคุณ ${user.full_name || user.employee_code}</div>`,
-      confirmButtonColor: '#0d9488',
+      html: `<div style="font-size: 15px; color: var(--th-p-600, #0d9488); font-weight: 600; margin-top: 6px;">ยินดีต้อนรับคุณ ${user.full_name || user.employee_code}</div>`,
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       timer: 1200,
       showConfirmButton: false
     });
@@ -2445,10 +2445,10 @@ async function loginByBiometrics() {
     // Interactive Biometric Touch / Face Prompt Modal
     const promptEmpCode = targetEmpCode || "EMP001";
     const result = await Swal.fire({
-      title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px; color:#0f766e;"><span class="material-symbols-outlined" style="font-size:28px;">fingerprint</span> สแกนลายนิ้วมือ / ใบหน้า</div>',
+      title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px; color:var(--th-p-700, #0f766e);"><span class="material-symbols-outlined" style="font-size:28px;">fingerprint</span> สแกนลายนิ้วมือ / ใบหน้า</div>',
       html: `
         <div style="text-align: center; padding: 10px 0;">
-          <div style="width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 50%; background: #f0fdfa; border: 2px solid #2dd4bf; display: flex; align-items: center; justify-content: center; color: #0d9488; box-shadow: 0 0 20px rgba(45,212,191,0.3);">
+          <div style="width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 50%; background: var(--th-p-50, #f0fdfa); border: 2px solid var(--th-p-400, #2dd4bf); display: flex; align-items: center; justify-content: center; color: var(--th-p-600, #0d9488); box-shadow: 0 0 20px rgba(var(--th-p-400-rgb, 45, 212, 191), 0.3);">
             <span class="material-symbols-outlined" style="font-size: 42px;">fingerprint</span>
           </div>
           <p style="font-size: 14px; color: #475569; margin-bottom: 14px;">วางนิ้วมือลงบนเซ็นเซอร์ หรือมองกล้องเพื่อยืนยันตัวตน</p>
@@ -2461,7 +2461,7 @@ async function loginByBiometrics() {
       showCancelButton: true,
       confirmButtonText: '<span class="material-symbols-outlined" style="font-size:18px;">touch_app</span> แตะสแกนนิ้วมือ / ใบหน้า',
       cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#0d9488',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
       cancelButtonColor: '#64748b',
       focusConfirm: true,
       preConfirm: () => {

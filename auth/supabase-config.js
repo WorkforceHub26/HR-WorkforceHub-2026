@@ -127,7 +127,7 @@
   try {
     console.log(
       `%c[PVT Supabase SDK]%c Active Environment: %c${CONFIG.ENV}%c (${CONFIG.ENV_LABEL}) | URL: ${CONFIG.URL}`,
-      "background: #1e293b; color: #38bdf8; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      "background: #1e293b; color: var(--th-k-400, #38bdf8); font-weight: bold; padding: 2px 6px; border-radius: 4px;",
       "color: #64748b;",
       CONFIG.ENV === 'DEV' ? "color: #f59e0b; font-weight: bold;" : "color: #10b981; font-weight: bold;",
       "color: #64748b;"
@@ -3132,7 +3132,7 @@ class LineOAEngine {
             <button id="pvt-env-btn-cancel" type="button" style="padding: 8px 16px; background: #e2e8f0; border: none; color: #475569; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
               ยกเลิก
             </button>
-            <button id="pvt-env-btn-save" type="button" style="padding: 8px 20px; background: #0284c7; border: none; color: #ffffff; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);">
+            <button id="pvt-env-btn-save" type="button" style="padding: 8px 20px; background: var(--th-k-600, #0284c7); border: none; color: #ffffff; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.3);">
               บันทึกและสลับ (Save & Switch)
             </button>
           </div>

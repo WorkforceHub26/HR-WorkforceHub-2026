@@ -35,10 +35,10 @@
    00. DESIGN TOKENS
    ========================================================================== */
 #page-hr-leave-stats {
-  --ls-primary: #0d9488;
-  --ls-primary-dark: #0f766e;
-  --ls-primary-soft: #f0fdfa;
-  --ls-blue: #0284c7;
+  --ls-primary: var(--th-p-600, #0d9488);
+  --ls-primary-dark: var(--th-p-700, #0f766e);
+  --ls-primary-soft: var(--th-p-50, #f0fdfa);
+  --ls-blue: var(--th-k-600, #0284c7);
   --ls-amber: #d97706;
   --ls-rose: #e11d48;
   --ls-green: #16a34a;
@@ -70,12 +70,12 @@
 #page-hr-leave-stats {
   font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--ls-text);
-  background-color: #f0fdfa;
+  background-color: var(--th-p-50, #f0fdfa);
   background-image:
-    radial-gradient(circle at 10% 10%, #bae6fd 0, transparent 50%),
-    radial-gradient(circle at 90% 20%, #a7f3d0 0, transparent 50%),
-    radial-gradient(circle at 80% 90%, #e0f2fe 0, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0, transparent 50%);
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -120,13 +120,13 @@
 /* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
 #page-hr-leave-stats .pvt-sidebar__toggle {
   color: #ffffff;
-  background: linear-gradient(135deg, #1e3988, #1b2f6d);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
   border: 2px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 #page-hr-leave-stats .pvt-sidebar__toggle:hover {
-  background: linear-gradient(135deg, #2748a8, #1e3988);
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
 #page-hr-leave-stats .pvt-sidebar__toggle .material-symbols-outlined {
@@ -182,7 +182,7 @@
 #page-hr-leave-stats .ls-btn--icon:hover {
   background: var(--ls-primary-soft);
   color: var(--ls-primary-dark);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
 }
 
 /* ปุ่มไอคอนสี่เหลี่ยม (รีเฟรช) */
@@ -270,7 +270,7 @@
 
 #page-hr-leave-stats .ls-select:focus {
   border-color: var(--ls-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 #page-hr-leave-stats .ls-select:disabled {
@@ -307,7 +307,7 @@
 
 #page-hr-leave-stats .ls-kpi {
   --kpi-color: var(--ls-primary);
-  --kpi-soft: #ccfbf1;
+  --kpi-soft: var(--th-p-100, #ccfbf1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -322,9 +322,9 @@
   transition: transform 0.25s var(--ls-ease), box-shadow 0.25s var(--ls-ease);
 }
 
-#page-hr-leave-stats .ls-kpi--teal  { --kpi-color: var(--ls-primary); --kpi-soft: #ccfbf1; }
+#page-hr-leave-stats .ls-kpi--teal  { --kpi-color: var(--ls-primary); --kpi-soft: var(--th-p-100, #ccfbf1); }
 #page-hr-leave-stats .ls-kpi--amber { --kpi-color: var(--ls-amber);   --kpi-soft: #fef3c7; }
-#page-hr-leave-stats .ls-kpi--blue  { --kpi-color: var(--ls-blue);    --kpi-soft: #e0f2fe; }
+#page-hr-leave-stats .ls-kpi--blue  { --kpi-color: var(--ls-blue);    --kpi-soft: var(--th-k-100, #e0f2fe); }
 #page-hr-leave-stats .ls-kpi--rose  { --kpi-color: var(--ls-rose);    --kpi-soft: #ffe4e6; }
 
 #page-hr-leave-stats .ls-kpi-text {
@@ -438,7 +438,7 @@
 #page-hr-leave-stats .ls-tab.active {
   background: var(--ls-primary-dark);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+  box-shadow: 0 4px 12px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25);
 }
 
 
@@ -534,7 +534,7 @@
 #page-hr-leave-stats .ls-search input:focus {
   background: var(--ls-surface);
   border-color: var(--ls-primary);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
 /* ---- 07.2 ปุ่มสลับ "ทั้งบริษัท / แผนกของคุณ" ---- */
@@ -659,7 +659,7 @@
   font-size: 12px;
   font-weight: 800;
   color: var(--ls-primary-dark);
-  background: #ccfbf1;
+  background: var(--th-p-100, #ccfbf1);
   border-radius: 8px;
 }
 
@@ -735,7 +735,7 @@
 
 #page-hr-leave-stats .ls-emp:hover {
   transform: translateX(3px);
-  border-color: #99f6e4;
+  border-color: var(--th-p-200, #99f6e4);
   box-shadow: var(--ls-shadow);
 }
 
@@ -791,7 +791,7 @@
   font-weight: 700;
   color: var(--ls-primary-dark);
   background: var(--ls-primary-soft);
-  border: 1px solid #ccfbf1;
+  border: 1px solid var(--th-p-100, #ccfbf1);
   border-radius: 6px;
 }
 
@@ -838,7 +838,7 @@
 
 #page-hr-leave-stats .ls-type {
   --type-color: var(--ls-blue);
-  --type-soft: #e0f2fe;
+  --type-soft: var(--th-k-100, #e0f2fe);
   display: flex;
   flex-direction: column;
   padding: 18px;
@@ -855,7 +855,7 @@
 }
 
 #page-hr-leave-stats .ls-type--sick     { --type-color: var(--ls-rose);    --type-soft: #ffe4e6; }
-#page-hr-leave-stats .ls-type--vacation { --type-color: var(--ls-primary); --type-soft: #ccfbf1; }
+#page-hr-leave-stats .ls-type--vacation { --type-color: var(--ls-primary); --type-soft: var(--th-p-100, #ccfbf1); }
 #page-hr-leave-stats .ls-type--personal { --type-color: var(--ls-amber);   --type-soft: #fef3c7; }
 
 #page-hr-leave-stats .ls-type-head {
