@@ -605,7 +605,7 @@
 
         <div class="table-container" style="margin-top:40px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin:0; font-size:16px; color:var(--accent);">โครงสร้างสายอนุมัติรายแผนก (L1 & L2)</h3>
+            <h3 style="margin:0; font-size:16px; color:var(--accent);">โครงสร้างสายอนุมัติรายแผนก (ลำดับที่ 1 และ 2)</h3>
             <button class="secondary" style="padding:6px 12px; font-size:12px;" onclick="loadDeptApprovalData()">
               <span class="material-symbols-outlined" style="font-size:16px;">refresh</span> รีเฟรชโครงสร้างแผนก
             </button>
@@ -615,8 +615,8 @@
               <tr>
                 <th>รหัสแผนก</th>
                 <th>ชื่อแผนก</th>
-                <th>หัวหน้า (L1)</th>
-                <th>ผู้จัดการ (L2)</th>
+                <th>หัวหน้า (ลำดับที่ 1)</th>
+                <th>ผู้จัดการ (ลำดับที่ 2)</th>
                 <th style="width: 120px;">การจัดการ</th>
               </tr>
             </thead>
@@ -1433,7 +1433,7 @@
           <td>${dept.supervisor?.full_name || '<span style="color:#94a3b8">ไม่ได้ตั้งค่า</span>'}</td>
           <td>${dept.manager?.full_name || '<span style="color:#94a3b8">ไม่ได้ตั้งค่า</span>'}</td>
           <td class="action-btns">
-            <button class="icon-btn" onclick="window.location.href='/pages/hr/approval-settings.html'" title="ไปที่หน้าตั้งค่าละเอียด">
+            <button class="icon-btn" onclick="window.location.href='/pages/hr/approval-chains.html'" title="ไปที่หน้าตั้งค่าสายอนุมัติ">
               <span class="material-symbols-outlined" style="font-size:18px;">settings</span>
             </button>
           </td>

@@ -719,9 +719,9 @@ async function loadDepartmentTeam(profileData) {
 
       let roleBadge = '<span style="font-size: 10px; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-weight: 600;">พนักงาน</span>';
       if (roleLower === "leader" || roleLower.includes("leader")) {
-        roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 6px; font-weight: 700;">👑 หัวหน้างาน (L1)</span>';
+        roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 6px; font-weight: 700;">👑 หัวหน้างาน (ลำดับที่ 1)</span>';
       } else if (roleLower === "manager" || roleLower.includes("manager")) {
-        roleBadge = '<span style="font-size: 10px; background: var(--th-b-100, #dbeafe); color: var(--th-b-700, #1d4ed8); padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (L2)</span>';
+        roleBadge = '<span style="font-size: 10px; background: var(--th-b-100, #dbeafe); color: var(--th-b-700, #1d4ed8); padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (ลำดับที่ 2)</span>';
       } else if (["hr", "admin", "superadmin"].includes(roleLower)) {
         roleBadge = '<span style="font-size: 10px; background: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
       }
@@ -1121,15 +1121,15 @@ async function fetchUserNotificationsCore() {
           message = `ใบลา ${leaveName} ของคุณมีผู้อนุมัติปฏิเสธ กรุณาเปิดประวัติการลาเพื่อดูรายละเอียด`;
         } else if (l3 === "approved") {
           stageKey = "l3-approved";
-          title = "✅ ผู้บริหาร (L3) อนุมัติแล้ว";
+          title = "✅ ผู้บริหาร (ลำดับที่ 3) อนุมัติแล้ว";
           message = `ใบลา ${leaveName} ผ่านการอนุมัติขั้นผู้บริหารแล้ว`;
         } else if (l2 === "approved") {
           stageKey = "l2-approved";
-          title = "✅ ผู้จัดการ (L2) อนุมัติแล้ว";
+          title = "✅ ผู้จัดการ (ลำดับที่ 2) อนุมัติแล้ว";
           message = `ใบลา ${leaveName} ผ่านการอนุมัติจากผู้จัดการแล้ว และกำลังดำเนินการขั้นถัดไป`;
         } else if (l1 === "approved") {
           stageKey = "l1-approved";
-          title = "✅ หัวหน้างาน (L1) อนุมัติแล้ว";
+          title = "✅ หัวหน้างาน (ลำดับที่ 1) อนุมัติแล้ว";
           message = `ใบลา ${leaveName} ผ่านการอนุมัติจากหัวหน้างานแล้ว และกำลังรอขั้นถัดไป`;
         }
 
@@ -1858,44 +1858,14 @@ window.generateLineLinkToken = async function() {
 
   try {
     let token = "";
-    let created = false;
-
-    // 1. เรียกผ่าน Server API เพื่อหลีกเลี่ยง RLS
     try {
-      const apiRes = await fetch("/api/create-line-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: employeeId })
-      });
-      if (apiRes.status === 403) {
+      token = (await window.PVTLine.createLinkCode(employeeId)).code;
+    } catch (genErr) {
+      if (genErr && genErr.code === 'line_not_allowed') {
         if (window.PVTLine) { window.PVTLine.clearCache(); await window.PVTLine.check(true); await window.PVTLine.guard(); }
         return;
       }
-      if (apiRes.ok) {
-        const apiData = await apiRes.json();
-        if (apiData.success && apiData.token) {
-          token = apiData.token;
-          created = true;
-        }
-      }
-    } catch (e) {}
-
-    // 2. Fallback บันทึกลง DB
-    if (!created && sb) {
-      token = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-      const { error } = await sb.from('line_link_tokens').insert({
-        employee_id: employeeId,
-        token: token,
-        link_code: token,
-        expires_at: expiresAt
-      });
-      if (!error) created = true;
-    }
-
-    if (!token || !created) {
-      throw new Error("ไม่สามารถสร้างรหัสเชื่อมต่อ LINE ได้");
+      throw genErr;
     }
 
     Swal.fire({
@@ -1909,7 +1879,7 @@ window.generateLineLinkToken = async function() {
             ${safeEscapeHtml(token)}
           </div>
           <p style="font-size: 12px; color: #94a3b8; margin-top: 20px;">
-            * รหัสมีอายุการใช้งานจำกัด กรุณาส่งภายใน 10 นาที
+            * รหัสมีอายุ 15 นาที และใช้ได้ครั้งเดียว — ส่งครั้งเดียวพอ
           </p>
         </div>
       `,
@@ -2734,8 +2704,8 @@ window.initQuickForm = async function(profile, quotas) {
         if (execEmpId) {
           const { data: execEmp } = await sb.from("employees").select("id, full_name, role, positions!position_id(position_name)").eq("id", execEmpId).maybeSingle();
           if (execEmp) {
-            approverText = `${execEmp.full_name} (ผู้บริหารสูงสุด L3)`;
-            approverNote = '⚡ คุณอยู่ในระดับผู้จัดการ: คำขอจะถูกส่งให้ผู้บริหารสูงสุด (L3) พิจารณาอนุมัติ';
+            approverText = `${execEmp.full_name} (ผู้บริหารสูงสุด ลำดับที่ 3)`;
+            approverNote = '⚡ คุณอยู่ในระดับผู้จัดการ: คำขอจะถูกส่งให้ผู้บริหารสูงสุด (ลำดับที่ 3) พิจารณาอนุมัติ';
             resolvedApprover = {
               id: execEmp.id,
               name: execEmp.full_name,
@@ -2792,7 +2762,7 @@ window.initQuickForm = async function(profile, quotas) {
 
             if (isActuallyManager) {
               approverText = `${appEmp.full_name} (${pName || 'ผู้จัดการฝ่าย'})`;
-              approverNote = '⚡ สายอนุมัติ: แผนกไม่มีหัวหน้างาน (L1) ระบบข้ามขั้นตอนและส่งตรงถึงผู้จัดการฝ่าย (L2)';
+              approverNote = '⚡ สายอนุมัติ: แผนกไม่มีหัวหน้างาน (ลำดับที่ 1) ระบบข้ามขั้นตอนและส่งตรงถึงผู้จัดการฝ่าย (ลำดับที่ 2)';
               resolvedApprover = {
                 id: appEmp.id,
                 name: appEmp.full_name,
@@ -2803,7 +2773,7 @@ window.initQuickForm = async function(profile, quotas) {
               isLeaderFound = false;
             } else {
               approverText = `${appEmp.full_name} (${pName || 'หัวหน้างาน/หัวหน้ากะ'})`;
-              approverNote = '✓ สายอนุมัติ: ส่งคำขอให้หัวหน้างาน/หัวหน้ากะพิจารณา (L1)';
+              approverNote = '✓ สายอนุมัติ: ส่งคำขอให้หัวหน้างาน/หัวหน้ากะพิจารณา (ลำดับที่ 1)';
               resolvedApprover = {
                 id: appEmp.id,
                 name: appEmp.full_name,

@@ -1314,6 +1314,26 @@
       transition: all 0.2s;
     }
 
+    /* แท็บหัวข้อ */
+    .as-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 22px; }
+    .as-tab {
+      display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 14px 16px; border-radius: 16px; text-align: left; cursor: pointer;
+      background: #fff; border: 1.5px solid #e2e8f0; font: inherit; color: #334155; transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+    .as-tab > .material-symbols-outlined { flex: 0 0 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #f1f5f9; color: #64748b; font-size: 22px; }
+    .as-tab span span, .as-tab > span:last-child { display: grid; gap: 2px; }
+    .as-tab strong { font-size: 15px; color: #0f172a; }
+    .as-tab small { font-size: 12.5px; color: #64748b; }
+    .as-tab:hover { border-color: var(--th-p-200, #99f6e4); }
+    .as-tab.is-active { border-color: var(--th-p-600, #0d9488); background: var(--th-p-50, #f0fdfa); box-shadow: 0 6px 18px rgba(var(--th-p-600-rgb, 13, 148, 136), .12); }
+    .as-tab.is-active > .material-symbols-outlined { background: var(--th-p-600, #0d9488); color: #fff; }
+    [data-as-panel]:not(.as-on) { display: none !important; }
+    [data-as-legacy] { display: none !important; }
+    .as-intro { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; margin-bottom: 14px; border-radius: 14px; background: var(--th-k-50, #f0f9ff); border: 1px solid var(--th-k-200, #bae6fd); color: #334155; font-size: 14px; line-height: 1.6; }
+    .as-intro > .material-symbols-outlined { color: var(--th-k-600, #0284c7); }
+    .as-intro strong { display: block; color: #0f172a; }
+    @media (max-width: 760px) { .as-tabs { grid-template-columns: 1fr; } }
+
     .help-panel {
       margin-bottom: 28px;
       border: 1px solid var(--th-k-200, #bae6fd);
@@ -1353,10 +1373,10 @@
           ตั้งค่า
         </button>
       </div>
-      <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-        <span class="material-symbols-outlined" style="font-size: 18px; color: #22c55e;">verified</span>
-        ระบบสายอนุมัติอัตโนมัติ 4 ขั้นตอน (L1  L2  L3  HR)
-      </div>
+      <a href="/pages/hr/approval-chains.html" class="btn-back" style="text-decoration:none;">
+        <span class="material-symbols-outlined" style="font-size: 18px;">account_tree</span>
+        ตั้งค่าสายอนุมัติ (เลือกผู้อนุมัติ)
+      </a>
     </div>
 
     <!-- Header Hero Section -->
@@ -1364,14 +1384,15 @@
       <div class="header-title-group">
         <div class="header-badge">
           <span class="material-symbols-outlined" style="font-size: 14px;">hub</span>
-          APPROVAL WORKFLOW & LINE INTEGRATION
+          LINE NOTIFICATIONS & DELEGATION
         </div>
         <h1 class="header-title">
           <span class="material-symbols-outlined" style="font-size: 32px;">account_tree</span>
-          ตั้งค่าสายอนุมัติ & การแจ้งเตือน LINE
+          แจ้งเตือน LINE & ผู้อนุมัติแทน
         </h1>
         <p class="header-desc">
-          กำหนดหัวหน้างาน (L1), ผู้จัดการฝ่าย (L2) ประจำแต่ละแผนก และผู้บริหารสูงสุด (L3) เพื่อให้ระบบส่งแจ้งเตือนเข้าแอป LINE โดยตรงเมื่อมีการยื่นใบลา
+          ให้ผู้อนุมัติผูก LINE เพื่อรับแจ้งเตือนใบลา · เลือกว่าจะแจ้งเตือนเรื่องไหนบ้าง · ตั้งคนอนุมัติแทนเมื่อหัวหน้าลา
+          <br>เลือกว่าใบลาของแต่ละแผนกส่งให้ใครอนุมัติ ไปที่ <a href="/pages/hr/approval-chains.html" style="color:inherit; font-weight:700; text-decoration:underline;">ตั้งค่าสายอนุมัติ</a>
         </p>
       </div>
       <div class="header-actions" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -1382,8 +1403,8 @@
           <span class="material-symbols-outlined" id="syncIconHero">sync</span>
           <span id="syncTextHero">ซิงค์ข้อมูล</span>
         </button>
-        <a class="btn-header-action" href="/pages/hr/approval-chains.html" style="text-decoration:none; background: var(--th-p-600, #0d9488); color:#fff; border-color: transparent;" title="สายอนุมัติหลายขั้น / ทีม-กะ / โอนผู้อนุมัติ">
-          <span class="material-symbols-outlined">account_tree</span> สายอนุมัติหลายขั้น / ทีม-กะ
+        <a class="btn-header-action" href="/pages/hr/approval-chains.html" style="text-decoration:none; background: var(--th-p-600, #0d9488); color:#fff; border-color: transparent;" title="เลือกผู้อนุมัติของแต่ละแผนก / ทีม-กะ / ข้อยกเว้นรายบุคคล">
+          <span class="material-symbols-outlined">account_tree</span> ตั้งค่าสายอนุมัติ
         </a>
         <button type="button" class="btn-header-action" onclick="manageDepartmentsModal()">
           <span class="material-symbols-outlined">corporate_fare</span>
@@ -1392,82 +1413,29 @@
       </div>
     </header>
 
-    <!-- Help & Rules Panel -->
-    <section class="card-panel help-panel" id="helpPanel">
-      <div class="card-panel-header" style="background:var(--th-k-100, #e0f2fe); border-bottom: 1px solid var(--th-k-200, #bae6fd);">
-        <h2 class="card-panel-title" style="color: var(--th-k-700, #0369a1);">
-          <span class="material-symbols-outlined">info</span>
-          คำอธิบายและเงื่อนไขการทำงานของระบบ
-        </h2>
-      </div>
-      <div class="card-panel-body">
-        <ul class="help-list">
-          <li><strong>ขั้นตอนอนุมัติ:</strong> ระบบจะส่งแจ้งเตือนตามลำดับ L1 (หัวหน้างาน)  L2 (ผู้จัดการ)  L3 (ผู้บริหารสูงสุด) ตามที่ตั้งค่าในแต่ละแผนก</li>
-          <li><strong>เงื่อนไข L1/L2:</strong> หากแผนกใดไม่ได้ตั้งค่า L2 ระบบจะข้ามขั้นตอน L2 และส่งเรื่องให้ HR หรือ L3 ทันทีตามเงื่อนไขใบลา</li>
-          <li><strong>การผูก LINE:</strong> ผู้ที่อยู่ในสายอนุมัติ <strong>จำเป็นต้องผูก LINE User ID</strong> เพื่อรับการแจ้งเตือน หากไม่ผูก ผู้ใช้งานจะไม่ได้รับข้อความแจ้งเตือนผ่าน LINE</li>
-          <li><strong>แก้ไขข้อมูล:</strong> การแก้ไขสายอนุมัติจะส่งผลทันทีต่อใบลาที่ยื่นเข้ามาใหม่หลังจากทำการบันทึกข้อมูลแล้วเท่านั้น</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- Workflow Diagram Strip -->
-    <section class="flow-guide">
-      <div class="flow-step s0" onclick="focusSection('approverSummarySection')" title="ขั้นตอนที่ 1: พนักงานยื่นคำขอ">
-        <div class="flow-step-icon"></div>
-        <div class="flow-step-text">
-          <h4>1. พนักงาน</h4>
-          <p>ยื่นคำขอลาออนไลน์</p>
-        </div>
-      </div>
-      <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
-      <div class="flow-step s1" onclick="focusSection('deptConfigSection', 'supervisorSelect')" title="คลิกเพื่อตั้งค่าหัวหน้า L1">
-        <div class="flow-step-icon">️</div>
-        <div class="flow-step-text">
-          <h4>2. หัวหน้า (L1)</h4>
-          <p>พิจารณาอนุมัติขั้นต้น</p>
-        </div>
-      </div>
-      <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
-      <div class="flow-step s2" onclick="focusSection('deptConfigSection', 'managerSelect')" title="คลิกเพื่อตั้งค่าผู้จัดการ L2">
-        <div class="flow-step-icon"></div>
-        <div class="flow-step-text">
-          <h4>3. ผู้จัดการ (L2)</h4>
-          <p>อนุมัติระดับฝ่าย</p>
-        </div>
-      </div>
-      <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
-      <div class="flow-step s3" onclick="focusSection('executiveConfigSection', 'executiveSelect')" title="คลิกเพื่อตั้งค่าผู้บริหาร L3">
-        <div class="flow-step-icon">⭐</div>
-        <div class="flow-step-text">
-          <h4>4. ผู้บริหาร (L3)</h4>
-          <p>พิจารณากรณีพิเศษ</p>
-        </div>
-      </div>
-      <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
-      <div class="flow-step s4" onclick="focusSection('autoDelegationSection')" title="ระบบโอนสิทธิ์อนุมัติอัตโนมัติเมื่อหัวหน้าลาพักร้อน">
-        <div class="flow-step-icon" style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-600, #0284c7);"></div>
-        <div class="flow-step-text">
-          <h4>5. โอนสิทธิ์อัตโนมัติ</h4>
-          <p>เมื่อหัวหน้าลาพักร้อน</p>
-        </div>
-      </div>
-      <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
-      <div class="flow-step s5" onclick="focusSection('approverSummarySection')" title="ฝ่ายบุคคล HR ดำเนินการขั้นสุดท้าย">
-        <div class="flow-step-icon"></div>
-        <div class="flow-step-text">
-          <h4>6. ฝ่ายบุคคล (HR)</h4>
-          <p>ตัดยอดโควตา & บันทึก</p>
-        </div>
-      </div>
-    </section>
+    <!-- แท็บ: แบ่งหน้าเป็น 3 เรื่อง (เดิมเป็นหน้ายาวต่อกันทั้งหมด) -->
+    <nav class="as-tabs" role="tablist" aria-label="หัวข้อการตั้งค่า">
+      <button type="button" class="as-tab" role="tab" data-as-tab="link">
+        <span class="material-symbols-outlined">phonelink_ring</span>
+        <span><strong>1. ผู้อนุมัติผูก LINE</strong><small>ส่งรหัสผูก / ดูใครยังไม่ผูก</small></span>
+      </button>
+      <button type="button" class="as-tab" role="tab" data-as-tab="line">
+        <span class="material-symbols-outlined">notifications_active</span>
+        <span><strong>2. ตั้งค่าแจ้งเตือน LINE</strong><small>เชื่อม LINE OA / เปิด-ปิดแต่ละเรื่อง</small></span>
+      </button>
+      <button type="button" class="as-tab" role="tab" data-as-tab="delegate">
+        <span class="material-symbols-outlined">swap_calls</span>
+        <span><strong>3. ผู้อนุมัติแทน</strong><small>เมื่อหัวหน้าลาพักร้อน</small></span>
+      </button>
+    </nav>
 
     <!-- Panel 4: Auto-Delegation & SLA Protection (New) -->
-    <section class="card-panel" id="autoDelegationSection" style="margin-bottom: 32px; border-top: 4px solid var(--th-k-600, #0284c7); box-shadow: 0 4px 12px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.08);">
+    <section class="card-panel" id="autoDelegationSection" data-as-panel="delegate" style="margin-bottom: 32px; border-top: 4px solid var(--th-k-600, #0284c7); box-shadow: 0 4px 12px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.08);">
       <div class="card-panel-header" style="background: linear-gradient(to right, var(--th-k-50, #f0f9ff), #ffffff); border-bottom: 1px solid var(--th-k-200, #bae6fd);">
         <div style="display: flex; align-items: center; gap: 10px;">
           <h2 class="card-panel-title" style="color: var(--th-k-700, #0369a1);">
             <span class="material-symbols-outlined" style="color: var(--th-k-600, #0284c7);">swap_calls</span>
-            ระบบโอนสิทธิ์อนุมัติอัตโนมัติ (Auto-Delegation & SLA Protection)
+            ผู้อนุมัติแทน เมื่อหัวหน้าลาพักร้อน
           </h2>
           <span class="field-label-tag" style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); font-weight: 700;">ป้องกันค้าง SLA 48 ชม.</span>
         </div>
@@ -1487,8 +1455,8 @@
             กฎระเบียบและเงื่อนไขการโอนสิทธิ์อัตโนมัติ (PVT Company Approval Policy)
           </div>
           • <strong>นโยบาย SLA 48 ชั่วโมง:</strong> ตามระเบียบบริษัท คำขอลาต้องได้รับการพิจารณาภายใน 48 ชั่วโมง (2 วันทำการ)<br>
-          • <strong>โอนสิทธิ์ทันทีเมื่อลาพักร้อน:</strong> เมื่อหัวหน้างาน (L1) หรือผู้จัดการ (L2) มีใบลาพักร้อนที่ได้รับอนุมัติในระบบ สิทธิ์ในการพิจารณาอนุมัติจะถูกโอนไปยัง <b>ผู้รักษาการแทน (Designated Delegate)</b> ทันที เพื่อไม่ให้คำขอของลูกทีมค้าง SLA<br>
-          • <strong>สิทธิ์สำรอง (Fallback):</strong> หากแผนกใดไม่ได้กำหนดผู้แทนเฉพาะรายบุคคล ระบบจะส่งเรื่องต่อให้ผู้จัดการฝ่าย (L2) หรือฝ่ายบุคคล (HR) รักษาการแทนอัตโนมัติ<br>
+          • <strong>โอนสิทธิ์ทันทีเมื่อลาพักร้อน:</strong> เมื่อหัวหน้างาน (ลำดับที่ 1) หรือผู้จัดการ (ลำดับที่ 2) มีใบลาพักร้อนที่ได้รับอนุมัติในระบบ สิทธิ์ในการพิจารณาอนุมัติจะถูกโอนไปยัง <b>ผู้รักษาการแทน (Designated Delegate)</b> ทันที เพื่อไม่ให้คำขอของลูกทีมค้าง SLA<br>
+          • <strong>สิทธิ์สำรอง (Fallback):</strong> หากแผนกใดไม่ได้กำหนดผู้แทนเฉพาะรายบุคคล ระบบจะส่งเรื่องต่อให้ผู้จัดการฝ่าย (ลำดับที่ 2) หรือฝ่ายบุคคล (HR) รักษาการแทนอัตโนมัติ<br>
           • <strong>ความโปร่งใส (Audit Log):</strong> ทุกการอนุมัติแทนจะบันทึกประวัติ <em>"อนุมัติแทน [ชื่อหัวหน้าเดิม] โดย [ชื่อผู้แทน] (โอนสิทธิ์เนื่องจากลาพักร้อน)"</em> อย่างชัดเจน
         </div>
 
@@ -1524,7 +1492,7 @@
 
           <div class="notif-step-row is-active" id="row-autodel-fallback" style="background: #f8fafc; border-radius: 10px; padding: 12px 16px; border: 1px solid #cbd5e1;">
             <div style="flex: 1;">
-              <div style="font-weight: 700; font-size: 13.5px; color: #0f172a;">ส่งต่อ L2/HR อัตโนมัติ (Fallback)</div>
+              <div style="font-weight: 700; font-size: 13.5px; color: #0f172a;">ส่งต่อ ลำดับที่ 2/HR อัตโนมัติ (Fallback)</div>
               <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">กรณีไม่ได้ระบุผู้แทน ให้ผู้จัดการ/HR อนุมัติแทนได้ทันที</div>
             </div>
             <div class="switch-wrapper">
@@ -1634,8 +1602,8 @@
       </div>
     </section>
 
-    <!-- Panel 3: Individual Override (New Section) -->
-    <section class="card-panel" id="individualConfigSection" style="margin-bottom: 32px; border-top: 4px solid var(--accent-purple);">
+    <!-- ⚠️ ย้ายไปหน้า approval-chains.html แท็บ "ข้อยกเว้นรายบุคคล" แล้ว — ซ่อนไว้ (approval-settings.js ยังอ้างอิง element) -->
+    <section class="card-panel" id="individualConfigSection" hidden data-as-legacy style="margin-bottom: 32px; border-top: 4px solid var(--accent-purple);">
       <div class="card-panel-header">
         <h2 class="card-panel-title">
           <span class="material-symbols-outlined" style="color: var(--accent-purple);">person_pin_circle</span>
@@ -1674,7 +1642,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
           <div class="form-field">
             <label class="field-label">
-              <span>หัวหน้าสายตรง L1 (พิเศษ)</span>
+              <span>หัวหน้าสายตรง ลำดับที่ 1 (พิเศษ)</span>
               <span class="field-label-tag">ระบุตัวตน</span>
             </label>
             <select id="individualL1Select" class="field-select">
@@ -1683,7 +1651,7 @@
           </div>
           <div class="form-field">
             <label class="field-label">
-              <span>ผู้จัดการ L2 (พิเศษ)</span>
+              <span>ผู้จัดการ ลำดับที่ 2 (พิเศษ)</span>
               <span class="field-label-tag">ระบุตัวตน</span>
             </label>
             <select id="individualL2Select" class="field-select">
@@ -1704,11 +1672,12 @@
     <div class="settings-grid">
       
       <!-- Panel 1: Department Approver (L1 & L2) -->
-      <section class="card-panel" id="deptConfigSection">
+      <!-- ⚠️ ย้ายไปหน้า approval-chains.html แล้ว — ซ่อนไว้ -->
+      <section class="card-panel" id="deptConfigSection" hidden data-as-legacy>
         <div class="card-panel-header">
           <h2 class="card-panel-title">
             <span class="material-symbols-outlined">domain</span>
-            1. ตั้งค่าผู้อนุมัติรายแผนก (L1 & L2)
+            1. ตั้งค่าผู้อนุมัติรายแผนก (ลำดับที่ 1 และ 2)
           </h2>
           <span class="field-label-tag">ประจำแผนก</span>
         </div>
@@ -1725,11 +1694,11 @@
 
           <div class="form-field">
             <label class="field-label" for="supervisorSelect">
-              <span>หัวหน้างาน / Supervisor (L1) <span style="color:#ef4444;">*</span></span>
+              <span>หัวหน้างาน / Supervisor (ลำดับที่ 1) <span style="color:#ef4444;">*</span></span>
               <span class="field-label-tag">อนุมัติขั้นแรก</span>
             </label>
             <select id="supervisorSelect" class="field-select" disabled>
-              <option value="">-- เลือกหัวหน้างาน L1 --</option>
+              <option value="">-- เลือกหัวหน้างาน ลำดับที่ 1 --</option>
             </select>
             <div class="line-status-bar">
               <span id="supervisorLine" class="line-badge line-no">ยังไม่มี LINE User ID</span>
@@ -1741,11 +1710,11 @@
 
           <div class="form-field">
             <label class="field-label" for="managerSelect">
-              <span>ผู้จัดการฝ่าย / Department Manager (L2)</span>
+              <span>ผู้จัดการฝ่าย / Department Manager (ลำดับที่ 2)</span>
               <span class="field-label-tag">ถ้ามี</span>
             </label>
             <select id="managerSelect" class="field-select" disabled>
-              <option value="">-- ไม่มี / ข้ามขั้นตอน L2 --</option>
+              <option value="">-- ไม่มี / ข้ามขั้นตอน ลำดับที่ 2 --</option>
             </select>
             <div class="line-status-bar">
               <span id="managerLine" class="line-badge line-no">ยังไม่มี LINE User ID</span>
@@ -1765,11 +1734,12 @@
       </section>
 
       <!-- Panel 2: Executive L3 Setting -->
-      <section class="card-panel" id="executiveConfigSection" style="padding-bottom: 24px;">
+      <!-- ⚠️ ย้ายไปหน้า approval-chains.html แท็บ "ผู้บริหาร" แล้ว — ซ่อนไว้ -->
+      <section class="card-panel" id="executiveConfigSection" hidden data-as-legacy style="padding-bottom: 24px;">
         <div class="card-panel-header">
           <h2 class="card-panel-title">
             <span class="material-symbols-outlined">shield_person</span>
-            2. ผู้บริหารสูงสุดอนุมัติหลัก (L3)
+            2. ผู้บริหารสูงสุดอนุมัติหลัก (ลำดับที่ 3)
           </h2>
           <span class="field-label-tag" style="background:#fef3c7; color:#92400e;">ทั้งองค์กร</span>
         </div>
@@ -1777,7 +1747,7 @@
           
           <div class="form-field">
             <label class="field-label" for="executiveSelect">
-              <span>รายชื่อผู้บริหารระดับสูง (Director / Executive L3) <span style="color:#ef4444;">*</span></span>
+              <span>รายชื่อผู้บริหารระดับสูง (Director / Executive ลำดับที่ 3) <span style="color:#ef4444;">*</span></span>
             </label>
             <select id="executiveSelect" class="field-select">
               <option value="">กำลังโหลดรายชื่อผู้บริหาร...</option>
@@ -1793,7 +1763,7 @@
           <div style="background: #f8fafc; border-radius: 12px; padding: 14px; border: 1px dashed #cbd5e1; font-size: 13px; color: #475569; line-height: 1.6;">
             <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
               <span class="material-symbols-outlined" style="font-size:18px; color:var(--th-p-600, #0d9488);">info</span>
-              บทบาทของผู้อนุมัติ L3 ในระบบ
+              บทบาทของผู้อนุมัติ ลำดับที่ 3 ในระบบ
             </div>
             • รับแจ้งเตือนและพิจารณาอนุมัติเมื่อ <b>หัวหน้างานหรือผู้จัดการเป็นผู้ยื่นลาเอง</b><br>
             • พิจารณาคำขอลาเกินสิทธิ์ หรือคำขอกรณีพิเศษตามระเบียบบริษัท
@@ -1803,18 +1773,18 @@
         <div class="card-panel-footer">
           <button id="saveExecutiveBtn" class="btn-save">
             <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
-            บันทึกผู้บริหาร L3
+            บันทึกผู้บริหาร ลำดับที่ 3
           </button>
         </div>
       </section>
 
       <!-- Panel 3: LINE Official Account Configuration & Token (Full Width Grid Span) -->
-      <section class="card-panel" id="lineOaCredentialsSection" style="grid-column: span 2; border-top: 4px solid #16a34a;">
+      <section class="card-panel" id="lineOaCredentialsSection" data-as-panel="line" style="grid-column: span 2; border-top: 4px solid #16a34a;">
         <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: linear-gradient(to right, #f0fdf4, #ffffff); border-bottom: 1px solid #bbf7d0;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <h2 class="card-panel-title" style="color: #15803d; font-weight: 700; margin: 0;">
               <span class="material-symbols-outlined" style="color: #16a34a;">smart_toy</span>
-              3. ตั้งค่าการเชื่อมต่อ LINE Official Account (Bot & Webhook)
+              ขั้นแรก: เชื่อมต่อ LINE Official Account ของบริษัท (ทำครั้งเดียว)
             </h2>
             <span class="field-label-tag" style="background:#dcfce7; color:#15803d; font-weight: 700;">LINE Messaging API</span>
           </div>
@@ -1918,12 +1888,12 @@
       </section>
 
       <!-- Panel 4: LINE Notification Step Routing Settings (Full Width Grid Span) -->
-      <section class="card-panel" id="lineNotificationConfigSection" style="grid-column: span 2;">
+      <section class="card-panel" id="lineNotificationConfigSection" data-as-panel="line" style="grid-column: span 2;">
         <div class="card-panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <h2 class="card-panel-title" style="color: #16a34a; font-weight: 700; margin: 0;">
               <span class="material-symbols-outlined" style="color: #16a34a;">notifications_active</span>
-              4. ตั้งค่าการแจ้งเตือน LINE รายขั้นตอน (Notification Steps)
+              เลือกว่าจะแจ้งเตือนทาง LINE เรื่องไหนบ้าง
             </h2>
             <span class="field-label-tag" style="background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e);">เปิด-ปิดแยกแต่ละสถานะ</span>
           </div>
@@ -1988,8 +1958,8 @@
             
             <div class="notif-step-row is-active" id="row-notif-new-request">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่งหาหัวหน้างาน L1</div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">ส่งคำขอเข้าแชต LINE ของหัวหน้า L1 ประจำแผนก</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่งหาหัวหน้างาน ลำดับที่ 1</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">ส่งคำขอเข้าแชต LINE ของหัวหน้า ลำดับที่ 1 ประจำแผนก</div>
               </div>
               <div class="switch-wrapper">
                 <span class="switch-status-tag on" id="tag-notif-new-request">เปิด</span>
@@ -2002,8 +1972,8 @@
 
             <div class="notif-step-row is-active" id="row-notif-new-request-l2">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่งหาผู้จัดการ L2 (เมื่อไม่มี L1)</div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งข้ามไปหา L2 ทันทีถ้าไม่ได้กำหนดหัวหน้า L1 ไว้</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่งหาผู้จัดการ ลำดับที่ 2 (เมื่อไม่มี ลำดับที่ 1)</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งข้ามไปหา ลำดับที่ 2 ทันทีถ้าไม่ได้กำหนดหัวหน้า ลำดับที่ 1 ไว้</div>
               </div>
               <div class="switch-wrapper">
                 <span class="switch-status-tag on" id="tag-notif-new-request-l2">เปิด</span>
@@ -2029,8 +1999,8 @@
             
             <div class="notif-step-row is-active" id="row-notif-leader-approved">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">หัวหน้า L1 ผ่าน ️ ส่งหาผู้จัดการ L2</div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งแชต LINE ผู้จัดการ L2 เมื่อหัวหน้างาน L1 กดอนุมัติแล้ว</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">หัวหน้า ลำดับที่ 1 ผ่าน ️ ส่งหาผู้จัดการ ลำดับที่ 2</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งแชต LINE ผู้จัดการ ลำดับที่ 2 เมื่อหัวหน้างาน ลำดับที่ 1 กดอนุมัติแล้ว</div>
               </div>
               <div class="switch-wrapper">
                 <span class="switch-status-tag on" id="tag-notif-leader-approved">เปิด</span>
@@ -2043,8 +2013,8 @@
 
             <div class="notif-step-row is-active" id="row-notif-manager-approved">
               <div style="flex: 1;">
-                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ผู้จัดการ L2 ผ่าน ️ ส่งหาผู้บริหาร L3</div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งเตือน LINE ผู้บริหาร L3 สำหรับเคสพิเศษ/ระดับหัวหน้างานลา</div>
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ผู้จัดการ ลำดับที่ 2 ผ่าน ️ ส่งหาผู้บริหาร ลำดับที่ 3</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">แจ้งเตือน LINE ผู้บริหาร ลำดับที่ 3 สำหรับเคสพิเศษ/ระดับหัวหน้างานลา</div>
               </div>
               <div class="switch-wrapper">
                 <span class="switch-status-tag on" id="tag-notif-manager-approved">เปิด</span>
@@ -2126,7 +2096,7 @@
             <div class="notif-step-row is-active" id="row-notif-hr-review">
               <div style="flex: 1;">
                 <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">ส่ง LINE หา HR เมื่อถึงขั้นพิจารณา</div>
-                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">ส่งคำขอเข้าแชต LINE ฝ่าย HR เมื่อผ่าน L1/L2 (หากปิด จะเด้งเตือนแค่หน้าเว็บ)</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">ส่งคำขอเข้าแชต LINE ฝ่าย HR เมื่อผ่านลำดับที่ 1/2 (หากปิด จะเด้งเตือนแค่หน้าเว็บ)</div>
               </div>
               <div class="switch-wrapper">
                 <span class="switch-status-tag on" id="tag-notif-hr-review">เปิด</span>
@@ -2164,7 +2134,7 @@
     </div>
 
     <!-- Section: LINE Status Summary Statistics -->
-    <div class="line-stat-grid" id="lineStatContainer">
+    <div class="line-stat-grid" id="lineStatContainer" data-as-panel="link">
       <div class="line-stat-card">
         <div class="line-stat-icon green">
           <span class="material-symbols-outlined">link</span>
@@ -2198,13 +2168,13 @@
         </div>
         <div class="line-stat-info">
           <span class="line-stat-val" id="statExecutiveLineStatus">-</span>
-          <span class="line-stat-lbl">สถานะ LINE ผู้บริหาร L3</span>
+          <span class="line-stat-lbl">สถานะ LINE ผู้บริหาร ลำดับที่ 3</span>
         </div>
       </div>
     </div>
 
-    <!-- Section 3: Summary Table -->
-    <div class="table-section-header" id="approverSummarySection">
+    <!-- ⚠️ ตารางสรุปสายอนุมัติรายแผนก (แบบเดิม) — ดู/แก้ที่หน้า approval-chains.html แล้ว ซ่อนไว้ -->
+    <div class="table-section-header" id="approverSummarySection" hidden data-as-legacy>
       <div class="table-title">
         <span class="material-symbols-outlined" style="color: var(--primary);">table_chart</span>
         <span>ตารางสรุปสายอนุมัติและการเชื่อมต่อ LINE</span>
@@ -2220,7 +2190,7 @@
     </div>
 
     <!-- Filter Pills for Approvers / LINE Status -->
-    <div class="filter-tabs" id="approverFilterTabs">
+    <div class="filter-tabs" id="approverFilterTabs" hidden data-as-legacy>
       <button type="button" class="filter-tab-btn active" data-filter="all" onclick="setLineStatusFilter('all')">
         <span class="material-symbols-outlined" style="font-size:16px;">apps</span> ทั้งหมด (<span id="countAllFilter">0</span>)
       </button>
@@ -2235,14 +2205,14 @@
       </button>
     </div>
 
-    <div class="table-card">
+    <div class="table-card" hidden data-as-legacy>
       <div class="table-responsive">
         <table class="modern-table">
           <thead>
             <tr>
               <th style="width: 28%;"> แผนก (Department)</th>
-              <th style="width: 28%;">️ หัวหน้างาน L1 (Supervisor)</th>
-              <th style="width: 28%;"> ผู้จัดการฝ่าย L2 (Manager)</th>
+              <th style="width: 28%;">️ หัวหน้างาน ลำดับที่ 1 (Supervisor)</th>
+              <th style="width: 28%;"> ผู้จัดการฝ่าย ลำดับที่ 2 (Manager)</th>
               <th style="width: 16%; text-align: center;">️ จัดการ</th>
             </tr>
           </thead>
@@ -2259,7 +2229,12 @@
     </div>
 
     <!-- Section 4: จัดการรายชื่อพนักงาน & ผู้บริหารที่ผูก LINE (สำหรับพนักงานลาออก / เปลี่ยนตำแหน่ง) -->
-    <div class="table-section-header" id="employeeLineSection" style="margin-top: 48px;">
+    <div class="as-intro" data-as-panel="link">
+      <span class="material-symbols-outlined">info</span>
+      <div><strong>ผู้อนุมัติต้องผูก LINE ก่อน จึงจะได้รับแจ้งเตือนใบลา</strong>
+      กด <b>สร้างรหัสผูก LINE</b> แล้วส่งรหัสให้ผู้อนุมัติพิมพ์ในแชต LINE OA ของบริษัท · ผู้ที่ยังไม่ผูก ยังอนุมัติในระบบได้ตามปกติ (แค่ไม่มีแจ้งเตือน LINE)</div>
+    </div>
+    <div class="table-section-header" id="employeeLineSection" data-as-panel="link" style="margin-top: 8px;">
       <div class="table-title">
         <span class="material-symbols-outlined" style="color: #16a34a;">phonelink_ring</span>
         <span>รายชื่อพนักงาน & ผู้บริหารที่เชื่อมต่อ LINE</span>
@@ -2275,7 +2250,7 @@
     </div>
 
     <!-- Filter Tabs for Employee LINE Table -->
-    <div class="filter-tabs" id="empLineFilterTabs">
+    <div class="filter-tabs" id="empLineFilterTabs" data-as-panel="link">
       <button type="button" class="filter-tab-btn active" data-empfilter="all" onclick="setEmpLineFilter('all')">
         <span class="material-symbols-outlined" style="font-size:16px;">groups</span> ทั้งหมด (<span id="empCountAll">0</span>)
       </button>
@@ -2290,7 +2265,7 @@
       </button>
     </div>
 
-    <div class="table-card" style="margin-bottom: 24px;">
+    <div class="table-card" data-as-panel="link" style="margin-bottom: 24px;">
       <div class="table-responsive">
         <table class="modern-table">
           <thead>
@@ -2340,11 +2315,11 @@
         <!-- หัวหน้างาน L1 -->
         <div class="form-field">
           <label class="field-label" for="modalSupervisorSelect">
-            <span>️ หัวหน้างาน / Supervisor (L1) <span style="color:#ef4444;">*</span></span>
+            <span>️ หัวหน้างาน / Supervisor (ลำดับที่ 1) <span style="color:#ef4444;">*</span></span>
             <span class="field-label-tag">อนุมัติขั้นแรก</span>
           </label>
           <select id="modalSupervisorSelect" class="field-select" onchange="updateModalLineStatus('supervisor')">
-            <option value="">-- เลือกหัวหน้างาน L1 --</option>
+            <option value="">-- เลือกหัวหน้างาน ลำดับที่ 1 --</option>
           </select>
           <div class="line-status-bar">
             <span id="modalSupervisorLine" class="line-badge line-no">ยังไม่มี LINE User ID</span>
@@ -2357,11 +2332,11 @@
         <!-- ผู้จัดการ L2 -->
         <div class="form-field" style="margin-top:14px;">
           <label class="field-label" for="modalManagerSelect">
-            <span> ผู้จัดการฝ่าย / Manager (L2)</span>
+            <span> ผู้จัดการฝ่าย / Manager (ลำดับที่ 2)</span>
             <span class="field-label-tag">ถ้ามี / ข้ามได้</span>
           </label>
           <select id="modalManagerSelect" class="field-select" onchange="updateModalLineStatus('manager')">
-            <option value="">-- ไม่มี / ข้ามขั้นตอน L2 --</option>
+            <option value="">-- ไม่มี / ข้ามขั้นตอน ลำดับที่ 2 --</option>
           </select>
           <div class="line-status-bar">
             <span id="modalManagerLine" class="line-badge line-no">ยังไม่มี LINE User ID</span>
@@ -2385,6 +2360,30 @@
       </div>
     </div>
   </div>
+
+  <!-- แท็บหัวข้อ: #link / #line / #delegate -->
+  <script>
+    (function () {
+      var NAMES = ['link', 'line', 'delegate'];
+      function show(name, push) {
+        if (NAMES.indexOf(name) < 0) name = 'link';
+        document.querySelectorAll('[data-as-tab]').forEach(function (b) {
+          var on = b.getAttribute('data-as-tab') === name;
+          b.classList.toggle('is-active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('[data-as-panel]').forEach(function (el) {
+          el.classList.toggle('as-on', el.getAttribute('data-as-panel') === name);
+        });
+        if (push) { try { history.replaceState(null, '', '#' + name); } catch (e) {} }
+      }
+      document.querySelectorAll('[data-as-tab]').forEach(function (b) {
+        b.addEventListener('click', function () { show(b.getAttribute('data-as-tab'), true); });
+      });
+      window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+      show(location.hash.slice(1));
+    })();
+  </script>
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>

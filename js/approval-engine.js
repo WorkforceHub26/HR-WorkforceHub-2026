@@ -117,7 +117,7 @@
 
     // 1) แผนก
     const deptRows = chainRows.filter((r) => r.scope_type === 'department').sort((a, b) => a.step_no - b.step_no);
-    deptRows.forEach((r) => { byNo[r.step_no] = { label: r.step_label || `ขั้นที่ ${r.step_no}`, ids: uniq(r.approver_ids), source: 'department' }; });
+    deptRows.forEach((r) => { byNo[r.step_no] = { label: r.step_label || `ลำดับที่ ${r.step_no}`, ids: uniq(r.approver_ids), source: 'department' }; });
     // ยังไม่ได้ตั้งในตารางใหม่ → ใช้ค่าเดิม (department_approvers)
     if (!deptRows.length && legacyDept) {
       const sup = legacyDept.supervisor_id ? String(legacyDept.supervisor_id) : '';
@@ -127,7 +127,7 @@
     }
     // 2) ทีม/กะ (แทนที่เฉพาะขั้นที่ตั้งไว้)
     chainRows.filter((r) => r.scope_type === 'team').forEach((r) => {
-      byNo[r.step_no] = { label: r.step_label || byNo[r.step_no]?.label || `ขั้นที่ ${r.step_no}`, ids: uniq(r.approver_ids), source: 'team' };
+      byNo[r.step_no] = { label: r.step_label || byNo[r.step_no]?.label || `ลำดับที่ ${r.step_no}`, ids: uniq(r.approver_ids), source: 'team' };
     });
     // 3) รายบุคคล (ข้อยกเว้น)
     [['l1_approver_id', 1, 'หัวหน้างาน'], ['l2_approver_id', 2, 'ผู้จัดการ'], ['l3_approver_id', 3, 'ผู้บริหาร']].forEach(([col, no, label]) => {
@@ -158,9 +158,9 @@
 
     let lastKept = null;
     steps.forEach((s, i) => {
-      if (i <= selfIdx) return push(s, 'skipped', i === selfIdx ? 'ผู้ยื่นเป็นผู้อนุมัติขั้นนี้เอง' : 'ขั้นต่ำกว่าตำแหน่งของผู้ยื่น');
+      if (i <= selfIdx) return push(s, 'skipped', i === selfIdx ? 'ผู้ยื่นเป็นผู้อนุมัติลำดับนี้เอง' : 'อยู่ก่อนลำดับของผู้ยื่น');
       if (!s.ids.length) return push(s, 'skipped', s.removed ? 'ผู้อนุมัติไม่อยู่ในสถานะใช้งาน' : 'ยังไม่ได้กำหนดผู้อนุมัติ');
-      if (lastKept && sameSet(lastKept.ids, s.ids)) return push(s, 'skipped', 'ผู้อนุมัติคนเดียวกับขั้นก่อนหน้า');
+      if (lastKept && sameSet(lastKept.ids, s.ids)) return push(s, 'skipped', 'ผู้อนุมัติคนเดียวกับลำดับก่อนหน้า (อนุมัติครั้งเดียว)');
       lastKept = s;
       push(s, 'waiting');
     });
@@ -316,7 +316,7 @@
           await sb.from('notifications').insert({
             employee_id: p.id,
             title: `มีใบลารอท่านพิจารณา: ${applicantName}`,
-            message: `ประเภท: ${leaveTypeName}\nวันที่: ${leave.start_date} ถึง ${leave.end_date}\nขั้น: ${step.step_label || '-'}`,
+            message: `ประเภท: ${leaveTypeName}\nวันที่: ${leave.start_date} ถึง ${leave.end_date}\nผู้พิจารณา: ${step.step_label || '-'}`,
             type: 'leave',
             link_url: '/pages/approver/leave-approvals.html'
           });
@@ -544,15 +544,23 @@
   // ---------------------------------------------------------------------
   // แสดงผลขั้นในรูปแบบเดียวกับ getApprovalWorkflowSteps เดิม
   // ---------------------------------------------------------------------
+  // ชื่อที่แสดง: "หัวหน้างาน (ลำดับที่ 1)" — ลำดับนับเฉพาะขั้นที่ใช้จริง
+  function stepTitle(label, no) {
+    const l = String(label || '').trim();
+    if (!l || /^(ขั้นที่|ลำดับที่)\s*\d+$/.test(l)) return `ลำดับที่ ${no}`;
+    return /ลำดับที่/.test(l) ? l : `${l} (ลำดับที่ ${no})`;
+  }
+
   function toDisplaySteps(steps) {
-    return (steps || []).filter((s) => s.status !== 'skipped').map((s) => {
+    return (steps || []).filter((s) => s.status !== 'skipped').map((s, i) => {
       const st = s.status === 'waiting' ? 'pending' : s.status === 'expired' ? 'rejected' : s.status;
       const who = s.hr_any ? 'HR' : (s.approver_names || []).join(' / ');
+      const label = stepTitle(s.step_label, i + 1);
       return {
         role: 'step',
         stepNo: s.step_no,
-        shortName: s.step_label || `ขั้นที่ ${s.step_no}`,
-        fullName: `${s.step_label || `ขั้นที่ ${s.step_no}`}${who ? ` — ${who}` : ''}`,
+        shortName: label,
+        fullName: `${label}${who ? ` — ${who}` : ''}`,
         approverNames: who,
         actedBy: s.acted_by_name || '',
         actedAt: s.acted_at || '',
@@ -564,6 +572,6 @@
   global.PVTApproval = {
     isReady, resolveChain, buildChain, loadContext, createSteps, initialLegacyFields,
     getSteps, getStepsForLeaves, currentStep, canAct, approve, reject,
-    closeOpenSteps, reassignStep, toDisplaySteps, legacyColumns, me, notifyApprovers
+    closeOpenSteps, reassignStep, toDisplaySteps, stepTitle, legacyColumns, me, notifyApprovers
   };
 })(typeof window !== 'undefined' ? window : this);

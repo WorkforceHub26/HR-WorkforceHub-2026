@@ -1933,7 +1933,7 @@ class LineOAEngine {
     let themeColor = "#4f46e5"; // Modern Indigo/Purple (SCB/KBank modern style)
     let highlightBg = "#f4f3ff";
     let highlightText = "#4338ca";
-    let statusBadgeText = "⏳ รออนุมัติขั้นต้น (L1)";
+    let statusBadgeText = "⏳ รออนุมัติขั้นต้น (ลำดับที่ 1)";
     let statusBadgeBg = "#e0e7ff";
     let statusBadgeColor = "#3730a3";
     let actionLabel = "👉 ตรวจสอบใบลา";
@@ -1942,11 +1942,11 @@ class LineOAEngine {
 
     switch (type) {
       case 'NEW_REQUEST':
-        headerTitle = "คำขอใบลาใหม่ (รออนุมัติ L1)";
+        headerTitle = "คำขอใบลาใหม่ (รออนุมัติ ลำดับที่ 1)";
         themeColor = "#4f46e5"; // Indigo
         highlightBg = "#eff6ff";
         highlightText = "#1d4ed8";
-        statusBadgeText = "⏳ รอการอนุมัติขั้นต้น (L1)";
+        statusBadgeText = "⏳ รอการอนุมัติขั้นต้น (ลำดับที่ 1)";
         statusBadgeBg = "#dbeafe";
         statusBadgeColor = "#1e40af";
         actionLabel = "👉 ตรวจสอบใบลา";
@@ -1954,24 +1954,24 @@ class LineOAEngine {
         break;
 
       case 'LEADER_APPROVED':
-        headerTitle = "ผ่านการอนุมัติขั้นต้น (L1)";
+        headerTitle = "ผ่านการอนุมัติขั้นต้น (ลำดับที่ 1)";
         themeColor = "#059669"; // Emerald Green
         highlightBg = "#ecfdf5";
         highlightText = "#047857";
-        statusBadgeText = "🟢 ผ่าน L1 (รออนุมัติ L2)";
+        statusBadgeText = "🟢 ผ่านลำดับที่ 1 (รออนุมัติ ลำดับที่ 2)";
         statusBadgeBg = "#d1fae5";
         statusBadgeColor = "#065f46";
-        actionLabel = "👉 ตรวจสอบใบลา L2";
+        actionLabel = "👉 ตรวจสอบใบลา ลำดับที่ 2";
         actionUrl = approvalUrl;
         showComment = true;
         break;
 
       case 'MANAGER_APPROVED':
-        headerTitle = "ผ่านการอนุมัติระดับผู้จัดการ (L2)";
+        headerTitle = "ผ่านการอนุมัติระดับผู้จัดการ (ลำดับที่ 2)";
         themeColor = "#0284c7"; // Sky Blue
         highlightBg = "#f0f9ff";
         highlightText = "#0369a1";
-        statusBadgeText = "🔵 ผ่าน L2 (รอฝ่ายบุคคล)";
+        statusBadgeText = "🔵 ผ่านลำดับที่ 2 (รอฝ่ายบุคคล)";
         statusBadgeBg = "#e0f2fe";
         statusBadgeColor = "#075985";
         actionLabel = "👉 ตรวจสอบใบลา";
@@ -2437,7 +2437,7 @@ class LineOAEngine {
 
     switch (type) {
       case 'NEW_REQUEST':
-        title = "📩 มีคำขอใบลาใหม่ (รออนุมัติ L1)";
+        title = "📩 มีคำขอใบลาใหม่ (รออนุมัติ ลำดับที่ 1)";
         messageText = 
           `📩 [แจ้งเตือนคำขอใบลาใหม่ - รออนุมัติ]\n` +
           `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
@@ -2455,9 +2455,9 @@ class LineOAEngine {
         break;
 
       case 'LEADER_APPROVED':
-        title = "🟢 หัวหน้างานอนุมัติแล้ว (รออนุมัติ L2)";
+        title = "🟢 หัวหน้างานอนุมัติแล้ว (รออนุมัติ ลำดับที่ 2)";
         messageText = 
-          `🟢 [คำขอลาผ่านการอนุมัติขั้นต้น (L1)]\n` +
+          `🟢 [คำขอลาผ่านการอนุมัติขั้นต้น (ลำดับที่ 1)]\n` +
           `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
           `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
@@ -2466,17 +2466,17 @@ class LineOAEngine {
           `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
           `📅 วันที่ลา: ${dateFormatted}\n` +
           `💬 เหตุผลการลา: ${reason || 'ไม่ได้ระบุ'}\n` +
-          `💬 ความเห็นหัวหน้า (L1): ${comment || 'เห็นควรอนุมัติ'}\n` +
+          `💬 ความเห็นหัวหน้า (ลำดับที่ 1): ${comment || 'เห็นควรอนุมัติ'}\n` +
           `⏰ ดำเนินการเมื่อ: ${nowStr}\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👉 กดลิงก์เพื่อพิจารณาอนุมัติขั้นสุดท้าย (L2):\n` +
+          `👉 กดลิงก์เพื่อพิจารณาอนุมัติขั้นสุดท้าย (ลำดับที่ 2):\n` +
           `🔗 ${approvalUrl}`;
         break;
 
       case 'MANAGER_APPROVED':
         title = "🔵 ผู้จัดการฝ่ายอนุมัติแล้ว (รอการพิจารณาถัดไป)";
         messageText = 
-          `🔵 [คำขอลาผ่านการอนุมัติระดับผู้จัดการ (L2)]\n` +
+          `🔵 [คำขอลาผ่านการอนุมัติระดับผู้จัดการ (ลำดับที่ 2)]\n` +
           `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
           `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
@@ -2485,7 +2485,7 @@ class LineOAEngine {
           `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
           `📅 วันที่ลา: ${dateFormatted}\n` +
           `💬 เหตุผลการลา: ${reason || 'ไม่ได้ระบุ'}\n` +
-          `💬 ความเห็นผู้จัดการ (L2): ${comment || 'เห็นควรอนุมัติ'}\n` +
+          `💬 ความเห็นผู้จัดการ (ลำดับที่ 2): ${comment || 'เห็นควรอนุมัติ'}\n` +
           `⏰ ดำเนินการเมื่อ: ${nowStr}\n` +
           `━━━━━━━━━━━━━━━━━━━━\n` +
           `👉 กดลิงก์เพื่อเข้าสู่ระบบอนุมัติ:\n` +
@@ -3480,9 +3480,9 @@ class LineOAEngine {
       for (const req of overdue) {
         const pend = (v) => !v || String(v).toLowerCase() === 'pending';
         let stepField = null, stepLevel = 'HR', stepLabel = 'ฝ่ายบุคคล (HR)';
-        if (pend(req.manager_status)) { stepField = 'manager_status'; stepLevel = 'L1'; stepLabel = 'หัวหน้างาน (L1)'; }
-        else if (pend(req.director_status)) { stepField = 'director_status'; stepLevel = 'L2'; stepLabel = 'ผู้จัดการ (L2)'; }
-        else if (pend(req.executive_status)) { stepField = 'executive_status'; stepLevel = 'L3'; stepLabel = 'ผู้บริหาร (L3)'; }
+        if (pend(req.manager_status)) { stepField = 'manager_status'; stepLevel = 'L1'; stepLabel = 'หัวหน้างาน (ลำดับที่ 1)'; }
+        else if (pend(req.director_status)) { stepField = 'director_status'; stepLevel = 'L2'; stepLabel = 'ผู้จัดการ (ลำดับที่ 2)'; }
+        else if (pend(req.executive_status)) { stepField = 'executive_status'; stepLevel = 'L3'; stepLabel = 'ผู้บริหาร (ลำดับที่ 3)'; }
 
         // ใบลาที่มีขั้นอนุมัติ (ระยะ 2): ใช้ชื่อขั้นจริง
         let hasSteps = false;

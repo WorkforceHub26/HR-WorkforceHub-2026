@@ -54,7 +54,7 @@ function getLeaveFormSteps() {
   }
 
   if (isManager) {
-    return ["ผู้บริหารสูงสุด (L3)"];
+    return ["ผู้บริหารสูงสุด (ลำดับที่ 3)"];
   }
 
   const deptApprover = currentDeptApproverConfig || {};
@@ -64,13 +64,13 @@ function getLeaveFormSteps() {
   const steps = [];
   if (isLeader) {
     if (hasManager) {
-      steps.push("ผู้จัดการฝ่าย (L2)");
+      steps.push("ผู้จัดการฝ่าย (ลำดับที่ 2)");
     } else {
-      steps.push("ผู้บริหารสูงสุด (L3)");
+      steps.push("ผู้บริหารสูงสุด (ลำดับที่ 3)");
     }
   } else {
-    if (hasLeader) steps.push("หัวหน้าแผนก (L1)");
-    if (hasManager) steps.push("ผู้จัดการฝ่าย (L2)");
+    if (hasLeader) steps.push("หัวหน้าแผนก (ลำดับที่ 1)");
+    if (hasManager) steps.push("ผู้จัดการฝ่าย (ลำดับที่ 2)");
   }
 
   if (steps.length === 0) {
@@ -2118,7 +2118,7 @@ async function saveLeave() {
         payload.forEach(item => {
           item.director_status = "pending";
         });
-        console.log("ℹ️ [Leave Routing] หัวหน้ายื่นลา + ไม่มี L2 → ส่งไปผู้บริหาร L3 เพื่อรออนุมัติ");
+        console.log("ℹ️ [Leave Routing] หัวหน้ายื่นลา + ไม่มี ลำดับที่ 2 → ส่งไปผู้บริหาร ลำดับที่ 3 เพื่อรออนุมัติ");
       }
     }
 
@@ -2222,7 +2222,7 @@ async function saveLeave() {
         recipientRole = "hr";
       }
     } else if (isManagerApplicantFinal) {
-      console.log("ℹ️ [Workflow] ผู้จัดการยื่นลา -> ส่งหาผู้อนุมัติหลัก L3 (ผู้บริหารสูงสุด)");
+      console.log("ℹ️ [Workflow] ผู้จัดการยื่นลา -> ส่งหาผู้อนุมัติหลัก ลำดับที่ 3 (ผู้บริหารสูงสุด)");
       // ผู้จัดการยื่นลา -> ส่งให้ L3 (รายบุคคล) หรือ ผู้บริหารสูงสุด (L3) ในระบบ
       if (currentProfile?.l3_approver_id) {
         const { data: l3Emp } = await sb.from("employees").select("id, full_name, line_id, role").eq("id", currentProfile.l3_approver_id).maybeSingle();
