@@ -1,0 +1,155 @@
+/* ==========================================================================
+   FILE   : /css/layout-topbar.css
+   PURPOSE: แถบหัว (Topbar) + พื้นที่เนื้อหา (Main) ที่อยู่ขวามือ Sidebar
+
+   พฤติกรรม:
+     • แถบหัว "ตรึงชิดบนสุด" (position: fixed) และ "ยาวเต็มความกว้าง" ตั้งแต่ขอบ Sidebar ถึงขอบขวาจอ
+     • ตำแหน่งซ้ายของแถบหัว = ความกว้าง Sidebar ปัจจุบัน (ตัวแปร --pvt-sidebar-current)
+       → พับ/กางเมนูแล้วแถบขยับตามเองด้วย CSS ล้วน ไม่ต้องใช้ JS คำนวณ
+     • พื้นที่เนื้อหา (.pvt-main) เว้นด้านบนเท่าความสูงแถบหัว เนื้อหาจึงไม่ถูกบัง
+
+   โครงสร้าง HTML:
+     <main class="pvt-main" id="mainContent">
+        <header class="pvt-topbar">
+           <div class="pvt-topbar__left">   ← ปุ่มเมนู(มือถือ) + ชื่อหน้า + คำอธิบายใต้ชื่อ
+           <div class="pvt-topbar__right">  ← ช่องใส่ปุ่มเพิ่มเติม + โปรไฟล์ผู้ใช้
+        </header>
+        <div class="pvt-page" id="pageContent">  ← ★ เนื้อหาของแต่ละหน้าวางตรงนี้ ★
+     </main>
+   ========================================================================== */
+
+
+/* ---------- 1) พื้นที่เนื้อหา (ขวามือ Sidebar) ---------- */
+.pvt-main {
+  margin-left: var(--pvt-sidebar-current);        /* หลบ Sidebar */
+  min-width: 0;                                   /* กันกราฟ/ตารางกว้างจนดันหน้าล้นจอ */
+  min-height: 100vh;
+  padding: calc(var(--pvt-topbar-total) + var(--pvt-page-pad-y))   /* บน: หลบแถบหัว + เว้นระยะ */
+           var(--pvt-page-pad-x)                                    /* ขวา */
+           48px                                                     /* ล่าง */
+           var(--pvt-page-pad-x);                                   /* ซ้าย */
+  transition: margin-left var(--pvt-duration) var(--pvt-ease);
+}
+
+/* กล่องเนื้อหาของแต่ละหน้า: เรียงเป็นคอลัมน์ ระยะห่างเท่ากันทุกส่วน
+   (ไม่ต้องใส่ margin ให้แต่ละ section เอง) */
+.pvt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+
+/* ---------- 2) แถบหัว (Topbar) ---------- */
+.pvt-topbar {
+  position: fixed;
+  top: 0;
+  left: var(--pvt-sidebar-current);               /* เริ่มที่ขอบขวาของ Sidebar */
+  right: 0;                                       /* ยาวไปสุดขอบขวาจอ = เต็มความกว้าง */
+  z-index: var(--pvt-z-topbar);
+  height: var(--pvt-topbar-total);
+  padding: env(safe-area-inset-top, 0px) var(--pvt-page-pad-x) 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+
+  background: rgba(255, 255, 255, .98);           /* ไม่ใช้ backdrop-filter: จะทำให้ dropdown แบบ fixed ในแถบเพี้ยน */
+  border-bottom: 1px solid rgba(15, 23, 42, .08);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
+  transition: left var(--pvt-duration) var(--pvt-ease);
+}
+
+/* ฝั่งซ้าย: ปุ่มเมนู + ชื่อหน้า */
+.pvt-topbar__left  { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pvt-topbar__title { min-width: 0; }
+.pvt-topbar__title h1 {
+  margin: 0;
+  font-size: 22px; font-weight: 800; line-height: 1.2; color: var(--pvt-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pvt-topbar__title p {
+  margin: 2px 0 0;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--pvt-primary);
+}
+
+/* ปุ่ม ☰ เปิดเมนู — เฉพาะมือถือ */
+.pvt-topbar__burger {
+  display: none;
+  width: 40px; height: 40px; flex: 0 0 auto;
+  align-items: center; justify-content: center;
+  border: 0; border-radius: 12px;
+  background: transparent; color: var(--pvt-text); cursor: pointer;
+  transition: background-color .2s;
+}
+.pvt-topbar__burger:hover  { background: #f1f5f9; }
+.pvt-topbar__burger:active { background: #e2e8f0; }
+
+/* ฝั่งขวา: ช่องใส่ปุ่มเพิ่มเติม + โปรไฟล์ */
+.pvt-topbar__right   { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+.pvt-topbar__actions { display: flex; align-items: center; gap: 8px; }   /* ช่องว่างสำหรับ ปุ่มกระดิ่ง/ซิงก์ ฯลฯ */
+
+/* ปุ่มไอคอนกลมมาตรฐาน (ใช้กับปุ่มใน .pvt-topbar__actions) */
+.pvt-icon-btn {
+  position: relative;
+  width: 42px; height: 42px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--pvt-border); border-radius: 50%;
+  background: #fff; color: #475569; cursor: pointer;
+  transition: background-color .2s, border-color .2s, transform .2s var(--pvt-ease);
+}
+.pvt-icon-btn:hover { background: #f8fafc; border-color: #cbd5e1; transform: translateY(-1px); }
+
+
+/* ---------- 3) โปรไฟล์ผู้ใช้ (มุมขวาบน) ---------- */
+.pvt-user {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0;
+  padding: 5px 16px 5px 5px;
+  border: 1px solid var(--pvt-border); border-radius: 999px;
+  background: #fff;
+}
+/* ใช้ .pvt-user .pvt-user__avatar (น้ำหนักสูงกว่า) เพื่อกันสไตล์ของคลาสเดิม .avatar / .avatar-badge ใน global.css
+   ที่บางหน้ายังใส่คลาสนั้นไว้ให้โค้ดเดิม (auth-guard.js) หาเจอ ไม่ให้มากวนขนาด/ขอบของรูปโปรไฟล์ */
+.pvt-user .pvt-user__avatar {
+  flex: 0 0 40px; width: 40px; height: 40px; min-width: 40px; padding: 0;
+  border: 0; box-shadow: none;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; border-radius: 50%;
+  background: linear-gradient(135deg, var(--pvt-primary), var(--th-s-600, #0891b2));
+  color: #fff; font-size: 14px; font-weight: 800;
+}
+.pvt-user .pvt-user__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.pvt-user__info { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.pvt-user__info strong,
+.pvt-user__info span {
+  max-width: 240px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pvt-user__info strong { font-size: 14px; font-weight: 700; color: var(--pvt-text); }
+.pvt-user__info span   { font-size: 12px; color: var(--pvt-text-soft); }
+
+
+/* ---------- 4) มือถือ / แท็บเล็ต (≤1024px) ---------- */
+@media (max-width: 1024px) {
+  .pvt-topbar__burger { display: inline-flex; }           /* แสดงปุ่ม ☰ */
+  .pvt-main { --pvt-page-pad-x: 16px; }
+  .pvt-topbar { padding-left: 12px; padding-right: 12px; }
+}
+
+@media (max-width: 640px) {
+  :root { --pvt-topbar-h: 60px; }
+  .pvt-topbar__title h1 { font-size: 18px; }
+  .pvt-user { padding: 4px; }                             /* เหลือแค่รูปโปรไฟล์ */
+  .pvt-user__info { display: none; }
+  .pvt-main { --pvt-page-pad-x: 12px; }
+}
+
+
+/* ---------- 5) ตัวช่วยตอนทดลอง: กรอบเนื้อหาเปล่า (ลบทิ้งได้เมื่อใส่เนื้อหาจริง) ---------- */
+.pvt-content-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 320px;
+  border: 2px dashed #94a3b8; border-radius: 16px;
+  color: #64748b; font-size: 15px; font-weight: 600;
+  background: rgba(255, 255, 255, .5);
+}

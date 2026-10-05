@@ -2,8 +2,8 @@
    Dedicated Stylesheet for User Request Leave (/pages/user/leave-user.html)
    Scoped Page ID: #page-user-leave
    ====================================================== */
-@import url('/css/leave-user.css');
-@import url('/css/holidays.css');
+/* leave-user.css โหลดด้วย <link> ใน leave-user.html แล้ว (เดิมเป็น @import ทำให้โหลดช้า)
+   holidays.css ไม่ได้ใช้ในหน้านี้ จึงไม่โหลด */
 
 /* ======================================================
    Add leave row button — neutral secondary action
@@ -31,4 +31,39 @@
   border-color: #94a3b8 !important;
   box-shadow: none !important;
   transform: none !important;
+}
+
+/* ======================================================
+   กล่อง "กำลังเตรียมแบบฟอร์ม..." ระหว่างรอข้อมูลประเภทการลา/วันหยุด
+   (leave-user.js ลบทิ้งเมื่อแบบฟอร์มพร้อม)
+   ====================================================== */
+#page-user-leave .leave-form-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 160px;
+  margin: 0 0 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#page-user-leave .leave-form-loading .material-symbols-outlined {
+  /* ล็อกขนาด: ถ้าฟอนต์ไอคอนยังโหลดไม่เสร็จ จะไม่เห็นคำว่า progress_activity หมุนอยู่ */
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  overflow: hidden;
+  line-height: 22px;
+  font-size: 22px;
+  color: var(--th-p-600, #0d9488);
+  animation: pvt-leave-form-spin 0.9s linear infinite;
+}
+
+@keyframes pvt-leave-form-spin {
+  to { transform: rotate(360deg); }
 }

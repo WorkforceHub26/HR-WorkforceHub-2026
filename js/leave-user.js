@@ -466,7 +466,7 @@ async function handleDateChange(inputElement) {
     const checkEnd = endDateStr || startDateStr;
 
     if (checkStart) {
-      const currentEmpId = currentProfile?.id || currentProfile?.employee_id;
+      const currentEmpId = currentProfile?.id || currentProfile?.employee_id || getStoredEmployeeId();
       const overlapResult = await checkAllOverlaps(currentEmpId, checkStart, checkEnd, boxItem);
 
       if (overlapResult.isOverlapped) {
@@ -578,19 +578,12 @@ async function fetchCurrentUserData() {
       return; 
     }
 
-    const { data: empData, error: empError } = await supabase
-      .from('employees')
-      .select(`*, departments!department_id ( department_name ), positions ( position_name )`)
-      .eq('id', currentUserId)
-      .single();
-
-    if (empError) throw empError;
-
+    // ดึงโควตาวันลาไปพร้อมกับข้อมูลพนักงาน (เดิมรอข้อมูลพนักงานเสร็จก่อน)
     const currentYear = new Date().getFullYear();
-    let leaveData = [];
-    if (window.PVTSDK?.user?.getLeaveBalances) {
-      leaveData = await window.PVTSDK.user.getLeaveBalances(currentUserId, currentYear);
-    } else {
+    const balancesPromise = (async () => {
+      if (window.PVTSDK?.user?.getLeaveBalances) {
+        return await window.PVTSDK.user.getLeaveBalances(currentUserId, currentYear);
+      }
       const { data: empBal } = await supabase
         .from('employee_leave_balances')
         .select('*')
@@ -600,11 +593,32 @@ async function fetchCurrentUserData() {
       if (empBal) {
         const { data: lTypes } = await supabase.from('leave_types').select('*');
         if (window.PVTSDK?.user?.transformEmployeeLeaveBalanceToItems) {
-          leaveData = window.PVTSDK.user.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
+          return window.PVTSDK.user.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
         }
       }
-    }
+      return [];
+    })().catch((err) => { console.warn("ดึงโควตาวันลาล้มเหลว:", err); return []; });
 
+    const { data: empData, error: empError } = await supabase
+      .from('employees')
+      .select(`*, departments!department_id ( department_name ), positions ( position_name )`)
+      .eq('id', currentUserId)
+      .single();
+
+    if (empError) throw empError;
+
+    // สายอนุมัติของแผนก: เริ่มดึงทันทีที่รู้แผนก (ทำงานพร้อมกับโควตา)
+    const deptIdEarly = empData.department_id || null;
+    const deptLookupPromise = (deptIdEarly && sb)
+      ? Promise.all([
+          sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptIdEarly).maybeSingle(),
+          sb.from("departments").select("approver_id").eq("id", deptIdEarly).maybeSingle(),
+          sb.from("employees").select("id, role, positions!position_id(position_name), status").eq("department_id", deptIdEarly)
+        ])
+      : null;
+    if (deptLookupPromise) deptLookupPromise.catch(() => {});
+
+    const leaveData = await balancesPromise;
     window.employeeLeaveBalances = leaveData || [];
 
     if (typeof window.renderAllLeaveBalances === 'function') {
@@ -637,12 +651,8 @@ async function fetchCurrentUserData() {
     // ดึงและวิเคราะห์สายอนุมัติของแผนกผู้ยื่น (ตรวจสอบทั้งตาราง department_approvers และตำแหน่งงานจริง)
     try {
       const deptId = realUser.department_id;
-      if (deptId && sb) {
-        const [apprvRes, deptRes, empsRes] = await Promise.all([
-          sb.from("department_approvers").select("supervisor_id, manager_id").eq("department_id", deptId).maybeSingle(),
-          sb.from("departments").select("approver_id").eq("id", deptId).maybeSingle(),
-          sb.from("employees").select("id, role, positions!position_id(position_name), status").eq("department_id", deptId)
-        ]);
+      if (deptId && sb && deptLookupPromise) {
+        const [apprvRes, deptRes, empsRes] = await deptLookupPromise;
         const apprv = apprvRes.data;
         const deptData = deptRes.data;
         const emps = (empsRes.data || []).filter(e => e.status === 'active' || !e.status);
@@ -685,9 +695,9 @@ async function fetchCurrentUserData() {
         el.value = value;
         el.style.fontSize = "15px";
         el.style.fontWeight = "500";
-        el.style.color = "#0f766e"; 
+        el.style.color = "var(--th-p-700, #0f766e)"; 
         el.style.background = "rgba(255, 255, 255, 0.7)";
-        el.style.border = "1px solid rgba(13, 148, 136, 0.2)";
+        el.style.border = "1px solid rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2)";
         el.style.borderRadius = "8px";
         el.style.padding = "8px 12px";
       }
@@ -1057,7 +1067,7 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
   if (balanceInput) {
     balanceInput.value = remainingText;
     balanceInput.style.fontWeight = "700";
-    balanceInput.style.color = remainingDays <= 0 ? "#ef4444" : "#0d9488";
+    balanceInput.style.color = remainingDays <= 0 ? "#ef4444" : "var(--th-p-600, #0d9488)";
     balanceInput.style.background = remainingDays <= 0 ? "#fef2f2" : "rgba(240, 253, 250, 0.8)";
   }
 
@@ -1074,7 +1084,7 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
     } else if (leaveName.includes("กิจ")) {
       conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; color:#166534; font-size:13px;">📌 <b>เงื่อนไขการลากิจ:</b> ขั้นต่ำ 0.5 ชั่วโมง (30 นาที) สามารถเลือกกรอกเป็น 0.5, 1, 1.5 ... ชั่วโมงได้ครับ</div>`;
     } else if (leaveName.includes("ป่วย")) {
-      conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; color:#1e40af; font-size:13px;">ℹ️ <b>เงื่อนไขการลาป่วย:</b> กรณีลาป่วย 3 วันขึ้นไป ต้องมีใบรับรองแพทย์แนบประกอบการลาครับ</div>`;
+      conditionHtml = `<div style="margin-top:10px; padding:10px 14px; background:var(--th-b-50, #eff6ff); border:1px solid var(--th-b-200, #bfdbfe); border-radius:8px; color:var(--th-b-800, #1e40af); font-size:13px;">ℹ️ <b>เงื่อนไขการลาป่วย:</b> กรณีลาป่วย 3 วันขึ้นไป ต้องมีใบรับรองแพทย์แนบประกอบการลาครับ</div>`;
     }
 
     if (remainingDays <= 0) {
@@ -1099,7 +1109,7 @@ window.updateLeaveBalanceDisplay = function(selectEl) {
             ${conditionHtml}
           </div>
         `,
-        confirmButtonColor: '#0f766e',
+        confirmButtonColor: 'var(--th-p-700, #0f766e)',
         confirmButtonText: 'รับทราบ'
       });
     }
@@ -1147,7 +1157,7 @@ async function addLeaveRow() {
         </div>
       </div>
       <div class="input-group date-input-card highlight-start-card">
-        <label><span class="material-symbols-outlined" style="font-size: 18px; color: #0891b2;">calendar_today</span> เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
+        <label><span class="material-symbols-outlined" style="font-size: 18px; color: var(--th-s-600, #0891b2);">calendar_today</span> เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
         <div class="large-date-input-wrapper">
           <input type="text" name="start_date" placeholder="📅 คลิกเพื่อเลือกวันเริ่มลา..." readonly class="large-date-field start-date-picker" style="background-color: #fff; cursor: pointer;">
         </div>
@@ -1187,14 +1197,14 @@ async function addLeaveRow() {
 
     <div class="leave-duration-mode-options" style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:2px 0 12px;">
       <label class="leave-duration-option" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:12px; background:#ffffff; cursor:pointer; min-width:0;">
-        <input type="radio" name="leave_duration_mode" value="full" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:#0d9488; flex:0 0 auto;">
+        <input type="radio" name="leave_duration_mode" value="full" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:var(--th-p-600, #0d9488); flex:0 0 auto;">
         <span style="min-width:0;">
           <strong style="display:block; color:#0f172a; font-size:14px;">ลาเต็มวัน</strong>
           <small style="display:block; color:#64748b; margin-top:2px; font-size:11px; line-height:1.25;">คิดตามวันที่ที่เลือก</small>
         </span>
       </label>
       <label class="leave-duration-option" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:12px; background:#ffffff; cursor:pointer; min-width:0;">
-        <input type="radio" name="leave_duration_mode" value="partial" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:#0d9488; flex:0 0 auto;">
+        <input type="radio" name="leave_duration_mode" value="partial" disabled onchange="handleLeaveDurationMode(this)" style="width:20px; height:20px; accent-color:var(--th-p-600, #0d9488); flex:0 0 auto;">
         <span style="min-width:0;">
           <strong style="display:block; color:#0f172a; font-size:14px;">ลาไม่เต็มวัน</strong>
           <small style="display:block; color:#64748b; margin-top:2px; font-size:11px; line-height:1.25;">ระบุช่วงเวลาและชั่วโมง</small>
@@ -1202,8 +1212,8 @@ async function addLeaveRow() {
       </label>
     </div>
 
-    <div class="partial-leave-controls" style="display:none; margin-top:10px; padding:12px; border:1px solid #ccfbf1; border-radius:12px; background:#f0fdfa;">
-      <div style="font-size:12px; font-weight:700; color:#0f766e; margin-bottom:10px;">⏱️ เลือกช่วงเวลาที่ขอลาและจำนวนชั่วโมง</div>
+    <div class="partial-leave-controls" style="display:none; margin-top:10px; padding:12px; border:1px solid var(--th-p-100, #ccfbf1); border-radius:12px; background:var(--th-p-50, #f0fdfa);">
+      <div style="font-size:12px; font-weight:700; color:var(--th-p-700, #0f766e); margin-bottom:10px;">⏱️ เลือกช่วงเวลาที่ขอลาและจำนวนชั่วโมง</div>
       <div class="grid-row-3">
         <div class="input-group">
           <label>ช่วงเช้า (0-4 ชั่วโมง)</label>
@@ -1226,7 +1236,7 @@ async function addLeaveRow() {
 
     <div class="input-group" style="margin-top:12px;">
       <label>สรุปรวมระยะเวลาที่ขอลา</label>
-      <input type="text" placeholder="กรุณาเลือกรูปแบบการลา" readonly name="leave_days_display" class="readonly-highlight" value="กรุณาเลือกรูปแบบการลา" style="font-weight:700; color:#0f766e !important; background:#f0fdfa !important; border-color:#99f6e4 !important;">
+      <input type="text" placeholder="กรุณาเลือกรูปแบบการลา" readonly name="leave_days_display" class="readonly-highlight" value="กรุณาเลือกรูปแบบการลา" style="font-weight:700; color:var(--th-p-700, #0f766e) !important; background:var(--th-p-50, #f0fdfa) !important; border-color:var(--th-p-200, #99f6e4) !important;">
       <input type="hidden" name="leave_days" value="0">
     </div>
 
@@ -1275,9 +1285,9 @@ function handleLeaveDurationMode(input) {
   boxItem.querySelectorAll('.leave-duration-option').forEach(label => {
     const radio = label.querySelector('input[name="leave_duration_mode"]');
     const selected = !!radio?.checked;
-    label.style.borderColor = selected ? '#14b8a6' : '#cbd5e1';
-    label.style.background = selected ? '#f0fdfa' : '#ffffff';
-    label.style.boxShadow = selected ? '0 0 0 2px rgba(20,184,166,0.10)' : 'none';
+    label.style.borderColor = selected ? 'var(--th-p-500, #14b8a6)' : '#cbd5e1';
+    label.style.background = selected ? 'var(--th-p-50, #f0fdfa)' : '#ffffff';
+    label.style.boxShadow = selected ? '0 0 0 2px rgba(var(--th-p-500-rgb, 20, 184, 166), 0.10)' : 'none';
   });
 
   if (mode === 'full') {
@@ -1316,7 +1326,7 @@ function calculateLeaveDays(element) {
   if (!textDisplay && resultInput) {
     textDisplay = document.createElement('small');
     textDisplay.className = 'hours-text-display';
-    textDisplay.style.cssText = 'display:block; color:#0f766e; font-weight:600; margin-top:6px; font-size:13px;';
+    textDisplay.style.cssText = 'display:block; color:var(--th-p-700, #0f766e); font-weight:600; margin-top:6px; font-size:13px;';
     resultInput.parentNode.appendChild(textDisplay);
   }
 
@@ -1532,7 +1542,7 @@ function handleFileChange(input, labelId) {
           title: 'อัปโหลดหลักฐานเรียบร้อย',
           text: 'บันทึกไฟล์หลักฐานแล้วเรียบร้อย คุณสามารถกรอกหรือปรับปรุงรายละเอียดใบลาเพิ่มเติมได้เลยครับ',
           confirmButtonText: 'ตกลง',
-          confirmButtonColor: '#0d9488'
+          confirmButtonColor: 'var(--th-p-600, #0d9488)'
         });
       }
     };
@@ -1612,6 +1622,9 @@ let isSavingLeave = false;
 async function saveLeave() {
   if (isSavingLeave) return;
   isSavingLeave = true;
+
+  // ถ้ากดส่งเร็วมากตอนข้อมูลพนักงานยังโหลดไม่เสร็จ ให้รอก่อน
+  try { await profileReadyPromise; } catch (e) {}
 
   const btnSaveLeave = document.getElementById("btnSaveLeave");
   if (btnSaveLeave) {
@@ -1955,9 +1968,9 @@ async function saveLeave() {
       const confirmResult = await Swal.fire({
         icon: 'info',
         title: '📌 แจ้งเตือนการยื่นใบรับรองแพทย์',
-        html: `รายการที่ ${index + 1} เป็นการ<b>ลาป่วย</b><br><br><span style="color:#0f766e; font-weight:600;">กรุณานำใบรับรองแพทย์ฉบับจริงมายื่นส่งให้ฝ่ายบุคคล (HR) หลังจากกลับมาทำงานครับ<br><small style="color:#e11d48;">(แม้ว่าจะทำการแนบไฟล์รูปภาพในระบบแล้วก็ตาม)</small></span>`,
+        html: `รายการที่ ${index + 1} เป็นการ<b>ลาป่วย</b><br><br><span style="color:var(--th-p-700, #0f766e); font-weight:600;">กรุณานำใบรับรองแพทย์ฉบับจริงมายื่นส่งให้ฝ่ายบุคคล (HR) หลังจากกลับมาทำงานครับ<br><small style="color:#e11d48;">(แม้ว่าจะทำการแนบไฟล์รูปภาพในระบบแล้วก็ตาม)</small></span>`,
         showCancelButton: true,
-        confirmButtonColor: '#0f766e',
+        confirmButtonColor: 'var(--th-p-700, #0f766e)',
         cancelButtonColor: '#64748b',
         confirmButtonText: 'รับทราบ และยื่นคำขอ',
         cancelButtonText: 'ยกเลิกเพื่อแก้ไข'
@@ -2109,6 +2122,20 @@ async function saveLeave() {
       }
     }
 
+    // 🔗 สายอนุมัติแบบหลายขั้น (ระยะ 2 — ใช้เมื่อรัน migration 20261006 แล้ว)
+    //    คำนวณจาก รายบุคคล → ทีม/กะ → แผนก → ผู้บริหาร → HR และล็อกไว้กับใบลา
+    let approvalChain = null;
+    if (window.PVTApproval && await window.PVTApproval.isReady()) {
+      try {
+        approvalChain = await window.PVTApproval.resolveChain(currentEmpId);
+        const legacyFields = window.PVTApproval.initialLegacyFields(approvalChain);
+        payload.forEach((item) => Object.assign(item, legacyFields));
+      } catch (chainErr) {
+        console.warn("⚠️ [Approval Chain] คำนวณสายอนุมัติไม่สำเร็จ ใช้แบบเดิม:", chainErr);
+        approvalChain = null;
+      }
+    }
+
     // 🛡️ ตรวจสอบและสร้างโควตาวันลาอัตโนมัติก่อนส่งคำขอลา
     if (window.PVTSDK?.user?.ensureLeaveBalances) {
       for (const item of payload) {
@@ -2135,6 +2162,25 @@ async function saveLeave() {
         saveBtn.innerHTML = "💾 บันทึกคำขอลา";
       }
       return; 
+    }
+
+    // 🔗 บันทึกขั้นอนุมัติของแต่ละใบ + แจ้งผู้อนุมัติขั้นแรก (LINE/ในระบบ)
+    if (approvalChain && Array.isArray(data)) {
+      const firstStep = approvalChain.find((st) => st.status === 'pending');
+      const jobs = data.map(async (row) => {
+        try {
+          await window.PVTApproval.createSteps(row, approvalChain);
+          const lt = (leaveTypes || []).find(t => String(t.id) === String(row.leave_type_id));
+          const leaveForNotify = Object.assign({}, row, {
+            employees: { id: currentProfile.id, full_name: currentProfile.full_name, employee_code: currentProfile.employee_code, departments: { department_name: currentProfile?.department_name || '' } },
+            leave_types: { leave_name: lt ? lt.leave_name : 'ใบลา' }
+          });
+          if (firstStep) await window.PVTApproval.notifyApprovers(leaveForNotify, firstStep, 'NEW_REQUEST');
+        } catch (stepErr) {
+          console.warn("⚠️ [Approval Chain] บันทึกขั้นอนุมัติไม่สำเร็จ:", row.id, stepErr);
+        }
+      });
+      await Promise.race([Promise.allSettled(jobs), new Promise((r) => setTimeout(r, 10000))]);
     }
 
     const empName = currentProfile.full_name || 'พนักงาน';
@@ -2259,8 +2305,31 @@ async function saveLeave() {
     }
 
     // 💬 1. แจ้งเตือนในระบบและ LINE (ผ่าน Workflow กลาง)
-    if (recipient && recipient.id) {
+    // 🧾 หลักฐาน: ยื่นใบลา (บันทึกทุกใบ แม้ไม่พบผู้อนุมัติ)
+    if (window.PVTLeaveAudit && Array.isArray(data)) {
+      await Promise.race([
+        Promise.allSettled(data.map((insertedLeave, index) => {
+          const item = payload[index] || {};
+          const lt = (leaveTypes || []).find(t => String(t.id) === String(item.leave_type_id));
+          return window.PVTLeaveAudit.log(Object.assign({}, insertedLeave, {
+            employees: { id: currentProfile.id, full_name: empName, employee_code: currentProfile.employee_code, departments: { department_name: deptName } },
+            leave_types: { leave_name: lt ? lt.leave_name : 'ใบลา' }
+          }), 'submitted', {
+            stepLabel: approvalChain
+              ? (() => { const f = approvalChain.find((st) => st.status === 'pending'); return f ? `ส่งถึง: ${f.step_label} (${f.hr_any ? 'HR' : f.approver_names.join(' หรือ ')})` : 'ส่งถึง HR'; })()
+              : (recipient ? `ส่งถึง: ${recipient.full_name || recipientRole}` : 'ไม่พบผู้อนุมัติ (HR จะเห็นในรายการรออนุมัติ)'),
+            comment: item.reason || null,
+            statusAfter: 'pending'
+          });
+        })),
+        new Promise((resolve) => setTimeout(resolve, 5000))
+      ]);
+    }
+
+    if (!approvalChain && recipient && recipient.id) {
       try {
+        // ส่งให้ครบก่อนเปลี่ยนหน้า (เดิมไม่ได้รอ → บางครั้งแจ้งเตือนไม่ออก)
+        const sendJobs = [];
         payload.forEach((item, index) => {
           const insertedLeave = (data && data[index]) ? data[index] : null;
           const leaveId = insertedLeave ? insertedLeave.id : '';
@@ -2271,17 +2340,19 @@ async function saveLeave() {
           const notificationTitle = `มีคำขอลาใหม่จาก ${empName}`;
           const notificationMessage = `พนักงาน: ${empName} (${currentProfile.employee_code || "-"})\nประเภท: ${leaveName}\nวันที่: ${item.start_date} ถึง ${item.end_date}\nเหตุผล: ${item.reason}`;
 
-          // 🔔 บันทึกลงตาราง notifications (In-app)
-          sb.from("notifications").insert({
-            employee_id: recipient.id,
-            title: notificationTitle,
-            message: notificationMessage,
-            type: 'leave',
-            link_url: '/pages/hr/hr.html'
-          });
+          // 🔔 แจ้งในระบบ + LINE ผู้อนุมัติขั้นแรก (SDK บันทึกแจ้งเตือนในระบบให้ด้วย)
+          if (!window.PVTSDK?.line) {
+            sendJobs.push(sb.from("notifications").insert({
+              employee_id: recipient.id,
+              title: notificationTitle,
+              message: notificationMessage,
+              type: 'leave',
+              link_url: '/pages/approver/leave-approvals.html'
+            }));
+            return;
+          }
 
-          // โค้ดเดิม (Workflow SDK) - ส่ง Flex Message สวยงามพร้อมปุ่มกด
-          window.PVTSDK.line.sendWorkflowNotification({
+          sendJobs.push(window.PVTSDK.line.sendWorkflowNotification({
             type: notificationType,
             leaveId: leaveId,
             recipientId: recipient.id,
@@ -2296,8 +2367,13 @@ async function saveLeave() {
             totalDays: item.total_days,
             reason: item.reason,
             attachmentUrl: item.attachment_url || ""
-          });
+          }));
         });
+        // รอไม่เกิน 8 วินาที แล้วไปต่อ (เน็ตช้าก็ไม่ค้าง)
+        await Promise.race([
+          Promise.allSettled(sendJobs),
+          new Promise((resolve) => setTimeout(resolve, 8000))
+        ]);
       } catch (err) {
         console.warn("⚠️ [Notification Trigger] Error:", err);
       }
@@ -2305,9 +2381,9 @@ async function saveLeave() {
 
     Swal.fire({
       title: 'ส่งคำขอลาสำเร็จ!',
-      html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:#0f766e; font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,
+      html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:var(--th-p-700, #0f766e); font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,
       icon: 'success',
-      confirmButtonColor: '#0f766e',
+      confirmButtonColor: 'var(--th-p-700, #0f766e)',
       confirmButtonText: 'รับทราบ'
     }).then(() => {
       window.location.href = "/pages/user/index-user.html";
@@ -2360,7 +2436,7 @@ function toggleFormLeaveGuide() {
     if (icon) icon.innerText = "help";
     if (btn) {
       btn.style.background = "rgba(255, 255, 255, 0.9)";
-      btn.style.color = "#0891b2";
+      btn.style.color = "var(--th-s-600, #0891b2)";
       btn.style.borderColor = "rgba(6, 182, 212, 0.4)";
     }
   }
@@ -2373,17 +2449,45 @@ window.addEventListener("pageshow", function (event) {
   }
 });
 
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadCompanyHolidays(); 
-  await loadLeaveTypes();      
-  await fetchCurrentUserData(); 
-  
-  const currentEmpId = currentProfile?.id || currentProfile?.employee_id;
-  if (currentEmpId) {
-    await fetchUserExistingLeaveDates(currentEmpId);
-  }
+// รหัสพนักงานจาก session (ใช้ได้ทันทีโดยไม่ต้องรอดึงโปรไฟล์จากฐานข้อมูล)
+function getStoredEmployeeId() {
+  try {
+    const u = JSON.parse(localStorage.getItem("currentUser") || "null");
+    if (u && (u.id || u.employee_id)) return u.id || u.employee_id;
+  } catch (e) {}
+  return localStorage.getItem("currentUserId") || null;
+}
 
-  addLeaveRow(); 
+// โหลดโปรไฟล์/โควตาทำงานเบื้องหลัง — saveLeave() จะรอ promise นี้ก่อนส่งคำขอ
+let profileReadyPromise = Promise.resolve();
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // เดิมดึงข้อมูลทีละอย่างต่อกัน ~13 รอบ แล้วจึงแสดงฟอร์ม (ช้ามากบนมือถือ)
+  // ตอนนี้: เริ่มทุกอย่างพร้อมกัน และแสดงฟอร์มทันทีที่มีข้อมูลที่ฟอร์มต้องใช้
+  //   (ประเภทการลา + วันหยุด + วันที่เคยลา) ส่วนข้อมูลพนักงาน/โควตาตามมาทีหลัง
+  const storedEmpId = getStoredEmployeeId();
+  profileReadyPromise = fetchCurrentUserData().catch((err) => console.warn("โหลดข้อมูลพนักงานล้มเหลว:", err));
+
+  await Promise.allSettled([
+    loadCompanyHolidays(),
+    loadLeaveTypes(),
+    storedEmpId ? fetchUserExistingLeaveDates(storedEmpId) : Promise.resolve([])
+  ]);
+
+  const loadingEl = document.getElementById("leaveFormLoading");
+  if (loadingEl) loadingEl.remove();
+  addLeaveRow();
+
+  await profileReadyPromise;
+
+  // โควตาอาจวาดก่อนประเภทการลาโหลดเสร็จ → วาดซ้ำอีกครั้ง
+  if (typeof window.renderAllLeaveBalances === "function") window.renderAllLeaveBalances();
+
+  // กรณีพิเศษ: รหัสใน session ไม่ตรงกับโปรไฟล์จริง → ดึงวันลาเดิมใหม่
+  const realEmpId = currentProfile?.id || currentProfile?.employee_id;
+  if (realEmpId && realEmpId !== storedEmpId) {
+    await fetchUserExistingLeaveDates(realEmpId);
+  }
 });
 
 // ฟังก์ชันคำนวณการกดปุ่ม + และ -

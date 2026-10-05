@@ -127,7 +127,7 @@
   try {
     console.log(
       `%c[PVT Supabase SDK]%c Active Environment: %c${CONFIG.ENV}%c (${CONFIG.ENV_LABEL}) | URL: ${CONFIG.URL}`,
-      "background: #1e293b; color: #38bdf8; font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      "background: #1e293b; color: var(--th-k-400, #38bdf8); font-weight: bold; padding: 2px 6px; border-radius: 4px;",
       "color: #64748b;",
       CONFIG.ENV === 'DEV' ? "color: #f59e0b; font-weight: bold;" : "color: #10b981; font-weight: bold;",
       "color: #64748b;"
@@ -140,16 +140,21 @@
       const cleanGender = String(gender || "").trim().toLowerCase();
       const cleanName = String(fullName || "").trim().toLowerCase();
 
-      const femaleTokens = ["นางสาว", "นาง", "น.ส.", "น.ส", "นส.", "นส", "สาว", "คุณหญิง", "ms.", "ms", "mrs.", "mrs", "miss.", "miss", "female", "หญิง", "f"];
-      const maleTokens = ["นาย", "นาย.", "mr.", "mr", "master.", "master", "male", "ชาย", "m"];
+      // ตัดสินจาก "คำนำหน้า" เป็นหลัก แล้วค่อยดูเพศ / คำนำหน้าที่พิมพ์ติดมากับชื่อ
+      // (เดิมค้น "f" / "m" / "นาง" ในชื่อทั้งชื่อ → ชื่อที่มีตัวอักษรเหล่านี้เลือกเพศผิด)
+      const femaleTitles = ["นางสาว", "นาง", "น.ส.", "น.ส", "นส.", "นส", "คุณหญิง", "ด.ญ.", "ด.ญ", "เด็กหญิง", "ms.", "ms", "mrs.", "mrs", "miss"];
+      const maleTitles = ["นาย", "ด.ช.", "ด.ช", "เด็กชาย", "mr.", "mr", "master"];
+      const startsWithAny = (text, list) => list.some(t => text === t || text.startsWith(t));
 
-      if (femaleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
-        return "/assets/img/avatar-female.jpg?v=2";
+      if (cleanTitle) {
+        if (startsWithAny(cleanTitle, femaleTitles)) return "/assets/img/avatar-female.jpg?v=2";
+        if (startsWithAny(cleanTitle, maleTitles)) return "/assets/img/avatar-male.jpg?v=2";
       }
-
-      if (maleTokens.some(token => cleanTitle === token || cleanTitle.startsWith(token) || cleanGender === token || cleanName.includes(token))) {
-        return "/assets/img/avatar-male.jpg?v=2";
-      }
+      if (["female", "f", "หญิง", "w", "woman"].includes(cleanGender)) return "/assets/img/avatar-female.jpg?v=2";
+      if (["male", "m", "ชาย", "man"].includes(cleanGender)) return "/assets/img/avatar-male.jpg?v=2";
+      // คำนำหน้าที่พิมพ์ติดมากับชื่อ เช่น "นางสาวสมใจ ใจดี"
+      if (startsWithAny(cleanName, femaleTitles.filter(t => t.length > 2))) return "/assets/img/avatar-female.jpg?v=2";
+      if (startsWithAny(cleanName, maleTitles.filter(t => t.length > 2))) return "/assets/img/avatar-male.jpg?v=2";
 
       return "/assets/img/avatar-male.jpg?v=2";
     };
@@ -529,7 +534,10 @@
         gender = gender || obj.gender || obj.employees?.gender || "";
         fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
       }
-      if (!imageUrl || !String(imageUrl).trim() || imageUrl === "null" || imageUrl === "undefined" || imageUrl === "/assets/img/default-avatar.jpg") {
+      // รูปการ์ตูนเริ่มต้นที่เคยถูกบันทึกลงฐานข้อมูล (avatar-male / avatar-female / default-avatar) ไม่นับเป็นรูปจริง
+      // → เลือกใหม่ตามคำนำหน้า (เดิมถ้าบันทึกรูปผู้ชายไว้ ผู้หญิงจะได้รูปผู้ชายตลอด)
+      const isPlaceholderAvatar = /\/assets\/img\/(avatar-(male|female)|default-avatar)\.jpg/i.test(String(imageUrl || ""));
+      if (!imageUrl || !String(imageUrl).trim() || imageUrl === "null" || imageUrl === "undefined" || isPlaceholderAvatar) {
         return typeof window.getDefaultAvatarUrl === "function" 
           ? window.getDefaultAvatarUrl(title, gender, fullName) 
           : (title.includes('สาว') || title.includes('นาง') || title.includes('น.ส.') || gender === 'female' || fullName.includes('นาง') || fullName.includes('น.ส.') ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
@@ -1031,6 +1039,12 @@
       const fetchPromise = (async () => {
         let result = [];
         try {
+          // ดึงประเภทการลาไปพร้อมกับโควตา (เดิมรอโควตาเสร็จก่อนแล้วค่อยดึง = ช้า 2 รอบ)
+          const lTypesPromise = this.client
+            .from('leave_types')
+            .select('*')
+            .then((r) => r, () => ({ data: null }));
+
           const { data: empBalList, error: empBalErr } = await this.client
             .from('employee_leave_balances')
             .select('*')
@@ -1042,9 +1056,7 @@
           const empBal = (empBalList && empBalList.length > 0) ? empBalList[0] : null;
 
           if (!empBalErr && empBal) {
-            const { data: lTypes } = await this.client
-              .from('leave_types')
-              .select('*');
+            const { data: lTypes } = await lTypesPromise;
             result = this.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
           }
         } catch (e) {
@@ -3120,7 +3132,7 @@ class LineOAEngine {
             <button id="pvt-env-btn-cancel" type="button" style="padding: 8px 16px; background: #e2e8f0; border: none; color: #475569; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
               ยกเลิก
             </button>
-            <button id="pvt-env-btn-save" type="button" style="padding: 8px 20px; background: #0284c7; border: none; color: #ffffff; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);">
+            <button id="pvt-env-btn-save" type="button" style="padding: 8px 20px; background: var(--th-k-600, #0284c7); border: none; color: #ffffff; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.3);">
               บันทึกและสลับ (Save & Switch)
             </button>
           </div>
@@ -3266,63 +3278,265 @@ class LineOAEngine {
    * ตรวจสอบและปรับสถานะใบลาที่รออนุมัติเกิน 2 วัน (48 ชั่วโมง) ให้เป็น "ไม่อนุมัติ" อัตโนมัติ
    * เหตุผล: "เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)"
    */
+  /**
+   * 🧾 PVTLeaveAudit — หลักฐานการพิจารณาใบลา + แจ้ง HR (ในระบบเท่านั้น ไม่ส่ง LINE)
+   *   log(req, action, opts)            บันทึก 1 แถวลง leave_approval_logs (เพิ่มอย่างเดียว ห้ามแก้/ลบ)
+   *   notifyHr(req, outcome, opts)      แจ้ง HR/Admin ทุกคนทาง 🔔 (notifications)
+   *   recordOutcome(req, outcome, opts) = log + notifyHr  ← ใช้เมื่อใบลา "จบ" (อนุมัติ/ไม่อนุมัติ/ยกเลิก/หมดเวลา)
+   *   history(leaveId)                  ประวัติทุกขั้นของใบลา (เรียงตามเวลา)
+   *   ต้องรัน supabase/migrations/20261005_leave_approval_logs.sql ก่อน (ถ้ายังไม่รัน ระบบยังทำงานได้ แต่ไม่มีบันทึกรายขั้น)
+   */
+  const AUDIT_TABLE = 'leave_approval_logs';
+  const OUTCOME_TEXT = {
+    approved: '✅ อนุมัติแล้ว (ขั้นสุดท้าย)',
+    rejected: '❌ ไม่อนุมัติ',
+    auto_rejected: '⏱️ ไม่อนุมัติอัตโนมัติ (ค้างเกิน 48 ชม.)',
+    cancelled: '🚫 พนักงานยกเลิกใบลา',
+    cancel_requested: '↩️ พนักงานขอยกเลิกใบลาที่อนุมัติแล้ว (รอ HR พิจารณา)',
+    cancel_approved: '🚫 HR อนุมัติการยกเลิกใบลา',
+    cancel_rejected: '↩️ HR ไม่อนุมัติการยกเลิกใบลา'
+  };
+  let auditTableMissing = false;
+
+  function auditClient() {
+    return global.PVTSDK?.client || global.pvtSupabase?.client || global.pvtSupabase?.getClient?.() || null;
+  }
+  function auditActor() {
+    try {
+      const u = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null') || {};
+      const e = u.employees || u;
+      return {
+        id: e.id || u.employee_id || null,
+        name: e.full_name || u.full_name || u.name || e.employee_code || 'ไม่ทราบชื่อ',
+        role: String(u.role || e.role || '').toLowerCase()
+      };
+    } catch (err) { return { id: null, name: 'ไม่ทราบชื่อ', role: '' }; }
+  }
+  function leaveSummary(req) {
+    const emp = req.employees || {};
+    return {
+      employee_id: req.employee_id || emp.id || null,
+      employee_code: emp.employee_code || req.employee_code || null,
+      employee_name: emp.full_name || req.applicant_name || req.employee_name || null,
+      department_name: emp.departments?.department_name || req.department_name || null,
+      leave_type: req.leave_types?.leave_name || req.leave_type_name || null,
+      start_date: req.start_date || null,
+      end_date: req.end_date || null,
+      total_days: req.total_days ?? null,
+      leave_hours: req.leave_hours ?? null,
+      reason: req.reason || null,
+      status: req.status || null,
+      manager_status: req.manager_status || null,
+      director_status: req.director_status || null,
+      executive_status: req.executive_status || null
+    };
+  }
+
+  const PVTLeaveAudit = {
+    actor: auditActor,
+
+    async log(req, action, opts = {}) {
+      const sb = auditClient();
+      if (!sb || !req || auditTableMissing) return false;
+      const actor = opts.actor || auditActor();
+      const snap = leaveSummary(req);
+      const row = {
+        leave_id: req.id || req.leave_id,
+        employee_id: snap.employee_id,
+        employee_code: snap.employee_code,
+        employee_name: snap.employee_name,
+        action,
+        step_level: opts.stepLevel || null,
+        step_label: opts.stepLabel || null,
+        actor_id: opts.system ? null : (actor.id || null),
+        actor_name: opts.system ? 'ระบบอัตโนมัติ' : (actor.name || null),
+        actor_role: opts.system ? 'system' : (actor.role || null),
+        status_before: opts.statusBefore || snap.status || null,
+        status_after: opts.statusAfter || null,
+        comment: opts.comment || null,
+        leave_snapshot: Object.assign(snap, opts.meta ? { meta: opts.meta } : {})
+      };
+      try {
+        const { error } = await sb.from(AUDIT_TABLE).insert(row);
+        if (error) {
+          if (/does not exist|PGRST205|42P01|Could not find the table/i.test(`${error.code} ${error.message}`)) {
+            auditTableMissing = true;
+            console.warn('⚠️ [Leave Audit] ยังไม่มีตาราง leave_approval_logs — รัน supabase/migrations/20261005_leave_approval_logs.sql');
+          } else {
+            console.warn('⚠️ [Leave Audit] บันทึกไม่สำเร็จ:', error.message);
+          }
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.warn('⚠️ [Leave Audit] บันทึกไม่สำเร็จ:', err);
+        return false;
+      }
+    },
+
+    async hrRecipients() {
+      const sb = auditClient();
+      if (!sb) return [];
+      try {
+        const { data, error } = await sb
+          .from('employees')
+          .select('id, role, employee_code, status')
+          .or('role.in.(hr,admin,hr_manager,superadmin),employee_code.ilike.HR-%');
+        if (error) throw error;
+        return (data || []).filter((e) => !e.status || String(e.status).toLowerCase() === 'active');
+      } catch (err) {
+        console.warn('⚠️ [Leave Audit] หา HR ไม่สำเร็จ:', err);
+        return [];
+      }
+    },
+
+    async notifyHr(req, outcome, opts = {}) {
+      const sb = auditClient();
+      if (!sb || !req) return 0;
+      const snap = leaveSummary(req);
+      const actor = opts.system ? { name: 'ระบบอัตโนมัติ', id: null } : (opts.actor || auditActor());
+      const recipients = (await this.hrRecipients()).filter((h) => String(h.id) !== String(actor.id || ''));
+      if (!recipients.length) return 0;
+      const head = OUTCOME_TEXT[outcome] || outcome;
+      const lines = [
+        `พนักงาน: ${snap.employee_name || '-'}${snap.employee_code ? ` (${snap.employee_code})` : ''}`,
+        snap.department_name ? `แผนก: ${snap.department_name}` : '',
+        `ประเภท: ${snap.leave_type || '-'}  วันที่: ${snap.start_date || '-'}${snap.end_date && snap.end_date !== snap.start_date ? ` ถึง ${snap.end_date}` : ''}`,
+        opts.stepLabel ? `ขั้นที่พิจารณา: ${opts.stepLabel}` : '',
+        `ดำเนินการโดย: ${actor.name || '-'}`,
+        opts.comment ? `ความเห็น/เหตุผล: ${opts.comment}` : ''
+      ].filter(Boolean);
+      const rows = recipients.map((h) => ({
+        employee_id: h.id,
+        title: `[บันทึก HR] ${head} — ${snap.employee_name || 'พนักงาน'}`,
+        message: lines.join('\n'),
+        type: 'leave_hr_record',
+        link_url: `/pages/hr/hr.html?id=${encodeURIComponent(req.id || req.leave_id || '')}`
+      }));
+      try {
+        const { error } = await sb.from('notifications').insert(rows);
+        if (error) throw error;
+        return rows.length;
+      } catch (err) {
+        console.warn('⚠️ [Leave Audit] แจ้ง HR ไม่สำเร็จ:', err);
+        return 0;
+      }
+    },
+
+    async recordOutcome(req, outcome, opts = {}) {
+      const [logged, notified] = await Promise.all([
+        this.log(req, outcome, opts),
+        this.notifyHr(req, outcome, opts)
+      ]);
+      return { logged, notified };
+    },
+
+    async history(leaveId) {
+      const sb = auditClient();
+      if (!sb || !leaveId || auditTableMissing) return [];
+      try {
+        const { data, error } = await sb.from(AUDIT_TABLE).select('*').eq('leave_id', leaveId).order('created_at', { ascending: true });
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        return [];
+      }
+    }
+  };
+  global.PVTLeaveAudit = PVTLeaveAudit;
+
+  /**
+   * ⏱️ ใบลาค้างพิจารณาเกิน 48 ชม. → ไม่อนุมัติอัตโนมัติ + บันทึกหลักฐาน + แจ้งพนักงานและ HR
+   *   - ระบุขั้นที่ค้าง (L1 / L2 / L3 / HR) ทั้งในสถานะรายขั้นและเหตุผล
+   *   - อัปเดตแบบมีเงื่อนไข (ต้องยัง pending อยู่) → หลายเครื่องรันพร้อมกันก็แจ้งเพียงครั้งเดียว
+   *   - หมายเหตุ: ทำงานเมื่อมีผู้ใช้เปิดระบบ (ระยะ 3 จะย้ายไปตั้งเวลาที่เซิร์ฟเวอร์)
+   */
+  const SLA_MS = 48 * 60 * 60 * 1000;
+  const SLA_LOCK_KEY = 'pvt_sla_autoreject_lock';
   global.autoRejectOverdueLeaves = async function() {
     try {
-      const sb = global.PVTSDK?.client || global.pvtSupabase?.client || global.pvtSupabase?.getClient?.();
+      const sb = auditClient();
       if (!sb) return [];
+      // ต้องเป็นผู้ใช้ที่ล็อกอินแล้ว และไม่รันซ้ำถี่เกินไป (ทุกแท็บ/ทุกหน้าในเครื่องเดียวกัน)
+      if (!localStorage.getItem('currentUser')) return [];
+      try {
+        const last = +localStorage.getItem(SLA_LOCK_KEY) || 0;
+        if (Date.now() - last < 4 * 60 * 1000) return [];
+        localStorage.setItem(SLA_LOCK_KEY, String(Date.now()));
+      } catch (e) {}
 
-      const now = Date.now();
-      const TWO_DAYS_MS = 48 * 60 * 60 * 1000; // 48 ชม. (2 วัน)
+      const cutoff = new Date(Date.now() - SLA_MS).toISOString();
+      const { data: overdue, error } = await sb
+        .from('leave_requests')
+        .select(`id, created_at, status, manager_status, director_status, executive_status, employee_id, leave_type_id,
+                 start_date, end_date, total_days, leave_hours, reason,
+                 employees!employee_id ( id, full_name, employee_code, departments!department_id ( department_name ) ),
+                 leave_types!leave_type_id ( leave_name )`)
+        .eq('status', 'pending')
+        .lt('created_at', cutoff);
+      if (error || !overdue || !overdue.length) return [];
 
-      // 1. ดึงข้อมูลใบลาที่ยังค้างในสถานะรออนุมัติ
-      const { data: pendingReqs, error } = await sb
-        .from("leave_requests")
-        .select("id, created_at, status")
-        .or("status.ilike.pending,status.ilike.รออนุมัติ%");
+      const expired = [];
+      for (const req of overdue) {
+        const pend = (v) => !v || String(v).toLowerCase() === 'pending';
+        let stepField = null, stepLevel = 'HR', stepLabel = 'ฝ่ายบุคคล (HR)';
+        if (pend(req.manager_status)) { stepField = 'manager_status'; stepLevel = 'L1'; stepLabel = 'หัวหน้างาน (L1)'; }
+        else if (pend(req.director_status)) { stepField = 'director_status'; stepLevel = 'L2'; stepLabel = 'ผู้จัดการ (L2)'; }
+        else if (pend(req.executive_status)) { stepField = 'executive_status'; stepLevel = 'L3'; stepLabel = 'ผู้บริหาร (L3)'; }
 
-      if (error || !pendingReqs || pendingReqs.length === 0) return [];
-
-      const overdueIds = [];
-      for (const req of pendingReqs) {
-        if (!req.created_at) continue;
-        const createdTime = new Date(req.created_at).getTime();
-        if (isNaN(createdTime)) continue;
-
-        if (now - createdTime >= TWO_DAYS_MS) {
-          overdueIds.push(req.id);
+        // ใบลาที่มีขั้นอนุมัติ (ระยะ 2): ใช้ชื่อขั้นจริง
+        let hasSteps = false;
+        {
+          const { data: stepRows, error: stepErr } = await sb.from('leave_approval_steps').select('id, step_no, step_label, status, approver_names, hr_any').eq('leave_id', req.id);
+          const cur = (!stepErr && stepRows || []).find((st) => st.status === 'pending');
+          hasSteps = Boolean(!stepErr && stepRows && stepRows.length);
+          if (cur) {
+            stepLevel = `S${cur.step_no}`;
+            stepLabel = `${cur.step_label || 'ผู้อนุมัติ'} (${cur.hr_any ? 'HR' : (cur.approver_names || []).join(' หรือ ')})`;
+            stepField = cur.step_no === 1 ? 'manager_status' : cur.step_no === 2 ? 'director_status' : 'executive_status';
+          }
         }
-      }
+        const reason = `ไม่อนุมัติอัตโนมัติ: ${stepLabel} ไม่พิจารณาภายในเวลาที่กำหนด (48 ชั่วโมง)`;
+        const fields = { status: 'rejected', approval_comment: reason, updated_at: new Date().toISOString() };
+        if (stepField) fields[stepField] = 'rejected';
 
-      if (overdueIds.length === 0) return [];
+        // อัปเดตเฉพาะเมื่อยัง pending (กันซ้ำเมื่อหลายเครื่องรันพร้อมกัน)
+        const { data: changed, error: upErr } = await sb
+          .from('leave_requests')
+          .update(fields)
+          .eq('id', req.id)
+          .eq('status', 'pending')
+          .select('id');
+        if (upErr) { console.warn(`⚠️ [SLA Auto-Expire] อัปเดตใบลา ${req.id} ไม่สำเร็จ:`, upErr.message); continue; }
+        if (!changed || !changed.length) continue; // อีกเครื่องทำไปแล้ว / มีคนพิจารณาไปแล้ว
 
-      console.log(`⏱️ [SLA Auto-Expire] พบใบลาค้างเกิน 2 วัน (48 ชม.) จำนวน ${overdueIds.length} รายการ กำลังปรับเป็นไม่อนุมัติ...`, overdueIds);
-
-      const autoReason = "เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)";
-
-      for (const reqId of overdueIds) {
-        const { error: updateErr } = await sb
-          .from("leave_requests")
-          .update({
-            status: "rejected",
-            approval_comment: autoReason
-          })
-          .eq("id", reqId);
-
-        if (updateErr) {
-          console.warn(`⚠️ [SLA Auto-Expire] ล้มเหลวในการอัปเดตใบลา ID ${reqId}:`, updateErr.message);
-        } else {
-          console.log(`✅ [SLA Auto-Expire] ปรับสถานะใบลา ID ${reqId} เป็นไม่อนุมัติเรียบร้อย`);
+        expired.push(req.id);
+        if (hasSteps) {
+          await sb.from('leave_approval_steps').update({ status: 'expired', acted_at: new Date().toISOString(), comment: reason }).eq('leave_id', req.id).eq('status', 'pending');
+          await sb.from('leave_approval_steps').update({ status: 'cancelled' }).eq('leave_id', req.id).eq('status', 'waiting');
+          await sb.from('leave_requests').update({ current_step: null }).eq('id', req.id);
         }
+        const opts = { system: true, stepLevel, stepLabel, comment: reason, statusBefore: 'pending', statusAfter: 'rejected' };
+        await PVTLeaveAudit.recordOutcome(req, 'auto_rejected', opts);
+        try {
+          await sb.from('notifications').insert({
+            employee_id: req.employee_id,
+            title: 'ใบลาของคุณไม่ได้รับการอนุมัติ (หมดเวลาพิจารณา)',
+            message: `ใบลาประเภท ${req.leave_types?.leave_name || 'ใบลา'} วันที่ ${req.start_date} ${reason}\nหากยังต้องการลา กรุณายื่นใบลาใหม่ หรือติดต่อหัวหน้างาน/HR`,
+            type: 'leave',
+            link_url: '/pages/user/leave-history.html'
+          });
+        } catch (e) {}
       }
-
-      return overdueIds;
+      if (expired.length) console.log(`⏱️ [SLA Auto-Expire] ไม่อนุมัติอัตโนมัติ ${expired.length} รายการ (บันทึกและแจ้ง HR แล้ว)`, expired);
+      return expired;
     } catch (err) {
-      console.error("💥 [SLA Auto-Expire Error]:", err);
+      console.error('💥 [SLA Auto-Expire Error]:', err);
       return [];
     }
   };
 
-  // เรียกทำงานครั้งแรกเมื่อโหลดระบบเสร็จ และตั้งเวลารันอัตโนมัติทุกๆ 5 นาที
+  // เรียกทำงานครั้งแรกเมื่อโหลดระบบเสร็จ และตรวจซ้ำทุก 5 นาที (มีตัวล็อกกันรันถี่)
   setTimeout(() => {
     if (typeof global.autoRejectOverdueLeaves === 'function') {
       global.autoRejectOverdueLeaves();

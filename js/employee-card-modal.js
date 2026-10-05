@@ -27,13 +27,34 @@
     return currentOrigin;
   }
 
-  // Preload standalone QRCode generator for instant offline QR generation (<2ms)
-  if (typeof window !== 'undefined' && !window.QRCode) {
-    const s = document.createElement('script');
-    s.src = '/js/qrcode.min.js';
-    s.async = true;
-    document.head.appendChild(s);
+  // ตัวสร้าง QR ในเครื่อง (/js/qrcode.min.js = node-qrcode มี QRCode.toString) — ไม่ต้องพึ่งเน็ต
+  // ⚠️ หน้า index-user โหลด qrcodejs จาก cdnjs ด้วย ซึ่งใช้ชื่อ window.QRCode เหมือนกัน (เป็น constructor ไม่มี toString)
+  //    ใครโหลดทีหลังจะทับอีกตัว → เก็บตัวสร้างของเราไว้ที่ window.PVTQRGen แยกต่างหาก และคืน QRCode เดิมให้หน้าเว็บ
+  const isQrGen = (q) => !!(q && typeof q.toString === 'function' && q.toString !== Function.prototype.toString && typeof q.toDataURL === 'function');
+  let qrLibPromise = null;
+  function ensureQrLib() {
+    if (window.PVTQRGen) return Promise.resolve(true);
+    if (isQrGen(window.QRCode)) { window.PVTQRGen = window.QRCode; return Promise.resolve(true); }
+    if (qrLibPromise) return qrLibPromise;
+    qrLibPromise = new Promise((resolve) => {
+      const prev = window.QRCode;               // อาจเป็น qrcodejs (constructor) ที่หน้าเว็บใช้อยู่
+      const s = document.createElement('script');
+      s.src = '/js/qrcode.min.js';              // สร้าง <script> ใหม่เสมอ เพื่อให้โค้ดทำงานอีกครั้งแม้เคยโหลดแล้ว
+      s.async = true;
+      s.onload = () => {
+        if (isQrGen(window.QRCode)) {
+          window.PVTQRGen = window.QRCode;
+          if (prev && prev !== window.PVTQRGen) window.QRCode = prev;  // คืนของเดิมให้ส่วนอื่นของหน้า
+        }
+        resolve(!!window.PVTQRGen);
+      };
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+      setTimeout(() => resolve(!!window.PVTQRGen), 5000); // กันค้าง
+    }).then((ready) => { if (!ready) qrLibPromise = null; return ready; });
+    return qrLibPromise;
   }
+  if (typeof window !== 'undefined') ensureQrLib();
 
   // Fast offline QR Code generator (fallback to online API if needed)
   async function generateEmployeeQrDataUrl(empCode) {
@@ -43,8 +64,9 @@
     const targetUrl = `${baseUrl}/index.html?auto_login=${encodeURIComponent(cleanCode)}`;
 
     try {
-      if (window.QRCode && typeof window.QRCode.toString === 'function') {
-        const svg = await window.QRCode.toString(targetUrl, { type: 'svg', margin: 1, width: 220 });
+      await ensureQrLib();
+      if (window.PVTQRGen) {
+        const svg = await window.PVTQRGen.toString(targetUrl, { type: 'svg', margin: 1, width: 220, errorCorrectionLevel: 'M' });
         return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
       }
     } catch (e) {
@@ -982,11 +1004,10 @@
     canvas.height = 960;
     const ctx = canvas.getContext("2d");
 
-    // Ensure we have a high-speed QR code (offline SVG data URL takes <2ms)
-    let finalQrUrl = qrUrl;
-    if (!finalQrUrl) {
-      finalQrUrl = await generateEmployeeQrDataUrl(empCode);
-    }
+    // QR: สร้างในเครื่องเสมอ (เดิมใช้ลิงก์ api.qrserver.com ที่ส่งมา + รอแค่ ~1 วินาที → บนเน็ตมือถือ QR หายเป็นบางครั้ง)
+    // ใช้ลิงก์ภายนอกเฉพาะกรณีตัวสร้างในเครื่องใช้ไม่ได้จริง ๆ
+    let finalQrUrl = empCode ? await generateEmployeeQrDataUrl(empCode) : '';
+    if (!finalQrUrl || !finalQrUrl.startsWith('data:')) finalQrUrl = qrUrl || finalQrUrl;
 
     const loadSafeImage = async (url) => {
       if (!url) return null;
@@ -999,9 +1020,9 @@
           img.src = url;
         });
       }
-      // Strict timeout of 600ms for network images to prevent hanging
+      // รูปจากเน็ต (รูปโปรไฟล์): เดิมรอแค่ 600ms + 500ms → มือถือเน็ตช้ารูปหาย ตอนนี้รอได้ถึง ~4 วินาที
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600);
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       try {
         const res = await fetch(url, { mode: 'cors', signal: controller.signal });
         clearTimeout(timeoutId);
@@ -1029,7 +1050,7 @@
           img.onload = () => done(img);
           img.onerror = () => done(null);
           img.src = url;
-          setTimeout(() => done(null), 500);
+          setTimeout(() => done(null), 1500);
         });
       }
     };
@@ -1465,22 +1486,27 @@
     try {
       const client = await getClient();
       if (client) {
-        const { data, error } = await client
-          .from('employees')
-          .select(`
+        // ต้องมี title / prefix (คำนำหน้า) เพื่อเลือกรูปการ์ตูน หญิง-ชาย — เดิมไม่ได้ดึงมา → ได้รูปผู้ชายทุกคน
+        const cols = `
             id,
             employee_code,
             full_name,
+            title,
+            prefix,
             image_url,
             line_id,
             department_id,
             departments!department_id ( department_name ),
             positions ( position_name )
-          `)
-          .or(`employee_code.ilike.%${currentCode}%,full_name.ilike.%${currentCode}%`)
-          .limit(1)
-          .maybeSingle();
-
+          `;
+        // 1) รหัสพนักงานตรงกันทั้งหมดก่อน (เดิมค้นแบบ "มีคำนี้อยู่" → รหัส 1916 อาจได้บัตรของ 19169)
+        let { data } = await client.from('employees').select(cols).eq('employee_code', currentCode).limit(1).maybeSingle();
+        // 2) ไม่เจอ → ค้นจากบางส่วนของรหัส/ชื่อ (ช่องค้นหาของแอดมิน)
+        if (!data) {
+          ({ data } = await client.from('employees').select(cols)
+            .or(`employee_code.ilike.%${currentCode}%,full_name.ilike.%${currentCode}%`)
+            .limit(1).maybeSingle());
+        }
         if (data) {
           empData = data;
         }
@@ -1529,7 +1555,7 @@
     const fullName = empData.full_name || "พนักงาน";
     const myDept = empData.departments?.department_name || empData.department_name || "ทั่วไป";
     const myRole = empData.positions?.position_name || empData.position_name || "พนักงาน";
-    const empTitle = empData.title || '';
+    const empTitle = empData.title || empData.prefix || empData.title_name || empData.employees?.title || empData.employees?.prefix || '';
     const empGender = empData.gender || '';
     const defaultAvatar = (typeof window.getDefaultAvatarUrl === 'function')
       ? window.getDefaultAvatarUrl(empTitle, empGender, fullName)
@@ -1649,62 +1675,53 @@
         </div>
     ` : '';
 
-    // แสดงป๊อปอัปบัตรพนักงาน
+    // แสดงป๊อปอัปบัตรพนักงาน (ปิดด้วยปุ่ม ✕ มุมขวาบน — สไตล์อยู่ใน ensureCardPopupStyles)
+    ensureCardPopupStyles();
     Swal.fire({
-      title: '💳 บัตรประจำตัวพนักงานดิจิทัล',
-      width: '470px',
+      title: '💳 บัตรพนักงานดิจิทัล',
+      width: 'min(440px, 94vw)',
       html: `
         ${adminSelectHtml}
 
-        <!-- เลือกชุดสีบัตรแบบ Dropdown -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin: 4px 0 14px 0; text-align: left;">
-          <label for="cardThemeSelect" style="font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 7px; display: flex; align-items: center; gap: 6px;">
-            <span>🎨</span>
-            <span>เลือกสีบัตรพนักงาน (Card Theme)</span>
-          </label>
-          <div style="position: relative; display: flex; align-items: center; gap: 8px;">
-            <span id="cardThemeColorPreview" aria-hidden="true"
-                  style="width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; background: ${CARD_THEMES[currentThemeKey]?.chipBg || '#e0f2fe'}; border: 1px solid ${CARD_THEMES[currentThemeKey]?.chipBorder || '#0284c7'};"></span>
-            <select id="cardThemeSelect" aria-label="เลือกสีบัตรพนักงาน"
-                    style="width: 100%; min-width: 0; padding: 9px 36px 9px 11px; font-family: inherit; font-size: 13px; font-weight: 600; color: #0f172a; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 9px; outline: none; cursor: pointer; box-shadow: 0 1px 2px rgba(15,23,42,0.04);">
+        <!-- เลือกชุดสีบัตร -->
+        <div class="pvt-card-theme">
+          <label for="cardThemeSelect">🎨 สีบัตร</label>
+          <div class="pvt-card-theme__field">
+            <span id="cardThemeColorPreview" class="pvt-card-theme__dot" aria-hidden="true"
+                  style="background: ${CARD_THEMES[currentThemeKey]?.chipBg || '#e0f2fe'}; border-color: ${CARD_THEMES[currentThemeKey]?.chipBorder || '#0284c7'};"></span>
+            <select id="cardThemeSelect" aria-label="เลือกสีบัตรพนักงาน">
               ${colorThemeOptionsHtml}
             </select>
           </div>
         </div>
 
-        <div style="margin: 0 0 16px 0; position: relative;">
-          <!-- ภาพตัวอย่างบัตรพนักงาน -->
-          <div style="position: relative; display: inline-block;">
-            <img id="myEmpCardImgPreview" src="${cardImageDataUrl}" alt="บัตรพนักงาน ${escapeHtml(finalCode)}"
-                 style="width: 270px; border-radius: 20px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.28); display: block; margin: 0 auto; border: 1px solid rgba(0,0,0,0.08); transition: opacity 0.2s ease;" />
-            <div id="cardRenderingSpinner" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">
-              กำลังเปลี่ยนสี...
-            </div>
-          </div>
+        <!-- ภาพตัวอย่างบัตรพนักงาน -->
+        <div class="pvt-card-preview">
+          <img id="myEmpCardImgPreview" src="${cardImageDataUrl}" alt="บัตรพนักงาน ${escapeHtml(finalCode)}" />
+          <div id="cardRenderingSpinner" class="pvt-card-preview__spinner" style="display: none;">กำลังเปลี่ยนสี...</div>
         </div>
 
         ${adminFilterHtml}
 
-        <!-- ปุ่มคำสั่งดาวน์โหลดและพิมพ์ -->
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <button type="button" id="btnDownloadCardPng"
-                  style="width: 100%; background: #0284c7; color: #ffffff; border: none; padding: 12px; border-radius: 10px; font-size: 14.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.28); transition: all 0.2s ease;">
-            <img src="/assets/icons/download.svg" onerror="this.remove()" style="width: 18px; height: 18px; filter: brightness(0) invert(1);" alt="" />
-            <span>📥 ดาวน์โหลดรูปลงเครื่อง (PNG)</span>
+        <!-- ปุ่มดาวน์โหลด / พิมพ์ -->
+        <div class="pvt-card-actions">
+          <button type="button" id="btnDownloadCardPng" class="pvt-card-btn pvt-card-btn--download">
+            <span aria-hidden="true">📥</span><span>ดาวน์โหลด PNG</span>
           </button>
-
-          <button type="button" id="btnPrintCardSingle"
-                  style="width: 100%; background: #0f766e; color: #ffffff; border: none; padding: 11px; border-radius: 10px; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(15, 118, 110, 0.25); transition: all 0.2s ease;">
-            <img src="/assets/icons/print.svg" onerror="this.remove()" style="width: 18px; height: 18px; filter: brightness(0) invert(1);" alt="" />
-            <span>🖨️ สั่งพิมพ์บัตร / บันทึก PDF (CR80)</span>
+          <button type="button" id="btnPrintCardSingle" class="pvt-card-btn pvt-card-btn--print">
+            <span aria-hidden="true">🖨️</span><span>พิมพ์ / PDF</span>
           </button>
         </div>
       `,
+      showConfirmButton: false,
       showCancelButton: false,
-      confirmButtonText: 'ปิดหน้าต่าง',
-      confirmButtonColor: '#64748b',
+      showCloseButton: true,
+      closeButtonAriaLabel: 'ปิดหน้าต่าง',
       customClass: {
-        confirmButton: 'swal2-confirm-btn-standard'
+        popup: 'pvt-card-popup',
+        title: 'pvt-card-popup__title',
+        htmlContainer: 'pvt-card-popup__body',
+        closeButton: 'pvt-card-popup__close'
       },
       didOpen: () => {
         if (isAdmin) {
@@ -1811,6 +1828,37 @@
   };
 
   // Export functions globally
+  // สไตล์ป๊อปอัปบัตรพนักงาน (ใส่ครั้งเดียว) — เดิมใช้ inline style ทั้งหมด จัดวางไม่สมดุลบนมือถือ
+  function ensureCardPopupStyles() {
+    if (document.getElementById('pvt-card-popup-styles')) return;
+    const st = document.createElement('style');
+    st.id = 'pvt-card-popup-styles';
+    st.textContent = `
+      .swal2-popup.pvt-card-popup { padding: 18px 16px 16px !important; border-radius: 20px !important; font-family: "Sarabun", system-ui, sans-serif; }
+      .pvt-card-popup .pvt-card-popup__title { margin: 0 !important; padding: 2px 44px 12px 6px !important; font-size: 18px !important; font-weight: 800 !important; line-height: 1.3 !important; color: #0f172a !important; text-align: left !important; }
+      .pvt-card-popup .pvt-card-popup__body { margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+      .pvt-card-popup .pvt-card-popup__close { position: absolute !important; top: 12px !important; right: 12px !important; width: 40px !important; height: 40px !important; margin: 0 !important; padding: 0 !important; border-radius: 50% !important; background: #f1f5f9 !important; color: #334155 !important; font-size: 26px !important; line-height: 1 !important; display: flex !important; align-items: center !important; justify-content: center !important; box-shadow: none !important; transition: background 0.15s ease; }
+      .pvt-card-popup .pvt-card-popup__close:hover, .pvt-card-popup .pvt-card-popup__close:focus-visible { background: #e2e8f0 !important; color: #0f172a !important; outline: none; }
+      .pvt-card-popup .pvt-card-theme { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 8px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; text-align: left; }
+      .pvt-card-popup .pvt-card-theme label { flex: 0 0 auto; margin: 0; font-size: 13px; font-weight: 700; color: #334155; white-space: nowrap; }
+      .pvt-card-popup .pvt-card-theme__field { position: relative; flex: 1 1 auto; min-width: 0; }
+      .pvt-card-popup .pvt-card-theme__dot { display: none; } /* ชื่อสีในตัวเลือกมี emoji วงกลมสีอยู่แล้ว */
+      .pvt-card-popup #cardThemeSelect { width: 100%; height: 40px; min-height: 40px; margin: 0; padding: 0 32px 0 12px; font: inherit; font-size: 13.5px; font-weight: 600; color: #0f172a; background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; outline: none; cursor: pointer; box-shadow: none; }
+      .pvt-card-popup #cardThemeSelect:focus { border-color: var(--th-p-600, #0d9488); box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15); }
+      .pvt-card-popup .pvt-card-preview { position: relative; display: flex; justify-content: center; margin: 0 0 16px; }
+      .pvt-card-popup #myEmpCardImgPreview { display: block; width: min(300px, 78vw); height: auto; border-radius: 18px; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22); transition: opacity 0.2s ease; }
+      .pvt-card-popup .pvt-card-preview__spinner { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 8px 16px; border-radius: 20px; background: rgba(15, 23, 42, 0.75); color: #fff; font-size: 12px; font-weight: 600; }
+      .pvt-card-popup .pvt-card-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .pvt-card-popup .pvt-card-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; margin: 0; padding: 0 10px; border: 0; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; white-space: nowrap; transition: filter 0.15s ease, transform 0.15s ease; }
+      .pvt-card-popup .pvt-card-btn:active { transform: scale(0.97); }
+      .pvt-card-popup .pvt-card-btn:hover { filter: brightness(1.06); }
+      .pvt-card-popup .pvt-card-btn--download { background: var(--th-k-600, #0284c7); box-shadow: 0 4px 12px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.28); }
+      .pvt-card-popup .pvt-card-btn--print { background: var(--th-p-700, #0f766e); box-shadow: 0 4px 12px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25); }
+      @media (max-width: 360px) { .pvt-card-popup .pvt-card-actions { grid-template-columns: 1fr; } }
+    `;
+    document.head.appendChild(st);
+  }
+
   window.viewMyDigitalCard = function(targetEmpCode) {
     if (isUserAdmin() && !targetEmpCode) {
       return window.openEmployeeCardManagerPopup();

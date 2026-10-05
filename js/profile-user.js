@@ -191,17 +191,17 @@ async function loadProfile() {
       <div class="profile-avatar-card" style="padding: 24px 16px; background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%); border: 1px solid #e2e8f0; border-radius: 16px; text-align: center; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
         <div style="position: relative; width: 110px; height: 110px; margin: 0 auto 14px auto;">
           <img id="profileAvatarImg" src="${resolvedAvatarUrl}" alt="${escapeFn(empName)}" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid #ffffff; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);" onerror="this.onerror=null; this.src='${fallbackAvatarUrl}';" />
-          <button type="button" id="btnTriggerAvatarUpload" onclick="document.getElementById('profileAvatarFileInput').click()" title="เปลี่ยนรูปโปรไฟล์" style="position: absolute; bottom: 2px; right: 2px; width: 36px; height: 36px; border-radius: 50%; background: #0284c7; color: #ffffff; border: 2.5px solid #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); transition: transform 0.2s;">
-            <span class="material-symbols-outlined" style="font-size: 20px;">photo_camera</span>
+          <button type="button" id="btnEditProfileAvatar" onclick="openProfileAvatarActions()" title="แก้ไขรูปโปรไฟล์" aria-label="แก้ไขรูปโปรไฟล์" style="position: absolute; bottom: 2px; right: 2px; width: 36px !important; height: 36px !important; min-width: 36px !important; min-height: 36px !important; max-width: 36px !important; max-height: 36px !important; aspect-ratio: 1 / 1; padding: 0 !important; border-radius: 50% !important; background: var(--th-k-600, #0284c7); color: #ffffff; border: 2.5px solid #ffffff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; line-height: 1; box-shadow: 0 2px 8px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.4); transition: transform 0.2s; overflow: hidden; flex: 0 0 36px;">
+            <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
           </button>
           <input type="file" id="profileAvatarFileInput" accept="image/*" style="display: none;" onchange="handleProfileAvatarUpload(this)" />
         </div>
         <h3 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">${escapeFn(empName)}</h3>
         <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
-          <span style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600;">รหัส: ${escapeFn(empCode)}</span>
+          <span style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600;">รหัส: ${escapeFn(empCode)}</span>
           <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600;">${escapeFn(deptName)}</span>
         </div>
-        <p style="font-size: 12px; color: #64748b; margin: 10px 0 0 0;">แตะไอคอนกล้องถ่ายรูปเพื่ออัปโหลดหรือเปลี่ยนรูปโปรไฟล์</p>
+        <p style="font-size: 12px; color: #64748b; margin: 10px 0 0 0;">แตะไอคอนปากกาเพื่อแก้ไขรูปโปรไฟล์</p>
       </div>
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -249,27 +249,12 @@ async function loadProfile() {
 
 
 
-    // Role-based visibility for LINE Notification Settings (เฉพาะหัวหน้างาน, ผู้จัดการ, ผู้บริหาร และ HR/Admin)
+    // แสดงส่วนตั้งค่า LINE เฉพาะผู้มีสิทธิ์ (ผู้อนุมัติที่ HR ตั้งไว้ / HR / เมื่อ HR เปิดให้ทุกคน)
+    // การซ่อน/แสดงจริงคุมด้วย PVTLine (auth-guard.js) → class html.pvt-line-allowed
     const lineSection = document.getElementById("lineNotificationSection");
     if (lineSection) {
-      const r = String(emp?.role || currentUserData?.role || '').toLowerCase();
-      const p = String(emp?.position_name || emp?.positions?.position_name || '').toLowerCase();
-      const l = String(emp?.positions?.level_type || emp?.level_type || '').toLowerCase();
-
-      const isLeaderOrManager = 
-        r.includes('manager') || r.includes('ผู้จัดการ') ||
-        r.includes('leader') || r.includes('supervisor') || r.includes('หัวหน้า') ||
-        r.includes('admin') || r.includes('hr') || r.includes('executive') || r.includes('director') || r.includes('owner') ||
-        p.includes('ผู้จัดการ') || p.includes('manager') || p.includes('ผจก') ||
-        p.includes('หัวหน้า') || p.includes('supervisor') || p.includes('head') ||
-        p.includes('ผู้บริหาร') || p.includes('ผู้อำนวยการ') ||
-        l.includes('ผู้จัดการ') || l.includes('manager') || l.includes('leader') || l.includes('supervisor');
-
-      if (isLeaderOrManager) {
-        lineSection.style.display = "block";
-      } else {
-        lineSection.style.display = "none";
-      }
+      lineSection.style.display = "block";
+      if (window.PVTLine) window.PVTLine.check().catch(() => {});
     }
 
     console.log("✅ [SUCCESS] โหลดข้อมูลโปรไฟล์จริงของ HR/User สำเร็จ!");
@@ -281,6 +266,7 @@ async function loadProfile() {
 }
 
 async function saveUserLineId() {
+  if (window.PVTLine && !(await window.PVTLine.guard())) return;
   const lineInput = document.getElementById("userLineIdInput");
   const newLineId = lineInput ? lineInput.value.trim() : "";
   const emp = window.currentEmpProfile;
@@ -375,7 +361,7 @@ async function testLineNotification() {
             icon: 'success',
             title: 'ส่งข้อความทดสอบสำเร็จ! 🎉',
             text: 'ส่งข้อความไปยัง LINE เรียบร้อยแล้ว กรุณาเช็กข้อความในแอป LINE ของคุณ',
-            confirmButtonColor: '#0284c7'
+            confirmButtonColor: 'var(--th-k-600, #0284c7)'
           });
         }
       } else {
@@ -384,7 +370,7 @@ async function testLineNotification() {
             icon: 'info',
             title: 'บันทึกการส่งแล้ว',
             text: res?.message || 'ส่งแจ้งเตือนในระบบเรียบร้อย (หากยังไม่ได้รับใน LINE กรุณาตรวจสอบว่าบอท LINE OA เปิดทำงานและได้รับ LINE User ID ที่ถูกต้อง)',
-            confirmButtonColor: '#0284c7'
+            confirmButtonColor: 'var(--th-k-600, #0284c7)'
           });
         }
       }
@@ -400,6 +386,7 @@ async function testLineNotification() {
 }
 
 async function generateLineLinkCode() {
+  if (window.PVTLine && !(await window.PVTLine.guard())) return;
   const emp = window.currentEmpProfile;
   if (!emp || !emp.id) {
     Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลพนักงาน', 'error');
@@ -423,6 +410,7 @@ async function generateLineLinkCode() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employee_id: emp.id })
       });
+      if (apiRes.status === 403) { if (window.PVTLine) { window.PVTLine.clearCache(); await window.PVTLine.guard(); } return; }
       if (apiRes.ok) {
         const apiData = await apiRes.json();
         if (apiData.success && apiData.token) {
@@ -481,6 +469,125 @@ async function generateLineLinkCode() {
   }
 }
 
+function isSelfUploadedAvatar(rawUrl) {
+  return String(rawUrl || "").includes("self-avatars/");
+}
+
+function employeeImageToPublicUrl(rawUrl) {
+  const raw = String(rawUrl || "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+  const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client || window.supabase);
+  if (client?.storage) {
+    return client.storage.from("employee-images").getPublicUrl(raw.replace(/^\//, "")).data?.publicUrl || "";
+  }
+  const baseUrl = window.SUPABASE_URL || "https://pgogmhqjdchakcytsomx.supabase.co";
+  return `${baseUrl}/storage/v1/object/public/employee-images/${raw.replace(/^\//, "")}`;
+}
+
+function updateAvatarCaches(publicUrl, rawValue) {
+  const emp = window.currentEmpProfile || {};
+  emp.image_url = rawValue || null;
+  emp.avatar_url = publicUrl || null;
+  window.currentEmpProfile = emp;
+
+  const possibleStorageKeys = ["currentUser", "pvt_user", "user", "profile", "employee_session", "hr_session", "loggedInUser"];
+  for (const key of possibleStorageKeys) {
+    const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed) continue;
+      parsed.image_url = rawValue || null;
+      parsed.avatar_url = publicUrl || null;
+      if (parsed.employees) {
+        parsed.employees.image_url = rawValue || null;
+        parsed.employees.avatar_url = publicUrl || null;
+      }
+      if (localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(parsed));
+      if (sessionStorage.getItem(key)) sessionStorage.setItem(key, JSON.stringify(parsed));
+    } catch (_) {}
+  }
+
+  const avatarImgEl = document.getElementById("profileAvatarImg");
+  if (avatarImgEl && publicUrl) avatarImgEl.src = publicUrl + (publicUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
+  const userHeaderAvatarEl = document.getElementById("userAvatar");
+  if (userHeaderAvatarEl && publicUrl) userHeaderAvatarEl.src = publicUrl + (publicUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
+}
+
+async function getCurrentEmployeeAvatarRecord() {
+  const emp = window.currentEmpProfile || {};
+  const empId = emp.id || emp.employee_id;
+  const empCode = emp.employee_code || emp.code;
+  const client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client || window.supabase);
+  if (!client) throw new Error("ไม่สามารถเชื่อมต่อฐานข้อมูลได้");
+
+  let query = client.from("employees").select("id, employee_code, full_name, image_url");
+  if (empId) query = query.eq("id", empId);
+  else if (empCode) query = query.eq("employee_code", empCode);
+  else throw new Error("ไม่พบข้อมูลพนักงาน");
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("ไม่พบข้อมูลพนักงาน");
+  return { client, employee: data };
+}
+
+async function openProfileAvatarActions() {
+  try {
+    const { employee } = await getCurrentEmployeeAvatarRecord();
+    const canDelete = isSelfUploadedAvatar(employee.image_url);
+
+    if (!window.Swal) {
+      document.getElementById("profileAvatarFileInput")?.click();
+      return;
+    }
+
+    await Swal.fire({
+      title: "แก้ไขรูปโปรไฟล์",
+      html: `
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+          <button type="button" id="pvtAvatarUploadAction" style="width:100%;border:0;border-radius:12px;padding:13px 16px;background:var(--th-k-600, #0284c7);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <span class="material-symbols-outlined" style="font-size:20px;">upload</span>
+            อัปโหลดรูป
+          </button>
+          <button type="button" id="pvtAvatarDeleteAction" style="width:100%;border:0;border-radius:12px;padding:13px 16px;background:#fff1f2;color:#dc2626;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <span class="material-symbols-outlined" style="font-size:20px;">delete</span>
+            ลบรูป
+          </button>
+          <button type="button" id="pvtAvatarCancelAction" style="width:100%;border:0;border-radius:12px;padding:12px 16px;background:#f1f5f9;color:#475569;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">
+            ยกเลิก
+          </button>
+          ${canDelete ? "" : '<div style="font-size:12px;color:#94a3b8;margin-top:2px;">หากเป็นรูปที่ผู้ดูแลระบบกำหนด ระบบจะไม่อนุญาตให้ลบ</div>'}
+        </div>
+      `,
+      showConfirmButton: false,
+      showCancelButton: false,
+      allowOutsideClick: true,
+      didOpen: () => {
+        const uploadBtn = document.getElementById("pvtAvatarUploadAction");
+        const deleteBtn = document.getElementById("pvtAvatarDeleteAction");
+        const cancelBtn = document.getElementById("pvtAvatarCancelAction");
+
+        uploadBtn?.addEventListener("click", () => {
+          Swal.close();
+          setTimeout(() => document.getElementById("profileAvatarFileInput")?.click(), 50);
+        });
+
+        deleteBtn?.addEventListener("click", () => {
+          Swal.close();
+          setTimeout(() => deleteOwnProfileAvatar(), 50);
+        });
+
+        cancelBtn?.addEventListener("click", () => Swal.close());
+      }
+    });
+  } catch (error) {
+    console.error("openProfileAvatarActions:", error);
+    if (window.Swal) Swal.fire("เกิดข้อผิดพลาด", error.message || "ไม่สามารถเปิดเมนูแก้ไขรูปได้", "error");
+  }
+}
+
 async function handleProfileAvatarUpload(input) {
   if (!input || !input.files || !input.files[0]) return;
   const file = input.files[0];
@@ -488,12 +595,14 @@ async function handleProfileAvatarUpload(input) {
   if (!file.type.startsWith("image/")) {
     if (window.Swal) Swal.fire("ไฟล์ไม่ถูกต้อง", "กรุณาเลือกไฟล์รูปภาพ (JPG, PNG, WebP) เท่านั้น", "warning");
     else alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+    input.value = "";
     return;
   }
 
   if (file.size > 10 * 1024 * 1024) {
     if (window.Swal) Swal.fire("ไฟล์มีขนาดใหญ่เกินไป", "ขนาดไฟล์ต้องไม่เกิน 10 MB", "warning");
     else alert("ขนาดไฟล์ต้องไม่เกิน 10 MB");
+    input.value = "";
     return;
   }
 
@@ -507,99 +616,123 @@ async function handleProfileAvatarUpload(input) {
       });
     }
 
-    const emp = window.currentEmpProfile || {};
-    const empCode = emp.employee_code || emp.code || "EMP_" + (emp.id || Date.now());
-    const empId = emp.id || emp.employee_id;
+    const { client, employee } = await getCurrentEmployeeAvatarRecord();
+    const empCode = employee.employee_code || "EMP_" + employee.id;
+    const empId = employee.id;
+    const oldRawAvatar = String(employee.image_url || "").trim();
 
-    let uploadedPublicUrl = null;
-    let client = window.pvtSupabase?.getClient ? window.pvtSupabase.getClient() : (window.supabaseClient || window.pvtSupabase?.client || window.supabase);
-
-    if (window.pvtSupabase && typeof window.pvtSupabase.uploadEmployeeAvatar === "function" && empId) {
-      try {
-        uploadedPublicUrl = await window.pvtSupabase.uploadEmployeeAvatar(empId, file);
-      } catch (err) {
-        console.warn("pvtSupabase.uploadEmployeeAvatar error, using direct bucket upload:", err);
-      }
+    // เก็บรูปที่ Admin ตั้งไว้เป็น backup ก่อนที่พนักงานจะอัปโหลดรูปของตนเองครั้งแรก
+    if (oldRawAvatar && !isSelfUploadedAvatar(oldRawAvatar)) {
+      const settingKey = `employee_admin_avatar_backup_${empId}`;
+      const { error: backupError } = await client.from("system_settings").upsert({
+        setting_key: settingKey,
+        employee_id: empId,
+        setting_value: { image_url: oldRawAvatar },
+        description: "รูปโปรไฟล์ต้นฉบับที่ผู้ดูแลระบบกำหนด ก่อนพนักงานเปลี่ยนรูปเอง"
+      }, { onConflict: "setting_key" });
+      if (backupError) console.warn("Avatar backup warning:", backupError);
     }
 
-    if (!uploadedPublicUrl && client && client.storage) {
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const fileName = `avatars/${empCode}_${Date.now()}.${fileExt}`;
-
-      const { data, error } = await client.storage
-        .from('employee-images')
-        .upload(fileName, file, { cacheControl: '3600', upsert: true });
-
-      if (error) throw error;
-
-      const { data: publicUrlData } = client.storage
-        .from('employee-images')
-        .getPublicUrl(fileName);
-
-      const baseUrl = window.SUPABASE_URL || 'https://pgogmhqjdchakcytsomx.supabase.co';
-      uploadedPublicUrl = publicUrlData?.publicUrl || `${baseUrl}/storage/v1/object/public/employee-images/${fileName}`;
-
-      if (empId) {
-        await client.from('employees').update({ image_url: fileName }).eq('id', empId);
-      } else if (empCode) {
-        await client.from('employees').update({ image_url: fileName }).eq('employee_code', empCode);
-      }
+    // ถ้าเป็นรูปที่พนักงานเคยอัปเอง ให้ลบไฟล์เก่าของพนักงานก่อน
+    if (isSelfUploadedAvatar(oldRawAvatar)) {
+      try { await client.storage.from("employee-images").remove([oldRawAvatar]); } catch (_) {}
     }
 
-    if (!uploadedPublicUrl) {
-      throw new Error("ไม่สามารถรับ URL รูปภาพจากเซิร์ฟเวอร์ได้");
-    }
+    const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const fileName = `self-avatars/${empCode}_${Date.now()}.${fileExt}`;
 
-    // Update Local Cache
-    emp.image_url = uploadedPublicUrl;
-    emp.avatar_url = uploadedPublicUrl;
-    window.currentEmpProfile = emp;
+    const { error: uploadError } = await client.storage
+      .from('employee-images')
+      .upload(fileName, file, { cacheControl: '3600', upsert: true });
+    if (uploadError) throw uploadError;
 
-    const possibleStorageKeys = ["currentUser", "pvt_user", "user", "profile", "employee_session", "hr_session", "loggedInUser"];
-    for (const key of possibleStorageKeys) {
-      const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed) {
-            parsed.image_url = uploadedPublicUrl;
-            parsed.avatar_url = uploadedPublicUrl;
-            if (parsed.employees) {
-              parsed.employees.image_url = uploadedPublicUrl;
-              parsed.employees.avatar_url = uploadedPublicUrl;
-            }
-            if (localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(parsed));
-            if (sessionStorage.getItem(key)) sessionStorage.setItem(key, JSON.stringify(parsed));
-          }
-        } catch (e) {}
-      }
-    }
+    const publicUrl = client.storage.from('employee-images').getPublicUrl(fileName).data?.publicUrl;
+    if (!publicUrl) throw new Error("ไม่สามารถรับ URL รูปภาพจากเซิร์ฟเวอร์ได้");
 
-    // Update DOM Images
-    const avatarImgEl = document.getElementById("profileAvatarImg");
-    if (avatarImgEl) avatarImgEl.src = uploadedPublicUrl;
+    const { error: updateError } = await client.from('employees').update({ image_url: fileName }).eq('id', empId);
+    if (updateError) throw updateError;
 
-    const userHeaderAvatarEl = document.getElementById("userAvatar");
-    if (userHeaderAvatarEl) userHeaderAvatarEl.src = uploadedPublicUrl;
+    updateAvatarCaches(publicUrl, fileName);
 
     if (window.Swal) {
-      Swal.fire({
-        icon: "success",
-        title: "อัปโหลดรูปโปรไฟล์สำเร็จ! 🎉",
-        text: "อัปเดตรูปภาพโปรไฟล์เรียบร้อยแล้ว",
-        timer: 2000,
-        showConfirmButton: false
-      });
-    } else {
-      alert("อัปโหลดรูปโปรไฟล์สำเร็จแล้ว");
+      Swal.fire({ icon: "success", title: "อัปโหลดรูปโปรไฟล์สำเร็จ", text: "รูปนี้เป็นรูปที่คุณอัปโหลดเอง และสามารถลบได้จากปุ่มปากกา", timer: 1900, showConfirmButton: false });
     }
-
   } catch (error) {
     console.error("❌ Error uploading profile avatar:", error);
     if (window.Swal) Swal.fire("อัปโหลดไม่สำเร็จ", error.message || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ", "error");
     else alert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ: " + (error.message || ""));
+  } finally {
+    input.value = "";
   }
 }
+
+async function deleteOwnProfileAvatar() {
+  try {
+    const { client, employee } = await getCurrentEmployeeAvatarRecord();
+    const currentRaw = String(employee.image_url || "").trim();
+
+    // Security guard: ลบได้เฉพาะรูปใน self-avatars เท่านั้น
+    if (!isSelfUploadedAvatar(currentRaw)) {
+      if (window.Swal) Swal.fire("ไม่สามารถลบรูปได้", "รูปนี้ถูกกำหนดโดยผู้ดูแลระบบ พนักงานไม่มีสิทธิ์ลบค่ะ", "warning");
+      return;
+    }
+
+    if (window.Swal) {
+      const confirmResult = await Swal.fire({
+        title: "ลบรูปโปรไฟล์ที่อัปโหลดเอง?",
+        text: "เมื่อลบแล้ว ระบบจะกลับไปใช้รูปที่ผู้ดูแลระบบตั้งไว้ (ถ้ามี)",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "ลบรูป",
+        cancelButtonText: "ยกเลิก",
+        confirmButtonColor: "#ef4444"
+      });
+      if (!confirmResult.isConfirmed) return;
+    }
+
+    const settingKey = `employee_admin_avatar_backup_${employee.id}`;
+    const { data: backupSetting } = await client.from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", settingKey)
+      .maybeSingle();
+
+    let backupRaw = null;
+    const settingValue = backupSetting?.setting_value;
+    if (settingValue && typeof settingValue === "object") backupRaw = settingValue.image_url || null;
+    else if (typeof settingValue === "string") {
+      try { backupRaw = JSON.parse(settingValue)?.image_url || settingValue; } catch (_) { backupRaw = settingValue; }
+    }
+
+    const { error: updateError } = await client.from("employees").update({ image_url: backupRaw || null }).eq("id", employee.id);
+    if (updateError) throw updateError;
+
+    // ลบเฉพาะไฟล์ที่พนักงานอัปเอง หลังจากคืน pointer ใน DB สำเร็จแล้ว
+    const { error: removeError } = await client.storage.from("employee-images").remove([currentRaw]);
+    if (removeError) console.warn("Remove self avatar warning:", removeError);
+
+    if (backupSetting) {
+      await client.from("system_settings").delete().eq("setting_key", settingKey);
+    }
+
+    let displayUrl = employeeImageToPublicUrl(backupRaw);
+    if (!displayUrl) {
+      const emp = window.currentEmpProfile || employee;
+      displayUrl = typeof window.getDefaultAvatarUrl === "function"
+        ? window.getDefaultAvatarUrl(emp.title || emp.prefix || "", emp.gender || "", emp.full_name || "")
+        : "/assets/img/avatar-male.jpg?v=2";
+    }
+    updateAvatarCaches(displayUrl, backupRaw);
+
+    if (window.Swal) Swal.fire({ icon: "success", title: "ลบรูปแล้ว", text: backupRaw ? "กลับไปใช้รูปที่ผู้ดูแลระบบกำหนดไว้แล้ว" : "กลับไปใช้รูปเริ่มต้นแล้ว", timer: 1800, showConfirmButton: false });
+  } catch (error) {
+    console.error("deleteOwnProfileAvatar:", error);
+    if (window.Swal) Swal.fire("ลบรูปไม่สำเร็จ", error.message || "เกิดข้อผิดพลาดในการลบรูป", "error");
+  }
+}
+
+window.openProfileAvatarActions = openProfileAvatarActions;
+window.deleteOwnProfileAvatar = deleteOwnProfileAvatar;
+window.handleProfileAvatarUpload = handleProfileAvatarUpload;
 
 window.saveUserLineId = saveUserLineId;
 window.testLineNotification = testLineNotification;

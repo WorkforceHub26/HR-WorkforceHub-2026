@@ -1,19 +1,91 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" class="pvt-user-boot">
 <head>
   <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <script src="/js/theme-boot.js"></script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <meta name="google" content="notranslate" />
   <title>หน้าหลัก | PVTT WORKFORCE HUB</title>
+
+  <!-- Prevent index-user layout flash while profile data initializes -->
+  <style>
+    html.pvt-user-boot body { background: #f8fafc; }
+    html.pvt-user-boot #appLayout { opacity: 0 !important; visibility: hidden !important; }
+    #appLayout { transition: opacity .12s ease; }
+
+    #pvtUserBootLoader {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+    }
+    html.pvt-user-boot #pvtUserBootLoader { display: flex; }
+    .pvt-user-loader-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--th-p-700, #0f766e);
+      font-family: 'Sarabun', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .pvt-user-loader-logo-wrap {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      display: grid;
+      place-items: center;
+    }
+    .pvt-user-loader-logo-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 4px solid var(--th-p-100, #ccfbf1);
+      border-top-color: var(--th-p-600, #0d9488);
+      border-right-color: var(--th-p-500, #14b8a6);
+      border-radius: 50%;
+      animation: pvtUserSpin .8s linear infinite;
+    }
+    .pvt-user-loader-logo {
+      width: 62px;
+      height: 62px;
+      border-radius: 18px;
+      object-fit: contain;
+      background: #ffffff;
+      padding: 5px;
+      box-sizing: border-box;
+      box-shadow: 0 6px 18px rgba(var(--th-p-600-rgb, 13, 148, 136), .12);
+    }
+    @keyframes pvtUserSpin { to { transform: rotate(360deg); } }
+    /* 📱 มือถือ: โครงร่างหน้า (skeleton) แทนวงกลมหมุน — แถบล่างจริงแสดงทับได้ */
+    .pvt-boot-skel { display: none; }
+    @media (max-width: 1024px) {
+      #pvtUserBootLoader { z-index: 1000; align-items: flex-start; justify-content: stretch; overflow: hidden; }
+      #pvtUserBootLoader .pvt-user-loader-box { display: none; }
+      .pvt-boot-skel { display: flex; flex-direction: column; gap: 14px; width: 100%; padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 0; box-sizing: border-box; }
+      .pvt-boot-skel .card { background: #ffffff; border-radius: 22px; padding: 16px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+      .pvt-boot-skel .row { display: flex; align-items: center; gap: 12px; }
+      .pvt-boot-skel .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+      .pvt-boot-skel .col { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    }
+  </style>
   
   <!-- 1. โหลด Stylesheet หลักภายในระบบก่อนทันที เพื่อให้แสดงผล Layout มินิมอลบนมือถือได้เสถียรที่สุดตั้งแต่เริ่มโหลด (Zero-FOUC) -->
   <link rel="stylesheet" href="/css/global.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
   <link rel="stylesheet" href="/css/index-user.css" />
   <link rel="stylesheet" href="/css/system-settings.css" />
+  <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง + ส่วนหัว -->
+  <link rel="stylesheet" href="/css/mobile-shell.css" />
+  <!-- 📱 Mobile overrides เฉพาะหน้า index (ต้องอยู่หลัง mobile-shell.css) -->
+  <link rel="stylesheet" href="/css/index-user-mobile.css" />
 
   <!-- 2. โหลดฟอนต์ภายนอกแบบ Non-blocking ไม่ให้รบกวนการคำนวณขนาดกรอบหน้าจอและดีไซน์หลัก -->
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Lao:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -54,6 +126,41 @@
 </head>
 
 <body>
+  <div id="pvtUserBootLoader" role="status" aria-live="polite" aria-label="กำลังโหลดข้อมูล">
+    <div class="pvt-user-loader-box">
+      <div class="pvt-user-loader-logo-wrap" aria-hidden="true">
+        <img class="pvt-user-loader-logo" src="/assets/icons/PVTT_LEAVE.png" alt="" />
+      </div>
+      <div>กำลังโหลดข้อมูล...</div>
+    </div>
+    <div class="pvt-boot-skel" aria-hidden="true">
+      <div class="card">
+        <div class="row" style="justify-content: flex-end; gap: 10px; margin-bottom: 14px;">
+          <span class="pvt-skel" style="width: 34px; height: 34px; border-radius: 50%;"></span>
+          <span class="pvt-skel" style="width: 34px; height: 34px; border-radius: 50%;"></span>
+        </div>
+        <div class="row">
+          <span class="pvt-skel" style="width: 70px; height: 70px; border-radius: 50%; flex: 0 0 70px;"></span>
+          <div class="col">
+            <span class="pvt-skel" style="width: 40%; height: 12px;"></span>
+            <span class="pvt-skel" style="width: 75%; height: 18px;"></span>
+            <span class="pvt-skel" style="width: 90%; height: 14px;"></span>
+          </div>
+        </div>
+      </div>
+      <span class="pvt-skel" style="height: 64px; border-radius: 20px;"></span>
+      <div class="card">
+        <span class="pvt-skel" style="display: block; width: 30%; height: 14px;"></span>
+        <div class="grid">
+          <span class="pvt-skel" style="height: 50px;"></span><span class="pvt-skel" style="height: 50px;"></span>
+          <span class="pvt-skel" style="height: 50px;"></span><span class="pvt-skel" style="height: 50px;"></span>
+        </div>
+      </div>
+      <span class="pvt-skel" style="height: 48px; border-radius: 16px; background: #ffffff;"></span>
+      <span class="pvt-skel" style="height: 48px; border-radius: 16px; background: #ffffff;"></span>
+      <div class="card"><span class="pvt-skel" style="display: block; height: 90px;"></span></div>
+    </div>
+  </div>
 
   <div class="app-container" id="appLayout">
     
@@ -176,12 +283,12 @@
                 <div class="notif-dropdown" id="userNotifDropdown" style="position: absolute; top: calc(100% + 14px); right: 0; width: 440px; background: #ffffff; border: 1.5px solid #cbd5e1; max-width: calc(100vw - 24px); border-radius: 20px; box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.22), 0 10px 20px -5px rgba(0, 0, 0, 0.12); z-index: 99999; display: none; flex-direction: column; overflow: hidden;">
                   <div class="notif-header" style="padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; background: #f8fafc; flex-wrap: wrap; gap: 8px;">
                     <div class="notif-title" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                      <span class="material-symbols-outlined" style="font-size: 22px; color: #0284c7;">notifications</span>
+                      <span class="material-symbols-outlined" style="font-size: 22px; color: var(--th-k-600, #0284c7);">notifications</span>
                       <strong style="font-size: 16px; color: #0f172a; font-weight: 800; letter-spacing: -0.01em;">การแจ้งเตือน</strong>
-                      <span class="notif-count-pill" id="userNotifCount" style="font-size: 12px; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 12px; white-space: nowrap;">0 รายการใหม่</span>
+                      <span class="notif-count-pill" id="userNotifCount" style="font-size: 12px; font-weight: 700; background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); padding: 3px 8px; border-radius: 12px; white-space: nowrap;">0 รายการใหม่</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
-                      <button type="button" class="btn-mark-read" onclick="markAllUserNotificationsAsRead(event)" style="background: #f0fdfa; border: 1px solid #ccfbf1; font-size: 12px; color: #0f766e; font-weight: 700; cursor: pointer; padding: 5px 10px; border-radius: 8px; transition: all 0.2s; white-space: nowrap;">อ่านทั้งหมด</button>
+                      <button type="button" class="btn-mark-read" onclick="markAllUserNotificationsAsRead(event)" style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-100, #ccfbf1); font-size: 12px; color: var(--th-p-700, #0f766e); font-weight: 700; cursor: pointer; padding: 5px 10px; border-radius: 8px; transition: all 0.2s; white-space: nowrap;">อ่านทั้งหมด</button>
                       <button type="button" class="btn-close-notif" onclick="toggleUserNotifDropdown(event)" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid #cbd5e1; background: #ffffff; color: #64748b; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" title="ปิดหน้าต่าง">
                         <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
                       </button>
@@ -193,7 +300,7 @@
                     </div>
                   </div>
                   <div class="notif-footer" style="padding: 14px 20px; text-align: center; border-top: 1.5px solid #e2e8f0; background: #f8fafc;">
-                    <a href="#" onclick="openAllUserNotificationsModal(event); return false;" style="color: #0284c7; text-decoration: none; font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    <a href="#" onclick="openAllUserNotificationsModal(event); return false;" style="color: var(--th-k-600, #0284c7); text-decoration: none; font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
                       <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span> ดูประวัติแจ้งเตือนและติดตามสถานะ
                     </a>
                   </div>
@@ -248,7 +355,7 @@
           </div>
           <div class="menu-cards-grid">
             <div class="menu-card animate-scale delay-400 hover-lift" onclick="goToLeaveHistory()">
-              <div class="menu-icon-box" style="background: rgba(59, 130, 246, 0.12);">
+              <div class="menu-icon-box" style="background: rgba(var(--th-b-500-rgb, 59, 130, 246), 0.12);">
                 <img src="/assets/icons/leave-history.svg" alt="ประวัติการลา" style="width: 24px; height: 24px; object-fit: contain;" />
               </div>
               <div>
@@ -278,7 +385,7 @@
             </div>
             
             <div class="menu-card animate-scale delay-500 hover-lift" onclick="showStaffCard()">
-              <div class="menu-icon-box" style="background: rgba(2, 132, 199, 0.12);">
+              <div class="menu-icon-box" style="background: rgba(var(--th-k-600-rgb, 2, 132, 199), 0.12);">
                 <img src="/assets/icons/employee-card-badge.svg" alt="บัตรพนักงาน" style="width: 24px; height: 24px; object-fit: contain;" />
               </div>
               <div>
@@ -290,25 +397,25 @@
         </section>
 
         <!-- ส่วนแสดงสิทธิ์วันลาคงเหลือ -->
-        <div class="leave-section">
+        <div class="leave-section card-collapsed">
           <div class="leave-header-row">
             <h2>สิทธิ์วันลาคงเหลือ</h2>
             <div class="leave-header-controls">
-              <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select">
+              <select id="yearFilter" onchange="handleYearChange(this.value)" class="year-select" style="display:none !important;">
               </select>
-              <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ย่อ สิทธิ์วันลา" aria-label="ย่อ สิทธิ์วันลา" aria-expanded="true" aria-controls="leaveBalancesContainer" data-toggle-label="สิทธิ์วันลา">
-                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_less</span>
+              <button type="button" class="btn-toggle-icon" onclick="toggleSection('leaveBalancesContainer', this)" title="ขยาย สิทธิ์วันลา" aria-label="ขยาย สิทธิ์วันลา" aria-expanded="false" aria-controls="leaveBalancesContainer" data-toggle-label="สิทธิ์วันลา">
+                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_more</span>
               </button>
             </div>
           </div>
 
-          <div id="leaveBalancesContainer" class="leave-grid">
+          <div id="leaveBalancesContainer" class="leave-grid hidden-section" style="display:none !important;" aria-hidden="true">
             <span class="loading-text">กำลังโหลดข้อมูลสิทธิ์วันลา...</span>
           </div>
         </div>
 
         <!-- รายการลาล่าสุด -->
-        <section class="recent-card">
+        <section class="recent-card card-collapsed">
           <div class="section-head">
             <h2>รายการล่าสุด</h2>
             <div class="section-head-controls">
@@ -316,12 +423,12 @@
                 <span>ดูทั้งหมด</span>
                 <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span>
               </button>
-              <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)" title="ย่อ รายการล่าสุด" aria-label="ย่อ รายการล่าสุด" aria-expanded="true" aria-controls="recentList" data-toggle-label="รายการล่าสุด">
-                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_less</span>
+              <button type="button" class="btn-toggle-icon" onclick="toggleSection('recentList', this)" title="ขยาย รายการล่าสุด" aria-label="ขยาย รายการล่าสุด" aria-expanded="false" aria-controls="recentList" data-toggle-label="รายการล่าสุด">
+                <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_more</span>
               </button>
             </div>
           </div>
-          <div id="recentList" class="recent-list">
+          <div id="recentList" class="recent-list hidden-section" style="display:none !important;" aria-hidden="true">
             <div class="empty-state">กำลังโหลดรายการลา...</div>
           </div>
         </section>
@@ -337,7 +444,7 @@
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
-              <span id="teamCountBadge" style="background: var(--primary-soft, #e0f2fe); color: var(--primary, #0284c7); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 20px;">0 คน</span>
+              <span id="teamCountBadge" style="background: var(--primary-soft, var(--th-k-100, #e0f2fe)); color: var(--primary, var(--th-k-600, #0284c7)); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 20px;">0 คน</span>
               <button type="button" class="btn-toggle-icon" onclick="toggleSection('teamMembersContainer', this)" title="ย่อ รายชื่อสมาชิก" aria-label="ย่อ รายชื่อสมาชิก" aria-expanded="true" aria-controls="teamMembersContainer" data-toggle-label="รายชื่อสมาชิก">
                 <span class="material-symbols-outlined toggle-expand-icon" aria-hidden="true">expand_less</span>
               </button>
@@ -378,32 +485,7 @@
 
       </div>
 
-      <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR -->
-      <nav class="mobile-bottom-nav">
-        <a href="/pages/user/index-user.html" class="bottom-nav-item active">
-          <span class="material-symbols-outlined">home</span>
-          <span class="nav-label">หน้าหลัก</span>
-          <span class="nav-active-dot"></span>
-        </a>
-        <a href="/pages/user/leave-history.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">receipt_long</span>
-          <span class="nav-label">ประวัติลา</span>
-        </a>
-        <a href="/pages/user/leave-user.html" class="bottom-nav-item primary-action" title="ยื่นใบลาใหม่">
-          <div class="center-fab-icon">
-            <span class="material-symbols-outlined">add</span>
-          </div>
-          <span class="nav-label">ยื่นใบลา</span>
-        </a>
-        <a href="/pages/user/holidays.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">calendar_month</span>
-          <span class="nav-label">วันหยุด</span>
-        </a>
-        <a href="/pages/user/profile-user.html" class="bottom-nav-item">
-          <span class="material-symbols-outlined">person</span>
-          <span class="nav-label">ข้อมูลส่วนตัว</span>
-        </a>
-      </nav>
+      <!-- 📱 แถบเมนูล่าง: สร้างอัตโนมัติโดย /js/mobile-shell.js (เหมือนกันทุกหน้า) -->
 
     </main>
   </div>
@@ -413,7 +495,7 @@
     <div class="pvt-modal-card" style="background: #ffffff; width: 100%; max-width: 380px; border-radius: 24px; box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
       <div class="modal-header" id="visualTimelineHeader" style="padding: 16px 22px; background: #ffffff; color: #0f172a; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 34px; height: 34px; border-radius: 10px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: #2563eb; border: 1px solid #dbeafe;">
+          <div style="width: 34px; height: 34px; border-radius: 10px; background: var(--th-b-50, #eff6ff); display: flex; align-items: center; justify-content: center; color: var(--th-b-600, #2563eb); border: 1px solid var(--th-b-100, #dbeafe);">
             <span class="material-symbols-outlined" id="visualTimelineHeaderIcon" style="font-size: 20px;">description</span>
           </div>
           <div>
@@ -429,7 +511,7 @@
       <div class="visual-timeline-body" id="visualTimelineBody" style="padding: 20px 24px 24px 24px !important; margin: 0 !important; overflow-y: auto; width: 100%; box-sizing: border-box;">
         <!-- Loading state -->
         <div style="text-align: center; padding: 36px 20px; color: #64748b;">
-          <span class="material-symbols-outlined" style="font-size: 32px; animation: spin 1s linear infinite; color: #2563eb;">sync</span>
+          <span class="material-symbols-outlined" style="font-size: 32px; animation: spin 1s linear infinite; color: var(--th-b-600, #2563eb);">sync</span>
           <p style="margin-top: 8px; font-size: 13px; color: #64748b;">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
@@ -439,14 +521,14 @@
   <!--  HR AI CHATBOT WIDGET (POLICY Q&A 24 HRS) -->
   <div id="hrChatbotWidget">
     <!-- Floating Action Button -->
-    <button id="hrChatbotFab" class="hover-lift" onclick="toggleHrChatbot()" title="ถามผู้ช่วย HR AI เกี่ยวกับนโยบายและสิทธิวันลา" aria-label="ถามผู้ช่วย HR AI" style="position: fixed; bottom: 24px; right: 24px; z-index: 9998; width: 52px; height: 52px; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: #ffffff; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.45), 0 8px 10px -6px rgba(13, 148, 136, 0.25); cursor: pointer;">
+    <button id="hrChatbotFab" class="hover-lift" onclick="toggleHrChatbot()" title="ถามผู้ช่วย HR AI เกี่ยวกับนโยบายและสิทธิวันลา" aria-label="ถามผู้ช่วย HR AI" style="position: fixed; bottom: 24px; right: 24px; z-index: 9998; width: 52px; height: 52px; background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-p-700, #0f766e) 100%); color: #ffffff; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 10px 25px -5px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.45), 0 8px 10px -6px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25); cursor: pointer;">
       <span class="material-symbols-outlined" style="font-size: 26px;">forum</span>
     </button>
 
     <!-- Chat Modal Window -->
     <div id="hrChatbotModal" style="display: none; position: fixed; bottom: 84px; right: 24px; width: 390px; max-width: calc(100vw - 32px); height: 530px; max-height: calc(100vh - 110px); background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; z-index: 9999; flex-direction: column; overflow: hidden; animation: popIn 0.2s ease;">
       <!-- Header -->
-      <div style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); color: #ffffff; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="background: linear-gradient(135deg, var(--th-p-700, #0f766e) 0%, var(--th-p-600, #0d9488) 100%); color: #ffffff; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="width: 38px; height: 38px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
             <span class="material-symbols-outlined" style="font-size: 22px;">support_agent</span>
@@ -470,13 +552,13 @@
           🩺 ใบรับรองแพทย์ลาป่วย?
         </button>
         <button type="button" onclick="askHrQuestion('วันลาพักร้อนสะสมไปปีหน้าได้ไหม?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-          ️ สะสมวันลาพักร้อน?
+          🏖️ สะสมวันลาพักร้อน?
         </button>
         <button type="button" onclick="askHrQuestion('สิทธิการลาคลอดบุตรและการรับเงินสงเคราะห์เป็นอย่างไร?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-           สิทธิลาคลอดบุตร?
+          👶 สิทธิลาคลอดบุตร?
         </button>
         <button type="button" onclick="askHrQuestion('เงื่อนไขการเบิกค่ารักษาพยาบาลและเบี้ยเลี้ยงปฏิบัติงานนอกสถานที่?')" style="white-space: nowrap; background: #ffffff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #334155; cursor: pointer;">
-           เบิกค่ารักษา & เบี้ยเลี้ยง?
+          💊 เบิกค่ารักษา & เบี้ยเลี้ยง?
         </button>
       </div>
 
@@ -484,7 +566,7 @@
       <div id="hrChatMessages" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #fcfdfd;">
         <!-- Initial Bot Greeting -->
         <div style="display: flex; gap: 10px; align-items: flex-start;">
-          <div style="width: 32px; height: 32px; border-radius: 8px; background: #e0f2fe; color: #0369a1; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <span class="material-symbols-outlined" style="font-size: 18px;">smart_toy</span>
           </div>
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0 14px 14px 14px; padding: 12px 14px; font-size: 13px; color: #1e293b; line-height: 1.5; max-width: 85%; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
@@ -495,13 +577,16 @@
 
       <!-- Input Bar -->
       <div style="padding: 12px 14px; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; align-items: center;">
-        <input type="text" id="hrChatInput" placeholder="พิมพ์คำถามนโยบายหรือสวัสดิการ..." onkeydown="if(event.key==='Enter') sendHrChatMessage()" style="flex: 1; padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; outline: none; transition: border-color 0.2s;">
-        <button type="button" id="hrChatSendBtn" onclick="sendHrChatMessage()" style="width: 38px; height: 38px; border-radius: 50%; background: #0d9488; color: #ffffff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 6px rgba(13, 148, 136, 0.3);">
+        <input type="text" id="hrChatInput" enterkeyhint="send" autocomplete="off" placeholder="พิมพ์คำถามนโยบายหรือสวัสดิการ..." onkeydown="if(event.key==='Enter') sendHrChatMessage()" style="flex: 1; padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; outline: none; transition: border-color 0.2s;">
+        <button type="button" id="hrChatSendBtn" onclick="sendHrChatMessage()" style="width: 38px; height: 38px; border-radius: 50%; background: var(--th-p-600, #0d9488); color: #ffffff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 6px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3);">
           <span class="material-symbols-outlined" style="font-size: 18px;">send</span>
         </button>
       </div>
     </div>
   </div>
+
+  <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง -->
+  <script src="/js/mobile-shell.js" defer></script>
 
   <!-- 1. สคริปต์ภายนอก -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -520,6 +605,8 @@
   <script type="module" src="/js/company-news.js"></script>
   <script type="module" src="/js/delegation-service.js"></script>
   <script type="module" src="/js/index-user.js"></script>
+  <!-- 📱 Mobile UX fixes (ต้องอยู่หลัง index-user.js) -->
+  <script type="module" src="/js/index-user-mobile.js"></script>
   <script type="module" src="/js/system-diagnostics.js"></script>
 
   </body>

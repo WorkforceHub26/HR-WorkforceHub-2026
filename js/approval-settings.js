@@ -280,7 +280,7 @@ window.addNewDepartmentPrompt = async function() {
     inputLabel: 'ชื่อแผนก',
     inputPlaceholder: 'เช่น ฝ่ายผลิต, ฝ่ายขาย',
     showCancelButton: true,
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     inputValidator: (value) => {
       if (!value) return 'กรุณาระบุชื่อแผนก';
     }
@@ -306,7 +306,7 @@ window.editDeptNamePrompt = async function(id, currentName) {
     inputLabel: 'ชื่อแผนกใหม่',
     inputValue: currentName,
     showCancelButton: true,
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     inputValidator: (value) => {
       if (!value) return 'กรุณาระบุชื่อแผนก';
     }
@@ -782,6 +782,7 @@ async function saveApprover() {
   btn.innerHTML = '<span class="material-symbols-outlined">sync</span> กำลังบันทึก...';
 
   try {
+    const prevDeptCfg = Object.assign({}, approverMap.get(String(departmentId)) || {});
     const { data, error } = await sb
       .from("department_approvers")
       .upsert({
@@ -811,22 +812,9 @@ async function saveApprover() {
       console.warn("Sync departments.approver_id warning:", deptErr);
     }
 
-    // 🔄 ซิงค์ l1_approver_id และ l2_approver_id ให้พนักงานทุกคนในแผนก
+    // 🔄 ซิงค์ผู้อนุมัติให้พนักงานในแผนก — เฉพาะคนที่ใช้ค่าของแผนก (คนที่ HR ตั้งรายบุคคลไว้จะไม่ถูกทับ)
     try {
-      await sb.from("employees")
-        .update({ l1_approver_id: supervisorId || null, l2_approver_id: managerId || null })
-        .eq("department_id", departmentId);
-      
-      if (supervisorId) {
-        await sb.from("employees")
-          .update({ l1_approver_id: null, l2_approver_id: managerId || null })
-          .eq("id", supervisorId);
-      }
-      if (managerId) {
-        await sb.from("employees")
-          .update({ l1_approver_id: null, l2_approver_id: null })
-          .eq("id", managerId);
-      }
+      window.__lastDeptSyncResult = await syncDepartmentEmployeeApprovers(departmentId, prevDeptCfg, supervisorId, managerId);
     } catch (empSyncErr) {
       console.warn("Sync employees approvers warning:", empSyncErr);
     }
@@ -839,7 +827,7 @@ async function saveApprover() {
       });
     }
     await loadAllData();
-    Swal.fire({ icon:"success", title:"บันทึกแล้ว", text:"ตั้งค่าสายอนุมัติของแผนกเรียบร้อย", timer:1600, showConfirmButton:false });
+    Swal.fire({ icon:"success", title:"บันทึกแล้ว", text:`ตั้งค่าสายอนุมัติของแผนกเรียบร้อย${(window.__lastDeptSyncResult?.keptCustom?.length) ? ` (คงสายอนุมัติรายบุคคลไว้ ${window.__lastDeptSyncResult.keptCustom.length} คน)` : ""}${window.__lastDeptSyncResult?.chain === "advanced" ? " — แผนกนี้ใช้สายอนุมัติหลายขั้น ค่าที่ตั้งที่นี่ไม่ทับ กรุณาแก้ที่หน้า สายอนุมัติหลายขั้น" : ""}`, timer:2200, showConfirmButton:false });
   } catch (err) {
     console.error("saveApprover:", err);
     Swal.fire("บันทึกไม่สำเร็จ", err.message || "กรุณาลองใหม่", "error");
@@ -1205,6 +1193,7 @@ window.saveApproverFromModal = async function() {
   btn.innerHTML = '<span class="material-symbols-outlined spinning-icon" style="font-size:18px;">sync</span> กำลังบันทึก...';
 
   try {
+    const prevDeptCfg = Object.assign({}, approverMap.get(String(departmentId)) || {});
     const { data, error } = await sb
       .from("department_approvers")
       .upsert({
@@ -1234,22 +1223,9 @@ window.saveApproverFromModal = async function() {
       console.warn("Sync departments.approver_id warning:", deptErr);
     }
 
-    // 🔄 ซิงค์ l1_approver_id และ l2_approver_id ให้พนักงานทุกคนในแผนก
+    // 🔄 ซิงค์ผู้อนุมัติให้พนักงานในแผนก — เฉพาะคนที่ใช้ค่าของแผนก (คนที่ HR ตั้งรายบุคคลไว้จะไม่ถูกทับ)
     try {
-      await sb.from("employees")
-        .update({ l1_approver_id: supervisorId || null, l2_approver_id: managerId || null })
-        .eq("department_id", departmentId);
-      
-      if (supervisorId) {
-        await sb.from("employees")
-          .update({ l1_approver_id: null, l2_approver_id: managerId || null })
-          .eq("id", supervisorId);
-      }
-      if (managerId) {
-        await sb.from("employees")
-          .update({ l1_approver_id: null, l2_approver_id: null })
-          .eq("id", managerId);
-      }
+      window.__lastDeptSyncResult = await syncDepartmentEmployeeApprovers(departmentId, prevDeptCfg, supervisorId, managerId);
     } catch (empSyncErr) {
       console.warn("Sync employees approvers warning:", empSyncErr);
     }
@@ -1275,7 +1251,7 @@ window.saveApproverFromModal = async function() {
     Swal.fire({
       icon: "success",
       title: "บันทึกเรียบร้อย",
-      text: "บันทึกสายอนุมัติของแผนกสำเร็จ",
+      text: `บันทึกสายอนุมัติของแผนกสำเร็จ${(window.__lastDeptSyncResult?.keptCustom?.length) ? ` (คงสายอนุมัติรายบุคคลไว้ ${window.__lastDeptSyncResult.keptCustom.length} คน)` : ""}${window.__lastDeptSyncResult?.chain === "advanced" ? " — แผนกนี้ใช้สายอนุมัติหลายขั้น ค่าที่ตั้งที่นี่ไม่ทับ กรุณาแก้ที่หน้า สายอนุมัติหลายขั้น" : ""}`,
       timer: 1500,
       showConfirmButton: false
     });
@@ -1445,7 +1421,7 @@ window.createLineLinkCode = async function(employeeId) {
         showCancelButton: true,
         confirmButtonText: "สร้างรหัสใหม่",
         cancelButtonText: "ยกเลิก",
-        confirmButtonColor: "#0f766e"
+        confirmButtonColor: "var(--th-p-700, #0f766e)"
       });
 
       if (!confirm.isConfirmed) return;
@@ -1516,9 +1492,9 @@ window.createLineLinkCode = async function(employeeId) {
           font-size:34px;
           font-weight:800;
           letter-spacing:8px;
-          color:#0f766e;
-          background:#f0fdfa;
-          border:1px dashed #5eead4;
+          color:var(--th-p-700, #0f766e);
+          background:var(--th-p-50, #f0fdfa);
+          border:1px dashed var(--th-p-300, #5eead4);
           border-radius:12px;
           padding:15px;
           margin:10px 0;
@@ -1544,7 +1520,7 @@ window.createLineLinkCode = async function(employeeId) {
       denyButtonText: "✏️ กรอก LINE ID โดยตรง",
       denyButtonColor: "#475569",
       confirmButtonText: "เสร็จสิ้น",
-      confirmButtonColor: "#0f766e"
+      confirmButtonColor: "var(--th-p-700, #0f766e)"
     });
 
     if (resModal.isDenied) {
@@ -1557,7 +1533,7 @@ window.createLineLinkCode = async function(employeeId) {
         showCancelButton: true,
         confirmButtonText: "บันทึก",
         cancelButtonText: "ยกเลิก",
-        confirmButtonColor: "#0f766e"
+        confirmButtonColor: "var(--th-p-700, #0f766e)"
       });
 
       if (inputLineId !== undefined) {
@@ -1951,8 +1927,8 @@ window.handleSwitchVisualChange = function(checkboxId, autoSave = true) {
     const indicator = document.getElementById("lineNotifAutoSaveIndicator");
     if (indicator) {
       indicator.style.display = "inline-flex";
-      indicator.style.color = "#0284c7";
-      indicator.style.background = "#f0f9ff";
+      indicator.style.color = "var(--th-k-600, #0284c7)";
+      indicator.style.background = "var(--th-k-50, #f0f9ff)";
       indicator.innerHTML = '<span class="material-symbols-outlined spinning-icon" style="font-size:14px;">sync</span> กำลังบันทึกอัตโนมัติ...';
     }
     clearTimeout(lineNotifSaveTimer);
@@ -2018,7 +1994,8 @@ async function loadLineNotificationSettings() {
       { id: "notif-rejected", val: settings.rejected !== false },
       { id: "notif-cancellation", val: settings.cancellation !== false },
       { id: "notif-hr-review", val: settings.hr_review !== false },
-      { id: "notif-hr-notify", val: settings.hr_notify !== false }
+      { id: "notif-hr-notify", val: settings.hr_notify !== false },
+      { id: "notif-allow-all-employees", val: settings.allow_all_employees === true }
     ];
 
     mapList.forEach(item => {
@@ -2053,6 +2030,7 @@ async function saveLineNotificationSettings(isSilent = false) {
     cancellation: document.getElementById("notif-cancellation")?.checked ?? true,
     hr_review: document.getElementById("notif-hr-review")?.checked ?? true,
     hr_notify: document.getElementById("notif-hr-notify")?.checked ?? true,
+    allow_all_employees: document.getElementById("notif-allow-all-employees")?.checked === true,
     updated_at: new Date().toISOString()
   };
 
@@ -2134,11 +2112,11 @@ window.openTestLineStepModal = function(defaultStepKey) {
   }).join("");
 
   Swal.fire({
-    title: '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:#2563eb;">science</span> ทดสอบส่ง LINE Notification</div>',
+    title: '<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:var(--th-b-600, #2563eb);">science</span> ทดสอบส่ง LINE Notification</div>',
     width: 580,
     html: `
       <div style="text-align:left; font-size:13px; color:#334155; line-height:1.5;">
-        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:#1e40af;">
+        <div style="background:var(--th-b-50, #eff6ff); border:1px solid var(--th-b-200, #bfdbfe); border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:12px; color:var(--th-b-800, #1e40af);">
           ℹ️ ทดสอบส่งข้อความแจ้งเตือนตาม Step จริงไปยัง LINE User ID ของพนักงานหรือผู้บริหาร เพื่อตรวจสอบความถูกต้องของ Flex Message
         </div>
 
@@ -2182,7 +2160,7 @@ window.openTestLineStepModal = function(defaultStepKey) {
     showCancelButton: true,
     confirmButtonText: '<span class="material-symbols-outlined" style="font-size:18px;">send</span> ส่งข้อความทดสอบเดี๋ยวนี้',
     cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#2563eb',
+    confirmButtonColor: 'var(--th-b-600, #2563eb)',
     showLoaderOnConfirm: true,
     preConfirm: async () => {
       const step = document.getElementById('testStepSelect')?.value;
@@ -2259,7 +2237,7 @@ window.openTestLineStepModal = function(defaultStepKey) {
         icon: 'success',
         title: 'ส่งข้อความทดสอบสำเร็จ!',
         text: `ส่งข้อความขั้นตอน ${res.value.step} ไปยัง LINE ID (${res.value.targetLineId}) เรียบร้อยแล้ว`,
-        confirmButtonColor: '#2563eb'
+        confirmButtonColor: 'var(--th-b-600, #2563eb)'
       });
     }
   });
@@ -2458,7 +2436,7 @@ function renderEmployeeLineTable() {
       workflowTags += `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #fde68a;">👑 ผู้อนุมัติ L3 (ผู้บริหาร)</span></div>`;
     }
     if (assignedDeptsL1.length > 0) {
-      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#ccfbf1; color:#0f766e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #99f6e4;" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ L1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
+      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e); padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid var(--th-p-200, #99f6e4);" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ L1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
     }
     if (assignedDeptsL2.length > 0) {
       workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#e0e7ff; color:#4338ca; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #c7d2fe;" title="${escapeAttr(assignedDeptsL2.join(', '))}">👔 ผู้อนุมัติ L2 (${escapeHtml(assignedDeptsL2[0])}${assignedDeptsL2.length > 1 ? ` +${assignedDeptsL2.length - 1}` : ''})</span></div>`;
@@ -2799,7 +2777,7 @@ window.editEmployeeLineIdDirectly = async function(employeeId, employeeName) {
     title: "ระบุ LINE User ID",
     html: `
       <div style="text-align: left; font-size: 13.5px; color: #334155; margin-bottom: 8px;">
-        พนักงาน: <b style="color: #0f766e;">${escapeHtml(name)}</b>
+        พนักงาน: <b style="color: var(--th-p-700, #0f766e);">${escapeHtml(name)}</b>
       </div>
       <p style="font-size: 12.5px; color: #64748b; text-align: left; margin: 0 0 12px; line-height: 1.5;">
         ระบุ LINE User ID ของพนักงาน (เช่น <code>U1234567890abcdef...</code>)<br>
@@ -2812,7 +2790,7 @@ window.editEmployeeLineIdDirectly = async function(employeeId, employeeName) {
     showCancelButton: true,
     confirmButtonText: "บันทึกข้อมูล",
     cancelButtonText: "ยกเลิก",
-    confirmButtonColor: "#0f766e"
+    confirmButtonColor: "var(--th-p-700, #0f766e)"
   });
 
   if (newLineId !== undefined) {
@@ -2982,9 +2960,9 @@ window.handleAutoDelegationMasterToggle = async function() {
   if (badge) {
     if (isChecked) {
       badge.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">bolt</span> ระบบเปิดใช้งาน';
-      badge.style.background = '#e0f2fe';
-      badge.style.color = '#0284c7';
-      badge.style.borderColor = '#bae6fd';
+      badge.style.background = 'var(--th-k-100, #e0f2fe)';
+      badge.style.color = 'var(--th-k-600, #0284c7)';
+      badge.style.borderColor = 'var(--th-k-200, #bae6fd)';
     } else {
       badge.innerHTML = '<span class="material-symbols-outlined" style="font-size: 14px;">pause_circle</span> ปิดการทำงาน';
       badge.style.background = '#f1f5f9';
@@ -3165,7 +3143,7 @@ function renderSavedDelegationRules() {
   `;
 
   currentDelegationRules.forEach(r => {
-    let condBadge = '<span class="status-badge" style="background:#e0f2fe; color:#0369a1; font-size:11.5px;">🌴 อัตโนมัติเมื่อลาพักร้อน</span>';
+    let condBadge = '<span class="status-badge" style="background:var(--th-k-100, #e0f2fe); color:var(--th-k-700, #0369a1); font-size:11.5px;">🌴 อัตโนมัติเมื่อลาพักร้อน</span>';
     if (r.condition === 'always') {
       condBadge = '<span class="status-badge" style="background:#fef3c7; color:#b45309; font-size:11.5px;">🔄 โอนสิทธิ์ถาวร</span>';
     } else if (r.condition === 'custom_date') {
@@ -3179,7 +3157,7 @@ function renderSavedDelegationRules() {
           <div style="font-size: 11.5px; color: #64748b;">${r.department_name ? `แผนก ${r.department_name}` : ''}</div>
         </td>
         <td style="padding: 12px 16px;">
-          <div style="font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 4px;">
+          <div style="font-weight: 700; color: var(--th-k-600, #0284c7); display: flex; align-items: center; gap: 4px;">
             <span class="material-symbols-outlined" style="font-size: 16px;">verified</span>
             ${r.delegate_name}
           </div>
@@ -3275,12 +3253,12 @@ window.refreshActiveDelegationsList = async function() {
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="text-align: right;">
               <span style="font-size: 11px; color: #92400e; font-weight: 600; display: block;">โอนสิทธิ์การอนุมัติให้:</span>
-              <strong style="color: #0284c7; font-size: 13.5px; display: flex; align-items: center; gap: 4px; justify-content: flex-end;">
+              <strong style="color: var(--th-k-600, #0284c7); font-size: 13.5px; display: flex; align-items: center; gap: 4px; justify-content: flex-end;">
                 <span class="material-symbols-outlined" style="font-size: 16px;">swap_calls</span>
                 ${item.delegateName}
               </strong>
             </div>
-            <span class="line-badge line-ok" style="background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-size: 11px; padding: 4px 8px;">
+            <span class="line-badge line-ok" style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-600, #0284c7); border: 1px solid var(--th-k-200, #bae6fd); font-size: 11px; padding: 4px 8px;">
               รักษาการแทนสด
             </span>
           </div>
@@ -3301,3 +3279,175 @@ window.refreshActiveDelegationsList = async function() {
   }
 };
 
+
+
+// =========================================================================
+// 🔐 สิทธิ์การเชื่อมต่อ LINE
+// =========================================================================
+window.handleAllowAllLineChange = async function() {
+  const cb = document.getElementById("notif-allow-all-employees");
+  if (!cb) return;
+  if (cb.checked && window.Swal) {
+    const r = await Swal.fire({
+      icon: "question",
+      title: "เปิดให้พนักงานทุกคนเชื่อมต่อ LINE?",
+      html: "พนักงานทุกคนจะเห็นปุ่ม <b>เชื่อมต่อ LINE</b> และรับผลการพิจารณาใบลาทาง LINE ได้<br>(ตามสวิตช์ \"อนุมัติ / ไม่อนุมัติ\" ด้านล่าง)",
+      showCancelButton: true,
+      confirmButtonText: "เปิดให้ทุกคน",
+      cancelButtonText: "ยกเลิก",
+      confirmButtonColor: "var(--th-p-600, #0d9488)"
+    });
+    if (!r.isConfirmed) { cb.checked = false; }
+  }
+  handleSwitchVisualChange("notif-allow-all-employees");
+  try { sessionStorage.removeItem("pvt_line_access_v1"); } catch (e) {}
+};
+
+window.cleanupNonApproverLine = async function() {
+  try {
+    const allowAll = document.getElementById("notif-allow-all-employees")?.checked === true;
+    if (allowAll) {
+      Swal.fire("เปิดให้ทุกคนอยู่", "ขณะนี้เปิดให้พนักงานทุกคนเชื่อมต่อ LINE จึงไม่มีรายการที่ต้องยกเลิก", "info");
+      return;
+    }
+    Swal.fire({ title: "กำลังตรวจสอบ...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    const [{ data: emps, error: e1 }, { data: appr, error: e2 }, personal, depts, chains] = await Promise.all([
+      sb.from("employees").select("id, full_name, employee_code, role, line_id").not("line_id", "is", null),
+      sb.from("department_approvers").select("supervisor_id, manager_id"),
+      sb.from("employees").select("l1_approver_id, l2_approver_id, l3_approver_id").then((r) => r, () => ({ data: [] })),
+      sb.from("departments").select("approver_id, backup_approver_id").then((r) => r, () => ({ data: [] })),
+      sb.from("approval_chain_steps").select("approver_ids").then((r) => r, () => ({ data: [] }))
+    ]);
+    if (e1) throw e1;
+    if (e2) throw e2;
+
+    // ผู้อนุมัติทุกแบบ: ประจำแผนก + รายบุคคล + ผู้อนุมัติ/สำรองของแผนก
+    const approverIds = new Set();
+    const add = (v) => { if (v) approverIds.add(String(v)); };
+    (appr || []).forEach((r) => { add(r.supervisor_id); add(r.manager_id); });
+    ((personal && !personal.error && personal.data) || []).forEach((r) => { add(r.l1_approver_id); add(r.l2_approver_id); add(r.l3_approver_id); });
+    ((depts && !depts.error && depts.data) || []).forEach((r) => { add(r.approver_id); add(r.backup_approver_id); });
+    ((chains && !chains.error && chains.data) || []).forEach((r) => { (r.approver_ids || []).forEach(add); });
+    const isHrAdmin = (e) => {
+      const role = String(e.role || "").toLowerCase().trim();
+      const code = String(e.employee_code || "").toLowerCase().trim();
+      return ["admin", "superadmin", "hr", "hr_manager"].includes(role) || code === "admin" || code === "superadmin" || code.startsWith("hr-");
+    };
+    const targets = (emps || []).filter((e) => String(e.line_id || "").trim() && !approverIds.has(String(e.id)) && !isHrAdmin(e));
+
+    if (!targets.length) {
+      Swal.fire("เรียบร้อย", "ไม่พบผู้ที่ผูก LINE ไว้โดยไม่ได้เป็นผู้อนุมัติ", "success");
+      return;
+    }
+
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    const listHtml = targets.map((e) => `<li style="padding:4px 0;border-bottom:1px solid #f1f5f9;">${esc(e.full_name || "-")} <span style="color:#64748b;">(${esc(e.employee_code || "-")})</span></li>`).join("");
+    const confirm = await Swal.fire({
+      icon: "warning",
+      title: `ยกเลิกการผูก LINE ${targets.length} คน?`,
+      html: `<div style="text-align:left;font-size:13.5px;">คนเหล่านี้ผูก LINE ไว้แต่ไม่ได้เป็นผู้อนุมัติ จะไม่ได้รับแจ้งเตือนทาง LINE อีก<ul style="list-style:none;margin:10px 0 0;padding:0;max-height:240px;overflow:auto;">${listHtml}</ul></div>`,
+      showCancelButton: true,
+      confirmButtonText: "ยกเลิกการผูกทั้งหมด",
+      cancelButtonText: "ไม่ใช่ตอนนี้",
+      confirmButtonColor: "#dc2626"
+    });
+    if (!confirm.isConfirmed) return;
+
+    Swal.fire({ title: "กำลังยกเลิกการผูก...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const ids = targets.map((e) => e.id);
+    let cleared = 0;
+    try {
+      const res = await fetch("/api/clear-approver-line", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_ids: ids })
+      });
+      if (res.ok) {
+        const j = await res.json();
+        cleared = (j.clearedEmployees || []).length;
+      }
+    } catch (e) {}
+    if (!cleared) {
+      // ไม่มีเซิร์ฟเวอร์ /api → ล้างผ่าน Supabase โดยตรง
+      await sb.from("line_link_tokens").delete().in("employee_id", ids);
+      const { error } = await sb.from("employees").update({ line_id: null }).in("id", ids);
+      if (error) throw error;
+      cleared = ids.length;
+    }
+    Swal.fire("สำเร็จ", `ยกเลิกการผูก LINE แล้ว ${cleared} คน`, "success");
+    if (typeof window.loadLineStats === "function") window.loadLineStats();
+  } catch (err) {
+    console.error("cleanupNonApproverLine Error:", err);
+    Swal.fire("เกิดข้อผิดพลาด", err.message || "ไม่สามารถยกเลิกการผูก LINE ได้", "error");
+  }
+};
+
+
+// =========================================================================
+// 🔄 ซิงค์ผู้อนุมัติของแผนกลงพนักงาน (ไม่ทับค่าที่ HR ตั้งรายบุคคล)
+//    พนักงานที่ l1/l2 ว่าง หรือ ตรงกับค่าเดิมของแผนก = ใช้ค่าของแผนก → อัปเดตเป็นค่าใหม่
+//    พนักงานที่ l1/l2 เป็นคนอื่น = ตั้งรายบุคคลไว้ → คงไว้
+// =========================================================================
+async function syncDepartmentEmployeeApprovers(departmentId, prevCfg, supervisorId, managerId) {
+  const prevSup = prevCfg?.supervisor_id ? String(prevCfg.supervisor_id) : '';
+  const prevMgr = prevCfg?.manager_id ? String(prevCfg.manager_id) : '';
+  const { data: emps, error } = await sb
+    .from("employees")
+    .select("id, full_name, l1_approver_id, l2_approver_id")
+    .eq("department_id", departmentId);
+  if (error) throw error;
+
+  const followIds = [];
+  const keptCustom = [];
+  (emps || []).forEach((e) => {
+    const id = String(e.id);
+    if (id === String(supervisorId || '') || id === String(managerId || '')) return;
+    const l1 = e.l1_approver_id ? String(e.l1_approver_id) : '';
+    const l2 = e.l2_approver_id ? String(e.l2_approver_id) : '';
+    const l1Follows = !l1 || l1 === prevSup;
+    const l2Follows = !l2 || l2 === prevMgr;
+    if (l1Follows && l2Follows) followIds.push(e.id);
+    else keptCustom.push(e.full_name || id);
+  });
+
+  // คนที่ใช้ค่าของแผนก → ล้างค่ารายบุคคล (ระบบจะใช้สายของแผนกเอง ไม่ต้องคัดลอก)
+  if (followIds.length) {
+    const { error: upErr } = await sb.from("employees")
+      .update({ l1_approver_id: null, l2_approver_id: null })
+      .in("id", followIds);
+    if (upErr) throw upErr;
+  }
+  if (supervisorId) {
+    await sb.from("employees").update({ l1_approver_id: null, l2_approver_id: null }).eq("id", supervisorId);
+  }
+  if (managerId) {
+    await sb.from("employees").update({ l1_approver_id: null, l2_approver_id: null }).eq("id", managerId);
+  }
+  if (keptCustom.length) {
+    console.info(`ℹ️ คงสายอนุมัติรายบุคคลไว้ ${keptCustom.length} คน:`, keptCustom);
+  }
+  const chain = await syncSimpleDeptChain(departmentId, supervisorId, managerId);
+  return { updated: followIds.length, keptCustom, chain };
+}
+
+// สายอนุมัติแบบหลายขั้น (ระยะ 2): ถ้าแผนกนี้ยังเป็นแบบง่าย (≤ 2 ขั้น ขั้นละ 1 คน) → อัปเดตตาม
+// ถ้าเป็นแบบหลายขั้น/หลายคน → ไม่ทับ (ให้แก้ที่หน้า "สายอนุมัติหลายขั้น")
+async function syncSimpleDeptChain(departmentId, supervisorId, managerId) {
+  const { data: rows, error } = await sb.from("approval_chain_steps").select("id, step_no, approver_ids")
+    .eq("scope_type", "department").eq("scope_id", departmentId);
+  if (error) return "no_table";
+  const advanced = (rows || []).length > 2 || (rows || []).some((r) => (r.approver_ids || []).length > 1);
+  if (advanced) return "advanced";
+  await sb.from("approval_chain_steps").delete().eq("scope_type", "department").eq("scope_id", departmentId);
+  const steps = [];
+  if (supervisorId && supervisorId !== managerId) steps.push({ label: "หัวหน้างาน", ids: [supervisorId] });
+  if (managerId) steps.push({ label: "ผู้จัดการ", ids: [managerId] });
+  if (steps.length) {
+    await sb.from("approval_chain_steps").insert(steps.map((st, i) => ({
+      scope_type: "department", scope_id: departmentId, step_no: i + 1, step_label: st.label, approver_ids: st.ids
+    })));
+  }
+  return "synced";
+}
+window.syncDepartmentEmployeeApprovers = syncDepartmentEmployeeApprovers;

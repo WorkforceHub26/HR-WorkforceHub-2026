@@ -265,7 +265,7 @@
           </div>
         `,
         confirmButtonText: "ปิดหน้าต่าง",
-        confirmButtonColor: "#0f766e",
+        confirmButtonColor: "var(--th-p-700, #0f766e)",
         width: 620,
         customClass: {
           popup: "news-detail-swal-popup",
@@ -306,7 +306,7 @@
 
             <!-- ฟอร์มสร้าง/แก้ไขข่าวสาร (ซ่อนเป็นค่าเริ่มต้น) -->
             <div id="newsFormContainer" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 20px; margin-bottom: 24px;">
-              <h4 id="newsFormTitle" style="margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: #0f766e; display: flex; align-items: center; gap: 6px;">
+              <h4 id="newsFormTitle" style="margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: var(--th-p-700, #0f766e); display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-outlined">edit_note</span> สร้างข่าวสารใหม่
               </h4>
               <input type="hidden" id="newsFormId" value="" />
@@ -526,7 +526,7 @@
           icon: "warning",
           title: "ข้อมูลไม่ครบถ้วน",
           text: "กรุณากรอกหัวข้อข่าวและเนื้อหาประกาศให้ครบถ้วนค่ะ",
-          confirmButtonColor: "#0f766e",
+          confirmButtonColor: "var(--th-p-700, #0f766e)",
         });
         return;
       }
@@ -551,7 +551,7 @@
         icon: "success",
         title: id ? "แก้ไขข่าวสารสำเร็จ" : "เผยแพร่ข่าวสารสำเร็จ",
         text: "ข่าวสารนี้ถูกอัปเดตไปยังหน้าจอของพนักงานเรียบร้อยแล้ว",
-        confirmButtonColor: "#0f766e",
+        confirmButtonColor: "var(--th-p-700, #0f766e)",
         timer: 2000,
       });
 
@@ -605,13 +605,13 @@
       // Match bullets
       if (/^[•\-\*]\s+/.test(trimmed)) {
         const bulletText = trimmed.replace(/^[•\-\*]\s+/, "");
-        return `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 8px; padding: 8px 12px; margin: 6px 0; color: #1e293b; font-weight: 500; display: flex; align-items: center; gap: 8px;"><span style="color: #0284c7; font-size: 16px;">•</span><span>${bulletText}</span></div>`;
+        return `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid var(--th-k-600, #0284c7); border-radius: 8px; padding: 8px 12px; margin: 6px 0; color: #1e293b; font-weight: 500; display: flex; align-items: center; gap: 8px;"><span style="color: var(--th-k-600, #0284c7); font-size: 16px;">•</span><span>${bulletText}</span></div>`;
       }
 
       // Auto highlight dates & keywords
       let lineHtml = line;
       lineHtml = lineHtml.replace(/(สำคัญมาก|หมายเหตุ|ด่วนที่สุด|ข้อปฏิบัติ|เงื่อนไข|สิทธิประโยชน์)/g, '<mark style="background: #fef08a; padding: 2px 8px; border-radius: 6px; color: #854d0e; font-weight: 800; border: 1px solid #fde047;">$1</mark>');
-      lineHtml = lineHtml.replace(/(\d{1,2}\s+(?:มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s+\d{4})/g, '<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-block;">📅 $1</span>');
+      lineHtml = lineHtml.replace(/(\d{1,2}\s+(?:มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s+\d{4})/g, '<span style="background: var(--th-b-100, #dbeafe); color: var(--th-b-800, #1e40af); padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-block;">📅 $1</span>');
 
       return `<div style="margin-bottom: 4px;">${lineHtml}</div>`;
     });

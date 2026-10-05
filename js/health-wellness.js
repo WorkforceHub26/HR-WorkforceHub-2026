@@ -228,7 +228,7 @@
           <!-- Preventive Care Action Plan -->
           <div>
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-              <span class="material-symbols-outlined" style="color: #0d9488; font-size: 22px;">health_and_safety</span>
+              <span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488); font-size: 22px;">health_and_safety</span>
               <strong style="font-size: 14px; color: #1e293b;">ข้อเสนอแนะการดูแลสุขภาพและสุขภาวะเชิงรุก (Proactive Health Care Plan)</strong>
             </div>
             <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
@@ -239,7 +239,7 @@
               ${stats.preventiveActions.map(act => `
                 <div class="preventive-action-card ${act.priority === 'high' ? 'priority-high' : 'priority-medium'}">
                   <div class="preventive-title">
-                    <span class="material-symbols-outlined" style="font-size: 18px; color: #0d9488;">shield</span>
+                    <span class="material-symbols-outlined" style="font-size: 18px; color: var(--th-p-600, #0d9488);">shield</span>
                     ${act.title}
                   </div>
                   <div class="preventive-desc">${act.desc}</div>
@@ -259,7 +259,7 @@
         html: modalHtml,
         width: '780px',
         confirmButtonText: 'ปิดรายงาน',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     }
 

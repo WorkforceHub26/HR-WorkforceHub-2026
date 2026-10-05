@@ -122,9 +122,9 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
   align-items: center;
   gap: 4px;
   padding: 6px 10px;
-  background: #f0fdfa;
-  color: #0d9488;
-  border: 1px solid #99f6e4;
+  background: var(--th-p-50, #f0fdfa);
+  color: var(--th-p-600, #0d9488);
+  border: 1px solid var(--th-p-200, #99f6e4);
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
@@ -134,7 +134,7 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
 }
 
 #page-hr-approval .btn-mobile-back:active {
-  background: #ccfbf1;
+  background: var(--th-p-100, #ccfbf1);
   transform: scale(0.97);
 }
 
@@ -143,7 +143,7 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
 }
 
 #page-hr-approval #pageMainTitle {
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.2;
@@ -157,7 +157,7 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
 #page-hr-approval #pageSubTitle {
   font-size: 10px;
   font-weight: 700;
-  color: #0d9488;
+  color: var(--th-p-600, #0d9488);
   letter-spacing: 0.5px;
   margin: 1px 0 0 0;
   text-align: center;
@@ -266,10 +266,10 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
 }
 
 #page-hr-approval .tab-btn.active {
-  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-p-700, #0f766e) 100%);
   color: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25);
+  border-color: var(--th-p-600, #0d9488);
+  box-shadow: 0 4px 10px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 #page-hr-approval .tab-btn .tab-count-badge {
@@ -431,8 +431,8 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
 #page-hr-approval .emp-code {
   font-size: 10.5px;
   font-weight: 700;
-  color: #0d9488;
-  background: #f0fdfa;
+  color: var(--th-p-600, #0d9488);
+  background: var(--th-p-50, #f0fdfa);
   padding: 1px 5px;
   border-radius: 5px;
   display: inline-block;
@@ -483,7 +483,7 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
 
 #page-hr-approval .action-btn-group .btn-act-approve {
   flex: 2;
-  background: #0d9488;
+  background: var(--th-p-600, #0d9488);
   color: #ffffff;
 }
 

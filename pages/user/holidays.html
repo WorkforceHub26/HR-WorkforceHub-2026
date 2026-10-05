@@ -7,11 +7,11 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
+    <script src="/js/theme-boot.js"></script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#0d9488" />
     <title>ปฏิทินวันหยุดประจำปี | PVT HR Management</title>
 
-    <!-- Fonts & Material Symbols -->
     <link
       href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
@@ -20,23 +20,34 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
       rel="stylesheet"
     />
-
-    <!-- Style Sheets -->
-    <link rel="stylesheet" href="/css/holidays.css" />
-
-    <!-- Third Party Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/css/holidays.css?v=20260930-12" />
+    <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง + ส่วนหัว (ต้องอยู่หลัง CSS ของหน้า) -->
+    <!-- หน้าต่างตั้งค่า + โหมดการแสดงผล (เดิมมีสำเนาอยู่ใน holidays.css) -->
+    <link rel="stylesheet" href="/css/system-settings.css" />
+    <link rel="stylesheet" href="/css/mobile-shell.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="PVT Hub" />
     <meta name="format-detection" content="telephone=no" />
-    <link rel="apple-touch-icon" href="/assets/icons/Logo_PVT_2026_B.png" />
-  </head>
+    <!-- Favicon -->
+<link href="/favicon.ico" rel="icon" type="image/x-icon"/>
+<link href="/manifest.json" rel="manifest"/>
+<meta content="#0d9488" name="theme-color"/>
+<!-- PNG icon -->
+<link href="/assets/icons/PVTT_LEAVE.png" rel="icon" sizes="32x32" type="image/png"/>
+<link href="/assets/icons/PVTT_LEAVE.png" rel="icon" sizes="192x192" type="image/png"/>
+<!-- Apple -->
+<link href="/assets/icons/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
 
-  <body>
+
+
+</head>
+
+  <body class="holidays-page">
     <div class="app-container" id="appLayout">
-      <!--  1. LEFT SIDEBAR MENU (UNIFIED ADAPTIVE SIDEBAR) -->
+
       <aside class="sidebar sidebar-light" id="sidebarMenu">
         <div class="sidebar-brand brand-zone">
           <div class="brand-icon">
@@ -66,7 +77,6 @@
           </button>
         </div>
 
-        <!--  ปุ่มกดยื่นใบลา (Action CTA) -->
         <div class="sidebar-cta-wrap" id="sidebarCtaZone">
           <button
             type="button"
@@ -134,7 +144,6 @@
           <div class="sidebar-divider"></div>
           <div class="sidebar-section-title">บริการด่วน</div>
 
-          <!-- 🪪 ปุ่มบัตรพนักงานดิจิทัล -->
           <button
             type="button"
             class="menu-item"
@@ -149,7 +158,6 @@
             <span>บัตรพนักงาน</span>
           </button>
 
-          <!--  ปุ่มเชื่อมต่อ LINE -->
           <button
             type="button"
             class="menu-item"
@@ -164,7 +172,6 @@
             <span>LINE</span>
           </button>
 
-          <!--  ปุ่มดูกฎระเบียบบริษัท -->
           <a
             href="/pages/user/leave-rules.html"
             class="menu-item"
@@ -178,7 +185,6 @@
             <span>กฎระเบียบ</span>
           </a>
 
-          <!--  ปุ่มคู่มือการใช้งาน -->
           <a
             href="/pages/user/full-guide.html"
             class="menu-item"
@@ -280,150 +286,34 @@
         </div>
       </aside>
 
-      <!--  MAIN CONTENT -->
       <main class="main-content">
-        <!-- 📱 1. NATIVE MOBILE APP BAR (HEADER) -->
-        <header class="page-header-row mobile-appbar">
-          <div class="appbar-left-zone">
-            <div class="appbar-title-wrap">
-              <h1 class="appbar-main-title">ปฏิทินวันหยุด</h1>
-              <div class="appbar-subtitle-row">
-                <span class="appbar-live-dot"></span>
-                <span class="appbar-subtext">วันหยุดประจำปีบริษัท</span>
-              </div>
-            </div>
+
+<!-- 📱 ส่วนหัวมาตรฐาน (ดีไซน์ใน /css/mobile-shell.css) -->
+        <header class="pvt-appbar">
+          <a class="pvt-appbar-back" href="/pages/user/index-user.html" aria-label="กลับหน้าหลัก">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          </a>
+          <div class="pvt-appbar-titles">
+            <h1 class="pvt-appbar-title">ปฏิทินวันหยุด</h1>
+            <p class="pvt-appbar-sub">วันหยุดประจำปีบริษัท</p>
           </div>
-
-          <div class="appbar-right-zone">
-            <!-- Injected Language Switcher Container (.history-actions) -->
+          <div class="pvt-appbar-actions">
+            <!-- ปุ่มเปลี่ยนภาษา (system-settings.js ใส่เข้ามาที่นี่) -->
             <div class="history-actions" id="historyActionsZone"></div>
-
-            <!-- Notification Bell -->
-            <div
-              class="notif-wrapper"
-              style="position: relative; display: inline-block"
-            >
-              <button
-                id="notificationBtn"
-                class="app-icon-btn notif-btn"
-                onclick="toggleUserNotifDropdown(event)"
-                title="การแจ้งเตือนใบลา"
-                aria-label="การแจ้งเตือน"
-              >
-                <span class="material-symbols-outlined" style="font-size: 28px">
-                  notifications
-                </span>
-
-                <span id="notifBadge" class="notif-badge" style="display: none"
-                  >0</span
-                >
-              </button>
-              <div
-                class="notif-dropdown"
-                id="userNotifDropdown"
-                style="
-                  display: none;
-                  position: absolute;
-                  right: 0;
-                  top: calc(100% + 8px);
-                  width: 320px;
-                  background: #ffffff;
-                  border-radius: 16px;
-                  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-                  border: 1px solid #e2e8f0;
-                  z-index: 1000;
-                  overflow: hidden;
-                "
-              >
-                <div
-                  style="
-                    padding: 14px 16px;
-                    border-bottom: 1px solid #f1f5f9;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    background: #f8fafc;
-                  "
-                >
-                  <span
-                    style="font-weight: 700; font-size: 14px; color: #0f172a"
-                    >การแจ้งเตือน</span
-                  >
-                  <span
-                    id="notifCountText"
-                    style="
-                      font-size: 11px;
-                      background: #e0f2fe;
-                      color: #0369a1;
-                      padding: 2px 8px;
-                      border-radius: 9999px;
-                      font-weight: 600;
-                    "
-                    >0 รายการ</span
-                  >
-                </div>
-                <div
-                  id="notifList"
-                  style="max-height: 280px; overflow-y: auto; padding: 8px"
-                >
-                  <div
-                    style="
-                      text-align: center;
-                      padding: 20px;
-                      color: #94a3b8;
-                      font-size: 13px;
-                    "
-                  >
-                    ไม่มีการแจ้งเตือนใหม่
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- User Profile Avatar -->
-            <div
-              class="user-profile-pill"
-              onclick="window.location.href = '/pages/user/profile-user.html'"
-              title="ข้อมูลส่วนตัว"
-            >
-              <img
-                src="/assets/img/default-avatar.jpg"
-                alt="Avatar"
-                id="userAvatar"
-                class="user-profile-avatar"
-              />
-            </div>
-
-            <!-- Mobile Sidebar Drawer Trigger (3 Dots Menu - Borderless) -->
-            <button
-              type="button"
-              class="app-icon-btn mobile-menu-btn borderless-action-btn"
-              id="mobileMenuBtn"
-              onclick="
-                if (typeof window.toggleMobileSidebar === 'function') {
-                  window.toggleMobileSidebar(event);
-                } else if (typeof toggleMobileSidebar === 'function') {
-                  toggleMobileSidebar();
-                }
-              "
-              title="เปิดเมนูอื่น ๆ"
-              aria-label="เมนู"
-            >
-              <span class="material-symbols-outlined" style="font-size: 24px"
-                >more_vert</span
-              >
+            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" onclick="if(typeof window.toggleMobileSidebar==='function'){window.toggleMobileSidebar(event);}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="เปิดเมนู" aria-label="เปิดเมนูหลัก">
+              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
             </button>
           </div>
         </header>
 
-        <!-- 🎛️ TABS (HIDDEN AS REQUESTED) -->
-        <div class="holiday-tabs-wrapper" style="display: none !important">
+        <div class="holiday-page-body">
+        <div class="holiday-tabs-wrapper" style="display: none">
           <div class="holiday-tabs-container">
             <button
               type="button"
               class="holiday-tab-btn active"
               id="tabCompanyHolidays"
-              style="display: none !important"
+              style="display: none"
               onclick="switchHolidayTab('company')"
             >
               <span class="material-symbols-outlined">event</span>
@@ -433,7 +323,7 @@
               type="button"
               class="holiday-tab-btn"
               id="tabTeamLeaves"
-              style="display: none !important"
+              style="display: none"
               onclick="switchHolidayTab('team')"
             >
               <span class="material-symbols-outlined">groups</span>
@@ -443,7 +333,7 @@
         </div>
 
         <div id="companyHolidaysWrapper">
-          <!-- 🌟 1. HIGHLIGHT HERO BANNER (NEXT UPCOMING HOLIDAY SPOTLIGHT) -->
+
           <section class="holiday-hero-banner" id="upcomingHeroBanner">
             <div class="hero-content">
               <div class="hero-badge">
@@ -456,34 +346,32 @@
               </p>
             </div>
             <div class="hero-countdown-box">
+              <span class="countdown-prefix-soft">อีก</span>
               <span class="countdown-number" id="heroCountdownDays">0</span>
-              <span class="countdown-label" id="heroCountdownLabel"
-                >วันข้างหน้า</span
-              >
+              <span class="countdown-unit-soft">วัน</span>
+              <span class="countdown-label" id="heroCountdownLabel">วันข้างหน้า</span>
               <div class="hero-countdown-ticker" id="heroCountdownTicker"></div>
             </div>
           </section>
 
-          <!-- 📊 2. KPI STATS SUMMARY CARDS -->
           <div class="stats-grid">
-            <div class="stat-card border-blue">
-              <div
-                class="icon-box bg-blue"
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                "
-              >
-                <img
-                  src="/assets/icons/calendar-event.svg"
-                  alt="วันหยุด"
-                  style="width: 28px; height: 28px; object-fit: contain"
-                />
+
+             <div class="stat-card border-pink">
+              <div class="icon-box bg-pink">
+                <span class="material-symbols-outlined">alarm</span>
               </div>
               <div class="stat-info">
-                <span class="label">วันหยุดรวมทั้งหมด (ปีนี้)</span>
-                <span class="value" id="statTotalHolidays">0 วัน</span>
+                <span class="label">วันหยุดครั้งต่อไป</span>
+
+                <span
+                  id="statNextHolidayDate"
+                  style="
+                    font-size: 24px;
+                    color: #ca2bf1;
+                    font-weight: 800;
+                  "
+                  >-</span>
+
               </div>
             </div>
 
@@ -496,18 +384,10 @@
                 <span
                   class="value"
                   id="statNextHolidayName"
-                  style="font-size: 18px; line-height: 1.2"
+                  style="font-size: 16px; line-height: 1.2"
                   >-</span
                 >
-                <span
-                  id="statNextHolidayDate"
-                  style="
-                    font-size: 12px;
-                    color: var(--primary, #0fa472);
-                    font-weight: 600;
-                  "
-                  >-</span
-                >
+
               </div>
             </div>
 
@@ -520,32 +400,50 @@
                 <span class="value" id="statRemainingHolidays">0 วัน</span>
               </div>
             </div>
+
+            <div class="stat-card border-blue">
+              <div
+                class="icon-box bg-blue"
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                "
+              >
+              <span class="material-symbols-outlined">calendar_month</span>
+
+              </div>
+              <div class="stat-info">
+                <span class="label">วันหยุดรวมทั้งหมด (ปีนี้)</span>
+                <span class="value" id="statTotalHolidays">0 วัน</span>
+              </div>
+            </div>
+
           </div>
 
-          <!-- Summary + calendar cards: always one full-width card per row; card headers stay horizontal -->
+          <!-- <section class="holiday-next-card-hero" id="holidayNextCardHero">
+            <div class="next-card-icon">
+              <span class="material-symbols-outlined">event_upcoming</span>
+            </div>
+            <div class="next-card-content">
+              <span class="next-card-label">ครั้งต่อไป</span>
+              <span class="next-card-name" id="heroNextHolidayNameDisplay">กำลังโหลดข้อมูล...</span>
+              <span class="next-card-date" id="heroNextHolidayDateDisplay">หยุดครั้งต่อไป...</span>
+            </div>
+          </section> -->
+
           <div class="holiday-overview-row">
-          <!-- 📋 3. HOLIDAY SUMMARY PANEL (MOVED UP AFTER REMAINING HOLIDAYS CARD AS REQUESTED) -->
-          <div
-            class="panel company-summary-panel-top"
-            id="companySummarySidebar"
-            style="
-              width: 100%;
-              max-width: 100%;
-              box-sizing: border-box;
-              margin-bottom: 24px;
-            "
-          >
+
+          <div class="panel company-summary-panel-top" id="companySummarySidebar">
             <div class="holiday-summary-header">
-              <h3 class="holiday-summary-title">
-                <span class="material-symbols-outlined" style="color: #0d9488"
-                  >calendar_view_month</span
-                >
-                <span>รายการสรุปวันหยุดประจำปี</span>
+              <h3 class="calendar-title-heading holiday-summary-title">
+
+                <span class="cal-title-text">รายการสรุปวันหยุดประจำปี</span>
               </h3>
               <button
                 type="button"
                 id="btnToggleSummary"
-                class="holiday-toggle-btn"
+                class="calendar-year-toggle-btn summary-toggle-btn"
                 onclick="
                   if (window.toggleHolidaySummarySection) {
                     window.toggleHolidaySummarySection();
@@ -553,19 +451,19 @@
                     console.warn('toggleHolidaySummarySection not loaded yet');
                   }
                 "
-                title="ย่อรายการสรุปวันหยุด" aria-expanded="true"
+                title="ขยายรายการสรุปวันหยุด" aria-expanded="false"
               >
                 <span
                   class="material-symbols-outlined"
                   id="btnToggleSummaryIcon"
                   style="font-size: 16px; color: inherit"
-                  >expand_less</span
+                  >expand_more</span
                 >
                 <span
                   id="btnToggleSummaryText"
                   class="toggle-text"
                   style="white-space: nowrap"
-                  >ย่อ</span
+                  >ขยาย</span
                 >
               </button>
             </div>
@@ -575,46 +473,29 @@
               type="button"
               onclick="toggleCompanySidebar()"
               title="ย่อ/ขยายสรุปวันหยุด"
-              style="display: none !important"
+              style="display: none"
             >
               <span
                 class="material-symbols-outlined"
                 id="companySidebarIcon"
-                style="display: none !important"
+                style="display: none"
                 >chevron_right</span
               >
             </button>
 
-            <div
-              id="companySummaryBody"
-              class="sidebar-content"
-              style="
-                width: 100%;
-                max-width: 100%;
-                box-sizing: border-box;
-                padding: 0;
-              "
-            >
-              <div style="margin-bottom: 14px; width: 100%">
-                <div
-                  id="companySummaryTitle"
-                  style="width: 100%; display: block"
-                ></div>
+            <div id="companySummaryBody" class="sidebar-content">
+              <div class="company-summary-meta">
+                <div id="companySummaryTitle"></div>
               </div>
-              <div
-                id="companySummaryList"
-                class="company-summary-list-grid"
-                style="width: 100%; max-width: 100%; box-sizing: border-box"
-              >
-                <!-- Sidebar list rendered by JS -->
+              <div id="companySummaryList" class="company-summary-list-grid">
+
               </div>
             </div>
           </div>
 
-          <!-- 🎛️ CONTROLS & TOOLBAR PANEL (HIDDEN AS REQUESTED) -->
           <section
             class="panel holiday-controls-panel"
-            style="display: none !important"
+            style="display: none"
           >
             <div class="controls-left">
               <div class="search-box">
@@ -702,9 +583,8 @@
             </div>
           </section>
 
-          <!-- 📅 CALENDAR VIEW CONTAINER -->
           <div class="team-calendar-layout" id="companyCalendarLayout">
-            <!-- Left: Calendar Grid -->
+
             <div
               class="team-calendar-main panel"
               id="companyCalendarPanel"
@@ -717,10 +597,10 @@
                 transition: all 0.3s ease;
               "
             >
-              <!-- Calendar Header with Prominent Title & Sleek Navigation -->
+
               <div class="calendar-view-header">
                 <h3 class="calendar-title-heading">
-                  <span class="cal-title-icon" style="display: none !important"
+                  <span class="cal-title-icon" style="display: none"
                     ><span
                       class="material-symbols-outlined"
                       style="font-size: 22px"
@@ -731,6 +611,16 @@
                     >ปฏิทินวันหยุด (แบบรายเดือน)</span
                   >
                 </h3>
+                <button
+                  type="button"
+                  id="btnToggleYearView"
+                  onclick="window.toggleHolidayYearView && window.toggleHolidayYearView()"
+                  class="calendar-year-toggle-btn calendar-year-toggle-top"
+                  title="ดูปฏิทินทั้งปี"
+                >
+                  <span class="material-symbols-outlined" id="btnToggleYearViewIcon">calendar_view_month</span>
+                  <span id="btnToggleYearViewText">ดูทั้งปี</span>
+                </button>
                 <div class="calendar-header-actions">
                   <div
                     class="calendar-nav-controls"
@@ -810,34 +700,7 @@
                       >
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    id="btnToggleCalendar"
-                    class="holiday-toggle-btn"
-                    onclick="
-                      if (window.toggleHolidayCalendarBody) {
-                        window.toggleHolidayCalendarBody();
-                      } else {
-                        console.warn(
-                          'toggleHolidayCalendarBody not loaded yet',
-                        );
-                      }
-                    "
-                    title="ย่อปฏิทิน" aria-expanded="true"
-                  >
-                    <span
-                      class="material-symbols-outlined"
-                      id="btnToggleCalendarIcon"
-                      style="font-size: 16px; color: inherit"
-                      >expand_less</span
-                    >
-                    <span
-                      id="btnToggleCalendarText"
-                      class="toggle-text"
-                      style="white-space: nowrap"
-                      >ย่อ</span
-                    >
-                  </button>
+
                 </div>
               </div>
               <div id="companyCalendarBody">
@@ -871,7 +734,7 @@
                     box-sizing: border-box;
                   "
                 >
-                  <!-- Days will be generated by JS -->
+
                 </div>
                 <div
                   id="yearlyCalendarGrid"
@@ -887,14 +750,14 @@
                     box-sizing: border-box;
                   "
                 >
-                  <!-- Yearly view mini calendars will be generated by JS -->
+
                 </div>
               </div>
+
             </div>
           </div>
-          </div><!-- /.holiday-overview-row -->
+          </div>
 
-          <!--  TABLE VIEW CONTAINER -->
           <section
             class="panel table-panel"
             id="holidayTableContainer"
@@ -925,12 +788,10 @@
             </div>
           </section>
         </div>
-        <!-- End companyHolidaysWrapper -->
 
-        <!--   TEAM LEAVES WRAPPER -->
         <div id="teamLeavesWrapper" style="display: none; padding: 0 24px">
           <div class="team-calendar-layout" id="teamCalendarLayout">
-            <!-- Left: Calendar Grid -->
+
             <div
               class="team-calendar-main panel"
               style="
@@ -941,7 +802,7 @@
                 transition: all 0.3s ease;
               "
             >
-              <!-- Calendar Header with Prominent Title & Sleek Navigation -->
+
               <div
                 class="calendar-view-header"
                 style="
@@ -977,16 +838,16 @@
                       border-radius: 10px;
                       background: linear-gradient(
                         135deg,
-                        #eff6ff 0%,
-                        #dbeafe 100%
+                        var(--th-b-50, #eff6ff) 0%,
+                        var(--th-b-100, #dbeafe) 100%
                       );
-                      color: #2563eb;
+                      color: var(--th-b-600, #2563eb);
                       display: inline-flex;
                       align-items: center;
                       justify-content: center;
                       flex-shrink: 0;
-                      border: 1px solid #bfdbfe;
-                      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.12);
+                      border: 1px solid var(--th-b-200, #bfdbfe);
+                      box-shadow: 0 1px 3px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.12);
                     "
                     ><span
                       class="material-symbols-outlined"
@@ -1106,11 +967,10 @@
                   gap: 8px;
                 "
               >
-                <!-- Days will be generated by JS -->
+
               </div>
             </div>
 
-            <!-- Right: Summary Sidebar -->
             <div class="team-summary-sidebar" id="teamSummarySidebar">
               <button
                 class="toggle-sidebar-btn"
@@ -1196,7 +1056,7 @@
                     padding-right: 8px;
                   "
                 >
-                  <!-- Sidebar list rendered by JS -->
+
                   <div
                     class="loading-state-box"
                     style="text-align: center; padding: 40px 0; color: #64748b"
@@ -1214,40 +1074,12 @@
           </div>
         </div>
 
-        <!-- 📱 NATIVE MOBILE BOTTOM NAVIGATION BAR -->
-        <nav class="mobile-bottom-nav">
-          <a href="/pages/user/index-user.html" class="bottom-nav-item">
-            <span class="material-symbols-outlined">home</span>
-            <span class="nav-label">หน้าหลัก</span>
-          </a>
-          <a href="/pages/user/leave-history.html" class="bottom-nav-item">
-            <span class="material-symbols-outlined">receipt_long</span>
-            <span class="nav-label">ประวัติลา</span>
-          </a>
-          <a
-            href="/pages/user/leave-user.html"
-            class="bottom-nav-item primary-action"
-            title="ยื่นใบลาใหม่"
-          >
-            <div class="center-fab-icon">
-              <span class="material-symbols-outlined">add</span>
-            </div>
-            <span class="nav-label">ยื่นใบลา</span>
-          </a>
-          <a href="/pages/user/holidays.html" class="bottom-nav-item active">
-            <span class="material-symbols-outlined">calendar_month</span>
-            <span class="nav-label">วันหยุด</span>
-            <span class="nav-active-dot"></span>
-          </a>
-          <a href="/pages/user/profile-user.html" class="bottom-nav-item">
-            <span class="material-symbols-outlined">person</span>
-            <span class="nav-label">ข้อมูลส่วนตัว</span>
-          </a>
-        </nav>
+        </div>
       </main>
+
+      <!-- 📱 แถบเมนูล่าง: สร้างอัตโนมัติโดย /js/mobile-shell.js (เหมือนกันทุกหน้า) -->
     </div>
 
-    <!-- 🪟 MODAL FORM: ADD / EDIT HOLIDAY -->
     <div
       id="holidayModalOverlay"
       class="holiday-modal-overlay"
@@ -1321,7 +1153,6 @@
       </div>
     </div>
 
-    <!-- 🪟 MODAL: LEAVE DETAILS & APPROVAL ACTION -->
     <div
       id="leaveDetailModalOverlay"
       class="holiday-modal-overlay"
@@ -1375,7 +1206,7 @@
             gap: 14px;
           "
         >
-          <!-- Filled dynamically by JS -->
+
         </div>
 
         <hr class="modal-divider" style="margin: 0 0 16px 0" />
@@ -1423,7 +1254,7 @@
               display: inline-flex;
               align-items: center;
               gap: 4px;
-              background: #0d9488;
+              background: var(--th-p-600, #0d9488);
             "
           >
             <span class="material-symbols-outlined" style="font-size: 16px"
@@ -1435,10 +1266,12 @@
       </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- 📱 ส่วนกลางทุกหน้า: แถบล่าง -->
+    <script src="/js/mobile-shell.js" defer></script>
     <script type="module" src="/auth/supabase-config.js"></script>
     <script type="module" src="/js/auth-guard.js"></script>
     <script type="module" src="/js/system-settings.js"></script>
     <script type="module" src="/js/holidays.js"></script>
-  </body>
+
+</body>
 </html>

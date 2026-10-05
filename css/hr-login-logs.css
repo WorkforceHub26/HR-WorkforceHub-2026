@@ -1,291 +1,334 @@
-/* ======================================================
-   Dedicated Stylesheet for HR Login Logs (/pages/hr/login-logs.html)
-   Scoped Page ID: #page-hr-login-logs
-   Tuned for Laptop / Notebook / Desktop & Mobile
-   ====================================================== */
-@import url('/css/hr.css');
+/* ==========================================================================
+   PVT WORKFORCE HUB — หน้าประวัติการเข้าสู่ระบบ HR (hr-login-logs.css)
+   ใช้กับ /pages/hr/login-logs.html (body id="page-hr-login-logs")
+   --------------------------------------------------------------------------
+   หลักการของไฟล์นี้ (แบบเดียวกับ hr-management.css)
+   1. ไม่ใช้ !important เลย  → ชนะกันด้วย "ลำดับไฟล์" + "ความเจาะจงของ selector"
+   2. Sidebar / Topbar เป็นของ layout-*.css (โหลดก่อนไฟล์นี้) ไม่เขียนซ้ำที่นี่
+      (กฎ .app-shell / .main-content / .topbar / .user-profile เดิม ใช้กับโครงเก่า → เอาออกแล้ว)
+   3. ทุกกฎของหน้านี้ขึ้นต้นด้วย #page-hr-login-logs (id ของ <body>)
+   4. คลาสของหน้านี้ขึ้นต้นด้วย ll- (Login Logs)
+   5. ตารางประวัติข้างใน #pageLoginLogsContainer สร้างโดย login-logs-viewer.js
+      ไฟล์นี้จัดแค่กรอบรอบนอก ไม่ไปแตะหน้าตาข้างในตาราง
+   6. ถ้าต้องการ override ให้ "เพิ่มความเจาะจง" อย่าเติม !important
 
+   สารบัญ
+   00. Design tokens
+   01. Base — พื้นหลังและฟอนต์
+   02. Layout adapter — .pvt-page + ปรับ Sidebar (02.1–02.3)
+   03. ปุ่ม (.ll-btn)
+   04. หัวหน้า (คำอธิบาย + ปุ่มรีเฟรช / CSV)
+   05. กรอบตารางประวัติ
+   06. สถานะกำลังโหลด / ผิดพลาด
+   07. Responsive
+   08. Animations
+   ========================================================================== */
+
+
+/* ==========================================================================
+   00. DESIGN TOKENS
+   ========================================================================== */
 #page-hr-login-logs {
-  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  background-color: #f0fdfa !important;
-  background-image: 
-    radial-gradient(circle at 10% 10%, #bae6fd 0px, transparent 50%), 
-    radial-gradient(circle at 90% 20%, #a7f3d0 0px, transparent 50%), 
-    radial-gradient(circle at 80% 90%, #e0f2fe 0px, transparent 50%),
-    radial-gradient(circle at 20% 80%, #ccfbf1 0px, transparent 50%) !important;
-  background-attachment: fixed !important;
-  min-height: 100vh !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow-x: hidden !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
+  --ll-primary: var(--th-p-600, #0d9488);
+  --ll-primary-dark: var(--th-p-700, #0f766e);
+  --ll-primary-soft: var(--th-p-50, #f0fdfa);
+
+  --ll-text: #0f172a;
+  --ll-text-2: #334155;
+  --ll-text-soft: #64748b;
+  --ll-text-muted: #94a3b8;
+  --ll-border: #e2e8f0;
+  --ll-border-strong: #cbd5e1;
+  --ll-surface: #ffffff;
+
+  --ll-radius-lg: 16px;
+  --ll-radius-sm: 10px;
+
+  --ll-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.04);
+  --ll-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-#page-hr-login-logs .app-shell {
-  display: flex !important;
-  width: 100% !important;
-  min-height: 100vh !important;
-  position: relative !important;
-  overflow-x: hidden !important;
-  box-sizing: border-box !important;
+
+/* ==========================================================================
+   01. BASE
+   ========================================================================== */
+#page-hr-login-logs {
+  font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--ll-text);
+  background-color: var(--th-p-50, #f0fdfa);
+  background-image:
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 💻 Main Workspace - strictly constrained width for Notebook / PC */
-#page-hr-login-logs .main-content {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  max-width: calc(100% - 250px) !important;
-  width: calc(100% - 250px) !important;
-  margin-left: 250px !important;
-  padding: 20px 24px 48px 24px !important;
-  box-sizing: border-box !important;
-  background: transparent !important;
-  min-height: 100vh !important;
-  overflow-y: visible !important;
-  overflow-x: hidden !important;
-  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-#page-hr-login-logs .main-content::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-/* Sidebar Collapsed State on PC / Notebook */
-body.desktop-sidebar-collapsed#page-hr-login-logs .main-content,
-body.desktop-sidebar-collapsed #page-hr-login-logs .main-content,
-#page-hr-login-logs .main-content.expanded {
-  margin-left: 80px !important;
-  width: calc(100% - 80px) !important;
-  max-width: calc(100% - 80px) !important;
-}
-
-/* Topbar Header Standard Styling */
-#page-hr-login-logs .topbar {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  margin-bottom: 24px !important;
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  padding: 12px 24px !important;
-  border-radius: 20px !important;
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 900 !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  gap: 16px !important;
-  transition: all 0.2s ease !important;
-}
-
-#page-hr-login-logs .topbar-left {
-  display: flex !important;
-  align-items: center !important;
-  gap: 14px !important;
-}
-
-#page-hr-login-logs .topbar-left-text {
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-}
-
-#page-hr-login-logs .topbar-left h1,
-#page-hr-login-logs .page-title {
-  font-size: 20px !important;
-  font-weight: 800 !important;
-  color: #0f172a !important;
-  margin: 0 0 2px 0 !important;
-  letter-spacing: -0.3px !important;
-  line-height: 1.25 !important;
-}
-
-#page-hr-login-logs .topbar-left p,
-#page-hr-login-logs .page-subtitle {
-  font-size: 12.5px !important;
-  color: #64748b !important;
-  font-weight: 500 !important;
-  margin: 0 !important;
-  line-height: 1.35 !important;
-}
-
-#page-hr-login-logs .topbar-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-}
-
-#page-hr-login-logs .user-profile {
-  display: inline-flex !important;
-  align-items: center !important;
-  height: 44px !important;
-  gap: 12px !important;
-  background: #ffffff !important;
-  padding: 3px 18px 3px 4px !important;
-  border-radius: 28px !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
-  transition: all 0.2s ease !important;
-  flex-shrink: 0 !important;
-}
-
-#page-hr-login-logs .user-profile:hover {
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
-}
-
-#page-hr-login-logs .user-profile .avatar,
-#page-hr-login-logs .user-profile .avatar-badge {
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  min-height: 38px !important;
-  border-radius: 50% !important;
-  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 55%, #0f766e 100%) !important;
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  font-size: 14px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  line-height: 1 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: 2px solid #ffffff !important;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3) !important;
-  flex-shrink: 0 !important;
-}
-
-#page-hr-login-logs .user-profile .info {
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-  line-height: 1.25 !important;
-}
-
-#page-hr-login-logs .user-profile .info strong,
-#page-hr-login-logs .user-profile .info #headerUserName {
-  font-size: 13.5px !important;
-  font-weight: 700 !important;
-  color: #0f172a !important;
-  display: block !important;
-  margin: 0 !important;
-}
-
-#page-hr-login-logs .user-profile .info span,
-#page-hr-login-logs .user-profile .info #headerUserRoleDept {
-  font-size: 11.5px !important;
-  font-weight: 500 !important;
-  color: #64748b !important;
-  display: block !important;
-  margin-top: 1px !important;
-}
-
-/* Content Body */
-#page-hr-login-logs .content-body {
-  max-width: 1380px !important;
-  width: 100% !important;
-  padding: 0 !important;
-  margin: 0 auto !important;
-  box-sizing: border-box !important;
-  min-width: 0 !important;
-}
-
-/* 🌟 Admin Hero Banner */
-#page-hr-login-logs .admin-page-hero {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f766e 100%);
-  color: #ffffff;
-  padding: 24px 28px;
-  border-radius: 20px;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22);
-  margin-bottom: 24px;
-  position: relative;
-  overflow: hidden;
-  width: 100%;
+#page-hr-login-logs *,
+#page-hr-login-logs *::before,
+#page-hr-login-logs *::after {
   box-sizing: border-box;
 }
 
-#page-hr-login-logs .hero-content {
+
+/* ==========================================================================
+   02. LAYOUT ADAPTER
+   .pvt-page (จาก layout กลาง) เป็น flex คอลัมน์ → ใช้ gap คุมระยะห่าง
+   จำกัดความกว้างที่ 1380px เท่าเดิม (ตารางกว้างเกินไปอ่านยาก)
+   ========================================================================== */
+#page-hr-login-logs .pvt-page {
   display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1380px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+#page-hr-login-logs .pvt-page > * {
+  min-width: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+
+/* ---- 02.1 Sidebar: ไอคอนเมนูสีเดียวกับตัวอักษร (ขาว) ---- */
+#page-hr-login-logs .pvt-nav__item .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
+#page-hr-login-logs .pvt-sidebar__toggle {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+}
+
+#page-hr-login-logs .pvt-sidebar__toggle:hover {
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
+}
+
+#page-hr-login-logs .pvt-sidebar__toggle .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.3 จอ PC: ไม่ต้องมีปุ่ม ✕ ปิดเมนู และปุ่ม ☰ (ใช้เฉพาะมือถือ/แท็บเล็ต) ---- */
+@media (min-width: 1025px) {
+  #page-hr-login-logs .pvt-sidebar__close,
+  #page-hr-login-logs .pvt-topbar__burger {
+    display: none;
+  }
+}
+
+
+/* ==========================================================================
+   03. ปุ่ม (.ll-btn)
+   ========================================================================== */
+#page-hr-login-logs .ll-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ll-radius-sm);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.2s var(--ll-ease), box-shadow 0.2s;
+}
+
+#page-hr-login-logs .ll-btn .material-symbols-outlined {
+  font-size: 19px;
+}
+
+#page-hr-login-logs .ll-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* ปุ่มกดไม่ได้ (ระหว่างรอตารางโหลด) */
+#page-hr-login-logs .ll-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ปุ่มหลัก: เขียวทึบ (ส่งออก CSV) */
+#page-hr-login-logs .ll-btn--primary {
+  background: linear-gradient(135deg, var(--ll-primary), var(--ll-primary-dark));
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
+}
+
+#page-hr-login-logs .ll-btn--primary:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
+}
+
+/* ปุ่มรอง: ขาวขอบเทา (รีเฟรช) */
+#page-hr-login-logs .ll-btn--light {
+  background: var(--ll-surface);
+  color: var(--ll-text-2);
+  border-color: var(--ll-border-strong);
+  font-weight: 600;
+}
+
+#page-hr-login-logs .ll-btn--light:hover:not(:disabled) {
+  background: var(--ll-primary-soft);
+  color: var(--ll-primary-dark);
+  border-color: var(--th-p-200, #99f6e4);
+}
+
+
+/* ==========================================================================
+   04. หัวหน้า — ไอคอน + คำอธิบาย (ซ้าย) / ปุ่ม (ขวา)
+   ========================================================================== */
+#page-hr-login-logs .ll-hero {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 16px;
-  position: relative;
-  z-index: 2;
-  width: 100%;
+  padding: 18px 22px;
+  background: var(--ll-surface);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius-lg);
+  box-shadow: var(--ll-shadow);
 }
 
-#page-hr-login-logs .hero-title-group {
+#page-hr-login-logs .ll-hero-info {
   display: flex;
   align-items: center;
+  flex: 1 1 340px;
   gap: 14px;
-  flex-wrap: wrap;
   min-width: 0;
-  flex: 1 1 320px;
 }
 
-#page-hr-login-logs .hero-icon-badge {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+/* ไอคอนโล่: กรมท่า (สื่อเรื่องความปลอดภัย) */
+#page-hr-login-logs .ll-hero-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2dd4bf;
   flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  font-size: 26px;
+  color: #fff;
+  background: linear-gradient(135deg, #1e293b, var(--ll-primary-dark));
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
 }
 
-#page-hr-login-logs .hero-actions {
+#page-hr-login-logs .ll-hero-info h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ll-text);
+}
+
+#page-hr-login-logs .ll-hero-info p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ll-text-soft);
+}
+
+#page-hr-login-logs .ll-hero-actions {
   display: flex;
-  align-items: center;
-  gap: 10px;
   flex-wrap: wrap;
-  flex-shrink: 0;
+  gap: 8px;
 }
 
-/* Tablet & Mobile Screens */
-@media screen and (max-width: 1024px) {
-  #page-hr-login-logs .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 0 !important;
-  }
 
-  #page-hr-login-logs .content-body {
-    padding: 16px 16px 80px 16px !important;
-  }
-
-  #page-hr-login-logs .admin-page-hero {
-    padding: 18px 20px;
-  }
+/* ==========================================================================
+   05. กรอบตารางประวัติ
+   ========================================================================== */
+#page-hr-login-logs .ll-viewer {
+  width: 100%;
+  min-height: 420px;
 }
 
-@media screen and (max-width: 768px) {
-  #page-hr-login-logs .admin-page-hero {
-    padding: 16px !important;
-  }
 
-  #page-hr-login-logs .hero-content {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-  }
+/* ==========================================================================
+   06. สถานะกำลังโหลด / ผิดพลาด
+   ========================================================================== */
+#page-hr-login-logs .ll-state {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--ll-text-soft);
+  background: var(--ll-surface);
+  border: 1px solid var(--ll-border);
+  border-radius: var(--ll-radius-lg);
+  box-shadow: var(--ll-shadow);
+}
 
-  #page-hr-login-logs .hero-actions {
-    width: 100% !important;
-    justify-content: flex-start !important;
+#page-hr-login-logs .ll-state > .material-symbols-outlined {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 42px;
+  color: var(--ll-primary);
+}
+
+#page-hr-login-logs .ll-state h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ll-text);
+}
+
+#page-hr-login-logs .ll-state p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ll-text-muted);
+}
+
+#page-hr-login-logs .ll-state--loading > .material-symbols-outlined {
+  animation: spin 1s linear infinite;
+}
+
+#page-hr-login-logs .ll-state--error {
+  border-color: #fecaca;
+}
+
+#page-hr-login-logs .ll-state--error > .material-symbols-outlined,
+#page-hr-login-logs .ll-state--error h3 {
+  color: #dc2626;
+}
+
+
+/* ==========================================================================
+   07. RESPONSIVE
+   ========================================================================== */
+
+/* ---- ≤ 768px : มือถือ → ปุ่มเต็มความกว้าง แบ่งครึ่ง ---- */
+@media (max-width: 768px) {
+  #page-hr-login-logs .pvt-page { gap: 14px; }
+  #page-hr-login-logs .ll-hero  { padding: 16px; }
+
+  #page-hr-login-logs .ll-hero-actions      { width: 100%; }
+  #page-hr-login-logs .ll-hero-actions .ll-btn { flex: 1; }
+}
+
+
+/* ==========================================================================
+   08. ANIMATIONS
+   ========================================================================== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว → ปิด animation */
+@media (prefers-reduced-motion: reduce) {
+  #page-hr-login-logs *,
+  #page-hr-login-logs *::before,
+  #page-hr-login-logs *::after {
+    animation: none;
+    transition: none;
   }
 }

@@ -1,681 +1,1521 @@
-/* ======================================================
-   Dedicated Stylesheet for HR Holidays (/pages/hr/holidays.html)
-   Scoped Page ID: #page-hr-holidays
-   Specifically tuned for Laptop / Notebook / PC & Mobile
-   ====================================================== */
-@import url('/css/holidays.css');
-@import url('/css/admin-holidays.css');
-
 /* ==========================================================================
-   📅 HR HOLIDAYS ADMIN LAYOUT & RESPONSIVE DISCIPLINE
+   PVT WORKFORCE HUB — หน้าจัดการปฏิทินวันหยุด HR (hr-holidays.css)
+   ใช้กับ /pages/hr/holidays.html (body id="page-hr-holidays")
+   --------------------------------------------------------------------------
+   หลักการของไฟล์นี้ (แบบเดียวกับ hr-management.css)
+   1. ไม่ใช้ !important เลย  → ชนะกันด้วย "ลำดับไฟล์" + "ความเจาะจงของ selector"
+   2. Sidebar / Topbar เป็นของ layout-*.css (โหลดก่อนไฟล์นี้) ไม่เขียนซ้ำที่นี่
+   3. ทุกกฎของหน้านี้ขึ้นต้นด้วย #page-hr-holidays (id ของ <body>)
+      ไฟล์นี้ใช้เดี่ยว ๆ ไม่ต้องโหลด holidays.css / admin-holidays.css (ตัวเก่าที่ไปทับ Sidebar)
+   4. ชื่อคลาส admin-* คงไว้ตามเดิม เพราะ admin-holidays.js ใช้อ้างอิง
+      ส่วนที่ JS สร้างเอง (แถวตาราง / การ์ด / ช่องปฏิทิน / ป้าย) ใช้คลาส hh-*
+   5. ถ้าต้องการ override ให้ "เพิ่มความเจาะจง" อย่าเติม !important
+
+   สารบัญ
+   00. Design tokens
+   01. Base — พื้นหลังและฟอนต์
+   02. Layout adapter — .pvt-page + ปรับ Sidebar ของหน้านี้
+   03. ปุ่มหลักของหน้า (เพิ่มวันหยุด / นำเข้ามาตรฐาน)
+   04. หัวหน้า (คำอธิบาย + ปุ่ม)
+   05. การ์ดตัวเลข 4 ใบ
+   06. แถบเครื่องมือ — ค้นหา / ตัวกรอง / สลับมุมมอง
+   07. มุมมองตาราง (+ ป้ายประเภท / ค่าจ้าง / นับถอยหลัง / ปุ่มแก้ไข-ลบ)
+   08. มุมมองการ์ด (การ์ดวันหยุดแต่ละใบ)
+   09. มุมมองปฏิทิน (ช่องวันที่ / ชื่อวันหยุดในช่อง)
+   10. ไม่พบข้อมูล / โหลดผิดพลาด
+   11. Modal เพิ่ม/แก้ไขวันหยุด
+   12. Responsive
+   13. Animations
    ========================================================================== */
 
+
+/* ==========================================================================
+   00. DESIGN TOKENS
+   ========================================================================== */
 #page-hr-holidays {
-  overflow-x: hidden !important;
-  width: 100%;
-  background: #f8fafc;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  --hh-primary: var(--th-p-600, #0d9488);
+  --hh-primary-dark: var(--th-p-700, #0f766e);
+  --hh-primary-soft: var(--th-p-50, #f0fdfa);
+  --hh-blue: var(--th-k-600, #0284c7);
+  --hh-amber: #d97706;
+  --hh-rose: #e11d48;
+
+  /* สีประเภทวันหยุด (ใช้ทั้งป้าย คำอธิบายสี และปฏิทิน) */
+  --hh-official: #e11d48;
+  --hh-official-soft: #fff1f2;
+  --hh-company: #4f46e5;
+  --hh-company-soft: #eef2ff;
+  --hh-substitution: #d97706;
+  --hh-substitution-soft: #fffbeb;
+
+  --hh-text: #0f172a;
+  --hh-text-2: #334155;
+  --hh-text-soft: #64748b;
+  --hh-text-muted: #94a3b8;
+  --hh-border: #e2e8f0;
+  --hh-border-strong: #cbd5e1;
+  --hh-surface: #ffffff;
+  --hh-surface-2: #f8fafc;
+  --hh-track: #f1f5f9;
+
+  --hh-radius-lg: 16px;
+  --hh-radius-md: 12px;
+  --hh-radius-sm: 10px;
+
+  --hh-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.04);
+  --hh-shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --hh-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-#page-hr-holidays .app-shell {
-  display: flex;
-  width: 100%;
+
+/* ==========================================================================
+   01. BASE
+   ========================================================================== */
+#page-hr-holidays {
+  font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--hh-text);
+  background-color: var(--th-p-50, #f0fdfa);
+  background-image:
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
+  background-attachment: fixed;
   min-height: 100vh;
-  position: relative;
-  overflow-x: hidden !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#page-hr-holidays *,
+#page-hr-holidays *::before,
+#page-hr-holidays *::after {
   box-sizing: border-box;
 }
 
-/* Main Content Shell - Notebook / Laptop / PC default layout */
-#page-hr-holidays .main-content {
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: calc(100% - 250px);
-  width: calc(100% - 250px);
-  margin-left: 250px;
-  padding: 20px 24px 48px 24px;
-  box-sizing: border-box;
-  background: #f8fafc;
-  min-height: 100vh;
-  overflow-x: hidden !important;
-  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
-/* Sidebar Collapsed State (Edge toggle collapsed on PC / Laptop) */
-body.desktop-sidebar-collapsed#page-hr-holidays .main-content,
-body.desktop-sidebar-collapsed #page-hr-holidays .main-content,
-#page-hr-holidays .main-content.expanded {
-  margin-left: 80px !important;
-  width: calc(100% - 80px) !important;
-  max-width: calc(100% - 80px) !important;
-}
-
-#page-hr-holidays #mobileMenuBtn,
-#page-hr-holidays .mobile-menu-btn,
-div:nth-of-type(1) > main:nth-of-type(1) > header:nth-of-type(1) > div:nth-of-type(1) > button#mobileMenuBtn {
-  display: none !important;
-}
-
-/* Content Body Reset - Ensure no double padding or horizontal push */
-#page-hr-holidays .content-body {
-  padding: 0 !important;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-#page-hr-holidays .admin-holidays-wrapper {
-  max-width: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0 0 40px 0;
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-/* 🏷️ TOPBAR - Compact, Clean & Responsive */
-#page-hr-holidays .topbar {
+/* ==========================================================================
+   02. LAYOUT ADAPTER
+   .pvt-page (จาก layout กลาง) เป็น flex คอลัมน์ → ใช้ gap คุมระยะห่างทุก section
+   ========================================================================== */
+#page-hr-holidays .pvt-page {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0; 
-  padding: 12px 18px; 
-  position: sticky;
-  top: 10px;
-  z-index: 99;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
-  border-radius: 14px;
-  gap: 12px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 20px;
 }
 
-#page-hr-holidays .topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+#page-hr-holidays .pvt-page > * {
   min-width: 0;
-  flex: 1 1 320px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
-#page-hr-holidays .topbar-title-wrap {
-  min-width: 0;
-  flex: 1;
+
+/* ---- 02.1 Sidebar: ไอคอนเมนูสีเดียวกับตัวอักษร (ขาว) เหมือนหน้าอื่น ---- */
+#page-hr-holidays .pvt-nav__item .material-symbols-outlined {
+  color: inherit;
 }
 
-#page-hr-holidays .topbar-page-title {
-  font-size: 17px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 2px 0;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#page-hr-holidays .topbar-page-sub {
-  font-size: 12px;
-  color: #64748b;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#page-hr-holidays .topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-#page-hr-holidays .user-profile-badge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 6px 12px;
-}
-
-#page-hr-holidays .user-profile-badge .user-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#page-hr-holidays .user-profile-badge .user-info .user-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
-  line-height: 1.2;
-}
-
-#page-hr-holidays .user-profile-badge .user-info .user-role {
-  font-size: 11px;
-  color: #64748b;
-}
-
-/* 🌟 HERO BANNER - Scaled for Laptop screens */
-#page-hr-holidays .admin-page-hero {
-  background: linear-gradient(135deg, #0f766e 0%, #0d9488 60%, #0284c7 100%);
-  border-radius: 16px;
-  padding: 18px 22px;
+/* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
+#page-hr-holidays .pvt-sidebar__toggle {
   color: #ffffff;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.16);
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
-#page-hr-holidays .admin-page-hero-info {
-  min-width: 0;
-  flex: 1 1 280px;
+#page-hr-holidays .pvt-sidebar__toggle:hover {
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
-#page-hr-holidays .admin-page-hero-info h2 {
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1.3;
-  margin: 0 0 3px 0;
-  letter-spacing: -0.3px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+#page-hr-holidays .pvt-sidebar__toggle .material-symbols-outlined {
+  color: inherit;
 }
 
-#page-hr-holidays .admin-page-hero-info p {
-  font-size: 12.5px;
-  line-height: 1.5;
-  margin: 0;
-  color: #ccfbf1;
-  opacity: 0.95;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* ---- 02.3 จอ PC: ไม่ต้องมีปุ่ม ✕ ปิดเมนู และปุ่ม ☰ (ใช้เฉพาะมือถือ/แท็บเล็ต) ---- */
+@media (min-width: 1025px) {
+  #page-hr-holidays .pvt-sidebar__close,
+  #page-hr-holidays .pvt-topbar__burger {
+    display: none;
+  }
 }
 
-#page-hr-holidays .admin-hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
 
-#page-hr-holidays .btn-hero-action {
+/* ==========================================================================
+   03. ปุ่มหลักของหน้า
+   ========================================================================== */
+#page-hr-holidays .btn-add-holiday-main,
+#page-hr-holidays .btn-seed-holidays {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-/* 📊 KPI STATISTICS GRID - Specifically configured for Laptop & PC */
-#page-hr-holidays .admin-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-#page-hr-holidays .admin-stat-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
-  transition: all 0.2s ease;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-#page-hr-holidays .admin-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
-  border-color: #cbd5e1;
-}
-
-#page-hr-holidays .admin-stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-
-#page-hr-holidays .admin-stat-content {
-  min-width: 0;
-  flex: 1;
-}
-
-#page-hr-holidays .admin-stat-label {
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 600;
-  margin-bottom: 3px;
-  display: block;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--hh-radius-sm);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#page-hr-holidays .admin-stat-value {
-  font-size: 20px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#page-hr-holidays .admin-stat-subtext {
-  font-size: 11px;
-  color: #94a3b8;
-  margin-top: 2px;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 🛠️ TOOLBAR & FILTERS */
-#page-hr-holidays .admin-toolbar-panel {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-#page-hr-holidays .admin-toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex: 1 1 300px;
-  min-width: 0;
-}
-
-#page-hr-holidays .admin-search-box {
-  position: relative;
-  flex: 1 1 180px;
-  min-width: 150px;
-  max-width: 100%;
-}
-
-#page-hr-holidays .admin-search-input {
-  width: 100%;
-  padding: 9px 12px 9px 36px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  outline: none;
-  background: #f8fafc;
-  color: #0f172a;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-}
-
-#page-hr-holidays .admin-search-input:focus {
-  background: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
-}
-
-#page-hr-holidays .admin-search-box .search-icon {
-  position: absolute;
-  left: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-  font-size: 19px;
-  pointer-events: none;
-}
-
-#page-hr-holidays .admin-select-filter {
-  padding: 9px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
-  background-color: #f8fafc;
-  outline: none;
   cursor: pointer;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-  flex: 0 1 auto;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s var(--hh-ease), box-shadow 0.2s;
 }
 
-#page-hr-holidays .admin-select-filter:focus {
-  background: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+#page-hr-holidays .btn-add-holiday-main .material-symbols-outlined,
+#page-hr-holidays .btn-seed-holidays .material-symbols-outlined {
+  font-size: 19px;
 }
 
-#page-hr-holidays .admin-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
+/* เพิ่มวันหยุด: เขียวทึบ */
 #page-hr-holidays .btn-add-holiday-main {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 13px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  background: linear-gradient(135deg, var(--hh-primary), var(--hh-primary-dark));
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
 }
 
 #page-hr-holidays .btn-add-holiday-main:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
 }
 
+/* นำเข้ามาตรฐาน: ขาวขอบเทา */
 #page-hr-holidays .btn-seed-holidays {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 14px;
-  border-radius: 10px;
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-  font-size: 13px;
+  background: var(--hh-surface);
+  color: var(--hh-text-2);
+  border-color: var(--hh-border-strong);
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
 }
 
 #page-hr-holidays .btn-seed-holidays:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--hh-primary-soft);
+  color: var(--hh-primary-dark);
+  border-color: var(--th-p-200, #99f6e4);
+  transform: translateY(-1px);
 }
 
-/* 📋 TABLE CONTAINER & VIEWS */
-#page-hr-holidays .admin-table-container {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+
+/* ==========================================================================
+   04. หัวหน้า — ไอคอน + คำอธิบาย (ซ้าย) / ปุ่ม (ขวา)
+   ========================================================================== */
+#page-hr-holidays .admin-page-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 18px 22px;
+  color: var(--hh-text);
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-radius: var(--hh-radius-lg);
+  box-shadow: var(--hh-shadow);
+}
+
+#page-hr-holidays .admin-page-hero-info {
+  display: flex;
+  align-items: center;
+  flex: 1 1 320px;
+  gap: 14px;
+  min-width: 0;
+}
+
+#page-hr-holidays .admin-hero-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  font-size: 26px;
+  color: var(--hh-primary);
+  background: var(--hh-primary-soft);
   border-radius: 14px;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
-  margin-bottom: 24px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+}
+
+#page-hr-holidays .admin-page-hero-info h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--hh-text);
+}
+
+#page-hr-holidays .admin-page-hero-info p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--hh-text-soft);
+}
+
+#page-hr-holidays .admin-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+
+/* ==========================================================================
+   05. การ์ดตัวเลข 4 ใบ
+   แต่ละใบมีสีของตัวเอง (--stat-color / --stat-soft) ใช้กับเส้นซ้ายและไอคอน
+   ========================================================================== */
+#page-hr-holidays .admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+#page-hr-holidays .admin-stat-card {
+  --stat-color: var(--hh-primary);
+  --stat-soft: var(--th-p-100, #ccfbf1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px 20px;
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-left: 4px solid var(--stat-color);
+  border-radius: var(--hh-radius-lg);
+  box-shadow: var(--hh-shadow);
+  transition: transform 0.25s var(--hh-ease), box-shadow 0.25s var(--hh-ease);
+}
+
+#page-hr-holidays .admin-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--hh-shadow-hover);
+}
+
+#page-hr-holidays .admin-stat-card.stat-teal  { --stat-color: var(--hh-primary); --stat-soft: var(--th-p-100, #ccfbf1); }
+#page-hr-holidays .admin-stat-card.stat-blue  { --stat-color: var(--hh-blue);    --stat-soft: var(--th-k-100, #e0f2fe); }
+#page-hr-holidays .admin-stat-card.stat-amber { --stat-color: var(--hh-amber);   --stat-soft: #fef3c7; }
+#page-hr-holidays .admin-stat-card.stat-rose  { --stat-color: var(--hh-rose);    --stat-soft: #ffe4e6; }
+
+#page-hr-holidays .admin-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+#page-hr-holidays .admin-stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hh-text-soft);
+}
+
+#page-hr-holidays .admin-stat-value {
   overflow: hidden;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--stat-color);
+}
+
+/* ชื่อวันหยุด: ตัวเล็กลง ตัดด้วย ... */
+#page-hr-holidays .admin-stat-value--name {
+  font-size: 17px;
+  color: var(--hh-text);
+}
+
+#page-hr-holidays .admin-stat-subtext {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--hh-text-muted);
+}
+
+#page-hr-holidays .admin-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  font-size: 26px;
+  color: var(--stat-color);
+  background: var(--stat-soft);
+  border-radius: 14px;
+}
+
+/* ป้ายจำนวนแยกประเภท (นักขัตฤกษ์ / บริษัท) */
+#page-hr-holidays .admin-stat-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0;
+}
+
+#page-hr-holidays .type-pill {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+#page-hr-holidays .type-pill--official {
+  color: var(--hh-official);
+  background: var(--hh-official-soft);
+  border-color: #fecdd3;
+}
+
+#page-hr-holidays .type-pill--company {
+  color: var(--hh-company);
+  background: var(--hh-company-soft);
+  border-color: #c7d2fe;
+}
+
+
+/* ==========================================================================
+   06. แถบเครื่องมือ — ค้นหา + ตัวกรอง (ซ้าย) / สลับมุมมอง (ขวา)
+   ========================================================================== */
+#page-hr-holidays .admin-toolbar-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 18px;
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-radius: var(--hh-radius-lg);
+  box-shadow: var(--hh-shadow);
+}
+
+#page-hr-holidays .admin-toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 1 1 400px;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ---- 06.1 ช่องค้นหา ---- */
+#page-hr-holidays .admin-search-box {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 180px;
+  max-width: 420px;
+  margin: 0;
+}
+
+#page-hr-holidays .admin-search-box .search-icon {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  font-size: 19px;
+  color: var(--hh-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+#page-hr-holidays .admin-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px 0 36px;
+  background: var(--hh-surface-2);
+  color: var(--hh-text);
+  border: 1px solid var(--hh-border-strong);
+  border-radius: var(--hh-radius-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+#page-hr-holidays .admin-search-input:focus {
+  background: var(--hh-surface);
+  border-color: var(--hh-primary);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
+}
+
+/* ---- 06.2 Dropdown ปี / เดือน / ประเภท ---- */
+#page-hr-holidays .admin-select-filter {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 150px;
+  margin: 0;
+  height: 40px;
+  padding: 0 34px 0 12px;
+  background: var(--hh-surface) url('data:image/svg+xml;utf8,<svg fill="%230d9488" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 8px center;
+  color: var(--hh-text);
+  border: 1px solid var(--hh-border-strong);
+  border-radius: var(--hh-radius-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#page-hr-holidays .admin-select-filter:focus {
+  border-color: var(--hh-primary);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
+}
+
+#page-hr-holidays .admin-toolbar-right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* ---- 06.3 ปุ่มสลับมุมมอง (แบบ segmented) ---- */
+#page-hr-holidays .admin-view-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--hh-track);
+  border-radius: var(--hh-radius-sm);
+}
+
+#page-hr-holidays .admin-btn-view {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--hh-text-soft);
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+#page-hr-holidays .admin-btn-view .material-symbols-outlined {
+  flex-shrink: 0;
+  font-size: 19px;
+  line-height: 1;
+}
+
+#page-hr-holidays .admin-btn-view:hover {
+  color: var(--hh-text);
+}
+
+/* มุมมองที่เลือกอยู่ (admin-holidays.js สลับ class active) */
+#page-hr-holidays .admin-btn-view.active {
+  background: var(--hh-surface);
+  color: var(--hh-primary-dark);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1);
+}
+
+
+/* ==========================================================================
+   07. มุมมองตาราง
+   ========================================================================== */
+#page-hr-holidays .admin-table-container {
+  margin: 0;
+  overflow: hidden;
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-radius: var(--hh-radius-lg);
+  box-shadow: var(--hh-shadow);
+  animation: hhFadeUp 0.35s var(--hh-ease) both;
 }
 
 #page-hr-holidays .admin-table-responsive {
   width: 100%;
-  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 #page-hr-holidays .admin-table {
   width: 100%;
-  min-width: 780px;
+  min-width: 900px;
   border-collapse: collapse;
-  text-align: left;
   font-size: 13.5px;
+  text-align: left;
 }
 
+/* หัวตาราง: ติดบนเวลาเลื่อนในกรอบ */
 #page-hr-holidays .admin-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding: 12px 14px;
+  background: var(--hh-surface-2);
+  color: var(--hh-text-soft);
+  border-bottom: 1px solid var(--hh-border);
+  font-size: 12px;
   font-weight: 700;
-  color: #334155;
-  background: #f8fafc;
-  border-bottom: 1.5px solid #e2e8f0;
+  letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
+/* ความกว้างคอลัมน์ (แทน inline style เดิม) */
+#page-hr-holidays .admin-table .col-no        { width: 64px;  text-align: center; }
+#page-hr-holidays .admin-table .col-date      { width: 140px; }
+#page-hr-holidays .admin-table .col-day       { width: 110px; }
+#page-hr-holidays .admin-table .col-type      { width: 160px; }
+#page-hr-holidays .admin-table .col-paid      { width: 110px; text-align: center; }
+#page-hr-holidays .admin-table .col-countdown { width: 120px; }
+#page-hr-holidays .admin-table .col-actions   { width: 150px; text-align: center; }
+
 #page-hr-holidays .admin-table td {
   padding: 12px 14px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #1e293b;
+  color: var(--hh-text);
+  border-bottom: 1px solid var(--hh-track);
   vertical-align: middle;
 }
 
+#page-hr-holidays .admin-table tbody tr {
+  transition: background-color 0.15s;
+}
+
+#page-hr-holidays .admin-table tbody tr:hover {
+  background: var(--hh-primary-soft);
+}
+
+#page-hr-holidays .admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+
+/* ---- 07.1 เซลล์ในตาราง (คลาสจาก admin-holidays.js) ---- */
+#page-hr-holidays .admin-table td.col-no {
+  font-weight: 600;
+  color: var(--hh-text-muted);
+}
+
+#page-hr-holidays .admin-table .cell-date {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#page-hr-holidays .admin-table .cell-day {
+  color: var(--hh-text-soft);
+  white-space: nowrap;
+}
+
+/* ชื่อวันหยุด: กว้างอย่างน้อย 200px ไม่ให้ตัดบรรทัดถี่เกินไป */
+#page-hr-holidays .admin-table .cell-name {
+  min-width: 200px;
+  font-weight: 600;
+  color: var(--hh-text);
+}
+
+#page-hr-holidays .admin-table .cell-desc {
+  max-width: 260px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--hh-text-soft);
+}
+
+/* วันหยุดที่ผ่านไปแล้ว: จางลง แต่ยังกดแก้ไข/ลบได้ */
+#page-hr-holidays .admin-table tbody tr.is-past td {
+  color: var(--hh-text-muted);
+}
+
+#page-hr-holidays .admin-table tbody tr.is-past .hh-type-badge,
+#page-hr-holidays .admin-table tbody tr.is-past .hh-paid-badge {
+  opacity: 0.6;
+}
+
+/* ---- 07.2 ป้าย (ใช้ร่วมกันทั้งตารางและการ์ด) ---- */
+
+/* ป้ายประเภทวันหยุด: สีตามประเภท */
+#page-hr-holidays .hh-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+#page-hr-holidays .hh-type-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+#page-hr-holidays .hh-type-badge--official {
+  color: var(--hh-official);
+  background: var(--hh-official-soft);
+  border-color: #fecdd3;
+}
+
+#page-hr-holidays .hh-type-badge--company {
+  color: var(--hh-company);
+  background: var(--hh-company-soft);
+  border-color: #c7d2fe;
+}
+
+#page-hr-holidays .hh-type-badge--substitution {
+  color: var(--hh-substitution);
+  background: var(--hh-substitution-soft);
+  border-color: #fde68a;
+}
+
+/* ป้ายสิทธิ์ค่าจ้าง */
+#page-hr-holidays .hh-paid-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+
+#page-hr-holidays .hh-paid-badge--yes {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+#page-hr-holidays .hh-paid-badge--no {
+  color: var(--hh-text-soft);
+  background: var(--hh-track);
+}
+
+/* นับถอยหลัง: วันนี้ (เขียว) / พรุ่งนี้ (ส้ม) / ใกล้ถึง ≤ 7 วัน (ฟ้า) / ผ่านแล้ว (เทา) */
+#page-hr-holidays .hh-countdown {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--hh-text-2);
+  background: var(--hh-surface-2);
+  border: 1px solid var(--hh-border);
+  border-radius: 999px;
+}
+
+#page-hr-holidays .hh-countdown--today {
+  color: #fff;
+  background: var(--hh-primary);
+  border-color: var(--hh-primary);
+}
+
+#page-hr-holidays .hh-countdown--tomorrow {
+  color: var(--hh-amber);
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+#page-hr-holidays .hh-countdown--soon {
+  color: var(--hh-blue);
+  background: var(--th-k-50, #f0f9ff);
+  border-color: var(--th-k-200, #bae6fd);
+}
+
+#page-hr-holidays .hh-countdown--past {
+  font-weight: 500;
+  color: var(--hh-text-muted);
+  background: transparent;
+  border-color: var(--hh-track);
+}
+
+/* คำที่ตรงกับคำค้นหา */
+#page-hr-holidays .hh-highlight {
+  padding: 0 2px;
+  color: inherit;
+  background: #fef08a;
+  border-radius: 3px;
+}
+
+/* ---- 07.3 ปุ่มแก้ไข / ลบ ---- */
+#page-hr-holidays .hh-row-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+#page-hr-holidays .hh-act-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+#page-hr-holidays .hh-act-btn .material-symbols-outlined {
+  font-size: 17px;
+}
+
+#page-hr-holidays .hh-act-btn--edit {
+  color: var(--hh-primary-dark);
+}
+
+#page-hr-holidays .hh-act-btn--edit:hover {
+  background: var(--hh-primary-soft);
+  border-color: var(--th-p-200, #99f6e4);
+}
+
+#page-hr-holidays .hh-act-btn--delete {
+  color: #dc2626;
+}
+
+#page-hr-holidays .hh-act-btn--delete:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+
+/* ==========================================================================
+   08. มุมมองการ์ด (การ์ดแต่ละใบ admin-holidays.js render)
+   ========================================================================== */
 #page-hr-holidays .admin-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
-  margin-bottom: 24px;
-  width: 100%;
-  box-sizing: border-box;
+  margin: 0;
+  animation: hhFadeUp 0.35s var(--hh-ease) both;
 }
 
-#page-hr-holidays #adminCalendarContainer {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow-x: auto;
+
+/* ---- 08.1 การ์ดวันหยุด 1 ใบ (เส้นบนสีตามประเภท) ---- */
+#page-hr-holidays .hh-card {
+  --hh-type: var(--hh-primary);
+  --hh-type-soft: var(--hh-primary-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-top: 4px solid var(--hh-type);
+  border-radius: var(--hh-radius-lg);
+  box-shadow: var(--hh-shadow);
+  transition: transform 0.2s var(--hh-ease), box-shadow 0.2s;
 }
+
+#page-hr-holidays .hh-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--hh-shadow-hover);
+}
+
+#page-hr-holidays .hh-card--official     { --hh-type: var(--hh-official);     --hh-type-soft: var(--hh-official-soft); }
+#page-hr-holidays .hh-card--company      { --hh-type: var(--hh-company);      --hh-type-soft: var(--hh-company-soft); }
+#page-hr-holidays .hh-card--substitution { --hh-type: var(--hh-substitution); --hh-type-soft: var(--hh-substitution-soft); }
+
+/* วันหยุดที่ผ่านไปแล้ว: จางลง */
+#page-hr-holidays .hh-card.is-past {
+  opacity: 0.65;
+}
+
+#page-hr-holidays .hh-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* ป้ายวันที่ แบบปฏิทินฉีก */
+#page-hr-holidays .hh-date-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  color: var(--hh-type);
+  background: var(--hh-type-soft);
+  border-radius: var(--hh-radius-md);
+  line-height: 1;
+}
+
+#page-hr-holidays .hh-date-badge-day {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+#page-hr-holidays .hh-date-badge-month {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#page-hr-holidays .hh-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+#page-hr-holidays .hh-card-weekday {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hh-text-soft);
+}
+
+#page-hr-holidays .hh-card-title {
+  margin: 4px 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--hh-text);
+}
+
+#page-hr-holidays .hh-card-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--hh-text-soft);
+}
+
+#page-hr-holidays .hh-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hh-track);
+}
+
 
 /* ==========================================================================
-   💻 SCREEN LAYOUT TUNING FOR NOTEBOOK - PC & INTERMEDIATE RESOLUTIONS
+   09. มุมมองปฏิทิน
+   ========================================================================== */
+#page-hr-holidays .admin-calendar-panel {
+  padding: 20px 22px 22px;
+  overflow-x: auto;
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-radius: var(--hh-radius-lg);
+  box-shadow: var(--hh-shadow);
+  animation: hhFadeUp 0.35s var(--hh-ease) both;
+}
+
+/* ---- 09.1 หัวปฏิทิน: เลื่อนเดือน + คำอธิบายสี ---- */
+#page-hr-holidays .admin-cal-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--hh-border);
+}
+
+#page-hr-holidays .admin-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#page-hr-holidays .admin-cal-nav h3 {
+  min-width: 150px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--hh-text);
+}
+
+#page-hr-holidays .admin-cal-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--hh-surface);
+  color: var(--hh-text-2);
+  border: 1px solid var(--hh-border-strong);
+  border-radius: var(--hh-radius-sm);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+#page-hr-holidays .admin-cal-nav-btn:hover {
+  background: var(--hh-primary-soft);
+  color: var(--hh-primary-dark);
+  border-color: var(--th-p-200, #99f6e4);
+}
+
+#page-hr-holidays .admin-cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--hh-text-2);
+}
+
+#page-hr-holidays .admin-cal-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#page-hr-holidays .legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+#page-hr-holidays .legend-dot--official     { background: var(--hh-official); }
+#page-hr-holidays .legend-dot--company      { background: var(--hh-company); }
+#page-hr-holidays .legend-dot--substitution { background: var(--hh-substitution); }
+
+/* ---- 09.2 หัวคอลัมน์วัน + ช่องวันที่ (7 คอลัมน์เท่ากัน) ---- */
+#page-hr-holidays .admin-cal-weekdays,
+#page-hr-holidays .admin-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 640px;
+}
+
+#page-hr-holidays .admin-cal-weekdays {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--hh-text-soft);
+}
+
+#page-hr-holidays .admin-cal-weekdays > div {
+  padding: 4px 0;
+}
+
+#page-hr-holidays .admin-cal-weekdays .is-sun { color: var(--hh-rose); }
+#page-hr-holidays .admin-cal-weekdays .is-sat { color: var(--hh-primary-dark); }
+
+
+/* ---- 09.3 ช่องวันที่ 1 ช่อง (คลิกช่อง = เพิ่มวันหยุดวันนั้น) ---- */
+#page-hr-holidays .hh-cal-cell {
+  --hh-type: var(--hh-primary);
+  --hh-type-soft: var(--hh-primary-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 96px;
+  padding: 6px 7px 8px;
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-radius: var(--hh-radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+#page-hr-holidays .hh-cal-cell:hover {
+  border-color: var(--th-p-200, #99f6e4);
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.12);
+}
+
+/* ช่องว่างก่อนวันที่ 1 */
+#page-hr-holidays .hh-cal-cell.is-blank {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--hh-track);
+  cursor: default;
+  box-shadow: none;
+}
+
+/* เสาร์-อาทิตย์: พื้นเทาอ่อน */
+#page-hr-holidays .hh-cal-cell.is-weekend {
+  background: var(--hh-surface-2);
+}
+
+/* มีวันหยุด: พื้นสีอ่อนตามประเภท (วันหยุดแรกของวันนั้น) */
+#page-hr-holidays .hh-cal-cell--official     { --hh-type: var(--hh-official);     --hh-type-soft: var(--hh-official-soft); }
+#page-hr-holidays .hh-cal-cell--company      { --hh-type: var(--hh-company);      --hh-type-soft: var(--hh-company-soft); }
+#page-hr-holidays .hh-cal-cell--substitution { --hh-type: var(--hh-substitution); --hh-type-soft: var(--hh-substitution-soft); }
+
+#page-hr-holidays .hh-cal-cell.has-holiday {
+  background: var(--hh-type-soft);
+  border-color: var(--hh-type-soft);
+}
+
+/* วันนี้: กรอบเขียว */
+#page-hr-holidays .hh-cal-cell.is-today {
+  border: 2px solid var(--hh-primary);
+}
+
+#page-hr-holidays .hh-cal-cell-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#page-hr-holidays .hh-cal-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hh-text-2);
+  border-radius: 50%;
+}
+
+#page-hr-holidays .hh-cal-cell.is-weekend .hh-cal-day  { color: var(--hh-text-soft); }
+#page-hr-holidays .hh-cal-cell.has-holiday .hh-cal-day { color: var(--hh-type); }
+
+#page-hr-holidays .hh-cal-cell.is-today .hh-cal-day {
+  color: #fff;
+  background: var(--hh-primary);
+}
+
+/* ปุ่ม + โผล่ตอนชี้เมาส์ (จอสัมผัสโชว์ตลอด ดูใน Responsive) */
+#page-hr-holidays .hh-cal-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--hh-primary-dark);
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+
+#page-hr-holidays .hh-cal-add .material-symbols-outlined {
+  font-size: 16px;
+}
+
+#page-hr-holidays .hh-cal-cell:hover .hh-cal-add,
+#page-hr-holidays .hh-cal-add:focus-visible {
+  opacity: 1;
+}
+
+#page-hr-holidays .hh-cal-add:hover {
+  background: var(--hh-primary-soft);
+}
+
+#page-hr-holidays .hh-cal-events {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* ชื่อวันหยุดในช่อง: แถบซ้ายสีตามประเภท คลิก = แก้ไข */
+#page-hr-holidays .hh-cal-event {
+  --hh-type: var(--hh-primary);
+  display: block;
+  width: 100%;
+  padding: 3px 6px;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--hh-text);
+  background: var(--hh-surface);
+  border: none;
+  border-left: 3px solid var(--hh-type);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+#page-hr-holidays .hh-cal-event:hover {
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+}
+
+#page-hr-holidays .hh-cal-event--official     { --hh-type: var(--hh-official); }
+#page-hr-holidays .hh-cal-event--company      { --hh-type: var(--hh-company); }
+#page-hr-holidays .hh-cal-event--substitution { --hh-type: var(--hh-substitution); }
+
+
+/* ==========================================================================
+   10. ไม่พบข้อมูล
+   ========================================================================== */
+#page-hr-holidays .admin-empty-state {
+  margin: 0;
+  padding: 48px 20px;
+  text-align: center;
+  background: var(--hh-surface);
+  border: 1px dashed var(--hh-border-strong);
+  border-radius: var(--hh-radius-lg);
+}
+
+#page-hr-holidays .admin-empty-state > .material-symbols-outlined {
+  font-size: 48px;
+  color: var(--hh-border-strong);
+}
+
+#page-hr-holidays .admin-empty-state h3 {
+  margin: 8px 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--hh-text);
+}
+
+#page-hr-holidays .admin-empty-state p {
+  margin: 0 auto;
+  max-width: 420px;
+  font-size: 13.5px;
+  color: var(--hh-text-soft);
+}
+
+#page-hr-holidays .admin-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+
+/* โหลดข้อมูลไม่สำเร็จ (admin-holidays.js ใส่ .is-error) → กรอบ/ไอคอนแดง */
+#page-hr-holidays .admin-empty-state.is-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+#page-hr-holidays .admin-empty-state.is-error > .material-symbols-outlined,
+#page-hr-holidays .admin-empty-state.is-error h3 {
+  color: #dc2626;
+}
+
+
+/* ==========================================================================
+   11. MODAL เพิ่ม/แก้ไขวันหยุด
+   display ถูก admin-holidays.js สลับเอง (none ↔ flex)
+   ========================================================================== */
+#page-hr-holidays .admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+#page-hr-holidays .admin-modal-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  max-height: min(92dvh, calc(100dvh - 24px));
+  overflow: hidden;
+  background: var(--hh-surface);
+  border: 1px solid var(--hh-border);
+  border-radius: var(--hh-radius-lg);
+  box-shadow: 0 20px 40px -8px rgba(15, 23, 42, 0.2);
+  animation: hhPopIn 0.3s var(--hh-ease) both;
+}
+
+#page-hr-holidays .admin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 16px 22px;
+  background: var(--hh-surface-2);
+  border-bottom: 1px solid var(--hh-border);
+}
+
+#page-hr-holidays .admin-modal-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--hh-text);
+}
+
+#page-hr-holidays .admin-modal-header h3 .material-symbols-outlined {
+  color: var(--hh-primary);
+}
+
+#page-hr-holidays .admin-btn-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: var(--hh-track);
+  color: var(--hh-text-soft);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+#page-hr-holidays .admin-btn-close:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* form ต้องยืดเต็ม modal เพื่อให้ส่วนเนื้อหาเลื่อนได้ */
+#page-hr-holidays #adminHolidayForm {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#page-hr-holidays .admin-modal-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 16px;
+  min-height: 0;
+  padding: 22px;
+  overflow-y: auto;
+}
+
+/* แถวช่องกรอก 2 ช่อง (วันที่ + ประเภท) */
+#page-hr-holidays .admin-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#page-hr-holidays .admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#page-hr-holidays .admin-form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hh-text-2);
+}
+
+#page-hr-holidays .admin-form-group .req {
+  color: var(--hh-rose);
+}
+
+#page-hr-holidays .admin-form-group input,
+#page-hr-holidays .admin-form-group select,
+#page-hr-holidays .admin-form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--hh-surface);
+  color: var(--hh-text);
+  border: 1.5px solid var(--hh-border-strong);
+  border-radius: var(--hh-radius-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#page-hr-holidays .admin-form-group textarea {
+  resize: vertical;
+}
+
+#page-hr-holidays .admin-form-group input:focus,
+#page-hr-holidays .admin-form-group select:focus,
+#page-hr-holidays .admin-form-group textarea:focus {
+  border-color: var(--hh-primary);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
+}
+
+/* ช่องติ๊ก "วันหยุดได้รับค่าจ้าง" */
+#page-hr-holidays .admin-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--hh-text-2);
+  background: var(--hh-primary-soft);
+  border: 1px solid var(--th-p-100, #ccfbf1);
+  border-radius: var(--hh-radius-sm);
+  cursor: pointer;
+}
+
+#page-hr-holidays .admin-checkbox-label input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--hh-primary);
+  cursor: pointer;
+}
+
+#page-hr-holidays .admin-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  gap: 10px;
+  padding: 14px 22px;
+  background: var(--hh-surface-2);
+  border-top: 1px solid var(--hh-border);
+}
+
+#page-hr-holidays .btn-modal-cancel,
+#page-hr-holidays .btn-modal-submit {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--hh-radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+#page-hr-holidays .btn-modal-cancel {
+  background: var(--hh-surface);
+  color: var(--hh-text-2);
+  border-color: var(--hh-border-strong);
+}
+
+#page-hr-holidays .btn-modal-cancel:hover {
+  background: var(--hh-track);
+}
+
+#page-hr-holidays .btn-modal-submit {
+  background: linear-gradient(135deg, var(--hh-primary), var(--hh-primary-dark));
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
+}
+
+#page-hr-holidays .btn-modal-submit:hover {
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
+}
+
+
+/* ---- ข้อความเตือนในกล่องยืนยันลบ (SweetAlert อยู่นอก .pvt-page แต่ยังอยู่ใน body) ---- */
+#page-hr-holidays .hh-swal-warn {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #dc2626;
+}
+
+
+/* ==========================================================================
+   12. RESPONSIVE
+   เรียงจากจอใหญ่ → เล็ก (max-width)
    ========================================================================== */
 
-/* Laptop / Notebook range (1025px - 1280px) */
-@media (min-width: 1025px) and (max-width: 1280px) {
-  #page-hr-holidays .admin-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  #page-hr-holidays .admin-search-box {
-    min-width: 140px;
-  }
-
-  #page-hr-holidays .admin-cards-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 14px;
-  }
+/* ---- ≤ 1280px : โน้ตบุ๊ก → การ์ดตัวเลข 2 คอลัมน์ ---- */
+@media (max-width: 1280px) {
+  #page-hr-holidays .admin-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Tablet & Smaller Screens (<= 1024px) */
+/* ---- ≤ 1024px : แท็บเล็ต → ปุ่มสลับมุมมองเหลือแค่ไอคอน ---- */
 @media (max-width: 1024px) {
-  #page-hr-holidays .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 14px 16px 40px 16px !important;
-  }
-  
-  #page-hr-holidays .topbar {
-    top: 0;
-    border-radius: 12px;
-    padding: 10px 14px;
-    margin-bottom: 16px;
-  }
-
-  #page-hr-holidays .admin-page-hero {
-    padding: 16px 18px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  #page-hr-holidays .admin-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  #page-hr-holidays .admin-toolbar-panel {
-    padding: 14px;
-  }
+  #page-hr-holidays .admin-btn-view-label { display: none; }
+  #page-hr-holidays .admin-btn-view       { padding: 0 10px; }
 }
 
-/* Mobile Screens (<= 640px) */
-@media (max-width: 640px) {
-  #page-hr-holidays .admin-stats-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
+/* ---- ≤ 768px : มือถือ ---- */
+@media (max-width: 768px) {
+  #page-hr-holidays .pvt-page { gap: 14px; }
 
-  #page-hr-holidays .admin-hero-actions {
-    width: 100%;
-    flex-direction: column;
-  }
+  /* หัวหน้า: ปุ่มเต็มความกว้าง */
+  #page-hr-holidays .admin-page-hero  { padding: 16px; }
+  #page-hr-holidays .admin-hero-actions { width: 100%; }
 
-  #page-hr-holidays .btn-hero-action {
-    width: 100%;
-    justify-content: center;
-  }
+  #page-hr-holidays .admin-hero-actions .btn-add-holiday-main,
+  #page-hr-holidays .admin-hero-actions .btn-seed-holidays { flex: 1; }
+
+  #page-hr-holidays .admin-stats-grid  { gap: 10px; }
+  #page-hr-holidays .admin-stat-card   { padding: 14px 16px; }
+  #page-hr-holidays .admin-stat-value  { font-size: 22px; }
+  #page-hr-holidays .admin-stat-value--name { font-size: 15px; }
+  #page-hr-holidays .admin-stat-icon   { width: 40px; height: 40px; font-size: 22px; }
+
+  /* แถบเครื่องมือ: เรียงลงล่าง เต็มความกว้าง */
+  #page-hr-holidays .admin-toolbar-panel { padding: 14px; }
 
   #page-hr-holidays .admin-toolbar-left {
     flex-direction: column;
     align-items: stretch;
-    width: 100%;
+    flex-basis: 100%;
   }
 
-  #page-hr-holidays .admin-search-box {
-    min-width: 100%;
-    max-width: 100%;
+  /* flex: none → ตอนเรียงแนวตั้ง flex-basis จะกลายเป็นความสูง ต้องปิด */
+  #page-hr-holidays .admin-search-box,
+  #page-hr-holidays .admin-select-filter { flex: none; width: 100%; }
+
+  #page-hr-holidays .admin-toolbar-right,
+  #page-hr-holidays .admin-view-toggle { width: 100%; }
+
+  #page-hr-holidays .admin-btn-view { flex: 1; justify-content: center; }
+
+  /* ฟอนต์ 15px ป้องกัน iOS ซูมเองตอนโฟกัส */
+  #page-hr-holidays .admin-search-input,
+  #page-hr-holidays .admin-select-filter,
+  #page-hr-holidays .admin-form-group input,
+  #page-hr-holidays .admin-form-group select,
+  #page-hr-holidays .admin-form-group textarea { font-size: 15px; }
+
+  #page-hr-holidays .admin-calendar-panel { padding: 14px; }
+  #page-hr-holidays .admin-cards-grid     { grid-template-columns: 1fr; }
+
+  /* modal: ช่องกรอกเรียงคอลัมน์เดียว */
+  #page-hr-holidays .admin-form-row { grid-template-columns: 1fr; }
+  #page-hr-holidays .admin-modal-body { padding: 16px; }
+  #page-hr-holidays .admin-modal-header,
+  #page-hr-holidays .admin-modal-footer { padding-left: 16px; padding-right: 16px; }
+  #page-hr-holidays .btn-modal-cancel,
+  #page-hr-holidays .btn-modal-submit { flex: 1; }
+}
+
+/* ---- จอสัมผัส (ไม่มี hover) → โชว์ปุ่ม + ในปฏิทินตลอด ---- */
+@media (hover: none) {
+  #page-hr-holidays .hh-cal-add { opacity: 1; }
+}
+
+/* ---- ≤ 480px : มือถือจอเล็ก → การ์ดตัวเลข 1 คอลัมน์ ---- */
+@media (max-width: 480px) {
+  #page-hr-holidays .admin-stats-grid { grid-template-columns: 1fr; }
+}
+
+
+/* ==========================================================================
+   13. ANIMATIONS
+   ========================================================================== */
+@keyframes hhFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes hhPopIn {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว → ปิด animation */
+@media (prefers-reduced-motion: reduce) {
+  #page-hr-holidays *,
+  #page-hr-holidays *::before,
+  #page-hr-holidays *::after {
+    animation: none;
+    transition: none;
   }
-
-  #page-hr-holidays .admin-select-filter {
-    width: 100%;
-  }
-
-  #page-hr-holidays .admin-toolbar-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  #page-hr-holidays .admin-cards-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* 🧭 Explicit Sidebar Brand Header Harmonization for HR Holidays Page */
-#page-hr-holidays .sidebar-brand,
-#page-hr-holidays .brand-zone {
-  padding: 20px 16px 16px 16px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  gap: 8px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.12) 100%) !important;
-  position: relative !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-#page-hr-holidays .brand-icon {
-  width: 72px !important;
-  height: 72px !important;
-  min-width: 72px !important;
-  min-height: 72px !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  margin: 0 auto !important;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)) !important;
-}
-
-#page-hr-holidays .brand-icon img {
-  width: 72px !important;
-  height: 72px !important;
-  max-height: 72px !important;
-  object-fit: contain !important;
-  object-position: center !important;
-  display: block !important;
-  margin: 0 auto !important;
-}
-
-#page-hr-holidays .brand-name {
-  font-size: 14px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.6px !important;
-  color: #ffffff !important;
-  text-transform: uppercase !important;
-  text-align: center !important;
-  white-space: normal !important;
-  line-height: 1.3 !important;
-  width: 100% !important;
-  max-width: 210px !important;
-  word-break: break-word !important;
-  margin: 0 auto !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-}
-
-#page-hr-holidays .brand-subname {
-  font-size: 11px !important;
-  font-weight: 500 !important;
-  color: #bfdbfe !important;
-  text-align: center !important;
-  line-height: 1.35 !important;
-  width: 100% !important;
-  max-width: 210px !important;
-  word-break: break-word !important;
-  margin: 2px auto 0 auto !important;
-  opacity: 0.95 !important;
 }

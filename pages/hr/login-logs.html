@@ -4,267 +4,264 @@
   <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <script src="/js/theme-boot.js"></script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <meta name="google" content="notranslate" />
-  <title>ประวัติการเข้าสู่ระบบ (Login Activity Logs) | PVT Workforce Hub</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  
-  <link rel="stylesheet" href="/css/global.css" />
-  <link rel="stylesheet" href="/css/sidebar.css" />
-  <link rel="stylesheet" href="/css/hr-login-logs.css" />
+  <title>ประวัติการเข้าสู่ระบบ | PVT HR Hub</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <!-- CSS ของ Layout กลาง (Sidebar + Topbar): ต้องเรียงตามนี้ และอยู่ก่อน CSS เฉพาะหน้า -->
+  <link rel="stylesheet" href="/css/layout-tokens.css" />
+  <link rel="stylesheet" href="/css/layout-sidebar.css" />
+  <link rel="stylesheet" href="/css/layout-topbar.css" />
+
+  <!-- CSS ที่ตารางประวัติ (LoginLogsViewerComponent) อาจใช้ — เดิม @import อยู่ใน hr-login-logs.css -->
+  <link rel="stylesheet" href="/css/hr.css" />
+
+  <!-- CSS เฉพาะหน้า: วางท้ายสุดเสมอ -->
+  <link rel="stylesheet" href="/css/hr-login-logs.css" />
 </head>
 
-<body id="page-hr-login-logs">
-  <div class="app-shell">
-    
-    <!-- 🧭 SIDEBAR ด้านซ้าย (Unified Luxury Sidebar) -->
-    <aside class="sidebar-light" id="mainSidebar">
-      <div class="sidebar-brand">
-        <div class="brand-icon">
-          <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+<body id="page-hr-login-logs" class="pvt-body">
+  <!-- ตัวห่อ Layout (เก็บสถานะ: is-sidebar-collapsed / is-mobile-open) -->
+  <div class="pvt-app" id="pvtApp">
+
+    <!-- ===== SIDEBAR: เมนูด้านข้าง ===== -->
+    <aside class="pvt-sidebar" id="mainSidebar" aria-label="เมนูหลัก">
+      <div class="pvt-sidebar__brand">
+        <div class="pvt-sidebar__logo">
+          <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" />
         </div>
-        <div class="brand-name">PVTT WORKFORCE HUB</div>
-        <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
-        <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
-          <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+        <div class="pvt-sidebar__name">PVTT WORKFORCE HUB</div>
+        <div class="pvt-sidebar__subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+        <button type="button" class="pvt-sidebar__close" aria-label="ปิดเมนู" title="ปิดเมนู">
+          <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
-      <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
-      <div class="sidebar-cta-wrap">
-        <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
-          <span class="material-symbols-outlined">fact_check</span>
-          <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
-        </a>
-      </div>
-
-      <nav class="nav-menu">
-        <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
+      <!-- รายการเมนู (layout.js ไฮไลต์เมนูปัจจุบันจาก URL ให้อัตโนมัติ) -->
+      <nav class="pvt-sidebar__nav" aria-label="เมนูนำทาง">
+        <a href="/pages/hr/home.html" class="pvt-nav__item" title="ภาพรวมระบบ">
           <span class="material-symbols-outlined">dashboard</span>
-          <span class="nav-label">หน้าหลัก</span>
+          <span class="pvt-nav__label">หน้าหลัก</span>
         </a>
-        <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
+        <a href="/pages/hr/hr.html" class="pvt-nav__item" title="ตรวจใบลา" id="navItemLeaveCheck">
           <span class="material-symbols-outlined">fact_check</span>
-          <span class="nav-label">ตรวจใบลา</span>
-          <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
+          <span class="pvt-nav__label">ตรวจใบลา</span>
+          <span class="pvt-nav__badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
-        <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
+        <a href="/pages/hr/management.html" class="pvt-nav__item" title="ระบบจัดการส่วนกลาง">
           <span class="material-symbols-outlined">tune</span>
-          <span class="nav-label">ระบบจัดการส่วนกลาง</span>
+          <span class="pvt-nav__label">ระบบจัดการส่วนกลาง</span>
         </a>
-        <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
+        <a href="/pages/hr/leave-stats.html" class="pvt-nav__item" title="สถิติวันลา">
           <span class="material-symbols-outlined">analytics</span>
-          <span class="nav-label">สถิติวันลา</span>
+          <span class="pvt-nav__label">สถิติวันลา</span>
         </a>
-        <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
+        <a href="/pages/hr/holidays.html" class="pvt-nav__item" title="จัดการปฏิทินวันหยุด (Admin)">
           <span class="material-symbols-outlined">calendar_month</span>
-          <span class="nav-label">จัดการวันหยุด</span>
+          <span class="pvt-nav__label">จัดการวันหยุด</span>
         </a>
-        
-        <div class="sidebar-divider"></div>
-        <div class="sidebar-section-title">บริการด่วน</div>
-        
-        <!--  ปุ่มจัดการข่าวสารองค์กร -->
-        <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
+        <a href="/pages/hr/news-management.html" class="pvt-nav__item" title="จัดการข่าวสารองค์กร">
           <span class="material-symbols-outlined">campaign</span>
-          <span class="nav-label">ข่าวสาร</span>
+          <span class="pvt-nav__label">ข่าวสาร</span>
         </a>
-
-        <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
-        <a href="/pages/hr/employee-cards.html" class="nav-item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+        <a href="/pages/hr/employee-cards.html" class="pvt-nav__item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
           <span class="material-symbols-outlined">badge</span>
-          <span class="nav-label">บัตรพนักงาน (Admin)</span>
+          <span class="pvt-nav__label">บัตรพนักงาน (Admin)</span>
         </a>
-        
-        <!-- ประวัติการเข้าสู่ระบบ -->
-        <a href="/pages/hr/login-logs.html" class="nav-item active" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+        <a href="/pages/hr/login-logs.html" class="pvt-nav__item active" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)" aria-current="page">
           <span class="material-symbols-outlined">shield_person</span>
-          <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
-        </a>
-
-        <div class="sidebar-divider"></div>
-
-        <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
-        <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
-          <span class="material-symbols-outlined">person</span>
-          <span class="nav-label">หน้าหลักของพนักงาน</span>
+          <span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>
         </a>
       </nav>
 
-      <div class="sidebar-footer">
-        <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
+      <!-- ปุ่มออกจากระบบ: layout.js ผูกการทำงานให้ผ่าน id (เรียก window.handleLogout ด้านล่าง) -->
+      <div class="pvt-sidebar__footer">
+        <button type="button" class="pvt-btn-logout" id="btnSidebarLogout" title="ออกจากระบบ">
           <span class="material-symbols-outlined">logout</span>
-          <span>ออกจากระบบ</span>
+          <span class="pvt-btn-logout__label">ออกจากระบบ</span>
         </button>
       </div>
+
+      <!-- ปุ่มวงกลมที่ขอบ: พับ/กางเมนู (PC) -->
+      <button type="button" class="pvt-sidebar__toggle" aria-label="ย่อ/ขยายเมนู" aria-expanded="true" title="ย่อเมนู">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
     </aside>
-      
-    <!-- 🚀 MAIN CONTENT ส่วนเนื้อหาหลัก -->
-    <main class="main-content">
-      
-      <!-- TOPBAR HEADER -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <div class="topbar-left-text">
-            <h1 class="page-title">🛡️ ประวัติการเข้าสู่ระบบ (Login Activity Logs)</h1>
-            <p class="page-subtitle">ระบบตรวจสอบความปลอดภัย บันทึกสถิติการยืนยันตัวตน และพิกัดอุปกรณ์แบบเต็มหน้าจอ</p>
+
+    <!-- ฉากมืดหลังเมนู (มือถือ) -->
+    <div class="pvt-overlay" aria-hidden="true"></div>
+
+    <!-- ===== MAIN: แถบหัว + เนื้อหา ===== -->
+    <main class="pvt-main" id="mainContent">
+
+      <!-- แถบหัว: ตรึงชิดบนสุด ยาวเต็มความกว้าง -->
+      <header class="pvt-topbar">
+        <div class="pvt-topbar__left">
+          <button type="button" class="pvt-topbar__burger" aria-label="เปิดเมนู" aria-expanded="false">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+          <div class="pvt-topbar__title">
+            <h1>ประวัติการเข้าสู่ระบบ</h1>
+            <p>LOGIN ACTIVITY LOGS</p>
           </div>
         </div>
 
-        <div class="topbar-right">
-          <div class="user-profile" id="headerUserProfile">
-            <div class="avatar avatar-badge notranslate" translate="no">HR</div>
-            <div class="info">
+        <div class="pvt-topbar__right">
+          <div class="pvt-topbar__actions"></div>
+          <!-- โปรไฟล์ผู้ใช้ (auth-guard.js เติมชื่อ/ตำแหน่งให้) -->
+          <div class="pvt-user" id="headerUserProfile">
+            <div class="pvt-user__avatar avatar avatar-badge notranslate" id="headerUserAvatar" translate="no">HR</div>
+            <div class="pvt-user__info">
               <strong id="headerUserName">ผู้ดูแลระบบ</strong>
               <span id="headerUserRoleDept">ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
             </div>
-            <!-- Hidden fallback spans for script references -->
-            <span id="adminUserName" style="display:none;">ผู้ดูแลระบบ</span>
-            <span id="adminUserRole" style="display:none;">ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
+            <!-- id เดิมที่ JS อาจเขียนชื่อใส่ (ซ่อนไว้) -->
+            <span id="adminUserName" hidden>ผู้ดูแลระบบ</span>
+            <span id="adminUserRole" hidden>ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
           </div>
         </div>
       </header>
-      
-      <!-- Main Page Content Area -->
-      <div class="content-body">
-        
-        <!-- 🌟 Admin Hero Banner -->
-        <section class="admin-page-hero">
-          <div class="hero-content">
-            <div class="hero-title-group">
-              <div class="hero-icon-badge">
-                <span class="material-symbols-outlined" style="font-size: 28px;">security</span>
-              </div>
-              <div>
-                <h2 style="font-size: 20px; font-weight: 800; margin: 0; color: #ffffff;">ศูนย์บันทึกประวัติการเข้าสู่ระบบ (Login Audit Center)</h2>
-                <p style="font-size: 13px; color: #94a3b8; margin: 4px 0 0 0;">
-                  ตรวจสอบความปลอดภัยการล็อกอิน บันทึก User ID, เวลา Timestamp, อุปกรณ์ และ IP Address อัตโนมัติ รองรับ พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)
-                </p>
-              </div>
-            </div>
 
-            <div class="hero-actions">
-              <button type="button" onclick="if(window.PVTPageLogsViewer){window.PVTPageLogsViewer.fetchLogs();}" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #ffffff; padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; backdrop-filter: blur(4px); transition: all 0.2s;">
-                <span class="material-symbols-outlined" style="font-size: 18px;">refresh</span> รีเฟรชข้อมูล
-              </button>
-              <button type="button" onclick="if(window.PVTPageLogsViewer){window.PVTPageLogsViewer.exportToCsv();}" style="background: #0d9488; border: none; color: #ffffff; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(13,148,136,0.3); transition: all 0.2s;">
-                <span class="material-symbols-outlined" style="font-size: 18px;">download</span> ส่งออก CSV
-              </button>
+      <!-- ===== เนื้อหาของหน้า ===== -->
+      <div class="pvt-page" id="pageContent">
+
+        <!-- ===== 1) หัวหน้า: คำอธิบาย + ปุ่มรีเฟรช / ส่งออก CSV ===== -->
+        <section class="ll-hero">
+          <div class="ll-hero-info">
+            <span class="ll-hero-icon material-symbols-outlined">security</span>
+            <div>
+              <h2>ศูนย์บันทึกการเข้าสู่ระบบ</h2>
+              <p>ตรวจสอบความปลอดภัยการล็อกอิน บันทึกผู้ใช้ เวลา อุปกรณ์ และ IP Address อัตโนมัติ รองรับ พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</p>
             </div>
+          </div>
+
+          <div class="ll-hero-actions">
+            <button type="button" class="ll-btn ll-btn--light" id="btnRefreshLogs" disabled>
+              <span class="material-symbols-outlined">refresh</span>
+              <span>รีเฟรช</span>
+            </button>
+            <button type="button" class="ll-btn ll-btn--primary" id="btnExportLogsCsv" disabled>
+              <span class="material-symbols-outlined">download</span>
+              <span>ส่งออก CSV</span>
+            </button>
           </div>
         </section>
 
-        <!-- 📊 Full-Screen Logs Viewer Container -->
-        <div id="pageLoginLogsContainer" style="width: 100%; min-height: 500px;">
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 40px 20px; text-align: center; color: #64748b;">
-            <div class="material-symbols-outlined" style="font-size: 40px; color: #0d9488; animation: spin 1s linear infinite;">progress_activity</div>
-            <div style="font-size: 15px; font-weight: 600; margin-top: 12px; color: #1e293b;">กำลังโหลดประวัติการเข้าสู่ระบบ...</div>
-            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">กำลังติดต่อฐานข้อมูล Supabase ตาราง login_logs</div>
+        <!-- ===== 2) ตารางประวัติ (LoginLogsViewerComponent render ใส่ตรงนี้) ===== -->
+        <section id="pageLoginLogsContainer" class="ll-viewer">
+          <div class="ll-state ll-state--loading">
+            <span class="material-symbols-outlined">progress_activity</span>
+            <h3>กำลังโหลดประวัติการเข้าสู่ระบบ...</h3>
+            <p>กำลังติดต่อฐานข้อมูล ตาราง login_logs</p>
           </div>
-        </div>
+        </section>
 
-      </div>
+      </div><!-- /.pvt-page -->
     </main>
-  </div>
+  </div><!-- /.pvt-app -->
 
-  <!-- Core Scripts -->
+  <!-- JS ของ Layout (พับเมนู/เมนูมือถือ/ไฮไลต์เมนู/ออกจากระบบ) -->
+  <script src="/js/layout.js"></script>
+
+  <!-- ไลบรารีภายนอก -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- JS ของระบบ
+       login-logs-viewer.js เดิมถูกคอมเมนต์ปิดไว้ → ตารางไม่เคยขึ้น เปิดกลับแล้ว -->
   <script type="module" src="/auth/supabase-config.js"></script>
   <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/components/login-logs-viewer.js"></script>
 
+  <!-- ===== JS ของหน้านี้ ===== -->
   <script>
-    // Toggle Mobile Sidebar
-    function toggleMobileSidebar() {
-      const sidebar = document.getElementById('mainSidebar');
-      if (sidebar) {
-        sidebar.classList.toggle('active');
-      }
-    }
-
-    // Explicit handleLogout function
-    window.handleLogout = window.handleLogout || async function() {
+    // ---- 1) ออกจากระบบ (layout.js เรียกฟังก์ชันนี้ตอนกดปุ่มใน sidebar) ----
+    window.handleLogout = window.handleLogout || function () {
       const performLogout = async () => {
         try {
-          if (window.supabaseClient?.auth) {
-            await window.supabaseClient.auth.signOut();
-          } else if (window.SupabaseConfig?.client?.auth) {
-            await window.SupabaseConfig.client.auth.signOut();
-          }
+          const auth = window.supabaseClient?.auth || window.SupabaseConfig?.client?.auth;
+          if (auth) await auth.signOut();
         } catch (e) {
           console.warn('Supabase signout warning:', e);
         }
         try {
           sessionStorage.setItem('pvt_explicit_logout', 'true');
-          localStorage.removeItem('currentUser');
-          localStorage.removeItem('userRole');
-          localStorage.removeItem('pvt_user');
-          localStorage.removeItem('pvt_auth_token');
-          localStorage.removeItem('supabase_session');
           localStorage.clear();
           sessionStorage.clear();
-        } catch (err) {}
+        } catch (err) { /* เบราว์เซอร์บล็อก storage: ข้ามไป */ }
         window.location.replace('/index.html?logout=true');
       };
 
-      if (typeof Swal !== 'undefined') {
-        Swal.fire({
-          title: 'ยืนยันการออกจากระบบ',
-          text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
-          icon: 'warning',
-          showConfirmButton: true,
-          showCancelButton: true,
-          confirmButtonColor: '#ef4444',
-          cancelButtonColor: '#64748b',
-          confirmButtonText: 'ตกลง (ยืนยันการออก)',
-          cancelButtonText: 'ยกเลิก',
-          reverseButtons: false,
-          focusConfirm: true,
-          customClass: {
-            popup: 'pvt-logout-popup'
-          }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            Swal.fire({
-              title: 'กำลังออกจากระบบ...',
-              text: 'ระบบกำลังล้างข้อมูลเซสชันและนำคุณกลับสู่หน้าแรก',
-              icon: 'success',
-              showConfirmButton: false,
-              timer: 800,
-              timerProgressBar: true
-            });
-            setTimeout(performLogout, 800);
-          }
-        });
-      } else {
-        if (confirm('คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่? (กด ตกลง / OK เพื่อยืนยันการออก)')) {
-          performLogout();
-        }
+      if (typeof Swal === 'undefined') {
+        if (confirm('คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?')) performLogout();
+        return;
       }
+
+      Swal.fire({
+        title: 'ยืนยันการออกจากระบบ',
+        text: 'คุณต้องการออกจากระบบ PVT Workforce Hub ใช่หรือไม่?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'ออกจากระบบ',
+        cancelButtonText: 'ยกเลิก',
+        customClass: { popup: 'pvt-logout-popup' }
+      }).then((result) => {
+        if (result.isConfirmed) performLogout();
+      });
     };
 
-    // Initialize Login Logs Viewer in Full Page Mode
+    // ---- 2) สร้างตารางประวัติแบบเต็มหน้า ----
+    // รอให้ login-logs-viewer.js (module) โหลดเสร็จ สูงสุด 10 วินาที
+    // ถ้าเกินเวลา แสดงข้อความแทนการวนเช็กไม่มีที่สิ้นสุด
     window.addEventListener('DOMContentLoaded', () => {
-      const checkAndInitViewer = () => {
-        if (window.LoginLogsViewerComponent) {
-          const viewer = new window.LoginLogsViewerComponent({
-            containerId: 'pageLoginLogsContainer',
-            limit: 500
-          });
-          window.PVTPageLogsViewer = viewer;
-          window.PVTLoginLogsViewer = viewer; // Set global alias for button handlers
-          viewer.fetchLogs();
-        } else {
-          setTimeout(checkAndInitViewer, 100);
-        }
-      };
-      checkAndInitViewer();
+      const MAX_WAIT_MS = 10000;
+      const POLL_MS = 100;
+      const startedAt = Date.now();
+
+      const container = document.getElementById('pageLoginLogsContainer');
+      const btnRefresh = document.getElementById('btnRefreshLogs');
+      const btnExport = document.getElementById('btnExportLogsCsv');
+
+      function initViewer() {
+        const viewer = new window.LoginLogsViewerComponent({
+          containerId: 'pageLoginLogsContainer',
+          limit: 500
+        });
+        window.PVTPageLogsViewer = viewer;
+        window.PVTLoginLogsViewer = viewer; // ชื่อเดิมที่ปุ่มในตารางอาจเรียกใช้
+
+        btnRefresh.addEventListener('click', () => viewer.fetchLogs());
+        btnExport.addEventListener('click', () => viewer.exportToCsv());
+        btnRefresh.disabled = false;
+        btnExport.disabled = false;
+
+        viewer.fetchLogs();
+      }
+
+      function showLoadError() {
+        container.innerHTML = `
+          <div class="ll-state ll-state--error">
+            <span class="material-symbols-outlined">error</span>
+            <h3>โหลดตัวแสดงประวัติไม่สำเร็จ</h3>
+            <p>ไม่พบไฟล์ login-logs-viewer.js หรือไฟล์มีข้อผิดพลาด กรุณารีเฟรชหน้านี้อีกครั้ง</p>
+          </div>`;
+      }
+
+      (function waitForComponent() {
+        if (window.LoginLogsViewerComponent) return initViewer();
+        if (Date.now() - startedAt > MAX_WAIT_MS) return showLoadError();
+        setTimeout(waitForComponent, POLL_MS);
+      })();
     });
   </script>
 </body>

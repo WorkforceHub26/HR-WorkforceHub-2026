@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         `,
         icon: 'error',
         confirmButtonText: '🏠 กลับหน้าหลักพนักงาน',
-        confirmButtonColor: '#06b6d4',
+        confirmButtonColor: 'var(--th-s-500, #06b6d4)',
         allowOutsideClick: false,
         allowEscapeKey: false
       });
@@ -169,7 +169,9 @@ async function initSystemAndPermissions() {
             hasLeader,
             hasManager,
             supervisor_id,
-            manager_id
+            manager_id,
+            // 'config' = HR ตั้งไว้ในหน้า ตั้งค่าสายอนุมัติ, 'hr' = แผนกบุคคล, 'fallback' = เดาจากตำแหน่ง
+            source: isHrDept ? 'hr' : (cfg ? 'config' : 'fallback')
           };
         });
         window.deptApproversMap = deptApproversMap;
@@ -366,29 +368,20 @@ function applyRoleBasedUI() {
   }
 
   // กรองเมนูด้านข้างสำหรับ Leader/Manager
+  // (layout ใหม่ใช้ .pvt-nav__item — selector เดิม .nav-menu .nav-item หาไม่เจอ เมนูจึงไม่เคยถูกซ่อน)
+  // ใช้ hidden แทน inline display + important เพื่อไม่ไปทับ CSS ของ layout
   if (sidebar) {
-    const navItems = sidebar.querySelectorAll(".nav-menu .nav-item");
+    const navItems = sidebar.querySelectorAll(".pvt-nav__item, .nav-menu .nav-item");
+    const isApproverOnly = currentRole === "leader" || currentRole === "manager";
     navItems.forEach(item => {
       const href = item.getAttribute("href") || "";
-      if (currentRole === "leader" || currentRole === "manager") {
-        // ซ่อนลิงก์ "แก้ไข/เพิ่ม ประวัติ" (Management) สำหรับผู้อนุมัติทั่วไป แต่ยังคงแสดง "หน้าหลัก" (Dashboard) ไว้ให้ใช้งานได้ปกติ
-        if (href.includes("management.html")) {
-          item.style.setProperty("display", "none", "important");
-        } else {
-          item.style.setProperty("display", "flex", "important");
-        }
-      } else {
-        // แอดมินและฝ่ายบุคคลสามารถเห็นเมนูทั้งหมดได้
-        item.style.setProperty("display", "flex", "important");
-      }
+      // ซ่อนเมนู "ระบบจัดการส่วนกลาง" สำหรับหัวหน้า/ผู้จัดการ, HR/Admin เห็นทั้งหมด
+      item.hidden = isApproverOnly && href.includes("management.html");
     });
   }
 
   if (currentRole === "leader" || currentRole === "manager") {
-    // แสดงแถบเมนูด้านข้างเสมอ เพื่อให้สามารถสลับเมนูและกดดูข้อมูลส่วนตัว/วันหยุดได้
-    if (sidebar) {
-      sidebar.style.display = "flex";
-    }
+    // แถบเมนูด้านข้าง: ให้ layout-sidebar.css คุมการแสดงผลเอง (ไม่ใส่ inline display)
     if (mainContent) {
       // ล้าง inline styles เพื่อให้สไตล์ CSS ปกติและระบบย่อขยายเมนูด้านข้าง (Collapsible Sidebar) ทำงานได้ปกติ
       mainContent.style.removeProperty("margin-left");
@@ -411,7 +404,6 @@ function applyRoleBasedUI() {
       roleBadge.className = "status-badge status-pending";
     }
   } else {
-    if (sidebar) sidebar.style.display = "flex";
     if (mainContent) {
       mainContent.style.removeProperty("margin-left");
       mainContent.style.removeProperty("width");
@@ -499,6 +491,37 @@ function canDecideCancellationRequests() {
 window.canReviewCancellationRequests = canReviewCancellationRequests;
 window.canDecideCancellationRequests = canDecideCancellationRequests;
 
+// 👤 รหัสพนักงาน (UUID) ของผู้ใช้ปัจจุบัน
+function getMyEmpId() {
+  const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const sessionUser = savedSession ? JSON.parse(savedSession) : {};
+  const id = currentUserProfile?.employees?.id || currentUserProfile?.id || sessionUser?.employees?.id || sessionUser?.id || sessionUser?.employee_id;
+  return id ? String(id) : '';
+}
+
+function isStepPending(v) {
+  return !v || String(v).trim().toLowerCase() === 'pending';
+}
+
+// 🔗 สายอนุมัติของใบลา (เฉพาะที่ HR กำหนดไว้ชัดเจน: รายบุคคล หรือ ตั้งค่าแผนก)
+//    l1 = หัวหน้างาน, l2 = ผู้จัดการ — ถ้า L1 กับ L2 เป็นคนเดียวกัน ถือว่ามีขั้นเดียว (L2)
+function resolveRequestChain(req) {
+  const emp = req?.employees || {};
+  const cfg = (window.deptApproversMap && emp.department_id) ? (window.deptApproversMap[emp.department_id] || {}) : {};
+  const fromCfg = cfg.source === 'config' || cfg.source === 'hr';
+  let l1 = String(emp.l1_approver_id || (fromCfg ? cfg.supervisor_id || '' : '') || '');
+  const l2 = String(emp.l2_approver_id || (fromCfg ? cfg.manager_id || '' : '') || '');
+  if (l1 && l1 === l2) l1 = '';
+  return { l1, l2 };
+}
+
+function stepInfoForRole(role) {
+  if (role === 'leader') return { level: 'L1', label: 'หัวหน้างาน (L1)' };
+  if (role === 'manager') return { level: 'L2', label: 'ผู้จัดการ (L2)' };
+  if (role === 'executive' || role === 'director' || role === 'owner') return { level: 'L3', label: 'ผู้บริหาร (L3)' };
+  return { level: 'HR', label: 'ฝ่ายบุคคล (HR/Admin)' };
+}
+
 function isPendingForRole(r, role) {
   if (!isPendingStatus(r.status)) return false;
 
@@ -516,6 +539,15 @@ function isPendingForRole(r, role) {
     return false;
   }
 
+  // 🔗 ใบลาที่มีขั้นอนุมัติ (ระยะ 2): รอเราเมื่อขั้นปัจจุบันมีชื่อเรา / HR เห็นทุกใบที่รอ
+  if (r.__steps && r.__steps.length) {
+    const cur = r.__steps.find((st) => st.status === 'pending');
+    if (!cur) return false;
+    const roleL = String(role || '').toLowerCase();
+    if ((cur.approver_ids || []).map(String).includes(currentEmpIdStr)) return true;
+    return roleL === 'hr' || roleL === 'admin';
+  }
+
   // 🌟 สำหรับ น.ส. ปณัยยา บุญเกิด (รหัส: 19122) ผู้จัดการฝ่ายบุคคล-ธุรการ:
   if (currentEmpCode === '19122') {
     const isDirectorPending = (r.director_status || 'pending') === 'pending';
@@ -525,15 +557,21 @@ function isPendingForRole(r, role) {
   }
 
   const userRole = String(role || '').toLowerCase();
+  const me = getMyEmpId();
+  const chain = resolveRequestChain(r);
   if (userRole === 'leader') {
-    return (r.manager_status || 'pending') === 'pending';
+    if (!isStepPending(r.manager_status)) return false;
+    // ใบลาที่ HR กำหนดหัวหน้างาน (L1) เป็นคนอื่นไว้ → ไม่ใช่คิวของเรา
+    if (chain.l1 && chain.l1 !== me && chain.l2 !== me) return false;
+    return true;
   }
   if (userRole === 'manager') {
-    // Manager handles requests waiting for L2 (director_status pending)
-    // OR requests waiting for L1 (manager_status pending) if in their scope
-    const isDirectorPending = (r.director_status || 'pending') === 'pending';
-    const isManagerPending = (r.manager_status || 'pending') === 'pending';
-    return isDirectorPending || isManagerPending;
+    // 🔢 ต้องเรียงลำดับ: ระหว่างรอหัวหน้างาน (L1) ผู้จัดการยังไม่เห็น
+    //    ยกเว้นผู้จัดการเป็น L1 ของใบนี้เอง หรือใบนี้ไม่มี L1 ที่เป็นคนอื่น
+    if (isStepPending(r.manager_status)) {
+      return !chain.l1 || chain.l1 === me;
+    }
+    return isStepPending(r.director_status);
   }
   if (userRole === 'director' || userRole === 'executive' || userRole === 'owner') {
     return (r.executive_status || 'pending') === 'pending';
@@ -745,6 +783,9 @@ function getStatusBadgeHTML(status) {
  * แผนกไหนไม่มี หัวหน้า (L1) หรือ ผู้จัดการ (L2) ให้ซ่อน/ตัดขั้นตอนนั้นออกไปเลย
  */
 function getApprovalWorkflowSteps(req) {
+  if (req.__steps && req.__steps.length && window.PVTApproval) {
+    return window.PVTApproval.toDisplaySteps(req.__steps);
+  }
   const reqEmp = req.employees || {};
   const reqDeptId = req.department_id || reqEmp.department_id;
   const deptInfo = (window.deptApproversMap && window.deptApproversMap[reqDeptId]) || 
@@ -843,10 +884,13 @@ async function loadPendingLeavesHR(isSilent = false) {
   const container = document.getElementById("leaveListContainer");
   if (!container) return;
 
+  // รีเฟรชเบื้องหลัง (polling / realtime) ระหว่างที่ผู้ใช้ติ๊กเลือกหรือเปิดรายละเอียดอยู่ → ข้ามไปก่อน
+  if (isSilent && typeof isUserBusyOnHrPage === 'function' && isUserBusyOnHrPage()) return;
+
   const sb = window.pvtSupabase?.getClient();
   if (!sb) {
     if (!isSilent) {
-      container.innerHTML = `<div class="empty-state">❌ ระบบฐานข้อมูลไม่พร้อมใช้งาน</div>`;
+      container.innerHTML = `<div class="ap-empty is-error"><span class="material-symbols-outlined">cloud_off</span><strong>ระบบฐานข้อมูลไม่พร้อมใช้งาน</strong><small>กรุณารีเฟรชหน้านี้อีกครั้ง</small></div>`;
     }
     return;
   }
@@ -977,7 +1021,8 @@ async function loadPendingLeavesHR(isSilent = false) {
           const reqExecSt = String(req.executive_status || '').toLowerCase();
           const isWaitingExecutive = (reqExecSt === 'pending' || reqExecSt === 'wait' || reqExecSt.includes('รอ'));
           
-          if (allApproved && !isWaitingExecutive) {
+          // ปิดการ "ปรับเป็นอนุมัติเอง" (เดิมไม่มีผู้อนุมัติ/ไม่ตัดวันลา) → ให้ HR กดอนุมัติจริงเพื่อมีหลักฐาน
+          if (false && allApproved && !isWaitingExecutive) {
             console.log(`💡 [Auto-Healing] ใบลา #${req.id} ผ่านการอนุมัติครบทุกระดับชั้นแล้ว (L1-L3) → ปรับสถานะเป็นอนุมัติเสร็จสิ้นโดยอัตโนมัติ`);
             // ยิงอัปเดตลงดาต้าเบสในเบื้องหลังแบบ non-blocking
             const sb = window.PVTSDK?.supabase;
@@ -1000,6 +1045,18 @@ async function loadPendingLeavesHR(isSilent = false) {
       }
       return req;
     });
+
+    // 🔗 ขั้นอนุมัติของแต่ละใบ (ระยะ 2) — โหลดเฉพาะใบที่ยังรอ หรือยื่นภายใน 90 วัน
+    if (window.PVTApproval) {
+      try {
+        const since = Date.now() - 90 * 864e5;
+        const ids = rawData.filter((r) => isPendingStatus(r.status) || r.current_step != null || new Date(r.created_at).getTime() > since).map((r) => r.id);
+        const stepMap = await window.PVTApproval.getStepsForLeaves(ids);
+        rawData.forEach((r) => { if (stepMap[r.id]) r.__steps = stepMap[r.id]; });
+      } catch (stepErr) {
+        console.warn('⚠️ [Approval Chain] โหลดขั้นอนุมัติไม่สำเร็จ:', stepErr);
+      }
+    }
 
     // ระบุตัวตนของผู้ใช้งานปัจจุบันให้ชัดเจน (ต้องเป็น Employee UUID)
     const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
@@ -1046,6 +1103,11 @@ async function loadPendingLeavesHR(isSilent = false) {
         const isSelf = currentEmpIdStr && (reqEmpId === currentEmpIdStr || String(req.employee_id || '') === currentEmpIdStr);
         if (isSelf) {
           return false;
+        }
+
+        // 🔗 ใบลาที่มีขั้นอนุมัติ: เห็นเมื่อเราเป็นผู้อนุมัติขั้นใดขั้นหนึ่งของใบนั้น
+        if (req.__steps && req.__steps.length) {
+          return req.__steps.some((st) => (st.approver_ids || []).map(String).includes(currentEmpIdStr));
         }
 
         // 🎯 ตรวจสอบความสอดคล้องของแผนก (Same Department Check)
@@ -1153,12 +1215,17 @@ async function loadPendingLeavesHR(isSilent = false) {
     console.error("💥 Critical Failure in loadPendingLeavesHR:", err);
     if (container) {
       container.innerHTML = `
-        <div class="empty-state" style="padding: 60px 20px;">
-          <span class="material-symbols-outlined" style="font-size: 48px; color: var(--danger); margin-bottom: 16px;">error</span>
-          <h3 style="margin-bottom: 8px;">ไม่สามารถโหลดข้อมูลได้</h3>
-          <p style="color: var(--text-soft); font-size: 14px;">${err.message}</p>
-          <button onclick="loadPendingLeavesHR()" class="btn-primary" style="margin-top: 20px; padding: 8px 24px;">🔄 ลองใหม่อีกครั้ง</button>
+        <div class="ap-empty is-error">
+          <span class="material-symbols-outlined">error</span>
+          <strong>ไม่สามารถโหลดข้อมูลได้</strong>
+          <small>${escapeHtml(err?.message || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ')}</small>
+          <button type="button" onclick="loadPendingLeavesHR()" class="ap-btn ap-btn--primary">
+            <span class="material-symbols-outlined">refresh</span> ลองใหม่อีกครั้ง
+          </button>
         </div>`;
+      // แท็บ "รออนุมัติ" ซ่อนกล่องรายการไว้ → ต้องเปิดให้เห็นข้อความผิดพลาด
+      const panel = document.getElementById("leaveTablePanel");
+      if (panel) panel.style.display = "block";
     }
   }
 }
@@ -1191,7 +1258,7 @@ window.switchLeaveTab = function(tabName, btnEl) {
       icon: 'info',
       title: 'คำขอยกเลิกส่งให้ HR/Admin',
       text: 'ขั้นตอนการยกเลิกหลังผ่านการอนุมัติจะถูกตรวจสอบโดย HR/Admin เท่านั้น',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
     return;
   }
@@ -1231,7 +1298,8 @@ window.switchLeaveTab = function(tabName, btnEl) {
    🔒 SEQUENTIAL APPROVAL GUARD (UPDATED FOR FLEXIBLE WORKFLOW)
    ========================================================================== */
 
-function canApproveStep(req, role) {
+function canApproveStep(req, role, silent = false) {
+  const warn = (...args) => { if (!silent) Swal.fire(...args); };
   // ดึงข้อมูลผู้ใช้งานปัจจุบันที่กำลังกดปุ่ม
   const savedSession = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
   const sessionUser = savedSession ? JSON.parse(savedSession) : {};
@@ -1243,13 +1311,22 @@ function canApproveStep(req, role) {
 
   // 🛑 1. ป้องกันการกดอนุมัติใบลาของตัวเอง (Self-Approval Guard) - ยกเว้น Admin สำหรับทดสอบ
   if (!isAdminOrSuper && currentEmpId && String(req.employee_id) === String(currentEmpId)) {
-    Swal.fire({
+    warn({
       title: 'ไม่สามารถทำรายการได้',
       text: 'คุณไม่สามารถกดอนุมัติใบลาของตนเองได้ กรุณาให้ผู้จัดการฝ่าย หรือ ผู้บริหาร/HR เป็นผู้อนุมัติ',
       icon: 'warning',
-      confirmButtonColor: '#06b6d4'
+      confirmButtonColor: 'var(--th-s-500, #06b6d4)'
     });
     return false;
+  }
+
+  // 🔗 ใบลาที่มีขั้นอนุมัติ (ระยะ 2)
+  if (req.__steps && req.__steps.length && window.PVTApproval) {
+    if (!isPendingStatus(req.status)) { warn('ดำเนินการแล้ว', 'ใบลานี้ไม่ได้อยู่ในสถานะรอพิจารณาแล้ว', 'info'); return false; }
+    const actor = window.PVTApproval.me();
+    const check = window.PVTApproval.canAct(window.PVTApproval.currentStep(req.__steps), actor, role);
+    if (!check.ok) { warn('ยังไม่ถึงขั้นของท่าน', check.reason, 'info'); return false; }
+    return true;
   }
 
   // ดึงสถานะปัจจุบันของแต่ละขั้น
@@ -1259,7 +1336,12 @@ function canApproveStep(req, role) {
   const isFinalApproved = req.status === 'approved';
 
   if (isFinalApproved) {
-    Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
+    warn('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
+    return false;
+  }
+
+  if (!isPendingStatus(req.status)) {
+    warn('ดำเนินการแล้ว', 'ใบลานี้ไม่ได้อยู่ในสถานะรอพิจารณาแล้ว', 'info');
     return false;
   }
 
@@ -1274,16 +1356,32 @@ function canApproveStep(req, role) {
 
   if (isExecutiveUser) {
     if (isL3Approved && isFinalApproved) {
-      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
+      warn('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
       return false;
     }
     return true;
   }
 
+  // 🔢 ตรวจลำดับขั้นตามสายอนุมัติที่ HR กำหนด
+  const me = currentEmpId ? String(currentEmpId) : getMyEmpId();
+  const chain = resolveRequestChain(req);
+  if (role === 'leader' && chain.l1 && chain.l1 !== me && chain.l2 !== me) {
+    warn('ไม่ใช่ผู้อนุมัติของใบลานี้', 'ใบลานี้กำหนดให้หัวหน้างานท่านอื่นเป็นผู้พิจารณา', 'info');
+    return false;
+  }
+  if (role === 'manager' && !isL1Approved && chain.l1 && chain.l1 !== me) {
+    warn('รอหัวหน้างานพิจารณาก่อน', 'ใบลานี้ยังรอหัวหน้างาน (L1) พิจารณา เมื่อหัวหน้างานอนุมัติแล้วระบบจะแจ้งให้ท่านพิจารณาต่อ', 'info');
+    return false;
+  }
+  if (role === 'manager' && isL2Approved) {
+    warn('ดำเนินการแล้ว', 'ท่านพิจารณาใบลานี้แล้ว อยู่ระหว่างรอขั้นถัดไป', 'info');
+    return false;
+  }
+
   // 🔵 3. กรณีหัวหน้างาน (L1 Leader) กำลังพิจารณา
   if (role === 'leader') {
     if (isL1Approved) {
-      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้หัวหน้างาน (L1) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/ผู้บริหาร', 'info');
+      warn('ดำเนินการแล้ว', 'คำขอนี้หัวหน้างาน (L1) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/ผู้บริหาร', 'info');
       return false;
     }
   }
@@ -1291,7 +1389,7 @@ function canApproveStep(req, role) {
   // 🔵 4. กรณีผู้จัดการ (L2 Manager) กำลังพิจารณา
   if (role === 'manager') {
     if (isL2Approved && isL3Approved) {
-      Swal.fire('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
+      warn('ดำเนินการแล้ว', 'คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว', 'info');
       return false;
     }
   }
@@ -1402,9 +1500,10 @@ function renderLeaveTable() {
   }
 
   if (filteredRequests.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="padding: 80px 20px; text-align: center; color: var(--text-soft); font-style: italic;">
-      <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.2; display: block; margin-bottom: 12px;">inbox</span>
-      ไม่พบรายการใบลาตามเงื่อนไขที่เลือก
+    container.innerHTML = `<div class="ap-empty">
+      <span class="material-symbols-outlined">inbox</span>
+      <strong>ไม่พบรายการใบลาตามเงื่อนไขที่เลือก</strong>
+      <small>ลองล้างคำค้นหา หรือเปลี่ยนตัวกรองสถานะ</small>
     </div>`;
     return;
   }
@@ -1526,7 +1625,7 @@ function renderLeaveTable() {
     const isPendingTab = (currentLeaveTab === "pending" && currentRole !== 'hr' && currentRole !== 'admin');
     const checkboxHTML = isPendingTab ? `
       <div class="bulk-check-wrapper" style="display: flex; align-items: center; justify-content: center; padding-right: 12px; margin-right: 4px;">
-        <input type="checkbox" class="bulk-item-check" data-id="${req.id}" onclick="handleBulkItemCheckChange()" style="width: 18px; height: 18px; cursor: pointer; accent-color: #0d9488;">
+        <input type="checkbox" class="bulk-item-check" data-id="${req.id}" onclick="handleBulkItemCheckChange()" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--th-p-600, #0d9488);">
       </div>
     ` : '';
 
@@ -1726,7 +1825,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
 
   if (modalHeaderTitle) {
     modalHeaderTitle.innerHTML = isReviewMode
-      ? '<span class="material-symbols-outlined" style="color: #0d9488;">gavel</span> พิจารณาอนุมัติคำขอลาหยุดงาน'
+      ? '<span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488);">gavel</span> พิจารณาอนุมัติคำขอลาหยุดงาน'
       : '<span class="material-symbols-outlined">description</span> ตรวจสอบรายละเอียดใบขออนุมัติลา';
   }
 
@@ -1819,7 +1918,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
     <div class="workflow-section" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f0fdfa; color: #0d9488; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--th-p-50, #f0fdfa); color: var(--th-p-600, #0d9488); display: flex; align-items: center; justify-content: center;">
             <span class="material-symbols-outlined" style="font-size: 20px;">timeline</span>
           </div>
           <div>
@@ -2037,8 +2136,59 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
     }
   }
 
+  // 🧾 ประวัติการพิจารณาทุกขั้น (หลักฐาน)
+  if (modalBody && window.PVTLeaveAudit) {
+    const tl = document.createElement('div');
+    tl.id = 'leaveAuditTimeline';
+    tl.style.cssText = 'margin-top:16px;';
+    modalBody.appendChild(tl);
+    renderLeaveAuditTimeline(leaveId, tl);
+  }
+
   modal.classList.add("active");
 }
+
+const AUDIT_ACTION_UI = {
+  submitted:        { icon: 'send',          color: '#2563eb', text: 'ยื่นใบลา' },
+  step_approved:    { icon: 'check',         color: '#0f766e', text: 'อนุมัติขั้นนี้ (ส่งต่อขั้นถัดไป)' },
+  approved:         { icon: 'verified',      color: '#15803d', text: 'อนุมัติขั้นสุดท้าย' },
+  rejected:         { icon: 'close',         color: '#dc2626', text: 'ไม่อนุมัติ' },
+  auto_rejected:    { icon: 'timer_off',     color: '#b45309', text: 'ไม่อนุมัติอัตโนมัติ (ค้างเกิน 48 ชม.)' },
+  cancelled:        { icon: 'block',         color: '#64748b', text: 'ยกเลิกใบลา' },
+  cancel_requested: { icon: 'undo',          color: '#b45309', text: 'ขอยกเลิกใบลา' },
+  cancel_approved:  { icon: 'block',         color: '#64748b', text: 'HR อนุมัติการยกเลิก' },
+  cancel_rejected:  { icon: 'undo',          color: '#0f766e', text: 'HR ไม่อนุมัติการยกเลิก' },
+  reassigned:       { icon: 'swap_horiz',    color: '#7c3aed', text: 'HR โอนผู้อนุมัติ' }
+};
+
+async function renderLeaveAuditTimeline(leaveId, el) {
+  if (!el) return;
+  el.innerHTML = '<div style="font-size:13px;color:#64748b;">กำลังโหลดประวัติการพิจารณา...</div>';
+  const rows = await window.PVTLeaveAudit.history(leaveId);
+  const fmt = (iso) => {
+    try { return new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return iso || '-'; }
+  };
+  const items = rows.map((r) => {
+    const ui = AUDIT_ACTION_UI[r.action] || { icon: 'info', color: '#64748b', text: r.action };
+    return `
+      <li style="display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed #e2e8f0;">
+        <span class="material-symbols-outlined" style="flex:0 0 26px;width:26px;height:26px;border-radius:50%;background:${ui.color}1a;color:${ui.color};font-size:16px;display:flex;align-items:center;justify-content:center;">${ui.icon}</span>
+        <div style="flex:1;min-width:0;font-size:13px;line-height:1.5;">
+          <div style="font-weight:700;color:#0f172a;">${escapeHtml(ui.text)}${r.step_label ? ` <span style="font-weight:500;color:#64748b;">· ${escapeHtml(r.step_label)}</span>` : ''}</div>
+          <div style="color:#475569;">โดย ${escapeHtml(r.actor_name || '-')} · ${escapeHtml(fmt(r.created_at))}</div>
+          ${r.comment ? `<div style="color:#334155;margin-top:2px;">💬 ${escapeHtml(r.comment)}</div>` : ''}
+        </div>
+      </li>`;
+  }).join('');
+  el.innerHTML = `
+    <div style="font-weight:800;font-size:14px;color:#0f172a;display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+      <span class="material-symbols-outlined" style="font-size:18px;">history</span> ประวัติการพิจารณา (หลักฐาน)
+    </div>
+    ${rows.length
+      ? `<ul style="list-style:none;margin:0;padding:0;">${items}</ul>`
+      : '<div style="font-size:12.5px;color:#94a3b8;">ยังไม่มีบันทึก (ใบลาที่ยื่นก่อนเปิดใช้ระบบบันทึกหลักฐาน)</div>'}`;
+}
+window.renderLeaveAuditTimeline = renderLeaveAuditTimeline;
 
 function closePreviewModal() {
   const modal = document.getElementById("leavePreviewModal");
@@ -2123,7 +2273,7 @@ function buildLeaveActionConfirmDialogHtml(reqData, roleTitle, actionType = 'app
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #ffffff; border-radius: 10px; padding: 10px 12px; border: 1px solid #e2e8f0; font-size: 13px;">
           <div>
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ประเภทการลา</span>
-            <strong style="color: #0d9488; font-size: 13.5px;">${escapeHtml(leaveName)}</strong>
+            <strong style="color: var(--th-p-600, #0d9488); font-size: 13.5px;">${escapeHtml(leaveName)}</strong>
           </div>
           <div>
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">จำนวนเวลาลา</span>
@@ -2164,6 +2314,236 @@ function buildLeaveActionConfirmDialogHtml(reqData, roleTitle, actionType = 'app
   `;
 }
 
+/* ==========================================================================
+   ✅ ขั้นตอนอนุมัติ (ใช้ร่วมกัน: อนุมัติทีละใบ และอนุมัติกลุ่ม)
+   - อัปเดตแบบมีเงื่อนไข: ต้องยังรออยู่ที่ขั้นนี้ (กันกดซ้ำ / สองคนกดพร้อมกัน)
+   - ทุกขั้นครบ → อนุมัติขั้นสุดท้ายอัตโนมัติ
+   - ตัดยอดวันลา "หลัง" บันทึกผลสำเร็จเท่านั้น
+   - บันทึกหลักฐานทุกขั้น (leave_approval_logs) และแจ้ง HR เมื่อจบ (ในระบบ ไม่ส่ง LINE)
+   - แจ้ง LINE ผู้อนุมัติขั้นถัดไป
+   ========================================================================== */
+async function performApprovalStep(reqData) {
+  // 🔗 ใบลาที่มีขั้นอนุมัติ (ระยะ 2) → ใช้ตัวจัดการสายอนุมัติ
+  if (reqData.__steps && reqData.__steps.length && window.PVTApproval) {
+    const res = await window.PVTApproval.approve(reqData.id, { actorRole: currentRole });
+    if (res.ok || res.reason !== 'no_steps') {
+      return { ok: res.ok, final: !!res.final, balanceError: res.balanceError || null, reason: res.reason, nextLabel: res.nextLabel };
+    }
+  }
+  const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
+  if (!sb) throw new Error('ไม่สามารถเชื่อมต่อฐานข้อมูลได้');
+  const me = getMyEmpId();
+  const chain = resolveRequestChain(reqData);
+  const nowIso = new Date().toISOString();
+
+  // หัวหน้างานที่เป็นผู้จัดการ (L2) ของใบนี้ด้วย → อนุมัติทั้งสองขั้นในครั้งเดียว
+  let actRole = currentRole;
+  if (actRole === 'leader' && chain.l2 && chain.l2 === me) actRole = 'manager';
+  const isExecActor = actRole === 'executive' || actRole === 'director' || actRole === 'owner' ||
+    (window.executiveApproverId && me === String(window.executiveApproverId));
+
+  if (window.PVTSDK?.user?.ensureLeaveBalances) {
+    await window.PVTSDK.user.ensureLeaveBalances(reqData.employee_id, reqData.start_date);
+  }
+
+  const updateFields = {};
+  let guardField = null;
+  if (actRole === 'leader') {
+    updateFields.manager_status = 'approved';
+    guardField = 'manager_status';
+    // แผนกไม่มีผู้จัดการ (L2) → ข้าม L2
+    const deptInfo = deptApproversMap[reqData.employees?.department_id] || {};
+    const hasManagerInDept = Boolean(chain.l2) || deptInfo.hasManager || Boolean(reqData.employees?.l2_approver_id);
+    if (!hasManagerInDept) updateFields.director_status = 'approved';
+  } else if (actRole === 'manager') {
+    updateFields.director_status = 'approved';
+    guardField = 'director_status';
+    if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+    const needsExecutive = isLeaderOrManagerRole(reqData.employees?.role, reqData.employees?.positions?.position_name) ||
+      Boolean(reqData.employees?.l3_approver_id);
+    if (!needsExecutive && reqData.executive_status !== 'approved') updateFields.executive_status = 'approved';
+  } else if (isExecActor) {
+    if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+    if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
+    updateFields.executive_status = 'approved';
+  } else {
+    // HR / Admin (อนุมัติแทนได้ทุกขั้น)
+    if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
+    if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
+    updateFields.executive_status = 'approved';
+  }
+
+  // ทุกขั้นผ่านครบ → อนุมัติขั้นสุดท้าย
+  const merged = Object.assign({}, reqData, updateFields);
+  const allStepsApproved = ['manager_status', 'director_status', 'executive_status']
+    .every((f) => String(merged[f] || '').toLowerCase() === 'approved');
+  const isFinal = allStepsApproved;
+  if (isFinal) {
+    updateFields.status = 'approved';
+    updateFields.approved_at = nowIso;
+    if (me) updateFields.approved_by = me;
+  }
+  updateFields.updated_at = nowIso;
+
+  // 🔄 อนุมัติแทนตาม Auto-Delegation (หัวหน้าลาพักร้อน) → เก็บเป็นหมายเหตุ
+  let delegationNote = '';
+  if (window.AutoDelegationService) {
+    try {
+      const delegation = await window.AutoDelegationService.resolveDelegationForRequest(reqData);
+      if (delegation && delegation.isDelegated) {
+        const actorName = currentUserProfile?.full_name || 'ผู้รักษาการแทน';
+        delegationNote = `[Auto-Delegation] อนุมัติโดย ${actorName} รักษาการแทน ${delegation.originalApproverName} (${delegation.reason})`;
+        updateFields.approval_comment = delegationNote;
+      }
+    } catch (delErr) {
+      console.warn("[Auto-Delegation] Audit resolution error:", delErr);
+    }
+  }
+
+  // 🛡️ บันทึกเฉพาะเมื่อใบลายังอยู่ในสถานะเดิม (มีคนกดไปก่อน → ไม่มีแถวถูกแก้)
+  let q = sb.from('leave_requests').update(updateFields).eq('id', reqData.id).eq('status', reqData.status || 'pending');
+  if (guardField) q = q.or(`${guardField}.is.null,${guardField}.eq.pending`);
+  const { data: changed, error: updateErr } = await q.select('id');
+  if (updateErr) throw updateErr;
+  if (!changed || !changed.length) return { ok: false, reason: 'stale' };
+
+  // ตัดยอดวันลาหลังบันทึกผลสำเร็จ
+  let balanceError = null;
+  if (isFinal && window.PVTSDK?.user?.updateLeaveBalance) {
+    try {
+      const leaveDays = await getEffectiveLeaveDays(reqData);
+      const currentYear = getADYear(reqData.start_date);
+      await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, reqData.leave_types?.leave_code || null, currentYear, leaveDays);
+    } catch (balErr) {
+      balanceError = balErr?.message || String(balErr);
+    }
+  }
+
+  // 🧾 หลักฐาน + แจ้ง HR เมื่อจบ
+  const step = isExecActor ? stepInfoForRole('executive') : stepInfoForRole(actRole);
+  const stepLabel = (currentRole === 'leader' && actRole === 'manager') ? 'หัวหน้างาน + ผู้จัดการ (L1+L2 คนเดียวกัน)' : step.label;
+  const auditOpts = {
+    stepLevel: step.level, stepLabel, comment: delegationNote || null,
+    statusBefore: reqData.status || 'pending', statusAfter: isFinal ? 'approved' : 'pending',
+    meta: balanceError ? { balance_error: balanceError } : undefined
+  };
+  if (window.PVTLeaveAudit) {
+    if (isFinal) await window.PVTLeaveAudit.recordOutcome(reqData, 'approved', auditOpts);
+    else await window.PVTLeaveAudit.log(reqData, 'step_approved', auditOpts);
+  }
+
+  // 🔔 แจ้งพนักงานในระบบ (ข้อความตามขั้นจริง) — ขั้นสุดท้าย SDK (REQUEST_APPROVED) บันทึกให้แล้ว
+  if (!(isFinal && window.PVTSDK?.line)) try {
+    const leaveName = reqData.leave_types?.leave_name || 'ใบลา';
+    await sb.from('notifications').insert({
+      employee_id: reqData.employee_id,
+      title: isFinal ? 'ใบลาของคุณได้รับการอนุมัติแล้ว' : `ใบลาของคุณผ่านการพิจารณาของ${stepLabel}แล้ว`,
+      message: isFinal
+        ? `ใบลาประเภท ${leaveName} วันที่ ${reqData.start_date} ได้รับการอนุมัติเรียบร้อยแล้ว`
+        : `ใบลาประเภท ${leaveName} วันที่ ${reqData.start_date} ผ่านการพิจารณาของ${stepLabel}แล้ว อยู่ระหว่างรอผู้อนุมัติขั้นถัดไป`,
+      type: 'leave',
+      link_url: '/pages/user/leave-history.html'
+    });
+  } catch (e) {
+    console.warn('⚠️ แจ้งพนักงานไม่สำเร็จ:', e);
+  }
+
+  // 💬 LINE: ผู้อนุมัติขั้นถัดไป / พนักงาน (เมื่อจบ) — ไม่ส่ง LINE หา HR
+  if (!isFinal) {
+    await notifyNextApproverByLine(reqData, actRole, chain, merged);
+  } else if (window.PVTSDK?.line) {
+    try {
+      await window.PVTSDK.line.sendWorkflowNotification({
+        type: 'REQUEST_APPROVED',
+        recipientId: reqData.employee_id,
+        recipientLineId: reqData.employees?.line_id || '',
+        leaveId: reqData.id,
+        employeeName: reqData.employees?.full_name || 'พนักงาน',
+        employeeCode: reqData.employees?.employee_code || '',
+        departmentName: reqData.employees?.departments?.department_name || '',
+        recipientRole: 'employee',
+        leaveType: reqData.leave_types?.leave_name || 'ใบลา',
+        startDate: reqData.start_date,
+        endDate: reqData.end_date,
+        totalDays: reqData.total_days,
+        comment: 'ใบลาของคุณได้รับการอนุมัติเรียบร้อยแล้ว',
+        attachmentUrl: reqData.attachment_url || ""
+      });
+    } catch (lineErr) {
+      console.warn("⚠️ [Workflow Notification] Approval notice error to employee:", lineErr);
+    }
+  }
+
+  return { ok: true, final: isFinal, balanceError };
+}
+
+// 💬 แจ้ง LINE ผู้อนุมัติขั้นถัดไป (+ แจ้งในระบบ)
+async function notifyNextApproverByLine(reqData, actRole, chain, merged) {
+  const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
+  if (!sb) return;
+  try {
+    let nextId = null, recipientRole = 'manager', type = 'LEADER_APPROVED';
+    if (isStepPending(merged.director_status)) {
+      nextId = chain.l2 || null;
+      if (!nextId && reqData.employees?.department_id) {
+        const { data: cfg } = await sb.from('department_approvers').select('manager_id').eq('department_id', reqData.employees.department_id).maybeSingle();
+        nextId = cfg?.manager_id || null;
+      }
+      recipientRole = 'manager';
+      type = 'LEADER_APPROVED';
+    } else if (isStepPending(merged.executive_status)) {
+      nextId = reqData.employees?.l3_approver_id || null;
+      if (!nextId) {
+        const { data: executiveSetting } = await sb.from('system_settings').select('employee_id').eq('setting_key', 'leave_executive_approver').maybeSingle();
+        nextId = executiveSetting?.employee_id || null;
+      }
+      recipientRole = 'executive';
+      type = actRole === 'leader' ? 'LEADER_APPROVED' : 'MANAGER_APPROVED';
+    }
+    if (!nextId) {
+      console.warn('⚠️ [Next Approver] ไม่พบผู้อนุมัติขั้นถัดไป — HR/Admin จะเห็นในรายการรออนุมัติ');
+      return;
+    }
+
+    const { data: nextEmp } = await sb.from('employees').select('id, full_name, line_id').eq('id', nextId).maybeSingle();
+    const applicantName = reqData.employees?.full_name || 'พนักงาน';
+    const deptName = reqData.employees?.departments?.department_name || '';
+    const leaveTypeName = reqData.leave_types?.leave_name || 'ใบลา';
+
+    // แจ้งในระบบ (ถ้ามี SDK LINE จะบันทึกแจ้งเตือนในระบบให้เองแล้ว)
+    if (!window.PVTSDK?.line) await sb.from('notifications').insert({
+      employee_id: nextId,
+      title: `มีใบลารอท่านพิจารณา: ${applicantName}`,
+      message: `พนักงาน: ${applicantName} (${reqData.employees?.employee_code || '-'})\nแผนก: ${deptName || '-'}\nประเภท: ${leaveTypeName}\nวันที่: ${reqData.start_date} ถึง ${reqData.end_date}\n(ผ่านการพิจารณาขั้นก่อนหน้าแล้ว)`,
+      type: 'leave',
+      link_url: '/pages/approver/leave-approvals.html'
+    });
+
+    if (window.PVTSDK?.line) {
+      const nextLineId = nextEmp?.line_id || '';
+      await window.PVTSDK.line.sendWorkflowNotification({
+        type,
+        recipientId: nextId,
+        recipientLineId: nextLineId,
+        leaveId: reqData.id,
+        employeeName: applicantName,
+        employeeCode: reqData.employees?.employee_code || '',
+        departmentName: deptName,
+        recipientRole,
+        leaveType: leaveTypeName,
+        startDate: reqData.start_date,
+        endDate: reqData.end_date,
+        totalDays: reqData.total_days,
+        comment: reqData.approval_comment || 'ผ่านการพิจารณาขั้นก่อนหน้าแล้ว เห็นควรอนุมัติ',
+        attachmentUrl: reqData.attachment_url || ""
+      });
+      if (!nextLineId) console.warn('⚠️ [LINE OA] ผู้อนุมัติขั้นถัดไปยังไม่ได้ผูก LINE');
+    }
+  } catch (err) {
+    console.warn('⚠️ [Next Approver] แจ้งผู้อนุมัติขั้นถัดไปไม่สำเร็จ:', err);
+  }
+}
+
 async function approveLeave(leaveId) {
   const reqData = allLeaveRequests.find(r => r.id === leaveId);
   if (!reqData) return;
@@ -2183,7 +2563,9 @@ async function approveLeave(leaveId) {
     : 'ฝ่ายบุคคล HR / Admin';
 
   // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการอนุมัติเพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
-  const result = await Swal.fire({
+  // ⚡ ข้ามได้ถ้าเปิด "ระบบอนุมัติเร็วแบบคลิกเดียว" ในหน้าต่างตั้งค่า (pvt_double_confirm = "false")
+  const isQuickApprove = localStorage.getItem("pvt_double_confirm") === "false";
+  const result = isQuickApprove ? { isConfirmed: true } : await Swal.fire({
     title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ยืนยันอนุมัติคำขอลา</span>',
     html: buildLeaveActionConfirmDialogHtml(reqData, roleTitle, 'approve'),
     icon: 'question',
@@ -2206,336 +2588,18 @@ async function approveLeave(leaveId) {
   if (!result.isConfirmed) return;
   if (typeof closePreviewModal === 'function') closePreviewModal();
 
-  const sb = window.pvtSupabase?.getClient();
-  if (!sb) return;
-
   Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
   try {
-    let updateFields = {};
-
-    // 🛡️ ตรวจสอบและสร้างโควตาวันลาใน leave_balances อัตโนมัติ (รองรับทั้งปี ค.ศ. และ พ.ศ. 2569) เพื่อป้องกัน Trigger Error
-    if (window.PVTSDK?.user?.ensureLeaveBalances) {
-      await window.PVTSDK.user.ensureLeaveBalances(reqData.employee_id, reqData.start_date);
+    const outcome = await performApprovalStep(reqData);
+    if (!outcome.ok) {
+      await Swal.fire('ไม่สามารถอนุมัติได้', outcome.reason || 'มีผู้พิจารณาใบลานี้ไปก่อนหน้าแล้ว ระบบจะแสดงสถานะล่าสุดให้', 'info');
+      loadPendingLeavesHR();
+      return;
     }
-
-    if (currentRole === 'leader') {
-      // ✅ L1 อนุมัติ (หัวหน้างาน / Supervisor)
-      updateFields.manager_status = 'approved';
-
-      // 🔀 ตรวจสายอนุมัติของแผนก
-      // ถ้าแผนกนี้ไม่มี ผู้จัดการ (L2) ให้ข้าม L2 และอนุมัติทันที (ถ้าไม่มี L3)
-      const deptId = reqData.employees?.department_id || null;
-      const deptInfo = deptApproversMap[deptId] || {};
-      const hasManagerInDept = deptInfo.hasManager || Boolean(reqData.employees?.l2_approver_id);
-
-      if (!hasManagerInDept) {
-        console.log('ℹ️ [Approval Routing] แผนกนี้ไม่มี ผู้จัดการ (L2) → ข้าม L2');
-        updateFields.director_status = 'approved';
-        if (!hasExecutiveColumn) {
-          updateFields.status = 'approved';
-          updateFields.approved_at = new Date().toISOString();
-        }
-      }
-    } else if (currentRole === 'manager') {
-      // ✅ L2 อนุมัติ (ผู้จัดการฝ่าย / Department Manager)
-      updateFields.director_status = 'approved';
-      if (reqData.manager_status !== 'approved') {
-        updateFields.manager_status = 'approved';
-      }
-      if (hasExecutiveColumn) {
-        const isApplicantLeaderOrManager = isLeaderOrManagerRole(reqData.employees?.role, reqData.employees?.positions?.position_name);
-        if (!isApplicantLeaderOrManager) {
-          updateFields.executive_status = 'approved';
-          updateFields.status = 'approved';
-          updateFields.approved_at = new Date().toISOString();
-        }
-      } else {
-        updateFields.status = 'approved';
-        updateFields.approved_at = new Date().toISOString();
-      }
-    } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner' || (window.executiveApproverId && String(currentEmpId) === String(window.executiveApproverId))) {
-      // ✅ L3 อนุมัติ (ผู้บริหารระดับสูง / Director / Executive)
-      if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
-      if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
-      if (hasExecutiveColumn) {
-        updateFields.executive_status = 'approved';
-      }
-      updateFields.status = 'approved';
-      updateFields.approved_at = new Date().toISOString();
-    } else {
-      // ✅ L4 / ขั้นสุดท้าย (ฝ่ายบุคคล HR / Super Admin) - เก็บเป็น fallback เผื่อมีสิทธิพิเศษอื่น แต่อนุมัติสำเร็จทันที
-      if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
-      if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
-      if (hasExecutiveColumn) updateFields.executive_status = 'approved';
-      updateFields.status = 'approved';
-      updateFields.approved_at = new Date().toISOString();
-    }
-
-    if (updateFields.status === 'approved' && currentEmpId) {
-      updateFields.approved_by = currentEmpId;
-    }
-
-    // หักยอดวันลาหากได้รับการอนุมัติขั้นสุดท้ายเรียบร้อยแล้ว (status = approved)
-    if (updateFields.status === 'approved') {
-      const leaveDays = await getEffectiveLeaveDays(reqData);
-      const currentYear = getADYear(reqData.start_date);
-
-      if (window.PVTSDK?.user?.updateLeaveBalance) {
-        const lCode = reqData.leave_types?.leave_code || null;
-        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
-      }
-    }
-
-    // 🔄 ตรวจสอบว่าเป็นการอนุมัติแทนตามระบบ Auto-Delegation หรือไม่ (เมื่อหัวหน้าลาพักร้อน)
-    if (window.AutoDelegationService) {
-      try {
-        const delegation = await window.AutoDelegationService.resolveDelegationForRequest(reqData);
-        if (delegation && delegation.isDelegated) {
-          const actorName = currentUserProfile?.full_name || 'ผู้รักษาการแทน';
-          updateFields.approval_comment = `[Auto-Delegation] อนุมัติโดย ${actorName} รักษาการแทน ${delegation.originalApproverName} (${delegation.reason})`;
-        }
-      } catch (delErr) {
-        console.warn("[Auto-Delegation] Audit resolution error:", delErr);
-      }
-    }
-
-    const { error: updateErr } = await sb
-      .from('leave_requests')
-      .update(updateFields)
-      .eq('id', leaveId);
-
-    if (updateErr) throw updateErr;
-
-    // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล (In-app)
-    const notificationTitle = `ใบลาของคุณได้รับการอนุมัติ (ขั้นสุดท้าย)`;
-    const notificationMessage = `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติเรียบร้อยแล้ว`;
-    
-    await sb.from('notifications').insert({
-      employee_id: reqData.employee_id,
-      title: notificationTitle,
-      message: notificationMessage,
-      type: 'leave',
-      link_url: '/pages/user/index-user.html'
-    });
-
-    // 💬 ส่งแจ้งเตือน LINE โดยอัตโนมัติผ่าน SDK ด้านล่าง (ส่ง Flex Message)
-    if (window.PVTSDK?.line) {
-      try {
-        const applicantName = reqData.employees?.full_name || 'พนักงาน';
-        const applicantCode = reqData.employees?.employee_code || '';
-        const applicantLineId = reqData.employees?.line_id || '';
-        const leaveTypeName = reqData.leave_types?.leave_name || 'ใบลา';
-
-        if (currentRole === 'leader') {
-          // 🔀 ใช้ Manager L2 ที่ Admin กำหนดไว้ในตาราง departments
-          const deptId = reqData.employees?.department_id || null;
-          const deptName = reqData.employees?.departments?.department_name || '';
-
-          let managerId = null;
-
-          if (deptId) {
-            const { data: approverConfig, error: approverError } = await sb
-              .from('department_approvers')
-              .select('manager_id')
-              .eq('department_id', deptId)
-              .maybeSingle();
-
-            if (approverError) throw approverError;
-
-            managerId = approverConfig?.manager_id || null;
-
-            // มี L2 → ดึง LINE User ID และส่งแจ้งเตือน
-            if (managerId) {
-              const { data: managerEmp, error: managerError } = await sb
-                .from('employees')
-                .select('id, full_name, line_id')
-                .eq('id', managerId)
-                .maybeSingle();
-
-              if (managerError) throw managerError;
-
-              managerLineId = managerEmp?.line_id || '';
-
-              await window.PVTSDK.line.sendWorkflowNotification({
-                type: 'LEADER_APPROVED',
-                recipientId: managerId,
-                recipientLineId: managerLineId,
-                leaveId: leaveId,
-                employeeName: applicantName,
-                employeeCode: applicantCode,
-                departmentName: deptName,
-                recipientRole: 'manager',
-                leaveType: leaveTypeName,
-                startDate: reqData.start_date,
-                endDate: reqData.end_date,
-                totalDays: reqData.total_days,
-                comment: reqData.approval_comment || 'หัวหน้างานตรวจสอบแล้ว เห็นควรอนุมัติ',
-                attachmentUrl: reqData.attachment_url || ""
-              });
-
-              if (!managerLineId) {
-                console.warn('⚠️ [LINE OA] ผู้จัดการ L2 ยังไม่มี LINE User ID');
-              }
-            } else {
-              // ไม่มี L2 → ส่งแจ้งเตือนผู้บริหารระดับสูง (Executive)
-              console.log('ℹ️ [LINE OA] แผนกนี้ไม่มี L2 → ส่งต่อผู้บริหาร L3');
-              const { data: executiveSetting } = await sb
-                .from('system_settings')
-                .select('employee_id')
-                .eq('setting_key', 'leave_executive_approver')
-                .maybeSingle();
-
-              if (executiveSetting?.employee_id) {
-                const { data: executiveEmp } = await sb
-                  .from('employees')
-                  .select('id, full_name, line_id')
-                  .eq('id', executiveSetting.employee_id)
-                  .maybeSingle();
-
-                if (executiveEmp) {
-                  // บันทึกแจ้งเตือนลงตาราง notifications สำหรับผู้บริหาร
-                  await sb.from('notifications').insert({
-                    employee_id: executiveEmp.id,
-                    title: `ใบลาจาก ${applicantName} ส่งหาผู้บริหาร (เนื่องจากแผนกไม่มีผู้จัดการ)`,
-                    message: `พนักงาน: ${applicantName} (${applicantCode})\nแผนก: ${deptName}\nประเภท: ${leaveTypeName}\nวันที่: ${reqData.start_date} ถึง ${reqData.end_date}\n(แผนกไม่มีผู้จัดการฝ่าย)`,
-                    type: 'leave',
-                    link_url: '/pages/hr/hr.html'
-                  });
-
-                  if (window.PVTSDK?.line) {
-                    await window.PVTSDK.line.sendWorkflowNotification({
-                      type: 'LEADER_APPROVED',
-                      recipientId: executiveEmp.id,
-                      recipientLineId: executiveEmp.line_id || '',
-                      leaveId: leaveId,
-                      employeeName: applicantName,
-                      employeeCode: applicantCode,
-                      departmentName: deptName,
-                      recipientRole: 'executive',
-                      leaveType: leaveTypeName,
-                      startDate: reqData.start_date,
-                      endDate: reqData.end_date,
-                      totalDays: reqData.total_days,
-                      comment: reqData.approval_comment || 'หัวหน้างานตรวจสอบแล้ว และไม่มีผู้จัดการฝ่าย (ส่งหาผู้บริหาร)',
-                      attachmentUrl: reqData.attachment_url || ""
-                    });
-                  }
-                }
-              }
-            }
-          }
-
-        } else if (currentRole === 'manager') {
-          // ผู้จัดการ L2 อนุมัติคำขอของ "หัวหน้างาน/ผู้จัดการ"
-          // → แจ้งผู้บริหาร L3
-          const needsExecutive = isLeaderOrManagerRole(reqData.employees?.role, reqData.employees?.positions?.position_name);
-
-          if (needsExecutive) {
-            const { data: executiveSetting, error: executiveSettingError } = await sb
-              .from('system_settings')
-              .select('employee_id')
-              .eq('setting_key', 'leave_executive_approver')
-              .maybeSingle();
-
-            if (executiveSettingError) throw executiveSettingError;
-
-            let executiveEmp = null;
-
-            if (executiveSetting?.employee_id) {
-              const { data: executiveData, error: executiveError } = await sb
-                .from('employees')
-                .select('id, full_name, line_id, role')
-                .eq('id', executiveSetting.employee_id)
-                .maybeSingle();
-
-              if (executiveError) throw executiveError;
-              executiveEmp = executiveData || null;
-            }
-
-            if (executiveEmp) {
-              await window.PVTSDK.line.sendWorkflowNotification({
-                type: 'MANAGER_APPROVED',
-                recipientId: executiveEmp.id,
-                recipientLineId: executiveEmp.line_id || '',
-                leaveId: leaveId,
-                employeeName: applicantName,
-                employeeCode: applicantCode,
-                departmentName: reqData.employees?.departments?.department_name || '',
-                recipientRole: 'executive',
-                leaveType: leaveTypeName,
-                startDate: reqData.start_date,
-                endDate: reqData.end_date,
-                totalDays: reqData.total_days,
-                comment: reqData.approval_comment || 'ผู้จัดการตรวจสอบแล้ว เห็นควรอนุมัติ',
-                attachmentUrl: reqData.attachment_url || ""
-              });
-
-              if (!executiveEmp.line_id) {
-                console.warn('⚠️ [LINE OA] ผู้บริหารยังไม่มี LINE User ID');
-              }
-            } else {
-              console.warn('⚠️ [LINE OA] ไม่พบผู้บริหาร role executive/director/owner');
-            }
-          }
-        }
-      } catch (lineErr) {
-        console.warn("⚠️ [LINE OA Trigger] Approval notice error:", lineErr);
-      }
-    }
-
-    // 💬 1. ส่งแจ้งเตือนกลับหาพนักงานเจ้าของใบลา
-    if (window.PVTSDK?.line) {
-      try {
-        await window.PVTSDK.line.sendWorkflowNotification({
-          type: 'REQUEST_APPROVED',
-          recipientId: reqData.employee_id, // เจ้าของใบลา
-          recipientLineId: reqData.employees?.line_id || '',
-          leaveId: leaveId,
-          employeeName: reqData.employees?.full_name || 'พนักงาน',
-          employeeCode: reqData.employees?.employee_code || '',
-          departmentName: reqData.employees?.departments?.department_name || '',
-          recipientRole: 'employee',
-          leaveType: reqData.leave_types?.leave_name || 'ใบลา',
-          startDate: reqData.start_date,
-          endDate: reqData.end_date,
-          totalDays: reqData.total_days,
-          comment: 'ใบลาของคุณได้รับการอนุมัติเรียบร้อยแล้ว',
-          attachmentUrl: reqData.attachment_url || ""
-        });
-      } catch (lineErr) {
-        console.warn("⚠️ [Workflow Notification] Approval notice error to employee:", lineErr);
-      }
-    }
-
-    // 💬 2. 📢 ส่งแจ้งเตือนไปยังฝ่ายบุคคล (HR) ผ่าน LINE ทันทีเมื่อมีการอนุมัติ
-    if (window.PVTSDK?.notifyHrWorkflow || window.pvtSupabase?.notifyHrWorkflow) {
-      try {
-        const notifyFn = window.PVTSDK?.notifyHrWorkflow ? window.PVTSDK.notifyHrWorkflow.bind(window.PVTSDK) : window.pvtSupabase.notifyHrWorkflow.bind(window.pvtSupabase);
-        
-        // ถ้าเป็นหัวหน้างานอนุมัติแล้วต้องส่งต่อ ให้ใช้ HR_REVIEW หรือถ้าอนุมัติเสร็จสิ้นใช้ HR_NOTIFY
-        const notifTypeToHr = (updateFields.status === 'approved' || reqData.status === 'approved' || currentRole === 'manager' || currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') 
-          ? 'HR_NOTIFY' 
-          : 'HR_REVIEW';
-
-        await notifyFn({
-          id: leaveId,
-          applicant_name: reqData.employees?.full_name || applicantName,
-          employee_code: reqData.employees?.employee_code || applicantCode,
-          department_name: reqData.employees?.departments?.department_name || deptName,
-          leave_type_name: reqData.leave_types?.leave_name || leaveTypeName,
-          start_date: reqData.start_date,
-          end_date: reqData.end_date,
-          total_days: reqData.total_days,
-          leave_hours: reqData.leave_hours || 0,
-          reason: reqData.reason || '',
-          comment: reqData.approval_comment || `อนุมัติโดย ${currentRole.toUpperCase()}`,
-          attachment_url: reqData.attachment_url || ''
-        }, notifTypeToHr);
-        console.log(`✅ [LINE OA] Dispatched HR notification [${notifTypeToHr}] for leave ID: ${leaveId}`);
-      } catch (hrNotifErr) {
-        console.warn("⚠️ [LINE OA Trigger] HR notification notice error:", hrNotifErr);
-      }
+    const updateFields = { status: outcome.final ? 'approved' : 'pending' };
+    if (outcome.balanceError) {
+      console.warn('⚠️ ตัดยอดวันลาไม่สำเร็จ:', outcome.balanceError);
     }
 
     if (updateFields.status === 'approved' || reqData.status === 'approved') {
@@ -2574,7 +2638,7 @@ async function approveLeave(leaveId) {
             </p>
             
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #0d9488; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--th-p-600, #0d9488); font-weight: 700; display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-outlined" style="font-size: 18px;">calendar_month</span>
                 Auto-Sync Calendar (ซิงค์ปฏิทินทีม)
               </h4>
@@ -2596,10 +2660,10 @@ async function approveLeave(leaveId) {
           </div>
         `,
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     } else {
-      await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
+      await Swal.fire('อนุมัติขั้นนี้แล้ว', outcome.nextLabel ? `ระบบส่งต่อให้ "${outcome.nextLabel}" พิจารณาแล้ว` : 'ระบบส่งต่อให้ผู้อนุมัติขั้นถัดไปพิจารณาแล้ว', 'success');
     }
     loadPendingLeavesHR();
 
@@ -2612,6 +2676,7 @@ async function approveLeave(leaveId) {
 async function rejectLeave(leaveId) {
   const reqData = allLeaveRequests.find(r => r.id === leaveId);
   if (!reqData) return;
+  if (!canApproveStep(reqData, currentRole)) return;
 
   const roleTitle = currentRole === 'leader' 
     ? 'หัวหน้างาน (L1)' 
@@ -2667,34 +2732,72 @@ async function rejectLeave(leaveId) {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
+  // 🔗 ใบลาที่มีขั้นอนุมัติ (ระยะ 2)
+  if (reqData.__steps && reqData.__steps.length && window.PVTApproval) {
+    try {
+      const res = await window.PVTApproval.reject(leaveId, reason.trim(), { actorRole: currentRole });
+      if (res.ok || res.reason !== 'no_steps') {
+        if (res.ok) await Swal.fire('ปฏิเสธสำเร็จ', 'บันทึกสถานะไม่อนุมัติและแจ้ง HR เรียบร้อยแล้ว', 'success');
+        else await Swal.fire('ไม่สามารถทำรายการได้', res.reason || 'ใบลานี้ถูกดำเนินการไปแล้ว', 'info');
+        loadPendingLeavesHR();
+        return;
+      }
+    } catch (err) {
+      Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+      return;
+    }
+  }
+
   try {
     let updateFields = {
       status: 'rejected',
-      approval_comment: reason.trim()
+      approval_comment: reason.trim(),
+      updated_at: new Date().toISOString()
     };
 
+    // ขั้นที่ไม่อนุมัติ = ขั้นที่ใบลารออยู่จริง (หัวหน้าที่เป็นผู้จัดการด้วย → ขั้นปัจจุบัน)
+    let rejectRole = currentRole;
+    if (currentRole === 'leader' && !isStepPending(reqData.manager_status)) rejectRole = 'manager';
     if (currentRole === 'leader') {
       updateFields.manager_status = 'rejected';
     } else if (currentRole === 'manager') {
+      if (isStepPending(reqData.manager_status)) updateFields.manager_status = 'rejected';
       updateFields.director_status = 'rejected';
     } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner') {
-      if (hasExecutiveColumn) {
-        updateFields.executive_status = 'rejected';
-      } else {
-        updateFields.director_status = 'rejected';
-      }
+      updateFields.executive_status = 'rejected';
+    } else {
+      // HR / Admin: ระบุขั้นที่ค้างอยู่
+      if (isStepPending(reqData.manager_status)) updateFields.manager_status = 'rejected';
+      else if (isStepPending(reqData.director_status)) updateFields.director_status = 'rejected';
+      else if (isStepPending(reqData.executive_status)) updateFields.executive_status = 'rejected';
     }
 
-    const { error } = await sb
+    // 🛡️ บันทึกเฉพาะเมื่อยังรอพิจารณาอยู่ (มีคนกดไปก่อน → แจ้งให้ทราบ)
+    const { data: changed, error } = await sb
       .from('leave_requests')
       .update(updateFields)
-      .eq('id', leaveId);
+      .eq('id', leaveId)
+      .eq('status', reqData.status || 'pending')
+      .select('id');
 
     if (error) throw error;
+    if (!changed || !changed.length) {
+      await Swal.fire('ใบลานี้ถูกดำเนินการไปแล้ว', 'มีผู้พิจารณาใบลานี้ไปก่อนหน้าแล้ว ระบบจะแสดงสถานะล่าสุดให้', 'info');
+      loadPendingLeavesHR();
+      return;
+    }
 
-    // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล (In-app)
-    const reqData = allLeaveRequests.find(r => r.id === leaveId);
-    if (reqData) {
+    // 🧾 หลักฐาน + แจ้ง HR (ในระบบ) ทุกครั้งที่ไม่อนุมัติ ไม่ว่าขั้นไหน
+    if (window.PVTLeaveAudit) {
+      const step = stepInfoForRole(rejectRole);
+      await window.PVTLeaveAudit.recordOutcome(reqData, 'rejected', {
+        stepLevel: step.level, stepLabel: step.label, comment: reason.trim(),
+        statusBefore: reqData.status || 'pending', statusAfter: 'rejected'
+      });
+    }
+
+    // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล (In-app) — ถ้ามี SDK LINE จะบันทึกให้เองตอนส่ง REJECTED
+    if (reqData && !window.PVTSDK?.line) {
       const notificationTitle = `ใบลาของคุณถูกปฏิเสธ`;
       const notificationMessage = `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ไม่ได้รับการอนุมัติ\nเหตุผล: ${reason.trim()}`;
       
@@ -2805,6 +2908,14 @@ async function forceCancelLeave(leaveId) {
 
     if (error) throw error;
 
+    if (window.PVTApproval) await window.PVTApproval.closeOpenSteps(leaveId, 'cancelled', `ยกเลิกโดย HR: ${reason.trim()}`);
+    if (window.PVTLeaveAudit) {
+      await window.PVTLeaveAudit.recordOutcome(reqData, 'cancelled', {
+        stepLevel: 'HR', stepLabel: 'ฝ่ายบุคคล (ยกเลิกโดย HR/ผู้ดูแล)', comment: reason.trim(),
+        statusBefore: reqData.status, statusAfter: 'cancelled'
+      });
+    }
+
     await Swal.fire('สำเร็จ!', 'ทำการยกเลิกใบลาและคืนวันลาเรียบร้อยแล้ว', 'success');
     loadPendingLeavesHR();
   } catch (err) {
@@ -2819,7 +2930,7 @@ async function approveCancellation(leaveId) {
       icon: 'warning',
       title: 'ไม่มีสิทธิ์อนุมัติคำขอยกเลิก',
       text: 'คำขอยกเลิกหลังผ่านการอนุมัติ ให้ HR/Admin เป็นผู้ตรวจสอบและตัดสินเท่านั้น',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
     return;
   }
@@ -2946,6 +3057,15 @@ async function approveCancellation(leaveId) {
 
     if (updateErr) throw updateErr;
 
+    if (window.PVTLeaveAudit) {
+      // วันที่ลาเดิมเก็บไว้ในหลักฐาน (กรณีระบบต้องย้ายวันที่เพื่อเลี่ยงการซ้อนทับ)
+      await window.PVTLeaveAudit.recordOutcome(
+        Object.assign({}, allLeaveRequests.find(r => String(r.id) === String(leaveId)) || {}, freshReq),
+        'cancel_approved',
+        { stepLevel: 'HR', stepLabel: 'ฝ่ายบุคคล (HR)', comment: approvalComment, statusBefore: freshReq.status, statusAfter: 'cancelled' }
+      );
+    }
+
     const successText = wasFinalApproved
       ? `อนุมัติการยกเลิกเรียบร้อยแล้ว และคืนโควตาวันลา ${daysToReturn} วัน ให้พนักงานแล้ว`
       : 'อนุมัติการยกเลิกเรียบร้อยแล้ว รายการนี้ยังไม่เคยหักโควตา จึงไม่มีการคืนโควตาซ้ำ';
@@ -2965,7 +3085,7 @@ async function rejectCancellation(leaveId) {
       icon: 'warning',
       title: 'ไม่มีสิทธิ์ปฏิเสธคำขอยกเลิก',
       text: 'คำขอยกเลิกหลังผ่านการอนุมัติ ให้ HR/Admin เป็นผู้ตรวจสอบและตัดสินเท่านั้น',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
     return;
   }
@@ -3056,6 +3176,14 @@ async function rejectCancellation(leaveId) {
 
     if (error) throw error;
 
+    if (window.PVTLeaveAudit) {
+      await window.PVTLeaveAudit.recordOutcome(
+        Object.assign({}, allLeaveRequests.find(r => String(r.id) === String(leaveId)) || {}, freshReq),
+        'cancel_rejected',
+        { stepLevel: 'HR', stepLabel: 'ฝ่ายบุคคล (HR)', comment: reason.trim(), statusBefore: freshReq.status, statusAfter: restoreStatus }
+      );
+    }
+
     const restoreLabel = restoreStatus === 'approved'
       ? 'ใบลายังคงสถานะอนุมัติเดิม'
       : 'ใบลาถูกส่งกลับเข้าสู่ขั้นตอนอนุมัติเดิมต่อไป';
@@ -3131,10 +3259,10 @@ async function printLeaveA4(leaveId) {
           .page { width: 100%; min-height: 270mm; background: #ffffff; position: relative; padding-bottom: 20mm; }
           
           /* Elegant modern company banner */
-          .doc-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 20px; }
+          .doc-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--th-p-700, #0f766e); padding-bottom: 12px; margin-bottom: 20px; }
           .logo-area { display: flex; align-items: center; gap: 12px; }
-          .logo-placeholder { width: 44px; height: 44px; background: linear-gradient(135deg, #0f766e, #0d9488); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(15, 118, 110, 0.15); }
-          .company-name { font-size: 18px; font-weight: 800; color: #0f766e; letter-spacing: -0.3px; line-height: 1.2; }
+          .logo-placeholder { width: 44px; height: 44px; background: linear-gradient(135deg, var(--th-p-700, #0f766e), var(--th-p-600, #0d9488)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.15); }
+          .company-name { font-size: 18px; font-weight: 800; color: var(--th-p-700, #0f766e); letter-spacing: -0.3px; line-height: 1.2; }
           .company-sub { font-size: 11px; color: #475569; font-weight: 500; margin-top: 1px; }
           
           .doc-meta { text-align: right; font-size: 11px; color: #475569; line-height: 1.4; }
@@ -3147,7 +3275,7 @@ async function printLeaveA4(leaveId) {
           
           /* Section separation */
           .section { margin-bottom: 20px; }
-          .section-label { font-size: 13px; font-weight: 800; color: #0f766e; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+          .section-label { font-size: 13px; font-weight: 800; color: var(--th-p-700, #0f766e); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
           .section-label::after { content: ''; flex: 1; height: 1px; background: #cbd5e1; margin-left: 8px; }
           
           /* Form Tables (Sleek corporate grids) */
@@ -3224,7 +3352,7 @@ async function printLeaveA4(leaveId) {
             <table class="info-table">
               <tr>
                 <td class="label">ประเภทการลา</td>
-                <td class="value"><strong style="color: #0f766e; font-size: 14px;">${leaveName}</strong></td>
+                <td class="value"><strong style="color: var(--th-p-700, #0f766e); font-size: 14px;">${leaveName}</strong></td>
                 <td class="label">สถานะคำขอ</td>
                 <td class="value">
                   <span class="status-indicator ${req.status === 'approved' ? 'status-approved' : req.status === 'rejected' ? 'status-rejected' : 'status-pending'}">
@@ -3240,7 +3368,7 @@ async function printLeaveA4(leaveId) {
               </tr>
               <tr>
                 <td class="label">รวมระยะเวลาการลา</td>
-                <td class="value" colspan="3"><strong style="font-size: 14px; color: #0f766e;">${printDurationFormatted}</strong></td>
+                <td class="value" colspan="3"><strong style="font-size: 14px; color: var(--th-p-700, #0f766e);">${printDurationFormatted}</strong></td>
               </tr>
             </table>
           </div>
@@ -3256,7 +3384,7 @@ async function printLeaveA4(leaveId) {
           <div class="signature-grid">
             <div class="sig-box">
               <div class="sig-space">
-                <span class="digital-stamp" style="border-color: #0d9488; color: #0d9488; background: #f0fdfa;">[ ส่งออนไลน์สำเร็จ ]</span>
+                <span class="digital-stamp" style="border-color: var(--th-p-600, #0d9488); color: var(--th-p-600, #0d9488); background: var(--th-p-50, #f0fdfa);">[ ส่งออนไลน์สำเร็จ ]</span>
               </div>
               <div class="sig-name">${emp.full_name || 'ผู้ยื่นคำขอ'}</div>
               <div class="sig-line" style="margin-top: 4px;"></div>
@@ -3278,7 +3406,7 @@ async function printLeaveA4(leaveId) {
             <div class="sig-box">
               <div class="sig-space">
                 ${req.status === 'approved' ? `
-                  <div class="digital-stamp" style="border-color: #0f766e; color: #0f766e;">
+                  <div class="digital-stamp" style="border-color: var(--th-p-700, #0f766e); color: var(--th-p-700, #0f766e);">
                     APPROVED L2 (HR)<br>
                     <span style="font-size:7px; font-weight:normal;">ผ่านระบบอนุมัติกลาง</span>
                   </div>
@@ -3862,6 +3990,9 @@ window.approveCancellation = approveCancellation;
 window.rejectCancellation = rejectCancellation;
 window.printLeaveA4 = printLeaveA4;
 window.loadPendingLeavesHR = loadPendingLeavesHR;
+// ช่องค้นหา (oninput) และตัวกรองสถานะ (onchange) ใน hr.html เรียก renderLeaveTable()
+// แต่ hr.js โหลดแบบ module → ถ้าไม่ผูกกับ window ฟังก์ชันจะหาไม่เจอ ค้นหา/กรองไม่ทำงาน
+window.renderLeaveTable = renderLeaveTable;
 window.previewLeaveModal = previewLeaveModal;
 window.closePreviewModal = closePreviewModal;
 window.openImageLightbox = openImageLightbox;
@@ -3909,7 +4040,7 @@ window.submitBulkApproval = async function() {
       icon: 'warning',
       title: 'ยังไม่ได้เลือกรายการ',
       text: 'กรุณาทำเครื่องหมายถูกที่ช่องหน้ารายการใบลาที่ต้องการอนุมัติครับ',
-      confirmButtonColor: '#0d9488'
+      confirmButtonColor: 'var(--th-p-600, #0d9488)'
     });
   }
 
@@ -3919,7 +4050,7 @@ window.submitBulkApproval = async function() {
     icon: 'question',
     showCancelButton: true,
     showDenyButton: false,
-    confirmButtonColor: '#0d9488',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     cancelButtonColor: '#64748b',
     confirmButtonText: `✔️ ยืนยันอนุมัติ (${checkedBoxes.length} รายการ)`,
     cancelButtonText: 'ยกเลิก'
@@ -3938,87 +4069,16 @@ window.submitBulkApproval = async function() {
     didOpen: () => Swal.showLoading()
   });
 
-  const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
-
+  let skipped = 0;
   for (let i = 0; i < total; i++) {
     const leaveId = checkedBoxes[i].dataset.id;
     try {
       const reqData = allLeaveRequests.find(r => String(r.id) === String(leaveId));
       if (!reqData) continue;
-
-      if (window.PVTSDK?.user?.ensureLeaveBalances) {
-        await window.PVTSDK.user.ensureLeaveBalances(reqData.employee_id, reqData.start_date);
-      }
-
-      let updateFields = {};
-      if (currentRole === 'leader') {
-        updateFields.manager_status = 'approved';
-        const deptId = reqData.employees?.department_id || null;
-        const deptInfo = deptApproversMap[deptId] || {};
-        const hasManagerInDept = deptInfo.hasManager || Boolean(reqData.employees?.l2_approver_id);
-        if (!hasManagerInDept) {
-          updateFields.director_status = 'approved';
-          if (!hasExecutiveColumn) {
-            updateFields.status = 'approved';
-            updateFields.approved_at = new Date().toISOString();
-          }
-        }
-      } else if (currentRole === 'manager') {
-        updateFields.director_status = 'approved';
-        if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
-        if (hasExecutiveColumn) {
-          const isApplicantLeaderOrManager = isLeaderOrManagerRole(reqData.employees?.role, reqData.employees?.positions?.position_name);
-          if (!isApplicantLeaderOrManager) {
-            updateFields.executive_status = 'approved';
-            updateFields.status = 'approved';
-            updateFields.approved_at = new Date().toISOString();
-          }
-        } else {
-          updateFields.status = 'approved';
-          updateFields.approved_at = new Date().toISOString();
-        }
-      } else if (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner' || (window.executiveApproverId && String(currentEmpId) === String(window.executiveApproverId))) {
-        if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
-        if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
-        if (hasExecutiveColumn) {
-          updateFields.executive_status = 'approved';
-        }
-        updateFields.status = 'approved';
-        updateFields.approved_at = new Date().toISOString();
-      } else {
-        if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
-        if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
-        if (hasExecutiveColumn) updateFields.executive_status = 'approved';
-        updateFields.status = 'approved';
-        updateFields.approved_at = new Date().toISOString();
-      }
-
-      if (updateFields.status === 'approved') {
-        const leaveDays = await getEffectiveLeaveDays(reqData);
-        const currentYear = getADYear(reqData.start_date);
-        if (window.PVTSDK?.user?.updateLeaveBalance) {
-          const lCode = reqData.leave_types?.leave_code || null;
-          await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
-        }
-      }
-
-      const { error: updateErr } = await sb
-        .from('leave_requests')
-        .update(updateFields)
-        .eq('id', leaveId);
-
-      if (updateErr) throw updateErr;
-
-      // In-app Notification
-      await sb.from('notifications').insert({
-        employee_id: reqData.employee_id,
-        title: `ใบลาของคุณได้รับการอนุมัติ`,
-        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
-        type: 'leave',
-        link_url: '/pages/user/index-user.html'
-      });
-
-      successCount++;
+      // ใช้กติกาเดียวกับการอนุมัติทีละใบ (ตรวจสิทธิ์/ลำดับขั้น, บันทึกหลักฐาน, แจ้งขั้นถัดไป/HR)
+      if (!canApproveStep(reqData, currentRole, true)) { skipped++; continue; }
+      const outcome = await performApprovalStep(reqData);
+      if (outcome.ok) successCount++; else skipped++;
     } catch (err) {
       console.error(`Bulk item ${leaveId} failed:`, err);
       failCount++;
@@ -4032,8 +4092,8 @@ window.submitBulkApproval = async function() {
   Swal.fire({
     icon: 'success',
     title: 'อนุมัติกลุ่มสำเร็จ!',
-    html: `ระบบดำเนินการอนุมัติเรียบร้อยทั้งหมด <strong>${successCount}</strong> รายการ${failCount > 0 ? `<br><small style="color:red">ไม่สำเร็จ ${failCount} รายการ</small>` : ''}`,
-    confirmButtonColor: '#0d9488',
+    html: `ระบบดำเนินการอนุมัติเรียบร้อยทั้งหมด <strong>${successCount}</strong> รายการ${skipped > 0 ? `<br><small style="color:#b45309">ข้าม ${skipped} รายการ (ยังไม่ถึงขั้นของท่าน หรือมีผู้พิจารณาไปแล้ว)</small>` : ''}${failCount > 0 ? `<br><small style="color:red">ไม่สำเร็จ ${failCount} รายการ</small>` : ''}`,
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
     confirmButtonText: 'ตกลง'
   }).then(() => {
     loadPendingLeavesHR();
@@ -4108,9 +4168,18 @@ document.addEventListener("visibilitychange", handleHrAutoSync);
 window.addEventListener("pageshow", handleHrAutoSync);
 window.addEventListener("focus", handleHrAutoSync);
 
+// ผู้ใช้กำลังทำงานค้างอยู่หรือไม่ (ติ๊กเลือกหลายรายการ / เปิดหน้ารายละเอียด / มีกล่องยืนยันเปิดอยู่)
+// ถ้าใช่ → ข้ามการรีเฟรชอัตโนมัติรอบนั้น เพราะการ render ใหม่จะล้างช่องที่ติ๊กไว้ทุก 15 วินาที
+function isUserBusyOnHrPage() {
+  const hasCheckedBulk = !!document.querySelector('.bulk-item-check:checked');
+  const isPreviewOpen = !!document.querySelector('#leavePreviewModal.active');
+  const isSwalOpen = typeof Swal !== 'undefined' && typeof Swal.isVisible === 'function' && Swal.isVisible();
+  return hasCheckedBulk || isPreviewOpen || isSwalOpen;
+}
+
 // Polling ทุกๆ 15 วินาที
 setInterval(() => {
-  if (document.visibilityState === 'visible' && !document.hidden) {
+  if (document.visibilityState === 'visible' && !document.hidden && !isUserBusyOnHrPage()) {
     if (typeof loadPendingLeavesHR === 'function') loadPendingLeavesHR(true);
   }
 }, 15000);

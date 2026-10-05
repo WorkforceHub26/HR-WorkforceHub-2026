@@ -110,6 +110,41 @@ window.getUserRoleCategory = function(userSession) {
   return { isAuth: true, category: 'employee', role, position, dept };
 };
 
+
+// 📱 จัดกึ่งกลาง SweetAlert สำหรับการยืนยันเข้าใช้งาน โดยเฉพาะบนมือถือ
+(function installLoginConfirmCenterStyle() {
+  if (document.getElementById('pvt-login-confirm-center-style')) return;
+  const style = document.createElement('style');
+  style.id = 'pvt-login-confirm-center-style';
+  style.textContent = `
+    .swal2-container.pvt-login-confirm-container {
+      position: fixed !important;
+      inset: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 16px !important;
+      box-sizing: border-box !important;
+    }
+    .pvt-login-confirm-popup {
+      margin: 0 auto !important;
+      width: min(92vw, 430px) !important;
+      max-width: 430px !important;
+      box-sizing: border-box !important;
+    }
+    @media (max-width: 600px) {
+      .swal2-container.pvt-login-confirm-container {
+        padding: 14px !important;
+      }
+      .pvt-login-confirm-popup {
+        width: 100% !important;
+        max-width: 390px !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
 // =========================================================================
 // 🔒 [GLOBAL AUTH GUARD]: ตรวจสอบสิทธิ์ทันทีแบบ Synchronous
 // =========================================================================
@@ -287,16 +322,6 @@ function applyNavPermissions() {
     const rawRoleVal = String(session?.role || empObj.role || userStatus?.role || '').toLowerCase().trim();
     const isTrueAdminUser = rawRoleVal === 'admin' || rawRoleVal === 'superadmin' || empCode === 'admin' || empCode === 'hr-001';
 
-    // 👥 เมนู Sidebar "อนุมัติใบลา" ในหน้าพนักงาน
-    // แสดงเฉพาะกลุ่มหัวหน้างาน/ผู้จัดการ (leader_manager) เท่านั้น
-    const isUserArea = window.location.pathname.toLowerCase().includes('/pages/user/');
-    if (isUserArea) {
-      const canSeeApprovalMenu = userStatus.category === 'leader_manager';
-      document.querySelectorAll('#navItemLeaveCheck').forEach(el => {
-        el.style.setProperty('display', canSeeApprovalMenu ? 'flex' : 'none', 'important');
-      });
-    }
-
     // ตัดหน้าพนักงานออกสำหรับบัญชี HR และ Admin โดยตรง
     if (userStatus.category === 'hr_exec' || empCode.startsWith('hr-') || empCode === 'admin' || ['admin', 'superadmin', 'hr', 'hr_manager'].includes(rawRoleVal)) {
       document.querySelectorAll('a[href*="/pages/user/index-user.html"]').forEach(el => {
@@ -369,9 +394,6 @@ function applyNavPermissions() {
       document.querySelectorAll('a[href*="hr.html"]').forEach(el => {
         el.style.setProperty("display", "flex", "important");
       });
-      document.querySelectorAll('#navItemLeaveCheck').forEach(el => {
-        el.style.setProperty("display", "flex", "important");
-      });
     }
   } catch (err) {
     console.error("applyNavPermissions error:", err);
@@ -411,7 +433,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         icon: 'warning',
         title: 'ข้อมูลไม่ครบ',
         text: 'กรุณากรอกข้อมูลผู้ใช้งานและรหัสผ่านให้ครบถ้วน',
-        confirmButtonColor: '#3b82f6'
+        confirmButtonColor: 'var(--th-b-500, #3b82f6)'
       });
       return;
     }
@@ -486,6 +508,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (isUsingDefaultPassword) {
         const riskChoice = await Swal.fire({
+          position: 'center',
+          heightAuto: false,
+          customClass: {
+            container: 'pvt-login-confirm-container',
+            popup: 'pvt-login-confirm-popup'
+          },
           icon: 'warning',
           title: '⚠️ แจ้งเตือนความปลอดภัยบัญชี',
           html: `
@@ -499,7 +527,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           showCancelButton: true,
           confirmButtonText: 'ยอมรับความเสี่ยง & เข้าใช้งาน',
           cancelButtonText: 'เปลี่ยนรหัสผ่านทันที',
-          confirmButtonColor: '#3b82f6',
+          confirmButtonColor: 'var(--th-b-500, #3b82f6)',
           cancelButtonColor: '#10b981',
           allowOutsideClick: false
         });
@@ -904,7 +932,7 @@ function loginByQr() {
       .pvt-qr-title-box { display: flex; align-items: center; gap: 10px; }
       .pvt-qr-icon-badge {
         width: 38px; height: 38px; border-radius: 10px;
-        background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-k-600, #0284c7) 100%);
         display: flex; align-items: center; justify-content: center; color: #ffffff;
       }
       .pvt-qr-title-box h3 { margin: 0; font-size: 16px; font-weight: 700; color: #ffffff; line-height: 1.2; }
@@ -1020,15 +1048,15 @@ function loginByQr() {
         padding: 24px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; z-index: 8;
       }
       .pvt-qr-permission-icon-box {
-        width: 56px; height: 56px; border-radius: 16px; background: rgba(13, 148, 136, 0.15);
-        border: 1px solid rgba(13, 148, 136, 0.3); color: #2dd4bf; display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+        width: 56px; height: 56px; border-radius: 16px; background: rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
+        border: 1px solid rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3); color: var(--th-p-400, #2dd4bf); display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
       }
       .pvt-qr-permission-icon-box.error { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; }
       .pvt-qr-permission-card h4 { margin: 0 0 6px 0; font-size: 16px; color: #ffffff; font-weight: 700; }
       .pvt-qr-permission-card p { margin: 0 0 16px 0; font-size: 13px; color: #94a3b8; line-height: 1.5; }
       .pvt-qr-permission-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
       .pvt-qr-btn-primary {
-        width: 100%; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%);
+        width: 100%; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-k-600, #0284c7) 100%);
         color: #ffffff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
       }
       .pvt-qr-btn-secondary {
@@ -1050,8 +1078,8 @@ function loginByQr() {
         display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;
       }
       .pvt-qr-tab-btn.active {
-        background: linear-gradient(135deg, #0d9488 0%, #0284c7 100%); color: #ffffff; border-color: rgba(255, 255, 255, 0.2);
-        box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+        background: linear-gradient(135deg, var(--th-p-600, #0d9488) 0%, var(--th-k-600, #0284c7) 100%); color: #ffffff; border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 14px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
       }
       .pvt-qr-focus-progress-container {
         position: absolute; bottom: 105px; width: min(220px, 60vw); height: 4px;
@@ -1389,7 +1417,7 @@ function loginByQr() {
       <!-- 🖼️ File Upload View -->
       <div id="pvtQrFileView" class="pvt-qr-file-container">
         <div class="pvt-qr-file-dropzone" id="pvtQrDropzone">
-          <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(13, 148, 136, 0.15); border: 1px solid rgba(13, 148, 136, 0.3); color: #2dd4bf; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+          <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15); border: 1px solid rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3); color: var(--th-p-400, #2dd4bf); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
             <span class="material-symbols-outlined" style="font-size: 32px;">add_photo_alternate</span>
           </div>
           <h4 style="margin: 0 0 6px 0; font-size: 16px; color: #ffffff;">${i18n.dropTitle}</h4>
@@ -2066,7 +2094,7 @@ async function openChangePasswordModal(user) {
     showCancelButton: true,
     confirmButtonText: 'บันทึกรหัสผ่านใหม่',
     cancelButtonText: 'ข้ามไปก่อน',
-    confirmButtonColor: '#2563eb',
+    confirmButtonColor: 'var(--th-b-600, #2563eb)',
     preConfirm: () => {
       const newPassword = document.getElementById('swal-new-password').value;
       const confirmPassword = document.getElementById('swal-confirm-password').value;
@@ -2104,7 +2132,7 @@ async function openChangePasswordModal(user) {
         icon: 'success',
         title: 'เปลี่ยนรหัสผ่านเรียบร้อย',
         text: 'ระบบทำการอัปเดตรหัสผ่านใหม่เรียบร้อยแล้ว',
-        confirmButtonColor: '#2563eb'
+        confirmButtonColor: 'var(--th-b-600, #2563eb)'
       });
     } catch (err) {
       Swal.fire({
@@ -2565,7 +2593,7 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       // สไตล์ปุ่มที่เลือก (เฉพาะจุดที่ไม่ได้ใช้ CSS Class คุม)
       if (b.id.startsWith('globalLang')) {
         b.style.backgroundColor = '#ffffff';
-        b.style.color = '#0891b2';
+        b.style.color = 'var(--th-s-600, #0891b2)';
         b.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.08)';
         b.style.fontWeight = '700';
       }
@@ -2608,6 +2636,9 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
       document.cookie = 'googtrans=' + cookieValue + '; path=/';
       document.cookie = 'googtrans=' + cookieValue + '; path=/; domain=' + window.location.hostname;
 
+      // ตัวแปลภาษา Google โหลดแบบ lazy (system-settings.js) → สั่งโหลดตอนเลือกภาษาที่ต้องแปล
+      if (typeof window.pvtEnsureGoogleTranslate === 'function') window.pvtEnsureGoogleTranslate();
+
       const combo = document.querySelector('select.goog-te-combo, .goog-te-combo');
       if (combo) {
         if (combo.value !== googleLang) {
@@ -2639,13 +2670,26 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
 function injectGlobalLangSwitcher() {
   if (document.getElementById('globalLangSwitcherContainer')) return;
 
-  // 🚫 Do not show language switcher on HR Administration pages or leave-history page
+  // 🚫 Do not show language switcher on HR Administration pages, leave-history, leave-rules, profile-user
+  //    (เปลี่ยนภาษาได้ที่ เมนู ⋮ > ตั้งค่า)
   const isHrPage = window.location.pathname.includes('/pages/hr/') || 
                    window.location.pathname.includes('/pages/user/leave-history.html') ||
                    window.location.pathname.includes('/pages/user/leave-rules.html') ||
+                   window.location.pathname.includes('/pages/user/profile-user.html') ||
                    document.querySelector('aside.sidebar-light') !== null ||
                    document.body.classList.contains('hr-layout');
   if (isHrPage) return;
+
+  // 📱 มือถือ (แบบแอป): ไม่วางปุ่ม TH/EN บนหัวหน้า — เปลี่ยนภาษาได้ที่ เมนู ⋮ > ตั้งค่า
+  //    แต่ยังใช้ภาษาที่บันทึกไว้เหมือนเดิม
+  if (window.innerWidth <= 1024 && (window.PVTShell || document.querySelector('script[src*="mobile-shell"]'))) {
+    if (!window.__pvtLangAppliedNoSwitcher) {
+      window.__pvtLangAppliedNoSwitcher = true;
+      const savedLangMobile = localStorage.getItem('pvt_login_lang') || 'th';
+      window.setGlobalLanguage(savedLangMobile, false, { forceBroadcast: true });
+    }
+    return;
+  }
   
   const targetContainer = document.querySelector('.topbar-right') || 
                           document.querySelector('.topbar-actions') || 
@@ -3163,8 +3207,8 @@ if ('serviceWorker' in navigator) {
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      background: rgba(13, 148, 136, 0.1);
-      color: #0d9488;
+      background: rgba(var(--th-p-600-rgb, 13, 148, 136), 0.1);
+      color: var(--th-p-600, #0d9488);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -3264,18 +3308,11 @@ if ('serviceWorker' in navigator) {
 
   // Check and process pending toasts on load
   function checkPendingToasts() {
+    // Login success toast intentionally disabled.
+    // Clear any pending legacy login toast so it does not appear after redirect.
     try {
-      const pending = sessionStorage.getItem("login_toast_pending");
-      if (pending) {
-        const data = JSON.parse(pending);
-        if (data && data.title) {
-          window.showSuccessToast(data.title, data.message, data.isBiometric);
-        }
-        sessionStorage.removeItem("login_toast_pending");
-      }
-    } catch (e) {
-      console.warn("Notice: Failed checking pending toasts:", e);
-    }
+      sessionStorage.removeItem("login_toast_pending");
+    } catch (e) {}
   }
 
   if (document.readyState === 'loading') {
@@ -3368,15 +3405,6 @@ window.executePvtLogout = async function() {
   }
 
   try {
-    // เก็บเฉพาะสถานะ "อ่านแล้ว" ของ Bell ไว้ข้ามการ Logout
-    // ข้อมูลนี้ไม่ใช่ Session/Token และถูกแยกตาม user id อยู่แล้ว
-    const persistentNotificationState = {};
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('pvt_user_notification_read_state_')) {
-        persistentNotificationState[key] = localStorage.getItem(key);
-      }
-    });
-
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('sb-') || key.includes('supabase') || key.includes('user') || key.includes('token') || key.includes('auth')) {
         localStorage.removeItem(key);
@@ -3388,15 +3416,8 @@ window.executePvtLogout = async function() {
     localStorage.removeItem('pvt_auth_token');
     localStorage.removeItem('supabase_session');
     localStorage.clear();
-
-    Object.entries(persistentNotificationState).forEach(([key, value]) => {
-      if (value !== null) localStorage.setItem(key, value);
-    });
-
     sessionStorage.clear();
-  } catch (err) {
-    console.warn('[AuthGuard] Could not preserve notification read state during logout:', err);
-  }
+  } catch (err) {}
 
   window.location.replace('/index.html?logout=true');
 };
@@ -3557,3 +3578,144 @@ document.addEventListener('click', function(e) {
   }
 })();
 
+
+// =========================================================================
+// 💬 [LINE ACCESS] ใครเชื่อมต่อ LINE ได้บ้าง
+//    ✅ ผู้อนุมัติที่ HR ตั้งไว้ในหน้า "ตั้งค่าสายอนุมัติ" (ประจำแผนก + รายบุคคล)
+//    ✅ HR / Admin
+//    ✅ ทุกคน — เมื่อ HR เปิดสวิตช์ "เปิดให้พนักงานทุกคนเชื่อมต่อ LINE" (line_notification_settings.allow_all_employees)
+//    คนอื่น: ซ่อนปุ่ม/เมนูเชื่อมต่อ LINE ทุกจุด และกันการขอรหัส (เซิร์ฟเวอร์ตรวจซ้ำอีกชั้น)
+// =========================================================================
+(function initLineAccess() {
+  if (window.PVTLine) return;
+  const CACHE_KEY = 'pvt_line_access_v1';
+  const CACHE_MS = 10 * 60 * 1000;
+  const root = document.documentElement;
+
+  // ซ่อนทุกจุดที่เปิดหน้าเชื่อมต่อ LINE จนกว่าจะรู้ว่ามีสิทธิ์
+  if (!document.getElementById('pvt-line-access-style')) {
+    const st = document.createElement('style');
+    st.id = 'pvt-line-access-style';
+    st.textContent = `
+      html:not(.pvt-line-allowed) [onclick*="generateLineLinkToken"],
+      html:not(.pvt-line-allowed) [onclick*="requestLineTokenFromSettings"],
+      html:not(.pvt-line-allowed) [data-line-entry],
+      html:not(.pvt-line-allowed) .pvt-drawer__item[data-key="line"],
+      html:not(.pvt-line-allowed) #lineNotificationSection { display: none !important; }
+    `;
+    (document.head || root).appendChild(st);
+  }
+
+  function sessionUser() {
+    try { return JSON.parse(localStorage.getItem('currentUser') || 'null') || {}; } catch (e) { return {}; }
+  }
+  function empIdOf(u) { return String(u.id || u.employee_id || (u.employees && u.employees.id) || ''); }
+
+  function isHrAdmin(u) {
+    const emp = u.employees || u;
+    const role = String(u.role || emp.role || '').toLowerCase().trim();
+    const code = String(u.employee_code || emp.employee_code || '').trim().toLowerCase();
+    return ['admin', 'superadmin', 'hr', 'hr_manager'].includes(role) ||
+      code === 'admin' || code === 'superadmin' || code.startsWith('hr-');
+  }
+
+  function readCache(empId) {
+    try {
+      const c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+      if (c && c.empId === empId && Date.now() - c.at < CACHE_MS) return c.result;
+    } catch (e) {}
+    return null;
+  }
+  function writeCache(empId, result) {
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ empId, at: Date.now(), result })); } catch (e) {}
+  }
+
+  function applyClass(result) {
+    root.classList.toggle('pvt-line-allowed', !!(result && result.allowed));
+    root.classList.toggle('pvt-line-denied', !(result && result.allowed));
+    window.dispatchEvent(new CustomEvent('pvt-line-access', { detail: result }));
+  }
+
+  async function checkViaApi(empId) {
+    const r = await fetch('/api/line-access?employee_id=' + encodeURIComponent(empId), { cache: 'no-store' });
+    if (!r.ok) throw new Error('api ' + r.status);
+    const j = await r.json();
+    if (typeof j.allowed !== 'boolean') throw new Error('bad api');
+    return { allowed: j.allowed, reason: j.reason || '' };
+  }
+
+  async function checkViaClient(u, empId) {
+    const sb = getSbClient();
+    if (!sb || typeof sb.from !== 'function') throw new Error('no client');
+    const soft = (q) => Promise.resolve(q).catch(() => ({ data: [] }));
+    const [settingsRes, apprRes, personalRes, deptRes, chainRes] = await Promise.all([
+      sb.from('system_settings').select('setting_value').eq('setting_key', 'line_notification_settings').maybeSingle(),
+      sb.from('department_approvers').select('id').or('supervisor_id.eq.' + empId + ',manager_id.eq.' + empId).limit(1),
+      soft(sb.from('employees').select('id').or('l1_approver_id.eq.' + empId + ',l2_approver_id.eq.' + empId + ',l3_approver_id.eq.' + empId).limit(1)),
+      soft(sb.from('departments').select('id').or('approver_id.eq.' + empId + ',backup_approver_id.eq.' + empId).limit(1)),
+      soft(sb.from('approval_chain_steps').select('id').contains('approver_ids', [empId]).limit(1))
+    ]);
+    if (settingsRes && settingsRes.data && settingsRes.data.setting_value && settingsRes.data.setting_value.allow_all_employees === true) {
+      return { allowed: true, reason: 'all_employees' };
+    }
+    if (apprRes && apprRes.error) throw apprRes.error;
+    const has = (r) => r && !r.error && Array.isArray(r.data) && r.data.length > 0;
+    if (has(apprRes) || has(personalRes) || has(deptRes) || has(chainRes)) return { allowed: true, reason: 'approver' };
+    return { allowed: false, reason: 'not_approver' };
+  }
+
+  let inflight = null;
+  async function check(force) {
+    const u = sessionUser();
+    const empId = empIdOf(u);
+    if (!empId) { const r = { allowed: false, reason: 'no_session' }; applyClass(r); return r; }
+    if (isHrAdmin(u)) { const r = { allowed: true, reason: 'hr_admin' }; applyClass(r); return r; }
+    if (!force) {
+      const cached = readCache(empId);
+      if (cached) { applyClass(cached); return cached; }
+    }
+    if (inflight) return inflight;
+    inflight = (async () => {
+      let result;
+      try { result = await checkViaApi(empId); }
+      catch (apiErr) {
+        // ไม่มีเซิร์ฟเวอร์ /api (เช่น Live Server) → ถาม Supabase โดยตรง
+        try { result = await checkViaClient(u, empId); }
+        catch (e) {
+          // ตรวจไม่ได้เลย: ให้ผู้ที่ระบบจัดเป็นหัวหน้างานใช้ได้ไปก่อน (ไม่บันทึกแคช)
+          let cat = '';
+          try { cat = window.getUserRoleCategory(u).category; } catch (er) {}
+          const r = { allowed: cat === 'leader_manager', reason: 'fallback_role' };
+          applyClass(r);
+          return r;
+        }
+      }
+      writeCache(empId, result);
+      applyClass(result);
+      return result;
+    })().finally(() => { inflight = null; });
+    return inflight;
+  }
+
+  // เรียกก่อนเปิดหน้าขอรหัส / บันทึก LINE ID — คืน true ถ้าใช้ได้
+  async function guard() {
+    const r = await check();
+    if (r.allowed) return true;
+    const msg = 'ขณะนี้การแจ้งเตือนผ่าน LINE เปิดให้เฉพาะผู้อนุมัติใบลา (หัวหน้างาน / ผู้จัดการ) ที่ HR ตั้งค่าไว้<br><br>' +
+      'คุณยังติดตามสถานะใบลาได้ที่ 🔔 การแจ้งเตือน และหน้า "ประวัติลา" ตามปกติ';
+    if (window.Swal) {
+      Swal.fire({ icon: 'info', title: 'ยังไม่เปิดให้บริการ', html: msg, confirmButtonText: 'รับทราบ', confirmButtonColor: 'var(--th-p-600, #0d9488)' });
+    } else {
+      alert(msg.replace(/<br>/g, '\n'));
+    }
+    return false;
+  }
+
+  window.PVTLine = { check, guard, clearCache: () => { try { sessionStorage.removeItem(CACHE_KEY); } catch (e) {} } };
+
+  const start = () => {
+    check().then((r) => { if (r && r.reason === 'fallback_role') setTimeout(() => check(true).catch(() => {}), 2500); }).catch(() => {});
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else setTimeout(start, 0);
+})();

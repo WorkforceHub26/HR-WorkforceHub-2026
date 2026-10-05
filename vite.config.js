@@ -1,15 +1,17 @@
 import { defineConfig } from 'vite';
-import { resolve, join } from 'path';
+import { resolve } from 'path';
 import fs from 'fs';
-import tailwindcss from '@tailwindcss/vite';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
+import { handleLineAccess, handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
 
 export default defineConfig({
   plugins: [
-    tailwindcss(),
     {
       name: 'api-line-handler',
       configureServer(server) {
+        server.middlewares.use('/api/line-access', (req, res) => {
+          if (req.method === 'GET') handleLineAccess(req, res);
+          else res.end();
+        });
         server.middlewares.use('/api/create-line-link', (req, res) => {
           if (req.method === 'POST') handleCreateLineLink(req, res);
           else res.end();
@@ -24,6 +26,10 @@ export default defineConfig({
         });
         server.middlewares.use('/api/send-notification', (req, res) => {
           if (req.method === 'POST') handleSendNotification(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/test-line-connection', (req, res) => {
+          if (req.method === 'POST') handleTestLineConnection(req, res);
           else res.end();
         });
         server.middlewares.use('/api/record-login-log', (req, res) => {
@@ -110,10 +116,12 @@ export default defineConfig({
         userHolidays: resolve(__dirname, 'pages/user/holidays.html'),
         userLeaveStats: resolve(__dirname, 'pages/user/leave-stats.html'),
         userNews: resolve(__dirname, 'pages/user/news.html'),
+        approverLeaveApprovals: resolve(__dirname, 'pages/approver/leave-approvals.html'),
         hrHome: resolve(__dirname, 'pages/hr/home.html'),
         hrLeave: resolve(__dirname, 'pages/hr/hr.html'),
         hrManagement: resolve(__dirname, 'pages/hr/management.html'),
         hrApprovalSettings: resolve(__dirname, 'pages/hr/approval-settings.html'),
+        hrApprovalChains: resolve(__dirname, 'pages/hr/approval-chains.html'),
         hrAdminDashboard: resolve(__dirname, 'pages/hr/admin-dashboard.html'),
         hrLeaveStats: resolve(__dirname, 'pages/hr/leave-stats.html'),
         hrNewsManagement: resolve(__dirname, 'pages/hr/news-management.html'),

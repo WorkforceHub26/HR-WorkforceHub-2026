@@ -1080,6 +1080,13 @@ async function directCancelLeave(requestId) {
     try {
       const trimmedReason = cancelReason.trim();
 
+      // 🧾 ข้อมูลใบลาเดิม (เก็บเป็นหลักฐาน — รวมวันที่ลาเดิม)
+      const { data: leaveBefore } = await sb
+        .from("leave_requests")
+        .select("*, leave_types!leave_type_id(leave_name), employees!employee_id(id, full_name, employee_code, departments!department_id(department_name))")
+        .eq("id", requestId)
+        .maybeSingle();
+
       // Ensure the status is set to 'cancelled' and approval_comment reflects it clearly
       let { error } = await sb
         .from("leave_requests")
@@ -1104,6 +1111,14 @@ async function directCancelLeave(requestId) {
       }
 
       if (error) throw error;
+
+      if (window.PVTApproval) await window.PVTApproval.closeOpenSteps(requestId, 'cancelled', `พนักงานยกเลิก: ${trimmedReason}`);
+      if (window.PVTLeaveAudit && leaveBefore) {
+        await window.PVTLeaveAudit.recordOutcome(leaveBefore, 'cancelled', {
+          stepLevel: 'EMP', stepLabel: 'พนักงานยกเลิกเอง (ก่อนอนุมัติ)', comment: trimmedReason,
+          statusBefore: leaveBefore.status, statusAfter: 'cancelled'
+        });
+      }
 
       await Swal.fire({ icon: 'success', title: 'ยกเลิกเรียบร้อย!', text: 'ยกเลิกคำขอลาเรียบร้อยแล้ว', timer: 1800, showConfirmButton: false });
       await loadMyLeaveHistory();
@@ -1179,6 +1194,13 @@ async function requestCancelApprovedLeave(requestId) {
 
   if (isConfirmed && cancelReason) {
     try {
+      // 🧾 ข้อมูลใบลาเดิม (เก็บเป็นหลักฐาน — รวมวันที่ลาเดิม)
+      const { data: leaveBefore } = await sb
+        .from("leave_requests")
+        .select("*, leave_types!leave_type_id(leave_name), employees!employee_id(id, full_name, employee_code, departments!department_id(department_name))")
+        .eq("id", requestId)
+        .maybeSingle();
+
       let { error } = await sb
         .from("leave_requests")
         .update({
@@ -1199,7 +1221,15 @@ async function requestCancelApprovedLeave(requestId) {
 
       if (error) throw error;
 
-      await Swal.fire({ icon: 'success', title: 'ส่งคำขอสำเร็จ!', text: 'ส่งคำขอยกเลิกไปยัง HR/Admin เพื่อรอตรวจสอบแล้ว', confirmButtonColor: '#0f766e' });
+      // แจ้ง HR ทันที (ในระบบ) + บันทึกหลักฐาน
+      if (window.PVTLeaveAudit && leaveBefore) {
+        await window.PVTLeaveAudit.recordOutcome(leaveBefore, 'cancel_requested', {
+          stepLevel: 'EMP', stepLabel: 'พนักงานขอยกเลิก (รอ HR พิจารณา)', comment: cancelReason.trim(),
+          statusBefore: leaveBefore.status, statusAfter: 'cancel_requested'
+        });
+      }
+
+      await Swal.fire({ icon: 'success', title: 'ส่งคำขอสำเร็จ!', text: 'ส่งคำขอยกเลิกไปยัง HR/Admin เพื่อรอตรวจสอบแล้ว', confirmButtonColor: 'var(--th-p-700, #0f766e)' });
       await loadMyLeaveHistory();
     } catch (err) {
       console.error("❌ เกิดข้อผิดพลาดในการส่งคำร้อง:", err);
@@ -1215,7 +1245,7 @@ function downloadLeaveHistoryCSV() {
       icon: 'warning',
       title: 'ไม่พบข้อมูลสำหรับดาวน์โหลด',
       text: 'ไม่มีประวัติการลาในรายการประจำปีนี้ขณะนี้',
-      confirmButtonColor: '#0f766e'
+      confirmButtonColor: 'var(--th-p-700, #0f766e)'
     });
     return;
   }
@@ -1267,7 +1297,7 @@ function downloadLeaveHistoryCSV() {
     icon: 'success',
     title: 'ดาวน์โหลดสำเร็จ!',
     text: `ดาวน์โหลดไฟล์รายงานประจำปี ${selectedYear} เรียบร้อยแล้ว`,
-    confirmButtonColor: '#0f766e',
+    confirmButtonColor: 'var(--th-p-700, #0f766e)',
     showDenyButton: false,
     showCancelButton: false,
     showCloseButton: false,
@@ -1287,14 +1317,14 @@ function renderNativeDetailModal(title, htmlContent) {
   modalEl.innerHTML = `
     <div style="background:white;border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);position:relative;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="margin:0;font-size:18px;color:#0f766e;display:flex;align-items:center;gap:8px;">
+        <h3 style="margin:0;font-size:18px;color:var(--th-p-700, #0f766e);display:flex;align-items:center;gap:8px;">
           <span class="material-symbols-outlined">event_note</span> ${title}
         </h3>
         <button onclick="document.getElementById('pvt-native-detail-modal').style.display='none'" style="border:none;background:none;cursor:pointer;font-size:22px;color:#64748b;padding:4px;">✕</button>
       </div>
       <div>${htmlContent}</div>
       <div style="margin-top:18px;text-align:right;">
-        <button onclick="document.getElementById('pvt-native-detail-modal').style.display='none'" style="background:#0f766e;color:white;border:none;padding:10px 22px;border-radius:10px;font-weight:600;cursor:pointer;">ปิดหน้าต่าง</button>
+        <button onclick="document.getElementById('pvt-native-detail-modal').style.display='none'" style="background:var(--th-p-700, #0f766e);color:white;border:none;padding:10px 22px;border-radius:10px;font-weight:600;cursor:pointer;">ปิดหน้าต่าง</button>
       </div>
     </div>
   `;
@@ -1488,7 +1518,7 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
           </div>` : (item.approval_comment && !item.approval_comment.includes('ยกเลิก') && item.status !== 'cancelled') ? `
           <div style="margin-top: 14px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 14px; border-radius: 12px; color: #334155;">
             <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13px;">
-              <span class="material-symbols-outlined" style="font-size: 17px; color: #0d9488;">chat</span>
+              <span class="material-symbols-outlined" style="font-size: 17px; color: var(--th-p-600, #0d9488);">chat</span>
               <span>ความคิดเห็นจากผู้อนุมัติ:</span>
             </div>
             <div style="font-size: 13px; line-height: 1.5; color: #475569;">
@@ -1501,12 +1531,12 @@ window.previewLeaveModalFromHistory = async function(leaveId) {
 
     if (typeof Swal !== 'undefined' && typeof Swal.fire === 'function') {
       Swal.fire({
-        title: `<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:#0f766e;">event_note</span> ${typeName}</div>`,
+        title: `<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><span class="material-symbols-outlined" style="color:var(--th-p-700, #0f766e);">event_note</span> ${typeName}</div>`,
         html: modalHtml,
         showCloseButton: true,
         showConfirmButton: true,
         confirmButtonText: 'ปิดหน้าต่าง',
-        confirmButtonColor: '#0f766e'
+        confirmButtonColor: 'var(--th-p-700, #0f766e)'
       });
     } else {
       renderNativeDetailModal(typeName, modalHtml);
@@ -1701,8 +1731,8 @@ async function fetchUserNotifications() {
     }
     if (countPill) {
       countPill.innerText = unreadCount > 0 ? `${unreadCount} รายการใหม่` : "ไม่มีรายการใหม่";
-      countPill.style.background = unreadCount > 0 ? "#e0f2fe" : "#f1f5f9";
-      countPill.style.color = unreadCount > 0 ? "#0369a1" : "#64748b";
+      countPill.style.background = unreadCount > 0 ? "var(--th-k-100, #e0f2fe)" : "#f1f5f9";
+      countPill.style.color = unreadCount > 0 ? "var(--th-k-700, #0369a1)" : "#64748b";
     }
     
     const listEl = document.getElementById("userNotifList");
@@ -1716,7 +1746,7 @@ async function fetchUserNotifications() {
     listEl.innerHTML = notifList.map(n => {
       const isRead = n.is_read;
       const bg = isRead ? "transparent" : "#f0f9ff";
-      const dot = isRead ? "" : `<div style="width: 8px; height: 8px; background: #0ea5e9; border-radius: 50%; margin-top: 6px; flex-shrink: 0;"></div>`;
+      const dot = isRead ? "" : `<div style="width: 8px; height: 8px; background: var(--th-k-500, #0ea5e9); border-radius: 50%; margin-top: 6px; flex-shrink: 0;"></div>`;
       let icon = "📢";
       if (n.title.includes("อนุมัติแล้ว") || n.title.includes("✅")) icon = "✅";
       else if (n.title.includes("ไม่อนุมัติ") || n.title.includes("❌")) icon = "❌";

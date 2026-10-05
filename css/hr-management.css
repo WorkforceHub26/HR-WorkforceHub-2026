@@ -1,31 +1,768 @@
-/* ======================================================
-   Dedicated Stylesheet for HR Management (/pages/hr/management.html)
-   Scoped Page ID: #page-hr-management
-   ====================================================== */
-@import url('/css/Management.css');
-@import url('/css/company-news.css');
-@import url('/css/health-wellness.css');
+/* ==========================================================================
+   PVT WORKFORCE HUB — หน้าจัดการ HR (hr-management.css)
+   --------------------------------------------------------------------------
+   หลักการของไฟล์นี้
+   1. ไม่ใช้ !important เลย  → ชนะกันด้วย "ลำดับไฟล์" + "ความเจาะจงของ selector"
+   2. Sidebar / Topbar เป็นของ layout-*.css (โหลดก่อนไฟล์นี้) ไม่เขียนซ้ำที่นี่
+   3. ทุกกฎของหน้านี้ขึ้นต้นด้วย #page-hr-management (id ของ <body>)
+      จึงชนะ CSS กลางได้โดยไม่ต้องบังคับ และไม่ไปกระทบหน้าอื่น
+   4. ถ้าต้องการ override ให้ "เพิ่มความเจาะจง" (เช่น เติม class ซ้อน)
+      อย่าเติม !important
 
-/* ======================================================
-   Employee history: merged controls from removed roster card
-   ====================================================== */
-#page-hr-management .system-role-filter-row {
+   สารบัญ
+   00. Design tokens (ตัวแปรสี/ขนาด/เงา/animation)
+   01. Base — พื้นหลังและฟอนต์
+   02. Layout adapter — ปรับ .pvt-page ให้เข้ากับหน้านี้ + ปรับ Sidebar (02.1–02.3)
+   03. Shared — ปุ่ม, หัวข้อ section, badge สถานะ, panel
+   04. Topbar user avatar (เฉพาะหน้านี้)
+   05. เมนูบริหารจัดการ (manage-card ทั้ง 3 ใบ)
+   06. Stat cards + กราฟแท่ง + Recharts panel
+   07. ตัวกรองพนักงาน (แท็บตำแหน่ง, บทบาทระบบ, ค้นหา, dropdown)
+   08. รายการพนักงาน (header, แถว/การ์ด, badge, ปุ่ม)
+   09. Modal ดูรายละเอียดพนักงาน (+ โหมดเต็มจอ)
+   10. ฟอร์มเพิ่ม/แก้ไขพนักงานแบบเต็มจอ (SweetAlert2)
+   11. Modal จัดการโครงสร้างองค์กร (แท็บตำแหน่ง)
+   12. Responsive
+   ========================================================================== */
+
+
+/* ==========================================================================
+   00. DESIGN TOKENS
+   ========================================================================== */
+:root {
+  /* สีหลัก (เขียว PVT) */
+  --primary: #0fa472;
+  --primary-dark: #0b845c;
+  --primary-soft: #ebf7f3;
+  --primary-light: rgba(15, 164, 114, 0.15);
+  --teal: var(--th-p-600, #0d9488);
+  --teal-dark: var(--th-p-700, #0f766e);
+
+  /* สีสถานะ */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  /* พื้นผิว + ตัวอักษร */
+  --bg: var(--th-p-50, #f0fdfa);
+  --card: #ffffff;
+  --text: #0f172a;
+  --text-soft: #64748b;
+  --muted: #475569;
+  --border: #e2e8f0;
+  --border-subtle: #f1f5f9;
+
+  /* สีสถานะใบลา */
+  --status-approved-bg: #ecfdf5;
+  --status-approved-text: #047857;
+  --status-approved-border: #a7f3d0;
+  --status-pending-bg: #fffbeb;
+  --status-pending-text: #b45309;
+  --status-pending-border: #fde68a;
+  --status-rejected-bg: #fff1f2;
+  --status-rejected-text: #be123c;
+  --status-rejected-border: #fecdd3;
+
+  /* มุมโค้ง */
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  /* เงา */
+  --shadow-sm: 0 4px 12px -1px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  --shadow-md: 0 12px 30px -4px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 20px 40px -8px rgba(15, 23, 42, 0.12);
+
+  /* animation */
+  --fluid-transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  --spring-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease: all 0.2s ease-in-out;
+}
+
+
+/* ==========================================================================
+   01. BASE
+   ========================================================================== */
+#page-hr-management {
+  font-family: "Sarabun", sans-serif;
+  color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#page-hr-management *,
+#page-hr-management *::before,
+#page-hr-management *::after {
+  box-sizing: border-box;
+}
+
+/* Modal / SweetAlert อยู่นอก #pvt-app แต่ยังอยู่ใน body จึงใช้ id นี้ได้ */
+
+
+/* ==========================================================================
+   02. LAYOUT ADAPTER
+   .pvt-page (จาก layout กลาง) เป็น flex + gap 20px
+   หน้านี้คุมระยะห่างด้วย margin ของ section เอง จึงคืนเป็น block
+   ========================================================================== */
+#page-hr-management .pvt-page {
+  display: block;
+}
+
+
+/* ---- 02.1 Sidebar: ไอคอนเมนูสีเดียวกับตัวอักษร (ขาว) ---- */
+#page-hr-management .pvt-nav__item .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
+#page-hr-management .pvt-sidebar__toggle {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+}
+
+#page-hr-management .pvt-sidebar__toggle:hover {
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
+}
+
+#page-hr-management .pvt-sidebar__toggle .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.3 จอ PC: ไม่ต้องมีปุ่ม ✕ ปิดเมนู และปุ่ม ☰ (ใช้เฉพาะมือถือ/แท็บเล็ต) ---- */
+@media (min-width: 1025px) {
+  #page-hr-management .pvt-sidebar__close,
+  #page-hr-management .pvt-topbar__burger {
+    display: none;
+  }
+}
+
+
+/* ==========================================================================
+   03. SHARED COMPONENTS
+   ========================================================================== */
+
+/* ---- 03.1 ปุ่มทั่วไป (.action-btn) ---- */
+#page-hr-management .action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  background: #fff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#page-hr-management .action-btn .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--teal);
+  transition: all 0.2s;
+}
+
+#page-hr-management .action-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: var(--text);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* ปุ่มเขียว (success-zone) */
+#page-hr-management .action-btn.success-zone {
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  border-color: #047857;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+}
+
+#page-hr-management .action-btn.success-zone .material-symbols-outlined {
+  color: #fff;
+}
+
+#page-hr-management .action-btn.success-zone:hover {
+  background: linear-gradient(135deg, #047857, #065f46);
+  border-color: #047857;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+}
+
+/* ---- 03.2 ปุ่ม primary / light / small ---- */
+#page-hr-management .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 10px 20px;
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 4px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#page-hr-management .btn-primary:hover {
+  background: var(--teal-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.3);
+}
+
+#page-hr-management .btn-light {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 10px 20px;
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--fluid-transition);
+}
+
+#page-hr-management .btn-light:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+#page-hr-management .btn-sm {
+  height: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* ---- 03.3 หัวข้อ section ---- */
+#page-hr-management .section-title {
   display: flex;
   align-items: center;
+  gap: 10px;
+  margin: 32px 0 16px;
+  padding-left: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+#page-hr-management .section-title .material-symbols-outlined {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  font-size: 22px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-light);
+  border-radius: var(--radius-sm);
+}
+
+/* ---- 03.4 Panel (กล่องเนื้อหา) ---- */
+#page-hr-management .panel {
+  width: 100%;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--fluid-transition);
+}
+
+#page-hr-management .panel:hover {
+  box-shadow: var(--shadow-md);
+}
+
+#page-hr-management .panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+#page-hr-management .panel-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ---- 03.5 Badge สถานะ ---- */
+#page-hr-management .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+#page-hr-management .status.active,
+#page-hr-management .status.approved {
+  background: var(--status-approved-bg);
+  color: var(--status-approved-text);
+  border: 1px solid var(--status-approved-border);
+}
+
+#page-hr-management .status.pending {
+  background: var(--status-pending-bg);
+  color: var(--status-pending-text);
+  border: 1px solid var(--status-pending-border);
+}
+
+#page-hr-management .status.rejected,
+#page-hr-management .status.inactive,
+#page-hr-management .status.resigned {
+  background: var(--status-rejected-bg);
+  color: var(--status-rejected-text);
+  border: 1px solid var(--status-rejected-border);
+}
+
+/* ---- 03.6 ข้อความที่ค้นหาเจอ + ข้อความว่าง ---- */
+#page-hr-management mark.text-highlight {
+  padding: 1px 4px;
+  background: linear-gradient(120deg, #fef08a, #fde047);
+  color: #854d0e;
+  border-radius: 4px;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(234, 179, 8, 0.2);
+}
+
+#page-hr-management .empty {
+  padding: 48px 16px;
+  text-align: center;
+  font-size: 14.5px;
+  font-style: italic;
+  color: var(--text-soft);
+}
+
+
+/* ==========================================================================
+   04. TOPBAR USER AVATAR (เฉพาะหน้านี้)
+   โครง topbar อยู่ใน layout-topbar.css — ที่นี่ปรับเฉพาะวงกลมตัวอักษร
+   ========================================================================== */
+#page-hr-management #headerUserAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--th-p-500, #14b8a6), var(--teal) 55%, var(--teal-dark));
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  user-select: none;
+}
+
+
+/* ==========================================================================
+   05. เมนูบริหารจัดการ (manage-card)
+   ========================================================================== */
+#page-hr-management .management-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+#page-hr-management .manage-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: var(--spring-bounce);
+  animation: fluidPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+#page-hr-management .manage-card:hover {
+  transform: translateY(-5px);
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-md);
+}
+
+/* สีเส้นบนของแต่ละใบ + ไอคอนหัวข้อ */
+#page-hr-management .manage-card:nth-child(1) { border-top: 4px solid var(--primary); animation-delay: 0.1s; }
+#page-hr-management .manage-card:nth-child(2) { border-top: 4px solid var(--th-b-500, #3b82f6);        animation-delay: 0.2s; }
+#page-hr-management .manage-card:nth-child(3) { border-top: 4px solid #f59e0b;        animation-delay: 0.3s; }
+
+#page-hr-management .manage-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+#page-hr-management .manage-card h3 .material-symbols-outlined {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  font-size: 22px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-radius: 50%;
+}
+
+#page-hr-management .manage-card:nth-child(2) h3 .material-symbols-outlined { color: var(--th-b-500, #3b82f6); background: var(--th-b-50, #eff6ff); }
+#page-hr-management .manage-card:nth-child(3) h3 .material-symbols-outlined { color: #f59e0b; background: #fffbeb; }
+
+/* กลุ่มปุ่มในการ์ด */
+#page-hr-management .card-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#page-hr-management .card-btn-group .action-btn {
+  justify-content: flex-start;
+  width: 100%;
+  padding: 12px 16px;
+  background: #f8fafc;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  text-align: left;
+  transition: var(--fluid-transition);
+}
+
+#page-hr-management .card-btn-group .action-btn .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--text-soft);
+  transition: var(--spring-bounce);
+}
+
+#page-hr-management .card-btn-group .action-btn:hover {
+  background: #fff;
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateX(6px);
+  box-shadow: 0 4px 14px rgba(15, 164, 114, 0.12);
+}
+
+#page-hr-management .card-btn-group .action-btn:hover .material-symbols-outlined {
+  color: var(--primary);
+  transform: scale(1.18);
+}
+
+#page-hr-management .card-btn-group .action-btn.success-zone {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+  box-shadow: none;
+}
+
+#page-hr-management .card-btn-group .action-btn.success-zone .material-symbols-outlined {
+  color: var(--success);
+}
+
+#page-hr-management .card-btn-group .action-btn.success-zone:hover {
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
+}
+
+#page-hr-management .card-btn-group .action-btn.success-zone:hover .material-symbols-outlined {
+  color: #fff;
+}
+
+
+/* ==========================================================================
+   06. STAT CARDS / กราฟแท่ง / RECHARTS
+   (renderSummary ใน management.js และ recharts-summary.js ใช้ส่วนนี้)
+   ========================================================================== */
+
+/* ---- 06.1 Stat cards ---- */
+#page-hr-management .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+#page-hr-management .panel.stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 22px 24px;
+  transition: var(--spring-bounce);
+  animation: fluidPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+#page-hr-management .panel.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+#page-hr-management .panel.stat-card:nth-child(1) { border-left: 4px solid var(--primary); background: linear-gradient(135deg, #fff, #f0fdf4); animation-delay: 0.1s; }
+#page-hr-management .panel.stat-card:nth-child(2) { border-left: 4px solid var(--th-b-500, #3b82f6);        background: linear-gradient(135deg, #fff, var(--th-b-50, #eff6ff)); animation-delay: 0.2s; }
+#page-hr-management .panel.stat-card:nth-child(3) { border-left: 4px solid #f59e0b;        background: linear-gradient(135deg, #fff, #fffbeb); animation-delay: 0.3s; }
+#page-hr-management .panel.stat-card:nth-child(4) { border-left: 4px solid #8b5cf6;        background: linear-gradient(135deg, #fff, #f5f3ff); animation-delay: 0.4s; }
+
+#page-hr-management .stat-label {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+
+#page-hr-management .stat-val {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+
+#page-hr-management .stat-val.primary { color: var(--primary); }
+#page-hr-management .stat-val.warning { color: #f59e0b; }
+#page-hr-management .stat-val.danger  { color: var(--danger); }
+
+/* ---- 06.2 กราฟแท่ง (renderBarChart) ---- */
+#page-hr-management .chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+#page-hr-management .bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#page-hr-management .bar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 85px;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+}
+
+#page-hr-management .bar-row strong {
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#page-hr-management .bar-track {
+  height: 8px;
+  overflow: hidden;
+  background: var(--border-subtle);
+  border-radius: 99px;
+}
+
+#page-hr-management .bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #34d399);
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#page-hr-management .bar-row span {
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text-soft);
+}
+
+/* ---- 06.3 Recharts panel ---- */
+#page-hr-management #rechartsSummaryPanel {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+#page-hr-management #rechartsSummaryPanel .recharts-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+#page-hr-management #rechartsSummaryPanel .recharts-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+#page-hr-management #rechartsSummaryPanel .recharts-chart-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 18px 16px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+
+/* ==========================================================================
+   07. ตัวกรองพนักงาน
+   ========================================================================== */
+
+/* ---- 07.1 แท็บกลุ่มตำแหน่ง (ผู้บริหาร / ผจก. / หัวหน้า / เจ้าหน้าที่ / พนักงาน) ---- */
+#page-hr-management .pos-category-tabs {
+  display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+#page-hr-management .pos-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fff;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#page-hr-management .pos-tab:hover {
+  background: #f8fafc;
+  color: var(--text);
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+/* ตัวเลขจำนวนคนในแท็บ */
+#page-hr-management .pos-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  background: var(--border-subtle);
+  color: var(--text-soft);
+  border-radius: 11px;
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+/* สีตัวเลขแยกตามกลุ่ม (ตอนยังไม่ active) */
+#page-hr-management .pos-tab[data-pos-cat="executive"]  .pos-tab-count { background: var(--th-b-100, #dbeafe); color: var(--th-b-800, #1e40af); }
+#page-hr-management .pos-tab[data-pos-cat="manager"]    .pos-tab-count { background: var(--th-p-100, #ccfbf1); color: var(--th-p-700, #0f766e); }
+#page-hr-management .pos-tab[data-pos-cat="supervisor"] .pos-tab-count { background: #fef3c7; color: #92400e; }
+#page-hr-management .pos-tab[data-pos-cat="officer"]    .pos-tab-count { background: #ede9fe; color: #5b21b6; }
+#page-hr-management .pos-tab[data-pos-cat="staff"]      .pos-tab-count { background: var(--border-subtle); color: var(--muted); }
+
+/* สถานะ active: ใช้ความเจาะจงสูงกว่าสีตัวเลขด้านบน (มี .active เพิ่ม) จึงชนะโดยไม่ต้อง !important */
+#page-hr-management .pos-tab.active {
+  color: #fff;
+  border-color: var(--teal);
+  background: var(--teal);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.22);
+}
+
+#page-hr-management .pos-tab[data-pos-cat].active .pos-tab-count {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+#page-hr-management .pos-tab[data-pos-cat="all"].active        { background: #0f172a; border-color: #0f172a; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2); }
+#page-hr-management .pos-tab[data-pos-cat="executive"].active  { background: linear-gradient(135deg, var(--th-b-600, #2563eb), var(--th-b-700, #1d4ed8)); border-color: var(--th-b-700, #1d4ed8); box-shadow: 0 4px 14px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.25); }
+#page-hr-management .pos-tab[data-pos-cat="manager"].active    { background: linear-gradient(135deg, var(--teal), var(--teal-dark)); border-color: var(--teal-dark); box-shadow: 0 4px 14px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25); }
+#page-hr-management .pos-tab[data-pos-cat="supervisor"].active { background: linear-gradient(135deg, #d97706, #b45309); border-color: #b45309; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.25); }
+#page-hr-management .pos-tab[data-pos-cat="officer"].active    { background: linear-gradient(135deg, #7c3aed, #6d28d9); border-color: #6d28d9; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25); }
+#page-hr-management .pos-tab[data-pos-cat="staff"].active      { background: linear-gradient(135deg, #475569, #334155); border-color: #334155; box-shadow: 0 4px 14px rgba(71, 85, 105, 0.25); }
+
+/* ---- 07.2 ตัวกรองบทบาทระบบ ---- */
+#page-hr-management .system-role-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin: -4px 0 14px;
   padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
   background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
 #page-hr-management .system-role-filter-label {
+  margin-right: 2px;
   font-size: 13px;
   font-weight: 700;
-  color: #475569;
-  margin-right: 2px;
+  color: var(--muted);
 }
 
 #page-hr-management .system-role-chip {
@@ -35,36 +772,309 @@
   gap: 5px;
   min-height: 34px;
   padding: 6px 11px;
+  background: #fff;
+  color: var(--muted);
   border: 1px solid #cbd5e1;
   border-radius: 999px;
-  background: #fff;
-  color: #475569;
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 700;
-  cursor: pointer;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 #page-hr-management .system-role-chip.active {
-  border-color: #14b8a6;
   background: #ecfdf5;
-  color: #0f766e;
+  color: var(--teal-dark);
+  border-color: var(--th-p-500, #14b8a6);
 }
 
 #page-hr-management .system-role-count {
   min-width: 20px;
   padding: 1px 6px;
+  background: rgba(var(--th-p-700-rgb, 15, 118, 110), 0.1);
   border-radius: 999px;
-  background: rgba(15, 118, 110, 0.10);
-  text-align: center;
   font-size: 11px;
+  text-align: center;
 }
 
-#page-hr-management .emp-meta-row {
+/* ---- 07.3 ช่องค้นหา + dropdown ---- */
+#page-hr-management .filter-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+#page-hr-management .custom-search-container {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+}
+
+#page-hr-management .search-box {
   display: flex;
   align-items: center;
+  height: 44px;
+  padding: 0 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: var(--fluid-transition);
+}
+
+#page-hr-management .search-box:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+#page-hr-management .search-box .material-symbols-outlined {
+  margin-right: 10px;
+  font-size: 22px;
+  color: var(--text-soft);
+}
+
+#page-hr-management .search-input {
+  width: 100%;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+#page-hr-management .select-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 36px 0 16px;
+  background: #fff url('data:image/svg+xml;utf8,<svg fill="%230fa472" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>') no-repeat right 10px center;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: var(--fluid-transition);
+}
+
+#page-hr-management .select-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+
+/* ==========================================================================
+   08. รายการพนักงาน
+   Desktop (>1024px): แสดงเป็นแถวตาราง | Tablet/Mobile: แสดงเป็นการ์ด
+   ========================================================================== */
+
+/* ---- 08.1 กรอบรายการ + หัวตาราง ---- */
+#page-hr-management .employee-list-wrapper {
+  width: 100%;
+  margin-top: 8px;
+  overflow: visible;
+}
+
+/* คอลัมน์ที่ใช้ร่วมกันทั้งหัวตารางและแถวข้อมูล (แก้ที่เดียวตรงกันทั้งสองฝั่ง) */
+#page-hr-management .employee-list-header,
+#page-hr-management .emp-card-item {
+  display: grid;
+  grid-template-columns: 80px 110px 1.5fr 1fr 1fr 120px 140px;
+  align-items: center;
+  gap: 12px;
+}
+
+#page-hr-management .employee-list-header {
+  padding: 12px 24px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+}
+
+#page-hr-management .employee-list-header div {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+#page-hr-management .employee-list-header .col-avatar,
+#page-hr-management .employee-list-header .col-status,
+#page-hr-management .employee-list-header .col-actions {
+  text-align: center;
+}
+
+#page-hr-management .employee-list-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* ---- 08.2 แถว/การ์ดพนักงาน ---- */
+#page-hr-management .emp-card-item {
+  position: relative;
+  padding: 12px 24px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+#page-hr-management .emp-card-item:hover {
+  background: var(--th-p-50, #f0fdfa);
+  border-color: var(--teal);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.08);
+}
+
+/* ผู้บริหาร: เส้นซ้ายสีน้ำเงิน */
+#page-hr-management .emp-card-item.is-executive {
+  background: linear-gradient(to right, #fff, #f8fafc);
+  border-left: 4px solid var(--th-b-500, #3b82f6);
+}
+
+#page-hr-management .emp-card-item.is-executive:hover {
+  background: linear-gradient(to right, var(--th-b-50, #eff6ff), #f8fafc);
+  border-left-color: var(--th-b-600, #2563eb);
+  box-shadow: 0 6px 18px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.12);
+}
+
+/* คอลัมน์ย่อยทั้งหมดเป็น flex จัดกึ่งกลางแนวตั้ง */
+#page-hr-management .emp-card-item .col-avatar,
+#page-hr-management .emp-card-item .col-code,
+#page-hr-management .emp-card-item .col-dept,
+#page-hr-management .emp-card-item .col-start,
+#page-hr-management .emp-card-item .col-status,
+#page-hr-management .emp-card-item .col-actions {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+#page-hr-management .emp-card-item .col-avatar,
+#page-hr-management .emp-card-item .col-status,
+#page-hr-management .emp-card-item .col-actions {
+  justify-content: center;
+}
+
+#page-hr-management .emp-card-item .col-avatar { position: relative; }
+
+#page-hr-management .emp-card-item .col-avatar img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#page-hr-management .emp-card-item .col-actions {
+  gap: 8px;
+  width: auto;
+}
+
+#page-hr-management .emp-card-item .col-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+}
+
+#page-hr-management .emp-card-item .emp-name {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+#page-hr-management .emp-card-item .emp-pos {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--teal);
+}
+
+/* ---- 08.3 ป้ายย่อยในแถว ---- */
+#page-hr-management .emp-code-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--th-p-50, #f0fdfa);
+  color: var(--teal-dark);
+  border: 1px solid var(--th-p-100, #ccfbf1);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+#page-hr-management .emp-dept-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: #f8fafc;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+#page-hr-management .emp-start-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+
+#page-hr-management .status-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#page-hr-management .status-badge-pill.active,
+#page-hr-management .status-badge-pill.approved {
+  background: var(--status-approved-bg);
+  color: var(--status-approved-text);
+  border-color: var(--status-approved-border);
+}
+
+#page-hr-management .status-badge-pill.inactive,
+#page-hr-management .status-badge-pill.resigned,
+#page-hr-management .status-badge-pill.rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+/* แถวป้ายบทบาทระบบ + สถานะ LINE */
+#page-hr-management .emp-meta-row {
+  display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   margin-top: 5px;
 }
@@ -81,33 +1091,746 @@
   line-height: 1.4;
 }
 
-#page-hr-management .emp-system-role-badge {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-
-#page-hr-management .emp-line-status.linked {
-  background: #ecfdf5;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
-}
-
-#page-hr-management .emp-line-status.unlinked {
-  background: #f8fafc;
-  color: #94a3b8;
-  border: 1px solid #e2e8f0;
-}
+#page-hr-management .emp-system-role-badge { background: var(--border-subtle); color: var(--muted); border: 1px solid var(--border); }
+#page-hr-management .emp-line-status.linked   { background: #ecfdf5; color: #15803d; border: 1px solid #bbf7d0; }
+#page-hr-management .emp-line-status.unlinked { background: #f8fafc; color: #94a3b8; border: 1px solid var(--border); }
 
 #page-hr-management .emp-line-status .status-dot {
+  flex: 0 0 auto;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
   background: currentColor;
-  flex: 0 0 auto;
+  border-radius: 50%;
 }
 
-@media (max-width: 640px) {
+/* ป้ายระดับตำแหน่ง */
+#page-hr-management .badge-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+#page-hr-management .badge-role-exec { background: linear-gradient(135deg, var(--th-b-50, #eff6ff), var(--th-b-100, #dbeafe)); color: var(--th-b-800, #1e40af); border: 1px solid var(--th-b-200, #bfdbfe); }
+#page-hr-management .badge-role-mgr  { background: linear-gradient(135deg, var(--th-p-50, #f0fdfa), var(--th-p-100, #ccfbf1)); color: var(--th-p-700, #0f766e); border: 1px solid var(--th-p-200, #99f6e4); }
+#page-hr-management .badge-role-sup  { background: linear-gradient(135deg, #fffbeb, #fef3c7); color: #92400e; border: 1px solid #fde68a; }
+#page-hr-management .badge-role-off  { background: linear-gradient(135deg, #f5f3ff, #ede9fe); color: #5b21b6; border: 1px solid #ddd6fe; }
+
+/* เหรียญมงกุฎมุมรูปผู้บริหาร */
+#page-hr-management .exec-crown-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border: 1px solid var(--th-b-200, #bfdbfe);
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  font-size: 14px;
+}
+
+/* ---- 08.4 ปุ่มจัดการท้ายแถว ---- */
+#page-hr-management .btn-table-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#page-hr-management .btn-table-act.primary { background: var(--th-p-50, #f0fdfa); color: var(--teal); border-color: var(--th-p-100, #ccfbf1); }
+#page-hr-management .btn-table-act.primary:hover { background: var(--teal); color: #fff; box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.2); }
+
+#page-hr-management .btn-table-act.danger { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
+#page-hr-management .btn-table-act.danger:hover { background: #e11d48; color: #fff; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2); }
+
+#page-hr-management .btn-table-act.warning { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+#page-hr-management .btn-table-act.warning:hover { background: #f59e0b; color: #fff; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); }
+
+
+/* ==========================================================================
+   09. MODAL ดูรายละเอียดพนักงาน (#employeeModal)
+   ========================================================================== */
+#page-hr-management .modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(8px, 2dvh, 20px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.3s ease;
+}
+
+#page-hr-management .modal.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#page-hr-management .modal-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(96vw, 760px);
+  max-width: 100%;
+  max-height: min(92dvh, calc(100dvh - 24px));
+  margin: auto;
+  padding: clamp(14px, 3vw, 28px);
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.96) translateY(12px);
+  transition: var(--spring-bounce);
+}
+
+#page-hr-management .modal.open .modal-dialog {
+  transform: none;
+}
+
+#page-hr-management .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+#page-hr-management .modal-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+#page-hr-management .modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#page-hr-management .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#page-hr-management .btn-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--border-subtle);
+  color: var(--text-soft);
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--ease);
+}
+
+#page-hr-management .btn-close:hover {
+  background: #fee2e2;
+  color: var(--danger);
+}
+
+/* ---- 09.1 โหมดเต็มจอ (หน้าแก้ไขพนักงาน)
+   วางหลังกฎ modal ปกติ + ใช้ .modal.modal-fullscreen (เจาะจงกว่า) จึงทับได้โดยไม่ต้อง !important ---- */
+#page-hr-management .modal.modal-fullscreen {
+  padding: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+#page-hr-management .modal.modal-fullscreen .modal-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  background: #f8fafc;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+#page-hr-management .modal.modal-fullscreen .modal-header {
+  z-index: 20;
+  margin-bottom: 0;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25);
+}
+
+#page-hr-management .modal.modal-fullscreen .modal-header h2,
+#page-hr-management .modal.modal-fullscreen .modal-header h2 * {
+  color: #fff;
+}
+
+#page-hr-management .modal.modal-fullscreen .modal-header h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+#page-hr-management .modal.modal-fullscreen .modal-header-actions {
+  gap: 12px;
+}
+
+#page-hr-management .modal.modal-fullscreen .btn-close {
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 22px;
+}
+
+#page-hr-management .modal.modal-fullscreen .btn-close:hover {
+  background: rgba(255, 255, 255, 0.35);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+#page-hr-management .modal.modal-fullscreen .modal-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--border-subtle);
+}
+
+
+/* ==========================================================================
+   10. ฟอร์มเพิ่ม/แก้ไขพนักงานแบบเต็มจอ
+   - ส่วนที่เป็น SweetAlert2: ใช้ customClass (pvt-fullscreen-swal-*) จาก management.js
+     และเขียน selector ให้เจาะจงกว่า .swal2-* ของไลบรารี (ซึ่งถูก inject ทีหลังไฟล์นี้)
+   - ส่วนฟอร์ม (.pvt-fs-*) ใช้ร่วมกับ modal แก้ไขพนักงาน
+   ========================================================================== */
+
+/* ---- 10.1 กรอบ SweetAlert2 เต็มจอ ---- */
+.swal2-container.pvt-fullscreen-swal-container {
+  padding: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.swal2-container.pvt-fullscreen-swal-container .swal2-popup.pvt-fullscreen-swal-popup {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #f8fafc;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ปุ่มยืนยัน/ยกเลิกด้านล่างของ SweetAlert เต็มจอ */
+.swal2-container.pvt-fullscreen-swal-container .swal2-popup.pvt-fullscreen-swal-popup .swal2-actions {
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 16px 32px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.05);
+}
+
+.swal2-container.pvt-fullscreen-swal-container .swal2-popup.pvt-fullscreen-swal-popup .swal2-actions button {
+  height: 44px;
+  margin: 0;
+  padding: 0 24px;
+  border-radius: 10px;
+  font-family: "Sarabun", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ---- 10.2 โครงฟอร์ม ---- */
+.pvt-fs-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.pvt-fs-header {
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.25);
+}
+
+.pvt-fs-title-group  { display: flex; align-items: center; gap: 14px; }
+.pvt-fs-header-right { display: flex; align-items: center; gap: 12px; }
+
+.pvt-fs-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 12px;
+  font-size: 22px;
+  backdrop-filter: blur(4px);
+}
+
+.pvt-fs-title-text h3 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.3; color: #fff; }
+.pvt-fs-title-text p  { margin: 2px 0 0; font-size: 12.5px; color: var(--th-p-100, #ccfbf1); }
+
+.pvt-fs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pvt-fs-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pvt-fs-close-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.08);
+}
+
+.pvt-fs-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--border-subtle);
+}
+
+.pvt-fs-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.pvt-fs-card {
+  margin-bottom: 20px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.pvt-fs-card:last-child { margin-bottom: 0; }
+
+.pvt-fs-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-subtle);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--teal-dark);
+}
+
+/* ---- 10.3 ช่องกรอกข้อมูล ---- */
+.pvt-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pvt-form-row:last-child { margin-bottom: 0; }
+
+.pvt-field-group { display: flex; flex-direction: column; gap: 6px; }
+
+.pvt-field-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.pvt-field-group label .req { font-weight: 700; color: var(--danger); }
+
+.pvt-input,
+.pvt-select {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  background: #fff;
+  color: var(--text);
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  font-family: "Sarabun", sans-serif;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.pvt-input:focus,
+.pvt-select:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
+}
+
+/* ช่อง "สิทธิ์ในระบบ" เน้นกรอบเขียว (เจาะจงด้วยการซ้อน class จึงชนะ .pvt-select โดยไม่ต้อง !important) */
+.pvt-select.pvt-select-highlight {
+  border: 2px solid var(--teal);
+  background: #fff;
+  color: var(--teal);
+  font-weight: 600;
+}
+
+/* ---- 10.4 กล่องอัปโหลดรูป ---- */
+.pvt-avatar-uploader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 22px 16px;
+  text-align: center;
+  background: linear-gradient(180deg, #fff, #f8fafc);
+  border: 2px dashed #cbd5e1;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.pvt-avatar-uploader:hover {
+  background: var(--th-p-50, #f0fdfa);
+  border-color: var(--teal);
+}
+
+.pvt-avatar-img {
+  width: 135px;
+  height: 180px;
+  aspect-ratio: 3 / 4;
+  margin-bottom: 12px;
+  object-fit: cover;
+  background: var(--border-subtle);
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.pvt-file-label-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--teal);
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pvt-file-label-btn:hover {
+  background: var(--teal-dark);
+  transform: translateY(-1px);
+}
+
+
+/* ==========================================================================
+   11. MODAL จัดการโครงสร้างองค์กร (manageDepartments)
+   ========================================================================== */
+.pos-modal-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  overflow-x: auto;
+  background: var(--border-subtle);
+  border-radius: 12px;
+}
+
+.pos-modal-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 110px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--text-soft);
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pos-modal-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text);
+}
+
+.pos-modal-tab-btn.active {
+  background: #fff;
+  color: var(--teal-dark);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.pos-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  max-height: 320px;
+  padding: 4px 2px;
+  overflow-y: auto;
+}
+
+.pos-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.pos-item-card:hover {
+  background: var(--th-p-50, #f0fdfa);
+  border-color: var(--th-p-200, #99f6e4);
+  transform: translateY(-1px);
+}
+
+.pos-item-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+  color: #1e293b;
+}
+
+.pos-item-badge {
+  padding: 2px 7px;
+  background: var(--th-k-100, #e0f2fe);
+  color: var(--th-k-700, #0369a1);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+
+/* ==========================================================================
+   12. RESPONSIVE
+   เรียงจากจอใหญ่ → เล็ก (max-width) เพื่อให้กฎที่เล็กกว่าทับกฎที่ใหญ่กว่าได้ตามลำดับ
+   ========================================================================== */
+
+/* ---- ≤ 1100px : แท็บเล็ตแนวนอน ---- */
+@media (max-width: 1100px) {
+  #page-hr-management .management-grid { grid-template-columns: 1fr; }
+  #page-hr-management .summary-grid    { grid-template-columns: repeat(2, 1fr); }
+  #page-hr-management .chart-grid      { grid-template-columns: 1fr; }
+}
+
+/* ---- ≤ 1024px : แท็บเล็ต → รายการพนักงานเปลี่ยนจากแถวเป็นการ์ด ---- */
+@media (max-width: 1024px) {
+  #page-hr-management .desktop-only,
+  #page-hr-management .employee-list-header { display: none; }
+
+  #page-hr-management .employee-list-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  #page-hr-management .emp-card-item {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 24px;
+    text-align: center;
+    border-radius: var(--radius-lg);
+  }
+
+  #page-hr-management .emp-card-item:hover { transform: translateY(-5px); }
+
+  #page-hr-management .emp-card-item .col-avatar { margin: 0 auto; }
+  #page-hr-management .emp-card-item .col-avatar img { width: 80px; height: 80px; border-width: 4px; }
+
+  /* รหัสพนักงานลอยมุมขวาบนของการ์ด */
+  #page-hr-management .emp-card-item .col-code {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+  }
+
+  #page-hr-management .emp-card-item .col-info   { align-items: center; }
+  #page-hr-management .emp-card-item .col-dept   { justify-content: center; }
+  #page-hr-management .emp-card-item .col-status { justify-content: center; margin: 5px 0; }
+
+  #page-hr-management .emp-card-item .col-start {
+    justify-content: center;
+    margin-top: 5px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--border);
+  }
+
+  #page-hr-management .emp-card-item .col-actions {
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  #page-hr-management .btn-table-act {
+    flex: 1;
+    padding: 12px;
+    font-size: 13.5px;
+    border-radius: 12px;
+  }
+}
+
+/* ---- ≤ 992px : ฟอร์มเต็มจอเรียงคอลัมน์เดียว ---- */
+@media (max-width: 992px) {
+  .pvt-fs-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- ≤ 768px : มือถือ ---- */
+@media (max-width: 768px) {
+  /* รายการพนักงาน 1 คอลัมน์ */
+  #page-hr-management .employee-list-body { grid-template-columns: 1fr; gap: 12px; }
+
+  /* แท็บกลุ่มตำแหน่ง → กริด 3 ช่อง */
+  #page-hr-management .pos-category-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  #page-hr-management .pos-category-tabs .pos-tab {
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
+
+  #page-hr-management .pos-category-tabs .pos-tab-count {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 0 6px;
+  }
+
+  /* การ์ดเมนู */
+  #page-hr-management .manage-card { padding: 16px 14px; }
+
+  #page-hr-management .card-btn-group .action-btn {
+    min-height: 44px;                 /* ขนาดแตะสบายนิ้ว */
+    padding: 12px 14px;
+    font-size: 14.5px;
+  }
+
+  /* stat / กราฟ */
+  #page-hr-management .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  #page-hr-management .bar-row      { grid-template-columns: 100px 1fr 60px; font-size: 13px; }
+  #page-hr-management .stat-val     { font-size: 24px; }
+
+  #page-hr-management #rechartsSummaryPanel { margin-bottom: 16px; }
+  #page-hr-management #rechartsSummaryPanel .recharts-stats-bar   { grid-template-columns: 1fr; gap: 10px; }
+  #page-hr-management #rechartsSummaryPanel .recharts-charts-grid { grid-template-columns: 1fr; gap: 12px; }
+  #page-hr-management #rechartsSummaryPanel .recharts-chart-card  { padding: 14px 12px; border-radius: 14px; }
+
+  /* ฟอนต์ช่องกรอก (15px ป้องกัน iOS ซูมเองตอนโฟกัส) */
+  #page-hr-management .search-input,
+  #page-hr-management .select-input { font-size: 15px; }
+
+  /* modal */
+  #page-hr-management .modal-dialog { width: min(96vw, 760px); padding: 14px; border-radius: 14px; max-height: min(92dvh, calc(100dvh - 16px)); }
+  #page-hr-management .modal-body   { max-height: calc(100dvh - 100px); }
+
+  /* แถบบทบาทระบบเลื่อนแนวนอน */
   #page-hr-management .system-role-filter-row {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -115,12 +1838,75 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  #page-hr-management .system-role-filter-row::-webkit-scrollbar {
-    display: none;
-  }
+  #page-hr-management .system-role-filter-row::-webkit-scrollbar { display: none; }
 
   #page-hr-management .system-role-filter-label,
-  #page-hr-management .system-role-chip {
-    flex: 0 0 auto;
+  #page-hr-management .system-role-chip { flex: 0 0 auto; }
+}
+
+/* ---- ≤ 580px : แท็บตำแหน่ง 2 ช่อง ---- */
+@media (max-width: 580px) {
+  #page-hr-management .pos-category-tabs { grid-template-columns: repeat(2, 1fr); }
+
+  #page-hr-management .pos-category-tabs .pos-tab {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+/* ---- ≤ 480px : มือถือจอเล็ก ---- */
+@media (max-width: 480px) {
+  #page-hr-management .summary-grid { grid-template-columns: 1fr; }
+
+  /* ปุ่มในการ์ดไม่เลื่อนตอน hover (สัมผัสแล้วไม่ค้าง) */
+  #page-hr-management .card-btn-group .action-btn,
+  #page-hr-management .card-btn-group .action-btn:hover { transform: none; }
+
+  #page-hr-management .card-btn-group .action-btn { padding: 12px; font-size: 14px; }
+
+  #page-hr-management #rechartsSummaryPanel .recharts-chart-card { padding: 12px 8px; border-radius: 12px; }
+  #page-hr-management .modal-dialog { padding: 12px 10px; }
+}
+
+/* ---- ≤ 380px : จอเล็กมาก ---- */
+@media (max-width: 380px) {
+  #page-hr-management .pos-category-tabs { gap: 6px; }
+
+  #page-hr-management .pos-category-tabs .pos-tab {
+    gap: 4px;
+    min-height: 42px;
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  #page-hr-management .pos-category-tabs .pos-tab-count {
+    min-width: 18px;
+    padding: 0 5px;
+    font-size: 10.5px;
+  }
+}
+
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+@keyframes fluidPopIn {
+  from { opacity: 0; transform: scale(0.96) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes fluidSlideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว → ปิด animation */
+@media (prefers-reduced-motion: reduce) {
+  #page-hr-management *,
+  #page-hr-management *::before,
+  #page-hr-management *::after {
+    animation: none;
+    transition: none;
   }
 }

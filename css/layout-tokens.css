@@ -1,0 +1,112 @@
+/* ==========================================================================
+   FILE   : /css/layout-tokens.css
+   PURPOSE: "ตัวแปรกลาง" (Design Tokens) + Reset พื้นฐาน ของโครงหน้า (Layout Shell)
+            ทุกค่าที่อยากปรับ (สี, ขนาด sidebar, ความสูงแถบหัว, ระยะขอบ) แก้ที่ไฟล์นี้ไฟล์เดียว
+
+   ลำดับการโหลดที่ต้องใช้ในแต่ละหน้า:
+       1) layout-tokens.css    (ไฟล์นี้ — ต้องมาก่อน)
+       2) layout-sidebar.css   (เมนูด้านข้าง)
+       3) layout-topbar.css    (แถบหัว + พื้นที่เนื้อหา)
+       4) CSS เฉพาะหน้า        (เช่น hr-management.css)  ← วางท้ายสุดเสมอ
+
+   หลักการตั้งชื่อ: ทุกคลาส/ตัวแปรของ Layout ขึ้นต้นด้วย "pvt-" เพื่อไม่ชนกับ CSS เดิมของระบบ
+   ========================================================================== */
+
+
+/* ---------- 1) DESIGN TOKENS ---------- */
+:root {
+  /* ฟอนต์หลัก (โหลด Sarabun จาก Google Fonts ใน <head> ของ HTML) */
+  --pvt-font: 'Sarabun', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* สีหลักของแบรนด์ (ใช้กับปุ่มพับเมนู, ซับไตเติล, focus ring) */
+  --pvt-primary:       var(--th-p-600, #0d9488);
+  --pvt-primary-dark:  var(--th-p-700, #0f766e);
+  --pvt-primary-soft:  var(--th-p-100, #ccfbf1);
+
+  /* พื้นหลัง Sidebar: ไล่สีบน -> ล่าง */
+  --pvt-sidebar-bg-from: var(--th-b-900, #1e3a8a);
+  --pvt-sidebar-bg-to:   var(--th-b-950, #172554);
+
+  /* พื้นหลังของทั้งหน้า (ไล่สีเขียวมิ้นต์ -> ฟ้าอ่อน) */
+  --pvt-page-bg: linear-gradient(135deg, #d1fae5 0%, #e0f7f4 45%, var(--th-k-100, #e0f2fe) 100%);
+
+  /* สีตัวอักษร */
+  --pvt-text:       #0f172a;   /* ข้อความหลัก  */
+  --pvt-text-soft:  #64748b;   /* ข้อความรอง   */
+  --pvt-border:     #e2e8f0;   /* เส้นขอบอ่อน */
+
+  /* ขนาด Sidebar */
+  --pvt-sidebar-w:           260px;  /* ตอนกางเต็ม    */
+  --pvt-sidebar-w-collapsed: 76px;   /* ตอนพับเหลือไอคอน */
+
+  /* ขนาดแถบหัว */
+  --pvt-topbar-h: 65px;
+  /* ความสูงรวมจริง = ความสูงแถบ + safe-area (รอยบากบน iPhone) */
+  --pvt-topbar-total: calc(var(--pvt-topbar-h) + env(safe-area-inset-top, 0px));
+
+  /* ระยะขอบของพื้นที่เนื้อหา */
+  --pvt-page-pad-x: 24px;   /* ซ้าย-ขวา */
+  --pvt-page-pad-y: 20px;   /* ระยะระหว่างแถบหัวกับเนื้อหาแรก */
+
+  /* ความสมูทของแอนิเมชัน */
+  --pvt-ease:     cubic-bezier(.22, .61, .36, 1);
+  --pvt-duration: .28s;
+
+  /* ลำดับชั้นการซ้อน (z-index): overlay < sidebar และ topbar ต่ำกว่า overlay */
+  --pvt-z-topbar:  500;
+  --pvt-z-overlay: 590;
+  --pvt-z-sidebar: 600;
+}
+
+
+/* ---------- 2) ความกว้าง Sidebar "ปัจจุบัน" (ตัวแปรเดียวที่ทุกส่วนอ้างอิง) ----------
+   Sidebar, Topbar และ Main จะอ้างตัวแปรนี้ตัวเดียวกัน
+   พอ JS สลับคลาส .is-sidebar-collapsed ค่าจะเปลี่ยน → ทุกส่วนขยับตามพร้อมกันเอง
+   โดยไม่ต้องใช้ JS คำนวณตำแหน่งเลย                                                  */
+.pvt-app                       { --pvt-sidebar-current: var(--pvt-sidebar-w); }
+.pvt-app.is-sidebar-collapsed  { --pvt-sidebar-current: var(--pvt-sidebar-w-collapsed); }
+
+/* จอแท็บเล็ต/มือถือ (≤1024px): Sidebar กลายเป็นลิ้นชักลอยทับ → ไม่กินพื้นที่ในหน้า */
+@media (max-width: 1024px) {
+  .pvt-app,
+  .pvt-app.is-sidebar-collapsed { --pvt-sidebar-current: 0px; }
+}
+
+
+/* ---------- 3) RESET พื้นฐาน (เฉพาะที่จำเป็น) ---------- */
+.pvt-app, .pvt-app *, .pvt-app *::before, .pvt-app *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body.pvt-body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--pvt-font);
+  color: var(--pvt-text);
+  background: var(--pvt-page-bg);
+  background-attachment: fixed;      /* พื้นหลังไม่เลื่อนตามเนื้อหา */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ไอคอน Material Symbols: กันขนาดเพี้ยนและไม่ให้ถูกเลือกข้อความ */
+.pvt-app .material-symbols-outlined {
+  font-size: 22px;
+  line-height: 1;
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+/* ตอนโหลดหน้าแรก: ปิด transition ชั่วคราว กันเมนู "กระพริบ" จากสถานะพับที่จำไว้
+   (JS จะเติมคลาส .is-ready ให้หลังจัดสถานะเสร็จ) */
+.pvt-app:not(.is-ready) *,
+.pvt-app:not(.is-ready) *::before,
+.pvt-app:not(.is-ready) *::after { transition: none !important; }
+
+/* ผู้ใช้ตั้งค่า "ลดการเคลื่อนไหว" ในเครื่อง → ปิดแอนิเมชันทั้งหมด */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .pvt-app *, .pvt-app *::before, .pvt-app *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

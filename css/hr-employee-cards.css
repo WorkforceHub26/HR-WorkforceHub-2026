@@ -1,683 +1,745 @@
-/* ======================================================
-   Dedicated Stylesheet for Employee Cards (/pages/hr/employee-cards.html)
-   Scoped Page ID: #page-hr-employee-cards
-   Specifically tuned for Laptop / Notebook / PC & Mobile
-   ====================================================== */
-@import url('/css/employee-cards.css');
-
 /* ==========================================================================
-   🪪 EMPLOYEE CARDS ADMIN LAYOUT & RESPONSIVE DISCIPLINE
+   PVT WORKFORCE HUB — หน้าศูนย์จัดการบัตรพนักงาน HR (hr-employee-cards.css)
+   ใช้กับ /pages/hr/employee-cards.html (body id="page-hr-employee-cards")
+   --------------------------------------------------------------------------
+   หลักการของไฟล์นี้ (แบบเดียวกับ hr-management.css)
+   1. ไม่ใช้ !important เลย  → ชนะกันด้วย "ลำดับไฟล์" + "ความเจาะจงของ selector"
+   2. Sidebar / Topbar เป็นของ layout-*.css (โหลดก่อนไฟล์นี้) ไม่เขียนซ้ำที่นี่
+   3. ทุกกฎของหน้านี้ขึ้นต้นด้วย #page-hr-employee-cards (id ของ <body>)
+   4. คลาสของหน้านี้ขึ้นต้นด้วย ec- (Employee Cards)
+      ส่วนคลาส emp-card-* และ theme-* คงชื่อเดิม เพราะ employee-cards.css
+      (โหลดก่อนไฟล์นี้) ใช้กำหนดสีบัตรแต่ละธีม — ไฟล์นี้จัดแค่ "โครง/ขนาด"
+   5. ถ้าต้องการ override ให้ "เพิ่มความเจาะจง" อย่าเติม !important
+
+   สารบัญ
+   00. Design tokens
+   01. Base — พื้นหลังและฟอนต์
+   02. Layout adapter — .pvt-page + ปรับ Sidebar (02.1–02.3)
+   03. ปุ่ม (.ec-btn)
+   04. หัวหน้า (คำอธิบาย + ปุ่มป๊อปอัป)
+   05. การ์ดตัวเลข 4 ใบ
+   06. แถบเครื่องมือ — ค้นหา / แผนก / สีบัตร / เลือกทั้งหมด / พิมพ์
+   07. แกลเลอรีบัตร (การ์ดพนักงาน 1 คน)
+   08. สถานะว่าง / กำลังโหลด / ผิดพลาด
+   09. Responsive
+   10. Animations
    ========================================================================== */
 
+
+/* ==========================================================================
+   00. DESIGN TOKENS
+   ========================================================================== */
 #page-hr-employee-cards {
-  overflow-x: hidden !important;
-  width: 100%;
-  background: #f8fafc;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  --ec-primary: var(--th-p-600, #0d9488);
+  --ec-primary-dark: var(--th-p-700, #0f766e);
+  --ec-primary-soft: var(--th-p-50, #f0fdfa);
+
+  --ec-text: #0f172a;
+  --ec-text-2: #334155;
+  --ec-text-soft: #64748b;
+  --ec-text-muted: #94a3b8;
+  --ec-border: #e2e8f0;
+  --ec-border-strong: #cbd5e1;
+  --ec-surface: #ffffff;
+  --ec-surface-2: #f8fafc;
+  --ec-track: #f1f5f9;
+
+  --ec-radius-lg: 16px;
+  --ec-radius-md: 12px;
+  --ec-radius-sm: 10px;
+
+  --ec-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.04);
+  --ec-shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --ec-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-#page-hr-employee-cards .app-shell {
-  display: flex;
-  width: 100%;
+
+/* ==========================================================================
+   01. BASE
+   ========================================================================== */
+#page-hr-employee-cards {
+  font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--ec-text);
+  background-color: var(--th-p-50, #f0fdfa);
+  background-image:
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
+  background-attachment: fixed;
   min-height: 100vh;
-  position: relative;
-  overflow-x: hidden !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#page-hr-employee-cards *,
+#page-hr-employee-cards *::before,
+#page-hr-employee-cards *::after {
   box-sizing: border-box;
 }
 
-/* Main Content Shell - Notebook / Laptop / PC default layout */
-#page-hr-employee-cards .main-content {
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: calc(100% - 250px);
-  width: calc(100% - 250px);
-  margin-left: 250px;
-  padding: 20px 24px 48px 24px;
-  box-sizing: border-box;
-  background: #f8fafc;
-  min-height: 100vh;
-  overflow-x: hidden !important;
-  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
-/* Sidebar Collapsed State (Edge toggle collapsed on PC / Laptop) */
-body.desktop-sidebar-collapsed#page-hr-employee-cards .main-content,
-body.desktop-sidebar-collapsed #page-hr-employee-cards .main-content,
-#page-hr-employee-cards .main-content.expanded {
-  margin-left: 72px !important;
-  width: calc(100% - 72px) !important;
-  max-width: calc(100% - 72px) !important;
-}
-
-/* Content Body Reset - Ensure no double padding or horizontal push */
-#page-hr-employee-cards .content-body {
-  padding: 0 !important;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-/* 🏷️ TOPBAR - Compact, Clean & Responsive */
-#page-hr-employee-cards .topbar {
+/* ==========================================================================
+   02. LAYOUT ADAPTER
+   .pvt-page (จาก layout กลาง) เป็น flex คอลัมน์ → ใช้ gap คุมระยะห่างทุก section
+   ========================================================================== */
+#page-hr-employee-cards .pvt-page {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0; 
-  padding: 12px 18px; 
-  position: sticky;
-  top: 10px;
-  z-index: 99;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
-  border-radius: 14px;
-  gap: 12px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 20px;
 }
 
-#page-hr-employee-cards .topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+#page-hr-employee-cards .pvt-page > * {
   min-width: 0;
-  flex: 1 1 320px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
-#page-hr-employee-cards .topbar-title-wrap {
-  min-width: 0;
-  flex: 1;
+
+/* ---- 02.1 Sidebar: ไอคอนเมนูสีเดียวกับตัวอักษร (ขาว) ---- */
+#page-hr-employee-cards .pvt-nav__item .material-symbols-outlined {
+  color: inherit;
 }
 
-#page-hr-employee-cards .topbar-page-title {
-  font-size: 17px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 2px 0;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
+#page-hr-employee-cards .pvt-sidebar__toggle {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
-#page-hr-employee-cards .topbar-page-sub {
-  font-size: 12px;
-  color: #64748b;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+#page-hr-employee-cards .pvt-sidebar__toggle:hover {
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
 }
 
-#page-hr-employee-cards .topbar-right {
-  display: flex;
+#page-hr-employee-cards .pvt-sidebar__toggle .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.3 จอ PC: ไม่ต้องมีปุ่ม ✕ ปิดเมนู และปุ่ม ☰ (ใช้เฉพาะมือถือ/แท็บเล็ต) ---- */
+@media (min-width: 1025px) {
+  #page-hr-employee-cards .pvt-sidebar__close,
+  #page-hr-employee-cards .pvt-topbar__burger {
+    display: none;
+  }
+}
+
+
+/* ==========================================================================
+   03. ปุ่ม (.ec-btn)
+   ========================================================================== */
+#page-hr-employee-cards .ec-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-#page-hr-employee-cards .user-profile-badge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 6px 12px;
-}
-
-#page-hr-employee-cards .user-profile-badge .user-info .user-name {
-  font-size: 13px;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ec-radius-sm);
+  font-family: inherit;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #0f172a;
-  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.2s var(--ec-ease), box-shadow 0.2s;
 }
 
-#page-hr-employee-cards .user-profile-badge .user-info .user-role {
-  font-size: 11px;
-  color: #64748b;
+#page-hr-employee-cards .ec-btn .material-symbols-outlined {
+  font-size: 19px;
 }
 
-/* 🌟 HERO HEADER - Scaled for Laptop screens */
-#page-hr-employee-cards .cards-hero-header {
-  border-radius: 16px;
-  padding: 18px 22px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  margin-bottom: 20px;
+#page-hr-employee-cards .ec-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ปุ่มหลัก: เขียวทึบ (พิมพ์บัตรที่เลือก) */
+#page-hr-employee-cards .ec-btn--primary {
+  background: linear-gradient(135deg, var(--ec-primary), var(--ec-primary-dark));
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
+}
+
+#page-hr-employee-cards .ec-btn--primary:hover {
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
+}
+
+/* ปุ่มรอง: ขาวขอบเทา (รีเฟรช / ป๊อปอัป) */
+#page-hr-employee-cards .ec-btn--light {
+  background: var(--ec-surface);
+  color: var(--ec-text-2);
+  border-color: var(--ec-border-strong);
+  font-weight: 600;
+}
+
+#page-hr-employee-cards .ec-btn--light:hover {
+  background: var(--ec-primary-soft);
+  color: var(--ec-primary-dark);
+  border-color: var(--th-p-200, #99f6e4);
+}
+
+
+/* ==========================================================================
+   04. หัวหน้า — ไอคอน + คำอธิบาย (ซ้าย) / ปุ่มป๊อปอัป (ขวา)
+   ========================================================================== */
+#page-hr-employee-cards .ec-hero {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  gap: 16px;
+  padding: 18px 22px;
+  background: var(--ec-surface);
+  border: 1px solid var(--ec-border);
+  border-radius: var(--ec-radius-lg);
+  box-shadow: var(--ec-shadow);
+}
+
+#page-hr-employee-cards .ec-hero-info {
+  display: flex;
+  align-items: center;
+  flex: 1 1 320px;
   gap: 14px;
   min-width: 0;
-  background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #0284c7 100%);
-  color: #ffffff;
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.16);
 }
 
-#page-hr-employee-cards .cards-hero-title {
-  min-width: 0;
-  flex: 1 1 280px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-#page-hr-employee-cards .cards-hero-icon {
-  width: 46px;
-  height: 46px;
-  font-size: 24px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+#page-hr-employee-cards .ec-hero-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  font-size: 26px;
+  color: var(--ec-primary);
+  background: var(--ec-primary-soft);
+  border-radius: 14px;
 }
 
-#page-hr-employee-cards .cards-hero-text {
-  min-width: 0;
-  flex: 1;
-}
-
-#page-hr-employee-cards .cards-hero-text h1 {
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1.3;
-  margin: 0 0 3px 0;
-  letter-spacing: -0.3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#page-hr-employee-cards .cards-hero-text p {
-  font-size: 12.5px;
-  line-height: 1.5;
+#page-hr-employee-cards .ec-hero-info h2 {
   margin: 0;
-  color: #ccfbf1;
-  opacity: 0.95;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ec-text);
 }
 
-/* 📊 METRICS GRID - Specifically configured for Laptop & PC */
-#page-hr-employee-cards .cards-metrics-grid {
+#page-hr-employee-cards .ec-hero-info p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ec-text-soft);
+}
+
+
+/* ==========================================================================
+   05. การ์ดตัวเลข 4 ใบ
+   แต่ละใบมีสีของตัวเอง (--stat-color / --stat-soft) ใช้กับเส้นซ้าย ตัวเลข และไอคอน
+   ========================================================================== */
+#page-hr-employee-cards .ec-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
-  width: 100%;
-  box-sizing: border-box;
+  gap: 16px;
 }
 
-#page-hr-employee-cards .metric-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+#page-hr-employee-cards .ec-stat {
+  --stat-color: var(--ec-primary);
+  --stat-soft: var(--th-p-100, #ccfbf1);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
+  padding: 18px 20px;
+  background: var(--ec-surface);
+  border: 1px solid var(--ec-border);
+  border-left: 4px solid var(--stat-color);
+  border-radius: var(--ec-radius-lg);
+  box-shadow: var(--ec-shadow);
+  transition: transform 0.25s var(--ec-ease), box-shadow 0.25s var(--ec-ease);
 }
 
-#page-hr-employee-cards .metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
-  border-color: #cbd5e1;
+#page-hr-employee-cards .ec-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ec-shadow-hover);
 }
 
-#page-hr-employee-cards .metric-info {
+#page-hr-employee-cards .ec-stat--teal   { --stat-color: var(--ec-primary); --stat-soft: var(--th-p-100, #ccfbf1); }
+#page-hr-employee-cards .ec-stat--blue   { --stat-color: var(--th-k-600, #0284c7);           --stat-soft: var(--th-k-100, #e0f2fe); }
+#page-hr-employee-cards .ec-stat--amber  { --stat-color: #d97706;           --stat-soft: #fef3c7; }
+#page-hr-employee-cards .ec-stat--purple { --stat-color: #7c3aed;           --stat-soft: #ede9fe; }
+
+#page-hr-employee-cards .ec-stat-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
-  flex: 1;
 }
 
-#page-hr-employee-cards .metric-info label {
-  font-size: 12px;
+#page-hr-employee-cards .ec-stat-label {
+  font-size: 13px;
   font-weight: 600;
-  color: #64748b;
-  margin-bottom: 3px;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--ec-text-soft);
 }
 
-#page-hr-employee-cards .metric-info .val {
-  font-size: 22px;
+#page-hr-employee-cards .ec-stat-value {
+  font-size: 28px;
   font-weight: 800;
-  color: #0f172a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   line-height: 1.1;
-  letter-spacing: -0.3px;
+  color: var(--stat-color);
 }
 
-#page-hr-employee-cards .metric-icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  font-size: 20px;
+/* ค่าที่เป็นข้อความ (ชื่อสีบัตร) */
+#page-hr-employee-cards .ec-stat-value--text {
+  overflow: hidden;
+  font-size: 17px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .ec-stat-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-/* 🛠️ TOOLBAR & FILTERS - Clean wrapping and flex containment */
-#page-hr-employee-cards .cards-toolbar {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  width: 48px;
+  height: 48px;
+  font-size: 26px;
+  color: var(--stat-color);
+  background: var(--stat-soft);
   border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: 20px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
 }
 
-#page-hr-employee-cards .toolbar-controls-row {
+
+/* ==========================================================================
+   06. แถบเครื่องมือ
+   แถวบน: ค้นหา / แผนก / สีบัตร
+   แถวล่าง: เลือกทั้งหมด (ซ้าย) / รีเฟรช + พิมพ์ (ขวา)
+   ========================================================================== */
+#page-hr-employee-cards .ec-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--ec-surface);
+  border: 1px solid var(--ec-border);
+  border-radius: var(--ec-radius-lg);
+  box-shadow: var(--ec-shadow);
+}
+
+#page-hr-employee-cards .ec-toolbar-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
-  width: 100%;
-  box-sizing: border-box;
 }
 
-#page-hr-employee-cards .search-box-wrap {
-  flex: 1 1 200px;
-  min-width: 160px;
-  max-width: 100%;
+/* ---- 06.1 ช่องค้นหา ---- */
+#page-hr-employee-cards .ec-search {
   position: relative;
+  flex: 1 1 280px;
+  min-width: 220px;
 }
 
-#page-hr-employee-cards .search-box-wrap input {
-  width: 100%;
-  padding: 9px 12px 9px 36px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  outline: none;
-  background: #f8fafc;
-  color: #0f172a;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-}
-
-#page-hr-employee-cards .search-box-wrap input:focus {
-  background: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
-}
-
-#page-hr-employee-cards .search-box-wrap .search-icon {
+#page-hr-employee-cards .ec-search .material-symbols-outlined {
   position: absolute;
-  left: 11px;
   top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
+  left: 11px;
   font-size: 19px;
+  color: var(--ec-text-muted);
+  transform: translateY(-50%);
   pointer-events: none;
 }
 
-#page-hr-employee-cards .filter-select {
-  padding: 9px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
+#page-hr-employee-cards .ec-search input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px 0 36px;
+  background: var(--ec-surface-2);
+  color: var(--ec-text);
+  border: 1px solid var(--ec-border-strong);
+  border-radius: var(--ec-radius-sm);
   outline: none;
-  background: #f8fafc;
-  color: #334155;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-  flex: 0 1 auto;
+  font-family: inherit;
+  font-size: 13.5px;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
-#page-hr-employee-cards .filter-select:focus {
-  background: #ffffff;
-  border-color: #0d9488;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+#page-hr-employee-cards .ec-search input:focus {
+  background: var(--ec-surface);
+  border-color: var(--ec-primary);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
-#page-hr-employee-cards #adminDeptFilterSelect {
-  flex: 1 1 170px;
-  min-width: 150px;
-  max-width: 240px;
-}
-
-#page-hr-employee-cards #adminThemeSelect {
-  flex: 1 1 210px;
+/* ---- 06.2 Dropdown แผนก / สีบัตร (มีไอคอนนำหน้าในกรอบ) ---- */
+#page-hr-employee-cards .ec-field {
+  position: relative;
+  flex: 0 1 220px;
   min-width: 180px;
-  max-width: 280px;
 }
 
-#page-hr-employee-cards .toolbar-actions-row {
+#page-hr-employee-cards .ec-field--theme {
+  flex-basis: 250px;
+}
+
+#page-hr-employee-cards .ec-field > .material-symbols-outlined {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  font-size: 18px;
+  color: var(--ec-primary);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+#page-hr-employee-cards .ec-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 34px 0 36px;
+  background: var(--ec-surface) url('data:image/svg+xml;utf8,<svg fill="%230d9488" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 8px center;
+  color: var(--ec-text);
+  border: 1px solid var(--ec-border-strong);
+  border-radius: var(--ec-radius-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#page-hr-employee-cards .ec-select:focus {
+  border-color: var(--ec-primary);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
+}
+
+/* ---- 06.3 แถวล่าง ---- */
+#page-hr-employee-cards .ec-toolbar-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
-  width: 100%;
-  box-sizing: border-box;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ec-track);
 }
 
-#page-hr-employee-cards .selection-toggle-wrap {
-  display: flex;
+#page-hr-employee-cards .ec-select-all {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #475569;
+  color: var(--ec-text-2);
+  cursor: pointer;
   user-select: none;
-  flex-shrink: 0;
 }
 
-#page-hr-employee-cards .btn-group-actions {
+#page-hr-employee-cards .ec-select-all input,
+#page-hr-employee-cards .ec-card-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ec-primary);
+  cursor: pointer;
+}
+
+#page-hr-employee-cards .ec-toolbar-buttons {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
-  flex-shrink: 0;
 }
 
-#page-hr-employee-cards .btn-action-primary {
-  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
-  color: #ffffff;
-  border: none;
-  padding: 9px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
 
-#page-hr-employee-cards .btn-action-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
-}
-
-#page-hr-employee-cards .btn-action-secondary {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-  padding: 9px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-#page-hr-employee-cards .btn-action-secondary:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-}
-
-/* 🎴 CARDS GALLERY GRID - Adaptive columns for Laptop & PC */
-#page-hr-employee-cards .emp-cards-gallery-grid {
+/* ==========================================================================
+   07. แกลเลอรีบัตร
+   ========================================================================== */
+#page-hr-employee-cards .ec-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 16px;
-  width: 100%;
-  box-sizing: border-box;
-  margin-bottom: 30px;
 }
 
+/* ---- 07.1 การ์ดพนักงาน 1 คน ---- */
 #page-hr-employee-cards .emp-card-preview-item {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 16px;
   position: relative;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
-  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  box-sizing: border-box;
+  gap: 12px;
   min-width: 0;
+  padding: 14px;
   overflow: hidden;
   word-break: break-word;
+  background: var(--ec-surface);
+  border: 1.5px solid var(--ec-border);
+  border-radius: var(--ec-radius-lg);
+  box-shadow: var(--ec-shadow);
+  transition: transform 0.2s var(--ec-ease), box-shadow 0.2s var(--ec-ease), border-color 0.2s, background-color 0.2s;
+  animation: ecFadeUp 0.35s var(--ec-ease) both;
 }
 
 #page-hr-employee-cards .emp-card-preview-item:hover {
-  transform: translateY(-2px);
-  border-color: #0d9488;
-  box-shadow: 0 8px 18px rgba(13, 148, 136, 0.12);
+  transform: translateY(-3px);
+  border-color: var(--th-p-200, #99f6e4);
+  box-shadow: var(--ec-shadow-hover);
 }
 
+/* การ์ดที่ถูกเลือก: ขอบเขียว + พื้นเขียวอ่อน + วงแหวน */
 #page-hr-employee-cards .emp-card-preview-item.selected {
-  border-color: #0d9488;
-  background: #f0fdf4;
+  background: var(--ec-primary-soft);
+  border-color: var(--ec-primary);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
 }
 
+/* แถวบนของการ์ด: ช่องติ๊ก + ป้าย CR80 */
+#page-hr-employee-cards .emp-card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#page-hr-employee-cards .ec-card-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ec-text-2);
+  cursor: pointer;
+}
+
+#page-hr-employee-cards .ec-cr80-badge {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--ec-text-soft);
+  background: var(--ec-track);
+  border-radius: 6px;
+}
+
+/* ---- 07.2 ตัวอย่างบัตร (สีพื้นมาจาก .theme-* ใน employee-cards.css) ---- */
 #page-hr-employee-cards .emp-card-inner-box {
-  border-radius: 14px;
-  padding: 14px 12px;
-  text-align: center;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
-  width: 100%;
-  box-sizing: border-box;
   min-width: 0;
+  padding: 16px 12px;
   overflow: hidden;
+  text-align: center;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.1);
 }
 
 #page-hr-employee-cards .emp-avatar-circle {
-  width: 58px;
-  height: 58px;
-  margin: 0 auto 8px auto;
-  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 10px;
   overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
 }
 
 #page-hr-employee-cards .emp-avatar-circle img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-#page-hr-employee-cards .emp-card-name {
-  font-size: 14.5px;
-  font-weight: 700;
-  margin-bottom: 2px;
-  white-space: nowrap;
+#page-hr-employee-cards .emp-card-name,
+#page-hr-employee-cards .emp-card-role,
+#page-hr-employee-cards .emp-card-dept {
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+#page-hr-employee-cards .emp-card-name {
+  margin-bottom: 2px;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 #page-hr-employee-cards .emp-card-role {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 #page-hr-employee-cards .emp-card-dept {
-  font-size: 11px;
-  margin-bottom: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 10px;
+  font-size: 11.5px;
+  opacity: 0.85;
 }
 
+/* รหัสพนักงานแบบตัวเลขเท่ากัน */
 #page-hr-employee-cards .emp-card-code-pill {
   display: inline-block;
-  font-family: monospace;
-  font-size: 12.5px;
+  padding: 2px 12px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 13px;
   font-weight: 800;
-  padding: 2px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   white-space: nowrap;
+  border-radius: 999px;
 }
 
+/* ---- 07.3 ปุ่มท้ายการ์ด: ดูบัตร / พิมพ์ ---- */
 #page-hr-employee-cards .emp-card-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   margin-top: auto;
 }
 
-#page-hr-employee-cards .btn-card-action-sm {
-  flex: 1;
-  padding: 7px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  display: flex;
+#page-hr-employee-cards .ec-card-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 1;
   gap: 4px;
-  transition: background 0.15s ease;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--ec-surface-2);
+  color: var(--ec-text-2);
+  border: 1px solid var(--ec-border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
+
+#page-hr-employee-cards .ec-card-btn .material-symbols-outlined {
+  font-size: 17px;
+}
+
+#page-hr-employee-cards .ec-card-btn:hover {
+  background: var(--ec-primary-soft);
+  color: var(--ec-primary-dark);
+  border-color: var(--th-p-200, #99f6e4);
+}
+
+/* ปุ่มพิมพ์: ฟ้า */
+#page-hr-employee-cards .ec-card-btn--print {
+  background: var(--th-k-50, #f0f9ff);
+  color: var(--th-k-700, #0369a1);
+  border-color: var(--th-k-200, #bae6fd);
+}
+
+#page-hr-employee-cards .ec-card-btn--print:hover {
+  background: var(--th-k-600, #0284c7);
+  color: #fff;
+  border-color: var(--th-k-600, #0284c7);
+}
+
 
 /* ==========================================================================
-   💻 SCREEN LAYOUT TUNING FOR NOTEBOOK - PC & INTERMEDIATE RESOLUTIONS
+   08. สถานะว่าง / กำลังโหลด / ผิดพลาด
+   ========================================================================== */
+#page-hr-employee-cards .ec-state {
+  grid-column: 1 / -1;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--ec-text-soft);
+  background: var(--ec-surface);
+  border: 2px dashed var(--ec-border-strong);
+  border-radius: var(--ec-radius-lg);
+}
+
+#page-hr-employee-cards .ec-state > .material-symbols-outlined {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 44px;
+  color: var(--ec-text-muted);
+}
+
+#page-hr-employee-cards .ec-state p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#page-hr-employee-cards .ec-state--loading > .material-symbols-outlined {
+  color: var(--ec-primary);
+  animation: spin 1s linear infinite;
+}
+
+#page-hr-employee-cards .ec-state--error,
+#page-hr-employee-cards .ec-state--error > .material-symbols-outlined {
+  color: #dc2626;
+}
+
+
+/* ==========================================================================
+   09. RESPONSIVE
+   เรียงจากจอใหญ่ → เล็ก (max-width)
    ========================================================================== */
 
-/* Laptop / Notebook range (1025px - 1280px) */
-@media (min-width: 1025px) and (max-width: 1280px) {
-  #page-hr-employee-cards .cards-metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  #page-hr-employee-cards .emp-cards-gallery-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 14px;
-  }
-
-  #page-hr-employee-cards .search-box-wrap {
-    min-width: 140px;
-  }
-
-  #page-hr-employee-cards #adminDeptFilterSelect {
-    max-width: 190px;
-  }
-
-  #page-hr-employee-cards #adminThemeSelect {
-    max-width: 230px;
-  }
+/* ---- ≤ 1280px : โน้ตบุ๊ก → การ์ดตัวเลข 2 คอลัมน์ ---- */
+@media (max-width: 1280px) {
+  #page-hr-employee-cards .ec-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Tablet & Smaller Screens */
-@media (max-width: 1024px) {
-  #page-hr-employee-cards .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 14px 16px 40px 16px !important;
-  }
-  
-  #page-hr-employee-cards .topbar {
-    top: 0;
-    border-radius: 12px;
-    padding: 10px 14px;
-    margin-bottom: 16px;
-  }
+/* ---- ≤ 768px : มือถือ ---- */
+@media (max-width: 768px) {
+  #page-hr-employee-cards .pvt-page { gap: 14px; }
 
-  #page-hr-employee-cards .cards-metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
+  /* หัวหน้า: ปุ่มเต็มความกว้าง */
+  #page-hr-employee-cards .ec-hero { padding: 16px; }
+  #page-hr-employee-cards .ec-hero > .ec-btn { width: 100%; }
 
-  #page-hr-employee-cards .cards-hero-header {
-    padding: 16px 18px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  #page-hr-employee-cards .ec-stats-grid { gap: 10px; }
+  #page-hr-employee-cards .ec-stat       { padding: 14px 16px; }
+  #page-hr-employee-cards .ec-stat-value { font-size: 24px; }
+  #page-hr-employee-cards .ec-stat-value--text { font-size: 15px; }
+  #page-hr-employee-cards .ec-stat-icon  { width: 40px; height: 40px; font-size: 22px; }
 
-  #page-hr-employee-cards .emp-cards-gallery-grid {
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    gap: 12px;
-  }
+  /* แถบเครื่องมือ: เรียงลงล่าง เต็มความกว้าง
+     (flex: none → ตอนเรียงแนวตั้ง flex-basis จะกลายเป็นความสูง ต้องปิด) */
+  #page-hr-employee-cards .ec-toolbar { padding: 14px; }
+  #page-hr-employee-cards .ec-toolbar-filters { flex-direction: column; align-items: stretch; }
+  #page-hr-employee-cards .ec-search,
+  #page-hr-employee-cards .ec-field { flex: none; width: 100%; min-width: 0; }
+
+  #page-hr-employee-cards .ec-toolbar-actions { flex-direction: column; align-items: stretch; }
+  #page-hr-employee-cards .ec-toolbar-buttons { width: 100%; }
+  #page-hr-employee-cards .ec-toolbar-buttons .ec-btn { flex: 1; }
+
+  /* ฟอนต์ 15px ป้องกัน iOS ซูมเองตอนโฟกัส */
+  #page-hr-employee-cards .ec-search input,
+  #page-hr-employee-cards .ec-select { font-size: 15px; }
+
+  /* แกลเลอรี: 2 ใบต่อแถวบนมือถือแนวนอน / แท็บเล็ตเล็ก */
+  #page-hr-employee-cards .ec-gallery { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 }
 
-/* Mobile Screens */
-@media (max-width: 640px) {
-  #page-hr-employee-cards .cards-metrics-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
+/* ---- ≤ 480px : มือถือจอเล็ก → 1 คอลัมน์ ---- */
+@media (max-width: 480px) {
+  #page-hr-employee-cards .ec-stats-grid { grid-template-columns: 1fr; }
+  #page-hr-employee-cards .ec-gallery    { grid-template-columns: 1fr; }
+}
 
-  #page-hr-employee-cards .emp-cards-gallery-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  #page-hr-employee-cards .cards-toolbar {
-    padding: 12px;
-  }
 
-  #page-hr-employee-cards .toolbar-controls-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  #page-hr-employee-cards .search-box-wrap {
-    max-width: 100%;
-  }
+/* ==========================================================================
+   10. ANIMATIONS
+   ========================================================================== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
-  #page-hr-employee-cards .filter-select {
-    width: 100%;
-    max-width: 100% !important;
-  }
-  
-  #page-hr-employee-cards .toolbar-actions-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
+@keyframes ecFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
 
-  #page-hr-employee-cards .btn-group-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  #page-hr-employee-cards .btn-action-primary,
-  #page-hr-employee-cards .btn-action-secondary {
-    width: 100%;
-    justify-content: center;
+/* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว → ปิด animation */
+@media (prefers-reduced-motion: reduce) {
+  #page-hr-employee-cards *,
+  #page-hr-employee-cards *::before,
+  #page-hr-employee-cards *::after {
+    animation: none;
+    transition: none;
   }
 }

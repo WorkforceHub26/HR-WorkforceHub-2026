@@ -1,8 +1,1665 @@
-/* ======================================================
-   Dedicated Stylesheet for HR Dashboard (/pages/hr/home.html)
-   Scoped Page ID: #page-hr-home
-   ====================================================== */
-@import url('/css/home.css');
-@import url('/css/hr.css');
-@import url('/css/company-news.css');
-@import url('/css/health-wellness.css');
+/* ==========================================================================
+   PVT WORKFORCE HUB — หน้าหลัก HR / ภาพรวมระบบ (hr-home.css)
+   ใช้กับ /pages/hr/home.html (body id="page-hr-home")
+   --------------------------------------------------------------------------
+   หลักการของไฟล์นี้ (ชุดเดียวกับ hr-holidays.css)
+   1. ไม่ใช้ !important เลย  → ชนะกันด้วย "ลำดับไฟล์" + "ความเจาะจงของ selector"
+   2. Sidebar / Topbar เป็นของ layout-*.css (โหลดก่อนไฟล์นี้) ไม่เขียนซ้ำที่นี่
+      ยกเว้นส่วน 02.1–02.3 ที่ปรับให้เหมือนหน้าวันหยุด
+   3. ทุกกฎของหน้านี้ขึ้นต้นด้วย #page-hr-home (id ของ <body>)
+   4. ไฟล์นี้ใช้เดี่ยว ๆ ไม่ต้องโหลด home.css / hr.css / company-news.css /
+      health-wellness.css (CSS โครงเก่าที่ไปทับ Sidebar)
+   5. ชื่อคลาสที่ home.js สร้าง/สลับเอง (panel, sla-*, notif-*, top-emp-*, bar-* ฯลฯ)
+      คงไว้ตามเดิม ส่วนที่เพิ่มใหม่ใน HTML ขึ้นต้นด้วย hm- (Home)
+   6. ถ้าต้องการ override ให้ "เพิ่มความเจาะจง" อย่าเติม !important
+
+   สารบัญ
+   00. Design tokens
+   01. Base — พื้นหลังและฟอนต์
+   02. Layout adapter — .pvt-page + ปรับ Sidebar
+   03. ปุ่ม (.hm-btn)
+   04. หัวหน้า (คำอธิบาย + ปุ่มซิงค์ / ไปตรวจใบลา)
+   05. กระดิ่งแจ้งเตือน + dropdown (Topbar)
+   06. แถบเตือน SLA 2 วัน
+   07. การ์ดตัวเลข 4 ใบ
+   08. Panel กลาง — หัว panel, dropdown เลือกกราฟ, ปุ่มพับ
+   09. สัดส่วนประเภทการลา (โดนัท + รายการ)
+   10. แถวกลาง — กราฟแผนก + อันดับพนักงาน
+   11. หัวข้อ section + กราฟแนวโน้ม (Recharts)
+   12. สรุปทั้งปี + กราฟแท่งแนวนอน
+   13. พนักงานที่ลาวันนี้
+   14. กล่องว่าง / กำลังโหลด
+   15. Toast แจ้งผล
+   16. Responsive
+   17. Animations
+   ========================================================================== */
+
+
+/* ==========================================================================
+   00. DESIGN TOKENS
+   ========================================================================== */
+#page-hr-home {
+  --hm-primary: var(--th-p-600, #0d9488);
+  --hm-primary-dark: var(--th-p-700, #0f766e);
+  --hm-primary-soft: var(--th-p-50, #f0fdfa);
+  --hm-blue: var(--th-k-600, #0284c7);
+  --hm-amber: #d97706;
+  --hm-rose: #e11d48;
+  --hm-violet: #7c3aed;
+  --hm-red: #dc2626;
+
+  --hm-text: #0f172a;
+  --hm-text-2: #334155;
+  --hm-text-soft: #64748b;
+  --hm-text-muted: #94a3b8;
+  --hm-border: #e2e8f0;
+  --hm-border-strong: #cbd5e1;
+  --hm-surface: #ffffff;
+  --hm-surface-2: #f8fafc;
+  --hm-track: #f1f5f9;
+
+  --hm-radius-lg: 16px;
+  --hm-radius-md: 12px;
+  --hm-radius-sm: 10px;
+
+  --hm-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.04);
+  --hm-shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --hm-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+
+/* ==========================================================================
+   01. BASE
+   ========================================================================== */
+#page-hr-home {
+  font-family: "Sarabun", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--hm-text);
+  background-color: var(--th-p-50, #f0fdfa);
+  background-image:
+    radial-gradient(circle at 10% 10%, var(--th-k-200, #bae6fd) 0, transparent 50%),
+    radial-gradient(circle at 90% 20%, var(--th-g-200, #a7f3d0) 0, transparent 50%),
+    radial-gradient(circle at 80% 90%, var(--th-k-100, #e0f2fe) 0, transparent 50%),
+    radial-gradient(circle at 20% 80%, var(--th-p-100, #ccfbf1) 0, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#page-hr-home *,
+#page-hr-home *::before,
+#page-hr-home *::after {
+  box-sizing: border-box;
+}
+
+#page-hr-home a {
+  text-decoration: none;
+}
+
+
+/* ==========================================================================
+   02. LAYOUT ADAPTER
+   .pvt-page (จาก layout กลาง) เป็น flex คอลัมน์ → ใช้ gap คุมระยะห่างทุก section
+   ========================================================================== */
+#page-hr-home .pvt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+#page-hr-home .pvt-page > * {
+  min-width: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ---- 02.1 Sidebar: ไอคอนเมนูสีเดียวกับตัวอักษร (ขาว) ---- */
+#page-hr-home .pvt-nav__item .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.2 ปุ่มวงกลมย่อ/ขยายเมนู: สีน้ำเงินกรมท่าโทนเดียวกับ Sidebar ---- */
+#page-hr-home .pvt-sidebar__toggle {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--th-b-900, #1e3988), var(--th-b-950, #1b2f6d));
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+}
+
+#page-hr-home .pvt-sidebar__toggle:hover {
+  background: linear-gradient(135deg, var(--th-b-800, #2748a8), var(--th-b-900, #1e3988));
+}
+
+#page-hr-home .pvt-sidebar__toggle .material-symbols-outlined {
+  color: inherit;
+}
+
+/* ---- 02.3 จอ PC: ไม่ต้องมีปุ่ม ✕ ปิดเมนู และปุ่ม ☰ (ใช้เฉพาะมือถือ/แท็บเล็ต) ---- */
+@media (min-width: 1025px) {
+  #page-hr-home .pvt-sidebar__close,
+  #page-hr-home .pvt-topbar__burger {
+    display: none;
+  }
+}
+
+
+/* ==========================================================================
+   03. ปุ่ม (.hm-btn)
+   ========================================================================== */
+#page-hr-home .hm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--hm-radius-sm);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.2s var(--hm-ease), box-shadow 0.2s;
+}
+
+#page-hr-home .hm-btn .material-symbols-outlined {
+  font-size: 19px;
+}
+
+#page-hr-home .hm-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ปุ่มหลัก: เขียวทึบ */
+#page-hr-home .hm-btn--primary {
+  background: linear-gradient(135deg, var(--hm-primary), var(--hm-primary-dark));
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);
+}
+
+#page-hr-home .hm-btn--primary:hover {
+  box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.35);
+}
+
+/* ปุ่มรอง: ขาวขอบเทา */
+#page-hr-home .hm-btn--light {
+  background: var(--hm-surface);
+  color: var(--hm-text-2);
+  border-color: var(--hm-border-strong);
+  font-weight: 600;
+}
+
+#page-hr-home .hm-btn--light:hover {
+  background: var(--hm-primary-soft);
+  color: var(--hm-primary-dark);
+  border-color: var(--th-p-200, #99f6e4);
+}
+
+/* ระหว่างซิงค์ (home.js ใส่ class refresh-spin-active) → ไอคอนหมุน กดซ้ำไม่ได้ */
+#page-hr-home #btnSyncData.refresh-spin-active {
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+#page-hr-home #btnSyncData.refresh-spin-active .material-symbols-outlined {
+  animation: hmSpin 0.9s linear infinite;
+}
+
+
+/* ==========================================================================
+   04. หัวหน้า — ไอคอน + คำอธิบาย (ซ้าย) / ปุ่ม (ขวา)
+   ========================================================================== */
+#page-hr-home .hm-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-radius: var(--hm-radius-lg);
+  box-shadow: var(--hm-shadow);
+}
+
+#page-hr-home .hm-hero-info {
+  display: flex;
+  align-items: center;
+  flex: 1 1 320px;
+  gap: 14px;
+  min-width: 0;
+}
+
+#page-hr-home .hm-hero-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  font-size: 26px;
+  color: var(--hm-primary);
+  background: var(--hm-primary-soft);
+  border-radius: 14px;
+}
+
+#page-hr-home .hm-hero-info h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--hm-text);
+}
+
+#page-hr-home .hm-hero-info p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--hm-text-soft);
+}
+
+#page-hr-home .hm-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+
+/* ==========================================================================
+   05. กระดิ่งแจ้งเตือน + DROPDOWN (อยู่ใน .pvt-topbar__actions)
+   home.js สลับ class .show ที่ #notifDropdown
+   ========================================================================== */
+#page-hr-home .notif-wrapper {
+  position: relative;
+}
+
+#page-hr-home .notif-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--hm-text-2);
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+#page-hr-home .notif-btn:hover {
+  background: var(--hm-primary-soft);
+  border-color: var(--th-p-200, #99f6e4);
+}
+
+#page-hr-home .notif-btn img {
+  width: 22px;
+  height: 22px;
+}
+
+/* ตัวเลขบนกระดิ่ง (home.js กำหนดสีพื้นตามความเร่งด่วน) */
+#page-hr-home .notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  background: var(--hm-red);
+  border: 2px solid #fff;
+  border-radius: 999px;
+}
+
+/* กล่อง dropdown: ซ่อนไว้ จนกว่าจะมี .show */
+#page-hr-home .notif-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  width: 400px;
+  max-height: min(600px, calc(100vh - 100px));
+  overflow: hidden;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-radius: var(--hm-radius-lg);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+}
+
+#page-hr-home .notif-dropdown.show {
+  display: flex;
+  animation: hmPopIn 0.2s var(--hm-ease) both;
+}
+
+#page-hr-home .notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hm-track);
+}
+
+#page-hr-home .notif-title {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+#page-hr-home .notif-header-icon {
+  font-size: 22px;
+  color: var(--hm-primary);
+}
+
+#page-hr-home .notif-title-text {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#page-hr-home .notif-count-pill {
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--hm-primary-dark);
+  background: var(--th-p-100, #ccfbf1);
+  border-radius: 999px;
+}
+
+#page-hr-home .notif-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+#page-hr-home .btn-mark-read {
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--hm-primary-dark);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#page-hr-home .btn-mark-read:hover {
+  background: var(--hm-primary-soft);
+}
+
+#page-hr-home .btn-close-notif {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--hm-text-soft);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#page-hr-home .btn-close-notif:hover {
+  background: var(--hm-track);
+  color: var(--hm-text);
+}
+
+/* แท็บกรอง: ทั้งหมด / เกิน 2 วัน / ใกล้ครบ */
+#page-hr-home .notif-filter-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--hm-surface-2);
+  border-bottom: 1px solid var(--hm-track);
+}
+
+#page-hr-home .notif-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--hm-text-soft);
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+#page-hr-home .notif-filter-tab .tab-badge {
+  min-width: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--hm-text-2);
+  background: var(--hm-track);
+  border-radius: 999px;
+}
+
+#page-hr-home .notif-filter-tab.active {
+  color: #fff;
+  background: var(--hm-primary);
+  border-color: var(--hm-primary);
+}
+
+#page-hr-home .notif-filter-tab.tab-overdue.active {
+  background: var(--hm-red);
+  border-color: var(--hm-red);
+}
+
+#page-hr-home .notif-filter-tab.tab-urgent.active {
+  background: #ea580c;
+  border-color: #ea580c;
+}
+
+#page-hr-home .notif-filter-tab.active .tab-badge {
+  color: inherit;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* รายการแจ้งเตือน (สไตล์ของแต่ละแถวใส่มากับ home.js) */
+#page-hr-home .notif-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hm-border-strong) transparent;
+}
+
+#page-hr-home .notif-loading {
+  padding: 32px 16px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--hm-text-soft);
+}
+
+#page-hr-home .notif-item:hover {
+  background: var(--hm-surface-2);
+}
+
+#page-hr-home .notif-item.notif-sla-overdue {
+  border-left: 3px solid var(--hm-red);
+}
+
+#page-hr-home .notif-item.notif-sla-urgent {
+  border-left: 3px solid #ea580c;
+}
+
+/* ไอคอนในแถว: สีตามประเภท */
+#page-hr-home .notif-icon.bg-orange { color: #ea580c;            background: #fff7ed; }
+#page-hr-home .notif-icon.bg-green  { color: #047857;            background: #ecfdf5; }
+#page-hr-home .notif-icon.bg-blue   { color: var(--hm-blue);     background: var(--th-k-50, #f0f9ff); }
+#page-hr-home .notif-icon.bg-purple { color: var(--hm-violet);   background: #f5f3ff; }
+
+#page-hr-home .notif-sla-badge-tag,
+#page-hr-home .notif-sla-time-highlight {
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 6px;
+}
+
+#page-hr-home .notif-sla-badge-tag.overdue,
+#page-hr-home .notif-sla-time-highlight.overdue {
+  color: var(--hm-red);
+  background: #fef2f2;
+}
+
+#page-hr-home .notif-sla-badge-tag.urgent,
+#page-hr-home .notif-sla-time-highlight.urgent {
+  color: #c2410c;
+  background: #fff7ed;
+}
+
+#page-hr-home .notif-footer {
+  padding: 10px 16px;
+  text-align: center;
+  border-top: 1px solid var(--hm-track);
+}
+
+#page-hr-home .notif-footer a {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hm-primary-dark);
+}
+
+#page-hr-home .notif-footer a:hover {
+  text-decoration: underline;
+}
+
+
+/* ==========================================================================
+   06. แถบเตือน SLA 2 วัน
+   home.js สลับ display (none ↔ flex) และ class:
+   .sla-alert-banner             = ใกล้ครบกำหนด (ส้ม)
+   .sla-alert-banner.has-overdue = มีรายการเกินกำหนด (แดง)
+   ========================================================================== */
+#page-hr-home .sla-alert-banner {
+  --sla-color: #ea580c;
+  --sla-soft: #fff7ed;
+  --sla-border: #fed7aa;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(90deg, var(--sla-soft), var(--hm-surface) 70%);
+  border: 1px solid var(--sla-border);
+  border-left: 4px solid var(--sla-color);
+  border-radius: var(--hm-radius-lg);
+  box-shadow: var(--hm-shadow);
+  animation: hmFadeUp 0.35s var(--hm-ease) both;
+}
+
+#page-hr-home .sla-alert-banner.has-overdue {
+  --sla-color: var(--hm-red);
+  --sla-soft: #fef2f2;
+  --sla-border: #fecaca;
+}
+
+#page-hr-home .sla-banner-left {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 1 480px;
+  gap: 14px;
+  min-width: 0;
+}
+
+#page-hr-home .sla-banner-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  color: var(--sla-color);
+  background: var(--sla-soft);
+  border: 1px solid var(--sla-border);
+  border-radius: 14px;
+}
+
+#page-hr-home .sla-pulse-icon {
+  font-size: 26px;
+  animation: hmPulse 1.6s ease-in-out infinite;
+}
+
+#page-hr-home .sla-banner-text {
+  min-width: 0;
+}
+
+#page-hr-home .sla-banner-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+#page-hr-home .sla-banner-title-row h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--hm-text);
+}
+
+#page-hr-home .sla-banner-status-pill {
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: #ea580c;
+  border-radius: 999px;
+}
+
+#page-hr-home .sla-banner-status-pill.overdue {
+  background: var(--hm-red);
+}
+
+#page-hr-home .sla-banner-text p {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--hm-text-2);
+}
+
+#page-hr-home .sla-badges-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#page-hr-home .sla-badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+#page-hr-home .sla-badge-item:hover {
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+#page-hr-home .sla-badge-item.badge-overdue { color: var(--hm-red); border-color: #fecaca; }
+#page-hr-home .sla-badge-item.badge-urgent  { color: #c2410c;       border-color: #fed7aa; }
+#page-hr-home .sla-badge-item.badge-safe    { color: #047857;       border-color: #a7f3d0; }
+
+/* จุดกระพริบหน้าป้าย */
+#page-hr-home .dot-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: hmPulse 1.6s ease-in-out infinite;
+}
+
+#page-hr-home .dot-pulse.red    { background: var(--hm-red); }
+#page-hr-home .dot-pulse.orange { background: #ea580c; }
+#page-hr-home .dot-pulse.green  { background: #10b981; }
+
+#page-hr-home .sla-banner-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+#page-hr-home .btn-sla-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--hm-radius-sm);
+  cursor: pointer;
+  transition: transform 0.2s var(--hm-ease), box-shadow 0.2s, background-color 0.2s;
+}
+
+#page-hr-home .btn-sla-action .material-symbols-outlined {
+  font-size: 18px;
+}
+
+#page-hr-home .btn-sla-action:hover {
+  transform: translateY(-1px);
+}
+
+#page-hr-home .btn-sla-scroll {
+  color: var(--hm-text-2);
+  background: var(--hm-surface);
+  border-color: var(--hm-border-strong);
+}
+
+#page-hr-home .btn-sla-goto {
+  color: #fff;
+  background: var(--sla-color);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+}
+
+
+/* ==========================================================================
+   07. การ์ดตัวเลข 4 ใบ (แบบเดียวกับหน้าวันหยุด)
+   แต่ละใบมีสีของตัวเอง (--stat-color / --stat-soft) ใช้กับเส้นซ้ายและไอคอน
+   ========================================================================== */
+#page-hr-home .hm-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+#page-hr-home .hm-kpi {
+  --stat-color: var(--hm-primary);
+  --stat-soft: var(--th-p-100, #ccfbf1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px 20px;
+  color: var(--hm-text);
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-left: 4px solid var(--stat-color);
+  border-radius: var(--hm-radius-lg);
+  box-shadow: var(--hm-shadow);
+  transition: transform 0.25s var(--hm-ease), box-shadow 0.25s var(--hm-ease);
+}
+
+#page-hr-home .hm-kpi:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--hm-shadow-hover);
+}
+
+#page-hr-home .hm-kpi.stat-teal   { --stat-color: var(--hm-primary); --stat-soft: var(--th-p-100, #ccfbf1); }
+#page-hr-home .hm-kpi.stat-blue   { --stat-color: var(--hm-blue);    --stat-soft: var(--th-k-100, #e0f2fe); }
+#page-hr-home .hm-kpi.stat-amber  { --stat-color: var(--hm-amber);   --stat-soft: #fef3c7; }
+#page-hr-home .hm-kpi.stat-violet { --stat-color: var(--hm-violet);  --stat-soft: #ede9fe; }
+
+#page-hr-home .hm-kpi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+#page-hr-home .hm-kpi-label-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+#page-hr-home .hm-kpi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hm-text-soft);
+}
+
+#page-hr-home .hm-kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--stat-color);
+}
+
+#page-hr-home .hm-kpi-sub {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--hm-text-muted);
+}
+
+#page-hr-home .hm-kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  font-size: 26px;
+  color: var(--stat-color);
+  background: var(--stat-soft);
+  border-radius: 14px;
+}
+
+/* ป้ายเตือน SLA บนการ์ด "รอพิจารณา" (home.js ใส่ class urgent เมื่อแค่ใกล้ครบ) */
+#page-hr-home .stat-sla-badge {
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--hm-red);
+  border-radius: 999px;
+}
+
+#page-hr-home .stat-sla-badge.urgent {
+  background: #ea580c;
+}
+
+#page-hr-home .stat-sla-subbadges {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#page-hr-home .sub-pill {
+  padding: 1px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 6px;
+}
+
+#page-hr-home .sub-pill.red    { color: var(--hm-red); background: #fef2f2; }
+#page-hr-home .sub-pill.orange { color: #c2410c;       background: #fff7ed; }
+
+
+/* ==========================================================================
+   08. PANEL กลาง (ใช้กับทุกกล่องเนื้อหา)
+   home.js เติมปุ่มพับ (.panel-toggle-chevron) ให้ทุก panel ที่มี .panel-header
+   ========================================================================== */
+#page-hr-home .panel,
+#page-hr-home .leave-analytics-card {
+  min-width: 0;
+  margin: 0;
+  padding: 20px 22px 22px;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-radius: var(--hm-radius-lg);
+  box-shadow: var(--hm-shadow);
+}
+
+/* หัว panel: ไอคอน + ชื่อ (ซ้าย) / dropdown หรือหมายเหตุ (ขวา) */
+#page-hr-home .panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+#page-hr-home .panel-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ไอคอนหัว panel: กล่องสีอ่อนแบบหน้าวันหยุด */
+#page-hr-home .panel-header-title > .material-symbols-outlined {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  font-size: 21px;
+  color: var(--hm-primary);
+  background: var(--hm-primary-soft);
+  border-radius: 10px;
+}
+
+#page-hr-home .panel-header-title > .icon-gold {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+#page-hr-home .panel-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--hm-text);
+}
+
+#page-hr-home .header-note {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--hm-text-soft);
+}
+
+#page-hr-home .panel-note {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hm-text-soft);
+  background: var(--hm-track);
+  border-radius: 999px;
+}
+
+/* Dropdown เลือกชนิดกราฟ (แบบเดียวกับตัวกรองหน้าวันหยุด) */
+#page-hr-home .chart-type-select {
+  height: 36px;
+  padding: 0 32px 0 12px;
+  background: var(--hm-surface) url('data:image/svg+xml;utf8,<svg fill="%230d9488" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 6px center;
+  color: var(--hm-text);
+  border: 1px solid var(--hm-border-strong);
+  border-radius: var(--hm-radius-sm);
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+#page-hr-home .chart-type-select:focus {
+  border-color: var(--hm-primary);
+  box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15);
+}
+
+/* ปุ่มพับ/กาง panel (home.js สร้าง) */
+#page-hr-home .panel-toggle-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 22px;
+  color: var(--hm-text-muted);
+  border-radius: 8px;
+}
+
+#page-hr-home .panel-header:hover .panel-toggle-chevron {
+  color: var(--hm-text);
+  background: var(--hm-track);
+}
+
+#page-hr-home .panel-collapsed .panel-header {
+  margin-bottom: 0;
+}
+
+
+/* ==========================================================================
+   09. สัดส่วนประเภทการลา — กราฟโดนัท (ซ้าย) / รายการ (ขวา)
+   ========================================================================== */
+#page-hr-home .leave-analytics-card .card-body {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  align-items: center;
+  gap: 36px;
+}
+
+#page-hr-home .chart-box {
+  position: relative;
+  width: 100%;
+  height: 280px;
+}
+
+/* ตัวเลขรวมกลางโดนัท */
+#page-hr-home .chart-center-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+#page-hr-home .chart-center-text .total-num {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--hm-text);
+}
+
+#page-hr-home .chart-center-text .total-label {
+  margin-top: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--hm-text-soft);
+}
+
+/* รายการแต่ละประเภท 2 คอลัมน์ */
+#page-hr-home .details-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  gap: 16px 32px;
+}
+
+#page-hr-home .detail-item {
+  min-width: 0;
+}
+
+#page-hr-home .item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13.5px;
+}
+
+#page-hr-home .badge-dot {
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+#page-hr-home .item-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--hm-text);
+}
+
+#page-hr-home .item-val {
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: var(--hm-text-soft);
+}
+
+#page-hr-home .item-pct {
+  min-width: 48px;
+  font-weight: 700;
+  text-align: right;
+}
+
+#page-hr-home .progress-bar {
+  height: 8px;
+  overflow: hidden;
+  background: var(--hm-track);
+  border-radius: 999px;
+}
+
+#page-hr-home .progress-bar .fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.6s var(--hm-ease);
+}
+
+/* กล่องว่างในรายการ → กินเต็ม 2 คอลัมน์ */
+#page-hr-home .details-list > .home-empty,
+#page-hr-home .details-list > .loading-text {
+  grid-column: 1 / -1;
+}
+
+
+/* ==========================================================================
+   10. แถวกลาง — กราฟแผนก (ซ้าย กว้างกว่า) + อันดับพนักงาน (ขวา) สูงเท่ากัน
+   ========================================================================== */
+#page-hr-home .middle-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 20px;
+}
+
+#page-hr-home .middle-grid > .panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chart.js ใช้ maintainAspectRatio:false → ต้องมีความสูงชัดเจน */
+#page-hr-home .chart-container {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 340px;
+}
+
+#page-hr-home .chart-container canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---- 10.1 อันดับพนักงานลาเยอะ ---- */
+#page-hr-home .top-employees-wrapper {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* หัวตาราง + การ์ดใช้ grid เดียวกัน คอลัมน์จึงตรงกัน */
+#page-hr-home .top-emp-header,
+#page-hr-home .top-emp-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+}
+
+#page-hr-home .top-emp-header {
+  padding: 0 12px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hm-text-muted);
+  border-bottom: 1px solid var(--hm-track);
+}
+
+#page-hr-home .top-emp-header .col-rank  { text-align: center; }
+#page-hr-home .top-emp-header .col-stats { text-align: right; }
+
+#page-hr-home .top-emp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  padding: 10px 4px 0 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hm-border-strong) transparent;
+}
+
+#page-hr-home .top-emp-card {
+  padding: 10px 12px;
+  background: var(--hm-surface-2);
+  border: 1px solid var(--hm-track);
+  border-radius: var(--hm-radius-md);
+  transition: transform 0.2s var(--hm-ease), box-shadow 0.2s, border-color 0.2s;
+}
+
+#page-hr-home .top-emp-card:hover {
+  transform: translateX(2px);
+  border-color: var(--th-p-200, #99f6e4);
+  box-shadow: var(--hm-shadow);
+}
+
+/* อันดับ 1–3: พื้นอ่อนสีทอง/เงิน/ทองแดง */
+#page-hr-home .top-emp-card.rank-1 { background: #fffbeb; border-color: #fde68a; }
+#page-hr-home .top-emp-card.rank-2 { background: #f8fafc; border-color: #e2e8f0; }
+#page-hr-home .top-emp-card.rank-3 { background: #fff7ed; border-color: #fed7aa; }
+
+#page-hr-home .col-rank-box {
+  display: flex;
+  justify-content: center;
+}
+
+#page-hr-home .top-emp-card .col-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--hm-text-soft);
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-radius: 50%;
+}
+
+#page-hr-home .top-emp-card .rank-medal {
+  font-size: 22px;
+  background: transparent;
+  border: none;
+}
+
+#page-hr-home .col-profile-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+#page-hr-home .top-emp-avatar,
+#page-hr-home .top-emp-avatar-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+#page-hr-home .top-emp-avatar-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hm-primary-dark);
+  background: var(--th-p-100, #ccfbf1);
+}
+
+#page-hr-home .top-emp-card .col-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#page-hr-home .emp-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--hm-text);
+}
+
+#page-hr-home .emp-dept {
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--hm-text-soft);
+}
+
+#page-hr-home .emp-code {
+  font-weight: 600;
+  color: var(--hm-text-muted);
+}
+
+#page-hr-home .top-emp-card .col-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+#page-hr-home .stat-badge {
+  padding: 1px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--hm-primary-dark);
+  background: var(--th-p-100, #ccfbf1);
+  border-radius: 999px;
+}
+
+#page-hr-home .stat-days {
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--hm-text-2);
+}
+
+
+/* ==========================================================================
+   11. หัวข้อ SECTION + กราฟแนวโน้ม (Recharts)
+   ========================================================================== */
+#page-hr-home .section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--hm-text);
+}
+
+#page-hr-home .section-title .material-symbols-outlined {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--hm-primary), var(--hm-primary-dark));
+  border-radius: 9px;
+}
+
+/* recharts-summary.js วาดเนื้อหาข้างในเอง ไฟล์นี้จัดแค่ความกว้าง */
+#page-hr-home #rechartsSummaryPanel {
+  min-width: 0;
+}
+
+#page-hr-home #rechartsSummaryPanel:empty {
+  display: none;
+}
+
+
+/* ==========================================================================
+   12. สรุปทั้งปี (การ์ด 4 ใบ) + กราฟแท่งแนวนอน
+   ========================================================================== */
+#page-hr-home .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+#page-hr-home .summary-grid > .stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 96px;
+  padding: 16px 20px;
+  transition: transform 0.25s var(--hm-ease), box-shadow 0.25s, border-color 0.25s;
+}
+
+#page-hr-home .summary-grid .stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hm-text-soft);
+}
+
+#page-hr-home .summary-grid .stat-val {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--hm-text);
+}
+
+#page-hr-home .summary-grid .stat-val.warning { color: var(--hm-amber); }
+#page-hr-home .summary-grid .stat-val.primary { color: var(--hm-primary); }
+
+/* การ์ดที่คลิกไปหน้าตรวจใบลาได้ */
+#page-hr-home .summary-grid > .is-clickable {
+  cursor: pointer;
+}
+
+#page-hr-home .summary-grid > .is-clickable:hover {
+  transform: translateY(-3px);
+  border-color: var(--th-p-200, #99f6e4);
+  box-shadow: var(--hm-shadow-hover);
+}
+
+#page-hr-home .chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 20px;
+}
+
+#page-hr-home .panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+#page-hr-home .panel-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ป้ายสถานะข้างหัว (home.js สลับ class active) */
+#page-hr-home .panel-head .status {
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hm-text-soft);
+  background: var(--hm-track);
+  border-radius: 999px;
+}
+
+#page-hr-home .panel-head .status.active {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+/* แถบแนวนอน: ชื่อ | แถบ | ค่า */
+#page-hr-home .bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 160px;
+}
+
+#page-hr-home .bar-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) 80px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+#page-hr-home .bar-row strong {
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--hm-text-2);
+}
+
+#page-hr-home .bar-track {
+  height: 10px;
+  overflow: hidden;
+  background: var(--hm-track);
+  border-radius: 999px;
+}
+
+#page-hr-home .bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.6s var(--hm-ease);
+}
+
+#page-hr-home .bar-row > span {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--hm-text);
+}
+
+
+/* ==========================================================================
+   13. พนักงานที่ลาวันนี้
+   ========================================================================== */
+#page-hr-home .today-leaves-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+#page-hr-home .today-leaves-grid > .home-empty,
+#page-hr-home .today-leaves-grid > .loading-text {
+  grid-column: 1 / -1;
+}
+
+#page-hr-home .today-leave-card-detail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
+  border-left: 4px solid var(--hm-primary);
+  border-radius: var(--hm-radius-md);
+  transition: transform 0.2s var(--hm-ease), box-shadow 0.2s;
+}
+
+#page-hr-home .today-leave-card-detail:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--hm-shadow-hover);
+}
+
+#page-hr-home .today-leave-card-detail .emp-avatar {
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+#page-hr-home .today-leave-card-detail .info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+#page-hr-home .today-leave-card-detail .name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#page-hr-home .today-leave-card-detail .dept {
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--hm-text-soft);
+}
+
+#page-hr-home .today-leave-card-detail .type-badge {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 1px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--hm-primary-dark);
+  background: var(--th-p-100, #ccfbf1);
+  border-radius: 6px;
+}
+
+
+/* ==========================================================================
+   14. กล่องว่าง / กำลังโหลด (home.js ใช้ .home-empty)
+   ========================================================================== */
+#page-hr-home .home-empty,
+#page-hr-home .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--hm-text-soft);
+  background: var(--hm-surface-2);
+  border: 1px dashed var(--hm-border-strong);
+  border-radius: var(--hm-radius-md);
+}
+
+#page-hr-home .home-empty > .material-symbols-outlined {
+  font-size: 36px;
+  color: var(--hm-border-strong);
+}
+
+#page-hr-home .home-empty strong {
+  font-size: 14px;
+  color: var(--hm-text-2);
+}
+
+#page-hr-home .home-empty small {
+  font-size: 12px;
+  color: var(--hm-text-muted);
+}
+
+#page-hr-home .loading-text {
+  padding: 24px 16px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--hm-text-muted);
+}
+
+
+/* ==========================================================================
+   15. TOAST แจ้งผล (home.js ใส่ class: toast status-toast show success|error)
+   ========================================================================== */
+#page-hr-home .toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  max-width: 360px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--hm-primary-dark);
+  border-radius: var(--hm-radius-md);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition: opacity 0.25s, transform 0.25s var(--hm-ease), visibility 0.25s;
+}
+
+#page-hr-home .toast.show {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+#page-hr-home .toast.error   { background: var(--hm-red); }
+#page-hr-home .toast.warning { background: var(--hm-amber); }
+
+
+/* ==========================================================================
+   16. RESPONSIVE (หน้านี้ใช้บน PC เป็นหลัก)
+   ========================================================================== */
+
+/* ---- ≤ 1280px : โน้ตบุ๊ก ---- */
+@media (max-width: 1280px) {
+  #page-hr-home .hm-kpi-grid,
+  #page-hr-home .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  #page-hr-home .middle-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  #page-hr-home .details-list { grid-template-columns: 1fr; }
+  #page-hr-home .leave-analytics-card .card-body { gap: 24px; }
+}
+
+/* ---- ≤ 1024px : แท็บเล็ต ---- */
+@media (max-width: 1024px) {
+  #page-hr-home .middle-grid,
+  #page-hr-home .chart-grid { grid-template-columns: 1fr; }
+
+  #page-hr-home .leave-analytics-card .card-body { grid-template-columns: 1fr; }
+  #page-hr-home .chart-box { max-width: 300px; margin: 0 auto; }
+}
+
+/* ---- ≤ 768px : มือถือ ---- */
+@media (max-width: 768px) {
+  #page-hr-home .pvt-page { gap: 14px; }
+  #page-hr-home .hm-hero  { padding: 16px; }
+  #page-hr-home .hm-hero-actions { width: 100%; }
+  #page-hr-home .hm-hero-actions .hm-btn { flex: 1; }
+
+  #page-hr-home .hm-kpi-grid,
+  #page-hr-home .summary-grid { gap: 10px; }
+
+  #page-hr-home .panel,
+  #page-hr-home .leave-analytics-card { padding: 16px; }
+
+  #page-hr-home .notif-dropdown { position: fixed; top: 70px; right: 12px; left: 12px; width: auto; }
+  #page-hr-home .bar-row { grid-template-columns: 96px minmax(0, 1fr) 70px; }
+  #page-hr-home .chart-container { min-height: 260px; }
+  #page-hr-home .sla-banner-right { width: 100%; }
+  #page-hr-home .btn-sla-action { flex: 1; justify-content: center; }
+}
+
+/* ---- ≤ 480px : มือถือจอเล็ก ---- */
+@media (max-width: 480px) {
+  #page-hr-home .hm-kpi-grid,
+  #page-hr-home .summary-grid { grid-template-columns: 1fr; }
+  #page-hr-home .today-leaves-grid { grid-template-columns: 1fr; }
+}
+
+
+/* ==========================================================================
+   17. ANIMATIONS
+   ========================================================================== */
+@keyframes hmFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes hmPopIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes hmSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes hmPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.88); }
+}
+
+/* ทุก section ค่อย ๆ โผล่ตอนโหลด */
+#page-hr-home .pvt-page > * {
+  animation: hmFadeUp 0.4s var(--hm-ease) both;
+}
+
+/* ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว → ปิด animation */
+@media (prefers-reduced-motion: reduce) {
+  #page-hr-home *,
+  #page-hr-home *::before,
+  #page-hr-home *::after {
+    animation: none;
+    transition: none;
+  }
+}

@@ -196,11 +196,16 @@ window.refreshDashboardData = async function(isManualClick = false) {
   ];
   const mockEmployees = [{ emp_code: "PVT-001", first_name: "สมศักดิ์", last_name: "ผลดี", full_name: "สมศักดิ์ ผลดี", department: "ฝ่ายผลิต" }];
 
+  // ⚠️ เดิมใช้ข้อมูลตัวอย่าง (mock) เมื่อเชื่อมต่อไม่ได้ → HR เห็นตัวเลขปลอมบนหน้าจริง
+  //    ตอนนี้แสดงเป็น 0 / ว่าง แทน และแจ้งเตือนให้รู้
   if (!sb) {
-    rawRequests = mockRequests;
-    rawEmployees = mockEmployees;
-    renderCounters(1, 1, 1);
+    rawRequests = [];
+    rawEmployees = [];
+    renderCounters(0, 0, 0, 0);
+    renderTodayLeavesDetail([]);
     drawCharts();
+    if (typeof renderSummary === "function") renderSummary();
+    showToast("เชื่อมต่อฐานข้อมูลไม่ได้ กรุณารีเฟรชหน้า", "error");
     if (syncBtn) syncBtn.classList.remove("refresh-spin-active");
     return;
   }
@@ -324,7 +329,7 @@ window.refreshDashboardData = async function(isManualClick = false) {
       rawRequests = rawRequests.filter(r => deptEmpIds.has(String(r.employee_id)));
       
       // เปลี่ยนหัวข้อให้ชัดเจน
-      const titleEl = document.querySelector('.topbar-left h1');
+      const titleEl = document.querySelector('.pvt-topbar__title h1, .topbar-left h1');
       if (titleEl) titleEl.textContent = `ภาพรวมข้อมูลแผนก (${rawEmployees[0]?.departments?.department_name || 'ฝ่ายบุคคล-ธุรการ'})`;
     }
 
@@ -341,10 +346,7 @@ window.refreshDashboardData = async function(isManualClick = false) {
       }
     });
 
-    if (rawRequests.length === 0 && rawEmployees.length === 0) {
-      rawRequests = mockRequests;
-      rawEmployees = mockEmployees;
-    }
+    // (เอาการเติมข้อมูลตัวอย่างออก: ถ้าไม่มีข้อมูลจริงก็แสดงเป็นว่าง)
 
     const myEmpId = sessionUser?.id || sessionUser?.employee_id || sessionUser?.employees?.id;
     const pendingCount = rawRequests.filter(r => {
@@ -358,21 +360,24 @@ window.refreshDashboardData = async function(isManualClick = false) {
       return isPendingForRoleHome(r, myRole);
     }).length;
     
+    // ใช้วันที่ตามเวลาเครื่อง (เวลาไทย) — เดิมใช้ toISOString() ซึ่งเป็นเวลา UTC
+    // ทำให้ช่วง 00:00–06:59 นับ "ลาวันนี้" เป็นของเมื่อวาน
+    const toLocalIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = toLocalIso(now);
     const tomorrow = new Date(now);
     tomorrow.setDate(now.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const tomorrowStr = toLocalIso(tomorrow);
 
     const todayLeaves = rawRequests.filter(r => {
       const isApproved = (r.status === "approved" || r.status === "อนุมัติ");
-      const inRange = r.start_date && r.end_date && (todayStr >= r.start_date && todayStr <= r.end_date);
+      const inRange = r.start_date && r.end_date && (todayStr >= String(r.start_date).slice(0, 10) && todayStr <= String(r.end_date).slice(0, 10));
       return isApproved && inRange;
     });
 
     const tomorrowLeaves = rawRequests.filter(r => {
       const isApproved = (r.status === "approved" || r.status === "อนุมัติ");
-      const inRange = r.start_date && r.end_date && (tomorrowStr >= r.start_date && tomorrowStr <= r.end_date);
+      const inRange = r.start_date && r.end_date && (tomorrowStr >= String(r.start_date).slice(0, 10) && tomorrowStr <= String(r.end_date).slice(0, 10));
       return isApproved && inRange;
     });
 
@@ -618,7 +623,7 @@ function renderLeaveBreakdownList(typeSummary, totalCount, colors) {
   const keys = Object.keys(typeSummary);
 
   if (keys.length === 0) {
-    detailsList.innerHTML = `<div style="color:var(--text-soft); font-size:14px; text-align:center; padding:20px;">ไม่มีข้อมูลประวัติการลา</div>`;
+    detailsList.innerHTML = `<div class="home-empty"><span class="material-symbols-outlined">donut_large</span><strong>ยังไม่มีใบลาที่อนุมัติแล้ว</strong></div>`;
     return;
   }
 
@@ -632,7 +637,7 @@ function renderLeaveBreakdownList(typeSummary, totalCount, colors) {
       <div class="detail-item">
         <div class="item-info">
           <span class="badge-dot" style="background-color: ${color};"></span>
-          <span class="item-name">${key}</span>
+          <span class="item-name" title="${escapeHtmlAttribute(key)}">${escapeHtmlText(key)}</span>
           <span class="item-val">${count} รายการ</span>
           <span class="item-pct" style="color: ${color};">${pct}%</span>
         </div>
@@ -661,10 +666,10 @@ function renderTopLeaveEmployees(approvedRequests) {
 
   if (validApproved.length === 0) {
     container.innerHTML = `
-      <div class="empty-state" style="padding: 28px 16px; text-align: center; color: var(--text-soft); background: #f8fafc; border-radius: var(--radius-md); border: 1px dashed #e2e8f0;">
-        <span class="material-symbols-outlined" style="font-size: 38px; color: #cbd5e1; margin-bottom: 8px; display: block;">event_busy</span>
-        <div style="font-weight: 700; color: #64748b; font-size: 14px;">ยังไม่มีข้อมูลการลาที่อนุมัติแล้ว</div>
-        <span style="font-size: 12px; color: #94a3b8; margin-top: 4px; display: block;">ระบบจะจัดอันดับอัตโนมัติเมื่อมีใบลาที่ได้รับการอนุมัติเรียบร้อย</span>
+      <div class="home-empty">
+        <span class="material-symbols-outlined">event_busy</span>
+        <strong>ยังไม่มีข้อมูลการลาที่อนุมัติแล้ว</strong>
+        <small>ระบบจะจัดอันดับอัตโนมัติเมื่อมีใบลาที่ได้รับการอนุมัติ</small>
       </div>
     `;
     return;
@@ -767,9 +772,9 @@ function renderTopLeaveEmployees(approvedRequests) {
 
   if (sortedEmployees.length === 0) {
     container.innerHTML = `
-      <div class="empty-state" style="padding: 24px 16px; text-align: center; color: var(--text-soft);">
-        <span class="material-symbols-outlined" style="font-size: 36px; color: #cbd5e1; margin-bottom: 6px; display: block;">event_busy</span>
-        <div>ไม่มีข้อมูลประวัติการลาที่อนุมัติ</div>
+      <div class="home-empty">
+        <span class="material-symbols-outlined">event_busy</span>
+        <strong>ไม่มีข้อมูลประวัติการลาที่อนุมัติ</strong>
       </div>
     `;
     return;
@@ -840,9 +845,10 @@ function renderTopLeaveEmployees(approvedRequests) {
 
     // Avatar
     const initials = getDisplayInitials(emp.name, emp.nickname);
+    const safeInitials = escapeHtmlText(initials).replace(/'/g, '');
     const avatarHtml = emp.avatar 
-      ? `<img src="${emp.avatar}" class="top-emp-avatar" alt="${emp.name}" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'top-emp-avatar-badge',textContent:'${initials}'}));">`
-      : `<div class="top-emp-avatar-badge">${initials}</div>`;
+      ? `<img src="${escapeHtmlAttribute(emp.avatar)}" class="top-emp-avatar" alt="${escapeHtmlAttribute(emp.name)}" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'top-emp-avatar-badge',textContent:'${safeInitials}'}));">`
+      : `<div class="top-emp-avatar-badge">${safeInitials}</div>`;
 
     html += `
       <div class="top-emp-card ${rankClass}">
@@ -852,8 +858,8 @@ function renderTopLeaveEmployees(approvedRequests) {
         <div class="col-profile-box">
           ${avatarHtml}
           <div class="col-name">
-            <span class="emp-name">${emp.name}</span>
-            <span class="emp-dept">${emp.dept} ${emp.code ? `• <span class="emp-code">${emp.code}</span>` : ''}</span>
+            <span class="emp-name">${escapeHtmlText(emp.name)}</span>
+            <span class="emp-dept">${escapeHtmlText(emp.dept)} ${emp.code ? `• <span class="emp-code">${escapeHtmlText(emp.code)}</span>` : ''}</span>
           </div>
         </div>
         <div class="col-stats">
@@ -1034,7 +1040,8 @@ function updateSlaBadges(slaStats) {
     if (totalPending > 0) {
       sidebarBadge.textContent = totalPending > 99 ? '99+' : totalPending;
       sidebarBadge.style.display = 'inline-flex';
-      sidebarBadge.className = 'sidebar-badge';
+      // คงคลาส pvt-nav__badge ของ layout ไว้ (เดิมเขียนทับเป็น sidebar-badge → ป้ายไม่มีสไตล์)
+      sidebarBadge.className = 'pvt-nav__badge sidebar-badge';
       if (overdueCount > 0) {
         sidebarBadge.classList.add('overdue');
         sidebarBadge.title = `มีคำขอลาเกินกำหนด SLA 2 วัน: ${overdueCount} รายการ`;
@@ -1165,7 +1172,7 @@ function renderTodayLeavesDetail(leaves) {
   if (!container) return;
 
   if (leaves.length === 0) {
-    container.innerHTML = `<div style="padding: 30px; text-align: center; color: #94a3b8; width: 100%;">วันนี้ไม่มีพนักงานลางาน ✨</div>`;
+    container.innerHTML = `<div class="home-empty"><span class="material-symbols-outlined">celebration</span><strong>วันนี้ไม่มีพนักงานลางาน</strong><small>ทุกคนเข้างานครบ</small></div>`;
     return;
   }
 
@@ -1180,7 +1187,7 @@ function renderTodayLeavesDetail(leaves) {
     
     return `
       <div class="today-leave-card-detail">
-        <img src="${img}" class="emp-avatar" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
+        <img src="${escapeHtmlAttribute(img)}" class="emp-avatar" alt="" onerror="this.onerror=null; this.src='${escapeHtmlAttribute(defaultAvatarFallback)}';">
         <div class="info">
           <div class="name">${escapeHtmlText(emp.full_name || "ไม่ระบุชื่อ")}</div>
           <div class="dept">${escapeHtmlText(dept)}</div>
@@ -1420,7 +1427,7 @@ function applyHomeTeamRender() {
     if (roleStr === "leader" || roleStr.includes("leader")) {
       roleBadge = '<span style="font-size: 11px; background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 6px; font-weight: 700;">👑 หัวหน้า</span>';
     } else if (roleStr === "manager" || roleStr.includes("manager")) {
-      roleBadge = '<span style="font-size: 11px; background: #dbeafe; color: #1d4ed8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผจก.</span>';
+      roleBadge = '<span style="font-size: 11px; background: var(--th-b-100, #dbeafe); color: var(--th-b-700, #1d4ed8); padding: 2px 7px; border-radius: 6px; font-weight: 700;">💼 ผจก.</span>';
     } else if (["hr", "admin", "superadmin"].includes(roleStr)) {
       roleBadge = '<span style="font-size: 11px; background: #f3e8ff; color: #6b21a8; padding: 2px 7px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
     } else if (["director", "executive", "owner"].includes(roleStr)) {
@@ -1441,7 +1448,7 @@ function applyHomeTeamRender() {
             </span>
             <span style="font-size: 12px; color: #64748b; font-weight: 600; flex-shrink: 0;">#${escapeHtmlText(empCode)}</span>
           </div>
-          <div style="font-size: 12.5px; color: #0284c7; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <div style="font-size: 12.5px; color: var(--th-k-600, #0284c7); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             ${escapeHtmlText(pos)}
           </div>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
@@ -1676,7 +1683,7 @@ if (false) {
                     data-role="${escapeHtmlAttribute(empRole)}" 
                     data-dept="${escapeHtmlAttribute(empDept)}"
                     data-avatar="${escapeHtmlAttribute(fullAvatarUrl)}"
-              style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+              style="background: var(--th-b-500, #3b82f6); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px;">
               <span class="material-symbols-outlined" style="font-size:18px;">visibility</span>
             </button>
           </div>
@@ -1819,13 +1826,13 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept, avat
     title: '💳 ตัวอย่างบัตรพนักงานดิจิทัล',
     width: '420px',
     html: `
-      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); width: 320px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
-        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 16px;">PVT WORKFORCE HUB</div>
-        <div style="width: 80px; height: 80px; margin: 0 auto 14px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #1e293b;">
+      <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, var(--th-b-900, #1e3a8a) 100%); width: 320px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(var(--th-b-900-rgb, 30, 58, 138), 0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: var(--th-k-400, #38bdf8); margin-bottom: 16px;">PVT WORKFORCE HUB</div>
+        <div style="width: 80px; height: 80px; margin: 0 auto 14px auto; border-radius: 50%; border: 3px solid var(--th-k-400, #38bdf8); overflow: hidden; background: #1e293b;">
           <img src="${imgUrl}" onerror="this.src='/assets/img/default-avatar.jpg';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
         </div>
         <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">${escapeHtmlText(empName)}</div>
-        <div style="font-size: 13px; color: #38bdf8; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtmlText(empRole)}</div>
+        <div style="font-size: 13px; color: var(--th-k-400, #38bdf8); font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtmlText(empRole)}</div>
         <div style="font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 16px;">แผนก: ${escapeHtmlText(empDept)}</div>
         <div style="background: white; padding: 10px; border-radius: 14px; display: inline-block; margin-bottom: 16px;">
           <img src="${qrUrl}" alt="Employee QR Code" style="width: 130px; height: 130px; display: block;" 
@@ -1896,18 +1903,18 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
         body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f1f5f9; }
         .card {
           position: relative; width: 85.6mm; height: 53.98mm; border-radius: 8px; padding: 8px 12px;
-          background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: white;
+          background: linear-gradient(135deg, #0f172a 0%, var(--th-b-900, #1e3a8a) 100%); color: white;
           display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
           overflow: hidden;
         }
-        .card-header { font-size: 10px; font-weight: 700; color: #38bdf8; text-align: center; letter-spacing: 1px; }
+        .card-header { font-size: 10px; font-weight: 700; color: var(--th-k-400, #38bdf8); text-align: center; letter-spacing: 1px; }
         .card-body { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
-        .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid #38bdf8; flex-shrink: 0; background: #1e293b; }
+        .avatar-box { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid var(--th-k-400, #38bdf8); flex-shrink: 0; background: #1e293b; }
         .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
         .details { flex: 1; font-size: 9px; line-height: 1.3; }
         .name { font-weight: 700; font-size: 11px; color: #fff; margin-bottom: 2px; }
         .meta { color: #94a3b8; font-size: 9px; }
-        .role { color: #38bdf8; font-weight: 600; }
+        .role { color: var(--th-k-400, #38bdf8); font-weight: 600; }
         .qr-box { background: white; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
         .qr-box img { width: 50px; height: 50px; display: block; }
         .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
@@ -2015,15 +2022,15 @@ window.printMultipleCards = function (selectedList = []) {
             text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column;
             justify-content: space-between; align-items: center; overflow: hidden; page-break-inside: avoid;
           }
-          .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #06b6d4, #3b82f6, #6366f1); }
+          .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, var(--th-s-500, #06b6d4), var(--th-b-500, #3b82f6), #6366f1); }
           .lanyard-hole { width: 32px; height: 6px; background: #020617; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.15); }
-          .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px; }
+          .company { font-weight: 700; font-size: 10px; letter-spacing: 2px; color: var(--th-k-400, #38bdf8); text-transform: uppercase; margin-bottom: 6px; }
           .profile-section { margin-bottom: 4px; width: 100%; }
           .name { font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; line-height: 1.2; word-break: break-word; }
           .badge-container { display: flex; flex-direction: column; gap: 3px; align-items: center; justify-content: center; }
-          .role-badge { font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
+          .role-badge { font-size: 10px; color: var(--th-k-400, #38bdf8); background: rgba(var(--th-k-400-rgb, 56, 189, 248), 0.1); border: 1px solid rgba(var(--th-k-400-rgb, 56, 189, 248), 0.25); padding: 2px 8px; border-radius: 12px; font-weight: 500; }
           .dept-text { font-size: 10px; color: #94a3b8; font-weight: 400; }
-          .qr-box { background: #ffffff; padding: 6px; border-radius: 10px; display: inline-block; border: 2px solid #38bdf8; }
+          .qr-box { background: #ffffff; padding: 6px; border-radius: 10px; display: inline-block; border: 2px solid var(--th-k-400, #38bdf8); }
           .qr-box img { width: 110px; height: 110px; display: block; }
           .footer-section { width: 100%; }
           .id-tag { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: #f8fafc; background: rgba(255, 255, 255, 0.08); padding: 4px 14px; border-radius: 20px; display: inline-block; border: 1px solid rgba(255,255,255,0.15); font-family: monospace, 'Sarabun'; }
@@ -2223,7 +2230,7 @@ function renderDropdownNotifsList() {
             ${slaTimeHtml}
           </div>
         </div>
-        ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: #0d9488; border-radius: 50%; flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);"></span>' : ''}
+        ${isUnread ? '<span class="unread-dot" style="width: 8px; height: 8px; background: var(--th-p-600, #0d9488); border-radius: 50%; flex-shrink: 0; margin-top: 4px; box-shadow: 0 0 0 3px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);"></span>' : ''}
       </div>
     `;
   });
@@ -2264,7 +2271,7 @@ function formatCleanNotification(title, rawMessage) {
       return `<div style="background: #f0fdf4; color: #166534; padding: 5px 10px; border-radius: 6px; border: 1px solid #bbf7d0; font-size: 12.5px; font-weight: 600; margin-top: 3px; line-height: 1.4;">${line}</div>`;
     }
     if (line.startsWith('👉')) {
-      return `<div style="color: #0d9488; font-weight: 700; font-size: 13px; margin-top: 3px;">${line}</div>`;
+      return `<div style="color: var(--th-p-600, #0d9488); font-weight: 700; font-size: 13px; margin-top: 3px;">${line}</div>`;
     }
     return `<div style="line-height: 1.5; font-size: 13px; color: #334155;">${line}</div>`;
   });
@@ -2497,7 +2504,7 @@ async function fetchRealNotifications() {
           badge.style.background = '#f97316';
           badge.style.boxShadow = '0 0 10px rgba(249, 115, 22, 0.6)';
         } else {
-          badge.style.background = 'var(--primary)';
+          badge.style.background = 'var(--primary, var(--th-p-600, #0d9488))';
           badge.style.boxShadow = 'none';
         }
       } else {
@@ -2823,7 +2830,7 @@ window.openAllNotificationsModal = async function() {
         const timeText = formatTimeAgo(item.created_at);
         const bgStyle = item.is_read 
           ? 'background: #ffffff; border: 1px solid #e2e8f0;' 
-          : 'background: #f0fdfa; border: 1px solid #a7f3d0; border-left: 4px solid #0fa472;';
+          : 'background: var(--th-p-50, #f0fdfa); border: 1px solid #a7f3d0; border-left: 4px solid #0fa472;';
         const formatted = formatCleanNotification(item.title, item.message);
 
         listHtml += `
@@ -3107,7 +3114,7 @@ function buildDashboardLeaveConfirmHtml(reqData, roleTitle, actionType = 'approv
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #ffffff; border-radius: 10px; padding: 10px 12px; border: 1px solid #e2e8f0; font-size: 13px;">
           <div>
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">ประเภทการลา</span>
-            <strong style="color: #0d9488; font-size: 13.5px;">${safeEscape(leaveName)}</strong>
+            <strong style="color: var(--th-p-600, #0d9488); font-size: 13.5px;">${safeEscape(leaveName)}</strong>
           </div>
           <div>
             <span style="color: #64748b; font-size: 11.5px; display: block; margin-bottom: 2px;">จำนวนเวลาลา</span>
@@ -3192,6 +3199,18 @@ window.quickApproveFromDashboard = async function(leaveId) {
   Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
   try {
+    // 🔗 ใบลาที่มีขั้นอนุมัติ (ระยะ 2) → ใช้ตัวจัดการสายอนุมัติ
+    if (window.PVTApproval && await window.PVTApproval.isReady()) {
+      const stepRows = await window.PVTApproval.getSteps(leaveId);
+      if (stepRows && stepRows.length) {
+        const res = await window.PVTApproval.approve(leaveId, { actorRole: myRole });
+        if (res.ok) Swal.fire({ icon: 'success', title: res.final ? 'อนุมัติเรียบร้อย' : 'อนุมัติขั้นนี้แล้ว', text: res.final ? '' : `ส่งต่อให้ "${res.nextLabel || 'ขั้นถัดไป'}" แล้ว`, showConfirmButton: false, timer: 1600 });
+        else await Swal.fire('ไม่สามารถอนุมัติได้', res.reason || 'ใบลานี้ถูกดำเนินการไปแล้ว', 'info');
+        await refreshDashboardData();
+        return;
+      }
+    }
+
     let updateFields = {};
 
     if (window.PVTSDK?.user?.ensureLeaveBalances) {
@@ -3209,28 +3228,27 @@ window.quickApproveFromDashboard = async function(leaveId) {
     } else if (myRole === 'manager') {
       updateFields.director_status = 'approved';
       if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
-    } else if (myRole === 'executive' || myRole === 'director' || myRole === 'owner') {
-      if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
-      if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
-      updateFields.status = 'approved';
-      updateFields.approved_at = new Date().toISOString();
     } else {
-      // HR / Admin
+      // ผู้บริหาร / HR / Admin: อนุมัติได้ทุกขั้นที่เหลือ
       if (reqData.manager_status !== 'approved') updateFields.manager_status = 'approved';
       if (reqData.director_status !== 'approved') updateFields.director_status = 'approved';
-      updateFields.status = 'approved';
-      updateFields.approved_at = new Date().toISOString();
+      updateFields.executive_status = 'approved';
+    }
+    if (myRole === 'manager') {
+      const needsExecutive = Boolean(reqData.employees?.l3_approver_id) ||
+        /leader|manager|director|executive|owner|หัวหน้า|ผู้จัดการ|ผู้บริหาร/i.test(`${reqData.employees?.role || ''} ${reqData.employees?.positions?.position_name || ''}`);
+      if (!needsExecutive) updateFields.executive_status = 'approved';
     }
 
-    // หักยอดวันลาหากได้รับการอนุมัติขั้นสุดท้ายเรียบร้อยแล้ว
-    if (updateFields.status === 'approved') {
-      const leaveDays = reqData.actual_days || reqData.days_requested || reqData.total_days || 0;
-      const currentYear = new Date(reqData.start_date).getFullYear();
-
-      if (window.PVTSDK?.user?.updateLeaveBalance) {
-        const lCode = reqData.leave_types?.leave_code || null;
-        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
-      }
+    // ทุกขั้นผ่านครบ → อนุมัติขั้นสุดท้าย
+    const mergedSteps = Object.assign({}, reqData, updateFields);
+    const isFinalApproval = ['manager_status', 'director_status', 'executive_status']
+      .every((f) => String(mergedSteps[f] || '').toLowerCase() === 'approved');
+    if (isFinalApproval) {
+      updateFields.status = 'approved';
+      updateFields.approved_at = new Date().toISOString();
+      const approverId = sessionUser?.employees?.id || sessionUser?.id || null;
+      if (approverId) updateFields.approved_by = approverId;
     }
 
     // 🔄 ตรวจสอบว่าเป็นการอนุมัติแทนตามระบบ Auto-Delegation หรือไม่ (เมื่อหัวหน้าลาพักร้อน)
@@ -3246,12 +3264,42 @@ window.quickApproveFromDashboard = async function(leaveId) {
       }
     }
 
-    const { error: updateErr } = await sb
+    // 🛡️ บันทึกเฉพาะเมื่อยังรอพิจารณาอยู่ (กันกดซ้ำ/กดพร้อมกัน)
+    const { data: changedRows, error: updateErr } = await sb
       .from('leave_requests')
       .update(updateFields)
-      .eq('id', leaveId);
+      .eq('id', leaveId)
+      .eq('status', reqData.status || 'pending')
+      .select('id');
 
     if (updateErr) throw updateErr;
+    if (!changedRows || !changedRows.length) {
+      await Swal.fire('ใบลานี้ถูกดำเนินการไปแล้ว', 'มีผู้พิจารณาใบลานี้ไปก่อนหน้าแล้ว', 'info');
+      return;
+    }
+
+    // หักยอดวันลา "หลัง" บันทึกผลสำเร็จ (ใช้ปี ค.ศ. ของวันลา)
+    if (updateFields.status === 'approved' && window.PVTSDK?.user?.updateLeaveBalance) {
+      try {
+        const leaveDays = reqData.actual_days || reqData.days_requested || reqData.total_days || 0;
+        let currentYear = new Date(reqData.start_date).getFullYear();
+        if (currentYear > 2400) currentYear -= 543;
+        const lCode = reqData.leave_types?.leave_code || null;
+        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
+      } catch (balErr) {
+        console.warn('⚠️ ตัดยอดวันลาไม่สำเร็จ:', balErr);
+      }
+    }
+
+    // 🧾 หลักฐานรายขั้น + แจ้ง HR (ในระบบ) เมื่อจบ
+    if (window.PVTLeaveAudit) {
+      const lvl = myRole === 'leader' ? ['L1', 'หัวหน้างาน (L1)'] : myRole === 'manager' ? ['L2', 'ผู้จัดการ (L2)']
+        : (myRole === 'executive' || myRole === 'director' || myRole === 'owner') ? ['L3', 'ผู้บริหาร (L3)'] : ['HR', 'ฝ่ายบุคคล (HR/Admin)'];
+      const auditOpts = { stepLevel: lvl[0], stepLabel: lvl[1], comment: updateFields.approval_comment || null,
+        statusBefore: reqData.status || 'pending', statusAfter: updateFields.status === 'approved' ? 'approved' : 'pending' };
+      if (updateFields.status === 'approved') await window.PVTLeaveAudit.recordOutcome(reqData, 'approved', auditOpts);
+      else await window.PVTLeaveAudit.log(reqData, 'step_approved', auditOpts);
+    }
 
     // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล
     await sb.from('notifications').insert({
@@ -3286,32 +3334,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
       }
     }
 
-    // 📢 ส่งแจ้งเตือน LINE ให้ฝ่ายบุคคล (HR)
-    if (window.PVTSDK?.notifyHrWorkflow || window.pvtSupabase?.notifyHrWorkflow) {
-      try {
-        const notifyFn = window.PVTSDK?.notifyHrWorkflow ? window.PVTSDK.notifyHrWorkflow.bind(window.PVTSDK) : window.pvtSupabase.notifyHrWorkflow.bind(window.pvtSupabase);
-        const notifTypeToHr = (updateFields.status === 'approved' || reqData.status === 'approved' || myRole === 'manager' || myRole === 'executive' || myRole === 'director' || myRole === 'owner')
-          ? 'HR_NOTIFY'
-          : 'HR_REVIEW';
-
-        await notifyFn({
-          id: leaveId,
-          applicant_name: reqData.employees?.full_name || 'พนักงาน',
-          employee_code: reqData.employees?.employee_code || '',
-          department_name: reqData.employees?.departments?.department_name || '',
-          leave_type_name: reqData.leave_types?.leave_name || 'ใบลา',
-          start_date: reqData.start_date,
-          end_date: reqData.end_date,
-          total_days: reqData.total_days,
-          leave_hours: reqData.leave_hours || 0,
-          reason: reqData.reason || '',
-          comment: updateFields.approval_comment || `อนุมัติโดย ${myRole.toUpperCase()}`,
-          attachment_url: reqData.attachment_url || ''
-        }, notifTypeToHr);
-      } catch (hrNotifErr) {
-        console.warn("⚠️ [Home LINE] HR notification error:", hrNotifErr);
-      }
-    }
+    // (ไม่ส่ง LINE หา HR — HR ได้รับบันทึกผลในระบบผ่าน PVTLeaveAudit แล้ว)
 
     if (updateFields.status === 'approved' || reqData.status === 'approved') {
       const subject = `[วันลาพัก] ${reqData.employees?.full_name || 'พนักงาน'} (${reqData.leave_types?.leave_name || 'ลากิจ'})`;
@@ -3349,7 +3372,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
             </p>
             
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #0d9488; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--th-p-600, #0d9488); font-weight: 700; display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-outlined" style="font-size: 18px;">calendar_month</span>
                 Auto-Sync Calendar (ซิงค์ปฏิทินทีม)
               </h4>
@@ -3371,7 +3394,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
           </div>
         `,
         confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#0d9488'
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     } else {
       await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
@@ -3449,25 +3472,54 @@ window.quickRejectFromDashboard = async function(leaveId) {
 
   try {
     const trimmedComment = rejectComment.trim();
+    // 🔗 ใบลาที่มีขั้นอนุมัติ (ระยะ 2)
+    if (window.PVTApproval && await window.PVTApproval.isReady()) {
+      const stepRows = await window.PVTApproval.getSteps(leaveId);
+      if (stepRows && stepRows.length) {
+        const res = await window.PVTApproval.reject(leaveId, trimmedComment, { actorRole: myRole });
+        if (res.ok) Swal.fire({ icon: 'success', title: 'ปฏิเสธใบลาเรียบร้อย', showConfirmButton: false, timer: 1500 });
+        else await Swal.fire('ไม่สามารถทำรายการได้', res.reason || 'ใบลานี้ถูกดำเนินการไปแล้ว', 'info');
+        await refreshDashboardData();
+        return;
+      }
+    }
     let updateFields = {
       status: 'rejected',
-      approval_comment: trimmedComment
+      approval_comment: trimmedComment,
+      updated_at: new Date().toISOString()
     };
 
-    if (myRole === 'leader') {
-      updateFields.manager_status = 'rejected';
-    } else if (myRole === 'manager') {
-      updateFields.director_status = 'rejected';
-    } else {
-      updateFields.status = 'rejected';
-    }
+    // ระบุขั้นที่ไม่อนุมัติ = ขั้นที่ใบลารออยู่จริง
+    const isPend = (v) => !v || String(v).toLowerCase() === 'pending';
+    let stepLvl = ['HR', 'ฝ่ายบุคคล (HR/Admin)'];
+    if (myRole === 'leader') { updateFields.manager_status = 'rejected'; stepLvl = ['L1', 'หัวหน้างาน (L1)']; }
+    else if (myRole === 'manager') { updateFields.director_status = 'rejected'; stepLvl = ['L2', 'ผู้จัดการ (L2)']; }
+    else if (myRole === 'executive' || myRole === 'director' || myRole === 'owner') { updateFields.executive_status = 'rejected'; stepLvl = ['L3', 'ผู้บริหาร (L3)']; }
+    else if (isPend(reqData.manager_status)) updateFields.manager_status = 'rejected';
+    else if (isPend(reqData.director_status)) updateFields.director_status = 'rejected';
+    else if (isPend(reqData.executive_status)) updateFields.executive_status = 'rejected';
 
-    const { error: updateErr } = await sb
+    const { data: changedRows, error: updateErr } = await sb
       .from('leave_requests')
       .update(updateFields)
-      .eq('id', leaveId);
+      .eq('id', leaveId)
+      .eq('status', reqData.status || 'pending')
+      .select('id');
 
     if (updateErr) throw updateErr;
+    if (!changedRows || !changedRows.length) {
+      await Swal.fire('ใบลานี้ถูกดำเนินการไปแล้ว', 'มีผู้พิจารณาใบลานี้ไปก่อนหน้าแล้ว', 'info');
+      await refreshDashboardData();
+      return;
+    }
+
+    // 🧾 หลักฐาน + แจ้ง HR (ในระบบ)
+    if (window.PVTLeaveAudit) {
+      await window.PVTLeaveAudit.recordOutcome(reqData, 'rejected', {
+        stepLevel: stepLvl[0], stepLabel: stepLvl[1], comment: trimmedComment,
+        statusBefore: reqData.status || 'pending', statusAfter: 'rejected'
+      });
+    }
 
     // 🔔 แจ้งเตือนพนักงาน
     await sb.from('notifications').insert({
@@ -3571,7 +3623,7 @@ function renderBarChart(targetId, rows, countMode = false) {
   if (!target) return;
 
   if (!rows || !rows.length) {
-    target.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-soft); font-size:14px;">ยังไม่มีข้อมูลสำหรับแสดงกราฟ</div>`;
+    target.innerHTML = `<div class="home-empty"><span class="material-symbols-outlined">bar_chart</span><strong>ยังไม่มีข้อมูลสำหรับแสดงกราฟ</strong></div>`;
     return;
   }
 
@@ -3586,7 +3638,7 @@ function renderBarChart(targetId, rows, countMode = false) {
 
   const typeColorGradients = [
     "linear-gradient(90deg, #0fa472 0%, #34d399 100%)",
-    "linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)",
+    "linear-gradient(90deg, var(--th-k-600, #0284c7) 0%, var(--th-k-400, #38bdf8) 100%)",
     "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)",
     "linear-gradient(90deg, #8b5cf6 0%, #c084fc 100%)",
     "linear-gradient(90deg, #ef4444 0%, #f87171 100%)",
