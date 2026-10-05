@@ -3663,3 +3663,86 @@ body {
     position: fixed;
   }
 }
+
+/* ==========================================================================
+   LOGIN HERO CURVE — ผูกเส้นโค้งไว้กับ .brand-area (ไม่ผูกกับความสูงจอ)
+   เดิม: วงรีเป็น ::before ของ .login-card (สูงคงที่ 440px) แต่ .login-sheet สีขาว
+   เริ่มที่ 33% ของความสูงจอ แล้วทับขอบล่างของวงรี → จอเตี้ย (in-app/LINE/Samsung)
+   เห็นเป็นเส้นตรง, จอสูงกว่า (PWA) เห็นตรงกลางตรง + มุมเฉียง
+   ใหม่: วงรีเป็น ::before ของ .brand-area เอง → ขอบโค้งอยู่ที่ขอบล่างของ hero เสมอ
+   ไม่ว่าจอจะสูงเท่าไหร่ / มีแถบเบราว์เซอร์หรือไม่
+   ========================================================================== */
+#page-login,
+#page-login .login-container {
+  background: var(--th-b-900, #173d39);
+}
+
+@media (max-width: 899px) {
+  #page-login .login-card::before {
+    content: none;
+    display: none;
+  }
+
+  #page-login .brand-area {
+    isolation: isolate;
+    overflow: visible;
+    padding-bottom: 46px;
+  }
+
+  #page-login .brand-area::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -400px;            /* ยื่นขึ้นไปใต้ status bar / safe-area (การ์ดตัดส่วนเกินให้) */
+    bottom: 0;              /* ขอบล่างของวงรี = ขอบล่างของ hero เสมอ */
+    width: 165%;
+    transform: translateX(-50%);
+    border-radius: 0 0 50% 50% / 0 0 170px 170px;
+    background: linear-gradient(135deg, var(--th-b-800, #1e40af) 0%, var(--th-b-600, #2563eb) 55%, var(--th-k-600, #0284c7) 100%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  #page-login .login-sheet {
+    background: transparent; /* พื้นขาวมาจากการ์ด ไม่ต้องทับ hero */
+  }
+}
+
+@media (max-width: 520px) {
+  /* hero สูงตามเนื้อหา (ไม่ใช่ 33% ของจอ) → โลโก้ไม่ถูกตัด, โค้งไม่ถูกทับ */
+  #page-login .brand-area {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+    padding: calc(22px + env(safe-area-inset-top, 0px)) 18px 44px;
+  }
+
+  #page-login .logo-wrapper {
+    margin-top: 0;
+  }
+
+  /* ฟอร์มเลื่อนได้เมื่อจอเตี้ย (เช่นเปิดในแอป LINE ที่มีแถบด้านบน/ล่าง) */
+  #page-login .login-sheet {
+    padding-top: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* จอเตี้ย: ย่อโลโก้ให้ฟอร์มมีพื้นที่ */
+@media (max-width: 520px) and (max-height: 760px) {
+  #page-login .logo-wrapper { width: 108px; height: 108px; margin-bottom: 4px; }
+  #page-login .logo-wrapper::before { width: 100px; height: 100px; }
+  #page-login .brand-logo { width: 102px; }
+  #page-login .brand-area { padding-bottom: 38px; }
+  #page-login .brand-area::before { border-radius: 0 0 50% 50% / 0 0 140px 140px; }
+}
+
+@media (max-width: 520px) and (max-height: 640px) {
+  #page-login .brand-area { padding-top: calc(12px + env(safe-area-inset-top, 0px)); padding-bottom: 34px; }
+  #page-login .logo-wrapper { width: 80px; height: 80px; }
+  #page-login .logo-wrapper::before { width: 76px; height: 76px; }
+  #page-login .brand-logo { width: 76px; }
+  #page-login .brand-area::before { border-radius: 0 0 50% 50% / 0 0 120px 120px; }
+}
