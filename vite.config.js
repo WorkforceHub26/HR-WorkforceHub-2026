@@ -1,13 +1,17 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import fs from 'fs';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
+import { handleLineAccess, handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
 
 export default defineConfig({
   plugins: [
     {
       name: 'api-line-handler',
       configureServer(server) {
+        server.middlewares.use('/api/line-access', (req, res) => {
+          if (req.method === 'GET') handleLineAccess(req, res);
+          else res.end();
+        });
         server.middlewares.use('/api/create-line-link', (req, res) => {
           if (req.method === 'POST') handleCreateLineLink(req, res);
           else res.end();
@@ -117,6 +121,7 @@ export default defineConfig({
         hrLeave: resolve(__dirname, 'pages/hr/hr.html'),
         hrManagement: resolve(__dirname, 'pages/hr/management.html'),
         hrApprovalSettings: resolve(__dirname, 'pages/hr/approval-settings.html'),
+        hrApprovalChains: resolve(__dirname, 'pages/hr/approval-chains.html'),
         hrAdminDashboard: resolve(__dirname, 'pages/hr/admin-dashboard.html'),
         hrLeaveStats: resolve(__dirname, 'pages/hr/leave-stats.html'),
         hrNewsManagement: resolve(__dirname, 'pages/hr/news-management.html'),

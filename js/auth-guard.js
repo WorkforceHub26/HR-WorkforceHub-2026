@@ -3578,3 +3578,144 @@ document.addEventListener('click', function(e) {
   }
 })();
 
+
+// =========================================================================
+// 💬 [LINE ACCESS] ใครเชื่อมต่อ LINE ได้บ้าง
+//    ✅ ผู้อนุมัติที่ HR ตั้งไว้ในหน้า "ตั้งค่าสายอนุมัติ" (ประจำแผนก + รายบุคคล)
+//    ✅ HR / Admin
+//    ✅ ทุกคน — เมื่อ HR เปิดสวิตช์ "เปิดให้พนักงานทุกคนเชื่อมต่อ LINE" (line_notification_settings.allow_all_employees)
+//    คนอื่น: ซ่อนปุ่ม/เมนูเชื่อมต่อ LINE ทุกจุด และกันการขอรหัส (เซิร์ฟเวอร์ตรวจซ้ำอีกชั้น)
+// =========================================================================
+(function initLineAccess() {
+  if (window.PVTLine) return;
+  const CACHE_KEY = 'pvt_line_access_v1';
+  const CACHE_MS = 10 * 60 * 1000;
+  const root = document.documentElement;
+
+  // ซ่อนทุกจุดที่เปิดหน้าเชื่อมต่อ LINE จนกว่าจะรู้ว่ามีสิทธิ์
+  if (!document.getElementById('pvt-line-access-style')) {
+    const st = document.createElement('style');
+    st.id = 'pvt-line-access-style';
+    st.textContent = `
+      html:not(.pvt-line-allowed) [onclick*="generateLineLinkToken"],
+      html:not(.pvt-line-allowed) [onclick*="requestLineTokenFromSettings"],
+      html:not(.pvt-line-allowed) [data-line-entry],
+      html:not(.pvt-line-allowed) .pvt-drawer__item[data-key="line"],
+      html:not(.pvt-line-allowed) #lineNotificationSection { display: none !important; }
+    `;
+    (document.head || root).appendChild(st);
+  }
+
+  function sessionUser() {
+    try { return JSON.parse(localStorage.getItem('currentUser') || 'null') || {}; } catch (e) { return {}; }
+  }
+  function empIdOf(u) { return String(u.id || u.employee_id || (u.employees && u.employees.id) || ''); }
+
+  function isHrAdmin(u) {
+    const emp = u.employees || u;
+    const role = String(u.role || emp.role || '').toLowerCase().trim();
+    const code = String(u.employee_code || emp.employee_code || '').trim().toLowerCase();
+    return ['admin', 'superadmin', 'hr', 'hr_manager'].includes(role) ||
+      code === 'admin' || code === 'superadmin' || code.startsWith('hr-');
+  }
+
+  function readCache(empId) {
+    try {
+      const c = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
+      if (c && c.empId === empId && Date.now() - c.at < CACHE_MS) return c.result;
+    } catch (e) {}
+    return null;
+  }
+  function writeCache(empId, result) {
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ empId, at: Date.now(), result })); } catch (e) {}
+  }
+
+  function applyClass(result) {
+    root.classList.toggle('pvt-line-allowed', !!(result && result.allowed));
+    root.classList.toggle('pvt-line-denied', !(result && result.allowed));
+    window.dispatchEvent(new CustomEvent('pvt-line-access', { detail: result }));
+  }
+
+  async function checkViaApi(empId) {
+    const r = await fetch('/api/line-access?employee_id=' + encodeURIComponent(empId), { cache: 'no-store' });
+    if (!r.ok) throw new Error('api ' + r.status);
+    const j = await r.json();
+    if (typeof j.allowed !== 'boolean') throw new Error('bad api');
+    return { allowed: j.allowed, reason: j.reason || '' };
+  }
+
+  async function checkViaClient(u, empId) {
+    const sb = getSbClient();
+    if (!sb || typeof sb.from !== 'function') throw new Error('no client');
+    const soft = (q) => Promise.resolve(q).catch(() => ({ data: [] }));
+    const [settingsRes, apprRes, personalRes, deptRes, chainRes] = await Promise.all([
+      sb.from('system_settings').select('setting_value').eq('setting_key', 'line_notification_settings').maybeSingle(),
+      sb.from('department_approvers').select('id').or('supervisor_id.eq.' + empId + ',manager_id.eq.' + empId).limit(1),
+      soft(sb.from('employees').select('id').or('l1_approver_id.eq.' + empId + ',l2_approver_id.eq.' + empId + ',l3_approver_id.eq.' + empId).limit(1)),
+      soft(sb.from('departments').select('id').or('approver_id.eq.' + empId + ',backup_approver_id.eq.' + empId).limit(1)),
+      soft(sb.from('approval_chain_steps').select('id').contains('approver_ids', [empId]).limit(1))
+    ]);
+    if (settingsRes && settingsRes.data && settingsRes.data.setting_value && settingsRes.data.setting_value.allow_all_employees === true) {
+      return { allowed: true, reason: 'all_employees' };
+    }
+    if (apprRes && apprRes.error) throw apprRes.error;
+    const has = (r) => r && !r.error && Array.isArray(r.data) && r.data.length > 0;
+    if (has(apprRes) || has(personalRes) || has(deptRes) || has(chainRes)) return { allowed: true, reason: 'approver' };
+    return { allowed: false, reason: 'not_approver' };
+  }
+
+  let inflight = null;
+  async function check(force) {
+    const u = sessionUser();
+    const empId = empIdOf(u);
+    if (!empId) { const r = { allowed: false, reason: 'no_session' }; applyClass(r); return r; }
+    if (isHrAdmin(u)) { const r = { allowed: true, reason: 'hr_admin' }; applyClass(r); return r; }
+    if (!force) {
+      const cached = readCache(empId);
+      if (cached) { applyClass(cached); return cached; }
+    }
+    if (inflight) return inflight;
+    inflight = (async () => {
+      let result;
+      try { result = await checkViaApi(empId); }
+      catch (apiErr) {
+        // ไม่มีเซิร์ฟเวอร์ /api (เช่น Live Server) → ถาม Supabase โดยตรง
+        try { result = await checkViaClient(u, empId); }
+        catch (e) {
+          // ตรวจไม่ได้เลย: ให้ผู้ที่ระบบจัดเป็นหัวหน้างานใช้ได้ไปก่อน (ไม่บันทึกแคช)
+          let cat = '';
+          try { cat = window.getUserRoleCategory(u).category; } catch (er) {}
+          const r = { allowed: cat === 'leader_manager', reason: 'fallback_role' };
+          applyClass(r);
+          return r;
+        }
+      }
+      writeCache(empId, result);
+      applyClass(result);
+      return result;
+    })().finally(() => { inflight = null; });
+    return inflight;
+  }
+
+  // เรียกก่อนเปิดหน้าขอรหัส / บันทึก LINE ID — คืน true ถ้าใช้ได้
+  async function guard() {
+    const r = await check();
+    if (r.allowed) return true;
+    const msg = 'ขณะนี้การแจ้งเตือนผ่าน LINE เปิดให้เฉพาะผู้อนุมัติใบลา (หัวหน้างาน / ผู้จัดการ) ที่ HR ตั้งค่าไว้<br><br>' +
+      'คุณยังติดตามสถานะใบลาได้ที่ 🔔 การแจ้งเตือน และหน้า "ประวัติลา" ตามปกติ';
+    if (window.Swal) {
+      Swal.fire({ icon: 'info', title: 'ยังไม่เปิดให้บริการ', html: msg, confirmButtonText: 'รับทราบ', confirmButtonColor: 'var(--th-p-600, #0d9488)' });
+    } else {
+      alert(msg.replace(/<br>/g, '\n'));
+    }
+    return false;
+  }
+
+  window.PVTLine = { check, guard, clearCache: () => { try { sessionStorage.removeItem(CACHE_KEY); } catch (e) {} } };
+
+  const start = () => {
+    check().then((r) => { if (r && r.reason === 'fallback_role') setTimeout(() => check(true).catch(() => {}), 2500); }).catch(() => {});
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else setTimeout(start, 0);
+})();

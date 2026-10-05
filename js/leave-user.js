@@ -2122,6 +2122,20 @@ async function saveLeave() {
       }
     }
 
+    // 🔗 สายอนุมัติแบบหลายขั้น (ระยะ 2 — ใช้เมื่อรัน migration 20261006 แล้ว)
+    //    คำนวณจาก รายบุคคล → ทีม/กะ → แผนก → ผู้บริหาร → HR และล็อกไว้กับใบลา
+    let approvalChain = null;
+    if (window.PVTApproval && await window.PVTApproval.isReady()) {
+      try {
+        approvalChain = await window.PVTApproval.resolveChain(currentEmpId);
+        const legacyFields = window.PVTApproval.initialLegacyFields(approvalChain);
+        payload.forEach((item) => Object.assign(item, legacyFields));
+      } catch (chainErr) {
+        console.warn("⚠️ [Approval Chain] คำนวณสายอนุมัติไม่สำเร็จ ใช้แบบเดิม:", chainErr);
+        approvalChain = null;
+      }
+    }
+
     // 🛡️ ตรวจสอบและสร้างโควตาวันลาอัตโนมัติก่อนส่งคำขอลา
     if (window.PVTSDK?.user?.ensureLeaveBalances) {
       for (const item of payload) {
@@ -2148,6 +2162,25 @@ async function saveLeave() {
         saveBtn.innerHTML = "💾 บันทึกคำขอลา";
       }
       return; 
+    }
+
+    // 🔗 บันทึกขั้นอนุมัติของแต่ละใบ + แจ้งผู้อนุมัติขั้นแรก (LINE/ในระบบ)
+    if (approvalChain && Array.isArray(data)) {
+      const firstStep = approvalChain.find((st) => st.status === 'pending');
+      const jobs = data.map(async (row) => {
+        try {
+          await window.PVTApproval.createSteps(row, approvalChain);
+          const lt = (leaveTypes || []).find(t => String(t.id) === String(row.leave_type_id));
+          const leaveForNotify = Object.assign({}, row, {
+            employees: { id: currentProfile.id, full_name: currentProfile.full_name, employee_code: currentProfile.employee_code, departments: { department_name: currentProfile?.department_name || '' } },
+            leave_types: { leave_name: lt ? lt.leave_name : 'ใบลา' }
+          });
+          if (firstStep) await window.PVTApproval.notifyApprovers(leaveForNotify, firstStep, 'NEW_REQUEST');
+        } catch (stepErr) {
+          console.warn("⚠️ [Approval Chain] บันทึกขั้นอนุมัติไม่สำเร็จ:", row.id, stepErr);
+        }
+      });
+      await Promise.race([Promise.allSettled(jobs), new Promise((r) => setTimeout(r, 10000))]);
     }
 
     const empName = currentProfile.full_name || 'พนักงาน';
@@ -2272,8 +2305,31 @@ async function saveLeave() {
     }
 
     // 💬 1. แจ้งเตือนในระบบและ LINE (ผ่าน Workflow กลาง)
-    if (recipient && recipient.id) {
+    // 🧾 หลักฐาน: ยื่นใบลา (บันทึกทุกใบ แม้ไม่พบผู้อนุมัติ)
+    if (window.PVTLeaveAudit && Array.isArray(data)) {
+      await Promise.race([
+        Promise.allSettled(data.map((insertedLeave, index) => {
+          const item = payload[index] || {};
+          const lt = (leaveTypes || []).find(t => String(t.id) === String(item.leave_type_id));
+          return window.PVTLeaveAudit.log(Object.assign({}, insertedLeave, {
+            employees: { id: currentProfile.id, full_name: empName, employee_code: currentProfile.employee_code, departments: { department_name: deptName } },
+            leave_types: { leave_name: lt ? lt.leave_name : 'ใบลา' }
+          }), 'submitted', {
+            stepLabel: approvalChain
+              ? (() => { const f = approvalChain.find((st) => st.status === 'pending'); return f ? `ส่งถึง: ${f.step_label} (${f.hr_any ? 'HR' : f.approver_names.join(' หรือ ')})` : 'ส่งถึง HR'; })()
+              : (recipient ? `ส่งถึง: ${recipient.full_name || recipientRole}` : 'ไม่พบผู้อนุมัติ (HR จะเห็นในรายการรออนุมัติ)'),
+            comment: item.reason || null,
+            statusAfter: 'pending'
+          });
+        })),
+        new Promise((resolve) => setTimeout(resolve, 5000))
+      ]);
+    }
+
+    if (!approvalChain && recipient && recipient.id) {
       try {
+        // ส่งให้ครบก่อนเปลี่ยนหน้า (เดิมไม่ได้รอ → บางครั้งแจ้งเตือนไม่ออก)
+        const sendJobs = [];
         payload.forEach((item, index) => {
           const insertedLeave = (data && data[index]) ? data[index] : null;
           const leaveId = insertedLeave ? insertedLeave.id : '';
@@ -2284,17 +2340,19 @@ async function saveLeave() {
           const notificationTitle = `มีคำขอลาใหม่จาก ${empName}`;
           const notificationMessage = `พนักงาน: ${empName} (${currentProfile.employee_code || "-"})\nประเภท: ${leaveName}\nวันที่: ${item.start_date} ถึง ${item.end_date}\nเหตุผล: ${item.reason}`;
 
-          // 🔔 บันทึกลงตาราง notifications (In-app)
-          sb.from("notifications").insert({
-            employee_id: recipient.id,
-            title: notificationTitle,
-            message: notificationMessage,
-            type: 'leave',
-            link_url: '/pages/hr/hr.html'
-          });
+          // 🔔 แจ้งในระบบ + LINE ผู้อนุมัติขั้นแรก (SDK บันทึกแจ้งเตือนในระบบให้ด้วย)
+          if (!window.PVTSDK?.line) {
+            sendJobs.push(sb.from("notifications").insert({
+              employee_id: recipient.id,
+              title: notificationTitle,
+              message: notificationMessage,
+              type: 'leave',
+              link_url: '/pages/approver/leave-approvals.html'
+            }));
+            return;
+          }
 
-          // โค้ดเดิม (Workflow SDK) - ส่ง Flex Message สวยงามพร้อมปุ่มกด
-          window.PVTSDK.line.sendWorkflowNotification({
+          sendJobs.push(window.PVTSDK.line.sendWorkflowNotification({
             type: notificationType,
             leaveId: leaveId,
             recipientId: recipient.id,
@@ -2309,8 +2367,13 @@ async function saveLeave() {
             totalDays: item.total_days,
             reason: item.reason,
             attachmentUrl: item.attachment_url || ""
-          });
+          }));
         });
+        // รอไม่เกิน 8 วินาที แล้วไปต่อ (เน็ตช้าก็ไม่ค้าง)
+        await Promise.race([
+          Promise.allSettled(sendJobs),
+          new Promise((resolve) => setTimeout(resolve, 8000))
+        ]);
       } catch (err) {
         console.warn("⚠️ [Notification Trigger] Error:", err);
       }

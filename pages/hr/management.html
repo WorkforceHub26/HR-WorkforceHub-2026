@@ -145,6 +145,7 @@
             <button class="action-btn hover-lift" onclick="editEmployeeData()"><span class="material-symbols-outlined">manage_accounts</span> แก้ไขข้อมูล/ตำแหน่ง</button>
             <button class="action-btn hover-lift" onclick="manageDepartments()"><span class="material-symbols-outlined">corporate_fare</span> จัดการแผนก/ตำแหน่ง</button>
             <button class="action-btn hover-lift" onclick="location.href='/pages/hr/approval-settings.html'" style="border-left: 4px solid #ef4444;"><span class="material-symbols-outlined">rule_settings</span> ตั้งค่าผู้อนุมัติ</button>
+            <button class="action-btn hover-lift" onclick="location.href='/pages/hr/approval-chains.html'" style="border-left: 4px solid var(--th-p-600, #0d9488);"><span class="material-symbols-outlined">account_tree</span> สายอนุมัติหลายขั้น / ทีม-กะ</button>
             <button class="action-btn hover-lift" onclick="openLeaveRulesManagerModal()" style="border-left: 4px solid var(--th-p-600, #0d9488); font-weight: 700; color: var(--th-p-700, #0f766e);"><span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488);">gavel</span> เงื่อนไขการลา (แก้ไข/เพิ่ม/ลบ)</button>
             <button class="action-btn success-zone hover-lift" onclick="importEmployeesExcel()"><span class="material-symbols-outlined">upload_file</span> อัปเดต/เพิ่มพนักงานด้วย Excel</button>
             <button class="action-btn hover-lift" onclick="clearEmployeeFilters()" style="border-left: 4px solid #f43f5e; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="color: #f43f5e;">restart_alt</span> ล้างคำขอ/ตัวกรองค้นหา</button>
@@ -392,6 +393,7 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 
   <script type="module" src="/auth/supabase-config.js" onload="console.log('  โหลด supabase-config.js สำเร็จ')" onerror="console.error(' โหลด supabase-config.js ล้มเหลว (404 Not Found)')"></script>
+  <script type="module" src="/js/approval-engine.js"></script>
   <script type="module" src="/js/auth-guard.js" onload="console.log('  โหลด auth-guard.js สำเร็จ')" onerror="console.error(' โหลด auth-guard.js ล้มเหลว (404 Not Found)')"></script>
   <script type="module" src="/js/system-settings.js"></script>
   <script type="module" src="/js/company-news.js"></script>

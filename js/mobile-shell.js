@@ -268,7 +268,10 @@
     var sections = DRAWER_SECTIONS.filter(function (sec) { return !sec.approverOnly || approver; })
       .map(function (sec) {
         return '<div class="pvt-drawer__section"><div class="pvt-drawer__title">' + escapeHtml(sec.title) + "</div>" +
-          sec.items.map(drawerItemHtml).join("") + "</div>";
+          sec.items.filter(function (it) {
+            // เมนูเชื่อมต่อ LINE: เฉพาะผู้มีสิทธิ์ (PVTLine ใน auth-guard.js ใส่ class pvt-line-allowed)
+            return it.key !== "line" || root.classList.contains("pvt-line-allowed");
+          }).map(drawerItemHtml).join("") + "</div>";
       }).join("");
 
     var wrap = document.createElement("div");

@@ -1,0 +1,269 @@
+/* ==========================================================================
+   หน้า HR: สายอนุมัติใบลา (/pages/hr/approval-chains.html)
+   ทุกกฎขึ้นต้นด้วย #page-hr-approval-chains · สีมาจากชุดสีธีม (--th-*)
+   ========================================================================== */
+#page-hr-approval-chains {
+  --ac-primary: var(--th-p-600, #0d9488);
+  --ac-primary-dark: var(--th-p-700, #0f766e);
+  --ac-primary-soft: var(--th-p-50, #f0fdfa);
+  --ac-primary-line: var(--th-p-200, #99f6e4);
+  --ac-text: #0f172a;
+  --ac-text-2: #334155;
+  --ac-muted: #64748b;
+  --ac-border: #e2e8f0;
+  --ac-surface: #ffffff;
+  --ac-surface-2: #f8fafc;
+  --ac-warn: #b45309;
+  --ac-warn-soft: #fffbeb;
+  --ac-danger: #dc2626;
+  --ac-radius: 16px;
+  font-family: 'Sarabun', system-ui, sans-serif;
+  color: var(--ac-text);
+  background: #f1f5f9;
+}
+
+#page-hr-approval-chains .pvt-page { padding: 20px clamp(14px, 3vw, 28px) 48px; }
+#page-hr-approval-chains .ac-muted { color: var(--ac-muted); font-size: 13px; margin: 0; }
+#page-hr-approval-chains .ac-small { font-size: 12px; margin-top: 4px; }
+#page-hr-approval-chains .ac-error { color: var(--ac-danger); }
+#page-hr-approval-chains [hidden] { display: none !important; }
+
+/* ปุ่ม */
+#page-hr-approval-chains .ac-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 40px; padding: 0 14px; border: 1px solid transparent; border-radius: 12px;
+  background: var(--ac-primary); color: #fff; font: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+#page-hr-approval-chains .ac-btn:hover { background: var(--ac-primary-dark); }
+#page-hr-approval-chains .ac-btn:disabled { opacity: .5; cursor: not-allowed; }
+#page-hr-approval-chains .ac-btn .material-symbols-outlined { font-size: 18px; }
+#page-hr-approval-chains .ac-btn--ghost { background: var(--ac-surface); color: var(--ac-primary-dark); border-color: var(--ac-border); }
+#page-hr-approval-chains .ac-btn--ghost:hover { background: var(--ac-primary-soft); }
+#page-hr-approval-chains .ac-btn--danger-ghost { background: transparent; color: var(--ac-danger); border-color: #fecaca; }
+#page-hr-approval-chains .ac-btn--danger-ghost:hover { background: #fef2f2; }
+#page-hr-approval-chains .ac-link { margin-left: auto; border: 0; background: none; color: var(--ac-primary-dark); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+#page-hr-approval-chains .ac-icon {
+  display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+  border: 1px solid var(--ac-border); border-radius: 10px; background: var(--ac-surface); color: var(--ac-text-2); cursor: pointer;
+}
+#page-hr-approval-chains .ac-icon:disabled { opacity: .35; cursor: default; }
+#page-hr-approval-chains .ac-icon .material-symbols-outlined { font-size: 18px; }
+#page-hr-approval-chains .ac-icon--danger { color: var(--ac-danger); }
+
+/* หัวหน้า */
+#page-hr-approval-chains .ac-hero {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;
+  padding: 20px 22px; border-radius: 20px; background: var(--ac-surface); border: 1px solid var(--ac-border);
+  margin-bottom: 16px;
+}
+#page-hr-approval-chains .ac-hero h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 20px; }
+#page-hr-approval-chains .ac-hero h2 .material-symbols-outlined { color: var(--ac-primary); }
+#page-hr-approval-chains .ac-hero p { margin: 0; max-width: 680px; color: var(--ac-muted); font-size: 14px; line-height: 1.6; }
+#page-hr-approval-chains .ac-hero__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+#page-hr-approval-chains .ac-setup {
+  display: flex; gap: 14px; padding: 18px; border-radius: var(--ac-radius);
+  background: var(--ac-warn-soft); border: 1px solid #fde68a; color: #78350f;
+}
+#page-hr-approval-chains .ac-setup > .material-symbols-outlined { font-size: 32px; color: var(--ac-warn); }
+#page-hr-approval-chains .ac-setup h3 { margin: 0 0 4px; font-size: 16px; }
+#page-hr-approval-chains .ac-setup p { margin: 0 0 6px; line-height: 1.6; font-size: 14px; }
+#page-hr-approval-chains .ac-setup code { background: #fff; padding: 1px 6px; border-radius: 6px; font-size: 12.5px; }
+
+/* ตัวเลข */
+#page-hr-approval-chains .ac-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+#page-hr-approval-chains .ac-stat { padding: 12px 16px; border-radius: 14px; background: var(--ac-surface); border: 1px solid var(--ac-border); }
+#page-hr-approval-chains .ac-stat span { display: block; font-size: 24px; font-weight: 800; color: var(--ac-primary-dark); line-height: 1.2; }
+#page-hr-approval-chains .ac-stat small { color: var(--ac-muted); font-size: 12.5px; }
+#page-hr-approval-chains .ac-stat--warn span { color: var(--ac-warn); }
+
+/* แท็บ */
+#page-hr-approval-chains .ac-tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--ac-border); margin-bottom: 14px; scrollbar-width: none; }
+#page-hr-approval-chains .ac-tab {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; border: 0;
+  border-bottom: 3px solid transparent; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--ac-muted); cursor: pointer;
+}
+#page-hr-approval-chains .ac-tab.is-active { color: var(--ac-primary-dark); border-bottom-color: var(--ac-primary); }
+#page-hr-approval-chains .ac-badge { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--ac-warn); color: #fff; font-size: 12px; text-align: center; }
+
+#page-hr-approval-chains .ac-toolbar {
+  display: flex; align-items: center; gap: 8px; max-width: 380px; padding: 0 12px; margin-bottom: 14px;
+  border: 1px solid var(--ac-border); border-radius: 12px; background: var(--ac-surface); color: var(--ac-muted);
+}
+#page-hr-approval-chains .ac-toolbar input { flex: 1; min-height: 40px; border: 0; outline: 0; background: none; font: inherit; }
+
+/* การ์ดแผนก */
+#page-hr-approval-chains .ac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 14px; }
+#page-hr-approval-chains .ac-card { padding: 16px; border-radius: var(--ac-radius); background: var(--ac-surface); border: 1px solid var(--ac-border); }
+#page-hr-approval-chains .ac-card.is-warn { border-color: #fcd34d; box-shadow: inset 4px 0 0 #f59e0b; }
+#page-hr-approval-chains .ac-card__head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+#page-hr-approval-chains .ac-card__head h3 { margin: 0; font-size: 16px; }
+#page-hr-approval-chains .ac-card__actions { display: flex; gap: 6px; flex-wrap: wrap; }
+#page-hr-approval-chains .ac-card__actions .ac-btn { min-height: 34px; font-size: 13px; padding: 0 10px; }
+
+#page-hr-approval-chains .ac-chain { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+#page-hr-approval-chains .ac-step {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 12px;
+  background: var(--ac-primary-soft); border: 1px solid var(--ac-primary-line); font-size: 13px;
+}
+#page-hr-approval-chains .ac-step b {
+  display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--ac-primary); color: #fff; font-size: 11.5px;
+}
+#page-hr-approval-chains .ac-step__label { font-weight: 700; color: var(--ac-primary-dark); margin-right: 2px; }
+#page-hr-approval-chains .ac-step.is-inherited { background: var(--ac-surface-2); border-style: dashed; border-color: var(--ac-border); }
+#page-hr-approval-chains .ac-step.is-inherited b { background: #94a3b8; }
+#page-hr-approval-chains .ac-step--hr { background: #f1f5f9; border-color: var(--ac-border); }
+#page-hr-approval-chains .ac-step--hr .ac-step__label { color: var(--ac-text-2); }
+#page-hr-approval-chains .ac-person { color: var(--ac-text); }
+#page-hr-approval-chains .ac-person.is-inactive { color: var(--ac-danger); text-decoration: line-through; }
+#page-hr-approval-chains .ac-person.is-new { color: var(--ac-primary-dark); font-weight: 700; }
+#page-hr-approval-chains .ac-or { color: var(--ac-muted); font-size: 11.5px; margin: 0 2px; }
+#page-hr-approval-chains .ac-arrow { color: #94a3b8; font-size: 18px; }
+#page-hr-approval-chains .ac-empty { color: var(--ac-warn); font-size: 13px; }
+
+#page-hr-approval-chains .ac-teams { margin-top: 12px; display: grid; gap: 8px; }
+#page-hr-approval-chains .ac-team { padding: 10px 12px; border-radius: 12px; background: var(--ac-surface-2); border: 1px solid var(--ac-border); }
+#page-hr-approval-chains .ac-team__head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 14px; }
+#page-hr-approval-chains .ac-team__head .material-symbols-outlined { font-size: 18px; color: var(--ac-primary); }
+
+/* แผงแก้ไข */
+#page-hr-approval-chains .ac-editor { position: fixed; inset: 0; z-index: 1200; visibility: hidden; pointer-events: none; }
+#page-hr-approval-chains .ac-editor.is-open { visibility: visible; pointer-events: auto; }
+#page-hr-approval-chains .ac-editor__backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .45); opacity: 0; transition: opacity .2s ease; }
+#page-hr-approval-chains .ac-editor.is-open .ac-editor__backdrop { opacity: 1; }
+#page-hr-approval-chains .ac-editor__panel {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(560px, 100%); display: flex; flex-direction: column;
+  background: var(--ac-surface); box-shadow: -12px 0 40px rgba(15, 23, 42, .18);
+  transform: translateX(100%); transition: transform .25s cubic-bezier(.2, .9, .25, 1);
+}
+#page-hr-approval-chains .ac-editor.is-open .ac-editor__panel { transform: none; }
+#page-hr-approval-chains .ac-editor__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--ac-border); }
+#page-hr-approval-chains .ac-editor__head h2 { margin: 0; font-size: 17px; }
+#page-hr-approval-chains .ac-editor__body { flex: 1; overflow-y: auto; padding: 16px 18px; overscroll-behavior: contain; }
+#page-hr-approval-chains .ac-editor__foot {
+  display: flex; align-items: center; gap: 8px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--ac-border); background: var(--ac-surface);
+}
+#page-hr-approval-chains .ac-spacer { flex: 1; }
+#page-hr-approval-chains .ac-hint { margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--ac-primary-soft); color: var(--ac-primary-dark); font-size: 13px; line-height: 1.6; }
+
+#page-hr-approval-chains .ac-field { display: grid; gap: 6px; margin-bottom: 14px; font-size: 13.5px; font-weight: 700; color: var(--ac-text-2); }
+#page-hr-approval-chains .ac-field input,
+#page-hr-approval-chains .ac-field select,
+#page-hr-approval-chains .ac-input {
+  width: 100%; min-height: 40px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 10px;
+  background: #fff; font: inherit; font-size: 14px; font-weight: 500; color: var(--ac-text); box-sizing: border-box;
+}
+#page-hr-approval-chains .ac-input:focus,
+#page-hr-approval-chains .ac-field input:focus,
+#page-hr-approval-chains .ac-field select:focus { outline: 2px solid var(--ac-primary-line); border-color: var(--ac-primary); }
+
+#page-hr-approval-chains .ac-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+#page-hr-approval-chains .ac-step-edit { padding: 12px; border-radius: 14px; border: 1px solid var(--ac-border); background: var(--ac-surface-2); }
+#page-hr-approval-chains .ac-step-edit.is-locked { background: #fff; border-style: dashed; }
+#page-hr-approval-chains .ac-step-edit__head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+#page-hr-approval-chains .ac-step-edit__head .ac-input { flex: 1 1 160px; }
+#page-hr-approval-chains .ac-step-edit__no {
+  flex: 0 0 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: var(--ac-primary); color: #fff; font-weight: 800; font-size: 13px;
+}
+#page-hr-approval-chains .ac-step-edit.is-locked .ac-step-edit__no { background: #94a3b8; }
+#page-hr-approval-chains .ac-step-edit__tools { display: flex; gap: 4px; }
+#page-hr-approval-chains .ac-override { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--ac-text-2); }
+
+#page-hr-approval-chains .ac-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+#page-hr-approval-chains .ac-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--ac-primary-line); font-size: 13px; font-weight: 600;
+}
+#page-hr-approval-chains .ac-chip small { color: var(--ac-muted); font-weight: 500; }
+#page-hr-approval-chains .ac-chip.is-inactive { border-color: #fecaca; color: var(--ac-danger); text-decoration: line-through; }
+#page-hr-approval-chains .ac-chip button {
+  width: 22px; height: 22px; border: 0; border-radius: 50%; background: #f1f5f9; color: var(--ac-muted);
+  font-size: 15px; line-height: 1; cursor: pointer;
+}
+#page-hr-approval-chains .ac-chip button:hover { background: #fee2e2; color: var(--ac-danger); }
+
+#page-hr-approval-chains .ac-picker { position: relative; }
+#page-hr-approval-chains .ac-picker__list {
+  position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); max-height: 260px; overflow-y: auto;
+  background: #fff; border: 1px solid var(--ac-border); border-radius: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, .14);
+}
+#page-hr-approval-chains .ac-picker__list button {
+  display: grid; width: 100%; padding: 8px 12px; border: 0; border-bottom: 1px solid #f1f5f9; background: none;
+  text-align: left; font: inherit; cursor: pointer;
+}
+#page-hr-approval-chains .ac-picker__list button:hover { background: var(--ac-primary-soft); }
+#page-hr-approval-chains .ac-picker__list small { color: var(--ac-muted); font-size: 12px; }
+#page-hr-approval-chains .ac-picker__list p { padding: 10px 12px; }
+#page-hr-approval-chains .ac-add-step { margin-top: 10px; width: 100%; border-style: dashed; }
+
+#page-hr-approval-chains .ac-members { margin-bottom: 12px; border: 1px solid var(--ac-border); border-radius: 12px; padding: 10px 12px; }
+#page-hr-approval-chains .ac-members summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+#page-hr-approval-chains .ac-members .ac-input { margin: 10px 0 8px; }
+#page-hr-approval-chains .ac-member-list { max-height: 240px; overflow-y: auto; display: grid; gap: 2px; }
+#page-hr-approval-chains .ac-member { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+#page-hr-approval-chains .ac-member:hover { background: var(--ac-surface-2); }
+#page-hr-approval-chains .ac-member small { color: var(--ac-muted); }
+#page-hr-approval-chains .ac-member em { color: var(--ac-warn); font-style: normal; font-size: 12px; }
+
+/* โอนผู้อนุมัติ */
+#page-hr-approval-chains .ac-panel__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+#page-hr-approval-chains .ac-panel__tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#page-hr-approval-chains .ac-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; }
+#page-hr-approval-chains .ac-ra {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; margin-bottom: 8px; border-radius: 14px; background: var(--ac-surface); border: 1px solid var(--ac-border);
+}
+#page-hr-approval-chains .ac-ra.is-flagged { border-color: #fcd34d; box-shadow: inset 4px 0 0 #f59e0b; }
+#page-hr-approval-chains .ac-ra__main { display: grid; gap: 4px; min-width: 0; }
+#page-hr-approval-chains .ac-ra__flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; }
+#page-hr-approval-chains .ac-ra__actions { display: flex; gap: 6px; flex-wrap: wrap; }
+#page-hr-approval-chains .ac-tag { padding: 2px 8px; border-radius: 8px; background: var(--ac-primary-soft); color: var(--ac-primary-dark); font-weight: 700; font-size: 12.5px; }
+#page-hr-approval-chains .ac-reason { font-size: 12.5px; color: var(--ac-muted); }
+#page-hr-approval-chains .ac-reason.is-flagged { color: var(--ac-warn); font-weight: 700; }
+#page-hr-approval-chains .ac-ok { display: flex; align-items: center; gap: 8px; padding: 18px; border-radius: 14px; background: var(--ac-surface); border: 1px solid var(--ac-border); color: var(--ac-primary-dark); font-weight: 700; }
+
+/* ทดสอบสาย */
+#page-hr-approval-chains [data-panel="preview"] .ac-field { max-width: 480px; }
+#page-hr-approval-chains .ac-preview { list-style: none; margin: 10px 0 0; padding: 0; counter-reset: s; display: grid; gap: 8px; max-width: 640px; }
+#page-hr-approval-chains .ac-preview li {
+  position: relative; display: grid; gap: 2px; padding: 12px 14px 12px 50px; border-radius: 14px;
+  background: var(--ac-surface); border: 1px solid var(--ac-border); counter-increment: s;
+}
+#page-hr-approval-chains .ac-preview li::before {
+  content: counter(s); position: absolute; left: 14px; top: 12px; width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; background: var(--ac-primary); color: #fff; font-weight: 800; font-size: 12.5px;
+}
+#page-hr-approval-chains .ac-preview li.is-skipped { opacity: .6; background: var(--ac-surface-2); }
+#page-hr-approval-chains .ac-preview li.is-skipped::before { background: #94a3b8; }
+#page-hr-approval-chains .ac-preview li.is-hr::before { content: "✓"; background: #475569; }
+#page-hr-approval-chains .ac-preview small { color: var(--ac-muted); }
+
+/* ตั้งค่า */
+#page-hr-approval-chains .ac-policy { max-width: 640px; padding: 16px; border-radius: var(--ac-radius); background: var(--ac-surface); border: 1px solid var(--ac-border); margin-bottom: 14px; }
+#page-hr-approval-chains .ac-switch { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; cursor: pointer; }
+#page-hr-approval-chains .ac-switch input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--ac-primary); }
+#page-hr-approval-chains .ac-switch span { display: grid; gap: 2px; }
+#page-hr-approval-chains .ac-switch small { color: var(--ac-muted); }
+#page-hr-approval-chains .ac-rules { max-width: 640px; padding: 16px; border-radius: var(--ac-radius); background: var(--ac-surface-2); border: 1px solid var(--ac-border); }
+#page-hr-approval-chains .ac-rules h3 { margin: 0 0 8px; font-size: 15px; }
+#page-hr-approval-chains .ac-rules ul { margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px; color: var(--ac-text-2); }
+
+@media (max-width: 640px) {
+  #page-hr-approval-chains .ac-stats { gap: 6px; }
+  #page-hr-approval-chains .ac-stat { padding: 10px; }
+  #page-hr-approval-chains .ac-stat span { font-size: 20px; }
+  #page-hr-approval-chains .ac-editor__panel {
+    top: auto; left: 0; width: 100%; max-height: 92dvh; border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+  }
+  #page-hr-approval-chains .ac-ra__actions { width: 100%; }
+  #page-hr-approval-chains .ac-ra__actions .ac-btn { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #page-hr-approval-chains .ac-editor__panel, #page-hr-approval-chains .ac-editor__backdrop { transition: none; }
+}

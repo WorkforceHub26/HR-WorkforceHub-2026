@@ -21,6 +21,68 @@ function getSupabaseConfig(req = null) {
   return { url, anonKey, serviceKey, env: 'MAIN' };
 }
 
+
+// =========================================================================
+// 💬 สิทธิ์เชื่อมต่อ LINE (ใช้ร่วมกับ PVTLine ใน js/auth-guard.js — กติกาเดียวกัน)
+//    ✅ HR เปิด "ให้พนักงานทุกคนเชื่อมต่อ LINE" (line_notification_settings.allow_all_employees)
+//    ✅ HR / Admin (role admin, superadmin, hr, hr_manager หรือรหัส admin / HR-*)
+//    ✅ ผู้อนุมัติ: department_approvers (supervisor_id / manager_id), สายอนุมัติรายบุคคล
+//       (employees.l1/l2/l3_approver_id) และ departments.approver_id / backup_approver_id
+// =========================================================================
+async function checkLineEligibility(employeeId, req = null) {
+  const id = String(employeeId || '').trim();
+  if (!/^[0-9a-zA-Z-]{1,64}$/.test(id)) return { allowed: false, reason: 'invalid_employee' };
+  const { url, serviceKey } = getSupabaseConfig(req);
+  const headers = { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` };
+  const get = async (path) => {
+    const r = await fetch(`${url}/rest/v1/${path}`, { headers });
+    if (!r.ok) throw new Error(`Supabase ${r.status}`);
+    return r.json();
+  };
+
+  const eid = encodeURIComponent(id);
+  const [settingsRows, empRows, apprRows, personalRows, deptRows, chainRows] = await Promise.all([
+    get(`system_settings?setting_key=eq.line_notification_settings&select=setting_value`).catch(() => []),
+    get(`employees?id=eq.${eid}&select=id,role,employee_code`),
+    // ผู้อนุมัติประจำแผนก (L1 หัวหน้างาน / L2 ผู้จัดการ)
+    get(`department_approvers?or=(supervisor_id.eq.${eid},manager_id.eq.${eid})&select=id&limit=1`),
+    // ผู้อนุมัติรายบุคคล (ตั้งค่าสายอนุมัติรายบุคคล: l1/l2/l3_approver_id ของพนักงาน)
+    get(`employees?or=(l1_approver_id.eq.${eid},l2_approver_id.eq.${eid},l3_approver_id.eq.${eid})&select=id&limit=1`).catch(() => []),
+    // ผู้อนุมัติ/ผู้อนุมัติสำรองของแผนก (ข้อมูลรุ่นเก่า)
+    get(`departments?or=(approver_id.eq.${eid},backup_approver_id.eq.${eid})&select=id&limit=1`).catch(() => []),
+    // สายอนุมัติแบบหลายขั้น (ระยะ 2: แผนก/ทีม)
+    get(`approval_chain_steps?approver_ids=cs.%7B${eid}%7D&select=id&limit=1`).catch(() => [])
+  ]);
+
+  if (!Array.isArray(empRows) || !empRows.length) return { allowed: false, reason: 'employee_not_found' };
+  const settings = Array.isArray(settingsRows) && settingsRows[0] ? (settingsRows[0].setting_value || {}) : {};
+  if (settings.allow_all_employees === true) return { allowed: true, reason: 'all_employees' };
+
+  const role = String(empRows[0].role || '').toLowerCase().trim();
+  const code = String(empRows[0].employee_code || '').toLowerCase().trim();
+  if (['admin', 'superadmin', 'hr', 'hr_manager'].includes(role) || code === 'admin' || code === 'superadmin' || code.startsWith('hr-')) {
+    return { allowed: true, reason: 'hr_admin' };
+  }
+  if ([apprRows, personalRows, deptRows, chainRows].some((rows) => Array.isArray(rows) && rows.length)) {
+    return { allowed: true, reason: 'approver' };
+  }
+  return { allowed: false, reason: 'not_approver' };
+}
+
+// 0. ตรวจสิทธิ์เชื่อมต่อ LINE ของพนักงาน (GET /api/line-access?employee_id=...)
+export async function handleLineAccess(req, res) {
+  try {
+    const q = new URL(req.url, 'http://local').searchParams;
+    const employeeId = q.get('employee_id') || (req.query && req.query.employee_id);
+    if (!employeeId) return sendJson(res, 400, { error: 'Missing employee_id' });
+    const result = await checkLineEligibility(employeeId, req);
+    return sendJson(res, 200, result);
+  } catch (err) {
+    console.error('Error in handleLineAccess:', err);
+    return sendJson(res, 500, { error: err.message });
+  }
+}
+
 // 1. Create LINE Link Code
 export async function handleCreateLineLink(req, res) {
   try {
@@ -36,6 +98,14 @@ export async function handleCreateLineLink(req, res) {
     const employee_id = bodyData.employee_id || bodyData.employeeId;
     if (!employee_id) {
       return sendJson(res, 400, { error: 'Missing employee_id' });
+    }
+
+    // 🔒 เฉพาะผู้มีสิทธิ์เชื่อมต่อ LINE
+    let access;
+    try { access = await checkLineEligibility(employee_id, req); }
+    catch (e) { return sendJson(res, 503, { error: 'ตรวจสอบสิทธิ์ไม่สำเร็จ กรุณาลองใหม่' }); }
+    if (!access.allowed) {
+      return sendJson(res, 403, { error: 'line_not_allowed', reason: access.reason, message: 'การแจ้งเตือนผ่าน LINE เปิดให้เฉพาะผู้อนุมัติใบลาที่ HR ตั้งค่าไว้' });
     }
 
     // ล้าง token เก่าของ employee คนนี้ใน memory
@@ -274,6 +344,19 @@ export async function handleLineWebhook(req, res) {
               }
             } catch (dbFetchErr) {
               console.warn("DB Token fetch error:", dbFetchErr);
+            }
+          }
+
+          // 2.5) 🔒 ตรวจสิทธิ์อีกครั้งตอนผูกจริง (กันรหัสที่สร้างจากช่องทางอื่น / สิทธิ์ถูกถอนระหว่างทาง)
+          if (matchedEmpId) {
+            let access = { allowed: false };
+            try { access = await checkLineEligibility(matchedEmpId); } catch (e) { console.warn('LINE eligibility check failed:', e); }
+            if (!access.allowed) {
+              console.warn(`⛔ [LINE Link Denied]: Employee ${matchedEmpId} is not eligible (${access.reason || 'error'})`);
+              if (replyToken) {
+                await replyLine(replyToken, "ℹ️ ขณะนี้การแจ้งเตือนผ่าน LINE เปิดให้เฉพาะผู้อนุมัติใบลา (หัวหน้างาน / ผู้จัดการ) ที่ HR ตั้งค่าไว้ หากต้องการใช้งานกรุณาติดต่อฝ่ายบุคคล");
+              }
+              continue;
             }
           }
 

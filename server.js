@@ -2,7 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
-import { handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
+import { handleLineAccess, handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,6 +13,7 @@ const port = 3000;
 app.use(express.json());
 
 // API Endpoints
+app.get('/api/line-access', handleLineAccess);
 app.post('/api/create-line-link', handleCreateLineLink);
 app.post('/api/clear-approver-line', handleClearApproverLine);
 app.post('/api/line-webhook', handleLineWebhook);

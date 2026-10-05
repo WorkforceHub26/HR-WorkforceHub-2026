@@ -972,6 +972,9 @@
     } else if (typeof window.quickApproveFromDashboard === 'function') {
       await window.quickApproveFromDashboard(leaveId);
     } else {
+      // หน้านี้ไม่มีตัวพิจารณาใบลา → ไปหน้าอนุมัติ (ตรวจลำดับขั้น + บันทึกหลักฐาน + แจ้ง HR ครบ)
+      window.location.href = `${getApprovalPageUrl()}?id=${leaveId}&action=review`;
+      return;
       try {
         const { isConfirmed } = await Swal.fire({
           title: '<span style="font-size: 20px; font-weight: 800; color: #0f172a;">ยืนยันอนุมัติคำขอลา</span>',
@@ -1042,6 +1045,9 @@
     } else if (typeof window.quickRejectFromDashboard === 'function') {
       await window.quickRejectFromDashboard(leaveId);
     } else {
+      // หน้านี้ไม่มีตัวพิจารณาใบลา → ไปหน้าอนุมัติ (ตรวจลำดับขั้น + บันทึกหลักฐาน + แจ้ง HR ครบ)
+      window.location.href = `${getApprovalPageUrl()}?id=${leaveId}&action=review`;
+      return;
       try {
         const { value: rejectComment, isConfirmed } = await Swal.fire({
           title: '<span style="font-size: 20px; font-weight: 800; color: #b91c1c;">ยืนยันไม่อนุมัติ / ปฏิเสธคำขอลา</span>',

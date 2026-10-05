@@ -1080,6 +1080,13 @@ async function directCancelLeave(requestId) {
     try {
       const trimmedReason = cancelReason.trim();
 
+      // 🧾 ข้อมูลใบลาเดิม (เก็บเป็นหลักฐาน — รวมวันที่ลาเดิม)
+      const { data: leaveBefore } = await sb
+        .from("leave_requests")
+        .select("*, leave_types!leave_type_id(leave_name), employees!employee_id(id, full_name, employee_code, departments!department_id(department_name))")
+        .eq("id", requestId)
+        .maybeSingle();
+
       // Ensure the status is set to 'cancelled' and approval_comment reflects it clearly
       let { error } = await sb
         .from("leave_requests")
@@ -1104,6 +1111,14 @@ async function directCancelLeave(requestId) {
       }
 
       if (error) throw error;
+
+      if (window.PVTApproval) await window.PVTApproval.closeOpenSteps(requestId, 'cancelled', `พนักงานยกเลิก: ${trimmedReason}`);
+      if (window.PVTLeaveAudit && leaveBefore) {
+        await window.PVTLeaveAudit.recordOutcome(leaveBefore, 'cancelled', {
+          stepLevel: 'EMP', stepLabel: 'พนักงานยกเลิกเอง (ก่อนอนุมัติ)', comment: trimmedReason,
+          statusBefore: leaveBefore.status, statusAfter: 'cancelled'
+        });
+      }
 
       await Swal.fire({ icon: 'success', title: 'ยกเลิกเรียบร้อย!', text: 'ยกเลิกคำขอลาเรียบร้อยแล้ว', timer: 1800, showConfirmButton: false });
       await loadMyLeaveHistory();
@@ -1179,6 +1194,13 @@ async function requestCancelApprovedLeave(requestId) {
 
   if (isConfirmed && cancelReason) {
     try {
+      // 🧾 ข้อมูลใบลาเดิม (เก็บเป็นหลักฐาน — รวมวันที่ลาเดิม)
+      const { data: leaveBefore } = await sb
+        .from("leave_requests")
+        .select("*, leave_types!leave_type_id(leave_name), employees!employee_id(id, full_name, employee_code, departments!department_id(department_name))")
+        .eq("id", requestId)
+        .maybeSingle();
+
       let { error } = await sb
         .from("leave_requests")
         .update({
@@ -1198,6 +1220,14 @@ async function requestCancelApprovedLeave(requestId) {
       }
 
       if (error) throw error;
+
+      // แจ้ง HR ทันที (ในระบบ) + บันทึกหลักฐาน
+      if (window.PVTLeaveAudit && leaveBefore) {
+        await window.PVTLeaveAudit.recordOutcome(leaveBefore, 'cancel_requested', {
+          stepLevel: 'EMP', stepLabel: 'พนักงานขอยกเลิก (รอ HR พิจารณา)', comment: cancelReason.trim(),
+          statusBefore: leaveBefore.status, statusAfter: 'cancel_requested'
+        });
+      }
 
       await Swal.fire({ icon: 'success', title: 'ส่งคำขอสำเร็จ!', text: 'ส่งคำขอยกเลิกไปยัง HR/Admin เพื่อรอตรวจสอบแล้ว', confirmButtonColor: 'var(--th-p-700, #0f766e)' });
       await loadMyLeaveHistory();

@@ -1847,6 +1847,7 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
    🔗 10. เชื่อมต่อ LINE Notification
    ========================================================================== */
 window.generateLineLinkToken = async function() {
+  if (window.PVTLine && !(await window.PVTLine.guard())) return;
   const sb = getSafeSupabaseClient();
   const employeeId = window.currentProfile?.id || window.currentProfile?.employee_id;
 
@@ -1866,6 +1867,10 @@ window.generateLineLinkToken = async function() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employee_id: employeeId })
       });
+      if (apiRes.status === 403) {
+        if (window.PVTLine) { window.PVTLine.clearCache(); await window.PVTLine.check(true); await window.PVTLine.guard(); }
+        return;
+      }
       if (apiRes.ok) {
         const apiData = await apiRes.json();
         if (apiData.success && apiData.token) {
@@ -2959,6 +2964,9 @@ window.selectQuickLeaveType = function(leaveTypeId, element) {
 };
 
 window.submitQuickLeave = async function() {
+  // ยื่นใบลาผ่านหน้า "ยื่นใบลา" เท่านั้น (ใช้สายอนุมัติ + บันทึกหลักฐานครบ)
+  window.location.href = '/pages/user/leave-user.html';
+  return;
   const sb = getSafeSupabaseClient();
   if (!sb) return;
 

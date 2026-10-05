@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <script type="module" src="/js/early-auth-guard.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <script src="/js/theme-boot.js"></script>
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0d9488" />
+  <meta name="google" content="notranslate" />
+  <title>สายอนุมัติใบลา | PVT HR Hub</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/css/layout-tokens.css" />
+  <link rel="stylesheet" href="/css/layout-sidebar.css" />
+  <link rel="stylesheet" href="/css/layout-topbar.css" />
+  <link rel="stylesheet" href="/css/hr-approval-chains.css" />
+</head>
+
+<body id="page-hr-approval-chains" class="pvt-body">
+  <div class="pvt-app" id="pvtApp">
+
+    <aside class="pvt-sidebar" id="mainSidebar" aria-label="เมนูหลัก">
+      <div class="pvt-sidebar__brand">
+        <div class="pvt-sidebar__logo">
+          <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" />
+        </div>
+        <div class="pvt-sidebar__name">PVTT WORKFORCE HUB</div>
+        <div class="pvt-sidebar__subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+        <button type="button" class="pvt-sidebar__close" aria-label="ปิดเมนู" title="ปิดเมนู">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- รายการเมนู (layout.js ไฮไลต์เมนูปัจจุบันจาก URL ให้อัตโนมัติ) -->
+      <nav class="pvt-sidebar__nav" aria-label="เมนูนำทาง">
+        <a href="/pages/hr/home.html" class="pvt-nav__item" title="ภาพรวมระบบ">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="pvt-nav__label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/hr.html" class="pvt-nav__item" title="ตรวจใบลา" id="navItemLeaveCheck">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="pvt-nav__label">ตรวจใบลา</span>
+          <span class="pvt-nav__badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
+        </a>
+        <a href="/pages/hr/management.html" class="pvt-nav__item" title="ระบบจัดการส่วนกลาง">
+          <span class="material-symbols-outlined">tune</span>
+          <span class="pvt-nav__label">ระบบจัดการส่วนกลาง</span>
+        </a>
+        <a href="/pages/hr/approval-chains.html" class="pvt-nav__item active" title="สายอนุมัติใบลา" aria-current="page">
+          <span class="material-symbols-outlined">account_tree</span>
+          <span class="pvt-nav__label">สายอนุมัติ</span>
+        </a>
+        <a href="/pages/hr/leave-stats.html" class="pvt-nav__item" title="สถิติวันลา">
+          <span class="material-symbols-outlined">analytics</span>
+          <span class="pvt-nav__label">สถิติวันลา</span>
+        </a>
+        <a href="/pages/hr/holidays.html" class="pvt-nav__item" title="จัดการปฏิทินวันหยุด (Admin)">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="pvt-nav__label">จัดการวันหยุด</span>
+        </a>
+        <a href="/pages/hr/news-management.html" class="pvt-nav__item" title="จัดการข่าวสารองค์กร">
+          <span class="material-symbols-outlined">campaign</span>
+          <span class="pvt-nav__label">ข่าวสาร</span>
+        </a>
+        <a href="/pages/hr/employee-cards.html" class="pvt-nav__item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="pvt-nav__label">บัตรพนักงาน (Admin)</span>
+        </a>
+        <a href="/pages/hr/login-logs.html" class="pvt-nav__item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>
+        </a>
+      </nav>
+
+      <!-- ปุ่มออกจากระบบ: layout.js ผูกการทำงานให้ผ่าน id -->
+      <div class="pvt-sidebar__footer">
+        <button type="button" class="pvt-btn-logout" id="btnSidebarLogout" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          <span class="pvt-btn-logout__label">ออกจากระบบ</span>
+        </button>
+      </div>
+
+      <!-- ปุ่มวงกลมที่ขอบ: พับ/กางเมนู (PC) -->
+      <button type="button" class="pvt-sidebar__toggle" aria-label="ย่อ/ขยายเมนู" aria-expanded="true" title="ย่อเมนู">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+    </aside>
+
+    <div class="pvt-overlay" aria-hidden="true"></div>
+
+    <main class="pvt-main" id="mainContent">
+      <header class="pvt-topbar">
+        <div class="pvt-topbar__left">
+          <button type="button" class="pvt-topbar__burger" aria-label="เปิดเมนู" aria-expanded="false">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+          <div class="pvt-topbar__title">
+            <h1>สายอนุมัติใบลา</h1>
+            <p>APPROVAL CHAINS</p>
+          </div>
+        </div>
+        <div class="pvt-topbar__right">
+          <div class="pvt-topbar__actions"></div>
+          <div class="pvt-user" id="headerUserProfile">
+            <div class="pvt-user__avatar avatar avatar-badge notranslate" id="headerUserAvatar" translate="no">HR</div>
+            <div class="pvt-user__info">
+              <strong id="headerUserName">ผู้ดูแลระบบ</strong>
+              <span id="headerUserRoleDept">ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
+            </div>
+            <span id="adminUserName" hidden>ผู้ดูแลระบบ</span>
+            <span id="adminUserRole" hidden>ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="pvt-page" id="pageContent">
+
+        <section class="ac-hero">
+          <div>
+            <h2><span class="material-symbols-outlined" aria-hidden="true">account_tree</span> สายอนุมัติใบลา</h2>
+            <p>กำหนดลำดับผู้อนุมัติของแต่ละแผนก (1–9 ขั้น) แยกทีม/กะได้ ขั้นเดียวใส่ได้หลายคน "คนใดคนหนึ่งกดก็ได้"
+              ใบลาจะล็อกสายอนุมัติไว้ตอนยื่น และผลทุกใบถึง HR เสมอ</p>
+          </div>
+          <div class="ac-hero__actions">
+            <button type="button" class="ac-btn ac-btn--ghost" id="acPreviewBtn"><span class="material-symbols-outlined" aria-hidden="true">person_search</span>ทดสอบสายของพนักงาน</button>
+            <a class="ac-btn ac-btn--ghost" href="/pages/hr/approval-settings.html"><span class="material-symbols-outlined" aria-hidden="true">notifications</span>ตั้งค่าแจ้งเตือน LINE</a>
+          </div>
+        </section>
+
+        <section class="ac-setup" id="acSetupNotice" hidden>
+          <span class="material-symbols-outlined" aria-hidden="true">database</span>
+          <div>
+            <h3>ต้องเตรียมฐานข้อมูลก่อนใช้งาน</h3>
+            <p>รันไฟล์ <code>supabase/migrations/20261006_approval_chains.sql</code> ใน Supabase &gt; SQL Editor (ครั้งเดียว)
+              ระบบจะย้ายหัวหน้า/ผู้จัดการที่ตั้งไว้เดิมของทุกแผนกมาเป็นขั้นที่ 1–2 ให้อัตโนมัติ แล้วกลับมารีเฟรชหน้านี้</p>
+            <p class="ac-muted">ระหว่างนี้ระบบอนุมัติยังทำงานแบบเดิมตามปกติ</p>
+          </div>
+        </section>
+
+        <div id="acMain" hidden>
+          <div class="ac-stats">
+            <div class="ac-stat"><span id="acStatDepts">0</span><small>แผนก</small></div>
+            <div class="ac-stat"><span id="acStatTeams">0</span><small>ทีม/กะ</small></div>
+            <div class="ac-stat ac-stat--warn"><span id="acStatNoApprover">0</span><small>แผนกที่ยังไม่มีผู้อนุมัติ</small></div>
+          </div>
+
+          <div class="ac-tabs" role="tablist">
+            <button type="button" class="ac-tab is-active" role="tab" aria-selected="true" data-tab="chains">สายอนุมัติตามแผนก</button>
+            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="reassign">ใบลาที่ต้องโอนผู้อนุมัติ <span class="ac-badge" id="acReassignBadge" hidden>0</span></button>
+            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="preview">ทดสอบสาย</button>
+            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="policy">ตั้งค่าทั่วไป</button>
+          </div>
+
+          <section class="ac-panel" data-panel="chains">
+            <div class="ac-toolbar">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              <input type="search" id="acSearch" placeholder="ค้นหาแผนก" />
+            </div>
+            <div class="ac-grid" id="acDeptList"></div>
+          </section>
+
+          <section class="ac-panel" data-panel="reassign" hidden>
+            <div class="ac-panel__bar">
+              <p class="ac-muted">ใบลาที่ค้างอยู่กับผู้อนุมัติที่พ้นสภาพ หรือสายอนุมัติของพนักงานเปลี่ยนไปแล้ว (เช่น ย้ายแผนก/เปลี่ยนหัวหน้า)</p>
+              <div class="ac-panel__tools">
+                <label class="ac-check"><input type="checkbox" id="acReassignShowAll" /> แสดงใบที่รอทั้งหมด</label>
+                <button type="button" class="ac-btn ac-btn--ghost" id="acReassignRefresh"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>ตรวจใหม่</button>
+                <button type="button" class="ac-btn" id="acReassignAll"><span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>โอนทั้งหมดตามสายปัจจุบัน</button>
+              </div>
+            </div>
+            <div id="acReassignList"></div>
+          </section>
+
+          <section class="ac-panel" data-panel="preview" hidden>
+            <label class="ac-field"><span>เลือกพนักงานเพื่อดูว่าใบลาจะส่งหาใครบ้าง</span>
+              <select id="acPreviewSelect"><option value="">— เลือกพนักงาน —</option></select></label>
+            <div id="acPreviewResult"></div>
+          </section>
+
+          <section class="ac-panel" data-panel="policy" hidden>
+            <div class="ac-policy">
+              <label class="ac-switch">
+                <input type="checkbox" id="acPolicyExec" />
+                <span>
+                  <strong>ใบลาของหัวหน้า/ผู้จัดการ ต้องผ่านผู้บริหารเพิ่ม</strong>
+                  <small>เมื่อผู้ยื่นเป็นผู้อนุมัติในสาย ระบบจะส่งต่อให้ผู้บริหารด้านล่างเป็นขั้นสุดท้าย</small>
+                </span>
+              </label>
+              <label class="ac-field"><span>ผู้บริหาร (ขั้นสุดท้ายของใบลาหัวหน้า/ผู้จัดการ)</span>
+                <select id="acExecSelect"></select></label>
+              <button type="button" class="ac-btn" id="acPolicySave"><span class="material-symbols-outlined" aria-hidden="true">save</span>บันทึก</button>
+            </div>
+            <div class="ac-rules">
+              <h3>กติกาที่ระบบใช้</h3>
+              <ul>
+                <li>ลำดับการหาสาย: <b>ตั้งรายบุคคล → ทีม/กะ → แผนก → ผู้บริหาร → HR</b></li>
+                <li>ผู้ยื่นเป็นผู้อนุมัติขั้นไหน → ข้ามขั้นนั้นและขั้นที่ต่ำกว่า</li>
+                <li>ผู้อนุมัติชุดเดียวกันในขั้นติดกัน → รวมเป็นขั้นเดียว</li>
+                <li>ผู้อนุมัติที่พ้นสภาพ → ตัดออกอัตโนมัติ (ขั้นว่าง = ข้าม)</li>
+                <li>ไม่เหลือผู้อนุมัติเลย → ส่ง HR พิจารณา</li>
+                <li>ค้างเกิน 48 ชม. → ไม่อนุมัติอัตโนมัติ บันทึกและแจ้ง HR</li>
+                <li>สายอนุมัติถูกล็อกไว้กับใบลาตอนยื่น แก้สายภายหลังไม่กระทบใบที่ค้าง (ใช้แท็บ "โอนผู้อนุมัติ")</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- แผงแก้ไขสายอนุมัติ -->
+  <div class="ac-editor" id="acEditor" aria-hidden="true">
+    <div class="ac-editor__backdrop" data-close-editor></div>
+    <div class="ac-editor__panel" role="dialog" aria-modal="true" aria-labelledby="acEditorTitle">
+      <header class="ac-editor__head">
+        <h2 id="acEditorTitle">สายอนุมัติ</h2>
+        <button type="button" class="ac-icon" data-close-editor aria-label="ปิด"><span class="material-symbols-outlined">close</span></button>
+      </header>
+      <div class="ac-editor__body" id="acEditorBody"></div>
+      <footer class="ac-editor__foot">
+        <button type="button" class="ac-btn ac-btn--danger-ghost" id="acEditorDelete" hidden>ลบทีม/กะ</button>
+        <span class="ac-spacer"></span>
+        <button type="button" class="ac-btn ac-btn--ghost" data-close-editor>ยกเลิก</button>
+        <button type="button" class="ac-btn" id="acEditorSave"><span class="material-symbols-outlined" aria-hidden="true">save</span>บันทึก</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="/js/layout.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module" src="/auth/supabase-config.js"></script>
+  <script type="module" src="/js/approval-engine.js"></script>
+  <script type="module" src="/js/auth-guard.js"></script>
+  <script type="module" src="/js/approval-chains.js"></script>
+</body>
+</html>

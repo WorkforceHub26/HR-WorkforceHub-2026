@@ -568,8 +568,8 @@
             </div>
           </div>
 
-          <!-- Card 3: เชื่อมต่อ LINE -->
-          <div class="setting-card-item">
+          <!-- Card 3: เชื่อมต่อ LINE (แสดงเฉพาะผู้มีสิทธิ์ — ดู PVTLine ใน auth-guard.js) -->
+          <div class="setting-card-item" data-line-entry>
             <div class="setting-item-head">
               <span class="setting-item-icon material-symbols-outlined" style="color: #10b981; font-size: 28px;">forum</span>
               <div class="setting-item-info">
@@ -1189,7 +1189,8 @@
     }
   }
 
-  window.requestLineTokenFromSettings = function() {
+  window.requestLineTokenFromSettings = async function() {
+  if (window.PVTLine && !(await window.PVTLine.guard())) return;
     if (typeof window.generateLineLinkToken === "function") {
       closeSystemSettingsModal();
       window.generateLineLinkToken();
@@ -1199,6 +1200,7 @@
   };
 
   window.saveLineIdFromSettings = async function() {
+  if (window.PVTLine && !(await window.PVTLine.guard())) return;
     const inputEl = document.getElementById("settingsLineIdInput");
     const newLineId = inputEl ? inputEl.value.trim() : "";
     const emp = getSettingsEmployee();

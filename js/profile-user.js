@@ -249,27 +249,12 @@ async function loadProfile() {
 
 
 
-    // Role-based visibility for LINE Notification Settings (เฉพาะหัวหน้างาน, ผู้จัดการ, ผู้บริหาร และ HR/Admin)
+    // แสดงส่วนตั้งค่า LINE เฉพาะผู้มีสิทธิ์ (ผู้อนุมัติที่ HR ตั้งไว้ / HR / เมื่อ HR เปิดให้ทุกคน)
+    // การซ่อน/แสดงจริงคุมด้วย PVTLine (auth-guard.js) → class html.pvt-line-allowed
     const lineSection = document.getElementById("lineNotificationSection");
     if (lineSection) {
-      const r = String(emp?.role || currentUserData?.role || '').toLowerCase();
-      const p = String(emp?.position_name || emp?.positions?.position_name || '').toLowerCase();
-      const l = String(emp?.positions?.level_type || emp?.level_type || '').toLowerCase();
-
-      const isLeaderOrManager = 
-        r.includes('manager') || r.includes('ผู้จัดการ') ||
-        r.includes('leader') || r.includes('supervisor') || r.includes('หัวหน้า') ||
-        r.includes('admin') || r.includes('hr') || r.includes('executive') || r.includes('director') || r.includes('owner') ||
-        p.includes('ผู้จัดการ') || p.includes('manager') || p.includes('ผจก') ||
-        p.includes('หัวหน้า') || p.includes('supervisor') || p.includes('head') ||
-        p.includes('ผู้บริหาร') || p.includes('ผู้อำนวยการ') ||
-        l.includes('ผู้จัดการ') || l.includes('manager') || l.includes('leader') || l.includes('supervisor');
-
-      if (isLeaderOrManager) {
-        lineSection.style.display = "block";
-      } else {
-        lineSection.style.display = "none";
-      }
+      lineSection.style.display = "block";
+      if (window.PVTLine) window.PVTLine.check().catch(() => {});
     }
 
     console.log("✅ [SUCCESS] โหลดข้อมูลโปรไฟล์จริงของ HR/User สำเร็จ!");
@@ -281,6 +266,7 @@ async function loadProfile() {
 }
 
 async function saveUserLineId() {
+  if (window.PVTLine && !(await window.PVTLine.guard())) return;
   const lineInput = document.getElementById("userLineIdInput");
   const newLineId = lineInput ? lineInput.value.trim() : "";
   const emp = window.currentEmpProfile;
@@ -400,6 +386,7 @@ async function testLineNotification() {
 }
 
 async function generateLineLinkCode() {
+  if (window.PVTLine && !(await window.PVTLine.guard())) return;
   const emp = window.currentEmpProfile;
   if (!emp || !emp.id) {
     Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลพนักงาน', 'error');
@@ -423,6 +410,7 @@ async function generateLineLinkCode() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employee_id: emp.id })
       });
+      if (apiRes.status === 403) { if (window.PVTLine) { window.PVTLine.clearCache(); await window.PVTLine.guard(); } return; }
       if (apiRes.ok) {
         const apiData = await apiRes.json();
         if (apiData.success && apiData.token) {

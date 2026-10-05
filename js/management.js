@@ -2482,11 +2482,24 @@ async function saveEmployeeInlineEdit(employeeId) {
     updateData.image_url = null;
   }
 
+  // 🔀 ย้ายแผนก → ปรับสายอนุมัติให้ตามแผนกใหม่ (ถามก่อนถ้าเคยตั้งรายบุคคลไว้)
+  let moveNoteHtml = '';
+  try {
+    const plan = await planApproversForDepartmentMove(emp, dept, name);
+    if (plan === null) return; // ผู้ใช้กดยกเลิก
+    if (plan) {
+      Object.assign(updateData, plan.fields);
+      moveNoteHtml = plan.noteHtml || '';
+    }
+  } catch (moveErr) {
+    console.warn('ปรับสายอนุมัติตอนย้ายแผนกไม่สำเร็จ:', moveErr);
+  }
+
   // 🛑 เพิ่มปุ่มยืนยันก่อนบันทึกการแก้ไขข้อมูลพนักงาน (ป้องกันลืม/กดพลาด)
   if (window.Swal) {
     const confirmResult = await Swal.fire({
       title: 'ยืนยันการบันทึกแก้ไขข้อมูลพนักงาน?',
-      html: `คุณกำลังจะอัปเดตข้อมูลของ <b>"${escapeHtml(name)}"</b> (${escapeHtml(code)})`,
+      html: `คุณกำลังจะอัปเดตข้อมูลของ <b>"${escapeHtml(name)}"</b> (${escapeHtml(code)})${moveNoteHtml}`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#0fa472',
@@ -6679,3 +6692,57 @@ window.viewAuditLogs = typeof viewAuditLogs !== 'undefined' ? viewAuditLogs : wi
 window.resetYearlyLeave = typeof resetYearlyLeave !== 'undefined' ? resetYearlyLeave : window.resetYearlyLeave;
 window.importEmployeesExcel = importEmployeesExcel;
 window.downloadExcelTemplate = downloadExcelTemplate;
+
+// =========================================================================
+// 🔀 ย้ายแผนก: สายอนุมัติตามแผนกใหม่
+//    - พนักงานใช้ค่าของแผนกเดิม (หรือว่าง) → เปลี่ยนเป็นของแผนกใหม่อัตโนมัติ
+//    - เคยตั้งรายบุคคลไว้ → ถาม HR ว่าจะใช้ของแผนกใหม่ หรือคงไว้
+//    คืนค่า: { fields, noteHtml } | false (ไม่ได้ย้ายแผนก) | null (ยกเลิก)
+// =========================================================================
+async function planApproversForDepartmentMove(emp, newDeptId, displayName) {
+  if (!emp || !emp.id) return false;
+  const sb = getSupabase();
+  const { data: cur } = await sb.from('employees').select('id, department_id, l1_approver_id, l2_approver_id').eq('id', emp.id).maybeSingle();
+  const oldDeptId = String(cur?.department_id || emp.department_id || '');
+  if (!newDeptId || oldDeptId === String(newDeptId)) return false;
+
+  const ids = [oldDeptId, String(newDeptId)].filter(Boolean);
+  const { data: cfgRows } = await sb.from('department_approvers').select('department_id, supervisor_id, manager_id').in('department_id', ids);
+  const cfgOf = (id) => (cfgRows || []).find((r) => String(r.department_id) === String(id)) || {};
+  const oldCfg = cfgOf(oldDeptId), newCfg = cfgOf(newDeptId);
+
+  const l1 = cur?.l1_approver_id ? String(cur.l1_approver_id) : '';
+  const l2 = cur?.l2_approver_id ? String(cur.l2_approver_id) : '';
+  const follows = (!l1 || l1 === String(oldCfg.supervisor_id || '')) && (!l2 || l2 === String(oldCfg.manager_id || ''));
+
+  // ใช้สายของแผนกใหม่ = ล้างค่ารายบุคคล (ระบบดึงสายของแผนกเอง) + ออกจากทีม/กะเดิม
+  const newL1 = newCfg.supervisor_id || null, newL2 = newCfg.manager_id || null;
+  const fields = { l1_approver_id: null, l2_approver_id: null, team_id: null };
+  const hasTeams = Boolean(window.PVTApproval && await window.PVTApproval.isReady()); // มีคอลัมน์ team_id แล้ว
+  if (!hasTeams) delete fields.team_id;
+
+  const { count: pendingCount } = await sb.from('leave_requests').select('id', { count: 'exact', head: true }).eq('employee_id', emp.id).eq('status', 'pending');
+  const pendingNote = pendingCount ? `<div style="margin-top:8px;font-size:13px;color:#b45309;">⚠️ มีใบลารอพิจารณา ${pendingCount} ใบ — จะไปรอที่ผู้อนุมัติของแผนกใหม่</div>` : '';
+  const noApprover = !newL1 && !newL2 ? `<div style="margin-top:8px;font-size:13px;color:#b91c1c;">⚠️ แผนกใหม่ยังไม่ได้ตั้งผู้อนุมัติ — ใบลาจะไปที่ HR</div>` : '';
+
+  if (follows) {
+    return { fields, noteHtml: `<div style="margin-top:10px;font-size:13px;color:#0f766e;">🔀 ย้ายแผนก: สายอนุมัติจะเปลี่ยนเป็นของแผนกใหม่อัตโนมัติ</div>${noApprover}${pendingNote}` };
+  }
+
+  if (!window.Swal) return { fields, noteHtml: '' };
+  const r = await Swal.fire({
+    icon: 'question',
+    title: 'พนักงานคนนี้มีสายอนุมัติรายบุคคล',
+    html: `<div style="text-align:left;font-size:14px;">${escapeHtml(displayName || '')} เคยตั้งผู้อนุมัติรายบุคคลไว้ (ไม่ใช่ของแผนก)<br>เมื่อย้ายแผนก ต้องการ:</div>${noApprover}${pendingNote}`,
+    showDenyButton: true,
+    showCancelButton: true,
+    confirmButtonText: 'ใช้สายของแผนกใหม่ (แนะนำ)',
+    denyButtonText: 'คงสายรายบุคคลไว้',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#0fa472',
+    denyButtonColor: '#64748b'
+  });
+  if (r.isDismissed) return null;
+  if (r.isDenied) return { fields: hasTeams ? { team_id: null } : {}, noteHtml: '<div style="margin-top:10px;font-size:13px;color:#64748b;">คงสายอนุมัติรายบุคคลไว้ตามเดิม</div>' };
+  return { fields, noteHtml: `<div style="margin-top:10px;font-size:13px;color:#0f766e;">🔀 ใช้สายอนุมัติของแผนกใหม่</div>${pendingNote}` };
+}

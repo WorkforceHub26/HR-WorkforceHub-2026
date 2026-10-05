@@ -1382,6 +1382,9 @@
           <span class="material-symbols-outlined" id="syncIconHero">sync</span>
           <span id="syncTextHero">ซิงค์ข้อมูล</span>
         </button>
+        <a class="btn-header-action" href="/pages/hr/approval-chains.html" style="text-decoration:none; background: var(--th-p-600, #0d9488); color:#fff; border-color: transparent;" title="สายอนุมัติหลายขั้น / ทีม-กะ / โอนผู้อนุมัติ">
+          <span class="material-symbols-outlined">account_tree</span> สายอนุมัติหลายขั้น / ทีม-กะ
+        </a>
         <button type="button" class="btn-header-action" onclick="manageDepartmentsModal()">
           <span class="material-symbols-outlined">corporate_fare</span>
           จัดการรายชื่อแผนก
@@ -1939,6 +1942,38 @@
         </div>
         <div class="card-panel-body" style="padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
           
+          <!-- 🔐 สิทธิ์การเชื่อมต่อ LINE (ใครเห็นปุ่ม "เชื่อมต่อ LINE" ได้บ้าง) -->
+          <div class="notif-group-card" id="lineAccessPolicyCard" style="grid-column: 1 / -1;">
+            <div style="font-weight: 800; font-size: 14px; color: var(--primary-hover); display: flex; align-items: center; gap: 6px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">admin_panel_settings</span>
+              สิทธิ์การเชื่อมต่อ LINE
+            </div>
+            <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 4px 0 6px;">
+              ปัจจุบันปุ่ม "เชื่อมต่อ LINE" จะแสดงเฉพาะ <strong>ผู้อนุมัติที่ตั้งไว้ในหน้านี้</strong> (หัวหน้างาน / ผู้จัดการ ทั้งประจำแผนกและรายบุคคล) และ HR/Admin เท่านั้น
+              พนักงานทั่วไปจะไม่เห็นปุ่ม และระบบจะไม่ยอมผูก LINE ให้
+            </div>
+            <div class="notif-step-row" id="row-notif-allow-all-employees">
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: #1e293b;">เปิดให้พนักงานทุกคนเชื่อมต่อ LINE</div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">เปิดเมื่อพร้อมให้ทุกคนรับผล "อนุมัติ / ไม่อนุมัติ" ทาง LINE (ใช้ร่วมกับสวิตช์ด้านล่าง)</div>
+              </div>
+              <div class="switch-wrapper">
+                <span class="switch-status-tag off" id="tag-notif-allow-all-employees">ปิด</span>
+                <label class="switch-container">
+                  <input type="checkbox" id="notif-allow-all-employees" onchange="handleAllowAllLineChange()">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px;">
+              <button type="button" class="quick-toggle-btn" onclick="cleanupNonApproverLine()" style="display: inline-flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 16px; color: #dc2626;">link_off</span>
+                ยกเลิกการผูก LINE ของผู้ที่ไม่ได้เป็นผู้อนุมัติ
+              </button>
+              <span style="font-size: 11.5px; color: var(--text-muted);">ใช้เมื่อมีคนย้ายแผนก/เปลี่ยนตำแหน่ง หรือเคยผูกไว้ก่อนเปิดใช้กติกานี้</span>
+            </div>
+          </div>
+
           <!-- Column 1: เมื่อพนักงานส่งใบลาใหม่ (Employee Submission) -->
           <div class="notif-group-card">
             <div style="font-weight: 800; font-size: 14px; color: var(--primary-hover); display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
@@ -2356,6 +2391,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script type="module" src="/auth/supabase-config.js"></script>
+  <script type="module" src="/js/approval-engine.js"></script>
   <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/system-settings.js"></script>
   <script type="module" src="/js/delegation-service.js"></script>
