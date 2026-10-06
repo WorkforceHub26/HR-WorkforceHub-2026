@@ -3337,62 +3337,11 @@ window.quickApproveFromDashboard = async function(leaveId) {
     // (ไม่ส่ง LINE หา HR — HR ได้รับบันทึกผลในระบบผ่าน PVTLeaveAudit แล้ว)
 
     if (updateFields.status === 'approved' || reqData.status === 'approved') {
-      const subject = `[วันลาพัก] ${reqData.employees?.full_name || 'พนักงาน'} (${reqData.leave_types?.leave_name || 'ลากิจ'})`;
-      
-      const formatGCalDate = (dateStr, addDays = 0) => {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (addDays > 0) d.setDate(d.getDate() + addDays);
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const r = String(d.getDate()).padStart(2, '0');
-        return `${y}${m}${r}`;
-      };
-
-      const sDateStr = formatGCalDate(reqData.start_date);
-      const eDateStr = formatGCalDate(reqData.end_date, 1);
-      
-      const durationFriendly = window.PVTSDK?.formatLeaveDurationFriendly 
-        ? window.PVTSDK.formatLeaveDurationFriendly(reqData.total_days, reqData.leave_hours || 0)
-        : (reqData.total_days ? `${reqData.total_days} วัน` : '1 วัน');
-
-      const details = `ประเภทการลา: ${reqData.leave_types?.leave_name || 'ใบลา'}\nเหตุผลการลา: ${reqData.reason || '-'}\nจำนวนวันลา: ${durationFriendly}\nอนุมัติโดยระบบ PVT Workforce Hub`;
-      const location = `PVT Workforce Hub`;
-
-      const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(subject)}&dates=${sDateStr}/${eDateStr}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
-      const ocalLink = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${encodeURIComponent(subject)}&startdt=${reqData.start_date}&enddt=${reqData.end_date}&body=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}&allday=true`;
-
+      // ✅ อนุมัติครบทุกลำดับ — แจ้งสั้น ๆ (เอาส่วนซิงค์ปฏิทินออกแล้ว ผู้ใช้สับสน)
       await Swal.fire({
         icon: 'success',
-        title: '🎉 อนุมัติใบลาเสร็จสิ้น!',
-        html: `
-          <div style="font-family: var(--font-sans, sans-serif); text-align: left; padding: 10px 0;">
-            <p style="color: var(--text-soft); font-size: 14.5px; margin-bottom: 16px;">
-              ใบลาของ <strong>${reqData.employees?.full_name || 'พนักงาน'}</strong> ได้รับการอนุมัติขั้นสุดท้ายเรียบร้อยแล้ว
-            </p>
-            
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--th-p-600, #0d9488); font-weight: 700; display: flex; align-items: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="font-size: 18px;">calendar_month</span>
-                Auto-Sync Calendar (ซิงค์ปฏิทินทีม)
-              </h4>
-              <p style="font-size: 12px; color: #64748b; margin: 0 0 12px 0;">
-                เลือกช่องทางที่ต้องการนำวันลาที่อนุมัตินี้ ไปบันทึกลงในปฏิทินส่วนกลางของทีมโดยอัตโนมัติ
-              </p>
-              
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <a href="${gcalLink}" target="_blank" style="background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: #3c4043; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: background 0.2s;">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" style="width:16px; height:16px;">
-                  Google Calendar
-                </a>
-                <a href="${ocalLink}" target="_blank" style="background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: #3c4043; font-size: 13px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: background 0.2s;">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" style="width:16px; height:16px;">
-                  Outlook Calendar
-                </a>
-              </div>
-            </div>
-          </div>
-        `,
+        title: 'อนุมัติเรียบร้อย',
+        html: `ใบลาของ <strong>${reqData.employees?.full_name || 'พนักงาน'}</strong> ได้รับการอนุมัติแล้ว<br><span style="font-size:13px;color:#64748b;">ระบบแจ้งพนักงานและบันทึกให้ HR แล้ว</span>`,
         confirmButtonText: 'ตกลง',
         confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
