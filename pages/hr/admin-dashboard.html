@@ -3,426 +3,126 @@
 <head>
   <script type="module" src="/js/early-auth-guard.js"></script>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <script src="/js/theme-boot.js"></script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <title>คอนโซลผู้ดูแลระบบ | PVT HR Hub</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/global.css" />
-  <link rel="stylesheet" href="/css/sidebar.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+  <!-- CSS ของ Layout กลาง (Sidebar + Topbar) เหมือนหน้า HR อื่น — ต้องอยู่ก่อน CSS เฉพาะหน้า -->
+  <link rel="stylesheet" href="/css/layout-tokens.css" />
+  <link rel="stylesheet" href="/css/layout-sidebar.css" />
+  <link rel="stylesheet" href="/css/layout-topbar.css" />
+
+  <!-- CSS เฉพาะหน้า (ย้ายมาจาก <style> เดิม และจำกัดขอบเขตไว้ในเนื้อหาหน้า ไม่ทับ Sidebar) -->
   <link rel="stylesheet" href="/css/hr-admin-dashboard.css" />
-  <style>
-    :root { 
-      --primary: var(--th-p-700, #0f766e); 
-      --primary-dark: var(--th-p-600, #0d9488);
-      --bg: #f1f5f9; 
-      --text: #1e293b; 
-      --card: #ffffff; 
-      --border: #e2e8f0; 
-      --accent: #0f172a; 
-      --sidebar-width: 280px;
-    }
-    body { background: var(--bg); color: var(--text); padding: 0; margin: 0; font-family: 'Sarabun', sans-serif; overflow-x: hidden; overflow-y: auto; }
-    
-    .app-container { display: flex; min-height: 100vh; position: relative; }
-    
-    /* Sidebar */
-    aside { 
-      width: 260px; 
-      background: linear-gradient(180deg, var(--th-b-950, #0f1e4e) 0%, var(--th-b-900, #1e3a8a) 50%, var(--th-b-950, #172554) 100%); 
-      color: #ffffff; 
-      padding: 0; 
-      display: flex; 
-      flex-direction: column;
-      border-right: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.25);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 100;
-    }
-    
-    .sidebar-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 90;
-      backdrop-filter: blur(2px);
-    }
-    .sidebar-brand {
-      padding: 20px 16px 16px 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      gap: 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(0, 0, 0, 0.1);
-    }
-    .brand-icon {
-      width: 72px;
-      height: 72px;
-      min-width: 72px;
-      min-height: 72px;
-      background: transparent;
-      border-radius: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      box-shadow: none;
-      margin: 0 auto;
-      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
-    }
-    .brand-name {
-      font-size: 14px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: #ffffff;
-      text-transform: uppercase;
-      text-align: center;
-      margin: 0 auto;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    }
-    .brand-subname {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--th-b-200, #bfdbfe) !important;
-      text-align: center;
-      margin: 2px auto 0 auto;
-    }
-    
-    .sidebar-menu { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .menu-item { 
-      display: flex; 
-      align-items: center; 
-      gap: 12px; 
-      padding: 11px 16px; 
-      color: var(--th-k-100, #e0f2fe); 
-      text-decoration: none; 
-      border-radius: 10px; 
-      font-size: 13.5px;
-      font-weight: 500;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .menu-item:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; transform: translateX(3px); }
-    .menu-item.active { background: rgba(255, 255, 255, 0.2) !important; color: #ffffff !important; font-weight: 700; border-left: 3.5px solid var(--th-b-400, #60a5fa); }
-    .menu-item.active .material-symbols-outlined { color: #ffffff !important; }
-    .menu-item .material-symbols-outlined { font-size: 20px; flex-shrink: 0; color: var(--th-b-300, #93c5fd); }
-    
-    .sidebar-footer { padding: 14px 12px; border-top: 1px solid rgba(255, 255, 255, 0.12); color: var(--th-b-300, #93c5fd); }
-    
-    /* Main Content */
-    main { flex: 1; min-width: 0; overflow-y: auto; padding: 40px; position: relative; box-sizing: border-box; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; gap: 16px; flex-wrap: wrap; }
-    .top-bar h1 { margin: 0; font-size: 28px; font-weight: 700; color: var(--accent); }
-    
-    .mobile-nav-toggle {
-      display: none;
-      background: white;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      padding: 8px;
-      color: var(--accent);
-      cursor: pointer;
-    }
-    
-    /* Grid Layout */
-    .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-    
-    /* Metrics Row */
-    .metric-card { 
-      background: white; 
-      padding: 24px; 
-      border-radius: 20px; 
-      border: 1px solid var(--border); 
-      display: flex; 
-      align-items: center; 
-      gap: 20px;
-      transition: transform 0.2s;
-    }
-    .metric-card:hover { transform: translateY(-4px); }
-    .metric-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
-    .metric-info h3 { margin: 0; font-size: 14px; color: #64748b; font-weight: 500; }
-    .metric-info .value { font-size: 24px; font-weight: 700; color: var(--accent); margin-top: 4px; }
-    
-    /* Panel Styling */
-    .panel { background: var(--card); padding: 24px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
-    .panel h2 { font-size: 17px; margin: 0 0 24px 0; color: var(--accent); display: flex; align-items: center; gap: 12px; font-weight: 600; }
-    
-    /* Health List */
-    .health-list { display: flex; flex-direction: column; gap: 12px; }
-    .health-item { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      padding: 14px 16px; 
-      background: #f8fafc; 
-      border-radius: 12px;
-      border: 1px solid #f1f5f9;
-    }
-    .health-info { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
-    .status-badge { 
-      padding: 4px 10px; 
-      border-radius: 6px; 
-      font-size: 11px; 
-      font-weight: 700; 
-      text-transform: uppercase; 
-    }
-    .status-badge.passed { background: #d1fae5; color: #065f46; }
-    .status-badge.failed { background: #fee2e2; color: #991b1b; }
-    .status-badge.checking { background: #fef3c7; color: #92400e; }
-    
-    /* Console Log */
-    pre { 
-      background: #0f172a; 
-      color: #94a3b8; 
-      padding: 20px; 
-      border-radius: 14px; 
-      font-family: 'JetBrains Mono', monospace; 
-      font-size: 13px; 
-      height: 350px; 
-      overflow-y: auto; 
-      margin: 0;
-      line-height: 1.6;
-    }
-    .log-entry { margin-bottom: 4px; word-break: break-word; }
-    .log-time { color: #64748b; margin-right: 8px; font-size: 11px; }
-    .log-type-info { color: var(--th-k-400, #38bdf8); font-weight: 600; }
-    .log-type-success { color: #34d399; font-weight: 600; }
-    .log-type-warn { color: #fbbf24; font-weight: 600; }
-    .log-type-error { color: #f43f5e; font-weight: 600; }
-    .log-type-action { color: #c084fc; font-weight: 600; }
-    .log-filter-btn { transition: all 0.2s ease; }
-    .log-filter-btn.active { font-weight: 700 !important; border-color: var(--th-p-600, #0d9488) !important; box-shadow: 0 1px 4px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.15) !important; }
-    
-    /* Form & Controls */
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
-    input { width: 100%; padding: 12px; border: 1.5px solid var(--border); border-radius: 10px; font-family: inherit; transition: border-color 0.2s; box-sizing: border-box; }
-    input:focus { outline: none; border-color: var(--primary); }
-    
-    .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-    button { 
-      padding: 12px 20px; 
-      background: var(--primary); 
-      color: white; 
-      border: none; 
-      border-radius: 10px; 
-      cursor: pointer; 
-      font-weight: 600; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      gap: 8px; 
-      transition: all 0.2s;
-    }
-    button:hover { background: var(--primary-dark); transform: translateY(-1px); }
-    button.secondary { background: #64748b; }
-    button.danger { background: #ef4444; }
-    
-    /* Data Management Table */
-    .table-container { margin-top: 20px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th { text-align: left; padding: 12px 16px; background: #f8fafc; color: #64748b; font-weight: 600; border-bottom: 2px solid var(--border); }
-    td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text); }
-    tr:hover { background: #f1f5f9; }
-    
-    .editable-input { 
-      width: 100%; 
-      padding: 6px 10px; 
-      border: 1px solid var(--primary); 
-      border-radius: 6px; 
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    
-    .action-btns { display: flex; gap: 8px; }
-    .icon-btn { 
-      padding: 6px; 
-      border-radius: 6px; 
-      border: none; 
-      background: #f1f5f9; 
-      color: #64748b; 
-      cursor: pointer; 
-      transition: all 0.2s;
-    }
-    .icon-btn:hover { background: #e2e8f0; color: var(--primary); }
-    .icon-btn.save { color: #059669; }
-    .icon-btn.cancel { color: #ef4444; }
-
-    /* Toast Notifications */
-    .toast-container {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .toast {
-      background: white;
-      color: var(--text);
-      padding: 16px 20px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 300px;
-      max-width: 450px;
-      animation: toast-in 0.3s ease-out;
-      border-left: 4px solid var(--primary);
-    }
-    .toast.success { border-left-color: #059669; }
-    .toast.error { border-left-color: #ef4444; }
-    .toast.warning { border-left-color: #f59e0b; }
-    .toast.info { border-left-color: var(--th-b-500, #3b82f6); }
-    
-    @keyframes toast-in {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    .toast.fade-out {
-      animation: toast-out 0.3s ease-in forwards;
-    }
-    @keyframes toast-out {
-      from { transform: translateX(0); opacity: 1; }
-      to { transform: translateX(100%); opacity: 0; }
-    }
-
-    /* Responsive */
-    @media (max-width: 1200px) {
-      .dashboard-grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    @media (max-width: 992px) {
-      aside {
-        position: fixed;
-        left: calc(-1 * var(--sidebar-width));
-        top: 0;
-        bottom: 0;
-      }
-      .app-container.sidebar-open aside {
-        left: 0;
-      }
-      .app-container.sidebar-open .sidebar-overlay {
-        display: block;
-      }
-      .mobile-nav-toggle {
-        display: flex;
-      }
-      main { padding: 24px; }
-    }
-
-    @media (max-width: 768px) {
-      .dashboard-grid { grid-template-columns: 1fr; }
-      .top-bar h1 { font-size: 22px; }
-      .panel { padding: 16px; }
-      #admin-profile-form { grid-template-columns: 1fr !important; }
-    }
-  </style>
 </head>
-<body id="page-hr-admin-dashboard">
-<div class="app-container" id="app-wrapper">
-  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
-  <aside class="sidebar-light" id="mainSidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">
-        <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-      </div>
-      <div class="brand-name">PVTT WORKFORCE HUB</div>
-      <div class="brand-subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
-      <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
-        <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
-      </button>
-    </div>
+<body id="page-hr-admin-dashboard" class="pvt-body">
+  <div class="pvt-app" id="pvtApp">
 
-    <!--  ปุ่มกดยื่น/ตรวจใบลา (Action CTA) -->
-    <div class="sidebar-cta-wrap">
-      <a href="/pages/hr/hr.html" class="sidebar-cta-btn" title="ตรวจและอนุมัติใบลา">
-        <span class="material-symbols-outlined">fact_check</span>
-        <span class="sidebar-cta-label">ตรวจและอนุมัติใบลา</span>
-      </a>
-    </div>
-
-    <nav class="nav-menu">
-      <a href="/pages/hr/home.html" class="nav-item" title="ภาพรวมระบบ">
-        <span class="material-symbols-outlined">dashboard</span>
-        <span class="nav-label">หน้าหลัก</span>
-      </a>
-      <a href="/pages/hr/hr.html" class="nav-item" title="ตรวจใบลา" id="navItemLeaveCheck">
-        <span class="material-symbols-outlined">fact_check</span>
-        <span class="nav-label">ตรวจใบลา</span>
-        <span class="sidebar-badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
-      </a>
-      <a href="/pages/hr/management.html" class="nav-item" title="ระบบจัดการส่วนกลาง">
-        <span class="material-symbols-outlined">tune</span>
-        <span class="nav-label">ระบบจัดการส่วนกลาง</span>
-      </a>
-      <a href="/pages/user/leave-stats.html" class="nav-item" title="สถิติวันลา">
-        <span class="material-symbols-outlined">analytics</span>
-        <span class="nav-label">สถิติวันลา</span>
-      </a>
-      <a href="/pages/hr/holidays.html" class="nav-item" title="จัดการปฏิทินวันหยุด (Admin)">
-        <span class="material-symbols-outlined">calendar_month</span>
-        <span class="nav-label">จัดการวันหยุด</span>
-      </a>
-      
-      <div class="sidebar-divider"></div>
-      <div class="sidebar-section-title">บริการด่วน</div>
-      
-      <!--  ปุ่มจัดการข่าวสารองค์กร -->
-      <a href="/pages/hr/news-management.html" class="nav-item" title="จัดการข่าวสารองค์กร">
-        <span class="material-symbols-outlined">campaign</span>
-        <span class="nav-label">ข่าวสาร</span>
-      </a>
-
-      <!-- 🪪 ปุ่มระบบจัดการบัตรพนักงาน -->
-      <a href="/pages/hr/employee-cards.html" class="nav-item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
-        <span class="material-symbols-outlined">badge</span>
-        <span class="nav-label">บัตรพนักงาน (Admin)</span>
-      </a>
-      
-      <!-- ประวัติการเข้าสู่ระบบ -->
-      <a href="/pages/hr/login-logs.html" class="nav-item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
-        <span class="material-symbols-outlined">shield_person</span>
-        <span class="nav-label">ประวัติเข้าสู่ระบบ</span>
-      </a>
-
-      <div class="sidebar-divider"></div>
-
-      <!--  สลับไปหน้าพนักงาน (หน้าหลักของพนักงาน) -->
-      <a href="/pages/user/index-user.html" class="nav-item" title="กลับหน้าหลักของพนักงาน">
-        <span class="material-symbols-outlined">person</span>
-        <span class="nav-label">หน้าหลักของพนักงาน</span>
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <button type="button" class="btn-logout" id="btnSidebarLogout" onclick="if(typeof handleLogout==='function'){handleLogout(event);}else if(typeof logout==='function'){logout(event);}else if(typeof executePvtLogout==='function'){executePvtLogout();}else{sessionStorage.setItem('pvt_explicit_logout','true');localStorage.clear();sessionStorage.clear();window.location.replace('/index.html?logout=true');}" title="ออกจากระบบ">
-        <span class="material-symbols-outlined">logout</span>
-        <span>ออกจากระบบ</span>
-      </button>
-    </div>
-  </aside>
-
-  <main>
-    <div class="top-bar">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <button class="mobile-nav-toggle" onclick="toggleSidebar()">
-          <span class="material-symbols-outlined">menu</span>
+    <aside class="pvt-sidebar" id="mainSidebar" aria-label="เมนูหลัก">
+      <div class="pvt-sidebar__brand">
+        <div class="pvt-sidebar__logo">
+          <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" />
+        </div>
+        <div class="pvt-sidebar__name">PVTT WORKFORCE HUB</div>
+        <div class="pvt-sidebar__subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
+        <button type="button" class="pvt-sidebar__close" aria-label="ปิดเมนู" title="ปิดเมนู">
+          <span class="material-symbols-outlined">close</span>
         </button>
-        <h1>ภาพรวมระบบ</h1>
       </div>
-      <div id="live-time" style="font-weight: 500; color: #64748b;"></div>
-    </div>
+
+      <!-- รายการเมนู (layout.js ไฮไลต์เมนูปัจจุบันจาก URL ให้อัตโนมัติ) -->
+      <nav class="pvt-sidebar__nav" aria-label="เมนูนำทาง">
+        <a href="/pages/hr/home.html" class="pvt-nav__item" title="ภาพรวมระบบ">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span class="pvt-nav__label">หน้าหลัก</span>
+        </a>
+        <a href="/pages/hr/hr.html" class="pvt-nav__item" title="ตรวจใบลา" id="navItemLeaveCheck">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span class="pvt-nav__label">ตรวจใบลา</span>
+          <span class="pvt-nav__badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
+        </a>
+        <a href="/pages/hr/management.html" class="pvt-nav__item" title="ระบบจัดการส่วนกลาง">
+          <span class="material-symbols-outlined">tune</span>
+          <span class="pvt-nav__label">ระบบจัดการส่วนกลาง</span>
+        </a>
+        <a href="/pages/hr/approval-chains.html" class="pvt-nav__item" title="ตั้งค่าสายอนุมัติ">
+          <span class="material-symbols-outlined">account_tree</span>
+          <span class="pvt-nav__label">สายอนุมัติ</span>
+        </a>
+        <a href="/pages/hr/leave-stats.html" class="pvt-nav__item" title="สถิติวันลา">
+          <span class="material-symbols-outlined">analytics</span>
+          <span class="pvt-nav__label">สถิติวันลา</span>
+        </a>
+        <a href="/pages/hr/holidays.html" class="pvt-nav__item" title="จัดการปฏิทินวันหยุด (Admin)">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span class="pvt-nav__label">จัดการวันหยุด</span>
+        </a>
+        <a href="/pages/hr/news-management.html" class="pvt-nav__item" title="จัดการข่าวสารองค์กร">
+          <span class="material-symbols-outlined">campaign</span>
+          <span class="pvt-nav__label">ข่าวสาร</span>
+        </a>
+        <a href="/pages/hr/employee-cards.html" class="pvt-nav__item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
+          <span class="material-symbols-outlined">badge</span>
+          <span class="pvt-nav__label">บัตรพนักงาน (Admin)</span>
+        </a>
+        <a href="/pages/hr/login-logs.html" class="pvt-nav__item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>
+        </a>
+        <button type="button" class="pvt-nav__item pvt-nav__item--settings" id="pvtNavSettings" title="ตั้งค่า (ธีมสี ขนาดตัวอักษร การแสดงผล)" style="-webkit-appearance:none;appearance:none;width:calc(100% - 24px);border:0;background:transparent;box-shadow:none;color:rgba(241,245,249,.92);font:inherit;text-align:left;cursor:pointer;">
+          <span class="material-symbols-outlined">settings</span>
+          <span class="pvt-nav__label">ตั้งค่า</span>
+        </button>
+      </nav>
+
+      <!-- ปุ่มออกจากระบบ: layout.js ผูกการทำงานให้ผ่าน id -->
+      <div class="pvt-sidebar__footer">
+        <button type="button" class="pvt-btn-logout" id="btnSidebarLogout" title="ออกจากระบบ">
+          <span class="material-symbols-outlined">logout</span>
+          <span class="pvt-btn-logout__label">ออกจากระบบ</span>
+        </button>
+      </div>
+
+      <!-- ปุ่มวงกลมที่ขอบ: พับ/กางเมนู (PC) -->
+      <button type="button" class="pvt-sidebar__toggle" aria-label="ย่อ/ขยายเมนู" aria-expanded="true" title="ย่อเมนู">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+    </aside>
+
+    <div class="pvt-overlay" aria-hidden="true"></div>
+
+    <main class="pvt-main" id="mainContent">
+      <header class="pvt-topbar">
+        <div class="pvt-topbar__left">
+          <button type="button" class="pvt-topbar__burger" aria-label="เปิดเมนู" aria-expanded="false">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+          <div class="pvt-topbar__title">
+            <h1>คอนโซลผู้ดูแลระบบ</h1>
+            <p>ADMIN CONSOLE</p>
+          </div>
+        </div>
+        <div class="pvt-topbar__right">
+          <div class="pvt-topbar__actions"><span class="ad-live-time" id="live-time"></span></div>
+          <div class="pvt-user" id="headerUserProfile">
+            <div class="pvt-user__avatar avatar avatar-badge notranslate" id="headerUserAvatar" translate="no">HR</div>
+            <div class="pvt-user__info">
+              <strong id="headerUserName">ผู้ดูแลระบบ</strong>
+              <span id="headerUserRoleDept">ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
+            </div>
+            <span id="adminUserName" hidden>ผู้ดูแลระบบ</span>
+            <span id="adminUserRole" hidden>ผู้ดูแลระบบ | ฝ่ายทรัพยากรบุคคล</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="pvt-page" id="pageContent">
 
     <!-- Quick Stats -->
     <div class="dashboard-grid" style="margin-bottom: 32px;">
@@ -708,14 +408,18 @@
         </div>
       </section>
     </div>
-  </main>
-</div>
+      </div><!-- /.pvt-page -->
+    </main>
+  </div>
 
 <div id="toast-container" class="toast-container"></div>
 
+  <script src="/js/layout.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script type="module" src="/auth/supabase-config.js"></script>
+  <script type="module" src="/js/auth-guard.js"></script>
   <script type="module" src="/js/system-diagnostics.js"></script>
   <script type="module" src="/js/system-settings.js"></script>
   <script>
@@ -941,7 +645,7 @@
 
     function renderSparkline() {
       const container = document.getElementById('latency-sparkline');
-      if (!container) return;
+      if (!container || !window.d3) return; // d3 ยังโหลดไม่เสร็จ/โหลดไม่ได้ → ข้ามการวาดกราฟ
       
       const width = container.clientWidth;
       const height = container.clientHeight;
@@ -1544,15 +1248,18 @@
 
     updateMaintUI();
     initProfile();
-    runDeepCheck();
-    loadEmployeeData();
-    loadDeptApprovalData();
+    // รอให้ supabase-config.js (module) พร้อมก่อน แล้วค่อยโหลดข้อมูล — เดิมเรียกทันทีจึงค้าง "กำลังโหลด"
+    (function startWhenReady(tries) {
+      if (window.pvtSupabase?.getClient?.()) {
+        runDeepCheck();
+        loadEmployeeData();
+        loadDeptApprovalData();
+      } else if (tries < 100) {
+        setTimeout(() => startWhenReady(tries + 1), 100);
+      }
+    })(0);
     
-    // Sidebar Toggle
-    window.toggleSidebar = function() {
-      const wrapper = document.getElementById('app-wrapper');
-      wrapper.classList.toggle('sidebar-open');
-    }
+    // (Sidebar เปิด/ปิดด้วย layout.js เหมือนหน้า HR อื่น)
 
     // Live update every 5 seconds
     setInterval(fetchMetrics, 5000);

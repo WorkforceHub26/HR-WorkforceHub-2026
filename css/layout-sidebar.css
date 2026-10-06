@@ -110,6 +110,39 @@
 
 .pvt-nav__label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
+/* เมนูที่เป็นปุ่ม (เช่น "ตั้งค่า") ให้หน้าตาเหมือนลิงก์เมนู
+   ใช้ตัวเลือกเจาะจง + !important เพราะ CSS ของบางหน้ามีกฎ button {...} ทั่วไป (พื้นขาว/เงา/ขอบ) มาทับ */
+.pvt-sidebar .pvt-sidebar__nav button.pvt-nav__item {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: calc(100% - 24px);
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(241, 245, 249, .92) !important;
+  font-family: inherit !important;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: normal;
+  text-align: left !important;
+  cursor: pointer;
+}
+.pvt-sidebar .pvt-sidebar__nav button.pvt-nav__item:hover { background: rgba(255, 255, 255, .10) !important; color: #fff !important; }
+.pvt-sidebar .pvt-sidebar__nav button.pvt-nav__item .material-symbols-outlined { color: inherit; }
+.pvt-nav__item--settings {
+  margin-top: 14px;
+  position: relative;
+}
+.pvt-nav__item--settings::before {
+  content: "";
+  position: absolute;
+  left: 8px; right: 8px; top: -8px;
+  height: 1px;
+  background: rgba(255, 255, 255, .12);
+}
+
 /* ตัวเลขแจ้งเตือนข้างเมนู (เช่น จำนวนใบลาค้างตรวจ) — ซ่อนไว้จนกว่า JS จะสั่งแสดง */
 .pvt-nav__badge {
   flex: 0 0 auto;
@@ -184,6 +217,7 @@
 
   .is-sidebar-collapsed .pvt-nav__item { justify-content: center; margin: 4px 10px; padding: 12px 0; }
   .is-sidebar-collapsed .pvt-nav__item:hover { transform: none; }
+  .is-sidebar-collapsed .pvt-sidebar .pvt-sidebar__nav button.pvt-nav__item { width: calc(100% - 20px); }
 
   /* ตัวเลขแจ้งเตือน → ย้ายเป็นจุดเล็กมุมขวาบนของไอคอน */
   .is-sidebar-collapsed .pvt-nav__badge {

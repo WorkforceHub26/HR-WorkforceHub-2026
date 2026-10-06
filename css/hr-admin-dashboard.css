@@ -1,5 +1,118 @@
 /* ======================================================
-   Dedicated Stylesheet for Admin Dashboard (/pages/hr/admin-dashboard.html)
-   Scoped Page ID: #page-hr-admin-dashboard
+   คอนโซลผู้ดูแลระบบ (/pages/hr/admin-dashboard.html)
+   ใช้ Sidebar + Topbar กลาง (layout-*.css) เหมือนหน้า HR อื่น
+   กฎทั้งหมดจำกัดไว้ในเนื้อหาหน้า (.pvt-page) เพื่อไม่ทับเมนู/แถบบน
    ====================================================== */
 @import url('/css/system-settings.css');
+
+#page-hr-admin-dashboard {
+  --primary: var(--th-p-700, #0f766e);
+  --primary-dark: var(--th-p-600, #0d9488);
+  --bg: #f1f5f9;
+  --text: #1e293b;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --accent: #0f172a;
+  font-family: 'Sarabun', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+#page-hr-admin-dashboard .pvt-page { padding: 20px clamp(14px, 3vw, 28px) 48px; }
+#page-hr-admin-dashboard .ad-live-time { font-size: 13px; font-weight: 600; color: #64748b; white-space: nowrap; }
+
+/* ตาราง/การ์ด */
+#page-hr-admin-dashboard .dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+#page-hr-admin-dashboard .metric-card {
+  background: #fff; padding: 20px; border-radius: 18px; border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 16px; transition: transform .2s, box-shadow .2s;
+}
+#page-hr-admin-dashboard .metric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 23, 42, .06); }
+#page-hr-admin-dashboard .metric-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+#page-hr-admin-dashboard .metric-info h3 { margin: 0; font-size: 13.5px; color: #64748b; font-weight: 600; }
+#page-hr-admin-dashboard .metric-info .value { font-size: 24px; font-weight: 800; color: var(--accent); margin-top: 2px; }
+
+#page-hr-admin-dashboard .panel { background: var(--card); padding: 22px; border-radius: 18px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0, 0, 0, .03); min-width: 0; }
+#page-hr-admin-dashboard .panel h2 { font-size: 16.5px; margin: 0 0 18px; color: var(--accent); display: flex; align-items: center; gap: 10px; font-weight: 700; }
+#page-hr-admin-dashboard .panel h2 .material-symbols-outlined { color: var(--primary-dark); }
+
+/* สถานะระบบ */
+#page-hr-admin-dashboard .health-list { display: flex; flex-direction: column; gap: 10px; }
+#page-hr-admin-dashboard .health-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; }
+#page-hr-admin-dashboard .health-info { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
+#page-hr-admin-dashboard .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+#page-hr-admin-dashboard .status-badge.passed { background: #d1fae5; color: #065f46; }
+#page-hr-admin-dashboard .status-badge.failed { background: #fee2e2; color: #991b1b; }
+#page-hr-admin-dashboard .status-badge.checking { background: #fef3c7; color: #92400e; }
+
+/* บันทึกระบบ */
+#page-hr-admin-dashboard .pvt-page pre {
+  background: #0f172a; color: #94a3b8; padding: 18px; border-radius: 14px; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12.5px; height: 350px; overflow-y: auto; margin: 0; line-height: 1.6;
+}
+#page-hr-admin-dashboard .log-entry { margin-bottom: 4px; word-break: break-word; }
+#page-hr-admin-dashboard .log-time { color: #64748b; margin-right: 8px; font-size: 11px; }
+#page-hr-admin-dashboard .log-type-info { color: var(--th-k-400, #38bdf8); font-weight: 600; }
+#page-hr-admin-dashboard .log-type-success { color: #34d399; font-weight: 600; }
+#page-hr-admin-dashboard .log-type-warn { color: #fbbf24; font-weight: 600; }
+#page-hr-admin-dashboard .log-type-error { color: #f43f5e; font-weight: 600; }
+#page-hr-admin-dashboard .log-type-action { color: #c084fc; font-weight: 600; }
+#page-hr-admin-dashboard .log-filter-btn { transition: all .2s ease; }
+#page-hr-admin-dashboard .log-filter-btn.active { font-weight: 700 !important; border-color: var(--th-p-600, #0d9488) !important; box-shadow: 0 1px 4px rgba(var(--th-p-600-rgb, 13, 148, 136), .15) !important; }
+
+/* ฟอร์ม/ปุ่ม (เฉพาะในเนื้อหา) */
+#page-hr-admin-dashboard .pvt-page .form-group { margin-bottom: 16px; }
+#page-hr-admin-dashboard .pvt-page label { display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
+#page-hr-admin-dashboard .pvt-page input:not([type="checkbox"]):not([type="radio"]) {
+  width: 100%; padding: 11px 12px; border: 1.5px solid var(--border); border-radius: 10px; font: inherit; transition: border-color .2s; box-sizing: border-box;
+}
+#page-hr-admin-dashboard .pvt-page input:focus { outline: none; border-color: var(--primary); }
+#page-hr-admin-dashboard .pvt-page .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+#page-hr-admin-dashboard .pvt-page button {
+  padding: 11px 18px; background: var(--primary); color: #fff; border: none; border-radius: 10px; cursor: pointer;
+  font: inherit; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .2s, transform .2s;
+}
+#page-hr-admin-dashboard .pvt-page button:hover { background: var(--primary-dark); transform: translateY(-1px); }
+#page-hr-admin-dashboard .pvt-page button.secondary { background: #64748b; }
+#page-hr-admin-dashboard .pvt-page button.danger { background: #ef4444; }
+
+/* ตารางข้อมูล */
+#page-hr-admin-dashboard .table-container { margin-top: 16px; overflow-x: auto; }
+#page-hr-admin-dashboard .pvt-page table { width: 100%; border-collapse: collapse; font-size: 14px; }
+#page-hr-admin-dashboard .pvt-page th { text-align: left; padding: 11px 14px; background: #f8fafc; color: #64748b; font-weight: 700; border-bottom: 2px solid var(--border); white-space: nowrap; }
+#page-hr-admin-dashboard .pvt-page td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+#page-hr-admin-dashboard .pvt-page tbody tr:hover { background: #f8fafc; }
+#page-hr-admin-dashboard .editable-input { width: 100%; padding: 6px 10px; border: 1px solid var(--primary); border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+#page-hr-admin-dashboard .action-btns { display: flex; gap: 8px; }
+#page-hr-admin-dashboard .pvt-page .icon-btn { padding: 6px; border-radius: 8px; border: none; background: #f1f5f9; color: #64748b; cursor: pointer; transition: all .2s; }
+#page-hr-admin-dashboard .pvt-page .icon-btn:hover { background: #e2e8f0; color: var(--primary); transform: none; }
+#page-hr-admin-dashboard .icon-btn.save { color: #059669; }
+#page-hr-admin-dashboard .icon-btn.cancel { color: #ef4444; }
+
+/* แจ้งเตือนมุมจอ */
+#page-hr-admin-dashboard .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+#page-hr-admin-dashboard .toast {
+  background: #fff; color: var(--text); padding: 14px 18px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, .1);
+  display: flex; align-items: center; gap: 12px; min-width: 280px; max-width: 450px; animation: ad-toast-in .3s ease-out; border-left: 4px solid var(--primary);
+}
+#page-hr-admin-dashboard .toast.success { border-left-color: #059669; }
+#page-hr-admin-dashboard .toast.error { border-left-color: #ef4444; }
+#page-hr-admin-dashboard .toast.warning { border-left-color: #f59e0b; }
+#page-hr-admin-dashboard .toast.info { border-left-color: var(--th-b-500, #3b82f6); }
+#page-hr-admin-dashboard .toast.fade-out { animation: ad-toast-out .3s ease-in forwards; }
+@keyframes ad-toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ad-toast-out { from { transform: none; opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+@media (max-width: 1200px) {
+  #page-hr-admin-dashboard .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #page-hr-admin-dashboard .dashboard-grid > .panel[style*="span 3"] { grid-column: span 2 !important; }
+}
+@media (max-width: 768px) {
+  #page-hr-admin-dashboard .dashboard-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  #page-hr-admin-dashboard .dashboard-grid > .panel[style*="span"] { grid-column: auto !important; }
+  #page-hr-admin-dashboard .panel { padding: 16px; }
+  #page-hr-admin-dashboard #admin-profile-form { grid-template-columns: 1fr !important; }
+  #page-hr-admin-dashboard .ad-live-time { display: none; }
+  #page-hr-admin-dashboard .toast-container { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  #page-hr-admin-dashboard .toast { min-width: 0; }
+}

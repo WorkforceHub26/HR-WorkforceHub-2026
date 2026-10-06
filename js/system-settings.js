@@ -522,6 +522,21 @@
 
         <!-- Body -->
         <div class="settings-modal-body">
+
+          <!-- Card 0: คอนโซลผู้ดูแลระบบ (แสดงเฉพาะ Admin) -->
+          <div class="setting-card-item" id="settingsAdminCard" style="display: none;">
+            <div class="setting-item-head">
+              <span class="setting-item-icon material-symbols-outlined" style="color: #8b5cf6; font-size: 28px;">admin_panel_settings</span>
+              <div class="setting-item-info">
+                <h4>คอนโซลผู้ดูแลระบบ (Admin Console)</h4>
+                <p>ตรวจสุขภาพระบบ ดูบันทึกการทำงาน สำรอง/กู้คืนข้อมูล และจัดการผู้ใช้</p>
+              </div>
+            </div>
+            <a href="/pages/hr/admin-dashboard.html" class="settings-admin-link" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #6366f1); color: #fff; font-weight: 700; font-size: 14.5px; text-decoration: none; box-shadow: 0 6px 16px rgba(124, 58, 237, .22);">
+              <span class="material-symbols-outlined" style="font-size: 20px;">open_in_new</span>
+              เปิดคอนโซลผู้ดูแลระบบ
+            </a>
+          </div>
           
           <!-- Card 1: ขนาดตัวอักษร -->
           <div class="setting-card-item">
@@ -850,6 +865,19 @@
     updateMotionSwitchUI();
     updateConfirmSwitchUI();
     updateHighContrastSwitchUI();
+
+    // แสดงปุ่มคอนโซลผู้ดูแลระบบเฉพาะ Admin (ไม่แสดงเมื่ออยู่หน้าคอนโซลอยู่แล้ว)
+    const adminCard = document.getElementById("settingsAdminCard");
+    if (adminCard) {
+      let isAdmin = false;
+      try {
+        const sess = JSON.parse(localStorage.getItem('currentUser') || 'null') || {};
+        const emp = sess.employees || sess;
+        const role = String(sess.role || emp.role || '').toLowerCase().trim();
+        isAdmin = role === 'admin' || role === 'superadmin' || sess.employee_code === 'HR-001' || emp.employee_code === 'HR-001';
+      } catch (e) {}
+      adminCard.style.display = isAdmin && !location.pathname.includes('admin-dashboard') ? '' : 'none';
+    }
 
     backdrop.classList.add("active");
     document.body.style.overflow = "hidden";

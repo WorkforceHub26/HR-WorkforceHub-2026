@@ -306,12 +306,9 @@
     overflow: hidden !important;
   }
 
-  body.notif-open::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.35);
-    z-index: 100000;
+  /* ฉากหลังมืด: ใช้เงาของกล่องแจ้งเตือนเอง (เดิมเป็น body::before ซึ่งไปบังกล่อง → กดรายการไม่ได้) */
+  body.notif-open #userNotifDropdown.notif-dropdown {
+    box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.35), 0 20px 45px -10px rgba(0, 0, 0, 0.3) !important;
   }
 
   body.notif-open header#indexUserHeader {
