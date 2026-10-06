@@ -529,8 +529,8 @@ async function loadMyLeaveHistory() {
         if (!isNaN(createdTime) && (nowMs - createdTime >= TWO_DAYS_MS)) {
           return {
             ...item,
-            status: 'cancelled',
-            approval_comment: item.approval_comment || 'ยกเลิกอัตโนมัติเนื่องจากหัวหน้าไม่ได้ดำเนินการในเวลาที่กำหนด (เกิน 2 วัน)'
+            status: 'rejected',
+            approval_comment: item.approval_comment || 'ไม่อนุมัติอัตโนมัติ: ไม่มีการพิจารณาภายในเวลาที่กำหนด (48 ชั่วโมง)'
           };
         }
       }

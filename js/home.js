@@ -301,8 +301,8 @@ window.refreshDashboardData = async function(isManualClick = false) {
         if (!isNaN(createdTime) && (nowMs - createdTime >= TWO_DAYS_MS)) {
           return {
             ...r,
-            status: 'cancelled',
-            approval_comment: r.approval_comment || 'ยกเลิกอัตโนมัติเนื่องจากหัวหน้าไม่ได้ดำเนินการในเวลาที่กำหนด (เกิน 2 วัน)'
+            status: 'rejected',
+            approval_comment: r.approval_comment || 'ไม่อนุมัติอัตโนมัติ: ไม่มีการพิจารณาภายในเวลาที่กำหนด (48 ชั่วโมง)'
           };
         }
       }

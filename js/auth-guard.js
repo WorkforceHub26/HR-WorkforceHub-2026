@@ -310,6 +310,55 @@ window.getUserRoleCategory = function(userSession) {
   }
 })();
 
+// 🚫 ตรวจสถานะบัญชีซ้ำระหว่างใช้งาน: ถ้า HR ปิดบัญชี (ระงับ / ลาออก) ไปแล้ว ให้ออกจากระบบทันที
+// (คนที่ล็อกอินค้างไว้แบบ "จำรหัส" 30 วัน จะไม่ใช้งานต่อได้) · ตรวจไม่เกินทุก 5 นาทีต่อแท็บ
+(function verifyAccountStillActive() {
+  const BLOCKED = ['inactive', 'resigned', 'terminated', 'suspended'];
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem("currentUser") || "null"); } catch (e) { session = null; }
+  if (!session || !session.id) return;
+  const p = String(window.location.pathname || '').toLowerCase();
+  if (!p.includes('/pages/')) return; // หน้า Login ตรวจเองอยู่แล้ว
+  try {
+    const last = parseInt(sessionStorage.getItem('pvt_status_checked_at') || '0', 10) || 0;
+    if (Date.now() - last < 5 * 60 * 1000) return;
+  } catch (e) {}
+
+  let tries = 0;
+  const run = async () => {
+    const sb = getSbClient();
+    if (!sb || typeof sb.from !== 'function') {
+      if (++tries < 40) setTimeout(run, 250);
+      return;
+    }
+    try {
+      const { data, error } = await sb.from('employees').select('status').eq('id', session.id).maybeSingle();
+      if (error || !data) return; // เน็ตหลุด/อ่านไม่ได้ → ไม่เตะออก
+      try { sessionStorage.setItem('pvt_status_checked_at', String(Date.now())); } catch (e) {}
+      if (BLOCKED.indexOf(String(data.status || '').toLowerCase().trim()) === -1) return;
+      ['currentUser', 'pvt_user_session', 'pvt_employee_session'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+      const go = () => {
+        ['currentUser', 'pvt_user_session', 'pvt_employee_session'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+        window.location.replace('/index.html');
+      };
+      if (window.Swal && typeof window.Swal.fire === 'function') {
+        window.Swal.fire({
+          icon: 'warning',
+          title: 'บัญชีนี้ถูกปิดการใช้งาน',
+          text: 'บัญชีถูกระงับหรือพ้นสภาพพนักงานแล้ว กรุณาติดต่อฝ่ายบุคคล (HR)',
+          confirmButtonText: 'ตกลง',
+          allowOutsideClick: false
+        }).then(go, go);
+        setTimeout(go, 8000);
+      } else {
+        go();
+      }
+    } catch (e) { /* ไม่ให้หน้าพัง */ }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+
 // 🎨 ซ่อนเมนูที่ไม่มีสิทธิ์เข้าถึงออกจาก UI ทันที
 function applyNavPermissions() {
   try {
@@ -2355,7 +2404,10 @@ async function renderGlobalUserProfile() {
     if (sb) {
       try {
          const { data, error } = await sb.from('employees').select('*, departments!department_id(*), positions(*)').eq('id', sessionUser.id).single();
-         if (data) {
+         if (data && ['inactive', 'resigned', 'terminated', 'suspended'].indexOf(String(data.status || '').toLowerCase()) !== -1) {
+           // บัญชีถูกปิดแล้ว → ไม่เขียน session กลับ (ตัวตรวจ verifyAccountStillActive จะพาออกจากระบบ)
+           try { localStorage.removeItem("currentUser"); } catch (e) {}
+         } else if (data) {
            profileData = data;
            window.currentUserProfile = data; // Cache
            
@@ -2368,6 +2420,7 @@ async function renderGlobalUserProfile() {
              l2_approver_id: data.l2_approver_id,
              l3_approver_id: data.l3_approver_id,
              image_url: data.image_url, 
+             status: data.status || sessionUser.status,
              department_name: data.departments?.department_name || data.department_name, 
              position_name: data.positions?.position_name || data.position_name 
            };

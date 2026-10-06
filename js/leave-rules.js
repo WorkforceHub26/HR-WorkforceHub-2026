@@ -131,7 +131,7 @@ const DEFAULT_LEAVE_RULES = [
     themeBorder: "#fed7aa",
     items: [
       { text: "หัวหน้างาน (ลำดับที่ 1) และ ผู้จัดการ (ลำดับที่ 2) ต้องพิจารณาอนุมัติใบลา <b>ภายใน 2 วันทำการ</b> นับจากวันที่ยื่นคำขอ", isCaution: false },
-      { text: "หากเกิน 2 วัน ระบบจะขึ้นสถานะ <b>\"เกินกำหนด\"</b> และแสดงข้อความ <i>\"ใบลาไม่ได้รับการพิจารณาในเวลาที่กำหนด\"</i>", isCaution: true },
+      { text: "หากเกิน 2 วัน (48 ชั่วโมง) ระบบจะเปลี่ยนสถานะเป็น <b>\"ไม่อนุมัติ\"</b> อัตโนมัติ พร้อมข้อความ <i>\"หมดเวลาพิจารณา\"</i> และแจ้งพนักงาน + HR", isCaution: true },
       { text: "พนักงานสามารถติดตามสถานะหรือประสานงานหัวหน้า/HR เพื่อเร่งรัดการพิจารณาได้", isCaution: false }
     ]
   },
@@ -173,7 +173,25 @@ function getLeaveRules() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // อัปเดตข้อความกฎ 48 ชม. ที่บันทึกไว้ในเครื่องจากเวอร์ชันเก่า ("เกินกำหนด" → "ไม่อนุมัติ" อัตโนมัติ)
+        const OLD_OVERDUE = 'ระบบจะขึ้นสถานะ <b>"เกินกำหนด"</b>';
+        let migrated = false;
+        const walk = (node) => {
+          if (Array.isArray(node)) return node.map(walk);
+          if (node && typeof node === 'object') {
+            const out = {};
+            Object.keys(node).forEach((k) => { out[k] = walk(node[k]); });
+            return out;
+          }
+          if (typeof node === 'string' && node.indexOf(OLD_OVERDUE) !== -1) {
+            migrated = true;
+            return 'หากเกิน 2 วัน (48 ชั่วโมง) ระบบจะเปลี่ยนสถานะเป็น <b>"ไม่อนุมัติ"</b> อัตโนมัติ พร้อมข้อความ <i>"หมดเวลาพิจารณา"</i> และแจ้งพนักงาน + HR';
+          }
+          return node;
+        };
+        const fixed = walk(parsed);
+        if (migrated) saveLeaveRules(fixed);
+        return fixed;
       }
     }
   } catch (e) {

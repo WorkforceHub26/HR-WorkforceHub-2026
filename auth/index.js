@@ -84,6 +84,14 @@ window.getUserRoleCategory = window.getUserRoleCategory || function(userSession)
 };
 
 // 🚀 1. ฟังก์ชันย้ายหน้าจอตามสิทธิ์การใช้งาน (Role Routing)
+// 🚫 สถานะพนักงานที่ห้ามเข้าสู่ระบบ: ระงับ (inactive) / ลาออก-พ้นสภาพ (resigned) ฯลฯ
+// HR/Admin เปลี่ยนสถานะได้ที่ ระบบจัดการส่วนกลาง → แก้ไขข้อมูลพนักงาน → "สถานะการทำงาน"
+const PVT_BLOCKED_EMP_STATUSES = ['inactive', 'resigned', 'terminated', 'suspended'];
+function isBlockedEmployeeStatus(status) {
+  return PVT_BLOCKED_EMP_STATUSES.indexOf(String(status || '').toLowerCase().trim()) !== -1;
+}
+window.isBlockedEmployeeStatus = isBlockedEmployeeStatus;
+
 function redirectToDashboard(role, userObj) {
   const urlParams = new URLSearchParams(window.location.search);
   const redirectUrl = urlParams.get("redirect");
@@ -97,17 +105,19 @@ function redirectToDashboard(role, userObj) {
   }
 
   const cleanRole = String(role || '').toLowerCase().trim();
+  // ใช้กฎแบ่งบทบาทชุดเดียวกับตัวตรวจสิทธิ์หน้า (early-auth-guard) เพื่อไม่ให้ส่งไปหน้าที่จะถูกเด้งกลับ
+  // HR / ผู้บริหาร / Admin → หน้าหลัก HR · หัวหน้างาน / ผู้จัดการ / พนักงาน → หน้าหลักพนักงาน (หัวหน้ามีเมนูอนุมัติใบลา)
+  const sessionObj = userObj || { role: cleanRole };
   let userStatus = { category: 'employee' };
-  if (typeof window.getUserRoleCategory === "function") {
-    userStatus = window.getUserRoleCategory(userObj || { role: cleanRole });
+  if (typeof window.PVTGuardRoleCategory === "function") {
+    userStatus = window.PVTGuardRoleCategory(sessionObj);
+  } else if (typeof window.getUserRoleCategory === "function") {
+    userStatus = window.getUserRoleCategory(sessionObj);
   }
+  const loginCode = String(sessionObj.employee_code || sessionObj.employees?.employee_code || '').toLowerCase().trim();
+  const isHrExecUser = userStatus.category === 'hr_exec' || loginCode === 'admin' || loginCode.startsWith('hr-');
 
-  let targetPath = "/pages/user/index-user.html";
-  if (userStatus.category === 'hr_exec' || userStatus.category === 'leader_manager') {
-    targetPath = "/pages/hr/home.html";
-  } else {
-    targetPath = "/pages/user/index-user.html";
-  }
+  const targetPath = isHrExecUser ? "/pages/hr/home.html" : "/pages/user/index-user.html";
 
   sessionStorage.removeItem("redirect_attempt");
   const targetUrl = new URL(targetPath, window.location.origin).href;
@@ -333,7 +343,7 @@ async function autoSessionCheckAndRedirect() {
     if (rawSession && !hasRedirectAttempt) {
       const session = JSON.parse(rawSession);
       const isNotExpired = !session.expireAt || (Date.now() < session.expireAt);
-      const isStatusActive = String(session.status || "active").toLowerCase() === "active";
+      const isStatusActive = !isBlockedEmployeeStatus(session.status);
 
       if (session && (session.id || session.employee_code) && isNotExpired && isStatusActive) {
         showSessionVerifyingUI(true);
@@ -350,7 +360,7 @@ async function autoSessionCheckAndRedirect() {
               .maybeSingle();
 
             if (dbUser) {
-              if (String(dbUser.status || "").toLowerCase() === "inactive") {
+              if (isBlockedEmployeeStatus(dbUser.status)) {
                 // บัญชีถูกระงับสิทธิ์
                 localStorage.removeItem("currentUser");
                 sessionStorage.removeItem("redirect_attempt");
@@ -403,11 +413,11 @@ async function autoSessionCheckAndRedirect() {
           .or(lookupFilter)
           .maybeSingle();
 
-        if (empData && String(empData.status || "").toLowerCase() === "active") {
+        if (empData && !isBlockedEmployeeStatus(empData.status)) {
           saveUserSession(empData);
           redirectToDashboard(empData.role, empData);
           return true;
-        } else if (empData && String(empData.status || "").toLowerCase() === "inactive") {
+        } else if (empData && isBlockedEmployeeStatus(empData.status)) {
           localStorage.removeItem("currentUser");
           sessionStorage.removeItem("redirect_attempt");
           showSessionVerifyingUI(false);
@@ -450,7 +460,7 @@ const loginTranslations = {
     errInvalidCreds: "รหัสพนักงาน หรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง",
     errUserNotFound: "ไม่พบข้อมูลผู้ใช้งานในระบบ กรุณาตรวจสอบรหัสพนักงานหรือชื่ออีกครั้ง",
     errPassWrong: "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
-    errInactive: "บัญชีของคุณถูกระงับสิทธิ์การใช้งาน กรุณาติดต่อฝ่ายบุคคล (HR)",
+    errInactive: "บัญชีนี้ถูกปิดการใช้งาน (ระงับ / พ้นสภาพพนักงาน) กรุณาติดต่อฝ่ายบุคคล (HR)",
     errDbConn: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
     errMultipleUsers: "พบชื่อ-นามสกุลนี้ซ้ำกันในระบบ กรุณาใช้รหัสพนักงานเข้าสู่ระบบแทน",
     camWarnTitleOutdated: "⚠️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า",
@@ -529,7 +539,7 @@ const loginTranslations = {
     errInvalidCreds: "Invalid employee credentials. Please check and try again.",
     errUserNotFound: "Employee account not found. Please verify your employee ID.",
     errPassWrong: "Incorrect password. Please try again.",
-    errInactive: "Your account is inactive. Please contact the HR department.",
+    errInactive: "This account has been deactivated (suspended / no longer employed). Please contact HR.",
     errDbConn: "Unable to connect to database. Please try again later.",
     errMultipleUsers: "Multiple accounts found with this name. Please use your employee ID.",
     camWarnTitleOutdated: "⚠️ Warning: Your browser is outdated",
@@ -1049,7 +1059,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      if (String(user.status || "").toLowerCase() === "inactive") {
+      if (isBlockedEmployeeStatus(user.status)) {
         isLoginAuthenticating = false;
         setLoginBtnLoading(false);
         showLoginValidationError(i18n.errInactive || 'บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อฝ่ายบุคคล (HR)', {
@@ -1279,8 +1289,8 @@ async function executeSecureQrLogin(scannedData) {
 
     const user = users[0];
 
-    if (String(user.status || "").toLowerCase() !== "active") {
-      throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน (สถานะ: " + (user.status || "inactive") + ")");
+    if (isBlockedEmployeeStatus(user.status)) {
+      throw new Error("บัญชีนี้ถูกปิดการใช้งาน (ระงับ / พ้นสภาพพนักงาน) กรุณาติดต่อฝ่ายบุคคล (HR)");
     }
 
     // บันทึก Session สำเร็จ

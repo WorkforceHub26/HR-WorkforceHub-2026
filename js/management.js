@@ -2221,6 +2221,15 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                     <option value="admin" ${emp.role === 'admin' || emp.role === 'superadmin' ? 'selected' : ''}>🛡️ ผู้ดูแลระบบ (Admin)</option>
                   </select>
                 </div>
+                <div class="pvt-field-group" style="margin-top: 12px;">
+                  <label for="inline-edit-status">สถานะการทำงาน</label>
+                  <select id="inline-edit-status" class="pvt-select">
+                    <option value="active" ${!['inactive','resigned','terminated','suspended'].includes(String(emp.status || 'active').toLowerCase()) ? 'selected' : ''}>✅ ทำงานอยู่</option>
+                    <option value="resigned" ${['resigned','terminated'].includes(String(emp.status || '').toLowerCase()) ? 'selected' : ''}>🚪 ลาออก / พ้นสภาพ</option>
+                    <option value="inactive" ${['inactive','suspended'].includes(String(emp.status || '').toLowerCase()) ? 'selected' : ''}>⏸️ ระงับชั่วคราว</option>
+                  </select>
+                  <small style="display:block; margin-top:4px; font-size:11.5px; color:#64748b;">ลาออก / ระงับ = ปิดการเข้าสู่ระบบ พนักงานจะเข้าระบบไม่ได้ และถูกออกจากระบบอัตโนมัติ · ประวัติการลายังเก็บไว้ครบ</small>
+                </div>
               </div>
             </div>
 
@@ -2469,6 +2478,13 @@ async function saveEmployeeInlineEdit(employeeId) {
     employment_type: empType || null,
   };
 
+  // 🚪 สถานะการทำงาน (ลาออก / ระงับ → ปิดการเข้าสู่ระบบ)
+  const newStatus = document.getElementById('inline-edit-status')?.value;
+  const prevStatus = String(emp.status || 'active').toLowerCase();
+  if (newStatus && newStatus !== prevStatus) {
+    updateData.status = newStatus;
+  }
+
   const newPass = document.getElementById('inline-edit-password')?.value.trim();
   if (newPass) {
     updateData.password = newPass;
@@ -2499,7 +2515,11 @@ async function saveEmployeeInlineEdit(employeeId) {
   if (window.Swal) {
     const confirmResult = await Swal.fire({
       title: 'ยืนยันการบันทึกแก้ไขข้อมูลพนักงาน?',
-      html: `คุณกำลังจะอัปเดตข้อมูลของ <b>"${escapeHtml(name)}"</b> (${escapeHtml(code)})${moveNoteHtml}`,
+      html: `คุณกำลังจะอัปเดตข้อมูลของ <b>"${escapeHtml(name)}"</b> (${escapeHtml(code)})${moveNoteHtml}${
+        updateData.status && updateData.status !== 'active'
+          ? `<div style="margin-top:10px; padding:10px 12px; border-radius:10px; background:#fff7ed; color:#9a3412; font-size:13.5px; text-align:left;">⚠️ เปลี่ยนสถานะเป็น <b>${updateData.status === 'resigned' ? 'ลาออก / พ้นสภาพ' : 'ระงับชั่วคราว'}</b> — พนักงานคนนี้จะเข้าสู่ระบบไม่ได้ และหากเป็นผู้อนุมัติ ระบบจะข้ามไปในสายอนุมัติ</div>`
+          : (updateData.status === 'active' ? `<div style="margin-top:10px; padding:10px 12px; border-radius:10px; background:#ecfdf5; color:#065f46; font-size:13.5px; text-align:left;">✅ เปิดการใช้งานบัญชีนี้อีกครั้ง</div>` : '')
+      }`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#0fa472',

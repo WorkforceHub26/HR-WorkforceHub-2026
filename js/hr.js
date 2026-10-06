@@ -997,7 +997,7 @@ async function loadPendingLeavesHR(isSilent = false) {
           return {
             ...req,
             status: 'rejected',
-            approval_comment: req.approval_comment || 'เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)',
+            approval_comment: req.approval_comment || 'ไม่อนุมัติอัตโนมัติ: ไม่มีการพิจารณาภายในเวลาที่กำหนด (48 ชั่วโมง)',
             rejected_at: req.rejected_at || new Date().toISOString()
           };
         }

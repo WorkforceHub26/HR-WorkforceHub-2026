@@ -6,6 +6,11 @@
   try {
     var raw = localStorage.getItem("currentUser");
     var session = raw ? JSON.parse(raw) : null;
+    // บัญชีที่ถูกปิด (ระงับ / ลาออก) → ทิ้ง session ทันที ไม่ให้ใช้งานต่อ
+    if (session && ['inactive', 'resigned', 'terminated', 'suspended'].indexOf(String(session.status || '').toLowerCase()) !== -1) {
+      localStorage.removeItem("currentUser");
+      session = null;
+    }
     
     // Cloudflare Pages ตัด .html ออกจากลิงก์ (/pages/user/profile-user) → เติมกลับเพื่อให้เงื่อนไขเดิมทำงาน
     var path = (function (p) { return /^\/pages\//.test(p) && !/\.html$/i.test(p) && !/\/$/.test(p) ? p + '.html' : p; })(window.location.pathname).toLowerCase();
@@ -84,6 +89,8 @@
       return { isAuth: true, category: 'employee', role: role };
     }
 
+    // ให้หน้า Login ใช้กฎแบ่งบทบาทชุดเดียวกับตัวตรวจสิทธิ์ (กันพาไปหน้าแล้วโดนเด้งกลับ)
+    try { window.PVTGuardRoleCategory = getRoleCat; } catch (e) {}
     var status = getRoleCat(session);
     var currentEmpCode = session ? String(session.employee_code || (session.employees && session.employees.employee_code) || '').toLowerCase().trim() : '';
     var isHrExecUser = status.category === 'hr_exec' || currentEmpCode === 'admin' || currentEmpCode.startsWith('hr-');
