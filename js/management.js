@@ -353,7 +353,7 @@ function renderHeaderProfile() {
   if (nameEl) nameEl.textContent = profile.full_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "ผู้ใช้งาน";
   if (roleEl) roleEl.textContent = (profile.role || "User").toUpperCase();
   if (avatarEl) {
-    avatarEl.src = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(profile.image_url) : '/assets/img/default-avatar.jpg';
+    avatarEl.src = typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(profile.image_url, profile.title || profile.prefix || '', profile.gender || '', profile.full_name || '') : '/assets/img/avatar-male.jpg?v=2';
   }
 
   // ส่งชื่อ/รูปให้ Layout กลาง (layout.js) แสดงที่โปรไฟล์มุมขวาบน

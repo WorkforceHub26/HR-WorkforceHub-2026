@@ -430,7 +430,8 @@ function getAvatarUrl(imageUrl, title = "", gender = "", fullName = "") {
     fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
   }
 
-  if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== "" && imageUrl !== "null" && imageUrl !== "undefined" && imageUrl !== "/assets/img/default-avatar.jpg") {
+  const isPlaceholder = typeof window.pvtIsPlaceholderAvatar === 'function' ? window.pvtIsPlaceholderAvatar(imageUrl) : /default-avatar|avatar-(male|female)/i.test(String(imageUrl || ''));
+  if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== "" && imageUrl !== "null" && imageUrl !== "undefined" && !isPlaceholder) {
     let url = imageUrl.trim();
     if (!url.startsWith("http")) {
       const baseUrl = window.SUPABASE_URL || 'https://pgogmhqjdchakcytsomx.supabase.co';
@@ -910,7 +911,7 @@ async function loadPendingLeavesHR(isSilent = false) {
       .select(`
         *,
         employees!employee_id ( 
-          id, full_name, employee_code, nickname, role, image_url,
+          id, full_name, employee_code, nickname, role, image_url, title, prefix,
           department_id, l1_approver_id, l2_approver_id, l3_approver_id,
           departments!department_id (id, department_name), 
           positions!position_id (position_name, level_type) 
@@ -925,7 +926,7 @@ async function loadPendingLeavesHR(isSilent = false) {
       if (simpleRes.data && simpleRes.data.length > 0) {
         try {
           const [empsRes, typesRes, deptsRes] = await Promise.all([
-            sb.from("employees").select("id, full_name, employee_code, nickname, role, image_url, department_id, l1_approver_id, l2_approver_id, l3_approver_id, departments!department_id(id, department_name), positions!position_id(position_name, level_type)"),
+            sb.from("employees").select("id, full_name, employee_code, nickname, role, image_url, title, prefix, department_id, l1_approver_id, l2_approver_id, l3_approver_id, departments!department_id(id, department_name), positions!position_id(position_name, level_type)"),
             sb.from("leave_types").select("id, leave_name, leave_code"),
             sb.from("departments").select("id, department_name")
           ]);
@@ -1541,7 +1542,9 @@ function renderLeaveTable() {
 
     const startDate = formatThaiDate(req.start_date);
     const endDate = formatThaiDate(req.end_date);
-    const avatarUrl = getAvatarUrl(req.employees?.image_url);
+    const avatarUrl = getAvatarUrl(req.employees || null);
+    const avTitle = req.employees?.title || req.employees?.prefix || '';
+    const avName = req.employees?.full_name || '';
     const rawDays = req.actual_days || req.days_requested || req.total_days || 0;
     const leaveHours = req.leave_hours || 0;
     let durationText = `${rawDays} วัน`;
@@ -1634,7 +1637,7 @@ function renderLeaveTable() {
         <!-- Zone 1: Profile & Emp Info -->
         <div class="card-zone profile-zone" style="display: flex; align-items: center;">
           ${checkboxHTML}
-          <img src="${avatarUrl}" class="card-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
+          <img src="${avatarUrl}" class="card-avatar" data-av-title="${avTitle}" data-av-name="${avName}" onerror="pvtAvatarError(this)">
           <div class="profile-info">
             <span class="emp-code">#${empCode}</span>
             <strong class="emp-name">${empName}</strong>
@@ -1830,7 +1833,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
   }
 
   const emp = req.employees || {};
-  const avatarUrl = getAvatarUrl(emp.image_url);
+  const avatarUrl = getAvatarUrl(emp);
   const displayDays = req.actual_days || req.days_requested || req.total_days || 0;
   const friendlyDuration = window.PVTSDK?.formatLeaveDurationFriendly ? window.PVTSDK.formatLeaveDurationFriendly(displayDays, req.leave_hours || 0) : `${displayDays} วัน`;
   const leaveName = req.leave_types ? req.leave_types.leave_name : "ไม่ระบุประเภทการลา";
@@ -1843,7 +1846,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
 
   modalBody.innerHTML = `
     <div class="preview-user-card">
-      <img src="${avatarUrl}" class="preview-avatar" onerror="this.src='/assets/img/default-avatar.jpg';">
+      <img src="${avatarUrl}" class="preview-avatar" data-av-title="${emp.title || emp.prefix || ''}" data-av-name="${emp.full_name || ''}" onerror="pvtAvatarError(this)">
       <div class="preview-user-info">
         <h4>${emp.full_name || 'ไม่ระบุชื่อ'} ${emp.nickname ? `(${emp.nickname})` : ''}</h4>
         <p>รหัสพนักงาน: <strong>${emp.employee_code || '-'}</strong> | แผนก: ${emp.departments?.department_name || '-'} | ตำแหน่ง: ${emp.positions?.position_name || '-'}</p>

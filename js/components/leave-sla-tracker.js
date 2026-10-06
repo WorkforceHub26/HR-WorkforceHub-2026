@@ -248,7 +248,7 @@
         dept: 'ทั่วไป',
         position: '',
         nickname: '',
-        avatar: '/assets/img/default-avatar.jpg'
+        avatar: '/assets/img/avatar-male.jpg?v=2', avTitle: '', avName: ''
       };
     }
 
@@ -279,12 +279,13 @@
 
     const position = (emp.positions && emp.positions.position_name) || req.position_name || emp.position || '';
 
-    let avatar = emp.image_url || usr.avatar_url || usr.image_url || prof.avatar_url || req.avatar_url || req.image_url || '';
-    if (!avatar || avatar.trim() === '') {
-      avatar = '/assets/img/default-avatar.jpg';
-    } else if (typeof window.getAvatarUrl === 'function') {
-      avatar = window.getAvatarUrl(avatar);
-    }
+    // รูปโปรไฟล์: ไม่มีรูป → รูปเริ่มต้นตามเพศ (คำนำหน้า)
+    const avTitle = emp.title || emp.prefix || req.title || '';
+    const avName = emp.full_name || name || '';
+    const rawAvatar = emp.image_url || usr.avatar_url || usr.image_url || prof.avatar_url || req.avatar_url || req.image_url || '';
+    const avatar = typeof window.getAvatarUrl === 'function'
+      ? window.getAvatarUrl(rawAvatar, avTitle, emp.gender || '', avName)
+      : (rawAvatar || '/assets/img/avatar-male.jpg?v=2');
 
     return {
       name,
@@ -292,7 +293,9 @@
       dept,
       position,
       nickname,
-      avatar
+      avatar,
+      avTitle,
+      avName
     };
   }
 
@@ -521,7 +524,7 @@
             <!-- Card Top: User Info -->
             <div class="sla-card-top">
               <div class="sla-user-profile">
-                <img src="${emp.avatar}" class="sla-user-avatar" onerror="this.src='/assets/img/default-avatar.jpg';" alt="${escapeHtml(displayName)}">
+                <img src="${emp.avatar}" class="sla-user-avatar" data-av-title="${escapeHtml(emp.avTitle || '')}" data-av-name="${escapeHtml(emp.avName || '')}" onerror="pvtAvatarError(this)" alt=""${escapeHtml(displayName)}">
                 <div class="sla-user-text">
                   <h4 class="sla-user-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</h4>
                   <div class="sla-user-sub">
@@ -813,7 +816,7 @@
       <div style="text-align: left; font-family: 'Sarabun', sans-serif; color: #1e293b;">
         <!-- Employee Profile Header -->
         <div style="display: flex; align-items: center; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; margin-bottom: 14px;">
-          <img src="${emp.avatar}" onerror="this.src='/assets/img/default-avatar.jpg';" style="width: 54px; height: 54px; border-radius: 12px; object-fit: cover; border: 2px solid #cbd5e1; background: #f1f5f9; flex-shrink: 0;" />
+          <img src="${emp.avatar}" data-av-title="${escapeHtml(emp.avTitle || '')}" data-av-name="${escapeHtml(emp.avName || '')}" onerror="pvtAvatarError(this)" style="width: 54px; height: 54px; border-radius: 12px; object-fit: cover; border: 2px solid #cbd5e1; background: #f1f5f9; flex-shrink: 0;" />
           <div style="min-width: 0; flex: 1;">
             <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #0f172a; line-height: 1.3;">
               ${escapeHtml(emp.name)} ${emp.nickname ? `<span style="font-size: 14px; font-weight: 500; color: #64748b;">(${escapeHtml(emp.nickname)})</span>` : ''}

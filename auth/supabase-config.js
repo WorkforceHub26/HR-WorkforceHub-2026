@@ -161,6 +161,81 @@
   }
 
   // ==========================================================================
+  // 0.1 รูปโปรไฟล์เริ่มต้นตามเพศ (ใช้ทั้งระบบ)
+  //   - รูปจริงไม่มี/เสีย หรือเป็นรูปการ์ตูนเริ่มต้น → avatar-male.jpg / avatar-female.jpg ตามคำนำหน้า
+  //   - <img> ใส่ data-av-title / data-av-name (และ data-av-gender) เพื่อบอกเพศ
+  //   - กันพลาดทั้งระบบ: รูปใดที่ยังเป็น default-avatar.jpg จะถูกเปลี่ยนเป็นรูปตามเพศอัตโนมัติ
+  // ==========================================================================
+  global.PVT_AVATAR_PLACEHOLDER_RE = /(^|\/)(assets\/img\/)?(default-avatar|avatar-male|avatar-female)\.(jpe?g|png|webp)(\?.*)?$/i;
+  global.pvtIsPlaceholderAvatar = function(url) {
+    const u = String(url || '').trim();
+    return !u || u === 'null' || u === 'undefined' || global.PVT_AVATAR_PLACEHOLDER_RE.test(u);
+  };
+
+  const SELF_AVATAR_IDS = /^(userAvatar|userAvatarHeader|headerUserAvatar|userProfileAvatar|profileAvatarImg|drawerAvatar|pvtDrawerAvatar)$/;
+  function sessionPerson() {
+    try {
+      const s = JSON.parse(localStorage.getItem('currentUser') || 'null') || {};
+      const e = s.employees || s;
+      return { title: s.title || e.title || s.prefix || e.prefix || '', gender: s.gender || e.gender || '', name: s.full_name || e.full_name || s.name || '' };
+    } catch (e) { return { title: '', gender: '', name: '' }; }
+  }
+  function genderedDefaultFor(img) {
+    const d = (img && img.dataset) || {};
+    let title = d.avTitle || '', gender = d.avGender || '', name = d.avName || '';
+    if (!title && !gender && !name && img && SELF_AVATAR_IDS.test(img.id || '')) {
+      const p = sessionPerson(); title = p.title; gender = p.gender; name = p.name;
+    }
+    if (!name && img && img.alt && !/^(profile|avatar|pvt|employee photo|รูป)/i.test(img.alt)) name = img.alt;
+    return global.getDefaultAvatarUrl(title, gender, name);
+  }
+  // ใช้ใน onerror="pvtAvatarError(this)"
+  global.pvtAvatarError = function(img) {
+    if (!img) return;
+    img.onerror = null;
+    const url = genderedDefaultFor(img);
+    if (img.getAttribute('src') !== url) img.setAttribute('src', url);
+  };
+  function fixDefaultAvatarImg(img) {
+    if (!img || img.tagName !== 'IMG') return;
+    const src = img.getAttribute('src') || '';
+    if (/default-avatar\.jpe?g/i.test(src)) {
+      const url = genderedDefaultFor(img);
+      if (src !== url) img.setAttribute('src', url);
+    }
+  }
+  function startAvatarGuard() {
+    if (global.__pvtAvatarGuard || typeof document === 'undefined' || !document.body) return;
+    global.__pvtAvatarGuard = true;
+    document.querySelectorAll('img[src*="default-avatar"]').forEach(fixDefaultAvatarImg);
+    try {
+      new MutationObserver((muts) => {
+        for (const m of muts) {
+          if (m.type === 'attributes') { fixDefaultAvatarImg(m.target); continue; }
+          m.addedNodes.forEach((n) => {
+            if (n.nodeType !== 1) return;
+            if (n.tagName === 'IMG') fixDefaultAvatarImg(n);
+            else if (n.querySelectorAll) n.querySelectorAll('img[src*="default-avatar"]').forEach(fixDefaultAvatarImg);
+          });
+        }
+      }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
+    } catch (e) {}
+    // รูปโปรไฟล์จริงโหลดไม่ได้ (ไฟล์หาย/ลิงก์เสีย) → รูปตามเพศ
+    document.addEventListener('error', (ev) => {
+      const img = ev.target;
+      if (!img || img.tagName !== 'IMG') return;
+      const src = img.getAttribute('src') || '';
+      if (global.PVT_AVATAR_PLACEHOLDER_RE.test(src)) return;
+      const looksAvatar = img.dataset.avName !== undefined || img.dataset.avTitle !== undefined || SELF_AVATAR_IDS.test(img.id || '') ||
+        /employee-images|self-avatars/i.test(src) || /avatar/i.test(img.className || '');
+      if (looksAvatar) global.pvtAvatarError(img);
+    }, true);
+  }
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startAvatarGuard); else startAvatarGuard();
+  }
+
+  // ==========================================================================
   // 1. SMART CACHE ENGINE (Storage + Memory + Tag Invalidation)
   // ==========================================================================
   class CacheEngine {
@@ -536,7 +611,7 @@
       }
       // รูปการ์ตูนเริ่มต้นที่เคยถูกบันทึกลงฐานข้อมูล (avatar-male / avatar-female / default-avatar) ไม่นับเป็นรูปจริง
       // → เลือกใหม่ตามคำนำหน้า (เดิมถ้าบันทึกรูปผู้ชายไว้ ผู้หญิงจะได้รูปผู้ชายตลอด)
-      const isPlaceholderAvatar = /\/assets\/img\/(avatar-(male|female)|default-avatar)\.jpg/i.test(String(imageUrl || ""));
+      const isPlaceholderAvatar = global.pvtIsPlaceholderAvatar(imageUrl);
       if (!imageUrl || !String(imageUrl).trim() || imageUrl === "null" || imageUrl === "undefined" || isPlaceholderAvatar) {
         return typeof window.getDefaultAvatarUrl === "function" 
           ? window.getDefaultAvatarUrl(title, gender, fullName) 
@@ -2769,8 +2844,8 @@ class LineOAEngine {
     if (global.PVTSDK?.storage?.getAvatarUrl) {
       return global.PVTSDK.storage.getAvatarUrl(imageUrl, title, gender, fullName);
     }
-    if (!imageUrl || imageUrl === "null" || imageUrl === "undefined" || imageUrl === "/assets/img/default-avatar.jpg") {
-      return typeof global.getDefaultAvatarUrl === 'function' ? global.getDefaultAvatarUrl(title, gender, fullName) : '/assets/img/default-avatar.jpg';
+    if (global.pvtIsPlaceholderAvatar(imageUrl)) {
+      return global.getDefaultAvatarUrl(title, gender, fullName);
     }
     let url = String(imageUrl).trim();
     if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
