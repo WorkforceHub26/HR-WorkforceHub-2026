@@ -399,7 +399,7 @@ function applyRoleBasedUI() {
         const pageSubTitle = document.getElementById("pageSubTitle");
         if (pageSubTitle) pageSubTitle.textContent = "ฝ่ายบุคคล-ธุรการ (อนุมัติเฉพาะคนในแผนก)";
       } else {
-        roleBadge.textContent = currentRole === "manager" ? "ผู้จัดการอนุมัติ (L2)" : "หัวหน้างานอนุมัติ (L1)";
+        roleBadge.textContent = currentRole === "manager" ? "ผู้จัดการอนุมัติ (ลำดับที่ 2)" : "หัวหน้างานอนุมัติ (ลำดับที่ 1)";
       }
       roleBadge.className = "status-badge status-pending";
     }
@@ -516,9 +516,9 @@ function resolveRequestChain(req) {
 }
 
 function stepInfoForRole(role) {
-  if (role === 'leader') return { level: 'L1', label: 'หัวหน้างาน (L1)' };
-  if (role === 'manager') return { level: 'L2', label: 'ผู้จัดการ (L2)' };
-  if (role === 'executive' || role === 'director' || role === 'owner') return { level: 'L3', label: 'ผู้บริหาร (L3)' };
+  if (role === 'leader') return { level: 'L1', label: 'หัวหน้างาน (ลำดับที่ 1)' };
+  if (role === 'manager') return { level: 'L2', label: 'ผู้จัดการ (ลำดับที่ 2)' };
+  if (role === 'executive' || role === 'director' || role === 'owner') return { level: 'L3', label: 'ผู้บริหาร (ลำดับที่ 3)' };
   return { level: 'HR', label: 'ฝ่ายบุคคล (HR/Admin)' };
 }
 
@@ -848,8 +848,8 @@ function getApprovalWorkflowSteps(req) {
   if (hasL1) {
     steps.push({
       role: 'leader',
-      shortName: 'หัวหน้าแผนก (L1)',
-      fullName: 'หัวหน้างานชั้นต้น (L1: Leader / Supervisor)',
+      shortName: 'หัวหน้าแผนก (ลำดับที่ 1)',
+      fullName: 'หัวหน้างานชั้นต้น (ลำดับที่ 1: Leader / Supervisor)',
       status: req.manager_status || 'pending'
     });
   }
@@ -857,8 +857,8 @@ function getApprovalWorkflowSteps(req) {
   if (hasL2) {
     steps.push({
       role: 'manager',
-      shortName: 'ผู้จัดการฝ่าย (L2)',
-      fullName: 'ผู้จัดการฝ่าย (L2: Director / Manager)',
+      shortName: 'ผู้จัดการฝ่าย (ลำดับที่ 2)',
+      fullName: 'ผู้จัดการฝ่าย (ลำดับที่ 2: Director / Manager)',
       status: req.director_status || 'pending'
     });
   }
@@ -866,8 +866,8 @@ function getApprovalWorkflowSteps(req) {
   if (hasExecutive) {
     steps.push({
       role: 'executive',
-      shortName: 'ผู้บริหาร (L3)',
-      fullName: 'ผู้บริหารสูงสุด (L3: Executive / MD)',
+      shortName: 'ผู้บริหาร (ลำดับที่ 3)',
+      fullName: 'ผู้บริหารสูงสุด (ลำดับที่ 3: Executive / MD)',
       status: req.executive_status || 'pending'
     });
   }
@@ -1023,7 +1023,7 @@ async function loadPendingLeavesHR(isSilent = false) {
           
           // ปิดการ "ปรับเป็นอนุมัติเอง" (เดิมไม่มีผู้อนุมัติ/ไม่ตัดวันลา) → ให้ HR กดอนุมัติจริงเพื่อมีหลักฐาน
           if (false && allApproved && !isWaitingExecutive) {
-            console.log(`💡 [Auto-Healing] ใบลา #${req.id} ผ่านการอนุมัติครบทุกระดับชั้นแล้ว (L1-L3) → ปรับสถานะเป็นอนุมัติเสร็จสิ้นโดยอัตโนมัติ`);
+            console.log(`💡 [Auto-Healing] ใบลา #${req.id} ผ่านการอนุมัติครบทุกระดับชั้นแล้ว (ลำดับที่ 1–3) → ปรับสถานะเป็นอนุมัติเสร็จสิ้นโดยอัตโนมัติ`);
             // ยิงอัปเดตลงดาต้าเบสในเบื้องหลังแบบ non-blocking
             const sb = window.PVTSDK?.supabase;
             if (sb) {
@@ -1370,7 +1370,7 @@ function canApproveStep(req, role, silent = false) {
     return false;
   }
   if (role === 'manager' && !isL1Approved && chain.l1 && chain.l1 !== me) {
-    warn('รอหัวหน้างานพิจารณาก่อน', 'ใบลานี้ยังรอหัวหน้างาน (L1) พิจารณา เมื่อหัวหน้างานอนุมัติแล้วระบบจะแจ้งให้ท่านพิจารณาต่อ', 'info');
+    warn('รอหัวหน้างานพิจารณาก่อน', 'ใบลานี้ยังรอหัวหน้างาน (ลำดับที่ 1) พิจารณา เมื่อหัวหน้างานอนุมัติแล้วระบบจะแจ้งให้ท่านพิจารณาต่อ', 'info');
     return false;
   }
   if (role === 'manager' && isL2Approved) {
@@ -1381,7 +1381,7 @@ function canApproveStep(req, role, silent = false) {
   // 🔵 3. กรณีหัวหน้างาน (L1 Leader) กำลังพิจารณา
   if (role === 'leader') {
     if (isL1Approved) {
-      warn('ดำเนินการแล้ว', 'คำขอนี้หัวหน้างาน (L1) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/ผู้บริหาร', 'info');
+      warn('ดำเนินการแล้ว', 'คำขอนี้หัวหน้างาน (ลำดับที่ 1) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/ผู้บริหาร', 'info');
       return false;
     }
   }
@@ -1413,9 +1413,9 @@ function renderLeaveTable() {
       selectFilter.innerHTML = `
         <option value="all">-- แสดงทั้งหมด --</option>
         <option value="overdue">⚠️ ค้างพิจารณาเกิน 2 วัน (เกินกำหนด)</option>
-        <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
-        <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
-        <option value="pending_executive">3. ผู้จัดการผ่านแล้ว / รอผู้บริหารอนุมัติ (L3)</option>
+        <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (ลำดับที่ 1)</option>
+        <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (ลำดับที่ 2)</option>
+        <option value="pending_executive">3. ผู้จัดการผ่านแล้ว / รอผู้บริหารอนุมัติ (ลำดับที่ 3)</option>
         <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
         <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
       `;
@@ -1424,8 +1424,8 @@ function renderLeaveTable() {
       selectFilter.innerHTML = `
         <option value="all">-- แสดงทั้งหมด --</option>
         <option value="overdue">⚠️ ค้างพิจารณาเกิน 2 วัน (เกินกำหนด)</option>
-        <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (L1)</option>
-        <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (L2)</option>
+        <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (ลำดับที่ 1)</option>
+        <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (ลำดับที่ 2)</option>
         <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
         <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
       `;
@@ -1727,7 +1727,7 @@ function renderLeaveTable() {
     <div class="leave-list-header">
       <div class="col-profile">ผู้ขอลา / ข้อมูลพนักงาน</div>
       <div class="col-details">รายละเอียดการลา / ช่วงเวลา</div>
-      <div class="col-status-group">สถานะการอนุมัติ (L1-L3)</div>
+      <div class="col-status-group">สถานะการอนุมัติ (ลำดับที่ 1–3)</div>
       <div class="col-actions">การจัดการ</div>
     </div>
   `;
@@ -2150,8 +2150,8 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
 
 const AUDIT_ACTION_UI = {
   submitted:        { icon: 'send',          color: '#2563eb', text: 'ยื่นใบลา' },
-  step_approved:    { icon: 'check',         color: '#0f766e', text: 'อนุมัติขั้นนี้ (ส่งต่อขั้นถัดไป)' },
-  approved:         { icon: 'verified',      color: '#15803d', text: 'อนุมัติขั้นสุดท้าย' },
+  step_approved:    { icon: 'check',         color: '#0f766e', text: 'อนุมัติแล้ว (ส่งต่อลำดับถัดไป)' },
+  approved:         { icon: 'verified',      color: '#15803d', text: 'อนุมัติลำดับสุดท้าย' },
   rejected:         { icon: 'close',         color: '#dc2626', text: 'ไม่อนุมัติ' },
   auto_rejected:    { icon: 'timer_off',     color: '#b45309', text: 'ไม่อนุมัติอัตโนมัติ (ค้างเกิน 48 ชม.)' },
   cancelled:        { icon: 'block',         color: '#64748b', text: 'ยกเลิกใบลา' },
@@ -2421,7 +2421,7 @@ async function performApprovalStep(reqData) {
 
   // 🧾 หลักฐาน + แจ้ง HR เมื่อจบ
   const step = isExecActor ? stepInfoForRole('executive') : stepInfoForRole(actRole);
-  const stepLabel = (currentRole === 'leader' && actRole === 'manager') ? 'หัวหน้างาน + ผู้จัดการ (L1+L2 คนเดียวกัน)' : step.label;
+  const stepLabel = (currentRole === 'leader' && actRole === 'manager') ? 'หัวหน้างาน + ผู้จัดการ (ลำดับที่ 1+2 คนเดียวกัน)' : step.label;
   const auditOpts = {
     stepLevel: step.level, stepLabel, comment: delegationNote || null,
     statusBefore: reqData.status || 'pending', statusAfter: isFinal ? 'approved' : 'pending',
@@ -2555,11 +2555,11 @@ async function approveLeave(leaveId) {
   if (!canApproveStep(reqData, currentRole)) return;
 
   const roleTitle = currentRole === 'leader' 
-    ? 'หัวหน้างาน (L1)' 
+    ? 'หัวหน้างาน (ลำดับที่ 1)' 
     : currentRole === 'manager' 
-    ? 'ผู้จัดการฝ่าย (L2)' 
+    ? 'ผู้จัดการฝ่าย (ลำดับที่ 2)' 
     : (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner')
-    ? 'ผู้บริหาร (L3)'
+    ? 'ผู้บริหาร (ลำดับที่ 3)'
     : 'ฝ่ายบุคคล HR / Admin';
 
   // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการอนุมัติเพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
@@ -2663,7 +2663,7 @@ async function approveLeave(leaveId) {
         confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     } else {
-      await Swal.fire('อนุมัติขั้นนี้แล้ว', outcome.nextLabel ? `ระบบส่งต่อให้ "${outcome.nextLabel}" พิจารณาแล้ว` : 'ระบบส่งต่อให้ผู้อนุมัติขั้นถัดไปพิจารณาแล้ว', 'success');
+      await Swal.fire('อนุมัติแล้ว ส่งต่อลำดับถัดไป', outcome.nextLabel ? `ระบบส่งต่อให้ "${outcome.nextLabel}" พิจารณาแล้ว` : 'ระบบส่งต่อให้ผู้อนุมัติขั้นถัดไปพิจารณาแล้ว', 'success');
     }
     loadPendingLeavesHR();
 
@@ -2679,11 +2679,11 @@ async function rejectLeave(leaveId) {
   if (!canApproveStep(reqData, currentRole)) return;
 
   const roleTitle = currentRole === 'leader' 
-    ? 'หัวหน้างาน (L1)' 
+    ? 'หัวหน้างาน (ลำดับที่ 1)' 
     : currentRole === 'manager' 
-    ? 'ผู้จัดการฝ่าย (L2)' 
+    ? 'ผู้จัดการฝ่าย (ลำดับที่ 2)' 
     : (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner')
-    ? 'ผู้บริหาร (L3)'
+    ? 'ผู้บริหาร (ลำดับที่ 3)'
     : 'ฝ่ายบุคคล HR / Admin';
 
   const summaryHtml = buildLeaveActionConfirmDialogHtml(reqData, roleTitle, 'reject');
@@ -3394,27 +3394,27 @@ async function printLeaveA4(leaveId) {
               <div class="sig-space">
                 ${req.manager_status === 'approved' ? `
                   <div class="digital-stamp">
-                    APPROVED L1<br>
+                    APPROVED Step 1<br>
                     <span style="font-size:7px; font-weight:normal;">ผ่านระบบออนไลน์</span>
                   </div>
                 ` : '<div class="sig-line"></div>'}
               </div>
-              <div class="sig-name">${req.manager_status === 'approved' ? 'อนุมัติโดยผู้จัดการ (L1)' : '( .................................................. )'}</div>
+              <div class="sig-name">${req.manager_status === 'approved' ? 'อนุมัติโดยผู้จัดการ (ลำดับที่ 1)' : '( .................................................. )'}</div>
               <div class="sig-line" style="margin-top: 4px;"></div>
-              <div class="sig-title">หัวหน้างาน / ผู้จัดการ (L1)</div>
+              <div class="sig-title">หัวหน้างาน / ผู้จัดการ (ลำดับที่ 1)</div>
             </div>
             <div class="sig-box">
               <div class="sig-space">
                 ${req.status === 'approved' ? `
                   <div class="digital-stamp" style="border-color: var(--th-p-700, #0f766e); color: var(--th-p-700, #0f766e);">
-                    APPROVED L2 (HR)<br>
+                    APPROVED Step 2 (HR)<br>
                     <span style="font-size:7px; font-weight:normal;">ผ่านระบบอนุมัติกลาง</span>
                   </div>
                 ` : '<div class="sig-line"></div>'}
               </div>
               <div class="sig-name">${req.status === 'approved' ? 'ฝ่ายทรัพยากรบุคคล' : '( .................................................. )'}</div>
               <div class="sig-line" style="margin-top: 4px;"></div>
-              <div class="sig-title">ฝ่ายทรัพยากรบุคคล (HR L2)</div>
+              <div class="sig-title">ฝ่ายทรัพยากรบุคคล (HR ลำดับที่ 2)</div>
             </div>
           </div>
  
@@ -3827,9 +3827,9 @@ async function exportLeaveReportExcel() {
         "วันที่สิ้นสุด",
         "จำนวนวันลา",
         "เหตุผลการลา",
-        "สถานะหัวหน้า (L1)",
-        "สถานะผู้จัดการ (L2)",
-        "สถานะสุดท้าย HR (L3)",
+        "สถานะหัวหน้า (ลำดับที่ 1)",
+        "สถานะผู้จัดการ (ลำดับที่ 2)",
+        "สถานะสุดท้าย HR (ลำดับที่ 3)",
         "วันที่ยื่นคำขอ"
       ];
 
@@ -3937,9 +3937,9 @@ async function exportLeaveReportExcel() {
         { width: 16 },  // สิ้นสุด
         { width: 14 },  // จำนวนวัน
         { width: 30 },  // เหตุผล
-        { width: 18 },  // L1
-        { width: 18 },  // L2
-        { width: 22 },  // L3
+        { width: 18 },  // Step 1
+        { width: 18 },  // Step 2
+        { width: 22 },  // Step 3
         { width: 16 }   // วันที่ยื่น
       ];
     }

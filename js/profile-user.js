@@ -401,50 +401,11 @@ async function generateLineLinkCode() {
 
   try {
     let code = "";
-    let created = false;
-
-    // 1. Try server API (/api/create-line-link) first
     try {
-      const apiRes = await fetch("/api/create-line-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: emp.id })
-      });
-      if (apiRes.status === 403) { if (window.PVTLine) { window.PVTLine.clearCache(); await window.PVTLine.guard(); } return; }
-      if (apiRes.ok) {
-        const apiData = await apiRes.json();
-        if (apiData.success && apiData.token) {
-          code = apiData.token;
-          created = true;
-        }
-      }
-    } catch (e) {}
-
-    // 2. Fallback to direct client insert if API is unavailable
-    if (!created && client) {
-      code = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-      try {
-        await client.from('line_link_tokens').delete().eq('employee_id', emp.id);
-      } catch (e) {}
-
-      const { error } = await client
-        .from('line_link_tokens')
-        .insert([
-          { 
-            employee_id: emp.id, 
-            token: code,
-            link_code: code,
-            expires_at: expiresAt 
-          }
-        ]);
-
-      if (!error) created = true;
-    }
-
-    if (!code) {
-      throw new Error("ไม่สามารถสร้างรหัสเชื่อมต่อ LINE ได้");
+      code = (await window.PVTLine.createLinkCode(emp.id)).code;
+    } catch (genErr) {
+      if (genErr && genErr.code === 'line_not_allowed') { window.PVTLine.clearCache(); await window.PVTLine.guard(); return; }
+      throw genErr;
     }
 
     Swal.fire({
@@ -455,7 +416,7 @@ async function generateLineLinkCode() {
         </div>
         <p style="font-size: 14px; color: #64748b;">
           กรุณาส่งรหัสนี้ไปยัง LINE Official Account ของบริษัท<br>
-          รหัสมีอายุใช้งาน 10 นาที
+          รหัสมีอายุใช้งาน 15 นาที · ส่งครั้งเดียวพอ
         </p>
       `,
       icon: 'info',

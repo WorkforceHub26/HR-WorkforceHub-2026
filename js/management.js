@@ -2214,9 +2214,9 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                   <label for="inline-edit-system-role" style="color: var(--th-p-600, #0d9488);">👑 สิทธิ์ในระบบ <span class="req">*</span></label>
                   <select id="inline-edit-system-role" class="pvt-select pvt-select-highlight" onchange="window.updateEmployeeEditFormRequirements()">
                     <option value="user" ${emp.role === 'user' || !emp.role ? 'selected' : ''}>👤 พนักงานทั่วไป (Employee)</option>
-                    <option value="leader" ${emp.role === 'leader' ? 'selected' : ''}>🎖️ หัวหน้างาน (Supervisor - L1)</option>
-                    <option value="manager" ${emp.role === 'manager' ? 'selected' : ''}>👔 ผู้จัดการฝ่าย (Manager - L2)</option>
-                    <option value="executive" ${emp.role === 'executive' || emp.role === 'director' || emp.role === 'owner' ? 'selected' : ''}>⭐ ผู้บริหารระดับสูง (Executive - L3)</option>
+                    <option value="leader" ${emp.role === 'leader' ? 'selected' : ''}>🎖️ หัวหน้างาน (Supervisor)</option>
+                    <option value="manager" ${emp.role === 'manager' ? 'selected' : ''}>👔 ผู้จัดการฝ่าย (Manager)</option>
+                    <option value="executive" ${emp.role === 'executive' || emp.role === 'director' || emp.role === 'owner' ? 'selected' : ''}>⭐ ผู้บริหารระดับสูง (Executive)</option>
                     <option value="hr" ${emp.role === 'hr' ? 'selected' : ''}>📋 ฝ่ายบุคคล (HR Officer)</option>
                     <option value="admin" ${emp.role === 'admin' || emp.role === 'superadmin' ? 'selected' : ''}>🛡️ ผู้ดูแลระบบ (Admin)</option>
                   </select>
@@ -3132,9 +3132,9 @@ window.addNewEmployee = async function addNewEmployee() {
                     <label for="swal-system-role" style="color: var(--th-p-600, #0d9488);">👑 สิทธิ์ในระบบ (System Role) <span class="req">*</span></label>
                     <select id="swal-system-role" class="pvt-select pvt-select-highlight" onchange="window.updateEmployeeFormRequirements()">
                       <option value="user" selected>👤 พนักงานทั่วไป (Employee / Staff)</option>
-                      <option value="leader">🎖️ หัวหน้างาน (Supervisor / Leader - L1)</option>
-                      <option value="manager">👔 ผู้จัดการฝ่าย (Department Manager - L2)</option>
-                      <option value="executive">⭐ ผู้บริหารระดับสูง (Executive - L3)</option>
+                      <option value="leader">🎖️ หัวหน้างาน (Supervisor / Leader)</option>
+                      <option value="manager">👔 ผู้จัดการฝ่าย (Department Manager)</option>
+                      <option value="executive">⭐ ผู้บริหารระดับสูง (Executive)</option>
                       <option value="hr">📋 ฝ่ายบุคคล (HR Officer)</option>
                       <option value="admin">🛡️ ผู้ดูแลระบบ (System Admin)</option>
                     </select>
@@ -6545,8 +6545,8 @@ async function testLineNotificationFromHR() {
 
       '<div style="text-align: left; margin-bottom: 8px;"><label style="font-size: 13px; font-weight: 600; color: #1e293b;">📊 ประเภทดีไซน์สลิปทดสอบ:</label></div>' +
       '<select id="swal-input-type" class="swal2-input" style="margin-top: 0; width: 85%; font-size: 14px; padding: 10px; height: 42px;">' +
-        '<option value="NEW_REQUEST">คำขอใหม่ (รออนุมัติ L1)</option>' +
-        '<option value="LEADER_APPROVED">ผ่านอนุมัติขั้นต้น (รอ L2)</option>' +
+        '<option value="NEW_REQUEST">คำขอใหม่ (รออนุมัติ ลำดับที่ 1)</option>' +
+        '<option value="LEADER_APPROVED">ผ่านอนุมัติขั้นต้น (รอลำดับที่ 2)</option>' +
         '<option value="MANAGER_APPROVED">ผ่านอนุมัติผู้จัดการ (สำเร็จ)</option>' +
         '<option value="FINAL_APPROVED">อนุมัติเสร็จสมบูรณ์</option>' +
         '<option value="REJECTED">คำขอลาไม่อนุมัติ</option>' +

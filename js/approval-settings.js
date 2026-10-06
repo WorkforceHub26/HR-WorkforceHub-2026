@@ -464,7 +464,7 @@ function buildSupervisorOptions(departmentId, selectedId) {
   const allLeaders = employees.filter(e => isLeaderCandidate(e) && e.status !== 'resigned');
 
   let html = "";
-  html += `<option value="">-- ไม่กำหนด / ข้ามขั้นตอน L1 (ส่งไป L2 หรือ HR) --</option>`;
+  html += `<option value="">-- ไม่กำหนด / ข้ามขั้นตอน ลำดับที่ 1 (ส่งไป ลำดับที่ 2 หรือ HR) --</option>`;
 
   // แสดงกลุ่มพนักงานและหัวหน้าในแผนกตนเองก่อน
   if (inDeptEmployees.length > 0) {
@@ -582,7 +582,7 @@ function renderExecutiveOptions() {
     return `<option value="${escapeAttr(e.id)}">${escapeHtml(code + (e.full_name || "-") + " — " + position)}</option>`;
   }).join("");
 
-  el.innerHTML = `<option value="">-- เลือกผู้บริหาร L3 (${candidates.length} ท่าน) --</option>${options}`;
+  el.innerHTML = `<option value="">-- เลือกผู้บริหาร ลำดับที่ 3 (${candidates.length} ท่าน) --</option>${options}`;
 
   if (executiveSetting?.employee_id) {
     if (!candidates.some(e => String(e.id) === String(executiveSetting.employee_id))) {
@@ -625,7 +625,7 @@ async function saveExecutiveSetting() {
   const employeeId = document.getElementById("executiveSelect")?.value || null;
 
   if (!employeeId) {
-    Swal.fire("ข้อมูลยังไม่ครบ", "กรุณาเลือกผู้บริหาร L3", "warning");
+    Swal.fire("ข้อมูลยังไม่ครบ", "กรุณาเลือกผู้บริหาร ลำดับที่ 3", "warning");
     return;
   }
 
@@ -657,7 +657,7 @@ async function saveExecutiveSetting() {
     Swal.fire({
       icon: "success",
       title: "บันทึกแล้ว",
-      text: "กำหนดผู้บริหารอนุมัติหลัก L3 เรียบร้อย",
+      text: "กำหนดผู้บริหารอนุมัติหลัก ลำดับที่ 3 เรียบร้อย",
       timer: 1600,
       showConfirmButton: false
     });
@@ -666,7 +666,7 @@ async function saveExecutiveSetting() {
     Swal.fire("บันทึกไม่สำเร็จ", err.message || "กรุณาตรวจสอบสิทธิ์ RLS", "error");
   } finally {
     btn.disabled = false;
-    btn.textContent = "บันทึกผู้บริหาร L3";
+    btn.textContent = "บันทึกผู้บริหาร ลำดับที่ 3";
   }
 }
 
@@ -693,7 +693,7 @@ function handleDepartmentChange() {
       }
       if (mgr) {
         mgr.disabled = true;
-        mgr.innerHTML = `<option value="">-- ไม่มี / ข้ามขั้นตอน L2 --</option>`;
+        mgr.innerHTML = `<option value="">-- ไม่มี / ข้ามขั้นตอน ลำดับที่ 2 --</option>`;
       }
       if (save) save.disabled = true;
       updateLineStatus("supervisor");
@@ -767,8 +767,8 @@ async function saveApprover() {
   if (!departmentId) return;
   if (!supervisorId && !managerId) {
     const confirmClear = await Swal.fire({
-      title: "ข้ามทั้ง L1 และ L2?",
-      text: "คุณไม่ได้เลือกทั้งหัวหน้า L1 และผู้จัดการ L2 คำขอใบลาของแผนกนี้จะถูกส่งไปที่ HR/ผู้บริหาร โดยตรง ต้องการบันทึกหรือไม่?",
+      title: "ข้ามทั้ง ลำดับที่ 1 และ ลำดับที่ 2?",
+      text: "คุณไม่ได้เลือกทั้งหัวหน้า ลำดับที่ 1 และผู้จัดการ ลำดับที่ 2 คำขอใบลาของแผนกนี้จะถูกส่งไปที่ HR/ผู้บริหาร โดยตรง ต้องการบันทึกหรือไม่?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "ยืนยันบันทึก",
@@ -992,7 +992,7 @@ function renderApproverTable() {
 
     const l1Display = sup 
       ? `<div class="approver-name">🎖️ ${supNameHtml}</div><div class="approver-pos">${escapeHtml(sup.positions?.position_name || 'หัวหน้างาน')}</div>` 
-      : '<span style="color:#64748b; font-style:italic; font-size:13px;">⚡ ข้ามขั้นตอน L1 (ส่งไป L2 / HR)</span>';
+      : '<span style="color:#64748b; font-style:italic; font-size:13px;">⚡ ข้ามขั้นตอน ลำดับที่ 1 (ส่งไป ลำดับที่ 2 / HR)</span>';
     
     const l1Line = sup 
       ? (isLineConnected(sup)
@@ -1002,7 +1002,7 @@ function renderApproverTable() {
     
     const l2Display = mgr 
       ? `<div class="approver-name">👔 ${mgrNameHtml}</div><div class="approver-pos">${escapeHtml(mgr.positions?.position_name || 'ผู้จัดการฝ่าย')}</div>` 
-      : '<span style="color:#64748b; font-style:italic; font-size:13px;">⚡ ข้ามขั้นตอน L2 (มีเฉพาะ L1)</span>';
+      : '<span style="color:#64748b; font-style:italic; font-size:13px;">⚡ ข้ามขั้นตอน ลำดับที่ 2 (มีเฉพาะ ลำดับที่ 1)</span>';
     
     const l2Line = mgr 
       ? (isLineConnected(mgr)
@@ -1178,8 +1178,8 @@ window.saveApproverFromModal = async function() {
 
   if (!supervisorId && !managerId) {
     const confirmClear = await Swal.fire({
-      title: "ข้ามทั้ง L1 และ L2?",
-      text: "คุณไม่ได้เลือกทั้งหัวหน้า L1 และผู้จัดการ L2 คำขอใบลาของแผนกนี้จะถูกส่งไปที่ HR/ผู้บริหาร โดยตรง ต้องการบันทึกหรือไม่?",
+      title: "ข้ามทั้ง ลำดับที่ 1 และ ลำดับที่ 2?",
+      text: "คุณไม่ได้เลือกทั้งหัวหน้า ลำดับที่ 1 และผู้จัดการ ลำดับที่ 2 คำขอใบลาของแผนกนี้จะถูกส่งไปที่ HR/ผู้บริหาร โดยตรง ต้องการบันทึกหรือไม่?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "ยืนยันบันทึก",
@@ -1280,8 +1280,8 @@ window.deleteApprover = async function(departmentId) {
         <div style="font-weight: 700; color: #b91c1c; margin-bottom: 4px;">
           ⚠️ รายการที่จะถูกล้างสายอนุมัติและปลดการผูก LINE ID:
         </div>
-        ${sup ? `<div>• หัวหน้างาน L1: <b>${escapeHtml(sup.full_name)}</b> ${sup.line_id ? '<span style="color:#059669; font-weight:600;">(มี LINE ID ผูกอยู่ ➔ จะถูกล้างออก)</span>' : '<span style="color:#94a3b8;">(ยังไม่ได้ผูก LINE)</span>'}</div>` : ''}
-        ${mgr ? `<div>• ผู้จัดการฝ่าย L2: <b>${escapeHtml(mgr.full_name)}</b> ${mgr.line_id ? '<span style="color:#059669; font-weight:600;">(มี LINE ID ผูกอยู่ ➔ จะถูกล้างออก)</span>' : '<span style="color:#94a3b8;">(ยังไม่ได้ผูก LINE)</span>'}</div>` : ''}
+        ${sup ? `<div>• หัวหน้างาน ลำดับที่ 1: <b>${escapeHtml(sup.full_name)}</b> ${sup.line_id ? '<span style="color:#059669; font-weight:600;">(มี LINE ID ผูกอยู่ ➔ จะถูกล้างออก)</span>' : '<span style="color:#94a3b8;">(ยังไม่ได้ผูก LINE)</span>'}</div>` : ''}
+        ${mgr ? `<div>• ผู้จัดการฝ่าย ลำดับที่ 2: <b>${escapeHtml(mgr.full_name)}</b> ${mgr.line_id ? '<span style="color:#059669; font-weight:600;">(มี LINE ID ผูกอยู่ ➔ จะถูกล้างออก)</span>' : '<span style="color:#94a3b8;">(ยังไม่ได้ผูก LINE)</span>'}</div>` : ''}
         <div style="margin-top: 6px; font-size: 12px; color: #7f1d1d; border-top: 1px dashed #fca5a5; padding-top: 4px;">
           📌 ระบบจะลบการตั้งค่าสายอนุมัติของแผนก และ<b>ล้างค่า LINE User ID ของหัวหน้างาน/ผู้จัดการฝ่าย</b>ออกจากระบบทันที
         </div>
@@ -1427,45 +1427,16 @@ window.createLineLinkCode = async function(employeeId) {
       if (!confirm.isConfirmed) return;
     }
 
+    // สร้างรหัส + บันทึกลงฐานข้อมูล (สำเร็จจริงเท่านั้นจึงแสดงรหัส)
     let linkCode = "";
-    let created = false;
-
-    // 1. เรียกผ่าทาง Server API (/api/create-line-link) เพื่อหลีกเลี่ยง RLS Block
     try {
-      const apiRes = await fetch("/api/create-line-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_id: employeeId })
-      });
-      if (apiRes.ok) {
-        const apiData = await apiRes.json();
-        if (apiData.success && apiData.token) {
-          linkCode = apiData.token;
-          created = true;
-        }
+      linkCode = (await window.PVTLine.createLinkCode(employeeId)).code;
+    } catch (genErr) {
+      if (genErr && genErr.code === "line_not_allowed") {
+        Swal.fire("ยังไม่มีสิทธิ์รับแจ้งเตือน LINE", "พนักงานคนนี้ยังไม่ได้เป็นผู้อนุมัติในสายอนุมัติ — ตั้งเป็นผู้อนุมัติก่อน หรือเปิด \"ให้ทุกคนเชื่อมต่อ LINE\"", "info");
+        return;
       }
-    } catch (apiErr) {
-      console.warn("API /api/create-line-link error:", apiErr);
-    }
-
-    // 2. Fallback สุ่มรหัส 6 หลักหาก API ตอบกลับช้า
-    if (!linkCode) {
-      linkCode = String(Math.floor(100000 + Math.random() * 900000));
-    }
-
-    // ลองบันทึกลง DB เผื่อ DB RLS อนุญาต
-    if (!created && sb) {
-      try {
-        await sb.from("line_link_tokens").delete().eq("employee_id", employeeId);
-        await sb.from("line_link_tokens").insert({
-          employee_id: employeeId,
-          token: linkCode,
-          link_code: linkCode,
-          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
-        });
-      } catch (dbErr) {
-        // ละเว้น RLS error เพื่อไม่ให้การแสดงรหัสขัดข้อง
-      }
+      throw genErr;
     }
 
     // --------------------------------------------------------
@@ -1513,7 +1484,7 @@ window.createLineLinkCode = async function(employeeId) {
           แล้วส่งรหัส <b>${linkCode}</b>
           ในแชต<br><br>
 
-          ⏱ รหัสมีอายุ <b>15 นาที</b>
+          ⏱ รหัสมีอายุ <b>15 นาที</b> และใช้ได้ครั้งเดียว (ส่งครั้งเดียวพอ)
         </div>
       `,
       showDenyButton: true,
@@ -2086,10 +2057,10 @@ async function saveLineNotificationSettings(isSilent = false) {
 // 🧪 3.1 ทดสอบส่งข้อความแจ้งเตือน LINE รายขั้นตอน (Live Test)
 window.openTestLineStepModal = function(defaultStepKey) {
   const stepOptions = [
-    { key: "new_request", name: "1. ยื่นใบลาใหม่ ➔ ส่งหาหัวหน้างาน L1" },
-    { key: "new_request_l2", name: "2. ยื่นใบลาใหม่ ➔ ส่งหาผู้จัดการ L2 (ข้าม L1)" },
-    { key: "leader_approved", name: "3. หัวหน้า L1 อนุมัติ ➔ ส่งต่อผู้จัดการ L2" },
-    { key: "manager_approved", name: "4. ผู้จัดการ L2 อนุมัติ ➔ ส่งต่อ HR / ผู้บริหาร" },
+    { key: "new_request", name: "1. ยื่นใบลาใหม่ ➔ ส่งหาหัวหน้างาน ลำดับที่ 1" },
+    { key: "new_request_l2", name: "2. ยื่นใบลาใหม่ ➔ ส่งหาผู้จัดการ ลำดับที่ 2 (ข้าม ลำดับที่ 1)" },
+    { key: "leader_approved", name: "3. หัวหน้า ลำดับที่ 1 อนุมัติ ➔ ส่งต่อผู้จัดการ ลำดับที่ 2" },
+    { key: "manager_approved", name: "4. ผู้จัดการ ลำดับที่ 2 อนุมัติ ➔ ส่งต่อ HR / ผู้บริหาร" },
     { key: "final_approved", name: "5. อนุมัติเสร็จสมบูรณ์ ➔ ส่งสลิปอนุมัติหาพนักงาน" },
     { key: "rejected", name: "6. ปฏิเสธใบลา (ไม่อนุมัติ) ➔ ส่งหาพนักงาน" },
     { key: "cancellation", name: "7. ขอยกเลิกคำขอลา ➔ แจ้ง HR/Admin" },
@@ -2433,13 +2404,13 @@ function renderEmployeeLineTable() {
 
     let workflowTags = "";
     if (isExecL3) {
-      workflowTags += `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #fde68a;">👑 ผู้อนุมัติ L3 (ผู้บริหาร)</span></div>`;
+      workflowTags += `<div style="margin-top:3px;"><span style="font-size:10.5px; background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #fde68a;">👑 ผู้อนุมัติ ลำดับที่ 3 (ผู้บริหาร)</span></div>`;
     }
     if (assignedDeptsL1.length > 0) {
-      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e); padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid var(--th-p-200, #99f6e4);" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ L1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
+      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e); padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid var(--th-p-200, #99f6e4);" title="${escapeAttr(assignedDeptsL1.join(', '))}">🎖️ ผู้อนุมัติ ลำดับที่ 1 (${escapeHtml(assignedDeptsL1[0])}${assignedDeptsL1.length > 1 ? ` +${assignedDeptsL1.length - 1}` : ''})</span></div>`;
     }
     if (assignedDeptsL2.length > 0) {
-      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#e0e7ff; color:#4338ca; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #c7d2fe;" title="${escapeAttr(assignedDeptsL2.join(', '))}">👔 ผู้อนุมัติ L2 (${escapeHtml(assignedDeptsL2[0])}${assignedDeptsL2.length > 1 ? ` +${assignedDeptsL2.length - 1}` : ''})</span></div>`;
+      workflowTags += `<div style="margin-top:2px;"><span style="font-size:10.5px; background:#e0e7ff; color:#4338ca; padding:1px 6px; border-radius:4px; font-weight:700; border:1px solid #c7d2fe;" title="${escapeAttr(assignedDeptsL2.join(', '))}">👔 ผู้อนุมัติ ลำดับที่ 2 (${escapeHtml(assignedDeptsL2[0])}${assignedDeptsL2.length > 1 ? ` +${assignedDeptsL2.length - 1}` : ''})</span></div>`;
     }
 
     // สถานะ LINE & รหัส User ID
@@ -2702,8 +2673,8 @@ function handleIndividualEmployeeChange() {
     statusHtml += `<span style="color: #64748b;">📂 ใช้ตามสายอนุมัติแผนก</span><br>`;
   }
 
-  statusHtml += `<b>L1:</b> ${escapeHtml(deptL1?.full_name || "ไม่มี")} (ตามแผนก)<br>`;
-  statusHtml += `<b>L2:</b> ${escapeHtml(deptL2?.full_name || "ไม่มี")} (ตามแผนก)`;
+  statusHtml += `<b>Step 1:</b> ${escapeHtml(deptL1?.full_name || "ไม่มี")} (ตามแผนก)<br>`;
+  statusHtml += `<b>Step 2:</b> ${escapeHtml(deptL2?.full_name || "ไม่มี")} (ตามแผนก)`;
   statusHtml += `</div>`;
   
   statusEl.innerHTML = statusHtml;
@@ -3121,7 +3092,7 @@ function renderSavedDelegationRules() {
     container.innerHTML = `
       <div style="padding: 24px; text-align: center; color: #64748b; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1; font-size: 13.5px;">
         <span class="material-symbols-outlined" style="font-size: 36px; color: #94a3b8; display: block; margin-bottom: 6px;">manage_accounts</span>
-        ยังไม่มีการตั้งค่าผู้รักษาการแทนเฉพาะบุคคล (ระบบจะใช้สิทธิ์ Fallback ส่งเรื่องให้ L2/HR อัตโนมัติเมื่อหัวหน้าลาพักร้อน)
+        ยังไม่มีการตั้งค่าผู้รักษาการแทนเฉพาะบุคคล (ระบบจะใช้สิทธิ์ Fallback ส่งเรื่องให้ ลำดับที่ 2/HR อัตโนมัติเมื่อหัวหน้าลาพักร้อน)
       </div>
     `;
     return;

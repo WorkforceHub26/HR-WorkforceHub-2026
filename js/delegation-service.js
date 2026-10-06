@@ -34,7 +34,7 @@
         autoTriggerOnAnnualLeave: true, // ตรวจจับใบลาพักร้อนที่อนุมัติแล้วอัตโนมัติ
         autoTriggerOnAllLeaves: false,  // โอนสิทธิ์เมื่อลาทุกประเภท
         slaThresholdHours: 24,          // เร่งโอนสิทธิ์เมื่อใกล้ถึง 24 ชม.
-        allowL2Fallback: true,          // ถ้าไม่มีผู้แทน ให้ L2 อนุมัติแทน L1 ได้ทันที
+        allowL2Fallback: true,          // ถ้าไม่มีผู้แทน ให้ ลำดับที่ 2 อนุมัติแทน ลำดับที่ 1 ได้ทันที
         notifyDelegateViaLine: true,    // แจ้งเตือนผู้แทนผ่าน LINE
         notifyDelegateInApp: true       // แจ้งเตือนผู้แทนในระบบ
       };
@@ -176,7 +176,7 @@
         delegate_name: rule.delegate_name || '',
         department_id: rule.department_id || null,
         department_name: rule.department_name || '',
-        role_type: rule.role_type || 'L1', // L1, L2, L3
+        role_type: rule.role_type || 'L1', // Step 1, Step 2, Step 3
         condition: rule.condition || 'on_annual_leave', // 'on_annual_leave' | 'always' | 'custom_date'
         start_date: rule.start_date || null,
         end_date: rule.end_date || null,
@@ -304,13 +304,13 @@
 
           if (shouldDelegate) {
             const delegateId = rule?.delegate_id || (config.allowL2Fallback ? l2ApproverId : null);
-            const delegateName = rule?.delegate_name || (config.allowL2Fallback ? 'ผู้จัดการฝ่าย (L2 อนุมัติแทน)' : 'ผู้รักษาการแทน');
+            const delegateName = rule?.delegate_name || (config.allowL2Fallback ? 'ผู้จัดการฝ่าย (ลำดับที่ 2 อนุมัติแทน)' : 'ผู้รักษาการแทน');
 
             return {
               isDelegated: true,
               step: 'L1',
               originalApproverId: l1ApproverId,
-              originalApproverName: rule?.approver_name || 'หัวหน้างาน L1',
+              originalApproverName: rule?.approver_name || 'หัวหน้างาน ลำดับที่ 1',
               delegateId: delegateId,
               delegateName: delegateName,
               reason: reasonText,
@@ -343,9 +343,9 @@
               isDelegated: true,
               step: 'L2',
               originalApproverId: l2ApproverId,
-              originalApproverName: rule?.approver_name || 'ผู้จัดการ L2',
+              originalApproverName: rule?.approver_name || 'ผู้จัดการ ลำดับที่ 2',
               delegateId: rule?.delegate_id,
-              delegateName: rule?.delegate_name || 'ผู้รักษาการแทน L2 / ผู้บริหาร',
+              delegateName: rule?.delegate_name || 'ผู้รักษาการแทน ลำดับที่ 2 / ผู้บริหาร',
               reason: reasonText,
               leaveInfo: leaveStatus,
               isCurrentActorDelegate: currentUserId ? String(currentUserId) === String(rule?.delegate_id) : false
@@ -408,7 +408,7 @@
               endDate: l.end_date,
               hasRule: Boolean(rule),
               delegateId: rule?.delegate_id || null,
-              delegateName: rule?.delegate_name || 'ยังไม่ได้กำหนดผู้แทน (ส่งต่อ L2/HR อัตโนมัติ)',
+              delegateName: rule?.delegate_name || 'ยังไม่ได้กำหนดผู้แทน (ส่งต่อ ลำดับที่ 2/HR อัตโนมัติ)',
               condition: rule?.condition || 'on_annual_leave'
             });
           }

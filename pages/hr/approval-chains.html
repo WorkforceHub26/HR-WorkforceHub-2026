@@ -8,7 +8,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <meta name="google" content="notranslate" />
-  <title>สายอนุมัติใบลา | PVT HR Hub</title>
+  <title>ตั้งค่าสายอนุมัติ | PVT HR Hub</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/css/layout-tokens.css" />
   <link rel="stylesheet" href="/css/layout-sidebar.css" />
   <link rel="stylesheet" href="/css/layout-topbar.css" />
-  <link rel="stylesheet" href="/css/hr-approval-chains.css" />
+  <link rel="stylesheet" href="/css/hr-approval-chains.css?v=20261005-ux" />
 </head>
 
 <body id="page-hr-approval-chains" class="pvt-body">
@@ -100,8 +100,8 @@
             <span class="material-symbols-outlined">menu</span>
           </button>
           <div class="pvt-topbar__title">
-            <h1>สายอนุมัติใบลา</h1>
-            <p>APPROVAL CHAINS</p>
+            <h1>ตั้งค่าสายอนุมัติ</h1>
+            <p>APPROVAL SETTINGS</p>
           </div>
         </div>
         <div class="pvt-topbar__right">
@@ -121,15 +121,21 @@
       <div class="pvt-page" id="pageContent">
 
         <section class="ac-hero">
-          <div>
-            <h2><span class="material-symbols-outlined" aria-hidden="true">account_tree</span> สายอนุมัติใบลา</h2>
-            <p>กำหนดลำดับผู้อนุมัติของแต่ละแผนก (1–9 ขั้น) แยกทีม/กะได้ ขั้นเดียวใส่ได้หลายคน "คนใดคนหนึ่งกดก็ได้"
-              ใบลาจะล็อกสายอนุมัติไว้ตอนยื่น และผลทุกใบถึง HR เสมอ</p>
+          <div class="ac-hero__text">
+            <h2><span class="material-symbols-outlined" aria-hidden="true">account_tree</span> ตั้งค่าสายอนุมัติใบลา</h2>
+            <p>กำหนดว่าใบลาของพนักงานแต่ละแผนก ส่งให้ใครอนุมัติ และเรียงลำดับอย่างไร</p>
           </div>
           <div class="ac-hero__actions">
-            <button type="button" class="ac-btn ac-btn--ghost" id="acPreviewBtn"><span class="material-symbols-outlined" aria-hidden="true">person_search</span>ทดสอบสายของพนักงาน</button>
-            <a class="ac-btn ac-btn--ghost" href="/pages/hr/approval-settings.html"><span class="material-symbols-outlined" aria-hidden="true">notifications</span>ตั้งค่าแจ้งเตือน LINE</a>
+            <button type="button" class="ac-btn ac-btn--ghost" data-go="preview"><span class="material-symbols-outlined" aria-hidden="true">person_search</span>ตรวจสอบสายของพนักงาน</button>
+            <a class="ac-btn ac-btn--ghost" href="/pages/hr/approval-settings.html#line"><span class="material-symbols-outlined" aria-hidden="true">notifications</span>แจ้งเตือน LINE</a>
           </div>
+          <ol class="ac-flow" aria-label="ลำดับการอนุมัติ">
+            <li><span class="material-symbols-outlined" aria-hidden="true">edit_document</span>พนักงานยื่นใบลา</li>
+            <li class="is-step"><b>1</b>ลำดับที่ 1<small>เช่น หัวหน้างาน</small></li>
+            <li class="is-step"><b>2</b>ลำดับที่ 2<small>เช่น ผู้จัดการ (ถ้ามี)</small></li>
+            <li class="is-step is-optional"><b>3</b>ลำดับที่ 3<small>ถ้ามี</small></li>
+            <li class="is-hr"><span class="material-symbols-outlined" aria-hidden="true">verified</span>ผลส่งถึง HR<small>อัตโนมัติทุกใบ</small></li>
+          </ol>
         </section>
 
         <section class="ac-setup" id="acSetupNotice" hidden>
@@ -137,36 +143,113 @@
           <div>
             <h3>ต้องเตรียมฐานข้อมูลก่อนใช้งาน</h3>
             <p>รันไฟล์ <code>supabase/migrations/20261006_approval_chains.sql</code> ใน Supabase &gt; SQL Editor (ครั้งเดียว)
-              ระบบจะย้ายหัวหน้า/ผู้จัดการที่ตั้งไว้เดิมของทุกแผนกมาเป็นขั้นที่ 1–2 ให้อัตโนมัติ แล้วกลับมารีเฟรชหน้านี้</p>
+              ระบบจะย้ายหัวหน้า/ผู้จัดการที่ตั้งไว้เดิมของทุกแผนกมาเป็นลำดับที่ 1–2 ให้อัตโนมัติ แล้วกลับมารีเฟรชหน้านี้</p>
             <p class="ac-muted">ระหว่างนี้ระบบอนุมัติยังทำงานแบบเดิมตามปกติ</p>
           </div>
         </section>
 
         <div id="acMain" hidden>
-          <div class="ac-stats">
-            <div class="ac-stat"><span id="acStatDepts">0</span><small>แผนก</small></div>
-            <div class="ac-stat"><span id="acStatTeams">0</span><small>ทีม/กะ</small></div>
-            <div class="ac-stat ac-stat--warn"><span id="acStatNoApprover">0</span><small>แผนกที่ยังไม่มีผู้อนุมัติ</small></div>
-          </div>
+          <!-- เช็กลิสต์: ตั้งค่าให้ครบ 3 ข้อ -->
+          <section class="ac-guide" aria-labelledby="acGuideTitle">
+            <h3 id="acGuideTitle">ตั้งค่าให้ครบ 3 ข้อ</h3>
+            <div class="ac-guide__grid">
+              <button type="button" class="ac-gstep" id="acG1" data-go="chains" data-filter="missing">
+                <span class="ac-gstep__no">1</span>
+                <span class="ac-gstep__body"><strong>ตั้งผู้อนุมัติของทุกแผนก</strong><small id="acG1Text">กำลังตรวจสอบ...</small></span>
+                <span class="material-symbols-outlined ac-gstep__icon" aria-hidden="true">chevron_right</span>
+              </button>
+              <button type="button" class="ac-gstep" id="acG2" data-go="policy">
+                <span class="ac-gstep__no">2</span>
+                <span class="ac-gstep__body"><strong>ตั้งผู้บริหาร</strong><small id="acG2Text">กำลังตรวจสอบ...</small></span>
+                <span class="material-symbols-outlined ac-gstep__icon" aria-hidden="true">chevron_right</span>
+              </button>
+              <a class="ac-gstep" id="acG3" href="/pages/hr/approval-settings.html#link">
+                <span class="ac-gstep__no">3</span>
+                <span class="ac-gstep__body"><strong>ให้ผู้อนุมัติผูก LINE</strong><small id="acG3Text">กำลังตรวจสอบ...</small></span>
+                <span class="material-symbols-outlined ac-gstep__icon" aria-hidden="true">chevron_right</span>
+              </a>
+            </div>
+            <div class="ac-guide__extra">
+              <span class="ac-muted">กรณีพิเศษ (ถ้ามี):</span>
+              <button type="button" class="ac-chiplink" data-go="chains" data-hint="team"><span class="material-symbols-outlined" aria-hidden="true">groups</span>แผนกมีหลายกะ หัวหน้าคนละชุด</button>
+              <button type="button" class="ac-chiplink" data-go="people"><span class="material-symbols-outlined" aria-hidden="true">person_pin</span>บางคนมีผู้อนุมัติไม่เหมือนแผนก</button>
+              <a class="ac-chiplink" href="/pages/hr/approval-settings.html#delegate"><span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>หัวหน้าลา ให้คนอื่นอนุมัติแทน</a>
+            </div>
+          </section>
 
           <div class="ac-tabs" role="tablist">
-            <button type="button" class="ac-tab is-active" role="tab" aria-selected="true" data-tab="chains">สายอนุมัติตามแผนก</button>
-            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="reassign">ใบลาที่ต้องโอนผู้อนุมัติ <span class="ac-badge" id="acReassignBadge" hidden>0</span></button>
-            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="preview">ทดสอบสาย</button>
-            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="policy">ตั้งค่าทั่วไป</button>
+            <button type="button" class="ac-tab is-active" role="tab" aria-selected="true" data-tab="chains"><span class="material-symbols-outlined" aria-hidden="true">domain</span>ผู้อนุมัติตามแผนก</button>
+            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="people"><span class="material-symbols-outlined" aria-hidden="true">person_pin</span>ข้อยกเว้นรายบุคคล <span class="ac-badge ac-badge--soft" id="acPeopleBadge" hidden>0</span></button>
+            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="policy"><span class="material-symbols-outlined" aria-hidden="true">shield_person</span>ผู้บริหาร</button>
+            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="preview"><span class="material-symbols-outlined" aria-hidden="true">person_search</span>ตรวจสอบสาย</button>
+            <button type="button" class="ac-tab" role="tab" aria-selected="false" data-tab="reassign"><span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>ใบลาค้างที่ต้องโอน <span class="ac-badge" id="acReassignBadge" hidden>0</span></button>
           </div>
 
           <section class="ac-panel" data-panel="chains">
-            <div class="ac-toolbar">
-              <span class="material-symbols-outlined" aria-hidden="true">search</span>
-              <input type="search" id="acSearch" placeholder="ค้นหาแผนก" />
+            <p class="ac-intro">ตั้งครั้งเดียวต่อแผนก ใช้กับพนักงานทุกคนในแผนก · กด <b>แก้ผู้อนุมัติ</b> เพื่อเลือกคนในแต่ละลำดับ ·
+              แผนกที่มีหลายกะ กด <b>เพิ่มทีม/กะ</b></p>
+            <div class="ac-toolbar-row">
+              <div class="ac-toolbar">
+                <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                <input type="search" id="acSearch" placeholder="ค้นหาแผนก หรือชื่อผู้อนุมัติ" />
+              </div>
+              <div class="ac-filters" role="group" aria-label="กรองแผนก">
+                <button type="button" class="ac-filter is-active" data-filter="all">ทั้งหมด <span id="acCountAll">0</span></button>
+                <button type="button" class="ac-filter" data-filter="missing">ยังไม่ตั้ง <span id="acCountMissing">0</span></button>
+                <button type="button" class="ac-filter" data-filter="noline">มีคนยังไม่ผูก LINE <span id="acCountNoLine">0</span></button>
+              </div>
             </div>
             <div class="ac-grid" id="acDeptList"></div>
+            <p class="ac-legend"><span class="ac-dot is-on"></span>ผูก LINE แล้ว <span class="ac-dot"></span>ยังไม่ผูก LINE (ไม่ได้รับแจ้งเตือนทาง LINE แต่ยังอนุมัติในระบบได้)</p>
+          </section>
+
+          <section class="ac-panel" data-panel="people" hidden>
+            <div class="ac-panel__bar">
+              <p class="ac-intro">ใช้เมื่อ <b>บางคน</b> ต้องส่งใบลาให้คนอื่น ไม่เหมือนเพื่อนในแผนก (เช่น ผู้ช่วยที่ขึ้นตรงกับผู้จัดการ)
+                — ลำดับที่ไม่ได้ตั้ง จะใช้ตามแผนกเหมือนเดิม</p>
+              <button type="button" class="ac-btn" id="acPersonAdd"><span class="material-symbols-outlined" aria-hidden="true">person_add</span>เพิ่มข้อยกเว้น</button>
+            </div>
+            <div id="acPeopleList"></div>
+          </section>
+
+          <section class="ac-panel" data-panel="policy" hidden>
+            <p class="ac-intro">ผู้บริหารจะได้รับใบลาของ <b>หัวหน้า/ผู้จัดการ</b> (ผู้ที่เป็นผู้อนุมัติเอง) เป็นลำดับสุดท้าย — พนักงานทั่วไปไม่ผ่านผู้บริหาร</p>
+            <div class="ac-policy">
+              <label class="ac-field"><span>ผู้บริหาร</span>
+                <select id="acExecSelect"></select></label>
+              <label class="ac-switch">
+                <input type="checkbox" id="acPolicyExec" />
+                <span>
+                  <strong>ใบลาของหัวหน้า/ผู้จัดการ ต้องผ่านผู้บริหาร</strong>
+                  <small>ปิด = ใบลาของหัวหน้า/ผู้จัดการ ไปตามลำดับที่เหลือของแผนก (ถ้าไม่เหลือ ส่ง HR)</small>
+                </span>
+              </label>
+              <button type="button" class="ac-btn" id="acPolicySave"><span class="material-symbols-outlined" aria-hidden="true">save</span>บันทึก</button>
+            </div>
+            <details class="ac-rules">
+              <summary>ระบบเลือกผู้อนุมัติอย่างไร (กติกาทั้งหมด)</summary>
+              <ul>
+                <li>ระบบหาผู้อนุมัติจาก: <b>ข้อยกเว้นรายบุคคล → ทีม/กะ → แผนก</b> แล้วจึงต่อด้วยผู้บริหาร (ถ้าผู้ยื่นเป็นหัวหน้า/ผู้จัดการ)</li>
+                <li>ผู้ยื่นเป็นผู้อนุมัติลำดับไหน → ข้ามลำดับนั้นและลำดับก่อนหน้า (ไม่ต้องอนุมัติใบลาตัวเอง)</li>
+                <li>คนเดียวกันอยู่สองลำดับติดกัน (เช่น หัวหน้าเป็นผู้จัดการด้วย) → อนุมัติครั้งเดียว</li>
+                <li>ผู้อนุมัติที่ลาออก/ไม่ใช้งาน → ตัดออกอัตโนมัติ (ลำดับที่ว่าง = ข้าม)</li>
+                <li>ไม่เหลือผู้อนุมัติเลย → ส่ง HR พิจารณา</li>
+                <li>ค้างเกิน 48 ชม. → ไม่อนุมัติอัตโนมัติ บันทึกและแจ้ง HR</li>
+                <li>ใบลาที่ยื่นแล้วใช้สายตอนยื่น แก้สายภายหลังไม่กระทบใบที่ค้าง (ดูแท็บ "ใบลาค้างที่ต้องโอน")</li>
+              </ul>
+            </details>
+          </section>
+
+          <section class="ac-panel" data-panel="preview" hidden>
+            <p class="ac-intro">เลือกพนักงาน เพื่อดูว่าถ้ายื่นใบลาตอนนี้ ใบลาจะส่งหาใครบ้างตามลำดับ</p>
+            <label class="ac-field"><span>พนักงาน</span>
+              <select id="acPreviewSelect"><option value="">— เลือกพนักงาน —</option></select></label>
+            <div id="acPreviewResult"></div>
           </section>
 
           <section class="ac-panel" data-panel="reassign" hidden>
             <div class="ac-panel__bar">
-              <p class="ac-muted">ใบลาที่ค้างอยู่กับผู้อนุมัติที่พ้นสภาพ หรือสายอนุมัติของพนักงานเปลี่ยนไปแล้ว (เช่น ย้ายแผนก/เปลี่ยนหัวหน้า)</p>
+              <p class="ac-intro">ใบลาที่ยังรออนุมัติ แต่ผู้อนุมัติลาออก/ไม่ใช้งานแล้ว หรือสายอนุมัติของพนักงานเปลี่ยนไป (เช่น ย้ายแผนก/เปลี่ยนหัวหน้า)</p>
               <div class="ac-panel__tools">
                 <label class="ac-check"><input type="checkbox" id="acReassignShowAll" /> แสดงใบที่รอทั้งหมด</label>
                 <button type="button" class="ac-btn ac-btn--ghost" id="acReassignRefresh"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>ตรวจใหม่</button>
@@ -174,39 +257,6 @@
               </div>
             </div>
             <div id="acReassignList"></div>
-          </section>
-
-          <section class="ac-panel" data-panel="preview" hidden>
-            <label class="ac-field"><span>เลือกพนักงานเพื่อดูว่าใบลาจะส่งหาใครบ้าง</span>
-              <select id="acPreviewSelect"><option value="">— เลือกพนักงาน —</option></select></label>
-            <div id="acPreviewResult"></div>
-          </section>
-
-          <section class="ac-panel" data-panel="policy" hidden>
-            <div class="ac-policy">
-              <label class="ac-switch">
-                <input type="checkbox" id="acPolicyExec" />
-                <span>
-                  <strong>ใบลาของหัวหน้า/ผู้จัดการ ต้องผ่านผู้บริหารเพิ่ม</strong>
-                  <small>เมื่อผู้ยื่นเป็นผู้อนุมัติในสาย ระบบจะส่งต่อให้ผู้บริหารด้านล่างเป็นขั้นสุดท้าย</small>
-                </span>
-              </label>
-              <label class="ac-field"><span>ผู้บริหาร (ขั้นสุดท้ายของใบลาหัวหน้า/ผู้จัดการ)</span>
-                <select id="acExecSelect"></select></label>
-              <button type="button" class="ac-btn" id="acPolicySave"><span class="material-symbols-outlined" aria-hidden="true">save</span>บันทึก</button>
-            </div>
-            <div class="ac-rules">
-              <h3>กติกาที่ระบบใช้</h3>
-              <ul>
-                <li>ลำดับการหาสาย: <b>ตั้งรายบุคคล → ทีม/กะ → แผนก → ผู้บริหาร → HR</b></li>
-                <li>ผู้ยื่นเป็นผู้อนุมัติขั้นไหน → ข้ามขั้นนั้นและขั้นที่ต่ำกว่า</li>
-                <li>ผู้อนุมัติชุดเดียวกันในขั้นติดกัน → รวมเป็นขั้นเดียว</li>
-                <li>ผู้อนุมัติที่พ้นสภาพ → ตัดออกอัตโนมัติ (ขั้นว่าง = ข้าม)</li>
-                <li>ไม่เหลือผู้อนุมัติเลย → ส่ง HR พิจารณา</li>
-                <li>ค้างเกิน 48 ชม. → ไม่อนุมัติอัตโนมัติ บันทึกและแจ้ง HR</li>
-                <li>สายอนุมัติถูกล็อกไว้กับใบลาตอนยื่น แก้สายภายหลังไม่กระทบใบที่ค้าง (ใช้แท็บ "โอนผู้อนุมัติ")</li>
-              </ul>
-            </div>
           </section>
         </div>
       </div>

@@ -3717,7 +3717,42 @@ document.addEventListener('click', function(e) {
     return false;
   }
 
-  window.PVTLine = { check, guard, clearCache: () => { try { sessionStorage.removeItem(CACHE_KEY); } catch (e) {} } };
+  // สร้างรหัสผูก LINE 6 หลัก — คืน { code, expiresAt } เฉพาะเมื่อบันทึกรหัสลงฐานข้อมูลสำเร็จจริง
+  //   1) ผ่านเซิร์ฟเวอร์ /api/create-line-link (ถ้ามี)  2) บันทึกตรงลง line_link_tokens
+  //   รหัสซ้ำกับของเดิม (UNIQUE) → สุ่มใหม่อัตโนมัติ · บันทึกไม่ได้ → แจ้ง error (ไม่แสดงรหัสที่ใช้ไม่ได้)
+  async function createLinkCode(employeeId) {
+    const empId = String(employeeId || '').trim();
+    if (!empId) throw new Error('ไม่พบรหัสพนักงาน');
+    try {
+      const r = await fetch('/api/create-line-link', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ employee_id: empId })
+      });
+      if (r.status === 403) { const e = new Error('line_not_allowed'); e.code = 'line_not_allowed'; throw e; }
+      const isJson = String(r.headers.get('content-type') || '').includes('application/json');
+      if (r.ok && isJson) {
+        const j = await r.json();
+        if (j && j.success && j.token) return { code: String(j.token), expiresAt: j.expires_at, via: 'api' };
+      }
+    } catch (e) {
+      if (e && e.code === 'line_not_allowed') throw e;
+    }
+    const sb = getSbClient();
+    if (!sb || typeof sb.from !== 'function') throw new Error('เชื่อมต่อฐานข้อมูลไม่ได้');
+    // ปิดรหัสเก่าที่ยังไม่ได้ใช้ของคนนี้ (ไม่กระทบรหัสที่ใช้แล้ว)
+    try { await sb.from('line_link_tokens').delete().eq('employee_id', empId).is('used_at', null); } catch (e) {}
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    let lastErr = null;
+    for (let i = 0; i < 6; i++) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const { error } = await sb.from('line_link_tokens').insert({ employee_id: empId, token: code, link_code: code, expires_at: expiresAt });
+      if (!error) return { code, expiresAt, via: 'db' };
+      lastErr = error;
+      if (!(error.code === '23505' || /duplicate|unique/i.test(error.message || ''))) break; // ไม่ใช่รหัสซ้ำ → หยุด
+    }
+    throw new Error('บันทึกรหัสไม่สำเร็จ' + (lastErr && lastErr.message ? ': ' + lastErr.message : ''));
+  }
+
+  window.PVTLine = { check, guard, createLinkCode, clearCache: () => { try { sessionStorage.removeItem(CACHE_KEY); } catch (e) {} } };
 
   const start = () => {
     check().then((r) => { if (r && r.reason === 'fallback_role') setTimeout(() => check(true).catch(() => {}), 2500); }).catch(() => {});

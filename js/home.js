@@ -3166,11 +3166,11 @@ window.quickApproveFromDashboard = async function(leaveId) {
   const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
 
   const roleTitle = myRole === 'leader' 
-    ? 'หัวหน้างาน (L1)' 
+    ? 'หัวหน้างาน (ลำดับที่ 1)' 
     : myRole === 'manager' 
-    ? 'ผู้จัดการฝ่าย (L2)' 
+    ? 'ผู้จัดการฝ่าย (ลำดับที่ 2)' 
     : (myRole === 'executive' || myRole === 'director' || myRole === 'owner')
-    ? 'ผู้บริหาร (L3)'
+    ? 'ผู้บริหาร (ลำดับที่ 3)'
     : 'ฝ่ายบุคคล HR / Admin';
 
   // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการอนุมัติ เพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
@@ -3204,7 +3204,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
       const stepRows = await window.PVTApproval.getSteps(leaveId);
       if (stepRows && stepRows.length) {
         const res = await window.PVTApproval.approve(leaveId, { actorRole: myRole });
-        if (res.ok) Swal.fire({ icon: 'success', title: res.final ? 'อนุมัติเรียบร้อย' : 'อนุมัติขั้นนี้แล้ว', text: res.final ? '' : `ส่งต่อให้ "${res.nextLabel || 'ขั้นถัดไป'}" แล้ว`, showConfirmButton: false, timer: 1600 });
+        if (res.ok) Swal.fire({ icon: 'success', title: res.final ? 'อนุมัติเรียบร้อย' : 'อนุมัติแล้ว ส่งต่อลำดับถัดไป', text: res.final ? '' : `ส่งต่อให้ "${res.nextLabel || 'ขั้นถัดไป'}" แล้ว`, showConfirmButton: false, timer: 1600 });
         else await Swal.fire('ไม่สามารถอนุมัติได้', res.reason || 'ใบลานี้ถูกดำเนินการไปแล้ว', 'info');
         await refreshDashboardData();
         return;
@@ -3293,8 +3293,8 @@ window.quickApproveFromDashboard = async function(leaveId) {
 
     // 🧾 หลักฐานรายขั้น + แจ้ง HR (ในระบบ) เมื่อจบ
     if (window.PVTLeaveAudit) {
-      const lvl = myRole === 'leader' ? ['L1', 'หัวหน้างาน (L1)'] : myRole === 'manager' ? ['L2', 'ผู้จัดการ (L2)']
-        : (myRole === 'executive' || myRole === 'director' || myRole === 'owner') ? ['L3', 'ผู้บริหาร (L3)'] : ['HR', 'ฝ่ายบุคคล (HR/Admin)'];
+      const lvl = myRole === 'leader' ? ['L1', 'หัวหน้างาน (ลำดับที่ 1)'] : myRole === 'manager' ? ['L2', 'ผู้จัดการ (ลำดับที่ 2)']
+        : (myRole === 'executive' || myRole === 'director' || myRole === 'owner') ? ['L3', 'ผู้บริหาร (ลำดับที่ 3)'] : ['HR', 'ฝ่ายบุคคล (HR/Admin)'];
       const auditOpts = { stepLevel: lvl[0], stepLabel: lvl[1], comment: updateFields.approval_comment || null,
         statusBefore: reqData.status || 'pending', statusAfter: updateFields.status === 'approved' ? 'approved' : 'pending' };
       if (updateFields.status === 'approved') await window.PVTLeaveAudit.recordOutcome(reqData, 'approved', auditOpts);
@@ -3419,11 +3419,11 @@ window.quickRejectFromDashboard = async function(leaveId) {
   const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
 
   const roleTitle = myRole === 'leader' 
-    ? 'หัวหน้างาน (L1)' 
+    ? 'หัวหน้างาน (ลำดับที่ 1)' 
     : myRole === 'manager' 
-    ? 'ผู้จัดการฝ่าย (L2)' 
+    ? 'ผู้จัดการฝ่าย (ลำดับที่ 2)' 
     : (myRole === 'executive' || myRole === 'director' || myRole === 'owner')
-    ? 'ผู้บริหาร (L3)'
+    ? 'ผู้บริหาร (ลำดับที่ 3)'
     : 'ฝ่ายบุคคล HR / Admin';
 
   const summaryHtml = buildDashboardLeaveConfirmHtml(reqData, roleTitle, 'reject');
@@ -3492,9 +3492,9 @@ window.quickRejectFromDashboard = async function(leaveId) {
     // ระบุขั้นที่ไม่อนุมัติ = ขั้นที่ใบลารออยู่จริง
     const isPend = (v) => !v || String(v).toLowerCase() === 'pending';
     let stepLvl = ['HR', 'ฝ่ายบุคคล (HR/Admin)'];
-    if (myRole === 'leader') { updateFields.manager_status = 'rejected'; stepLvl = ['L1', 'หัวหน้างาน (L1)']; }
-    else if (myRole === 'manager') { updateFields.director_status = 'rejected'; stepLvl = ['L2', 'ผู้จัดการ (L2)']; }
-    else if (myRole === 'executive' || myRole === 'director' || myRole === 'owner') { updateFields.executive_status = 'rejected'; stepLvl = ['L3', 'ผู้บริหาร (L3)']; }
+    if (myRole === 'leader') { updateFields.manager_status = 'rejected'; stepLvl = ['L1', 'หัวหน้างาน (ลำดับที่ 1)']; }
+    else if (myRole === 'manager') { updateFields.director_status = 'rejected'; stepLvl = ['L2', 'ผู้จัดการ (ลำดับที่ 2)']; }
+    else if (myRole === 'executive' || myRole === 'director' || myRole === 'owner') { updateFields.executive_status = 'rejected'; stepLvl = ['L3', 'ผู้บริหาร (ลำดับที่ 3)']; }
     else if (isPend(reqData.manager_status)) updateFields.manager_status = 'rejected';
     else if (isPend(reqData.director_status)) updateFields.director_status = 'rejected';
     else if (isPend(reqData.executive_status)) updateFields.executive_status = 'rejected';
