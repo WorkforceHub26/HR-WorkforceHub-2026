@@ -7,7 +7,8 @@
     var raw = localStorage.getItem("currentUser");
     var session = raw ? JSON.parse(raw) : null;
     
-    var path = window.location.pathname.toLowerCase();
+    // Cloudflare Pages ตัด .html ออกจากลิงก์ (/pages/user/profile-user) → เติมกลับเพื่อให้เงื่อนไขเดิมทำงาน
+    var path = (function (p) { return /^\/pages\//.test(p) && !/\.html$/i.test(p) && !/\/$/.test(p) ? p + '.html' : p; })(window.location.pathname).toLowerCase();
     var isLoginPage = path === "/" || path === "/index.html" || (path.endsWith("/index.html") && !path.includes("/pages/"));
     var isHrArea = path.includes("/pages/hr/");
     var isApproverArea = path.includes("/pages/approver/");

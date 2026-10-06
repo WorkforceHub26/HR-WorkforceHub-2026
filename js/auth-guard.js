@@ -157,7 +157,8 @@ window.getUserRoleCategory = function(userSession) {
     session = null;
   }
 
-  const path = window.location.pathname.toLowerCase();
+  // Cloudflare Pages ตัด .html ออกจากลิงก์ → เติมกลับเพื่อให้เงื่อนไขเดิมทำงาน
+  const path = (function (p) { return /^\/pages\//.test(p) && !/\.html$/i.test(p) && !/\/$/.test(p) ? p + '.html' : p; })(window.location.pathname).toLowerCase();
   const isLoginPage = path === "/" || path === "/index.html" || (path.endsWith("/index.html") && !path.includes("/pages/"));
   const isHrArea = path.includes("/pages/hr/");
   const isManagementOrSettings = path.includes("management") || path.includes("approval-settings") || path.includes("test.html");
@@ -2536,7 +2537,7 @@ window.setGlobalLanguage = function(lang, reload = false, options = {}) {
   }
 
   // 🚫 ไม่รบกวนหน้าของ HR / Admin
-  const currentPath = (window.location.pathname || '').toLowerCase();
+  const currentPath = ((function (p) { return /^\/pages\//.test(p) && !/\.html$/i.test(p) && !/\/$/.test(p) ? p + '.html' : p; })(window.location.pathname) || '').toLowerCase();
   const isHrAdminPage = currentPath.includes('/pages/hr/') || 
                         currentPath.includes('/hr/') || 
                         document.body.classList.contains('hr-layout') ||
@@ -2672,10 +2673,11 @@ function injectGlobalLangSwitcher() {
 
   // 🚫 Do not show language switcher on HR Administration pages, leave-history, leave-rules, profile-user
   //    (เปลี่ยนภาษาได้ที่ เมนู ⋮ > ตั้งค่า)
-  const isHrPage = window.location.pathname.includes('/pages/hr/') || 
-                   window.location.pathname.includes('/pages/user/leave-history.html') ||
-                   window.location.pathname.includes('/pages/user/leave-rules.html') ||
-                   window.location.pathname.includes('/pages/user/profile-user.html') ||
+  const pagePath = (function (p) { return /^\/pages\//.test(p) && !/\.html$/i.test(p) && !/\/$/.test(p) ? p + '.html' : p; })(window.location.pathname);
+  const isHrPage = pagePath.includes('/pages/hr/') || 
+                   pagePath.includes('/pages/user/leave-history.html') ||
+                   pagePath.includes('/pages/user/leave-rules.html') ||
+                   pagePath.includes('/pages/user/profile-user.html') ||
                    document.querySelector('aside.sidebar-light') !== null ||
                    document.body.classList.contains('hr-layout');
   if (isHrPage) return;

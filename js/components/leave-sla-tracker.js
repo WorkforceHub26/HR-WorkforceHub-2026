@@ -954,7 +954,8 @@
       return;
     }
 
-    if (window.location.pathname.includes('/pages/hr/hr.html') || window.location.pathname.includes('/pages/approver/leave-approvals.html')) {
+    const pagePath = (function (p) { return /^\/pages\//.test(p) && !/\.html$/i.test(p) && !/\/$/.test(p) ? p + '.html' : p; })(window.location.pathname);
+    if (pagePath.includes('/pages/hr/hr.html') || pagePath.includes('/pages/approver/leave-approvals.html')) {
       if (typeof window.previewLeaveModal === 'function') {
         window.previewLeaveModal(leaveId, true);
       } else {

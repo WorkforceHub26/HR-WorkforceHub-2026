@@ -887,7 +887,7 @@
       }
 
       // ตรวจสอบหน้าปัจจุบันด้วย pathname
-      const path = window.location.pathname.toLowerCase();
+      const path = (function (p) { return /^\/pages\//.test(p) && !/\.html$/i.test(p) && !/\/$/.test(p) ? p + '.html' : p; })(window.location.pathname).toLowerCase();
       let pageTitle = " คู่มือแนะนำการใช้งานระบบ";
       let guideContent = "";
 

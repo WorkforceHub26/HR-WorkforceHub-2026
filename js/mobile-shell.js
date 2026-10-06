@@ -15,6 +15,18 @@
   "use strict";
   if (window.PVTShell) return;
 
+  /* เปลี่ยนหน้าแบบเลื่อนนุ่ม (View Transition ข้ามหน้า): ถ้าเบราว์เซอร์ยกเลิกกลางทาง
+     (เช่น หน้าใหม่ไม่ได้เปิดใช้ หรือกดเปลี่ยนหน้าเร็ว) จะเกิด error สีแดงใน Console — ไม่มีผลต่อการใช้งาน จึงดักไว้ */
+  ["pageswap", "pagereveal"].forEach(function (evt) {
+    window.addEventListener(evt, function (e) {
+      var vt = e && e.viewTransition;
+      if (!vt) return;
+      ["ready", "finished", "updateCallbackDone"].forEach(function (k) {
+        if (vt[k] && typeof vt[k].catch === "function") vt[k].catch(function () {});
+      });
+    });
+  });
+
   /* แก้เมนูที่นี่ที่เดียว มีผลทั้ง 5 หน้า */
   var TABS = [
     { key: "home",     href: "/pages/user/index-user.html",    icon: "home",           label: "หน้าหลัก" },
@@ -466,7 +478,7 @@
 
   function setupPullToRefresh() {
     // หน้ายื่นใบลามีแบบฟอร์ม → ไม่ใช้ (กันข้อมูลที่กรอกไว้หาย)
-    if (document.body.getAttribute("data-pvt-ptr") === "off" || /\/leave-user\.html$/.test(location.pathname)) return;
+    if (document.body.getAttribute("data-pvt-ptr") === "off" || /\/leave-user(\.html)?$/.test(location.pathname)) return;
 
     var ind = document.createElement("div");
     ind.className = "pvt-ptr";
@@ -668,7 +680,7 @@
   function setupInstallPrompt() {
     if (isStandalone()) { root.classList.add("pvt-standalone"); return; }
     // แสดงเฉพาะหน้าแรก เพื่อไม่รบกวนตอนทำงานหน้าอื่น
-    var onHome = /\/index-user\.html$/.test(location.pathname);
+    var onHome = /\/index-user(\.html)?$/.test(location.pathname);
     window.addEventListener("beforeinstallprompt", function (e) {
       e.preventDefault();
       if (onHome) setTimeout(function () { showInstallBanner("android", e); }, 2500);
@@ -682,7 +694,7 @@
 
   /* --- หน้าโปรไฟล์: ปุ่ม "ตั้งค่า" + "ออกจากระบบ" ท้ายหน้า (แบบแอป) ---------- */
   function addProfileActions() {
-    if (!/\/profile-user\.html$/.test(location.pathname) || document.getElementById("pvtProfileActions")) return;
+    if (!/\/profile-user(\.html)?$/.test(location.pathname) || document.getElementById("pvtProfileActions")) return;
     var host = document.querySelector(".main-content .app");
     if (!host) return;
     var box = document.createElement("section");
