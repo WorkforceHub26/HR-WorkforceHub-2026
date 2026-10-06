@@ -92,12 +92,13 @@
                   เช่น /pages/hr/news-management.html กับ /pages/hr/news-edit.html
      ------------------------------------------------------------------ */
   function highlightActiveNav() {
-    var current = window.location.pathname.replace(/\/index\.html$/, '/');
+    // Cloudflare Pages ตัด .html ออกจากลิงก์ → เทียบแบบไม่สน .html
+    var current = window.location.pathname.replace(/\/index\.html$/, '/').replace(/\.html$/, '');
     var items = $all('.pvt-nav__item[href]', sidebar);
     var matched = null;
 
     items.forEach(function (a) {
-      var path = a.pathname.replace(/\/index\.html$/, '/');
+      var path = a.pathname.replace(/\/index\.html$/, '/').replace(/\.html$/, '');
       var isPrefix = a.getAttribute('data-match') === 'prefix';
       if (path === current || (isPrefix && current.indexOf(path) === 0)) matched = a;
     });

@@ -364,3 +364,15 @@
 - `js/hr.js`: ดึง title/prefix ของพนักงาน + ส่งข้อมูลพนักงานทั้งก้อนให้ getAvatarUrl (เดิมส่งแค่ลิงก์ → ผู้หญิงได้รูปผู้ชาย)
 - `js/leave-stats.js`, `js/index-user.js` (อันดับพนักงานที่ลาเยอะ), `js/components/leave-sla-tracker.js`, `js/home.js` / `js/employee-card-modal.js` (บัตรพนักงาน), `js/leave-history.js`, `js/management.js`, หัวหน้า `hr.html` / `leave-approvals.html`: เปลี่ยน fallback เป็นรูปตามเพศ
 - ทดสอบ: พนักงาน "นางสาว" ที่ฐานข้อมูลเก็บ default-avatar → รูปผู้หญิง, "นาง" ที่รูปจริงหาย → รูปผู้หญิง, ผู้ชาย → รูปผู้ชาย, ไม่เหลือ default-avatar บนหน้า
+
+## ดัก error "InvalidStateError: Transition was aborted" ใน Console
+- `js/mobile-shell.js`: เปลี่ยนหน้าแบบเลื่อนนุ่ม (View Transition ข้ามหน้า) ถ้าเบราว์เซอร์ยกเลิกกลางทางจะเกิด error สีแดง — ไม่มีผลต่อการใช้งาน จึงดักไว้ (pageswap / pagereveal)
+
+## Main ต่างจาก Dev: 401 ที่ตารางสายอนุมัติ + รูปโปรไฟล์
+- 401 (Unauthorized) ที่ `/rest/v1/approval_...` บน Main: ตารางใหม่ยังไม่ได้ GRANT ให้ anon/authenticated → เพิ่ม `supabase/migrations/20261007_grant_approval_tables.sql` (รันใน Main ครั้งเดียว) และเพิ่ม grant ท้าย migration 20261005 / 20261006 สำหรับติดตั้งใหม่
+- รูปโปรไฟล์บน Main เป็น default-avatar: เว็บ Main ยังไม่ใช่โค้ดชุดใหม่ (หน้าโปรไฟล์ไม่มีการ์ด "ตั้งค่า/ออกจากระบบ" ที่ mobile-shell.js เพิ่ม) — ต้อง build ด้วย `npm run build` (vite build + คัดลอก js/ auth/ css/ assets/ ไป dist) แล้ว deploy dist ใหม่
+
+## เว็บจริง (Cloudflare Pages) ตัด .html ออกจากลิงก์ → เงื่อนไขตามชื่อหน้าไม่ทำงาน
+- บน Cloudflare ลิงก์เป็น `/pages/user/profile-user` (ไม่มี .html) แต่โค้ดหลายจุดเช็ก `...profile-user.html` → บน localhost ทำงาน แต่บนเว็บจริงไม่ทำงาน (เช่น การ์ด "ตั้งค่า/ออกจากระบบ" ในหน้าโปรไฟล์ไม่ขึ้น, ไฮไลต์เมนูปัจจุบัน, กฎการพาไปหน้าต่าง ๆ ของ auth guard)
+- แก้: เติม .html กลับให้ path ก่อนเช็ก — `js/early-auth-guard.js`, `js/auth-guard.js`, `js/system-diagnostics.js`, `js/components/leave-sla-tracker.js`, `js/mobile-shell.js`, `js/layout.js`
+- ทดสอบด้วยลิงก์แบบไม่มี .html: การ์ดในหน้าโปรไฟล์ขึ้น, เมนูปัจจุบันถูกไฮไลต์
