@@ -3640,7 +3640,9 @@ function renderLeaveStatsDashboard() {
     const emp = req.employees;
     const empName = emp ? `${emp.first_name_th || ''} ${emp.last_name_th || ''}`.trim() || emp.nickname || 'พนักงาน' : 'ไม่ระบุชื่อ';
     const deptName = emp?.departments?.department_name || 'ไม่ระบุแผนก';
-    const avatar = emp?.avatar_url || emp?.profile_image_url || '/assets/img/default-avatar.jpg';
+    const avatar = (typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp?.image_url || emp?.avatar_url || emp?.profile_image_url || '', emp?.title || emp?.prefix || '', emp?.gender || '', emp?.full_name || empName) : '/assets/img/avatar-male.jpg?v=2');
+    const avTitle = emp?.title || emp?.prefix || '';
+    const avName = emp?.full_name || empName;
     const empCode = emp?.employee_code || '';
     const leaveTypeName = req.leave_type_name || 'อื่นๆ';
 
@@ -3753,13 +3755,15 @@ function renderEmployeeRanking(requests) {
     const emp = req.employees;
     const empName = emp ? `${emp.first_name_th || ''} ${emp.last_name_th || ''}`.trim() || emp.nickname || 'พนักงาน' : 'ไม่ระบุชื่อ';
     const deptName = emp?.departments?.department_name || 'ไม่ระบุแผนก';
-    const avatar = emp?.avatar_url || emp?.profile_image_url || '/assets/img/default-avatar.jpg';
+    const avatar = (typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp?.image_url || emp?.avatar_url || emp?.profile_image_url || '', emp?.title || emp?.prefix || '', emp?.gender || '', emp?.full_name || empName) : '/assets/img/avatar-male.jpg?v=2');
+    const avTitle = emp?.title || emp?.prefix || '';
+    const avName = emp?.full_name || empName;
     const empCodeVal = emp?.employee_code || '';
     const leaveTypeName = req.leave_type_name || 'อื่นๆ';
 
     const key = emp?.id || empName;
     if (!empMap[key]) {
-      empMap[key] = { id: key, name: empName, deptName, avatar, empCode: empCodeVal, days: 0, count: 0, leaveTypes: {} };
+      empMap[key] = { id: key, name: empName, deptName, avatar, avTitle, avName, empCode: empCodeVal, days: 0, count: 0, leaveTypes: {} };
     }
     empMap[key].days += days;
     empMap[key].count += 1;
@@ -3812,7 +3816,7 @@ function renderEmployeeRanking(requests) {
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
           <div style="width: 28px; text-align: center; flex-shrink: 0;">${rankBadge}</div>
-          <img src="${safeEscapeHtml(emp.avatar)}" onerror="this.src='/assets/img/default-avatar.jpg'" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid #cbd5e1; flex-shrink: 0;">
+          <img src="${safeEscapeHtml(emp.avatar)}" data-av-title="${safeEscapeHtml(emp.avTitle || '')}" data-av-name="${safeEscapeHtml(emp.avName || emp.name || '')}" onerror="pvtAvatarError(this)" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid #cbd5e1; flex-shrink: 0;">
           <div style="min-width: 0; flex: 1;">
             <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               <strong style="font-size: 13.5px; color: #1e293b;">${safeEscapeHtml(emp.name)}</strong>

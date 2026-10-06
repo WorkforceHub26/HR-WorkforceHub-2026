@@ -396,7 +396,7 @@
     const defaultAvatar = (typeof window.getDefaultAvatarUrl === 'function')
       ? window.getDefaultAvatarUrl('', '', empName)
       : ((empName.includes('นาง') || empName.includes('น.ส.')) ? '/assets/img/avatar-female.jpg' : '/assets/img/avatar-male.jpg');
-    const imgUrl = (avatarUrl && avatarUrl !== '/assets/img/default-avatar.jpg') ? avatarUrl : defaultAvatar;
+    const imgUrl = (avatarUrl && !(window.pvtIsPlaceholderAvatar ? window.pvtIsPlaceholderAvatar(avatarUrl) : /default-avatar/.test(avatarUrl))) ? avatarUrl : defaultAvatar;
     
     Swal.fire({
       title: '💳 บัตรประจำตัวพนักงานดิจิทัล',
@@ -490,7 +490,7 @@
         name: empCode.name || empCode.empName || empCode.full_name || '-',
         position: empCode.position || empCode.empRole || '-',
         department: empCode.department || empCode.empDept || '-',
-        avatar: empCode.image_url || empCode.avatarUrl || '/assets/img/default-avatar.jpg',
+        avatar: empCode.image_url || empCode.avatarUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', (empCode.name || empCode.empName || empCode.full_name || '')) : '/assets/img/avatar-male.jpg?v=2'),
         qr_url: empCode.qr_url || generateEmployeeQrUrl(empCode.employee_code || empCode.empCode)
       };
     } else {
@@ -499,7 +499,7 @@
         name: empName || '-',
         position: position || '-',
         department: department || '-',
-        avatar: pictureUrl || '/assets/img/default-avatar.jpg',
+        avatar: pictureUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', (empName || '')) : '/assets/img/avatar-male.jpg?v=2'),
         qr_url: (pictureUrl && pictureUrl.includes('qrserver.com')) ? pictureUrl : generateEmployeeQrUrl(empCode)
       };
     }
@@ -553,7 +553,7 @@
           <div class="card-header">PVT WORKFORCE HUB</div>
           <div class="card-body">
             <div class="avatar-box">
-              <img src="${employee.avatar}" onerror="this.src='/assets/img/default-avatar.jpg';" alt="Avatar" />
+              <img src="${employee.avatar}" onerror="this.onerror=null;this.src='${location.origin}${window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', employee.name || '') : '/assets/img/avatar-male.jpg?v=2'}';" alt="Avatar" />
             </div>
             <div class="details">
               <div class="name">${escapeHtml(employee.name)}</div>

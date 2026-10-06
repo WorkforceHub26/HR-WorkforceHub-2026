@@ -121,7 +121,7 @@
           </div>
           <!-- โปรไฟล์ผู้ใช้: คง id เดิม (userAvatarHeader / userNameHeader / userPositionHeader) ให้ hr.js หาเจอ -->
           <div class="pvt-user" id="headerUserProfile">
-            <img class="pvt-user__avatar" id="userAvatarHeader" src="/assets/img/default-avatar.jpg" alt="Profile" onerror="this.src='/assets/img/default-avatar.jpg';" />
+            <img class="pvt-user__avatar" id="userAvatarHeader" src="/assets/img/default-avatar.jpg" alt="Profile" onerror="window.pvtAvatarError&&pvtAvatarError(this)" />
             <div class="pvt-user__info">
               <strong id="userNameHeader">กำลังโหลด...</strong>
               <span id="userPositionHeader">-</span>

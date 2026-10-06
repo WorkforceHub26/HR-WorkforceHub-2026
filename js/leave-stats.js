@@ -225,7 +225,7 @@ window.loadLeaveStatsData = async function() {
     // 2. Fetch ALL data in parallel to avoid PGRST201 foreign-key ambiguity and column name variations
     const [lrRes, empRes, ltRes, deptRes] = await Promise.all([
       sb.from("leave_requests").select("id, employee_id, leave_type_id, total_days, status, start_date, end_date, created_at"),
-      sb.from("employees").select("id, first_name, last_name, full_name, nickname, employee_code, department_id, image_url"),
+      sb.from("employees").select("id, title, prefix, first_name, last_name, full_name, nickname, employee_code, department_id, image_url"),
       sb.from("leave_types").select("id, leave_name, leave_code"),
       sb.from("departments").select("id, department_name, department_code")
     ]);
@@ -263,8 +263,8 @@ window.loadLeaveStatsData = async function() {
           ...emp,
           first_name_th: emp.first_name || emp.first_name_th || '',
           last_name_th: emp.last_name || emp.last_name_th || '',
-          avatar_url: emp.image_url || emp.avatar_url || '/assets/img/default-avatar.jpg',
-          profile_image_url: emp.image_url || emp.avatar_url || '/assets/img/default-avatar.jpg',
+          avatar_url: emp.image_url || emp.avatar_url || '',
+          profile_image_url: emp.image_url || emp.avatar_url || '',
           departments: {
             id: emp.department_id,
             department_name: deptName
@@ -423,7 +423,9 @@ function renderAllDashboardViews() {
     const emp = req.employees;
     const empName = emp ? `${emp.first_name_th || ''} ${emp.last_name_th || ''}`.trim() || emp.nickname || 'พนักงาน' : 'ไม่ระบุชื่อ';
     const deptName = emp?.departments?.department_name || 'ไม่ระบุแผนก';
-    const avatar = emp?.avatar_url || emp?.profile_image_url || '/assets/img/default-avatar.jpg';
+    const avatar = (typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp?.image_url || emp?.avatar_url || emp?.profile_image_url || '', emp?.title || emp?.prefix || '', emp?.gender || '', emp?.full_name || empName) : '/assets/img/avatar-male.jpg?v=2');
+    const avTitle = emp?.title || emp?.prefix || '';
+    const avName = emp?.full_name || empName;
     const empCode = emp?.employee_code || '';
     const leaveTypeName = req.leave_type_name || 'อื่นๆ';
 
@@ -574,13 +576,15 @@ function getEmployeeRankingList() {
     const emp = req.employees;
     const empName = emp ? `${emp.first_name_th || ''} ${emp.last_name_th || ''}`.trim() || emp.nickname || 'พนักงาน' : 'ไม่ระบุชื่อ';
     const deptName = emp?.departments?.department_name || 'ไม่ระบุแผนก';
-    const avatar = emp?.avatar_url || emp?.profile_image_url || '/assets/img/default-avatar.jpg';
+    const avatar = (typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp?.image_url || emp?.avatar_url || emp?.profile_image_url || '', emp?.title || emp?.prefix || '', emp?.gender || '', emp?.full_name || empName) : '/assets/img/avatar-male.jpg?v=2');
+    const avTitle = emp?.title || emp?.prefix || '';
+    const avName = emp?.full_name || empName;
     const empCode = emp?.employee_code || '';
     const leaveTypeName = req.leave_type_name || 'อื่นๆ';
 
     const key = emp?.id || empName;
     if (!empMap[key]) {
-      empMap[key] = { id: key, name: empName, deptName, avatar, empCode, days: 0, count: 0, leaveTypes: {} };
+      empMap[key] = { id: key, name: empName, deptName, avatar, avTitle, avName, empCode, days: 0, count: 0, leaveTypes: {} };
     }
     empMap[key].days += days;
     empMap[key].count += 1;
@@ -650,7 +654,7 @@ function renderEmployeeRanking() {
     return `
       <article class="ls-emp ${isTop3 ? `is-top-${index + 1}` : ''}">
         ${rankHtml}
-        <img class="ls-emp-avatar" src="${safeEscapeHtml(emp.avatar)}" alt="" onerror="this.src='/assets/img/default-avatar.jpg'" />
+        <img class="ls-emp-avatar" src="${safeEscapeHtml(emp.avatar)}" alt="" data-av-title="${safeEscapeHtml(emp.avTitle || '')}" data-av-name="${safeEscapeHtml(emp.avName || emp.name || '')}" onerror="pvtAvatarError(this)" />
         <div class="ls-emp-info">
           <div class="ls-emp-name">
             <strong>${safeEscapeHtml(emp.name)}</strong>

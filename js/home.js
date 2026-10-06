@@ -1657,7 +1657,7 @@ if (false) {
       const empDept = emp.departments?.department_name || 'ไม่ระบุแผนก';
       const empName = emp.full_name || 'ไม่ระบุชื่อ';
       const empCode = emp.employee_code || '';
-      const fullAvatarUrl = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url) : (emp.image_url || '');
+      const fullAvatarUrl = typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp.image_url, emp.title || emp.prefix || '', emp.gender || '', emp.full_name || '') : (emp.image_url || '');
 
       rowsHtml += `
         <div class="emp-card-selection-item" style="display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #e2e8f0; gap: 12px;">
@@ -1670,7 +1670,7 @@ if (false) {
                    style="cursor: pointer; width: 20px; height: 20px;" />
           </div>
           <div style="flex-shrink: 0;">
-            <img src="${fullAvatarUrl || '/assets/img/default-avatar.jpg'}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;" onerror="this.src='/assets/img/default-avatar.jpg';">
+            <img src="${fullAvatarUrl || '/assets/img/avatar-male.jpg?v=2'}" data-av-title="${escapeHtmlAttribute(emp.title || emp.prefix || '')}" data-av-name="${escapeHtmlAttribute(emp.full_name || '')}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;" onerror="pvtAvatarError(this)">
           </div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-weight: 700; color: #1e293b; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtmlText(empName)}</div>
@@ -1820,7 +1820,7 @@ window.handlePrintSelectedCardsFromPopup = function () {
 window.showIndividualIdCard = function (empCode, empName, empRole, empDept, avatarUrl) {
   // เรียกใช้ Centralized QR URL Generator
   const qrUrl = generateEmployeeQrUrl(empCode);
-  const imgUrl = avatarUrl || '/assets/img/default-avatar.jpg';
+  const imgUrl = avatarUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', empName) : '/assets/img/avatar-male.jpg?v=2');
   
   Swal.fire({
     title: '💳 ตัวอย่างบัตรพนักงานดิจิทัล',
@@ -1829,7 +1829,7 @@ window.showIndividualIdCard = function (empCode, empName, empRole, empDept, avat
       <div id="pvt-id-card" style="background: linear-gradient(135deg, #0f172a 0%, var(--th-b-900, #1e3a8a) 100%); width: 320px; margin: 15px auto; border-radius: 20px; padding: 24px; color: white; box-shadow: 0 15px 30px rgba(var(--th-b-900-rgb, 30, 58, 138), 0.3); text-align: center; border: 1px solid rgba(255,255,255,0.1);">
         <div style="font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: var(--th-k-400, #38bdf8); margin-bottom: 16px;">PVT WORKFORCE HUB</div>
         <div style="width: 80px; height: 80px; margin: 0 auto 14px auto; border-radius: 50%; border: 3px solid var(--th-k-400, #38bdf8); overflow: hidden; background: #1e293b;">
-          <img src="${imgUrl}" onerror="this.src='/assets/img/default-avatar.jpg';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
+          <img src="${imgUrl}" data-av-name="${escapeHtmlText(empName)}" onerror="pvtAvatarError(this)" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
         </div>
         <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">${escapeHtmlText(empName)}</div>
         <div style="font-size: 13px; color: var(--th-k-400, #38bdf8); font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtmlText(empRole)}</div>
@@ -1870,7 +1870,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       name: empCode.name || empCode.empName || empCode.full_name || '-',
       position: empCode.position || empCode.empRole || '-',
       department: empCode.department || empCode.empDept || '-',
-      avatar: empCode.image_url || empCode.avatarUrl || '/assets/img/default-avatar.jpg',
+      avatar: empCode.image_url || empCode.avatarUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', (empCode.name || empCode.empName || empCode.full_name || '')) : '/assets/img/avatar-male.jpg?v=2'),
       qr_url: empCode.qr_url || generateEmployeeQrUrl(empCode.employee_code || empCode.empCode)
     };
   } else {
@@ -1879,7 +1879,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       name: empName || '-',
       position: position || '-',
       department: department || '-',
-      avatar: pictureUrl || '/assets/img/default-avatar.jpg',
+      avatar: pictureUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', (empName || '')) : '/assets/img/avatar-male.jpg?v=2'),
       qr_url: (pictureUrl && pictureUrl.includes('qrserver.com')) ? pictureUrl : generateEmployeeQrUrl(empCode)
     };
   }
@@ -1927,7 +1927,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
         <div class="card-header">PVT WORKFORCE HUB</div>
         <div class="card-body">
           <div class="avatar-box">
-            <img src="${employee.avatar}" onerror="this.src='/assets/img/default-avatar.jpg';" alt="Avatar" />
+            <img src="${employee.avatar}" onerror="this.onerror=null;this.src='${location.origin}${window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', employee.name || '') : '/assets/img/avatar-male.jpg?v=2'}';" alt="Avatar" />
           </div>
           <div class="details">
             <div class="name">${escapeHtmlText(employee.name)}</div>

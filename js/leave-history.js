@@ -549,7 +549,8 @@ async function loadMyLeaveHistory() {
         user_name: myProfile?.name || myProfile?.employees?.full_name || 'ฉัน (ผู้ยื่นคำขอ)',
         employee_code: myProfile?.employee_code || myProfile?.employees?.employee_code || '',
         department: myProfile?.department || myProfile?.employees?.departments?.department_name || '',
-        avatar_url: myProfile?.image_url || myProfile?.employees?.image_url || '/assets/img/default-avatar.jpg'
+        avatar_url: myProfile?.image_url || myProfile?.employees?.image_url || '',
+        title: myProfile?.title || myProfile?.prefix || myProfile?.employees?.title || myProfile?.employees?.prefix || ''
       }));
       
       const userSlaContainer = document.getElementById("userLeaveSlaTrackerContainer");
