@@ -1912,6 +1912,42 @@ class LineOAEngine {
     return `${day} ${month} ${year}`;
   }
 
+  // ช่วงวันที่แบบกระชับ: "9–10 ต.ค. 2569", "30 ต.ค. – 2 พ.ย. 2569", "6 ต.ค. 2569"
+  formatThaiDateRange(startDate, endDate) {
+    const M = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    const a = new Date(startDate), b = new Date(endDate || startDate);
+    if (isNaN(a.getTime())) return this.formatThaiDateShort(startDate);
+    if (isNaN(b.getTime()) || a.toDateString() === b.toDateString()) return `${a.getDate()} ${M[a.getMonth()]} ${a.getFullYear() + 543}`;
+    if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()) return `${a.getDate()}–${b.getDate()} ${M[a.getMonth()]} ${a.getFullYear() + 543}`;
+    if (a.getFullYear() === b.getFullYear()) return `${a.getDate()} ${M[a.getMonth()]} – ${b.getDate()} ${M[b.getMonth()]} ${b.getFullYear() + 543}`;
+    return `${this.formatThaiDateShort(startDate)} – ${this.formatThaiDateShort(endDate)}`;
+  }
+
+  // ข้อความ/สีของแต่ละประเภทแจ้งเตือน (ใช้ร่วมกันทั้งการ์ด LINE และแจ้งเตือนในระบบ)
+  lineNoticeMeta(type, stepTitle = '') {
+    const T = {
+      NEW_REQUEST:      { title: 'ใบลารอท่านอนุมัติ', pill: 'รออนุมัติ', step: stepTitle || 'ลำดับที่ 1', c1: '#4f46e5', c2: '#0ea5e9', soft: '#eef2ff', ink: '#3730a3', act: true },
+      LEADER_APPROVED:  { title: 'ใบลารอท่านอนุมัติ', pill: 'รออนุมัติ', step: stepTitle || 'ลำดับที่ 2 · ผ่านลำดับที่ 1 แล้ว', c1: '#4f46e5', c2: '#0ea5e9', soft: '#eef2ff', ink: '#3730a3', act: true, commentLabel: 'ความเห็นลำดับก่อนหน้า' },
+      MANAGER_APPROVED: { title: 'ใบลารอท่านอนุมัติ', pill: 'รออนุมัติ', step: stepTitle || 'ลำดับที่ 3 · ผ่านลำดับที่ 2 แล้ว', c1: '#4f46e5', c2: '#0ea5e9', soft: '#eef2ff', ink: '#3730a3', act: true, commentLabel: 'ความเห็นลำดับก่อนหน้า' },
+      EXECUTIVE_APPROVED: { title: 'ใบลารอ HR ตรวจสอบ', pill: 'รอ HR', step: stepTitle, c1: '#0d9488', c2: '#14b8a6', soft: '#f0fdfa', ink: '#0f766e', commentLabel: 'ความเห็น' },
+      HR_REVIEW:        { title: 'ใบลารอ HR ตรวจสอบ', pill: 'รอ HR', step: stepTitle, c1: '#0d9488', c2: '#14b8a6', soft: '#f0fdfa', ink: '#0f766e', commentLabel: 'ความเห็น' },
+      PENDING_HR:       { title: 'ใบลารอ HR ตรวจสอบ', pill: 'รอ HR', step: stepTitle, c1: '#0d9488', c2: '#14b8a6', soft: '#f0fdfa', ink: '#0f766e', commentLabel: 'ความเห็น' },
+      HR_NOTIFY:        { title: 'ใบลาอนุมัติแล้ว', pill: 'อนุมัติ', step: stepTitle, c1: '#0284c7', c2: '#06b6d4', soft: '#f0f9ff', ink: '#075985', commentLabel: 'ความเห็น' },
+      REQUEST_APPROVED: { title: 'ใบลาของคุณได้รับอนุมัติ', pill: 'อนุมัติแล้ว', step: stepTitle, c1: '#16a34a', c2: '#22c55e', soft: '#f0fdf4', ink: '#166534' },
+      FINAL_APPROVED:   { title: 'ใบลาของคุณได้รับอนุมัติ', pill: 'อนุมัติแล้ว', step: stepTitle, c1: '#16a34a', c2: '#22c55e', soft: '#f0fdf4', ink: '#166534' },
+      REJECTED:         { title: 'ใบลาไม่ได้รับอนุมัติ', pill: 'ไม่อนุมัติ', step: stepTitle, c1: '#dc2626', c2: '#f97316', soft: '#fef2f2', ink: '#991b1b', commentLabel: 'เหตุผลที่ไม่อนุมัติ', commentStrong: true },
+      CANCELLATION:     { title: 'คำขอยกเลิกใบลา', pill: 'รอพิจารณา', step: stepTitle, c1: '#d97706', c2: '#f59e0b', soft: '#fffbeb', ink: '#92400e', act: true },
+      TEST:             { title: 'ทดสอบการแจ้งเตือน', pill: 'ทดสอบ', step: stepTitle, c1: '#4f46e5', c2: '#0ea5e9', soft: '#eef2ff', ink: '#3730a3' }
+    };
+    return T[type] || { title: 'แจ้งเตือนระบบใบลา', pill: 'แจ้งเตือน', step: stepTitle, c1: '#475569', c2: '#64748b', soft: '#f8fafc', ink: '#334155' };
+  }
+
+  /**
+   * การ์ด LINE (Flex Message) แบบกระชับ — ข้อมูลแต่ละอย่างแสดงครั้งเดียว
+   * หัว: ชื่อระบบ + สถานะ + หัวเรื่อง + ลำดับที่
+   * เนื้อ: ผู้ขอลา → ประเภท/ระยะเวลา/วันที่ → เหตุผล (+ความเห็น, รูปแนบ)
+   * ท้าย: [อนุมัติ] [ไม่อนุมัติ] สำหรับผู้อนุมัติ หรือปุ่มเดียวสำหรับผลการพิจารณา
+   */
   formatLineFlexCard(type, opts = {}) {
     const {
       leaveId = '',
@@ -1926,472 +1962,105 @@ class LineOAEngine {
       nowStr = '',
       approvalUrl = '',
       historyUrl = '',
-      attachmentUrl = ''
+      attachmentUrl = '',
+      stepTitle = '',
+      employeeNickname = ''
     } = opts;
-
-    let headerTitle = "คำขอใบลาใหม่";
-    let themeColor = "#4f46e5"; // Modern Indigo/Purple (SCB/KBank modern style)
-    let highlightBg = "#f4f3ff";
-    let highlightText = "#4338ca";
-    let statusBadgeText = "⏳ รออนุมัติขั้นต้น (ลำดับที่ 1)";
-    let statusBadgeBg = "#e0e7ff";
-    let statusBadgeColor = "#3730a3";
-    let actionLabel = "👉 ตรวจสอบใบลา";
-    let actionUrl = approvalUrl;
-    let showComment = false;
-
-    switch (type) {
-      case 'NEW_REQUEST':
-        headerTitle = "คำขอใบลาใหม่ (รออนุมัติ ลำดับที่ 1)";
-        themeColor = "#4f46e5"; // Indigo
-        highlightBg = "#eff6ff";
-        highlightText = "#1d4ed8";
-        statusBadgeText = "⏳ รอการอนุมัติขั้นต้น (ลำดับที่ 1)";
-        statusBadgeBg = "#dbeafe";
-        statusBadgeColor = "#1e40af";
-        actionLabel = "👉 ตรวจสอบใบลา";
-        actionUrl = approvalUrl;
-        break;
-
-      case 'LEADER_APPROVED':
-        headerTitle = "ผ่านการอนุมัติขั้นต้น (ลำดับที่ 1)";
-        themeColor = "#059669"; // Emerald Green
-        highlightBg = "#ecfdf5";
-        highlightText = "#047857";
-        statusBadgeText = "🟢 ผ่านลำดับที่ 1 (รออนุมัติ ลำดับที่ 2)";
-        statusBadgeBg = "#d1fae5";
-        statusBadgeColor = "#065f46";
-        actionLabel = "👉 ตรวจสอบใบลา ลำดับที่ 2";
-        actionUrl = approvalUrl;
-        showComment = true;
-        break;
-
-      case 'MANAGER_APPROVED':
-        headerTitle = "ผ่านการอนุมัติระดับผู้จัดการ (ลำดับที่ 2)";
-        themeColor = "#0284c7"; // Sky Blue
-        highlightBg = "#f0f9ff";
-        highlightText = "#0369a1";
-        statusBadgeText = "🔵 ผ่านลำดับที่ 2 (รอฝ่ายบุคคล)";
-        statusBadgeBg = "#e0f2fe";
-        statusBadgeColor = "#075985";
-        actionLabel = "👉 ตรวจสอบใบลา";
-        actionUrl = approvalUrl;
-        showComment = true;
-        break;
-
-      case 'HR_REVIEW':
-      case 'PENDING_HR':
-        headerTitle = "คำขอใบลาส่งต่อฝ่ายบุคคล (HR Review)";
-        themeColor = "#0d9488"; // Teal
-        highlightBg = "#f0fdfa";
-        highlightText = "#0f766e";
-        statusBadgeText = "📋 รอฝ่ายบุคคลตรวจสอบ/บันทึก";
-        statusBadgeBg = "#ccfbf1";
-        statusBadgeColor = "#115e59";
-        actionLabel = "👉 เข้าสู่ระบบ HR";
-        actionUrl = approvalUrl;
-        showComment = true;
-        break;
-
-      case 'HR_NOTIFY':
-        headerTitle = "สรุปใบลาอนุมัติสมบูรณ์ (แจ้ง HR)";
-        themeColor = "#0284c7"; // Sky Blue
-        highlightBg = "#f0f9ff";
-        highlightText = "#0369a1";
-        statusBadgeText = "✅ อนุมัติสมบูรณ์ (บันทึกสถิติ HR)";
-        statusBadgeBg = "#e0f2fe";
-        statusBadgeColor = "#075985";
-        actionLabel = "📂 เปิดระบบจัดการ HR";
-        actionUrl = approvalUrl;
-        showComment = true;
-        break;
-
-      case 'REQUEST_APPROVED':
-      case 'FINAL_APPROVED':
-        headerTitle = "ใบลาได้รับการอนุมัติเรียบร้อย";
-        themeColor = "#16a34a"; // Vibrant Green
-        highlightBg = "#f0fdf4";
-        highlightText = "#15803d";
-        statusBadgeText = "✅ อนุมัติสมบูรณ์เรียบร้อย";
-        statusBadgeBg = "#dcfce7";
-        statusBadgeColor = "#166534";
-        actionLabel = "📋 ดูประวัติการลา";
-        actionUrl = historyUrl;
-        break;
-
-      case 'REJECTED':
-        headerTitle = "คำขอใบลาไม่อนุมัติ";
-        themeColor = "#dc2626"; // Crimson Red
-        highlightBg = "#fef2f2";
-        highlightText = "#b91c1c";
-        statusBadgeText = "❌ คำขอไม่อนุมัติ";
-        statusBadgeBg = "#fee2e2";
-        statusBadgeColor = "#991b1b";
-        actionLabel = "📋 ดูรายละเอียด";
-        actionUrl = historyUrl;
-        showComment = true;
-        break;
-
-      case 'CANCELLATION':
-        headerTitle = "แจ้งเตือนคำขอยกเลิกใบลา";
-        themeColor = "#d97706"; // Amber / Gold
-        highlightBg = "#fffbeb";
-        highlightText = "#b45309";
-        statusBadgeText = "⚠️ ขอยกเลิกใบลา";
-        statusBadgeBg = "#fef3c7";
-        statusBadgeColor = "#92400e";
-        actionLabel = "👉 ดูคำขอยกเลิก";
-        actionUrl = approvalUrl;
-        break;
-    }
-
-    const detailRows = [
-      {
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          { type: "text", text: "👤 ชื่อผู้ขอลา", size: "sm", color: "#64748b", flex: 4 },
-          { type: "text", text: employeeName, size: "sm", color: "#0f172a", weight: "bold", flex: 6, align: "end", wrap: true }
-        ]
-      }
-    ];
-
-    if (employeeCode) {
-      detailRows.push({
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          { type: "text", text: "🆔 รหัสพนักงาน", size: "sm", color: "#64748b", flex: 4 },
-          { type: "text", text: employeeCode, size: "sm", color: "#0f172a", weight: "bold", flex: 6, align: "end", wrap: true }
-        ]
-      });
-    }
-
-    if (departmentName) {
-      detailRows.push({
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          { type: "text", text: "🏢 แผนก", size: "sm", color: "#64748b", flex: 4 },
-          { type: "text", text: departmentName, size: "sm", color: "#334155", flex: 6, align: "end", wrap: true }
-        ]
-      });
-    }
-
-    detailRows.push(
-      {
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          { type: "text", text: "📅 วันที่ลา", size: "sm", color: "#64748b", flex: 4 },
-          { type: "text", text: dateFormatted, size: "sm", color: "#334155", flex: 6, align: "end", wrap: true }
-        ]
-      },
-      {
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          { type: "text", text: "💬 เหตุผล", size: "sm", color: "#64748b", flex: 4 },
-          { type: "text", text: reason || "ไม่ได้ระบุ", size: "sm", color: "#334155", flex: 6, align: "end", wrap: true }
-        ]
-      }
-    );
-
-    if (showComment && comment) {
-      detailRows.push({
-        type: "box",
-        layout: "horizontal",
-        contents: [
-          { type: "text", text: "✍️ ความเห็น", size: "sm", color: "#64748b", flex: 4 },
-          { type: "text", text: comment, size: "sm", color: "#475569", flex: 6, align: "end", wrap: true }
-        ]
-      });
-    }
-
-    detailRows.push({
-      type: "box",
-      layout: "horizontal",
+    const m = this.lineNoticeMeta(type, stepTitle);
+    const txt = (v, d = '-') => { const t = String(v ?? '').trim(); return t || d; }; // LINE ไม่รับข้อความว่าง
+    const sub = [employeeNickname ? `ชื่อเล่น ${String(employeeNickname).trim()}` : '', departmentName].filter((x) => String(x || '').trim()).join(' · ');
+    const isImage = attachmentUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachmentUrl.split('?')[0]);
+    const showComment = comment && m.commentLabel && !/^รอ.+พิจารณา$/.test(String(comment).trim());
+    const sep = (margin = 'lg') => ({ type: 'separator', margin, color: '#eef2f7' });
+    const row = (label, value, opt = {}) => ({
+      type: 'box', layout: 'baseline', spacing: 'md', margin: opt.margin || 'md',
       contents: [
-        { type: "text", text: "⏰ วันเวลาทำรายการ", size: "xs", color: "#94a3b8", flex: 5 },
-        { type: "text", text: nowStr, size: "xs", color: "#94a3b8", flex: 5, align: "end" }
+        { type: 'text', text: label, size: 'sm', color: '#94a3b8', flex: 2 },
+        { type: 'text', text: txt(value), size: 'sm', color: opt.color || '#334155', weight: opt.bold ? 'bold' : 'regular', flex: 5, wrap: true }
       ]
     });
 
-    // ตรวจสอบชนิดไฟล์แนบว่าเป็นรูปภาพหรือไม่
-    const isImage = attachmentUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachmentUrl.split('?')[0]);
+    const body = [
+      // ผู้ขอลา: ชื่อ-นามสกุล / ชื่อเล่น · แผนก
+      {
+        type: 'box', layout: 'vertical',
+        contents: [
+          { type: 'text', text: txt(employeeName, 'พนักงาน'), size: 'md', weight: 'bold', color: '#0f172a', wrap: true },
+          ...(sub ? [{ type: 'text', text: sub, size: 'sm', color: '#64748b', wrap: true, margin: 'xs' }] : [])
+        ]
+      },
+      // ประเภท + ระยะเวลา + วันที่ (กล่องเดียว)
+      {
+        type: 'box', layout: 'vertical', margin: 'lg', paddingAll: '14px', cornerRadius: '14px', backgroundColor: m.soft,
+        contents: [
+          {
+            type: 'box', layout: 'horizontal', alignItems: 'center',
+            contents: [
+              { type: 'text', text: txt(leaveType, 'ใบลา'), size: 'sm', weight: 'bold', color: m.ink, flex: 1, wrap: true },
+              { type: 'text', text: txt(durationFormatted), size: 'lg', weight: 'bold', color: m.ink, align: 'end', flex: 0 }
+            ]
+          },
+          { type: 'text', text: txt(dateFormatted), size: 'sm', color: '#475569', margin: 'sm', wrap: true }
+        ]
+      }
+    ];
+    if (String(reason || '').trim()) body.push(row('เหตุผล', reason, { margin: 'lg' }));
+    if (showComment) body.push(row(m.commentStrong ? 'สาเหตุ' : 'ความเห็น', comment, { color: m.commentStrong ? '#b91c1c' : '#334155', bold: !!m.commentStrong }));
+    if (isImage) {
+      body.push({
+        type: 'image', url: attachmentUrl, size: 'full', aspectMode: 'cover', aspectRatio: '16:9', margin: 'lg',
+        action: { type: 'uri', label: 'ดูไฟล์แนบ', uri: attachmentUrl }
+      });
+    }
+    body.push(sep('lg'), {
+      type: 'box', layout: 'horizontal', margin: 'md',
+      contents: [
+        { type: 'text', text: m.act ? '⏱ พิจารณาภายใน 2 วันทำการ' : 'PVT HR · ใบลาออนไลน์', size: 'xxs', color: m.act ? '#ea580c' : '#94a3b8', flex: 1 },
+        { type: 'text', text: txt(nowStr, ' '), size: 'xxs', color: '#94a3b8', align: 'end', flex: 0 }
+      ]
+    });
+
+    const footer = (m.act && leaveId)
+      ? [{
+          type: 'box', layout: 'horizontal', spacing: 'sm',
+          contents: [
+            { type: 'button', style: 'primary', height: 'sm', color: '#16a34a', action: { type: 'uri', label: 'อนุมัติ', uri: `${approvalUrl}?id=${leaveId}&action=approve` } },
+            { type: 'button', style: 'primary', height: 'sm', color: '#e11d48', action: { type: 'uri', label: 'ไม่อนุมัติ', uri: `${approvalUrl}?id=${leaveId}&action=reject` } }
+          ]
+        }]
+      : [{
+          type: 'button', style: 'link', height: 'sm', color: m.ink,
+          action: { type: 'uri', label: ['REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED'].includes(type) ? 'ดูประวัติการลา' : 'เปิดระบบใบลา', uri: ['REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED'].includes(type) ? historyUrl : approvalUrl }
+        }];
 
     return {
-      type: "flex",
-      altText: `🔔 ${headerTitle}: ${employeeName} - ${leaveType} (${durationFormatted})`,
+      type: 'flex',
+      altText: `${m.title}: ${txt(employeeName, 'พนักงาน')} · ${txt(leaveType, 'ใบลา')} ${txt(durationFormatted, '')}`.slice(0, 380),
       contents: {
-        type: "bubble",
-        size: "mega",
+        type: 'bubble',
+        size: 'mega',
         header: {
-          type: "box",
-          layout: "vertical",
-          backgroundColor: themeColor,
-          paddingAll: "18px",
+          type: 'box', layout: 'vertical', paddingAll: '18px', paddingBottom: '16px',
+          background: { type: 'linearGradient', angle: '135deg', startColor: m.c1, endColor: m.c2 },
           contents: [
             {
-              type: "box",
-              layout: "horizontal",
+              type: 'box', layout: 'horizontal', alignItems: 'center',
               contents: [
+                { type: 'text', text: 'PVT HR · ใบลาออนไลน์', size: 'xxs', color: '#ffffffcc', weight: 'bold', flex: 1 },
                 {
-                  type: "text",
-                  text: "PVT WORKFORCE",
-                  weight: "bold",
-                  color: "#ffffff",
-                  size: "xs"
-                },
-                {
-                  type: "text",
-                  text: "SLIP NOTIFICATION",
-                  color: "#ffffff",
-                  size: "xxs",
-                  align: "end"
+                  type: 'box', layout: 'vertical', flex: 0, paddingStart: '10px', paddingEnd: '10px', paddingTop: '3px', paddingBottom: '3px',
+                  cornerRadius: '20px', backgroundColor: '#ffffff33',
+                  contents: [{ type: 'text', text: m.pill, size: 'xxs', color: '#ffffff', weight: 'bold' }]
                 }
               ]
             },
-            {
-              type: "text",
-              text: headerTitle,
-              weight: "bold",
-              color: "#ffffff",
-              size: "lg",
-              margin: "sm",
-              wrap: true
-            }
+            { type: 'text', text: m.title, size: 'xl', weight: 'bold', color: '#ffffff', margin: 'md', wrap: true },
+            ...(m.step ? [{ type: 'text', text: m.step, size: 'sm', color: '#ffffffd9', margin: 'xs', wrap: true }] : [])
           ]
         },
-        body: {
-          type: "box",
-          layout: "vertical",
-          paddingAll: "20px",
-          spacing: "md",
-          contents: [
-            // Big Amount-Style Hero Card (คล้ายสลิปโอนเงินธนาคาร)
-            {
-              type: "box",
-              layout: "vertical",
-              backgroundColor: highlightBg,
-              paddingAll: "16px",
-              cornerRadius: "12px",
-              contents: [
-                {
-                  type: "box",
-                  layout: "horizontal",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "ระยะเวลาการลาทั้งหมด",
-                      size: "xs",
-                      color: highlightText,
-                      weight: "bold"
-                    },
-                    {
-                      type: "text",
-                      text: `📝 ${leaveType}`,
-                      size: "xs",
-                      color: highlightText,
-                      align: "end",
-                      weight: "bold"
-                    }
-                  ]
-                },
-                {
-                  type: "text",
-                  text: durationFormatted,
-                  weight: "bold",
-                  size: "xl",
-                  color: highlightText,
-                  margin: "sm",
-                  wrap: true
-                }
-              ]
-            },
-
-            // Status Badge Bar
-            {
-              type: "box",
-              layout: "horizontal",
-              backgroundColor: statusBadgeBg,
-              paddingAll: "8px",
-              cornerRadius: "8px",
-              contents: [
-                {
-                  type: "text",
-                  text: statusBadgeText,
-                  size: "xs",
-                  color: statusBadgeColor,
-                  weight: "bold",
-                  align: "center"
-                }
-              ]
-            },
-
-            // SLA Deadline warning box inside the LINE Flex Card
-            ...(['NEW_REQUEST', 'LEADER_APPROVED', 'MANAGER_APPROVED', 'CANCELLATION'].includes(type) ? [
-              {
-                type: "box",
-                layout: "horizontal",
-                backgroundColor: "#fff7ed",
-                borderColor: "#ffedd5",
-                borderWidth: "1px",
-                paddingAll: "8px",
-                cornerRadius: "8px",
-                margin: "md",
-                contents: [
-                  {
-                    type: "text",
-                    text: "⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ",
-                    size: "xs",
-                    color: "#ea580c",
-                    weight: "bold",
-                    align: "center"
-                  }
-                ]
-              }
-            ] : []),
-
-            // Separator line (เส้นแบ่งสวยๆ แบบสลิป)
-            {
-              type: "separator",
-              margin: "lg",
-              color: "#e2e8f0"
-            },
-
-            // Clean Key-Value Table Details
-            {
-              type: "box",
-              layout: "vertical",
-              margin: "lg",
-              spacing: "md",
-              contents: detailRows
-            },
-
-            // 🖼️ Leave Attachment Preview (รูปหลักฐานการลาแบบสวยงามและเห็นชัดเจน)
-            ...(isImage ? [
-              {
-                type: "separator",
-                margin: "lg",
-                color: "#e2e8f0"
-              },
-              {
-                type: "box",
-                layout: "vertical",
-                spacing: "xs",
-                margin: "lg",
-                contents: [
-                  {
-                    type: "text",
-                    text: "🖼️ หลักฐานแนบประกอบการลา",
-                    size: "xs",
-                    color: "#64748b",
-                    weight: "bold"
-                  },
-                  {
-                    type: "image",
-                    url: attachmentUrl,
-                    size: "full",
-                    aspectMode: "cover",
-                    aspectRatio: "16:9",
-                    cornerRadius: "8px",
-                    action: {
-                      type: "uri",
-                      label: "ดูรูปขนาดเต็ม",
-                      uri: attachmentUrl
-                    }
-                  }
-                ]
-              }
-            ] : []),
-
-            // Dotted Separator line
-            {
-              type: "separator",
-              margin: "lg",
-              color: "#e2e8f0"
-            },
-
-            // Bottom Bot Credit
-            {
-              type: "text",
-              text: "ระบบแจ้งเตือนอัตโนมัติ — PVT Workforce Bot",
-              size: "xxs",
-              color: "#cbd5e1",
-              align: "center",
-              margin: "sm"
-            }
-          ]
-        },
-        footer: {
-          type: "box",
-          layout: "vertical",
-          paddingAll: "16px",
-          paddingTop: "0px",
-          contents: (() => {
-            const isApprovalNotif = ['NEW_REQUEST', 'LEADER_APPROVED', 'MANAGER_APPROVED', 'CANCELLATION'].includes(type);
-            if (isApprovalNotif && leaveId) {
-              return [
-                {
-                  type: "box",
-                  layout: "horizontal",
-                  spacing: "md",
-                  margin: "none",
-                  contents: [
-                    {
-                      type: "button",
-                      style: "primary",
-                      color: "#10b981",
-                      height: "md",
-                      action: {
-                        type: "uri",
-                        label: "✅ อนุมัติ (Approve)",
-                        uri: `${approvalUrl}?id=${leaveId}&action=approve`
-                      }
-                    },
-                    {
-                      type: "button",
-                      style: "primary",
-                      color: "#ef4444",
-                      height: "md",
-                      action: {
-                        type: "uri",
-                        label: "❌ ปฏิเสธ (Reject)",
-                        uri: `${approvalUrl}?id=${leaveId}&action=reject`
-                      }
-                    }
-                  ]
-                },
-                {
-                  type: "button",
-                  style: "secondary",
-                  height: "md",
-                  margin: "sm",
-                  action: {
-                    type: "uri",
-                    label: "🔍 รายละเอียดเพิ่มเติม",
-                    uri: `${approvalUrl}?id=${leaveId}`
-                  }
-                }
-              ];
-            } else {
-              return [
-                {
-                  type: "button",
-                  style: "primary",
-                  color: themeColor,
-                  height: "md",
-                  action: {
-                    type: "uri",
-                    label: actionLabel,
-                    uri: actionUrl
-                  }
-                }
-              ];
-            }
-          })()
-        }
+        body: { type: 'box', layout: 'vertical', paddingAll: '18px', contents: body },
+        footer: { type: 'box', layout: 'vertical', paddingAll: '14px', paddingTop: '0px', contents: footer },
+        styles: { footer: { separator: false } }
       }
     };
   }
@@ -2413,181 +2082,53 @@ class LineOAEngine {
       leaveHours = 0,
       reason = '',
       comment = '',
-      attachmentUrl = ''
+      attachmentUrl = '',
+      stepTitle = ''
     } = opts;
+    // ชื่อเล่นผู้ขอลา: ใช้ค่าที่ส่งมา หรือดึงจากใบลา
+    let employeeNickname = String(opts.employeeNickname || '').trim();
+    if (!employeeNickname && leaveId && this.client) {
+      try {
+        const { data: lv } = await this.client.from('leave_requests').select('employee_id').eq('id', leaveId).maybeSingle();
+        if (lv && lv.employee_id) {
+          const { data: em } = await this.client.from('employees').select('nickname').eq('id', lv.employee_id).maybeSingle();
+          employeeNickname = String(em?.nickname || '').trim();
+        }
+      } catch (e) {}
+    }
 
-    const nowStr = new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+    const nowStr = new Date().toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     const origin = (typeof window !== 'undefined' && window.location.origin) 
       ? window.location.origin 
       : 'https://ais-dev-65m6k5jsxexajsrlv3c3x6-414501392488.asia-southeast1.run.app';
     const recipientRoleLower = String(recipientRole || '').toLowerCase();
-    const usesApproverPortal = ['leader', 'manager', 'supervisor', 'head'].some(r => recipientRoleLower === r || recipientRoleLower.includes(r));
+    const usesApproverPortal = ['leader', 'manager', 'supervisor', 'head', 'approver'].some(r => recipientRoleLower === r || recipientRoleLower.includes(r));
     const approvalPath = usesApproverPortal ? '/pages/approver/leave-approvals.html' : '/pages/hr/hr.html';
     const approvalUrl = `${origin}${approvalPath}`;
     const historyUrl = `${origin}/pages/user/leave-history.html`;
 
     // แปลงระยะเวลาลาและวันที่ให้เป็นข้อความเข้าใจง่าย
     const durationFormatted = this.formatLeaveDurationFriendly(totalDays, leaveHours);
-    const startStr = this.formatThaiDateShort(startDate);
-    const endStr = this.formatThaiDateShort(endDate);
-    const dateFormatted = (startStr === endStr) ? startStr : `${startStr} ถึง ${endStr}`;
+    const dateFormatted = this.formatThaiDateRange(startDate, endDate);
 
-    let title = "";
-    let messageText = "";
-
-    switch (type) {
-      case 'NEW_REQUEST':
-        title = "📩 มีคำขอใบลาใหม่ (รออนุมัติ ลำดับที่ 1)";
-        messageText = 
-          `📩 [แจ้งเตือนคำขอใบลาใหม่ - รออนุมัติ]\n` +
-          `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
-          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
-          `📝 ประเภทการลา: ${leaveType}\n` +
-          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
-          `📅 วันที่ลา: ${dateFormatted}\n` +
-          `💬 เหตุผลการลา: ${reason || 'ไม่ได้ระบุ'}\n` +
-          `⏰ วันเวลาที่ยื่น: ${nowStr}\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👉 กดลิงก์ด้านล่างเพื่อพิจารณาอนุมัติ:\n` +
-          `🔗 ${approvalUrl}`;
-        break;
-
-      case 'LEADER_APPROVED':
-        title = "🟢 หัวหน้างานอนุมัติแล้ว (รออนุมัติ ลำดับที่ 2)";
-        messageText = 
-          `🟢 [คำขอลาผ่านการอนุมัติขั้นต้น (ลำดับที่ 1)]\n` +
-          `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
-          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
-          `📝 ประเภทการลา: ${leaveType}\n` +
-          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
-          `📅 วันที่ลา: ${dateFormatted}\n` +
-          `💬 เหตุผลการลา: ${reason || 'ไม่ได้ระบุ'}\n` +
-          `💬 ความเห็นหัวหน้า (ลำดับที่ 1): ${comment || 'เห็นควรอนุมัติ'}\n` +
-          `⏰ ดำเนินการเมื่อ: ${nowStr}\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👉 กดลิงก์เพื่อพิจารณาอนุมัติขั้นสุดท้าย (ลำดับที่ 2):\n` +
-          `🔗 ${approvalUrl}`;
-        break;
-
-      case 'MANAGER_APPROVED':
-        title = "🔵 ผู้จัดการฝ่ายอนุมัติแล้ว (รอการพิจารณาถัดไป)";
-        messageText = 
-          `🔵 [คำขอลาผ่านการอนุมัติระดับผู้จัดการ (ลำดับที่ 2)]\n` +
-          `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
-          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
-          `📝 ประเภทการลา: ${leaveType}\n` +
-          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
-          `📅 วันที่ลา: ${dateFormatted}\n` +
-          `💬 เหตุผลการลา: ${reason || 'ไม่ได้ระบุ'}\n` +
-          `💬 ความเห็นผู้จัดการ (ลำดับที่ 2): ${comment || 'เห็นควรอนุมัติ'}\n` +
-          `⏰ ดำเนินการเมื่อ: ${nowStr}\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👉 กดลิงก์เพื่อเข้าสู่ระบบอนุมัติ:\n` +
-          `🔗 ${approvalUrl}`;
-        break;
-
-      case 'HR_REVIEW':
-      case 'PENDING_HR':
-        title = "📋 ถึงคิวฝ่ายบุคคล (HR) ตรวจสอบใบลา";
-        messageText = 
-          `📋 [คำขอลาส่งต่อฝ่ายบุคคล (HR Review)]\n` +
-          `⚠️ กรุณาดำเนินการตรวจสอบและบันทึกสถิติ\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 ผู้ขอลา: ${employeeName} (${employeeCode || '-'})\n` +
-          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
-          `📝 ประเภทการลา: ${leaveType}\n` +
-          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
-          `📅 วันที่ลา: ${dateFormatted}\n` +
-          `💬 เหตุผลการลา: ${reason || 'ไม่ได้ระบุ'}\n` +
-          `💬 ความเห็นผู้อนุมัติ: ${comment || 'ผ่านการอนุมัติระดับสายงานแล้ว'}\n` +
-          `⏰ ส่งเรื่องเมื่อ: ${nowStr}\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👉 กดลิงก์เพื่อเข้าสู่ระบบ HR:\n` +
-          `🔗 ${approvalUrl}`;
-        break;
-
-      case 'HR_NOTIFY':
-        title = "📢 แจ้งฝ่ายบุคคล: อนุมัติใบลาสมบูรณ์แล้ว";
-        messageText = 
-          `📢 [แจ้งฝ่ายบุคคล (HR) - สรุปผลอนุมัติใบลา]\n` +
-          `✨ ใบลาได้รับการอนุมัติเรียบร้อยและบันทึกลงระบบแล้ว\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 พนักงาน: ${employeeName} (${employeeCode || '-'})\n` +
-          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
-          `📝 ประเภทการลา: ${leaveType}\n` +
-          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
-          `📅 วันที่ลา: ${dateFormatted}\n` +
-          `💬 เหตุผลการลา: ${reason || '-'}\n` +
-          `💬 ความเห็นผู้อนุมัติ: ${comment || 'อนุมัติเรียบร้อย'}\n` +
-          `⏰ ดำเนินการเมื่อ: ${nowStr}\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `🔗 ตรวจสอบข้อมูลในระบบ HR:\n` +
-          `${approvalUrl}`;
-        break;
-
-      case 'REQUEST_APPROVED':
-      case 'FINAL_APPROVED':
-        title = "🎉 ใบลาของคุณได้รับการอนุมัติสมบูรณ์แล้ว";
-        messageText = 
-          `🎉 [ผลการพิจารณาใบลา - อนุมัติเรียบร้อย]\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 พนักงาน: ${employeeName} (${employeeCode || '-'})\n` +
-          `📝 ประเภทการลา: ${leaveType}\n` +
-          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
-          `📅 วันที่ลา: ${dateFormatted}\n` +
-          `💬 เหตุผลการลา: ${reason || '-'}\n` +
-          `✨ สถานะ: อนุมัติสมบูรณ์เรียบร้อยแล้ว\n` +
-          `⏰ ดำเนินการเมื่อ: ${nowStr}\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `🔗 ตรวจสอบประวัติใบลาของคุณ:\n` +
-          `${historyUrl}`;
-        break;
-
-      case 'REJECTED':
-        title = "❌ คำขอใบลาไม่ได้รับการอนุมัติ";
-        messageText = 
-          `❌ [ผลการพิจารณาใบลา - ไม่อนุมัติ]\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 พนักงาน: ${employeeName} (${employeeCode || '-'})\n` +
-          `📝 ประเภทการลา: ${leaveType}\n` +
-          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
-          `📅 วันที่ลา: ${dateFormatted}\n` +
-          `💬 เหตุผลการลา: ${reason || '-'}\n` +
-          `⚠️ เหตุผลที่ไม่ผ่าน: ${comment || 'ไม่ได้ระบุ'}\n` +
-          `⏰ ดำเนินการเมื่อ: ${nowStr}\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `🔗 ตรวจสอบรายละเอียดใบลาของคุณ:\n` +
-          `${historyUrl}`;
-        break;
-
-      case 'CANCELLATION':
-        title = "⚠️ แจ้งเตือนคำขอยกเลิกใบลา";
-        messageText = 
-          `⚠️ [แจ้งเตือนคำขอยกเลิกใบลา]\n` +
-          `⚠️ กรุณาดำเนินการอนุมัติภายใน 2 วันทำการ\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 พนักงาน: ${employeeName} (${employeeCode || '-'})\n` +
-          (departmentName ? `🏢 แผนก: ${departmentName}\n` : '') +
-          `📝 ประเภทการลา: ${leaveType}\n` +
-          `⏱️ ระยะเวลาลา: ${durationFormatted}\n` +
-          `📅 วันที่ลา: ${dateFormatted}\n` +
-          `💬 เหตุผลในการขอยกเลิก: ${reason || 'ไม่ได้ระบุ'}\n` +
-          `⏰ ยื่นเรื่องเมื่อ: ${nowStr}\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👉 กดลิงก์ด้านล่างเพื่อพิจารณาคำขอยกเลิก:\n` +
-          `🔗 ${approvalUrl}`;
-        break;
-
-      default:
-        title = "📢 แจ้งเตือนระบบใบลา PVT HR";
-        messageText = `ข้อมูลคำขอลาของคุณมีความเคลื่อนไหว (${type})`;
-    }
+    // ข้อความในระบบ (กระดิ่งแจ้งเตือน) + สำรองกรณีส่งการ์ดไม่ได้ — กระชับ ไม่ซ้ำ
+    const meta = this.lineNoticeMeta(type, stepTitle);
+    const isApprovalType = ['NEW_REQUEST', 'LEADER_APPROVED', 'MANAGER_APPROVED', 'CANCELLATION'].includes(type);
+    const isResultType = ['REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED'].includes(type);
+    const title = isResultType || type === 'TEST'
+      ? meta.title
+      : `${meta.title}: ${employeeName}${meta.step ? ` (${meta.step})` : ''}`;
+    const commentLine = comment && meta.commentLabel && !/^รอ.+พิจารณา$/.test(String(comment).trim())
+      ? `${meta.commentStrong ? '⚠️ เหตุผลที่ไม่อนุมัติ' : '💬 ความเห็น'}: ${comment}\n` : '';
+    const messageText =
+      `${meta.title}${meta.step ? ` · ${meta.step}` : ''}\n` +
+      `👤 ${employeeName}${employeeNickname ? ` (${employeeNickname})` : ''}${departmentName ? ` · ${departmentName}` : ''}\n` +
+      `📝 ${leaveType} · ${durationFormatted}\n` +
+      `📅 ${dateFormatted}\n` +
+      (reason ? `💬 ${type === 'CANCELLATION' ? 'เหตุผลยกเลิก' : 'เหตุผล'}: ${reason}\n` : '') +
+      commentLine +
+      (isApprovalType ? `⏱ กรุณาพิจารณาภายใน 2 วันทำการ\n` : '') +
+      `🔗 ${isResultType ? historyUrl : approvalUrl}`;
 
     console.log(`💬 [LINE OA Engine] Processing [${type}] for ${recipientRole}:`, messageText);
 
@@ -2723,7 +2264,9 @@ class LineOAEngine {
       nowStr,
       approvalUrl,
       historyUrl,
-      attachmentUrl
+      attachmentUrl,
+      stepTitle,
+      employeeNickname
     });
 
     // 3. ส่ง LINE ผ่าน Supabase Edge Function: line-send หรือ Server API: /api/send-notification

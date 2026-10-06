@@ -268,7 +268,7 @@
   // ---------------------------------------------------------------------
   // แจ้งเตือน
   // ---------------------------------------------------------------------
-  async function notifyApprovers(leave, step, typeHint) {
+  async function notifyApprovers(leave, step, typeHint, opts = {}) {
     const sb = client();
     const ids = step.hr_any ? [] : uniq(step.approver_ids);
     const applicantName = leave.employees?.full_name || 'พนักงาน';
@@ -290,7 +290,15 @@
       }
       return;
     }
-    const { data: people } = await sb.from('employees').select('id, full_name, line_id').in('id', ids);
+    const { data: people } = await sb.from('employees').select('id, full_name, line_id, role').in('id', ids);
+    // "ลำดับที่ N · ชื่อตำแหน่ง" — N นับเฉพาะลำดับที่ใช้จริง (ไม่นับลำดับที่ถูกข้าม)
+    let orderNo = step.step_no || 1;
+    try {
+      const { data: all } = await sb.from('leave_approval_steps').select('step_no, status').eq('leave_id', leave.id);
+      if (all && all.length) orderNo = all.filter((x) => x.status !== 'skipped' && x.step_no <= step.step_no).length || orderNo;
+    } catch (e) {}
+    const stepText = stepTitle(step.step_label, orderNo).replace(/^(.*) \((ลำดับที่ \d+)\)$/, '$2 · $1');
+    const portalRole = (r) => { r = String(r || '').toLowerCase(); return ['hr', 'admin', 'superadmin', 'hr_manager', 'executive', 'director', 'owner'].includes(r) ? r : 'leader'; };
     for (const p of people || []) {
       try {
         if (global.PVTSDK?.line) {
@@ -303,13 +311,15 @@
             employeeName: applicantName,
             employeeCode: leave.employees?.employee_code || '',
             departmentName: deptName,
-            recipientRole: 'approver',
+            recipientRole: portalRole(p.role),
+            stepTitle: stepText,
             leaveType: leaveTypeName,
             startDate: leave.start_date,
             endDate: leave.end_date,
             totalDays: leave.total_days,
+            leaveHours: leave.leave_hours || 0,
             reason: leave.reason || '',
-            comment: step.step_label ? `รอ${step.step_label}พิจารณา` : '',
+            comment: opts.prevComment || '',
             attachmentUrl: leave.attachment_url || ''
           });
         } else {
@@ -436,7 +446,7 @@
       next.status = 'pending';
       await sb.from('leave_requests').update(Object.assign({ current_step: next.step_no, updated_at: t }, legacyColumns(steps))).eq('id', leaveId).eq('status', 'pending');
       if (global.PVTLeaveAudit) await global.PVTLeaveAudit.log(leave, 'step_approved', Object.assign({}, auditBase, { statusAfter: 'pending' }));
-      await notifyApprovers(leave, next, cur.step_no === 1 ? 'LEADER_APPROVED' : 'MANAGER_APPROVED');
+      await notifyApprovers(leave, next, cur.step_no === 1 ? 'LEADER_APPROVED' : 'MANAGER_APPROVED', { prevComment: opts.comment ? `${cur.step_label || 'ผู้อนุมัติ'}: ${opts.comment}` : '' });
       await notifyEmployee(leave, 'progress', null, cur.step_label);
       return { ok: true, final: false, stepLabel: label, nextLabel: next.step_label };
     }
