@@ -376,3 +376,9 @@
 - บน Cloudflare ลิงก์เป็น `/pages/user/profile-user` (ไม่มี .html) แต่โค้ดหลายจุดเช็ก `...profile-user.html` → บน localhost ทำงาน แต่บนเว็บจริงไม่ทำงาน (เช่น การ์ด "ตั้งค่า/ออกจากระบบ" ในหน้าโปรไฟล์ไม่ขึ้น, ไฮไลต์เมนูปัจจุบัน, กฎการพาไปหน้าต่าง ๆ ของ auth guard)
 - แก้: เติม .html กลับให้ path ก่อนเช็ก — `js/early-auth-guard.js`, `js/auth-guard.js`, `js/system-diagnostics.js`, `js/components/leave-sla-tracker.js`, `js/mobile-shell.js`, `js/layout.js`
 - ทดสอบด้วยลิงก์แบบไม่มี .html: การ์ดในหน้าโปรไฟล์ขึ้น, เมนูปัจจุบันถูกไฮไลต์
+
+## 2026-10-06 — อนิเมชั่นเปิดแอป (App Splash)
+- `js/theme-boot.js`: เพิ่ม splash (โลโก้เด้ง + วงแหวน + แสงวิ้ง + ชื่อระบบ + แถบโหลด) สีตามธีม
+- แสดง 1 ครั้งต่อการเปิดแอป/แท็บ (sessionStorage `pvt_splash_at`), หน้า redirect ต่อเนื่องไม่เริ่มใหม่
+- ข้ามเมื่อ ลดการเคลื่อนไหว / prefers-reduced-motion / iframe / offline / `?nosplash`; แตะเพื่อข้ามได้; สูงสุด ~3.2 วิ
+- `public/sw.js`: bump VERSION
