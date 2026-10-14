@@ -395,8 +395,13 @@
       if (typeof global.getEffectiveLeaveDays === 'function') {
         try { days = await global.getEffectiveLeaveDays(leave); } catch (e) {}
       }
-      let year = new Date(leave.start_date).getFullYear();
-      if (year > 2400) year -= 543;
+      // ปีรอบการลา (1 ธ.ค. – 30 พ.ย.) ให้ตรงกับหน้าพนักงาน / hr.js — เดิมใช้ปีปฏิทิน → ใบลาเดือน ธ.ค. ตัดผิดปี
+      let year;
+      if (typeof global.getADYear === 'function') year = global.getADYear(leave.start_date);
+      else {
+        const [y, m] = String(leave.start_date).split('T')[0].split('-').map(Number);
+        year = (y > 2400 ? y - 543 : y) + (m === 12 ? 1 : 0);
+      }
       await global.PVTSDK.user.updateLeaveBalance(leave.employee_id, leave.leave_type_id, leave.leave_types?.leave_code || null, year, days);
       return null;
     } catch (err) {

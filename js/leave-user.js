@@ -155,7 +155,8 @@ function countWorkDaysInRange(startDateStr, endDateStr) {
 
   while (currentDate <= endDate) {
     const dayOfWeek = currentDate.getDay(); 
-    const dateFormatted = currentDate.toISOString().split('T')[0];
+    // ใช้วันที่ตามเวลาเครื่อง (เดิม toISOString() แปลงเป็น UTC → ในไทยได้วันก่อนหน้า 1 วัน วันหยุดจึงเลื่อนไปวันถัดไป)
+    const dateFormatted = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
 
     const isSunday = (dayOfWeek === 0);
     const isCompanyHoliday = cachedHolidays.includes(dateFormatted);

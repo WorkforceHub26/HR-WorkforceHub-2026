@@ -255,6 +255,10 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/qrcode.min.js"></script>
 
+  <!-- Supabase JS (ต้องโหลดก่อน supabase-config.js เหมือนหน้า HR อื่น ๆ
+       ถ้าไม่มี client จะยังไม่พร้อมตอนหน้าโหลดครั้งแรก -> บัตรไม่ขึ้นจนกว่าจะรีเฟรช) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- JS ของระบบ -->
   <script type="module" src="/auth/supabase-config.js"></script>
   <script type="module" src="/js/auth-guard.js"></script>
@@ -337,19 +341,30 @@
         return `${base}/storage/v1/object/public/employee-images/${emp.image_url.replace(/^\//, '')}`;
       }
 
+      // รอให้ Supabase client พร้อม (กันกรณีสคริปต์ยังโหลดไม่เสร็จตอนเปิดหน้าครั้งแรก)
+      async function waitForClient(timeoutMs = 10000) {
+        const started = Date.now();
+        while (Date.now() - started < timeoutMs) {
+          const client = window.sb || window.supabaseClient || window.pvtSupabase?.getClient?.();
+          if (client) return client;
+          await new Promise(r => setTimeout(r, 150));
+        }
+        return null;
+      }
+
       // ---- 1) โหลดข้อมูลพนักงาน ----
       async function fetchEmployeesData() {
         galleryGrid.innerHTML = stateHtml('loading', 'sync', 'กำลังโหลดข้อมูลบัตรพนักงานทุกคนในองค์กร...');
         let loadFailed = false;
 
         try {
-          const client = window.sb || window.pvtSupabase?.getClient?.();
+          const client = await waitForClient();
           if (!client) throw new Error('ยังเชื่อมต่อฐานข้อมูลไม่ได้');
 
           const { data, error } = await client
             .from('employees')
             .select(`
-              id, employee_code, full_name, title, image_url, status, department_id,
+              id, employee_code, full_name, title, prefix, image_url, status, department_id,
               departments!department_id ( department_name ),
               positions ( position_name )
             `)
@@ -416,7 +431,7 @@
       function renderCard(emp) {
         const code = emp.employee_code || '';
         const name = emp.full_name || 'ไม่ระบุชื่อ';
-        const title = emp.title || '';
+        const title = emp.title || emp.prefix || '';
         const gender = emp.gender || '';
         const dept = getDeptName(emp) || 'ทั่วไป';
         const role = getRoleName(emp) || 'พนักงาน';
@@ -527,7 +542,19 @@
           Swal.fire('กรุณาเลือกพนักงาน', 'ทำเครื่องหมายเลือกพนักงานอย่างน้อย 1 คนก่อนสั่งพิมพ์', 'warning');
           return;
         }
-        window.printMultipleCards?.(Array.from(selectedEmpCodes));
+        // printMultipleCards ต้องการ object {empCode, empName, empRole, empDept}
+        // (เดิมส่งแค่รหัสเป็น string -> บัตรที่พิมพ์ออกมาไม่มีชื่อ/ตำแหน่ง/แผนก/รหัส/QR)
+        const byCode = new Map(allEmployees.map(e => [e.employee_code, e]));
+        const selectedList = Array.from(selectedEmpCodes)
+          .map(code => byCode.get(code))
+          .filter(Boolean)
+          .map(emp => ({
+            empCode: emp.employee_code || '',
+            empName: emp.full_name || 'ไม่ระบุชื่อ',
+            empRole: getRoleName(emp) || 'พนักงาน',
+            empDept: getDeptName(emp) || 'ทั่วไป'
+          }));
+        window.printMultipleCards?.(selectedList);
       });
 
       $('btnReloadData').addEventListener('click', fetchEmployeesData);

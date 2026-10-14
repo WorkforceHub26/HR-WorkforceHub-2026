@@ -509,6 +509,14 @@
       alert('⚠️ เบราว์เซอร์ระงับการเปิด Pop-up! กรุณากด "อนุญาตให้เปิด Pop-up" ที่แถบ URL ด้านบน');
       return;
     }
+    printWindow.document.write('<p style="font-family:sans-serif;padding:16px">กำลังเตรียมบัตร...</p>');
+
+    // QR: สร้างในเครื่องก่อน (ตาม CLEANUP_NOTES: ไม่พึ่ง URL ภายนอก) ถ้าไม่ได้ค่อยใช้ api.qrserver.com
+    (async () => {
+    if (!employee.qr_url || employee.qr_url.includes('qrserver.com')) {
+      const localQr = await generateEmployeeQrDataUrl(employee.code).catch(() => '');
+      if (localQr) employee.qr_url = localQr;
+    }
 
     const cardHtml = `
       <!DOCTYPE html>
@@ -591,6 +599,7 @@
     printWindow.document.open();
     printWindow.document.write(cardHtml);
     printWindow.document.close();
+    })();
   };
 
   // 🟢 5. Batch Print Multiple Cards (A4 Sheet)
@@ -606,9 +615,21 @@
       return;
     }
 
-    let cardsHtml = selectedList.map(item => {
+    printWindow.document.write('<p style="font-family:sans-serif;padding:16px">กำลังเตรียมบัตร...</p>');
+
+    (async () => {
+    // รองรับทั้ง [{empCode, empName, empRole, empDept}] และ ['19001', '19002']
+    const items = selectedList.map(item => (typeof item === 'object' && item !== null)
+      ? item
+      : { empCode: String(item || '') });
+    const qrList = await Promise.all(items.map(item => {
+      const code = item.empCode || item.employee_code || '';
+      return generateEmployeeQrDataUrl(code).catch(() => '').then(q => q || generateEmployeeQrUrl(code));
+    }));
+
+    let cardsHtml = items.map((item, idx) => {
       const empCode = item.empCode || item.employee_code || '';
-      const qrUrl = generateEmployeeQrUrl(empCode);
+      const qrUrl = qrList[idx];
 
       return `
         <div class="card">
@@ -701,6 +722,7 @@
     printWindow.document.open();
     printWindow.document.write(htmlContent);
     printWindow.document.close();
+    })();
   };
 
   window.generateEmployeeQrUrl = generateEmployeeQrUrl;

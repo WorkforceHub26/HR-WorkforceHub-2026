@@ -1089,14 +1089,20 @@ async function directCancelLeave(requestId) {
         .maybeSingle();
 
       // Ensure the status is set to 'cancelled' and approval_comment reflects it clearly
-      let { error } = await sb
+      // ยกเลิกได้เฉพาะเมื่อยังรอพิจารณา — กันกรณีผู้อนุมัติกดอนุมัติ (ตัดวันลาแล้ว) ระหว่างที่พนักงานเปิดหน้าต่างนี้อยู่
+      let { data: cancelledRows, error } = await sb
         .from("leave_requests")
         .update({
           status: "cancelled",
           cancel_reason: trimmedReason,
           approval_comment: `[พนักงานยกเลิกใบลาเอง] ${trimmedReason}`
         })
-        .eq("id", requestId);
+        .eq("id", requestId)
+        .eq("status", "pending")
+        .select("id");
+      if (!error && (!cancelledRows || !cancelledRows.length)) {
+        throw new Error("สถานะใบลาเปลี่ยนไปแล้ว (อาจได้รับการอนุมัติแล้ว) กรุณารีเฟรชหน้า แล้วใช้ \"ขอยกเลิก\" แทน");
+      }
 
       if (error && (error.code === 'P0001' || (error.message && (error.message.includes('ช่วงวันที่ดังกล่าว') || error.message.includes('ซ้อนทับ'))))) {
         console.warn("⚠️ พบข้อผิดพลาดของ DB Trigger ขณะยกเลิก กำลังปรับปรุงลำดับวันที่เพื่อเลี่ยงการล็อกซ้อนทับ...");

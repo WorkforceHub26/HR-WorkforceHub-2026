@@ -10,6 +10,7 @@
  * 4. บันทึก Audit Trail ความโปร่งใสในการอนุมัติแทนตามกฎระเบียบบริษัท
  */
 
+const _pvtLocalDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; // วันที่ตามเวลาไทย (toISOString เป็น UTC → 00:00–07:00 ได้วันก่อนหน้า)
 (function(window) {
   'use strict';
 
@@ -216,7 +217,7 @@
 
       const targetDateStr = typeof checkDate === 'string' 
         ? checkDate.split('T')[0] 
-        : checkDate.toISOString().split('T')[0];
+        : _pvtLocalDate(checkDate);
 
       try {
         const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
@@ -269,7 +270,7 @@
       if (!config.enabled) return null;
 
       const rules = await this.getDelegationRules();
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = _pvtLocalDate(new Date());
 
       // 1. ระบุผู้อนุมัติตามลำดับขั้น
       // Step L1: ตรวจสอบหัวหน้างาน L1
@@ -362,7 +363,7 @@
      */
     async getActiveDelegationsSummary() {
       const rules = await this.getDelegationRules();
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = _pvtLocalDate(new Date());
       const activeList = [];
 
       try {

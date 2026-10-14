@@ -686,6 +686,10 @@ async function calculateActualLeaveDays(startDateStr, endDateStr) {
 
 async function getEffectiveLeaveDays(reqData) {
   if (reqData.actual_days && Number(reqData.actual_days) > 0) return Number(reqData.actual_days);
+  // ใช้ total_days ที่บันทึกตอนยื่น (รองรับลาครึ่งวัน/รายชั่วโมง และวันเสาร์ที่ทำงาน) ให้ตรงกับ
+  // ตัวเลขที่ผู้อนุมัติเห็น, การตัดยอดใน approval-engine.js และการคำนวณยอดใหม่ใน index-user.js
+  // (เดิมคำนวณใหม่จากวันที่ จ.–ศ. → ลาครึ่งวันถูกตัด 1 วัน, ลาวันเสาร์ไม่ถูกตัด)
+  if (Number(reqData.total_days) > 0) return Number(reqData.total_days);
   if (reqData.start_date && reqData.end_date) {
     const calc = await calculateActualLeaveDays(reqData.start_date, reqData.end_date);
     if (calc > 0) return calc;
@@ -2829,36 +2833,43 @@ async function forceCancelLeave(leaveId) {
       .eq('id', leaveId)
       .single();
 
-    if (reqData && reqData.status === 'approved') {
-      const currentYear = getADYear(reqData.start_date);
-      const daysToReturn = await getEffectiveLeaveDays(reqData);
+    if (!reqData) throw new Error('ไม่พบข้อมูลใบลา');
+    if (String(reqData.status).toLowerCase() === 'cancelled') throw new Error('ใบลานี้ถูกยกเลิกไปแล้ว');
+    // คำนวณจากข้อมูลเดิมก่อน (กรณีด้านล่างต้องย้ายวันที่เพื่อเลี่ยง trigger ซ้อนทับ)
+    const wasApproved = reqData.status === 'approved';
+    const currentYear = getADYear(reqData.start_date);
+    const daysToReturn = wasApproved ? await getEffectiveLeaveDays(reqData) : 0;
 
-      if (window.PVTSDK?.user?.updateLeaveBalance) {
-        const lCode = reqData.leave_types?.leave_code || null;
-        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, -daysToReturn);
-      }
-    }
-
-    let { error } = await sb
+    // บันทึกสถานะ "ก่อน" คืนวันลา และเฉพาะเมื่อสถานะยังเหมือนเดิม (กันกดซ้ำ/สองคนกดพร้อมกัน → คืนวันลาซ้ำ)
+    let { data: changedRows, error } = await sb
       .from('leave_requests')
       .update({ 
         status: 'cancelled',
         cancel_reason: reason.trim(),
         approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason.trim()}`
       })
-      .eq('id', leaveId);
+      .eq('id', leaveId)
+      .eq('status', reqData.status)
+      .select('id');
 
     if (error && (error.code === 'P0001' || (error.message && (error.message.includes('ช่วงวันที่ดังกล่าว') || error.message.includes('ซ้อนทับ'))))) {
-      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId);
+      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId).eq('status', reqData.status);
       const retry = await sb.from('leave_requests').update({
         status: 'cancelled',
         cancel_reason: reason.trim(),
         approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason.trim()}`
-      }).eq('id', leaveId);
+      }).eq('id', leaveId).eq('status', reqData.status).select('id');
       error = retry.error;
+      changedRows = retry.data;
     }
 
     if (error) throw error;
+    if (!changedRows || !changedRows.length) throw new Error('สถานะใบลาเปลี่ยนไปแล้ว (อาจมีผู้ดำเนินการไปก่อน) กรุณารีเฟรชแล้วลองใหม่');
+
+    if (wasApproved && daysToReturn > 0 && window.PVTSDK?.user?.updateLeaveBalance) {
+      const lCode = reqData.leave_types?.leave_code || null;
+      await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, -daysToReturn);
+    }
 
     if (window.PVTApproval) await window.PVTApproval.closeOpenSteps(leaveId, 'cancelled', `ยกเลิกโดย HR: ${reason.trim()}`);
     if (window.PVTLeaveAudit) {
@@ -2973,41 +2984,41 @@ async function approveCancellation(leaveId) {
     const daysToReturn = await getEffectiveLeaveDays(freshReq);
     const currentYear = getADYear(freshReq.start_date);
 
-    if (wasFinalApproved && window.PVTSDK?.user?.updateLeaveBalance) {
-      const lCode = freshReq.leave_types?.leave_code || null;
-      await window.PVTSDK.user.updateLeaveBalance(
-        freshReq.employee_id,
-        freshReq.leave_type_id,
-        lCode,
-        currentYear,
-        -daysToReturn
-      );
-    }
 
     const approvalComment = wasFinalApproved
       ? '[HR อนุมัติยกเลิก] ตรวจสอบแล้วว่าพนักงานมาทำงานจริง และคืนโควตาวันลาแล้ว'
       : '[HR อนุมัติยกเลิก] ตรวจสอบแล้วว่าพนักงานมาทำงานจริง (ใบลายังไม่เคยหักโควตา)';
 
-    let { error: updateErr } = await sb
+    // บันทึกสถานะ "ก่อน" คืนวันลา และเฉพาะเมื่อยังรอตรวจสอบอยู่ (กัน HR สองคนกดพร้อมกัน → คืนวันลาซ้ำ)
+    let { data: changedRows, error: updateErr } = await sb
       .from('leave_requests')
       .update({
         status: 'cancelled',
         cancel_status: 'approved_by_hr',
         approval_comment: approvalComment
       })
-      .eq('id', leaveId);
+      .eq('id', leaveId)
+      .eq('status', freshReq.status)
+      .select('id');
 
     if (updateErr && (updateErr.code === 'P0001' || (updateErr.message && (updateErr.message.includes('ช่วงวันที่ดังกล่าว') || updateErr.message.includes('ซ้อนทับ'))))) {
-      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId);
+      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId).eq('status', freshReq.status);
       const retry = await sb.from('leave_requests').update({
         status: 'cancelled',
         cancel_status: 'approved_by_hr',
         approval_comment: approvalComment
-      }).eq('id', leaveId);
+      }).eq('id', leaveId).eq('status', freshReq.status).select('id');
       updateErr = retry.error;
+      changedRows = retry.data;
     }
 
     if (updateErr) throw updateErr;
+    if (!changedRows || !changedRows.length) throw new Error('คำขอยกเลิกนี้ถูกดำเนินการไปแล้ว กรุณารีเฟรชแล้วลองใหม่');
+
+    if (wasFinalApproved && daysToReturn > 0 && window.PVTSDK?.user?.updateLeaveBalance) {
+      const lCode = freshReq.leave_types?.leave_code || null;
+      await window.PVTSDK.user.updateLeaveBalance(freshReq.employee_id, freshReq.leave_type_id, lCode, currentYear, -daysToReturn);
+    }
 
     if (window.PVTLeaveAudit) {
       // วันที่ลาเดิมเก็บไว้ในหลักฐาน (กรณีระบบต้องย้ายวันที่เพื่อเลี่ยงการซ้อนทับ)

@@ -1,0 +1,371 @@
+diff -ru /tmp/claude-0/pristine/js/approval-engine.js ./js/approval-engine.js
+--- /tmp/claude-0/pristine/js/approval-engine.js	2026-10-06 10:26:15.000000000 +0700
++++ ./js/approval-engine.js	2026-10-14 10:35:40.069488752 +0700
+@@ -395,8 +395,13 @@
+       if (typeof global.getEffectiveLeaveDays === 'function') {
+         try { days = await global.getEffectiveLeaveDays(leave); } catch (e) {}
+       }
+-      let year = new Date(leave.start_date).getFullYear();
+-      if (year > 2400) year -= 543;
++      // ปีรอบการลา (1 ธ.ค. – 30 พ.ย.) ให้ตรงกับหน้าพนักงาน / hr.js — เดิมใช้ปีปฏิทิน → ใบลาเดือน ธ.ค. ตัดผิดปี
++      let year;
++      if (typeof global.getADYear === 'function') year = global.getADYear(leave.start_date);
++      else {
++        const [y, m] = String(leave.start_date).split('T')[0].split('-').map(Number);
++        year = (y > 2400 ? y - 543 : y) + (m === 12 ? 1 : 0);
++      }
+       await global.PVTSDK.user.updateLeaveBalance(leave.employee_id, leave.leave_type_id, leave.leave_types?.leave_code || null, year, days);
+       return null;
+     } catch (err) {
+diff -ru /tmp/claude-0/pristine/js/delegation-service.js ./js/delegation-service.js
+--- /tmp/claude-0/pristine/js/delegation-service.js	2026-10-06 10:26:15.000000000 +0700
++++ ./js/delegation-service.js	2026-10-14 10:35:40.075333317 +0700
+@@ -10,6 +10,7 @@
+  * 4. บันทึก Audit Trail ความโปร่งใสในการอนุมัติแทนตามกฎระเบียบบริษัท
+  */
+ 
++const _pvtLocalDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; // วันที่ตามเวลาไทย (toISOString เป็น UTC → 00:00–07:00 ได้วันก่อนหน้า)
+ (function(window) {
+   'use strict';
+ 
+@@ -216,7 +217,7 @@
+ 
+       const targetDateStr = typeof checkDate === 'string' 
+         ? checkDate.split('T')[0] 
+-        : checkDate.toISOString().split('T')[0];
++        : _pvtLocalDate(checkDate);
+ 
+       try {
+         const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
+@@ -269,7 +270,7 @@
+       if (!config.enabled) return null;
+ 
+       const rules = await this.getDelegationRules();
+-      const todayStr = new Date().toISOString().split('T')[0];
++      const todayStr = _pvtLocalDate(new Date());
+ 
+       // 1. ระบุผู้อนุมัติตามลำดับขั้น
+       // Step L1: ตรวจสอบหัวหน้างาน L1
+@@ -362,7 +363,7 @@
+      */
+     async getActiveDelegationsSummary() {
+       const rules = await this.getDelegationRules();
+-      const todayStr = new Date().toISOString().split('T')[0];
++      const todayStr = _pvtLocalDate(new Date());
+       const activeList = [];
+ 
+       try {
+diff -ru /tmp/claude-0/pristine/js/employee-card-modal.js ./js/employee-card-modal.js
+--- /tmp/claude-0/pristine/js/employee-card-modal.js	2026-10-06 13:16:41.000000000 +0700
++++ ./js/employee-card-modal.js	2026-10-14 10:35:40.077390801 +0700
+@@ -509,6 +509,14 @@
+       alert('⚠️ เบราว์เซอร์ระงับการเปิด Pop-up! กรุณากด "อนุญาตให้เปิด Pop-up" ที่แถบ URL ด้านบน');
+       return;
+     }
++    printWindow.document.write('<p style="font-family:sans-serif;padding:16px">กำลังเตรียมบัตร...</p>');
++
++    // QR: สร้างในเครื่องก่อน (ตาม CLEANUP_NOTES: ไม่พึ่ง URL ภายนอก) ถ้าไม่ได้ค่อยใช้ api.qrserver.com
++    (async () => {
++    if (!employee.qr_url || employee.qr_url.includes('qrserver.com')) {
++      const localQr = await generateEmployeeQrDataUrl(employee.code).catch(() => '');
++      if (localQr) employee.qr_url = localQr;
++    }
+ 
+     const cardHtml = `
+       <!DOCTYPE html>
+@@ -591,6 +599,7 @@
+     printWindow.document.open();
+     printWindow.document.write(cardHtml);
+     printWindow.document.close();
++    })();
+   };
+ 
+   // 🟢 5. Batch Print Multiple Cards (A4 Sheet)
+@@ -606,9 +615,21 @@
+       return;
+     }
+ 
+-    let cardsHtml = selectedList.map(item => {
++    printWindow.document.write('<p style="font-family:sans-serif;padding:16px">กำลังเตรียมบัตร...</p>');
++
++    (async () => {
++    // รองรับทั้ง [{empCode, empName, empRole, empDept}] และ ['19001', '19002']
++    const items = selectedList.map(item => (typeof item === 'object' && item !== null)
++      ? item
++      : { empCode: String(item || '') });
++    const qrList = await Promise.all(items.map(item => {
++      const code = item.empCode || item.employee_code || '';
++      return generateEmployeeQrDataUrl(code).catch(() => '').then(q => q || generateEmployeeQrUrl(code));
++    }));
++
++    let cardsHtml = items.map((item, idx) => {
+       const empCode = item.empCode || item.employee_code || '';
+-      const qrUrl = generateEmployeeQrUrl(empCode);
++      const qrUrl = qrList[idx];
+ 
+       return `
+         <div class="card">
+@@ -701,6 +722,7 @@
+     printWindow.document.open();
+     printWindow.document.write(htmlContent);
+     printWindow.document.close();
++    })();
+   };
+ 
+   window.generateEmployeeQrUrl = generateEmployeeQrUrl;
+diff -ru /tmp/claude-0/pristine/js/home.js ./js/home.js
+--- /tmp/claude-0/pristine/js/home.js	2026-10-06 16:18:21.000000000 +0700
++++ ./js/home.js	2026-10-14 10:35:49.166674992 +0700
+@@ -3282,7 +3282,8 @@
+     if (updateFields.status === 'approved' && window.PVTSDK?.user?.updateLeaveBalance) {
+       try {
+         const leaveDays = reqData.actual_days || reqData.days_requested || reqData.total_days || 0;
+-        let currentYear = new Date(reqData.start_date).getFullYear();
++        // ปีรอบการลา (1 ธ.ค. – 30 พ.ย.) — เดิมใช้ปีปฏิทิน → ใบลาเดือน ธ.ค. ตัดผิดปี
++        let currentYear = typeof window.getADYear === 'function' ? window.getADYear(reqData.start_date) : new Date(reqData.start_date).getFullYear();
+         if (currentYear > 2400) currentYear -= 543;
+         const lCode = reqData.leave_types?.leave_code || null;
+         await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
+diff -ru /tmp/claude-0/pristine/js/hr.js ./js/hr.js
+--- /tmp/claude-0/pristine/js/hr.js	2026-10-06 16:18:21.000000000 +0700
++++ ./js/hr.js	2026-10-14 10:35:49.185958558 +0700
+@@ -686,6 +686,10 @@
+ 
+ async function getEffectiveLeaveDays(reqData) {
+   if (reqData.actual_days && Number(reqData.actual_days) > 0) return Number(reqData.actual_days);
++  // ใช้ total_days ที่บันทึกตอนยื่น (รองรับลาครึ่งวัน/รายชั่วโมง และวันเสาร์ที่ทำงาน) ให้ตรงกับ
++  // ตัวเลขที่ผู้อนุมัติเห็น, การตัดยอดใน approval-engine.js และการคำนวณยอดใหม่ใน index-user.js
++  // (เดิมคำนวณใหม่จากวันที่ จ.–ศ. → ลาครึ่งวันถูกตัด 1 วัน, ลาวันเสาร์ไม่ถูกตัด)
++  if (Number(reqData.total_days) > 0) return Number(reqData.total_days);
+   if (reqData.start_date && reqData.end_date) {
+     const calc = await calculateActualLeaveDays(reqData.start_date, reqData.end_date);
+     if (calc > 0) return calc;
+@@ -2829,36 +2833,43 @@
+       .eq('id', leaveId)
+       .single();
+ 
+-    if (reqData && reqData.status === 'approved') {
+-      const currentYear = getADYear(reqData.start_date);
+-      const daysToReturn = await getEffectiveLeaveDays(reqData);
+-
+-      if (window.PVTSDK?.user?.updateLeaveBalance) {
+-        const lCode = reqData.leave_types?.leave_code || null;
+-        await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, -daysToReturn);
+-      }
+-    }
++    if (!reqData) throw new Error('ไม่พบข้อมูลใบลา');
++    if (String(reqData.status).toLowerCase() === 'cancelled') throw new Error('ใบลานี้ถูกยกเลิกไปแล้ว');
++    // คำนวณจากข้อมูลเดิมก่อน (กรณีด้านล่างต้องย้ายวันที่เพื่อเลี่ยง trigger ซ้อนทับ)
++    const wasApproved = reqData.status === 'approved';
++    const currentYear = getADYear(reqData.start_date);
++    const daysToReturn = wasApproved ? await getEffectiveLeaveDays(reqData) : 0;
+ 
+-    let { error } = await sb
++    // บันทึกสถานะ "ก่อน" คืนวันลา และเฉพาะเมื่อสถานะยังเหมือนเดิม (กันกดซ้ำ/สองคนกดพร้อมกัน → คืนวันลาซ้ำ)
++    let { data: changedRows, error } = await sb
+       .from('leave_requests')
+       .update({ 
+         status: 'cancelled',
+         cancel_reason: reason.trim(),
+         approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason.trim()}`
+       })
+-      .eq('id', leaveId);
++      .eq('id', leaveId)
++      .eq('status', reqData.status)
++      .select('id');
+ 
+     if (error && (error.code === 'P0001' || (error.message && (error.message.includes('ช่วงวันที่ดังกล่าว') || error.message.includes('ซ้อนทับ'))))) {
+-      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId);
++      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId).eq('status', reqData.status);
+       const retry = await sb.from('leave_requests').update({
+         status: 'cancelled',
+         cancel_reason: reason.trim(),
+         approval_comment: `[ยกเลิกโดย HR/ผู้ดูแล] ${reason.trim()}`
+-      }).eq('id', leaveId);
++      }).eq('id', leaveId).eq('status', reqData.status).select('id');
+       error = retry.error;
++      changedRows = retry.data;
+     }
+ 
+     if (error) throw error;
++    if (!changedRows || !changedRows.length) throw new Error('สถานะใบลาเปลี่ยนไปแล้ว (อาจมีผู้ดำเนินการไปก่อน) กรุณารีเฟรชแล้วลองใหม่');
++
++    if (wasApproved && daysToReturn > 0 && window.PVTSDK?.user?.updateLeaveBalance) {
++      const lCode = reqData.leave_types?.leave_code || null;
++      await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, -daysToReturn);
++    }
+ 
+     if (window.PVTApproval) await window.PVTApproval.closeOpenSteps(leaveId, 'cancelled', `ยกเลิกโดย HR: ${reason.trim()}`);
+     if (window.PVTLeaveAudit) {
+@@ -2973,41 +2984,41 @@
+     const daysToReturn = await getEffectiveLeaveDays(freshReq);
+     const currentYear = getADYear(freshReq.start_date);
+ 
+-    if (wasFinalApproved && window.PVTSDK?.user?.updateLeaveBalance) {
+-      const lCode = freshReq.leave_types?.leave_code || null;
+-      await window.PVTSDK.user.updateLeaveBalance(
+-        freshReq.employee_id,
+-        freshReq.leave_type_id,
+-        lCode,
+-        currentYear,
+-        -daysToReturn
+-      );
+-    }
+ 
+     const approvalComment = wasFinalApproved
+       ? '[HR อนุมัติยกเลิก] ตรวจสอบแล้วว่าพนักงานมาทำงานจริง และคืนโควตาวันลาแล้ว'
+       : '[HR อนุมัติยกเลิก] ตรวจสอบแล้วว่าพนักงานมาทำงานจริง (ใบลายังไม่เคยหักโควตา)';
+ 
+-    let { error: updateErr } = await sb
++    // บันทึกสถานะ "ก่อน" คืนวันลา และเฉพาะเมื่อยังรอตรวจสอบอยู่ (กัน HR สองคนกดพร้อมกัน → คืนวันลาซ้ำ)
++    let { data: changedRows, error: updateErr } = await sb
+       .from('leave_requests')
+       .update({
+         status: 'cancelled',
+         cancel_status: 'approved_by_hr',
+         approval_comment: approvalComment
+       })
+-      .eq('id', leaveId);
++      .eq('id', leaveId)
++      .eq('status', freshReq.status)
++      .select('id');
+ 
+     if (updateErr && (updateErr.code === 'P0001' || (updateErr.message && (updateErr.message.includes('ช่วงวันที่ดังกล่าว') || updateErr.message.includes('ซ้อนทับ'))))) {
+-      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId);
++      await sb.from('leave_requests').update({ start_date: '2099-12-31', end_date: '2099-12-31' }).eq('id', leaveId).eq('status', freshReq.status);
+       const retry = await sb.from('leave_requests').update({
+         status: 'cancelled',
+         cancel_status: 'approved_by_hr',
+         approval_comment: approvalComment
+-      }).eq('id', leaveId);
++      }).eq('id', leaveId).eq('status', freshReq.status).select('id');
+       updateErr = retry.error;
++      changedRows = retry.data;
+     }
+ 
+     if (updateErr) throw updateErr;
++    if (!changedRows || !changedRows.length) throw new Error('คำขอยกเลิกนี้ถูกดำเนินการไปแล้ว กรุณารีเฟรชแล้วลองใหม่');
++
++    if (wasFinalApproved && daysToReturn > 0 && window.PVTSDK?.user?.updateLeaveBalance) {
++      const lCode = freshReq.leave_types?.leave_code || null;
++      await window.PVTSDK.user.updateLeaveBalance(freshReq.employee_id, freshReq.leave_type_id, lCode, currentYear, -daysToReturn);
++    }
+ 
+     if (window.PVTLeaveAudit) {
+       // วันที่ลาเดิมเก็บไว้ในหลักฐาน (กรณีระบบต้องย้ายวันที่เพื่อเลี่ยงการซ้อนทับ)
+diff -ru /tmp/claude-0/pristine/js/leave-history.js ./js/leave-history.js
+--- /tmp/claude-0/pristine/js/leave-history.js	2026-10-06 16:18:21.000000000 +0700
++++ ./js/leave-history.js	2026-10-14 10:35:40.086077472 +0700
+@@ -1089,14 +1089,20 @@
+         .maybeSingle();
+ 
+       // Ensure the status is set to 'cancelled' and approval_comment reflects it clearly
+-      let { error } = await sb
++      // ยกเลิกได้เฉพาะเมื่อยังรอพิจารณา — กันกรณีผู้อนุมัติกดอนุมัติ (ตัดวันลาแล้ว) ระหว่างที่พนักงานเปิดหน้าต่างนี้อยู่
++      let { data: cancelledRows, error } = await sb
+         .from("leave_requests")
+         .update({
+           status: "cancelled",
+           cancel_reason: trimmedReason,
+           approval_comment: `[พนักงานยกเลิกใบลาเอง] ${trimmedReason}`
+         })
+-        .eq("id", requestId);
++        .eq("id", requestId)
++        .eq("status", "pending")
++        .select("id");
++      if (!error && (!cancelledRows || !cancelledRows.length)) {
++        throw new Error("สถานะใบลาเปลี่ยนไปแล้ว (อาจได้รับการอนุมัติแล้ว) กรุณารีเฟรชหน้า แล้วใช้ \"ขอยกเลิก\" แทน");
++      }
+ 
+       if (error && (error.code === 'P0001' || (error.message && (error.message.includes('ช่วงวันที่ดังกล่าว') || error.message.includes('ซ้อนทับ'))))) {
+         console.warn("⚠️ พบข้อผิดพลาดของ DB Trigger ขณะยกเลิก กำลังปรับปรุงลำดับวันที่เพื่อเลี่ยงการล็อกซ้อนทับ...");
+diff -ru /tmp/claude-0/pristine/js/leave-user.js ./js/leave-user.js
+--- /tmp/claude-0/pristine/js/leave-user.js	2026-10-06 10:26:15.000000000 +0700
++++ ./js/leave-user.js	2026-10-14 10:35:49.208391705 +0700
+@@ -155,7 +155,8 @@
+ 
+   while (currentDate <= endDate) {
+     const dayOfWeek = currentDate.getDay(); 
+-    const dateFormatted = currentDate.toISOString().split('T')[0];
++    // ใช้วันที่ตามเวลาเครื่อง (เดิม toISOString() แปลงเป็น UTC → ในไทยได้วันก่อนหน้า 1 วัน วันหยุดจึงเลื่อนไปวันถัดไป)
++    const dateFormatted = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+ 
+     const isSunday = (dayOfWeek === 0);
+     const isCompanyHoliday = cachedHolidays.includes(dateFormatted);
+diff -ru /tmp/claude-0/pristine/pages/hr/employee-cards.html ./pages/hr/employee-cards.html
+--- /tmp/claude-0/pristine/pages/hr/employee-cards.html	2026-10-06 13:00:59.000000000 +0700
++++ ./pages/hr/employee-cards.html	2026-10-14 10:35:49.227538299 +0700
+@@ -255,6 +255,10 @@
+   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+   <script src="/js/qrcode.min.js"></script>
+ 
++  <!-- Supabase JS (ต้องโหลดก่อน supabase-config.js เหมือนหน้า HR อื่น ๆ
++       ถ้าไม่มี client จะยังไม่พร้อมตอนหน้าโหลดครั้งแรก -> บัตรไม่ขึ้นจนกว่าจะรีเฟรช) -->
++  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
++
+   <!-- JS ของระบบ -->
+   <script type="module" src="/auth/supabase-config.js"></script>
+   <script type="module" src="/js/auth-guard.js"></script>
+@@ -337,19 +341,30 @@
+         return `${base}/storage/v1/object/public/employee-images/${emp.image_url.replace(/^\//, '')}`;
+       }
+ 
++      // รอให้ Supabase client พร้อม (กันกรณีสคริปต์ยังโหลดไม่เสร็จตอนเปิดหน้าครั้งแรก)
++      async function waitForClient(timeoutMs = 10000) {
++        const started = Date.now();
++        while (Date.now() - started < timeoutMs) {
++          const client = window.sb || window.supabaseClient || window.pvtSupabase?.getClient?.();
++          if (client) return client;
++          await new Promise(r => setTimeout(r, 150));
++        }
++        return null;
++      }
++
+       // ---- 1) โหลดข้อมูลพนักงาน ----
+       async function fetchEmployeesData() {
+         galleryGrid.innerHTML = stateHtml('loading', 'sync', 'กำลังโหลดข้อมูลบัตรพนักงานทุกคนในองค์กร...');
+         let loadFailed = false;
+ 
+         try {
+-          const client = window.sb || window.pvtSupabase?.getClient?.();
++          const client = await waitForClient();
+           if (!client) throw new Error('ยังเชื่อมต่อฐานข้อมูลไม่ได้');
+ 
+           const { data, error } = await client
+             .from('employees')
+             .select(`
+-              id, employee_code, full_name, title, image_url, status, department_id,
++              id, employee_code, full_name, title, prefix, image_url, status, department_id,
+               departments!department_id ( department_name ),
+               positions ( position_name )
+             `)
+@@ -416,7 +431,7 @@
+       function renderCard(emp) {
+         const code = emp.employee_code || '';
+         const name = emp.full_name || 'ไม่ระบุชื่อ';
+-        const title = emp.title || '';
++        const title = emp.title || emp.prefix || '';
+         const gender = emp.gender || '';
+         const dept = getDeptName(emp) || 'ทั่วไป';
+         const role = getRoleName(emp) || 'พนักงาน';
+@@ -527,7 +542,19 @@
+           Swal.fire('กรุณาเลือกพนักงาน', 'ทำเครื่องหมายเลือกพนักงานอย่างน้อย 1 คนก่อนสั่งพิมพ์', 'warning');
+           return;
+         }
+-        window.printMultipleCards?.(Array.from(selectedEmpCodes));
++        // printMultipleCards ต้องการ object {empCode, empName, empRole, empDept}
++        // (เดิมส่งแค่รหัสเป็น string -> บัตรที่พิมพ์ออกมาไม่มีชื่อ/ตำแหน่ง/แผนก/รหัส/QR)
++        const byCode = new Map(allEmployees.map(e => [e.employee_code, e]));
++        const selectedList = Array.from(selectedEmpCodes)
++          .map(code => byCode.get(code))
++          .filter(Boolean)
++          .map(emp => ({
++            empCode: emp.employee_code || '',
++            empName: emp.full_name || 'ไม่ระบุชื่อ',
++            empRole: getRoleName(emp) || 'พนักงาน',
++            empDept: getDeptName(emp) || 'ทั่วไป'
++          }));
++        window.printMultipleCards?.(selectedList);
+       });
+ 
+       $('btnReloadData').addEventListener('click', fetchEmployeesData);
