@@ -1,3 +1,17 @@
+
+// 🛡️ สิทธิ์ผู้ดูแลระบบ: ตั้ง/ถอด "ผู้ดูแลระบบ" ได้เฉพาะผู้ดูแลระบบขั้นสูง (superadmin) — ขั้นสูงตั้งได้จากฐานข้อมูลเท่านั้น
+function pvtIsSuperAdminUser() {
+  try {
+    const s = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || '{}');
+    return String(s.role || s.employees?.role || '').toLowerCase() === 'superadmin';
+  } catch (e) { return false; }
+}
+function pvtAdminRoleOptions(currentRole) {
+  const r = String(currentRole || '').toLowerCase();
+  const sup = pvtIsSuperAdminUser();
+  if (r === 'superadmin') return `<option value="superadmin" selected>🛡️ ผู้ดูแลระบบขั้นสูง (แก้ได้จากฐานข้อมูล)</option>`;
+  return `<option value="admin" ${r === 'admin' ? 'selected' : ''} ${sup || r === 'admin' ? '' : 'disabled'}>🛡️ ผู้ดูแลระบบขั้นต้น (Admin)${sup ? '' : ' — เฉพาะผู้ดูแลระบบขั้นสูง'}</option>`;
+}
 /**
  * ==========================================================================
  * 🏢 PVT WORKFORCE HUB - INTEGRATED HR MANAGEMENT & DASHBOARD SYSTEM
@@ -2212,13 +2226,13 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                 </div>
                 <div class="pvt-field-group">
                   <label for="inline-edit-system-role" style="color: var(--th-p-600, #0d9488);">👑 สิทธิ์ในระบบ <span class="req">*</span></label>
-                  <select id="inline-edit-system-role" class="pvt-select pvt-select-highlight" onchange="window.updateEmployeeEditFormRequirements()">
+                  <select id="inline-edit-system-role" class="pvt-select pvt-select-highlight" onchange="window.updateEmployeeEditFormRequirements()" ${(['admin', 'superadmin'].includes(String(emp.role || '').toLowerCase()) && !pvtIsSuperAdminUser()) ? 'disabled title="เปลี่ยนสิทธิ์ผู้ดูแลระบบได้เฉพาะผู้ดูแลระบบขั้นสูง"' : ''}>
                     <option value="user" ${emp.role === 'user' || !emp.role ? 'selected' : ''}>👤 พนักงานทั่วไป (Employee)</option>
                     <option value="leader" ${emp.role === 'leader' ? 'selected' : ''}>🎖️ หัวหน้างาน (Supervisor)</option>
                     <option value="manager" ${emp.role === 'manager' ? 'selected' : ''}>👔 ผู้จัดการฝ่าย (Manager)</option>
                     <option value="executive" ${emp.role === 'executive' || emp.role === 'director' || emp.role === 'owner' ? 'selected' : ''}>⭐ ผู้บริหารระดับสูง (Executive)</option>
                     <option value="hr" ${emp.role === 'hr' ? 'selected' : ''}>📋 ฝ่ายบุคคล (HR Officer)</option>
-                    <option value="admin" ${emp.role === 'admin' || emp.role === 'superadmin' ? 'selected' : ''}>🛡️ ผู้ดูแลระบบ (Admin)</option>
+                    ${pvtAdminRoleOptions(emp.role)}
                   </select>
                 </div>
                 <div class="pvt-field-group" style="margin-top: 12px;">
@@ -3156,7 +3170,7 @@ window.addNewEmployee = async function addNewEmployee() {
                       <option value="manager">👔 ผู้จัดการฝ่าย (Department Manager)</option>
                       <option value="executive">⭐ ผู้บริหารระดับสูง (Executive)</option>
                       <option value="hr">📋 ฝ่ายบุคคล (HR Officer)</option>
-                      <option value="admin">🛡️ ผู้ดูแลระบบ (System Admin)</option>
+                      ${pvtAdminRoleOptions('')}
                     </select>
                   </div>
                 </div>

@@ -36,8 +36,8 @@ function pvtVerifyLogin(u, input) {
     if (!stored || stored === code) return { ok: false, reason: 'admin_no_password' };
     return { ok: pvtPasswordEquals(stored, pass), reason: 'wrong' };
   }
-  // พนักงาน: รหัสพนักงานตรงตัว (หรือรหัสผ่านที่เคยตั้งไว้เดิม)
-  if (code && pass === code) return { ok: true };
+  // พนักงาน: รหัสพนักงาน (ไม่สนตัวพิมพ์เล็ก/ใหญ่) หรือรหัสผ่านที่เคยตั้งไว้เดิม
+  if (code && pass.toLowerCase() === code.toLowerCase()) return { ok: true };
   return { ok: pvtPasswordEquals(stored, pass), reason: 'wrong' };
 }
 if (!window.pvtIsAdminAccount) window.pvtIsAdminAccount = pvtIsAdminAccount;
@@ -263,7 +263,7 @@ window.getUserRoleCategory = function(userSession) {
   if (isAdminDashboard) {
     const emp = session?.employees || session || {};
     const rawRole = String(session?.role || emp.role || userStatus.role || '').toLowerCase().trim();
-    const isTrueAdmin = rawRole === 'admin' || rawRole === 'superadmin' || session?.employee_code === 'HR-001' || emp.employee_code === 'HR-001';
+    const isTrueAdmin = rawRole === 'admin' || rawRole === 'superadmin'; // คอนโซล: ขั้นต้น (admin) / ขั้นสูง (superadmin) เท่านั้น
     
     if (!isTrueAdmin) {
       console.warn("🚫 [Auth Guard]: เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าถึงคอนโซลแอดมินได้");
@@ -410,7 +410,7 @@ function applyNavPermissions() {
     const empObj = session?.employees || session || {};
     const empCode = String(session?.employee_code || empObj.employee_code || '').toLowerCase().trim();
     const rawRoleVal = String(session?.role || empObj.role || userStatus?.role || '').toLowerCase().trim();
-    const isTrueAdminUser = rawRoleVal === 'admin' || rawRoleVal === 'superadmin' || empCode === 'admin' || empCode === 'hr-001';
+    const isTrueAdminUser = rawRoleVal === 'admin' || rawRoleVal === 'superadmin';
 
     // ตัดหน้าพนักงานออกสำหรับบัญชี HR และ Admin โดยตรง
     if (userStatus.category === 'hr_exec' || empCode.startsWith('hr-') || empCode === 'admin' || ['admin', 'superadmin', 'hr', 'hr_manager'].includes(rawRoleVal)) {

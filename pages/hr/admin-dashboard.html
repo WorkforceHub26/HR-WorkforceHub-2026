@@ -246,7 +246,7 @@
 
       <!-- Profile Edit -->
       <section class="panel" style="grid-column: span 2;">
-        <h2><span class="material-symbols-outlined">person_pin</span> อัปเดตข้อมูลผู้ดูแลระบบ</h2>
+        <h2><span class="material-symbols-outlined">person_pin</span> อัปเดตข้อมูลผู้ดูแลระบบ <span id="admin-level-badge" style="margin-left:6px; font-size:12px; font-weight:700; padding:2px 10px; border-radius:999px; background:#f1f5f9; color:#475569; vertical-align: middle;">กำลังตรวจสิทธิ์...</span></h2>
         <form id="admin-profile-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>ชื่อ-นามสกุล</label>
@@ -291,6 +291,27 @@
           <span>อัปเดตทุก 5 วินาที</span>
           <span id="avg-latency">เฉลี่ย: --ms</span>
         </div>
+      </section>
+
+      <!-- 🛡️ จัดการผู้ดูแลระบบ (เฉพาะผู้ดูแลระบบขั้นสูง) — แสดงเมื่อยืนยันสิทธิ์จากฐานข้อมูลแล้ว -->
+      <section class="panel" id="admin-accounts-panel" style="grid-column: span 3;" hidden>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2 style="margin:0;"><span class="material-symbols-outlined">admin_panel_settings</span> จัดการผู้ดูแลระบบ</h2>
+            <p style="margin: 4px 0 0; font-size: 12.5px; color: #64748b;">เฉพาะผู้ดูแลระบบขั้นสูง · สร้าง / ลบ / รีเซ็ตรหัสผ่าน / ระงับ ผู้ดูแลระบบขั้นต้น</p>
+          </div>
+          <button type="button" id="adm-add-btn" style="width: auto;"><span class="material-symbols-outlined" style="font-size:18px; vertical-align:-4px;">person_add</span> เพิ่มผู้ดูแลระบบขั้นต้น</button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; min-width: 720px;">
+            <thead><tr><th>รหัส</th><th>ชื่อ</th><th>ระดับ</th><th>สถานะ</th><th>รหัสผ่าน</th><th style="text-align:right;">จัดการ</th></tr></thead>
+            <tbody id="adm-accounts-body"><tr><td colspan="6" style="text-align:center; color:#94a3b8;">กำลังโหลด...</td></tr></tbody>
+          </table>
+        </div>
+        <p style="margin: 12px 0 0; font-size: 12px; color: #64748b;">
+          ขั้นต้น = เข้าคอนโซลผู้ดูแลระบบและหน้า HR ได้ แต่จัดการผู้ดูแลระบบคนอื่นไม่ได้ ·
+          ขั้นสูง = ทำได้ทุกอย่าง รวมถึงส่วนนี้ (ตั้ง/เพิ่มขั้นสูงได้จากฐานข้อมูลเท่านั้น ดู supabase/admin_levels.sql)
+        </p>
       </section>
 
       <!-- Data Management Section -->
@@ -454,7 +475,8 @@
         const session = raw ? JSON.parse(raw) : null;
         const emp = session?.employees || session || {};
         const role = String(session?.role || emp.role || '').toLowerCase().trim();
-        const isTrueAdmin = role === 'admin' || role === 'superadmin' || session?.employee_code === 'HR-001' || emp.employee_code === 'HR-001';
+        // คอนโซลผู้ดูแลระบบ: เฉพาะ role admin (ขั้นต้น) / superadmin (ขั้นสูง)
+        const isTrueAdmin = role === 'admin' || role === 'superadmin';
         
         if (!session || !isTrueAdmin) {
           alert("🚫 เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าใช้งานหน้าคอนโซลแอดมินนี้ได้");
@@ -883,6 +905,198 @@
       }
     };
 
+
+    // ======================================================================
+    // 🛡️ ระดับผู้ดูแลระบบ: superadmin = ขั้นสูง (เช่น ADMIN-T) · admin = ขั้นต้น (เช่น HR001–HR003)
+    //    ยืนยันจากฐานข้อมูลทุกครั้งที่เปิดหน้า (ไม่เชื่อค่าในเบราว์เซอร์อย่างเดียว)
+    // ======================================================================
+    window.PVT_ADMIN_LEVEL = null;
+    const ADM_ESC = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const admSession = () => { try { return JSON.parse(localStorage.getItem('currentUser') || '{}'); } catch (e) { return {}; } };
+    const admIsHashed = (p) => /^\$2[aby]\$/.test(String(p || ''));
+
+    async function verifyAdminLevel() {
+      const sb = window.pvtSupabase?.getClient();
+      const me = admSession();
+      if (!sb || !me.id) return null;
+      const { data, error } = await sb.from('employees').select('id, role, status').eq('id', me.id).maybeSingle();
+      if (error) return null;
+      const role = String(data?.role || '').toLowerCase();
+      const active = !data?.status || String(data.status).toLowerCase() === 'active';
+      if (!data || !active || !['admin', 'superadmin'].includes(role)) {
+        alert('🚫 บัญชีนี้ไม่มีสิทธิ์เข้าคอนโซลผู้ดูแลระบบ');
+        window.location.replace('/pages/hr/home.html');
+        return null;
+      }
+      const level = role === 'superadmin' ? 'super' : 'basic';
+      window.PVT_ADMIN_LEVEL = level;
+      const badge = document.getElementById('admin-level-badge');
+      if (badge) {
+        badge.textContent = level === 'super' ? 'ผู้ดูแลระบบขั้นสูง' : 'ผู้ดูแลระบบขั้นต้น';
+        badge.style.background = level === 'super' ? '#ede9fe' : '#e0f2fe';
+        badge.style.color = level === 'super' ? '#5b21b6' : '#075985';
+      }
+      if (level === 'super') {
+        document.getElementById('admin-accounts-panel').hidden = false;
+        loadAdminAccounts();
+      }
+      return level;
+    }
+
+    async function admLog(action, target, description, before, after) {
+      try {
+        const me = admSession();
+        await window.pvtSupabase.getClient().from('hr_admin_management_logs').insert([{
+          actor_id: me.id || null, actor_name: me.full_name || me.employee_code || 'admin',
+          action_category: 'admin_accounts', action_type: action, target_identifier: target,
+          description, payload_before: before || null, payload_after: after || null
+        }]);
+      } catch (e) { /* ไม่มีตาราง log ก็ทำงานต่อได้ */ }
+    }
+
+    let admAccounts = [];
+    async function loadAdminAccounts() {
+      const body = document.getElementById('adm-accounts-body');
+      const sb = window.pvtSupabase?.getClient();
+      if (!sb || window.PVT_ADMIN_LEVEL !== 'super') return;
+      const { data, error } = await sb.from('employees')
+        .select('id, employee_code, full_name, role, status, password')
+        .in('role', ['admin', 'superadmin']).order('role', { ascending: false }).order('employee_code');
+      if (error) { body.innerHTML = `<tr><td colspan="6" style="color:#dc2626;">โหลดไม่สำเร็จ: ${ADM_ESC(error.message)}</td></tr>`; return; }
+      admAccounts = data || [];
+      const meId = admSession().id;
+      body.innerHTML = admAccounts.map((a) => {
+        const isSuper = String(a.role).toLowerCase() === 'superadmin';
+        const active = !a.status || String(a.status).toLowerCase() === 'active';
+        const pw = !a.password || String(a.password).trim() === String(a.employee_code).trim()
+          ? '<span style="color:#dc2626; font-weight:700;">ยังไม่ได้ตั้ง</span>'
+          : (admIsHashed(a.password) ? '<span style="color:#16a34a;">ตั้งแล้ว (เข้ารหัส)</span>' : '<span style="color:#d97706;">ตั้งแล้ว (ยังไม่เข้ารหัส)</span>');
+        const actions = isSuper
+          ? `<span style="font-size:12px; color:#94a3b8;">${String(a.id) === String(meId) ? 'บัญชีของคุณ (เปลี่ยนรหัสได้ที่ด้านบน)' : 'ขั้นสูง — แก้ได้จากฐานข้อมูล'}</span>`
+          : `<div style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+               <button type="button" class="secondary" data-adm="reset" data-id="${a.id}" style="width:auto; padding:6px 10px; font-size:12px;">รีเซ็ตรหัสผ่าน</button>
+               <button type="button" class="secondary" data-adm="toggle" data-id="${a.id}" style="width:auto; padding:6px 10px; font-size:12px;">${active ? 'ระงับ' : 'เปิดใช้งาน'}</button>
+               <button type="button" class="danger" data-adm="delete" data-id="${a.id}" style="width:auto; padding:6px 10px; font-size:12px;">ลบ</button>
+             </div>`;
+        return `<tr>
+          <td><b>${ADM_ESC(a.employee_code)}</b></td>
+          <td>${ADM_ESC(a.full_name || '-')}</td>
+          <td><span style="font-size:12px; font-weight:700; padding:2px 10px; border-radius:999px; background:${isSuper ? '#ede9fe' : '#e0f2fe'}; color:${isSuper ? '#5b21b6' : '#075985'};">${isSuper ? 'ขั้นสูง' : 'ขั้นต้น'}</span></td>
+          <td>${active ? '<span style="color:#16a34a;">ใช้งาน</span>' : '<span style="color:#94a3b8;">ระงับ</span>'}</td>
+          <td>${pw}</td>
+          <td style="text-align:right;">${actions}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">ยังไม่มีผู้ดูแลระบบ</td></tr>';
+    }
+
+    function admPasswordFields(prefix) {
+      return `<input id="${prefix}-p1" type="password" class="swal2-input" placeholder="รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)" autocomplete="new-password">
+              <input id="${prefix}-p2" type="password" class="swal2-input" placeholder="ยืนยันรหัสผ่าน" autocomplete="new-password">`;
+    }
+    function admCheckPassword(p1, p2, code) {
+      if (p1.length < 8) return 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+      if (p1 !== p2) return 'ยืนยันรหัสผ่านไม่ตรงกัน';
+      if (code && p1.toLowerCase() === String(code).toLowerCase()) return 'ห้ามใช้รหัสพนักงานเป็นรหัสผ่านผู้ดูแลระบบ';
+      return null;
+    }
+
+    async function admAdd() {
+      const bc = window.dcodeIO?.bcrypt || window.bcrypt;
+      const { value } = await Swal.fire({
+        title: 'เพิ่มผู้ดูแลระบบขั้นต้น',
+        html: `<input id="adm-code" class="swal2-input" placeholder="รหัส เช่น HR001" autocomplete="off">
+               <input id="adm-name" class="swal2-input" placeholder="ชื่อที่แสดง เช่น เจ้าหน้าที่ HR 1" autocomplete="off">
+               ${admPasswordFields('adm-new')}`,
+        showCancelButton: true, confirmButtonText: 'สร้างบัญชี', cancelButtonText: 'ยกเลิก', focusConfirm: false,
+        preConfirm: () => {
+          const code = document.getElementById('adm-code').value.trim().toUpperCase();
+          const name = document.getElementById('adm-name').value.trim();
+          const p1 = document.getElementById('adm-new-p1').value.trim();
+          const p2 = document.getElementById('adm-new-p2').value.trim();
+          if (!/^[A-Z0-9_-]{3,20}$/.test(code)) return Swal.showValidationMessage('รหัสใช้ได้เฉพาะ A-Z 0-9 - _ (3–20 ตัว)');
+          if (!name) return Swal.showValidationMessage('กรุณาระบุชื่อ');
+          const err = admCheckPassword(p1, p2, code);
+          if (err) return Swal.showValidationMessage(err);
+          return { code, name, p1 };
+        }
+      });
+      if (!value || !bc) return;
+      const sb = window.pvtSupabase.getClient();
+      try {
+        const { data: exist } = await sb.from('employees').select('id, employee_code, full_name, role').ilike('employee_code', value.code).maybeSingle();
+        const hash = bc.hashSync(value.p1, 10);
+        if (exist) {
+          if (String(exist.role).toLowerCase() === 'superadmin') throw new Error('รหัสนี้เป็นผู้ดูแลระบบขั้นสูงอยู่แล้ว');
+          const ok = await Swal.fire({ icon: 'question', title: 'มีรหัสนี้ในระบบแล้ว', text: `${exist.employee_code} · ${exist.full_name || '-'} (สิทธิ์เดิม: ${exist.role || 'user'}) — ตั้งเป็นผู้ดูแลระบบขั้นต้นและเปลี่ยนรหัสผ่าน?`, showCancelButton: true, confirmButtonText: 'ตั้งเป็นผู้ดูแลระบบ', cancelButtonText: 'ยกเลิก' });
+          if (!ok.isConfirmed) return;
+          const { error } = await sb.from('employees').update({ role: 'admin', status: 'active', password: hash, updated_at: new Date().toISOString() }).eq('id', exist.id);
+          if (error) throw error;
+          await admLog('promote_admin', exist.employee_code, `ตั้ง ${exist.employee_code} เป็นผู้ดูแลระบบขั้นต้น`, { role: exist.role }, { role: 'admin' });
+        } else {
+          const { error } = await sb.from('employees').insert([{ employee_code: value.code, full_name: value.name, role: 'admin', status: 'active', password: hash }]);
+          if (error) throw error;
+          await admLog('create_admin', value.code, `สร้างผู้ดูแลระบบขั้นต้น ${value.code}`, null, { role: 'admin', full_name: value.name });
+        }
+        showToast(`สร้างผู้ดูแลระบบ ${value.code} เรียบร้อย`);
+        loadAdminAccounts();
+      } catch (e) { showToast('สร้างไม่สำเร็จ: ' + (e.message || e), 'error'); }
+    }
+
+    async function admAction(kind, id) {
+      const a = admAccounts.find((x) => String(x.id) === String(id));
+      if (!a || String(a.role).toLowerCase() !== 'admin') return; // จัดการได้เฉพาะขั้นต้น
+      const sb = window.pvtSupabase.getClient();
+      const bc = window.dcodeIO?.bcrypt || window.bcrypt;
+      try {
+        if (kind === 'reset') {
+          const { value } = await Swal.fire({
+            title: `รีเซ็ตรหัสผ่าน ${a.employee_code}`, html: admPasswordFields('adm-rs'),
+            showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', focusConfirm: false,
+            preConfirm: () => {
+              const p1 = document.getElementById('adm-rs-p1').value.trim();
+              const p2 = document.getElementById('adm-rs-p2').value.trim();
+              const err = admCheckPassword(p1, p2, a.employee_code);
+              return err ? Swal.showValidationMessage(err) : p1;
+            }
+          });
+          if (!value || !bc) return;
+          const { error } = await sb.from('employees').update({ password: bc.hashSync(value, 10), updated_at: new Date().toISOString() }).eq('id', a.id).eq('role', 'admin');
+          if (error) throw error;
+          await admLog('reset_admin_password', a.employee_code, `รีเซ็ตรหัสผ่าน ${a.employee_code}`);
+          showToast(`รีเซ็ตรหัสผ่าน ${a.employee_code} แล้ว`);
+        } else if (kind === 'toggle') {
+          const active = !a.status || String(a.status).toLowerCase() === 'active';
+          const next = active ? 'inactive' : 'active';
+          const ok = await Swal.fire({ icon: 'question', title: active ? `ระงับ ${a.employee_code}?` : `เปิดใช้งาน ${a.employee_code}?`, text: active ? 'บัญชีนี้จะเข้าสู่ระบบไม่ได้จนกว่าจะเปิดใช้งานอีกครั้ง' : '', showCancelButton: true, confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก' });
+          if (!ok.isConfirmed) return;
+          const { error } = await sb.from('employees').update({ status: next, updated_at: new Date().toISOString() }).eq('id', a.id).eq('role', 'admin');
+          if (error) throw error;
+          await admLog(active ? 'suspend_admin' : 'activate_admin', a.employee_code, `${active ? 'ระงับ' : 'เปิดใช้งาน'} ${a.employee_code}`, { status: a.status }, { status: next });
+          showToast(`${active ? 'ระงับ' : 'เปิดใช้งาน'} ${a.employee_code} แล้ว`);
+        } else if (kind === 'delete') {
+          const ok = await Swal.fire({ icon: 'warning', title: `ลบผู้ดูแลระบบ ${a.employee_code}?`, html: 'ถ้าบัญชีนี้มีประวัติในระบบ (เช่น เคยอนุมัติใบลา) ระบบจะ <b>ถอดสิทธิ์และระงับบัญชี</b> แทนการลบ เพื่อเก็บหลักฐานไว้', showCancelButton: true, confirmButtonText: 'ลบ', confirmButtonColor: '#dc2626', cancelButtonText: 'ยกเลิก' });
+          if (!ok.isConfirmed) return;
+          const del = await sb.from('employees').delete().eq('id', a.id).eq('role', 'admin').select('id');
+          if (del.error || !del.data || !del.data.length) {
+            const { error } = await sb.from('employees').update({ role: 'user', status: 'inactive', updated_at: new Date().toISOString() }).eq('id', a.id).eq('role', 'admin');
+            if (error) throw (del.error || error);
+            await admLog('revoke_admin', a.employee_code, `ถอดสิทธิ์และระงับ ${a.employee_code} (มีประวัติในระบบ ลบไม่ได้)`, { role: 'admin', status: a.status }, { role: 'user', status: 'inactive' });
+            showToast(`${a.employee_code} มีประวัติในระบบ — ถอดสิทธิ์และระงับบัญชีแทนการลบแล้ว`, 'warning');
+          } else {
+            await admLog('delete_admin', a.employee_code, `ลบผู้ดูแลระบบ ${a.employee_code}`, { role: 'admin', full_name: a.full_name }, null);
+            showToast(`ลบ ${a.employee_code} แล้ว`);
+          }
+        }
+        loadAdminAccounts();
+      } catch (e) { showToast('ทำรายการไม่สำเร็จ: ' + (e.message || e), 'error'); }
+    }
+
+    document.getElementById('adm-add-btn')?.addEventListener('click', () => { if (window.PVT_ADMIN_LEVEL === 'super') admAdd(); });
+    document.getElementById('adm-accounts-body')?.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-adm]');
+      if (b && window.PVT_ADMIN_LEVEL === 'super') admAction(b.dataset.adm, b.dataset.id);
+    });
+
     // Data Management & Inline Editing
     let employeesData = [];
     const tableBody = document.getElementById('employee-table-body');
@@ -1069,6 +1283,14 @@
       const email = document.getElementById(`edit-email-${id}`).value.trim();
       const dept = document.getElementById(`edit-dept-${id}`).value.trim();
       const role = document.getElementById(`edit-role-${id}`).value.trim();
+      const before = employeesData.find(e => e.id === id) || {};
+      const adminRoles = ['admin', 'superadmin'];
+      if (window.PVT_ADMIN_LEVEL !== 'super' && (adminRoles.includes(role.toLowerCase()) || adminRoles.includes(String(before.role || '').toLowerCase())) && role.toLowerCase() !== String(before.role || '').toLowerCase()) {
+        showToast('เปลี่ยนสิทธิ์ผู้ดูแลระบบได้เฉพาะผู้ดูแลระบบขั้นสูง', 'error'); return;
+      }
+      if (role.toLowerCase() === 'superadmin' && String(before.role || '').toLowerCase() !== 'superadmin') {
+        showToast('ตั้งผู้ดูแลระบบขั้นสูงได้จากฐานข้อมูลเท่านั้น', 'error'); return;
+      }
 
       if (!name) { showToast('กรุณาระบุชื่อ-นามสกุล', 'warning'); return; }
       if (!email || !email.includes('@')) { showToast('กรุณาระบุอีเมลที่ถูกต้อง', 'warning'); return; }
@@ -1145,6 +1367,9 @@
       const email = document.getElementById('new-email').value.trim();
       const dept = document.getElementById('new-dept').value.trim();
       const role = document.getElementById('new-role').value.trim();
+      if (['admin', 'superadmin'].includes(role.toLowerCase())) {
+        showToast('เพิ่มผู้ดูแลระบบได้ที่ส่วน "จัดการผู้ดูแลระบบ" (เฉพาะขั้นสูง)', 'error'); return;
+      }
 
       if (!name || !email) { showToast('กรุณาระบุชื่อและอีเมล', 'warning'); return; }
       if (!email.includes('@')) { showToast('อีเมลไม่ถูกต้อง', 'warning'); return; }
@@ -1310,6 +1535,7 @@
     // รอให้ supabase-config.js (module) พร้อมก่อน แล้วค่อยโหลดข้อมูล — เดิมเรียกทันทีจึงค้าง "กำลังโหลด"
     (function startWhenReady(tries) {
       if (window.pvtSupabase?.getClient?.()) {
+        verifyAdminLevel();
         runDeepCheck();
         loadEmployeeData();
         loadDeptApprovalData();

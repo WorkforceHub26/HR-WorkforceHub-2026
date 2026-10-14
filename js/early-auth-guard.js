@@ -167,7 +167,7 @@
     if (path.includes("admin-dashboard")) {
       var emp = session.employees || session || {};
       var rawRole = String(session.role || emp.role || status.role || '').toLowerCase().trim();
-      var isTrueAdmin = rawRole === 'admin' || rawRole === 'superadmin' || session.employee_code === 'HR-001' || emp.employee_code === 'HR-001';
+      var isTrueAdmin = rawRole === 'admin' || rawRole === 'superadmin'; // คอนโซล: ขั้นต้น (admin) / ขั้นสูง (superadmin) เท่านั้น
       if (!isTrueAdmin) {
         triggerRedirect("/pages/user/index-user.html");
         return;

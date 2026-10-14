@@ -126,8 +126,8 @@ function pvtVerifyLogin(u, input) {
     if (!stored || stored === code) return { ok: false, reason: 'admin_no_password' };
     return { ok: pvtPasswordEquals(stored, pass), reason: 'wrong' };
   }
-  // พนักงาน: รหัสพนักงานตรงตัว (หรือรหัสผ่านที่เคยตั้งไว้เดิม)
-  if (code && pass === code) return { ok: true };
+  // พนักงาน: รหัสพนักงาน (ไม่สนตัวพิมพ์เล็ก/ใหญ่) หรือรหัสผ่านที่เคยตั้งไว้เดิม
+  if (code && pass.toLowerCase() === code.toLowerCase()) return { ok: true };
   return { ok: pvtPasswordEquals(stored, pass), reason: 'wrong' };
 }
 window.pvtIsAdminAccount = pvtIsAdminAccount;
@@ -989,17 +989,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password, department_id, position_id, image_url, departments!department_id(department_name), positions(position_name, level_type, duty_name)");
         let queryRes;
 
+        // รหัสพนักงานไม่สนตัวพิมพ์เล็ก/ใหญ่ (เช่น admin = ADMIN, pvt001 = PVT001) — escape % _ กันการค้นแบบ wildcard
+        const codeLike = loginInput.replace(/[\\%_]/g, (m) => '\\' + m);
         if (loginInput.includes("@")) {
-          queryRes = await baseQuery.eq("email", loginInput);
-        } else if (/^\d+$/.test(loginInput)) {
-          // ค้นหาด้วยรหัสพนักงาน หรือเบอร์โทร
-          queryRes = await baseQuery.or(`employee_code.eq.${loginInput},phone.eq.${loginInput}`);
+          queryRes = await baseQuery.ilike("email", codeLike);
         } else {
-          // ค้นหาด้วยชื่อ หรือรหัสพนักงาน
-          queryRes = await baseQuery.or(`employee_code.eq.${loginInput},full_name.eq.${loginInput}`);
-          if (!queryRes.data || queryRes.data.length === 0) {
-            // ลองค้นหาชื่อแบบบางส่วน
-            queryRes = await baseQuery.ilike("full_name", `%${loginInput}%`);
+          queryRes = await baseQuery.ilike("employee_code", codeLike);
+          if (!queryRes.error && (!queryRes.data || queryRes.data.length === 0)) {
+            // ไม่พบรหัส → ลองเบอร์โทร หรือชื่อ-นามสกุลแบบตรงตัว
+            queryRes = /^\d+$/.test(loginInput)
+              ? await baseQuery.eq("phone", loginInput)
+              : await baseQuery.eq("full_name", loginInput);
           }
         }
 

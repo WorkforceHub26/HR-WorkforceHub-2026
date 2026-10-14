@@ -874,7 +874,7 @@
         const sess = JSON.parse(localStorage.getItem('currentUser') || 'null') || {};
         const emp = sess.employees || sess;
         const role = String(sess.role || emp.role || '').toLowerCase().trim();
-        isAdmin = role === 'admin' || role === 'superadmin' || sess.employee_code === 'HR-001' || emp.employee_code === 'HR-001';
+        isAdmin = role === 'admin' || role === 'superadmin';
       } catch (e) {}
       adminCard.style.display = isAdmin && !location.pathname.includes('admin-dashboard') ? '' : 'none';
     }
