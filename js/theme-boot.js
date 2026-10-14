@@ -80,6 +80,19 @@
   var saved = 'teal';
   try { saved = localStorage.getItem('pvt_user_theme') || 'teal'; } catch (e) {}
   apply(saved);
+
+  // 🩶 พื้นหลังทุกหน้า ทุกธีม = สีเทาอ่อนเรียบ (เลิกใช้พื้นไล่สี/จุดฟุ้งตามธีม)
+  //    แก้สีได้ที่ตัวแปร --pvt-flat-bg ตัวเดียว
+  try {
+    if (!document.getElementById('pvt-page-bg-style')) {
+      var bgStyle = document.createElement('style');
+      bgStyle.id = 'pvt-page-bg-style';
+      bgStyle.textContent =
+        ':root{--pvt-flat-bg:#f1f5f9}' +
+        'html,body,body[id],body.pvt-body,.pvt-app,.pvt-main{background-color:var(--pvt-flat-bg)!important;background-image:none!important}';
+      (document.head || document.documentElement).appendChild(bgStyle);
+    }
+  } catch (e) {}
   // <meta name="theme-color"> อาจอยู่หลังสคริปต์นี้ → อัปเดตอีกครั้งเมื่อ DOM พร้อม
   document.addEventListener('DOMContentLoaded', function () {
     var k = document.documentElement.getAttribute('data-theme') || 'teal';
