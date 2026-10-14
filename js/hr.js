@@ -367,6 +367,10 @@ function applyRoleBasedUI() {
     cancellationTabBtn.style.display = canReviewCancellationRequests() ? 'inline-flex' : 'none';
   }
 
+  // แท็บ "การพิจารณาที่ไม่อนุมัติ": HR / Admin / ผู้บริหาร เท่านั้น (หัวหน้า/ผู้จัดการไม่เห็นข้อมูลของคนอื่น)
+  const rejectionsTabBtn = document.getElementById("tabBtnRejections");
+  if (rejectionsTabBtn) rejectionsTabBtn.hidden = !canViewRejectionAudit();
+
   // กรองเมนูด้านข้างสำหรับ Leader/Manager
   // (layout ใหม่ใช้ .pvt-nav__item — selector เดิม .nav-menu .nav-item หาไม่เจอ เมนูจึงไม่เคยถูกซ่อน)
   // ใช้ hidden แทน inline display + important เพื่อไม่ไปทับ CSS ของ layout
@@ -1211,6 +1215,10 @@ async function loadPendingLeavesHR(isSilent = false) {
     if (currentLeaveTab === 'pending') {
       if (slaContainer) slaContainer.style.display = "block";
       if (leaveTablePanel) leaveTablePanel.style.display = "none";
+    } else if (currentLeaveTab === 'rejections') {
+      // แท็บนี้จัดการแสดงผลเอง (rejection-audit.js)
+      if (slaContainer) slaContainer.style.display = "none";
+      if (leaveTablePanel) leaveTablePanel.style.display = "none";
     } else {
       if (slaContainer) slaContainer.style.display = "none";
       if (leaveTablePanel) leaveTablePanel.style.display = "block";
@@ -1257,7 +1265,15 @@ function updateTabAndStatBadges() {
   document.getElementById("statTotalCount") && (document.getElementById("statTotalCount").innerHTML = `${allLeaveRequests.length} <small>รายการ</small>`);
 }
 
+function canViewRejectionAudit() {
+  const sessionUser = (() => { try { return JSON.parse(localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser") || "{}"); } catch (e) { return {}; } })();
+  const empCode = String(currentUserProfile?.employee_code || currentUserProfile?.employees?.employee_code || sessionUser?.employee_code || '').trim();
+  return ['hr', 'admin', 'director'].includes(String(currentRole || '').toLowerCase()) && empCode !== '19122';
+}
+
 window.switchLeaveTab = function(tabName, btnEl) {
+  if (tabName === 'rejections' && !canViewRejectionAudit()) return;
+  if (tabName !== 'rejections') window.PVTRejectionAudit?.close();
   if (tabName === 'cancellation' && !canReviewCancellationRequests()) {
     Swal.fire({
       icon: 'info',
@@ -1284,6 +1300,10 @@ window.switchLeaveTab = function(tabName, btnEl) {
     if (slaContainer) slaContainer.style.display = "block";
     // 💡 ยุบตารางล่างเมื่ออยู่ในแท็บ 'รออนุมัติ' (SLA Tracker ทำหน้าที่แทน)
     if (leaveTablePanel) leaveTablePanel.style.display = "none";
+  } else if (tabName === 'rejections') {
+    if (slaContainer) slaContainer.style.display = "none";
+    if (leaveTablePanel) leaveTablePanel.style.display = "none";
+    window.PVTRejectionAudit?.open();
   } else if (tabName === 'cancellation') {
     if (headerTitle) headerTitle.textContent = "คำร้องขอยกเลิกใบลาหยุดงาน";
     if (headerIcon) headerIcon.textContent = "published_with_changes";

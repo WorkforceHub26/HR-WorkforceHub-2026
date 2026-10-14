@@ -1,4 +1,88 @@
-diff -ru /tmp/claude-0/pristine/js/approval-engine.js ./js/approval-engine.js
+diff -ruN -x node_modules /tmp/claude-0/pristine/css/hr-rejection-audit.css ./css/hr-rejection-audit.css
+--- /tmp/claude-0/pristine/css/hr-rejection-audit.css	1970-01-01 07:00:00.000000000 +0700
++++ ./css/hr-rejection-audit.css	2026-10-14 11:14:09.473893525 +0700
+@@ -0,0 +1,80 @@
++/* ======================================================
++   การพิจารณาที่ไม่อนุมัติ (/pages/hr/hr.html → js/components/rejection-audit.js)
++   ====================================================== */
++#page-hr-approval .ra-panel { padding: 16px; margin-top: 4px; }
++#page-hr-approval .ra-panel[hidden] { display: none !important; }
++
++.ra-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
++.ra-title { display: flex; gap: 10px; align-items: flex-start; min-width: 0; flex: 1 1 320px; }
++.ra-title > .material-symbols-outlined { color: #be123c; background: #fff1f2; border-radius: 10px; padding: 6px; font-size: 22px; }
++.ra-title h2 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; }
++.ra-title p { margin: 2px 0 0; font-size: 12.5px; color: #64748b; line-height: 1.5; }
++.ra-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
++.ra-filters label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #475569; font-weight: 600; }
++.ra-filters input[type="date"] { min-width: 140px; }
++
++.ra-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
++.ra-kpi { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
++.ra-kpi span { font-size: 12px; color: #64748b; font-weight: 600; }
++.ra-kpi strong { font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1.2; }
++.ra-kpi small { font-size: 11px; color: #94a3b8; }
++.ra-kpi:nth-child(2) strong { color: #be123c; }
++.ra-kpi:nth-child(3) strong { color: #b45309; }
++
++.ra-h3 { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800; color: #0f172a; margin: 18px 0 4px; }
++.ra-h3 .material-symbols-outlined { font-size: 19px; color: var(--th-p-600, #0d9488); }
++.ra-count { font-size: 12px; font-weight: 600; color: #64748b; background: #f1f5f9; border-radius: 999px; padding: 1px 8px; }
++.ra-hint { font-size: 12px; color: #64748b; margin: 0 0 8px; }
++
++.ra-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 10px; }
++.ra-toolbar .search-box-wrap { flex: 1 1 220px; min-width: 0; }
++.ra-toolbar .form-select { max-width: 100%; }
++
++.ra-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; -webkit-overflow-scrolling: touch; }
++.ra-table { width: 100%; border-collapse: collapse; font-size: 13px; }
++.ra-table th { background: #f8fafc; color: #475569; font-weight: 700; text-align: left; padding: 9px 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; font-size: 12px; }
++.ra-table td { padding: 9px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #1e293b; }
++.ra-table tr:last-child td { border-bottom: 0; }
++.ra-table td small { display: block; color: #64748b; font-size: 11.5px; margin-top: 2px; }
++.ra-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
++.ra-table td.neg { color: #be123c; font-weight: 800; }
++.ra-table td.warn { color: #b45309; font-weight: 800; }
++.ra-table tr.is-flagged { background: #fffbeb; }
++.ra-table tr.is-selected { outline: 2px solid var(--th-p-500, #14b8a6); outline-offset: -2px; }
++.ra-steps { font-size: 12px; color: #475569; max-width: 220px; }
++.ra-reason { max-width: 280px; white-space: pre-wrap; word-break: break-word; }
++.ra-missing { color: #be123c; font-style: normal; font-weight: 700; }
++
++.ra-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--th-p-700, #0f766e); cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
++.ra-flag { display: block; font-size: 11.5px; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px; padding: 2px 6px; margin: 0 0 3px; }
++.ra-ok { color: #94a3b8; }
++
++.ra-badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 1px 6px; margin-right: 2px; }
++.ra-badge--manual { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
++.ra-badge--expired { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
++.ra-badge--legacy { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
++
++.ra-note { font-size: 12.5px; border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; }
++.ra-note--warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
++.ra-empty { padding: 24px; text-align: center; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; font-size: 13px; }
++.ra-loading { padding: 32px; text-align: center; color: #64748b; display: flex; gap: 8px; justify-content: center; align-items: center; }
++
++@media (max-width: 760px) {
++  .ra-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
++  .ra-filters { width: 100%; }
++  .ra-filters label { flex: 1 1 140px; }
++  .ra-filters input[type="date"] { min-width: 0; width: 100%; }
++  .ra-toolbar .form-select { flex: 1 1 140px; }
++
++  /* รายการไม่อนุมัติ: เป็นการ์ดบนมือถือ */
++  .ra-table--list thead { display: none; }
++  .ra-table--list, .ra-table--list tbody, .ra-table--list tr, .ra-table--list td { display: block; width: 100%; }
++  .ra-table--list tr { border-bottom: 1px solid #e2e8f0; padding: 8px 4px; }
++  .ra-table--list td { border: 0; padding: 3px 8px; text-align: left !important; max-width: none; }
++  .ra-table--list td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; color: #94a3b8; font-weight: 600; }
++}
++
++/* ตารางสรุปรายผู้พิจารณา: กว้างพอให้อ่านได้ แล้วเลื่อนแนวนอนในกรอบ (ไม่บีบคอลัมน์จนแถวสูง) */
++.ra-table:not(.ra-table--list) { min-width: 980px; }
++.ra-table:not(.ra-table--list) td:last-child { min-width: 240px; }
++.ra-table:not(.ra-table--list) td:first-child { min-width: 150px; }
+diff -ruN -x node_modules /tmp/claude-0/pristine/js/approval-engine.js ./js/approval-engine.js
 --- /tmp/claude-0/pristine/js/approval-engine.js	2026-10-06 10:26:15.000000000 +0700
 +++ ./js/approval-engine.js	2026-10-14 10:35:40.069488752 +0700
 @@ -395,8 +395,13 @@
@@ -17,7 +101,516 @@ diff -ru /tmp/claude-0/pristine/js/approval-engine.js ./js/approval-engine.js
        await global.PVTSDK.user.updateLeaveBalance(leave.employee_id, leave.leave_type_id, leave.leave_types?.leave_code || null, year, days);
        return null;
      } catch (err) {
-diff -ru /tmp/claude-0/pristine/js/delegation-service.js ./js/delegation-service.js
+diff -ruN -x node_modules /tmp/claude-0/pristine/js/components/rejection-audit.js ./js/components/rejection-audit.js
+--- /tmp/claude-0/pristine/js/components/rejection-audit.js	1970-01-01 07:00:00.000000000 +0700
++++ ./js/components/rejection-audit.js	2026-10-14 11:12:39.445888173 +0700
+@@ -0,0 +1,505 @@
++/* ==========================================================================
++   🔎 PVT Rejection Audit — การพิจารณาที่ไม่อนุมัติ (หน้า /pages/hr/hr.html)
++   --------------------------------------------------------------------------
++   สำหรับ HR / Admin / ผู้บริหาร: ดูการไม่อนุมัติทั้งหมดว่า "ใครไม่อนุมัติ ใคร
++   ขั้นไหน เพราะอะไร ใช้เวลาเท่าไร" และสรุปพฤติกรรมการพิจารณารายผู้อนุมัติ
++   เพื่อใช้ตรวจสอบความเป็นธรรมต่อพนักงาน
++
++   แหล่งข้อมูล (อ่านอย่างเดียว ไม่แก้ข้อมูลใด ๆ):
++     • leave_approval_logs   หลักฐานการพิจารณาทุกขั้น (แก้/ลบไม่ได้)
++     • leave_approval_steps  ขั้นของใบลา (ใช้หาผู้อนุมัติที่ปล่อยให้หมดเวลา 48 ชม.
++                             และเวลาที่ใบลามาถึงขั้นนั้น)
++     • leave_requests        ใบลาที่ไม่อนุมัติก่อนมีระบบหลักฐาน (ไม่มีชื่อผู้กด)
++
++   ใช้งาน: window.PVTRejectionAudit.open()  (hr.js เรียกเมื่อกดแท็บ)
++   ========================================================================== */
++(function (global) {
++  'use strict';
++  if (global.PVTRejectionAudit) return;
++
++  const PANEL_ID = 'rejectionAuditPanel';
++  const DECISION_ACTIONS = ['step_approved', 'approved', 'rejected', 'auto_rejected'];
++
++  const state = {
++    loaded: false,
++    loading: false,
++    rangeKey: '',
++    rejections: [],      // รายการที่ไม่อนุมัติ
++    approvers: [],       // สรุปรายผู้พิจารณา
++    overallRate: 0,
++    filters: { dept: '', approver: '', kind: '', q: '' }
++  };
++
++  // ---------------------------------------------------------------------
++  // ตัวช่วย
++  // ---------------------------------------------------------------------
++  const $ = (id) => document.getElementById(id);
++  const sb = () => global.pvtSupabase?.getClient?.() || global.PVTSDK?.client || global.supabaseClient || null;
++  const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
++  const pad = (n) => String(n).padStart(2, '0');
++  const localDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
++  const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
++  function thDate(v, withTime) {
++    if (!v) return '-';
++    const s = String(v);
++    const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(`${s}T00:00:00`) : new Date(s);
++    if (isNaN(d)) return s;
++    let out = `${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${String(d.getFullYear() + 543).slice(-2)}`;
++    if (withTime) out += ` ${pad(d.getHours())}:${pad(d.getMinutes())}`;
++    return out;
++  }
++  function hoursText(h) {
++    if (h == null || !isFinite(h)) return '-';
++    if (h < 1) return `${Math.max(1, Math.round(h * 60))} นาที`;
++    if (h < 48) return `${Math.round(h)} ชม.`;
++    return `${(h / 24).toFixed(1)} วัน`;
++  }
++  const isBlankReason = (c) => String(c || '').replace(/\s+/g, '').length < 4;
++  const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
++
++  // รอบปีการลา: 1 ธ.ค. – 30 พ.ย. (ธ.ค. นับเป็นรอบปีถัดไป)
++  function leaveYearRange() {
++    const ly = typeof global.getCurrentLeaveYear === 'function'
++      ? global.getCurrentLeaveYear()
++      : (() => { const d = new Date(); return d.getMonth() === 11 ? d.getFullYear() + 1 : d.getFullYear(); })();
++    return { from: `${ly - 1}-12-01`, to: localDate(new Date()), label: `รอบปีการลา ${ly + 543}` };
++  }
++
++  // ---------------------------------------------------------------------
++  // โหลดข้อมูล
++  // ---------------------------------------------------------------------
++  async function fetchAll(buildQuery) {
++    const rows = [];
++    for (let from = 0; from < 20000; from += 1000) {
++      const { data, error } = await buildQuery().range(from, from + 999);
++      if (error) throw error;
++      rows.push(...(data || []));
++      if (!data || data.length < 1000) break;
++    }
++    return rows;
++  }
++
++  async function load(fromDate, toDate) {
++    const client = sb();
++    if (!client) throw new Error('ยังเชื่อมต่อฐานข้อมูลไม่ได้');
++    const fromIso = new Date(`${fromDate}T00:00:00`).toISOString();
++    const toIso = new Date(new Date(`${toDate}T00:00:00`).getTime() + 864e5).toISOString();
++
++    // 1) หลักฐานการพิจารณาในช่วงเวลา
++    let logs = [];
++    let logsAvailable = true;
++    try {
++      logs = await fetchAll(() => client.from('leave_approval_logs')
++        .select('id, leave_id, employee_id, employee_code, employee_name, action, step_level, step_label, actor_id, actor_name, actor_role, comment, leave_snapshot, created_at')
++        .in('action', DECISION_ACTIONS)
++        .gte('created_at', fromIso).lt('created_at', toIso)
++        .order('created_at', { ascending: false }));
++    } catch (err) {
++      if (/does not exist|PGRST205|42P01|Could not find the table/i.test(`${err.code} ${err.message}`)) logsAvailable = false;
++      else throw err;
++    }
++
++    // 2) ใบลาที่ไม่อนุมัติในช่วงเวลา (รวมใบเก่าที่ไม่มีหลักฐาน)
++    const rejectedLeaves = await fetchAll(() => client.from('leave_requests')
++      .select('id, employee_id, created_at, updated_at, start_date, end_date, total_days, reason, approval_comment, manager_status, director_status, executive_status, employees!employee_id(id, full_name, employee_code, departments!department_id(department_name)), leave_types!leave_type_id(leave_name)')
++      .eq('status', 'rejected')
++      .gte('updated_at', fromIso).lt('updated_at', toIso)
++      .order('updated_at', { ascending: false }));
++
++    // 3) ข้อมูลใบลาที่เกี่ยวข้อง (วันที่ยื่น / แผนกปัจจุบัน) + ขั้นอนุมัติ
++    const leaveIds = Array.from(new Set([...logs.map((l) => l.leave_id), ...rejectedLeaves.map((r) => r.id)].filter(Boolean)));
++    const leaves = {};
++    rejectedLeaves.forEach((r) => { leaves[r.id] = r; });
++    const missing = leaveIds.filter((id) => !leaves[id]);
++    for (const part of chunk(missing, 150)) {
++      const { data } = await client.from('leave_requests')
++        .select('id, employee_id, created_at, start_date, end_date, total_days, reason, employees!employee_id(id, full_name, employee_code, departments!department_id(department_name)), leave_types!leave_type_id(leave_name)')
++        .in('id', part);
++      (data || []).forEach((r) => { leaves[r.id] = r; });
++    }
++
++    const steps = {};
++    for (const part of chunk(leaveIds, 150)) {
++      const { data, error } = await client.from('leave_approval_steps')
++        .select('leave_id, step_no, step_label, status, approver_ids, approver_names, hr_any, activated_at, acted_at')
++        .in('leave_id', part);
++      if (error) break; // ยังไม่ได้รัน migration ระยะ 2
++      (data || []).forEach((s) => { (steps[s.leave_id] = steps[s.leave_id] || []).push(s); });
++    }
++
++    // ใบที่มีหลักฐาน "ไม่อนุมัติ" อยู่แล้ว (ไม่ว่าช่วงเวลาไหน) → ไม่ต้องนับเป็นใบเก่า
++    const loggedReject = new Set(logs.filter((l) => l.action === 'rejected' || l.action === 'auto_rejected').map((l) => l.leave_id));
++    if (logsAvailable) {
++      const unknown = rejectedLeaves.map((r) => r.id).filter((id) => !loggedReject.has(id));
++      for (const part of chunk(unknown, 150)) {
++        const { data } = await client.from('leave_approval_logs').select('leave_id').in('leave_id', part).in('action', ['rejected', 'auto_rejected']);
++        (data || []).forEach((l) => loggedReject.add(l.leave_id));
++      }
++    }
++
++    build(logs, rejectedLeaves, leaves, steps, loggedReject, logsAvailable);
++  }
++
++  // ---------------------------------------------------------------------
++  // ประมวลผล
++  // ---------------------------------------------------------------------
++  function stepNoOf(log) {
++    const m = String(log.step_level || '').match(/^S(\d+)$/);
++    return m ? Number(m[1]) : null;
++  }
++
++  function build(logs, rejectedLeaves, leaves, steps, loggedReject, logsAvailable) {
++    const approvers = {};
++    const keyOf = (id, name) => (id ? `id:${id}` : `name:${name || 'ไม่ทราบชื่อ'}`);
++    const getA = (id, name) => {
++      const k = keyOf(id, name);
++      if (!approvers[k]) approvers[k] = { key: k, id: id || null, name: name || 'ไม่ทราบชื่อ', roles: new Set(), steps: new Set(), total: 0, approved: 0, rejected: 0, expired: 0, noReason: 0, hours: [], perEmp: {} };
++      return approvers[k];
++    };
++    const empInfo = (log, leave) => {
++      const snap = log?.leave_snapshot || {};
++      const emp = leave?.employees || {};
++      return {
++        name: emp.full_name || log?.employee_name || snap.employee_name || '-',
++        code: emp.employee_code || log?.employee_code || snap.employee_code || '',
++        id: leave?.employee_id || log?.employee_id || snap.employee_id || '',
++        dept: emp.departments?.department_name || snap.department_name || '-',
++        type: leave?.leave_types?.leave_name || snap.leave_type || '-',
++        start: leave?.start_date || snap.start_date,
++        end: leave?.end_date || snap.end_date,
++        days: leave?.total_days ?? snap.total_days,
++        reason: leave?.reason || snap.reason || '',
++        submittedAt: leave?.created_at || null
++      };
++    };
++    const stepStart = (log, leave) => {
++      const no = stepNoOf(log);
++      const st = no != null ? (steps[log.leave_id] || []).find((s) => s.step_no === no) : null;
++      return st?.activated_at || leave?.created_at || null;
++    };
++
++    const rejections = [];
++
++    logs.forEach((log) => {
++      const leave = leaves[log.leave_id] || null;
++      const info = empInfo(log, leave);
++
++      if (log.action === 'auto_rejected') {
++        // ผู้ที่ปล่อยให้หมดเวลา: จากขั้นที่ "expired" ของใบนั้น
++        const exp = (steps[log.leave_id] || []).find((s) => s.status === 'expired');
++        let who = '';
++        if (exp) {
++          if (exp.hr_any || !(exp.approver_ids || []).length) who = 'ฝ่ายบุคคล (HR)';
++          else {
++            who = (exp.approver_names || []).join(' หรือ ');
++            (exp.approver_ids || []).forEach((id, i) => {
++              const a = getA(String(id), (exp.approver_names || [])[i]);
++              a.expired += 1;
++              if (exp.step_label) a.steps.add(exp.step_label);
++            });
++          }
++        }
++        rejections.push({
++          kind: 'expired', at: log.created_at, leaveId: log.leave_id, ...info,
++          step: exp?.step_label || log.step_label || '-',
++          decidedBy: who ? `${who} (ไม่พิจารณาภายใน 48 ชม.)` : 'ไม่พิจารณาภายใน 48 ชม.',
++          approverKeys: exp && !exp.hr_any ? (exp.approver_ids || []).map((id) => keyOf(String(id))) : [],
++          comment: log.comment || '',
++          hours: info.submittedAt ? (new Date(log.created_at) - new Date(info.submittedAt)) / 36e5 : null
++        });
++        return;
++      }
++
++      if (!log.actor_id && !log.actor_name) return;
++      if (log.actor_role === 'system') return;
++      const a = getA(log.actor_id ? String(log.actor_id) : null, log.actor_name);
++      if (log.actor_role) a.roles.add(String(log.actor_role));
++      if (log.step_label) a.steps.add(String(log.step_label).replace(/\s*\((อนุมัติแทน)?โดย .*\)$/, ''));
++      a.total += 1;
++      const start = stepStart(log, leave);
++      const hrs = start ? (new Date(log.created_at) - new Date(start)) / 36e5 : null;
++      if (hrs != null && hrs >= 0) a.hours.push(hrs);
++
++      if (log.action === 'rejected') {
++        a.rejected += 1;
++        if (isBlankReason(log.comment)) a.noReason += 1;
++        if (info.id) a.perEmp[info.id] = { n: (a.perEmp[info.id]?.n || 0) + 1, name: info.name };
++        rejections.push({
++          kind: 'manual', at: log.created_at, leaveId: log.leave_id, ...info,
++          step: log.step_label || log.step_level || '-',
++          decidedBy: log.actor_name || 'ไม่ทราบชื่อ',
++          approverKeys: [a.key],
++          comment: log.comment || '',
++          hours: hrs
++        });
++      } else {
++        a.approved += 1;
++      }
++    });
++
++    // ใบเก่าที่ไม่มีหลักฐาน (ก่อนเปิดระบบบันทึก) — ไม่ทราบชื่อผู้กด
++    rejectedLeaves.filter((r) => !loggedReject.has(r.id)).forEach((r) => {
++      const info = empInfo(null, r);
++      const step = r.manager_status === 'rejected' ? 'ลำดับที่ 1' : r.director_status === 'rejected' ? 'ลำดับที่ 2' : r.executive_status === 'rejected' ? 'ลำดับที่ 3' : '-';
++      const auto = /อัตโนมัติ|48/.test(r.approval_comment || '');
++      rejections.push({
++        kind: auto ? 'expired' : 'legacy', at: r.updated_at || r.created_at, leaveId: r.id, ...info,
++        step,
++        decidedBy: auto ? 'ไม่พิจารณาภายใน 48 ชม.' : 'ไม่มีบันทึกผู้พิจารณา (ข้อมูลก่อนเปิดระบบหลักฐาน)',
++        approverKeys: [],
++        comment: r.approval_comment || '',
++        hours: r.created_at && r.updated_at ? (new Date(r.updated_at) - new Date(r.created_at)) / 36e5 : null
++      });
++    });
++
++    rejections.sort((x, y) => new Date(y.at) - new Date(x.at));
++
++    const list = Object.values(approvers).map((a) => {
++      const decided = a.approved + a.rejected;
++      const rate = decided ? a.rejected / decided : 0;
++      const avgH = a.hours.length ? a.hours.reduce((s, h) => s + h, 0) / a.hours.length : null;
++      const topEmp = Object.values(a.perEmp).sort((x, y) => y.n - x.n)[0] || null;
++      return { ...a, roles: [...a.roles], steps: [...a.steps], decided, rate, avgH, topEmp };
++    });
++    const tot = list.reduce((s, a) => ({ d: s.d + a.decided, r: s.r + a.rejected }), { d: 0, r: 0 });
++    const overall = tot.d ? tot.r / tot.d : 0;
++    list.forEach((a) => {
++      const flags = [];
++      if (a.rejected >= 3 && a.rate >= Math.max(overall * 2, 0.2)) flags.push(`อัตราไม่อนุมัติ ${Math.round(a.rate * 100)}% (เฉลี่ยทั้งองค์กร ${Math.round(overall * 100)}%)`);
++      if (a.expired >= 3) flags.push(`ปล่อยใบลาหมดเวลา ${a.expired} ใบ`);
++      if (a.noReason >= 2) flags.push(`ไม่อนุมัติโดยไม่ระบุเหตุผล ${a.noReason} ครั้ง`);
++      if (a.topEmp && a.topEmp.n >= 3) flags.push(`ไม่อนุมัติ ${a.topEmp.name} ซ้ำ ${a.topEmp.n} ครั้ง`);
++      a.flags = flags;
++    });
++    list.sort((x, y) => (y.flags.length - x.flags.length) || (y.rejected + y.expired - x.rejected - x.expired) || (y.decided - x.decided));
++
++    state.rejections = rejections;
++    state.approvers = list;
++    state.overallRate = overall;
++    state.logsAvailable = logsAvailable;
++    state.loaded = true;
++  }
++
++  // ---------------------------------------------------------------------
++  // แสดงผล
++  // ---------------------------------------------------------------------
++  function ensurePanel() {
++    let panel = $(PANEL_ID);
++    if (panel) return panel;
++    panel = document.createElement('section');
++    panel.id = PANEL_ID;
++    panel.className = 'panel ra-panel';
++    panel.hidden = true;
++    const anchor = $('leaveTablePanel');
++    if (anchor?.parentNode) anchor.parentNode.insertBefore(panel, anchor.nextSibling);
++    else ($('pageContent') || document.body).appendChild(panel);
++    return panel;
++  }
++
++  function shell() {
++    const r = leaveYearRange();
++    return `
++      <div class="ra-head">
++        <div class="ra-title">
++          <span class="material-symbols-outlined">gavel</span>
++          <div>
++            <h2>การพิจารณาที่ไม่อนุมัติ</h2>
++            <p>ใครไม่อนุมัติ ขั้นไหน เหตุผลอะไร และสรุปการพิจารณาของผู้อนุมัติแต่ละคน (อ่านอย่างเดียว จากบันทึกหลักฐานที่แก้ไขไม่ได้)</p>
++          </div>
++        </div>
++        <div class="ra-filters">
++          <label>ตั้งแต่ <input type="date" id="raFrom" class="form-select" value="${r.from}"></label>
++          <label>ถึง <input type="date" id="raTo" class="form-select" value="${r.to}"></label>
++          <button type="button" class="ap-btn ap-btn--light" id="raReload"><span class="material-symbols-outlined">sync</span><span>โหลด</span></button>
++        </div>
++      </div>
++      <div id="raBody"><div class="ra-loading"><span class="material-symbols-outlined spin">sync</span> กำลังรวบรวมข้อมูล...</div></div>`;
++  }
++
++  function filtered() {
++    const f = state.filters;
++    const q = f.q.trim().toLowerCase();
++    return state.rejections.filter((r) =>
++      (!f.dept || r.dept === f.dept) &&
++      (!f.kind || r.kind === f.kind) &&
++      (!f.approver || r.approverKeys.includes(f.approver)) &&
++      (!q || [r.name, r.code, r.dept, r.type, r.decidedBy, r.comment, r.reason, r.step].some((v) => String(v || '').toLowerCase().includes(q))));
++  }
++
++  function renderBody() {
++    const body = $('raBody');
++    if (!body) return;
++    const rows = filtered();
++    const all = state.rejections;
++    const nManual = all.filter((r) => r.kind === 'manual').length;
++    const nExpired = all.filter((r) => r.kind === 'expired').length;
++    const nLegacy = all.filter((r) => r.kind === 'legacy').length;
++    const depts = [...new Set(all.map((r) => r.dept).filter((d) => d && d !== '-'))].sort();
++    const f = state.filters;
++    const approverOpts = state.approvers.filter((a) => a.rejected || a.expired);
++
++    body.innerHTML = `
++      ${state.logsAvailable ? '' : `<div class="ra-note ra-note--warn">ยังไม่มีตารางบันทึกหลักฐาน (leave_approval_logs) — แสดงได้เฉพาะใบลาที่ไม่อนุมัติ โดยไม่ทราบชื่อผู้พิจารณา กรุณารัน supabase/migrations/20261005_leave_approval_logs.sql</div>`}
++
++      <div class="ra-kpis">
++        <div class="ra-kpi"><span>ไม่อนุมัติทั้งหมด</span><strong>${all.length}</strong><small>ในช่วงเวลาที่เลือก</small></div>
++        <div class="ra-kpi"><span>ผู้พิจารณากดไม่อนุมัติ</span><strong>${nManual}</strong><small>มีชื่อผู้กดและเหตุผล</small></div>
++        <div class="ra-kpi"><span>หมดเวลา 48 ชม.</span><strong>${nExpired}</strong><small>ผู้อนุมัติไม่พิจารณาตามกำหนด</small></div>
++        <div class="ra-kpi"><span>อัตราไม่อนุมัติรวม</span><strong>${Math.round(state.overallRate * 100)}%</strong><small>จากการพิจารณาทุกขั้น</small></div>
++      </div>
++
++      <h3 class="ra-h3"><span class="material-symbols-outlined">groups</span> สรุปรายผู้พิจารณา</h3>
++      <p class="ra-hint">กดที่ชื่อเพื่อดูรายการไม่อนุมัติของคนนั้น · ป้าย "ควรตรวจสอบ" เป็นเพียงข้อสังเกตจากตัวเลข ไม่ใช่ข้อสรุป ควรอ่านเหตุผลประกอบทุกครั้ง</p>
++      ${state.approvers.length ? `
++      <div class="ra-table-wrap">
++        <table class="ra-table">
++          <thead><tr>
++            <th>ผู้พิจารณา</th><th>ขั้นที่พิจารณา</th><th class="num">พิจารณา</th><th class="num">อนุมัติ</th>
++            <th class="num">ไม่อนุมัติ</th><th class="num">% ไม่อนุมัติ</th><th class="num">ปล่อยหมดเวลา</th>
++            <th class="num">ไม่ระบุเหตุผล</th><th class="num">เวลาพิจารณาเฉลี่ย</th><th>ข้อสังเกต</th>
++          </tr></thead>
++          <tbody>
++            ${state.approvers.map((a) => `
++              <tr class="${a.flags.length ? 'is-flagged' : ''} ${f.approver === a.key ? 'is-selected' : ''}">
++                <td><button type="button" class="ra-link" data-approver="${esc(a.key)}">${esc(a.name)}</button>${a.roles.length ? `<small>${esc(a.roles.join(', '))}</small>` : ''}</td>
++                <td class="ra-steps">${esc(a.steps.join(' · ') || '-')}</td>
++                <td class="num">${a.decided}</td>
++                <td class="num">${a.approved}</td>
++                <td class="num ${a.rejected ? 'neg' : ''}">${a.rejected}</td>
++                <td class="num">${a.decided ? Math.round(a.rate * 100) + '%' : '-'}</td>
++                <td class="num ${a.expired ? 'warn' : ''}">${a.expired}</td>
++                <td class="num">${a.noReason}</td>
++                <td class="num">${hoursText(a.avgH)}</td>
++                <td>${a.flags.length ? a.flags.map((x) => `<span class="ra-flag">ควรตรวจสอบ: ${esc(x)}</span>`).join('') : '<span class="ra-ok">-</span>'}</td>
++              </tr>`).join('')}
++          </tbody>
++        </table>
++      </div>` : `<div class="ra-empty">ยังไม่มีบันทึกการพิจารณาในช่วงเวลานี้</div>`}
++
++      <h3 class="ra-h3"><span class="material-symbols-outlined">block</span> รายการที่ไม่อนุมัติ <span class="ra-count">${rows.length} / ${all.length}</span></h3>
++      <div class="ra-toolbar">
++        <div class="search-box-wrap"><span class="material-symbols-outlined">search</span>
++          <input type="text" id="raSearch" class="search-input" placeholder="ค้นหาพนักงาน ผู้พิจารณา เหตุผล..." value="${esc(f.q)}"></div>
++        <select id="raDept" class="form-select"><option value="">ทุกแผนก</option>${depts.map((d) => `<option ${f.dept === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select>
++        <select id="raApprover" class="form-select"><option value="">ผู้พิจารณาทุกคน</option>${approverOpts.map((a) => `<option value="${esc(a.key)}" ${f.approver === a.key ? 'selected' : ''}>${esc(a.name)} (${a.rejected + a.expired})</option>`).join('')}</select>
++        <select id="raKind" class="form-select">
++          <option value="">ทุกรูปแบบ</option>
++          <option value="manual" ${f.kind === 'manual' ? 'selected' : ''}>ผู้พิจารณากดไม่อนุมัติ</option>
++          <option value="expired" ${f.kind === 'expired' ? 'selected' : ''}>หมดเวลา 48 ชม.</option>
++          ${nLegacy ? `<option value="legacy" ${f.kind === 'legacy' ? 'selected' : ''}>ข้อมูลเก่า (ไม่มีบันทึกผู้กด)</option>` : ''}
++        </select>
++        <button type="button" class="ap-btn ap-btn--excel" id="raExport"><span class="material-symbols-outlined">download</span><span>CSV</span></button>
++      </div>
++      ${rows.length ? `
++      <div class="ra-table-wrap">
++        <table class="ra-table ra-table--list">
++          <thead><tr>
++            <th>วันที่พิจารณา</th><th>พนักงาน</th><th>ใบลา</th><th>ขั้น</th><th>ผู้พิจารณา</th>
++            <th>เหตุผลที่ไม่อนุมัติ</th><th>เหตุผลการลาของพนักงาน</th><th class="num">ใช้เวลา</th><th></th>
++          </tr></thead>
++          <tbody>
++            ${rows.map((r) => `
++              <tr class="ra-kind-${r.kind}">
++                <td data-label="วันที่พิจารณา">${thDate(r.at, true)}</td>
++                <td data-label="พนักงาน"><strong>${esc(r.name)}</strong><small>${esc(r.code ? '#' + r.code + ' · ' : '')}${esc(r.dept)}</small></td>
++                <td data-label="ใบลา">${esc(r.type)}<small>${thDate(r.start)}${r.end && r.end !== r.start ? ' – ' + thDate(r.end) : ''}${r.days != null ? ` · ${esc(r.days)} วัน` : ''}</small></td>
++                <td data-label="ขั้น">${esc(r.step)}</td>
++                <td data-label="ผู้พิจารณา"><span class="ra-badge ra-badge--${r.kind}">${r.kind === 'manual' ? 'ไม่อนุมัติ' : r.kind === 'expired' ? 'หมดเวลา' : 'ข้อมูลเก่า'}</span> ${esc(r.decidedBy)}</td>
++                <td data-label="เหตุผลที่ไม่อนุมัติ" class="ra-reason">${r.kind === 'manual' && isBlankReason(r.comment) ? '<em class="ra-missing">ไม่ได้ระบุเหตุผล</em>' : esc(r.comment || '-')}</td>
++                <td data-label="เหตุผลการลา" class="ra-reason">${esc(r.reason || '-')}</td>
++                <td data-label="ใช้เวลา" class="num">${hoursText(r.hours)}</td>
++                <td>${r.leaveId ? `<button type="button" class="btn-act btn-act-preview" data-preview="${esc(r.leaveId)}" title="ดูรายละเอียดและประวัติการพิจารณา"><span class="material-symbols-outlined">visibility</span></button>` : ''}</td>
++              </tr>`).join('')}
++          </tbody>
++        </table>
++      </div>` : `<div class="ra-empty">ไม่พบรายการตามเงื่อนไข</div>`}`;
++  }
++
++  function exportCsv() {
++    const rows = filtered();
++    const head = ['วันที่พิจารณา', 'รหัสพนักงาน', 'ชื่อพนักงาน', 'แผนก', 'ประเภทการลา', 'วันที่ลา', 'ถึง', 'จำนวนวัน', 'ขั้น', 'รูปแบบ', 'ผู้พิจารณา', 'เหตุผลที่ไม่อนุมัติ', 'เหตุผลการลา', 'ใช้เวลา (ชม.)'];
++    const kindTxt = { manual: 'ผู้พิจารณาไม่อนุมัติ', expired: 'หมดเวลา 48 ชม.', legacy: 'ข้อมูลเก่า' };
++    const lines = [head].concat(rows.map((r) => [
++      thDate(r.at, true), r.code, r.name, r.dept, r.type, r.start || '', r.end || '', r.days ?? '', r.step,
++      kindTxt[r.kind], r.decidedBy, r.comment, r.reason, r.hours != null ? r.hours.toFixed(1) : ''
++    ]));
++    const csv = '﻿' + lines.map((l) => l.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
++    const a = document.createElement('a');
++    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
++    a.download = `การไม่อนุมัติใบลา_${$('raFrom')?.value || ''}_${$('raTo')?.value || ''}.csv`;
++    document.body.appendChild(a); a.click(); a.remove();
++    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
++  }
++
++  function bind(panel) {
++    if (panel.dataset.bound) return;
++    panel.dataset.bound = '1';
++    panel.addEventListener('click', (e) => {
++      const ap = e.target.closest('[data-approver]');
++      if (ap) {
++        state.filters.approver = state.filters.approver === ap.dataset.approver ? '' : ap.dataset.approver;
++        renderBody();
++        $('raSearch')?.closest('.ra-toolbar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
++        return;
++      }
++      const pv = e.target.closest('[data-preview]');
++      if (pv) {
++        if (typeof global.previewLeaveModal === 'function') {
++          try { global.previewLeaveModal(pv.dataset.preview); } catch (err) { console.warn(err); }
++        }
++        return;
++      }
++      if (e.target.closest('#raReload')) { refresh(true); return; }
++      if (e.target.closest('#raExport')) exportCsv();
++    });
++    panel.addEventListener('input', (e) => {
++      if (e.target.id === 'raSearch') {
++        state.filters.q = e.target.value;
++        const pos = e.target.selectionStart;
++        renderBody();
++        const s = $('raSearch'); if (s) { s.focus(); try { s.setSelectionRange(pos, pos); } catch (x) {} }
++      }
++    });
++    panel.addEventListener('change', (e) => {
++      const map = { raDept: 'dept', raApprover: 'approver', raKind: 'kind' };
++      if (map[e.target.id]) { state.filters[map[e.target.id]] = e.target.value; renderBody(); }
++      if (e.target.id === 'raFrom' || e.target.id === 'raTo') refresh(true);
++    });
++  }
++
++  async function refresh(force) {
++    const from = $('raFrom')?.value;
++    const to = $('raTo')?.value;
++    if (!from || !to) return;
++    const key = `${from}|${to}`;
++    if (!force && state.loaded && state.rangeKey === key) { renderBody(); return; }
++    if (state.loading) return;
++    state.loading = true;
++    const body = $('raBody');
++    if (body) body.innerHTML = `<div class="ra-loading"><span class="material-symbols-outlined spin">sync</span> กำลังรวบรวมข้อมูล...</div>`;
++    try {
++      await load(from, to);
++      state.rangeKey = key;
++      renderBody();
++    } catch (err) {
++      console.error('[Rejection Audit]', err);
++      if (body) body.innerHTML = `<div class="ra-empty ra-note--warn">โหลดข้อมูลไม่สำเร็จ: ${esc(err.message || err)}</div>`;
++    } finally {
++      state.loading = false;
++    }
++  }
++
++  function open() {
++    const panel = ensurePanel();
++    if (!panel.dataset.ready) { panel.innerHTML = shell(); panel.dataset.ready = '1'; bind(panel); }
++    panel.hidden = false;
++    refresh(false);
++  }
++
++  function close() {
++    const panel = $(PANEL_ID);
++    if (panel) panel.hidden = true;
++  }
++
++  global.PVTRejectionAudit = { open, close, refresh, _state: state, _build: build };
++})(typeof window !== 'undefined' ? window : this);
+diff -ruN -x node_modules /tmp/claude-0/pristine/js/delegation-service.js ./js/delegation-service.js
 --- /tmp/claude-0/pristine/js/delegation-service.js	2026-10-06 10:26:15.000000000 +0700
 +++ ./js/delegation-service.js	2026-10-14 10:35:40.075333317 +0700
 @@ -10,6 +10,7 @@
@@ -55,7 +648,7 @@ diff -ru /tmp/claude-0/pristine/js/delegation-service.js ./js/delegation-service
        const activeList = [];
  
        try {
-diff -ru /tmp/claude-0/pristine/js/employee-card-modal.js ./js/employee-card-modal.js
+diff -ruN -x node_modules /tmp/claude-0/pristine/js/employee-card-modal.js ./js/employee-card-modal.js
 --- /tmp/claude-0/pristine/js/employee-card-modal.js	2026-10-06 13:16:41.000000000 +0700
 +++ ./js/employee-card-modal.js	2026-10-14 10:35:40.077390801 +0700
 @@ -509,6 +509,14 @@
@@ -113,7 +706,7 @@ diff -ru /tmp/claude-0/pristine/js/employee-card-modal.js ./js/employee-card-mod
    };
  
    window.generateEmployeeQrUrl = generateEmployeeQrUrl;
-diff -ru /tmp/claude-0/pristine/js/home.js ./js/home.js
+diff -ruN -x node_modules /tmp/claude-0/pristine/js/home.js ./js/home.js
 --- /tmp/claude-0/pristine/js/home.js	2026-10-06 16:18:21.000000000 +0700
 +++ ./js/home.js	2026-10-14 10:35:49.166674992 +0700
 @@ -3282,7 +3282,8 @@
@@ -126,10 +719,21 @@ diff -ru /tmp/claude-0/pristine/js/home.js ./js/home.js
          if (currentYear > 2400) currentYear -= 543;
          const lCode = reqData.leave_types?.leave_code || null;
          await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);
-diff -ru /tmp/claude-0/pristine/js/hr.js ./js/hr.js
+diff -ruN -x node_modules /tmp/claude-0/pristine/js/hr.js ./js/hr.js
 --- /tmp/claude-0/pristine/js/hr.js	2026-10-06 16:18:21.000000000 +0700
-+++ ./js/hr.js	2026-10-14 10:35:49.185958558 +0700
-@@ -686,6 +686,10 @@
++++ ./js/hr.js	2026-10-14 11:13:15.908525269 +0700
+@@ -367,6 +367,10 @@
+     cancellationTabBtn.style.display = canReviewCancellationRequests() ? 'inline-flex' : 'none';
+   }
+ 
++  // แท็บ "การพิจารณาที่ไม่อนุมัติ": HR / Admin / ผู้บริหาร เท่านั้น (หัวหน้า/ผู้จัดการไม่เห็นข้อมูลของคนอื่น)
++  const rejectionsTabBtn = document.getElementById("tabBtnRejections");
++  if (rejectionsTabBtn) rejectionsTabBtn.hidden = !canViewRejectionAudit();
++
+   // กรองเมนูด้านข้างสำหรับ Leader/Manager
+   // (layout ใหม่ใช้ .pvt-nav__item — selector เดิม .nav-menu .nav-item หาไม่เจอ เมนูจึงไม่เคยถูกซ่อน)
+   // ใช้ hidden แทน inline display + important เพื่อไม่ไปทับ CSS ของ layout
+@@ -686,6 +690,10 @@
  
  async function getEffectiveLeaveDays(reqData) {
    if (reqData.actual_days && Number(reqData.actual_days) > 0) return Number(reqData.actual_days);
@@ -140,7 +744,45 @@ diff -ru /tmp/claude-0/pristine/js/hr.js ./js/hr.js
    if (reqData.start_date && reqData.end_date) {
      const calc = await calculateActualLeaveDays(reqData.start_date, reqData.end_date);
      if (calc > 0) return calc;
-@@ -2829,36 +2833,43 @@
+@@ -1207,6 +1215,10 @@
+     if (currentLeaveTab === 'pending') {
+       if (slaContainer) slaContainer.style.display = "block";
+       if (leaveTablePanel) leaveTablePanel.style.display = "none";
++    } else if (currentLeaveTab === 'rejections') {
++      // แท็บนี้จัดการแสดงผลเอง (rejection-audit.js)
++      if (slaContainer) slaContainer.style.display = "none";
++      if (leaveTablePanel) leaveTablePanel.style.display = "none";
+     } else {
+       if (slaContainer) slaContainer.style.display = "none";
+       if (leaveTablePanel) leaveTablePanel.style.display = "block";
+@@ -1253,7 +1265,15 @@
+   document.getElementById("statTotalCount") && (document.getElementById("statTotalCount").innerHTML = `${allLeaveRequests.length} <small>รายการ</small>`);
+ }
+ 
++function canViewRejectionAudit() {
++  const sessionUser = (() => { try { return JSON.parse(localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser") || "{}"); } catch (e) { return {}; } })();
++  const empCode = String(currentUserProfile?.employee_code || currentUserProfile?.employees?.employee_code || sessionUser?.employee_code || '').trim();
++  return ['hr', 'admin', 'director'].includes(String(currentRole || '').toLowerCase()) && empCode !== '19122';
++}
++
+ window.switchLeaveTab = function(tabName, btnEl) {
++  if (tabName === 'rejections' && !canViewRejectionAudit()) return;
++  if (tabName !== 'rejections') window.PVTRejectionAudit?.close();
+   if (tabName === 'cancellation' && !canReviewCancellationRequests()) {
+     Swal.fire({
+       icon: 'info',
+@@ -1280,6 +1300,10 @@
+     if (slaContainer) slaContainer.style.display = "block";
+     // 💡 ยุบตารางล่างเมื่ออยู่ในแท็บ 'รออนุมัติ' (SLA Tracker ทำหน้าที่แทน)
+     if (leaveTablePanel) leaveTablePanel.style.display = "none";
++  } else if (tabName === 'rejections') {
++    if (slaContainer) slaContainer.style.display = "none";
++    if (leaveTablePanel) leaveTablePanel.style.display = "none";
++    window.PVTRejectionAudit?.open();
+   } else if (tabName === 'cancellation') {
+     if (headerTitle) headerTitle.textContent = "คำร้องขอยกเลิกใบลาหยุดงาน";
+     if (headerIcon) headerIcon.textContent = "published_with_changes";
+@@ -2829,36 +2853,43 @@
        .eq('id', leaveId)
        .single();
  
@@ -197,7 +839,7 @@ diff -ru /tmp/claude-0/pristine/js/hr.js ./js/hr.js
  
      if (window.PVTApproval) await window.PVTApproval.closeOpenSteps(leaveId, 'cancelled', `ยกเลิกโดย HR: ${reason.trim()}`);
      if (window.PVTLeaveAudit) {
-@@ -2973,41 +2984,41 @@
+@@ -2973,41 +3004,41 @@
      const daysToReturn = await getEffectiveLeaveDays(freshReq);
      const currentYear = getADYear(freshReq.start_date);
  
@@ -253,7 +895,7 @@ diff -ru /tmp/claude-0/pristine/js/hr.js ./js/hr.js
  
      if (window.PVTLeaveAudit) {
        // วันที่ลาเดิมเก็บไว้ในหลักฐาน (กรณีระบบต้องย้ายวันที่เพื่อเลี่ยงการซ้อนทับ)
-diff -ru /tmp/claude-0/pristine/js/leave-history.js ./js/leave-history.js
+diff -ruN -x node_modules /tmp/claude-0/pristine/js/leave-history.js ./js/leave-history.js
 --- /tmp/claude-0/pristine/js/leave-history.js	2026-10-06 16:18:21.000000000 +0700
 +++ ./js/leave-history.js	2026-10-14 10:35:40.086077472 +0700
 @@ -1089,14 +1089,20 @@
@@ -279,7 +921,7 @@ diff -ru /tmp/claude-0/pristine/js/leave-history.js ./js/leave-history.js
  
        if (error && (error.code === 'P0001' || (error.message && (error.message.includes('ช่วงวันที่ดังกล่าว') || error.message.includes('ซ้อนทับ'))))) {
          console.warn("⚠️ พบข้อผิดพลาดของ DB Trigger ขณะยกเลิก กำลังปรับปรุงลำดับวันที่เพื่อเลี่ยงการล็อกซ้อนทับ...");
-diff -ru /tmp/claude-0/pristine/js/leave-user.js ./js/leave-user.js
+diff -ruN -x node_modules /tmp/claude-0/pristine/js/leave-user.js ./js/leave-user.js
 --- /tmp/claude-0/pristine/js/leave-user.js	2026-10-06 10:26:15.000000000 +0700
 +++ ./js/leave-user.js	2026-10-14 10:35:49.208391705 +0700
 @@ -155,7 +155,8 @@
@@ -292,7 +934,7 @@ diff -ru /tmp/claude-0/pristine/js/leave-user.js ./js/leave-user.js
  
      const isSunday = (dayOfWeek === 0);
      const isCompanyHoliday = cachedHolidays.includes(dateFormatted);
-diff -ru /tmp/claude-0/pristine/pages/hr/employee-cards.html ./pages/hr/employee-cards.html
+diff -ruN -x node_modules /tmp/claude-0/pristine/pages/hr/employee-cards.html ./pages/hr/employee-cards.html
 --- /tmp/claude-0/pristine/pages/hr/employee-cards.html	2026-10-06 13:00:59.000000000 +0700
 +++ ./pages/hr/employee-cards.html	2026-10-14 10:35:49.227538299 +0700
 @@ -255,6 +255,10 @@
@@ -369,3 +1011,34 @@ diff -ru /tmp/claude-0/pristine/pages/hr/employee-cards.html ./pages/hr/employee
        });
  
        $('btnReloadData').addEventListener('click', fetchEmployeesData);
+diff -ruN -x node_modules /tmp/claude-0/pristine/pages/hr/hr.html ./pages/hr/hr.html
+--- /tmp/claude-0/pristine/pages/hr/hr.html	2026-10-06 13:16:41.000000000 +0700
++++ ./pages/hr/hr.html	2026-10-14 11:13:15.895313751 +0700
+@@ -22,6 +22,7 @@
+   <link rel="stylesheet" href="/css/layout-topbar.css" />
+   <!-- CSS เฉพาะหน้า: วางท้ายสุดเสมอ -->
+   <link rel="stylesheet" href="/css/hr-approval.css" />
++  <link rel="stylesheet" href="/css/hr-rejection-audit.css" />
+ </head>
+ 
+ <body id="page-hr-approval" class="pvt-body">
+@@ -210,6 +211,11 @@
+             ประวัติรายการทั้งหมด
+             <span id="historyCountBadge" class="tab-count-badge">0</span>
+           </button>
++          <!-- เฉพาะ HR / Admin / ผู้บริหาร (hr.js แสดงให้เมื่อมีสิทธิ์) -->
++          <button type="button" class="tab-btn" id="tabBtnRejections" onclick="switchLeaveTab('rejections', this)" hidden>
++            <span class="material-symbols-outlined">gavel</span>
++            การพิจารณาที่ไม่อนุมัติ
++          </button>
+         </nav>
+ 
+         <!-- ===== 4) แท็บ "รออนุมัติ": ตัวติดตามกรอบเวลา 2 วัน (leave-sla-tracker.js render ใส่ตรงนี้) ===== -->
+@@ -304,6 +310,7 @@
+   <script type="module" src="/js/delegation-service.js"></script>
+   <script type="module" src="/js/components/leave-sla-tracker.js"></script>
+   <script type="module" src="/js/components/login-logs-viewer.js"></script>
++  <script type="module" src="/js/components/rejection-audit.js"></script>
+   <script type="module" src="/js/hr.js"></script>
+   <script type="module" src="/js/system-diagnostics.js"></script>
+ </body>

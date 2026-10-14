@@ -1,0 +1,80 @@
+/* ======================================================
+   การพิจารณาที่ไม่อนุมัติ (/pages/hr/hr.html → js/components/rejection-audit.js)
+   ====================================================== */
+#page-hr-approval .ra-panel { padding: 16px; margin-top: 4px; }
+#page-hr-approval .ra-panel[hidden] { display: none !important; }
+
+.ra-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.ra-title { display: flex; gap: 10px; align-items: flex-start; min-width: 0; flex: 1 1 320px; }
+.ra-title > .material-symbols-outlined { color: #be123c; background: #fff1f2; border-radius: 10px; padding: 6px; font-size: 22px; }
+.ra-title h2 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; }
+.ra-title p { margin: 2px 0 0; font-size: 12.5px; color: #64748b; line-height: 1.5; }
+.ra-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ra-filters label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #475569; font-weight: 600; }
+.ra-filters input[type="date"] { min-width: 140px; }
+
+.ra-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.ra-kpi { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.ra-kpi span { font-size: 12px; color: #64748b; font-weight: 600; }
+.ra-kpi strong { font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1.2; }
+.ra-kpi small { font-size: 11px; color: #94a3b8; }
+.ra-kpi:nth-child(2) strong { color: #be123c; }
+.ra-kpi:nth-child(3) strong { color: #b45309; }
+
+.ra-h3 { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800; color: #0f172a; margin: 18px 0 4px; }
+.ra-h3 .material-symbols-outlined { font-size: 19px; color: var(--th-p-600, #0d9488); }
+.ra-count { font-size: 12px; font-weight: 600; color: #64748b; background: #f1f5f9; border-radius: 999px; padding: 1px 8px; }
+.ra-hint { font-size: 12px; color: #64748b; margin: 0 0 8px; }
+
+.ra-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 10px; }
+.ra-toolbar .search-box-wrap { flex: 1 1 220px; min-width: 0; }
+.ra-toolbar .form-select { max-width: 100%; }
+
+.ra-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; -webkit-overflow-scrolling: touch; }
+.ra-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ra-table th { background: #f8fafc; color: #475569; font-weight: 700; text-align: left; padding: 9px 10px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; font-size: 12px; }
+.ra-table td { padding: 9px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #1e293b; }
+.ra-table tr:last-child td { border-bottom: 0; }
+.ra-table td small { display: block; color: #64748b; font-size: 11.5px; margin-top: 2px; }
+.ra-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ra-table td.neg { color: #be123c; font-weight: 800; }
+.ra-table td.warn { color: #b45309; font-weight: 800; }
+.ra-table tr.is-flagged { background: #fffbeb; }
+.ra-table tr.is-selected { outline: 2px solid var(--th-p-500, #14b8a6); outline-offset: -2px; }
+.ra-steps { font-size: 12px; color: #475569; max-width: 220px; }
+.ra-reason { max-width: 280px; white-space: pre-wrap; word-break: break-word; }
+.ra-missing { color: #be123c; font-style: normal; font-weight: 700; }
+
+.ra-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--th-p-700, #0f766e); cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+.ra-flag { display: block; font-size: 11.5px; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px; padding: 2px 6px; margin: 0 0 3px; }
+.ra-ok { color: #94a3b8; }
+
+.ra-badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 1px 6px; margin-right: 2px; }
+.ra-badge--manual { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+.ra-badge--expired { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.ra-badge--legacy { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+.ra-note { font-size: 12.5px; border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; }
+.ra-note--warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.ra-empty { padding: 24px; text-align: center; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; font-size: 13px; }
+.ra-loading { padding: 32px; text-align: center; color: #64748b; display: flex; gap: 8px; justify-content: center; align-items: center; }
+
+@media (max-width: 760px) {
+  .ra-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ra-filters { width: 100%; }
+  .ra-filters label { flex: 1 1 140px; }
+  .ra-filters input[type="date"] { min-width: 0; width: 100%; }
+  .ra-toolbar .form-select { flex: 1 1 140px; }
+
+  /* รายการไม่อนุมัติ: เป็นการ์ดบนมือถือ */
+  .ra-table--list thead { display: none; }
+  .ra-table--list, .ra-table--list tbody, .ra-table--list tr, .ra-table--list td { display: block; width: 100%; }
+  .ra-table--list tr { border-bottom: 1px solid #e2e8f0; padding: 8px 4px; }
+  .ra-table--list td { border: 0; padding: 3px 8px; text-align: left !important; max-width: none; }
+  .ra-table--list td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; color: #94a3b8; font-weight: 600; }
+}
+
+/* ตารางสรุปรายผู้พิจารณา: กว้างพอให้อ่านได้ แล้วเลื่อนแนวนอนในกรอบ (ไม่บีบคอลัมน์จนแถวสูง) */
+.ra-table:not(.ra-table--list) { min-width: 980px; }
+.ra-table:not(.ra-table--list) td:last-child { min-width: 240px; }
+.ra-table:not(.ra-table--list) td:first-child { min-width: 150px; }

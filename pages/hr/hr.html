@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="/css/layout-topbar.css" />
   <!-- CSS เฉพาะหน้า: วางท้ายสุดเสมอ -->
   <link rel="stylesheet" href="/css/hr-approval.css" />
+  <link rel="stylesheet" href="/css/hr-rejection-audit.css" />
 </head>
 
 <body id="page-hr-approval" class="pvt-body">
@@ -210,6 +211,11 @@
             ประวัติรายการทั้งหมด
             <span id="historyCountBadge" class="tab-count-badge">0</span>
           </button>
+          <!-- เฉพาะ HR / Admin / ผู้บริหาร (hr.js แสดงให้เมื่อมีสิทธิ์) -->
+          <button type="button" class="tab-btn" id="tabBtnRejections" onclick="switchLeaveTab('rejections', this)" hidden>
+            <span class="material-symbols-outlined">gavel</span>
+            การพิจารณาที่ไม่อนุมัติ
+          </button>
         </nav>
 
         <!-- ===== 4) แท็บ "รออนุมัติ": ตัวติดตามกรอบเวลา 2 วัน (leave-sla-tracker.js render ใส่ตรงนี้) ===== -->
@@ -304,6 +310,7 @@
   <script type="module" src="/js/delegation-service.js"></script>
   <script type="module" src="/js/components/leave-sla-tracker.js"></script>
   <script type="module" src="/js/components/login-logs-viewer.js"></script>
+  <script type="module" src="/js/components/rejection-audit.js"></script>
   <script type="module" src="/js/hr.js"></script>
   <script type="module" src="/js/system-diagnostics.js"></script>
 </body>
