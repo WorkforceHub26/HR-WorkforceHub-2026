@@ -92,6 +92,46 @@ function isBlockedEmployeeStatus(status) {
 }
 window.isBlockedEmployeeStatus = isBlockedEmployeeStatus;
 
+// 🔐 นโยบายรหัสผ่าน (ตามที่เจ้าของงานกำหนด)
+//   • พนักงานทั่วไป / หัวหน้า / ผู้จัดการ: รหัสผ่าน = รหัสพนักงาน (พนักงานลืมรหัสบ่อย จึงไม่ให้เปลี่ยน)
+//   • ผู้ดูแลระบบ (HR / Admin / ผู้บริหาร): ต้องใช้ "รหัสผ่านเฉพาะ" ที่ตั้งไว้ในคอลัมน์ employees.password เท่านั้น
+//     รหัสพนักงานใช้ไม่ได้ และเข้าด้วย QR (auto_login) ไม่ได้
+//     ตั้ง/เปลี่ยนรหัส: หน้า "คอนโซลผู้ดูแลระบบ" > เปลี่ยนรหัสผ่านผู้ดูแลระบบ หรือ supabase/set_admin_password.sql
+//   (เดิมรับ "1234" / "123456" / รหัสพนักงาน กับทุกบัญชี → ใครก็เข้าบัญชี HR ได้)
+const PVT_ADMIN_ROLES = ['hr', 'admin', 'superadmin', 'hr_manager', 'executive', 'director', 'owner'];
+function pvtIsAdminAccount(u) {
+  const role = String(u?.role || '').toLowerCase().trim();
+  const code = String(u?.employee_code || '').toLowerCase().trim();
+  return PVT_ADMIN_ROLES.indexOf(role) !== -1 || code === 'admin' || code === 'superadmin' || code.indexOf('hr-') === 0;
+}
+function pvtPasswordEquals(stored, input) {
+  const s = String(stored || '').trim();
+  const i = String(input || '').trim();
+  if (!s || !i) return false;
+  if (s === i) return true;
+  if (/^\$2[aby]\$/.test(s)) {
+    const bc = window.dcodeIO?.bcrypt || window.bcrypt || null;
+    if (bc && typeof bc.compareSync === 'function') {
+      try { return bc.compareSync(i, s); } catch (e) { return false; }
+    }
+  }
+  return false;
+}
+// คืนค่า { ok, reason }
+function pvtVerifyLogin(u, input) {
+  const code = String(u?.employee_code || '').trim();
+  const stored = String(u?.password || '').trim();
+  const pass = String(input || '').trim();
+  if (pvtIsAdminAccount(u)) {
+    if (!stored || stored === code) return { ok: false, reason: 'admin_no_password' };
+    return { ok: pvtPasswordEquals(stored, pass), reason: 'wrong' };
+  }
+  // พนักงาน: รหัสพนักงานตรงตัว (หรือรหัสผ่านที่เคยตั้งไว้เดิม)
+  if (code && pass === code) return { ok: true };
+  return { ok: pvtPasswordEquals(stored, pass), reason: 'wrong' };
+}
+window.pvtIsAdminAccount = pvtIsAdminAccount;
+
 function redirectToDashboard(role, userObj) {
   const urlParams = new URLSearchParams(window.location.search);
   const redirectUrl = urlParams.get("redirect");
@@ -944,21 +984,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       let user = null;
 
-      // 1. ลองเข้าสู่ระบบผ่าน RPC login_employee (ถ้ามี)
-      try {
-        const { data: rpcData, error: rpcError } = await sb.rpc('login_employee', {
-          p_account: loginInput,
-          p_password: password
-        });
-        if (!rpcError && rpcData && rpcData.length > 0) {
-          user = rpcData[0];
-        } else if (rpcError) {
-          console.warn("RPC login notice:", rpcError);
-        }
-      } catch (rpcErr) {
-        console.warn("RPC login fallback to direct query:", rpcErr);
-      }
-
       // 2. Direct Query: ค้นหาในตาราง employees โดยตรง
       if (!user) {
         let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password, department_id, position_id, image_url, departments!department_id(department_name), positions(position_name, level_type, duty_name)");
@@ -1009,28 +1034,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const candidate = queryRes.data[0];
-        let passwordMatches = false;
-
-        // ตรวจสอบรหัสผ่าน: ตรงตัว, รหัสพนักงาน (default), หรือ bcrypt
-        const rawUserPass = String(candidate.password || "").trim();
-        const inputPass = String(password).trim();
-        const empCode = String(candidate.employee_code || "").trim();
-
-        if (rawUserPass && (rawUserPass === inputPass || rawUserPass === password)) {
-          passwordMatches = true;
-        } else if (inputPass === empCode || inputPass === "1234" || inputPass === "123456") {
-          // ยอมรับรหัสผ่านเริ่มต้น หรือรหัสพนักงาน
-          passwordMatches = true;
-        } else {
-          // ตรวจสอบ bcrypt hash
-          const bcrypt = window.dcodeIO?.bcrypt || window.bcrypt || (typeof dcodeIO !== 'undefined' ? dcodeIO.bcrypt : null) || (typeof bcrypt !== 'undefined' ? bcrypt : null);
-          if (bcrypt && typeof bcrypt.compareSync === 'function' && rawUserPass) {
-            try {
-              passwordMatches = bcrypt.compareSync(inputPass, rawUserPass) || bcrypt.compareSync(password, rawUserPass);
-            } catch (bErr) {
-              console.warn("Bcrypt compare error:", bErr);
-            }
-          }
+        const verdict = pvtVerifyLogin(candidate, password);
+        const passwordMatches = verdict.ok;
+        if (!passwordMatches && verdict.reason === 'admin_no_password') {
+          isLoginAuthenticating = false;
+          setLoginBtnLoading(false);
+          showLoginValidationError('บัญชีผู้ดูแลระบบยังไม่ได้ตั้งรหัสผ่านเฉพาะ กรุณาติดต่อผู้ดูแลระบบ', {
+            type: 'error',
+            highlightPass: true,
+            passHint: 'บัญชีผู้ดูแลระบบใช้รหัสพนักงานเป็นรหัสผ่านไม่ได้',
+            focusTarget: passwordInput
+          });
+          return;
         }
 
         if (!passwordMatches) {
@@ -1288,6 +1303,10 @@ async function executeSecureQrLogin(scannedData) {
     }
 
     const user = users[0];
+
+    if (pvtIsAdminAccount(user)) {
+      throw new Error("บัญชีผู้ดูแลระบบ (HR / Admin / ผู้บริหาร) เข้าสู่ระบบด้วย QR ไม่ได้ กรุณากรอกรหัสผ่าน");
+    }
 
     if (isBlockedEmployeeStatus(user.status)) {
       throw new Error("บัญชีนี้ถูกปิดการใช้งาน (ระงับ / พ้นสภาพพนักงาน) กรุณาติดต่อฝ่ายบุคคล (HR)");

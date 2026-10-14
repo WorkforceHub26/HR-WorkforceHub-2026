@@ -23,6 +23,9 @@
   <!-- CSS เฉพาะหน้า: วางท้ายสุดเสมอ -->
   <link rel="stylesheet" href="/css/hr-approval.css" />
   <link rel="stylesheet" href="/css/hr-rejection-audit.css" />
+  <link rel="stylesheet" href="/css/hr-stat-tabs.css" />
+  <!-- หัวการ์ดสีเดียวกับเมนูด้านข้าง (เปลี่ยนตามธีม) -->
+  <link rel="stylesheet" href="/css/hr-card-head.css" />
 </head>
 
 <body id="page-hr-approval" class="pvt-body">
@@ -155,66 +158,37 @@
           </div>
         </section>
 
-        <!-- ===== 2) การ์ดตัวเลข 4 ใบ (id เดิม hr.js เติมค่าให้) ===== -->
-        <section class="ap-kpi-grid">
-          <article class="ap-kpi stat-amber">
-            <div class="ap-kpi-content">
-              <span class="ap-kpi-label">รอพิจารณาอนุมัติ</span>
-              <div class="ap-kpi-value" id="statPendingCount">0 <small>รายการ</small></div>
-              <span class="ap-kpi-sub">รอคุณหรือขั้นถัดไปพิจารณา</span>
-            </div>
-            <span class="ap-kpi-icon material-symbols-outlined">pending_actions</span>
-          </article>
-
-          <article class="ap-kpi stat-violet">
-            <div class="ap-kpi-content">
-              <span class="ap-kpi-label">คำร้องขอยกเลิก</span>
-              <div class="ap-kpi-value" id="statCancelCount">0 <small>รายการ</small></div>
-              <span class="ap-kpi-sub">ขอยกเลิกหลังอนุมัติแล้ว</span>
-            </div>
-            <span class="ap-kpi-icon material-symbols-outlined">published_with_changes</span>
-          </article>
-
-          <article class="ap-kpi stat-teal">
-            <div class="ap-kpi-content">
-              <span class="ap-kpi-label">อนุมัติแล้ว</span>
-              <div class="ap-kpi-value" id="statApprovedCount">0 <small>รายการ</small></div>
-              <span class="ap-kpi-sub">ผ่านครบทุกขั้นตอน</span>
-            </div>
-            <span class="ap-kpi-icon material-symbols-outlined">task_alt</span>
-          </article>
-
-          <article class="ap-kpi stat-blue">
-            <div class="ap-kpi-content">
-              <span class="ap-kpi-label">ประวัติรวมทั้งหมด</span>
-              <div class="ap-kpi-value" id="statTotalCount">0 <small>รายการ</small></div>
-              <span class="ap-kpi-sub">ใบลาทั้งหมดที่เห็นได้</span>
-            </div>
-            <span class="ap-kpi-icon material-symbols-outlined">folder_open</span>
-          </article>
-        </section>
-
-        <!-- ===== 3) แท็บกรองสถานะใบลา (hr.js สลับ class active ที่ .tab-btn) ===== -->
-        <nav class="leave-tab-container" aria-label="สถานะใบลา">
-          <button type="button" class="tab-btn active" onclick="switchLeaveTab('pending', this)">
-            <span class="material-symbols-outlined">hourglass_top</span>
-            รออนุมัติ
-            <span id="pendingCountBadge" class="tab-count-badge">0</span>
+        <!-- ===== 2–3) ตัวเลขสรุป + แท็บ รวมเป็นแถบเดียว: กดที่ตัวเลขเพื่อเปิดรายการนั้น
+             (id ตัวเลข/ป้ายเดิมยังอยู่ hr.js เติมค่าให้เหมือนเดิม) ===== -->
+        <nav class="leave-tab-container ap-stat-tabs" aria-label="สถานะใบลา">
+          <button type="button" class="tab-btn ap-stat-tab is-amber active" onclick="switchLeaveTab('pending', this)">
+            <span class="ap-stat-tab__label"><span class="material-symbols-outlined">hourglass_top</span>รอพิจารณา</span>
+            <span class="ap-stat-tab__value" id="statPendingCount">0 <small>รายการ</small></span>
+            <span class="ap-stat-tab__sub">รอคุณหรือขั้นถัดไป</span>
+            <span id="pendingCountBadge" hidden>0</span>
           </button>
-          <button type="button" class="tab-btn warning-tab" onclick="switchLeaveTab('cancellation', this)">
-            <span class="material-symbols-outlined">published_with_changes</span>
-            คำร้องขอยกเลิก
-            <span id="cancelCountBadge" class="tab-count-badge">0</span>
+          <button type="button" class="tab-btn ap-stat-tab is-violet" onclick="switchLeaveTab('cancellation', this)">
+            <span class="ap-stat-tab__label"><span class="material-symbols-outlined">published_with_changes</span>คำร้องขอยกเลิก</span>
+            <span class="ap-stat-tab__value" id="statCancelCount">0 <small>รายการ</small></span>
+            <span class="ap-stat-tab__sub">ขอยกเลิกหลังอนุมัติ</span>
+            <span id="cancelCountBadge" hidden>0</span>
           </button>
-          <button type="button" class="tab-btn" onclick="switchLeaveTab('history', this)">
-            <span class="material-symbols-outlined">history</span>
-            ประวัติรายการทั้งหมด
-            <span id="historyCountBadge" class="tab-count-badge">0</span>
+          <button type="button" class="tab-btn ap-stat-tab is-teal" onclick="switchLeaveTab('approved', this)">
+            <span class="ap-stat-tab__label"><span class="material-symbols-outlined">task_alt</span>อนุมัติแล้ว</span>
+            <span class="ap-stat-tab__value" id="statApprovedCount">0 <small>รายการ</small></span>
+            <span class="ap-stat-tab__sub">ผ่านครบทุกขั้นตอน</span>
+          </button>
+          <button type="button" class="tab-btn ap-stat-tab is-blue" onclick="switchLeaveTab('history', this)">
+            <span class="ap-stat-tab__label"><span class="material-symbols-outlined">history</span>ประวัติทั้งหมด</span>
+            <span class="ap-stat-tab__value" id="statTotalCount">0 <small>รายการ</small></span>
+            <span class="ap-stat-tab__sub">ใบลาทั้งหมดที่เห็นได้</span>
+            <span id="historyCountBadge" hidden>0</span>
           </button>
           <!-- เฉพาะ HR / Admin / ผู้บริหาร (hr.js แสดงให้เมื่อมีสิทธิ์) -->
-          <button type="button" class="tab-btn" id="tabBtnRejections" onclick="switchLeaveTab('rejections', this)" hidden>
-            <span class="material-symbols-outlined">gavel</span>
-            การพิจารณาที่ไม่อนุมัติ
+          <button type="button" class="tab-btn ap-stat-tab is-rose" id="tabBtnRejections" onclick="switchLeaveTab('rejections', this)" hidden>
+            <span class="ap-stat-tab__label"><span class="material-symbols-outlined">gavel</span>ไม่อนุมัติ</span>
+            <span class="ap-stat-tab__value" id="statRejectedCount">0 <small>รายการ</small></span>
+            <span class="ap-stat-tab__sub">ดูผู้พิจารณาและเหตุผล</span>
           </button>
         </nav>
 
@@ -313,5 +287,6 @@
   <script type="module" src="/js/components/rejection-audit.js"></script>
   <script type="module" src="/js/hr.js"></script>
   <script type="module" src="/js/system-diagnostics.js"></script>
+  <script src="/js/hr-card-head.js"></script>
 </body>
 </html>

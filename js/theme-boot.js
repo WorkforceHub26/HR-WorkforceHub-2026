@@ -25,7 +25,8 @@
   };
   // p = หลัก, s = รอง, b = แทนสีน้ำเงิน, k = แทนสีฟ้า
   var MAP = {
-    teal:    { p: 'teal',    s: 'cyan',   b: 'blue',    k: 'sky' },
+    // มินต์: เมนูข้าง/แถบล่าง (b) และสีฟ้า (k) ใช้โทนเขียวอมฟ้า — เดิมเป็น blue/sky เหมือนธีมโอเชียน จึงดูเป็นสีเดียวกัน
+    teal:    { p: 'teal',    s: 'cyan',   b: 'cyan',    k: 'cyan' },
     blue:    { p: 'sky',     s: 'blue',   b: 'blue',    k: 'sky' },
     indigo:  { p: 'indigo',  s: 'violet', b: 'indigo',  k: 'indigo' },
     emerald: { p: 'emerald', s: 'teal',   b: 'emerald', k: 'emerald' },

@@ -21,12 +21,15 @@
   <link rel="stylesheet" href="/css/layout-topbar.css" />
   <!-- CSS เฉพาะหน้า: วางท้ายสุดเสมอ -->
   <link rel="stylesheet" href="/css/hr-management.css" />
+  <link rel="stylesheet" href="/css/hr-menu.css" />
 
   <!-- React & Recharts CDN Dependencies for Analytics Visualization -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js" crossorigin></script>
   <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <!-- หัวการ์ดสีเดียวกับเมนูด้านข้าง (เปลี่ยนตามธีม) -->
+  <link rel="stylesheet" href="/css/hr-card-head.css" />
 </head>
 
 <body id="page-hr-management" class="pvt-body">
@@ -136,52 +139,127 @@
       <!-- ===== ★ เนื้อหาของหน้า (ของเดิมทั้งหมด ไม่ได้แก้) ===== -->
       <div class="pvt-page" id="pageContent">
 
-      <!-- SECTION 1: เมนูการจัดการส่วนกลาง (Management Actions) -->
+      <!-- SECTION 1: เมนูบริหารจัดการ HR — 3 กลุ่ม รายการแบบเดียวกันทั้งหมด (css/hr-menu.css)
+           คงคลาส action-btn และ onclick เดิมไว้ (management.js ใช้ซ่อนปุ่มในโหมดดูอย่างเดียว) -->
       <div class="section-title">
         <span class="material-symbols-outlined">admin_panel_settings</span>
         <span>เมนูบริหารจัดการ HR</span>
       </div>
-      <div class="management-grid">
-        <div class="manage-card animate-slide-up delay-100 hover-lift">
-          <h3><span class="material-symbols-outlined">group</span> 1. จัดการบุคลากร</h3>
-          <div class="card-btn-group">
-            <button class="action-btn hover-lift" onclick="addNewEmployee()"><span class="material-symbols-outlined">person_add</span> เพิ่มพนักงานใหม่</button>
-            <button class="action-btn hover-lift" onclick="editEmployeeData()"><span class="material-symbols-outlined">manage_accounts</span> แก้ไขข้อมูล/ตำแหน่ง</button>
-            <button class="action-btn hover-lift" onclick="manageDepartments()"><span class="material-symbols-outlined">corporate_fare</span> จัดการแผนก/ตำแหน่ง</button>
-            <button class="action-btn hover-lift" onclick="location.href='/pages/hr/approval-chains.html'" style="border-left: 4px solid var(--th-p-600, #0d9488);"><span class="material-symbols-outlined">account_tree</span> ตั้งค่าสายอนุมัติ (เลือกผู้อนุมัติ)</button>
-            <button class="action-btn hover-lift" onclick="location.href='/pages/hr/approval-settings.html'" style="border-left: 4px solid #16a34a;"><span class="material-symbols-outlined">notifications_active</span> แจ้งเตือน LINE &amp; ผู้อนุมัติแทน</button>
-            <button class="action-btn hover-lift" onclick="openLeaveRulesManagerModal()" style="border-left: 4px solid var(--th-p-600, #0d9488); font-weight: 700; color: var(--th-p-700, #0f766e);"><span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488);">gavel</span> เงื่อนไขการลา (แก้ไข/เพิ่ม/ลบ)</button>
-            <button class="action-btn success-zone hover-lift" onclick="importEmployeesExcel()"><span class="material-symbols-outlined">upload_file</span> อัปเดต/เพิ่มพนักงานด้วย Excel</button>
-            <button class="action-btn hover-lift" onclick="clearEmployeeFilters()" style="border-left: 4px solid #f43f5e; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="color: #f43f5e;">restart_alt</span> ล้างคำขอ/ตัวกรองค้นหา</button>
-          </div>
-        </div>
-
-        <div class="manage-card animate-slide-up delay-150 hover-lift">
-          <h3><span class="material-symbols-outlined">fact_check</span> 2. กฎระเบียบ & ข่าวสาร</h3>
-          <div class="card-btn-group">
-            <button class="action-btn hover-lift" onclick="editGlobalLeaveRules()"><span class="material-symbols-outlined">rule</span> ตั้งค่าโควตากลาง</button>
-            <button class="action-btn hover-lift" onclick="editIndividualLeaveBalance()"><span class="material-symbols-outlined">tune</span> ปรับโควตารายบุคคล</button>
-            <button class="action-btn hover-lift" onclick="openHolidayManagerModal()"><span class="material-symbols-outlined">calendar_month</span> ปฏิทินวันหยุด</button>
-            <button class="action-btn success-zone hover-lift" onclick="checkAndCreateMissingQuotas()"><span class="material-symbols-outlined">sync_saved_locally</span> ตรวจสอบและสร้างโควตาวันลา</button>
-            <button class="action-btn hover-lift" onclick="resetYearlyLeave()" style="border-left: 4px solid var(--th-p-600, #0d9488); font-weight: 700; color: var(--th-p-700, #0f766e);" title="สร้างและรีเซ็ตโควตาวันลาล่วงหน้าสำหรับปีหน้า หรือเลือกปีที่ต้องการ"><span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488);">calendar_add_on</span> สร้างโควตาปีหน้า</button>
-            <a href="/pages/hr/news-management.html" class="action-btn hover-lift" style="border-left: 4px solid var(--th-k-600, #0284c7); font-weight: 700; color: var(--th-k-700, #0369a1); text-decoration: none;">
-              <span class="material-symbols-outlined" style="color: var(--th-k-600, #0284c7);">feed</span> ศูนย์จัดการข่าวสารองค์กร (Full Page)
+      <div class="hr-menu">
+        <section class="hr-menu__group is-people">
+          <header class="hr-menu__head">
+            <span class="material-symbols-outlined">group</span>
+            <div><h3>จัดการบุคลากร</h3><p>ข้อมูลพนักงาน แผนก และสายอนุมัติ</p></div>
+          </header>
+          <div class="hr-menu__list">
+            <button type="button" onclick="addNewEmployee()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">person_add</span>
+              <span class="hr-menu__text"><strong>เพิ่มพนักงานใหม่</strong><small>สร้างบัญชีพนักงานทีละคน</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="editEmployeeData()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">manage_accounts</span>
+              <span class="hr-menu__text"><strong>แก้ไขข้อมูล / ตำแหน่ง</strong><small>ชื่อ แผนก ตำแหน่ง บทบาท สถานะ</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="manageDepartments()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">corporate_fare</span>
+              <span class="hr-menu__text"><strong>จัดการแผนก / ตำแหน่ง</strong><small>เพิ่ม แก้ไข โครงสร้างองค์กร</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="importEmployeesExcel()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">upload_file</span>
+              <span class="hr-menu__text"><strong>อัปเดต / เพิ่มพนักงานด้วย Excel</strong><small>นำเข้าหลายคนพร้อมกัน</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <a href="/pages/hr/approval-chains.html" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">account_tree</span>
+              <span class="hr-menu__text"><strong>ตั้งค่าสายอนุมัติ</strong><small>เลือกผู้อนุมัติแต่ละลำดับ</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </a>
-            <button class="action-btn hover-lift" onclick="openNewsManagerModal()" style="border-left: 4px solid var(--th-k-600, #0284c7);">
-              <span class="material-symbols-outlined" style="color: var(--th-k-600, #0284c7);">campaign</span> จัดการข่าวสาร (Quick Modal)
+            <a href="/pages/hr/approval-settings.html" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">notifications_active</span>
+              <span class="hr-menu__text"><strong>แจ้งเตือน LINE & ผู้อนุมัติแทน</strong><small>สิทธิ์ LINE และการมอบหมายแทน</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </a>
+          </div>
+        </section>
+        <section class="hr-menu__group is-rules">
+          <header class="hr-menu__head">
+            <span class="material-symbols-outlined">fact_check</span>
+            <div><h3>วันลา กฎระเบียบ & ข่าวสาร</h3><p>โควตา เงื่อนไขการลา วันหยุด และประกาศ</p></div>
+          </header>
+          <div class="hr-menu__list">
+            <button type="button" onclick="openLeaveRulesManagerModal()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">gavel</span>
+              <span class="hr-menu__text"><strong>เงื่อนไขการลา</strong><small>แก้ไข เพิ่ม ลบ ประเภทและกติกาการลา</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="editGlobalLeaveRules()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">rule</span>
+              <span class="hr-menu__text"><strong>ตั้งค่าโควตากลาง</strong><small>สิทธิ์วันลาเริ่มต้นของทุกคน</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="editIndividualLeaveBalance()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">tune</span>
+              <span class="hr-menu__text"><strong>ปรับโควตารายบุคคล</strong><small>แก้สิทธิ์วันลาเฉพาะคน</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="checkAndCreateMissingQuotas()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">sync_saved_locally</span>
+              <span class="hr-menu__text"><strong>ตรวจสอบและสร้างโควตาวันลา</strong><small>สร้างให้คนที่ยังไม่มีโควตา</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="resetYearlyLeave()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">calendar_add_on</span>
+              <span class="hr-menu__text"><strong>สร้างโควตาปีหน้า</strong><small>รอบปีการลาใหม่ (เริ่ม 1 ธ.ค.)</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="openHolidayManagerModal()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">calendar_month</span>
+              <span class="hr-menu__text"><strong>ปฏิทินวันหยุด</strong><small>วันหยุดประจำปีของบริษัท</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <a href="/pages/hr/news-management.html" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">feed</span>
+              <span class="hr-menu__text"><strong>ศูนย์จัดการข่าวสารองค์กร</strong><small>เปิดแบบเต็มหน้า</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </a>
+            <button type="button" onclick="openNewsManagerModal()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">campaign</span>
+              <span class="hr-menu__text"><strong>จัดการข่าวสารด่วน</strong><small>เพิ่ม/แก้ประกาศในหน้าต่างนี้</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
           </div>
-        </div>
-
-        <div class="manage-card animate-slide-up delay-200 hover-lift">
-          <h3><span class="material-symbols-outlined">health_and_safety</span> 3. รายงาน, สุขภาวะ (Wellness) & แดชบอร์ดแอดมิน</h3>
-          <div class="card-btn-group">
-            <button class="action-btn success-zone hover-lift" onclick="exportAllLeaveHistoryExcel()" title="ส่งออกรายงานโควตาวันลา (employee_leave_balances) และประวัติการลา"><img src="/assets/icons/excel.svg" alt="Excel" class="btn-icon-graphic btn-icon-excel" style="width: 17px; height: 17px;" /> ดึงรายงานโควตา (Excel)</button>
-            <button class="action-btn hover-lift" onclick="viewAuditLogs()"><span class="material-symbols-outlined">history</span> ประวัติการแก้ไข (Audit Log)</button>
-            <a href="/pages/hr/login-logs.html" class="action-btn hover-lift" style="border-left: 4px solid var(--th-p-600, #0d9488); text-decoration: none;" title="เปิดประวัติการเข้าสู่ระบบแบบเต็มหน้า"><span class="material-symbols-outlined">badge</span> ประวัติการเข้าสู่ระบบ (เต็มหน้า)</a>
-            <button class="action-btn hover-lift" onclick="testLineNotificationFromHR()" style="border-left: 4px solid #4f46e5;"><span class="material-symbols-outlined">notifications_active</span> ทดสอบแจ้งเตือน LINE (Slip)</button>
+        </section>
+        <section class="hr-menu__group is-reports">
+          <header class="hr-menu__head">
+            <span class="material-symbols-outlined">monitoring</span>
+            <div><h3>รายงาน & ตรวจสอบ</h3><p>ส่งออกข้อมูล และประวัติการใช้งานระบบ</p></div>
+          </header>
+          <div class="hr-menu__list">
+            <button type="button" onclick="exportAllLeaveHistoryExcel()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">table_view</span>
+              <span class="hr-menu__text"><strong>ดึงรายงานโควตา (Excel)</strong><small>โควตาวันลาและประวัติการลาทั้งหมด</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="viewAuditLogs()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">history</span>
+              <span class="hr-menu__text"><strong>ประวัติการแก้ไข (Audit Log)</strong><small>ใครแก้ข้อมูลอะไร เมื่อไร</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <a href="/pages/hr/login-logs.html" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">badge</span>
+              <span class="hr-menu__text"><strong>ประวัติการเข้าสู่ระบบ</strong><small>เปิดแบบเต็มหน้า</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </a>
+            <button type="button" onclick="testLineNotificationFromHR()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">send</span>
+              <span class="hr-menu__text"><strong>ทดสอบแจ้งเตือน LINE</strong><small>ส่งข้อความทดสอบ (Slip)</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
           </div>
-        </div>
+        </section>
       </div>
 
         <!-- SECTION 4: ตารางข้อมูลพนักงาน & ประวัติการลา -->
@@ -400,5 +478,6 @@
   <script type="module" src="/js/components/login-logs-viewer.js" onload="console.log('  โหลด login-logs-viewer.js สำเร็จ')" onerror="console.error(' โหลด login-logs-viewer.js ล้มเหลว')"></script>
   <script type="module" src="/js/management.js" onload="console.log('  โหลด management.js สำเร็จ')" onerror="console.error(' โหลด management.js ล้มเหลว (404 Not Found)')"></script>
   <script type="module" src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error(' โหลด recharts-summary.js ล้มเหลว')"></script>
+  <script src="/js/hr-card-head.js"></script>
 </body>
 </html>

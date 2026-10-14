@@ -1,0 +1,128 @@
+/* ======================================================
+   แถบสรุป + แท็บ (หน้า /pages/hr/hr.html)
+   ตัวเลขสรุปและแท็บรวมเป็นแถบเดียว: แต่ละช่องคือแท็บ กดแล้วเปิดรายการนั้น
+   ช่องที่เลือกอยู่ = พื้นสีอ่อน + เส้นสีด้านล่าง (ไม่ใช้ปุ่มทึบ)
+   ====================================================== */
+#page-hr-approval .leave-tab-container.ap-stat-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0 0 16px;
+  overflow: hidden;
+  white-space: normal;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab {
+  --c: var(--th-p-600, #0d9488);
+  --c-soft: var(--th-p-50, #f0fdfa);
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 14px 18px 16px;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid #eef2f6;
+  border-radius: 0;
+  box-shadow: none;
+  color: #0f172a;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab:first-child { border-left: 0; }
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab[hidden] { display: none !important; }
+
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab.is-amber  { --c: #d97706; --c-soft: #fffbeb; }
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab.is-violet { --c: #7c3aed; --c-soft: #f5f3ff; }
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab.is-teal   { --c: var(--th-p-600, #0d9488); --c-soft: var(--th-p-50, #f0fdfa); }
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab.is-blue   { --c: var(--th-k-600, #0284c7); --c-soft: var(--th-k-50, #f0f9ff); }
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab.is-rose   { --c: #be123c; --c-soft: #fff1f2; }
+
+/* เส้นล่างของช่องที่เลือก */
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 3px;
+  background: var(--c);
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab:hover { background: #f8fafc; color: #0f172a; }
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab.active,
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab.warning-tab.active {
+  background: var(--c-soft);
+  color: #0f172a;
+  box-shadow: none;
+}
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab.active::after { transform: scaleX(1); }
+#page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab:focus-visible { outline: 2px solid var(--c); outline-offset: -2px; }
+
+#page-hr-approval .ap-stat-tab__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+}
+#page-hr-approval .ap-stat-tab__label .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--c);
+}
+#page-hr-approval .ap-stat-tab__value {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+#page-hr-approval .ap-stat-tab.active .ap-stat-tab__value { color: var(--c); }
+#page-hr-approval .ap-stat-tab__value small {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-left: 2px;
+}
+#page-hr-approval .ap-stat-tab__sub {
+  font-size: 11.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* แท็บเล็ต / มือถือ: เป็นตาราง 2 คอลัมน์ */
+@media (max-width: 900px) {
+  #page-hr-approval .leave-tab-container.ap-stat-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab {
+    border-left: 0;
+    border-top: 1px solid #eef2f6;
+    padding: 12px 14px 14px;
+  }
+  #page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab:nth-child(-n+2) { border-top: 0; }
+  #page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab:nth-child(even) { border-left: 1px solid #eef2f6; }
+  #page-hr-approval .ap-stat-tab__value { font-size: 24px; }
+  /* ช่องสุดท้ายที่เหลือเดี่ยว ให้เต็มแถว */
+  #page-hr-approval .ap-stat-tabs .tab-btn.ap-stat-tab:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}

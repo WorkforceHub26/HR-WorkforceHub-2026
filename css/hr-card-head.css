@@ -1,0 +1,168 @@
+/* ======================================================
+   หัวการ์ดสีพาสเทลโทนเดียวกับเมนูด้านข้าง (ทุกหน้าฝั่ง HR) — เปลี่ยนตามสีธีม
+   ใช้คู่กับ js/hr-card-head.js (ใส่คลาส .pvt-card-head ให้หัวการ์ด และคำนวณระยะ
+   ให้แถบสีชิดขอบการ์ดพอดี ไม่ว่าการ์ดแต่ละหน้าจะมี padding เท่าไร)
+   ====================================================== */
+.pvt-card-head {
+  /* พาสเทลตามธีม (โทนเดียวกับเมนูด้านข้าง) + ตัวหนังสือสีเข้ม */
+  --hh-bg: linear-gradient(135deg, var(--th-b-50, #eff6ff) 0%, var(--th-b-100, #dbeafe) 100%);
+  --hh-ink: var(--th-b-900, #1e3a8a);
+  --hh-accent: var(--th-b-600, #2563eb);
+  background: var(--hh-bg) !important;
+  color: var(--hh-ink) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--th-b-100, #dbeafe) !important;
+  box-shadow: none !important;
+  border-radius: var(--hh-r, 14px) var(--hh-r, 14px) 0 0 !important;
+}
+
+/* หัวการ์ดที่อยู่ในการ์ดที่มีระยะขอบ → ยืดแถบสีให้ชนขอบการ์ด */
+.pvt-card-head.is-bleed {
+  margin: calc(-1 * var(--hh-pt, 0px)) calc(-1 * var(--hh-pr, 0px)) 16px calc(-1 * var(--hh-pl, 0px)) !important;
+  padding: 14px var(--hh-pr, 18px) 14px var(--hh-pl, 18px) !important;
+}
+
+/* ชื่อหัวการ์ด = สีเข้มตามธีม · คำอธิบาย = เทา */
+.pvt-card-head :is(h1, h2, h3, h4, h5, strong):not(button *, a *, [class*="badge"] *, [class*="tag"] *, [class*="pill"] *, [class*="status"] *) {
+  color: var(--hh-ink) !important;
+}
+.pvt-card-head :is(p, small, .ac-muted, .header-note, .panel-subtitle, .ls-panel-title p):not(button *, a *, [class*="badge"] *) {
+  color: #475569 !important;
+}
+.pvt-card-head .material-symbols-outlined:not(button *, a *, [class*="badge"] *, [class*="tag"] *) { color: var(--hh-accent) !important; }
+
+/* ลิงก์ในหัวการ์ด (เช่น "ข้อยกเว้นรายบุคคล 3 คน") → สีเข้ม อ่านออก */
+.pvt-card-head :is(.ac-inline-link, .ac-link, a:not([class*="btn"])) {
+  color: var(--th-b-700, #1d4ed8) !important;
+  font-weight: 700;
+}
+
+/* ไอคอนหัวเรื่องที่มีกรอบ → กรอบขาว */
+.pvt-card-head :is(.panel-header-icon, .ls-panel-icon, .ra-title > .material-symbols-outlined, .panel-header-title > .material-symbols-outlined:first-child) {
+  background: #fff !important;
+  color: var(--hh-accent) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+/* ======================================================
+   การ์ดตัวเลข: แบบเดียวกับหน้าตรวจใบลา (/pages/hr/hr.html)
+   แถบขาวแถวเดียว แบ่งช่องด้วยเส้นบาง · ไอคอนเล็กสีหน้าชื่อ · ตัวเลขใหญ่ · ไม่มีเส้นสี/พื้นสีรายการ์ด
+   ====================================================== */
+:is(#page-hr-leave-stats .ls-kpi-grid, #page-hr-holidays .admin-stats-grid, #page-hr-home .hm-kpi-grid,
+    #page-hr-news-management .nm-stats-grid, #page-hr-employee-cards .ec-stats-grid) {
+  gap: 0 !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  overflow: hidden !important;
+}
+:is(#page-hr-leave-stats .ls-kpi, #page-hr-holidays .admin-stat-card, #page-hr-home .hm-kpi,
+    #page-hr-news-management .nm-stat, #page-hr-employee-cards .ec-stat) {
+  --hh-c: var(--kpi-color, var(--stat-color, var(--th-p-600, #0d9488)));
+  position: relative !important;
+  display: block !important;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 14px 18px 16px !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  /* เส้นแบ่งช่องด้านซ้าย/ด้านบน (ขอบนอกถูกซ่อนด้วย overflow ของแถบ) */
+  box-shadow: -1px 0 0 #eef2f6, 0 -1px 0 #eef2f6 !important;
+  transform: none !important;
+  text-decoration: none;
+  transition: background-color 0.18s ease;
+}
+:is(#page-hr-leave-stats .ls-kpi, #page-hr-holidays .admin-stat-card, #page-hr-home .hm-kpi,
+    #page-hr-news-management .nm-stat, #page-hr-employee-cards .ec-stat)::before,
+:is(#page-hr-leave-stats .ls-kpi, #page-hr-holidays .admin-stat-card, #page-hr-home .hm-kpi,
+    #page-hr-news-management .nm-stat, #page-hr-employee-cards .ec-stat)::after { display: none !important; }
+:is(#page-hr-leave-stats .ls-kpi, #page-hr-holidays .admin-stat-card, #page-hr-home .hm-kpi,
+    #page-hr-news-management .nm-stat, #page-hr-employee-cards .ec-stat):hover {
+  background: #f8fafc !important;
+  transform: none !important;
+}
+/* ไอคอน: เล็ก สีตามการ์ด อยู่หน้าชื่อ */
+:is(.ls-kpi-icon, .admin-stat-icon, .hm-kpi-icon, .nm-stat-icon, .ec-stat-icon) {
+  position: absolute !important;
+  top: 14px !important;
+  left: 18px !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  font-size: 18px !important;
+  line-height: 20px !important;
+  color: var(--hh-c) !important;
+}
+:is(.ls-kpi-text, .admin-stat-content, .hm-kpi-content, .nm-stat-text, .ec-stat-text) {
+  display: flex !important;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+:is(.ls-kpi-text, .admin-stat-content, .hm-kpi-content, .nm-stat-text, .ec-stat-text) > :first-child {
+  min-height: 20px;
+  padding-left: 26px !important;
+  display: flex;
+  align-items: center;
+}
+:is(.ls-kpi-label, .admin-stat-label, .hm-kpi-label, .nm-stat-label, .ec-stat-label) {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+:is(.ls-kpi-value, .admin-stat-value, .hm-kpi-value, .nm-stat-value, .ec-stat-value) {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  color: #0f172a !important;
+  font-variant-numeric: tabular-nums;
+}
+#page-hr-holidays .admin-stat-value--name { font-size: 16px !important; line-height: 1.35 !important; padding-top: 6px; }
+:is(.ls-kpi-sub, .admin-stat-subtext, .hm-kpi-sub, .nm-stat-sub, .ec-stat-sub) {
+  font-size: 11.5px !important;
+  color: #94a3b8 !important;
+  font-weight: 500 !important;
+}
+
+/* การ์ดที่ต้องเตือน (ยังไม่ตั้งผู้อนุมัติ / ค้างเกินกำหนด / รายการวันนี้) */
+#page-hr-approval-chains :is(.ac-card.is-warn, .ac-ra.is-flagged) {
+  border: 1.5px solid #f5c451 !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.10) !important;
+}
+#page-hr-approval .leave-card-item.is-overdue {
+  border: 1.5px solid #fdba74 !important;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.08) !important;
+}
+#page-hr-home .sla-alert-banner {
+  border: 1.5px solid color-mix(in srgb, var(--sla-color, #ea580c) 45%, #e2e8f0) !important;
+}
+#page-hr-home .today-leave-card-detail {
+  border: 1px solid color-mix(in srgb, var(--hm-primary, #0d9488) 35%, #e2e8f0) !important;
+}
+/* การ์ดข่าวสาร: เลิกใช้เส้นสีด้านบน → ขอบรอบการ์ดสีอ่อนตามหมวดข่าว */
+#page-hr-news-management .nm-card {
+  border: 1px solid #e2e8f0 !important;
+  border: 1px solid color-mix(in srgb, var(--cat-color, #94a3b8) 35%, #e2e8f0) !important;
+}
+
+/* มือถือ: แถบตัวเลขเป็น 2 คอลัมน์ เหมือนหน้าตรวจใบลา */
+@media (max-width: 900px) {
+  :is(#page-hr-leave-stats .ls-kpi-grid, #page-hr-holidays .admin-stats-grid, #page-hr-home .hm-kpi-grid,
+      #page-hr-news-management .nm-stats-grid, #page-hr-employee-cards .ec-stats-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  :is(#page-hr-leave-stats .ls-kpi, #page-hr-holidays .admin-stat-card, #page-hr-home .hm-kpi,
+      #page-hr-news-management .nm-stat, #page-hr-employee-cards .ec-stat) { padding: 12px 14px 14px !important; }
+  :is(.ls-kpi-icon, .admin-stat-icon, .hm-kpi-icon, .nm-stat-icon, .ec-stat-icon) { top: 12px !important; left: 14px !important; }
+  :is(.ls-kpi-value, .admin-stat-value, .hm-kpi-value, .nm-stat-value, .ec-stat-value) { font-size: 24px !important; }
+}

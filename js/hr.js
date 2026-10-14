@@ -1263,6 +1263,8 @@ function updateTabAndStatBadges() {
   document.getElementById("statCancelCount") && (document.getElementById("statCancelCount").innerHTML = `${cancelRequests.length} <small>รายการ</small>`);
   document.getElementById("statApprovedCount") && (document.getElementById("statApprovedCount").innerHTML = `${approvedRequests.length} <small>รายการ</small>`);
   document.getElementById("statTotalCount") && (document.getElementById("statTotalCount").innerHTML = `${allLeaveRequests.length} <small>รายการ</small>`);
+  const rejectedCount = allLeaveRequests.filter(r => String(r.status).toLowerCase() === 'rejected').length;
+  document.getElementById("statRejectedCount") && (document.getElementById("statRejectedCount").innerHTML = `${rejectedCount} <small>รายการ</small>`);
 }
 
 function canViewRejectionAudit() {
@@ -1273,6 +1275,16 @@ function canViewRejectionAudit() {
 
 window.switchLeaveTab = function(tabName, btnEl) {
   if (tabName === 'rejections' && !canViewRejectionAudit()) return;
+  // "อนุมัติแล้ว" = ประวัติ + กรองเฉพาะที่อนุมัติครบ / "ประวัติทั้งหมด" = ล้างตัวกรองสถานะ
+  const stepSelect = document.getElementById("filterStepSelect");
+  if (tabName === 'approved') {
+    tabName = 'history';
+    if (stepSelect) stepSelect.value = 'fully_approved';
+  } else if (tabName === 'history' && stepSelect && stepSelect.value === 'fully_approved') {
+    stepSelect.value = 'all';
+  } else if (tabName === 'pending' || tabName === 'cancellation') {
+    if (stepSelect) stepSelect.value = 'all';
+  }
   if (tabName !== 'rejections') window.PVTRejectionAudit?.close();
   if (tabName === 'cancellation' && !canReviewCancellationRequests()) {
     Swal.fire({
@@ -1311,8 +1323,9 @@ window.switchLeaveTab = function(tabName, btnEl) {
     if (leaveTablePanel) leaveTablePanel.style.display = "block";
     renderLeaveTable();
   } else {
-    if (headerTitle) headerTitle.textContent = "ประวัติการพิจารณาใบลาทั้งหมด";
-    if (headerIcon) headerIcon.textContent = "history";
+    const onlyApproved = stepSelect && stepSelect.value === 'fully_approved';
+    if (headerTitle) headerTitle.textContent = onlyApproved ? "ใบลาที่อนุมัติแล้ว" : "ประวัติการพิจารณาใบลาทั้งหมด";
+    if (headerIcon) headerIcon.textContent = onlyApproved ? "task_alt" : "history";
     if (slaContainer) slaContainer.style.display = "none";
     if (leaveTablePanel) leaveTablePanel.style.display = "block";
     renderLeaveTable();

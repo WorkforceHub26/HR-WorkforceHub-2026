@@ -20,6 +20,8 @@
 
   <!-- CSS เฉพาะหน้า (ย้ายมาจาก <style> เดิม และจำกัดขอบเขตไว้ในเนื้อหาหน้า ไม่ทับ Sidebar) -->
   <link rel="stylesheet" href="/css/hr-admin-dashboard.css" />
+  <!-- หัวการ์ดสีเดียวกับเมนูด้านข้าง (เปลี่ยนตามธีม) -->
+  <link rel="stylesheet" href="/css/hr-card-head.css" />
 </head>
 <body id="page-hr-admin-dashboard" class="pvt-body">
   <div class="pvt-app" id="pvtApp">
@@ -258,6 +260,27 @@
             <button type="submit" style="width: auto;">อัปเดตข้อมูลแอดมิน</button>
           </div>
         </form>
+
+        <!-- 🔐 เปลี่ยนรหัสผ่านผู้ดูแลระบบ (บัญชี HR / Admin / ผู้บริหาร ต้องใช้รหัสผ่านเฉพาะ ไม่ใช่รหัสพนักงาน) -->
+        <h2 style="margin-top: 22px;"><span class="material-symbols-outlined">lock_reset</span> เปลี่ยนรหัสผ่านผู้ดูแลระบบ</h2>
+        <p style="margin: -6px 0 14px; font-size: 12.5px; color: #64748b;">ใช้กับบัญชีที่กำลังเข้าใช้งานอยู่ · อย่างน้อย 8 ตัวอักษร และห้ามซ้ำกับรหัสพนักงาน · ระบบเก็บแบบเข้ารหัส (bcrypt)</p>
+        <form id="admin-password-form" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;" autocomplete="off">
+          <div class="form-group">
+            <label>รหัสผ่านปัจจุบัน</label>
+            <input type="password" id="admin-pass-current" autocomplete="current-password" required />
+          </div>
+          <div class="form-group">
+            <label>รหัสผ่านใหม่</label>
+            <input type="password" id="admin-pass-new" autocomplete="new-password" minlength="8" required />
+          </div>
+          <div class="form-group">
+            <label>ยืนยันรหัสผ่านใหม่</label>
+            <input type="password" id="admin-pass-confirm" autocomplete="new-password" minlength="8" required />
+          </div>
+          <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end;">
+            <button type="submit" id="admin-pass-submit" style="width: auto;">เปลี่ยนรหัสผ่าน</button>
+          </div>
+        </form>
       </section>
 
       <!-- System Health Sparkline -->
@@ -417,6 +440,7 @@
   <script src="/js/layout.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script type="module" src="/auth/supabase-config.js"></script>
   <script type="module" src="/js/auth-guard.js"></script>
@@ -821,6 +845,41 @@
         console.log('อัปเดตโปรไฟล์แอดมินเป็น:', newName);
       } else {
         showToast('บันทึกโปรไฟล์ไม่สำเร็จ: ' + error.message, 'error');
+      }
+    };
+
+    // 🔐 เปลี่ยนรหัสผ่านผู้ดูแลระบบ
+    document.getElementById('admin-password-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const cur = document.getElementById('admin-pass-current').value.trim();
+      const next = document.getElementById('admin-pass-new').value.trim();
+      const confirmPass = document.getElementById('admin-pass-confirm').value.trim();
+      const btn = document.getElementById('admin-pass-submit');
+      let session = {};
+      try { session = JSON.parse(localStorage.getItem('currentUser') || '{}'); } catch (err) {}
+      const sb = window.pvtSupabase?.getClient();
+      const bc = window.dcodeIO?.bcrypt || window.bcrypt;
+      if (!sb || !session.id) { showToast('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่', 'error'); return; }
+      if (!bc) { showToast('โหลดตัวเข้ารหัสไม่สำเร็จ กรุณารีเฟรชหน้า', 'error'); return; }
+      if (next.length < 8) { showToast('รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร', 'error'); return; }
+      if (next !== confirmPass) { showToast('ยืนยันรหัสผ่านใหม่ไม่ตรงกัน', 'error'); return; }
+      btn.disabled = true;
+      try {
+        const { data: me, error } = await sb.from('employees').select('id, employee_code, password').eq('id', session.id).maybeSingle();
+        if (error || !me) throw new Error(error?.message || 'ไม่พบบัญชี');
+        if (next === String(me.employee_code || '').trim()) throw new Error('ห้ามใช้รหัสพนักงานเป็นรหัสผ่านผู้ดูแลระบบ');
+        const stored = String(me.password || '').trim();
+        const ok = stored && (stored === cur || (/^\$2[aby]\$/.test(stored) && bc.compareSync(cur, stored)));
+        if (!ok) throw new Error('รหัสผ่านปัจจุบันไม่ถูกต้อง');
+        const hash = bc.hashSync(next, 10);
+        const { error: upErr } = await sb.from('employees').update({ password: hash, updated_at: new Date().toISOString() }).eq('id', me.id);
+        if (upErr) throw upErr;
+        e.target.reset();
+        showToast('เปลี่ยนรหัสผ่านเรียบร้อย ครั้งหน้าใช้รหัสใหม่เข้าสู่ระบบ');
+      } catch (err) {
+        showToast('เปลี่ยนรหัสผ่านไม่สำเร็จ: ' + (err.message || err), 'error');
+      } finally {
+        btn.disabled = false;
       }
     };
 
@@ -1271,5 +1330,6 @@
       resizeObserver.observe(sparklineContainer);
     }
   </script>
+  <script src="/js/hr-card-head.js"></script>
 </body>
 </html>

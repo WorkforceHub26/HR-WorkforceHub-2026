@@ -2,6 +2,46 @@
    🔒 PVT HR LEAVE - auth-guard.js (ระบบความปลอดภัยและการควบคุมสิทธิ์สูงสุด)
    ========================================================================== */
 
+// 🔐 นโยบายรหัสผ่าน (ตามที่เจ้าของงานกำหนด)
+//   • พนักงานทั่วไป / หัวหน้า / ผู้จัดการ: รหัสผ่าน = รหัสพนักงาน (พนักงานลืมรหัสบ่อย จึงไม่ให้เปลี่ยน)
+//   • ผู้ดูแลระบบ (HR / Admin / ผู้บริหาร): ต้องใช้ "รหัสผ่านเฉพาะ" ที่ตั้งไว้ในคอลัมน์ employees.password เท่านั้น
+//     รหัสพนักงานใช้ไม่ได้ และเข้าด้วย QR (auto_login) ไม่ได้
+//     ตั้ง/เปลี่ยนรหัส: หน้า "คอนโซลผู้ดูแลระบบ" > เปลี่ยนรหัสผ่านผู้ดูแลระบบ หรือ supabase/set_admin_password.sql
+//   (เดิมรับ "1234" / "123456" / รหัสพนักงาน กับทุกบัญชี → ใครก็เข้าบัญชี HR ได้)
+const PVT_ADMIN_ROLES = ['hr', 'admin', 'superadmin', 'hr_manager', 'executive', 'director', 'owner'];
+function pvtIsAdminAccount(u) {
+  const role = String(u?.role || '').toLowerCase().trim();
+  const code = String(u?.employee_code || '').toLowerCase().trim();
+  return PVT_ADMIN_ROLES.indexOf(role) !== -1 || code === 'admin' || code === 'superadmin' || code.indexOf('hr-') === 0;
+}
+function pvtPasswordEquals(stored, input) {
+  const s = String(stored || '').trim();
+  const i = String(input || '').trim();
+  if (!s || !i) return false;
+  if (s === i) return true;
+  if (/^\$2[aby]\$/.test(s)) {
+    const bc = window.dcodeIO?.bcrypt || window.bcrypt || null;
+    if (bc && typeof bc.compareSync === 'function') {
+      try { return bc.compareSync(i, s); } catch (e) { return false; }
+    }
+  }
+  return false;
+}
+// คืนค่า { ok, reason }
+function pvtVerifyLogin(u, input) {
+  const code = String(u?.employee_code || '').trim();
+  const stored = String(u?.password || '').trim();
+  const pass = String(input || '').trim();
+  if (pvtIsAdminAccount(u)) {
+    if (!stored || stored === code) return { ok: false, reason: 'admin_no_password' };
+    return { ok: pvtPasswordEquals(stored, pass), reason: 'wrong' };
+  }
+  // พนักงาน: รหัสพนักงานตรงตัว (หรือรหัสผ่านที่เคยตั้งไว้เดิม)
+  if (code && pass === code) return { ok: true };
+  return { ok: pvtPasswordEquals(stored, pass), reason: 'wrong' };
+}
+if (!window.pvtIsAdminAccount) window.pvtIsAdminAccount = pvtIsAdminAccount;
+
 // 🟢 Helper สำหรับดึง Supabase Client จาก SDK ป้องกัน Error
 function getSbClient() {
   return window.pvtSupabase?.client 
@@ -523,26 +563,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const user = users[0];
 
-      // 1. ตรวจสอบรหัสผ่าน (ตรงตัว, รหัสพนักงาน, default pass, หรือ bcrypt)
-      const rawUserPass = String(user.password || "").trim();
-      const inputPass = String(password).trim();
-      const empCode = String(user.employee_code || "").trim();
-      let passwordMatches = false;
-
-      if (rawUserPass && (rawUserPass === inputPass || rawUserPass === password)) {
-        passwordMatches = true;
-      } else if (inputPass === empCode || inputPass === "1234" || inputPass === "123456") {
-        passwordMatches = true;
-      } else {
-        const bcrypt = window.dcodeIO?.bcrypt || window.bcrypt || (typeof dcodeIO !== 'undefined' ? dcodeIO.bcrypt : null) || (typeof bcrypt !== 'undefined' ? bcrypt : null);
-        if (bcrypt && typeof bcrypt.compareSync === 'function' && rawUserPass) {
-          try {
-            passwordMatches = bcrypt.compareSync(inputPass, rawUserPass) || bcrypt.compareSync(password, rawUserPass);
-          } catch (bErr) {
-            console.warn("Bcrypt compare error:", bErr);
-          }
-        }
+      // 1. ตรวจสอบรหัสผ่านตามนโยบาย (พนักงาน = รหัสพนักงาน / ผู้ดูแลระบบ = รหัสผ่านเฉพาะ)
+      const verdict = pvtVerifyLogin(user, password);
+      if (!verdict.ok && verdict.reason === 'admin_no_password') {
+        throw new Error("บัญชีผู้ดูแลระบบยังไม่ได้ตั้งรหัสผ่านเฉพาะ กรุณาติดต่อผู้ดูแลระบบ");
       }
+      const passwordMatches = verdict.ok;
 
       if (!passwordMatches) {
         throw new Error("รหัสผ่านไม่ถูกต้อง");
@@ -554,7 +580,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       // 3. ตรวจสอบกรณีใช้งานรหัสผ่านเริ่มต้น (รหัสพนักงาน = รหัสผ่าน)
-      const isUsingDefaultPassword = (String(user.password).trim() === String(user.employee_code).trim());
+      const isUsingDefaultPassword = false; // นโยบาย: พนักงานใช้รหัสพนักงานเป็นรหัสผ่าน (ไม่ต้องเตือน)
 
       if (isUsingDefaultPassword) {
         const riskChoice = await Swal.fire({
@@ -835,6 +861,9 @@ async function executeSecureQrLogin(scannedData, scanMetadata = {}) {
 
     const user = users[0];
 
+    if (pvtIsAdminAccount(user)) {
+      throw new Error("บัญชีผู้ดูแลระบบ (HR / Admin / ผู้บริหาร) เข้าสู่ระบบด้วย QR ไม่ได้ กรุณากรอกรหัสผ่าน");
+    }
     if (String(user.status || "").toLowerCase() !== "active") {
       throw new Error("บัญชีของคุณถูกระงับสิทธิ์การใช้งาน (สถานะ: " + (user.status || "inactive") + ")");
     }

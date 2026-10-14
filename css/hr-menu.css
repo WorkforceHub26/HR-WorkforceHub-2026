@@ -1,0 +1,129 @@
+/* ======================================================
+   เมนูบริหารจัดการ HR (/pages/hr/management.html)
+   3 กลุ่ม · ทุกรายการหน้าตาเดียวกัน: ไอคอน + ชื่อ + คำอธิบายสั้น + ลูกศร
+   สีแยกตามกลุ่ม (ไม่ใช้เส้นสี/พื้นสีรายปุ่ม)
+   ====================================================== */
+.hr-menu {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.hr-menu__group {
+  --c: var(--th-p-600, #0d9488);
+  --c-soft: var(--th-p-50, #f0fdfa);
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* ทุกการ์ดใช้สีเดียวกัน = สีเดียวกับเมนูด้านข้าง (เปลี่ยนตามธีม) */
+.hr-menu__group { --c: var(--th-b-700, #1d4ed8); --c-soft: var(--th-b-50, #eff6ff); }
+
+.hr-menu__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  /* หัวการ์ดพาสเทลตามธีม (โทนเดียวกับเมนูด้านข้าง) */
+  background: linear-gradient(135deg, var(--th-b-50, #eff6ff) 0%, var(--th-b-100, #dbeafe) 100%);
+  border-bottom: 1px solid var(--th-b-100, #dbeafe);
+  color: var(--th-b-900, #1e3a8a);
+}
+.hr-menu__head > .material-symbols-outlined {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  color: var(--th-b-600, #2563eb);
+  font-size: 22px;
+}
+.hr-menu__head h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--th-b-900, #1e3a8a); line-height: 1.3; }
+.hr-menu__head p  { margin: 2px 0 0; font-size: 12px; color: #475569; }
+
+.hr-menu__list { display: flex; flex-direction: column; padding: 6px; }
+
+/* รายการ: ล้างสไตล์ .action-btn เดิมทั้งหมด */
+.hr-menu .hr-menu__list .action-btn.hr-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: none;
+  color: #0f172a;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transform: none;
+  transition: background-color 0.15s ease;
+}
+.hr-menu .hr-menu__list .action-btn.hr-menu__item + .hr-menu__item { border-top: 1px solid #f1f5f9; border-radius: 0 0 10px 10px; }
+.hr-menu .hr-menu__list .action-btn.hr-menu__item:hover {
+  background: var(--c-soft);
+  transform: none;
+  box-shadow: none;
+  border-radius: 10px;
+}
+.hr-menu .hr-menu__list .action-btn.hr-menu__item:focus-visible { outline: 2px solid var(--c); outline-offset: -2px; }
+
+.hr-menu .hr-menu__icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--c-soft);
+  color: var(--c);
+  font-size: 19px;
+  transition: background-color 0.15s ease;
+}
+.hr-menu .hr-menu__item:hover .hr-menu__icon { background: #fff; }
+
+.hr-menu .hr-menu__text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.hr-menu .hr-menu__text strong { font-size: 14px; font-weight: 700; color: #0f172a; line-height: 1.35; }
+.hr-menu .hr-menu__text small {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hr-menu .hr-menu__go {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: #cbd5e1;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.hr-menu .hr-menu__item:hover .hr-menu__go { color: var(--c); transform: translateX(2px); }
+
+@media (max-width: 1200px) {
+  .hr-menu { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hr-menu__group.is-reports { grid-column: 1 / -1; }
+  .hr-menu__group.is-reports .hr-menu__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hr-menu__group.is-reports .action-btn.hr-menu__item + .hr-menu__item { border-top: 0; }
+}
+@media (max-width: 760px) {
+  .hr-menu { grid-template-columns: 1fr; gap: 12px; }
+  .hr-menu__group.is-reports .hr-menu__list { display: flex; }
+  .hr-menu__group.is-reports .action-btn.hr-menu__item + .hr-menu__item { border-top: 1px solid #f1f5f9; }
+}
