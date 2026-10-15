@@ -348,6 +348,9 @@
           </button>
         </div>
 
+        <!-- 🔁 ประกาศรอบแลกวันหยุด (แสดงเฉพาะพนักงานที่อยู่ในรอบ) — js/components/holiday-swap-notice.js -->
+        <div id="hsNotice" hidden></div>
+
         <!-- ⚡ เมนูด่วน (Quick Menu) - พร้อมกรอบการ์ดพื้นหลัง -->
         <section class="quick-menu-section animate-slide-up delay-300">
           <div class="section-header" style="margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
@@ -608,6 +611,7 @@
   <!-- 📱 Mobile UX fixes (ต้องอยู่หลัง index-user.js) -->
   <script type="module" src="/js/index-user-mobile.js"></script>
   <script type="module" src="/js/system-diagnostics.js"></script>
+  <script src="/js/components/holiday-swap-notice.js" defer></script>
 
   </body>
 </html>

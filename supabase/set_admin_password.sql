@@ -10,8 +10,8 @@
 -- ============================================================================
 create extension if not exists pgcrypto;
 
-update public.employees set password = crypt('HR@2026#', gen_salt('bf', 10)), updated_at = now()
-where employee_code = 'HR001';
+update public.employees set password = crypt('ตั้งรหัสใหม่ที่นี่', gen_salt('bf', 10)), updated_at = now()
+where employee_code = 'HR-001';
 
 -- ตัวอย่างบัญชีที่ 2
 -- update public.employees set password = crypt('รหัสของบัญชีที่สอง', gen_salt('bf', 10)), updated_at = now()

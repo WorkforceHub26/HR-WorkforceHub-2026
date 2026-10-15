@@ -128,6 +128,7 @@ export default defineConfig({
         hrEmployeeCards: resolve(__dirname, 'pages/hr/employee-cards.html'),
         hrHolidays: resolve(__dirname, 'pages/hr/holidays.html'),
         hrLoginLogs: resolve(__dirname, 'pages/hr/login-logs.html'),
+        hrHolidaySwap: resolve(__dirname, 'pages/hr/holiday-swap.html'),
       },
     },
   },

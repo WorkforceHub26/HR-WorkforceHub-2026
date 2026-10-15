@@ -1582,7 +1582,7 @@ async function loadQuotaData(targetYear) {
     // 3. รายการลาเพื่อนับครั้งและวันที่ "อนุมัติแล้ว" ในปีนี้
     const { data: requests } = await sb
       .from("leave_requests")
-      .select("leave_type_id, status, total_days, start_date")
+      .select("*")
       .eq("employee_id", employeeId);
 
     const approvedTimesMap = {};
@@ -1594,7 +1594,7 @@ async function loadQuotaData(targetYear) {
 
     (requests || []).forEach(r => {
       const typeIdStr = String(r.leave_type_id);
-      const reqYear = r.start_date ? (typeof window.getADYear === 'function' ? window.getADYear(r.start_date) : new Date(r.start_date).getFullYear()) : targetYearAD;
+      const reqYear = typeof window.getLeaveChargeYear === 'function' ? window.getLeaveChargeYear(r) : (r.start_date ? (typeof window.getADYear === 'function' ? window.getADYear(r.start_date) : new Date(r.start_date).getFullYear()) : targetYearAD);
       if (reqYear === targetYearAD) {
         const days = parseFloat(r.total_days) || 0;
         if (r.status === 'approved') {
@@ -1794,14 +1794,14 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
 
     const { data: approvedLeaves, error: reqErr } = await sb
       .from('leave_requests')
-      .select('id, leave_type_id, total_days, start_date, status')
+      .select('*')
       .eq('employee_id', employeeId)
       .eq('status', 'approved');
     if (reqErr) throw reqErr;
 
     const usedMap = {};
     (approvedLeaves || []).forEach(r => {
-      const reqYear = r.start_date ? (typeof window.getADYear === 'function' ? window.getADYear(r.start_date) : new Date(r.start_date).getFullYear()) : currentYear;
+      const reqYear = typeof window.getLeaveChargeYear === 'function' ? window.getLeaveChargeYear(r) : (r.start_date ? (typeof window.getADYear === 'function' ? window.getADYear(r.start_date) : new Date(r.start_date).getFullYear()) : currentYear);
       if (reqYear === currentYear) {
         const typeIdStr = String(r.leave_type_id);
         usedMap[typeIdStr] = (usedMap[typeIdStr] || 0) + (parseFloat(r.total_days) || 0);
@@ -1813,6 +1813,7 @@ window.resetLeaveQuotaWithDoubleConfirm = async function() {
     }
 
     for (const lt of (leaveTypes || [])) {
+      if (lt.paid_leave === false) continue; // ลาไม่รับค่าจ้าง ไม่มีโควตา
       const typeIdStr = String(lt.id);
       const actualUsed = usedMap[typeIdStr] || 0;
       if (window.PVTSDK?.user?.updateLeaveBalance) {

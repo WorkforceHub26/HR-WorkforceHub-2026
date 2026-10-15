@@ -375,7 +375,9 @@ async function fetchHolidays() {
         .order('holiday_date', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        dataFromDb = data;
+        // วันทำงานพิเศษตามข้อตกลง (is_working_day) ไม่ใช่วันหยุด และทับวันหยุดเดิมวันเดียวกัน (กรณีย้ายวันหยุด)
+        const workdays = new Set(data.filter(h => h.is_working_day).map(h => String(h.holiday_date).slice(0, 10)));
+        dataFromDb = data.filter(h => !h.is_working_day && !workdays.has(String(h.holiday_date).slice(0, 10)));
       }
     }
 

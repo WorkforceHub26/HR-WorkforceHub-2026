@@ -11,6 +11,15 @@ let employees = [];
 let leaveTypes = [];          
 let cachedHolidays = [];      
 let holidaysData = [];        // ข้อมูลวันหยุดบริษัทที่โหลดจาก Supabase/ข้อมูลสำรอง
+let cachedWorkdays = new Set(); // วันทำงานพิเศษตามข้อตกลง (ทับวันอาทิตย์/วันหยุดเดิม) — holidays.is_working_day
+
+// แยกแถวปฏิทิน: วันหยุดจริง vs วันทำงานพิเศษ (วันหยุดที่ถูกย้าย/วันอาทิตย์ที่ต้องมาทำงาน)
+function splitHolidayRows(rows) {
+  const list = rows || [];
+  const workdays = new Set(list.filter(h => h.is_working_day).map(h => String(h.holiday_date).slice(0, 10)));
+  const holidays = list.filter(h => !h.is_working_day && !workdays.has(String(h.holiday_date).slice(0, 10)));
+  return { holidays, workdays };
+}
 let currentProfile = null;
 let currentDeptApproverConfig = null;
 
@@ -160,8 +169,9 @@ function countWorkDaysInRange(startDateStr, endDateStr) {
 
     const isSunday = (dayOfWeek === 0);
     const isCompanyHoliday = cachedHolidays.includes(dateFormatted);
+    const isSpecialWorkday = cachedWorkdays.has(dateFormatted);
 
-    if (!isSunday && !isCompanyHoliday) {
+    if (isSpecialWorkday || (!isSunday && !isCompanyHoliday)) {
       totalWorkDays++;
     }
     currentDate.setDate(currentDate.getDate() + 1);
@@ -344,10 +354,12 @@ async function loadCompanyHolidays() {
       console.warn('⚠️ ไม่สามารถดึงวันหยุดบริษัทจาก Supabase ได้ ใช้ข้อมูลสำรองแทน');
       holidaysData = (typeof defaultHolidays2026 !== 'undefined') ? defaultHolidays2026 : [];
     } else {
-      holidaysData = holidays;
+      const split = splitHolidayRows(holidays);
+      holidaysData = split.holidays;
+      cachedWorkdays = split.workdays;
     }
 
-    cachedHolidays = (holidaysData || []).map(h => h.holiday_date);
+    cachedHolidays = (holidaysData || []).map(h => String(h.holiday_date).slice(0, 10));
     
     if (document.getElementById('companySummarySidebar') && typeof window.renderCompanySummarySidebar === 'function') {
       window.renderCompanySummarySidebar(holidaysData, null, true);
@@ -385,7 +397,11 @@ async function validateLeaveDate(selectedDateStr) {
     return false;
   }
 
-  if (selectedDate.getDay() === 0) {
+  if (cachedHolidays.length === 0) {
+    await loadCompanyHolidays();
+  }
+
+  if (selectedDate.getDay() === 0 && !cachedWorkdays.has(selectedDateStr)) {
     await Swal.fire({
       icon: 'warning',
       title: '⚠️ วันที่เลือกไม่ถูกต้อง',

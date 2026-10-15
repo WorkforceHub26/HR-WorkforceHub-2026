@@ -397,7 +397,8 @@
       }
       // ปีรอบการลา (1 ธ.ค. – 30 พ.ย.) ให้ตรงกับหน้าพนักงาน / hr.js — เดิมใช้ปีปฏิทิน → ใบลาเดือน ธ.ค. ตัดผิดปี
       let year;
-      if (typeof global.getADYear === 'function') year = global.getADYear(leave.start_date);
+      if (typeof global.getLeaveChargeYear === 'function') year = global.getLeaveChargeYear(leave);
+      else if (typeof global.getADYear === 'function') year = global.getADYear(leave.start_date);
       else {
         const [y, m] = String(leave.start_date).split('T')[0].split('-').map(Number);
         year = (y > 2400 ? y - 543 : y) + (m === 12 ? 1 : 0);

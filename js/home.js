@@ -3283,7 +3283,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
       try {
         const leaveDays = reqData.actual_days || reqData.days_requested || reqData.total_days || 0;
         // ปีรอบการลา (1 ธ.ค. – 30 พ.ย.) — เดิมใช้ปีปฏิทิน → ใบลาเดือน ธ.ค. ตัดผิดปี
-        let currentYear = typeof window.getADYear === 'function' ? window.getADYear(reqData.start_date) : new Date(reqData.start_date).getFullYear();
+        let currentYear = typeof window.getLeaveChargeYear === 'function' ? window.getLeaveChargeYear(reqData) : (typeof window.getADYear === 'function' ? window.getADYear(reqData.start_date) : new Date(reqData.start_date).getFullYear());
         if (currentYear > 2400) currentYear -= 543;
         const lCode = reqData.leave_types?.leave_code || null;
         await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, lCode, currentYear, leaveDays);

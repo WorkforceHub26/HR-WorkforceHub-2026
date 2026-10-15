@@ -240,23 +240,33 @@ async function fetchAdminHolidays() {
       .order('holiday_date', { ascending: true });
     if (error) throw error;
 
+    // วันทำงานพิเศษตามข้อตกลง (is_working_day) — ไม่นับเป็นวันหยุด และทับวันหยุดเดิมวันเดียวกัน (กรณีย้ายวันหยุด)
+    const rows = data || [];
+    state.workdays = rows.filter(h => h.is_working_day)
+      .map(h => ({ holiday_date: String(h.holiday_date || '').slice(0, 10), holiday_name: h.holiday_name || '', description: h.description || '' }))
+      .sort((a, b) => a.holiday_date.localeCompare(b.holiday_date));
+    const workdaySet = new Set(state.workdays.map(w => w.holiday_date));
+
     // ทำให้ทุกแถวมีรูปแบบเดียวกัน (วันที่ตัดเหลือ YYYY-MM-DD เผื่อฐานข้อมูลส่ง timestamp มา)
-    state.holidays = (data || [])
+    state.holidays = rows
+      .filter(h => !h.is_working_day && !workdaySet.has(String(h.holiday_date || '').slice(0, 10)))
       .map(h => ({
         id: h.id,
         holiday_date: String(h.holiday_date || '').slice(0, 10),
         holiday_name: h.holiday_name || h.name || '',
         holiday_type: normalizeHolidayType(h.category || h.holiday_type),
-        description: h.description || h.note || '',
+        description: (h.description || h.note || '') + (h.agreement_id ? ' · ตามข้อตกลงวันหยุดพิเศษ' : ''),
         is_paid: h.is_paid !== false
       }))
       .sort((a, b) => a.holiday_date.localeCompare(b.holiday_date));
   } catch (err) {
     console.error('Error loading holidays:', err);
     state.holidays = [];
+    state.workdays = [];
     state.loadError = err.message || 'โหลดข้อมูลไม่สำเร็จ';
   }
 
+  renderWorkdayStrip();
   updateKpiCards();
   renderFilteredHolidays();
 }
@@ -265,6 +275,25 @@ async function fetchAdminHolidays() {
 /* ==========================================================================
    05. การ์ดตัวเลข (KPI)
    ========================================================================== */
+// แถบ "วันทำงานพิเศษ / วันหยุดที่ย้าย" ตามข้อตกลงวันหยุดพิเศษ (เหนือรายการวันหยุด)
+function renderWorkdayStrip() {
+  let strip = document.getElementById('adminWorkdayStrip');
+  const anchor = $('adminTableContainer');
+  if (!strip && anchor?.parentNode) {
+    strip = document.createElement('div');
+    strip.id = 'adminWorkdayStrip';
+    strip.style.cssText = 'margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px solid #ddd6fe;background:#f5f3ff;color:#4c1d95;font-size:13.5px;line-height:1.7';
+    anchor.parentNode.insertBefore(strip, anchor);
+  }
+  if (!strip) return;
+  const list = state.workdays || [];
+  strip.style.display = list.length ? 'block' : 'none';
+  strip.innerHTML = list.length
+    ? `<b>วันทำงานพิเศษตามข้อตกลง (ไม่ใช่วันหยุด)</b> · <a href="/pages/hr/holiday-swap.html" style="color:#6d28d9;font-weight:700">จัดการที่ข้อตกลงวันหยุดพิเศษ</a><br>` +
+      list.map(w => `${escapeHtml(formatThaiDate(w.holiday_date))} — ${escapeHtml(w.holiday_name)}`).join('<br>')
+    : '';
+}
+
 function updateKpiCards() {
   const list = state.holidays;
   const today = todayStart();

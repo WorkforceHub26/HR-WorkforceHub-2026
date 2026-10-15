@@ -2563,8 +2563,27 @@ async function saveEmployeeInlineEdit(employeeId) {
     await saveEmployeeCustomFields(supabase, code, customFields);
 
     await saveHRActivityLog('EMPLOYEE', 'UPDATE', code, `แก้ไขข้อมูลพนักงาน: ${name}`);
-    
-    if (window.Swal) {
+
+    // 🔁 ลาออก/ระงับ แต่เคย "ยืมพักร้อนปีหน้า" จากรอบแลกวันหยุด → แจ้ง HR ให้สรุป (ปรับในค่าจ้างงวดสุดท้าย / ไม่เรียกคืน)
+    let borrowedDays = 0;
+    if (updateData.status && updateData.status !== 'active') {
+      try {
+        const { data: borrowed } = await supabase.from('holiday_swap_items')
+          .select('id').eq('employee_id', emp.id).eq('method', 'vacation_next').eq('status', 'applied').is('settlement', null);
+        borrowedDays = (borrowed || []).length;
+      } catch (swapErr) { /* ยังไม่ได้รัน migration รอบแลกวันหยุด → ข้าม */ }
+    }
+
+    if (window.Swal && borrowedDays > 0) {
+      await Swal.fire({
+        icon: 'info',
+        title: 'บันทึกแล้ว · มีวันพักร้อนที่ใช้ล่วงหน้า',
+        html: `<b>${escapeHtml(name)}</b> ใช้วันพักร้อนของปีหน้าล่วงหน้าในรอบแลกวันหยุด <b>${borrowedDays} วัน</b><br>สามารถสรุปได้ว่าจะปรับในค่าจ้างงวดสุดท้าย หรือไม่เรียกคืน`,
+        showCancelButton: true,
+        confirmButtonText: 'ไปหน้าสรุป',
+        cancelButtonText: 'ภายหลัง'
+      }).then((r) => { if (r.isConfirmed) window.location.href = '/pages/hr/holiday-swap.html?tab=settle'; });
+    } else if (window.Swal) {
       Swal.fire({ 
         icon: 'success', 
         title: 'บันทึกสำเร็จ', 
@@ -4583,6 +4602,8 @@ async function openHolidayManagerModal() {
   const typeMap = {
     public_holiday: { label: 'วันหยุดนักขัตฤกษ์', style: 'background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e);' },
     company_holiday: { label: 'วันหยุดพิเศษบริษัท', style: 'background:#e0e7ff; color:#3730a3;' },
+    swap_day: { label: 'วันหยุดตามข้อตกลง', style: 'background:#f5f3ff; color:#6d28d9;' },
+    working_day: { label: 'วันทำงานพิเศษ (ตามข้อตกลง)', style: 'background:#f1f5f9; color:#334155;' },
     tradition_holiday: { label: 'วันหยุดตามประเพณี', style: 'background:#fef3c7; color:#92400e;' }
   };
 

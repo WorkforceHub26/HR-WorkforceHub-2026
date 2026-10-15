@@ -651,11 +651,13 @@ async function calculateActualLeaveDays(startDateStr, endDateStr) {
 
     const { data: holidayData } = await sb
       .from('holidays') 
-      .select('holiday_date')
+      .select('*')
       .gte('holiday_date', cleanStart)
       .lte('holiday_date', cleanEnd);
 
-    const holidaySet = new Set(holidayData ? holidayData.map(h => String(h.holiday_date).split('T')[0]) : []);
+    // วันทำงานพิเศษตามข้อตกลง (is_working_day) ทับวันหยุด/วันเสาร์-อาทิตย์
+    const workdaySet = new Set((holidayData || []).filter(h => h.is_working_day).map(h => String(h.holiday_date).split('T')[0]));
+    const holidaySet = new Set((holidayData || []).filter(h => !h.is_working_day).map(h => String(h.holiday_date).split('T')[0]));
     let totalDays = 0;
 
     const [sYear, sMonth, sDay] = cleanStart.split('-').map(Number);
@@ -675,7 +677,7 @@ async function calculateActualLeaveDays(startDateStr, endDateStr) {
       const isSaturday = (dayOfWeek === 6);
       const isSpecialHoliday = holidaySet.has(currentIsoString);
 
-      if (!isSunday && !isSaturday && !isSpecialHoliday) {
+      if (workdaySet.has(currentIsoString) || (!isSunday && !isSaturday && !isSpecialHoliday)) {
         totalDays++;
       }
       start.setDate(start.getDate() + 1);
@@ -2452,7 +2454,7 @@ async function performApprovalStep(reqData) {
   if (isFinal && window.PVTSDK?.user?.updateLeaveBalance) {
     try {
       const leaveDays = await getEffectiveLeaveDays(reqData);
-      const currentYear = getADYear(reqData.start_date);
+      const currentYear = (typeof window.getLeaveChargeYear === 'function') ? window.getLeaveChargeYear(reqData) : getADYear(reqData.start_date);
       await window.PVTSDK.user.updateLeaveBalance(reqData.employee_id, reqData.leave_type_id, reqData.leave_types?.leave_code || null, currentYear, leaveDays);
     } catch (balErr) {
       balanceError = balErr?.message || String(balErr);
@@ -2870,7 +2872,7 @@ async function forceCancelLeave(leaveId) {
     if (String(reqData.status).toLowerCase() === 'cancelled') throw new Error('ใบลานี้ถูกยกเลิกไปแล้ว');
     // คำนวณจากข้อมูลเดิมก่อน (กรณีด้านล่างต้องย้ายวันที่เพื่อเลี่ยง trigger ซ้อนทับ)
     const wasApproved = reqData.status === 'approved';
-    const currentYear = getADYear(reqData.start_date);
+    const currentYear = (typeof window.getLeaveChargeYear === 'function') ? window.getLeaveChargeYear(reqData) : getADYear(reqData.start_date);
     const daysToReturn = wasApproved ? await getEffectiveLeaveDays(reqData) : 0;
 
     // บันทึกสถานะ "ก่อน" คืนวันลา และเฉพาะเมื่อสถานะยังเหมือนเดิม (กันกดซ้ำ/สองคนกดพร้อมกัน → คืนวันลาซ้ำ)
@@ -3015,7 +3017,7 @@ async function approveCancellation(leaveId) {
 
     const wasFinalApproved = Boolean(freshReq.approved_at || freshReq.approved_by);
     const daysToReturn = await getEffectiveLeaveDays(freshReq);
-    const currentYear = getADYear(freshReq.start_date);
+    const currentYear = (typeof window.getLeaveChargeYear === 'function') ? window.getLeaveChargeYear(freshReq) : getADYear(freshReq.start_date);
 
 
     const approvalComment = wasFinalApproved

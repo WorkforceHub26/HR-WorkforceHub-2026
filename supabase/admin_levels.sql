@@ -13,10 +13,9 @@ create extension if not exists pgcrypto;
 
 -- 1) สร้างบัญชีผู้ดูแลระบบขั้นสูง ADMIN-T (ถ้ามีอยู่แล้ว → ตั้งเป็นขั้นสูง + เปลี่ยนรหัส)
 insert into public.employees (employee_code, full_name, role, status, password)
-values ('ADMIN-T', 'ผู้ดูแลระบบขั้นสูง', 'superadmin', 'active', crypt('AT@2026#', gen_salt('bf', 10)))
+values ('ADMIN-T', 'ผู้ดูแลระบบขั้นสูง', 'superadmin', 'active', crypt('ตั้งรหัสผ่านขั้นสูงที่นี่', gen_salt('bf', 10)))
 on conflict (employee_code) do update
 set role = 'superadmin', status = 'active', password = excluded.password, updated_at = now();
-
 
 -- 2) (ถ้าต้องการ) บัญชี ADMIN เดิม → ผู้ดูแลระบบขั้นต้น (role admin อยู่แล้ว ไม่ต้องทำอะไร)
 --    หรือถ้าไม่ใช้แล้ว ระงับไว้:

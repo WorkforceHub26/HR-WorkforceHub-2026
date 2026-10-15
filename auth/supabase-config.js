@@ -539,6 +539,13 @@
     return yearPart;
   };
 
+  // ปีการลาที่ใบลานี้ "หักสิทธิ์" — ใบลาจากรอบแลกวันหยุดที่ยืมปีหน้าจะมี charge_year กำกับ
+  window.getLeaveChargeYear = function(req) {
+    const cy = Number(req && req.charge_year);
+    if (cy && cy > 1900) return cy > 2400 ? cy - 543 : cy;
+    return window.getADYear(req && req.start_date);
+  };
+
   class LeaveEngine {
     constructor(client, cache) {
       this.client = client;
@@ -1200,7 +1207,7 @@
 
             const { data: reqs } = await this.client
               .from('leave_requests')
-              .select('leave_type_id, total_days, status, start_date')
+              .select('*')
               .eq('employee_id', employeeId)
               .not('status', 'eq', 'rejected')
               .not('status', 'eq', 'cancelled');
@@ -1210,7 +1217,7 @@
             (lTypes || []).forEach(lt => { typesMap[String(lt.id)] = lt; });
 
             (reqs || []).forEach(r => {
-              const reqYear = window.getADYear(r.start_date);
+              const reqYear = window.getLeaveChargeYear(r);
               if (reqYear === yearAD) {
                 const lt = typesMap[String(r.leave_type_id)];
                 const code = String(lt?.leave_code || '').toUpperCase();
