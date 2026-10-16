@@ -3496,7 +3496,7 @@ window.executePvtLogout = async function() {
 
   try {
     Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('sb-') || key.includes('supabase') || key.includes('user') || key.includes('token') || key.includes('auth')) {
+      if (!/^(pvt_user_notification_read_state_|pvt_user_font$|userReadNotifIds$|pvt_remembered_username$)/.test(key) && (key.startsWith('sb-') || key.includes('supabase') || key.includes('user') || key.includes('token') || key.includes('auth'))) { // คงค่าที่ผู้ใช้ตั้งไว้ (อ่านแจ้งเตือนแล้ว / แบบอักษร / จำรหัส) ไม่ลบตอนออกจากระบบ
         localStorage.removeItem(key);
       }
     });

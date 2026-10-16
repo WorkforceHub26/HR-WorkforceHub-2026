@@ -83,6 +83,9 @@ begin
     execute format('create policy %I on public.%I for all to anon, authenticated using (true) with check (true)', t || '_all', t);
   end loop;
 end $$;
+-- สิทธิ์ตาราง (โปรเจกต์ Supabase รุ่นใหม่ไม่ให้สิทธิ์ตารางใหม่อัตโนมัติ → "permission denied for table")
+grant select, insert, update, delete on public.holiday_swap_rounds to anon, authenticated;
+grant select, insert, update, delete on public.holiday_swap_items  to anon, authenticated;
 
 -- 6) ประเภทข้อตกลง + คู่วัน + ขอบเขตแผนก (สำหรับอนาคต) -----------------------------
 alter table public.holiday_swap_rounds add column if not exists kind text not null default 'leave_swap';
