@@ -496,12 +496,14 @@ body,
    (ถ้าองค์ประกอบเป็น fixed/sticky จะยกขึ้นพ้นแถบ ถ้าเป็นปกติจะไม่มีผล)
    ========================================================================== */
 @media (max-width: 1024px) {
+  /* ปุ่มกลาง "ยื่นใบลา" ของแถบล่างยื่นขึ้นมาเหนือแถบ ~24px → เว้นที่ใต้ปุ่มส่งคำขอให้พ้น ไม่ให้ซ้อนกัน */
   body.pvt-has-tabbar#page-user-leave .bottom-actions {
     bottom: calc(var(--pvt-nav-h) + var(--pvt-safe-b)) !important;
+    padding-bottom: 34px !important;
   }
 
   body.pvt-has-tabbar#page-user-leave .form-guide-wrapper {
-    bottom: calc(var(--pvt-nav-h) + var(--pvt-safe-b) + 84px) !important;
+    bottom: calc(var(--pvt-nav-h) + var(--pvt-safe-b) + 110px) !important;
   }
 
   body.pvt-has-tabbar#page-user-leave .status-toast {
