@@ -319,7 +319,7 @@ async function autoSessionCheckAndRedirect() {
 
       // ล้าง Token ทั้งหมดของ Supabase ใน localStorage
       Object.keys(localStorage).forEach(key => {
-        if (!/^(pvt_user_notification_read_state_|pvt_user_font$|userReadNotifIds$|pvt_remembered_username$)/.test(key) && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth-token') || key.includes('user'))) { // คงค่าที่ผู้ใช้ตั้งไว้ (อ่านแจ้งเตือนแล้ว / แบบอักษร / จำรหัส) ไม่ลบตอนออกจากระบบ
+        if (!/^(pvt_user_notification_read_state_.+|userReadNotifIds|pvt_user_font|pvt_user_font_size|pvt_user_theme|pvt_remembered_username|pvt_login_lang|pvt_language|preferred_lang|pvt_sound_enabled|pvt_reduced_motion|pvt_privacy_shield|pvt_high_contrast|pvt_eyecare_mode|pvt_compact_mode|pvt_auto_refresh|pvt_double_confirm|pvt_webauthn_credentials)$/.test(key) && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth-token') || key.includes('user'))) { // คงค่าที่ผู้ใช้ตั้งไว้ (อ่านแจ้งเตือนแล้ว / แบบอักษร / จำรหัส) ไม่ลบตอนออกจากระบบ
           localStorage.removeItem(key);
         }
       });

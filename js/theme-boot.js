@@ -1,4 +1,30 @@
 /* ==========================================================================
+   🔐 ออกจากระบบแล้วค่าที่ผู้ใช้ตั้งไว้ต้องอยู่ (อ่านแจ้งเตือนแล้ว · ธีม · แบบอักษร · จำรหัส ฯลฯ)
+   ปุ่มออกจากระบบหลายหน้าเรียก localStorage.clear() → เก็บเฉพาะค่ากลุ่มนี้ไว้ ที่เหลือล้างตามเดิม
+   ========================================================================== */
+(function () {
+  var KEEP = /^(pvt_user_notification_read_state_.+|userReadNotifIds|pvt_user_font|pvt_user_font_size|pvt_user_theme|pvt_remembered_username|pvt_login_lang|pvt_language|preferred_lang|pvt_sound_enabled|pvt_reduced_motion|pvt_privacy_shield|pvt_high_contrast|pvt_eyecare_mode|pvt_compact_mode|pvt_auto_refresh|pvt_double_confirm|pvt_webauthn_credentials)$/;
+  window.PVT_KEEP_KEYS = KEEP;
+  try {
+    // ห้ามตั้ง property บน localStorage ตรงๆ (Storage จะเก็บเป็นรายการข้อมูลแทน) → แก้ที่ prototype
+    if (window.__pvtKeepPatched || typeof Storage === 'undefined') return;
+    window.__pvtKeepPatched = true;
+    var origClear = Storage.prototype.clear;
+    Storage.prototype.clear = function () {
+      var ls = null;
+      try { ls = window.localStorage; } catch (e) {}
+      if (this !== ls) return origClear.call(this);
+      var saved = {};
+      try {
+        for (var i = 0; i < this.length; i++) { var k = this.key(i); if (k && KEEP.test(k)) saved[k] = this.getItem(k); }
+      } catch (e) {}
+      origClear.call(this);
+      var self = this;
+      try { Object.keys(saved).forEach(function (k) { self.setItem(k, saved[k]); }); } catch (e) {}
+    };
+  } catch (e) {}
+})();
+/* ==========================================================================
    🎨 PVT Theme Boot — ใส่ชุดสีธีมให้ทั้งโปรแกรม (โหลดแบบ sync ใน <head> ทุกหน้า)
    --------------------------------------------------------------------------
    CSS ทั้งระบบอ้างสีแบรนด์ผ่านตัวแปร (มีสีเดิมเป็นค่า fallback):
