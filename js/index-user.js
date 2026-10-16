@@ -1087,6 +1087,19 @@ async function fetchUserNotificationsCore() {
       .order("updated_at", { ascending: false })
       .limit(20);
 
+    // ขั้นอนุมัติจริงของแต่ละใบ (ตาราง leave_approval_steps) — คอลัมน์เดิม manager/director/executive_status
+    // ตั้งขั้นที่ "ไม่มี/ข้าม" เป็น approved ตั้งแต่ยื่น จึงห้ามใช้บอกว่ามีคนอนุมัติแล้ว
+    const realSteps = {};
+    if (myLeaves && myLeaves.length) {
+      try {
+        const { data: stepRows, error: stepErr } = await sb
+          .from("leave_approval_steps")
+          .select("leave_id, step_no, step_label, status, acted_by, acted_at")
+          .in("leave_id", myLeaves.map(r => r.id));
+        if (!stepErr && stepRows) stepRows.forEach(st => { (realSteps[st.leave_id] = realSteps[st.leave_id] || []).push(st); });
+      } catch (e) { /* ไม่มีตาราง → ใช้แบบเดิม */ }
+    }
+
     if (myLeaves) {
       myLeaves.forEach(req => {
         const leaveName = req.leave_types?.leave_name || "ใบลา";
@@ -1115,6 +1128,16 @@ async function fetchUserNotificationsCore() {
           stageKey = "cancelled";
           title = "✅ ยกเลิกใบลาเรียบร้อยแล้ว";
           message = `ใบลา ${leaveName} ของคุณถูกยกเลิกเรียบร้อยแล้ว`;
+        } else if (realSteps[req.id] && realSteps[req.id].length) {
+          // มีขั้นอนุมัติจริง → แจ้งเฉพาะขั้นที่มีคนกดอนุมัติแล้วจริง (ไม่นับขั้นที่ข้าม)
+          const done = realSteps[req.id]
+            .filter(st => String(st.status).toLowerCase() === "approved" && st.acted_by)
+            .sort((a, b) => b.step_no - a.step_no)[0];
+          if (done) {
+            stageKey = `step-${done.step_no}-approved`;
+            title = `✅ ${done.step_label || `ผู้อนุมัติลำดับที่ ${done.step_no}`} อนุมัติแล้ว`;
+            message = `ใบลา ${leaveName} ผ่านขั้น ${done.step_label || done.step_no} แล้ว และกำลังรอขั้นถัดไป`;
+          }
         } else if (l1 === "rejected" || l2 === "rejected" || l3 === "rejected") {
           stageKey = `stage-rejected-${l3 === "rejected" ? "l3" : l2 === "rejected" ? "l2" : "l1"}`;
           title = "❌ ใบลาไม่ผ่านการอนุมัติ";

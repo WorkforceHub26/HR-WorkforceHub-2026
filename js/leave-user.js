@@ -83,7 +83,7 @@ function getLeaveFormSteps() {
   }
 
   if (steps.length === 0) {
-    steps.push("อนุมัติทันที (Auto-Approved)");
+    steps.push("ฝ่ายบุคคล (HR) พิจารณา");
   }
   return steps;
 }
