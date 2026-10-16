@@ -568,6 +568,21 @@
             </div>
           </div>
 
+          <!-- Card 1.5: แบบอักษร -->
+          <div class="setting-card-item">
+            <div class="setting-item-head">
+              <span class="setting-item-icon material-symbols-outlined" style="color: #0d9488; font-size: 28px;">font_download</span>
+              <div class="setting-item-info">
+                <h4>แบบอักษร (Font)</h4>
+                <p>เลือกแบบตัวหนังสือที่อ่านสบายตา — เปลี่ยนทันทีทุกหน้า เฉพาะเครื่องนี้</p>
+              </div>
+            </div>
+            <div id="fontFamilyOptions" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:8px;"></div>
+            <div id="fontFamilyPreview" style="margin-top:10px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:10px 14px; font-size:15px; color:#334155; line-height:1.6;">
+              ใบลาพักร้อน 2 วัน (28–29 ธ.ค. 2569) · คงเหลือ 4 วัน · อนุมัติแล้วโดยหัวหน้างาน 0123456789
+            </div>
+          </div>
+
           <!-- Card 2: ธีมสีของระบบ -->
           <div class="setting-card-item">
             <div class="setting-item-head">
@@ -854,6 +869,7 @@
     const backdrop = ensureSettingsModalInDom();
     populateThemeButtons();
     updateFontSizeButtonsUI();
+    renderFontFamilyOptions();
     updateLineStatusUI();
     refreshLineIdFromDb();
     updateSoundSwitchUI();
@@ -927,6 +943,39 @@
     if (window.playSystemChime) {
       window.playSystemChime("click");
     }
+  };
+
+  // 🔤 5.1 แบบอักษร (js/theme-boot.js → window.PVTFont)
+  const FONT_CHOICES = [
+    { key: 'sarabun',  label: 'Sarabun',               desc: 'มีหัว · มาตรฐานเดิมของระบบ' },
+    { key: 'notoloop', label: 'Noto Sans Thai Looped', desc: 'มีหัว · กลม ชัด ช่องไฟกว้าง' },
+    { key: 'ibmloop',  label: 'IBM Plex Thai Looped',  desc: 'มีหัว · ทางการ ตัวเลขชัด' },
+    { key: 'noto',     label: 'Noto Sans Thai',        desc: 'ไม่มีหัว · เรียบ อ่านง่าย' },
+    { key: 'anuphan',  label: 'Anuphan',               desc: 'ไม่มีหัว · โปร่ง ทันสมัย' }
+  ];
+  function renderFontFamilyOptions() {
+    const box = document.getElementById('fontFamilyOptions');
+    if (!box) return;
+    if (window.PVTFont && window.PVTFont.preload) window.PVTFont.preload();
+    const current = localStorage.getItem('pvt_user_font') || 'sarabun';
+    const famOf = (k) => (window.PVTFont && window.PVTFont.fonts[k] ? window.PVTFont.fonts[k].name : 'Sarabun');
+    box.innerHTML = FONT_CHOICES.map((f) => {
+      const on = f.key === current;
+      return `<button type="button" onclick="changeSystemFontFamily('${f.key}')" style="display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 12px; border-radius:12px; cursor:pointer; text-align:left;
+        border:1.5px solid ${on ? 'var(--th-p-600, #0d9488)' : '#e2e8f0'}; background:${on ? 'var(--th-p-50, #f0fdfa)' : '#fff'}; box-shadow:${on ? '0 0 0 2px var(--th-p-100, #ccfbf1)' : 'none'};">
+        <span style="font-family:'${famOf(f.key)}', sans-serif !important; font-size:20px; font-weight:600; color:#0f172a; line-height:1.3;">กขค ใบลา 2569</span>
+        <span style="font-size:12.5px; font-weight:700; color:${on ? 'var(--th-p-700, #0f766e)' : '#334155'};">${f.label}${on ? ' ✓' : ''}</span>
+        <span style="font-size:11.5px; color:#64748b;">${f.desc}</span>
+      </button>`;
+    }).join('');
+    const prev = document.getElementById('fontFamilyPreview');
+    if (prev) prev.style.setProperty('font-family', `'${famOf(current)}', sans-serif`, 'important');
+  }
+  window.changeSystemFontFamily = function (key) {
+    localStorage.setItem('pvt_user_font', key);
+    if (window.PVTFont) window.PVTFont.apply(key);
+    renderFontFamilyOptions();
+    if (window.playSystemChime) window.playSystemChime('click');
   };
 
   function updateFontSizeButtonsUI() {
@@ -1279,6 +1328,8 @@
   // 🔄 8. Reset Settings
   window.resetSystemSettingsToDefault = function() {
     localStorage.removeItem("pvt_user_font_size");
+    localStorage.removeItem("pvt_user_font");
+    if (window.PVTFont) window.PVTFont.apply('sarabun');
     localStorage.removeItem("pvt_user_theme");
     localStorage.removeItem("pvt_sound_enabled");
     localStorage.removeItem("pvt_compact_mode");
@@ -1304,6 +1355,7 @@
     }
 
     updateFontSizeButtonsUI();
+    renderFontFamilyOptions();
     populateThemeButtons();
     updateSoundSwitchUI();
     updateCompactSwitchUI();

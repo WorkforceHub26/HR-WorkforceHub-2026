@@ -916,3 +916,20 @@ html, body {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+/* 🖥️ จอ PC: หน้าต่างตั้งค่ากว้างเกือบเต็มจอ + การ์ดเรียงหลายคอลัมน์ (แบบ masonry) */
+@media (min-width: 1100px) {
+  .settings-modal-box { max-width: min(1500px, 94vw); height: 90vh; }
+  /* เลื่อนลงแนวตั้ง (ไม่เลื่อนซ้าย-ขวา) · การ์ดเรียงเป็นตาราง 2–3 คอลัมน์ */
+  .settings-modal-body {
+    display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;
+    align-items: start; align-content: start; padding: 22px 28px;
+    overflow-y: auto !important; overflow-x: hidden !important; column-count: auto;
+  }
+  .settings-modal-body > .setting-card-item { margin: 0 !important; min-width: 0; }
+  /* คอนโซลผู้ดูแลระบบ → ล่างสุด เต็มความกว้าง */
+  .settings-modal-body > #settingsAdminCard { grid-column: 1 / -1; order: 99; }
+}
+@media (min-width: 1500px) {
+  .settings-modal-body { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

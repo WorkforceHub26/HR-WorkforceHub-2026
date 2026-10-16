@@ -750,42 +750,46 @@ function getLeaveCycleYear(dateStr) {
 async function resetYearlyLeave(isForce = false) {
   if (!window.Swal) return;
 
-  const currentYear = new Date().getFullYear();
+  // ปีการลา = 1 ธ.ค. ปีก่อน – 30 พ.ย. (ธันวาคมนับเป็นรอบปีถัดไป) · ค่าที่ส่งต่อยังเป็น ค.ศ. · แสดงผลเป็น พ.ศ.
+  const currentYear = typeof window.getCurrentLeaveYear === 'function'
+    ? Number(window.getCurrentLeaveYear())
+    : (new Date().getMonth() === 11 ? new Date().getFullYear() + 1 : new Date().getFullYear());
   const nextYear = currentYear + 1;
+  const yearOption = (y, tag, selected) =>
+    `<option value="${y}" ${selected ? 'selected' : ''}>ปีการลา ${y + 543} · ${tag} (1 ธ.ค. ${y + 542} – 30 พ.ย. ${y + 543})</option>`;
 
   // แสดง Popup UI เลือกปีและยืนยันการเจนโควตา (ขยายตัวเลือกให้รองรับปีก่อนๆ และปีหน้า)
   const { value: formValues } = await Swal.fire({
-    title: '📅 เจน & รีเซ็ตโควตาวันลาประจำปี',
-    width: 'min(90vw, 480px)',
+    title: 'สร้างและรีเซ็ตโควตาวันลาประจำปี',
+    width: 'min(94vw, 600px)',
+    customClass: { title: 'pvt-reset-title' },
     html: `
-      <div style="text-align:left; font-family:'Sarabun', sans-serif; line-height: 1.5;">
-        <div style="margin-bottom: 14px;">
-          <label style="font-size:13px; font-weight:600; color:#334155;">เลือกรอบปีที่ต้องการคำนวณและประสานสิทธิ (ค.ศ.) *</label>
-          <select id="swal-target-year" class="swal2-select" style="width:100%; margin-top:6px; height:40px; font-size:14px; border-radius:10px;">
-            <option value="${nextYear + 1}">ปี ${nextYear + 1} (ล่วงหน้า 2 ปี)</option>
-            <option value="${nextYear}" selected>ปี ${nextYear} (ล่วงหน้าปีหน้า)</option>
-            <option value="${currentYear}">ปี ${currentYear} (ปีปัจจุบัน)</option>
-            <option value="${currentYear - 1}">ปี ${currentYear - 1} (ปีก่อนหน้า)</option>
+      <div style="text-align:left; font-family:'Sarabun', sans-serif; line-height:1.55; overflow-x:hidden;">
+        <div style="margin-bottom:14px;">
+          <label for="swal-target-year" style="display:block; font-size:13.5px; font-weight:700; color:#334155;">เลือกรอบปีการลา *</label>
+          <select id="swal-target-year" class="swal2-select" style="display:block; width:100%; max-width:100%; box-sizing:border-box; margin:6px 0 0; height:42px; padding:0 10px; font-size:14px; border-radius:10px; border:1px solid #cbd5e1;">
+            ${yearOption(nextYear + 1, 'ล่วงหน้า 2 ปี', false)}
+            ${yearOption(nextYear, 'ปีหน้า', true)}
+            ${yearOption(currentYear, 'ปีปัจจุบัน', false)}
+            ${yearOption(currentYear - 1, 'ปีที่แล้ว', false)}
           </select>
-          <div style="font-size:11px; color:#64748b; margin-top:4px;">
-            * รอบการลาคำนวณตามจริง: 1 ธ.ค. ของปีก่อนหน้า ถึง 30 พ.ย. ของปีที่เลือก
-          </div>
+          <div style="font-size:12px; color:#64748b; margin-top:6px;">รอบปีการลาเริ่ม 1 ธันวาคม และสิ้นสุด 30 พฤศจิกายน</div>
         </div>
 
-        <div style="display:flex; align-items:center; gap:8px; background:#fff1f2; padding:12px; border-radius:10px; border:1px solid #fecdd3; margin-bottom: 10px;">
-          <input type="checkbox" id="swal-force-reset" ${isForce ? 'checked' : ''} style="width:18px; height:18px; accent-color:#e11d48; cursor:pointer;">
-          <label for="swal-force-reset" style="font-size:12px; font-weight:600; color:#be123c; cursor:pointer;">
-            รีเซ็ตโควตาเริ่มต้นใหม่ทั้งหมด (Force Overwrite) <br>
-            <span style="font-weight:400; color:#9f1239;">(ติ๊กช่องนี้เพื่อปรับปรุงโควตากลับไปเป็นค่าเริ่มต้นตามนโยบายบริษัท)</span>
-          </label>
-        </div>
-        <div style="font-size:11.5px; color:var(--th-p-600, #0d9488); background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:8px 12px; border-radius:8px;">
-          💡 <strong>ระบบล้างและรีเซ็ตอัจฉริยะ</strong>: ระบบจะไม่ตั้งค่าวันลาเป็น 0 บลอนด์ๆ แต่จะดึงใบลาที่ผ่านการอนุมัติจริงในระบบมาคำนวณยอดใช้วันลาให้ตรงโดยอัตโนมัติ ทำให้สิทธิคงเหลือสมบูรณ์ 100%
+        <label for="swal-force-reset" style="display:flex; align-items:flex-start; gap:10px; background:#fff1f2; padding:12px 14px; border-radius:10px; border:1px solid #fecdd3; margin-bottom:10px; cursor:pointer;">
+          <input type="checkbox" id="swal-force-reset" ${isForce ? 'checked' : ''} style="flex-shrink:0; width:18px; height:18px; margin-top:2px; accent-color:#e11d48; cursor:pointer;">
+          <span style="font-size:13px; font-weight:700; color:#be123c;">
+            รีเซ็ตโควตาเป็นค่าเริ่มต้นทั้งหมด
+            <span style="display:block; font-weight:400; font-size:12px; color:#9f1239;">ติ๊กเมื่อต้องการให้สิทธิ์วันลากลับไปเป็นค่าเริ่มต้นตามนโยบายบริษัท (ทับค่าที่ HR ปรับไว้รายคน)</span>
+          </span>
+        </label>
+        <div style="font-size:12px; color:var(--th-p-700, #0f766e); background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:10px 12px; border-radius:10px;">
+          <strong>ยอดวันลาที่ใช้ไปจะไม่ถูกล้างเป็น 0</strong> — ระบบนับจากใบลาที่อนุมัติแล้วในรอบปีนั้นให้อัตโนมัติ สิทธิ์คงเหลือจึงตรงกับความจริง
         </div>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: '🚀 เริ่มซิงค์และคำนวณโควตา',
+    confirmButtonText: 'เริ่มคำนวณโควตา',
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: 'var(--th-p-600, #0d9488)',
     cancelButtonColor: '#64748b',
@@ -800,7 +804,7 @@ async function resetYearlyLeave(isForce = false) {
 
   try {
     Swal.fire({ 
-      title: `กำลังซิงค์โควตาวันลาปี ${formValues.year}...`, 
+      title: `กำลังคำนวณโควตาปีการลา ${formValues.year + 543}...`, 
       text: 'ระบบกำลังนำประวัติใบลามาประมวลผลคำนวณยอดให้พนักงานทุกคน',
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading() 
@@ -925,7 +929,7 @@ async function resetYearlyLeave(isForce = false) {
       }
     }
 
-    const successMessage = `ประสานและซิงค์ข้อมูลโควตาประจำปี ${formValues.year} สำเร็จ! ประมวลผลพนักงาน ${employeesList.length} คน (สร้างใหม่ ${createdCount} รายการ, ปรับยอดถูกต้องแล้ว ${updatedCount} รายการ)`;
+    const successMessage = `ประสานและซิงค์ข้อมูลโควตาปีการลา ${formValues.year + 543} สำเร็จ! ประมวลผลพนักงาน ${employeesList.length} คน (สร้างใหม่ ${createdCount} รายการ, ปรับยอดถูกต้องแล้ว ${updatedCount} รายการ)`;
 
     await saveHRActivityLog('LEAVE_SYSTEM', 'RESET_QUOTA', `ปี ${formValues.year}`, `รีเซ็ตและคำนวณซิงค์ยอดโควตาประจำปี ${formValues.year} (Force: ${formValues.force})`);
 
@@ -1814,7 +1818,11 @@ function renderEmployeeTable() {
 
   container.innerHTML = filtered.map((emp) => {
     const avatarUrl = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url, emp.title) : getAvatarUrl(emp.image_url, emp.title);
-    const thaiStartDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-");
+    // วันเริ่มงาน: วัน/เดือน/ปี พ.ศ. (เช่น 19/01/2559)
+    const thaiStartDate = (() => {
+      const m = String(emp.start_date || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m ? `${m[3]}/${m[2]}/${Number(m[1]) + 543}` : '-';
+    })();
     const statusLabel = emp.status === "inactive" || emp.status === "resigned" ? "ลาออก" : "ใช้งาน";
     const statusClass = emp.status || "active";
 
@@ -4592,88 +4600,130 @@ async function openHolidayManagerModal() {
   if (!window.Swal) return;
 
   Swal.fire({
-    title: '⏳ กำลังโหลดข้อมูลวันหยุด...',
+    title: 'กำลังโหลดข้อมูลวันหยุด...',
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading()
   });
 
-  const holidays = await fetchCompanyHolidaysData();
+  const holidays = (await fetchCompanyHolidaysData()).slice().sort((a, b) => String(a.holiday_date).localeCompare(String(b.holiday_date)));
 
   const typeMap = {
-    public_holiday: { label: 'วันหยุดนักขัตฤกษ์', style: 'background:var(--th-p-100, #ccfbf1); color:var(--th-p-700, #0f766e);' },
-    company_holiday: { label: 'วันหยุดพิเศษบริษัท', style: 'background:#e0e7ff; color:#3730a3;' },
-    swap_day: { label: 'วันหยุดตามข้อตกลง', style: 'background:#f5f3ff; color:#6d28d9;' },
-    working_day: { label: 'วันทำงานพิเศษ (ตามข้อตกลง)', style: 'background:#f1f5f9; color:#334155;' },
-    tradition_holiday: { label: 'วันหยุดตามประเพณี', style: 'background:#fef3c7; color:#92400e;' }
+    public_holiday:    { label: 'นักขัตฤกษ์', cls: 'is-public' },
+    company_holiday:   { label: 'วันหยุดพิเศษบริษัท', cls: 'is-company' },
+    tradition_holiday: { label: 'ตามประเพณี', cls: 'is-tradition' },
+    swap_day:          { label: 'ตามข้อตกลง', cls: 'is-swap' },
+    working_day:       { label: 'วันทำงานพิเศษ', cls: 'is-work' }
+  };
+  const TH_M = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  const TH_MS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const TH_D = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+  const parts = (iso) => { const [y, m, d] = String(iso || '').slice(0, 10).split('-').map(Number); return { y, m, d, wd: new Date(y, m - 1, d).getDay() }; };
+  const typeOf = (h) => typeMap[h.holiday_type] || (h.is_working_day ? typeMap.working_day : { label: h.holiday_type || 'วันหยุดทั่วไป', cls: 'is-other' });
+
+  const nowYear = new Date().getFullYear();
+  const years = [...new Set(holidays.map((h) => parts(h.holiday_date).y).filter(Boolean))];
+  if (!years.includes(nowYear)) years.push(nowYear);
+  years.sort((a, b) => a - b);
+  const st = window.__pvtHolidayMgr = Object.assign({ year: nowYear, type: 'all', q: '' }, window.__pvtHolidayMgr || {});
+  if (!years.includes(st.year)) st.year = nowYear;
+
+  const filtered = () => holidays.filter((h) => {
+    const p = parts(h.holiday_date);
+    if (p.y !== st.year) return false;
+    if (st.type !== 'all' && (h.holiday_type || '') !== st.type) return false;
+    if (st.q) {
+      const q = st.q.toLowerCase();
+      if (![h.holiday_name, h.description, h.holiday_date].some((v) => String(v || '').toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+
+  const rowHtml = (h) => {
+    const p = parts(h.holiday_date);
+    const t = typeOf(h);
+    const paid = h.is_paid !== false;
+    return `
+      <tr class="hm-row ${h.is_working_day ? 'is-workday' : ''}">
+        <td class="hm-date">
+          <span class="hm-day">${p.d}</span>
+          <span class="hm-date-txt"><b>${TH_MS[p.m - 1]} ${p.y + 543}</b><small>วัน${TH_D[p.wd]}</small></span>
+        </td>
+        <td class="hm-name">
+          <b>${escapeHtml(h.holiday_name || '-')}</b>
+          ${h.description ? `<small>${escapeHtml(h.description)}</small>` : ''}
+        </td>
+        <td><span class="hm-badge ${t.cls}">${t.label}</span></td>
+        <td><span class="hm-badge ${paid ? 'is-paid' : 'is-unpaid'}">${paid ? 'ได้รับค่าจ้าง' : 'ไม่ได้รับค่าจ้าง'}</span></td>
+        <td class="hm-actions">
+          ${h.agreement_id
+            ? '<a class="hm-btn hm-btn--link" href="/pages/hr/holiday-swap.html" title="แก้ไขได้ที่เมนูข้อตกลงวันหยุดพิเศษ"><span class="material-symbols-outlined">open_in_new</span> ตามข้อตกลง</a>'
+            : `<button type="button" class="hm-btn hm-btn--edit" onclick="openEditHolidayModal('${h.id}')"><span class="material-symbols-outlined">edit</span> แก้ไข</button>
+               <button type="button" class="hm-btn hm-btn--del" onclick="deleteHoliday('${h.id}')"><span class="material-symbols-outlined">delete</span> ลบ</button>`}
+        </td>
+      </tr>`;
   };
 
-  const rowsHtml = holidays.length === 0
-    ? `<tr><td colspan="5" style="text-align:center; padding: 24px; color: #94a3b8;">ไม่พบรายการวันหยุดบริษัท</td></tr>`
-    : holidays.map(h => {
-        const typeInfo = typeMap[h.holiday_type] || { label: h.holiday_type || 'วันหยุดทั่วไป', style: 'background:#f1f5f9; color:#475569;' };
-        const formattedDate = window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(h.holiday_date) : h.holiday_date; //
+  const render = () => {
+    const list = filtered();
+    const body = document.getElementById('hmBody');
+    if (!body) return;
+    // จัดกลุ่มตามเดือน
+    let html = '', lastM = 0;
+    list.forEach((h) => {
+      const m = parts(h.holiday_date).m;
+      if (m !== lastM) { html += `<tr class="hm-month"><td colspan="5">${TH_M[m - 1]} ${st.year + 543}</td></tr>`; lastM = m; }
+      html += rowHtml(h);
+    });
+    body.innerHTML = html || `<tr><td colspan="5" class="hm-empty">ไม่พบวันหยุด${st.q || st.type !== 'all' ? 'ตามเงื่อนไขที่เลือก' : `ในปี ${st.year + 543}`}</td></tr>`;
+    const yearRows = holidays.filter((h) => parts(h.holiday_date).y === st.year && !h.is_working_day);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('hmTotal', yearRows.length);
+    set('hmPaid', yearRows.filter((h) => h.is_paid !== false).length);
+    set('hmPublic', yearRows.filter((h) => h.holiday_type === 'public_holiday').length);
+    set('hmCompany', yearRows.filter((h) => h.holiday_type && h.holiday_type !== 'public_holiday').length);
+    set('hmShown', list.length);
+    document.querySelectorAll('[data-hm-year]').forEach((b) => b.classList.toggle('is-on', Number(b.dataset.hmYear) === st.year));
+  };
 
-        return `
-          <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 10px; font-weight: 600; color: #334155; white-space: nowrap;">${formattedDate}</td>
-            <td style="padding: 10px; text-align: left;">
-              <div style="font-weight: 600; color: #0f172a;">${escapeHtml(h.holiday_name)}</div>
-              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">${escapeHtml(h.description || '-')}</div>
-            </td>
-            <td style="padding: 10px;">
-              <span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; ${typeInfo.style}">
-                ${typeInfo.label}
-              </span>
-            </td>
-            <td style="padding: 10px; text-align: center; white-space: nowrap;">
-              <span style="padding: 3px 8px; border-radius: 4px; font-size: 11px; background: ${h.is_paid !== false ? '#dcfce7' : '#f1f5f9'}; color: ${h.is_paid !== false ? '#15803d' : '#64748b'}; font-weight: 600;">
-                ${h.is_paid !== false ? 'ได้รับค่าจ้าง' : 'ไม่ได้รับค่าจ้าง'}
-              </span>
-            </td>
-            <td style="padding: 10px; text-align: center; white-space: nowrap;">
-              <button onclick="openEditHolidayModal('${h.id}')" style="background:#f8fafc; color:var(--th-k-600, #0284c7); border:1px solid var(--th-k-200, #bae6fd); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px; margin-right:4px;">
-                ✏️ แก้ไข
-              </button>
-                <button onclick="deleteHoliday('${h.id}')" style="background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:12px;">
-                  🗑️ ลบ
-                </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-
-  Swal.fire({
-    title: '📅 จัดการวันหยุดบริษัท',
-    width: 'min(94vw, 850px)',
+  await Swal.fire({
+    title: 'จัดการวันหยุดบริษัท',
+    customClass: { popup: 'pvt-hol-fullscreen', htmlContainer: 'pvt-hol-body' },
+    showConfirmButton: false,
+    showCloseButton: true,
     html: `
-      <div style="font-family: 'Sarabun', sans-serif;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-          <span style="font-size: 13px; color: #64748b;">รายการวันหยุดทั้งหมดประจำปี</span>
-          <button onclick="openAddHolidayModal()" style="display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--th-p-600, #0d9488); color: #fff; border: none; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer;">
-            ➕ เพิ่มวันหยุดใหม่
-          </button>
+      <div class="hm-wrap">
+        <div class="hm-toolbar">
+          <div class="hm-years">${years.map((y) => `<button type="button" class="hm-year" data-hm-year="${y}">${y + 543}</button>`).join('')}</div>
+          <div class="hm-search"><span class="material-symbols-outlined">search</span><input id="hmQ" placeholder="ค้นหาชื่อวันหยุด หรือรายละเอียด" value="${escapeHtml(st.q)}"></div>
+          <select id="hmType" class="hm-select">
+            <option value="all">ทุกประเภท</option>
+            ${Object.keys(typeMap).map((k) => `<option value="${k}" ${st.type === k ? 'selected' : ''}>${typeMap[k].label}</option>`).join('')}
+          </select>
+          <button type="button" class="hm-add" onclick="openAddHolidayModal()"><span class="material-symbols-outlined">add</span> เพิ่มวันหยุดใหม่</button>
         </div>
-
-        <div style="max-height: 420px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
-            <thead style="position: sticky; top: 0; background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
-              <tr>
-                <th style="padding: 10px;">วันที่</th>
-                <th style="padding: 10px;">ชื่อวันหยุด & รายละเอียด</th>
-                <th style="padding: 10px;">ประเภท</th>
-                <th style="padding: 10px; text-align: center;">สิทธิ์ค่าจ้าง</th>
-                <th style="padding: 10px; text-align: center;">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
+        <div class="hm-kpis">
+          <div><span>วันหยุดทั้งปี</span><b id="hmTotal">0</b></div>
+          <div><span>ได้รับค่าจ้าง</span><b id="hmPaid">0</b></div>
+          <div><span>นักขัตฤกษ์</span><b id="hmPublic">0</b></div>
+          <div><span>วันหยุดบริษัท / อื่นๆ</span><b id="hmCompany">0</b></div>
+          <div><span>แสดงอยู่</span><b id="hmShown">0</b></div>
+        </div>
+        <div class="hm-table-wrap">
+          <table class="hm-table">
+            <colgroup><col style="width:190px"><col><col style="width:190px"><col style="width:170px"><col style="width:220px"></colgroup>
+            <thead><tr><th>วันที่</th><th>ชื่อวันหยุด และรายละเอียด</th><th>ประเภท</th><th>สิทธิ์ค่าจ้าง</th><th class="hm-th-actions">จัดการ</th></tr></thead>
+            <tbody id="hmBody"></tbody>
           </table>
         </div>
-      </div>
-    `,
-    showConfirmButton: false,
-    showCloseButton: true
+      </div>`,
+    didOpen: (popup) => {
+      render();
+      popup.querySelectorAll('[data-hm-year]').forEach((b) => { b.onclick = () => { st.year = Number(b.dataset.hmYear); render(); }; });
+      const q = popup.querySelector('#hmQ');
+      if (q) q.oninput = () => { st.q = q.value.trim(); render(); };
+      const t = popup.querySelector('#hmType');
+      if (t) t.onchange = () => { st.type = t.value; render(); };
+    }
   });
 }
 
@@ -4746,6 +4796,8 @@ async function openAddHolidayModal() {
     } catch (err) {
       showAppError('ไม่สามารถเพิ่มวันหยุดได้', err.message);
     }
+  } else {
+    openHolidayManagerModal(); // กดยกเลิก → กลับไปหน้ารายการวันหยุด
   }
 }
 
@@ -4832,6 +4884,8 @@ async function openEditHolidayModal(holidayId) {
       Swal.fire({ icon: 'success', title: 'อัปเดตข้อมูลวันหยุดเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
       openHolidayManagerModal(); // รีโหลด Popup ตารางหลัก
     }
+  } else {
+    openHolidayManagerModal(); // กดยกเลิก → กลับไปหน้ารายการวันหยุด
   }
 }
 
@@ -4894,6 +4948,8 @@ async function deleteHoliday(holidayId) {
       console.error("Delete Holiday Error:", err);
       showAppError('ลบวันหยุดไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล');
     }
+  } else if (typeof openHolidayManagerModal === 'function') {
+    openHolidayManagerModal(); // ไม่ลบ → กลับไปหน้ารายการวันหยุด
   }
 }
 

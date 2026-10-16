@@ -887,9 +887,10 @@
 #page-hr-management .employee-list-header,
 #page-hr-management .emp-card-item {
   display: grid;
-  grid-template-columns: 80px 110px 1.5fr 1fr 1fr 120px 140px;
+  /* รูป · รหัส · ชื่อ/ตำแหน่ง · แผนก · วันเริ่มงาน · สถานะ · จัดการ */
+  grid-template-columns: 64px 120px minmax(260px, 2.2fr) minmax(170px, 1.3fr) 140px 110px 220px;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
 }
 
 #page-hr-management .employee-list-header {
@@ -1480,6 +1481,9 @@
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 20px;
+  /* ฟอร์มเป็น flex แนวตั้ง + margin auto → กล่องหดตามเนื้อหา (แคบ ~690px) → บังคับเต็มความกว้าง */
+  width: 100%;
+  box-sizing: border-box;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -1909,4 +1913,88 @@
     animation: none;
     transition: none;
   }
+}
+/* หน้าต่างสร้าง/รีเซ็ตโควตาวันลาประจำปี: หัวเรื่องไม่ตัดคำกลางประโยค */
+.swal2-title.pvt-reset-title { font-size: 21px; line-height: 1.4; padding-left: 20px; padding-right: 20px; }
+
+/* ==========================================================================
+   ป๊อปอัปจัดการวันหยุดบริษัท (เกือบเต็มจอ) — openHolidayManagerModal()
+   ========================================================================== */
+.swal2-popup.pvt-hol-fullscreen {
+  width: min(1600px, 96vw) !important; max-width: 96vw !important;
+  height: min(92vh, 1000px); max-height: 92vh;
+  display: flex !important; flex-direction: column; padding: 22px 28px 20px !important;
+  border-radius: 18px !important; font-family: 'Sarabun', sans-serif;
+}
+.swal2-popup.pvt-hol-fullscreen .swal2-title { font-size: 24px !important; padding: 0 0 6px !important; text-align: left; color: #0f172a; }
+.swal2-popup.pvt-hol-fullscreen { position: relative; }
+.swal2-popup.pvt-hol-fullscreen .swal2-close { position: absolute !important; top: 14px; right: 16px; left: auto !important; margin: 0 !important; z-index: 5; }
+.swal2-popup.pvt-hol-fullscreen .swal2-title { padding-right: 56px !important; }
+.swal2-html-container.pvt-hol-body { flex: 1; min-height: 0; margin: 10px 0 0 !important; padding: 0 !important; overflow: hidden !important; text-align: left; display: flex !important; }
+.hm-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+.hm-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.hm-years { display: flex; gap: 4px; padding: 4px; background: #f1f5f9; border-radius: 12px; }
+.hm-year { border: 0; background: transparent; padding: 8px 14px; border-radius: 9px; font: inherit; font-size: 14px; font-weight: 700; color: #475569; cursor: pointer; }
+.hm-year.is-on { background: #fff; color: var(--th-p-700, #0f766e); box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
+.hm-search { flex: 1 1 280px; display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+.hm-search input { flex: 1; min-width: 0; border: 0; outline: 0; font: inherit; font-size: 14.5px; background: transparent; }
+.hm-search .material-symbols-outlined { color: #94a3b8; font-size: 20px; }
+.hm-select { min-height: 42px; padding: 0 12px; border: 1px solid #e2e8f0; border-radius: 12px; font: inherit; font-size: 14px; background: #fff; }
+.hm-add { display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--th-p-600, #0d9488); color: #fff; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.hm-add:hover { filter: brightness(.95); }
+.hm-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #fff; }
+.hm-kpis > div { padding: 10px 16px; box-shadow: -1px 0 0 #eef2f6; }
+.hm-kpis span { display: block; font-size: 12.5px; font-weight: 700; color: #64748b; }
+.hm-kpis b { font-size: 24px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+.hm-table-wrap { flex: 1; min-height: 0; overflow: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
+.hm-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 14.5px; }
+.hm-table thead th { position: sticky; top: 0; z-index: 2; background: #f8fafc; color: #475569; font-weight: 700; text-align: left; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+.hm-table .hm-th-actions { text-align: center; }
+.hm-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #0f172a; }
+.hm-table tr.hm-row:hover td { background: #fbfdff; }
+.hm-month td { position: sticky; top: 45px; z-index: 1; background: var(--th-p-50, #f0fdfa); color: var(--th-p-800, #115e59); font-weight: 800; font-size: 13.5px; padding: 8px 16px; border-bottom: 1px solid var(--th-p-100, #ccfbf1); }
+.hm-date { white-space: nowrap; }
+.hm-date .hm-day { display: inline-grid; place-items: center; width: 40px; height: 40px; margin-right: 10px; border-radius: 10px; background: #f1f5f9; font-size: 18px; font-weight: 800; color: #0f172a; vertical-align: middle; }
+.hm-date-txt { display: inline-flex; flex-direction: column; vertical-align: middle; line-height: 1.3; }
+.hm-date-txt b { font-size: 14px; } .hm-date-txt small { font-size: 12px; color: #64748b; }
+.hm-name b { display: block; font-weight: 700; }
+.hm-name small { display: block; margin-top: 2px; font-size: 12.5px; color: #64748b; line-height: 1.5; }
+.hm-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+.hm-badge.is-public { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+.hm-badge.is-company { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.hm-badge.is-tradition { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.hm-badge.is-swap { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.hm-badge.is-work, .hm-badge.is-other { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.hm-badge.is-paid { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+.hm-badge.is-unpaid { background: #f8fafc; color: #64748b; border-color: #e2e8f0; }
+.hm-actions { text-align: center; white-space: nowrap; }
+.hm-btn { display: inline-flex; align-items: center; gap: 4px; padding: 7px 14px; margin: 0 3px; border-radius: 9px; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
+.hm-btn .material-symbols-outlined { font-size: 17px; }
+.hm-btn--edit { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; }
+.hm-btn--del { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
+.hm-btn--link { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.hm-btn:hover { filter: brightness(.97); }
+.hm-row.is-workday td { background: #fafafa; }
+.hm-empty { text-align: center; padding: 48px 16px !important; color: #94a3b8; }
+@media (max-width: 900px) {
+  .swal2-popup.pvt-hol-fullscreen { height: 94vh; padding: 16px !important; }
+  .hm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hm-table { table-layout: auto; min-width: 760px; }
+}
+.swal2-popup.pvt-hol-fullscreen .swal2-close:focus { box-shadow: none !important; }
+
+/* ตารางพนักงาน: วันเริ่มงานตัวเลขตรงกัน · ปุ่มจัดการไม่ตัดบรรทัด */
+#page-hr-management .emp-start-date { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+#page-hr-management .emp-card-item .col-actions { justify-content: flex-end; flex-wrap: nowrap; }
+#page-hr-management .employee-list-header .col-actions { text-align: right; padding-right: 8px; }
+#page-hr-management .emp-card-item .col-actions .btn-table-act { white-space: nowrap; flex-shrink: 0; }
+#page-hr-management .emp-card-item .col-actions .btn-table-act.primary { padding-left: 14px; padding-right: 16px; }
+#page-hr-management .emp-card-item .col-actions .btn-table-act.danger,
+#page-hr-management .emp-card-item .col-actions .btn-table-act.warning { width: 38px; padding-left: 0; padding-right: 0; justify-content: center; }
+@media (max-width: 1400px) and (min-width: 993px) {
+  #page-hr-management .employee-list-header,
+  #page-hr-management .emp-card-item { grid-template-columns: 52px 100px minmax(0, 2fr) minmax(0, 1.2fr) 108px 90px 176px; gap: 10px; }
+  #page-hr-management .emp-card-item,
+  #page-hr-management .employee-list-header { padding-left: 16px; padding-right: 16px; }
+  #page-hr-management .emp-card-item .col-actions .btn-table-act.primary { padding-left: 10px; padding-right: 12px; }
 }

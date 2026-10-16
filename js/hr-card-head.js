@@ -73,3 +73,91 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+
+/* ==========================================================================
+   ป๊อปอัป (SweetAlert) ฝั่ง HR บนจอ PC: ขยายตามเนื้อหา (จอมาตรฐาน 21 นิ้ว / 1920px)
+   - มีตาราง → เกือบเต็มจอ (สูงสุด 1600px / 96% ของจอ) · ฟอร์มหลายช่อง → กลาง (สูงสุด 860px) · ข้อความยืนยันสั้นๆ → ขนาดเดิม
+   - กล่องเลื่อนในป๊อปอัป (ที่ตั้ง max-height ไว้) → สูงได้ถึง ~65% ของจอ
+   - ไม่ย่อป๊อปอัปที่กว้างอยู่แล้ว / ไม่แตะป๊อปอัปเต็มจอและ toast · จอเล็กกว่า 1200px ใช้ขนาดเดิม
+   ========================================================================== */
+(function () {
+  'use strict';
+  if (window.__pvtSwalSize) return;
+  window.__pvtSwalSize = true;
+
+  var css = [
+    '@media (min-width: 1200px) {',
+    '  .swal2-popup.pvt-swal-wide { width: min(1600px, 96vw) !important; max-width: 96vw !important; max-height: 92vh; padding: 1.6em 2em 1.4em !important; }',
+    '  .swal2-popup.pvt-swal-form { width: min(860px, 88vw) !important; max-width: 88vw !important; padding: 1.5em 1.8em 1.3em !important; }',
+    '  .swal2-popup.pvt-swal-wide .swal2-title, .swal2-popup.pvt-swal-form .swal2-title { font-size: 1.6em !important; }',
+    '  .swal2-popup.pvt-swal-wide .swal2-html-container, .swal2-popup.pvt-swal-form .swal2-html-container { font-size: 1.05em; margin-left: .4em; margin-right: .4em; }',
+    '  .swal2-popup.pvt-swal-form .swal2-html-container [style*="max-height"] { max-height: min(65vh, 760px) !important; }',
+    '  .swal2-popup.pvt-swal-wide .swal2-html-container [style*="max-height"] { max-height: calc(92vh - 230px) !important; }',
+    '  .swal2-popup.pvt-swal-wide table { font-size: 14.5px !important; }',
+    /* คอลัมน์แคบที่ตั้งความกว้างไว้ (เช่น โควตา / จัดการ) → ให้ที่หายใจ ไม่เบียดกัน ช่องชื่อยังกว้างตามที่เหลือ */
+    '  .swal2-popup.pvt-swal-wide table th { white-space: nowrap; }',
+    '  .swal2-popup.pvt-swal-wide table th[style*="width"] { width: auto !important; min-width: 170px; }',
+    '  .swal2-popup.pvt-swal-wide table td, .swal2-popup.pvt-swal-wide table th { padding-left: 14px !important; padding-right: 14px !important; }',
+    '  .swal2-popup.pvt-swal-wide table td input[type="number"] { width: 120px !important; max-width: 100%; }',
+    '  .swal2-popup.pvt-swal-wide table td button, .swal2-popup.pvt-swal-wide table td .btn, .swal2-popup.pvt-swal-wide table td a[class*="btn"] { white-space: nowrap; padding: 8px 16px !important; font-size: 13.5px !important; border-radius: 8px !important; }',
+    '  .swal2-popup.pvt-swal-wide table td:has(> button:only-child), .swal2-popup.pvt-swal-wide table td:has(> input[type="number"]) { text-align: center; }',
+  '  .swal2-popup.pvt-swal-wide table td, .swal2-popup.pvt-swal-wide table th { padding-top: 10px; padding-bottom: 10px; }',
+    '}'
+  ].join('\n');
+  var st = document.createElement('style');
+  st.id = 'pvt-swal-size-style';
+  st.textContent = css;
+  (document.head || document.documentElement).appendChild(st);
+
+  function visibleFields(root) {
+    var n = 0;
+    var list = root.querySelectorAll('input, select, textarea');
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i];
+      if (el.type === 'hidden' || el.type === 'checkbox' || el.type === 'radio') continue;
+      if (el.offsetParent === null && !el.classList.contains('swal2-input')) continue;
+      n++;
+    }
+    return n;
+  }
+
+  function size(popup) {
+    if (!popup || popup.classList.contains('swal2-toast')) return;
+    if (/fullscreen/.test(popup.className) || /100vw/.test(popup.style.width || '')) return;
+    var box = popup.querySelector('.swal2-html-container');
+    if (!box || box.style.display === 'none') { popup.classList.remove('pvt-swal-wide', 'pvt-swal-form'); return; }
+    var wide = !!box.querySelector('table') || box.scrollWidth > box.clientWidth + 8;
+    // ฟอร์มหลายช่อง หรือรายการที่มีปุ่มจัดการหลายแถว (เช่น เงื่อนไขการลา) → ขนาดกลาง
+    var form = !wide && (visibleFields(box) >= 3 || box.querySelectorAll('button, a[onclick]').length >= 6);
+    var cur = popup.getBoundingClientRect().width;
+    // ไม่ย่อ: ถ้ากว้างกว่าขนาดเป้าหมายอยู่แล้ว ปล่อยไว้
+    var vw = window.innerWidth;
+    var targetWide = Math.min(1600, vw * 0.96), targetForm = Math.min(860, vw * 0.88);
+    popup.classList.toggle('pvt-swal-wide', wide && cur < targetWide);
+    popup.classList.toggle('pvt-swal-form', form && cur < targetForm);
+  }
+
+  var t = null;
+  function check() {
+    if (t) return;
+    t = setTimeout(function () {
+      t = null;
+      var pops = document.querySelectorAll('.swal2-container .swal2-popup');
+      for (var i = 0; i < pops.length; i++) size(pops[i]);
+    }, 30);
+  }
+
+  function start() {
+    try {
+      new MutationObserver(function (list) {
+        for (var i = 0; i < list.length; i++) {
+          var m = list[i];
+          if (m.type === 'childList' && m.addedNodes.length) { check(); return; }
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    } catch (e) {}
+    window.addEventListener('resize', check);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();

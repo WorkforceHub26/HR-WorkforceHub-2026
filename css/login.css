@@ -3746,3 +3746,10 @@ body {
   #page-login .brand-logo { width: 76px; }
   #page-login .brand-area::before { border-radius: 0 0 50% 50% / 0 0 120px 120px; }
 }
+
+/* PC: กรอบนอกการ์ดโปร่งใส → มุมโค้งของการ์ดไม่เห็นสีเข้มโผล่ที่มุม */
+@media (min-width: 900px) {
+  #page-login .login-container { background: transparent !important; border-radius: 28px; }
+  #page-login .login-card { border-radius: 28px; overflow: hidden; isolation: isolate; }
+  #page-login .brand-area { border-radius: 28px 0 0 28px; }
+}

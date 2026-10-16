@@ -197,7 +197,10 @@
     return picked;
   }
 
-  const dateInputs = (cls, n, values) => [...Array(n).keys()].map((i) => `<input type="date" class="swal2-input ${cls}" value="${esc(values[i] || '')}" ${i >= Math.max(2, values.length) ? 'style="display:none"' : ''}>`).join('');
+  const dateInputs = (cls, n, values) => [...Array(n).keys()].map((i) => `<span class="hsf-slot" ${i >= Math.max(2, values.length) ? 'style="display:none"' : ''}><input type="date" class="swal2-input ${cls}" value="${esc(values[i] || '')}"></span>`).join('');
+
+  // ช่องวันที่แสดง วัน/เดือน/ปี พ.ศ. ด้วย js/thai-date.js (ทั้งระบบ) — ค่าใน input ยังเป็น YYYY-MM-DD
+  const NOT_ALT = ':not(.pvt-thdate-alt):not(.hsf-alt)';
   const pairInputs = (n, aLabel, bLabel, values) => [...Array(n).keys()].map((i) => `
     <div class="hs-pair" ${i >= Math.max(1, values.length) ? 'style="display:none"' : ''}>
       <span><small>${aLabel}</small><input type="date" class="swal2-input hsf-a" value="${esc(values[i]?.a || '')}"></span>
@@ -238,7 +241,7 @@
           ${kind === 'leave_swap' ? `<label>ยืมพักร้อนปีหน้าได้ไม่เกิน (วัน/คน)<input id="hsf-max" type="number" min="0" max="10" step="1" value="${init ? Number(init.max_borrow) || 0 : 2}" class="swal2-input"></label>` : ''}
         </div>`,
       didOpen: () => {
-        $('hsf-more').onclick = () => { const hidden = [...document.querySelectorAll(isPairs ? '.hs-pair' : '.hsf-date')].find((i) => i.style.display === 'none'); if (hidden) hidden.style.display = ''; };
+        $('hsf-more').onclick = () => { const hidden = [...document.querySelectorAll(isPairs ? '.hs-pair' : '.hsf-slot')].find((i) => i.style.display === 'none'); if (hidden) hidden.style.display = ''; };
       },
       showCancelButton: true,
       confirmButtonText: init ? 'บันทึกการแก้ไข' : (hasItems({ kind }) ? 'สร้างและคำนวณรายชื่อ' : 'สร้างข้อตกลง'),
@@ -248,7 +251,7 @@
         if (!title) return Swal.showValidationMessage('กรุณาตั้งชื่อข้อตกลง');
         let dates = [], pairs = null;
         if (isPairs) {
-          const rows = [...document.querySelectorAll('.hs-pair')].map((row) => ({ a: row.querySelector('.hsf-a').value, b: row.querySelector('.hsf-b').value })).filter((x) => x.a || x.b);
+          const rows = [...document.querySelectorAll('.hs-pair')].map((row) => ({ a: row.querySelector('.hsf-a' + NOT_ALT).value, b: row.querySelector('.hsf-b' + NOT_ALT).value })).filter((x) => x.a || x.b);
           if (!rows.length) return Swal.showValidationMessage('กรุณาเลือกวันอย่างน้อย 1 คู่');
           if (rows.some((x) => !x.a || !x.b)) return Swal.showValidationMessage('กรุณาเลือกวันให้ครบทั้ง 2 ช่องของแต่ละคู่');
           if (rows.some((x) => x.a === x.b)) return Swal.showValidationMessage('วันทั้ง 2 ช่องต้องไม่ใช่วันเดียวกัน');
@@ -268,7 +271,7 @@
             dates = [...new Set(pairs.map((x) => x.to_date))].sort();
           }
         } else {
-          dates = [...new Set([...document.querySelectorAll('.hsf-date')].map((i) => i.value).filter(Boolean))].sort();
+          dates = [...new Set([...document.querySelectorAll('.hsf-date' + NOT_ALT)].map((i) => i.value).filter(Boolean))].sort();
           if (!dates.length) return Swal.showValidationMessage('กรุณาเลือกวันอย่างน้อย 1 วัน');
         }
         const maxBorrow = kind === 'leave_swap' ? Math.max(0, Number($('hsf-max').value) || 0) : 0;

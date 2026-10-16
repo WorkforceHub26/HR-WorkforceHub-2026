@@ -106,9 +106,55 @@
       navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () { /* เช่น Live Server ที่ไม่มี /sw.js */ });
     });
   }
+  // 🔤 แบบอักษร (ผู้ใช้เลือกเองในเมนูตั้งค่า) — ค่าเริ่มต้น Sarabun ไม่ต้องโหลดเพิ่ม
+  var FONTS = {
+    sarabun:   { name: 'Sarabun',                   css: null },
+    notoloop:  { name: 'Noto Sans Thai Looped',     css: 'Noto+Sans+Thai+Looped:wght@300;400;500;600;700;800' },
+    ibmloop:   { name: 'IBM Plex Sans Thai Looped', css: 'IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700' },
+    noto:      { name: 'Noto Sans Thai',            css: 'Noto+Sans+Thai:wght@300;400;500;600;700;800' },
+    anuphan:   { name: 'Anuphan',                   css: 'Anuphan:wght@300;400;500;600;700' }
+  };
+  function fontLink(id, families) {
+    var el = document.getElementById(id);
+    var href = 'https://fonts.googleapis.com/css2?' + families.map(function (f) { return 'family=' + f; }).join('&') + '&display=swap';
+    if (!el) { el = document.createElement('link'); el.id = id; el.rel = 'stylesheet'; (document.head || document.documentElement).appendChild(el); }
+    if (el.getAttribute('href') !== href) el.setAttribute('href', href);
+  }
+  function applyFont(key) {
+    var f = FONTS[key] ? key : 'sarabun';
+    var root = document.documentElement;
+    root.setAttribute('data-font', f);
+    var st = document.getElementById('pvt-font-style');
+    if (f === 'sarabun') { if (st) st.textContent = ''; return; }
+    fontLink('pvt-font-link', [FONTS[f].css]);
+    if (!st) { st = document.createElement('style'); st.id = 'pvt-font-style'; (document.head || document.documentElement).appendChild(st); }
+    var fam = "'" + FONTS[f].name + "', 'Sarabun', 'Noto Sans Lao', 'Noto Sans Myanmar', system-ui, sans-serif";
+    // ทับฟอนต์ทั้งหน้า ยกเว้นไอคอน (Material Symbols) และโค้ด
+    st.textContent = ':root{--pvt-font:' + fam + '}' +
+      'html[data-font="' + f + '"] body, html[data-font="' + f + '"] body *:not([class*="material-symbols"]):not([class*="material-icons"]):not(code):not(pre):not(kbd), ' +
+      'html[data-font="' + f + '"] .swal2-container *:not([class*="material-symbols"]), html[data-font="' + f + '"] .flatpickr-calendar *{font-family:' + fam + ' !important}';
+  }
+  // โหลดทุกแบบ (ใช้ตอนเปิดหน้าตั้งค่า เพื่อแสดงตัวอย่าง)
+  function preloadFonts() {
+    var list = [];
+    for (var k in FONTS) if (FONTS[k].css) list.push(FONTS[k].css);
+    fontLink('pvt-font-preview-link', list);
+  }
+  try { applyFont(localStorage.getItem('pvt_user_font') || 'sarabun'); } catch (e) {}
+  window.PVTFont = { fonts: FONTS, apply: applyFont, preload: preloadFonts };
+
+  // 📅 ช่องวันที่แบบไทย (วัน/เดือน/ปี พ.ศ.) ทั้งระบบ — js/thai-date.js
+  try {
+    if (!document.getElementById('pvt-thai-date-js')) {
+      var td = document.createElement('script');
+      td.id = 'pvt-thai-date-js'; td.src = '/js/thai-date.js'; td.async = true;
+      (document.head || document.documentElement).appendChild(td);
+    }
+  } catch (e) {}
   // เปลี่ยนธีมจากอีกแท็บ → อัปเดตหน้านี้ด้วย
   window.addEventListener('storage', function (e) {
     if (e.key === 'pvt_user_theme') apply(e.newValue || 'teal');
+    if (e.key === 'pvt_user_font') applyFont(e.newValue || 'sarabun');
   });
 })();
 
