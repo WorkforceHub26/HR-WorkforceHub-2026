@@ -220,3 +220,9 @@ td.hs-empty { display: table-cell; }
   .hs-pair { grid-template-columns: 1fr; }
   .hs-pair > .material-symbols-outlined { display: none; }
 }
+
+/* ---------- ปฏิทินเลือกวัน (flatpickr ใน SweetAlert) ---------- */
+.flatpickr-calendar { z-index: 2000 !important; font-family: inherit; }
+.flatpickr-calendar .hs-be-year { font-weight: 700; font-size: 15px; margin-left: 6px; color: inherit; }
+.hsf-slot { display: block; min-width: 0; }
+.hs-form .hsf-alt { cursor: pointer; background: #fff; }

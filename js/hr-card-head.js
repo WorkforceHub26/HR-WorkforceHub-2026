@@ -133,8 +133,11 @@
     // ไม่ย่อ: ถ้ากว้างกว่าขนาดเป้าหมายอยู่แล้ว ปล่อยไว้
     var vw = window.innerWidth;
     var targetWide = Math.min(1600, vw * 0.96), targetForm = Math.min(860, vw * 0.88);
-    popup.classList.toggle('pvt-swal-wide', wide && cur < targetWide);
-    popup.classList.toggle('pvt-swal-form', form && cur < targetForm);
+    // ตั้งขนาดครั้งเดียวต่อป๊อปอัพ: ถ้าใส่ class แล้วให้คงไว้ (เดิมวัดซ้ำทุกครั้งที่หน้าอัปเดต → ใส่/ถอดสลับ ป๊อปอัพเด้งไปมา)
+    var hasWide = popup.classList.contains('pvt-swal-wide'), hasForm = popup.classList.contains('pvt-swal-form');
+    if (hasWide || hasForm) return;
+    if (wide && cur < targetWide) popup.classList.add('pvt-swal-wide');
+    else if (form && cur < targetForm) popup.classList.add('pvt-swal-form');
   }
 
   var t = null;
@@ -143,7 +146,15 @@
     t = setTimeout(function () {
       t = null;
       var pops = document.querySelectorAll('.swal2-container .swal2-popup');
-      for (var i = 0; i < pops.length; i++) size(pops[i]);
+      for (var i = 0; i < pops.length; i++) {
+        // ป๊อปอัพใหม่ (Swal ใช้ element เดิมซ้ำ) → ล้าง class เก่าก่อนวัดใหม่
+        var key = (pops[i].querySelector('.swal2-title') || {}).textContent + '|' + ((pops[i].querySelector('.swal2-html-container') || {}).childElementCount || 0);
+        if (pops[i].getAttribute('data-pvt-size-key') !== key) {
+          pops[i].classList.remove('pvt-swal-wide', 'pvt-swal-form');
+          pops[i].setAttribute('data-pvt-size-key', key);
+        }
+        size(pops[i]);
+      }
     }, 30);
   }
 
@@ -152,7 +163,7 @@
       new MutationObserver(function (list) {
         for (var i = 0; i < list.length; i++) {
           var m = list[i];
-          if (m.type === 'childList' && m.addedNodes.length) { check(); return; }
+          if (m.type === 'childList' && m.addedNodes.length && m.target.closest && (m.target.closest('.swal2-container') || (m.addedNodes[0].classList && m.addedNodes[0].classList.contains('swal2-container')))) { check(); return; }
         }
       }).observe(document.body, { childList: true, subtree: true });
     } catch (e) {}
