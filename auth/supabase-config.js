@@ -138,13 +138,21 @@
   // ดัชนีคำนำหน้าพนักงาน (ชื่อ/รหัส/id → คำนำหน้า) — หลายหน้าดึงข้อมูลพนักงานโดยไม่มีคอลัมน์ title/prefix
   // รูปเริ่มต้นจึงเดาเพศจากชื่อไม่ได้ → ผู้หญิงได้รูปผู้ชาย ดัชนีนี้ให้ทุกจุดหาคำนำหน้าเจอ
   // --------------------------------------------------------------------------
-  const GIDX_KEY = 'pvt_avatar_title_idx_v1';
+  const GIDX_KEY = 'pvt_avatar_title_idx_v2';
   const normName = (n) => String(n || '').replace(/\s+/g, '').toLowerCase();
   global.PVT_TITLE_INDEX = global.PVT_TITLE_INDEX || { byName: {}, byId: {}, byCode: {}, at: 0 };
   try {
     const cached = JSON.parse(localStorage.getItem(GIDX_KEY) || 'null');
     if (cached && cached.byName) global.PVT_TITLE_INDEX = cached;
   } catch (e) {}
+  // รูปที่อัปโหลดจริงของพนักงาน (ใช้แทนรูปการ์ตูนในหน้าที่ไม่ได้ดึงคอลัมน์รูปมา)
+  global.pvtLookupPhoto = function (key) {
+    const ix = global.PVT_TITLE_INDEX || {};
+    const ph = ix.photo || {};
+    if (!key) return '';
+    const k = String(key);
+    return (ph.byId && ph.byId[k]) || (ph.byCode && ph.byCode[k.toLowerCase()]) || (ph.byName && ph.byName[normName(k)]) || '';
+  };
   global.pvtLookupTitle = function (key) {
     const ix = global.PVT_TITLE_INDEX || {};
     if (!key) return '';
@@ -218,6 +226,18 @@
   function fixDefaultAvatarImg(img) {
     if (!img || img.tagName !== 'IMG') return;
     const src = img.getAttribute('src') || '';
+    // อัปโหลดรูปจริงไว้ → แสดงรูปจริงแทนรูปการ์ตูน (ถ้ารูปเสีย ระบบกลับเป็นรูปการ์ตูนตามเพศเอง)
+    if (global.PVT_AVATAR_PLACEHOLDER_RE.test(src) && !(img.dataset && img.dataset.avPhotoTried)) {
+      const d0 = img.dataset || {};
+      const alt0 = (img.alt && !/^(profile|avatar|pvt|employee photo|รูป)/i.test(img.alt)) ? img.alt : '';
+      const owner = d0.avName || alt0 || (SELF_AVATAR_IDS.test(img.id || '') ? sessionPerson().name : '');
+      const photo = owner ? global.pvtLookupPhoto(owner) : '';
+      if (photo) {
+        img.dataset.avPhotoTried = '1';
+        const real = global.getAvatarUrl ? global.getAvatarUrl(photo) : photo;
+        if (real && !global.PVT_AVATAR_PLACEHOLDER_RE.test(real)) { img.setAttribute('src', real); return; }
+      }
+    }
     if (/default-avatar\.jpe?g/i.test(src)) {
       const url = genderedDefaultFor(img);
       if (src !== url) img.setAttribute('src', url);
@@ -226,8 +246,9 @@
     // รูปการ์ตูนตามเพศที่ใส่ไว้แล้ว แต่รู้ชื่อเจ้าของรูป → ตรวจเพศซ้ำจากดัชนีคำนำหน้า (แก้ผู้หญิงได้รูปผู้ชาย)
     if (/avatar-(male|female)\.jpe?g/i.test(src)) {
       const d = img.dataset || {};
+      const altName = (img.alt && !/^(profile|avatar|pvt|employee photo|รูป)/i.test(img.alt)) ? img.alt : '';
       if (d.avTitle || d.avGender) return;
-      const hasName = d.avName || (img.alt && !/^(profile|avatar|pvt|employee photo|รูป)/i.test(img.alt)) || SELF_AVATAR_IDS.test(img.id || '');
+      const hasName = d.avName || altName || SELF_AVATAR_IDS.test(img.id || '');
       if (!hasName) return;
       const url = genderedDefaultFor(img);
       if (url && src.replace(/\?.*$/, '') !== url.replace(/\?.*$/, '')) img.setAttribute('src', url);
@@ -240,7 +261,7 @@
   let gidxLoading = false;
   async function loadTitleIndex() {
     const ix = global.PVT_TITLE_INDEX;
-    if (gidxLoading || (ix && ix.at && Date.now() - ix.at < 6 * 3600 * 1000)) return;
+    if (gidxLoading || (ix && ix.at && Date.now() - ix.at < 30 * 60 * 1000)) return;
     gidxLoading = true;
     try {
       let sb = null;
@@ -249,10 +270,16 @@
         if (!sb) await new Promise((r) => setTimeout(r, 250));
       }
       if (!sb) return;
-      const { data, error } = await sb.from('employees').select('id, employee_code, full_name, title, prefix');
+      const { data, error } = await sb.from('employees').select('id, employee_code, full_name, title, prefix, image_url');
       if (error || !Array.isArray(data)) return;
-      const next = { byName: {}, byId: {}, byCode: {}, at: Date.now() };
+      const next = { byName: {}, byId: {}, byCode: {}, photo: { byName: {}, byId: {}, byCode: {} }, at: Date.now() };
       data.forEach((e) => {
+        const ph = String(e.image_url || '').trim();
+        if (ph && !global.pvtIsPlaceholderAvatar(ph)) {
+          next.photo.byId[String(e.id)] = ph;
+          if (e.employee_code) next.photo.byCode[String(e.employee_code).toLowerCase()] = ph;
+          if (e.full_name) next.photo.byName[normName(e.full_name)] = ph;
+        }
         const t = String(e.title || e.prefix || '').trim();
         if (!t) return;
         next.byId[String(e.id)] = t;
@@ -677,6 +704,10 @@
         gender = gender || obj.gender || obj.employees?.gender || "";
         fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
         if (!title && !gender) title = global.pvtLookupTitle(obj.id || obj.employees?.id) || global.pvtLookupTitle(obj.employee_code || obj.employees?.employee_code) || "";
+        // ไม่มีรูปในข้อมูลที่หน้านี้ดึงมา แต่พนักงานอัปโหลดรูปไว้ → ใช้รูปจริง
+        if (global.pvtIsPlaceholderAvatar(imageUrl)) {
+          imageUrl = global.pvtLookupPhoto(obj.id || obj.employees?.id) || global.pvtLookupPhoto(obj.employee_code || obj.employees?.employee_code) || global.pvtLookupPhoto(fullName) || imageUrl;
+        }
       }
       // รูปการ์ตูนเริ่มต้นที่เคยถูกบันทึกลงฐานข้อมูล (avatar-male / avatar-female / default-avatar) ไม่นับเป็นรูปจริง
       // → เลือกใหม่ตามคำนำหน้า (เดิมถ้าบันทึกรูปผู้ชายไว้ ผู้หญิงจะได้รูปผู้ชายตลอด)
