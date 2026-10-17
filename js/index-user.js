@@ -736,7 +736,7 @@ async function loadDepartmentTeam(profileData) {
 
       return `
         <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
-          <img src="${avatar}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
+          <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${avatar}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
           <div style="flex: 1; min-width: 0;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
               <strong style="font-size: 13px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeEscapeHtml(emp.full_name)} ${nick}</strong>

@@ -1187,7 +1187,7 @@ function renderTodayLeavesDetail(leaves) {
     
     return `
       <div class="today-leave-card-detail">
-        <img src="${escapeHtmlAttribute(img)}" class="emp-avatar" alt="" onerror="this.onerror=null; this.src='${escapeHtmlAttribute(defaultAvatarFallback)}';">
+        <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${escapeHtmlAttribute(img)}" class="emp-avatar" alt="" onerror="this.onerror=null; this.src='${escapeHtmlAttribute(defaultAvatarFallback)}';">
         <div class="info">
           <div class="name">${escapeHtmlText(emp.full_name || "ไม่ระบุชื่อ")}</div>
           <div class="dept">${escapeHtmlText(dept)}</div>
@@ -1440,7 +1440,7 @@ function applyHomeTeamRender() {
 
     return `
       <div class="team-member-card">
-        <img src="${avatar}" class="team-member-avatar" onerror="this.onerror=null; this.src='${defaultFallback}';">
+        <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${avatar}" class="team-member-avatar" onerror="this.onerror=null; this.src='${defaultFallback}';">
         <div style="flex: 1; min-width: 0; overflow: hidden;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
             <span style="font-weight: 700; font-size: 14px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtmlText(fullName)}">
@@ -1927,7 +1927,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
         <div class="card-header">PVT WORKFORCE HUB</div>
         <div class="card-body">
           <div class="avatar-box">
-            <img src="${employee.avatar}" onerror="this.onerror=null;this.src='${location.origin}${window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', employee.name || '') : '/assets/img/avatar-male.jpg?v=2'}';" alt="Avatar" />
+            <img data-av-name="${String(employee.name || '').replace(/"/g, '&quot;')}" src="${employee.avatar}" onerror="this.onerror=null;this.src='${location.origin}${window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', employee.name || '') : '/assets/img/avatar-male.jpg?v=2'}';" alt="Avatar" />
           </div>
           <div class="details">
             <div class="name">${escapeHtmlText(employee.name)}</div>

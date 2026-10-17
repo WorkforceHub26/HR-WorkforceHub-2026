@@ -1862,7 +1862,7 @@ function renderEmployeeTable() {
     return `
       <div class="emp-card-item ${posCategory === 'executive' ? 'is-executive' : ''}">
         <div class="col-avatar">
-          <img src="${avatarUrl}" 
+          <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${avatarUrl}" 
                onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(emp.full_name || 'PVT')}&background=0d9488&color=fff';" 
                alt="${escapeHtml(emp.full_name || '')}">
           ${posCategory === 'executive' ? '<span class="exec-crown-badge">👑</span>' : ''}
@@ -2114,7 +2114,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
     if (body) {
       body.innerHTML = `
         <div style="display:flex; align-items:center; gap:14px; background:#f8fafc; padding:14px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px; flex-wrap:wrap;">
-          <img src="${getAvatarUrl(emp.image_url, emp.title)}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--th-p-600, #0d9488); background:#fff; flex-shrink:0;" onerror="this.onerror=null; this.src=getDefaultAvatarUrl('${escapeHtml(emp.title || '')}');">
+          <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${getAvatarUrl(emp.image_url, emp.title)}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--th-p-600, #0d9488); background:#fff; flex-shrink:0;" onerror="this.onerror=null; this.src=getDefaultAvatarUrl('${escapeHtml(emp.title || '')}');">
           <div style="flex:1; min-width:180px;">
             <div style="font-size:15px; font-weight:700; color:#1e293b;">${escapeHtml(emp.full_name || "-")} ${emp.nickname ? `<span style="font-weight:400; color:#64748b;">(${escapeHtml(emp.nickname)})</span>` : ''}</div>
             <div style="font-size:13px; color:var(--th-p-600, #0d9488); font-weight:600; margin-top:2px;">${escapeHtml(emp.positions?.position_name || "-")} · ${escapeHtml(emp.departments?.department_name || "-")}</div>

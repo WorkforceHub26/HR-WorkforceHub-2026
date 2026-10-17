@@ -134,8 +134,27 @@
     );
   } catch (e) {}
 
+  // --------------------------------------------------------------------------
+  // ดัชนีคำนำหน้าพนักงาน (ชื่อ/รหัส/id → คำนำหน้า) — หลายหน้าดึงข้อมูลพนักงานโดยไม่มีคอลัมน์ title/prefix
+  // รูปเริ่มต้นจึงเดาเพศจากชื่อไม่ได้ → ผู้หญิงได้รูปผู้ชาย ดัชนีนี้ให้ทุกจุดหาคำนำหน้าเจอ
+  // --------------------------------------------------------------------------
+  const GIDX_KEY = 'pvt_avatar_title_idx_v1';
+  const normName = (n) => String(n || '').replace(/\s+/g, '').toLowerCase();
+  global.PVT_TITLE_INDEX = global.PVT_TITLE_INDEX || { byName: {}, byId: {}, byCode: {}, at: 0 };
+  try {
+    const cached = JSON.parse(localStorage.getItem(GIDX_KEY) || 'null');
+    if (cached && cached.byName) global.PVT_TITLE_INDEX = cached;
+  } catch (e) {}
+  global.pvtLookupTitle = function (key) {
+    const ix = global.PVT_TITLE_INDEX || {};
+    if (!key) return '';
+    const k = String(key);
+    return (ix.byId && ix.byId[k]) || (ix.byCode && ix.byCode[k.toLowerCase()]) || (ix.byName && ix.byName[normName(k)]) || '';
+  };
+
   if (typeof global.getDefaultAvatarUrl !== "function") {
     global.getDefaultAvatarUrl = function(title = "", gender = "", fullName = "") {
+      if (!String(title || '').trim() && !String(gender || '').trim() && fullName) title = global.pvtLookupTitle(fullName);
       const cleanTitle = String(title || "").trim().toLowerCase();
       const cleanGender = String(gender || "").trim().toLowerCase();
       const cleanName = String(fullName || "").trim().toLowerCase();
@@ -202,12 +221,54 @@
     if (/default-avatar\.jpe?g/i.test(src)) {
       const url = genderedDefaultFor(img);
       if (src !== url) img.setAttribute('src', url);
+      return;
     }
+    // รูปการ์ตูนตามเพศที่ใส่ไว้แล้ว แต่รู้ชื่อเจ้าของรูป → ตรวจเพศซ้ำจากดัชนีคำนำหน้า (แก้ผู้หญิงได้รูปผู้ชาย)
+    if (/avatar-(male|female)\.jpe?g/i.test(src)) {
+      const d = img.dataset || {};
+      if (d.avTitle || d.avGender) return;
+      const hasName = d.avName || (img.alt && !/^(profile|avatar|pvt|employee photo|รูป)/i.test(img.alt)) || SELF_AVATAR_IDS.test(img.id || '');
+      if (!hasName) return;
+      const url = genderedDefaultFor(img);
+      if (url && src.replace(/\?.*$/, '') !== url.replace(/\?.*$/, '')) img.setAttribute('src', url);
+    }
+  }
+  function rescanAvatars() {
+    try { document.querySelectorAll('img[src*="avatar-male"], img[src*="avatar-female"], img[src*="default-avatar"]').forEach(fixDefaultAvatarImg); } catch (e) {}
+  }
+  global.pvtRescanAvatars = rescanAvatars;
+  let gidxLoading = false;
+  async function loadTitleIndex() {
+    const ix = global.PVT_TITLE_INDEX;
+    if (gidxLoading || (ix && ix.at && Date.now() - ix.at < 6 * 3600 * 1000)) return;
+    gidxLoading = true;
+    try {
+      let sb = null;
+      for (let i = 0; i < 40 && !sb; i++) {
+        try { sb = global.pvtSupabase && global.pvtSupabase.getClient && global.pvtSupabase.getClient(); } catch (e) {}
+        if (!sb) await new Promise((r) => setTimeout(r, 250));
+      }
+      if (!sb) return;
+      const { data, error } = await sb.from('employees').select('id, employee_code, full_name, title, prefix');
+      if (error || !Array.isArray(data)) return;
+      const next = { byName: {}, byId: {}, byCode: {}, at: Date.now() };
+      data.forEach((e) => {
+        const t = String(e.title || e.prefix || '').trim();
+        if (!t) return;
+        next.byId[String(e.id)] = t;
+        if (e.employee_code) next.byCode[String(e.employee_code).toLowerCase()] = t;
+        if (e.full_name) next.byName[normName(e.full_name)] = t;
+      });
+      global.PVT_TITLE_INDEX = next;
+      try { localStorage.setItem(GIDX_KEY, JSON.stringify(next)); } catch (e) {}
+      rescanAvatars();
+    } catch (e) {} finally { gidxLoading = false; }
   }
   function startAvatarGuard() {
     if (global.__pvtAvatarGuard || typeof document === 'undefined' || !document.body) return;
     global.__pvtAvatarGuard = true;
-    document.querySelectorAll('img[src*="default-avatar"]').forEach(fixDefaultAvatarImg);
+    rescanAvatars();
+    loadTitleIndex();
     try {
       new MutationObserver((muts) => {
         for (const m of muts) {
@@ -215,7 +276,7 @@
           m.addedNodes.forEach((n) => {
             if (n.nodeType !== 1) return;
             if (n.tagName === 'IMG') fixDefaultAvatarImg(n);
-            else if (n.querySelectorAll) n.querySelectorAll('img[src*="default-avatar"]').forEach(fixDefaultAvatarImg);
+            else if (n.querySelectorAll) n.querySelectorAll('img[src*="default-avatar"], img[src*="avatar-male"], img[src*="avatar-female"]').forEach(fixDefaultAvatarImg);
           });
         }
       }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
@@ -615,6 +676,7 @@
         title = title || obj.title || obj.prefix || obj.employees?.title || "";
         gender = gender || obj.gender || obj.employees?.gender || "";
         fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
+        if (!title && !gender) title = global.pvtLookupTitle(obj.id || obj.employees?.id) || global.pvtLookupTitle(obj.employee_code || obj.employees?.employee_code) || "";
       }
       // รูปการ์ตูนเริ่มต้นที่เคยถูกบันทึกลงฐานข้อมูล (avatar-male / avatar-female / default-avatar) ไม่นับเป็นรูปจริง
       // → เลือกใหม่ตามคำนำหน้า (เดิมถ้าบันทึกรูปผู้ชายไว้ ผู้หญิงจะได้รูปผู้ชายตลอด)

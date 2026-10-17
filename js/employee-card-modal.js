@@ -228,7 +228,7 @@
                      style="cursor: pointer; width: 19px; height: 19px; accent-color: #0f766e;" />
             </div>
             <div style="flex-shrink: 0;">
-              <img src="${fullAvatarUrl}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" onerror="this.onerror=null; this.src='${defaultAvatar}';">
+              <img data-av-name="${String(empName || '').replace(/"/g, '&quot;')}" src="${fullAvatarUrl}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" onerror="this.onerror=null; this.src='${defaultAvatar}';">
             </div>
             <div style="flex: 1; min-width: 0;">
               <div style="font-weight: 700; color: #0f172a; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(empName)}</div>
@@ -405,7 +405,7 @@
         <div id="pvt-id-card" style="background: linear-gradient(135deg, #0a2558 0%, #1e40af 55%, #0284c7 100%); width: 320px; margin: 12px auto; border-radius: 20px; padding: 22px; color: white; box-shadow: 0 15px 30px rgba(30,58,138,0.3); text-align: center; border: 1px solid rgba(255,255,255,0.15);">
           <div style="font-weight: 700; font-size: 13px; letter-spacing: 1.5px; color: #bae6fd; margin-bottom: 14px;">PVT WORKFORCE HUB</div>
           <div style="width: 84px; height: 84px; margin: 0 auto 12px auto; border-radius: 50%; border: 3px solid #38bdf8; overflow: hidden; background: #0f2b6e;">
-            <img src="${imgUrl}" onerror="this.onerror=null; this.src='${defaultAvatar}';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
+            <img data-av-name="${String(empName || '').replace(/"/g, '&quot;')}" src="${imgUrl}" onerror="this.onerror=null; this.src='${defaultAvatar}';" style="width: 100%; height: 100%; object-fit: cover;" alt="Employee Photo" />
           </div>
           <div style="font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #ffffff;">${escapeHtml(empName)}</div>
           <div style="font-size: 13px; color: #7dd3fc; font-weight: 600; margin-bottom: 2px;">ตำแหน่ง: ${escapeHtml(empRole)}</div>
@@ -561,7 +561,7 @@
           <div class="card-header">PVT WORKFORCE HUB</div>
           <div class="card-body">
             <div class="avatar-box">
-              <img src="${employee.avatar}" onerror="this.onerror=null;this.src='${location.origin}${window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', employee.name || '') : '/assets/img/avatar-male.jpg?v=2'}';" alt="Avatar" />
+              <img data-av-name="${String(employee.name || '').replace(/"/g, '&quot;')}" src="${employee.avatar}" onerror="this.onerror=null;this.src='${location.origin}${window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', employee.name || '') : '/assets/img/avatar-male.jpg?v=2'}';" alt="Avatar" />
             </div>
             <div class="details">
               <div class="name">${escapeHtml(employee.name)}</div>
