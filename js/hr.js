@@ -1351,6 +1351,60 @@ window.switchLeaveTab = function(tabName, btnEl) {
    🔒 SEQUENTIAL APPROVAL GUARD (UPDATED FOR FLEXIBLE WORKFLOW)
    ========================================================================== */
 
+/**
+ * ปุ่มอนุมัติ/ไม่อนุมัติ แสดงแบบไหนสำหรับผู้ใช้คนนี้
+ *  'normal'   = เป็นผู้อนุมัติของขั้นปัจจุบันจริง (หรือขั้นที่ส่งถึง HR) → แสดงปุ่มปกติ
+ *  'override' = HR/Admin ที่ไม่ใช่ผู้อนุมัติขั้นนี้ → ไม่แสดงปุ่ม (ข้ามสายอนุมัติขององค์กร)
+ *               ใช้ได้เฉพาะ "กรณีพิเศษ" ในหน้ารายละเอียด ต้องยืนยันก่อน
+ *  'none'     = ไม่มีสิทธิ์ / ไม่ได้รออนุมัติ
+ */
+function getApproveMode(reqOrId) {
+  try {
+    const req = (reqOrId && typeof reqOrId === 'object')
+      ? (allLeaveRequests.find(r => String(r.id) === String(reqOrId.id)) || reqOrId)
+      : allLeaveRequests.find(r => String(r.id) === String(reqOrId));
+    const role = String(currentRole || '').toLowerCase();
+    const isHrAdmin = role === 'hr' || role === 'admin';
+    if (!req) return isHrAdmin ? 'override' : 'normal';
+    if (!isPendingStatus(req.status)) return 'none';
+    if (window.isViewOnlyHR) return 'none';
+    if (req.__steps && req.__steps.length && window.PVTApproval) {
+      const check = window.PVTApproval.canAct(window.PVTApproval.currentStep(req.__steps), window.PVTApproval.me(), role);
+      if (!check.ok) return 'none';
+      return check.override ? 'override' : 'normal';
+    }
+    // ใบลาแบบเดิม (ไม่มีขั้นอนุมัติ): HR/Admin = กรณีพิเศษเท่านั้น
+    if (isHrAdmin) return 'override';
+    return canApproveStep(req, currentRole, true) ? 'normal' : 'none';
+  } catch (e) {
+    return 'none';
+  }
+}
+window.pvtApproveMode = getApproveMode;
+
+// กรณีพิเศษ: HR/Admin อนุมัติ/ไม่อนุมัติแทนสายอนุมัติ (ต้องยืนยันก่อนทุกครั้ง)
+async function specialCaseLeaveAction(leaveId, action) {
+  const req = allLeaveRequests.find(r => String(r.id) === String(leaveId));
+  if (!req || getApproveMode(req) !== 'override') return;
+  const name = escapeHtml(req.employees?.full_name || 'พนักงาน');
+  const res = await Swal.fire({
+    icon: 'warning',
+    title: action === 'approve' ? 'อนุมัติกรณีพิเศษ?' : 'ไม่อนุมัติกรณีพิเศษ?',
+    html: `<div style="text-align:left; font-size:15px; line-height:1.7;">
+      ใบลาของ <b>${name}</b> ยังอยู่ระหว่างสายอนุมัติขององค์กร<br>
+      การดำเนินการนี้จะ<b>ข้ามขั้นตอนผู้อนุมัติ</b> และบันทึกว่า HR/Admin เป็นผู้ตัดสิน<br>
+      <span style="color:#b45309;">ใช้เฉพาะกรณีจำเป็น เช่น ผู้อนุมัติไม่อยู่และใกล้ครบกำหนด</span></div>`,
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยัน ดำเนินการกรณีพิเศษ',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: action === 'approve' ? '#10b981' : '#ef4444',
+    focusCancel: true
+  });
+  if (!res.isConfirmed) return;
+  if (action === 'approve') await approveLeave(req.id); else await rejectLeave(req.id);
+}
+window.specialCaseLeaveAction = specialCaseLeaveAction;
+
 function canApproveStep(req, role, silent = false) {
   const warn = (...args) => { if (!silent) Swal.fire(...args); };
   // ดึงข้อมูลผู้ใช้งานปัจจุบันที่กำลังกดปุ่ม
@@ -1663,7 +1717,7 @@ function renderLeaveTable() {
         <div class="action-btn-group">
           <button class="btn-act btn-act-preview" onclick="previewLeaveModal('${req.id}')" title="ดูรายละเอียด"><span class="material-symbols-outlined">visibility</span></button>
           <button class="btn-act btn-act-print" onclick="printLeaveA4('${req.id}')" title="พิมพ์ใบลา" style="background:#f1f5f9; color:#475569; border-color:#e2e8f0;"><span class="material-symbols-outlined">print</span></button>
-          ${!isHrOrAdmin ? `
+          ${getApproveMode(req) === 'normal' ? `
             <button class="btn-act btn-act-approve" onclick="approveLeave('${req.id}')" title="อนุมัติ"><span class="material-symbols-outlined">check_circle</span> อนุมัติ</button>
             <button class="btn-act btn-act-reject" onclick="rejectLeave('${req.id}')" title="ปฏิเสธ"><span class="material-symbols-outlined">cancel</span> ไม่อนุมัติ</button>
           ` : ''}
@@ -2140,7 +2194,21 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
           ` : ''}
         </div>
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          ${isPending && !window.isViewOnlyHR ? `
+          ${isPendingStatus(req.status) && getApproveMode(req) === 'override' ? `
+            <details class="pvt-special-case" style="position:relative;">
+              <summary style="list-style:none; cursor:pointer; padding:7px 14px; border-radius:8px; border:1px dashed #f59e0b; background:#fffbeb; color:#92400e; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                <span class="material-symbols-outlined" style="font-size:18px;">shield_person</span> กรณีพิเศษ (HR)
+              </summary>
+              <div style="position:absolute; right:0; bottom:calc(100% + 8px); z-index:5; width:300px; background:#fff; border:1px solid #fde68a; border-radius:12px; box-shadow:0 10px 30px rgba(15,23,42,.15); padding:14px;">
+                <div style="font-size:13px; color:#78350f; line-height:1.6; margin-bottom:10px;">ข้ามสายอนุมัติขององค์กร ใช้เมื่อจำเป็นเท่านั้น</div>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" onclick="closePreviewModal(); specialCaseLeaveAction('${req.id}', 'approve')" style="flex:1; background:#10b981; color:#fff; border:none; padding:8px; border-radius:8px; font-weight:700; cursor:pointer;">อนุมัติ</button>
+                  <button type="button" onclick="closePreviewModal(); specialCaseLeaveAction('${req.id}', 'reject')" style="flex:1; background:#ef4444; color:#fff; border:none; padding:8px; border-radius:8px; font-weight:700; cursor:pointer;">ไม่อนุมัติ</button>
+                </div>
+              </div>
+            </details>
+          ` : ''}
+          ${isPending && getApproveMode(req) === 'normal' ? `
             <button type="button" class="btn-act btn-act-approve" id="btnModalApprove" style="background: #10b981; color: #ffffff; border: none; padding: 7px 18px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);">
               <span class="material-symbols-outlined" style="font-size: 18px;">check_circle</span> อนุมัติ
             </button>
@@ -4087,7 +4155,7 @@ window.submitBulkApproval = async function() {
       const reqData = allLeaveRequests.find(r => String(r.id) === String(leaveId));
       if (!reqData) continue;
       // ใช้กติกาเดียวกับการอนุมัติทีละใบ (ตรวจสิทธิ์/ลำดับขั้น, บันทึกหลักฐาน, แจ้งขั้นถัดไป/HR)
-      if (!canApproveStep(reqData, currentRole, true)) { skipped++; continue; }
+      if (getApproveMode(reqData) !== 'normal' || !canApproveStep(reqData, currentRole, true)) { skipped++; continue; }
       const outcome = await performApprovalStep(reqData);
       if (outcome.ok) successCount++; else skipped++;
     } catch (err) {

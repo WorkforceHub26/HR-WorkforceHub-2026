@@ -605,7 +605,13 @@
             ` : ''}
 
             <!-- 🔘 Action Buttons (อนุมัติ, ไม่อนุมัติ, รายละเอียด) -->
-            <div class="sla-actions-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+            ${(() => { const m = typeof window.pvtApproveMode === 'function' ? window.pvtApproveMode(req) : 'normal'; return m === 'normal' ? '' : `<div class="sla-actions-row" style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+              <div style="font-size: 12px; color: #64748b; text-align: center;">${m === 'override' ? 'รอผู้อนุมัติตามสายงานพิจารณา' : ''}</div>
+              <button type="button" class="btn-sla-action btn-sla-details" onclick="window.showSlaLeaveDetails('${req.id}')" title="ดูรายละเอียดใบลาฉบับเต็ม" style="background: #f1f5f9; color: #334155; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 4px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700; cursor: pointer; font-size: 13px; font-family: inherit;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span><span>รายละเอียด</span>
+              </button>
+            </div>`; })()}
+            <div class="sla-actions-row" style="display: ${typeof window.pvtApproveMode === 'function' && window.pvtApproveMode(req) !== 'normal' ? 'none' : 'grid'}; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
               <button type="button" class="btn-sla-action btn-sla-approve" onclick="window.slaApproveLeave('${req.id}')" title="อนุมัติคำขอลาทันที" style="background: #10b981; color: white; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 4px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.2s;">
                 <span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
                 <span>อนุมัติ</span>
