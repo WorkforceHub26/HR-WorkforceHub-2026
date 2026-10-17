@@ -19,10 +19,18 @@ let deptApproversMap = {};
     const fastRole = String(sessionUser?.role || empData?.role || "").toLowerCase();
     const fastPosition = String(empData?.positions?.position_name || empData?.position_name || "").toLowerCase();
 
+    const fastCode = String(empData?.employee_code || sessionUser?.employee_code || "").toLowerCase().trim();
+    // ใช้เกณฑ์เดียวกับตัวตรวจสิทธิ์ตอนเปิดหน้า (early-auth-guard) — เดิมเช็กแค่ชื่อ role ตรงตัว
+    // บัญชีอย่าง superadmin / hr_manager / HR-xxx จึงโดนปฏิเสธ แล้วหน้าว่างทั้งหน้า
+    let guardCat = "";
+    try { guardCat = window.PVTGuardRoleCategory ? (window.PVTGuardRoleCategory(sessionUser) || {}).category || "" : ""; } catch (_) {}
     const isAllowedRole = (
-      fastRole === "hr" || fastRole === "admin" || fastRole === "director" || 
-      fastRole === "manager" || fastRole === "leader" || fastRole === "executive" || fastRole === "owner" ||
-      fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า") || fastPosition.includes("บริหาร")
+      guardCat === "hr_exec" || guardCat === "leader_manager" ||
+      /(^|_)(hr|admin|superadmin|director|manager|leader|supervisor|head|executive|owner)($|_)/.test(fastRole) ||
+      fastRole.includes("admin") || fastRole.includes("hr") ||
+      fastCode === "admin" || fastCode.startsWith("hr-") || fastCode === "10001" ||
+      fastPosition.includes("ผู้จัดการ") || fastPosition.includes("ผู้อำนวยการ") || fastPosition.includes("หัวหน้า") || fastPosition.includes("บริหาร") ||
+      fastPosition.includes("manager") || fastPosition.includes("leader") || fastPosition.includes("supervisor")
     );
 
     if (!isAllowedRole) {
@@ -53,6 +61,9 @@ function escapeHtml(value) {
 
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__PVT_ACCESS_DENIED__) {
+    // ต้องแสดงหน้าก่อน ไม่งั้นกล่องแจ้งเตือนถูกซ่อนไปด้วย (หน้าว่างค้าง)
+    document.documentElement.style.visibility = 'visible';
+    console.warn('[HR] บัญชีนี้ไม่มีสิทธิ์เข้าหน้าตรวจใบลา', { role: (JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || '{}') || {}).role });
     if (typeof Swal !== 'undefined') {
       await Swal.fire({
         title: '<span style="color: #0f172a; font-size: 20px; font-weight: 700;">⛔ ปฏิเสธการเข้าถึง</span>',
