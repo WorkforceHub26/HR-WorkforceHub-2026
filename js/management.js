@@ -1528,8 +1528,8 @@ function fillDepartmentFilter() {
   const deptCounts = {};
   let totalRealEmps = 0;
 
+  // นับให้ตรงกับรายชื่อในตาราง (ตารางแสดงบัญชีผู้ดูแลด้วย เดิมตัวกรองไม่นับ → ตัวเลขไม่ตรง เช่น Admin System 0 คน แต่มี 4 คน)
   employees.forEach((emp) => {
-    if (window.isSystemOrAdminAccount(emp)) return;
     totalRealEmps++;
     const dName = emp.departments?.department_name;
     if (dName) {
@@ -1563,8 +1563,6 @@ function fillPositionFilter() {
   let totalScope = 0;
 
   employees.forEach((emp) => {
-    if (window.isSystemOrAdminAccount(emp)) return;
-
     const department = emp.departments?.department_name || "";
     if (currentDept && department !== currentDept) return;
 
