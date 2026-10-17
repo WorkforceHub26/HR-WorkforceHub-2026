@@ -696,11 +696,13 @@ async function loadDepartmentTeam(profileData) {
   }
 
   try {
-    const { data: team, error } = await sb
+    // ตาราง employees ไม่มีคอลัมน์ gender → เดิม query นี้ผิดทุกครั้ง (ขึ้น "ไม่พบสมาชิก") ใช้ * แทน
+    let { data: team, error } = await sb
       .from('employees')
-      .select('id, full_name, nickname, employee_code, image_url, line_id, role, title, prefix, gender, positions(position_name), departments!department_id(department_name)')
+      .select('*, positions(position_name), departments!department_id(department_name)')
       .eq('department_id', deptId)
       .order('full_name', { ascending: true });
+    if (error) ({ data: team, error } = await sb.from('employees').select('*').eq('department_id', deptId).order('full_name', { ascending: true }));
 
     if (error || !team || team.length === 0) {
       teamGrid.innerHTML = `<div style="grid-column: 1/-1; padding: 16px; text-align: center; color: #94a3b8; font-size: 13px;">ไม่พบสมาชิกพนักงานในแผนกนี้</div>`;
@@ -736,7 +738,7 @@ async function loadDepartmentTeam(profileData) {
 
       return `
         <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
-          <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${avatar}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
+          <img data-av-id="${emp.id || ''}" data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${avatar}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; flex-shrink: 0;" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
           <div style="flex: 1; min-width: 0;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
               <strong style="font-size: 13px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeEscapeHtml(emp.full_name)} ${nick}</strong>

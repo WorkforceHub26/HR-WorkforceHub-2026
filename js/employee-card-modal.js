@@ -490,7 +490,7 @@
         name: empCode.name || empCode.empName || empCode.full_name || '-',
         position: empCode.position || empCode.empRole || '-',
         department: empCode.department || empCode.empDept || '-',
-        avatar: empCode.image_url || empCode.avatarUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', (empCode.name || empCode.empName || empCode.full_name || '')) : '/assets/img/avatar-male.jpg?v=2'),
+        avatar: (window.getAvatarUrl ? window.getAvatarUrl(empCode.image_url || empCode.avatarUrl || '', empCode.title || empCode.prefix || '', empCode.gender || '', (empCode.name || empCode.empName || empCode.full_name || '')) : (empCode.image_url || empCode.avatarUrl || '/assets/img/avatar-male.jpg?v=2')),
         qr_url: empCode.qr_url || generateEmployeeQrUrl(empCode.employee_code || empCode.empCode)
       };
     } else {
@@ -499,7 +499,7 @@
         name: empName || '-',
         position: position || '-',
         department: department || '-',
-        avatar: pictureUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', (empName || '')) : '/assets/img/avatar-male.jpg?v=2'),
+        avatar: (window.getAvatarUrl ? window.getAvatarUrl(pictureUrl || '', '', '', (empName || '')) : (pictureUrl || '/assets/img/avatar-male.jpg?v=2')),
         qr_url: (pictureUrl && pictureUrl.includes('qrserver.com')) ? pictureUrl : generateEmployeeQrUrl(empCode)
       };
     }
@@ -1077,10 +1077,14 @@
       }
     };
 
-    const [avatarImg, qrImg] = await Promise.all([
-      loadSafeImage(avatarUrl),
+    // รูปบนบัตร: กติกาเดียวทั้งระบบ — รูปที่อัปโหลด → ถ้าไม่มี/โหลดไม่ได้ ใช้การ์ตูนตามคำนำหน้า (ไม่ใช้ตัวอักษรย่อ)
+    const cardAvatarUrl = typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(avatarUrl || '', '', '', empName || '') : avatarUrl;
+    const cardCartoonUrl = typeof window.getDefaultAvatarUrl === 'function' ? window.getDefaultAvatarUrl('', '', empName || '') : '/assets/img/avatar-male.jpg?v=2';
+    let [avatarImg, qrImg] = await Promise.all([
+      loadSafeImage(cardAvatarUrl),
       loadSafeImage(finalQrUrl)
     ]);
+    if (!avatarImg && cardCartoonUrl) avatarImg = await loadSafeImage(cardCartoonUrl);
 
     const drawRoundedRect = (x, y, w, h, r, fillStyle) => {
       ctx.beginPath();

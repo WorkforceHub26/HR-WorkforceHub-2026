@@ -375,7 +375,7 @@ function renderHeaderProfile() {
   if (window.PVTLayout && typeof window.PVTLayout.setUser === "function") {
     window.PVTLayout.setUser({
       name: profile.full_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "ผู้ใช้งาน",
-      avatarUrl: window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(profile.image_url) : ''
+      avatarUrl: (window.pvtIsPlaceholderAvatar && !window.pvtIsPlaceholderAvatar(profile.image_url) && window.getAvatarUrl) ? window.getAvatarUrl(profile.image_url) : ''
     });
   }
 }
@@ -1817,7 +1817,7 @@ function renderEmployeeTable() {
   }
 
   container.innerHTML = filtered.map((emp) => {
-    const avatarUrl = window.pvtSupabase?.getAvatarUrl ? window.pvtSupabase.getAvatarUrl(emp.image_url, emp.title) : getAvatarUrl(emp.image_url, emp.title);
+    const avatarUrl = typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp) : getAvatarUrl(emp.image_url, emp.title);
     // วันเริ่มงาน: วัน/เดือน/ปี พ.ศ. (เช่น 19/01/2559)
     const thaiStartDate = (() => {
       const m = String(emp.start_date || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -1862,8 +1862,8 @@ function renderEmployeeTable() {
     return `
       <div class="emp-card-item ${posCategory === 'executive' ? 'is-executive' : ''}">
         <div class="col-avatar">
-          <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${avatarUrl}" 
-               onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(emp.full_name || 'PVT')}&background=0d9488&color=fff';" 
+          <img data-av-id="${emp.id || ''}" data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" data-av-title="${escapeHtml(emp.title || emp.prefix || '')}" src="${avatarUrl}" 
+               onerror="window.pvtAvatarError&&pvtAvatarError(this)" 
                alt="${escapeHtml(emp.full_name || '')}">
           ${posCategory === 'executive' ? '<span class="exec-crown-badge">👑</span>' : ''}
         </div>
@@ -2114,7 +2114,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
     if (body) {
       body.innerHTML = `
         <div style="display:flex; align-items:center; gap:14px; background:#f8fafc; padding:14px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px; flex-wrap:wrap;">
-          <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${getAvatarUrl(emp.image_url, emp.title)}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--th-p-600, #0d9488); background:#fff; flex-shrink:0;" onerror="this.onerror=null; this.src=getDefaultAvatarUrl('${escapeHtml(emp.title || '')}');">
+          <img data-av-id="${emp.id || ''}" data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" data-av-title="${escapeHtml(emp.title || emp.prefix || '')}" src="${typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp) : getAvatarUrl(emp.image_url, emp.title)}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--th-p-600, #0d9488); background:#fff; flex-shrink:0;" onerror="this.onerror=null; this.src=getDefaultAvatarUrl('${escapeHtml(emp.title || '')}');">
           <div style="flex:1; min-width:180px;">
             <div style="font-size:15px; font-weight:700; color:#1e293b;">${escapeHtml(emp.full_name || "-")} ${emp.nickname ? `<span style="font-weight:400; color:#64748b;">(${escapeHtml(emp.nickname)})</span>` : ''}</div>
             <div style="font-size:13px; color:var(--th-p-600, #0d9488); font-weight:600; margin-top:2px;">${escapeHtml(emp.positions?.position_name || "-")} · ${escapeHtml(emp.departments?.department_name || "-")}</div>
@@ -2566,6 +2566,8 @@ async function saveEmployeeInlineEdit(employeeId) {
     const supabase = getSupabase();
     const { error } = await supabase.from('employees').update(updateData).eq('id', emp.id);
     if (error) throw error;
+    // รูป/คำนำหน้าเปลี่ยน → อัปเดตดัชนีรูปกลาง ทุกจุดในระบบได้รูปเดียวกันทันที
+    try { window.pvtAvatarIndexUpdate && window.pvtAvatarIndexUpdate(Object.assign({}, emp, updateData, { id: emp.id })); } catch (_) {}
 
     // บันทึก Custom Fields ลงใน system_settings แทนเพื่อหลีกเลี่ยงข้อจำกัดของโครงสร้างตาราง DB
     await saveEmployeeCustomFields(supabase, code, customFields);
@@ -3459,6 +3461,7 @@ window.addNewEmployee = async function addNewEmployee() {
 
       const { error } = await supabase.from('employees').insert([formValues]);
       if (error) throw error;
+      try { window.pvtReloadAvatarIndex && window.pvtReloadAvatarIndex(); } catch (_) {}
 
       if (Object.keys(customFields).length > 0) {
         await saveEmployeeCustomFields(supabase, formValues.employee_code, customFields);

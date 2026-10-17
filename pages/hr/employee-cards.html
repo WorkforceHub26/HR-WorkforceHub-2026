@@ -459,7 +459,7 @@
 
             <div class="emp-card-inner-box theme-${escapeHtml(currentTheme)}">
               <div class="emp-avatar-circle">
-                <img src="${a}" alt="${c}" loading="lazy" onerror="this.onerror=null; this.src='${escapeHtml(fallback)}';" />
+                <img src="${a}" alt="${n}" data-av-id="${escapeHtml(emp.id || '')}" data-av-code="${c}" data-av-name="${n}" data-av-title="${escapeHtml(title || '')}" loading="lazy" onerror="window.pvtAvatarError ? pvtAvatarError(this) : (this.onerror=null, this.src='${escapeHtml(fallback)}');" />
               </div>
               <div class="emp-card-name">${n}</div>
               <div class="emp-card-role">${r}</div>

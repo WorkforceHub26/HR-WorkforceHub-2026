@@ -449,6 +449,7 @@ function employeeImageToPublicUrl(rawUrl) {
 function updateAvatarCaches(publicUrl, rawValue) {
   const emp = window.currentEmpProfile || {};
   emp.image_url = rawValue || null;
+  try { window.pvtAvatarIndexUpdate && window.pvtAvatarIndexUpdate(emp); } catch (_) {}
   emp.avatar_url = publicUrl || null;
   window.currentEmpProfile = emp;
 

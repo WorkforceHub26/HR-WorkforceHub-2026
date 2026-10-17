@@ -251,7 +251,7 @@ async function initSystemAndPermissions() {
 
     if (userNameEl) userNameEl.textContent = empData?.full_name || "ผู้ใช้งาน";
     if (userPositionEl) userPositionEl.textContent = empData?.positions?.position_name || empData?.position_name || "ไม่ระบุตำแหน่ง";
-    if (userAvatarEl) userAvatarEl.src = getAvatarUrl(empData?.image_url);
+    if (userAvatarEl) userAvatarEl.src = getAvatarUrl(empData || null);
 
     applyRoleBasedUI();
     
@@ -426,6 +426,8 @@ function applyRoleBasedUI() {
    ========================================================================== */
 
 function getAvatarUrl(imageUrl, title = "", gender = "", fullName = "") {
+  // ใช้ตัวกลางของระบบ (รองรับรูปที่อัปโหลด + เพศตามคำนำหน้า)
+  if (window.PVTSDK?.storage?.getAvatarUrl) return window.PVTSDK.storage.getAvatarUrl(imageUrl, title, gender, fullName);
   if (typeof imageUrl === 'object' && imageUrl !== null) {
     const obj = imageUrl;
     imageUrl = obj.image_url || obj.avatar_url || obj.avatar || obj.employees?.image_url || null;
@@ -936,7 +938,7 @@ async function loadPendingLeavesHR(isSilent = false) {
       if (simpleRes.data && simpleRes.data.length > 0) {
         try {
           const [empsRes, typesRes, deptsRes] = await Promise.all([
-            sb.from("employees").select("id, full_name, employee_code, nickname, role, image_url, title, prefix, department_id, l1_approver_id, l2_approver_id, l3_approver_id, departments!department_id(id, department_name), positions!position_id(position_name, level_type)"),
+            sb.from("employees").select("*, departments!department_id(id, department_name), positions!position_id(position_name, level_type)").then((r) => (r.error ? sb.from("employees").select("*") : r)),
             sb.from("leave_types").select("id, leave_name, leave_code"),
             sb.from("departments").select("id, department_name")
           ]);
@@ -1885,7 +1887,7 @@ function previewLeaveModal(leaveId, isReviewMode = false) {
 
   modalBody.innerHTML = `
     <div class="preview-user-card">
-      <img src="${avatarUrl}" class="preview-avatar" data-av-title="${emp.title || emp.prefix || ''}" data-av-name="${emp.full_name || ''}" onerror="pvtAvatarError(this)">
+      <img src="${avatarUrl}" class="preview-avatar" data-av-id="${emp.id || ''}" data-av-title="${emp.title || emp.prefix || ''}" data-av-name="${emp.full_name || ''}" onerror="pvtAvatarError(this)">
       <div class="preview-user-info">
         <h4>${emp.full_name || 'ไม่ระบุชื่อ'} ${emp.nickname ? `(${emp.nickname})` : ''}</h4>
         <p>รหัสพนักงาน: <strong>${emp.employee_code || '-'}</strong> | แผนก: ${emp.departments?.department_name || '-'} | ตำแหน่ง: ${emp.positions?.position_name || '-'}</p>

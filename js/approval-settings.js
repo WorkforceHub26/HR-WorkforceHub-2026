@@ -2369,13 +2369,9 @@ function renderEmployeeLineTable() {
     const posNameHtml = highlightMatch(posName, currentEmpLineSearch);
 
     // อวาตาร์
-    let avatarContent = "";
-    if (emp.image_url) {
-      avatarContent = `<img src="${escapeAttr(emp.image_url)}" class="emp-avatar-img" alt="${escapeAttr(emp.full_name)}" onerror="this.parentElement.innerHTML='${escapeHtml(emp.full_name?.substring(0,2) || 'EM')}'">`;
-    } else {
-      const initials = (emp.full_name || "EM").substring(0, 2).toUpperCase();
-      avatarContent = escapeHtml(initials);
-    }
+    // รูปพนักงาน: มีรูปที่อัปโหลด → รูปนั้น / ไม่มี → การ์ตูนตามคำนำหน้า (กติกาเดียวทั้งระบบ)
+    const avatarSrc = typeof window.getAvatarUrl === "function" ? window.getAvatarUrl(emp) : "/assets/img/avatar-male.jpg?v=2";
+    const avatarContent = `<img src="${escapeAttr(avatarSrc)}" class="emp-avatar-img" alt="${escapeAttr(emp.full_name)}" data-av-id="${escapeAttr(emp.id || '')}" data-av-name="${escapeAttr(emp.full_name || '')}" data-av-title="${escapeAttr(emp.title || emp.prefix || '')}" onerror="window.pvtAvatarError&&pvtAvatarError(this)">`;
 
     // บทบาทหลักในระบบ (Role)
     const role = (emp.role || "user").toLowerCase();

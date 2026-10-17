@@ -717,7 +717,9 @@ function renderTopLeaveEmployees(approvedRequests) {
     }
 
     // รูปและรหัส
-    const avatarUrl = empObj?.image_url || empObj?.avatar_url || r.image_url || r.avatar_url || "";
+    const rawAvatar = empObj?.image_url || empObj?.avatar_url || r.image_url || r.avatar_url || "";
+    const avatarSrcObj = Object.assign({}, empObj || {}, { image_url: rawAvatar, full_name: (empObj && empObj.full_name) || r.employee_name || "" });
+    const avatarUrl = typeof window.getAvatarUrl === "function" ? window.getAvatarUrl(avatarSrcObj) : rawAvatar;
     const empCode = empObj?.employee_code || empObj?.emp_code || r.employee_code || "";
 
     // 2. คำนวณจำนวนวันลาสะสมอย่างปลอดภัย
@@ -846,9 +848,8 @@ function renderTopLeaveEmployees(approvedRequests) {
     // Avatar
     const initials = getDisplayInitials(emp.name, emp.nickname);
     const safeInitials = escapeHtmlText(initials).replace(/'/g, '');
-    const avatarHtml = emp.avatar 
-      ? `<img src="${escapeHtmlAttribute(emp.avatar)}" class="top-emp-avatar" alt="${escapeHtmlAttribute(emp.name)}" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'top-emp-avatar-badge',textContent:'${safeInitials}'}));">`
-      : `<div class="top-emp-avatar-badge">${safeInitials}</div>`;
+    const avatarSrc = emp.avatar || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', emp.name) : '/assets/img/avatar-male.jpg?v=2');
+    const avatarHtml = `<img src="${escapeHtmlAttribute(avatarSrc)}" class="top-emp-avatar" data-av-id="${escapeHtmlAttribute(String(emp.id || ''))}" data-av-code="${escapeHtmlAttribute(emp.code || '')}" data-av-name="${escapeHtmlAttribute(emp.name)}" alt="${escapeHtmlAttribute(emp.name)}" onerror="window.pvtAvatarError&&pvtAvatarError(this)">`;
 
     html += `
       <div class="top-emp-card ${rankClass}">
@@ -1187,7 +1188,7 @@ function renderTodayLeavesDetail(leaves) {
     
     return `
       <div class="today-leave-card-detail">
-        <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${escapeHtmlAttribute(img)}" class="emp-avatar" alt="" onerror="this.onerror=null; this.src='${escapeHtmlAttribute(defaultAvatarFallback)}';">
+        <img data-av-id="${emp.id || ''}" data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${escapeHtmlAttribute(img)}" class="emp-avatar" alt="" onerror="this.onerror=null; this.src='${escapeHtmlAttribute(defaultAvatarFallback)}';">
         <div class="info">
           <div class="name">${escapeHtmlText(emp.full_name || "ไม่ระบุชื่อ")}</div>
           <div class="dept">${escapeHtmlText(dept)}</div>
@@ -1440,7 +1441,7 @@ function applyHomeTeamRender() {
 
     return `
       <div class="team-member-card">
-        <img data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${avatar}" class="team-member-avatar" onerror="this.onerror=null; this.src='${defaultFallback}';">
+        <img data-av-id="${emp.id || ''}" data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" src="${avatar}" class="team-member-avatar" onerror="this.onerror=null; this.src='${defaultFallback}';">
         <div style="flex: 1; min-width: 0; overflow: hidden;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px;">
             <span style="font-weight: 700; font-size: 14px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtmlText(fullName)}">
@@ -1670,7 +1671,7 @@ if (false) {
                    style="cursor: pointer; width: 20px; height: 20px;" />
           </div>
           <div style="flex-shrink: 0;">
-            <img src="${fullAvatarUrl || '/assets/img/avatar-male.jpg?v=2'}" data-av-title="${escapeHtmlAttribute(emp.title || emp.prefix || '')}" data-av-name="${escapeHtmlAttribute(emp.full_name || '')}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;" onerror="pvtAvatarError(this)">
+            <img src="${fullAvatarUrl || '/assets/img/avatar-male.jpg?v=2'}" data-av-id="${emp.id || ''}" data-av-title="${escapeHtmlAttribute(emp.title || emp.prefix || '')}" data-av-name="${escapeHtmlAttribute(emp.full_name || '')}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;" onerror="pvtAvatarError(this)">
           </div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-weight: 700; color: #1e293b; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtmlText(empName)}</div>
@@ -1870,7 +1871,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       name: empCode.name || empCode.empName || empCode.full_name || '-',
       position: empCode.position || empCode.empRole || '-',
       department: empCode.department || empCode.empDept || '-',
-      avatar: empCode.image_url || empCode.avatarUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', (empCode.name || empCode.empName || empCode.full_name || '')) : '/assets/img/avatar-male.jpg?v=2'),
+      avatar: (window.getAvatarUrl ? window.getAvatarUrl(empCode.image_url || empCode.avatarUrl || '', empCode.title || empCode.prefix || '', empCode.gender || '', (empCode.name || empCode.empName || empCode.full_name || '')) : (empCode.image_url || empCode.avatarUrl || '/assets/img/avatar-male.jpg?v=2')),
       qr_url: empCode.qr_url || generateEmployeeQrUrl(empCode.employee_code || empCode.empCode)
     };
   } else {
@@ -1879,7 +1880,7 @@ window.printSingleCard = function (empCode, empName, position, department, pictu
       name: empName || '-',
       position: position || '-',
       department: department || '-',
-      avatar: pictureUrl || (window.getDefaultAvatarUrl ? window.getDefaultAvatarUrl('', '', (empName || '')) : '/assets/img/avatar-male.jpg?v=2'),
+      avatar: (window.getAvatarUrl ? window.getAvatarUrl(pictureUrl || '', '', '', (empName || '')) : (pictureUrl || '/assets/img/avatar-male.jpg?v=2')),
       qr_url: (pictureUrl && pictureUrl.includes('qrserver.com')) ? pictureUrl : generateEmployeeQrUrl(empCode)
     };
   }

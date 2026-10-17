@@ -269,6 +269,14 @@
     return '<button type="button" class="pvt-drawer__item" data-key="' + item.key + '">' + inner + "</button>";
   }
 
+  // รูปผู้ใช้ในเมนู: รูปที่อัปโหลด / การ์ตูนตามคำนำหน้า (กติกาเดียวกับทุกหน้า)
+  function drawerAvatarHtml(u, name, initial) {
+    if (typeof window.getAvatarUrl !== "function") return escapeHtml(initial);
+    var e = u.employees || u;
+    var src = window.getAvatarUrl(e.image_url || u.image_url || "", e.title || u.title || e.prefix || u.prefix || "", e.gender || u.gender || "", name);
+    return '<img id="pvtDrawerAvatar" src="' + escapeHtml(src) + '" alt="" onerror="window.pvtAvatarError&&pvtAvatarError(this)">';
+  }
+
   function buildDrawer() {
     var u = getSessionUser();
     var name = u.full_name || u.name || "ผู้ใช้งาน";
@@ -301,7 +309,7 @@
             '<span class="material-symbols-outlined" aria-hidden="true">close</span></button>' +
         "</div>" +
         '<a class="pvt-drawer__user" href="/pages/user/profile-user.html">' +
-          '<span class="pvt-drawer__avatar" aria-hidden="true">' + escapeHtml(initial) + "</span>" +
+          '<span class="pvt-drawer__avatar" aria-hidden="true">' + drawerAvatarHtml(u, name, initial) + "</span>" +
           '<span class="pvt-drawer__who"><strong>' + escapeHtml(name) + "</strong>" +
           (sub ? "<small>" + escapeHtml(sub) + "</small>" : "") + "</span>" +
         "</a>" +
