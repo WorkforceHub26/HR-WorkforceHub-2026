@@ -211,6 +211,8 @@
 
 /* แผงแก้ไข */
 #page-hr-approval-chains .ac-editor { position: fixed; inset: 0; z-index: 1200; visibility: hidden; pointer-events: none; }
+/* กล่องยืนยัน (เช่น ลบข้อยกเว้น) ต้องอยู่เหนือแผงแก้ไขด้านขวา — เดิมถูกแผงบังจนดูเหมือนเด้งอยู่ด้านล่าง */
+#page-hr-approval-chains .swal2-container { z-index: 1300 !important; }
 #page-hr-approval-chains .ac-editor.is-open { visibility: visible; pointer-events: auto; }
 #page-hr-approval-chains .ac-editor__backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .45); opacity: 0; transition: opacity .2s ease; }
 #page-hr-approval-chains .ac-editor.is-open .ac-editor__backdrop { opacity: 1; }
