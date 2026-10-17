@@ -1537,6 +1537,12 @@ function fillDepartmentFilter() {
     }
   });
 
+  // แสดงทุกแผนกจากตารางแผนก (รวมแผนกที่เพิ่งเพิ่มและยังไม่มีพนักงาน = 0 คน)
+  (window.departments || []).forEach((d) => {
+    const n = String(d.department_name || '').trim();
+    const st = String(d.status || '').toLowerCase();
+    if (n && st !== 'inactive' && st !== 'deleted' && !(n in deptCounts)) deptCounts[n] = 0;
+  });
   const deptNames = Object.keys(deptCounts).sort((a, b) => a.localeCompare(b, 'th'));
 
   select.innerHTML = `<option value="">🏢 ทุกแผนก (รวม ${totalRealEmps} คน)</option>` + 
