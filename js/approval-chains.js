@@ -381,17 +381,39 @@
 
   function renderPeople() {
     const wrap = $('#acPeopleList');
-    const rows = S.emps.filter((e) => isActive(e) && PERSON_COLS.some((c) => e[c]));
-    $('#acPeopleBadge').textContent = rows.length;
-    $('#acPeopleBadge').hidden = !rows.length;
-    if (!rows.length) {
+    const all = S.emps.filter((e) => isActive(e) && PERSON_COLS.some((c) => e[c]));
+    $('#acPeopleBadge').textContent = all.length;
+    $('#acPeopleBadge').hidden = !all.length;
+    if (!all.length) {
       wrap.innerHTML = '<div class="ac-ok"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span>ยังไม่มีข้อยกเว้น — ทุกคนใช้ผู้อนุมัติตามแผนก/ทีม</div>';
       return;
     }
+    const deptNameOf = (e) => S.depts.find((d) => String(d.id) === String(e.department_id))?.department_name || 'ไม่ระบุแผนก';
+    // ตัวเลือกแผนก (เฉพาะแผนกที่มีข้อยกเว้น พร้อมจำนวน)
+    const counts = {};
+    all.forEach((e) => { const k = String(e.department_id || ''); counts[k] = (counts[k] || 0) + 1; });
+    const sel = $('#acPeopleDept');
+    if (sel) {
+      const opts = Object.keys(counts).map((k) => ({ k, n: k ? (S.depts.find((d) => String(d.id) === k)?.department_name || 'ไม่ระบุแผนก') : 'ไม่ระบุแผนก' }))
+        .sort((a, b) => a.n.localeCompare(b.n, 'th'));
+      if (S.peopleDept && !(S.peopleDept in counts)) S.peopleDept = '';
+      sel.innerHTML = `<option value="">ทุกแผนก (${all.length} คน)</option>` + opts.map((o) => `<option value="${esc(o.k)}">${esc(o.n)} (${counts[o.k]} คน)</option>`).join('');
+      sel.value = S.peopleDept || '';
+    }
+    const q = String(S.peopleQ || '').trim().toLowerCase();
+    const rows = all.filter((e) => (!S.peopleDept || String(e.department_id || '') === S.peopleDept) &&
+      (!q || String(e.full_name || '').toLowerCase().includes(q) || String(e.employee_code || '').toLowerCase().includes(q) || String(e.nickname || '').toLowerCase().includes(q)))
+      .sort((a, b) => deptNameOf(a).localeCompare(deptNameOf(b), 'th') || String(a.full_name || '').localeCompare(String(b.full_name || ''), 'th'));
+    const cnt = $('#acPeopleCount');
+    if (cnt) cnt.textContent = rows.length === all.length ? `${all.length} คน` : `แสดง ${rows.length} จาก ${all.length} คน`;
+    if (!rows.length) { wrap.innerHTML = '<p class="ac-muted">ไม่พบพนักงานตามที่ค้นหา</p>'; return; }
+    let lastDept = null;
     wrap.innerHTML = `<div class="ac-people">${rows.map((e) => {
-      const dn = S.depts.find((d) => String(d.id) === String(e.department_id))?.department_name || 'ไม่ระบุแผนก';
+      const dn = deptNameOf(e);
+      const head = dn !== lastDept ? `<h3 class="ac-people-group">${esc(dn)} <small>${rows.filter((x) => deptNameOf(x) === dn).length} คน</small></h3>` : '';
+      lastDept = dn;
       const steps = PERSON_COLS.map((c, i) => e[c] ? `<span class="ac-step"><span class="ac-step__head"><b>${i + 1}</b>ลำดับที่ ${i + 1}</span><span class="ac-step__people">${personHtml(e[c])}</span></span>` : '').filter(Boolean).join('');
-      return `<article class="ac-person-row">
+      return `${head}<article class="ac-person-row">
         <div class="ac-person-row__who"><strong>${esc(e.full_name)}</strong><small>${esc(e.employee_code)} · ${esc(dn)}</small></div>
         <div class="ac-chain">${steps}<span class="ac-muted ac-small">ลำดับอื่นใช้ตามแผนก</span></div>
         <div class="ac-card__actions"><button type="button" class="ac-btn ac-btn--ghost" data-person="${e.id}"><span class="material-symbols-outlined" aria-hidden="true">edit</span>แก้ไข</button></div>
@@ -822,9 +844,17 @@
       if (b.dataset.act === 'edit-dept') openEditor('dept', b.dataset.id);
       if (b.dataset.act === 'edit-team') openEditor('team', b.dataset.id);
       if (b.dataset.act === 'add-team') openEditor('team', null, b.dataset.id);
-      if (b.dataset.act === 'people') setTab('people');
+      if (b.dataset.act === 'people') {
+        // เปิดข้อยกเว้นเฉพาะแผนกที่กด (เดิมแสดงรวมทุกแผนก หายาก)
+        S.peopleDept = String(b.dataset.id || ''); S.peopleQ = '';
+        const qi = $('#acPeopleSearch'); if (qi) qi.value = '';
+        setTab('people'); renderPeople();
+        $('.ac-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     });
     $('#acPersonAdd').addEventListener('click', () => openPersonEditor(null));
+    $('#acPeopleSearch')?.addEventListener('input', (ev) => { S.peopleQ = ev.target.value; renderPeople(); });
+    $('#acPeopleDept')?.addEventListener('change', (ev) => { S.peopleDept = ev.target.value; renderPeople(); });
     $('#acPeopleList').addEventListener('click', (ev) => { const b = ev.target.closest('[data-person]'); if (b) openPersonEditor(b.dataset.person); });
     setTab(String(location.hash || '').replace('#', '') || 'chains', { silent: true });
     const body = $('#acEditorBody');

@@ -215,6 +215,14 @@
                 — ลำดับที่ไม่ได้ตั้ง จะใช้ตามแผนกเหมือนเดิม</p>
               <button type="button" class="ac-btn" id="acPersonAdd"><span class="material-symbols-outlined" aria-hidden="true">person_add</span>เพิ่มข้อยกเว้น</button>
             </div>
+            <div class="ac-toolbar-row ac-people-tools">
+              <div class="ac-toolbar">
+                <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                <input type="search" id="acPeopleSearch" placeholder="ค้นหาชื่อ หรือรหัสพนักงาน" />
+              </div>
+              <select id="acPeopleDept" class="ac-input" aria-label="เลือกแผนก"></select>
+              <span class="ac-muted" id="acPeopleCount"></span>
+            </div>
             <div id="acPeopleList"></div>
           </section>
 
