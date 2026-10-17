@@ -2215,7 +2215,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                       <span class="material-symbols-outlined" style="font-size:16px;">delete</span> ลบรูป
                     </button>
                   </div>
-                  <input type="file" id="inline-edit-img" accept="image/*" style="display: none;" onchange="if(this.files[0]) { document.getElementById('inline-edit-profilePreview').src = URL.createObjectURL(this.files[0]); window._inlinePhotoRemoved = false; }">
+                  <input type="file" id="inline-edit-img" accept="image/*" style="display: none;" onchange="if(this.files[0]) { document.getElementById('inline-edit-profilePreview').src = window.URL.createObjectURL(this.files[0]); window._inlinePhotoRemoved = false; }">
                 </div>
               </div>
 
