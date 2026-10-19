@@ -248,6 +248,16 @@
               <span class="hr-menu__text"><strong>ดึงรายงานโควตา (Excel)</strong><small>โควตาวันลาและประวัติการลาทั้งหมด</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
+            <button type="button" onclick="openChangeRequests()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">rule</span>
+              <span class="hr-menu__text"><strong>คำขอแก้ไขข้อมูลพนักงาน <span id="hrChangeReqBadge" hidden style="margin-left:6px; padding:1px 8px; border-radius:99px; background:#fef3c7; color:#92400e; font-size:12px;"></span></strong><small>ชื่อ · คำนำหน้า · เลขบัญชี · รพ.ที่ล็อกแล้ว</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button type="button" onclick="openHospitalReport()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">local_hospital</span>
+              <span class="hr-menu__text"><strong>โรงพยาบาลประกันสังคม</strong><small>สรุปตาม รพ. · ใครยังไม่ระบุ · ส่งออก Excel</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
             <button type="button" onclick="viewAuditLogs()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">history</span>
               <span class="hr-menu__text"><strong>ประวัติการแก้ไข (Audit Log)</strong><small>ใครแก้ข้อมูลอะไร เมื่อไร</small></span>
@@ -481,6 +491,7 @@
   <script type="module" src="/js/health-wellness.js" onload="console.log('  โหลด health-wellness.js สำเร็จ')"></script>
   <script type="module" src="/js/leave-rules.js" onload="console.log('  โหลด leave-rules.js สำเร็จ')"></script>
   <script type="module" src="/js/components/login-logs-viewer.js" onload="console.log('  โหลด login-logs-viewer.js สำเร็จ')" onerror="console.error(' โหลด login-logs-viewer.js ล้มเหลว')"></script>
+  <script src="/js/profile-change.js"></script>
   <script type="module" src="/js/management.js" onload="console.log('  โหลด management.js สำเร็จ')" onerror="console.error(' โหลด management.js ล้มเหลว (404 Not Found)')"></script>
   <script type="module" src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error(' โหลด recharts-summary.js ล้มเหลว')"></script>
   <script src="/js/hr-card-head.js"></script>

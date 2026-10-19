@@ -2358,7 +2358,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                   </div>
                   <div class="pvt-field-group">
                     <label for="inline-edit-hospital">🏥 โรงพยาบาลประกันสังคม</label>
-                    <input id="inline-edit-hospital" class="pvt-input" value="${escapeHtml(emp.hospital || '')}" placeholder="เช่น รพ.เปาโล">
+                    ${window.PVTProfileChange ? window.PVTProfileChange.hospitalFieldHtml('inline-edit-hospital', emp.hospital || '', 'pvt-input') : `<input id="inline-edit-hospital" class="pvt-input" value="${escapeHtml(emp.hospital || '')}" placeholder="เช่น รพ.เปาโล">`}
                   </div>
                 </div>
               </div>
@@ -3305,7 +3305,7 @@ window.addNewEmployee = async function addNewEmployee() {
                     </div>
                     <div class="pvt-field-group">
                       <label for="swal-hospital">🏥 โรงพยาบาลประกันสังคม</label>
-                      <input id="swal-hospital" class="pvt-input" placeholder="เช่น รพ.เปาโล">
+                      ${window.PVTProfileChange ? window.PVTProfileChange.hospitalFieldHtml('swal-hospital', '', 'pvt-input') : '<input id="swal-hospital" class="pvt-input" placeholder="เช่น รพ.เปาโล">'}
                     </div>
                   </div>
                 </div>
@@ -6863,4 +6863,153 @@ async function planApproversForDepartmentMove(emp, newDeptId, displayName) {
   if (r.isDismissed) return null;
   if (r.isDenied) return { fields: hasTeams ? { team_id: null } : {}, noteHtml: '<div style="margin-top:10px;font-size:13px;color:#64748b;">คงสายอนุมัติรายบุคคลไว้ตามเดิม</div>' };
   return { fields, noteHtml: `<div style="margin-top:10px;font-size:13px;color:#0f766e;">🔀 ใช้สายอนุมัติของแผนกใหม่</div>${pendingNote}` };
+}
+
+
+// ==========================================
+// 🏥 รายงานโรงพยาบาลประกันสังคม (พนักงานระบุเองได้ที่หน้า "ข้อมูลฉัน")
+// ==========================================
+function pvtHospitalKey(name) {
+  return String(name || '').replace(/\s+/g, '').toLowerCase()
+    .replace(/^(โรงพยาบาล|รพ\.?|ร\.พ\.?)/, '');
+}
+function pvtHospitalRows() {
+  return (Array.isArray(employees) ? employees : []).filter((e) => {
+    if (window.isSystemOrAdminAccount && window.isSystemOrAdminAccount(e)) return false;
+    const st = String(e.status || 'active').toLowerCase();
+    return st === 'active' || st === '' || st === 'ใช้งาน';
+  });
+}
+window.openHospitalReport = async function openHospitalReport() {
+  const rows = pvtHospitalRows();
+  const metaMap = window.PVTProfileChange ? await window.PVTProfileChange.loadMeta() : null;
+  const isLocked = (e) => !!(metaMap && metaMap[e.id] && metaMap[e.id].hospital && metaMap[e.id].hospital.verified_at);
+  const groups = new Map();
+  const missing = [];
+  rows.forEach((e) => {
+    const h = String(e.hospital || '').replace(/\s+/g, ' ').trim();
+    if (!h || h === '-') { missing.push(e); return; }
+    const k = pvtHospitalKey(h);
+    if (!groups.has(k)) groups.set(k, { names: new Map(), emps: [] });
+    const g = groups.get(k);
+    g.names.set(h, (g.names.get(h) || 0) + 1);
+    g.emps.push(e);
+  });
+  const list = [...groups.values()].map((g) => ({
+    label: [...g.names.entries()].sort((a, b) => b[1] - a[1])[0][0],
+    variants: g.names.size, emps: g.emps
+  })).sort((a, b) => b.emps.length - a.emps.length);
+  const filled = rows.length - missing.length;
+  const pct = rows.length ? Math.round((filled / rows.length) * 100) : 0;
+  const dn = (e) => e.departments?.department_name || '-';
+  const empLine = (e) => `<li><b>${escapeHtml(e.full_name || '-')}</b> <span style="color:#64748b;">${escapeHtml(e.employee_code || '')} · ${escapeHtml(dn(e))}</span>${metaMap && e.hospital ? (isLocked(e)
+      ? ` <span style="color:#047857; font-size:12.5px; font-weight:700;">🔒 ยืนยันแล้ว</span> <button type="button" data-hlock="0" data-id="${e.id}" style="border:0; background:none; color:#64748b; text-decoration:underline; cursor:pointer; font:inherit; font-size:12.5px;">ปลดล็อก</button>`
+      : ` <button type="button" data-hlock="1" data-id="${e.id}" style="border:0; background:none; color:#0369a1; text-decoration:underline; cursor:pointer; font:inherit; font-size:12.5px;">ยืนยัน & ล็อก</button>`) : ''}</li>`;
+  const lockedCount = metaMap ? rows.filter((e) => e.hospital && isLocked(e)).length : 0;
+  const unlockedFilled = metaMap ? rows.filter((e) => String(e.hospital || '').trim() && !isLocked(e)) : [];
+
+  const html = `
+    <div style="text-align:left; font-size:14.5px;">
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;">
+        <div style="padding:12px; border-radius:12px; background:#f0fdf4; border:1px solid #bbf7d0;"><div style="color:#166534; font-size:13px;">ระบุแล้ว</div><div style="font-size:24px; font-weight:800; color:#166534;">${filled} <small style="font-size:14px;">คน (${pct}%)</small></div></div>
+        <div style="padding:12px; border-radius:12px; background:#fffbeb; border:1px solid #fde68a;"><div style="color:#92400e; font-size:13px;">ยังไม่ระบุ</div><div style="font-size:24px; font-weight:800; color:#b45309;">${missing.length} <small style="font-size:14px;">คน</small></div></div>
+        <div style="padding:12px; border-radius:12px; background:#f0f9ff; border:1px solid #bae6fd;"><div style="color:#0369a1; font-size:13px;">จำนวนโรงพยาบาล</div><div style="font-size:24px; font-weight:800; color:#0369a1;">${list.length} <small style="font-size:14px;">แห่ง</small></div></div>
+      </div>
+      ${metaMap ? `<div style="font-size:13.5px; color:#047857; margin-bottom:6px;">🔒 ยืนยัน & ล็อกแล้ว ${lockedCount} คน · พนักงานที่ถูกล็อกจะแก้เองไม่ได้ ต้องส่งคำขอให้ HR</div>` : `<div style="font-size:13px; color:#b45309; margin-bottom:6px;">ยังล็อกข้อมูลไม่ได้: กรุณารัน SQL 20261019_profile_change_requests.sql</div>`}
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;"><button type="button" data-hlist style="border:1px solid #bae6fd; background:#f0f9ff; color:#0369a1; border-radius:10px; padding:7px 14px; font:inherit; font-weight:700; cursor:pointer;">📋 จัดการรายชื่อ รพ.ให้พนักงานเลือก</button></div>
+      <div style="font-size:13px; color:#64748b; margin-bottom:10px;">นับเฉพาะพนักงานที่ใช้งานอยู่ · พนักงานระบุ/แก้เองได้ที่เมนู <b>ข้อมูลฉัน</b> · ชื่อที่เขียนต่างกันเล็กน้อย (เช่น รพ./โรงพยาบาล) ระบบรวมเป็นแห่งเดียวกัน</div>
+      <div style="max-height:52vh; overflow:auto; padding-right:4px;">
+        ${list.map((g, i) => `
+          <details style="border:1px solid #e2e8f0; border-radius:12px; margin-bottom:8px; background:#fff;">
+            <summary style="cursor:pointer; padding:10px 14px; display:flex; justify-content:space-between; gap:10px; font-weight:700;">
+              <span>${i + 1}. ${escapeHtml(g.label)}${g.variants > 1 ? ` <small style="color:#94a3b8; font-weight:500;">(เขียน ${g.variants} แบบ)</small>` : ''}</span>
+              <span style="color:#0369a1;">${g.emps.length} คน</span>
+            </summary>
+            <ul style="margin:0; padding:0 18px 12px 34px; line-height:1.8;">${g.emps.map(empLine).join('')}</ul>
+          </details>`).join('') || '<p style="color:#64748b;">ยังไม่มีพนักงานระบุโรงพยาบาล</p>'}
+        ${missing.length ? `
+          <details style="border:1px solid #fde68a; border-radius:12px; margin-top:12px; background:#fffbeb;" ${list.length ? '' : 'open'}>
+            <summary style="cursor:pointer; padding:10px 14px; display:flex; justify-content:space-between; font-weight:700; color:#92400e;"><span>ยังไม่ระบุโรงพยาบาล</span><span>${missing.length} คน</span></summary>
+            <ul style="margin:0; padding:0 18px 12px 34px; line-height:1.8;">${missing.map(empLine).join('')}</ul>
+          </details>` : ''}
+      </div>
+    </div>`;
+
+  let lockAction = null;
+  const r = await Swal.fire({
+    title: '🏥 โรงพยาบาลประกันสังคมของพนักงาน',
+    html, width: 'min(920px, 96vw)',
+    showCancelButton: true, confirmButtonText: '⬇️ ดาวน์โหลด Excel', cancelButtonText: 'ปิด',
+    showDenyButton: !!(metaMap && unlockedFilled.length), denyButtonText: `🔒 ยืนยัน & ล็อกทุกคนที่ระบุแล้ว (${unlockedFilled.length})`,
+    confirmButtonColor: '#0f766e', denyButtonColor: '#047857',
+    didOpen: (pop) => pop.addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-hlist]')) { lockAction = { list: true }; Swal.close(); return; }
+      const b = ev.target.closest('[data-hlock]');
+      if (!b) return;
+      lockAction = { ids: [b.dataset.id], verified: b.dataset.hlock === '1' };
+      Swal.close();
+    })
+  });
+  if (r.isConfirmed) { exportHospitalExcel(rows, list, missing); return; }
+  if (lockAction && lockAction.list && window.PVTProfileChange) {
+    await window.PVTProfileChange.openHospitalListManager();
+    try { await fetchEmployees(); } catch (_) {}
+    return window.openHospitalReport();
+  }
+  if (r.isDenied) lockAction = { ids: unlockedFilled.map((e) => e.id), verified: true };
+  if (lockAction && window.PVTProfileChange) {
+    if (lockAction.ids.length > 1) {
+      const c = await Swal.fire({ icon: 'question', title: `ยืนยัน & ล็อก ${lockAction.ids.length} คน?`, text: 'พนักงานกลุ่มนี้จะแก้ รพ.ประกันสังคมเองไม่ได้ ต้องส่งคำขอให้ HR อนุมัติ', showCancelButton: true, confirmButtonText: 'ยืนยัน & ล็อก', cancelButtonText: 'ยกเลิก' });
+      if (!c.isConfirmed) return window.openHospitalReport();
+    }
+    const res = await window.PVTProfileChange.setVerified(lockAction.ids, 'hospital', lockAction.verified);
+    if (res.error) Swal.fire('ไม่สำเร็จ', res.error.message, 'error');
+    else await Swal.fire({ icon: 'success', title: lockAction.verified ? `ล็อกแล้ว ${res.ok} คน` : 'ปลดล็อกแล้ว', timer: 1200, showConfirmButton: false });
+    return window.openHospitalReport();
+  }
+};
+
+// 📝 คำขอแก้ไขข้อมูลพนักงาน (ชื่อ / คำนำหน้า / เลขบัญชี / รพ.ที่ล็อกแล้ว)
+window.openChangeRequests = async function openChangeRequests() {
+  if (!window.PVTProfileChange) { Swal.fire('ไม่พบโมดูล', 'กรุณารีเฟรชหน้า', 'error'); return; }
+  await window.PVTProfileChange.openReview(() => { try { refreshDashboard(); } catch (_) {} });
+  updateChangeRequestBadge();
+};
+async function updateChangeRequestBadge() {
+  const el = document.getElementById('hrChangeReqBadge');
+  if (!el || !window.PVTProfileChange) return;
+  const n = await window.PVTProfileChange.pendingCount();
+  el.textContent = n ? `${n} รอพิจารณา` : '';
+  el.hidden = !n;
+}
+setTimeout(updateChangeRequestBadge, 2500);
+
+async function exportHospitalExcel(rows, list, missing) {
+  const ExcelJS = window.ExcelJS;
+  if (!ExcelJS) { Swal.fire({ icon: 'error', title: 'ไม่พบ ExcelJS', text: 'กรุณารอสักครู่ให้หน้าเว็บโหลดไลบรารีเสร็จสิ้น' }); return; }
+  const wb = new ExcelJS.Workbook();
+  const head = (ws) => { const r = ws.getRow(1); r.font = { bold: true, color: { argb: 'FFFFFFFF' } }; r.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } }; ws.views = [{ state: 'frozen', ySplit: 1 }]; };
+  const ws1 = wb.addWorksheet('รายชื่อพนักงาน');
+  ws1.columns = [
+    { header: 'รหัสพนักงาน', key: 'code', width: 14 }, { header: 'ชื่อ-นามสกุล', key: 'name', width: 30 },
+    { header: 'แผนก', key: 'dept', width: 22 }, { header: 'ตำแหน่ง', key: 'pos', width: 24 },
+    { header: 'โรงพยาบาลประกันสังคม', key: 'hospital', width: 36 }
+  ];
+  rows.slice().sort((a, b) => String(a.departments?.department_name || '').localeCompare(String(b.departments?.department_name || ''), 'th') || String(a.employee_code || '').localeCompare(String(b.employee_code || '')))
+    .forEach((e) => ws1.addRow({ code: e.employee_code || '', name: e.full_name || '', dept: e.departments?.department_name || '', pos: e.positions?.position_name || e.position_name || '', hospital: String(e.hospital || '').trim() || 'ยังไม่ระบุ' }));
+  head(ws1); ws1.autoFilter = 'A1:E1';
+  const ws2 = wb.addWorksheet('สรุปตามโรงพยาบาล');
+  ws2.columns = [{ header: 'โรงพยาบาล', key: 'h', width: 40 }, { header: 'จำนวนพนักงาน', key: 'n', width: 16 }];
+  list.forEach((g) => ws2.addRow({ h: g.label, n: g.emps.length }));
+  if (missing.length) ws2.addRow({ h: 'ยังไม่ระบุ', n: missing.length });
+  ws2.addRow({ h: 'รวม', n: rows.length }).font = { bold: true };
+  head(ws2);
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const d = new Date();
+  const a = document.createElement('a');
+  a.href = window.URL.createObjectURL(blob);
+  a.download = `PVT_SSO_Hospital_${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear() + 543}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => window.URL.revokeObjectURL(a.href), 4000);
 }

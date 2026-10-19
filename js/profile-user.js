@@ -204,7 +204,7 @@ async function loadProfile() {
         <p style="font-size: 12px; color: #64748b; margin: 10px 0 0 0;">แตะไอคอนปากกาเพื่อแก้ไขรูปโปรไฟล์</p>
       </div>
 
-      <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+      ${window.PVTProfileChange ? "" : `      <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
         <span style="color: #64748b; font-size: 14px;">${t.lblFullName || "ชื่อ-นามสกุล"}</span>
         <strong style="color: #1e293b; font-size: 15px;">${escapeFn(empName)}</strong>
       </article>
@@ -224,10 +224,7 @@ async function loadProfile() {
         <strong style="color: #1e293b; font-size: 15px;">${escapeFn(posName)}</strong>
       </article>
 
-      <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: #64748b; font-size: 14px;">${t.lblEmail || "อีเมล / บัญชี"}</span>
-        <strong style="color: #1e293b; font-size: 15px;">${escapeFn(emp?.email || currentUserData?.email)}</strong>
-      </article>
+      <!-- อีเมล: ย้ายไปอยู่ในกล่อง "ข้อมูลที่ปรับปรุงได้" (แก้เองได้) -->
 
       <article class="recent-item" style="margin-bottom: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
         <span style="color: #64748b; font-size: 14px;">${t.lblRole || "สิทธิ์การใช้งาน"}</span>
@@ -238,6 +235,9 @@ async function loadProfile() {
         <span style="color: #64748b; font-size: 14px;">${t.lblStartDate || "วันเริ่มงาน"}</span>
         <strong style="color: #1e293b; font-size: 15px;">${dateFn(rawStartDate)}</strong>
       </article>
+
+      <!-- ข้อมูลที่พนักงานปรับปรุงได้ (รพ.ประกันสังคม / เบอร์โทร / คำขอแก้ข้อมูลสำคัญ) — js/profile-change.js -->`}
+      <div id="profileChangeBox"></div>
     `;
 
     // Populate LINE User ID input
@@ -246,6 +246,16 @@ async function loadProfile() {
       lineInput.value = emp?.line_id || "";
     }
     window.currentEmpProfile = emp;
+    try {
+      const pcBox = document.getElementById("profileChangeBox");
+      if (pcBox && window.PVTProfileChange) window.PVTProfileChange.renderSelf(pcBox, emp, [
+        { label: t.lblEmpCode || "รหัสพนักงาน", value: empCode },
+        { label: t.lblDept || "ฝ่าย / แผนก", value: deptName },
+        { label: t.lblPos || "ตำแหน่งงาน", value: posName },
+        { label: t.lblStartDate || "วันเริ่มงาน", value: dateFn(rawStartDate) },
+        { label: t.lblRole || "สิทธิ์การใช้งาน", value: String(emp?.role || currentUserData?.role || "user").toUpperCase() }
+      ]);
+    } catch (pcErr) { console.warn("profile change box:", pcErr); }
 
 
 
@@ -264,6 +274,9 @@ async function loadProfile() {
     box.innerHTML = `<div class="empty-state" style="color: #ef4444; text-align: center; padding: 20px;">เกิดข้อผิดพลาดในการโหลดข้อมูลโปรไฟล์</div>`;
   }
 }
+
+// 🏥 (ย้ายไป js/profile-change.js) — เก็บชื่อเดิมไว้เผื่อมีปุ่มเก่าเรียก
+window.editMyHospital = function () { const b = document.querySelector('#profileChangeBox [data-pc-toggle]'); if (b) b.click(); };
 
 async function saveUserLineId() {
   if (window.PVTLine && !(await window.PVTLine.guard())) return;

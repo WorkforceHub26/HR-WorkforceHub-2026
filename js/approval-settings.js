@@ -20,6 +20,35 @@ window.isLineConnected = function(emp) {
   return str !== "" && str !== "null" && str !== "undefined" && str !== "-";
 };
 
+// 🔐 การเชื่อมต่อ LINE OA (Token / Webhook / Bot ID) — เฉพาะผู้ดูแลระบบขั้นสูง (role = superadmin)
+//    HR/แอดมินทั่วไป ตั้งค่า "แจ้งเตือนเรื่องไหนบ้าง" ได้ตามปกติ แต่ไม่เห็น/แก้ Token (ลบผิดแล้ว LINE หยุดส่งทั้งระบบ)
+function isLineSuperAdmin() {
+  try {
+    const u = JSON.parse(localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser") || "{}") || {};
+    const role = String(u.role || u.employees?.role || "").toLowerCase();
+    return role === "superadmin";
+  } catch (_) { return false; }
+}
+window.isLineSuperAdmin = isLineSuperAdmin;
+function applyLineOaAccess() {
+  const sec = document.getElementById("lineOaCredentialsSection");
+  if (!sec || isLineSuperAdmin()) return;
+  // ไม่ใช่ผู้ดูแลขั้นสูง: ซ่อนช่อง Token แล้วแสดงแค่สถานะการเชื่อมต่อ
+  [...sec.children].forEach((el) => { if (!el.classList.contains("card-panel-header") && el.id !== "lineOaLockedNote") el.style.display = "none"; });
+  sec.querySelectorAll("input, textarea, button").forEach((el) => { if (!el.closest(".card-panel-header")) el.disabled = true; });
+  const tokenInput = document.getElementById("lineChannelAccessTokenInput");
+  if (tokenInput) tokenInput.value = "";
+  const title = sec.querySelector(".card-panel-title");
+  if (title) title.lastChild.textContent = " การเชื่อมต่อ LINE Official Account ของบริษัท";
+  if (!document.getElementById("lineOaLockedNote")) {
+    const note = document.createElement("div");
+    note.id = "lineOaLockedNote";
+    note.style.cssText = "padding:14px 20px; display:flex; align-items:center; gap:10px; color:#475569; font-size:14px; line-height:1.6;";
+    note.innerHTML = '<span class="material-symbols-outlined" style="color:#64748b;">lock</span><div>ส่วนนี้ (Token / Webhook / Bot ID) ตั้งค่าได้เฉพาะ <b>ผู้ดูแลระบบขั้นสูง</b> เพื่อป้องกันการลบหรือแก้ผิดจน LINE หยุดส่งทั้งระบบ<br><span style="font-size:13px;color:#64748b;">ถ้าสถานะด้านขวาไม่ใช่ "เชื่อมต่อแล้ว" กรุณาแจ้งผู้ดูแลระบบขั้นสูง · การเปิด-ปิดแจ้งเตือนแต่ละเรื่องด้านล่าง HR ตั้งค่าได้ตามปกติ</span></div>';
+    sec.appendChild(note);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const session = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const userStatus = typeof window.getUserRoleCategory === "function" 
@@ -31,6 +60,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.location.replace("/pages/hr/home.html");
     return;
   }
+
+  applyLineOaAccess();
+  setTimeout(applyLineOaAccess, 1500); // หลังโหลดค่า Token จากฐานข้อมูล
+  setTimeout(applyLineOaAccess, 4000);
 
   sb = window.pvtSupabase?.getClient?.() || window.supabaseClient || null;
 
@@ -1678,7 +1711,7 @@ async function loadLineOaConfig() {
     const basicIdInput = document.getElementById("lineBasicIdInput");
     const liveStatus = document.getElementById("lineOaLiveStatus");
 
-    if (tokenInput && config.channel_access_token) {
+    if (tokenInput && config.channel_access_token && isLineSuperAdmin()) {
       tokenInput.value = config.channel_access_token;
     }
     if (basicIdInput && config.basic_id) {
@@ -1703,6 +1736,7 @@ async function loadLineOaConfig() {
 }
 
 window.saveLineOaConfig = async function() {
+  if (!isLineSuperAdmin()) { Swal.fire("ไม่มีสิทธิ์", "การเชื่อมต่อ LINE OA แก้ได้เฉพาะผู้ดูแลระบบขั้นสูง", "warning"); return; }
   const tokenInput = document.getElementById("lineChannelAccessTokenInput");
   const basicIdInput = document.getElementById("lineBasicIdInput");
   const webhookInput = document.getElementById("lineWebhookUrlInput");

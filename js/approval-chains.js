@@ -40,6 +40,79 @@
   }
 
   // ------------------------------------------------------------------ load
+  // ------------------------------------------------------------------ ลากจัดเรียงการ์ดแผนก
+  const ORDER_KEY = 'approval_chain_dept_order';
+  function applyDeptOrder() {
+    if (!S.deptOrder || !S.deptOrder.length) return;
+    const idx = new Map(S.deptOrder.map((id, i) => [String(id), i]));
+    S.depts = S.depts.map((dp, i) => ({ dp, i })).sort((a, b) => {
+      const ia = idx.has(String(a.dp.id)) ? idx.get(String(a.dp.id)) : 1e6 + a.i;
+      const ib = idx.has(String(b.dp.id)) ? idx.get(String(b.dp.id)) : 1e6 + b.i;
+      return ia - ib;
+    }).map((x) => x.dp);
+  }
+  async function saveDeptOrder(visibleIds) {
+    // การ์ดที่แสดงอยู่ (อาจถูกกรอง) → ใส่ลำดับใหม่ลงตำแหน่งเดิมของกลุ่มนั้นในลำดับทั้งหมด
+    const all = S.depts.map((dp) => String(dp.id));
+    const vis = new Set(visibleIds);
+    const slots = all.map((id, i) => (vis.has(id) ? i : -1)).filter((i) => i >= 0);
+    const next = all.slice();
+    slots.forEach((pos, k) => { next[pos] = visibleIds[k]; });
+    S.deptOrder = next;
+    applyDeptOrder();
+    try { localStorage.setItem(ORDER_KEY, JSON.stringify(next)); } catch (_) {}
+    const { error } = await S.sb.from('system_settings').upsert({ setting_key: ORDER_KEY, setting_value: next, updated_at: new Date().toISOString(), description: 'ลำดับการ์ดแผนกในหน้าตั้งค่าสายอนุมัติ' }, { onConflict: 'setting_key' });
+    toast(error ? 'จัดเรียงแล้ว (บันทึกเฉพาะเครื่องนี้)' : 'บันทึกลำดับการ์ดแล้ว', error ? 'warning' : 'success');
+  }
+  async function resetDeptOrder() {
+    S.depts.sort((a, b) => String(a.department_name).localeCompare(String(b.department_name), 'th'));
+    await saveDeptOrder(S.depts.map((dp) => String(dp.id)));
+    renderDepts();
+  }
+  function initDeptDrag() {
+    const wrap = $('#acDeptList');
+    if (!wrap || wrap.__dragInit) return;
+    wrap.__dragInit = true;
+    let dragEl = null;
+    wrap.addEventListener('dragstart', (ev) => {
+      const card = ev.target.closest && ev.target.closest('.ac-card[data-dept]');
+      if (!card || !card.__armed) { ev.preventDefault(); return; }
+      dragEl = card;
+      card.classList.add('is-dragging');
+      try { ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', card.dataset.dept); } catch (_) {}
+    });
+    wrap.addEventListener('dragover', (ev) => {
+      if (!dragEl) return;
+      ev.preventDefault();
+      const over = ev.target.closest && ev.target.closest('.ac-card[data-dept]');
+      if (!over || over === dragEl) return;
+      const r = over.getBoundingClientRect();
+      const before = (ev.clientY < r.top + r.height / 2) || (ev.clientY < r.bottom && ev.clientX < r.left + r.width / 2 && Math.abs(ev.clientY - (r.top + r.height / 2)) < r.height / 4);
+      wrap.insertBefore(dragEl, before ? over : over.nextSibling);
+    });
+    const end = async () => {
+      if (!dragEl) return;
+      dragEl.classList.remove('is-dragging');
+      dragEl.__armed = false; dragEl.removeAttribute('draggable');
+      dragEl = null;
+      const ids = [...wrap.querySelectorAll('.ac-card[data-dept]')].map((c) => c.dataset.dept);
+      await saveDeptOrder(ids);
+    };
+    wrap.addEventListener('drop', (ev) => { ev.preventDefault(); end(); });
+    wrap.addEventListener('dragend', end);
+    // ลากได้เฉพาะเมื่อจับที่ไอคอน ⋮⋮ (กันลากโดยไม่ตั้งใจตอนกดปุ่ม/เลือกข้อความ)
+    wrap.addEventListener('mousedown', (ev) => {
+      const h = ev.target.closest && ev.target.closest('.ac-drag');
+      const card = h && h.closest('.ac-card[data-dept]');
+      if (!card) return;
+      card.__armed = true; card.setAttribute('draggable', 'true');
+    });
+    wrap.addEventListener('mouseup', (ev) => {
+      const card = ev.target.closest && ev.target.closest('.ac-card[data-dept]');
+      if (card && !dragEl) { card.__armed = false; card.removeAttribute('draggable'); }
+    });
+  }
+
   async function loadAll() {
     S.sb = client();
     if (!S.sb) { setTimeout(loadAll, 300); return; }
@@ -48,15 +121,22 @@
     $('#acMain').hidden = !ready;
     if (!ready) return;
 
-    const [d, e, t, c, p, x] = await Promise.all([
+    const [d, e, t, c, p, x, o] = await Promise.all([
       S.sb.from('departments').select('id, department_name, status').order('department_name'),
       S.sb.from('employees').select('id, full_name, employee_code, role, status, department_id, team_id, line_id, l1_approver_id, l2_approver_id, l3_approver_id, positions!position_id(position_name)').order('full_name'),
       S.sb.from('approval_teams').select('*').order('team_name'),
       S.sb.from('approval_chain_steps').select('*').order('step_no'),
       S.sb.from('system_settings').select('setting_value').eq('setting_key', 'approval_policy').maybeSingle(),
-      S.sb.from('system_settings').select('employee_id').eq('setting_key', 'leave_executive_approver').maybeSingle()
+      S.sb.from('system_settings').select('employee_id').eq('setting_key', 'leave_executive_approver').maybeSingle(),
+      S.sb.from('system_settings').select('setting_value').eq('setting_key', ORDER_KEY).maybeSingle()
     ]);
+
     S.depts = (d.data || []).filter((x) => !x.status || x.status === 'active');
+    // ลำดับการ์ดที่ HR ลากจัดไว้ (ใช้ร่วมกันทุกคน) — ถ้ายังไม่เคยจัด = เรียงตามชื่อ
+    let order = Array.isArray(o && o.data && o.data.setting_value) ? o.data.setting_value.map(String) : null;
+    if (!order) { try { order = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null'); } catch (_) { order = null; } }
+    S.deptOrder = Array.isArray(order) ? order : [];
+    applyDeptOrder();
     S.emps = e.data || [];
     S.empById = {};
     S.emps.forEach((x) => { S.empById[String(x.id)] = x; });
@@ -170,10 +250,10 @@
           <div class="ac-chain">${chainChipsHtml(teamEffectiveSteps(t), true)}</div>
         </div>`;
       }).join('');
-      return `<article class="ac-card${noApprover ? ' is-warn' : ''}">
+      return `<article class="ac-card${noApprover ? ' is-warn' : ''}" data-dept="${esc(String(d.id))}">
         <header class="ac-card__head">
           <div>
-            <h3>${esc(d.department_name)}</h3>
+            <h3><span class="ac-drag material-symbols-outlined" title="ลากเพื่อย้ายตำแหน่งการ์ด" aria-label="ลากเพื่อย้ายตำแหน่ง">drag_indicator</span>${esc(d.department_name)}</h3>
             <p class="ac-muted">พนักงาน ${members.length} คน${teams.length ? ` · ${teams.length} ทีม/กะ` : ''}${personal ? ` · <button type="button" class="ac-inline-link" data-act="people" data-id="${d.id}">ข้อยกเว้นรายบุคคล ${personal} คน</button>` : ''}</p>
           </div>
           <div class="ac-card__actions">
@@ -181,10 +261,11 @@
             <button type="button" class="ac-btn" data-act="edit-dept" data-id="${d.id}"><span class="material-symbols-outlined" aria-hidden="true">${steps.length ? 'edit' : 'add'}</span>${steps.length ? 'แก้ผู้อนุมัติ' : 'ตั้งผู้อนุมัติ'}</button>
           </div>
         </header>
-        <div class="ac-chain">${chainChipsHtml(steps)}<span class="material-symbols-outlined ac-arrow" aria-hidden="true">arrow_forward</span><span class="ac-step ac-step--hr"><span class="ac-step__head"><span class="material-symbols-outlined" aria-hidden="true">verified</span>ผลส่งถึง HR</span></span></div>
+        <div class="ac-chain">${chainChipsHtml(steps)}</div>
         ${teamHtml ? `<div class="ac-teams">${teamHtml}</div>` : ''}
       </article>`;
     });
+    initDeptDrag();
     wrap.innerHTML = cards.join('') || `<div class="ac-ok"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span>${S.deptFilter === 'missing' ? 'ทุกแผนกตั้งผู้อนุมัติแล้ว' : S.deptFilter === 'noline' ? 'ผู้อนุมัติทุกคนผูก LINE แล้ว' : 'ไม่พบแผนก'}</div>`;
   }
 
@@ -408,12 +489,26 @@
     if (cnt) cnt.textContent = rows.length === all.length ? `${all.length} คน` : `แสดง ${rows.length} จาก ${all.length} คน`;
     if (!rows.length) { wrap.innerHTML = '<p class="ac-muted">ไม่พบพนักงานตามที่ค้นหา</p>'; return; }
     let lastDept = null;
+    if (!S.peopleSel) S.peopleSel = new Set();
     wrap.innerHTML = `<div class="ac-people">${rows.map((e) => {
       const dn = deptNameOf(e);
-      const head = dn !== lastDept ? `<h3 class="ac-people-group">${esc(dn)} <small>${rows.filter((x) => deptNameOf(x) === dn).length} คน</small></h3>` : '';
+      const dk = String(e.department_id || '');
+      const selMode = S.peopleSelDept === dk;
+      let head = '';
+      if (dn !== lastDept) {
+        const inDept = rows.filter((x) => deptNameOf(x) === dn);
+        const nSel = inDept.filter((x) => S.peopleSel.has(String(x.id))).length;
+        head = `<div class="ac-people-group"><span>${esc(dn)} <small>${inDept.length} คน</small></span>
+          <span class="ac-people-group__tools">${selMode ? `
+            <label class="ac-chk"><input type="checkbox" data-act="sel-all" data-dept="${esc(dk)}" ${nSel === inDept.length ? 'checked' : ''}> เลือกทั้งหมด</label>
+            <button type="button" class="ac-btn ac-btn--danger" data-act="sel-delete" ${nSel ? '' : 'disabled'}><span class="material-symbols-outlined" aria-hidden="true">delete</span>ลบที่เลือก (${nSel})</button>
+            <button type="button" class="ac-btn ac-btn--ghost" data-act="sel-cancel">ยกเลิก</button>` : `
+            <button type="button" class="ac-btn ac-btn--ghost" data-act="sel-start" data-dept="${esc(dk)}"><span class="material-symbols-outlined" aria-hidden="true">checklist</span>แก้ไข / ลบหลายรายการ</button>`}</span></div>`;
+      }
       lastDept = dn;
       const steps = PERSON_COLS.map((c, i) => e[c] ? `<span class="ac-step"><span class="ac-step__head"><b>${i + 1}</b>ลำดับที่ ${i + 1}</span><span class="ac-step__people">${personHtml(e[c])}</span></span>` : '').filter(Boolean).join('');
-      return `${head}<article class="ac-person-row">
+      return `${head}<article class="ac-person-row${selMode && S.peopleSel.has(String(e.id)) ? ' is-selected' : ''}">
+        ${selMode ? `<label class="ac-chk ac-chk--row"><input type="checkbox" data-act="sel-one" data-id="${e.id}" ${S.peopleSel.has(String(e.id)) ? 'checked' : ''} aria-label="เลือก ${esc(e.full_name)}"></label>` : ''}
         <div class="ac-person-row__who"><strong>${esc(e.full_name)}</strong><small>${esc(e.employee_code)} · ${esc(dn)}</small></div>
         <div class="ac-chain">${steps}<span class="ac-muted ac-small">ลำดับอื่นใช้ตามแผนก</span></div>
         <div class="ac-card__actions"><button type="button" class="ac-btn ac-btn--ghost" data-person="${e.id}"><span class="material-symbols-outlined" aria-hidden="true">edit</span>แก้ไข</button></div>
@@ -441,6 +536,23 @@
     if (error) { Swal.fire('ลบไม่สำเร็จ', error.message, 'error'); return; }
     closeEditor();
     toast('ลบข้อยกเว้นแล้ว');
+    await loadAll();
+  }
+
+  // ลบข้อยกเว้นหลายคนพร้อมกัน (เลือกจากโหมด "แก้ไข / ลบหลายรายการ" ของแต่ละแผนก)
+  async function removePeopleBulk() {
+    const ids = [...(S.peopleSel || [])];
+    if (!ids.length) return;
+    const names = ids.map((id) => S.empById[id]?.full_name || '').filter(Boolean);
+    const list = names.slice(0, 8).map((n) => `<li>${esc(n)}</li>`).join('') + (names.length > 8 ? `<li>และอีก ${names.length - 8} คน</li>` : '');
+    const r = await Swal.fire({ icon: 'question', title: `ลบข้อยกเว้น ${ids.length} คน?`,
+      html: `<ul style="text-align:left; margin:0 auto 10px; max-width:340px; line-height:1.8;">${list}</ul><div style="color:#64748b;">ทุกคนจะกลับไปใช้ผู้อนุมัติตามแผนก/ทีม (ใบลาที่ยื่นไปแล้วไม่เปลี่ยน)</div>`,
+      showCancelButton: true, confirmButtonText: `ลบ ${ids.length} คน`, cancelButtonText: 'ยกเลิก', confirmButtonColor: '#dc2626' });
+    if (!r.isConfirmed) return;
+    const { error } = await S.sb.from('employees').update({ l1_approver_id: null, l2_approver_id: null, l3_approver_id: null }).in('id', ids);
+    if (error) { Swal.fire('ลบไม่สำเร็จ', error.message, 'error'); return; }
+    S.peopleSelDept = null; S.peopleSel = new Set();
+    toast(`ลบข้อยกเว้นแล้ว ${ids.length} คน`);
     await loadAll();
   }
 
@@ -836,8 +948,9 @@
       if (b.dataset.go === 'preview') setTimeout(() => $('#acPreviewSelect').focus(), 50);
       $('.ac-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }));
-    document.querySelectorAll('.ac-filter').forEach((b) => b.addEventListener('click', () => { S.deptFilter = b.dataset.filter; renderDepts(); }));
+    document.querySelectorAll('.ac-filter[data-filter]').forEach((b) => b.addEventListener('click', () => { S.deptFilter = b.dataset.filter; renderDepts(); }));
     $('#acSearch').addEventListener('input', renderDepts);
+    $('#acOrderReset')?.addEventListener('click', async () => { const r = await Swal.fire({ icon: 'question', title: 'เรียงการ์ดตามชื่อแผนก?', text: 'ลำดับที่ลากจัดไว้จะถูกแทนที่', showCancelButton: true, confirmButtonText: 'เรียงตามชื่อ', cancelButtonText: 'ยกเลิก' }); if (r.isConfirmed) resetDeptOrder(); });
     $('#acDeptList').addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-act]');
       if (!b) return;
@@ -855,7 +968,29 @@
     $('#acPersonAdd').addEventListener('click', () => openPersonEditor(null));
     $('#acPeopleSearch')?.addEventListener('input', (ev) => { S.peopleQ = ev.target.value; renderPeople(); });
     $('#acPeopleDept')?.addEventListener('change', (ev) => { S.peopleDept = ev.target.value; renderPeople(); });
-    $('#acPeopleList').addEventListener('click', (ev) => { const b = ev.target.closest('[data-person]'); if (b) openPersonEditor(b.dataset.person); });
+    $('#acPeopleList').addEventListener('click', (ev) => {
+      const t = ev.target.closest('[data-act]');
+      if (t && t.dataset.act === 'sel-start') { S.peopleSelDept = t.dataset.dept; S.peopleSel = new Set(); renderPeople(); return; }
+      if (t && t.dataset.act === 'sel-cancel') { S.peopleSelDept = null; S.peopleSel = new Set(); renderPeople(); return; }
+      if (t && t.dataset.act === 'sel-delete') { removePeopleBulk(); return; }
+      if (t && (t.dataset.act === 'sel-one' || t.dataset.act === 'sel-all')) return; // จัดการใน change
+      const row = ev.target.closest('.ac-person-row');
+      if (row && S.peopleSelDept != null && !ev.target.closest('[data-person]')) {
+        const cb = row.querySelector('[data-act="sel-one"]');
+        if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change', { bubbles: true })); }
+        return;
+      }
+      const b = ev.target.closest('[data-person]'); if (b) openPersonEditor(b.dataset.person);
+    });
+    $('#acPeopleList').addEventListener('change', (ev) => {
+      const t = ev.target;
+      if (!t.dataset) return;
+      if (t.dataset.act === 'sel-one') { if (t.checked) S.peopleSel.add(String(t.dataset.id)); else S.peopleSel.delete(String(t.dataset.id)); renderPeople(); }
+      if (t.dataset.act === 'sel-all') {
+        document.querySelectorAll('#acPeopleList [data-act="sel-one"]').forEach((cb) => { if (t.checked) S.peopleSel.add(String(cb.dataset.id)); else S.peopleSel.delete(String(cb.dataset.id)); });
+        renderPeople();
+      }
+    });
     setTab(String(location.hash || '').replace('#', '') || 'chains', { silent: true });
     const body = $('#acEditorBody');
     body.addEventListener('click', onEditorClick);

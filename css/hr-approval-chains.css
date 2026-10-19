@@ -172,6 +172,11 @@
 #page-hr-approval-chains .ac-card.is-warn { border-color: #fcd34d; box-shadow: inset 4px 0 0 #f59e0b; }
 #page-hr-approval-chains .ac-card__head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 #page-hr-approval-chains .ac-card__head h3 { margin: 0; font-size: 16px; }
+#page-hr-approval-chains .ac-card__head h3 { display: flex; align-items: center; gap: 4px; }
+#page-hr-approval-chains .ac-drag { font-size: 20px; color: #94a3b8; cursor: grab; margin-left: -6px; padding: 2px; border-radius: 6px; user-select: none; }
+#page-hr-approval-chains .ac-drag:hover { color: var(--ac-primary); background: var(--ac-primary-soft); }
+#page-hr-approval-chains .ac-card.is-dragging { opacity: .5; outline: 2px dashed var(--ac-primary); outline-offset: 2px; }
+#page-hr-approval-chains .ac-card[draggable="true"] .ac-drag { cursor: grabbing; }
 #page-hr-approval-chains .ac-card__actions { display: flex; gap: 6px; flex-wrap: wrap; }
 #page-hr-approval-chains .ac-card__actions .ac-btn { min-height: 34px; font-size: 13px; padding: 0 10px; }
 
@@ -250,11 +255,20 @@
 #page-hr-approval-chains .ac-people-tools #acPeopleDept { flex: 0 1 300px; width: auto; min-width: 220px; }
 #page-hr-approval-chains .ac-people-group { margin: 18px 0 8px; display: flex; align-items: baseline; gap: 8px; font-size: 16px; font-weight: 800; color: var(--ac-text); }
 #page-hr-approval-chains .ac-people-group:first-child { margin-top: 0; }
+#page-hr-approval-chains .ac-people-group { justify-content: space-between; flex-wrap: wrap; align-items: center; }
+#page-hr-approval-chains .ac-people-group__tools { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 600; }
+#page-hr-approval-chains .ac-chk { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--ac-text-2); }
+#page-hr-approval-chains .ac-chk input { width: 18px; height: 18px; accent-color: #dc2626; cursor: pointer; }
+#page-hr-approval-chains .ac-chk--row { padding: 0 4px 0 2px; }
+#page-hr-approval-chains .ac-person-row.is-selected { border-color: #fca5a5; background: #fef2f2; }
+#page-hr-approval-chains .ac-btn--danger { background: #dc2626; color: #fff; border-color: #dc2626; }
+#page-hr-approval-chains .ac-btn--danger:disabled { opacity: .45; cursor: not-allowed; }
 #page-hr-approval-chains .ac-people-group small { font-size: 13px; font-weight: 600; color: var(--ac-text-2); }
 #page-hr-approval-chains .ac-person-row {
   display: grid; grid-template-columns: minmax(160px, 220px) 1fr auto; align-items: center; gap: 12px;
   padding: 12px 14px; border-radius: 14px; background: var(--ac-surface); border: 1px solid var(--ac-border);
 }
+#page-hr-approval-chains .ac-person-row:has(.ac-chk--row) { grid-template-columns: auto minmax(160px, 220px) 1fr auto; cursor: pointer; }
 #page-hr-approval-chains .ac-person-row__who { display: grid; }
 #page-hr-approval-chains .ac-person-row__who small { color: var(--ac-muted); font-size: 12.5px; }
 #page-hr-approval-chains .ac-person-row .ac-card__actions .ac-btn { min-height: 34px; font-size: 13px; }
