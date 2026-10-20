@@ -1130,33 +1130,15 @@ async function fetchUserNotificationsCore() {
           stageKey = "cancelled";
           title = "✅ ยกเลิกใบลาเรียบร้อยแล้ว";
           message = `ใบลา ${leaveName} ของคุณถูกยกเลิกเรียบร้อยแล้ว`;
-        } else if (realSteps[req.id] && realSteps[req.id].length) {
-          // มีขั้นอนุมัติจริง → แจ้งเฉพาะขั้นที่มีคนกดอนุมัติแล้วจริง (ไม่นับขั้นที่ข้าม)
-          const done = realSteps[req.id]
-            .filter(st => String(st.status).toLowerCase() === "approved" && st.acted_by)
-            .sort((a, b) => b.step_no - a.step_no)[0];
-          if (done) {
-            stageKey = `step-${done.step_no}-approved`;
-            title = `✅ ${done.step_label || `ผู้อนุมัติลำดับที่ ${done.step_no}`} อนุมัติแล้ว`;
-            message = `ใบลา ${leaveName} ผ่านขั้น ${done.step_label || done.step_no} แล้ว และกำลังรอขั้นถัดไป`;
-          }
-        } else if (l1 === "rejected" || l2 === "rejected" || l3 === "rejected") {
+        } else if (!(realSteps[req.id] && realSteps[req.id].length) && (l1 === "rejected" || l2 === "rejected" || l3 === "rejected")) {
+          // ขั้นตอนแบบเดิม: มีผู้อนุมัติปฏิเสธ = จบขั้นตอน
           stageKey = `stage-rejected-${l3 === "rejected" ? "l3" : l2 === "rejected" ? "l2" : "l1"}`;
           title = "❌ ใบลาไม่ผ่านการอนุมัติ";
           message = `ใบลา ${leaveName} ของคุณมีผู้อนุมัติปฏิเสธ กรุณาเปิดประวัติการลาเพื่อดูรายละเอียด`;
-        } else if (l3 === "approved") {
-          stageKey = "l3-approved";
-          title = "✅ ผู้บริหาร (ลำดับที่ 3) อนุมัติแล้ว";
-          message = `ใบลา ${leaveName} ผ่านการอนุมัติขั้นผู้บริหารแล้ว`;
-        } else if (l2 === "approved") {
-          stageKey = "l2-approved";
-          title = "✅ ผู้จัดการ (ลำดับที่ 2) อนุมัติแล้ว";
-          message = `ใบลา ${leaveName} ผ่านการอนุมัติจากผู้จัดการแล้ว และกำลังดำเนินการขั้นถัดไป`;
-        } else if (l1 === "approved") {
-          stageKey = "l1-approved";
-          title = "✅ หัวหน้างาน (ลำดับที่ 1) อนุมัติแล้ว";
-          message = `ใบลา ${leaveName} ผ่านการอนุมัติจากหัวหน้างานแล้ว และกำลังรอขั้นถัดไป`;
         }
+        // ⛔ ไม่แจ้ง "ลำดับที่ 1/2/3 อนุมัติแล้ว" ระหว่างทาง — แจ้งเฉพาะเมื่อจบขั้นตอน
+        //    (อนุมัติครบทุกขั้น / ไม่อนุมัติ / ยกเลิก) กันพนักงานเข้าใจผิดว่าได้รับอนุมัติแล้ว
+        //    ความคืบหน้ารายขั้นยังดูได้ในหน้าประวัติการลา
 
         // pending ที่ยังไม่มีใครพิจารณา ไม่ถือเป็นข้อความใหม่
         if (!stageKey) return;
