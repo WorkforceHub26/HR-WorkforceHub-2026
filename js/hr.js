@@ -907,6 +907,8 @@ window.getApprovalWorkflowSteps = getApprovalWorkflowSteps;
 async function loadPendingLeavesHR(isSilent = false) {
   const container = document.getElementById("leaveListContainer");
   if (!container) return;
+  // 🔔 อัปเดตกระดิ่งงานรอดำเนินการ (hr-inbox.js) หลังอนุมัติ/ไม่อนุมัติ/ยกเลิก
+  if (!isSilent) setTimeout(() => window.PVTHrInbox?.refresh?.(), 800);
 
   // รีเฟรชเบื้องหลัง (polling / realtime) ระหว่างที่ผู้ใช้ติ๊กเลือกหรือเปิดรายละเอียดอยู่ → ข้ามไปก่อน
   if (isSilent && typeof isUserBusyOnHrPage === 'function' && isUserBusyOnHrPage()) return;
@@ -2555,15 +2557,14 @@ async function performApprovalStep(reqData) {
     else await window.PVTLeaveAudit.log(reqData, 'step_approved', auditOpts);
   }
 
-  // 🔔 แจ้งพนักงานในระบบ (ข้อความตามขั้นจริง) — ขั้นสุดท้าย SDK (REQUEST_APPROVED) บันทึกให้แล้ว
-  if (!(isFinal && window.PVTSDK?.line)) try {
+  // 🔔 แจ้งพนักงานในระบบ "เฉพาะเมื่อจบขั้นตอน" — ระหว่างขั้นไม่แจ้ง (กันพนักงานเข้าใจว่าอนุมัติแล้ว)
+  //    ถ้ามี SDK: REQUEST_APPROVED ด้านล่างบันทึกแจ้งเตือนในระบบให้แล้ว จึงไม่บันทึกซ้ำ
+  if (isFinal && !window.PVTSDK?.line) try {
     const leaveName = reqData.leave_types?.leave_name || 'ใบลา';
     await sb.from('notifications').insert({
       employee_id: reqData.employee_id,
-      title: isFinal ? 'ใบลาของคุณได้รับการอนุมัติแล้ว' : `ใบลาของคุณผ่านการพิจารณาของ${stepLabel}แล้ว`,
-      message: isFinal
-        ? `ใบลาประเภท ${leaveName} วันที่ ${reqData.start_date} ได้รับการอนุมัติเรียบร้อยแล้ว`
-        : `ใบลาประเภท ${leaveName} วันที่ ${reqData.start_date} ผ่านการพิจารณาของ${stepLabel}แล้ว อยู่ระหว่างรอผู้อนุมัติขั้นถัดไป`,
+      title: 'ใบลาของคุณได้รับการอนุมัติแล้ว',
+      message: `ใบลาประเภท ${leaveName} วันที่ ${reqData.start_date} ได้รับการอนุมัติเรียบร้อยแล้ว`,
       type: 'leave',
       link_url: '/pages/user/leave-history.html'
     });

@@ -6762,7 +6762,23 @@ window.openChangeRequests = async function openChangeRequests() {
   if (!window.PVTProfileChange) { Swal.fire('ไม่พบโมดูล', 'กรุณารีเฟรชหน้า', 'error'); return; }
   await window.PVTProfileChange.openReview(() => { try { refreshDashboard(); } catch (_) {} });
   updateChangeRequestBadge();
+  window.PVTHrInbox?.refresh?.(); // 🔔 อัปเดตกระดิ่งงานรอดำเนินการ
 };
+
+// 🔔 เปิดจากกระดิ่ง "งานรอดำเนินการ": /pages/hr/management.html?open=change-requests
+(function openChangeRequestsFromLink() {
+  let open = '';
+  try { open = new URLSearchParams(location.search).get('open') || ''; } catch (_) {}
+  if (open !== 'change-requests') return;
+  let tries = 0;
+  const go = () => {
+    if (window.PVTProfileChange && window.Swal) {
+      try { history.replaceState(null, '', location.pathname); } catch (_) {}
+      window.openChangeRequests();
+    } else if (++tries < 40) setTimeout(go, 250);
+  };
+  setTimeout(go, 600);
+})();
 async function updateChangeRequestBadge() {
   const el = document.getElementById('hrChangeReqBadge');
   if (!el || !window.PVTProfileChange) return;

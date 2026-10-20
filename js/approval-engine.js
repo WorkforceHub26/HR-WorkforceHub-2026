@@ -337,7 +337,9 @@
     }
   }
 
+  // แจ้งพนักงานผู้ยื่น: ใช้เฉพาะผลสุดท้าย ('approved' | 'rejected') — ไม่แจ้งระหว่างขั้น
   async function notifyEmployee(leave, kind, comment, stepLabel) {
+    if (kind !== 'approved' && kind !== 'rejected') return;
     const sb = client();
     const leaveName = leave.leave_types?.leave_name || 'ใบลา';
     try {
@@ -453,7 +455,8 @@
       await sb.from('leave_requests').update(Object.assign({ current_step: next.step_no, updated_at: t }, legacyColumns(steps))).eq('id', leaveId).eq('status', 'pending');
       if (global.PVTLeaveAudit) await global.PVTLeaveAudit.log(leave, 'step_approved', Object.assign({}, auditBase, { statusAfter: 'pending' }));
       await notifyApprovers(leave, next, cur.step_no === 1 ? 'LEADER_APPROVED' : 'MANAGER_APPROVED', { prevComment: opts.comment ? `${cur.step_label || 'ผู้อนุมัติ'}: ${opts.comment}` : '' });
-      await notifyEmployee(leave, 'progress', null, cur.step_label);
+      // ไม่แจ้งพนักงานระหว่างทาง — แจ้งเฉพาะเมื่อจบขั้นตอน (อนุมัติขั้นสุดท้าย / ไม่อนุมัติ)
+      // เพื่อไม่ให้พนักงานเข้าใจว่าได้รับอนุมัติแล้ว ทั้งที่ผู้อนุมัติลำดับถัดไปยังไม่ได้พิจารณา
       return { ok: true, final: false, stepLabel: label, nextLabel: next.step_label };
     }
 

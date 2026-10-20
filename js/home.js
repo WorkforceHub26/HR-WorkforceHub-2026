@@ -185,6 +185,7 @@ window.showSyncSuccessPopup = function(stats, isManualClick = false) {
 
 window.refreshDashboardData = async function(isManualClick = false) {
   console.log("🔄 [Process]: ฟังก์ชัน refreshDashboardData() เริ่มซิงค์ข้อมูล...");
+  setTimeout(() => window.PVTHrInbox?.refresh?.(), 800); // 🔔 อัปเดตกระดิ่งงานรอดำเนินการ
   
   const syncBtn = document.getElementById("btnSyncData");
   if (syncBtn) syncBtn.classList.add("refresh-spin-active");
@@ -3303,17 +3304,21 @@ window.quickApproveFromDashboard = async function(leaveId) {
       else await window.PVTLeaveAudit.log(reqData, 'step_approved', auditOpts);
     }
 
-    // 🔔 บันทึกแจ้งเตือนลงฐานข้อมูล
-    await sb.from('notifications').insert({
-      employee_id: reqData.employee_id,
-      title: `ใบลาได้รับการอนุมัติ`,
-      message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติแล้ว`,
-      type: 'leave',
-      link_url: '/pages/user/index-user.html'
-    });
+    // 🔔 แจ้งพนักงาน "เฉพาะเมื่ออนุมัติขั้นสุดท้าย" — ระหว่างขั้นไม่แจ้ง (กันพนักงานเข้าใจว่าอนุมัติแล้ว)
+    //    มี SDK → REQUEST_APPROVED ด้านล่างบันทึกแจ้งเตือนในระบบ + ส่ง LINE ให้ ไม่บันทึกซ้ำ
+    const isFinalStep = updateFields.status === 'approved';
+    if (isFinalStep && !window.PVTSDK?.line) {
+      await sb.from('notifications').insert({
+        employee_id: reqData.employee_id,
+        title: `ใบลาของคุณได้รับการอนุมัติแล้ว`,
+        message: `ใบลาประเภท ${reqData.leave_types?.leave_name || 'ใบลา'} วันที่ ${reqData.start_date} ได้รับการอนุมัติเรียบร้อยแล้ว`,
+        type: 'leave',
+        link_url: '/pages/user/leave-history.html'
+      });
+    }
 
-    // 💬 ส่งแจ้งเตือน LINE ให้พนักงานผู้ขอลา
-    if (window.PVTSDK?.line) {
+    // 💬 ส่งแจ้งเตือน LINE ให้พนักงานผู้ขอลา (เฉพาะเมื่อจบขั้นตอน)
+    if (isFinalStep && window.PVTSDK?.line) {
       try {
         await window.PVTSDK.line.sendWorkflowNotification({
           type: 'REQUEST_APPROVED',
@@ -3348,7 +3353,7 @@ window.quickApproveFromDashboard = async function(leaveId) {
         confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
     } else {
-      await Swal.fire('อนุมัติสำเร็จ!', 'บันทึกสถานะการอนุมัติเรียบร้อยแล้ว', 'success');
+      await Swal.fire('อนุมัติแล้ว ส่งต่อลำดับถัดไป', 'พนักงานจะได้รับแจ้งเมื่อพิจารณาครบทุกขั้น', 'success');
     }
     await refreshDashboardData();
 
