@@ -73,10 +73,6 @@
           <span class="material-symbols-outlined">badge</span>
           <span class="pvt-nav__label">บัตรพนักงาน (Admin)</span>
         </a>
-        <a href="/pages/hr/login-logs.html" class="pvt-nav__item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
-          <span class="material-symbols-outlined">shield_person</span>
-          <span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>
-        </a>
         <button type="button" class="pvt-nav__item pvt-nav__item--settings" id="pvtNavSettings" title="ตั้งค่า (ธีมสี ขนาดตัวอักษร การแสดงผล)" style="-webkit-appearance:none;appearance:none;width:calc(100% - 24px);border:0;background:transparent;box-shadow:none;color:rgba(241,245,249,.92);font:inherit;text-align:left;cursor:pointer;">
           <span class="material-symbols-outlined">settings</span>
           <span class="pvt-nav__label">ตั้งค่า</span>
@@ -312,6 +308,33 @@
           ขั้นต้น = เข้าคอนโซลผู้ดูแลระบบและหน้า HR ได้ แต่จัดการผู้ดูแลระบบคนอื่นไม่ได้ ·
           ขั้นสูง = ทำได้ทุกอย่าง รวมถึงส่วนนี้ (ตั้ง/เพิ่มขั้นสูงได้จากฐานข้อมูลเท่านั้น ดู supabase/admin_levels.sql)
         </p>
+      </section>
+
+      <!-- 🔒 ประวัติการเข้าสู่ระบบ (เฉพาะผู้ดูแลระบบขั้นสูง) — ย้ายมาจาก /pages/hr/login-logs.html
+           แสดงเมื่อฐานข้อมูลยืนยันว่าเป็น superadmin · ต้องยืนยันรหัสผ่านอีกครั้งก่อนเปิดดู
+           ข้อมูลอ่านผ่าน admin_get_login_logs() (supabase/migrations/20261020_login_logs_superadmin_only.sql) -->
+      <section class="panel" id="login-logs-panel" style="grid-column: span 3;" hidden>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2 style="margin:0;"><span class="material-symbols-outlined">shield_person</span> ประวัติการเข้าสู่ระบบ</h2>
+            <p style="margin: 4px 0 0; font-size: 12.5px; color: #64748b;">เฉพาะผู้ดูแลระบบขั้นสูง · ใครเข้าระบบ เมื่อไร ด้วยวิธีใด จากอุปกรณ์และ IP ไหน</p>
+          </div>
+          <div id="ll-actions" style="display: none; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="secondary" id="ll-refresh" style="width:auto; padding:6px 12px; font-size:12px;"><span class="material-symbols-outlined" style="font-size:16px;">refresh</span> รีเฟรช</button>
+            <button type="button" class="secondary" id="ll-export" style="width:auto; padding:6px 12px; font-size:12px;"><span class="material-symbols-outlined" style="font-size:16px;">download</span> ส่งออก CSV</button>
+            <button type="button" class="secondary" id="ll-purge" style="width:auto; padding:6px 12px; font-size:12px; background:#b91c1c;"><span class="material-symbols-outlined" style="font-size:16px;">delete_sweep</span> ลบประวัติเก่ากว่า 90 วัน</button>
+            <button type="button" class="secondary" id="ll-lock" style="width:auto; padding:6px 12px; font-size:12px; background:#475569;"><span class="material-symbols-outlined" style="font-size:16px;">lock</span> ล็อก</button>
+          </div>
+        </div>
+        <form id="ll-unlock-form" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;" autocomplete="off">
+          <div class="form-group" style="flex: 1 1 260px; margin: 0;">
+            <label for="ll-password">ยืนยันรหัสผ่านของคุณเพื่อเปิดดู</label>
+            <input type="password" id="ll-password" autocomplete="current-password" required />
+          </div>
+          <button type="submit" id="ll-unlock-btn" style="width: auto;"><span class="material-symbols-outlined" style="font-size:18px; vertical-align:-4px;">lock_open</span> เปิดดูประวัติ</button>
+        </form>
+        <p id="ll-hint" style="margin: 10px 0 0; font-size: 12px; color: #64748b;">ฐานข้อมูลตรวจรหัสผ่านทุกครั้งที่โหลด รหัสผ่านไม่ถูกบันทึกในเครื่อง และระบบจะล็อกเองเมื่อรีเฟรชหน้า หรือไม่ได้ใช้งานครบ 15 นาที</p>
+        <div id="admLoginLogsContainer" style="margin-top: 14px;" hidden></div>
       </section>
 
       <!-- Data Management Section -->
@@ -939,8 +962,143 @@
       if (level === 'super') {
         document.getElementById('admin-accounts-panel').hidden = false;
         loadAdminAccounts();
+        initLoginLogsPanel();
       }
       return level;
+    }
+
+    // ======================================================================
+    // 🔒 ประวัติการเข้าสู่ระบบ — เฉพาะผู้ดูแลระบบขั้นสูง
+    //    รหัสผ่านเก็บในตัวแปรของหน้านี้เท่านั้น (ไม่ลง localStorage) · ล็อกเองหลังไม่ใช้งาน 15 นาที
+    // ======================================================================
+    let llCreds = null;
+    let llViewer = null;
+    let llIdleTimer = null;
+    const LL_IDLE_MS = 15 * 60 * 1000;
+
+    function llLoadViewerScript() {
+      if (window.LoginLogsViewerComponent) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = '/js/components/login-logs-viewer.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('โหลดไฟล์ login-logs-viewer.js ไม่สำเร็จ'));
+        document.head.appendChild(s);
+      });
+    }
+
+    function llSetUnlocked(on) {
+      // ฟอร์มและแถบปุ่มมี style="display:flex" ซึ่งชนะแอตทริบิวต์ hidden จึงสลับด้วย style.display
+      document.getElementById('ll-unlock-form').style.display = on ? 'none' : 'flex';
+      document.getElementById('ll-actions').style.display = on ? 'flex' : 'none';
+      document.getElementById('ll-hint').hidden = on;
+      document.getElementById('admLoginLogsContainer').hidden = !on;
+    }
+
+    function llLock(reason) {
+      llCreds = null;
+      if (llViewer) { llViewer.credentials = null; llViewer.logs = []; }
+      llViewer = null;
+      clearTimeout(llIdleTimer);
+      const box = document.getElementById('admLoginLogsContainer');
+      if (box) box.innerHTML = '';
+      llSetUnlocked(false);
+      const pw = document.getElementById('ll-password');
+      if (pw) pw.value = '';
+      if (reason) showToast(reason, 'info');
+    }
+
+    function llTouch() {
+      clearTimeout(llIdleTimer);
+      if (llCreds) llIdleTimer = setTimeout(() => llLock('ล็อกประวัติการเข้าสู่ระบบแล้ว (ไม่ได้ใช้งาน 15 นาที)'), LL_IDLE_MS);
+    }
+
+    async function llLoad() {
+      if (!llViewer) return false;
+      let failed = null;
+      llViewer.onError = (err) => { failed = err; };
+      await llViewer.fetchLogs();
+      if (failed) {
+        if (failed.code === 'not_authorized') {
+          llLock();
+          showToast(failed.message, 'error');
+        }
+        return false;
+      }
+      llTouch();
+      return true;
+    }
+
+    function initLoginLogsPanel() {
+      const panel = document.getElementById('login-logs-panel');
+      if (!panel || panel.dataset.ready) return;
+      panel.dataset.ready = '1';
+      panel.hidden = false;
+      llSetUnlocked(false);
+
+      document.getElementById('ll-unlock-form').addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        if (window.PVT_ADMIN_LEVEL !== 'super') return;
+        const me = admSession();
+        const code = me.employee_code || me.employees?.employee_code || '';
+        const password = document.getElementById('ll-password').value.trim();
+        if (!code || !password) return;
+        const btn = document.getElementById('ll-unlock-btn');
+        btn.disabled = true;
+        try {
+          await llLoadViewerScript();
+          llCreds = { code, password };
+          llSetUnlocked(true);
+          llViewer = new window.LoginLogsViewerComponent({ containerId: 'admLoginLogsContainer', limit: 1000, credentials: llCreds });
+          if (await llLoad()) {
+            document.getElementById('ll-password').value = '';
+            admLog('view_login_logs', code, 'เปิดดูประวัติการเข้าสู่ระบบ');
+          }
+        } catch (err) {
+          llLock();
+          showToast(err.message || String(err), 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      document.getElementById('ll-refresh').addEventListener('click', () => llLoad());
+      document.getElementById('ll-export').addEventListener('click', () => {
+        if (!llViewer) return;
+        llViewer.exportToCsv();
+        llTouch();
+        admLog('export_login_logs', llCreds?.code || '', 'ส่งออกประวัติการเข้าสู่ระบบเป็น CSV');
+      });
+      document.getElementById('ll-lock').addEventListener('click', () => llLock('ล็อกประวัติการเข้าสู่ระบบแล้ว'));
+      document.getElementById('ll-purge').addEventListener('click', async () => {
+        if (!llCreds) return;
+        const ok = window.Swal
+          ? (await Swal.fire({
+              icon: 'warning', title: 'ลบประวัติที่เก่ากว่า 90 วัน?',
+              text: 'ลบแล้วกู้คืนไม่ได้ ประวัติภายใน 90 วันล่าสุดยังอยู่ครบ',
+              showCancelButton: true, confirmButtonText: 'ลบประวัติเก่า', cancelButtonText: 'ยกเลิก',
+              confirmButtonColor: '#b91c1c'
+            })).isConfirmed
+          : false;
+        if (!ok) return;
+        try {
+          const count = await window.PVTSDK.loginAudit.purgeLoginLogs(llCreds, 90);
+          showToast(`ลบประวัติเก่าแล้ว ${count.toLocaleString('th-TH')} รายการ`);
+          admLog('purge_login_logs', llCreds.code, `ลบประวัติการเข้าสู่ระบบที่เก่ากว่า 90 วัน ${count} รายการ`);
+          llLoad();
+        } catch (err) {
+          showToast(err.message || String(err), 'error');
+        }
+      });
+      document.getElementById('admLoginLogsContainer').addEventListener('input', llTouch);
+
+      const goToPanel = () => {
+        if (location.hash !== '#login-logs') return;
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => { if (!llCreds) document.getElementById('ll-password')?.focus(); }, 400);
+      };
+      window.addEventListener('hashchange', goToPanel);
+      goToPanel();
     }
 
     async function admLog(action, target, description, before, after) {

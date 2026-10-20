@@ -616,11 +616,14 @@
       const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
       if (sb) {
         try {
-          const { data, error } = await sb.from('login_logs').select('id').limit(1);
-          if (!error) {
-            details.push(' ตาราง "login_logs" ใน Supabase พร้อมใช้งานสำหรับการตรวจสอบ');
+          // login_logs ล็อกให้อ่านได้เฉพาะผู้ดูแลระบบขั้นสูง → ถ้าอ่านตรงได้ แปลว่ายังไม่ได้รัน migration ล็อกสิทธิ์
+          const { error } = await sb.from('login_logs').select('id').limit(1);
+          if (error && /permission|42501/i.test(`${error.code} ${error.message}`)) {
+            details.push(' ตาราง "login_logs" ล็อกแล้ว (บันทึกได้ · อ่านได้เฉพาะผู้ดูแลระบบขั้นสูง)');
+          } else if (!error) {
+            details.push('⚠️ ตาราง "login_logs" ยังเปิดให้ทุกคนอ่านได้ ให้รัน supabase/migrations/20261020_login_logs_superadmin_only.sql');
           } else {
-            details.push(`ℹ️ สถานะตาราง "login_logs" (${error.message || 'รอดำเนินการไมเกรชัน'}) มีระบบสำรอง hr_admin_management_logs รองรับ`);
+            details.push(`ℹ️ สถานะตาราง "login_logs": ${error.message || 'รอดำเนินการไมเกรชัน'}`);
           }
         } catch (e) {
           details.push('ℹ️ รองรับการบันทึก Audit ผ่าน Server API & Local Cache');

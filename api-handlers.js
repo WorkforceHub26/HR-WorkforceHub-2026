@@ -632,13 +632,13 @@ export async function handleRecordLoginLog(req, res) {
           'apikey': serviceKey,
           'Authorization': `Bearer ${serviceKey}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          // ไม่ขอข้อมูลกลับ: ถ้าไม่มี service key จะใช้ anon key ซึ่งเขียนได้แต่อ่าน login_logs ไม่ได้
+          'Prefer': 'return=minimal'
         },
         body: JSON.stringify(record)
       });
 
       if (resp.ok) {
-        dbResult = await resp.json();
         insertSuccess = true;
         console.log(`✅ [Login Audit Log] Recorded to 'login_logs': User ${userId} (${loginMethod}) from ${clientIp}`);
       } else {
@@ -649,31 +649,8 @@ export async function handleRecordLoginLog(req, res) {
       console.warn("⚠️ [Login Audit Log] Supabase direct insert error:", dbErr.message);
     }
 
-    // 2. Fallback to 'hr_admin_management_logs' if 'login_logs' is pending creation
-    if (!insertSuccess) {
-      try {
-        await fetch(`${url}/rest/v1/hr_admin_management_logs`, {
-          method: 'POST',
-          headers: {
-            'apikey': serviceKey,
-            'Authorization': `Bearer ${serviceKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            actor_id: employeeId,
-            actor_name: bodyData.full_name || bodyData.employee_code || 'User',
-            action_category: 'LOGIN_AUDIT',
-            action_type: `LOGIN_${String(loginMethod).toUpperCase()}`,
-            target_identifier: bodyData.employee_code || String(userId),
-            description: `เข้าสู่ระบบสำเร็จผ่าน ${loginMethod} [IP: ${clientIp}]`,
-            payload_after: record
-          })
-        });
-        console.log("ℹ️ [Login Audit Log] Recorded into fallback audit table (hr_admin_management_logs)");
-      } catch (fallbackErr) {
-        console.warn("⚠️ [Login Audit Log] Fallback logging error:", fallbackErr.message);
-      }
-    }
+    // (เลิกสำรองลง hr_admin_management_logs แล้ว เพราะตารางนั้นทุกคนอ่านได้
+    //  ประวัติการเข้าสู่ระบบต้องอยู่ใน login_logs ที่อ่านได้เฉพาะผู้ดูแลระบบขั้นสูง)
 
     return sendJson(res, 200, {
       success: true,
@@ -692,113 +669,23 @@ export async function handleRecordLoginLog(req, res) {
  * 📋 Handle Fetching Recent Login Logs for Audit Review with Date and Search Filtering
  */
 export async function handleGetLoginLogs(req, res) {
-  try {
-    const { url, serviceKey } = getSupabaseConfig();
-    const reqUrl = new URL(req.url, 'http://localhost');
-    const limit = Math.min(Math.max(parseInt(reqUrl.searchParams.get('limit') || '100', 10), 1), 500);
-    const startDate = reqUrl.searchParams.get('startDate'); // YYYY-MM-DD
-    const endDate = reqUrl.searchParams.get('endDate');     // YYYY-MM-DD
-    const search = reqUrl.searchParams.get('search');
-
-    let queryParams = `select=*&order=timestamp.desc&limit=${limit}`;
-    if (startDate) {
-      queryParams += `&timestamp=gte.${encodeURIComponent(startDate + 'T00:00:00.000Z')}`;
-    }
-    if (endDate) {
-      queryParams += `&timestamp=lte.${encodeURIComponent(endDate + 'T23:59:59.999Z')}`;
-    }
-    if (search) {
-      queryParams += `&or=(user_id.ilike.*${encodeURIComponent(search)}*,full_name.ilike.*${encodeURIComponent(search)}*,employee_code.ilike.*${encodeURIComponent(search)}*,ip_address.ilike.*${encodeURIComponent(search)}*)`;
-    }
-
-    // 1. Try querying 'login_logs'
-    try {
-      const resp = await fetch(`${url}/rest/v1/login_logs?${queryParams}`, {
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`
-        }
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        if (Array.isArray(data)) {
-          return sendJson(res, 200, { success: true, source: 'login_logs', data });
-        }
-      }
-    } catch (e) {}
-
-    // 2. Query fallback from 'hr_admin_management_logs'
-    try {
-      let fallbackParams = `action_category=eq.LOGIN_AUDIT&select=*&order=created_at.desc&limit=${limit}`;
-      if (startDate) {
-        fallbackParams += `&created_at=gte.${encodeURIComponent(startDate + 'T00:00:00.000Z')}`;
-      }
-      if (endDate) {
-        fallbackParams += `&created_at=lte.${encodeURIComponent(endDate + 'T23:59:59.999Z')}`;
-      }
-
-      const resp = await fetch(`${url}/rest/v1/hr_admin_management_logs?${fallbackParams}`, {
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`
-        }
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const mapped = data.map(item => item.payload_after || {
-          user_id: item.actor_id,
-          full_name: item.actor_name,
-          employee_code: item.target_identifier,
-          timestamp: item.created_at,
-          device_info: { description: item.description },
-          login_method: item.action_type
-        });
-        return sendJson(res, 200, { success: true, source: 'hr_admin_management_logs_fallback', data: mapped });
-      }
-    } catch (e) {}
-
-    return sendJson(res, 200, { success: true, source: 'empty', data: [] });
-  } catch (err) {
-    return sendJson(res, 500, { error: err.message });
-  }
+  // 🔒 ประวัติการเข้าสู่ระบบย้ายไปอยู่ในคอนโซลผู้ดูแลระบบ (ส่วนขั้นสูง) แล้ว
+  //    อ่านได้ผ่านฟังก์ชันฐานข้อมูล admin_get_login_logs() ที่ตรวจรหัสผ่าน superadmin เท่านั้น
+  //    endpoint นี้ไม่มีการยืนยันตัวตน จึงปิดไว้ไม่ให้ส่งข้อมูลออก
+  return sendJson(res, 403, {
+    success: false,
+    error: 'ประวัติการเข้าสู่ระบบดูได้เฉพาะผู้ดูแลระบบขั้นสูง ที่คอนโซลผู้ดูแลระบบ (/pages/hr/admin-dashboard.html)'
+  });
 }
 
 // 🧹 Purge login logs older than 90 days from 'login_logs' table
 export async function handlePurgeLoginLogs(req, res) {
-  try {
-    const { url, serviceKey } = getSupabaseConfig();
-    
-    // Calculate the date 90 days ago
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    const isoString = ninetyDaysAgo.toISOString();
-
-    console.log(`🧹 [Purge Login Logs] Initiated. Purging logs older than: ${isoString}`);
-
-    // Delete from 'login_logs' table in Supabase via REST
-    const resp = await fetch(`${url}/rest/v1/login_logs?timestamp=lt.${encodeURIComponent(isoString)}`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': serviceKey,
-        'Authorization': `Bearer ${serviceKey}`,
-        'Prefer': 'return=representation'
-      }
-    });
-
-    if (resp.ok) {
-      const data = await resp.json();
-      const count = Array.isArray(data) ? data.length : 0;
-      console.log(`✅ [Purge Login Logs] Successfully purged ${count} logs older than 90 days from 'login_logs'.`);
-      return sendJson(res, 200, { success: true, count, dateLimit: isoString });
-    } else {
-      const errText = await resp.text();
-      console.error(`❌ [Purge Login Logs] Failed to delete from Supabase:`, resp.status, errText);
-      return sendJson(res, resp.status || 500, { success: false, error: errText });
-    }
-  } catch (err) {
-    console.error("Error in handlePurgeLoginLogs:", err);
-    return sendJson(res, 500, { success: false, error: err.message });
-  }
+  // 🔒 ลบประวัติได้เฉพาะผู้ดูแลระบบขั้นสูง ผ่านฟังก์ชันฐานข้อมูล admin_purge_login_logs()
+  //    (ปุ่ม "ลบประวัติเก่ากว่า 90 วัน" ในคอนโซลผู้ดูแลระบบ) — endpoint นี้ไม่มีการยืนยันตัวตน จึงปิดไว้
+  return sendJson(res, 403, {
+    success: false,
+    error: 'ลบประวัติการเข้าสู่ระบบได้เฉพาะผู้ดูแลระบบขั้นสูง ที่คอนโซลผู้ดูแลระบบ'
+  });
 }
 
 // 🩺 10. AI OCR Scan for Medical Certificates or Attachments

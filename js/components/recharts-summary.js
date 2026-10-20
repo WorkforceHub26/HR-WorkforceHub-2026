@@ -4,7 +4,7 @@
    วาดลงใน <div id="rechartsSummaryPanel"> (ถ้าหน้านั้นไม่มี div นี้ จะไม่ทำอะไร)
    ข้อมูล:
      - window.leaveRequests   ← home.js / management.js ตั้งค่าไว้หลังโหลดข้อมูล
-     - window.getLoginLogs()  ← auth/supabase-config.js (จำนวนการเข้าใช้งานต่อวัน)
+     (ไม่แสดงจำนวนการเข้าใช้งานแล้ว: ประวัติการเข้าสู่ระบบดูได้เฉพาะผู้ดูแลระบบขั้นสูงในคอนโซลผู้ดูแลระบบ)
    เรียกวาดใหม่ได้ด้วย window.renderRechartsDashboard()
    ใช้ React + Recharts (UMD จาก CDN) ถ้าไม่มี จะวาดกราฟแท่ง SVG แบบง่ายแทน
    ========================================================================== */
@@ -16,8 +16,6 @@
   const STYLE_ID = 'pvt-rcs-styles';
   const COLORS = { onLeave: '#0d9488', submitted: '#f59e0b', logins: '#6366f1' };
   let root = null;
-  let loginCache = null;
-  let loginFetchedAt = 0;
 
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -42,17 +40,9 @@
   const isApproved = (s) => /approved|อนุมัติ/i.test(String(s || '')) && !/reject|ไม่อนุมัติ/i.test(String(s || ''));
   const isCancelled = (s) => /cancel|reject|ยกเลิก|ไม่อนุมัติ/i.test(String(s || ''));
 
+  // ประวัติการเข้าสู่ระบบอ่านได้เฉพาะผู้ดูแลระบบขั้นสูง → หน้า HR ไม่ดึงข้อมูลนี้
   async function getLogins() {
-    if (loginCache && Date.now() - loginFetchedAt < 5 * 60 * 1000) return loginCache;
-    if (typeof window.getLoginLogs !== 'function') return null;
-    try {
-      const rows = await window.getLoginLogs(500);
-      loginCache = Array.isArray(rows) ? rows : [];
-      loginFetchedAt = Date.now();
-      return loginCache;
-    } catch (e) {
-      return null;
-    }
+    return null;
   }
 
   function buildSeries(requests, logins) {
@@ -102,10 +92,10 @@
     const peak = data.reduce((best, r) => (r.onLeave > (best ? best.onLeave : -1) ? r : best), null);
     const k = (color, label, value, sub) =>
       `<div class="rcs-kpi"><span><i style="background:${color}"></i>${label}</span><strong>${value}</strong><small>${sub}</small></div>`;
-    return `<div class="rcs-kpis">
+    return `<div class="rcs-kpis"${hasLogins ? '' : ' style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"'}>
       ${k(COLORS.onLeave, 'วันลาสูงสุดในเดือน', peak && peak.onLeave ? `${peak.onLeave} คน` : '0 คน', peak && peak.onLeave ? `วันที่ ${peak.day}` : 'ยังไม่มีการลา')}
       ${k(COLORS.submitted, 'ใบลาที่ยื่นเดือนนี้', `${sum(data, 'submitted').toLocaleString('th-TH')} รายการ`, 'นับจากวันที่ยื่นคำขอ')}
-      ${k(COLORS.logins, 'การเข้าใช้งานเดือนนี้', hasLogins ? `${sum(data, 'logins').toLocaleString('th-TH')} ครั้ง` : '—', hasLogins ? 'จากประวัติการเข้าสู่ระบบ' : 'ไม่มีข้อมูลประวัติเข้าระบบ')}
+      ${hasLogins ? k(COLORS.logins, 'การเข้าใช้งานเดือนนี้', `${sum(data, 'logins').toLocaleString('th-TH')} ครั้ง`, 'จากประวัติการเข้าสู่ระบบ') : ''}
     </div>`;
   }
 

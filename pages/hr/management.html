@@ -81,10 +81,6 @@
           <span class="material-symbols-outlined">badge</span>
           <span class="pvt-nav__label">บัตรพนักงาน (Admin)</span>
         </a>
-        <a href="/pages/hr/login-logs.html" class="pvt-nav__item" title="ประวัติการเข้าสู่ระบบ (Login Activity Logs)">
-          <span class="material-symbols-outlined">shield_person</span>
-          <span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>
-        </a>
         <button type="button" class="pvt-nav__item pvt-nav__item--settings" id="pvtNavSettings" title="ตั้งค่า (ธีมสี ขนาดตัวอักษร การแสดงผล)" style="-webkit-appearance:none;appearance:none;width:calc(100% - 24px);border:0;background:transparent;box-shadow:none;color:rgba(241,245,249,.92);font:inherit;text-align:left;cursor:pointer;">
           <span class="material-symbols-outlined">settings</span>
           <span class="pvt-nav__label">ตั้งค่า</span>
@@ -263,11 +259,6 @@
               <span class="hr-menu__text"><strong>ประวัติการแก้ไข (Audit Log)</strong><small>ใครแก้ข้อมูลอะไร เมื่อไร</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
-            <a href="/pages/hr/login-logs.html" class="action-btn hr-menu__item">
-              <span class="hr-menu__icon material-symbols-outlined">badge</span>
-              <span class="hr-menu__text"><strong>ประวัติการเข้าสู่ระบบ</strong><small>เปิดแบบเต็มหน้า</small></span>
-              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
-            </a>
             <button type="button" onclick="testLineNotificationFromHR()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">send</span>
               <span class="hr-menu__text"><strong>ทดสอบแจ้งเตือน LINE</strong><small>ส่งข้อความทดสอบ (Slip)</small></span>
@@ -490,7 +481,6 @@
   <script type="module" src="/js/company-news.js"></script>
   <script type="module" src="/js/health-wellness.js" onload="console.log('  โหลด health-wellness.js สำเร็จ')"></script>
   <script type="module" src="/js/leave-rules.js" onload="console.log('  โหลด leave-rules.js สำเร็จ')"></script>
-  <script type="module" src="/js/components/login-logs-viewer.js" onload="console.log('  โหลด login-logs-viewer.js สำเร็จ')" onerror="console.error(' โหลด login-logs-viewer.js ล้มเหลว')"></script>
   <script src="/js/profile-change.js"></script>
   <script type="module" src="/js/management.js" onload="console.log('  โหลด management.js สำเร็จ')" onerror="console.error(' โหลด management.js ล้มเหลว (404 Not Found)')"></script>
   <script type="module" src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error(' โหลด recharts-summary.js ล้มเหลว')"></script>

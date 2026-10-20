@@ -382,3 +382,24 @@
 - แสดง 1 ครั้งต่อการเปิดแอป/แท็บ (sessionStorage `pvt_splash_at`), หน้า redirect ต่อเนื่องไม่เริ่มใหม่
 - ข้ามเมื่อ ลดการเคลื่อนไหว / prefers-reduced-motion / iframe / offline / `?nosplash`; แตะเพื่อข้ามได้; สูงสุด ~3.2 วิ
 - `public/sw.js`: bump VERSION
+
+## แก้เพิ่ม (2026-10-20): ประวัติการเข้าสู่ระบบ ดูได้เฉพาะผู้ดูแลระบบขั้นสูง
+
+**ต้องรัน** `supabase/migrations/20261020_login_logs_superadmin_only.sql` ใน SQL Editor ทั้ง MAIN และ DEV
+(ต้องรัน `supabase/admin_levels.sql` ไว้ก่อน เพื่อให้บัญชี superadmin มีรหัสผ่านแบบ bcrypt)
+
+- ย้ายจากหน้า `pages/hr/login-logs.html` (ลบแล้ว) ไปเป็นส่วน **"ประวัติการเข้าสู่ระบบ"** ในคอนโซลผู้ดูแลระบบ
+  `pages/hr/admin-dashboard.html` แสดงเฉพาะเมื่อฐานข้อมูลยืนยันว่า role = `superadmin`
+  ต้องพิมพ์รหัสผ่านตัวเองอีกครั้งก่อนเปิดดู (ไม่เก็บในเครื่อง ล็อกเองเมื่อรีเฟรชหรือไม่ใช้งาน 15 นาที)
+  ลิงก์ตรง: `/pages/hr/admin-dashboard.html#login-logs`
+- เมนู "ประวัติเข้าสู่ระบบ" ในแถบข้างของหน้า HR แสดงเฉพาะ superadmin (`js/auth-guard.js` เพิ่มให้ตอนโหลดหน้า) ชี้ไปที่คอนโซล
+  ส่วนบัญชีอื่นไม่เห็นเมนูนี้ · เอาเมนูเดิมในหน้าระบบจัดการส่วนกลางออก
+  ปุ่ม/ฟังก์ชันเดิม (`viewLoginAuditLogs`, `openLoginLogsViewerModal`) → superadmin ถูกพาไปคอนโซล คนอื่นได้ข้อความ "ไม่มีสิทธิ์"
+- ฐานข้อมูล: ตาราง `login_logs` บันทึกได้ (INSERT) แต่อ่าน/ลบตรงไม่ได้ · อ่านผ่าน `admin_get_login_logs()`
+  ลบข้อมูลเก่าผ่าน `admin_purge_login_logs()` ทั้งสองฟังก์ชันตรวจรหัสพนักงาน + รหัสผ่าน superadmin ที่ active
+- ประวัติเข้าระบบที่เคยสำรองไว้ใน `hr_admin_management_logs` (LOGIN_AUDIT) ถูกซ่อนจากการอ่านทั่วไป และเลิกบันทึกสำรองลงตารางนั้น
+  ⚠️ ถ้ารัน `supabase/fix_admin_logs_policy.sql` ซ้ำภายหลัง จะเปิดให้อ่านอีก ให้รัน migration 20261020 ตามอีกครั้ง
+- Server: `GET /api/login-logs` และ `POST /api/purge-login-logs` ตอบ 403 (ไม่มีการยืนยันตัวตน)
+- หน้า HR หน้าหลัก: กราฟสรุปไม่แสดงจำนวน "การเข้าใช้งาน" แล้ว (เพราะ HR ทั่วไปอ่านประวัติไม่ได้)
+- `public/sw.js` เปลี่ยน VERSION เพื่อให้เครื่องผู้ใช้โหลดเมนูชุดใหม่
+

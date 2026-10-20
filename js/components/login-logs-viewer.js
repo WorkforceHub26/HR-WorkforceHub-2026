@@ -1,15 +1,19 @@
 /* ==========================================================================
    PVT WORKFORCE HUB — ตัวแสดงประวัติการเข้าสู่ระบบ (login-logs-viewer.js)
    --------------------------------------------------------------------------
-   ใช้ได้ 2 แบบ
-   1) แบบเต็มหน้า  : /pages/hr/login-logs.html
-        const v = new window.LoginLogsViewerComponent({ containerId: 'pageLoginLogsContainer', limit: 500 });
-        v.fetchLogs();  v.exportToCsv();
-   2) แบบ Modal    : window.openLoginLogsViewerModal()  (ปุ่มในหน้า HR อื่น ๆ เรียกผ่าน viewLoginAuditLogs)
+   🔒 ดูได้เฉพาะผู้ดูแลระบบขั้นสูง (superadmin) ในคอนโซลผู้ดูแลระบบ
+      /pages/hr/admin-dashboard.html → ส่วน "ประวัติการเข้าสู่ระบบ"
 
-   แหล่งข้อมูล (เรียงลำดับ)
-   - window.getLoginLogs(limit)  ← จาก auth/supabase-config.js (ลอง /api/login-logs → Supabase → localStorage)
-   - fetch('/api/login-logs')    ← สำรอง กรณี supabase-config.js ยังไม่โหลด
+   ใช้งาน
+        const v = new window.LoginLogsViewerComponent({
+          containerId: 'admLoginLogsContainer', limit: 500,
+          credentials: { code: 'ADMIN-T', password: '...' }   // ตรวจในฐานข้อมูลทุกครั้ง
+        });
+        v.fetchLogs();  v.exportToCsv();
+   window.openLoginLogsViewerModal() → พาไปที่คอนโซลผู้ดูแลระบบ (ไม่แสดงข้อมูลในหน้าอื่นแล้ว)
+
+   แหล่งข้อมูล: window.getLoginLogs(limit, credentials) ← auth/supabase-config.js
+                → ฟังก์ชันฐานข้อมูล admin_get_login_logs()
 
    ไฟล์นี้โหลดได้ทั้งแบบ <script type="module"> และ <script> ธรรมดา (ไม่มี import/export)
    ========================================================================== */
@@ -143,25 +147,20 @@
     : '-';
   const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-  async function loadLogs(limit) {
-    if (typeof window.getLoginLogs === 'function') {
-      try {
-        const data = await window.getLoginLogs(limit);
-        if (Array.isArray(data)) return data;
-      } catch (e) { console.warn('[LoginLogsViewer] getLoginLogs failed:', e); }
-    }
-    const res = await fetch(`/api/login-logs?limit=${encodeURIComponent(limit)}`);
-    const type = res.headers.get('content-type') || '';
-    if (!res.ok || !type.includes('json')) throw new Error(`โหลดข้อมูลไม่สำเร็จ (HTTP ${res.status})`);
-    const json = await res.json();
-    return Array.isArray(json.data) ? json.data : [];
+  async function loadLogs(limit, credentials) {
+    if (!credentials) throw new Error('ต้องยืนยันรหัสผ่านผู้ดูแลระบบขั้นสูงก่อน');
+    if (typeof window.getLoginLogs !== 'function') throw new Error('ระบบยังโหลดไม่เสร็จ กรุณารีเฟรชหน้านี้');
+    const data = await window.getLoginLogs(limit, credentials);
+    return Array.isArray(data) ? data : [];
   }
 
   // ---------- component ----------
   class LoginLogsViewerComponent {
     constructor(opts = {}) {
       this.containerId = opts.containerId || 'pageLoginLogsContainer';
-      this.limit = Math.min(Math.max(parseInt(opts.limit, 10) || 200, 1), 500);
+      this.limit = Math.min(Math.max(parseInt(opts.limit, 10) || 200, 1), 2000);
+      this.credentials = opts.credentials || null;
+      this.onError = typeof opts.onError === 'function' ? opts.onError : null;
       this.logs = [];
       this.filter = { q: '', from: '', to: '', status: 'all' };
       this.loading = false;
@@ -176,11 +175,12 @@
       this.loading = true;
       box.innerHTML = `<div class="llv"><div class="llv-loading"><span class="material-symbols-outlined">progress_activity</span><p>กำลังโหลดประวัติการเข้าสู่ระบบ...</p></div></div>`;
       try {
-        const rows = await loadLogs(this.limit);
+        const rows = await loadLogs(this.limit, this.credentials);
         this.logs = rows.map(normalize).sort((a, b) => (b.time || 0) - (a.time || 0));
         this.render();
       } catch (err) {
         console.error('[LoginLogsViewer]', err);
+        if (this.onError) this.onError(err);
         box.innerHTML = `<div class="llv"><div class="llv-empty"><span class="material-symbols-outlined">error</span>
           <strong>โหลดประวัติไม่สำเร็จ</strong><p>${esc(err.message || err)}</p></div></div>`;
       } finally {
@@ -313,30 +313,20 @@
     async openModal() { return window.openLoginLogsViewerModal(); }
   }
 
-  // ---------- modal (ใช้จากหน้าอื่น) ----------
+  // ---------- จากหน้าอื่น: พาไปที่คอนโซลผู้ดูแลระบบ ----------
   async function openLoginLogsViewerModal() {
-    injectStyles();
-    if (!window.Swal) {
-      window.location.href = '/pages/hr/login-logs.html';
+    let role = '';
+    try {
+      const s = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      role = String(s.role || s.employees?.role || '').toLowerCase().trim();
+    } catch (e) {}
+    if (role === 'superadmin') {
+      window.location.href = '/pages/hr/admin-dashboard.html#login-logs';
       return;
     }
-    const id = 'llvModalContainer';
-    let viewer;
-    await window.Swal.fire({
-      title: 'ประวัติการเข้าสู่ระบบ',
-      html: `<div id="${id}"></div>`,
-      showConfirmButton: true,
-      confirmButtonText: 'ส่งออก CSV',
-      confirmButtonColor: 'var(--th-p-600, #0d9488)',
-      showCancelButton: true,
-      cancelButtonText: 'ปิด',
-      customClass: { popup: 'llv-modal-popup' },
-      didOpen: () => {
-        viewer = new LoginLogsViewerComponent({ containerId: id, limit: 200 });
-        viewer.fetchLogs();
-      },
-      preConfirm: () => { viewer && viewer.exportToCsv(); return false; },
-    });
+    const msg = 'ประวัติการเข้าสู่ระบบดูได้เฉพาะผู้ดูแลระบบขั้นสูง';
+    if (window.Swal) window.Swal.fire('ไม่มีสิทธิ์', msg, 'info');
+    else console.warn('[LoginLogsViewer]', msg);
   }
 
   window.LoginLogsViewerComponent = LoginLogsViewerComponent;

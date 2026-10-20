@@ -485,6 +485,25 @@ function applyNavPermissions() {
         el.style.setProperty("display", "flex", "important");
       });
     }
+
+    // 🔒 เมนู "ประวัติเข้าสู่ระบบ" — แสดงเฉพาะผู้ดูแลระบบขั้นสูง (superadmin)
+    //    ข้อมูลจริงอยู่ในคอนโซลผู้ดูแลระบบ ส่วน "ประวัติการเข้าสู่ระบบ" และฐานข้อมูลตรวจสิทธิ์ซ้ำอีกชั้น
+    if (rawRoleVal === 'superadmin' && !document.getElementById('pvtNavLoginLogs')) {
+      const anchor = document.querySelector('a.pvt-nav__item[href*="/pages/hr/employee-cards.html"]');
+      if (anchor && anchor.parentNode) {
+        const a = document.createElement('a');
+        a.id = 'pvtNavLoginLogs';
+        a.href = '/pages/hr/admin-dashboard.html#login-logs';
+        a.className = 'pvt-nav__item';
+        a.title = 'ประวัติการเข้าสู่ระบบ (เฉพาะผู้ดูแลระบบขั้นสูง)';
+        a.innerHTML = '<span class="material-symbols-outlined">shield_person</span><span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>';
+        if (location.pathname.includes('admin-dashboard') && location.hash === '#login-logs') {
+          document.querySelectorAll('.pvt-nav__item.active').forEach(el => el.classList.remove('active'));
+          a.classList.add('active');
+        }
+        anchor.parentNode.insertBefore(a, anchor.nextSibling);
+      }
+    }
   } catch (err) {
     console.error("applyNavPermissions error:", err);
   }

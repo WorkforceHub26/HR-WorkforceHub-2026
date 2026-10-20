@@ -496,236 +496,24 @@ async function viewAuditLogs() {
 
 /**
  * 🔒 ดูประวัติการเข้าสู่ระบบ (Login Activity Audit Logs)
- * ดึงข้อมูลจากตาราง 'login_logs' ใน Supabase แสดง User ID, Timestamp และ Device Info พร้อมตัวกรองวันที่
+ * ย้ายไปอยู่ในคอนโซลผู้ดูแลระบบ ส่วนขั้นสูงแล้ว — ดูได้เฉพาะ role = superadmin
+ * ผู้ดูแลระบบขั้นสูง → พาไปที่ /pages/hr/admin-dashboard.html#login-logs · คนอื่น → แจ้งว่าไม่มีสิทธิ์
  */
 async function viewLoginAuditLogs() {
+  if (typeof window.openLoginLogsViewerModal === 'function') {
+    return window.openLoginLogsViewerModal();
+  }
+  let role = '';
   try {
-    if (typeof window.openLoginLogsViewerModal === 'function') {
-      return await window.openLoginLogsViewerModal();
-    }
-    if (window.PVTLoginLogsViewer?.openModal) {
-      return await window.PVTLoginLogsViewer.openModal();
-    }
-
-    if (window.Swal) {
-      Swal.fire({
-        title: 'กำลังโหลดประวัติการเข้าสู่ระบบ...',
-        text: 'กำลังตรวจสอบข้อมูลจาก Supabase login_logs',
-        didOpen: () => Swal.showLoading(),
-        allowOutsideClick: false
-      });
-    }
-
-    // 1. ดึงข้อมูลผ่าน getLoginLogs หรือ API หรือ Supabase SDK
-    let logs = [];
-    if (typeof window.getLoginLogs === 'function') {
-      logs = await window.getLoginLogs(100);
-    } else if (window.PVTSDK?.loginAudit?.getLoginLogs) {
-      logs = await window.PVTSDK.loginAudit.getLoginLogs(100);
-    } else {
-      try {
-        const res = await fetch('/api/login-logs?limit=100');
-        if (res.ok) {
-          const contentType = res.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            const json = await res.json();
-            logs = json.data || [];
-          }
-        }
-      } catch (fetchErr) {
-        console.warn('API login-logs fetch fallback:', fetchErr);
-      }
-
-      if ((!logs || logs.length === 0) && window.supabaseClient) {
-        try {
-          const { data, error } = await window.supabaseClient
-            .from('login_logs')
-            .select('*')
-            .order('timestamp', { ascending: false })
-            .limit(100);
-          if (!error && Array.isArray(data)) {
-            logs = data;
-          }
-        } catch (sdkErr) {
-          console.warn('Supabase SDK login_logs fallback:', sdkErr);
-        }
-      }
-    }
-
-    if (!Array.isArray(logs)) logs = [];
-
-    // 2. สร้างหน้าต่างแสดงผล Audit Modal
-    let rowsHTML = '';
-    if (logs.length === 0) {
-      rowsHTML = `
-        <tr>
-          <td colspan="6" style="text-align: center; padding: 24px; color: #64748b; font-size: 13px;">
-            <div style="font-size: 24px; margin-bottom: 6px;">📋</div>
-            ยังไม่พบประวัติการเข้าสู่ระบบในระบบ หรือยังไม่มีการบันทึกข้อมูลล่าสุด
-          </td>
-        </tr>
-      `;
-    } else {
-      logs.forEach((log, idx) => {
-        const rawTime = log.timestamp || log.created_at || log.login_at;
-        const timeStr = rawTime 
-          ? new Date(rawTime).toLocaleString('th-TH', { 
-              year: 'numeric', month: 'short', day: 'numeric', 
-              hour: '2-digit', minute: '2-digit', second: '2-digit' 
-            }) 
-          : '-';
-
-        const userId = log.user_id || log.employee_id || '-';
-        const empCode = log.employee_code || '';
-        const fullName = log.full_name || 'พนักงาน';
-        const role = log.role || '';
-
-        // Device info formatting
-        let devInfo = log.device_info;
-        if (typeof devInfo === 'string') {
-          try { devInfo = JSON.parse(devInfo); } catch(e) {}
-        }
-        devInfo = devInfo || {};
-
-        const devType = devInfo.device_type || (devInfo.screen && parseInt(devInfo.screen) < 600 ? 'Mobile' : 'Desktop');
-        const os = devInfo.os || 'Unknown OS';
-        const browser = devInfo.browser || 'Browser';
-        const screen = devInfo.screen || '';
-        const ip = log.ip_address || devInfo.server_ip || '-';
-
-        const devIcon = devType === 'Mobile' ? 'smartphone' : (devType === 'Tablet' ? 'tablet_mac' : 'laptop_mac');
-        const devBadgeColor = devType === 'Mobile' ? '#f59e0b' : '#0ea5e9';
-
-        // Method formatting
-        const method = String(log.login_method || 'password').toLowerCase();
-        let methodBadge = `<span style="background: var(--th-k-100, #e0f2fe); color: var(--th-k-700, #0369a1); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🔑 รหัสผ่าน</span>`;
-        if (method.includes('qr')) {
-          methodBadge = `<span style="background: #ecfdf5; color: #047857; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">📱 QR Code</span>`;
-        } else if (method.includes('token') || method.includes('auto')) {
-          methodBadge = `<span style="background: #fdf4ff; color: #a21caf; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🔗 Token</span>`;
-        }
-
-        rowsHTML += `
-          <tr style="border-bottom: 1px solid #f1f5f9; font-size: 12px; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-            <td style="padding: 10px 8px; color: #334155; white-space: nowrap; font-family: monospace;">${timeStr}</td>
-            <td style="padding: 10px 8px;">
-              <div style="font-weight: 600; color: #0f172a;">${fullName}</div>
-              <div style="font-size: 11px; color: #64748b;">${empCode ? `รหัส: ${empCode} · ` : ''}<span style="font-family: monospace; font-size: 10px; color: #94a3b8;">${String(userId).substring(0, 12)}...</span></div>
-            </td>
-            <td style="padding: 10px 8px; white-space: nowrap;">
-              ${methodBadge}
-            </td>
-            <td style="padding: 10px 8px;">
-              <div style="display: flex; align-items: center; gap: 4px;">
-                <span class="material-symbols-outlined" style="font-size: 15px; color: ${devBadgeColor};">${devIcon}</span>
-                <span style="font-weight: 500; color: #1e293b;">${browser}</span>
-              </div>
-              <div style="font-size: 11px; color: #64748b;">${os} ${screen ? `· ${screen}` : ''}</div>
-            </td>
-            <td style="padding: 10px 8px; font-family: monospace; font-size: 11px; color: #475569; white-space: nowrap;">
-              ${ip}
-            </td>
-            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">
-              <span style="background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 9999px; font-size: 11px; font-weight: 600;">สำเร็จ</span>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
-    const modalHTML = `
-      <div style="font-family: 'Sarabun', sans-serif; text-align: left;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
-          <div style="font-size: 13px; color: #334155;">
-            <strong style="color: var(--th-p-600, #0d9488);">ตาราง Supabase:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px;">login_logs</code>
-            <span style="margin-left: 10px; color: #64748b;">(ทั้งหมด ${logs.length} รายการล่าสุด)</span>
-          </div>
-          <button type="button" onclick="copyLoginLogsMigrationSql()" style="background: white; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #475569; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.color='var(--th-p-600, #0d9488)'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#475569'">
-            <span class="material-symbols-outlined" style="font-size: 15px;">content_copy</span> คัดลอก SQL สร้างตาราง
-          </button>
-        </div>
-
-        <div style="max-height: 480px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 2;">
-              <tr style="border-bottom: 2px solid #cbd5e1; font-size: 12px; color: #475569;">
-                <th style="padding: 8px; font-weight: 600;">เวลา (Timestamp)</th>
-                <th style="padding: 8px; font-weight: 600;">ผู้ใช้งาน (User ID / พนักงาน)</th>
-                <th style="padding: 8px; font-weight: 600;">ช่องทาง</th>
-                <th style="padding: 8px; font-weight: 600;">อุปกรณ์ & เบราว์เซอร์ (Device Info)</th>
-                <th style="padding: 8px; font-weight: 600;">IP Address</th>
-                <th style="padding: 8px; font-weight: 600; text-align: center;">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHTML}
-            </tbody>
-          </table>
-        </div>
-        <div style="margin-top: 10px; font-size: 12px; color: #64748b; text-align: right;">
-          💡 บันทึกอัตโนมัติทุกครั้งเมื่อมีการเข้าสู่ระบบผ่านรหัสผ่าน, คิวอาร์โค้ด หรือโทเค็นความปลอดภัย
-        </div>
-      </div>
-    `;
-
-    if (window.Swal) {
-      Swal.fire({
-        title: '🛡️ ประวัติการเข้าสู่ระบบ (Login Activity Audit Logs)',
-        html: modalHTML,
-        width: 'min(94vw, 920px)',
-        confirmButtonText: 'ปิดหน้าต่าง',
-        confirmButtonColor: 'var(--th-p-600, #0d9488)'
-      });
-    }
-
-  } catch (err) {
-    showAppError("ไม่สามารถดึงข้อมูลประวัติการเข้าสู่ระบบได้", err.message);
+    const s = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    role = String(s.role || s.employees?.role || '').toLowerCase().trim();
+  } catch (e) {}
+  if (role === 'superadmin') {
+    window.location.href = '/pages/hr/admin-dashboard.html#login-logs';
+  } else if (window.Swal) {
+    Swal.fire('ไม่มีสิทธิ์', 'ประวัติการเข้าสู่ระบบดูได้เฉพาะผู้ดูแลระบบขั้นสูง', 'info');
   }
 }
-
-// 📋 ฟังก์ชันสำหรับคัดลอกคำสั่ง SQL สำหรับสร้างตาราง login_logs ใน Supabase Dashboard
-window.copyLoginLogsMigrationSql = function() {
-  const sql = `-- สร้างตาราง login_logs ใน Supabase
-CREATE TABLE IF NOT EXISTS public.login_logs (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id text NOT NULL,
-  employee_id uuid REFERENCES public.employees(id) ON DELETE SET NULL,
-  employee_code text,
-  full_name text,
-  role text,
-  timestamp timestamp with time zone NOT NULL DEFAULT now(),
-  device_info jsonb,
-  ip_address text,
-  login_method text DEFAULT 'password'::text,
-  status text NOT NULL DEFAULT 'success'::text,
-  metadata jsonb,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT login_logs_pkey PRIMARY KEY (id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_login_logs_user_id ON public.login_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_login_logs_timestamp ON public.login_logs(timestamp DESC);
-
-ALTER TABLE public.login_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow insert login_logs" ON public.login_logs FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow read login_logs" ON public.login_logs FOR SELECT USING (true);`;
-
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(sql).then(() => {
-      Swal.fire({
-        icon: 'success',
-        title: 'คัดลอก SQL สำเร็จ!',
-        text: 'นำคำสั่งนี้ไปวางใน SQL Editor ของ Supabase Dashboard ได้ทันที',
-        timer: 2000,
-        showConfirmButton: false
-      });
-    }).catch(() => {
-      prompt("คัดลอก SQL ด้านล่างนี้ไปรันใน Supabase SQL Editor:", sql);
-    });
-  } else {
-    prompt("คัดลอก SQL ด้านล่างนี้ไปรันใน Supabase SQL Editor:", sql);
-  }
-};
 
 window.viewLoginAuditLogs = viewLoginAuditLogs;
 

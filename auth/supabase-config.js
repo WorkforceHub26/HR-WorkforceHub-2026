@@ -1,3 +1,4 @@
+
 /**
  * ============================================================================
  * PVT SUPABASE ENTERPRISE HR SDK (v3.0 Ultra)
@@ -1834,36 +1835,16 @@
           }
 
           // 2. Direct Supabase SDK insert into 'login_logs' table
+          //    (ไม่ขอข้อมูลกลับ เพราะตาราง login_logs อ่านได้เฉพาะผู้ดูแลระบบขั้นสูง)
           const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
           if (client) {
             try {
-              const { data, error } = await client
-                .from('login_logs')
-                .insert([payload])
-                .select();
-
-              if (!error && data) {
-                console.log("✅ [LoginAuditEngine] Login activity recorded directly in Supabase 'login_logs':", data);
-                this._bufferLocalLog(payload);
-                return Array.isArray(data) ? data[0] : data;
+              const { error } = await client.from('login_logs').insert([payload]);
+              if (!error) {
+                console.log("✅ [LoginAuditEngine] Login activity recorded in Supabase 'login_logs'");
+              } else {
+                console.warn("⚠️ [LoginAuditEngine] Direct insert into 'login_logs' notice:", error?.message);
               }
-
-              console.warn("⚠️ [LoginAuditEngine] Direct insert into 'login_logs' notice:", error?.message);
-
-              // If 'login_logs' table is not yet migrated, save into hr_admin_management_logs fallback
-              try {
-                await client.from('hr_admin_management_logs').insert([{
-                  actor_id: employeeId,
-                  actor_name: fullName || empCode || 'User',
-                  action_category: 'LOGIN_AUDIT',
-                  action_type: `LOGIN_${String(loginMethod).toUpperCase()}`,
-                  target_identifier: empCode || String(userId),
-                  description: `เข้าสู่ระบบสำเร็จ (${deviceInfo.browser} บน ${deviceInfo.os})`,
-                  payload_after: payload
-                }]);
-                console.log("ℹ️ [LoginAuditEngine] Fallback audit log saved in hr_admin_management_logs");
-              } catch (fallbackErr) {}
-
             } catch (sdkErr) {
               console.warn("⚠️ [LoginAuditEngine] SDK error:", sdkErr);
             }
@@ -1888,56 +1869,45 @@
       }
 
       /**
-       * Retrieve recent login logs for audit analysis
+       * อ่านประวัติการเข้าสู่ระบบ — เฉพาะผู้ดูแลระบบขั้นสูง (superadmin)
+       * ต้องส่งรหัสพนักงาน + รหัสผ่าน ซึ่งตรวจในฐานข้อมูลผ่าน admin_get_login_logs()
+       * ไม่ส่ง credentials → คืนค่า null (ไม่มีสิทธิ์ดู)
        */
-      async getLoginLogs(limit = 50) {
-        // Try server API first
-        try {
-          const res = await fetch(`/api/login-logs?limit=${limit}`);
-          if (res.ok) {
-            const json = await res.json();
-            if (json.data && json.data.length > 0) return json.data;
-          }
-        } catch (e) {}
-
+      async getLoginLogs(limit = 500, credentials = null) {
+        if (!credentials || !credentials.code || !credentials.password) return null;
         const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
-        if (client) {
-          try {
-            const { data, error } = await client
-              .from('login_logs')
-              .select('*')
-              .order('timestamp', { ascending: false })
-              .limit(limit);
-            if (!error && data && data.length > 0) return data;
-          } catch (e) {}
-
-          // Fallback to hr_admin_management_logs
-          try {
-            const { data } = await client
-              .from('hr_admin_management_logs')
-              .select('*')
-              .eq('action_category', 'LOGIN_AUDIT')
-              .order('created_at', { ascending: false })
-              .limit(limit);
-            if (data && data.length > 0) {
-              return data.map(d => d.payload_after || {
-                user_id: d.actor_id,
-                full_name: d.actor_name,
-                employee_code: d.target_identifier,
-                timestamp: d.created_at,
-                device_info: { description: d.description },
-                login_method: d.action_type
-              });
-            }
-          } catch (e) {}
+        if (!client) throw new Error('ยังเชื่อมต่อฐานข้อมูลไม่ได้');
+        const { data, error } = await client.rpc('admin_get_login_logs', {
+          p_code: credentials.code,
+          p_password: credentials.password,
+          p_limit: limit,
+          p_from: credentials.from || null,
+          p_to: credentials.to || null
+        });
+        if (error) {
+          const msg = String(error.message || '');
+          if (error.code === '42501' || /not_authorized/.test(msg)) {
+            const e = new Error('รหัสผ่านไม่ถูกต้อง หรือบัญชีนี้ไม่ใช่ผู้ดูแลระบบขั้นสูง');
+            e.code = 'not_authorized';
+            throw e;
+          }
+          if (error.code === 'PGRST202' || /admin_get_login_logs/.test(msg)) {
+            throw new Error('ยังไม่ได้รัน supabase/migrations/20261020_login_logs_superadmin_only.sql');
+          }
+          throw new Error(msg || 'โหลดประวัติไม่สำเร็จ');
         }
+        return Array.isArray(data) ? data : [];
+      }
 
-        // Local storage fallback
-        try {
-          return JSON.parse(localStorage.getItem('pvt_login_logs_history') || '[]');
-        } catch (e) {
-          return [];
-        }
+      /** ลบประวัติที่เก่ากว่า N วัน — เฉพาะผู้ดูแลระบบขั้นสูง */
+      async purgeLoginLogs(credentials, days = 90) {
+        const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
+        if (!client || !credentials) throw new Error('ไม่มีสิทธิ์');
+        const { data, error } = await client.rpc('admin_purge_login_logs', {
+          p_code: credentials.code, p_password: credentials.password, p_days: days
+        });
+        if (error) throw new Error(/not_authorized/.test(error.message || '') ? 'ไม่มีสิทธิ์ลบประวัติ' : (error.message || 'ลบไม่สำเร็จ'));
+        return Number(data) || 0;
       }
     }
 class NotificationEngine {
@@ -3008,11 +2978,12 @@ class LineOAEngine {
   };
 
   // Global Function for Retrieving Login Activity Logs
-  global.getLoginLogs = async function(limit = 50) {
+  // (เฉพาะผู้ดูแลระบบขั้นสูง: ต้องส่ง credentials = { code, password } — ไม่ส่งจะได้ null)
+  global.getLoginLogs = async function(limit = 500, credentials = null) {
     if (global.PVTSDK?.loginAudit?.getLoginLogs) {
-      return await global.PVTSDK.loginAudit.getLoginLogs(limit);
+      return await global.PVTSDK.loginAudit.getLoginLogs(limit, credentials);
     }
-    return [];
+    return null;
   };
 
   // Global Helpers for Friendly Leave Duration & Quotas
