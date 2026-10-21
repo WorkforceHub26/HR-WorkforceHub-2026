@@ -1485,9 +1485,110 @@ function renderBarChart(targetId, rows, countMode = false) {
   }).join("");
 }
 
+/* ==========================================================================
+   ↕️ การเรียงลำดับตารางพนักงาน (dropdown "เรียงตาม" + คลิกหัวตาราง)
+   บางแบบแบ่งหัวกลุ่มให้ด้วย เช่น อักษรนำหน้า / คำนำหน้า / แผนก / ปีเริ่มงาน
+   จำค่าที่เลือกไว้ในเบราว์เซอร์ (localStorage)
+   ========================================================================== */
+const EMP_SORT_STORE = 'pvt_emp_sort_v1';
+const EMP_TITLE_RE = /^(นางสาว|นาง|นาย|น\.ส\.?|ด\.ญ\.?|ด\.ช\.?|เด็กหญิง|เด็กชาย|ว่าที่\s*ร\.ต\.?\s*|miss\.?|mrs\.?|ms\.?|mr\.?)\s*/i;
+const EMP_TITLE_ORDER = ['นาย', 'นาง', 'นางสาว'];
+const EMP_POS_ORDER = ['executive', 'manager', 'supervisor', 'officer', 'staff'];
+const EMP_POS_LABEL = { executive: '👑 ผู้บริหาร', manager: '👔 ผู้จัดการ', supervisor: '🎖️ หัวหน้างาน / หัวหน้าแผนก', officer: '📋 เจ้าหน้าที่ / ผู้ช่วย / หัวหน้ากะ', staff: '👤 พนักงานทั่วไป' };
+const empCmp = (a, b) => String(a ?? '').localeCompare(String(b ?? ''), 'th', { numeric: true, sensitivity: 'base' });
+const empNameKey = (e) => String(e.full_name || '').replace(EMP_TITLE_RE, '').trim();
+const empTitleOf = (e) => {
+  const t = String(e.title || e.prefix || '').trim() || ((String(e.full_name || '').match(EMP_TITLE_RE) || [])[1] || '').trim();
+  if (/^น\.ส/.test(t)) return 'นางสาว';
+  return t || 'ไม่ระบุคำนำหน้า';
+};
+// อักษรนำหน้า: ตัวอักษรแรกของชื่อ (ข้ามสระหน้า เ แ โ ใ ไ เช่น "เกียรติ" → ก)
+const empInitial = (e) => {
+  const n = empNameKey(e).replace(/^[เแโใไ]/, '');
+  const ch = n.charAt(0);
+  return ch ? ch.toUpperCase() : '#';
+};
+const empStartYear = (e) => {
+  const m = String(e.start_date || '').match(/^(\d{4})/);
+  return m ? Number(m[1]) : null;
+};
+const empPosCat = (e) => classifyPositionCategory(e.positions?.position_name || e.position_name || '');
+const empIsDaily = (e) => /daily|รายวัน/i.test(String(e.employment_type || ''));
+const empIsResigned = (e) => ['inactive', 'resigned', 'terminated'].includes(String(e.status || '').toLowerCase());
+
+const EMP_SORTS = {
+  default:    { label: 'ค่าเริ่มต้นของระบบ' },
+  code_asc:   { label: 'รหัสพนักงาน (น้อย → มาก)', cmp: (a, b) => empCmp(a.employee_code, b.employee_code) },
+  code_desc:  { label: 'รหัสพนักงาน (มาก → น้อย)', cmp: (a, b) => empCmp(b.employee_code, a.employee_code) },
+  name_asc:   { label: 'ชื่อ ก → ฮ (แบ่งตามอักษรนำหน้า)', cmp: (a, b) => empCmp(empNameKey(a), empNameKey(b)), group: (e) => `อักษร ${empInitial(e)}` },
+  name_desc:  { label: 'ชื่อ ฮ → ก', cmp: (a, b) => empCmp(empNameKey(b), empNameKey(a)), group: (e) => `อักษร ${empInitial(e)}` },
+  title:      { label: 'คำนำหน้า (นาย / นาง / นางสาว)', cmp: (a, b) => {
+                  const ia = EMP_TITLE_ORDER.indexOf(empTitleOf(a)), ib = EMP_TITLE_ORDER.indexOf(empTitleOf(b));
+                  return ((ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)) || empCmp(empTitleOf(a), empTitleOf(b)) || empCmp(empNameKey(a), empNameKey(b));
+                }, group: (e) => empTitleOf(e) },
+  dept:       { label: 'แผนก ก → ฮ', cmp: (a, b) => empCmp(a.departments?.department_name || 'ฮฮ', b.departments?.department_name || 'ฮฮ') || empCmp(a.employee_code, b.employee_code),
+                group: (e) => `แผนก ${e.departments?.department_name || 'ไม่ระบุแผนก'}` },
+  start_asc:  { label: 'ปีเริ่มงาน (เก่า → ใหม่ · อายุงานมากก่อน)', cmp: (a, b) => empCmp(a.start_date || '9999', b.start_date || '9999') || empCmp(a.employee_code, b.employee_code),
+                group: (e) => { const y = empStartYear(e); return y ? `เริ่มงานปี ${y + 543} · อายุงาน ${Math.max(0, new Date().getFullYear() - y)} ปี` : 'ไม่ระบุวันเริ่มงาน'; } },
+  start_desc: { label: 'ปีเริ่มงาน (ใหม่ → เก่า)', cmp: (a, b) => empCmp(b.start_date || '0000', a.start_date || '0000') || empCmp(a.employee_code, b.employee_code),
+                group: (e) => { const y = empStartYear(e); return y ? `เริ่มงานปี ${y + 543} · อายุงาน ${Math.max(0, new Date().getFullYear() - y)} ปี` : 'ไม่ระบุวันเริ่มงาน'; } },
+  position:   { label: 'กลุ่มตำแหน่ง (ผู้บริหาร → พนักงาน)', cmp: (a, b) => (EMP_POS_ORDER.indexOf(empPosCat(a)) - EMP_POS_ORDER.indexOf(empPosCat(b))) || empCmp(a.positions?.position_name, b.positions?.position_name) || empCmp(a.employee_code, b.employee_code),
+                group: (e) => EMP_POS_LABEL[empPosCat(e)] || 'อื่น ๆ' },
+  emptype:    { label: 'ประเภทพนักงาน (รายเดือน / รายวัน)', cmp: (a, b) => (empIsDaily(a) - empIsDaily(b)) || empCmp(a.employee_code, b.employee_code),
+                group: (e) => (empIsDaily(e) ? 'พนักงานรายวัน' : 'พนักงานรายเดือน') },
+  line:       { label: 'ยังไม่ผูก LINE ก่อน', cmp: (a, b) => (!!a.line_id - !!b.line_id) || empCmp(a.employee_code, b.employee_code),
+                group: (e) => (e.line_id ? 'ผูก LINE แล้ว' : 'ยังไม่ผูก LINE') },
+  status:     { label: 'สถานะ (ใช้งาน → ลาออก)', cmp: (a, b) => (empIsResigned(a) - empIsResigned(b)) || empCmp(a.employee_code, b.employee_code),
+                group: (e) => (empIsResigned(e) ? 'ลาออก / พ้นสภาพ' : 'ใช้งาน') }
+};
+// หัวตารางที่คลิกได้ → คู่ (ครั้งแรก, ครั้งถัดไป)
+const EMP_HEADER_SORT = { code: ['code_asc', 'code_desc'], name: ['name_asc', 'name_desc'], dept: ['dept', 'dept'], start: ['start_asc', 'start_desc'], status: ['status', 'status'] };
+
+function getEmployeeSort() {
+  const sel = document.getElementById('empSortSelect');
+  if (sel && EMP_SORTS[sel.value]) return sel.value;
+  try { const v = localStorage.getItem(EMP_SORT_STORE); if (EMP_SORTS[v]) return v; } catch (e) {}
+  return 'default';
+}
+
+window.setEmployeeSort = function setEmployeeSort(keyOrHeader) {
+  let key = keyOrHeader;
+  if (EMP_HEADER_SORT[keyOrHeader]) {
+    const [first, second] = EMP_HEADER_SORT[keyOrHeader];
+    key = getEmployeeSort() === first && first !== second ? second : first;
+  }
+  if (!EMP_SORTS[key]) key = 'default';
+  const sel = document.getElementById('empSortSelect');
+  if (sel) sel.value = key;
+  try { localStorage.setItem(EMP_SORT_STORE, key); } catch (e) {}
+  renderEmployeeTable();
+};
+
+function initEmployeeSortControl() {
+  const sel = document.getElementById('empSortSelect');
+  if (!sel || sel.dataset.ready) return;
+  sel.dataset.ready = '1';
+  sel.innerHTML = Object.entries(EMP_SORTS).map(([k, s]) => `<option value="${k}">↕ ${escapeHtml(s.label)}</option>`).join('');
+  let saved = 'default';
+  try { const v = localStorage.getItem(EMP_SORT_STORE); if (EMP_SORTS[v]) saved = v; } catch (e) {}
+  sel.value = saved;
+}
+
+function updateEmployeeSortHeader(key) {
+  document.querySelectorAll('#employeeListWrapper [data-sort-col]').forEach((el) => {
+    const pair = EMP_HEADER_SORT[el.dataset.sortCol] || [];
+    const active = pair.includes(key);
+    el.classList.toggle('is-sorted', active);
+    const arrow = el.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = !active ? '↕' : (pair[0] !== pair[1] && key === pair[1] ? '▼' : '▲');
+    el.setAttribute('aria-sort', !active ? 'none' : (pair[0] !== pair[1] && key === pair[1] ? 'descending' : 'ascending'));
+  });
+}
+
 function renderEmployeeTable() {
   const container = document.getElementById("employeeTableBody");
   if (!container) return;
+  initEmployeeSortControl();
 
   const searchInputEl = document.getElementById("empSearchInput");
   const search = searchInputEl?.value.trim().toLowerCase() || "";
@@ -1603,12 +1704,30 @@ function renderEmployeeTable() {
     `;
   }
 
+  const sortKey = getEmployeeSort();
+  updateEmployeeSortHeader(sortKey);
+
   if (!filtered.length) {
     container.innerHTML = `<div class="empty">ไม่พบพนักงานตามเงื่อนไข</div>`;
     return;
   }
 
+  // ↕️ เรียงลำดับ + หัวกลุ่ม
+  const sortDef = EMP_SORTS[sortKey];
+  if (sortDef?.cmp) filtered.sort(sortDef.cmp);
+  const groupCounts = {};
+  if (sortDef?.group) filtered.forEach((e) => { const g = sortDef.group(e); groupCounts[g] = (groupCounts[g] || 0) + 1; });
+  let lastGroup = null;
+
   container.innerHTML = filtered.map((emp) => {
+    let groupHead = '';
+    if (sortDef?.group) {
+      const g = sortDef.group(emp);
+      if (g !== lastGroup) {
+        lastGroup = g;
+        groupHead = `<div class="emp-group-head" role="presentation"><span>${escapeHtml(g)}</span><b>${groupCounts[g]} คน</b></div>`;
+      }
+    }
     const avatarUrl = typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp) : getAvatarUrl(emp.image_url, emp.title);
     // วันเริ่มงาน: วัน/เดือน/ปี พ.ศ. (เช่น 19/01/2559)
     const thaiStartDate = (() => {
@@ -1651,7 +1770,7 @@ function renderEmployeeTable() {
       ? `<span class="emp-line-status linked"><span class="status-dot"></span>LINE ผูกแล้ว</span>`
       : `<span class="emp-line-status unlinked"><span class="status-dot"></span>ยังไม่ผูก LINE</span>`;
 
-    return `
+    return groupHead + `
       <div class="emp-card-item ${posCategory === 'executive' ? 'is-executive' : ''}">
         <div class="col-avatar">
           <img data-av-id="${emp.id || ''}" data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" data-av-title="${escapeHtml(emp.title || emp.prefix || '')}" src="${avatarUrl}" 

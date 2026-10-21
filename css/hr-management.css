@@ -1998,3 +1998,15 @@
   #page-hr-management .employee-list-header { padding-left: 16px; padding-right: 16px; }
   #page-hr-management .emp-card-item .col-actions .btn-table-act.primary { padding-left: 10px; padding-right: 12px; }
 }
+
+/* ↕️ การเรียงลำดับตารางพนักงาน */
+#page-hr-management .employee-list-header .emp-sortable { cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; }
+#page-hr-management .employee-list-header .emp-sortable:hover { color: var(--th-p-700, #0f766e); }
+#page-hr-management .employee-list-header .emp-sortable:focus-visible { outline: 2px solid var(--th-p-600, #0d9488); outline-offset: 2px; }
+#page-hr-management .employee-list-header .sort-arrow { font-size: 11px; color: #94a3b8; }
+#page-hr-management .employee-list-header .emp-sortable.is-sorted { color: var(--th-p-700, #0f766e); }
+#page-hr-management .employee-list-header .emp-sortable.is-sorted .sort-arrow { color: var(--th-p-600, #0d9488); }
+#page-hr-management .emp-group-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 14px 0 6px; padding: 7px 14px; border-radius: 10px; background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-100, #ccfbf1); color: var(--th-p-800, #115e59); font-size: 13.5px; font-weight: 800; }
+#page-hr-management .emp-group-head:first-child { margin-top: 0; }
+#page-hr-management .emp-group-head b { font-size: 12px; font-weight: 700; color: #475569; background: #fff; border: 1px solid #e2e8f0; padding: 1px 9px; border-radius: 999px; }
+

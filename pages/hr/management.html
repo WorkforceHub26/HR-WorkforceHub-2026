@@ -404,6 +404,11 @@
               <option value=""> ทุกแผนก</option>
             </select>
 
+            <!-- ↕️ เรียงตาม (management.js → EMP_SORTS) -->
+            <select id="empSortSelect" class="select-input" aria-label="เรียงตาม" title="เรียงลำดับตาราง" onchange="window.setEmployeeSort && window.setEmployeeSort(this.value)" style="min-width: 200px; height: 42px;">
+              <option value="default">↕ ค่าเริ่มต้นของระบบ</option>
+            </select>
+
             <!-- ปุ่มล้างคำขอค้นหา / ล้างตัวกรอง -->
             <button 
               type="button" 
@@ -432,11 +437,12 @@
             <!-- Header สำหรับ Desktop -->
             <div class="employee-list-header desktop-only">
               <div class="col-avatar">รูปภาพ</div>
-              <div class="col-code">รหัสพนักงาน</div>
-              <div class="col-info">ชื่อ-นามสกุล / ตำแหน่ง</div>
-              <div class="col-dept">แผนก / สังกัด</div>
-              <div class="col-start">วันเริ่มงาน</div>
-              <div class="col-status">สถานะ</div>
+              <!-- คลิกหัวตารางเพื่อเรียง (คลิกซ้ำ = กลับด้าน) -->
+              <div class="col-code emp-sortable" data-sort-col="code" role="button" tabindex="0" onclick="setEmployeeSort('code')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('code')}">รหัสพนักงาน <span class="sort-arrow">↕</span></div>
+              <div class="col-info emp-sortable" data-sort-col="name" role="button" tabindex="0" onclick="setEmployeeSort('name')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('name')}">ชื่อ-นามสกุล / ตำแหน่ง <span class="sort-arrow">↕</span></div>
+              <div class="col-dept emp-sortable" data-sort-col="dept" role="button" tabindex="0" onclick="setEmployeeSort('dept')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('dept')}">แผนก / สังกัด <span class="sort-arrow">↕</span></div>
+              <div class="col-start emp-sortable" data-sort-col="start" role="button" tabindex="0" onclick="setEmployeeSort('start')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('start')}">วันเริ่มงาน <span class="sort-arrow">↕</span></div>
+              <div class="col-status emp-sortable" data-sort-col="status" role="button" tabindex="0" onclick="setEmployeeSort('status')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('status')}">สถานะ <span class="sort-arrow">↕</span></div>
               <div class="col-actions">จัดการ</div>
             </div>
 
