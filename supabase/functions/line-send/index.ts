@@ -14,7 +14,30 @@ serve(async (req) => {
   }
 
   try {
-    const { to, message, flexMessage } = await req.json();
+    const body = await req.json();
+
+    // 📊 จำนวนข้อความที่ใช้ไปเดือนนี้ + โควตา (คอนโซลผู้ดูแลระบบ → การส่งข้อความ LINE)
+    //    ไม่ส่งข้อความใด ๆ และไม่เปิดเผย token
+    if (body && body.action === "quota") {
+      if (!LINE_CHANNEL_ACCESS_TOKEN) throw new Error("LINE_CHANNEL_ACCESS_TOKEN is not configured.");
+      const auth = { "Authorization": `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}` };
+      const [qRes, uRes] = await Promise.all([
+        fetch("https://api.line.me/v2/bot/message/quota", { headers: auth }),
+        fetch("https://api.line.me/v2/bot/message/quota/consumption", { headers: auth }),
+      ]);
+      const quota = await qRes.json();
+      const usage = await uRes.json();
+      if (!qRes.ok || !uRes.ok) throw new Error(`LINE API returned ${qRes.status}/${uRes.status}`);
+      return new Response(JSON.stringify({
+        success: true,
+        quotaType: quota.type,                       // "limited" | "none"
+        quota: quota.type === "limited" ? quota.value : null,
+        used: usage.totalUsage ?? null,
+        checkedAt: new Date().toISOString(),
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { to, message, flexMessage } = body;
 
     if (!to) {
       throw new Error("Missing 'to' parameter (LINE User ID)");

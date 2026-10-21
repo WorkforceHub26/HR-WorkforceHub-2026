@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import fs from 'fs';
-import { handleLineAccess, handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
+import { handleLineAccess, handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleLineQuota, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
 
 export default defineConfig({
   plugins: [
@@ -30,6 +30,10 @@ export default defineConfig({
         });
         server.middlewares.use('/api/test-line-connection', (req, res) => {
           if (req.method === 'POST') handleTestLineConnection(req, res);
+          else res.end();
+        });
+        server.middlewares.use('/api/line-quota', (req, res) => {
+          if (req.method === 'GET') handleLineQuota(req, res);
           else res.end();
         });
         server.middlewares.use('/api/record-login-log', (req, res) => {

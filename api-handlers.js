@@ -448,6 +448,31 @@ export async function handleSendNotification(req, res) {
   }
 }
 
+// 📊 GET /api/line-quota — จำนวนข้อความ LINE ที่ใช้ไปเดือนนี้ + โควตา (สำรองกรณีเรียก Edge Function ไม่ได้)
+export async function handleLineQuota(req, res) {
+  try {
+    const token = await getLineAccessToken();
+    if (!token) return sendJson(res, 503, { success: false, error: 'ยังไม่ได้ตั้งค่า LINE Channel Access Token' });
+    const auth = { 'Authorization': `Bearer ${token}` };
+    const [qRes, uRes] = await Promise.all([
+      fetch('https://api.line.me/v2/bot/message/quota', { headers: auth }),
+      fetch('https://api.line.me/v2/bot/message/quota/consumption', { headers: auth })
+    ]);
+    const quota = await qRes.json();
+    const usage = await uRes.json();
+    if (!qRes.ok || !uRes.ok) return sendJson(res, 502, { success: false, error: `LINE API ${qRes.status}/${uRes.status}` });
+    return sendJson(res, 200, {
+      success: true,
+      quotaType: quota.type,
+      quota: quota.type === 'limited' ? quota.value : null,
+      used: usage.totalUsage ?? null,
+      checkedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    return sendJson(res, 500, { success: false, error: err.message });
+  }
+}
+
 async function getLineAccessToken() {
   if (process.env.LINE_CHANNEL_ACCESS_TOKEN) {
     return process.env.LINE_CHANNEL_ACCESS_TOKEN;

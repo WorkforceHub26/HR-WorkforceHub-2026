@@ -2,7 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
-import { handleLineAccess, handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
+import { handleLineAccess, handleCreateLineLink, handleLineWebhook, handleSendNotification, handleClearApproverLine, handleRecordLoginLog, handleGetLoginLogs, handlePurgeLoginLogs, handleOcrScan, handleHrChatbot, handleTestLineConnection, handleLineQuota, handleWebAuthnRegisterVerify, handleWebAuthnGetCredentials, handleWebAuthnDeleteCredential } from './api-handlers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,6 +19,7 @@ app.post('/api/clear-approver-line', handleClearApproverLine);
 app.post('/api/line-webhook', handleLineWebhook);
 app.post('/api/send-notification', handleSendNotification);
 app.post('/api/test-line-connection', handleTestLineConnection);
+app.get('/api/line-quota', handleLineQuota);
 app.post('/api/record-login-log', handleRecordLoginLog);
 app.get('/api/login-logs', handleGetLoginLogs);
 app.post('/api/purge-login-logs', handlePurgeLoginLogs);

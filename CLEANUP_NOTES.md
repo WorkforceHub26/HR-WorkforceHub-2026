@@ -469,3 +469,14 @@
 ## แก้เพิ่ม (2026-10-21): แท็บ "ไม่อนุมัติ" (การพิจารณาที่ไม่อนุมัติ) ในหน้าตรวจใบลา
 - เห็นเฉพาะ HR / Admin · ผู้บริหารไม่เห็นแล้ว (`js/hr.js` → canViewRejectionAudit)
 
+## เพิ่ม (2026-10-21): ตัวนับการส่งข้อความ LINE ต่อเดือน (คอนโซลผู้ดูแลระบบ)
+
+**ต้องทำ:** รัน `supabase/migrations/20261021_line_message_logs.sql` (MAIN + DEV) และ deploy `supabase functions deploy line-send` ใหม่
+
+- คอนโซลผู้ดูแลระบบ → "การส่งข้อความ LINE ต่อเดือน" (`js/components/line-usage.js`)
+  - ตัวเลขจาก LINE โดยตรง: ใช้ไปเดือนนี้ / โควตา / คงเหลือ / คาดการณ์สิ้นเดือน + เตือนเมื่อใช้ ≥ 80% หรือคาดว่าจะเกิน
+  - บันทึกของระบบ: แยกตามเรื่อง (ใบลาใหม่ / ส่งต่อ / อนุมัติ / ไม่อนุมัติ / ขอยกเลิก / ทดสอบ) · สำเร็จ / ไม่สำเร็จ / ยังไม่ผูก LINE · ย้อนหลัง 6 เดือน
+- `supabase/functions/line-send`: เพิ่ม `{ action: 'quota' }` (อ่านโควตา/การใช้งานจาก LINE ไม่ส่งข้อความ)
+- `api-handlers.js` + `server.js` + `vite.config.js`: `GET /api/line-quota` (สำรอง)
+- `auth/supabase-config.js` → `sendWorkflowNotification` บันทึกทุกการส่งลง `line_message_logs`
+

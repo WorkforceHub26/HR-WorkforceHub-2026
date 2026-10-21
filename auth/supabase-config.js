@@ -1,4 +1,3 @@
-
 /**
  * ============================================================================
  * PVT SUPABASE ENTERPRISE HR SDK (v3.0 Ultra)
@@ -2453,12 +2452,33 @@ class LineOAEngine {
       employeeNickname
     });
 
+    // 📊 บันทึกการส่ง LINE (นับจำนวนต่อเดือนในคอนโซลผู้ดูแลระบบ) — ตาราง line_message_logs
+    const logLine = async (result, via, error) => {
+      if (!this.client) return;
+      try {
+        let senderId = null;
+        try { senderId = JSON.parse(localStorage.getItem('currentUser') || '{}').id || null; } catch (e) {}
+        const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
+        await this.client.from('line_message_logs').insert([{
+          msg_type: type,
+          result,
+          via: via || null,
+          recipient_id: isUuid(recipientId) ? recipientId : null,
+          recipient_role: recipientRole || null,
+          leave_id: isUuid(leaveId) ? leaveId : null,
+          error: error ? String(error).slice(0, 500) : null,
+          sender_id: isUuid(senderId) ? senderId : null
+        }]);
+      } catch (e) { /* ยังไม่มีตาราง / บันทึกไม่ได้ ไม่กระทบการส่ง */ }
+    };
+
     // 3. ส่ง LINE ผ่าน Supabase Edge Function: line-send หรือ Server API: /api/send-notification
     if (!targetLineId) {
       console.warn(
         "⚠️ [LINE OA] ผู้รับยังไม่ได้ผูก LINE User ID (หรือไม่มีในระบบ):",
         recipientId
       );
+      await logLine('no_line', null, null);
 
       return {
         success: true,
@@ -2472,6 +2492,7 @@ class LineOAEngine {
     try {
       const LINE_SEND_URL = `${CONFIG.URL}/functions/v1/line-send`;
 
+      let via = 'edge';
       let response = await fetch(LINE_SEND_URL, {
         method: "POST",
         headers: {
@@ -2488,6 +2509,7 @@ class LineOAEngine {
 
       if (!response.ok) {
         console.warn("⚠️ [LINE OA] line-send Edge Function fallback to /api/send-notification");
+        via = 'server';
         response = await fetch('/api/send-notification', {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2508,6 +2530,7 @@ class LineOAEngine {
           response.status,
           resultText
         );
+        await logLine('failed', via, `HTTP ${response.status}: ${resultText}`);
 
         return {
           success: false,
@@ -2521,6 +2544,7 @@ class LineOAEngine {
         "✅ [LINE OA] Push Flex Card message sent successfully to:",
         targetLineId
       );
+      await logLine('sent', via, null);
 
       return {
         success: true,
@@ -2535,7 +2559,7 @@ class LineOAEngine {
         lineErr
       );
       try {
-        await fetch('/api/send-notification', {
+        const fb = await fetch('/api/send-notification', {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2546,8 +2570,10 @@ class LineOAEngine {
             flexMessage: flexCardObj
           })
         });
+        await logLine(fb.ok ? 'sent' : 'failed', 'server', fb.ok ? null : `HTTP ${fb.status}`);
       } catch (fallbackErr) {
         console.error("❌ Fallback server notification also failed:", fallbackErr);
+        await logLine('failed', 'server', fallbackErr?.message || String(fallbackErr));
       }
 
       return {
