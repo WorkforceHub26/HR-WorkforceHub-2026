@@ -378,7 +378,7 @@ function applyRoleBasedUI() {
     cancellationTabBtn.style.display = canReviewCancellationRequests() ? 'inline-flex' : 'none';
   }
 
-  // แท็บ "การพิจารณาที่ไม่อนุมัติ": HR / Admin / ผู้บริหาร เท่านั้น (หัวหน้า/ผู้จัดการไม่เห็นข้อมูลของคนอื่น)
+  // แท็บ "การพิจารณาที่ไม่อนุมัติ": HR / Admin เท่านั้น (ผู้บริหาร หัวหน้า ผู้จัดการ ไม่เห็น)
   const rejectionsTabBtn = document.getElementById("tabBtnRejections");
   if (rejectionsTabBtn) rejectionsTabBtn.hidden = !canViewRejectionAudit();
 
@@ -1287,7 +1287,8 @@ function updateTabAndStatBadges() {
 function canViewRejectionAudit() {
   const sessionUser = (() => { try { return JSON.parse(localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser") || "{}"); } catch (e) { return {}; } })();
   const empCode = String(currentUserProfile?.employee_code || currentUserProfile?.employees?.employee_code || sessionUser?.employee_code || '').trim();
-  return ['hr', 'admin', 'director'].includes(String(currentRole || '').toLowerCase()) && empCode !== '19122';
+  // ผู้บริหาร (currentRole = director) ไม่เห็นแท็บนี้ — ตามที่ฝ่ายบุคคลกำหนด
+  return ['hr', 'admin'].includes(String(currentRole || '').toLowerCase()) && empCode !== '19122';
 }
 
 window.switchLeaveTab = function(tabName, btnEl) {
@@ -3132,6 +3133,11 @@ async function approveCancellation(leaveId) {
     if (updateErr) throw updateErr;
     if (!changedRows || !changedRows.length) throw new Error('คำขอยกเลิกนี้ถูกดำเนินการไปแล้ว กรุณารีเฟรชแล้วลองใหม่');
 
+    // ปิดขั้นอนุมัติที่ยังค้าง/พักไว้ (ใบลาที่ยังไม่จบขั้นตอน)
+    if (window.PVTApproval) {
+      try { await window.PVTApproval.closeOpenSteps(leaveId, 'cancelled', 'HR อนุมัติการยกเลิก'); } catch (e) {}
+    }
+
     if (wasFinalApproved && daysToReturn > 0 && window.PVTSDK?.user?.updateLeaveBalance) {
       const lCode = freshReq.leave_types?.leave_code || null;
       await window.PVTSDK.user.updateLeaveBalance(freshReq.employee_id, freshReq.leave_type_id, lCode, currentYear, -daysToReturn);
@@ -3256,6 +3262,12 @@ async function rejectCancellation(leaveId) {
 
     if (error) throw error;
 
+    // ใบลาที่ยังไม่จบขั้นตอน: คืนขั้นอนุมัติที่พักไว้ แล้วแจ้งผู้อนุมัติลำดับถัดไปให้พิจารณาต่อ
+    let resumedStep = null;
+    if (restoreStatus === 'pending' && window.PVTApproval?.resumeHeldSteps) {
+      try { resumedStep = await window.PVTApproval.resumeHeldSteps(leaveId); } catch (e) { console.warn('⚠️ คืนขั้นอนุมัติไม่สำเร็จ:', e); }
+    }
+
     if (window.PVTLeaveAudit) {
       await window.PVTLeaveAudit.recordOutcome(
         Object.assign({}, allLeaveRequests.find(r => String(r.id) === String(leaveId)) || {}, freshReq),
@@ -3266,7 +3278,7 @@ async function rejectCancellation(leaveId) {
 
     const restoreLabel = restoreStatus === 'approved'
       ? 'ใบลายังคงสถานะอนุมัติเดิม'
-      : 'ใบลาถูกส่งกลับเข้าสู่ขั้นตอนอนุมัติเดิมต่อไป';
+      : (resumedStep ? `ใบลาถูกส่งกลับไปให้ "${resumedStep.step_label || 'ผู้อนุมัติลำดับถัดไป'}" พิจารณาต่อแล้ว` : 'ใบลาถูกส่งกลับเข้าสู่ขั้นตอนอนุมัติเดิมต่อไป');
 
     await Swal.fire('ปฏิเสธคำร้องแล้ว', restoreLabel, 'success');
     loadPendingLeavesHR();
@@ -3281,40 +3293,142 @@ async function rejectCancellation(leaveId) {
    🖨️ 7. PRINT LEAVE A4 DOCUMENT
    ========================================================================== */
 
+/* ==========================================================================
+   🖨️ พิมพ์ใบลา (A4) — แบบฟอร์มทางการ บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด
+   - หัวกระดาษบริษัท + เลขที่เอกสาร · ตัวเนื้อความแบบหนังสือขออนุญาตลา
+   - ประเภทการลาแบบช่องเลือก (ดึงจากตาราง leave_types)
+   - ตารางผลการพิจารณาตามขั้นอนุมัติจริง (leave_approval_steps) / แบบเดิม (manager/director/executive_status)
+   - ช่องสำหรับฝ่ายทรัพยากรบุคคล · ลายน้ำเมื่อยังไม่อนุมัติ / ไม่อนุมัติ / ยกเลิก
+   - สีตามประเภทพนักงาน (employees.employment_type): สีฟ้า = รายเดือน · สีชมพู = รายวัน
+   - โลโก้บริษัท: /assets/img/company-logo.png
+   - @page margin 0 → เบราว์เซอร์ไม่พิมพ์ URL/วันที่ที่หัว-ท้ายกระดาษ
+   ========================================================================== */
+const PVT_COMPANY_NAME_TH = 'บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด';
+
 async function printLeaveA4(leaveId) {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
 
+  // ✅ แปลงวันเวลาให้ถูกเขตเวลา (formatThaiDate เดิมตัด "Z" ทิ้ง ทำให้เวลาคลาด 7 ชม.)
+  const TH_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  const toDate = (v) => {
+    if (!v) return null;
+    const s = String(v);
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(`${s}T00:00:00`) : new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  const thLong = (v) => { const d = toDate(v); return d ? `${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}` : '-'; };
+  const thShort = (v) => { const d = toDate(v); return d ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear() + 543}` : ''; };
+  const thTime = (v) => { const d = toDate(v); return d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} น.` : ''; };
+  const e = (v) => escapeHtml(v == null ? '' : String(v));
+  const box = (on) => `<span class="cb${on ? ' cb--on' : ''}">${on ? '✓' : ''}</span>`;
+
   try {
     if (typeof Swal !== 'undefined') {
-      Swal.fire({
-        title: 'กำลังเตรียมเอกสารใบลา...',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
+      Swal.fire({ title: 'กำลังเตรียมเอกสารใบลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     }
 
     const { data: req, error } = await sb
       .from('leave_requests')
       .select(`
         *,
-        employees!employee_id ( full_name, employee_code, nickname, departments!department_id(department_name), positions(position_name) ),
-        leave_types ( leave_name )
+        employees!employee_id ( full_name, employee_code, nickname, title, employment_type, departments!department_id(department_name), positions(position_name) ),
+        leave_types ( leave_name, leave_code )
       `)
       .eq('id', leaveId)
       .single();
-
     if (error || !req) throw new Error("ไม่พบข้อมูลเอกสารใบลา");
+
+    // ประเภทการลาทั้งหมดของบริษัท (สำหรับช่องเลือก) + ขั้นอนุมัติจริง
+    let leaveTypes = [];
+    try {
+      const { data } = await sb.from('leave_types').select('id, leave_name, status').order('leave_code');
+      leaveTypes = (data || []).filter((t) => !t.status || String(t.status).toLowerCase() === 'active');
+    } catch (err) { /* ใช้เฉพาะประเภทของใบนี้ */ }
+    let steps = [];
+    try {
+      const { data, error: stErr } = await sb.from('leave_approval_steps')
+        .select('step_no, step_label, approver_names, hr_any, status, acted_by_name, acted_at, comment')
+        .eq('leave_id', leaveId).order('step_no');
+      if (!stErr && data) steps = data.filter((s) => s.status !== 'skipped');
+    } catch (err) { /* ยังไม่มีตาราง → ใช้แบบเดิม */ }
 
     const emp = req.employees || {};
     const printDays = req.actual_days || req.days_requested || req.total_days || 0;
-    const printDurationFormatted = window.PVTSDK?.formatLeaveDurationFriendly ? window.PVTSDK.formatLeaveDurationFriendly(printDays, req.leave_hours || 0) : `${printDays} วัน`;
+    const duration = window.PVTSDK?.formatLeaveDurationFriendly ? window.PVTSDK.formatLeaveDurationFriendly(printDays, req.leave_hours || 0) : `${printDays} วัน`;
     const leaveName = req.leave_types?.leave_name || 'ไม่ระบุประเภทการลา';
-    const deptName = emp.departments?.department_name || '-';
-    const posName = emp.positions?.position_name || '-';
-
+    const fullName = `${emp.title && !String(emp.full_name || '').startsWith(emp.title) ? emp.title : ''}${emp.full_name || '-'}`;
     const attachUrl = getAttachmentUrl(req);
-    const isImageAttachment = attachUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachUrl.split('?')[0]);
+    const docNo = `LV-${String(req.id).substring(0, 8).toUpperCase()}`;
+    // 🎨 สีตามประเภทพนักงาน: รายวัน = ชมพู · รายเดือน (ค่าเริ่มต้น) = ฟ้า
+    const isDaily = /daily|รายวัน/i.test(String(emp.employment_type || ''));
+    const empTypeText = isDaily ? 'พนักงานรายวัน' : 'พนักงานรายเดือน';
+    const tone = isDaily
+      ? { main: '#be185d', soft: '#fce7f3', mid: '#f9a8d4' }
+      : { main: '#0369a1', soft: '#e0f2fe', mid: '#7dd3fc' };
+    // โลโก้: แปลงเป็น data URL ก่อนเขียนลงหน้าต่างพิมพ์ (หน้าต่าง about:blank โหลดรูปไม่ทันก่อนสั่งพิมพ์)
+    let logoUrl = `${window.location.origin}/assets/img/company-logo.png`;
+    try {
+      const res = await fetch('/assets/img/company-logo.png', { cache: 'force-cache' });
+      if (res.ok) {
+        const blob = await res.blob();
+        logoUrl = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+      }
+    } catch (err) { /* ใช้ URL ตรง */ }
+    const st = String(req.status || 'pending').toLowerCase();
+    const statusText = st === 'approved' ? 'อนุมัติ' : st === 'rejected' ? 'ไม่อนุมัติ'
+      : (st === 'cancelled' || st === 'canceled') ? 'ยกเลิกแล้ว' : st === 'cancel_requested' ? 'ขอยกเลิก (รอ HR ตรวจสอบ)' : 'รอพิจารณา';
+    const watermark = st === 'approved' ? '' : st === 'rejected' ? 'ไม่อนุมัติ' : (st === 'cancelled' || st === 'canceled') ? 'ยกเลิก' : st === 'cancel_requested' ? 'ขอยกเลิก' : 'รอพิจารณา';
+
+    // ช่องเลือกประเภทการลา
+    const names = leaveTypes.map((t) => t.leave_name).filter(Boolean);
+    if (!names.includes(leaveName)) names.push(leaveName);
+    const typeChecks = names.slice(0, 10).map((n) => `<span class="opt">${box(n === leaveName)} ${e(n)}</span>`).join('');
+
+    // ตารางผลการพิจารณา
+    const isAutoText = (c) => /ผ่านอัตโนมัติ|ผู้อนุมัติคนเดียวกับขั้นก่อนหน้า/.test(String(c || ''));
+    let rows = [];
+    if (steps.length) {
+      rows = steps.map((s, i) => ({
+        no: i + 1,
+        role: s.step_label || `ผู้อนุมัติลำดับที่ ${i + 1}`,
+        who: s.acted_by_name || (s.hr_any ? 'ฝ่ายทรัพยากรบุคคล' : (s.approver_names || []).join(' / ')),
+        result: s.status === 'approved' ? 'approved' : (s.status === 'rejected' || s.status === 'expired') ? 'rejected' : s.status === 'cancelled' ? 'cancelled' : 'pending',
+        expired: s.status === 'expired',
+        at: s.acted_at,
+        comment: isAutoText(s.comment) ? '' : (s.comment || '')
+      }));
+    } else {
+      const legacy = [
+        ['manager_status', 'หัวหน้างาน (ลำดับที่ 1)'],
+        ['director_status', 'ผู้จัดการ (ลำดับที่ 2)'],
+        ['executive_status', 'ผู้บริหาร (ลำดับที่ 3)']
+      ];
+      rows = legacy.map(([f, label], i) => {
+        const v = String(req[f] || 'pending').toLowerCase();
+        return { no: i + 1, role: label, who: '', result: v === 'approved' ? 'approved' : v === 'rejected' ? 'rejected' : 'pending', at: v === 'approved' && st === 'approved' && i === legacy.length - 1 ? req.approved_at : null, comment: '' };
+      });
+      if (req.approval_comment) rows[rows.length - 1].comment = req.approval_comment;
+    }
+    const approvalRows = rows.map((r) => `
+      <tr>
+        <td class="c">${r.no}</td>
+        <td><strong>${e(r.role)}</strong>${r.who ? `<div class="sub">${e(r.who)}</div>` : ''}</td>
+        <td class="res">
+          <div>${box(r.result === 'approved')} อนุมัติ</div>
+          <div>${box(r.result === 'rejected')} ไม่อนุมัติ${r.expired ? ' <span class="sub">(พ้นกำหนด 48 ชม.)</span>' : ''}</div>
+        </td>
+        <td class="sig">${(r.result === 'approved' || r.result === 'rejected') && !r.expired
+          ? `<div class="esig">ลงนามอิเล็กทรอนิกส์</div><div class="sub">${e(r.who || r.role)}</div>`
+          : r.result === 'cancelled' ? '<div class="sub">ยกเลิกคำขอ</div>' : '<div class="dots"></div>'}</td>
+        <td class="c">${r.at ? `${thShort(r.at)}<div class="sub">${thTime(r.at)}</div>` : (r.result === 'pending' ? '' : '-')}</td>
+      </tr>
+      ${r.comment ? `<tr class="note"><td></td><td colspan="4">ความเห็น: ${e(r.comment)}</td></tr>` : ''}`).join('');
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -3322,197 +3436,168 @@ async function printLeaveA4(leaveId) {
       alert("กรุณาอนุญาตให้เปิด Pop-up ในเบราว์เซอร์เพื่อพิมพ์เอกสาร");
       return;
     }
-
     const docTitle = `ใบลา_${emp.employee_code || ''}_${emp.full_name || 'พนักงาน'}`;
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html lang="th">
-      <head>
-        <meta charset="UTF-8">
-        <title>${docTitle}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-        <style>
-          @page { size: A4 portrait; margin: 12mm 15mm 12mm 15mm; }
-          * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; background: #ffffff; color: #1e293b; line-height: 1.5; }
-          .page { width: 100%; min-height: 270mm; background: #ffffff; position: relative; padding-bottom: 20mm; }
-          
-          /* Elegant modern company banner */
-          .doc-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--th-p-700, #0f766e); padding-bottom: 12px; margin-bottom: 20px; }
-          .logo-area { display: flex; align-items: center; gap: 12px; }
-          .logo-placeholder { width: 44px; height: 44px; background: linear-gradient(135deg, var(--th-p-700, #0f766e), var(--th-p-600, #0d9488)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(var(--th-p-700-rgb, 15, 118, 110), 0.15); }
-          .company-name { font-size: 18px; font-weight: 800; color: var(--th-p-700, #0f766e); letter-spacing: -0.3px; line-height: 1.2; }
-          .company-sub { font-size: 11px; color: #475569; font-weight: 500; margin-top: 1px; }
-          
-          .doc-meta { text-align: right; font-size: 11px; color: #475569; line-height: 1.4; }
-          .doc-meta strong { color: #0f172a; }
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>${e(docTitle)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  :root { --tone: ${tone.main}; --tone-soft: ${tone.soft}; --tone-mid: ${tone.mid}; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { margin: 0; padding: 0; background: #e5e7eb; }
+  body { font-family: 'Sarabun', 'TH Sarabun New', Tahoma, sans-serif; color: #111827; font-size: 13.5px; line-height: 1.55; }
+  .page { width: 210mm; height: 297mm; margin: 0 auto; padding: 14mm 17mm 12mm; background: #fff; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  @media screen { .page { margin: 16px auto; box-shadow: 0 4px 24px rgba(0,0,0,.15); } }
+  @media print { html, body { background: #fff; } .page { margin: 0; box-shadow: none; } }
 
-          /* Clean, authoritative document title */
-          .form-title-box { text-align: center; margin: 15px 0 20px 0; border: 1.5px solid #cbd5e1; padding: 12px; border-radius: 10px; background: #f8fafc; }
-          .form-title-box h1 { margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: 0.3px; }
-          .form-title-box p { margin: 3px 0 0 0; font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
-          
-          /* Section separation */
-          .section { margin-bottom: 20px; }
-          .section-label { font-size: 13px; font-weight: 800; color: var(--th-p-700, #0f766e); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
-          .section-label::after { content: ''; flex: 1; height: 1px; background: #cbd5e1; margin-left: 8px; }
-          
-          /* Form Tables (Sleek corporate grids) */
-          .info-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; }
-          .info-table td { padding: 8px 12px; font-size: 13px; border: 1px solid #cbd5e1; color: #334155; }
-          .info-table td.label { width: 22%; background: #f8fafc; font-weight: 700; color: #475569; }
-          .info-table td.value { background: #ffffff; }
-          .info-table td.value strong { color: #0f172a; }
+  .wm { position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%) rotate(-28deg); font-size: 96px; font-weight: 700; color: rgba(17,24,39,.06); white-space: nowrap; pointer-events: none; letter-spacing: 6px; }
 
-          /* Reason statement container */
-          .reason-container { padding: 12px 16px; border: 1.5px solid #cbd5e1; border-radius: 8px; background: #fafafa; font-size: 13px; min-height: 60px; line-height: 1.6; color: #1e293b; }
-          
-          /* Status Stamp Style */
-          .status-indicator { display: inline-flex; align-items: center; justify-content: center; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-          .status-approved { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
-          .status-pending { background: #fffbeb; color: #b45309; border: 1px solid #fef3c7; }
-          .status-rejected { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
+  .band { position: absolute; top: 0; left: 0; right: 0; height: 5mm; background: var(--tone); }
+  .letterhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding-bottom: 8px; border-bottom: 2.5px solid var(--tone); }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { height: 17mm; width: auto; display: block; }
+  .co-name { font-size: 21px; font-weight: 700; letter-spacing: .2px; line-height: 1.25; }
+  .co-sub { font-size: 12.5px; color: #374151; }
+  .doc-box { border: 1px solid #111827; font-size: 12px; min-width: 52mm; }
+  .doc-box div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 8px; }
+  .doc-box div + div { border-top: 1px solid #9ca3af; }
+  .doc-box b { font-weight: 600; }
+  .rule2 { border-top: 0.6px solid var(--tone); margin-top: 2px; }
+  .doc-box .type { background: var(--tone-soft); color: var(--tone); font-weight: 700; justify-content: center; letter-spacing: .3px; }
 
-          /* Beautiful corporate stamp / sign block */
-          .signature-grid { margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-          .sig-box { text-align: center; border: 1px solid #cbd5e1; border-radius: 10px; padding: 15px 10px 12px 10px; background: #ffffff; position: relative; }
-          .sig-space { height: 50px; margin-bottom: 8px; display: flex; align-items: flex-end; justify-content: center; position: relative; }
-          .sig-line { width: 85%; border-bottom: 1.2px solid #cbd5e1; margin: 0 auto; }
-          .sig-name { font-size: 12px; font-weight: 700; margin-top: 6px; color: #1e293b; }
-          .sig-title { font-size: 10.5px; color: #64748b; margin-top: 1px; font-weight: 500; }
-          
-          /* Electronic approval badge watermark overlay */
-          .digital-stamp { font-size: 9px; border: 1.5px dashed #059669; color: #059669; padding: 4px 6px; border-radius: 6px; text-transform: uppercase; font-weight: 800; display: inline-block; transform: rotate(-3deg); line-height: 1.2; background: #f0fdf4; }
+  .title { text-align: center; margin: 16px 0 6px; }
+  .title h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .5px; color: var(--tone); }
+  .title p { margin: 0; font-size: 11.5px; letter-spacing: 2.5px; color: #374151; }
 
-          .doc-footer { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px; }
-        </style>
-      </head>
-      <body>
-        <div class="page">
-          <div class="doc-header">
-            <div class="logo-area">
-              <div class="logo-placeholder">PVT</div>
-              <div>
-                <div class="company-name">PVT WORKFORCE HUB</div>
-                <div class="company-sub">บริษัท พีวีที คอร์ปอเรชั่น จำกัด (สำนักงานใหญ่)</div>
-              </div>
-            </div>
-            <div class="doc-meta">
-              เลขที่เอกสาร: <strong>LV-${String(req.id).substring(0, 8).toUpperCase()}</strong><br>
-              วันที่พิมพ์: <strong>${formatThaiDate(new Date().toISOString(), true)}</strong>
-            </div>
-          </div>
- 
-          <div class="form-title-box">
-            <h1>ใบขออนุมัติลาหยุดงาน</h1>
-            <p>LEAVE REQUEST APPLICATION FORM</p>
-          </div>
- 
-          <div class="section">
-            <div class="section-label">ข้อมูลผู้ยื่นคำขอลา (Applicant Profile)</div>
-            <table class="info-table">
-              <tr>
-                <td class="label">รหัสพนักงาน</td>
-                <td class="value"><strong>${emp.employee_code || '-'}</strong></td>
-                <td class="label">ชื่อ-นามสกุล</td>
-                <td class="value"><strong>${emp.full_name || '-'} ${emp.nickname ? `(${emp.nickname})` : ''}</strong></td>
-              </tr>
-              <tr>
-                <td class="label">แผนก / สังกัด</td>
-                <td class="value"><strong>${deptName}</strong></td>
-                <td class="label">ตำแหน่งงาน</td>
-                <td class="value"><strong>${posName}</strong></td>
-              </tr>
-            </table>
-          </div>
- 
-          <div class="section">
-            <div class="section-label">รายละเอียดการขอลา (Leave Details)</div>
-            <table class="info-table">
-              <tr>
-                <td class="label">ประเภทการลา</td>
-                <td class="value"><strong style="color: var(--th-p-700, #0f766e); font-size: 14px;">${leaveName}</strong></td>
-                <td class="label">สถานะคำขอ</td>
-                <td class="value">
-                  <span class="status-indicator ${req.status === 'approved' ? 'status-approved' : req.status === 'rejected' ? 'status-rejected' : 'status-pending'}">
-                    ${req.status === 'approved' ? 'อนุมัติแล้ว' : req.status === 'rejected' ? 'ปฏิเสธ' : 'รอพิจารณา'}
-                  </span>
-                </td>
-              </tr>
-              <tr>
-                <td class="label">ตั้งแต่วันที่</td>
-                <td class="value"><strong>${formatThaiDate(req.start_date)}</strong></td>
-                <td class="label">ถึงวันที่</td>
-                <td class="value"><strong>${formatThaiDate(req.end_date)}</strong></td>
-              </tr>
-              <tr>
-                <td class="label">รวมระยะเวลาการลา</td>
-                <td class="value" colspan="3"><strong style="font-size: 14px; color: var(--th-p-700, #0f766e);">${printDurationFormatted}</strong></td>
-              </tr>
-            </table>
-          </div>
- 
-          <div class="section">
-            <div class="section-label">เหตุผลความจำเป็นในการลา (Leave Reason)</div>
-            <div class="reason-container">
-              <strong>เหตุผลการลา:</strong> ${req.reason || 'ไม่ได้ระบุเหตุผลความจำเป็น'}<br>
-              ${req.approval_comment ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1.2px dashed #cbd5e1; color: #b91c1c; font-size: 12px; font-weight: 600;">* ความเห็นเพิ่มเติมจากผู้อนุมัติ: ${req.approval_comment}</div>` : ''}
-            </div>
-          </div>
- 
-          <div class="signature-grid">
-            <div class="sig-box">
-              <div class="sig-space">
-                <span class="digital-stamp" style="border-color: var(--th-p-600, #0d9488); color: var(--th-p-600, #0d9488); background: var(--th-p-50, #f0fdfa);">[ ส่งออนไลน์สำเร็จ ]</span>
-              </div>
-              <div class="sig-name">${emp.full_name || 'ผู้ยื่นคำขอ'}</div>
-              <div class="sig-line" style="margin-top: 4px;"></div>
-              <div class="sig-title">พนักงานผู้ขอลา</div>
-            </div>
-            <div class="sig-box">
-              <div class="sig-space">
-                ${req.manager_status === 'approved' ? `
-                  <div class="digital-stamp">
-                    APPROVED Step 1<br>
-                    <span style="font-size:7px; font-weight:normal;">ผ่านระบบออนไลน์</span>
-                  </div>
-                ` : '<div class="sig-line"></div>'}
-              </div>
-              <div class="sig-name">${req.manager_status === 'approved' ? 'อนุมัติโดยผู้จัดการ (ลำดับที่ 1)' : '( .................................................. )'}</div>
-              <div class="sig-line" style="margin-top: 4px;"></div>
-              <div class="sig-title">หัวหน้างาน / ผู้จัดการ (ลำดับที่ 1)</div>
-            </div>
-            <div class="sig-box">
-              <div class="sig-space">
-                ${req.status === 'approved' ? `
-                  <div class="digital-stamp" style="border-color: var(--th-p-700, #0f766e); color: var(--th-p-700, #0f766e);">
-                    APPROVED Step 2 (HR)<br>
-                    <span style="font-size:7px; font-weight:normal;">ผ่านระบบอนุมัติกลาง</span>
-                  </div>
-                ` : '<div class="sig-line"></div>'}
-              </div>
-              <div class="sig-name">${req.status === 'approved' ? 'ฝ่ายทรัพยากรบุคคล' : '( .................................................. )'}</div>
-              <div class="sig-line" style="margin-top: 4px;"></div>
-              <div class="sig-title">ฝ่ายทรัพยากรบุคคล (HR ลำดับที่ 2)</div>
-            </div>
-          </div>
- 
-          <div class="doc-footer">
-            เอกสารฉบับนี้พิมพ์อย่างเป็นทางการโดยระบบระบบสารสนเทศความร่วมมือทีมและจัดสรรวันลา (PVT WORKFORCE HUB)<br>
-            รหัสเอกสารอ้างอิง: <strong>${req.id}</strong> | ตรวจสอบข้อมูลล่าสุดในแอปพลิเคชันหลัก
-          </div>
-        </div>
- 
-        <script>
-          window.onload = function() {
-            if (window.opener && window.opener.Swal) window.opener.Swal.close();
-            setTimeout(() => { window.print(); }, 500);
-          };
-        </script>
-      </body>
-      </html>
-    `);
+  .dateline { text-align: right; margin: 10px 0 4px; }
+  .salute { margin: 4px 0 8px; }
+  .salute b { font-weight: 600; }
+  .body p { margin: 0 0 7px; text-indent: 12mm; text-align: justify; }
+  .fill { font-weight: 600; border-bottom: 1px dotted #111827; padding: 0 6px; }
+  .opts { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 4px 0 8px 12mm; }
+  .opt { white-space: nowrap; }
+  .cb { display: inline-flex; width: 13px; height: 13px; border: 1.2px solid #111827; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; line-height: 1; vertical-align: -2px; margin-right: 3px; }
+  .grid2 { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 4px 10px; margin: 0 0 8px 12mm; align-items: baseline; }
+  .reason { margin: 0 0 8px 12mm; padding: 6px 10px; border: 1px solid var(--tone-mid); min-height: 16mm; white-space: pre-wrap; word-break: break-word; }
+
+  .sign-row { display: flex; justify-content: flex-end; margin: 10px 0 4px; }
+  .sign { width: 78mm; text-align: center; }
+  .sign .line { border-bottom: 1px dotted #111827; height: 22px; margin: 0 6mm; display: flex; align-items: flex-end; justify-content: center; font-size: 11.5px; color: #374151; }
+  .sign .who { margin-top: 4px; }
+  .sign .sub { font-size: 11.5px; color: #374151; }
+
+  h2 { font-size: 14px; font-weight: 700; margin: 12px 0 6px; padding: 3px 8px; background: var(--tone-soft); border-left: 4px solid var(--tone); color: #111827; }
+  table.ap { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.ap th, table.ap td { border: 1px solid #111827; padding: 5px 7px; vertical-align: middle; }
+  table.ap th { background: var(--tone-soft); font-weight: 600; font-size: 12px; }
+  table.ap td.c { text-align: center; }
+  table.ap td.res { white-space: nowrap; font-size: 12px; }
+  table.ap td.sig { text-align: center; width: 40mm; }
+  table.ap .esig { font-size: 11.5px; font-weight: 600; letter-spacing: .3px; }
+  table.ap .dots { border-bottom: 1px dotted #111827; height: 18px; margin: 0 4px; }
+  table.ap tr.note td { font-size: 12px; color: #374151; border-top: 0; padding-top: 2px; }
+  .sub { font-size: 11px; color: #4b5563; font-weight: 400; }
+
+  .hr-box { border: 1px solid #111827; padding: 8px 10px; display: grid; grid-template-columns: 1fr 70mm; gap: 8px 16px; font-size: 12.5px; }
+  .hr-box .checks div { margin-bottom: 3px; }
+  .hr-box .sign { width: auto; }
+
+  .foot { margin-top: auto; padding-top: 6px; border-top: 1px solid var(--tone-mid); display: flex; justify-content: space-between; gap: 12px; font-size: 10.5px; color: #4b5563; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="band"></div>
+  ${watermark ? `<div class="wm">${e(watermark)}</div>` : ''}
+
+  <div class="letterhead">
+    <div class="brand">
+      <img src="${e(logoUrl)}" alt="P.V.T.&amp;T. PLAS CO.,LTD." onerror="this.remove()">
+      <div>
+        <div class="co-name">${e(PVT_COMPANY_NAME_TH)}</div>
+        <div class="co-sub">ฝ่ายทรัพยากรบุคคล</div>
+      </div>
+    </div>
+    <div class="doc-box">
+      <div class="type">${e(empTypeText)}</div>
+      <div><span>เลขที่เอกสาร</span><b>${e(docNo)}</b></div>
+      <div><span>วันที่ยื่น</span><b>${e(thShort(req.created_at) || '-')}</b></div>
+      <div><span>สถานะ</span><b>${e(statusText)}</b></div>
+    </div>
+  </div>
+  <div class="rule2"></div>
+
+  <div class="title">
+    <h1>ใบขออนุญาตลาหยุดงาน</h1>
+    <p>LEAVE APPLICATION FORM</p>
+  </div>
+
+  <div class="dateline">เขียนวันที่ <span class="fill">${e(thLong(req.created_at))}</span></div>
+  <div class="salute"><b>เรื่อง</b>&nbsp; ขออนุญาต${e(/^ลา/.test(leaveName) ? leaveName : `ลา${leaveName}`)}</div>
+  <div class="salute"><b>เรียน</b>&nbsp; ผู้บังคับบัญชา</div>
+
+  <div class="body">
+    <p>ข้าพเจ้า <span class="fill">${e(fullName)}</span> รหัสพนักงาน <span class="fill">${e(emp.employee_code || '-')}</span>
+      ตำแหน่ง <span class="fill">${e(emp.positions?.position_name || '-')}</span>
+      แผนก <span class="fill">${e(emp.departments?.department_name || '-')}</span> มีความประสงค์ขออนุญาตลา ดังนี้</p>
+  </div>
+  <div class="opts">${typeChecks}</div>
+  <div class="grid2">
+    <span>ตั้งแต่วันที่</span><span class="fill">${e(thLong(req.start_date))}</span>
+    <span>ถึงวันที่</span><span class="fill">${e(thLong(req.end_date || req.start_date))}</span>
+    <span>รวมเป็นเวลา</span><span class="fill">${e(duration)}</span>
+    <span>เอกสารแนบ</span><span>${box(!!attachUrl)} มี &nbsp;&nbsp; ${box(!attachUrl)} ไม่มี</span>
+    <span>ประเภทพนักงาน</span><span>${box(!isDaily)} รายเดือน &nbsp;&nbsp; ${box(isDaily)} รายวัน</span>
+  </div>
+  <div style="margin-left:12mm">เนื่องจาก</div>
+  <div class="reason">${e(req.reason || 'ไม่ได้ระบุเหตุผล')}</div>
+
+  <div class="sign-row">
+    <div class="sign">
+      <div class="line">ยื่นผ่านระบบอิเล็กทรอนิกส์</div>
+      <div class="who">( ${e(fullName)} )</div>
+      <div class="sub">ผู้ขอลา · ${e(thShort(req.created_at))} ${e(thTime(req.created_at))}</div>
+    </div>
+  </div>
+
+  <h2>ผลการพิจารณาของผู้บังคับบัญชา</h2>
+  <table class="ap">
+    <thead><tr><th style="width:10mm">ลำดับ</th><th>ผู้พิจารณา</th><th style="width:30mm">ผลการพิจารณา</th><th>ลงชื่อ</th><th style="width:24mm">วันที่</th></tr></thead>
+    <tbody>${approvalRows}</tbody>
+  </table>
+
+  <h2>สำหรับฝ่ายทรัพยากรบุคคล</h2>
+  <div class="hr-box">
+    <div class="checks">
+      <div>${box(false)} ตรวจสอบสิทธิ์และวันลาคงเหลือแล้ว</div>
+      <div>${box(false)} ตรวจสอบเอกสารประกอบแล้ว</div>
+      <div>${box(false)} บันทึกข้อมูลเพื่อคำนวณค่าจ้างแล้ว</div>
+    </div>
+    <div class="sign">
+      <div class="line"></div>
+      <div class="who">( ........................................................ )</div>
+      <div class="sub">เจ้าหน้าที่ฝ่ายทรัพยากรบุคคล &nbsp; วันที่ ......../......../........</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>เอกสารนี้ออกจากระบบ PVT Workforce Hub · อ้างอิง ${e(req.id)}</span>
+    <span>พิมพ์เมื่อ ${e(thShort(new Date().toISOString()))} ${e(thTime(new Date().toISOString()))}</span>
+  </div>
+</div>
+<script>
+  window.onload = function () {
+    try { if (window.opener && window.opener.Swal) window.opener.Swal.close(); } catch (e) {}
+    var go = function () { setTimeout(function () { window.print(); }, 300); };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go();
+  };
+<\/script>
+</body>
+</html>`);
 
     printWindow.document.close();
     if (typeof Swal !== 'undefined') Swal.close();
@@ -3725,7 +3810,7 @@ async function exportLeaveReportExcel() {
     // 1. หัวตารางรายงาน
     summarySheet.mergeCells("A1:G1");
     const headerCell = summarySheet.getCell("A1");
-    headerCell.value = "🏢 บริษัท พีวีที เวิร์กฟอร์ซ ฮับ | รายงานสรุปภาพรวมการลาพนักงาน (Executive Leave Dashboard)";
+    headerCell.value = "🏢 บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด | รายงานสรุปภาพรวมการลาพนักงาน (Executive Leave Dashboard)";
     headerCell.font = { name: "Sarabun", size: 15, bold: true, color: { argb: "FFFFFFFF" } };
     headerCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0B845C" } };
     headerCell.alignment = { vertical: "middle", horizontal: "center" };

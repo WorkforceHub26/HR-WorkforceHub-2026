@@ -9,6 +9,7 @@
      2) ใบลารอฝ่ายบุคคลพิจารณา    leave_approval_steps: status = pending และ hr_any = true   (เฉพาะ HR/Admin)
      3) คำขอยกเลิกใบลา            leave_requests.status = cancel_requested / cancel_pending   (เฉพาะ HR/Admin)
      4) คำขอแก้ไขข้อมูลพนักงาน     employee_change_requests.status = pending                  (เฉพาะ HR/Admin)
+     5) แจ้งแก้ไขสรุปวันลา          leave_confirmations ล่าสุด = disputed (leave-confirm.js)    (เฉพาะ HR/Admin)
    ติดตาม (ไม่นับในตัวเลข): ใบลาที่เหลือไม่ถึง 24 ชม. ก่อนระบบ "ไม่อนุมัติอัตโนมัติ"
                             (ครบ 48 ชม. นับจากวันยื่น — autoRejectOverdueLeaves ใน supabase-config.js) (เฉพาะ HR/Admin)
    ข้อความ: ตาราง notifications ของผู้ใช้คนนี้ (อ่านแล้ว/ยังไม่อ่าน)
@@ -170,6 +171,38 @@
   }
 
   // ใบลาที่ใกล้หมดเวลา 48 ชม. (เหลือ < 24 ชม.) ไม่ว่าอยู่ขั้นไหน — ให้ HR ตามผู้อนุมัติก่อนระบบไม่อนุมัติอัตโนมัติ
+  async function loadLeaveConfirmDisputes(c) {
+    try {
+      const since = new Date(Date.now() - 430 * 86400000).toISOString();
+      const { data, error } = await c.from('leave_confirmations')
+        .select('id, employee_id, period_type, period_key, action, note, created_at, employees!employee_id(full_name, employee_code)')
+        .gte('created_at', since).order('created_at', { ascending: false }).limit(2000);
+      if (error) throw error;
+      const latest = {};
+      (data || []).forEach((r) => {
+        const k = `${r.employee_id}|${r.period_type}|${r.period_key}`;
+        if (!latest[k] || new Date(r.created_at) > new Date(latest[k].created_at)) latest[k] = r;
+      });
+      return Object.values(latest).filter((r) => r.action === 'disputed').map((r) => {
+        const label = r.period_type === 'year' ? `ปีการลา ${Number(r.period_key) + 543}`
+          : (() => { const [y, m] = r.period_key.split('-').map(Number); return `${TH_M[m - 1]} ${y + 543}`; })();
+        return {
+          key: `confirm:${r.id}`,
+          kind: 'confirm',
+          who: r.employees?.full_name || 'พนักงาน',
+          code: r.employees?.employee_code || '',
+          what: `แจ้งแก้ไขสรุปวันลา${label}${r.note ? ` · ${r.note}` : ''}`,
+          at: r.created_at,
+          due: '',
+          href: `/pages/hr/management.html?open=leave-confirm&type=${r.period_type}&key=${encodeURIComponent(r.period_key)}`
+        };
+      });
+    } catch (err) {
+      if (!isMissingTable(err)) console.warn('[HR Inbox] โหลดคำแจ้งแก้ไขสรุปวันลาไม่สำเร็จ:', err?.message || err);
+      return [];
+    }
+  }
+
   async function loadStale(c, excludeKeys) {
     const from = new Date(Date.now() - SLA_MS).toISOString();
     const to = new Date(Date.now() - (SLA_MS - WARN_MS)).toISOString();
@@ -191,7 +224,7 @@
     const u = me();
     if (!c || !u.id) return null;
     const hr = isHr(u);
-    const res = { hr, mine: [], hrstep: [], cancel: [], profile: [], stale: [], messages: [], at: new Date() };
+    const res = { hr, mine: [], hrstep: [], cancel: [], profile: [], confirm: [], stale: [], messages: [], at: new Date() };
     const jobs = [
       loadSteps(c, u, hr).then((r) => { res.mine = r.mine; res.hrstep = r.hr; }),
       loadMessages(c, u).then((r) => { res.messages = r; }).catch((e) => console.warn('[HR Inbox] โหลดข้อความไม่สำเร็จ:', e?.message || e))
@@ -199,13 +232,14 @@
     if (hr) {
       jobs.push(loadCancels(c).then((r) => { res.cancel = r; }).catch((e) => console.warn('[HR Inbox] โหลดคำขอยกเลิกไม่สำเร็จ:', e?.message || e)));
       jobs.push(loadChangeRequests(c).then((r) => { res.profile = r; }));
+      jobs.push(loadLeaveConfirmDisputes(c).then((r) => { res.confirm = r; }));
     }
     await Promise.all(jobs);
     if (hr) {
       const inQueue = new Set([...res.mine, ...res.hrstep].map((i) => String(i.key.split(':')[1])));
       try { res.stale = await loadStale(c, inQueue); } catch (e) { res.stale = []; }
     }
-    res.actionable = [...res.mine, ...res.hrstep, ...res.cancel, ...res.profile];
+    res.actionable = [...res.mine, ...res.hrstep, ...res.cancel, ...res.profile, ...res.confirm];
     res.unread = res.messages.filter((m) => !m.is_read).length;
     return res;
   }
@@ -285,7 +319,8 @@
     { id: 'mine', title: 'ใบลารอคุณอนุมัติ', more: '/pages/hr/hr.html', moreText: 'ไปหน้าตรวจใบลา' },
     { id: 'hrstep', title: 'ใบลารอฝ่ายบุคคลพิจารณา', more: '/pages/hr/hr.html', moreText: 'ไปหน้าตรวจใบลา' },
     { id: 'cancel', title: 'คำขอยกเลิกใบลา', more: '/pages/hr/hr.html', moreText: 'ไปหน้าตรวจใบลา' },
-    { id: 'profile', title: 'คำขอแก้ไขข้อมูลพนักงาน', more: '/pages/hr/management.html?open=change-requests', moreText: 'เปิดรายการคำขอ' }
+    { id: 'profile', title: 'คำขอแก้ไขข้อมูลพนักงาน', more: '/pages/hr/management.html?open=change-requests', moreText: 'เปิดรายการคำขอ' },
+    { id: 'confirm', title: 'พนักงานแจ้งแก้ไขสรุปวันลา', more: '/pages/hr/management.html?open=leave-confirm', moreText: 'เปิดหน้าติดตาม' }
   ];
 
   const state = { data: null, tab: 'tasks', open: false, knownKeys: null, timer: null, loading: false, root: null };
@@ -372,7 +407,7 @@
     };
     const leaves = d ? d.mine.length + d.hrstep.length + d.cancel.length : 0;
     set('a.pvt-nav__item[href="/pages/hr/hr.html"]', leaves, 'leaves');
-    set('a.pvt-nav__item[href="/pages/hr/management.html"]', d ? d.profile.length : 0, 'profile');
+    set('a.pvt-nav__item[href="/pages/hr/management.html"]', d ? d.profile.length + d.confirm.length : 0, 'profile');
   }
 
   // ------------------------------------------------------------------ toasts
@@ -399,10 +434,11 @@
     if (d.hrstep.length) lines.push(`ใบลารอฝ่ายบุคคลพิจารณา ${d.hrstep.length} รายการ`);
     if (d.cancel.length) lines.push(`คำขอยกเลิกใบลา ${d.cancel.length} รายการ`);
     if (d.profile.length) lines.push(`คำขอแก้ไขข้อมูลพนักงาน ${d.profile.length} รายการ`);
+    if (d.confirm.length) lines.push(`พนักงานแจ้งแก้ไขสรุปวันลา ${d.confirm.length} รายการ`);
     return lines;
   }
 
-  const KIND_TEXT = { approve: 'ใบลารอคุณอนุมัติ', hrstep: 'ใบลารอฝ่ายบุคคลพิจารณา', cancel: 'คำขอยกเลิกใบลา', profile: 'คำขอแก้ไขข้อมูล' };
+  const KIND_TEXT = { approve: 'ใบลารอคุณอนุมัติ', hrstep: 'ใบลารอฝ่ายบุคคลพิจารณา', cancel: 'คำขอยกเลิกใบลา', profile: 'คำขอแก้ไขข้อมูล', confirm: 'แจ้งแก้ไขสรุปวันลา' };
 
   function announce(d) {
     const keys = new Set(d.actionable.map((i) => i.key));
@@ -486,6 +522,7 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, soon)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_approval_steps' }, soon)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_change_requests' }, soon)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leave_confirmations' }, soon)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `employee_id=eq.${u.id}` }, soon)
         .subscribe();
     } catch (e) { /* ไม่มี Realtime ก็ใช้การอัปเดตทุก 1 นาทีแทน */ }

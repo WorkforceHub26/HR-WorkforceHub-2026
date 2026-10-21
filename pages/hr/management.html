@@ -244,6 +244,11 @@
               <span class="hr-menu__text"><strong>ดึงรายงานโควตา (Excel)</strong><small>โควตาวันลาและประวัติการลาทั้งหมด</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
+            <button type="button" onclick="window.PVTLeaveConfirm && window.PVTLeaveConfirm.openHrTracker()" class="action-btn hr-menu__item">
+              <span class="hr-menu__icon material-symbols-outlined">fact_check</span>
+              <span class="hr-menu__text"><strong>ติดตามการยืนยันสรุปการลา</strong><small>รายเดือนแจ้งให้ทราบ · รายปีกดยืนยันก่อนสรุปสิ้นปี · คำแจ้งแก้ไข</small></span>
+              <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
             <button type="button" onclick="openChangeRequests()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">rule</span>
               <span class="hr-menu__text"><strong>คำขอแก้ไขข้อมูลพนักงาน <span id="hrChangeReqBadge" hidden style="margin-left:6px; padding:1px 8px; border-radius:99px; background:#fef3c7; color:#92400e; font-size:12px;"></span></strong><small>ชื่อ · คำนำหน้า · เลขบัญชี · รพ.ที่ล็อกแล้ว</small></span>
@@ -486,5 +491,6 @@
   <script type="module" src="/js/components/recharts-summary.js" onload="console.log('  โหลด recharts-summary.js สำเร็จ')" onerror="console.error(' โหลด recharts-summary.js ล้มเหลว')"></script>
   <script src="/js/hr-card-head.js"></script>
   <script src="/js/components/hr-inbox.js" defer></script>
+  <script src="/js/components/leave-confirm.js" defer></script>
 </body>
 </html>

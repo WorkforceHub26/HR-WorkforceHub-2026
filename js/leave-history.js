@@ -297,6 +297,13 @@ function getEmployeeCancellationMode(item) {
 
   if (st === 'approved') return 'request';
 
+  // 🔗 ใบลาที่มีขั้นอนุมัติจริง (leave_approval_steps): ดูว่ามีผู้อนุมัติ "กดอนุมัติแล้ว" หรือยัง
+  //    คอลัมน์เดิม manager/director_status ถูกตั้งเป็น approved ตั้งแต่ยื่นสำหรับขั้นที่ข้าม จึงใช้ตัดสินไม่ได้
+  //    ยังไม่มีใครอนุมัติ → พนักงานยกเลิกเองได้ · อนุมัติไปแล้วอย่างน้อย 1 ขั้น → ส่งคำขอยกเลิกให้ HR/Admin
+  if (item.__cancelInfo && item.__cancelInfo.hasSteps && (st === 'pending' || st === 'รออนุมัติ' || st.startsWith('pending_'))) {
+    return item.__cancelInfo.anyApproved ? 'request' : 'direct';
+  }
+
   if (st === 'pending' || st === 'รออนุมัติ' || st.startsWith('pending_')) {
     const firstField = getFirstActualApprovalField(item);
 
@@ -371,6 +378,9 @@ async function fetchFreshLeaveForCancellation(requestId, sb) {
   }
 
   if (data) await ensureLeaveApproverContext(data, sb);
+  if (data && window.PVTApproval?.cancelInfo) {
+    try { data.__cancelInfo = await window.PVTApproval.cancelInfo(requestId); } catch (e) { /* ใช้แบบเดิม */ }
+  }
   return data;
 }
 
@@ -512,6 +522,22 @@ async function loadMyLeaveHistory() {
       }
     } catch (routeErr) {
       console.warn("⚠️ ไม่สามารถโหลดสายอนุมัติสำหรับประวัติการลา:", routeErr);
+    }
+
+    // 🔗 ขั้นอนุมัติจริงของใบลาที่ยังรอพิจารณา → ใช้ตัดสินว่าพนักงานยกเลิกเองได้ หรือต้องส่งคำขอยกเลิก
+    try {
+      const pendingIds = (data || []).filter((r) => String(r.status || '').toLowerCase() === 'pending').map((r) => r.id);
+      if (pendingIds.length && window.PVTApproval?.getStepsForLeaves) {
+        const stepMap = await window.PVTApproval.getStepsForLeaves(pendingIds);
+        (data || []).forEach((r) => {
+          const steps = stepMap[r.id];
+          if (steps && steps.length) {
+            r.__cancelInfo = { hasSteps: true, anyApproved: steps.some((s) => s.status === 'approved'), pending: steps.find((s) => s.status === 'pending') || null };
+          }
+        });
+      }
+    } catch (stepErr) {
+      console.warn("⚠️ โหลดขั้นอนุมัติสำหรับการยกเลิกไม่สำเร็จ:", stepErr);
     }
 
     // ⏱️ ตรวจสอบและตัดใบลาที่ค้างเกิน 2 วัน (48 ชม.) เป็น "ไม่อนุมัติ" อัตโนมัติ
@@ -1119,7 +1145,15 @@ async function directCancelLeave(requestId) {
 
       if (error) throw error;
 
-      if (window.PVTApproval) await window.PVTApproval.closeOpenSteps(requestId, 'cancelled', `พนักงานยกเลิก: ${trimmedReason}`);
+      if (window.PVTApproval) {
+        let pendingStep = null;
+        try { pendingStep = (await window.PVTApproval.cancelInfo(requestId)).pending; } catch (e) {}
+        await window.PVTApproval.closeOpenSteps(requestId, 'cancelled', `พนักงานยกเลิก: ${trimmedReason}`);
+        // แจ้งผู้อนุมัติที่รออยู่ว่าไม่ต้องพิจารณาแล้ว
+        if (pendingStep && leaveBefore && window.PVTApproval.notifyWithdrawn) {
+          await window.PVTApproval.notifyWithdrawn(leaveBefore, pendingStep, 'พนักงานยกเลิกใบลาแล้ว');
+        }
+      }
       if (window.PVTLeaveAudit && leaveBefore) {
         await window.PVTLeaveAudit.recordOutcome(leaveBefore, 'cancelled', {
           stepLevel: 'EMP', stepLabel: 'พนักงานยกเลิกเอง (ก่อนอนุมัติ)', comment: trimmedReason,
@@ -1184,6 +1218,7 @@ async function requestCancelApprovedLeave(requestId) {
       <div style="text-align: left; background: #fffbeb; border: 1px solid #fde68a; padding: 14px 16px; border-radius: 12px; margin-bottom: 14px;">
         <p style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #92400e;">⚠️ ใบลานี้ผ่านผู้อนุมัติคนแรกแล้ว:</p>
         <p style="margin: 0; font-size: 13px; color: #b45309; line-height: 1.5;">พนักงานไม่สามารถยกเลิกใบลาด้วยตนเองได้แล้ว คำขอยกเลิกนี้จะส่งตรงไปยัง <strong>HR/Admin</strong> เพื่อตรวจสอบว่าพนักงานมาทำงานจริงในวันดังกล่าว และ HR/Admin จะเป็นผู้อนุมัติหรือปฏิเสธการยกเลิก</p>
+        ${originalStatusForCancel === 'pending' ? '<p style="margin: 8px 0 0; font-size: 13px; color: #b45309; line-height: 1.5;">ใบลานี้ยังรอผู้อนุมัติลำดับถัดไปอยู่ ระบบจะ<strong>พักใบลาไว้</strong> ผู้อนุมัติลำดับถัดไปไม่ต้องพิจารณา ระหว่างรอ HR/Admin</p>' : ''}
       </div>
     `,
     input: 'textarea',
@@ -1227,6 +1262,17 @@ async function requestCancelApprovedLeave(requestId) {
       }
 
       if (error) throw error;
+
+      // ใบลาที่ยังไม่จบขั้นตอน: พักขั้นที่ค้าง/รอ → ผู้อนุมัติลำดับถัดไปไม่ต้องพิจารณา (ระหว่างรอ HR)
+      //   HR ไม่อนุมัติการยกเลิก → ระบบคืนขั้นเดิมให้พิจารณาต่อ (hr.js → rejectCancellation)
+      if (originalStatusForCancel === 'pending' && window.PVTApproval?.holdOpenSteps) {
+        try {
+          const heldStep = await window.PVTApproval.holdOpenSteps(requestId, cancelReason.trim());
+          if (heldStep && leaveBefore) await window.PVTApproval.notifyWithdrawn(leaveBefore, heldStep, 'พักใบลาไว้ (พนักงานขอยกเลิก รอ HR)');
+        } catch (holdErr) {
+          console.warn("⚠️ พักขั้นอนุมัติไม่สำเร็จ:", holdErr);
+        }
+      }
 
       // แจ้ง HR ทันที (ในระบบ) + บันทึกหลักฐาน
       if (window.PVTLeaveAudit && leaveBefore) {

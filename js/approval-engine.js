@@ -527,6 +527,83 @@
   }
 
   // ---------------------------------------------------------------------
+  // การยกเลิกใบลาโดยพนักงาน
+  //   cancelInfo   : มีขั้นอนุมัติไหม · มีผู้อนุมัติ "กดอนุมัติจริง" แล้วหรือยัง · ผู้อนุมัติขั้นที่ค้างอยู่
+  //   holdOpenSteps: พนักงานส่งคำขอยกเลิก (ใบลาที่ผ่านขั้นแรกแล้ว) → พักขั้นที่ค้าง/รอ
+  //                  ผู้อนุมัติลำดับถัดไปจะไม่เห็นใบลานี้อีก (จนกว่า HR ไม่อนุมัติการยกเลิก)
+  //   resumeHeldSteps: HR ไม่อนุมัติการยกเลิก → คืนขั้นเดิม แล้วแจ้งผู้อนุมัติขั้นที่ค้างอีกครั้ง
+  //   notifyWithdrawn: แจ้งผู้อนุมัติที่ค้างอยู่ว่าไม่ต้องพิจารณาใบลานี้แล้ว (ในระบบ ไม่ส่ง LINE)
+  // ---------------------------------------------------------------------
+  const HOLD_MARK = '[ระงับ:ขอยกเลิก]';
+
+  async function cancelInfo(leaveId) {
+    if (!(await isReady())) return { hasSteps: false, anyApproved: false, pending: null };
+    const steps = await getSteps(leaveId);
+    if (!steps || !steps.length) return { hasSteps: false, anyApproved: false, pending: null };
+    return {
+      hasSteps: true,
+      // ขั้นที่ "ข้าม" (skipped) ไม่นับ · approved = มีผู้อนุมัติกดแล้วจริง
+      anyApproved: steps.some((s) => s.status === 'approved'),
+      pending: steps.find((s) => s.status === 'pending') || null,
+      steps
+    };
+  }
+
+  async function notifyWithdrawn(leave, step, text) {
+    const sb = client();
+    if (!sb || !leave || !step) return;
+    try {
+      let ids = uniq(step.approver_ids);
+      if (!ids.length && step.hr_any && global.PVTLeaveAudit) ids = (await global.PVTLeaveAudit.hrRecipients()).map((h) => String(h.id));
+      ids = ids.filter((id) => id !== String(leave.employee_id));
+      if (!ids.length) return;
+      const who = leave.employees?.full_name || 'พนักงาน';
+      await sb.from('notifications').insert(ids.map((id) => ({
+        employee_id: id,
+        title: `${text}: ${who}`,
+        message: `${leave.leave_types?.leave_name || 'ใบลา'} วันที่ ${leave.start_date}${leave.end_date && leave.end_date !== leave.start_date ? ` ถึง ${leave.end_date}` : ''}\nไม่ต้องพิจารณาใบลานี้แล้ว`,
+        type: 'leave',
+        link_url: '/pages/approver/leave-approvals.html'
+      })));
+    } catch (e) { /* แจ้งไม่ได้ไม่เป็นไร */ }
+  }
+
+  async function holdOpenSteps(leaveId, note) {
+    if (!(await isReady())) return null;
+    const sb = client();
+    const steps = (await getSteps(leaveId)) || [];
+    const cur = steps.find((s) => s.status === 'pending') || null;
+    const t = nowIso();
+    await sb.from('leave_approval_steps').update({ status: 'cancelled', acted_at: t, comment: `${HOLD_MARK} pending ${note || ''}`.trim() }).eq('leave_id', leaveId).eq('status', 'pending');
+    await sb.from('leave_approval_steps').update({ status: 'cancelled', comment: `${HOLD_MARK} waiting` }).eq('leave_id', leaveId).eq('status', 'waiting');
+    await sb.from('leave_requests').update({ current_step: null }).eq('id', leaveId);
+    return cur;
+  }
+
+  async function resumeHeldSteps(leaveId) {
+    if (!(await isReady())) return null;
+    const sb = client();
+    const steps = (await getSteps(leaveId)) || [];
+    const held = steps.filter((s) => s.status === 'cancelled' && String(s.comment || '').startsWith(HOLD_MARK));
+    if (!held.length) return null;
+    const t = nowIso();
+    let first = null;
+    for (const s of held) {
+      const wasPending = String(s.comment).startsWith(`${HOLD_MARK} pending`);
+      await sb.from('leave_approval_steps')
+        .update(wasPending ? { status: 'pending', activated_at: t, acted_at: null, comment: null } : { status: 'waiting', comment: null })
+        .eq('id', s.id).eq('status', 'cancelled');
+      if (wasPending && !first) first = s;
+    }
+    if (first) {
+      await sb.from('leave_requests').update({ current_step: first.step_no }).eq('id', leaveId);
+      const leave = await loadLeave(leaveId);
+      if (leave) await notifyApprovers(leave, Object.assign({}, first, { status: 'pending' }), first.step_no === 1 ? 'NEW_REQUEST' : 'LEADER_APPROVED');
+    }
+    return first;
+  }
+
+  // ---------------------------------------------------------------------
   // โอนขั้นที่ค้างให้ผู้อนุมัติใหม่ (HR)
   // ---------------------------------------------------------------------
   async function reassignStep(stepId, newApproverIds, opts = {}) {
@@ -591,6 +668,7 @@
   global.PVTApproval = {
     isReady, resolveChain, buildChain, loadContext, createSteps, initialLegacyFields,
     getSteps, getStepsForLeaves, currentStep, canAct, approve, reject,
-    closeOpenSteps, reassignStep, toDisplaySteps, stepTitle, legacyColumns, me, notifyApprovers
+    closeOpenSteps, reassignStep, toDisplaySteps, stepTitle, legacyColumns, me, notifyApprovers,
+    cancelInfo, holdOpenSteps, resumeHeldSteps, notifyWithdrawn, loadLeave
   };
 })(typeof window !== 'undefined' ? window : this);

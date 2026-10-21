@@ -6769,6 +6769,20 @@ window.openChangeRequests = async function openChangeRequests() {
 (function openChangeRequestsFromLink() {
   let open = '';
   try { open = new URLSearchParams(location.search).get('open') || ''; } catch (_) {}
+  if (open === 'leave-confirm') {
+    const sp = new URLSearchParams(location.search);
+    const type = sp.get('type') || undefined;
+    const key = sp.get('key') || undefined;
+    let n = 0;
+    const goLc = () => {
+      if (window.PVTLeaveConfirm && window.Swal) {
+        try { history.replaceState(null, '', location.pathname); } catch (_) {}
+        window.PVTLeaveConfirm.openHrTracker({ type, key });
+      } else if (++n < 40) setTimeout(goLc, 250);
+    };
+    setTimeout(goLc, 600);
+    return;
+  }
   if (open !== 'change-requests') return;
   let tries = 0;
   const go = () => {
