@@ -117,20 +117,20 @@
 
     // 1) แผนก
     const deptRows = chainRows.filter((r) => r.scope_type === 'department').sort((a, b) => a.step_no - b.step_no);
-    deptRows.forEach((r) => { byNo[r.step_no] = { label: r.step_label || `ลำดับที่ ${r.step_no}`, ids: uniq(r.approver_ids), source: 'department' }; });
+    deptRows.forEach((r) => { byNo[r.step_no] = { label: `ผู้อนุมัติ ลำดับที่ ${r.step_no}`, ids: uniq(r.approver_ids), source: 'department' }; });
     // ยังไม่ได้ตั้งในตารางใหม่ → ใช้ค่าเดิม (department_approvers)
     if (!deptRows.length && legacyDept) {
       const sup = legacyDept.supervisor_id ? String(legacyDept.supervisor_id) : '';
       const mgr = legacyDept.manager_id ? String(legacyDept.manager_id) : '';
-      if (sup && sup !== mgr) { byNo[1] = { label: 'หัวหน้างาน', ids: [sup], source: 'department' }; if (mgr) byNo[2] = { label: 'ผู้จัดการ', ids: [mgr], source: 'department' }; }
-      else if (mgr) byNo[1] = { label: 'ผู้จัดการ', ids: [mgr], source: 'department' };
+      if (sup && sup !== mgr) { byNo[1] = { label: 'ผู้อนุมัติ ลำดับที่ 1', ids: [sup], source: 'department' }; if (mgr) byNo[2] = { label: 'ผู้อนุมัติ ลำดับที่ 2', ids: [mgr], source: 'department' }; }
+      else if (mgr) byNo[1] = { label: 'ผู้อนุมัติ ลำดับที่ 1', ids: [mgr], source: 'department' };
     }
     // 2) ทีม/กะ (แทนที่เฉพาะขั้นที่ตั้งไว้)
     chainRows.filter((r) => r.scope_type === 'team').forEach((r) => {
-      byNo[r.step_no] = { label: r.step_label || byNo[r.step_no]?.label || `ลำดับที่ ${r.step_no}`, ids: uniq(r.approver_ids), source: 'team' };
+      byNo[r.step_no] = { label: `ผู้อนุมัติ ลำดับที่ ${r.step_no}`, ids: uniq(r.approver_ids), source: 'team' };
     });
     // 3) รายบุคคล (ข้อยกเว้น)
-    [['l1_approver_id', 1, 'หัวหน้างาน'], ['l2_approver_id', 2, 'ผู้จัดการ'], ['l3_approver_id', 3, 'ผู้บริหาร']].forEach(([col, no, label]) => {
+    [['l1_approver_id', 1, 'ผู้อนุมัติ ลำดับที่ 1'], ['l2_approver_id', 2, 'ผู้อนุมัติ ลำดับที่ 2'], ['l3_approver_id', 3, 'ผู้อนุมัติ ลำดับที่ 3']].forEach(([col, no, label]) => {
       if (applicant[col]) byNo[no] = { label: byNo[no]?.label || label, ids: [String(applicant[col])], source: 'personal' };
     });
 
@@ -171,7 +171,7 @@
     const activeIds = out.filter((s) => s.status === 'waiting').flatMap((s) => s.approver_ids);
     if (policy.executive_for_approvers !== false && isApproverApplicant && executiveId && executiveId !== selfId &&
         isActive(people[executiveId]) && !activeIds.includes(executiveId)) {
-      push({ label: 'ผู้บริหาร', ids: [executiveId], source: 'executive' }, 'waiting');
+      push({ label: 'ผู้อนุมัติ ลำดับสูง', ids: [executiveId], source: 'executive' }, 'waiting');
     }
 
     // ไม่มีใครอนุมัติเลย → HR
@@ -180,6 +180,13 @@
     }
 
     out.forEach((s, i) => { s.step_no = i + 1; });
+    // ชื่อลำดับ = "ผู้อนุมัติ ลำดับที่ N" โดย N นับเฉพาะลำดับที่ใช้จริง (ตรงกับที่แสดงในใบลา/LINE)
+    let kept = 0;
+    out.forEach((s) => {
+      if (s.source === 'hr' || s.source === 'executive' || s.status === 'skipped') return;
+      kept += 1;
+      s.step_label = `ผู้อนุมัติ ลำดับที่ ${kept}`;
+    });
     const first = out.find((s) => s.status === 'waiting');
     if (first) first.status = 'pending';
     return out;
@@ -262,7 +269,7 @@
     if ((step.approver_ids || []).map(String).includes(actor.id)) return { ok: true, override: false };
     if (step.hr_any && (HR_ROLES.includes(role) || actor.code.toLowerCase().startsWith('hr-'))) return { ok: true, override: false };
     if (OVERRIDE_ROLES.includes(role)) return { ok: true, override: true };
-    return { ok: false, reason: `ใบลานี้รอ "${step.step_label || 'ผู้อนุมัติ'}" (${(step.approver_names || []).join(' หรือ ') || 'HR'}) พิจารณาอยู่` };
+    return { ok: false, reason: `ใบลานี้รอ "${stepLabelOf(step)}" (${(step.approver_names || []).join(' หรือ ') || 'HR'}) พิจารณาอยู่` };
   }
 
   // ---------------------------------------------------------------------
@@ -297,7 +304,7 @@
       const { data: all } = await sb.from('leave_approval_steps').select('step_no, status').eq('leave_id', leave.id);
       if (all && all.length) orderNo = all.filter((x) => x.status !== 'skipped' && x.step_no <= step.step_no).length || orderNo;
     } catch (e) {}
-    const stepText = stepTitle(step.step_label, orderNo).replace(/^(.*) \((ลำดับที่ \d+)\)$/, '$2 · $1');
+    const stepText = stepTitle(step.step_label, orderNo);
     const portalRole = (r) => { r = String(r || '').toLowerCase(); return ['hr', 'admin', 'superadmin', 'hr_manager', 'executive', 'director', 'owner'].includes(r) ? r : 'leader'; };
     for (const p of people || []) {
       try {
@@ -326,7 +333,7 @@
           await sb.from('notifications').insert({
             employee_id: p.id,
             title: `มีใบลารอท่านพิจารณา: ${applicantName}`,
-            message: `ประเภท: ${leaveTypeName}\nวันที่: ${leave.start_date} ถึง ${leave.end_date}\nผู้พิจารณา: ${step.step_label || '-'}`,
+            message: `ประเภท: ${leaveTypeName}\nวันที่: ${leave.start_date} ถึง ${leave.end_date}\nผู้พิจารณา: ${stepLabelOf(step)}`,
             type: 'leave',
             link_url: '/pages/approver/leave-approvals.html'
           });
@@ -431,7 +438,7 @@
     }
 
     const t = nowIso();
-    const label = perm.override ? `${cur.step_label} (อนุมัติแทนโดย ${actor.name || 'HR/ผู้บริหาร'})` : cur.step_label;
+    const label = perm.override ? `${stepLabelOf(cur)} (อนุมัติแทนโดย ${actor.name || 'HR/ผู้บริหาร'})` : stepLabelOf(cur);
     const { data: changed, error } = await sb.from('leave_approval_steps')
       .update({ status: 'approved', acted_by: actor.id || null, acted_by_name: actor.name || null, acted_at: t, comment: opts.comment || null })
       .eq('id', cur.id).eq('status', 'pending').select('id');
@@ -454,10 +461,10 @@
       next.status = 'pending';
       await sb.from('leave_requests').update(Object.assign({ current_step: next.step_no, updated_at: t }, legacyColumns(steps))).eq('id', leaveId).eq('status', 'pending');
       if (global.PVTLeaveAudit) await global.PVTLeaveAudit.log(leave, 'step_approved', Object.assign({}, auditBase, { statusAfter: 'pending' }));
-      await notifyApprovers(leave, next, cur.step_no === 1 ? 'LEADER_APPROVED' : 'MANAGER_APPROVED', { prevComment: opts.comment ? `${cur.step_label || 'ผู้อนุมัติ'}: ${opts.comment}` : '' });
+      await notifyApprovers(leave, next, cur.step_no === 1 ? 'LEADER_APPROVED' : 'MANAGER_APPROVED', { prevComment: opts.comment ? `${stepLabelOf(cur)}: ${opts.comment}` : '' });
       // ไม่แจ้งพนักงานระหว่างทาง — แจ้งเฉพาะเมื่อจบขั้นตอน (อนุมัติขั้นสุดท้าย / ไม่อนุมัติ)
       // เพื่อไม่ให้พนักงานเข้าใจว่าได้รับอนุมัติแล้ว ทั้งที่ผู้อนุมัติลำดับถัดไปยังไม่ได้พิจารณา
-      return { ok: true, final: false, stepLabel: label, nextLabel: next.step_label };
+      return { ok: true, final: false, stepLabel: label, nextLabel: stepLabelOf(next) };
     }
 
     // ขั้นสุดท้าย
@@ -505,7 +512,7 @@
     if (finErr) throw finErr;
     if (!fin || !fin.length) return { ok: false, reason: 'ใบลาถูกดำเนินการไปแล้ว', stale: true };
 
-    const label = perm.override ? `${cur.step_label} (โดย ${actor.name || 'HR/ผู้บริหาร'})` : cur.step_label;
+    const label = perm.override ? `${stepLabelOf(cur)} (โดย ${actor.name || 'HR/ผู้บริหาร'})` : stepLabelOf(cur);
     if (global.PVTLeaveAudit) {
       await global.PVTLeaveAudit.recordOutcome(leave, 'rejected', { stepLevel: `S${cur.step_no}`, stepLabel: label, comment, statusBefore: 'pending', statusAfter: 'rejected' });
     }
@@ -626,7 +633,7 @@
     const leave = await loadLeave(step.leave_id);
     if (global.PVTLeaveAudit && leave) {
       await global.PVTLeaveAudit.log(leave, 'reassigned', {
-        stepLevel: `S${step.step_no}`, stepLabel: step.step_label,
+        stepLevel: `S${step.step_no}`, stepLabel: stepLabelOf(step),
         comment: `${(step.approver_names || []).join(', ') || 'HR'} → ${names.join(', ') || 'HR'}${opts.reason ? ` (${opts.reason})` : ''}`,
         actor
       });
@@ -640,11 +647,35 @@
   // ---------------------------------------------------------------------
   // แสดงผลขั้นในรูปแบบเดียวกับ getApprovalWorkflowSteps เดิม
   // ---------------------------------------------------------------------
-  // ชื่อที่แสดง: "หัวหน้างาน (ลำดับที่ 1)" — ลำดับนับเฉพาะขั้นที่ใช้จริง
+  // ชื่อที่แสดง: "ผู้อนุมัติ ลำดับที่ N" (เป็นกลาง ไม่ใช้ หัวหน้างาน/ผู้จัดการ) — N นับเฉพาะขั้นที่ใช้จริง
+  //   ผู้บริหารที่ต่อท้ายใบลาของผู้อนุมัติ = "ผู้อนุมัติ ลำดับสูง" · ฝ่ายบุคคล = ชื่อเดิม
+  //   ใบลาเก่าที่บันทึกชื่อตำแหน่งไว้ (หัวหน้างาน/ผู้จัดการ/ผู้บริหาร) แปลงตอนแสดงผล
   function stepTitle(label, no) {
     const l = String(label || '').trim();
-    if (!l || /^(ขั้นที่|ลำดับที่)\s*\d+$/.test(l)) return `ลำดับที่ ${no}`;
-    return /ลำดับที่/.test(l) ? l : `${l} (ลำดับที่ ${no})`;
+    if (/ฝ่ายบุคคล|^HR\b/.test(l)) return l;
+    if (/ลำดับสูง/.test(l) || l === 'ผู้บริหาร') return 'ผู้อนุมัติ ลำดับสูง';
+    return `ผู้อนุมัติ ลำดับที่ ${no}`;
+  }
+  // ข้อความเก่าที่บันทึกไว้ในประวัติ (เช่น "หัวหน้างาน (ลำดับที่ 1)") → ชื่อเป็นกลาง ใช้ตอนแสดงผลเท่านั้น
+  function neutralText(text) {
+    let s = String(text ?? '');
+    if (!s) return s;
+    const LEAD = '(?:หัวหน้างาน\\s*/\\s*หัวหน้ากะ|หัวหน้างาน\\s*/\\s*Supervisor|หัวหน้างาน|หัวหน้าแผนก|หัวหน้ากะ|หัวหน้า)';
+    const MGR = '(?:ผู้จัดการฝ่าย\\s*/\\s*Department Manager|ผู้จัดการฝ่าย\\s*/\\s*Manager|ผู้จัดการฝ่าย|ผู้จัดการ)';
+    const EXE = '(?:ผู้บริหารสูงสุดอนุมัติหลัก|ผู้บริหารสูงสุด|ผู้บริหาร)';
+    const VERB = '(?:อนุมัติ|พิจารณา)?';
+    s = s.replace(new RegExp(LEAD + '\\s*\\+\\s*' + MGR + '\\s*\\(ลำดับที่\\s*1\\+2\\s*คนเดียวกัน\\)', 'g'), 'ผู้อนุมัติ ลำดับที่ 1+2 (คนเดียวกัน)')
+      .replace(new RegExp(LEAD + VERB + '\\s*\\(ลำดับที่\\s*1\\)', 'g'), 'ผู้อนุมัติ ลำดับที่ 1')
+      .replace(new RegExp(MGR + VERB + '\\s*\\(ลำดับที่\\s*2\\)', 'g'), 'ผู้อนุมัติ ลำดับที่ 2')
+      .replace(new RegExp(EXE + VERB + '\\s*\\(ลำดับที่\\s*3\\)', 'g'), 'ผู้อนุมัติ ลำดับสูง');
+    const bare = { 'หัวหน้างาน': 'ผู้อนุมัติ ลำดับที่ 1', 'หัวหน้ากะ': 'ผู้อนุมัติ ลำดับที่ 1', 'ผู้จัดการ': 'ผู้อนุมัติ ลำดับที่ 2', 'ผู้บริหาร': 'ผู้อนุมัติ ลำดับสูง' };
+    return s.replace(/^(หัวหน้างาน|หัวหน้ากะ|ผู้จัดการ|ผู้บริหาร)(?=$|\s*\()/, (m) => bare[m]);
+  }
+  // ชื่อของขั้นจากข้อมูลที่บันทึก (ใช้ในข้อความแจ้ง/ผลอนุมัติ) — ชื่อใหม่ใช้ตามเดิม ชื่อเก่าแปลงเป็นกลาง
+  function stepLabelOf(step) {
+    const l = String(step?.step_label || '').trim();
+    if (/^ผู้อนุมัติ ลำดับ/.test(l)) return l;
+    return stepTitle(l, step?.step_no || 1);
   }
 
   function toDisplaySteps(steps) {
@@ -668,7 +699,7 @@
   global.PVTApproval = {
     isReady, resolveChain, buildChain, loadContext, createSteps, initialLegacyFields,
     getSteps, getStepsForLeaves, currentStep, canAct, approve, reject,
-    closeOpenSteps, reassignStep, toDisplaySteps, stepTitle, legacyColumns, me, notifyApprovers,
+    closeOpenSteps, reassignStep, toDisplaySteps, stepTitle, stepLabelOf, neutralText, legacyColumns, me, notifyApprovers,
     cancelInfo, holdOpenSteps, resumeHeldSteps, notifyWithdrawn, loadLeave
   };
 })(typeof window !== 'undefined' ? window : this);

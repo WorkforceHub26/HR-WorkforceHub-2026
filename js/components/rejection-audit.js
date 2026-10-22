@@ -195,13 +195,13 @@
             (exp.approver_ids || []).forEach((id, i) => {
               const a = getA(String(id), (exp.approver_names || [])[i]);
               a.expired += 1;
-              if (exp.step_label) a.steps.add(exp.step_label);
+              if (exp.step_label) a.steps.add((window.PVTApproval?.neutralText || String)(exp.step_label));
             });
           }
         }
         rejections.push({
           kind: 'expired', at: log.created_at, leaveId: log.leave_id, ...info,
-          step: exp?.step_label || log.step_label || '-',
+          step: (window.PVTApproval?.neutralText || String)(exp?.step_label || log.step_label || '-'),
           decidedBy: who ? `${who} (ไม่พิจารณาภายใน 48 ชม.)` : 'ไม่พิจารณาภายใน 48 ชม.',
           approverKeys: exp && !exp.hr_any ? (exp.approver_ids || []).map((id) => keyOf(String(id))) : [],
           comment: log.comment || '',
@@ -214,7 +214,7 @@
       if (log.actor_role === 'system') return;
       const a = getA(log.actor_id ? String(log.actor_id) : null, log.actor_name);
       if (log.actor_role) a.roles.add(String(log.actor_role));
-      if (log.step_label) a.steps.add(String(log.step_label).replace(/\s*\((อนุมัติแทน)?โดย .*\)$/, ''));
+      if (log.step_label) a.steps.add((window.PVTApproval?.neutralText || String)(String(log.step_label).replace(/\s*\((อนุมัติแทน)?โดย .*\)$/, '')));
       a.total += 1;
       const start = stepStart(log, leave);
       const hrs = start ? (new Date(log.created_at) - new Date(start)) / 36e5 : null;
@@ -226,7 +226,7 @@
         if (info.id) a.perEmp[info.id] = { n: (a.perEmp[info.id]?.n || 0) + 1, name: info.name };
         rejections.push({
           kind: 'manual', at: log.created_at, leaveId: log.leave_id, ...info,
-          step: log.step_label || log.step_level || '-',
+          step: (window.PVTApproval?.neutralText || String)(log.step_label || log.step_level || '-'),
           decidedBy: log.actor_name || 'ไม่ทราบชื่อ',
           approverKeys: [a.key],
           comment: log.comment || '',

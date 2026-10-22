@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="th">
 <head>
@@ -9,7 +10,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d9488" />
   <meta name="google" content="notranslate" />
-  <title>อนุมัติใบลาสำหรับหัวหน้างาน | PVT Workforce Hub</title>
+  <title>อนุมัติใบลาสำหรับผู้อนุมัติ | PVT Workforce Hub</title>
   
   <!-- Preconnect สำหรับ Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com"> 
@@ -37,7 +38,7 @@
           <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
         <div class="brand-name">PVTT WORKFORCE HUB</div>
-        <div class="brand-subname">พื้นที่หัวหน้างาน / ผู้อนุมัติ</div>
+        <div class="brand-subname">พื้นที่ผู้อนุมัติ</div>
         <button type="button" class="btn-close-sidebar" onclick="if(typeof window.closeMobileSidebar==='function'){window.closeMobileSidebar();}else if(typeof toggleMobileSidebar==='function'){toggleMobileSidebar();}" title="ปิดเมนู">
           <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
         </button>
@@ -122,7 +123,7 @@
         </div>
 
         <div class="topbar-title-block">
-          <h1 id="pageMainTitle">อนุมัติใบลาสำหรับหัวหน้างาน</h1>
+          <h1 id="pageMainTitle">อนุมัติใบลาสำหรับผู้อนุมัติ</h1>
           <p id="pageSubTitle">เฉพาะรายการที่อยู่ในสายอนุมัติของคุณ</p>
         </div>
 
@@ -225,8 +226,8 @@
               <label for="filterStepSelect">สถานะ:</label>
               <select id="filterStepSelect" class="form-select" onchange="renderLeaveTable()">
                 <option value="all">-- แสดงทั้งหมด --</option>
-                <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (ลำดับที่ 1)</option>
-                <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (ลำดับที่ 2)</option>
+                <option value="pending_manager">1. รอผู้อนุมัติ ลำดับที่ 1</option>
+                <option value="pending_director">2. ลำดับที่ 1 ผ่านแล้ว / รอผู้อนุมัติ ลำดับที่ 2</option>
                 <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
                 <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
               </select>

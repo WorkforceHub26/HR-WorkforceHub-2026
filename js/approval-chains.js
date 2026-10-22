@@ -25,14 +25,15 @@
     editor: null
   };
   const PERSON_COLS = ['l1_approver_id', 'l2_approver_id', 'l3_approver_id'];
-  const LABEL_SUGGEST = ['หัวหน้างาน', 'หัวหน้ากะ', 'ผู้จัดการ', 'ผู้จัดการโรงงาน', 'ผู้บริหาร'];
+  // ชื่อลำดับเป็นกลางทั้งระบบ: "ผู้อนุมัติ ลำดับที่ N" (ไม่ใช้ หัวหน้างาน/หัวหน้ากะ/ผู้จัดการ เพราะแต่ละแผนกเรียกไม่เหมือนกัน)
+  const LABEL_SUGGEST = [];
   const $ = (sel, root = document) => root.querySelector(sel);
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const uniq = (a) => Array.from(new Set((a || []).filter(Boolean).map(String)));
   const isActive = (e) => e && (!e.status || String(e.status).toLowerCase() === 'active');
   const empName = (id) => S.empById[String(id)]?.full_name || 'ไม่พบชื่อ';
   const hasLine = (e) => { const v = String(e?.line_id ?? '').trim(); return !!v && !['null', 'undefined', '-'].includes(v); };
-  const stepName = (label, no) => { const l = String(label || '').trim(); return !l || /^(ขั้นที่|ลำดับที่)\s*\d+$/.test(l) ? '' : l; };
+  const stepName = () => ''; // ไม่แสดงชื่อตำแหน่งของลำดับแล้ว (ใช้ "ผู้อนุมัติ ลำดับที่ N")
   const toast = (title, icon = 'success') => Swal.fire({ toast: true, position: 'top-end', icon, title, showConfirmButton: false, timer: 2200 });
 
   function client() {
@@ -175,7 +176,7 @@
       const inherited = deptSteps && s.__inherited ? ' is-inherited' : '';
       const nm = stepName(s.step_label, s.step_no);
       return `${i ? '<span class="material-symbols-outlined ac-arrow" aria-hidden="true">arrow_forward</span>' : ''}
-        <span class="ac-step${inherited}"><span class="ac-step__head"><b>${s.step_no}</b>ลำดับที่ ${s.step_no}${nm ? `<span class="ac-step__label">· ${esc(nm)}</span>` : ''}</span>
+        <span class="ac-step${inherited}"><span class="ac-step__head"><b>${s.step_no}</b>ผู้อนุมัติ ลำดับที่ ${s.step_no}${nm ? `<span class="ac-step__label">· ${esc(nm)}</span>` : ''}</span>
         <span class="ac-step__people">${names || '<span class="ac-empty">ยังไม่มีคน</span>'}</span></span>`;
     }).join('');
   }
@@ -195,23 +196,182 @@
   ]).filter((id) => isActive(S.empById[id]));
   const deptMissingLine = (d) => deptApproverIds(d).some((id) => !hasLine(S.empById[id]));
 
+  // ------------------------------------------------------------------ ปุ่ม "เชื่อมต่อ LINE" ของการ์ดแผนก
+  //   ยังไม่มีผู้อนุมัติ → ปุ่มกดไม่ได้ (ต้องตั้งสายอนุมัติก่อน)
+  //   มีผู้อนุมัติที่ยังไม่ผูก LINE → ปุ่มเด่น + จำนวนคนที่ยังไม่ผูก
+  //   ผูกครบแล้ว → ปุ่มสีอ่อน "LINE ครบ" (กดเข้าไปแก้ไข LINE ID / สร้างรหัสใหม่ได้)
+  function lineBtnHtml(d) {
+    const ids = deptApproverIds(d);
+    if (!ids.length) {
+      return '<button type="button" class="ac-btn ac-btn--line is-off" disabled title="ตั้งผู้อนุมัติก่อน จึงจะเชื่อมต่อ LINE ได้"><span class="material-symbols-outlined" aria-hidden="true">link</span>เชื่อมต่อ LINE</button>';
+    }
+    const missing = ids.filter((id) => !hasLine(S.empById[id])).length;
+    if (missing) {
+      return `<button type="button" class="ac-btn ac-btn--line is-todo" data-act="line" data-id="${d.id}" title="ผู้อนุมัติยังไม่ผูก LINE ${missing} คน — กดเพื่อสร้างรหัสผูก / ระบุ LINE ID"><span class="material-symbols-outlined" aria-hidden="true">add_link</span>เชื่อมต่อ LINE<span class="ac-btn__badge">${missing}</span></button>`;
+    }
+    return `<button type="button" class="ac-btn ac-btn--line is-done" data-act="line" data-id="${d.id}" title="ผู้อนุมัติผูก LINE ครบแล้ว — กดเพื่อแก้ไข"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span>LINE ครบ</button>`;
+  }
+
+  // ผู้อนุมัติของแผนก (รวมทีม/กะ) พร้อมบอกว่าอยู่ลำดับไหน
+  function deptApproverRows(d) {
+    const map = new Map();
+    const add = (id, where) => {
+      const k = String(id);
+      if (!isActive(S.empById[k])) return;
+      if (!map.has(k)) map.set(k, []);
+      if (!map.get(k).includes(where)) map.get(k).push(where);
+    };
+    stepsOf('department', d.id).forEach((s) => (s.approver_ids || []).forEach((id) => add(id, `ผู้อนุมัติ ลำดับที่ ${s.step_no}${stepName(s.step_label) ? ' · ' + stepName(s.step_label) : ''}`)));
+    S.teams.filter((t) => String(t.department_id) === String(d.id)).forEach((t) => stepsOf('team', t.id)
+      .forEach((s) => (s.approver_ids || []).forEach((id) => add(id, `${t.team_name} · ผู้อนุมัติ ลำดับที่ ${s.step_no}`))));
+    return Array.from(map.entries()).map(([id, where]) => ({ id, emp: S.empById[id], where }))
+      .sort((a, b) => Number(hasLine(a.emp)) - Number(hasLine(b.emp)) || String(a.emp.full_name).localeCompare(String(b.emp.full_name), 'th'));
+  }
+
+  function lineModalHtml(d) {
+    const rows = deptApproverRows(d);
+    const missing = rows.filter((r) => !hasLine(r.emp)).length;
+    return `<div class="ac-lm">
+      <p class="ac-lm__sum ${missing ? 'is-todo' : 'is-done'}">${missing ? `ยังไม่ผูก LINE <b>${missing}</b> จาก ${rows.length} คน — ผู้อนุมัติที่ยังไม่ผูกจะไม่ได้รับแจ้งเตือนใบลาทาง LINE` : `ผู้อนุมัติทั้ง ${rows.length} คนผูก LINE แล้ว`}</p>
+      <div class="ac-lm__list">${rows.map((r) => {
+        const on = hasLine(r.emp);
+        const lid = String(r.emp.line_id || '');
+        return `<div class="ac-lm__row${on ? ' is-on' : ''}">
+          <div class="ac-lm__who">
+            <strong>${esc(r.emp.full_name)}${r.emp.employee_code ? ` <small>${esc(r.emp.employee_code)}</small>` : ''}</strong>
+            <span class="ac-lm__where">${r.where.map(esc).join(' , ')}</span>
+            <span class="ac-lm__state">${on ? `<span class="ac-lm__chip is-on">● ผูก LINE แล้ว</span><code title="${esc(lid)}">${esc(lid.length > 14 ? lid.slice(0, 13) + '…' : lid)}</code>` : '<span class="ac-lm__chip">○ ยังไม่ผูก LINE</span>'}</span>
+          </div>
+          <div class="ac-lm__acts">
+            <button type="button" class="ac-lm__btn is-main" data-lm="code" data-id="${r.id}"><span class="material-symbols-outlined" aria-hidden="true">${on ? 'sync' : 'qr_code_2'}</span>${on ? 'รหัสใหม่' : 'สร้างรหัสผูก'}</button>
+            <button type="button" class="ac-lm__btn" data-lm="edit" data-id="${r.id}"><span class="material-symbols-outlined" aria-hidden="true">edit</span>${on ? 'แก้ไข ID' : 'ระบุ ID เอง'}</button>
+          </div>
+        </div>`;
+      }).join('')}</div>
+      <p class="ac-lm__hint">รหัสผูก: ส่งรหัส 6 หลักให้ผู้อนุมัติ แล้วให้เขา Add LINE OA ของบริษัทและพิมพ์รหัสในแชต (รหัสมีอายุ 15 นาที)</p>
+    </div>`;
+  }
+
+  function afterLineChange() { renderDepts(); renderGuide(); }
+
+  async function refetchLine(id) {
+    const { data } = await S.sb.from('employees').select('id, line_id').eq('id', id).maybeSingle();
+    if (data && S.empById[String(id)]) S.empById[String(id)].line_id = data.line_id;
+    return hasLine(S.empById[String(id)]);
+  }
+
+  async function lineCodeFlow(emp) {
+    let code = '';
+    try {
+      if (!window.PVTLine?.createLinkCode) throw new Error('ระบบ LINE ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง');
+      code = (await window.PVTLine.createLinkCode(emp.id)).code;
+    } catch (err) {
+      if (err && err.code === 'line_not_allowed') {
+        await Swal.fire({ icon: 'info', title: 'ยังไม่มีสิทธิ์รับแจ้งเตือน LINE', text: 'ระบบยังไม่นับคนนี้เป็นผู้อนุมัติ — ลองรีเฟรชหน้า หรือเปิด "ให้ทุกคนเชื่อมต่อ LINE" ในหน้าแจ้งเตือน LINE' });
+      } else {
+        await Swal.fire({ icon: 'error', title: 'สร้างรหัสไม่สำเร็จ', text: err?.message || 'กรุณาลองใหม่' });
+      }
+      return;
+    }
+    for (;;) {
+      const r = await Swal.fire({
+        icon: 'success', title: 'รหัสผูก LINE',
+        html: `<div class="ac-lm-code">
+            <div>สำหรับ <b>${esc(emp.full_name)}</b></div>
+            <div class="ac-lm-code__num">${esc(code)}</div>
+            <div class="ac-lm-code__how">ให้เจ้าของบัญชี Add LINE OA ของบริษัท<br>แล้วพิมพ์รหัส <b>${esc(code)}</b> ในแชต<br>⏱ รหัสมีอายุ 15 นาที ใช้ได้ครั้งเดียว</div>
+          </div>`,
+        showDenyButton: true, showCancelButton: true,
+        confirmButtonText: 'ตรวจสอบว่าผูกแล้วหรือยัง', denyButtonText: 'คัดลอกรหัส', cancelButtonText: 'ปิด',
+        confirmButtonColor: 'var(--th-p-700, #0f766e)', denyButtonColor: '#475569'
+      });
+      if (r.isDenied) { try { await navigator.clipboard.writeText(code); toast('คัดลอกรหัสแล้ว'); } catch (e) {} continue; }
+      if (r.isConfirmed) {
+        const ok = await refetchLine(emp.id);
+        afterLineChange();
+        if (ok) { await Swal.fire({ icon: 'success', title: 'ผูก LINE สำเร็จ', text: `${emp.full_name} จะได้รับแจ้งเตือนใบลาผ่าน LINE`, timer: 1800, showConfirmButton: false }); return; }
+        await Swal.fire({ icon: 'info', title: 'ยังไม่ได้ผูก', text: 'ยังไม่พบการส่งรหัสจาก LINE — รอให้ผู้อนุมัติพิมพ์รหัสในแชต แล้วกดตรวจสอบอีกครั้ง', confirmButtonText: 'กลับไปที่รหัส' });
+        continue;
+      }
+      return;
+    }
+  }
+
+  async function lineEditFlow(emp) {
+    const cur = hasLine(emp) ? String(emp.line_id) : '';
+    const r = await Swal.fire({
+      title: 'ระบุ LINE User ID',
+      html: `<div class="ac-lm-edit">ผู้อนุมัติ: <b>${esc(emp.full_name)}</b><br><small>LINE User ID ขึ้นต้นด้วย U ตามด้วยตัวอักษร 32 ตัว · เว้นว่างแล้วบันทึก = ล้างการเชื่อมต่อ</small></div>`,
+      input: 'text', inputValue: cur, inputPlaceholder: 'เช่น U1234567890abcdef...',
+      showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: 'var(--th-p-700, #0f766e)',
+      inputValidator: (v) => {
+        const s = String(v || '').trim();
+        if (s && !/^U\w{8,}$/.test(s)) return "LINE User ID ต้องขึ้นต้นด้วย U และไม่มีช่องว่าง";
+        return undefined;
+      }
+    });
+    if (!r.isConfirmed) return;
+    const val = String(r.value || '').trim() || null;
+    if ((val || '') === cur) return;
+    if (!val) {
+      const c = await Swal.fire({ icon: 'warning', title: 'ล้าง LINE ของคนนี้?', text: `${emp.full_name} จะไม่ได้รับแจ้งเตือนใบลาผ่าน LINE จนกว่าจะผูกใหม่`, showCancelButton: true, confirmButtonText: 'ล้าง LINE ID', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#dc2626' });
+      if (!c.isConfirmed) return;
+    }
+    const { error } = await S.sb.from('employees').update({ line_id: val }).eq('id', emp.id);
+    if (error) { await Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: error.message }); return; }
+    emp.line_id = val;
+    try { window.PVTLine?.clearCache?.(); } catch (e) {}
+    afterLineChange();
+    toast(val ? `บันทึก LINE ID ของ ${emp.full_name} แล้ว` : `ล้าง LINE ID ของ ${emp.full_name} แล้ว`);
+  }
+
+  async function openLineModal(deptId) {
+    const d = S.depts.find((x) => String(x.id) === String(deptId));
+    if (!d) return;
+    for (;;) {
+      if (!deptApproverRows(d).length) return;
+      let pick = null;
+      await Swal.fire({
+        title: `เชื่อมต่อ LINE: ${esc(d.department_name)}`,
+        html: lineModalHtml(d),
+        width: 640,
+        showConfirmButton: false, showCloseButton: true,
+        customClass: { popup: 'ac-lm-popup' },
+        didOpen: (popup) => popup.addEventListener('click', (ev) => {
+          const b = ev.target.closest('[data-lm]');
+          if (!b) return;
+          pick = { act: b.dataset.lm, id: b.dataset.id };
+          Swal.close();
+        })
+      });
+      if (!pick) return;
+      const emp = S.empById[String(pick.id)];
+      if (!emp) return;
+      if (pick.act === 'code') await lineCodeFlow(emp);
+      if (pick.act === 'edit') await lineEditFlow(emp);
+    }
+  }
+
   function setGuide(el, done, text) {
     el.classList.toggle('is-done', !!done);
     el.classList.toggle('is-todo', !done);
     el.querySelector('.ac-gstep__no').innerHTML = done ? '<span class="material-symbols-outlined" aria-hidden="true">check</span>' : el.dataset.no;
     el.querySelector('small').textContent = text;
+    const cta = el.querySelector('.ac-gstep__ctatxt');
+    if (cta) cta.textContent = done ? 'ดู / แก้ไข' : (el.dataset.cta || 'ไปจัดการ');
   }
 
   function renderGuide() {
     const g1 = $('#acG1'), g2 = $('#acG2'), g3 = $('#acG3');
     [g1, g2, g3].forEach((el, i) => { el.dataset.no = String(i + 1); });
     const missing = S.depts.filter((d) => !deptHasApprover(d)).length;
-    setGuide(g1, S.depts.length && !missing, !S.depts.length ? 'ยังไม่มีแผนกในระบบ' : missing ? `ยังไม่ตั้ง ${missing} จาก ${S.depts.length} แผนก — กดเพื่อดู` : `ครบทั้ง ${S.depts.length} แผนกแล้ว`);
+    setGuide(g1, S.depts.length && !missing, !S.depts.length ? 'ยังไม่มีแผนกในระบบ' : missing ? `ยังไม่ตั้ง ${missing} จาก ${S.depts.length} แผนก` : `ครบทั้ง ${S.depts.length} แผนกแล้ว`);
     const ex = S.empById[S.executiveId];
     setGuide(g2, ex && isActive(ex), ex && isActive(ex) ? `${ex.full_name}${S.policy.executive_for_approvers === false ? ' (ปิดการส่งผู้บริหาร)' : ''}` : 'ยังไม่ได้เลือก — ใบลาของหัวหน้า/ผู้จัดการจะไป HR');
     const ids = allApproverIds();
     const linked = ids.filter((id) => hasLine(S.empById[id])).length;
-    setGuide(g3, ids.length && linked === ids.length, ids.length ? `ผูกแล้ว ${linked} จาก ${ids.length} คน${linked < ids.length ? ' — กดเพื่อส่งรหัสผูก' : ''}` : 'ยังไม่มีผู้อนุมัติ');
+    setGuide(g3, ids.length && linked === ids.length, ids.length ? `ผูกแล้ว ${linked} จาก ${ids.length} คน` : 'ยังไม่มีผู้อนุมัติ');
   }
 
   function teamEffectiveSteps(team) {
@@ -257,6 +417,7 @@
             <p class="ac-muted">พนักงาน ${members.length} คน${teams.length ? ` · ${teams.length} ทีม/กะ` : ''}${personal ? ` · <button type="button" class="ac-inline-link" data-act="people" data-id="${d.id}">ข้อยกเว้นรายบุคคล ${personal} คน</button>` : ''}</p>
           </div>
           <div class="ac-card__actions">
+            ${lineBtnHtml(d)}
             <button type="button" class="ac-btn ac-btn--ghost" data-act="add-team" data-id="${d.id}" title="ใช้เมื่อแผนกมีหลายกะ/หลายทีม ที่หัวหน้าคนละชุด"><span class="material-symbols-outlined" aria-hidden="true">group_add</span>เพิ่มทีม/กะ</button>
             <button type="button" class="ac-btn" data-act="edit-dept" data-id="${d.id}"><span class="material-symbols-outlined" aria-hidden="true">${steps.length ? 'edit' : 'add'}</span>${steps.length ? 'แก้ผู้อนุมัติ' : 'ตั้งผู้อนุมัติ'}</button>
           </div>
@@ -276,7 +437,7 @@
       dept = S.depts.find((d) => String(d.id) === String(id));
       title = `สายอนุมัติ: ${dept.department_name}`;
       steps = stepsOf('department', id).map((s) => ({ label: s.step_label || '', ids: uniq(s.approver_ids) }));
-      if (!steps.length) steps = [{ label: 'หัวหน้างาน', ids: [] }];
+      if (!steps.length) steps = [{ label: '', ids: [] }];
     } else {
       team = id ? S.teams.find((t) => String(t.id) === String(id)) : { id: null, team_name: '', department_id: deptIdForNewTeam };
       dept = S.depts.find((d) => String(d.id) === String(team.department_id));
@@ -352,7 +513,7 @@
       html += `<li class="ac-step-edit${locked ? ' is-locked' : ''}">
         <div class="ac-step-edit__head">
           <span class="ac-step-edit__no">${i + 1}</span>
-          <strong class="ac-step-edit__title">ลำดับที่ ${i + 1}</strong>
+          <strong class="ac-step-edit__title">ผู้อนุมัติ ลำดับที่ ${i + 1}</strong>
           ${ed.kind === 'team' ? `<label class="ac-override"><input type="checkbox" data-act="override" data-step="${i}" ${s.override ? 'checked' : ''} ${forced ? 'disabled checked' : ''}/> ทีมนี้ใช้คนอื่น</label>` : ''}
           <div class="ac-step-edit__tools">
             <button type="button" class="ac-icon" data-act="up" data-step="${i}" ${i === 0 ? 'disabled' : ''} aria-label="เลื่อนขึ้น" title="เลื่อนขึ้น"><span class="material-symbols-outlined">arrow_upward</span></button>
@@ -368,11 +529,7 @@
           <input type="search" class="ac-input" data-act="pick" data-step="${i}" placeholder="+ พิมพ์ชื่อหรือรหัสพนักงาน เพื่อเพิ่มผู้อนุมัติ" autocomplete="off" />
           <div class="ac-picker__list" data-list="${i}" hidden></div>
         </div>
-        <label class="ac-sub">ตำแหน่ง (แสดงในใบลา ไม่บังคับ)</label>
-        <div class="ac-label-row">
-          <input type="text" class="ac-input" data-act="label" data-step="${i}" value="${esc(stepName(s.label) || '')}" placeholder="เช่น หัวหน้างาน" maxlength="40" />
-          <div class="ac-suggest">${LABEL_SUGGEST.map((l) => `<button type="button" data-act="suggest" data-step="${i}" data-label="${esc(l)}" class="${stepName(s.label) === l ? 'is-on' : ''}">${esc(l)}</button>`).join('')}</div>
-        </div>`}
+        `}
       </li>`;
     });
     html += `</ol>
@@ -419,7 +576,7 @@
         const deptNames = d ? uniq(d.approver_ids).map((id) => empName(id)).join(' หรือ ') : '';
         const ids = ed.steps[i].ids;
         html += `<li class="ac-step-edit">
-          <div class="ac-step-edit__head"><span class="ac-step-edit__no">${i + 1}</span><strong class="ac-step-edit__title">ลำดับที่ ${i + 1}</strong></div>
+          <div class="ac-step-edit__head"><span class="ac-step-edit__no">${i + 1}</span><strong class="ac-step-edit__title">ผู้อนุมัติ ลำดับที่ ${i + 1}</strong></div>
           <p class="ac-muted ac-small">ตามแผนก: ${deptNames ? esc(deptNames) : 'ไม่มี (ข้าม)'}</p>
           <div class="ac-chips">${ids.length ? personChips(ids, i, false) : '<span class="ac-chip ac-chip--plain">ใช้ตามแผนก</span>'}</div>
           <div class="ac-picker">
@@ -506,7 +663,7 @@
             <button type="button" class="ac-btn ac-btn--ghost" data-act="sel-start" data-dept="${esc(dk)}"><span class="material-symbols-outlined" aria-hidden="true">checklist</span>แก้ไข / ลบหลายรายการ</button>`}</span></div>`;
       }
       lastDept = dn;
-      const steps = PERSON_COLS.map((c, i) => e[c] ? `<span class="ac-step"><span class="ac-step__head"><b>${i + 1}</b>ลำดับที่ ${i + 1}</span><span class="ac-step__people">${personHtml(e[c])}</span></span>` : '').filter(Boolean).join('');
+      const steps = PERSON_COLS.map((c, i) => e[c] ? `<span class="ac-step"><span class="ac-step__head"><b>${i + 1}</b>ผู้อนุมัติ ลำดับที่ ${i + 1}</span><span class="ac-step__people">${personHtml(e[c])}</span></span>` : '').filter(Boolean).join('');
       return `${head}<article class="ac-person-row${selMode && S.peopleSel.has(String(e.id)) ? ' is-selected' : ''}">
         ${selMode ? `<label class="ac-chk ac-chk--row"><input type="checkbox" data-act="sel-one" data-id="${e.id}" ${S.peopleSel.has(String(e.id)) ? 'checked' : ''} aria-label="เลือก ${esc(e.full_name)}"></label>` : ''}
         <div class="ac-person-row__who"><strong>${esc(e.full_name)}</strong><small>${esc(e.employee_code)} · ${esc(dn)}</small></div>
@@ -694,8 +851,8 @@
       const { error: delErr } = await S.sb.from('approval_chain_steps').delete().eq('scope_type', scopeType).eq('scope_id', scopeId);
       if (delErr) throw delErr;
       const rows = ed.kind === 'dept'
-        ? cleaned.map((s, i) => ({ scope_type: scopeType, scope_id: scopeId, step_no: i + 1, step_label: s.label || `ลำดับที่ ${i + 1}`, approver_ids: s.ids }))
-        : ed.steps.map((s, i) => (s.override ? { scope_type: scopeType, scope_id: scopeId, step_no: i + 1, step_label: stepName(s.label) || `ลำดับที่ ${i + 1}`, approver_ids: uniq(s.ids) } : null)).filter(Boolean);
+        ? cleaned.map((s, i) => ({ scope_type: scopeType, scope_id: scopeId, step_no: i + 1, step_label: `ผู้อนุมัติ ลำดับที่ ${i + 1}`, approver_ids: s.ids }))
+        : ed.steps.map((s, i) => (s.override ? { scope_type: scopeType, scope_id: scopeId, step_no: i + 1, step_label: `ผู้อนุมัติ ลำดับที่ ${i + 1}`, approver_ids: uniq(s.ids) } : null)).filter(Boolean);
       if (rows.length) { const { error } = await S.sb.from('approval_chain_steps').insert(rows); if (error) throw error; }
 
       if (ed.kind === 'dept') await syncLegacyDepartment(scopeId, cleaned);
@@ -789,7 +946,7 @@
       const chain = await window.PVTApproval.resolveChain(empId);
       const emp = S.empById[String(empId)];
       const team = emp?.team_id ? S.teams.find((t) => String(t.id) === String(emp.team_id)) : null;
-      const src = { department: 'ตามแผนก', team: 'ตามทีม/กะ', personal: 'ข้อยกเว้นรายบุคคล', executive: 'ผู้บริหาร (ผู้ยื่นเป็นหัวหน้า/ผู้จัดการ)', hr: 'ไม่มีผู้อนุมัติ → HR' };
+      const src = { department: 'ตามแผนก', team: 'ตามทีม/กะ', personal: 'ข้อยกเว้นรายบุคคล', executive: 'ผู้ยื่นเป็นผู้อนุมัติเอง → ส่งต่อผู้อนุมัติลำดับสูง', hr: 'ไม่มีผู้อนุมัติ → HR' };
       let n = 0;
       out.innerHTML = `<p class="ac-muted">${esc(emp?.full_name || '')}${team ? ` · ทีม/กะ: ${esc(team.team_name)}` : ''}</p>
         <ol class="ac-preview">${chain.map((s) => {
@@ -797,7 +954,7 @@
           if (!skipped) n++;
           const nm = stepName(s.step_label);
           return `<li class="${skipped ? 'is-skipped' : ''}" data-no="${skipped ? '–' : n}">
-          <strong>${skipped ? 'ข้าม' : `ลำดับที่ ${n}`}${nm ? ` · ${esc(nm)}` : ''}</strong>
+          <strong>${skipped ? 'ข้าม' : s.source === 'executive' ? 'ผู้อนุมัติ ลำดับสูง' : s.source === 'hr' ? 'ฝ่ายบุคคล (HR)' : `ผู้อนุมัติ ลำดับที่ ${n}`}${nm ? ` · ${esc(nm)}` : ''}</strong>
           <span>${s.hr_any ? 'HR/Admin คนใดก็ได้' : esc(s.approver_names.join(' หรือ ') || '—')}</span>
           <small>${skipped ? esc(s.skip_reason) : esc(src[s.source] || '')}</small>
         </li>`;
@@ -862,7 +1019,7 @@
           <strong>${esc(name)}</strong>
           <span class="ac-muted">${esc(r.lv.leave_types?.leave_name || 'ใบลา')} · ${esc(r.lv.start_date)}${r.lv.end_date !== r.lv.start_date ? ` ถึง ${esc(r.lv.end_date)}` : ''}</span>
           <div class="ac-ra__flow">
-            <span class="ac-tag">ลำดับที่ ${r.st.step_no}${stepName(r.st.step_label) ? ` · ${esc(stepName(r.st.step_label))}` : ''}</span> ${curNames}
+            <span class="ac-tag">ผู้อนุมัติ ลำดับที่ ${r.st.step_no}${stepName(r.st.step_label) ? ` · ${esc(stepName(r.st.step_label))}` : ''}</span> ${curNames}
             ${r.flagged ? `<span class="material-symbols-outlined ac-arrow" aria-hidden="true">arrow_forward</span> <span class="ac-person is-new">${sugNames}</span>` : ''}
           </div>
           <span class="ac-reason${r.flagged ? ' is-flagged' : ''}">${reason}</span>
@@ -943,7 +1100,12 @@
     // ปุ่มนำทาง (เช็กลิสต์ / กรณีพิเศษ / หัวหน้า)
     document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => {
       setTab(b.dataset.go);
-      if (b.dataset.go === 'chains') { S.deptFilter = b.dataset.filter && $('#acCountMissing').textContent !== '0' ? b.dataset.filter : 'all'; renderDepts(); }
+      if (b.dataset.go === 'chains') {
+        // กรองให้เห็นเฉพาะแผนกที่ต้องทำ (ถ้าไม่มีแผนกค้าง → แสดงทั้งหมด)
+        const cnt = { missing: '#acCountMissing', noline: '#acCountNoLine' }[b.dataset.filter];
+        S.deptFilter = cnt && $(cnt).textContent !== '0' ? b.dataset.filter : 'all';
+        renderDepts();
+      }
       if (b.dataset.hint === 'team') Swal.fire({ icon: 'info', title: 'แผนกที่มีหลายกะ', html: 'ที่การ์ดของแผนกนั้น กด <b>เพิ่มทีม/กะ</b><br>ตั้งชื่อ (เช่น กะเช้า) เลือกพนักงานในกะ แล้วติ๊ก <b>"ทีมนี้ใช้คนอื่น"</b> เฉพาะลำดับที่หัวหน้าต่างกัน<br>ลำดับที่ไม่ได้ติ๊กจะใช้คนเดียวกับแผนก (เช่น ผู้จัดการคนเดียวกัน)', confirmButtonText: 'เข้าใจแล้ว' });
       if (b.dataset.go === 'preview') setTimeout(() => $('#acPreviewSelect').focus(), 50);
       $('.ac-tabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -955,6 +1117,7 @@
       const b = ev.target.closest('[data-act]');
       if (!b) return;
       if (b.dataset.act === 'edit-dept') openEditor('dept', b.dataset.id);
+      if (b.dataset.act === 'line') openLineModal(b.dataset.id);
       if (b.dataset.act === 'edit-team') openEditor('team', b.dataset.id);
       if (b.dataset.act === 'add-team') openEditor('team', null, b.dataset.id);
       if (b.dataset.act === 'people') {

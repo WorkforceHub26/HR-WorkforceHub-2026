@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="/css/layout-sidebar.css" />
   <link rel="stylesheet" href="/css/layout-topbar.css" />
   <!-- CSS เฉพาะหน้า: วางท้ายสุดเสมอ -->
-  <link rel="stylesheet" href="/css/hr-management.css" />
-  <link rel="stylesheet" href="/css/hr-menu.css" />
+  <link rel="stylesheet" href="/css/hr-management.css?v=20261022-pill" />
+  <link rel="stylesheet" href="/css/hr-menu.css?v=20261022-sq" />
 
   <!-- React & Recharts CDN Dependencies for Analytics Visualization -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -251,7 +251,7 @@
             </button>
             <button type="button" onclick="openChangeRequests()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">rule</span>
-              <span class="hr-menu__text"><strong>คำขอแก้ไขข้อมูลพนักงาน <span id="hrChangeReqBadge" hidden style="margin-left:6px; padding:1px 8px; border-radius:99px; background:#fef3c7; color:#92400e; font-size:12px;"></span></strong><small>ชื่อ · คำนำหน้า · เลขบัญชี · รพ.ที่ล็อกแล้ว</small></span>
+              <span class="hr-menu__text"><strong>คำขอแก้ไขข้อมูลพนักงาน <span id="hrChangeReqBadge" hidden style="margin-left:6px; padding:1px 8px; border-radius:4px; background:#fef3c7; color:#92400e; font-size:12px;"></span></strong><small>ชื่อ · คำนำหน้า · เลขบัญชี · รพ.ที่ล็อกแล้ว</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="openHospitalReport()" class="action-btn hr-menu__item">
@@ -282,11 +282,11 @@
           <div class="panel-head">
             <h2>รายชื่อพนักงาน</h2>
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <button type="button" class="btn-clear-request" onclick="clearEmployeeFilters()" style="background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: 6px; padding: 4px 12px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="ล้างการค้นหาและตัวกรองทั้งหมด">
+              <button type="button" class="btn-clear-request" onclick="clearEmployeeFilters()" style="background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: 3px; padding: 4px 12px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="ล้างการค้นหาและตัวกรองทั้งหมด">
                 <span class="material-symbols-outlined" style="font-size: 16px;">restart_alt</span>
                 <span>ล้างคำขอ / ตัวกรอง</span>
               </button>
-              <button type="button" class="btn-refresh-data" onclick="handleFetchDataClick()" style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-200, #99f6e4); color: var(--th-p-700, #0f766e); border-radius: 6px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="รีเฟรชดึงข้อมูลล่าสุดจากระบบ">
+              <button type="button" class="btn-refresh-data" onclick="handleFetchDataClick()" style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-200, #99f6e4); color: var(--th-p-700, #0f766e); border-radius: 3px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="รีเฟรชดึงข้อมูลล่าสุดจากระบบ">
                 <span class="material-symbols-outlined" style="font-size: 16px;">sync</span>
                 <span>รีเฟรชข้อมูล</span>
               </button>
@@ -295,28 +295,28 @@
           </div>
 
           <!-- ข้อมูลคำอธิบายกลุ่มตำแหน่งงานตามหมวดหมู่ -->
-          <div class="category-description-panel" style="background: linear-gradient(135deg, #f8fafc 0%, var(--th-p-50, #f0fdfa) 100%); border: 1px solid var(--th-p-100, #ccfbf1); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.05);">
+          <div class="category-description-panel" style="background: linear-gradient(135deg, #f8fafc 0%, var(--th-p-50, #f0fdfa) 100%); border: 1px solid var(--th-p-100, #ccfbf1); border-radius: 6px; padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.05);">
             <div style="font-weight: 700; font-size: 13.5px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
               <span class="material-symbols-outlined" style="color: var(--th-p-600, #0d9488); font-size: 20px;">info</span>
               <span>หมวดหมู่โครงสร้างตำแหน่งงาน:</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; font-size: 12.5px;">
-              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
                 <span style="font-weight: 700; color: #0f172a;"> ทุกตำแหน่ง:</span> <span style="color: #64748b;">ภาพรวมพนักงานทั้งหมด</span>
               </div>
-              <div style="background: var(--th-b-50, #eff6ff); border: 1px solid var(--th-b-200, #bfdbfe); border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.05);">
+              <div style="background: var(--th-b-50, #eff6ff); border: 1px solid var(--th-b-200, #bfdbfe); border-radius: 4px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(var(--th-b-600-rgb, 37, 99, 235), 0.05);">
                 <span style="font-weight: 700; color: var(--th-b-800, #1e40af);"> ผู้บริหาร:</span> <span style="color: var(--th-b-500, #3b82f6);">CEO, MD, ผู้อำนวยการ</span>
               </div>
-              <div style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-200, #99f6e4); border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.05);">
+              <div style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-200, #99f6e4); border-radius: 4px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.05);">
                 <span style="font-weight: 700; color: var(--th-p-700, #0f766e);"> ผู้จัดการ:</span> <span style="color: var(--th-p-500, #14b8a6);">ผู้จัดการฝ่าย/สายงาน</span>
               </div>
-              <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(217,119,6,0.05);">
+              <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(217,119,6,0.05);">
                 <span style="font-weight: 700; color: #92400e;">️ หัวหน้างาน:</span> <span style="color: #d97706;">หัวหน้าแผนก / Supervisor</span>
               </div>
-              <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(124,58,237,0.05);">
+              <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 4px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(124,58,237,0.05);">
                 <span style="font-weight: 700; color: #5b21b6;"> เจ้าหน้าที่:</span> <span style="color: #7c3aed;">เจ้าหน้าที่, ผู้ช่วย, ช่างเทคนิค</span>
               </div>
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
                 <span style="font-weight: 700; color: #334155;"> พนักงานทั่วไป:</span> <span style="color: #64748b;">ฝ่ายปฏิบัติการและทั่วไป</span>
               </div>
             </div>
@@ -365,10 +365,11 @@
             </button>
           </div>
           
-          <div class="filter-panel" style="display: flex; gap: 10px; width: 100%; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+          <!-- ค้นหา/ตัวกรอง: 2 คอลัมน์ (ค้นหา | ตำแหน่ง · แผนก | เรียงตาม + ล้างคำขอ) — css/hr-management.css .emp-filter-grid -->
+          <div class="filter-panel emp-filter-grid">
             <!-- ช่องค้นหาขยายเต็มพื้นที่ (Flex: 1) และเพิ่ม oninput -->
             <div class="custom-search-container" style="flex: 1; min-width: 220px; width: 100%;">
-              <div class="search-box" style="display: flex; align-items: center; width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 12px; position: relative;">
+              <div class="search-box" style="display: flex; align-items: center; width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 12px; position: relative;">
                 <span class="material-symbols-outlined icon-search" style="color: #64748b; margin-right: 8px;">search</span>
                 <input 
                   type="text" 
@@ -395,17 +396,18 @@
             </div>
 
             <!-- ตัวกรองตำแหน่งงานเฉพาะเจาะจง (ภาษาไทย + จำนวนคน) -->
-            <select id="posFilter" class="select-input" onchange="renderEmployeeTable()" style="min-width: 180px; height: 42px;">
+            <select id="posFilter" class="select-input" onchange="renderEmployeeTable()" style="height: 42px;">
               <option value=""> ทุกตำแหน่งงาน</option>
             </select>
 
             <!-- ตัวกรองแผนก -->
-            <select id="deptFilter" class="select-input" onchange="if(typeof fillPositionFilter==='function'){fillPositionFilter();}else if(typeof window.fillPositionFilter==='function'){window.fillPositionFilter();} if(typeof renderEmployeeTable==='function'){renderEmployeeTable();}else if(typeof window.renderEmployeeTable==='function'){window.renderEmployeeTable();}" style="min-width: 180px; height: 42px;">
+            <select id="deptFilter" class="select-input" onchange="if(typeof fillPositionFilter==='function'){fillPositionFilter();}else if(typeof window.fillPositionFilter==='function'){window.fillPositionFilter();} if(typeof renderEmployeeTable==='function'){renderEmployeeTable();}else if(typeof window.renderEmployeeTable==='function'){window.renderEmployeeTable();}" style="height: 42px;">
               <option value=""> ทุกแผนก</option>
             </select>
 
+            <div class="emp-filter-grid__row">
             <!-- ↕️ เรียงตาม (management.js → EMP_SORTS) -->
-            <select id="empSortSelect" class="select-input" aria-label="เรียงตาม" title="เรียงลำดับตาราง" onchange="window.setEmployeeSort && window.setEmployeeSort(this.value)" style="min-width: 200px; height: 42px;">
+            <select id="empSortSelect" class="select-input" aria-label="เรียงตาม" title="เรียงลำดับตาราง" onchange="window.setEmployeeSort && window.setEmployeeSort(this.value)" style="height: 42px;">
               <option value="default">↕ ค่าเริ่มต้นของระบบ</option>
             </select>
 
@@ -415,17 +417,18 @@
               class="btn-clear-request" 
               onclick="clearEmployeeFilters()" 
               title="ล้างคำขอค้นหาและตัวกรองทั้งหมด"
-              style="height: 42px; padding: 0 16px; background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.2s;"
+              style="height: 42px; padding: 0 16px; background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; border-radius: 4px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.2s;"
               onmouseover="this.style.background='#ffe4e6'; this.style.borderColor='#fda4af';"
               onmouseout="this.style.background='#fff1f2'; this.style.borderColor='#fecdd3';"
             >
               <span class="material-symbols-outlined" style="font-size: 18px;">restart_alt</span>
               <span>ล้างคำขอ</span>
             </button>
+            </div>
           </div>
 
           <!-- แถบสรุปจำนวนพนักงานตามตำแหน่งและแผนก -->
-          <div id="empCategorySummaryBanner" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div id="empCategorySummaryBanner" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
             <div id="summaryTextLeft" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
               <span class="material-symbols-outlined" style="font-size: 18px; color: var(--th-p-600, #0d9488);">analytics</span>
               <span>กำลังคำนวณจำนวนพนักงาน...</span>
@@ -438,11 +441,11 @@
             <div class="employee-list-header desktop-only">
               <div class="col-avatar">รูปภาพ</div>
               <!-- คลิกหัวตารางเพื่อเรียง (คลิกซ้ำ = กลับด้าน) -->
-              <div class="col-code emp-sortable" data-sort-col="code" role="button" tabindex="0" onclick="setEmployeeSort('code')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('code')}">รหัสพนักงาน <span class="sort-arrow">↕</span></div>
-              <div class="col-info emp-sortable" data-sort-col="name" role="button" tabindex="0" onclick="setEmployeeSort('name')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('name')}">ชื่อ-นามสกุล / ตำแหน่ง <span class="sort-arrow">↕</span></div>
-              <div class="col-dept emp-sortable" data-sort-col="dept" role="button" tabindex="0" onclick="setEmployeeSort('dept')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('dept')}">แผนก / สังกัด <span class="sort-arrow">↕</span></div>
-              <div class="col-start emp-sortable" data-sort-col="start" role="button" tabindex="0" onclick="setEmployeeSort('start')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('start')}">วันเริ่มงาน <span class="sort-arrow">↕</span></div>
-              <div class="col-status emp-sortable" data-sort-col="status" role="button" tabindex="0" onclick="setEmployeeSort('status')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('status')}">สถานะ <span class="sort-arrow">↕</span></div>
+              <div class="col-code emp-sortable" data-sort-col="code" role="button" tabindex="0" onclick="setEmployeeSort('code')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('code')}">รหัสพนักงาน <span class="sort-arrow material-symbols-outlined" aria-hidden="true">unfold_more</span></div>
+              <div class="col-info emp-sortable" data-sort-col="name" role="button" tabindex="0" onclick="setEmployeeSort('name')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('name')}">ชื่อ-นามสกุล / ตำแหน่ง <span class="sort-arrow material-symbols-outlined" aria-hidden="true">unfold_more</span></div>
+              <div class="col-dept emp-sortable" data-sort-col="dept" role="button" tabindex="0" onclick="setEmployeeSort('dept')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('dept')}">แผนก / สังกัด <span class="sort-arrow material-symbols-outlined" aria-hidden="true">unfold_more</span></div>
+              <div class="col-start emp-sortable" data-sort-col="start" role="button" tabindex="0" onclick="setEmployeeSort('start')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('start')}">วันเริ่มงาน <span class="sort-arrow material-symbols-outlined" aria-hidden="true">unfold_more</span></div>
+              <div class="col-status emp-sortable" data-sort-col="status" role="button" tabindex="0" onclick="setEmployeeSort('status')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setEmployeeSort('status')}">สถานะ <span class="sort-arrow material-symbols-outlined" aria-hidden="true">unfold_more</span></div>
               <div class="col-actions">จัดการ</div>
             </div>
 

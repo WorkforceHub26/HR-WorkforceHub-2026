@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/css/layout-tokens.css" />
   <link rel="stylesheet" href="/css/layout-sidebar.css" />
   <link rel="stylesheet" href="/css/layout-topbar.css" />
-  <link rel="stylesheet" href="/css/hr-approval-chains.css?v=20261005-ux" />
+  <link rel="stylesheet" href="/css/hr-approval-chains.css?v=20261022-sq" />
   <!-- หัวการ์ดสีเดียวกับเมนูด้านข้าง (เปลี่ยนตามธีม) -->
   <link rel="stylesheet" href="/css/hr-card-head.css" />
 </head>
@@ -133,9 +133,10 @@
           </div>
           <ol class="ac-flow" aria-label="ลำดับการอนุมัติ">
             <li><span class="material-symbols-outlined" aria-hidden="true">edit_document</span>พนักงานยื่นใบลา</li>
-            <li class="is-step"><b>1</b>ลำดับที่ 1<small>เช่น หัวหน้างาน</small></li>
-            <li class="is-step"><b>2</b>ลำดับที่ 2<small>เช่น ผู้จัดการ (ถ้ามี)</small></li>
-            <li class="is-step is-optional"><b>3</b>ลำดับที่ 3<small>ถ้ามี</small></li>
+            <li class="is-step"><b>1</b>ผู้อนุมัติ ลำดับที่ 1<small>ทุกแผนก</small></li>
+            <li class="is-step"><b>2</b>ผู้อนุมัติ ลำดับที่ 2<small>ถ้ามี</small></li>
+            <li class="is-step is-optional"><b>3</b>ผู้อนุมัติ ลำดับที่ 3<small>ถ้ามี</small></li>
+            <li class="is-step is-optional"><b>↑</b>ผู้อนุมัติ ลำดับสูง<small>เฉพาะใบลาของผู้อนุมัติ</small></li>
             <li class="is-hr"><span class="material-symbols-outlined" aria-hidden="true">verified</span>ผลส่งถึง HR<small>อัตโนมัติทุกใบ</small></li>
           </ol>
         </section>
@@ -153,29 +154,32 @@
         <div id="acMain" hidden>
           <!-- เช็กลิสต์: ตั้งค่าให้ครบ 3 ข้อ -->
           <section class="ac-guide" aria-labelledby="acGuideTitle">
-            <h3 id="acGuideTitle">ตั้งค่าให้ครบ 3 ข้อ</h3>
+            <div class="ac-sec-head">
+              <h3 id="acGuideTitle"><span class="material-symbols-outlined" aria-hidden="true">checklist</span>ขั้นตอนที่ต้องทำให้ครบ 3 ข้อ</h3>
+              <span class="ac-sec-hint">กดที่กล่องเพื่อไปจัดการข้อนั้น</span>
+            </div>
             <div class="ac-guide__grid">
-              <button type="button" class="ac-gstep" id="acG1" data-go="chains" data-filter="missing">
+              <button type="button" class="ac-gstep" id="acG1" data-go="chains" data-filter="missing" data-cta="ไปตั้งผู้อนุมัติ">
                 <span class="ac-gstep__no">1</span>
                 <span class="ac-gstep__body"><strong>ตั้งผู้อนุมัติของทุกแผนก</strong><small id="acG1Text">กำลังตรวจสอบ...</small></span>
-                <span class="material-symbols-outlined ac-gstep__icon" aria-hidden="true">chevron_right</span>
+                <span class="ac-gstep__cta"><span class="ac-gstep__ctatxt">ไปตั้งผู้อนุมัติ</span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span>
               </button>
-              <button type="button" class="ac-gstep" id="acG2" data-go="policy">
+              <button type="button" class="ac-gstep" id="acG2" data-go="policy" data-cta="ไปเลือกผู้บริหาร">
                 <span class="ac-gstep__no">2</span>
                 <span class="ac-gstep__body"><strong>ตั้งผู้บริหาร</strong><small id="acG2Text">กำลังตรวจสอบ...</small></span>
-                <span class="material-symbols-outlined ac-gstep__icon" aria-hidden="true">chevron_right</span>
+                <span class="ac-gstep__cta"><span class="ac-gstep__ctatxt">ไปเลือกผู้บริหาร</span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span>
               </button>
-              <a class="ac-gstep" id="acG3" href="/pages/hr/approval-settings.html#link">
+              <button type="button" class="ac-gstep" id="acG3" data-go="chains" data-filter="noline" data-cta="ไปเชื่อมต่อ LINE">
                 <span class="ac-gstep__no">3</span>
                 <span class="ac-gstep__body"><strong>ให้ผู้อนุมัติผูก LINE</strong><small id="acG3Text">กำลังตรวจสอบ...</small></span>
-                <span class="material-symbols-outlined ac-gstep__icon" aria-hidden="true">chevron_right</span>
-              </a>
+                <span class="ac-gstep__cta"><span class="ac-gstep__ctatxt">ไปเชื่อมต่อ LINE</span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span>
+              </button>
             </div>
             <div class="ac-guide__extra">
-              <span class="ac-muted">กรณีพิเศษ (ถ้ามี):</span>
-              <button type="button" class="ac-chiplink" data-go="chains" data-hint="team"><span class="material-symbols-outlined" aria-hidden="true">groups</span>แผนกมีหลายกะ หัวหน้าคนละชุด</button>
-              <button type="button" class="ac-chiplink" data-go="people"><span class="material-symbols-outlined" aria-hidden="true">person_pin</span>บางคนมีผู้อนุมัติไม่เหมือนแผนก</button>
-              <a class="ac-chiplink" href="/pages/hr/approval-settings.html#delegate"><span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>หัวหน้าลา ให้คนอื่นอนุมัติแทน</a>
+              <span class="ac-extra-lbl">กรณีพิเศษ (ถ้ามี) กดเพื่อดูวิธีตั้ง:</span>
+              <button type="button" class="ac-chiplink" data-go="chains" data-hint="team"><span class="material-symbols-outlined" aria-hidden="true">groups</span>แผนกมีหลายกะ หัวหน้าคนละชุด<span class="material-symbols-outlined ac-chiplink__go" aria-hidden="true">chevron_right</span></button>
+              <button type="button" class="ac-chiplink" data-go="people"><span class="material-symbols-outlined" aria-hidden="true">person_pin</span>บางคนมีผู้อนุมัติไม่เหมือนแผนก<span class="material-symbols-outlined ac-chiplink__go" aria-hidden="true">chevron_right</span></button>
+              <a class="ac-chiplink" href="/pages/hr/approval-settings.html#delegate"><span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>หัวหน้าลา ให้คนอื่นอนุมัติแทน<span class="material-symbols-outlined ac-chiplink__go" aria-hidden="true">open_in_new</span></a>
             </div>
           </section>
 
@@ -188,17 +192,20 @@
           </div>
 
           <section class="ac-panel" data-panel="chains">
-            <p class="ac-intro">ตั้งครั้งเดียวต่อแผนก ใช้กับพนักงานทุกคนในแผนก · กด <b>แก้ผู้อนุมัติ</b> เพื่อเลือกคนในแต่ละลำดับ ·
-              แผนกที่มีหลายกะ กด <b>เพิ่มทีม/กะ</b></p>
+            <p class="ac-intro">ตั้งครั้งเดียวต่อแผนก ใช้กับพนักงานทุกคนในแผนก · ที่การ์ดแต่ละแผนก กด <span class="ac-kbd">แก้ผู้อนุมัติ</span> เลือกคนในแต่ละลำดับ ·
+              <span class="ac-kbd">เพิ่มทีม/กะ</span> เมื่อแผนกมีหลายกะ · <span class="ac-kbd">เชื่อมต่อ LINE</span> ส่งรหัสผูก / แก้ LINE ID</p>
             <div class="ac-toolbar-row">
               <div class="ac-toolbar">
                 <span class="material-symbols-outlined" aria-hidden="true">search</span>
                 <input type="search" id="acSearch" placeholder="ค้นหาแผนก หรือชื่อผู้อนุมัติ" />
               </div>
               <div class="ac-filters" role="group" aria-label="กรองแผนก">
-                <button type="button" class="ac-filter is-active" data-filter="all">ทั้งหมด <span id="acCountAll">0</span></button>
-                <button type="button" class="ac-filter" data-filter="missing">ยังไม่ตั้ง <span id="acCountMissing">0</span></button>
-                <button type="button" class="ac-filter" data-filter="noline">มีคนยังไม่ผูก LINE <span id="acCountNoLine">0</span></button>
+                <span class="ac-filters__lbl"><span class="material-symbols-outlined" aria-hidden="true">filter_list</span>แสดง:</span>
+                <div class="ac-seg">
+                  <button type="button" class="ac-filter is-active" data-filter="all">ทั้งหมด <span id="acCountAll">0</span></button>
+                  <button type="button" class="ac-filter" data-filter="missing">ยังไม่ตั้ง <span id="acCountMissing">0</span></button>
+                  <button type="button" class="ac-filter" data-filter="noline">มีคนยังไม่ผูก LINE <span id="acCountNoLine">0</span></button>
+                </div>
                 <button type="button" class="ac-filter ac-filter--plain" id="acOrderReset" title="ลากไอคอน ⋮⋮ ที่หัวการ์ดเพื่อจัดเรียงเอง · ปุ่มนี้เรียงกลับตามชื่อแผนก"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px;vertical-align:-3px;">sort_by_alpha</span> เรียงตามชื่อ</button>
               </div>
             </div>

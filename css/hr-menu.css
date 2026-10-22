@@ -15,7 +15,7 @@
   --c-soft: var(--th-p-50, #f0fdfa);
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 6px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
   overflow: hidden;
   display: flex;
@@ -41,7 +41,7 @@
   height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 6px;
   background: #fff;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   color: var(--th-b-600, #2563eb);
@@ -64,7 +64,7 @@
   padding: 10px 12px;
   background: transparent;
   border: 0;
-  border-radius: 10px;
+  border-radius: 4px;
   box-shadow: none;
   color: #0f172a;
   font: inherit;
@@ -74,12 +74,12 @@
   transform: none;
   transition: background-color 0.15s ease;
 }
-.hr-menu .hr-menu__list .action-btn.hr-menu__item + .hr-menu__item { border-top: 1px solid #f1f5f9; border-radius: 0 0 10px 10px; }
+.hr-menu .hr-menu__list .action-btn.hr-menu__item + .hr-menu__item { border-top: 1px solid #f1f5f9; border-radius: 0 0 4px 4px; }
 .hr-menu .hr-menu__list .action-btn.hr-menu__item:hover {
   background: var(--c-soft);
   transform: none;
   box-shadow: none;
-  border-radius: 10px;
+  border-radius: 4px;
 }
 .hr-menu .hr-menu__list .action-btn.hr-menu__item:focus-visible { outline: 2px solid var(--c); outline-offset: -2px; }
 
@@ -89,7 +89,7 @@
   height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 4px;
   background: var(--c-soft);
   color: var(--c);
   font-size: 19px;

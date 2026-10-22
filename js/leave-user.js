@@ -63,7 +63,7 @@ function getLeaveFormSteps() {
   }
 
   if (isManager) {
-    return ["ผู้บริหารสูงสุด (ลำดับที่ 3)"];
+    return ["ผู้อนุมัติ ลำดับสูง"];
   }
 
   const deptApprover = currentDeptApproverConfig || {};
@@ -73,13 +73,13 @@ function getLeaveFormSteps() {
   const steps = [];
   if (isLeader) {
     if (hasManager) {
-      steps.push("ผู้จัดการฝ่าย (ลำดับที่ 2)");
+      steps.push("ผู้อนุมัติ ลำดับที่ 2");
     } else {
-      steps.push("ผู้บริหารสูงสุด (ลำดับที่ 3)");
+      steps.push("ผู้อนุมัติ ลำดับสูง");
     }
   } else {
-    if (hasLeader) steps.push("หัวหน้าแผนก (ลำดับที่ 1)");
-    if (hasManager) steps.push("ผู้จัดการฝ่าย (ลำดับที่ 2)");
+    if (hasLeader) steps.push("ผู้อนุมัติ ลำดับที่ 1");
+    if (hasManager) steps.push("ผู้อนุมัติ ลำดับที่ 2");
   }
 
   if (steps.length === 0) {

@@ -130,7 +130,7 @@
       if (seen.has(k) || (bucket === 'hr' && seen.has(`mine:${lv.id}`))) return;
       seen.add(k);
       out[bucket].push(leaveItem(bucket === 'mine' ? 'approve' : 'hrstep', lv, {
-        what: `${lv.leave_types?.leave_name || 'ใบลา'} · ${dateRange(lv.start_date, lv.end_date)}${s.step_label ? ` · ${s.step_label}` : ''}`,
+        what: `${lv.leave_types?.leave_name || 'ใบลา'} · ${dateRange(lv.start_date, lv.end_date)}${s.step_label ? ` · ${window.PVTApproval?.neutralText ? window.PVTApproval.neutralText(s.step_label) : s.step_label}` : ''}`,
         at: s.activated_at || lv.created_at
       }));
     });

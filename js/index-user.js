@@ -721,9 +721,9 @@ async function loadDepartmentTeam(profileData) {
 
       let roleBadge = '<span style="font-size: 10px; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-weight: 600;">พนักงาน</span>';
       if (roleLower === "leader" || roleLower.includes("leader")) {
-        roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 6px; font-weight: 700;">👑 หัวหน้างาน (ลำดับที่ 1)</span>';
+        roleBadge = '<span style="font-size: 10px; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 6px; font-weight: 700;">👑 ผู้อนุมัติ ลำดับที่ 1</span>';
       } else if (roleLower === "manager" || roleLower.includes("manager")) {
-        roleBadge = '<span style="font-size: 10px; background: var(--th-b-100, #dbeafe); color: var(--th-b-700, #1d4ed8); padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้จัดการ (ลำดับที่ 2)</span>';
+        roleBadge = '<span style="font-size: 10px; background: var(--th-b-100, #dbeafe); color: var(--th-b-700, #1d4ed8); padding: 2px 6px; border-radius: 6px; font-weight: 700;">💼 ผู้อนุมัติ ลำดับที่ 2</span>';
       } else if (["hr", "admin", "superadmin"].includes(roleLower)) {
         roleBadge = '<span style="font-size: 10px; background: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 6px; font-weight: 700;">⚙️ ฝ่ายบุคคล</span>';
       }
@@ -2713,7 +2713,7 @@ window.initQuickForm = async function(profile, quotas) {
           const { data: execEmp } = await sb.from("employees").select("id, full_name, role, positions!position_id(position_name)").eq("id", execEmpId).maybeSingle();
           if (execEmp) {
             approverText = `${execEmp.full_name} (ผู้บริหารสูงสุด ลำดับที่ 3)`;
-            approverNote = '⚡ คุณอยู่ในระดับผู้จัดการ: คำขอจะถูกส่งให้ผู้บริหารสูงสุด (ลำดับที่ 3) พิจารณาอนุมัติ';
+            approverNote = '⚡ คุณอยู่ในระดับผู้จัดการ: คำขอจะถูกส่งให้ผู้อนุมัติ ลำดับสูง พิจารณาอนุมัติ';
             resolvedApprover = {
               id: execEmp.id,
               name: execEmp.full_name,
@@ -2770,7 +2770,7 @@ window.initQuickForm = async function(profile, quotas) {
 
             if (isActuallyManager) {
               approverText = `${appEmp.full_name} (${pName || 'ผู้จัดการฝ่าย'})`;
-              approverNote = '⚡ สายอนุมัติ: แผนกไม่มีหัวหน้างาน (ลำดับที่ 1) ระบบข้ามขั้นตอนและส่งตรงถึงผู้จัดการฝ่าย (ลำดับที่ 2)';
+              approverNote = '⚡ สายอนุมัติ: แผนกไม่มีผู้อนุมัติ ลำดับที่ 1 ระบบข้ามขั้นตอนและส่งตรงถึงผู้อนุมัติ ลำดับที่ 2';
               resolvedApprover = {
                 id: appEmp.id,
                 name: appEmp.full_name,
@@ -2781,7 +2781,7 @@ window.initQuickForm = async function(profile, quotas) {
               isLeaderFound = false;
             } else {
               approverText = `${appEmp.full_name} (${pName || 'หัวหน้างาน/หัวหน้ากะ'})`;
-              approverNote = '✓ สายอนุมัติ: ส่งคำขอให้หัวหน้างาน/หัวหน้ากะพิจารณา (ลำดับที่ 1)';
+              approverNote = '✓ สายอนุมัติ: ส่งคำขอให้ผู้อนุมัติ ลำดับที่ 1';
               resolvedApprover = {
                 id: appEmp.id,
                 name: appEmp.full_name,

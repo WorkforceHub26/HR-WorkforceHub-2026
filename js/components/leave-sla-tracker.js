@@ -149,13 +149,13 @@
       }
 
       if (hasL1) {
-        steps.push({ role: 'leader', shortName: 'หัวหน้าแผนก (ลำดับที่ 1)', status: req.manager_status || 'pending' });
+        steps.push({ role: 'leader', shortName: 'ผู้อนุมัติ ลำดับที่ 1', status: req.manager_status || 'pending' });
       }
       if (hasL2) {
-        steps.push({ role: 'manager', shortName: 'ผู้จัดการฝ่าย (ลำดับที่ 2)', status: req.director_status || 'pending' });
+        steps.push({ role: 'manager', shortName: 'ผู้อนุมัติ ลำดับที่ 2', status: req.director_status || 'pending' });
       }
       if (hasExecutive) {
-        steps.push({ role: 'executive', shortName: 'ผู้บริหาร (ลำดับที่ 3)', status: req.executive_status || 'pending' });
+        steps.push({ role: 'executive', shortName: 'ผู้อนุมัติ ลำดับสูง', status: req.executive_status || 'pending' });
       }
     }
 
@@ -167,15 +167,15 @@
       const pendingStep = steps.find(s => s.status === 'pending' || s.status === 'waiting');
       if (pendingStep) {
         if (pendingStep.role === 'leader') {
-          stepText = "1. รอหัวหน้าแผนก (ลำดับที่ 1)";
+          stepText = "1. รอผู้อนุมัติ ลำดับที่ 1";
           stageClass = "waiting-l1";
           stageIcon = "supervisor_account";
         } else if (pendingStep.role === 'manager') {
-          stepText = steps.some(s => s.role === 'leader') ? "2. รอผู้จัดการฝ่าย (ลำดับที่ 2)" : "รอผู้จัดการฝ่าย (ลำดับที่ 2)";
+          stepText = steps.some(s => s.role === 'leader') ? "2. รอผู้อนุมัติ ลำดับที่ 2" : "รอผู้อนุมัติ ลำดับที่ 2";
           stageClass = "waiting-l2";
           stageIcon = "manage_accounts";
         } else if (pendingStep.role === 'executive') {
-          stepText = "รอผู้บริหารพิจารณา (ลำดับที่ 3)";
+          stepText = "รอผู้อนุมัติ ลำดับสูง";
           stageClass = "waiting-l3";
           stageIcon = "verified_user";
         } else {
@@ -202,15 +202,15 @@
     } else {
       // กรณีไม่มีขั้นตอนระบุไว้ชัดเจน ให้ตรวจสอบจากฟิลด์สถานะโดยตรง
       if (req.director_status === 'pending') {
-        stepText = "รอผู้จัดการฝ่าย (ลำดับที่ 2)";
+        stepText = "รอผู้อนุมัติ ลำดับที่ 2";
         stageClass = "waiting-l2";
         stageIcon = "manage_accounts";
       } else if (req.manager_status === 'pending') {
-        stepText = "รอหัวหน้าแผนก (ลำดับที่ 1)";
+        stepText = "รอผู้อนุมัติ ลำดับที่ 1";
         stageClass = "waiting-l1";
         stageIcon = "supervisor_account";
       } else if (req.executive_status === 'pending') {
-        stepText = "รอผู้บริหารพิจารณา (ลำดับที่ 3)";
+        stepText = "รอผู้อนุมัติ ลำดับสูง";
         stageClass = "waiting-l3";
         stageIcon = "verified_user";
       } else {
@@ -417,7 +417,7 @@
                 ระบบติดตามกรอบเวลาอนุมัติใบลา (2-Day SLA Countdown)
                 ${overdueCount > 0 ? `<span class="sla-overdue-badge" style="background: #ef4444; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 700; white-space: nowrap;">เกินกำหนด ${overdueCount} รายการ</span>` : ''}
               </h3>
-              <p>นโยบายกำหนดให้หัวหน้า (ลำดับที่ 1) และผู้จัดการ (ลำดับที่ 2) พิจารณาอนุมัติภายใน 48 ชั่วโมง (2 วันทำการ)</p>
+              <p>นโยบายกำหนดให้ผู้อนุมัติ ลำดับที่ 1 และผู้อนุมัติ ลำดับที่ 2 พิจารณาอนุมัติภายใน 48 ชั่วโมง (2 วันทำการ)</p>
             </div>
           </div>
 
@@ -1062,7 +1062,7 @@
         const { value: rejectComment, isConfirmed } = await Swal.fire({
           title: '<span style="font-size: 20px; font-weight: 800; color: #b91c1c;">ยืนยันไม่อนุมัติ / ปฏิเสธคำขอลา</span>',
           input: 'textarea',
-          inputLabel: 'โปรดระบุเหตุผลการไม่อนุมัติ (จากหัวหน้างาน/ผู้จัดการ):',
+          inputLabel: 'โปรดระบุเหตุผลการไม่อนุมัติ (จากผู้อนุมัติ):',
           inputPlaceholder: 'กรอกเหตุผลการไม่อนุมัติ เช่น งานเร่งด่วน, กำลังพลไม่พอ, เอกสารไม่สมบูรณ์...',
           showCancelButton: true,
           showDenyButton: false,

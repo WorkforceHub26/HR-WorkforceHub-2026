@@ -414,7 +414,7 @@ function applyRoleBasedUI() {
         const pageSubTitle = document.getElementById("pageSubTitle");
         if (pageSubTitle) pageSubTitle.textContent = "ฝ่ายบุคคล-ธุรการ (อนุมัติเฉพาะคนในแผนก)";
       } else {
-        roleBadge.textContent = currentRole === "manager" ? "ผู้จัดการอนุมัติ (ลำดับที่ 2)" : "หัวหน้างานอนุมัติ (ลำดับที่ 1)";
+        roleBadge.textContent = currentRole === "manager" ? "ผู้อนุมัติ ลำดับที่ 2" : "ผู้อนุมัติ ลำดับที่ 1";
       }
       roleBadge.className = "status-badge status-pending";
     }
@@ -534,9 +534,9 @@ function resolveRequestChain(req) {
 }
 
 function stepInfoForRole(role) {
-  if (role === 'leader') return { level: 'L1', label: 'หัวหน้างาน (ลำดับที่ 1)' };
-  if (role === 'manager') return { level: 'L2', label: 'ผู้จัดการ (ลำดับที่ 2)' };
-  if (role === 'executive' || role === 'director' || role === 'owner') return { level: 'L3', label: 'ผู้บริหาร (ลำดับที่ 3)' };
+  if (role === 'leader') return { level: 'L1', label: 'ผู้อนุมัติ ลำดับที่ 1' };
+  if (role === 'manager') return { level: 'L2', label: 'ผู้อนุมัติ ลำดับที่ 2' };
+  if (role === 'executive' || role === 'director' || role === 'owner') return { level: 'L3', label: 'ผู้อนุมัติ ลำดับสูง' };
   return { level: 'HR', label: 'ฝ่ายบุคคล (HR/Admin)' };
 }
 
@@ -872,7 +872,7 @@ function getApprovalWorkflowSteps(req) {
   if (hasL1) {
     steps.push({
       role: 'leader',
-      shortName: 'หัวหน้าแผนก (ลำดับที่ 1)',
+      shortName: 'ผู้อนุมัติ ลำดับที่ 1',
       fullName: 'หัวหน้างานชั้นต้น (ลำดับที่ 1: Leader / Supervisor)',
       status: req.manager_status || 'pending'
     });
@@ -881,7 +881,7 @@ function getApprovalWorkflowSteps(req) {
   if (hasL2) {
     steps.push({
       role: 'manager',
-      shortName: 'ผู้จัดการฝ่าย (ลำดับที่ 2)',
+      shortName: 'ผู้อนุมัติ ลำดับที่ 2',
       fullName: 'ผู้จัดการฝ่าย (ลำดับที่ 2: Director / Manager)',
       status: req.director_status || 'pending'
     });
@@ -890,7 +890,7 @@ function getApprovalWorkflowSteps(req) {
   if (hasExecutive) {
     steps.push({
       role: 'executive',
-      shortName: 'ผู้บริหาร (ลำดับที่ 3)',
+      shortName: 'ผู้อนุมัติ ลำดับสูง',
       fullName: 'ผู้บริหารสูงสุด (ลำดับที่ 3: Executive / MD)',
       status: req.executive_status || 'pending'
     });
@@ -1480,7 +1480,7 @@ function canApproveStep(req, role, silent = false) {
     return false;
   }
   if (role === 'manager' && !isL1Approved && chain.l1 && chain.l1 !== me) {
-    warn('รอหัวหน้างานพิจารณาก่อน', 'ใบลานี้ยังรอหัวหน้างาน (ลำดับที่ 1) พิจารณา เมื่อหัวหน้างานอนุมัติแล้วระบบจะแจ้งให้ท่านพิจารณาต่อ', 'info');
+    warn('รอหัวหน้างานพิจารณาก่อน', 'ใบลานี้ยังรอผู้อนุมัติ ลำดับที่ 1 พิจารณา เมื่อหัวหน้างานอนุมัติแล้วระบบจะแจ้งให้ท่านพิจารณาต่อ', 'info');
     return false;
   }
   if (role === 'manager' && isL2Approved) {
@@ -1491,7 +1491,7 @@ function canApproveStep(req, role, silent = false) {
   // 🔵 3. กรณีหัวหน้างาน (L1 Leader) กำลังพิจารณา
   if (role === 'leader') {
     if (isL1Approved) {
-      warn('ดำเนินการแล้ว', 'คำขอนี้หัวหน้างาน (ลำดับที่ 1) ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/ผู้บริหาร', 'info');
+      warn('ดำเนินการแล้ว', 'คำขอนี้ผู้อนุมัติ ลำดับที่ 1 ได้พิจารณาอนุมัติเรียบร้อยแล้ว อยู่ในขั้นตอนของผู้จัดการฝ่าย/ผู้บริหาร', 'info');
       return false;
     }
   }
@@ -1523,9 +1523,9 @@ function renderLeaveTable() {
       selectFilter.innerHTML = `
         <option value="all">-- แสดงทั้งหมด --</option>
         <option value="overdue">⚠️ ค้างพิจารณาเกิน 2 วัน (เกินกำหนด)</option>
-        <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (ลำดับที่ 1)</option>
-        <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (ลำดับที่ 2)</option>
-        <option value="pending_executive">3. ผู้จัดการผ่านแล้ว / รอผู้บริหารอนุมัติ (ลำดับที่ 3)</option>
+        <option value="pending_manager">1. รอผู้อนุมัติ ลำดับที่ 1</option>
+        <option value="pending_director">2. ลำดับที่ 1 ผ่านแล้ว / รอผู้อนุมัติ ลำดับที่ 2</option>
+        <option value="pending_executive">3. ลำดับที่ 2 ผ่านแล้ว / รอผู้อนุมัติ ลำดับสูง</option>
         <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
         <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
       `;
@@ -1534,8 +1534,8 @@ function renderLeaveTable() {
       selectFilter.innerHTML = `
         <option value="all">-- แสดงทั้งหมด --</option>
         <option value="overdue">⚠️ ค้างพิจารณาเกิน 2 วัน (เกินกำหนด)</option>
-        <option value="pending_manager">1. รอหัวหน้าแผนกอนุมัติ (ลำดับที่ 1)</option>
-        <option value="pending_director">2. หัวหน้าผ่านแล้ว / รอผู้จัดการอนุมัติ (ลำดับที่ 2)</option>
+        <option value="pending_manager">1. รอผู้อนุมัติ ลำดับที่ 1</option>
+        <option value="pending_director">2. ลำดับที่ 1 ผ่านแล้ว / รอผู้อนุมัติ ลำดับที่ 2</option>
         <option value="fully_approved">อนุมัติครบทุกระดับแล้ว</option>
         <option value="rejected">ถูกปฏิเสธ (Rejected)</option>
       `;
@@ -2300,7 +2300,7 @@ async function renderLeaveAuditTimeline(leaveId, el) {
       <li style="display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed #e2e8f0;">
         <span class="material-symbols-outlined" style="flex:0 0 26px;width:26px;height:26px;border-radius:50%;background:${ui.color}1a;color:${ui.color};font-size:16px;display:flex;align-items:center;justify-content:center;">${ui.icon}</span>
         <div style="flex:1;min-width:0;font-size:13px;line-height:1.5;">
-          <div style="font-weight:700;color:#0f172a;">${escapeHtml(ui.text)}${r.step_label ? ` <span style="font-weight:500;color:#64748b;">· ${escapeHtml(r.step_label)}</span>` : ''}</div>
+          <div style="font-weight:700;color:#0f172a;">${escapeHtml(ui.text)}${r.step_label ? ` <span style="font-weight:500;color:#64748b;">· ${escapeHtml(window.PVTApproval?.neutralText ? window.PVTApproval.neutralText(r.step_label) : r.step_label)}</span>` : ''}</div>
           <div style="color:#475569;">โดย ${escapeHtml(r.actor_name || '-')} · ${escapeHtml(fmt(r.created_at))}</div>
           ${r.comment ? `<div style="color:#334155;margin-top:2px;">💬 ${escapeHtml(r.comment)}</div>` : ''}
         </div>
@@ -2547,7 +2547,7 @@ async function performApprovalStep(reqData) {
 
   // 🧾 หลักฐาน + แจ้ง HR เมื่อจบ
   const step = isExecActor ? stepInfoForRole('executive') : stepInfoForRole(actRole);
-  const stepLabel = (currentRole === 'leader' && actRole === 'manager') ? 'หัวหน้างาน + ผู้จัดการ (ลำดับที่ 1+2 คนเดียวกัน)' : step.label;
+  const stepLabel = (currentRole === 'leader' && actRole === 'manager') ? 'ผู้อนุมัติ ลำดับที่ 1+2 (คนเดียวกัน)' : step.label;
   const auditOpts = {
     stepLevel: step.level, stepLabel, comment: delegationNote || null,
     statusBefore: reqData.status || 'pending', statusAfter: isFinal ? 'approved' : 'pending',
@@ -2680,11 +2680,11 @@ async function approveLeave(leaveId) {
   if (!canApproveStep(reqData, currentRole)) return;
 
   const roleTitle = currentRole === 'leader' 
-    ? 'หัวหน้างาน (ลำดับที่ 1)' 
+    ? 'ผู้อนุมัติ ลำดับที่ 1' 
     : currentRole === 'manager' 
-    ? 'ผู้จัดการฝ่าย (ลำดับที่ 2)' 
+    ? 'ผู้อนุมัติ ลำดับที่ 2' 
     : (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner')
-    ? 'ผู้บริหาร (ลำดับที่ 3)'
+    ? 'ผู้อนุมัติ ลำดับสูง'
     : 'ฝ่ายบุคคล HR / Admin';
 
   // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการอนุมัติเพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
@@ -2753,11 +2753,11 @@ async function rejectLeave(leaveId) {
   if (!canApproveStep(reqData, currentRole)) return;
 
   const roleTitle = currentRole === 'leader' 
-    ? 'หัวหน้างาน (ลำดับที่ 1)' 
+    ? 'ผู้อนุมัติ ลำดับที่ 1' 
     : currentRole === 'manager' 
-    ? 'ผู้จัดการฝ่าย (ลำดับที่ 2)' 
+    ? 'ผู้อนุมัติ ลำดับที่ 2' 
     : (currentRole === 'executive' || currentRole === 'director' || currentRole === 'owner')
-    ? 'ผู้บริหาร (ลำดับที่ 3)'
+    ? 'ผู้อนุมัติ ลำดับสูง'
     : 'ฝ่ายบุคคล HR / Admin';
 
   const summaryHtml = buildLeaveActionConfirmDialogHtml(reqData, roleTitle, 'reject');
@@ -3278,7 +3278,7 @@ async function rejectCancellation(leaveId) {
 
     const restoreLabel = restoreStatus === 'approved'
       ? 'ใบลายังคงสถานะอนุมัติเดิม'
-      : (resumedStep ? `ใบลาถูกส่งกลับไปให้ "${resumedStep.step_label || 'ผู้อนุมัติลำดับถัดไป'}" พิจารณาต่อแล้ว` : 'ใบลาถูกส่งกลับเข้าสู่ขั้นตอนอนุมัติเดิมต่อไป');
+      : (resumedStep ? `ใบลาถูกส่งกลับไปให้ "${(window.PVTApproval?.stepLabelOf ? window.PVTApproval.stepLabelOf(resumedStep) : resumedStep.step_label) || 'ผู้อนุมัติลำดับถัดไป'}" พิจารณาต่อแล้ว` : 'ใบลาถูกส่งกลับเข้าสู่ขั้นตอนอนุมัติเดิมต่อไป');
 
     await Swal.fire('ปฏิเสธคำร้องแล้ว', restoreLabel, 'success');
     loadPendingLeavesHR();
@@ -3396,7 +3396,7 @@ async function printLeaveA4(leaveId) {
     if (steps.length) {
       rows = steps.map((s, i) => ({
         no: i + 1,
-        role: s.step_label || `ผู้อนุมัติลำดับที่ ${i + 1}`,
+        role: window.PVTApproval?.stepTitle ? window.PVTApproval.stepTitle(s.step_label, i + 1) : `ผู้อนุมัติ ลำดับที่ ${i + 1}`,
         who: s.acted_by_name || (s.hr_any ? 'ฝ่ายทรัพยากรบุคคล' : (s.approver_names || []).join(' / ')),
         result: s.status === 'approved' ? 'approved' : (s.status === 'rejected' || s.status === 'expired') ? 'rejected' : s.status === 'cancelled' ? 'cancelled' : 'pending',
         expired: s.status === 'expired',
@@ -3405,9 +3405,9 @@ async function printLeaveA4(leaveId) {
       }));
     } else {
       const legacy = [
-        ['manager_status', 'หัวหน้างาน (ลำดับที่ 1)'],
-        ['director_status', 'ผู้จัดการ (ลำดับที่ 2)'],
-        ['executive_status', 'ผู้บริหาร (ลำดับที่ 3)']
+        ['manager_status', 'ผู้อนุมัติ ลำดับที่ 1'],
+        ['director_status', 'ผู้อนุมัติ ลำดับที่ 2'],
+        ['executive_status', 'ผู้อนุมัติ ลำดับสูง']
       ];
       rows = legacy.map(([f, label], i) => {
         const v = String(req[f] || 'pending').toLowerCase();
@@ -3992,8 +3992,8 @@ async function exportLeaveReportExcel() {
         "วันที่สิ้นสุด",
         "จำนวนวันลา",
         "เหตุผลการลา",
-        "สถานะหัวหน้า (ลำดับที่ 1)",
-        "สถานะผู้จัดการ (ลำดับที่ 2)",
+        "สถานะผู้อนุมัติ ลำดับที่ 1",
+        "สถานะผู้อนุมัติ ลำดับที่ 2",
         "สถานะสุดท้าย HR (ลำดับที่ 3)",
         "วันที่ยื่นคำขอ"
       ];

@@ -503,340 +503,279 @@
     backdrop.className = "settings-modal-backdrop";
     backdrop.innerHTML = `
       <div class="settings-modal-box" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
-        
+
         <!-- Header -->
         <div class="settings-modal-header">
           <div class="settings-header-title-wrap">
             <div class="settings-header-icon">
-              <img src="/assets/icons/settings.svg" alt="ตั้งค่า" style="width: 24px; height: 24px; border-radius: 6px; object-fit: contain;" />
+              <span class="material-symbols-outlined">settings</span>
             </div>
             <div>
-              <h3 class="settings-modal-title" id="settingsModalTitle">การตั้งค่าระบบ (Settings)</h3>
-              <p class="settings-modal-subtitle">ปรับแต่งขนาดตัวอักษร ธีมสี และการเชื่อมต่อ LINE</p>
+              <h3 class="settings-modal-title" id="settingsModalTitle">ตั้งค่า</h3>
+              <p class="settings-modal-subtitle">เปลี่ยนแล้วมีผลทันที · บันทึกไว้ในเครื่องนี้</p>
             </div>
           </div>
-          <button type="button" class="settings-modal-close-btn" onclick="closeSystemSettingsModal()" title="ปิดหน้าต่าง">
+          <button type="button" class="settings-modal-close-btn" onclick="closeSystemSettingsModal()" title="ปิดหน้าต่าง" aria-label="ปิด">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <!-- Body -->
+        <!-- Body: เมนูหมวด (ซ้าย) + เนื้อหา (ขวา) -->
         <div class="settings-modal-body">
 
-          <!-- Card 0: คอนโซลผู้ดูแลระบบ (แสดงเฉพาะ Admin) -->
-          <div class="setting-card-item" id="settingsAdminCard" style="display: none;">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #8b5cf6; font-size: 28px;">admin_panel_settings</span>
-              <div class="setting-item-info">
-                <h4>คอนโซลผู้ดูแลระบบ (Admin Console)</h4>
-                <p>ตรวจสุขภาพระบบ ดูบันทึกการทำงาน สำรอง/กู้คืนข้อมูล และจัดการผู้ใช้</p>
-              </div>
-            </div>
-            <a href="/pages/hr/admin-dashboard.html" class="settings-admin-link" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #6366f1); color: #fff; font-weight: 700; font-size: 14.5px; text-decoration: none; box-shadow: 0 6px 16px rgba(124, 58, 237, .22);">
-              <span class="material-symbols-outlined" style="font-size: 20px;">open_in_new</span>
-              เปิดคอนโซลผู้ดูแลระบบ
+          <nav class="settings-nav" role="tablist" aria-label="หมวดการตั้งค่า">
+            <button type="button" class="settings-nav-btn" role="tab" data-tab="display" onclick="switchSettingsTab('display')">
+              <span class="material-symbols-outlined">palette</span><span>การแสดงผล</span>
+            </button>
+            <button type="button" class="settings-nav-btn" role="tab" data-tab="language" onclick="switchSettingsTab('language')">
+              <span class="material-symbols-outlined">language</span><span>ภาษา</span>
+            </button>
+            <button type="button" class="settings-nav-btn" role="tab" data-tab="notify" onclick="switchSettingsTab('notify')">
+              <span class="material-symbols-outlined">notifications</span><span>การแจ้งเตือน</span>
+            </button>
+            <button type="button" class="settings-nav-btn" role="tab" data-tab="privacy" onclick="switchSettingsTab('privacy')">
+              <span class="material-symbols-outlined">shield_person</span><span>ความเป็นส่วนตัว</span>
+            </button>
+            <!-- แสดงเฉพาะ Admin (ควบคุมใน openSystemSettingsModal) -->
+            <a href="/pages/hr/admin-dashboard.html" class="settings-nav-btn settings-nav-admin" id="settingsAdminCard" style="display: none;">
+              <span class="material-symbols-outlined">admin_panel_settings</span><span>คอนโซลผู้ดูแล</span>
+              <span class="material-symbols-outlined settings-nav-ext">open_in_new</span>
             </a>
-          </div>
-          
-          <!-- Card 1: ขนาดตัวอักษร -->
-          <div class="setting-card-item">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #3b82f6; font-size: 28px;">text_format</span>
-              <div class="setting-item-info">
-                <h4>ขนาดตัวอักษรและการแสดงผล (Font Size)</h4>
-                <p>เลือกขนาดข้อความที่เหมาะกับสายตาของคุณ เพื่อการอ่านที่สะดวกสบาย</p>
-              </div>
-            </div>
+          </nav>
 
-            <div class="font-size-options-grid">
-              <button type="button" class="font-size-btn" id="fontBtnNormal" onclick="changeSystemFontSize('normal')">
-                <span class="font-size-sample" style="font-size: 15px;">กขค</span>
-                <span class="font-size-label">มาตรฐาน (100%)</span>
-              </button>
-              <button type="button" class="font-size-btn" id="fontBtnMedium" onclick="changeSystemFontSize('medium')">
-                <span class="font-size-sample" style="font-size: 18px;">กขค</span>
-                <span class="font-size-label">ปานกลาง (+12%)</span>
-              </button>
-              <button type="button" class="font-size-btn" id="fontBtnLarge" onclick="changeSystemFontSize('large')">
-                <span class="font-size-sample" style="font-size: 21px;">กขค</span>
-                <span class="font-size-label">ใหญ่พิเศษ (+25%)</span>
-              </button>
-            </div>
+          <div class="settings-panels">
 
-            <div class="font-preview-box" id="fontPreviewBox">
-              <strong>ตัวอย่างการแสดงผล:</strong> ระบบยื่นใบลาและตรวจสอบสิทธิ์คงเหลือ ประจำปี พ.ศ. 2569 (PVT Workforce Hub)
-            </div>
-          </div>
+            <!-- ========== หมวด: การแสดงผล ========== -->
+            <section class="settings-panel" data-panel="display" role="tabpanel">
+              <h3 class="settings-panel-title">การแสดงผล</h3>
 
-          <!-- Card 1.5: แบบอักษร -->
-          <div class="setting-card-item">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #0d9488; font-size: 28px;">font_download</span>
-              <div class="setting-item-info">
-                <h4>แบบอักษร (Font)</h4>
-                <p>เลือกแบบตัวหนังสือที่อ่านสบายตา — เปลี่ยนทันทีทุกหน้า เฉพาะเครื่องนี้</p>
-              </div>
-            </div>
-            <div id="fontFamilyOptions" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:8px;"></div>
-            <div id="fontFamilyPreview" style="margin-top:10px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:10px 14px; font-size:15px; color:#334155; line-height:1.6;">
-              ใบลาพักร้อน 2 วัน (28–29 ธ.ค. 2569) · คงเหลือ 4 วัน · อนุมัติแล้วโดยหัวหน้างาน 0123456789
-            </div>
-          </div>
-
-          <!-- Card 2: ธีมสีของระบบ -->
-          <div class="setting-card-item">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #f43f5e; font-size: 28px;">palette</span>
-              <div class="setting-item-info">
-                <h4>ธีมและโทนสีของระบบ (Color Themes)</h4>
-                <p>เปลี่ยนเฉดสีหลักของแอปพลิเคชันตามความชอบ</p>
-              </div>
-            </div>
-
-            <div class="theme-options-grid" id="themeOptionsGrid">
-              <!-- Rendered via JS -->
-            </div>
-          </div>
-
-          <!-- Card 3: เชื่อมต่อ LINE (แสดงเฉพาะผู้มีสิทธิ์ — ดู PVTLine ใน auth-guard.js) -->
-          <div class="setting-card-item" data-line-entry>
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #10b981; font-size: 28px;">forum</span>
-              <div class="setting-item-info">
-                <h4>การแจ้งเตือนผ่าน LINE (LINE Notification)</h4>
-                <p>รับข้อความแจ้งเตือนผลการอนุมัติใบลาและสถานะคำขอตรงสู่มือถือ</p>
-              </div>
-            </div>
-
-            <div class="line-status-banner">
-              <div class="line-status-left">
-                <img src="/assets/icons/line.svg" alt="LINE" style="width: 28px; height: 28px; object-fit: contain;" />
-                <div class="line-status-text">
-                  <h5 id="lineStatusTitle">สถานะ: กำลังตรวจสอบ...</h5>
-                  <p id="lineStatusDesc">ผูกบัญชีเพื่อรับการแจ้งเตือนทันที</p>
+              <div class="setting-card-item">
+                <div class="setting-section-head">
+                  <h4>ขนาดตัวอักษร</h4>
+                  <p>ขยายข้อความทั้งหน้าให้อ่านง่ายขึ้น</p>
+                </div>
+                <div class="font-size-options-grid">
+                  <button type="button" class="font-size-btn" id="fontBtnNormal" onclick="changeSystemFontSize('normal')">
+                    <span class="font-size-sample" style="font-size: 16px;">ก</span>
+                    <span class="font-size-label">ปกติ</span>
+                  </button>
+                  <button type="button" class="font-size-btn" id="fontBtnMedium" onclick="changeSystemFontSize('medium')">
+                    <span class="font-size-sample" style="font-size: 20px;">ก</span>
+                    <span class="font-size-label">ใหญ่</span>
+                  </button>
+                  <button type="button" class="font-size-btn" id="fontBtnLarge" onclick="changeSystemFontSize('large')">
+                    <span class="font-size-sample" style="font-size: 24px;">ก</span>
+                    <span class="font-size-label">ใหญ่มาก</span>
+                  </button>
                 </div>
               </div>
-              <button type="button" class="btn-line-cta" onclick="requestLineTokenFromSettings()">
-                <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
-                ขอรหัสผูก LINE
-              </button>
-            </div>
 
-            <div style="margin-top: 4px;">
-              <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">
-                หรือระบุ LINE User ID โดยตรง:
-              </label>
-              <div class="line-manual-box">
-                <input type="text" id="settingsLineIdInput" class="line-manual-input" placeholder="เช่น U1234567890abcdef..." />
-                <button type="button" class="line-manual-save-btn" onclick="saveLineIdFromSettings()">
-                  บันทึก ID
-                </button>
+              <div class="setting-card-item">
+                <div class="setting-section-head">
+                  <h4>แบบอักษร</h4>
+                  <p>เลือกแบบตัวหนังสือที่อ่านสบายตา</p>
+                </div>
+                <div id="fontFamilyOptions" class="font-family-list"></div>
+                <div id="fontFamilyPreview" class="font-preview-box">
+                  <span class="font-preview-label">ตัวอย่าง</span>
+                  ใบลาพักร้อน 2 วัน (28–29 ธ.ค. 2569) · คงเหลือ 4 วัน · อนุมัติแล้ว
+                </div>
               </div>
-            </div>
+
+              <div class="setting-card-item">
+                <div class="setting-section-head">
+                  <h4>สีของระบบ</h4>
+                  <p>สีหลักของปุ่มและเมนู</p>
+                </div>
+                <div class="theme-options-grid" id="themeOptionsGrid"></div>
+              </div>
+
+              <div class="setting-card-item setting-list">
+                <label class="setting-toggle-row" for="settingsEyeCareToggle">
+                  <div class="setting-toggle-info">
+                    <h5>ถนอมสายตา</h5>
+                    <p>ปรับหน้าจอให้โทนอุ่นขึ้นเล็กน้อย เหมาะกับการใช้ตอนกลางคืน</p>
+                  </div>
+                  <span class="setting-switch">
+                    <input type="checkbox" id="settingsEyeCareToggle" onchange="toggleSystemEyeCare(this.checked)">
+                    <span class="setting-slider"></span>
+                  </span>
+                </label>
+                <label class="setting-toggle-row" for="settingsHighContrastToggle">
+                  <div class="setting-toggle-info">
+                    <h5>ตัวหนังสือเข้มชัด</h5>
+                    <p>ทำตัวอักษรหนาและเข้มขึ้น เส้นขอบชัดขึ้น</p>
+                  </div>
+                  <span class="setting-switch">
+                    <input type="checkbox" id="settingsHighContrastToggle" onchange="toggleSystemHighContrast(this.checked)">
+                    <span class="setting-slider"></span>
+                  </span>
+                </label>
+                <label class="setting-toggle-row" for="settingsCompactToggle">
+                  <div class="setting-toggle-info">
+                    <h5>ตารางแบบกระชับ</h5>
+                    <p>ลดช่องว่างในตาราง เพื่อเห็นข้อมูลได้มากขึ้นในหน้าเดียว</p>
+                  </div>
+                  <span class="setting-switch">
+                    <input type="checkbox" id="settingsCompactToggle" onchange="toggleSystemCompactMode(this.checked)">
+                    <span class="setting-slider"></span>
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <!-- ========== หมวด: ภาษา ========== -->
+            <section class="settings-panel" data-panel="language" role="tabpanel">
+              <h3 class="settings-panel-title">ภาษา</h3>
+
+              <div class="setting-card-item">
+                <div class="setting-section-head">
+                  <h4>ภาษาของระบบ</h4>
+                  <p>ใช้กับเมนูและแบบฟอร์มทั้งหมด</p>
+                </div>
+                <div class="lang-options-grid lang-main-grid">
+                  <button type="button" class="lang-pills-btn" id="langBtnTh" onclick="changeSystemLanguage('th')">
+                    <span class="lang-code">TH</span><span>ภาษาไทย</span>
+                  </button>
+                  <button type="button" class="lang-pills-btn" id="langBtnLo" onclick="changeSystemLanguage('lo')">
+                    <span class="lang-code">LA</span><span>ພາສາລາວ</span>
+                  </button>
+                  <button type="button" class="lang-pills-btn" id="langBtnMy" onclick="changeSystemLanguage('my')">
+                    <span class="lang-code">MM</span><span>မြန်မာစာ</span>
+                  </button>
+                  <button type="button" class="lang-pills-btn" id="langBtnEn" onclick="changeSystemLanguage('en')">
+                    <span class="lang-code">EN</span><span>English</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-card-item magic-translate-card">
+                <div class="setting-section-head">
+                  <h4>ภาษาอื่น ๆ (แปลด้วย Google)</h4>
+                  <p>ถ้าไม่มีภาษาที่ต้องการด้านบน ให้เลือกจากรายการนี้ ระบบจะแปลหน้าจอให้อัตโนมัติ</p>
+                </div>
+                <div id="google_translate_element_visible" class="translate-slot"></div>
+                <p class="setting-hint">
+                  <span class="material-symbols-outlined">info</span>
+                  แนะนำให้ตั้ง "ภาษาของระบบ" เป็นภาษาไทยก่อนใช้ตัวแปลนี้
+                </p>
+              </div>
+            </section>
+
+            <!-- ========== หมวด: การแจ้งเตือน ========== -->
+            <section class="settings-panel" data-panel="notify" role="tabpanel">
+              <h3 class="settings-panel-title">การแจ้งเตือน</h3>
+
+              <!-- LINE (แสดงเฉพาะผู้มีสิทธิ์ — ดู PVTLine ใน auth-guard.js) -->
+              <div class="setting-card-item" data-line-entry>
+                <div class="setting-section-head">
+                  <h4>แจ้งเตือนผ่าน LINE</h4>
+                  <p>รับผลการอนุมัติใบลาเข้า LINE บนมือถือ</p>
+                </div>
+                <div class="line-status-banner">
+                  <div class="line-status-left">
+                    <img src="/assets/icons/line.svg" alt="LINE" />
+                    <div class="line-status-text">
+                      <h5 id="lineStatusTitle">กำลังตรวจสอบ...</h5>
+                      <p id="lineStatusDesc">ผูกบัญชีเพื่อรับการแจ้งเตือนทันที</p>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-line-cta" onclick="requestLineTokenFromSettings()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+                    เชื่อมต่อ LINE
+                  </button>
+                </div>
+                <details class="line-advanced">
+                  <summary>ใส่ LINE User ID เอง (สำหรับผู้ที่มีรหัสอยู่แล้ว)</summary>
+                  <div class="line-manual-box">
+                    <input type="text" id="settingsLineIdInput" class="line-manual-input" placeholder="เช่น U1234567890abcdef..." aria-label="LINE User ID" />
+                    <button type="button" class="line-manual-save-btn" onclick="saveLineIdFromSettings()">บันทึก</button>
+                  </div>
+                </details>
+              </div>
+
+              <div class="setting-card-item setting-list">
+                <label class="setting-toggle-row" for="settingsSoundToggle">
+                  <div class="setting-toggle-info">
+                    <h5>เสียงเมื่อกดปุ่ม</h5>
+                    <p>มีเสียงสั้น ๆ เมื่อกดปุ่มหรือบันทึกสำเร็จ</p>
+                  </div>
+                  <span class="setting-switch">
+                    <input type="checkbox" id="settingsSoundToggle" onchange="toggleSystemSound(this.checked)">
+                    <span class="setting-slider"></span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="setting-card-item">
+                <div class="setting-section-head">
+                  <h4>อัปเดตข้อมูลอัตโนมัติ</h4>
+                  <p>ดึงคำขอและสถิติล่าสุดเองโดยไม่ต้องรีเฟรชหน้า</p>
+                </div>
+                <div class="lang-options-grid segmented">
+                  <button type="button" class="lang-pills-btn" id="refreshBtnOff" onclick="changeAutoRefresh('off')">
+                    <span>ปิด</span>
+                  </button>
+                  <button type="button" class="lang-pills-btn" id="refreshBtn30" onclick="changeAutoRefresh('30')">
+                    <span>ทุก 30 วินาที</span>
+                  </button>
+                  <button type="button" class="lang-pills-btn" id="refreshBtn60" onclick="changeAutoRefresh('60')">
+                    <span>ทุก 1 นาที</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- ========== หมวด: ความเป็นส่วนตัว ========== -->
+            <section class="settings-panel" data-panel="privacy" role="tabpanel">
+              <h3 class="settings-panel-title">ความเป็นส่วนตัวและการใช้งาน</h3>
+
+              <div class="setting-card-item setting-list">
+                <label class="setting-toggle-row" for="settingsPrivacyToggle">
+                  <div class="setting-toggle-info">
+                    <h5>ซ่อนตัวเลขสำคัญ</h5>
+                    <p>เบลอจำนวนวันลาและข้อมูลส่วนตัว ชี้เมาส์หรือแตะค้างเพื่อดู</p>
+                  </div>
+                  <span class="setting-switch">
+                    <input type="checkbox" id="settingsPrivacyToggle" onchange="toggleSystemPrivacyShield(this.checked)">
+                    <span class="setting-slider"></span>
+                  </span>
+                </label>
+                <label class="setting-toggle-row" for="settingsMotionToggle">
+                  <div class="setting-toggle-info">
+                    <h5>ลดภาพเคลื่อนไหว</h5>
+                    <p>ปิดแอนิเมชัน ช่วยให้เครื่องเร็วขึ้นและประหยัดแบตเตอรี่</p>
+                  </div>
+                  <span class="setting-switch">
+                    <input type="checkbox" id="settingsMotionToggle" onchange="toggleSystemReducedMotion(this.checked)">
+                    <span class="setting-slider"></span>
+                  </span>
+                </label>
+                <label class="setting-toggle-row" for="settingsConfirmToggle">
+                  <div class="setting-toggle-info">
+                    <h5>อนุมัติทันทีไม่ต้องยืนยัน <span class="setting-tag">สำหรับหัวหน้างาน</span></h5>
+                    <p>กดอนุมัติแล้วบันทึกเลย ไม่มีหน้าต่างถามซ้ำ (ระวังกดพลาด)</p>
+                  </div>
+                  <span class="setting-switch">
+                    <input type="checkbox" id="settingsConfirmToggle" onchange="toggleSystemDoubleConfirm(this.checked)">
+                    <span class="setting-slider"></span>
+                  </span>
+                </label>
+              </div>
+            </section>
+
           </div>
-
-          <!-- Card 4.5: Google Magic Translate (ช่วยแปลอัตโนมัติ) -->
-          <div class="setting-card-item magic-translate-card" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #cbd5e1; border-left: 4px solid #3b82f6;">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #a855f7; font-size: 28px;">auto_awesome</span>
-              <div class="setting-item-info">
-                <h4 style="color: #1e293b;">ตัวช่วยแปลภาษาอัตโนมัติ (Google Magic Translate)</h4>
-                <p>หากภาษาในระบบยังไม่ครอบคลุม คุณสามารถใช้ระบบแปลอัตโนมัติของ Google แทนได้ทันที</p>
-              </div>
-            </div>
-            <div style="margin-top: 10px; padding: 12px; background: white; border-radius: 10px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-height: 52px;">
-              <div style="font-size: 13px; color: #475569; display: flex; align-items: center; gap: 6px; min-width: 150px;">
-                <span class="material-symbols-outlined" style="font-size: 18px; color: #3b82f6;">tips_and_updates</span>
-                เลือกภาษาที่ต้องการแปล:
-              </div>
-              <div id="google_translate_element_visible" style="display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; min-height: 36px;"></div>
-            </div>
-            <p style="font-size: 11px; color: #64748b; margin-top: 8px; line-height: 1.4;">
-              💡 <b>คำแนะนำ:</b> เพื่อผลลัพธ์ที่ดีที่สุด ควรตั้งค่า "ภาษาที่ใช้งานในระบบ" เป็น <b>ภาษาไทย</b> ก่อนใช้ตัวช่วยแปลนี้
-            </p>
-          </div>
-
-          <!-- Card 4: ภาษาที่ใช้งานในระบบ (Language) -->
-          <div class="setting-card-item">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #0ea5e9; font-size: 28px;">language</span>
-              <div class="setting-item-info">
-                <h4>ภาษาที่ใช้งานในระบบ (System Language)</h4>
-                <p>เลือกภาษาหลักสำหรับเมนูและแบบฟอร์มการทำเรื่องขอลา</p>
-              </div>
-            </div>
-
-            <div class="lang-options-grid" style="grid-template-columns: repeat(4, 1fr);">
-              <button type="button" class="lang-pills-btn" id="langBtnTh" onclick="changeSystemLanguage('th')">
-                <span class="lang-flag">🇹🇭</span>
-                <span>ภาษาไทย</span>
-              </button>
-              <button type="button" class="lang-pills-btn" id="langBtnLo" onclick="changeSystemLanguage('lo')">
-                <span class="lang-flag">🇱🇦</span>
-                <span>ພາສາລາວ</span>
-              </button>
-              <button type="button" class="lang-pills-btn" id="langBtnMy" onclick="changeSystemLanguage('my')">
-                <span class="lang-flag">🇲🇲</span>
-                <span>မြန်မာစာ</span>
-              </button>
-              <button type="button" class="lang-pills-btn" id="langBtnEn" onclick="changeSystemLanguage('en')">
-                <span class="lang-flag">🇬🇧</span>
-                <span>English</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Card 5: เอฟเฟกต์เสียงและระบบเตือน (Sound & Accessibility) -->
-          <div class="setting-card-item">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #f59e0b; font-size: 28px;">notifications</span>
-              <div class="setting-item-info">
-                <h4>การเข้าถึงและเสียงแจ้งเตือน (Accessibility & Sound)</h4>
-                <p>เปิด/ปิดเสียงตอบสนองและเอฟเฟกต์เมื่อกดปุ่มตอบรับหรือยื่นเรื่อง</p>
-              </div>
-            </div>
-
-            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 4px;">
-              <div class="setting-toggle-info">
-                <h5>เสียงตอบสนองระบบ (System Audio Chimes)</h5>
-                <p>เล่นเสียงสั้นตอบรับเมื่อกดปุ่มหรือบันทึกข้อมูลสำเร็จ</p>
-              </div>
-              <label class="setting-switch">
-                <input type="checkbox" id="settingsSoundToggle" onchange="toggleSystemSound(this.checked)">
-                <span class="setting-slider"></span>
-              </label>
-            </div>
-
-            <div class="setting-toggle-row">
-              <div class="setting-toggle-info">
-                <h5>โหมดแสดงตารางแบบกระชับ (Compact Table Layout)</h5>
-                <p>ลดขนาดพิกเซลพาร์ติชันช่องว่างเพื่อแสดงข้อมูลรายชื่อตารางได้หนาแน่นขึ้น</p>
-              </div>
-              <label class="setting-switch">
-                <input type="checkbox" id="settingsCompactToggle" onchange="toggleSystemCompactMode(this.checked)">
-                <span class="setting-slider"></span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Card 6: โหมดสุขภาพและการทำงาน (Health & Live Performance) -->
-          <div class="setting-card-item">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #14b8a6; font-size: 28px;">visibility</span>
-              <div class="setting-item-info">
-                <h4>สุขภาพและประสิทธิภาพเรียลไทม์ (Eye Care & Real-time Feed)</h4>
-                <p>ควบคุมการกรองแสงและอัตราการรีเฟรชข้อมูลหน้าจอของระบบ</p>
-              </div>
-            </div>
-
-            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 8px;">
-              <div class="setting-toggle-info">
-                <h5>โหมดถนอมสายตา (Eye-Care Amber Filter)</h5>
-                <p>กรองแสงสีฟ้าเพื่อถนอมสายตาเมื่อทำงานช่วงเย็นหรือกะดึก</p>
-              </div>
-              <label class="setting-switch">
-                <input type="checkbox" id="settingsEyeCareToggle" onchange="toggleSystemEyeCare(this.checked)">
-                <span class="setting-slider"></span>
-              </label>
-            </div>
-
-            <div class="setting-toggle-info" style="margin-top: 4px;">
-              <h5>ระบบดึงข้อมูลอัปเดตอัตโนมัติ (Auto-Refresh Interval)</h5>
-              <p>ดึงความเคลื่อนไหวคำขอและสถิติล่าสุดโดยอัตโนมัติ (ไม่ต้องรีเฟรชทั้งหน้า)</p>
-            </div>
-
-            <div class="lang-options-grid" style="margin-top: 8px;">
-              <button type="button" class="lang-pills-btn" id="refreshBtnOff" onclick="changeAutoRefresh('off')">
-                <span>ปิดระบบ</span>
-              </button>
-              <button type="button" class="lang-pills-btn" id="refreshBtn30" onclick="changeAutoRefresh('30')">
-                <span class="live-indicator-dot"></span>
-                <span>ทุก 30 วินาที</span>
-              </button>
-              <button type="button" class="lang-pills-btn" id="refreshBtn60" onclick="changeAutoRefresh('60')">
-                <span class="live-indicator-dot" style="background-color: #3b82f6; box-shadow: 0 0 6px #3b82f6;"></span>
-                <span>ทุก 1 นาที</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Card 7: ความเป็นส่วนตัวและความเร็ว (Privacy & Power Saver) -->
-          <div class="setting-card-item">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #8b5cf6; font-size: 28px;">shield</span>
-              <div class="setting-item-info">
-                <h4>ความปลอดภัยและการประหยัดพลังงาน (Privacy & Battery)</h4>
-                <p>ตั้งค่าการอำพรางสายตาและควบคุมแอนิเมชันเพื่อประหยัดทรัพยากรเครื่อง</p>
-              </div>
-            </div>
-
-            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 4px;">
-              <div class="setting-toggle-info">
-                <h5>โหมดเกราะป้องกันความเป็นส่วนตัว (Privacy Shield Blur)</h5>
-                <p>เบลอตัวเลขสถิติจำนวนวันลาและข้อมูลเงินเดือนจนกว่าจะนำเมาส์ไปชี้</p>
-              </div>
-              <label class="setting-switch">
-                <input type="checkbox" id="settingsPrivacyToggle" onchange="toggleSystemPrivacyShield(this.checked)">
-                <span class="setting-slider"></span>
-              </label>
-            </div>
-
-            <div class="setting-toggle-row">
-              <div class="setting-toggle-info">
-                <h5>โหมดประหยัดพลังงานเคลื่อนไหว (Reduced Motion)</h5>
-                <p>ปิดการเคลื่อนไหวแอนิเมชันและสลับเมนูอย่างรวดเร็วเพื่อประหยัดแบตเตอรี่มือถือ</p>
-              </div>
-              <label class="setting-switch">
-                <input type="checkbox" id="settingsMotionToggle" onchange="toggleSystemReducedMotion(this.checked)">
-                <span class="setting-slider"></span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Card 8: ระบบจัดการสำหรับผู้อนุมัติและการเข้าถึง (Approver & Accessibility) -->
-          <div class="setting-card-item">
-            <div class="setting-item-head">
-              <span class="setting-item-icon material-symbols-outlined" style="color: #64748b; font-size: 28px;">gavel</span>
-              <div class="setting-item-info">
-                <h4>ขั้นตอนอนุมัติและการเข้าถึงง่าย (Approver Flow & High Contrast)</h4>
-                <p>กำหนดการถามยืนยันและการเพิ่มความหนาตัวอักษรเพื่อการอ่านที่ง่ายขึ้น</p>
-              </div>
-            </div>
-
-            <div class="setting-toggle-row" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 4px;">
-              <div class="setting-toggle-info">
-                <h5>ระบบอนุมัติเร็วแบบคลิกเดียว (One-Click Quick Approval)</h5>
-                <p>ข้ามกล่องข้อความถามย้ำเตือนของหัวหน้างานเพื่อการอนุมัติแบบทันทีด่วน</p>
-              </div>
-              <label class="setting-switch">
-                <input type="checkbox" id="settingsConfirmToggle" onchange="toggleSystemDoubleConfirm(this.checked)">
-                <span class="setting-slider"></span>
-              </label>
-            </div>
-
-            <div class="setting-toggle-row">
-              <div class="setting-toggle-info">
-                <h5>โหมดสีความคมชัดสูงพิเศษ (High Contrast Mode)</h5>
-                <p>เพิ่มน้ำหนักเส้นขอบ ตัวอักษรสีดำเข้ม และตัดสีพาสเทลเพื่อการมองเห็นที่เด่นชัด</p>
-              </div>
-              <label class="setting-switch">
-                <input type="checkbox" id="settingsHighContrastToggle" onchange="toggleSystemHighContrast(this.checked)">
-                <span class="setting-slider"></span>
-              </label>
-            </div>
-          </div>
-
         </div>
 
         <!-- Footer -->
         <div class="settings-modal-footer">
           <button type="button" class="btn-settings-reset" onclick="resetSystemSettingsToDefault()">
-            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">restart_alt</span>
-            รีเซ็ตเป็นค่าเริ่มต้น
+            <span class="material-symbols-outlined">restart_alt</span>
+            คืนค่าเริ่มต้น
           </button>
-          <button type="button" class="btn-settings-done" onclick="closeSystemSettingsModal()" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-            <img src="/assets/icons/check-circle.svg" alt="เรียบร้อย" style="width: 16px; height: 16px; object-fit: contain;" />
-            เรียบร้อย
+          <button type="button" class="btn-settings-done" onclick="closeSystemSettingsModal()">
+            <span class="material-symbols-outlined">check</span>
+            เสร็จสิ้น
           </button>
         </div>
 
@@ -895,6 +834,10 @@
       adminCard.style.display = isAdmin && !location.pathname.includes('admin-dashboard') ? '' : 'none';
     }
 
+    let lastTab = "display";
+    try { lastTab = localStorage.getItem("pvt_settings_tab") || "display"; } catch (e) {}
+    window.switchSettingsTab(lastTab, true);
+
     backdrop.classList.add("active");
     document.body.style.overflow = "hidden";
     
@@ -909,6 +852,27 @@
     if (window.playSystemChime) {
       window.playSystemChime("click");
     }
+  };
+
+  // 🗂️ 3.1 สลับหมวดการตั้งค่า (เมนูด้านซ้าย / แถบบนมือถือ)
+  window.switchSettingsTab = function(key, silent) {
+    const modal = document.getElementById("systemSettingsModal");
+    if (!modal) return;
+    if (!modal.querySelector(`.settings-panel[data-panel="${key}"]`)) key = "display";
+    modal.querySelectorAll(".settings-nav-btn[data-tab]").forEach((btn) => {
+      const on = btn.dataset.tab === key;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+      if (on && btn.scrollIntoView) btn.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
+    modal.querySelectorAll(".settings-panel").forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== key;
+    });
+    const panels = modal.querySelector(".settings-panels");
+    if (panels) panels.scrollTop = 0;
+    try { localStorage.setItem("pvt_settings_tab", key); } catch (e) {}
+    if (key === "language") setTimeout(moveTranslateWidgetIntoModal, 50);
+    if (!silent && window.playSystemChime) window.playSystemChime("click");
   };
 
   // ❌ 4. Close Modal Handler
@@ -947,7 +911,7 @@
 
   // 🔤 5.1 แบบอักษร (js/theme-boot.js → window.PVTFont)
   const FONT_CHOICES = [
-    { key: 'sarabun',  label: 'Sarabun',               desc: 'มีหัว · มาตรฐานเดิมของระบบ' },
+    { key: 'sarabun',  label: 'Sarabun',               desc: 'มีหัว · ค่าเริ่มต้น' },
     { key: 'notoloop', label: 'Noto Sans Thai Looped', desc: 'มีหัว · กลม ชัด ช่องไฟกว้าง' },
     { key: 'ibmloop',  label: 'IBM Plex Thai Looped',  desc: 'มีหัว · ทางการ ตัวเลขชัด' },
     { key: 'noto',     label: 'Noto Sans Thai',        desc: 'ไม่มีหัว · เรียบ อ่านง่าย' },
@@ -961,11 +925,11 @@
     const famOf = (k) => (window.PVTFont && window.PVTFont.fonts[k] ? window.PVTFont.fonts[k].name : 'Sarabun');
     box.innerHTML = FONT_CHOICES.map((f) => {
       const on = f.key === current;
-      return `<button type="button" onclick="changeSystemFontFamily('${f.key}')" style="display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 12px; border-radius:12px; cursor:pointer; text-align:left;
-        border:1.5px solid ${on ? 'var(--th-p-600, #0d9488)' : '#e2e8f0'}; background:${on ? 'var(--th-p-50, #f0fdfa)' : '#fff'}; box-shadow:${on ? '0 0 0 2px var(--th-p-100, #ccfbf1)' : 'none'};">
-        <span style="font-family:'${famOf(f.key)}', sans-serif !important; font-size:20px; font-weight:600; color:#0f172a; line-height:1.3;">กขค ใบลา 2569</span>
-        <span style="font-size:12.5px; font-weight:700; color:${on ? 'var(--th-p-700, #0f766e)' : '#334155'};">${f.label}${on ? ' ✓' : ''}</span>
-        <span style="font-size:11.5px; color:#64748b;">${f.desc}</span>
+      return `<button type="button" class="font-family-btn${on ? ' active' : ''}" onclick="changeSystemFontFamily('${f.key}')" aria-pressed="${on}">
+        <span class="font-family-sample" style="font-family:'${famOf(f.key)}', sans-serif !important;">กขค ใบลา 2569</span>
+        <span class="font-family-name">${f.label}</span>
+        <span class="font-family-desc">${f.desc}</span>
+        ${on ? '<span class="material-symbols-outlined font-family-check">check_circle</span>' : ''}
       </button>`;
     }).join('');
     const prev = document.getElementById('fontFamilyPreview');
@@ -1244,10 +1208,12 @@
     const lineId = emp?.line_id || "";
 
     if (inputEl) inputEl.value = lineId;
+    const bannerEl = document.querySelector("#systemSettingsModal .line-status-banner");
+    if (bannerEl) bannerEl.classList.toggle("is-linked", !!lineId);
 
     if (lineId) {
       if (titleEl) {
-        titleEl.textContent = "● เชื่อมต่อ LINE แล้ว";
+        titleEl.textContent = "เชื่อมต่อ LINE แล้ว";
         titleEl.style.color = "#15803d";
       }
       if (descEl) {
@@ -1256,11 +1222,11 @@
       }
     } else {
       if (titleEl) {
-        titleEl.textContent = "○ ยังไม่ได้ผูกบัญชี LINE";
+        titleEl.textContent = "ยังไม่ได้เชื่อมต่อ LINE";
         titleEl.style.color = "#d97706";
       }
       if (descEl) {
-        descEl.textContent = "คลิกเพื่อขอรหัสเชื่อมต่อรับแจ้งเตือนใบลา";
+        descEl.textContent = "กด \"เชื่อมต่อ LINE\" เพื่อเริ่มรับแจ้งเตือน";
         descEl.style.color = "#b45309";
       }
     }

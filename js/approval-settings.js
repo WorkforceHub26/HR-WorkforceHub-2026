@@ -193,7 +193,7 @@ async function loadAllData(silent = false) {
     const [deptRes, empRes, mapRes, executiveRes] = await Promise.all([
       sb.from("departments").select("id, department_name").order("department_name"),
       sb.from("employees")
-        .select("id, employee_code, full_name, nickname, department_id, role, line_id, status, image_url, l1_approver_id, l2_approver_id, positions(position_name), departments!department_id(department_name)")
+        .select("id, employee_code, title, full_name, nickname, department_id, role, line_id, status, image_url, start_date, employment_type, l1_approver_id, l2_approver_id, positions(position_name), departments!department_id(department_name)")
         .order("full_name"),
       sb.from("department_approvers").select("id, department_id, supervisor_id, manager_id"),
       sb.from("system_settings").select("setting_key, employee_id").eq("setting_key", "leave_executive_approver").maybeSingle()
@@ -916,19 +916,19 @@ function updateLineSummaryStats() {
   const statConfiguredDept = document.getElementById("statConfiguredDeptCount");
   const statExecLine = document.getElementById("statExecutiveLineStatus");
 
-  if (statConnected) statConnected.textContent = `${connectedCount} ท่าน`;
-  if (statNotConnected) statNotConnected.textContent = `${notConnectedCount} ท่าน`;
-  if (statConfiguredDept) statConfiguredDept.textContent = `${configuredDeptCount} / ${departments.length} แผนก`;
+  if (statConnected) statConnected.innerHTML = `${connectedCount}<small>ท่าน</small>`;
+  if (statNotConnected) statNotConnected.innerHTML = `${notConnectedCount}<small>ท่าน</small>`;
+  if (statConfiguredDept) statConfiguredDept.innerHTML = `${configuredDeptCount}<small>/ ${departments.length} แผนก</small>`;
 
   if (statExecLine) {
     if (!executiveSetting?.employee_id) {
-      statExecLine.innerHTML = '<span style="color:#94a3b8; font-size:16px;">ยังไม่ระบุ</span>';
+      statExecLine.innerHTML = '<span class="line-stat-state" style="color:#94a3b8;">ยังไม่ระบุ</span>';
     } else {
       const execEmp = employees.find(e => String(e.id) === String(executiveSetting.employee_id));
       if (isLineConnected(execEmp)) {
-        statExecLine.innerHTML = '<span style="color:#16a34a; font-size:16px; font-weight:700;">● เชื่อมต่อแล้ว</span>';
+        statExecLine.innerHTML = '<span class="line-stat-state" style="color:#16a34a;">● เชื่อมต่อแล้ว</span>';
       } else {
-        statExecLine.innerHTML = '<span style="color:#ea580c; font-size:16px; font-weight:700;">○ ยังไม่ผูก LINE</span>';
+        statExecLine.innerHTML = '<span class="line-stat-state" style="color:#ea580c;">○ ยังไม่ผูก LINE</span>';
       }
     }
   }
@@ -2294,7 +2294,89 @@ window.copyLineId = function(lineId) {
   });
 };
 
+/* ==========================================================================
+   ↕️ การเรียงลำดับตาราง "รายชื่อพนักงาน & ผู้บริหารที่เชื่อมต่อ LINE"
+   dropdown "เรียงตาม" + คลิกหัวตาราง (คลิกซ้ำ = กลับด้าน) · จำค่าที่เลือกไว้ในเบราว์เซอร์
+   ========================================================================== */
+const LINE_SORT_STORE = 'pvt_line_emp_sort_v1';
+const LS_TITLE_RE = /^(นางสาว|นาง|นาย|น\.ส\.?|ด\.ญ\.?|ด\.ช\.?|เด็กหญิง|เด็กชาย|miss\.?|mrs\.?|ms\.?|mr\.?)\s*/i;
+const LS_TITLE_ORDER = ['นาย', 'นาง', 'นางสาว'];
+const LS_ROLE_ORDER = ['executive', 'director', 'owner', 'manager', 'leader', 'supervisor', 'hr', 'hr_manager', 'admin', 'superadmin', 'user'];
+const LS_ROLE_LABEL = { executive: '👑 ผู้บริหาร', director: '👑 ผู้บริหาร', owner: '👑 ผู้บริหาร', manager: '👔 ผู้จัดการ', leader: '🎖️ หัวหน้างาน', supervisor: '🎖️ หัวหน้างาน', hr: '🧑‍💼 ฝ่ายบุคคล', hr_manager: '🧑‍💼 ฝ่ายบุคคล', admin: '🛠️ ผู้ดูแลระบบ', superadmin: '🛠️ ผู้ดูแลระบบ', user: '👤 พนักงานทั่วไป' };
+const lsCmp = (a, b) => String(a ?? '').localeCompare(String(b ?? ''), 'th', { numeric: true, sensitivity: 'base' });
+const lsName = (e) => String(e.full_name || '').replace(LS_TITLE_RE, '').trim();
+const lsTitle = (e) => { const t = String(e.title || '').trim() || ((String(e.full_name || '').match(LS_TITLE_RE) || [])[1] || '').trim(); return /^น\.ส/.test(t) ? 'นางสาว' : (t || 'ไม่ระบุคำนำหน้า'); };
+const lsInitial = (e) => (lsName(e).replace(/^[เแโใไ]/, '').charAt(0) || '#').toUpperCase();
+const lsDept = (e) => (departments.find((d) => String(d.id) === String(e.department_id))?.department_name || e.departments?.department_name || '');
+const lsRole = (e) => { const r = String(e.role || 'user').toLowerCase(); return LS_ROLE_ORDER.includes(r) ? r : 'user'; };
+const lsYear = (e) => { const m = String(e.start_date || '').match(/^(\d{4})/); return m ? Number(m[1]) : null; };
+const lsYearGroup = (e) => { const y = lsYear(e); return y ? `เริ่มงานปี ${y + 543} · อายุงาน ${Math.max(0, new Date().getFullYear() - y)} ปี` : 'ไม่ระบุวันเริ่มงาน'; };
+const lsHasLine = (e) => (typeof isLineConnected === 'function' ? isLineConnected(e) : !!e.line_id);
+
+const LINE_SORTS = {
+  default:    { label: 'ค่าเริ่มต้น (ชื่อ ก → ฮ)' },
+  code_asc:   { label: 'รหัสพนักงาน (น้อย → มาก)', cmp: (a, b) => lsCmp(a.employee_code, b.employee_code) },
+  code_desc:  { label: 'รหัสพนักงาน (มาก → น้อย)', cmp: (a, b) => lsCmp(b.employee_code, a.employee_code) },
+  name_asc:   { label: 'ชื่อ ก → ฮ (แบ่งตามอักษรนำหน้า)', cmp: (a, b) => lsCmp(lsName(a), lsName(b)), group: (e) => `อักษร ${lsInitial(e)}` },
+  name_desc:  { label: 'ชื่อ ฮ → ก', cmp: (a, b) => lsCmp(lsName(b), lsName(a)), group: (e) => `อักษร ${lsInitial(e)}` },
+  title:      { label: 'คำนำหน้า (นาย / นาง / นางสาว)', cmp: (a, b) => {
+                  const ia = LS_TITLE_ORDER.indexOf(lsTitle(a)), ib = LS_TITLE_ORDER.indexOf(lsTitle(b));
+                  return ((ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)) || lsCmp(lsTitle(a), lsTitle(b)) || lsCmp(lsName(a), lsName(b));
+                }, group: (e) => lsTitle(e) },
+  dept_asc:   { label: 'แผนก ก → ฮ', cmp: (a, b) => lsCmp(lsDept(a) || 'ฮฮ', lsDept(b) || 'ฮฮ') || lsCmp(a.employee_code, b.employee_code), group: (e) => `แผนก ${lsDept(e) || 'ไม่ระบุแผนก'}` },
+  dept_desc:  { label: 'แผนก ฮ → ก', cmp: (a, b) => lsCmp(lsDept(b), lsDept(a)) || lsCmp(a.employee_code, b.employee_code), group: (e) => `แผนก ${lsDept(e) || 'ไม่ระบุแผนก'}` },
+  start_asc:  { label: 'ปีเริ่มงาน (เก่า → ใหม่)', cmp: (a, b) => lsCmp(a.start_date || '9999', b.start_date || '9999') || lsCmp(a.employee_code, b.employee_code), group: lsYearGroup },
+  start_desc: { label: 'ปีเริ่มงาน (ใหม่ → เก่า)', cmp: (a, b) => lsCmp(b.start_date || '0000', a.start_date || '0000') || lsCmp(a.employee_code, b.employee_code), group: lsYearGroup },
+  role_asc:   { label: 'บทบาท (ผู้บริหาร → พนักงาน)', cmp: (a, b) => (LS_ROLE_ORDER.indexOf(lsRole(a)) - LS_ROLE_ORDER.indexOf(lsRole(b))) || lsCmp(lsName(a), lsName(b)), group: (e) => LS_ROLE_LABEL[lsRole(e)] },
+  role_desc:  { label: 'บทบาท (พนักงาน → ผู้บริหาร)', cmp: (a, b) => (LS_ROLE_ORDER.indexOf(lsRole(b)) - LS_ROLE_ORDER.indexOf(lsRole(a))) || lsCmp(lsName(a), lsName(b)), group: (e) => LS_ROLE_LABEL[lsRole(e)] },
+  line_off:   { label: 'ยังไม่เชื่อม LINE ก่อน', cmp: (a, b) => (lsHasLine(a) - lsHasLine(b)) || lsCmp(lsName(a), lsName(b)), group: (e) => (lsHasLine(e) ? 'เชื่อม LINE แล้ว' : 'ยังไม่เชื่อม LINE') },
+  line_on:    { label: 'เชื่อม LINE แล้วก่อน', cmp: (a, b) => (lsHasLine(b) - lsHasLine(a)) || lsCmp(lsName(a), lsName(b)), group: (e) => (lsHasLine(e) ? 'เชื่อม LINE แล้ว' : 'ยังไม่เชื่อม LINE') }
+};
+const LINE_HEADER_SORT = { name: ['name_asc', 'name_desc'], dept: ['dept_asc', 'dept_desc'], role: ['role_asc', 'role_desc'], line: ['line_off', 'line_on'] };
+
+function getLineEmpSort() {
+  const sel = document.getElementById('empLineSortSelect');
+  if (sel && LINE_SORTS[sel.value]) return sel.value;
+  try { const v = localStorage.getItem(LINE_SORT_STORE); if (LINE_SORTS[v]) return v; } catch (e) {}
+  return 'default';
+}
+
+window.setLineEmpSort = function setLineEmpSort(keyOrHeader) {
+  let key = keyOrHeader;
+  if (LINE_HEADER_SORT[keyOrHeader]) {
+    const [first, second] = LINE_HEADER_SORT[keyOrHeader];
+    key = getLineEmpSort() === first ? second : first;
+  }
+  if (!LINE_SORTS[key]) key = 'default';
+  const sel = document.getElementById('empLineSortSelect');
+  if (sel) sel.value = key;
+  try { localStorage.setItem(LINE_SORT_STORE, key); } catch (e) {}
+  renderEmployeeLineTable();
+};
+
+function initLineEmpSort() {
+  const sel = document.getElementById('empLineSortSelect');
+  if (!sel || sel.dataset.ready) return;
+  sel.dataset.ready = '1';
+  sel.innerHTML = Object.entries(LINE_SORTS).map(([k, s]) => `<option value="${k}">${escapeHtml(s.label)}</option>`).join('');
+  let saved = 'default';
+  try { const v = localStorage.getItem(LINE_SORT_STORE); if (LINE_SORTS[v]) saved = v; } catch (e) {}
+  sel.value = saved;
+}
+
+function updateLineEmpSortHeader(key) {
+  document.querySelectorAll('.as-emp-table th[data-sort-col]').forEach((th) => {
+    const pair = LINE_HEADER_SORT[th.dataset.sortCol] || [];
+    const idx = pair.indexOf(key);
+    th.classList.toggle('is-sorted', idx >= 0);
+    th.setAttribute('aria-sort', idx < 0 ? 'none' : idx === 0 ? 'ascending' : 'descending');
+    const ic = th.querySelector('.sort-ic');
+    if (ic) ic.textContent = idx < 0 ? 'unfold_more' : idx === 0 ? 'arrow_upward' : 'arrow_downward';
+  });
+}
+
 function renderEmployeeLineTable() {
+  initLineEmpSort();
   const body = document.getElementById("employeeLineTableBody");
   const countBadge = document.getElementById("empLineCountBadge");
   const countAll = document.getElementById("empCountAll");
@@ -2389,7 +2471,24 @@ function renderEmployeeLineTable() {
     return `${before}<mark class="text-highlight">${matched}</mark>${after}`;
   };
 
+  // ↕️ เรียงลำดับ + หัวกลุ่ม
+  const sortKey = getLineEmpSort();
+  updateLineEmpSortHeader(sortKey);
+  const sortDef = LINE_SORTS[sortKey];
+  if (sortDef?.cmp) filtered.sort(sortDef.cmp);
+  const groupCounts = {};
+  if (sortDef?.group) filtered.forEach((e) => { const g = sortDef.group(e); groupCounts[g] = (groupCounts[g] || 0) + 1; });
+  let lastGroup = null;
+
   const rows = filtered.map(emp => {
+    let groupRow = '';
+    if (sortDef?.group) {
+      const g = sortDef.group(emp);
+      if (g !== lastGroup) {
+        lastGroup = g;
+        groupRow = `<tr class="as-group-row"><td colspan="5"><span>${escapeHtml(g)}</span><b>${groupCounts[g]} คน</b></td></tr>`;
+      }
+    }
     const dept = departments.find(d => String(d.id) === String(emp.department_id));
     const deptName = dept?.department_name || emp.departments?.department_name || "ไม่ระบุแผนก";
     const posName = emp.positions?.position_name || "พนักงาน";
@@ -2498,7 +2597,7 @@ function renderEmployeeLineTable() {
       `;
     }
 
-    return `
+    return groupRow + `
       <tr style="${isResigned ? 'background: #fff8f8;' : ''}">
         <td>
           <div class="emp-cell-user">

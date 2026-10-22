@@ -3234,9 +3234,9 @@ class LineOAEngine {
       for (const req of overdue) {
         const pend = (v) => !v || String(v).toLowerCase() === 'pending';
         let stepField = null, stepLevel = 'HR', stepLabel = 'ฝ่ายบุคคล (HR)';
-        if (pend(req.manager_status)) { stepField = 'manager_status'; stepLevel = 'L1'; stepLabel = 'หัวหน้างาน (ลำดับที่ 1)'; }
-        else if (pend(req.director_status)) { stepField = 'director_status'; stepLevel = 'L2'; stepLabel = 'ผู้จัดการ (ลำดับที่ 2)'; }
-        else if (pend(req.executive_status)) { stepField = 'executive_status'; stepLevel = 'L3'; stepLabel = 'ผู้บริหาร (ลำดับที่ 3)'; }
+        if (pend(req.manager_status)) { stepField = 'manager_status'; stepLevel = 'L1'; stepLabel = 'ผู้อนุมัติ ลำดับที่ 1'; }
+        else if (pend(req.director_status)) { stepField = 'director_status'; stepLevel = 'L2'; stepLabel = 'ผู้อนุมัติ ลำดับที่ 2'; }
+        else if (pend(req.executive_status)) { stepField = 'executive_status'; stepLevel = 'L3'; stepLabel = 'ผู้อนุมัติ ลำดับสูง'; }
 
         // ใบลาที่มีขั้นอนุมัติ (ระยะ 2): ใช้ชื่อขั้นจริง
         let hasSteps = false;

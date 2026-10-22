@@ -3168,11 +3168,11 @@ window.quickApproveFromDashboard = async function(leaveId) {
   const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
 
   const roleTitle = myRole === 'leader' 
-    ? 'หัวหน้างาน (ลำดับที่ 1)' 
+    ? 'ผู้อนุมัติ ลำดับที่ 1' 
     : myRole === 'manager' 
-    ? 'ผู้จัดการฝ่าย (ลำดับที่ 2)' 
+    ? 'ผู้อนุมัติ ลำดับที่ 2' 
     : (myRole === 'executive' || myRole === 'director' || myRole === 'owner')
-    ? 'ผู้บริหาร (ลำดับที่ 3)'
+    ? 'ผู้อนุมัติ ลำดับสูง'
     : 'ฝ่ายบุคคล HR / Admin';
 
   // 🛡️ กล่องยืนยัน SweetAlert2 ก่อนทำการอนุมัติ เพื่อป้องกันการกดผิดพลาดโดยไม่ตั้งใจ
@@ -3296,8 +3296,8 @@ window.quickApproveFromDashboard = async function(leaveId) {
 
     // 🧾 หลักฐานรายขั้น + แจ้ง HR (ในระบบ) เมื่อจบ
     if (window.PVTLeaveAudit) {
-      const lvl = myRole === 'leader' ? ['L1', 'หัวหน้างาน (ลำดับที่ 1)'] : myRole === 'manager' ? ['L2', 'ผู้จัดการ (ลำดับที่ 2)']
-        : (myRole === 'executive' || myRole === 'director' || myRole === 'owner') ? ['L3', 'ผู้บริหาร (ลำดับที่ 3)'] : ['HR', 'ฝ่ายบุคคล (HR/Admin)'];
+      const lvl = myRole === 'leader' ? ['L1', 'ผู้อนุมัติ ลำดับที่ 1'] : myRole === 'manager' ? ['L2', 'ผู้อนุมัติ ลำดับที่ 2']
+        : (myRole === 'executive' || myRole === 'director' || myRole === 'owner') ? ['L3', 'ผู้อนุมัติ ลำดับสูง'] : ['HR', 'ฝ่ายบุคคล (HR/Admin)'];
       const auditOpts = { stepLevel: lvl[0], stepLabel: lvl[1], comment: updateFields.approval_comment || null,
         statusBefore: reqData.status || 'pending', statusAfter: updateFields.status === 'approved' ? 'approved' : 'pending' };
       if (updateFields.status === 'approved') await window.PVTLeaveAudit.recordOutcome(reqData, 'approved', auditOpts);
@@ -3375,11 +3375,11 @@ window.quickRejectFromDashboard = async function(leaveId) {
   const myRole = String(sessionUser?.role || localStorage.getItem("userRole") || 'user').toLowerCase();
 
   const roleTitle = myRole === 'leader' 
-    ? 'หัวหน้างาน (ลำดับที่ 1)' 
+    ? 'ผู้อนุมัติ ลำดับที่ 1' 
     : myRole === 'manager' 
-    ? 'ผู้จัดการฝ่าย (ลำดับที่ 2)' 
+    ? 'ผู้อนุมัติ ลำดับที่ 2' 
     : (myRole === 'executive' || myRole === 'director' || myRole === 'owner')
-    ? 'ผู้บริหาร (ลำดับที่ 3)'
+    ? 'ผู้อนุมัติ ลำดับสูง'
     : 'ฝ่ายบุคคล HR / Admin';
 
   const summaryHtml = buildDashboardLeaveConfirmHtml(reqData, roleTitle, 'reject');
@@ -3448,9 +3448,9 @@ window.quickRejectFromDashboard = async function(leaveId) {
     // ระบุขั้นที่ไม่อนุมัติ = ขั้นที่ใบลารออยู่จริง
     const isPend = (v) => !v || String(v).toLowerCase() === 'pending';
     let stepLvl = ['HR', 'ฝ่ายบุคคล (HR/Admin)'];
-    if (myRole === 'leader') { updateFields.manager_status = 'rejected'; stepLvl = ['L1', 'หัวหน้างาน (ลำดับที่ 1)']; }
-    else if (myRole === 'manager') { updateFields.director_status = 'rejected'; stepLvl = ['L2', 'ผู้จัดการ (ลำดับที่ 2)']; }
-    else if (myRole === 'executive' || myRole === 'director' || myRole === 'owner') { updateFields.executive_status = 'rejected'; stepLvl = ['L3', 'ผู้บริหาร (ลำดับที่ 3)']; }
+    if (myRole === 'leader') { updateFields.manager_status = 'rejected'; stepLvl = ['L1', 'ผู้อนุมัติ ลำดับที่ 1']; }
+    else if (myRole === 'manager') { updateFields.director_status = 'rejected'; stepLvl = ['L2', 'ผู้อนุมัติ ลำดับที่ 2']; }
+    else if (myRole === 'executive' || myRole === 'director' || myRole === 'owner') { updateFields.executive_status = 'rejected'; stepLvl = ['L3', 'ผู้อนุมัติ ลำดับสูง']; }
     else if (isPend(reqData.manager_status)) updateFields.manager_status = 'rejected';
     else if (isPend(reqData.director_status)) updateFields.director_status = 'rejected';
     else if (isPend(reqData.executive_status)) updateFields.executive_status = 'rejected';

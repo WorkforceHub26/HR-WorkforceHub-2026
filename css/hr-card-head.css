@@ -166,3 +166,73 @@
   :is(.ls-kpi-icon, .admin-stat-icon, .hm-kpi-icon, .nm-stat-icon, .ec-stat-icon) { top: 12px !important; left: 14px !important; }
   :is(.ls-kpi-value, .admin-stat-value, .hm-kpi-value, .nm-stat-value, .ec-stat-value) { font-size: 24px !important; }
 }
+
+/* ======================================================
+   แท็บแบบแฟ้ม (เหมือนหน้าตั้งค่าสายอนุมัติ) — ใช้ร่วมกันทุกหน้า HR ที่มีแท็บหัวข้อ
+   ทุกแท็บมีกรอบ พื้นเทาอ่อน · แท็บที่เลือก = พื้นขาว ต่อกับเส้นฐาน + แถบสีด้านบน
+   หน้าที่ใช้: แจ้งเตือน LINE & ผู้อนุมัติแทน (.as-tabs) · สถิติวันลา (.ls-tabs) · ทำงานวันหยุดแลกวันพักร้อน (.hs-tabs)
+   ====================================================== */
+:is(#page-hr-approval-settings nav.as-tabs, #page-hr-leave-stats .ls-tabs, #page-hr-holiday-swap .hs-tabs) {
+  display: flex !important;
+  gap: 4px !important;
+  width: auto !important;
+  max-width: 100%;
+  padding: 6px 4px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: inset 0 -1px 0 #cbd5e1 !important;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+:is(#page-hr-approval-settings nav.as-tabs .as-tab, #page-hr-leave-stats .ls-tab, #page-hr-holiday-swap .hs-tab) {
+  position: relative;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  height: auto !important;
+  min-height: 44px !important;
+  padding: 8px 16px !important;
+  border: 1px solid #dbe3ec !important;
+  border-bottom-color: #cbd5e1 !important;
+  border-radius: 10px 10px 0 0 !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  box-shadow: none !important;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  transition: background-color .15s ease, color .15s ease;
+}
+:is(#page-hr-approval-settings nav.as-tabs .as-tab, #page-hr-leave-stats .ls-tab, #page-hr-holiday-swap .hs-tab):hover:not(.is-active, .active, .is-on) {
+  background: #e8eef5 !important;
+  color: #0f172a !important;
+}
+:is(#page-hr-approval-settings nav.as-tabs .as-tab.is-active, #page-hr-leave-stats .ls-tab.active, #page-hr-holiday-swap .hs-tab.is-on) {
+  background: #fff !important;
+  color: var(--th-p-700, #0f766e) !important;
+  border-color: #cbd5e1 !important;
+  border-bottom-color: #fff !important;
+  box-shadow: inset 0 3px 0 var(--th-p-600, #0d9488) !important;
+}
+:is(#page-hr-approval-settings nav.as-tabs .as-tab, #page-hr-leave-stats .ls-tab, #page-hr-holiday-swap .hs-tab) > .material-symbols-outlined {
+  width: auto !important; min-width: 0 !important; height: auto !important;
+  background: none !important; box-shadow: none !important; border-radius: 0 !important;
+  font-size: 19px !important; color: #94a3b8 !important;
+}
+:is(#page-hr-approval-settings nav.as-tabs .as-tab.is-active, #page-hr-leave-stats .ls-tab.active, #page-hr-holiday-swap .hs-tab.is-on) > .material-symbols-outlined {
+  color: var(--th-p-600, #0d9488) !important;
+}
+#page-hr-approval-settings nav.as-tabs .as-tab::after { display: none !important; }
+#page-hr-approval-settings nav.as-tabs .as-tab__txt strong { font-size: 14px; }
+#page-hr-approval-settings nav.as-tabs .as-tab__txt small { font-size: 11.5px; }
+:is(#page-hr-approval-settings nav.as-tabs .as-tab, #page-hr-leave-stats .ls-tab, #page-hr-holiday-swap .hs-tab):focus-visible {
+  outline: 3px solid var(--th-p-200, #99f6e4) !important; outline-offset: -3px;
+}
+@media (max-width: 760px) {
+  #page-hr-approval-settings nav.as-tabs .as-tab { flex-direction: row !important; padding: 8px 12px !important; min-height: 44px !important; }
+  #page-hr-approval-settings nav.as-tabs .as-tab__txt small { display: none; }
+  #page-hr-holiday-swap .hs-tab { flex: 0 0 auto !important; }
+}

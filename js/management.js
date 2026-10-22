@@ -555,7 +555,7 @@ async function resetYearlyLeave(isForce = false) {
       <div style="text-align:left; font-family:'Sarabun', sans-serif; line-height:1.55; overflow-x:hidden;">
         <div style="margin-bottom:14px;">
           <label for="swal-target-year" style="display:block; font-size:13.5px; font-weight:700; color:#334155;">เลือกรอบปีการลา *</label>
-          <select id="swal-target-year" class="swal2-select" style="display:block; width:100%; max-width:100%; box-sizing:border-box; margin:6px 0 0; height:42px; padding:0 10px; font-size:14px; border-radius:10px; border:1px solid #cbd5e1;">
+          <select id="swal-target-year" class="swal2-select" style="display:block; width:100%; max-width:100%; box-sizing:border-box; margin:6px 0 0; height:42px; padding:0 10px; font-size:14px; border-radius:4px; border:1px solid #cbd5e1;">
             ${yearOption(nextYear + 1, 'ล่วงหน้า 2 ปี', false)}
             ${yearOption(nextYear, 'ปีหน้า', true)}
             ${yearOption(currentYear, 'ปีปัจจุบัน', false)}
@@ -564,14 +564,14 @@ async function resetYearlyLeave(isForce = false) {
           <div style="font-size:12px; color:#64748b; margin-top:6px;">รอบปีการลาเริ่ม 1 ธันวาคม และสิ้นสุด 30 พฤศจิกายน</div>
         </div>
 
-        <label for="swal-force-reset" style="display:flex; align-items:flex-start; gap:10px; background:#fff1f2; padding:12px 14px; border-radius:10px; border:1px solid #fecdd3; margin-bottom:10px; cursor:pointer;">
+        <label for="swal-force-reset" style="display:flex; align-items:flex-start; gap:10px; background:#fff1f2; padding:12px 14px; border-radius:4px; border:1px solid #fecdd3; margin-bottom:10px; cursor:pointer;">
           <input type="checkbox" id="swal-force-reset" ${isForce ? 'checked' : ''} style="flex-shrink:0; width:18px; height:18px; margin-top:2px; accent-color:#e11d48; cursor:pointer;">
           <span style="font-size:13px; font-weight:700; color:#be123c;">
             รีเซ็ตโควตาเป็นค่าเริ่มต้นทั้งหมด
             <span style="display:block; font-weight:400; font-size:12px; color:#9f1239;">ติ๊กเมื่อต้องการให้สิทธิ์วันลากลับไปเป็นค่าเริ่มต้นตามนโยบายบริษัท (ทับค่าที่ HR ปรับไว้รายคน)</span>
           </span>
         </label>
-        <div style="font-size:12px; color:var(--th-p-700, #0f766e); background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:10px 12px; border-radius:10px;">
+        <div style="font-size:12px; color:var(--th-p-700, #0f766e); background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:10px 12px; border-radius:4px;">
           <strong>ยอดวันลาที่ใช้ไปจะไม่ถูกล้างเป็น 0</strong> — ระบบนับจากใบลาที่อนุมัติแล้วในรอบปีนั้นให้อัตโนมัติ สิทธิ์คงเหลือจึงตรงกับความจริง
         </div>
       </div>
@@ -1580,7 +1580,7 @@ function updateEmployeeSortHeader(key) {
     const active = pair.includes(key);
     el.classList.toggle('is-sorted', active);
     const arrow = el.querySelector('.sort-arrow');
-    if (arrow) arrow.textContent = !active ? '↕' : (pair[0] !== pair[1] && key === pair[1] ? '▼' : '▲');
+    if (arrow) arrow.textContent = !active ? 'unfold_more' : (pair[0] !== pair[1] && key === pair[1] ? 'arrow_downward' : 'arrow_upward');
     el.setAttribute('aria-sort', !active ? 'none' : (pair[0] !== pair[1] && key === pair[1] ? 'descending' : 'ascending'));
   });
 }
@@ -1700,7 +1700,7 @@ function renderEmployeeTable() {
       <span class="badge-role-tag badge-role-mgr" style="padding: 4px 10px; font-size: 12px;">👔 ผู้จัดการ: ${cManager} คน</span>
       <span class="badge-role-tag badge-role-sup" style="padding: 4px 10px; font-size: 12px;">🎖️ หัวหน้างาน: ${cSupervisor} คน</span>
       <span class="badge-role-tag badge-role-off" style="padding: 4px 10px; font-size: 12px;">📋 เจ้าหน้าที่: ${cOfficer} คน</span>
-      <span style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">👤 พนักงานทั่วไป: ${cStaff} คน</span>
+      <span style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 3px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">👤 พนักงานทั่วไป: ${cStaff} คน</span>
     `;
   }
 
@@ -1943,14 +1943,14 @@ async function renderCustomFieldsHTMLForEdit(supabase, employeeCode) {
     if (field.type === 'select') {
       const opts = field.options.map(o => `<option value="${escapeHtml(o)}" ${currentVal === o ? 'selected' : ''}>${escapeHtml(o)}</option>`).join('');
       inputControl = `
-        <select class="swal2-select custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" style="margin:4px 0 0; height:38px; width:100%; font-size:13px; background:#fff; box-sizing: border-box; border:1px solid #cbd5e1; border-radius:6px; padding:0 8px;">
+        <select class="swal2-select custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" style="margin:4px 0 0; height:38px; width:100%; font-size:13px; background:#fff; box-sizing: border-box; border:1px solid #cbd5e1; border-radius:3px; padding:0 8px;">
           <option value="">-- เลือก${escapeHtml(field.name)} --</option>
           ${opts}
         </select>
       `;
     } else {
       inputControl = `
-        <input type="text" class="swal2-input custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" value="${escapeHtml(currentVal)}" placeholder="กรอก${escapeHtml(field.name)}" style="margin:4px 0 0; height:38px; width:100%; font-size:13px; background:#fff; box-sizing: border-box; border:1px solid #cbd5e1; border-radius:6px; padding:0 12px;">
+        <input type="text" class="swal2-input custom-field-input" data-key="${escapeHtml(field.name)}" data-required="${field.required}" value="${escapeHtml(currentVal)}" placeholder="กรอก${escapeHtml(field.name)}" style="margin:4px 0 0; height:38px; width:100%; font-size:13px; background:#fff; box-sizing: border-box; border:1px solid #cbd5e1; border-radius:3px; padding:0 12px;">
       `;
     }
 
@@ -2013,7 +2013,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
             <span>${escapeHtml(emp.full_name || "-")}</span>
           </span>
           ${window.isViewOnlyHR ? '' : `
-            <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:var(--th-p-600, #0d9488); border:1px solid var(--th-p-600, #0d9488); color:white; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+            <button type="button" class="btn-primary btn-sm" onclick="openEmployeeDetail('${emp.id}', true)" style="font-size:12px; padding:6px 12px; cursor:pointer; background:var(--th-p-600, #0d9488); border:1px solid var(--th-p-600, #0d9488); color:white; border-radius:4px; display:inline-flex; align-items:center; gap:4px;">
               <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไขข้อมูล
             </button>
           `}
@@ -2024,7 +2024,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
 
     if (body) {
       body.innerHTML = `
-        <div style="display:flex; align-items:center; gap:14px; background:#f8fafc; padding:14px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:16px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:14px; background:#f8fafc; padding:14px; border-radius:6px; border:1px solid #e2e8f0; margin-bottom:16px; flex-wrap:wrap;">
           <img data-av-id="${emp.id || ''}" data-av-name="${String(emp.full_name || '').replace(/"/g, '&quot;')}" data-av-title="${escapeHtml(emp.title || emp.prefix || '')}" src="${typeof window.getAvatarUrl === 'function' ? window.getAvatarUrl(emp) : getAvatarUrl(emp.image_url, emp.title)}" alt="Avatar" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--th-p-600, #0d9488); background:#fff; flex-shrink:0;" onerror="this.onerror=null; this.src=getDefaultAvatarUrl('${escapeHtml(emp.title || '')}');">
           <div style="flex:1; min-width:180px;">
             <div style="font-size:15px; font-weight:700; color:#1e293b;">${escapeHtml(emp.full_name || "-")} ${emp.nickname ? `<span style="font-weight:400; color:#64748b;">(${escapeHtml(emp.nickname)})</span>` : ''}</div>
@@ -2055,7 +2055,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
             <span class="material-symbols-outlined" style="font-size:18px; color:var(--th-p-600, #0d9488);">history</span> ประวัติการลาทั้งหมด
           </strong>
           <div class="leave-history-cards-container" style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px;">
-            ${requests.length ? requests.sort((a,b) => new Date(b.start_date) - new Date(a.start_date)).map(renderLeaveCardItem).join("") : '<div style="text-align:center; padding:28px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">ยังไม่มีประวัติการลาในระบบ</div>'}
+            ${requests.length ? requests.sort((a,b) => new Date(b.start_date) - new Date(a.start_date)).map(renderLeaveCardItem).join("") : '<div style="text-align:center; padding:28px; color:#94a3b8; background:#f8fafc; border-radius:6px; border:1px dashed #cbd5e1;">ยังไม่มีประวัติการลาในระบบ</div>'}
           </div>
         </div>
       `;
@@ -2117,12 +2117,12 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                 </div>
                 <div class="pvt-avatar-uploader" style="padding: 16px 12px; margin-bottom: 0;">
                   <img id="inline-edit-profilePreview" src="${currentAvatarUrl}" 
-                       class="pvt-avatar-img" style="width: 120px; height: 160px; object-fit: cover; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Profile Preview" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
+                       class="pvt-avatar-img" style="width: 120px; height: 160px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Profile Preview" onerror="this.onerror=null; this.src='${defaultAvatarFallback}';">
                   <div style="display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; justify-content: center; align-items: center; width: 100%;">
                     <label for="inline-edit-img" class="pvt-file-label-btn" style="font-size: 12px; padding: 6px 12px; margin: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                       <span class="material-symbols-outlined" style="font-size:16px;">photo_camera</span> เปลี่ยนรูปภาพ
                     </label>
-                    <button type="button" id="inline-edit-remove-photo-btn" onclick="window.handleRemoveInlineEmployeePhoto('${escapeHtml(emp.title || '')}', '${escapeHtml(emp.gender || '')}', '${escapeHtml(emp.full_name || '')}')" style="font-size: 12px; padding: 6px 12px; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease;" title="ลบรูปโปรไฟล์และกลับไปใช้รูปเริ่มต้นตามเพศ/คำนำหน้า">
+                    <button type="button" id="inline-edit-remove-photo-btn" onclick="window.handleRemoveInlineEmployeePhoto('${escapeHtml(emp.title || '')}', '${escapeHtml(emp.gender || '')}', '${escapeHtml(emp.full_name || '')}')" style="font-size: 12px; padding: 6px 12px; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease;" title="ลบรูปโปรไฟล์และกลับไปใช้รูปเริ่มต้นตามเพศ/คำนำหน้า">
                       <span class="material-symbols-outlined" style="font-size:16px;">delete</span> ลบรูป
                     </button>
                   </div>
@@ -2276,7 +2276,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                   <div class="pvt-fs-card-title" style="font-size: 14px; margin-bottom:0; border-bottom:none; padding-bottom:0;">
                     <span class="material-symbols-outlined" style="font-size:18px;">post_add</span> ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)
                   </div>
-                  <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => openEmployeeDetail('${emp.id}', true))" style="font-size: 11.5px; padding: 5px 12px; background: var(--th-p-600, #0d9488); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                  <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => openEmployeeDetail('${emp.id}', true))" style="font-size: 11.5px; padding: 5px 12px; background: var(--th-p-600, #0d9488); color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">
                     ⚙️ จัดการคอลัมน์ระบบ
                   </button>
                 </div>
@@ -2292,10 +2292,10 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
               <span>กำลังแก้ไขข้อมูลพนักงาน: <strong style="color:var(--th-p-700, #0f766e);">${escapeHtml(emp.employee_code || '-')}</strong> (${escapeHtml(emp.full_name || '-')})</span>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
-              <button type="button" class="btn-light" onclick="openEmployeeDetail('${emp.id}', false)" style="padding: 10px 20px; font-weight: 600; font-size: 14px; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;">
+              <button type="button" class="btn-light" onclick="openEmployeeDetail('${emp.id}', false)" style="padding: 10px 20px; font-weight: 600; font-size: 14px; border-radius: 4px; border: 1px solid #cbd5e1; cursor: pointer;">
                 ❌ ยกเลิก
               </button>
-              <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, var(--th-p-700, #0f766e) 0%, var(--th-p-600, #0d9488) 100%); border: none; color: white; border-radius: 8px; padding: 10px 28px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);">
+              <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, var(--th-p-700, #0f766e) 0%, var(--th-p-600, #0d9488) 100%); border: none; color: white; border-radius: 4px; padding: 10px 28px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(var(--th-p-600-rgb, 13, 148, 136), 0.25);">
                 <span class="material-symbols-outlined" style="font-size:18px;">save</span> บันทึกการแก้ไขข้อมูล
               </button>
             </div>
@@ -2450,8 +2450,8 @@ async function saveEmployeeInlineEdit(employeeId) {
       title: 'ยืนยันการบันทึกแก้ไขข้อมูลพนักงาน?',
       html: `คุณกำลังจะอัปเดตข้อมูลของ <b>"${escapeHtml(name)}"</b> (${escapeHtml(code)})${moveNoteHtml}${
         updateData.status && updateData.status !== 'active'
-          ? `<div style="margin-top:10px; padding:10px 12px; border-radius:10px; background:#fff7ed; color:#9a3412; font-size:13.5px; text-align:left;">⚠️ เปลี่ยนสถานะเป็น <b>${updateData.status === 'resigned' ? 'ลาออก / พ้นสภาพ' : 'ระงับชั่วคราว'}</b> — พนักงานคนนี้จะเข้าสู่ระบบไม่ได้ และหากเป็นผู้อนุมัติ ระบบจะข้ามไปในสายอนุมัติ</div>`
-          : (updateData.status === 'active' ? `<div style="margin-top:10px; padding:10px 12px; border-radius:10px; background:#ecfdf5; color:#065f46; font-size:13.5px; text-align:left;">✅ เปิดการใช้งานบัญชีนี้อีกครั้ง</div>` : '')
+          ? `<div style="margin-top:10px; padding:10px 12px; border-radius:4px; background:#fff7ed; color:#9a3412; font-size:13.5px; text-align:left;">⚠️ เปลี่ยนสถานะเป็น <b>${updateData.status === 'resigned' ? 'ลาออก / พ้นสภาพ' : 'ระงับชั่วคราว'}</b> — พนักงานคนนี้จะเข้าสู่ระบบไม่ได้ และหากเป็นผู้อนุมัติ ระบบจะข้ามไปในสายอนุมัติ</div>`
+          : (updateData.status === 'active' ? `<div style="margin-top:10px; padding:10px 12px; border-radius:4px; background:#ecfdf5; color:#065f46; font-size:13.5px; text-align:left;">✅ เปิดการใช้งานบัญชีนี้อีกครั้ง</div>` : '')
       }`,
       icon: 'question',
       showCancelButton: true,
@@ -2572,7 +2572,7 @@ function closeEmployeeModal(event) {
 }
 
 function detail(label, value) {
-  return `<div class="detail-item" style="background:#f8fafc; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0;">
+  return `<div class="detail-item" style="background:#f8fafc; padding:8px 12px; border-radius:4px; border:1px solid #e2e8f0;">
     <span style="font-size:12px; color:#64748b; display:block; margin-bottom:2px;">${escapeHtml(label)}</span>
     <strong style="font-size:14px; color:#1e293b;">${escapeHtml(value)}</strong>
   </div>`;
@@ -2589,7 +2589,7 @@ function renderBalanceCards(rows) {
     const remaining = row.remaining_days !== undefined ? Number(row.remaining_days) : (entitlement - used);
 
     return `
-      <div style="background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:10px 14px; border-radius:10px;">
+      <div style="background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:10px 14px; border-radius:4px;">
         <span style="font-size:12px; color:var(--th-p-600, #0d9488); font-weight:600; display:block; margin-bottom:4px;">${escapeHtml(type)}</span>
         <div style="font-size:18px; font-weight:700; color:var(--th-p-700, #0f766e);">
           ${remaining} <span style="font-size:12px; font-weight:normal; color:#475569;">/ ${entitlement} วัน (ใช้ไป ${used})</span>
@@ -2608,29 +2608,29 @@ function renderLeaveCardItem(request) {
   const cancelOrRejectReason = request.cancel_reason || request.approval_comment;
 
   return `
-    <div class="leave-history-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+    <div class="leave-history-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
-          <span style="font-size: 13px; font-weight: 700; color: var(--th-p-600, #0d9488); background: var(--th-p-50, #f0fdfa); padding: 2px 8px; border-radius: 6px;">${escapeHtml(type)}</span>
+          <span style="font-size: 13px; font-weight: 700; color: var(--th-p-600, #0d9488); background: var(--th-p-50, #f0fdfa); padding: 2px 8px; border-radius: 3px;">${escapeHtml(type)}</span>
           <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 4px;">${startDate} - ${endDate}</div>
         </div>
-        <span class="status ${statusClass}" style="font-size: 11px; padding: 2px 8px; border-radius: 20px;">${statusLabel}</span>
+        <span class="status ${statusClass}" style="font-size: 11px; padding: 2px 8px; border-radius: 8px;">${statusLabel}</span>
       </div>
       <div style="font-size: 13px; color: #64748b; line-height: 1.4;">
         <b>เหตุผล:</b> ${escapeHtml(request.reason || request.note || "-")}
       </div>
       ${((request.status === 'cancelled' || (request.approval_comment && request.approval_comment.includes('ยกเลิก'))) && cancelOrRejectReason) ? `
-        <div style="font-size: 11.5px; color: #be123c; background: #fff1f2; padding: 4px 8px; border-radius: 6px; border: 1px solid #fecdd3;">
+        <div style="font-size: 11.5px; color: #be123c; background: #fff1f2; padding: 4px 8px; border-radius: 3px; border: 1px solid #fecdd3;">
           <strong>เหตุผลที่ยกเลิก:</strong> ${escapeHtml(cancelOrRejectReason)}
         </div>
       ` : (request.status === 'rejected' && request.approval_comment) ? `
-        <div style="font-size: 11.5px; color: #be123c; background: #fff1f2; padding: 4px 8px; border-radius: 6px; border: 1px solid #fecdd3;">
+        <div style="font-size: 11.5px; color: #be123c; background: #fff1f2; padding: 4px 8px; border-radius: 3px; border: 1px solid #fecdd3;">
           <strong>เหตุผลที่ไม่อนุมัติ:</strong> ${escapeHtml(request.approval_comment)}
         </div>
       ` : ''}
       <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 4px;">
         <span style="font-size: 13px; font-weight: 600; color: #475569;">จำนวน <strong style="color: var(--th-p-600, #0d9488);">${request.total_days || 0}</strong> วัน</span>
-        <button class="btn-light btn-sm" title="แก้ไขคำขอ" onclick="editSingleLeaveRequest('${request.id}')" style="display: flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; border-radius: 6px;">
+        <button class="btn-light btn-sm" title="แก้ไขคำขอ" onclick="editSingleLeaveRequest('${request.id}')" style="display: flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; border-radius: 3px;">
           <span class="material-symbols-outlined" style="font-size:16px;">edit</span> แก้ไข
         </button>
       </div>
@@ -2686,7 +2686,7 @@ async function editSingleLeaveRequest(requestId) {
     width: 'min(90vw, 500px)',
     html: `
       <div style="text-align:left; font-family:'Sarabun', sans-serif; display:flex; flex-direction:column; gap:12px;">
-        <div style="background:#f1f5f9; padding:10px; border-radius:6px; font-size:13px;">
+        <div style="background:#f1f5f9; padding:10px; border-radius:3px; font-size:13px;">
           <b>ประเภท:</b> ${escapeHtml(typeObj?.leave_name || 'ไม่ระบุ')}<br>
           <b>วันที่:</b> ${escapeHtml(req.start_date)} ถึง ${escapeHtml(req.end_date)}
         </div>
@@ -2840,7 +2840,7 @@ window.addChoiceInput = function(value = '') {
   div.style.cssText = 'display: flex; gap: 6px; margin-bottom: 6px; align-items: center;';
   div.innerHTML = `
     <input type="text" class="swal2-input choice-val" value="${escapeHtml(value)}" placeholder="เช่น ไซส์ S, แผนก A" style="margin:0; height:34px; flex:1; font-size:12px;">
-    <button type="button" onclick="this.parentElement.remove()" style="height:34px; padding:0 10px; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:6px; cursor:pointer;">🗑️</button>
+    <button type="button" onclick="this.parentElement.remove()" style="height:34px; padding:0 10px; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:3px; cursor:pointer;">🗑️</button>
   `;
   container.appendChild(div);
 };
@@ -2867,7 +2867,7 @@ window.openCreateCustomFieldModal = async function(onSuccessCallback) {
           </select>
         </div>
 
-        <div id="selectOptionsSection" style="display:none; margin-bottom: 12px; padding: 10px; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1;">
+        <div id="selectOptionsSection" style="display:none; margin-bottom: 12px; padding: 10px; background: #f1f5f9; border-radius: 4px; border: 1px solid #cbd5e1;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <label style="font-size:12px; font-weight:700; color:#334155;">รายการช้อยส์ตัวเลือก</label>
             <button type="button" onclick="window.addChoiceInput()" style="font-size:11px; padding:3px 8px; background:var(--th-p-600, #0d9488); color:white; border:none; border-radius:4px; cursor:pointer;">+ เพิ่มช้อยส์</button>
@@ -2875,7 +2875,7 @@ window.openCreateCustomFieldModal = async function(onSuccessCallback) {
           <div id="choiceOptionsContainer"></div>
         </div>
 
-        <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px; background: #fffbe3; padding: 8px 12px; border-radius: 6px; border: 1px solid #fde047;">
+        <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px; background: #fffbe3; padding: 8px 12px; border-radius: 3px; border: 1px solid #fde047;">
           <input type="checkbox" id="cf-required" style="width:16px; height:16px; cursor:pointer;">
           <label for="cf-required" style="font-size:13px; font-weight:600; cursor:pointer; color:#854d0e;">บังคับกรอกข้อมูลหรือไม่? (แสดง * Red Asterisk)</label>
         </div>
@@ -3011,7 +3011,7 @@ async function renderCustomFieldsHTML(supabase) {
           ${inputControl}
         </div>
         <button type="button" onclick="window.deleteCustomColumnWithDoubleConfirm('${field.id}', '${escapeHtml(field.name)}', () => window.addNewEmployee())" 
-                style="height:38px; padding:0 10px; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; shrink:0;" title="ลบคอลัมน์นี้ออกจากระบบ">
+                style="height:38px; padding:0 10px; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600; shrink:0;" title="ลบคอลัมน์นี้ออกจากระบบ">
           🗑️ ลบ
         </button>
       </div>
@@ -3223,7 +3223,7 @@ window.addNewEmployee = async function addNewEmployee() {
                     <div class="pvt-fs-card-title" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">
                       <span class="material-symbols-outlined" style="font-size:20px;">post_add</span> ข้อมูลเพิ่มเติม (คอลัมน์กำหนดเอง)
                     </div>
-                    <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => window.addNewEmployee())" style="font-size: 12px; padding: 6px 14px; background: var(--th-p-600, #0d9488); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                    <button type="button" class="btn-light btn-sm" onclick="window.openCreateCustomFieldModal(() => window.addNewEmployee())" style="font-size: 12px; padding: 6px 14px; background: var(--th-p-600, #0d9488); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
                       <span class="material-symbols-outlined" style="font-size:16px;">settings</span> จัดการคอลัมน์ระบบ
                     </button>
                   </div>
@@ -3770,7 +3770,7 @@ async function manageDepartments() {
       const list = categorizedPositions[catKey] || [];
       if (!list.length) {
         return `
-          <div style="text-align:center; padding:32px 16px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">
+          <div style="text-align:center; padding:32px 16px; color:#94a3b8; background:#f8fafc; border-radius:6px; border:1px dashed #cbd5e1;">
             <span class="material-symbols-outlined" style="font-size:32px; display:block; margin-bottom:6px; color:#cbd5e1;">folder_open</span>
             ยังไม่มีตำแหน่งงานในหมวดนี้
           </div>
@@ -3789,12 +3789,12 @@ async function manageDepartments() {
               </div>
               <div style="display:flex; gap:4px; align-items:center;">
                 <button type="button" onclick="editPositionName('${p.id}', '${escapeHtml(p.position_name)}')" 
-                        style="padding:4px 6px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; cursor:pointer; font-size:11px; color:#475569;"
+                        style="padding:4px 6px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; font-size:11px; color:#475569;"
                         title="แก้ไขชื่อตำแหน่ง">
                   ✏️
                 </button>
                 <button type="button" onclick="deletePositionItem('${p.id}', '${escapeHtml(p.position_name)}', ${p.empCount})" 
-                        style="padding:4px 6px; background:#fff1f2; border:1px solid #fecdd3; border-radius:6px; cursor:pointer; font-size:11px; color:#e11d48;"
+                        style="padding:4px 6px; background:#fff1f2; border:1px solid #fecdd3; border-radius:3px; cursor:pointer; font-size:11px; color:#e11d48;"
                         title="ลบตำแหน่ง">
                   🗑️
                 </button>
@@ -3809,7 +3809,7 @@ async function manageDepartments() {
     const renderDeptListHTML = () => {
       if (!depts.length) {
         return `
-          <div style="text-align:center; padding:32px 16px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">
+          <div style="text-align:center; padding:32px 16px; color:#94a3b8; background:#f8fafc; border-radius:6px; border:1px dashed #cbd5e1;">
             ยังไม่มีข้อมูลฝ่าย/แผนกในระบบ
           </div>
         `;
@@ -3828,12 +3828,12 @@ async function manageDepartments() {
                 </div>
                 <div style="display:flex; gap:4px; align-items:center;">
                   <button type="button" onclick="editDepartmentName('${d.id}', '${escapeHtml(d.department_name)}')" 
-                          style="padding:4px 6px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; cursor:pointer; font-size:11px; color:#475569;"
+                          style="padding:4px 6px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; font-size:11px; color:#475569;"
                           title="แก้ไขชื่อแผนก">
                     ✏️
                   </button>
                   <button type="button" onclick="deleteDepartmentItem('${d.id}', '${escapeHtml(d.department_name)}', ${count})" 
-                          style="padding:4px 6px; background:#fef2f2; border:1px solid #fca5a5; border-radius:6px; cursor:pointer; font-size:11px; color:#dc2626;"
+                          style="padding:4px 6px; background:#fef2f2; border:1px solid #fca5a5; border-radius:3px; cursor:pointer; font-size:11px; color:#dc2626;"
                           title="ลบแผนก">
                     🗑️
                   </button>
@@ -3880,7 +3880,7 @@ async function manageDepartments() {
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
             <input type="text" id="posModalSearch" placeholder="🔍 ค้นหาในหน้านี้..." 
                    oninput="filterPosModalItems()" 
-                   style="padding:6px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; min-width:200px; flex:1;">
+                   style="padding:6px 12px; border:1px solid #cbd5e1; border-radius:4px; font-size:13px; min-width:200px; flex:1;">
             
             <button type="button" id="posModalAddBtn" onclick="quickAddPositionOrDept()" 
                     class="action-btn success-zone" style="font-size:12.5px; padding:6px 14px;">
@@ -4384,7 +4384,7 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
       const rem = Number(b.remaining_days ?? (ent - used));
 
       formHTML += `
-        <div style="margin-bottom:12px; padding:10px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px;">
+        <div style="margin-bottom:12px; padding:10px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px;">
           <div style="font-weight:700; color:var(--th-p-700, #0f766e); font-size:14px; margin-bottom:6px;">${escapeHtml(typeName)}</div>
           <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; align-items:center;">
 
@@ -4740,7 +4740,7 @@ async function openEditHolidayModal(holidayId) {
         </div>
         <div>
           <label style="font-size: 13px; font-weight: 600; color: #334155;">ประเภทวันหยุด</label>
-          <select id="swal-edit-holiday-type" class="swal2-select" style="width: 100%; margin: 4px 0 0 0; height: 42px; border-radius: 8px; font-size: 14px;">
+          <select id="swal-edit-holiday-type" class="swal2-select" style="width: 100%; margin: 4px 0 0 0; height: 42px; border-radius: 4px; font-size: 14px;">
             <option value="public_holiday" ${holiday.holiday_type === 'public_holiday' ? 'selected' : ''}>วันหยุดนักขัตฤกษ์</option>
             <option value="company_holiday" ${holiday.holiday_type === 'company_holiday' ? 'selected' : ''}>วันหยุดพิเศษบริษัท</option>
             <option value="tradition_holiday" ${holiday.holiday_type === 'tradition_holiday' ? 'selected' : ''}>วันหยุดตามประเพณี</option>
@@ -4907,7 +4907,7 @@ async function exportAllLeaveHistoryExcel() {
     title: '📊 ส่งออกรายงานการลา & โควตาพนักงาน (Excel)',
     html: `
       <div style="text-align: left; font-family: 'Sarabun', sans-serif; font-size: 13.5px; color: #334155;">
-        <div style="margin-bottom: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 13px;">
+        <div style="margin-bottom: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px 14px; font-size: 13px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span>👥 พนักงานทั้งหมด: <strong style="color: var(--th-p-600, #0d9488);">${empCount} คน</strong></span>
             <span>📋 ใบลาในระบบ: <strong style="color: var(--th-b-600, #2563eb);">${leaveCount} รายการ</strong></span>
@@ -4919,7 +4919,7 @@ async function exportAllLeaveHistoryExcel() {
 
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <!-- 1. พนักงานทุกคน -->
-          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
             <input type="radio" name="exportChoiceRadio" value="all_employees" checked style="margin-top: 3px; accent-color: var(--th-p-600, #0d9488); transform: scale(1.2);">
             <div>
               <div style="font-weight: 700; color: #0f172a; font-size: 14px;">👥 1. ดึงข้อมูลพนักงานทั้งหมด (ไม่สนใบลารวม)</div>
@@ -4930,7 +4930,7 @@ async function exportAllLeaveHistoryExcel() {
           </label>
 
           <!-- 2. เฉพาะคนที่ลา -->
-          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
             <input type="radio" name="exportChoiceRadio" value="active_only" style="margin-top: 3px; accent-color: var(--th-p-600, #0d9488); transform: scale(1.2);">
             <div>
               <div style="font-weight: 700; color: #0f172a; font-size: 14px;">🏃 2. เอาเฉพาะคนที่ลา (Employees with Leave Requests)</div>
@@ -4941,7 +4941,7 @@ async function exportAllLeaveHistoryExcel() {
           </label>
 
           <!-- 3. รวมทุกอย่างในไฟล์เดียว -->
-          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
             <input type="radio" name="exportChoiceRadio" value="all_in_one" style="margin-top: 3px; accent-color: var(--th-p-600, #0d9488); transform: scale(1.2);">
             <div>
               <div style="font-weight: 700; color: #0f172a; font-size: 14px;">📑 3. รวมทุกข้อมูลในไฟล์เดียว (All-in-One Complete Workbook)</div>
@@ -4952,7 +4952,7 @@ async function exportAllLeaveHistoryExcel() {
           </label>
 
           <!-- 4. ประวัติใบลาดิบ -->
-          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 4px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--th-p-600, #0d9488)'; this.style.background='var(--th-p-50, #f0fdfa)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='transparent';">
             <input type="radio" name="exportChoiceRadio" value="raw_leaves" style="margin-top: 3px; accent-color: var(--th-p-600, #0d9488); transform: scale(1.2);">
             <div>
               <div style="font-weight: 700; color: #0f172a; font-size: 14px;">📄 4. ข้อมูลประวัติใบลาแบบละเอียดรายใบ (Raw Leave Requests Only)</div>
@@ -5919,12 +5919,12 @@ window.importEmployeesExcel = function importEmployeesExcel() {
         </p>
         
         <!-- Step 1: Download Template -->
-        <div style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-100, #ccfbf1); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="background: var(--th-p-50, #f0fdfa); border: 1px solid var(--th-p-100, #ccfbf1); padding: 12px 16px; border-radius: 4px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <div style="flex: 1;">
             <h4 style="font-size: 14px; font-weight: 700; color: var(--th-p-700, #0f766e); margin: 0 0 2px 0;">1. ดาวน์โหลดไฟล์เทมเพลตมาตรฐาน</h4>
             <p style="font-size: 12px; color: var(--th-p-600, #0d9488); margin: 0;">ดาวน์โหลดไฟล์ Excel (.xlsx) เพื่อกรอกข้อมูลพนักงานตามโครงสร้างที่ถูกต้อง</p>
           </div>
-          <button type="button" onclick="downloadExcelTemplate()" class="swal2-styled" style="background: var(--th-p-700, #0f766e); color: #fff; margin: 0; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 6px; box-shadow: none; white-space: nowrap; display: flex; align-items: center; gap: 4px; border: none; cursor: pointer;">
+          <button type="button" onclick="downloadExcelTemplate()" class="swal2-styled" style="background: var(--th-p-700, #0f766e); color: #fff; margin: 0; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 3px; box-shadow: none; white-space: nowrap; display: flex; align-items: center; gap: 4px; border: none; cursor: pointer;">
             <span class="material-symbols-outlined" style="font-size: 16px;">download</span> ดาวน์โหลด
           </button>
         </div>
@@ -5933,7 +5933,7 @@ window.importEmployeesExcel = function importEmployeesExcel() {
         <div style="margin-bottom: 8px;">
           <h4 style="font-size: 14px; font-weight: 700; color: #1e293b; margin: 0 0 8px 0;">2. เลือกไฟล์หรือลากไฟล์ Excel มาวาง</h4>
           
-          <div id="excel-drop-zone" style="border: 2px dashed #cbd5e1; border-radius: 10px; padding: 30px 20px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s ease-in-out; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+          <div id="excel-drop-zone" style="border: 2px dashed #cbd5e1; border-radius: 4px; padding: 30px 20px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s ease-in-out; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
             <span class="material-symbols-outlined" style="font-size: 48px; color: #94a3b8;" id="drop-zone-icon">upload_file</span>
             <p style="margin: 0; font-size: 14px; font-weight: 600; color: #475569;" id="drop-zone-text">ลากไฟล์ Excel (.xlsx) มาวางที่นี่ หรือ คลิกเพื่อเลือกไฟล์</p>
             <p style="margin: 0; font-size: 12px; color: #64748b;">ขนาดไฟล์ไม่เกิน 10MB (เฉพาะนามสกุล .xlsx เท่านั้น)</p>
@@ -6246,7 +6246,7 @@ async function executeDatabaseImport(rows) {
           <div style="font-weight:600; font-size:14px; margin-bottom:8px; color:var(--th-p-700, #0f766e);">แถวที่ ${i+1} จากทั้งหมด ${totalCount} รายการ</div>
           <p style="margin:0 0 4px 0;"><strong>ชื่อพนักงาน:</strong> ${row.full_name}</p>
           <p style="margin:0 0 8px 0;"><strong>รหัสพนักงาน:</strong> ${row.employee_code}</p>
-          <div style="background:#f1f5f9; border-radius:6px; height:8px; overflow:hidden;">
+          <div style="background:#f1f5f9; border-radius:3px; height:8px; overflow:hidden;">
             <div style="background:var(--th-p-700, #0f766e); height:100%; width:${((i+1)/totalCount)*100}%"></div>
           </div>
         </div>
@@ -6329,22 +6329,22 @@ async function executeDatabaseImport(rows) {
   const logHTML = `
     <div style="font-family:'Sarabun', sans-serif; text-align:left; max-height: 50vh; overflow-y:auto; padding-right:4px;">
       <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; text-align:center; margin-bottom:16px;">
-        <div style="background:#ecfdf5; border:1px solid #a7f3d0; padding:10px; border-radius:8px;">
+        <div style="background:#ecfdf5; border:1px solid #a7f3d0; padding:10px; border-radius:4px;">
           <div style="font-size:20px; font-weight:700; color:#047857;">${successCount}</div>
           <div style="font-size:12px; color:#065f46;">สำเร็จทั้งหมด</div>
         </div>
-        <div style="background:var(--th-b-50, #eff6ff); border:1px solid var(--th-b-200, #bfdbfe); padding:10px; border-radius:8px;">
+        <div style="background:var(--th-b-50, #eff6ff); border:1px solid var(--th-b-200, #bfdbfe); padding:10px; border-radius:4px;">
           <div style="font-size:20px; font-weight:700; color:var(--th-b-700, #1d4ed8);">${insertCount}</div>
           <div style="font-size:12px; color:var(--th-b-800, #1e40af);">พนักงานใหม่</div>
         </div>
-        <div style="background:#fef3c7; border:1px solid #fde68a; padding:10px; border-radius:8px;">
+        <div style="background:#fef3c7; border:1px solid #fde68a; padding:10px; border-radius:4px;">
           <div style="font-size:20px; font-weight:700; color:#b45309;">${updateCount}</div>
           <div style="font-size:12px; color:#92400e;">อัปเดตข้อมูล</div>
         </div>
       </div>
 
       ${errorLogs.length > 0 ? `
-        <div style="background:#fef2f2; border:1px solid #fca5a5; padding:12px; border-radius:8px; margin-bottom:16px; font-size:13px; color:#991b1b;">
+        <div style="background:#fef2f2; border:1px solid #fca5a5; padding:12px; border-radius:4px; margin-bottom:16px; font-size:13px; color:#991b1b;">
           <h5 style="margin:0 0 6px 0; font-weight:700;">⚠️ ข้อผิดพลาด (${errorLogs.length} รายการ):</h5>
           <ul style="margin:0; padding-left:20px; list-style-type:disc;">
             ${errorLogs.map(log => `<li>${escapeHtml(log)}</li>`).join('')}
@@ -6352,7 +6352,7 @@ async function executeDatabaseImport(rows) {
         </div>
       ` : ''}
 
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:4px;">
         <h5 style="margin:0 0 6px 0; font-weight:700; color:#334155;">📋 ประวัติการดำเนินการ:</h5>
         <ul style="margin:0; padding-left:20px; list-style-type:disc; font-size:12px; color:#475569; max-height:200px; overflow-y:auto;">
           ${successLogs.map(log => `<li>${escapeHtml(log)}</li>`).join('')}
@@ -6554,7 +6554,7 @@ async function testLineNotificationFromHR() {
   const { value: formValues } = await Swal.fire({
     title: '💬 ทดสอบส่งแจ้งเตือน LINE (HR)',
     html:
-      '<div style="text-align: left; margin-bottom: 8px; font-size: 13px; line-height: 1.5; background: #f8fafc; padding: 10px; border-radius: 6px; color: #475569; border: 1px solid #e2e8f0; margin-bottom: 14px;">' +
+      '<div style="text-align: left; margin-bottom: 8px; font-size: 13px; line-height: 1.5; background: #f8fafc; padding: 10px; border-radius: 3px; color: #475569; border: 1px solid #e2e8f0; margin-bottom: 14px;">' +
         '💡 <b>LINE User ID คืออะไร?</b><br>' +
         'คือรหัสเฉพาะของระบบ LINE (ขึ้นต้นด้วยตัว <b>U</b> ตามด้วยเลข/อักษรรวม 32 หลัก) ' +
         'ได้จากการที่พนักงานกดปุ่ม <b>"ขอรหัสเชื่อมต่อ LINE"</b> ในหน้าโปรไฟล์ แล้วส่งรหัส 6 หลักไปให้บอทในแชต LINE ครับ' +
@@ -6818,16 +6818,16 @@ window.openHospitalReport = async function openHospitalReport() {
   const html = `
     <div style="text-align:left; font-size:14.5px;">
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;">
-        <div style="padding:12px; border-radius:12px; background:#f0fdf4; border:1px solid #bbf7d0;"><div style="color:#166534; font-size:13px;">ระบุแล้ว</div><div style="font-size:24px; font-weight:800; color:#166534;">${filled} <small style="font-size:14px;">คน (${pct}%)</small></div></div>
-        <div style="padding:12px; border-radius:12px; background:#fffbeb; border:1px solid #fde68a;"><div style="color:#92400e; font-size:13px;">ยังไม่ระบุ</div><div style="font-size:24px; font-weight:800; color:#b45309;">${missing.length} <small style="font-size:14px;">คน</small></div></div>
-        <div style="padding:12px; border-radius:12px; background:#f0f9ff; border:1px solid #bae6fd;"><div style="color:#0369a1; font-size:13px;">จำนวนโรงพยาบาล</div><div style="font-size:24px; font-weight:800; color:#0369a1;">${list.length} <small style="font-size:14px;">แห่ง</small></div></div>
+        <div style="padding:12px; border-radius:6px; background:#f0fdf4; border:1px solid #bbf7d0;"><div style="color:#166534; font-size:13px;">ระบุแล้ว</div><div style="font-size:24px; font-weight:800; color:#166534;">${filled} <small style="font-size:14px;">คน (${pct}%)</small></div></div>
+        <div style="padding:12px; border-radius:6px; background:#fffbeb; border:1px solid #fde68a;"><div style="color:#92400e; font-size:13px;">ยังไม่ระบุ</div><div style="font-size:24px; font-weight:800; color:#b45309;">${missing.length} <small style="font-size:14px;">คน</small></div></div>
+        <div style="padding:12px; border-radius:6px; background:#f0f9ff; border:1px solid #bae6fd;"><div style="color:#0369a1; font-size:13px;">จำนวนโรงพยาบาล</div><div style="font-size:24px; font-weight:800; color:#0369a1;">${list.length} <small style="font-size:14px;">แห่ง</small></div></div>
       </div>
       ${metaMap ? `<div style="font-size:13.5px; color:#047857; margin-bottom:6px;">🔒 ยืนยัน & ล็อกแล้ว ${lockedCount} คน · พนักงานที่ถูกล็อกจะแก้เองไม่ได้ ต้องส่งคำขอให้ HR</div>` : `<div style="font-size:13px; color:#b45309; margin-bottom:6px;">ยังล็อกข้อมูลไม่ได้: กรุณารัน SQL 20261019_profile_change_requests.sql</div>`}
-      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;"><button type="button" data-hlist style="border:1px solid #bae6fd; background:#f0f9ff; color:#0369a1; border-radius:10px; padding:7px 14px; font:inherit; font-weight:700; cursor:pointer;">📋 จัดการรายชื่อ รพ.ให้พนักงานเลือก</button></div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;"><button type="button" data-hlist style="border:1px solid #bae6fd; background:#f0f9ff; color:#0369a1; border-radius:4px; padding:7px 14px; font:inherit; font-weight:700; cursor:pointer;">📋 จัดการรายชื่อ รพ.ให้พนักงานเลือก</button></div>
       <div style="font-size:13px; color:#64748b; margin-bottom:10px;">นับเฉพาะพนักงานที่ใช้งานอยู่ · พนักงานระบุ/แก้เองได้ที่เมนู <b>ข้อมูลฉัน</b> · ชื่อที่เขียนต่างกันเล็กน้อย (เช่น รพ./โรงพยาบาล) ระบบรวมเป็นแห่งเดียวกัน</div>
       <div style="max-height:52vh; overflow:auto; padding-right:4px;">
         ${list.map((g, i) => `
-          <details style="border:1px solid #e2e8f0; border-radius:12px; margin-bottom:8px; background:#fff;">
+          <details style="border:1px solid #e2e8f0; border-radius:6px; margin-bottom:8px; background:#fff;">
             <summary style="cursor:pointer; padding:10px 14px; display:flex; justify-content:space-between; gap:10px; font-weight:700;">
               <span>${i + 1}. ${escapeHtml(g.label)}${g.variants > 1 ? ` <small style="color:#94a3b8; font-weight:500;">(เขียน ${g.variants} แบบ)</small>` : ''}</span>
               <span style="color:#0369a1;">${g.emps.length} คน</span>
@@ -6835,7 +6835,7 @@ window.openHospitalReport = async function openHospitalReport() {
             <ul style="margin:0; padding:0 18px 12px 34px; line-height:1.8;">${g.emps.map(empLine).join('')}</ul>
           </details>`).join('') || '<p style="color:#64748b;">ยังไม่มีพนักงานระบุโรงพยาบาล</p>'}
         ${missing.length ? `
-          <details style="border:1px solid #fde68a; border-radius:12px; margin-top:12px; background:#fffbeb;" ${list.length ? '' : 'open'}>
+          <details style="border:1px solid #fde68a; border-radius:6px; margin-top:12px; background:#fffbeb;" ${list.length ? '' : 'open'}>
             <summary style="cursor:pointer; padding:10px 14px; display:flex; justify-content:space-between; font-weight:700; color:#92400e;"><span>ยังไม่ระบุโรงพยาบาล</span><span>${missing.length} คน</span></summary>
             <ul style="margin:0; padding:0 18px 12px 34px; line-height:1.8;">${missing.map(empLine).join('')}</ul>
           </details>` : ''}
