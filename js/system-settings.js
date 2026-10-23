@@ -762,6 +762,16 @@
                   </span>
                 </label>
               </div>
+
+              <div class="setting-card-item">
+                <div class="setting-toggle-info">
+                  <h5>ประกาศความเป็นส่วนตัว (PDPA)</h5>
+                  <p>ระบบเก็บข้อมูลอะไร ใช้ทำอะไร ใครเห็นบ้าง และสิทธิ์ของคุณ · ดูวันที่คุณกดยอมรับ</p>
+                </div>
+                <button type="button" class="btn-settings-reset" style="margin-top:10px;" onclick="window.PVTPrivacy ? window.PVTPrivacy.view() : alert('ยังไม่มีประกาศความเป็นส่วนตัวในระบบ')">
+                  <span class="material-symbols-outlined" aria-hidden="true">policy</span> อ่านประกาศความเป็นส่วนตัว
+                </button>
+              </div>
             </section>
 
           </div>

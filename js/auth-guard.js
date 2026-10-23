@@ -3,6 +3,8 @@
    ========================================================================== */
 // บัตรผ่านเข้าระบบ / เปลี่ยนรหัสผ่านผ่านฐานข้อมูล — ดู js/pvt-auth.js
 import './pvt-auth.js';
+// ประกาศความเป็นส่วนตัว (PDPA): ต้องยอมรับฉบับล่าสุดก่อนใช้งาน — ดู js/components/privacy-notice.js
+import './components/privacy-notice.js';
 
 // 🔐 นโยบายรหัสผ่าน (ตามที่เจ้าของงานกำหนด)
 //   • พนักงานทั่วไป / หัวหน้า / ผู้จัดการ: รหัสผ่าน = รหัสพนักงาน (พนักงานลืมรหัสบ่อย จึงไม่ให้เปลี่ยน)
@@ -1054,7 +1056,8 @@ function loginByQr() {
         flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
         position: relative; overflow: hidden; background: #020617; padding: 16px;
       }
-      #pvt-qr-video-host { width: 100%; height: 100%; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+      #pvt-qr-video-host { width: 100% !important; height: 100% !important; position: absolute !important; inset: 0 !important; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+      #pvt-qr-video-host #qr-shaded-region { display: none !important; }
       #pvt-qr-video-host video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
       .pvt-qr-reticle-box {
         width: min(280px, 75vw); height: min(280px, 75vw); position: relative; z-index: 5;

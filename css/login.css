@@ -2027,21 +2027,29 @@ body {
   }
 }
 
+/* ไลบรารีสแกน (html5-qrcode) ใส่ position: relative และความกว้างของวิดีโอไว้ในตัว element เอง
+   → ต้องใช้ !important ไม่งั้นภาพกล้องจะไปอยู่เหนือกรอบสแกน แทนที่จะอยู่ใต้กรอบ */
 #pvt-qr-video-host {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  inset: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 #pvt-qr-video-host video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  /* คงสัดส่วนภาพจริงไว้ (ไม่ตัดขอบ) — ไลบรารีคำนวณพื้นที่สแกนจากขนาดวิดีโอ ถ้าตัดขอบจะอ่าน QR ไม่ออก */
+  width: 100% !important;
+  height: auto !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
 }
+
+/* กรอบมืดของไลบรารีเอง — ใช้กรอบสแกนของระบบแทน */
+#pvt-qr-video-host #qr-shaded-region { display: none !important; }
 
 /* Scanner Reticle & HUD Frame */
 .pvt-qr-reticle-box {
@@ -3752,4 +3760,100 @@ body {
   #page-login .login-container { background: transparent !important; border-radius: 28px; }
   #page-login .login-card { border-radius: 28px; overflow: hidden; isolation: isolate; }
   #page-login .brand-area { border-radius: 28px 0 0 28px; }
+}
+
+/* ── หน้าสแกน QR แบบเรียบง่าย (ผู้สูงอายุ / พนักงานต่างชาติ) ──
+   ภาพกล้องเต็มจอ · นอกกรอบมืด · กรอบอยู่กลางจอพอดีกับพื้นที่ที่ระบบอ่าน QR · การ์ดคำแนะนำใต้กรอบ · ปุ่มเดียวด้านล่าง */
+.pvt-qr-modal-overlay.is-simple #pvtQrBtnGuide,
+.pvt-qr-modal-overlay.is-simple #pvtQrBtnTorch,
+.pvt-qr-modal-overlay.is-simple #pvtQrBtnFlip,
+.pvt-qr-modal-overlay.is-simple #pvtQrZoomIndicator,
+.pvt-qr-modal-overlay.is-simple #pvtQrEcoIndicator,
+.pvt-qr-modal-overlay.is-simple #pvtQrPermFileBtn,
+.pvt-qr-modal-overlay.is-simple .pvt-qr-tabs-bar,
+.pvt-qr-modal-overlay.is-simple .pvt-qr-icon-badge,
+.pvt-qr-modal-overlay.is-simple .pvt-qr-title-box > div > span { display: none !important; }
+
+.pvt-qr-modal-overlay.is-simple .pvt-qr-modal-window { background: #000; }
+
+/* หัวหน้า: ลอยบนภาพกล้อง */
+.pvt-qr-modal-overlay.is-simple .pvt-qr-header {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 18px 28px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+  border-bottom: 0; z-index: 20;
+}
+.pvt-qr-modal-overlay.is-simple .pvt-qr-title-box h3 { font-size: 21px; font-weight: 800; letter-spacing: 0.2px; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
+.pvt-qr-modal-overlay.is-simple #pvtQrBtnClose {
+  width: 48px; height: 48px; min-width: 48px; min-height: 48px;
+  background: rgba(255, 255, 255, 0.16); border: 0;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.pvt-qr-modal-overlay.is-simple #pvtQrBtnClose .material-symbols-outlined { font-size: 28px !important; }
+
+/* พื้นที่กล้อง */
+.pvt-qr-modal-overlay.is-simple .pvt-qr-viewport-container { padding: 0; background: #000; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-reticle-box {
+  --pvt-qr-box: min(270px, 70vw);
+  width: var(--pvt-qr-box); height: var(--pvt-qr-box);
+  border-radius: 28px;
+  box-shadow: 0 0 0 100vmax rgba(2, 6, 23, 0.74);
+}
+.pvt-qr-modal-overlay.is-simple .pvt-qr-corner {
+  width: 46px; height: 46px; border-color: #fff;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.35));
+}
+.pvt-qr-modal-overlay.is-simple .pvt-qr-corner.top-left { border-width: 6px 0 0 6px; border-top-left-radius: 28px; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-corner.top-right { border-width: 6px 6px 0 0; border-top-right-radius: 28px; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-corner.bottom-left { border-width: 0 0 6px 6px; border-bottom-left-radius: 28px; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-corner.bottom-right { border-width: 0 6px 6px 0; border-bottom-right-radius: 28px; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-laser { left: 10%; right: 10%; height: 2px; opacity: 0.85; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-viewport-container.qr-detected .pvt-qr-reticle-box,
+.pvt-qr-modal-overlay.is-simple .pvt-qr-reticle-box.scan-success { box-shadow: 0 0 0 100vmax rgba(2, 6, 23, 0.78), 0 0 34px rgba(52, 211, 153, 0.7); }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-viewport-container.qr-detected .pvt-qr-corner,
+.pvt-qr-modal-overlay.is-simple .pvt-qr-reticle-box.scan-success .pvt-qr-corner { border-color: #34d399; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-detect-badge { top: calc(76px + env(safe-area-inset-top, 0px)); left: 50%; transform: translate(-50%, -10px) scale(0.9); }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-detect-badge.show { transform: translate(-50%, 0) scale(1); }
+
+/* การ์ดคำแนะนำ: ลอยใต้กรอบ (กรอบจึงอยู่กลางจอพอดี) */
+.pvt-qr-modal-overlay.is-simple .pvt-qr-guide-text {
+  position: absolute; left: 50%; top: calc(50% + min(270px, 70vw) / 2 + 22px);
+  transform: translateX(-50%); margin: 0;
+  width: min(330px, calc(100% - 40px)); box-sizing: border-box;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 18px; border: 0;
+  background: rgba(255, 255, 255, 0.96); color: #0f172a; text-align: left;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.pvt-qr-modal-overlay.is-simple .pvt-qr-guide-ico {
+  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 14px;
+  display: flex !important; align-items: center; justify-content: center;
+  background: #ccfbf1; color: #0f766e !important; font-size: 26px !important;
+}
+.pvt-qr-modal-overlay.is-simple .pvt-qr-guide-lines { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pvt-qr-modal-overlay.is-simple #pvtQrGuideMsg { font-size: 18px; font-weight: 800; line-height: 1.3; }
+.pvt-qr-guide-sub { display: none; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-guide-sub { display: block; font-size: 14px; color: #475569; line-height: 1.35; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-guide-sub:empty { display: none; }
+.pvt-qr-modal-overlay.is-simple .qr-detected .pvt-qr-guide-sub { display: none; }
+
+/* ปุ่มเดียวด้านล่าง */
+.pvt-qr-simple-foot { display: none; }
+.pvt-qr-modal-overlay.is-simple .pvt-qr-simple-foot {
+  display: block; position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
+  padding: 40px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+}
+.pvt-qr-simple-close {
+  width: 100%; min-height: 58px; border-radius: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.55); background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  color: #fff; font: 700 18px/1.3 "Sarabun", sans-serif; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.pvt-qr-simple-close .material-symbols-outlined { font-size: 24px; }
+.pvt-qr-simple-close:active { background: rgba(255, 255, 255, 0.24); }
+@media (min-width: 641px) {
+  .pvt-qr-modal-overlay.is-simple .pvt-qr-modal-window { height: min(760px, 92vh); }
 }

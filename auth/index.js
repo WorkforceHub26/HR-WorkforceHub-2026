@@ -828,6 +828,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }, 2500);
 
+  // 📲 ปุ่มอนุมัติ/ไม่อนุมัติจาก LINE (ลิงก์ใช้ครั้งเดียว) → เข้าระบบในบัญชีผู้อนุมัติ แล้วเปิดใบลานั้น
+  const lineParams = new URLSearchParams(window.location.search);
+  if (lineParams.has("line_link")) {
+    hideLoginSkeleton();
+    const handled = await handleLineActionLink(lineParams.get("line_link"), lineParams.get("next"));
+    if (handled) return;
+  }
+
   // ⚡ Auto Session-Check & Instant Redirect
   const redirected = await autoSessionCheckAndRedirect();
   if (redirected) {
@@ -1299,9 +1307,10 @@ async function executeSecureQrLogin(scannedData) {
   Swal.fire({
     title: '🔒 กำลังตรวจสอบข้อมูล...',
     text: 'ระบบกำลังตรวจสอบความถูกต้องของ QR Code บนบัตร',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
+    allowOutsideClick: false
   });
+  // เรียกทันที (ไม่ใช้ didOpen) — ถ้าตรวจเสร็จเร็ว didOpen จะไปสั่งหมุนบนหน้าต่างถัดไป ทำให้ปุ่มหาย
+  Swal.showLoading();
 
   const sb = getSbClient();
   if (!sb) {
@@ -1370,6 +1379,45 @@ async function executeSecureQrLogin(scannedData) {
       confirmButtonColor: '#ef4444'
     });
   }
+}
+
+// 📲 ลิงก์จากปุ่มใน LINE: คืน true เมื่อย้ายหน้าไปแล้ว · false = ให้หน้าเข้าระบบทำงานต่อ (ล็อกอินแล้วพาไปที่ใบลา)
+async function handleLineActionLink(link, nextRaw) {
+  let next = '/pages/approver/leave-approvals.html';
+  try {
+    const n = decodeURIComponent(String(nextRaw || ''));
+    if (n.startsWith('/') && !n.startsWith('//') && !/^\/+index\.html/i.test(n)) next = n;
+  } catch (e) {}
+  const goNext = () => { window.location.replace(next); return true; };
+  const loggedIn = (() => {
+    try { const s = JSON.parse(localStorage.getItem('currentUser') || 'null'); return !!(s && s.id && (!s.expireAt || s.expireAt > Date.now())); } catch (e) { return false; }
+  })();
+
+  let res = { ok: false, reason: 'invalid' };
+  if (/^[0-9a-f]{64}$/.test(String(link || '')) && window.PVTAuth?.lineLinkLogin) {
+    if (window.Swal) Swal.fire({ title: 'กำลังเปิดใบลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    res = await window.PVTAuth.lineLinkLogin(link);
+  }
+  if (res && res.ok && res.user) {
+    saveUserSession(res.user);
+    try { window.PVTSDK?.loginAudit?.recordLoginLog?.(res.user, { method: 'line_link' }); } catch (e) {}
+    if (!res.still_pending && window.Swal) {
+      await Swal.fire({ icon: 'info', title: 'ใบลานี้พิจารณาแล้ว', text: 'ใบลานี้ไม่ได้รอท่านพิจารณาแล้ว (อาจมีผู้อนุมัติคนอื่นกดไปก่อน หรือผู้ยื่นยกเลิกแล้ว) — เปิดดูรายละเอียดได้', confirmButtonText: 'เปิดดู' });
+    }
+    return goNext();
+  }
+  if (window.Swal) Swal.close();
+  // ลิงก์ใช้ไม่ได้ แต่เครื่องนี้เข้าระบบอยู่แล้ว → ไปที่ใบลาเลย
+  if (loggedIn) return goNext();
+  // ให้ล็อกอินตามปกติ แล้วพาไปที่ใบลา (redirectToDashboard อ่าน ?redirect=)
+  try { history.replaceState(null, '', `${location.pathname}?redirect=${encodeURIComponent(next)}`); } catch (e) {}
+  if (window.Swal && res && res.reason && res.reason !== 'invalid') {
+    const msg = res.reason === 'used' ? 'ลิงก์นี้ถูกใช้ไปแล้ว'
+      : res.reason === 'expired' ? 'ลิงก์นี้หมดอายุแล้ว (ใช้ได้ 3 วัน)'
+      : res.reason === 'inactive' ? 'บัญชีนี้ถูกระงับการใช้งาน' : 'เปิดลิงก์ไม่สำเร็จ';
+    await Swal.fire({ icon: 'info', title: msg, text: 'กรุณาเข้าสู่ระบบ แล้วระบบจะพาไปที่ใบลานี้', confirmButtonText: 'เข้าสู่ระบบ' });
+  }
+  return false;
 }
 
 // เข้าสู่ระบบด้วย QR สำเร็จ: บันทึก session + ประวัติ + ย้ายหน้า (ใช้ทั้งระบบใหม่และระบบเดิม)
@@ -1511,9 +1559,9 @@ async function loginByQr() {
     th: {
       title: "สแกนบัตรพนักงาน",
       subTitle: "QR Code & บาร์โค้ด",
-      guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
+      guideLive: "ถือบัตรให้ QR อยู่ในกรอบ",
       guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
-      guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
+      guideSuccess: "สแกนสำเร็จ! กำลังเข้าระบบ...",
       guideEco: "🍃 โหมดประหยัดแบตเตอรี่ (แตะหน้าจอเพื่อปลุกกล้อง)",
       ecoTitle: "โหมดประหยัดพลังงาน",
       ecoSub: "ลดเฟรมเรตเมื่อไม่ได้ใช้งานเกิน 10 วิ",
@@ -1583,9 +1631,9 @@ async function loginByQr() {
   }[currentLang] || {
     title: "สแกนบัตรพนักงาน",
     subTitle: "QR Code & บาร์โค้ด",
-    guideLive: "จัดตำแหน่ง QR หรือบาร์โค้ดให้อยู่ในกรอบ",
+    guideLive: "ถือบัตรให้ QR อยู่ในกรอบ",
     guideScanning: "กำลังตรวจสอบรหัสพนักงาน...",
-    guideSuccess: "สแกนสำเร็จ! กำลังยืนยันตัวตน...",
+    guideSuccess: "สแกนสำเร็จ! กำลังเข้าระบบ...",
     guideEco: "🍃 โหมดประหยัดแบตเตอรี่ (แตะหน้าจอเพื่อปลุกกล้อง)",
     ecoTitle: "โหมดประหยัดพลังงาน",
     ecoSub: "ลดเฟรมเรตเมื่อไม่ได้ใช้งานเกิน 10 วิ",
@@ -1606,6 +1654,12 @@ async function loginByQr() {
   };
 
   // สร้างโครงสร้าง UI ของ Modal
+  // หน้าสแกนแบบเรียบง่าย: กล้อง + กรอบ + คำแนะนำ + ปุ่มปิดปุ่มเดียว (ปุ่มอื่นซ่อนด้วย CSS .is-simple)
+  modalOverlay.classList.add("is-simple");
+  const simpleCloseText = currentLang === "en" ? "Type employee code instead"
+    : (currentLang === "lo" || currentLang === "my") ? i18n.closeBtnTitle : "พิมพ์รหัสพนักงานแทน";
+  const simpleGuideSub = currentLang === "en" ? "You will be signed in automatically"
+    : (currentLang === "lo" || currentLang === "my") ? "" : "สแกนติดแล้ว ระบบจะเข้าให้เอง";
   modalOverlay.innerHTML = `
     <div class="pvt-qr-modal-window" role="dialog" aria-modal="true">
       <!-- 🔝 Header Bar -->
@@ -1683,8 +1737,11 @@ async function loginByQr() {
 
         <!-- Guide Caption -->
         <div id="pvtQrGuideText" class="pvt-qr-guide-text">
-          <span class="material-symbols-outlined" style="font-size: 16px; color: #34d399;">center_focus_strong</span>
-          <span id="pvtQrGuideMsg">${i18n.guideLive}</span>
+          <span class="material-symbols-outlined pvt-qr-guide-ico" style="font-size: 16px; color: #34d399;">badge</span>
+          <span class="pvt-qr-guide-lines">
+            <span id="pvtQrGuideMsg">${i18n.guideLive}</span>
+            <span class="pvt-qr-guide-sub">${simpleGuideSub}</span>
+          </span>
         </div>
 
         <!-- Success Visual Feedback Overlay -->
@@ -1736,6 +1793,11 @@ async function loginByQr() {
           <span class="material-symbols-outlined" style="font-size: 18px;">image</span> ${i18n.tabFile}
         </button>
       </div>
+
+      <!-- ปุ่มปิดปุ่มเดียว (หน้าแบบเรียบง่าย) -->
+      <div class="pvt-qr-simple-foot">
+        <button type="button" id="pvtQrBtnDone" class="pvt-qr-simple-close" onclick="document.getElementById('pvtQrBtnClose').click()"><span class="material-symbols-outlined" aria-hidden="true">keyboard</span><span>${simpleCloseText}</span></button>
+      </div>
     </div>
   `;
 
@@ -1773,7 +1835,8 @@ async function loginByQr() {
     if (laser) laser.classList.add("eco-mode");
 
     if (guideMsg && !hasScannedSuccess) {
-      guideMsg.textContent = i18n.guideEco || "🍃 โหมดประหยัดแบตเตอรี่ (แตะหน้าจอเพื่อปลุกกล้อง)";
+      // โหมดประหยัดแบตยังสแกนต่อ — ไม่เปลี่ยนข้อความ (ผู้ใช้สับสน)
+      guideMsg.textContent = i18n.guideLive;
     }
 
     // 🔋 ลดเฟรมเรตและความละเอียดของฮาร์ดแวร์กล้องลง เพื่อประหยัดแบตเตอรี่และลดความร้อน CPU/GPU

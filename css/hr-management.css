@@ -2039,3 +2039,12 @@
 .swal2-container :is(.badge-role-tag, .status-badge-pill, .hm-badge) {
   border-radius: 999px !important;
 }
+
+/* ── ฟอร์มพนักงาน: คำอธิบายใต้ช่อง + ผลตรวจรหัสซ้ำ ── */
+.pvt-field-hint { display: block; text-align: left; font-size: 12px; line-height: 1.45; color: #64748b; }
+.pvt-field-hint:empty { display: none; }
+.pvt-field-hint.is-wait { color: #64748b; }
+.pvt-field-hint.is-ok { color: #047857; font-weight: 600; }
+.pvt-field-hint.is-bad { color: var(--danger, #dc2626); font-weight: 600; }
+.pvt-input.is-invalid { border-color: var(--danger, #dc2626); }
+.pvt-input.is-invalid:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }

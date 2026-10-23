@@ -850,15 +850,86 @@ async function fetchAllPaginated(tableName, selectQuery = '*', filters = {}) {
   return allRecords;
 }
 
+// ───────────── LINE: ไว้ติดต่อ (line_contact) ≠ รับแจ้งเตือน (line_id) ─────────────
+// line_id = รหัสผู้ใช้ LINE ที่ระบบได้มาตอนผูกบัญชี (U + 32 ตัว) ใช้ส่งแจ้งเตือน — HR ไม่ต้องพิมพ์เอง
+// line_contact = ไอดีที่ไว้ค้นหาเพื่อน/ติดต่อ (เช่น somchai.88) — เป็นแค่ข้อมูลติดต่อ
+const PVT_LINE_UID_RE = /^U[0-9a-f]{32}$/i;
+function pvtIsMissingLineContact(err) {
+  const m = `${err?.message || ''} ${err?.details || ''} ${err?.hint || ''}`;
+  return /line_contact/i.test(m);
+}
+// เขียนตาราง employees: ถ้าฐานข้อมูลยังไม่มีคอลัมน์ line_contact → ลองใหม่โดยไม่ใส่ช่องนั้น
+async function pvtEmployeesWrite(run, payload) {
+  let res = await run(payload);
+  if (res?.error && payload && Object.prototype.hasOwnProperty.call(payload, 'line_contact') && pvtIsMissingLineContact(res.error)) {
+    console.warn('[employees] ยังไม่มีคอลัมน์ line_contact — ข้อมูล LINE ไว้ติดต่อยังไม่ถูกบันทึก (รัน SQL 20261027)');
+    const p2 = Object.assign({}, payload);
+    delete p2.line_contact;
+    res = await run(p2);
+  }
+  return res;
+}
+window.pvtEmployeesWrite = pvtEmployeesWrite;
+
+// ───────────── ตรวจข้อมูลซ้ำก่อนเพิ่ม / แก้ไขพนักงาน ─────────────
+const pvtLikeEsc = (v) => String(v || '').replace(/[\\%_]/g, (c) => '\\' + c);
+const pvtStatusText = (st) => {
+  const v = String(st || 'active').toLowerCase();
+  if (v === 'active') return 'ทำงานอยู่';
+  if (/resign|ลาออก/.test(v)) return 'ลาออกแล้ว';
+  if (/suspend|ระงับ|inactive/.test(v)) return 'ระงับการใช้งาน';
+  return st;
+};
+// รหัสพนักงานซ้ำ (ไม่สนตัวพิมพ์เล็ก/ใหญ่ · นับคนที่ลาออกแล้วด้วย) → คืนแถวที่ชน หรือ null
+async function pvtFindEmployeeByCode(code, excludeId) {
+  const c = String(code || '').trim();
+  if (!c) return null;
+  const { data, error } = await getSupabase().from('employees')
+    .select('id, employee_code, full_name, status').ilike('employee_code', pvtLikeEsc(c)).limit(5);
+  if (error) { console.warn('[dup-check] code', error); return null; }
+  return (data || []).find((r) => String(r.id) !== String(excludeId || '')) || null;
+}
+// ชื่อ-นามสกุลซ้ำ (แค่เตือน ไม่บล็อก เพราะคนชื่อเหมือนกันมีได้)
+async function pvtFindEmployeesByName(firstName, lastName, excludeId) {
+  const f = String(firstName || '').trim(), l = String(lastName || '').trim();
+  if (!f || !l) return [];
+  const { data, error } = await getSupabase().from('employees')
+    .select('id, employee_code, full_name, status').ilike('full_name', `%${pvtLikeEsc(f)}%${pvtLikeEsc(l)}%`).limit(5);
+  if (error) { console.warn('[dup-check] name', error); return []; }
+  return (data || []).filter((r) => String(r.id) !== String(excludeId || ''));
+}
+// เบอร์โทรซ้ำ (แค่เตือน) — เทียบเฉพาะตัวเลข
+async function pvtFindEmployeesByPhone(phone, excludeId) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (digits.length < 9) return [];
+  const { data, error } = await getSupabase().from('employees')
+    .select('id, employee_code, full_name, status, phone').not('phone', 'is', null).ilike('phone', `%${digits.slice(-4)}%`).limit(50);
+  if (error) { console.warn('[dup-check] phone', error); return []; }
+  return (data || []).filter((r) => String(r.id) !== String(excludeId || '') && String(r.phone || '').replace(/\D/g, '') === digits);
+}
+const pvtDupCodeMsg = (hit) => {
+  const st = pvtStatusText(hit.status);
+  const tail = st === 'ทำงานอยู่' ? 'ใช้รหัสอื่น' : 'ถ้าเป็นคนเดิมกลับมาทำงาน ให้ใช้ "แก้ไขข้อมูล" เปลี่ยนสถานะเป็นทำงานอยู่แทนการเพิ่มใหม่';
+  return `⚠️ รหัส "${hit.employee_code}" มีในระบบแล้ว: ${hit.full_name || '-'} (${st}) — ${tail}`;
+};
+const pvtIsUniqueError = (err) => err && (err.code === '23505' || /duplicate key|unique/i.test(String(err.message || '')));
+
 async function fetchEmployees() {
   try {
     const query = `
       id, employee_code, title, full_name, nickname, phone, email, hospital,
-      bank_account, line_id, image_url, start_date, status, role,
+      bank_account, line_id, line_contact, image_url, start_date, status, role,
       employment_type, department_id, position_id,
       departments!department_id(department_name), positions(position_name)
     `;
-    employees = await fetchAllPaginated("employees", query);
+    try {
+      employees = await fetchAllPaginated("employees", query);
+    } catch (colErr) {
+      // ยังไม่ได้รัน SQL 20261027_employee_line_contact.sql → อ่านแบบเดิมไปก่อน
+      if (!pvtIsMissingLineContact(colErr)) throw colErr;
+      console.warn('[employees] ยังไม่มีคอลัมน์ line_contact — รัน supabase/migrations/20261027_employee_line_contact.sql');
+      employees = await fetchAllPaginated("employees", query.replace('line_contact, ', ''));
+    }
     window.employees = employees;
   } catch (err) {
     showAppError("ดึงข้อมูลพนักงานล้มเหลว", err.message);
@@ -1849,6 +1920,9 @@ function formatEmploymentType(typeStr) {
   if (str.includes("part") || str.includes("พาร์ทไทม์")) return "พนักงานพาร์ทไทม์ (Part-time)";
   if (str.includes("contract") || str.includes("สัญญาจ้าง")) return "พนักงานสัญญาจ้าง (Contract)";
   if (str.includes("intern") || str.includes("ฝึกงาน")) return "นักศึกษาฝึกงาน (Intern)";
+  if (str.includes("probation") || str.includes("ทดลองงาน")) return "พนักงานทดลองงาน (Probation)";
+  if (str.includes("daily") || str.includes("รายวัน")) return "รายวัน (Daily)";
+  if (str.includes("monthly") || str.includes("รายเดือน")) return "รายเดือน (Monthly)";
 
   return typeStr;
 }
@@ -2035,7 +2109,8 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
 
         <div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 16px;">
           ${detail("เบอร์โทรศัพท์", emp.phone || "-")}
-          ${detail("ไอดีไลน์ (LINE ID)", emp.line_id || "-")}
+          ${detail("LINE (ไว้ติดต่อ)", emp.line_contact || "-")}
+          ${detail("แจ้งเตือนทาง LINE", emp.line_id ? "ผูกแล้ว" : "ยังไม่ผูก")}
           ${detail("อีเมล", emp.email || "-")}
           ${detail("วันเริ่มงาน", window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-"))}
           ${detail("โรงพยาบาลประกันสังคม", emp.hospital || "-")}
@@ -2213,8 +2288,9 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                     <input id="inline-edit-phone" class="pvt-input" value="${escapeHtml(emp.phone || '')}" placeholder="08X-XXX-XXXX">
                   </div>
                   <div class="pvt-field-group">
-                    <label for="inline-edit-lineId">ไอดีไลน์ (Line ID)</label>
-                    <input id="inline-edit-lineId" class="pvt-input" value="${escapeHtml(emp.line_id || '')}" placeholder="Line ID">
+                    <label for="inline-edit-lineContact">LINE (ไว้ติดต่อ)</label>
+                    <input id="inline-edit-lineContact" class="pvt-input" value="${escapeHtml(emp.line_contact || '')}" placeholder="ไอดีที่ไว้ค้นหาเพื่อน เช่น somchai.88">
+                    <small class="pvt-field-hint">แจ้งเตือนทาง LINE: <b>${emp.line_id ? 'ผูกแล้ว' : 'ยังไม่ผูก'}</b> · ผูกได้ที่ ตั้งค่าสายอนุมัติ > ปุ่มเชื่อมต่อ LINE</small>
                   </div>
                   <div class="pvt-field-group">
                     <label for="inline-edit-email">อีเมลองค์กร</label>
@@ -2403,7 +2479,7 @@ async function saveEmployeeInlineEdit(employeeId) {
     title: document.getElementById('inline-edit-title')?.value || null,
     nickname: document.getElementById('inline-edit-nickname')?.value.trim() || null,
     phone: document.getElementById('inline-edit-phone')?.value.trim() || null,
-    line_id: document.getElementById('inline-edit-lineId')?.value.trim() || null,
+    line_contact: document.getElementById('inline-edit-lineContact')?.value.trim() || null,
     email: document.getElementById('inline-edit-email')?.value.trim() || null,
     department_id: dept || null,
     position_id: role || null,
@@ -2480,8 +2556,19 @@ async function saveEmployeeInlineEdit(employeeId) {
     }
 
     const supabase = getSupabase();
-    const { error } = await supabase.from('employees').update(updateData).eq('id', emp.id);
-    if (error) throw error;
+    // รหัสพนักงานเปลี่ยน → ตรวจว่าไม่ชนกับคนอื่น (รวมคนที่ลาออกแล้ว)
+    if (String(code).toLowerCase() !== String(emp.employee_code || '').toLowerCase()) {
+      const hit = await pvtFindEmployeeByCode(code, emp.id);
+      if (hit) {
+        showAppError("รหัสพนักงานซ้ำ", pvtDupCodeMsg(hit).replace(/^⚠️ /, '').replace(/ — .*$/, ' — ใช้รหัสอื่น'));
+        return;
+      }
+    }
+    const { error } = await pvtEmployeesWrite((p) => supabase.from('employees').update(p).eq('id', emp.id), updateData);
+    if (error) {
+      if (pvtIsUniqueError(error)) { showAppError("รหัสพนักงานซ้ำ", `รหัส "${code}" มีในระบบแล้ว — ใช้รหัสอื่น`); return; }
+      throw error;
+    }
     if (passViaServer) {
       const pr = await window.PVTAuth.setPassword(emp.id, newPass);
       if (pr.legacy) {
@@ -3034,7 +3121,38 @@ async function renderCustomFieldsHTML(supabase) {
 }
 
 // 7. MAIN FUNCTION: addNewEmployee (ผูก window.addNewEmployee ให้ HTML เรียกได้)
-window.addNewEmployee = async function addNewEmployee() {
+// ข้อมูลที่กรอกค้างไว้ (กด "แก้ไขข้อมูล" ในหน้ายืนยัน → กลับมาหน้าฟอร์มพร้อมข้อมูลเดิม)
+const PVT_ADD_EMP_FIELDS = {
+  'swal-empCode': 'employee_code', 'swal-password': 'password', 'swal-system-role': 'role',
+  'title': 'title', 'swal-firstName': '_first', 'swal-lastName': '_last', 'swal-nickname': 'nickname',
+  'swal-phone': 'phone', 'swal-lineContact': 'line_contact', 'swal-email': 'email', 'swal-bankAccount': 'bank_account',
+  'swal-dept': 'department_id', 'swal-role': 'position_id', 'employee_type': 'employment_type',
+  'swal-startDate': 'start_date', 'swal-hospital': 'hospital'
+};
+function pvtApplyAddEmployeePrefill(popup, pre) {
+  if (!popup || !pre) return;
+  const setVal = (id, v) => {
+    const el = popup.querySelector('#' + CSS.escape(id));
+    if (!el || v == null || v === '') return;
+    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === String(v))) {
+      // ค่านอกตัวเลือก (เช่น รพ. "อื่น ๆ") → เพิ่มเป็นตัวเลือกชั่วคราว
+      const opt = document.createElement('option'); opt.value = String(v); opt.textContent = String(v); el.appendChild(opt);
+    }
+    el.value = String(v);
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    if (el.tagName === 'INPUT') el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  setVal('swal-system-role', pre.role);
+  try { window.updateEmployeeFormRequirements(); } catch (_) {}
+  Object.entries(PVT_ADD_EMP_FIELDS).forEach(([id, key]) => { if (id !== 'swal-system-role') setVal(id, pre[key]); });
+  const cf = pre._custom || {};
+  popup.querySelectorAll('.custom-field-input').forEach((el) => {
+    const k = el.getAttribute('data-key');
+    if (k && cf[k] != null) el.value = cf[k];
+  });
+}
+
+window.addNewEmployee = async function addNewEmployee(prefill) {
   const supabase = getSupabase();
   if (!supabase || !window.Swal) return;
 
@@ -3110,7 +3228,8 @@ window.addNewEmployee = async function addNewEmployee() {
                   </div>
                   <div class="pvt-field-group" style="margin-bottom: 14px;">
                     <label for="swal-empCode">รหัสพนักงาน <span class="req">*</span></label>
-                    <input id="swal-empCode" class="pvt-input" placeholder="เช่น 19001" required>
+                    <input id="swal-empCode" class="pvt-input" placeholder="เช่น 19001" required autocomplete="off">
+                    <small id="swal-empCode-hint" class="pvt-field-hint" aria-live="polite"></small>
                   </div>
                   <div class="pvt-field-group" style="margin-bottom: 14px;">
                     <label for="swal-password">รหัสผ่านเข้าใช้งาน <span class="req">*</span></label>
@@ -3173,8 +3292,9 @@ window.addNewEmployee = async function addNewEmployee() {
                       <input id="swal-phone" class="pvt-input" placeholder="08X-XXX-XXXX">
                     </div>
                     <div class="pvt-field-group">
-                      <label for="swal-lineId">ไอดีไลน์ (LINE ID)</label>
-                      <input id="swal-lineId" class="pvt-input" placeholder="Line ID">
+                      <label for="swal-lineContact">LINE (ไว้ติดต่อ)</label>
+                      <input id="swal-lineContact" class="pvt-input" placeholder="ไอดีที่ไว้ค้นหาเพื่อน เช่น somchai.88">
+                      <small class="pvt-field-hint">เป็นแค่ข้อมูลติดต่อ · การรับแจ้งเตือนทาง LINE ผูกภายหลังด้วยรหัส 6 หลัก</small>
                     </div>
                     <div class="pvt-field-group">
                       <label for="swal-email">อีเมลองค์กร</label>
@@ -3218,6 +3338,8 @@ window.addNewEmployee = async function addNewEmployee() {
                         <option value="พนักงานสัญญาจ้าง (Contract)">พนักงานสัญญาจ้าง (Contract)</option>
                         <option value="นักศึกษาฝึกงาน (Intern)">นักศึกษาฝึกงาน (Intern)</option>
                         <option value="พนักงานทดลองงาน (Probation)">พนักงานทดลองงาน (Probation)</option>
+                        <option value="รายเดือน (Monthly)">รายเดือน (Monthly)</option>
+                        <option value="รายวัน (Daily)">รายวัน (Daily)</option>
                       </select>
                     </div>
                     <div class="pvt-field-group">
@@ -3251,6 +3373,27 @@ window.addNewEmployee = async function addNewEmployee() {
       `,
       didOpen: (popup) => {
         window.updateEmployeeFormRequirements();
+        if (prefill) pvtApplyAddEmployeePrefill(popup, prefill);
+        // 🔎 ตรวจรหัสพนักงานซ้ำทันทีที่พิมพ์เสร็จ
+        const codeInput = popup.querySelector('#swal-empCode');
+        const codeHint = popup.querySelector('#swal-empCode-hint');
+        if (codeInput && codeHint) {
+          let timer = null, seq = 0;
+          const setHint = (cls, text) => { codeHint.className = `pvt-field-hint ${cls}`; codeHint.textContent = text; codeInput.classList.toggle('is-invalid', cls === 'is-bad'); };
+          const runCheck = async () => {
+            const v = codeInput.value.trim();
+            const my = ++seq;
+            if (!v) { setHint('', ''); return; }
+            setHint('is-wait', 'กำลังตรวจรหัส...');
+            const hit = await pvtFindEmployeeByCode(v);
+            if (my !== seq) return;
+            if (hit) setHint('is-bad', `รหัสนี้มีแล้ว: ${hit.full_name || '-'} (${pvtStatusText(hit.status)})`);
+            else setHint('is-ok', '✓ ใช้รหัสนี้ได้');
+          };
+          codeInput.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(runCheck, 450); });
+          codeInput.addEventListener('blur', () => { clearTimeout(timer); runCheck(); });
+          if (codeInput.value.trim()) runCheck();
+        }
         const empImageInput = popup.querySelector('#empImage');
         const profilePreviewImg = popup.querySelector('#profilePreview');
         const empImageName = popup.querySelector('#empImageName');
@@ -3284,7 +3427,7 @@ window.addNewEmployee = async function addNewEmployee() {
           });
         }
       },
-      preConfirm: () => {
+      preConfirm: async () => {
         const code = document.getElementById('swal-empCode').value.trim();
         const password = document.getElementById('swal-password').value.trim();
         const firstName = document.getElementById('swal-firstName')?.value.trim() || '';
@@ -3336,14 +3479,30 @@ window.addNewEmployee = async function addNewEmployee() {
           return false;
         }
 
+        // 🔎 รหัสพนักงานซ้ำ → บล็อก (รวมคนที่ลาออกแล้ว)
+        const codeHit = await pvtFindEmployeeByCode(code);
+        if (codeHit) {
+          Swal.showValidationMessage(pvtDupCodeMsg(codeHit));
+          return false;
+        }
+        // ชื่อ / เบอร์โทรซ้ำ → แค่เตือนในหน้ายืนยัน
+        const phoneVal = document.getElementById('swal-phone').value.trim();
+        const [nameHits, phoneHits] = await Promise.all([
+          pvtFindEmployeesByName(firstName, lastName),
+          pvtFindEmployeesByPhone(phoneVal)
+        ]);
+
         return {
+          _dupWarn: { names: nameHits, phones: phoneHits },
+          _first: firstName,
+          _last: lastName,
           employee_code: code,
           password: password,
           full_name: name,
           title: document.getElementById('title').value || null,
           nickname: document.getElementById('swal-nickname').value.trim() || null,
           phone: document.getElementById('swal-phone').value.trim() || null,
-          line_id: document.getElementById('swal-lineId').value.trim() || null,
+          line_contact: document.getElementById('swal-lineContact').value.trim() || null,
           email: document.getElementById('swal-email').value.trim() || null,
           department_id: dept || null,
           position_id: role || null,
@@ -3360,32 +3519,63 @@ window.addNewEmployee = async function addNewEmployee() {
     });
 
     if (formValues) {
+      const dup = formValues._dupWarn || { names: [], phones: [] };
+      delete formValues._dupWarn;
+      const prefillBack = Object.assign({}, formValues, { _custom: formValues.custom_fields || {} });
+      delete prefillBack.imageFile;
+      delete formValues._first;
+      delete formValues._last;
+      const dupRow = (r) => `<li><b>${escapeHtml(r.employee_code || '-')}</b> ${escapeHtml(r.full_name || '-')} <span style="color:#64748b;">(${escapeHtml(pvtStatusText(r.status))})</span></li>`;
+      let dupHtml = '';
+      if (dup.names.length) dupHtml += `<div style="margin-top:6px;">ชื่อ-นามสกุลคล้ายกับ:</div><ul style="margin:4px 0 0 18px; padding:0;">${dup.names.map(dupRow).join('')}</ul>`;
+      if (dup.phones.length) dupHtml += `<div style="margin-top:6px;">เบอร์โทรเดียวกับ:</div><ul style="margin:4px 0 0 18px; padding:0;">${dup.phones.map(dupRow).join('')}</ul>`;
+      if (dupHtml) {
+        dupHtml = `<div style="text-align:left; margin-top:14px; padding:10px 12px; border:1px solid #f59e0b; background:#fffbeb; border-radius:4px; font-size:13px; color:#78350f;">
+          <b>⚠️ พบข้อมูลที่อาจซ้ำ</b>${dupHtml}
+          <div style="margin-top:8px;">ถ้าเป็นคนเดียวกัน ไม่ต้องเพิ่มใหม่ ให้ปิดหน้านี้แล้วใช้เมนู "แก้ไขข้อมูล / ตำแหน่ง" ของคนเดิมแทน</div></div>`;
+      }
       const confirm1 = await Swal.fire({
         title: '❓ ยืนยันข้อมูลพนักงานใหม่',
-        html: `ต้องการบันทึกรหัสพนักงาน <b>${escapeHtml(formValues.employee_code)}</b><br>คุณ <b>${escapeHtml(formValues.full_name)}</b> ใช่หรือไม่?`,
-        icon: 'question',
+        html: `ต้องการบันทึกรหัสพนักงาน <b>${escapeHtml(formValues.employee_code)}</b><br>คุณ <b>${escapeHtml(formValues.full_name)}</b> ใช่หรือไม่?${dupHtml}`,
+        icon: dupHtml ? 'warning' : 'question',
         showCancelButton: true,
         confirmButtonText: '💾 บันทึกข้อมูล',
         cancelButtonText: 'แก้ไขข้อมูล',
         confirmButtonColor: 'var(--th-p-600, #0d9488)'
       });
 
-      if (!confirm1.isConfirmed) return;
-
-      Swal.fire({ title: 'กำลังบันทึกข้อมูลพนักงาน...', didOpen: () => Swal.showLoading() });
-
-      if (formValues.imageFile) {
-        const uploadedUrl = await uploadEmployeeImage(supabase, formValues.employee_code, formValues.imageFile);
-        if (uploadedUrl) formValues.image_url = uploadedUrl;
+      if (!confirm1.isConfirmed) {
+        // "แก้ไขข้อมูล" → กลับไปหน้าฟอร์มพร้อมข้อมูลที่กรอกไว้ (รูปต้องเลือกใหม่)
+        if (confirm1.dismiss === Swal.DismissReason.cancel) return window.addNewEmployee(prefillBack);
+        return;
       }
 
+      Swal.fire({ title: 'กำลังบันทึกข้อมูลพนักงาน...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+      // รูปอัปโหลด "หลัง" บันทึกสำเร็จ — กันรูปไปทับของพนักงานเดิมถ้ารหัสชน
+      const imageFile = formValues.imageFile;
       delete formValues.imageFile;
 
       const customFields = formValues.custom_fields || {};
       delete formValues.custom_fields;
 
-      const { data: createdRow, error } = await supabase.from('employees').insert([formValues]).select('id').single();
-      if (error) throw error;
+      const { data: createdRow, error } = await pvtEmployeesWrite((p) => supabase.from('employees').insert([p]).select('id').single(), formValues);
+      if (error) {
+        if (pvtIsUniqueError(error)) {
+          const hit = await pvtFindEmployeeByCode(formValues.employee_code);
+          await Swal.fire({ icon: 'error', title: 'รหัสพนักงานซ้ำ', text: hit ? pvtDupCodeMsg(hit).replace(/^⚠️ /, '') : `รหัส "${formValues.employee_code}" มีในระบบแล้ว — ใช้รหัสอื่น` });
+          return;
+        }
+        throw error;
+      }
+      if (imageFile && createdRow?.id) {
+        const uploadedUrl = await uploadEmployeeImage(supabase, formValues.employee_code, imageFile);
+        if (uploadedUrl) {
+          formValues.image_url = uploadedUrl;
+          const { error: imgErr } = await supabase.from('employees').update({ image_url: uploadedUrl }).eq('id', createdRow.id);
+          if (imgErr) console.warn('[add-employee] บันทึกรูปไม่สำเร็จ', imgErr);
+        }
+      }
       try { window.pvtReloadAvatarIndex && window.pvtReloadAvatarIndex(); } catch (_) {}
       // บัญชีผู้ดูแลระบบ (HR / ผู้บริหาร ฯลฯ): ฐานข้อมูลไม่รับรหัสผ่านที่เขียนตรงจากหน้าเว็บ → ตั้งผ่านฐานข้อมูลด้วยบัตรผ่านของผู้ใช้
       if (createdRow?.id && formValues.password && window.PVTAuth && window.pvtIsAdminAccount && window.pvtIsAdminAccount(formValues)) {
@@ -5849,7 +6039,7 @@ window.downloadExcelTemplate = function downloadExcelTemplate() {
     { header: 'ชื่อเล่น (nickname)', key: 'nickname', width: 12 },
     { header: 'เบอร์โทรศัพท์ (phone)', key: 'phone', width: 15 },
     { header: 'อีเมล (email)', key: 'email', width: 25 },
-    { header: 'Line ID (line_id)', key: 'line_id', width: 15 },
+    { header: 'LINE ไว้ติดต่อ (line_contact)', key: 'line_contact', width: 18 },
     { header: 'สิทธิ์การใช้งาน (role)', key: 'role', width: 18 },
     { header: 'แผนก (department)', key: 'department', width: 20 },
     { header: 'ตำแหน่งงาน (position)', key: 'position', width: 20 },
@@ -5879,7 +6069,7 @@ window.downloadExcelTemplate = function downloadExcelTemplate() {
     nickname: 'ดร.วิโรจน์',
     phone: '0819998888',
     email: 'viroj.l@company.com',
-    line_id: 'viroj.line',
+    line_contact: 'viroj.line',
     role: 'executive',
     department: 'HR',
     position: 'ผู้จัดการฝ่าย',
@@ -5900,7 +6090,7 @@ window.downloadExcelTemplate = function downloadExcelTemplate() {
     nickname: 'ชาย',
     phone: '0821112222',
     email: 'somchai.d@company.com',
-    line_id: 'somchai.line',
+    line_contact: 'somchai.line',
     role: 'user',
     department: 'IT',
     position: 'IT Support',
@@ -6078,8 +6268,8 @@ async function processExcelImport(file) {
             colMapping['phone'] = colNumber;
           } else if (matches(['อีเมล', 'อีเมล์', 'email', 'e-mail'])) {
             colMapping['email'] = colNumber;
-          } else if (matches(['ไลน์', 'line_id', 'line'])) {
-            colMapping['line_id'] = colNumber;
+          } else if (matches(['ไลน์', 'line_contact', 'line_id', 'line'])) {
+            colMapping['line_contact'] = colNumber;
           } else if (matches(['สิทธิ์', 'บทบาท', 'ระดับ', 'role'])) {
             colMapping['role'] = colNumber;
           } else if (matches(['แผนก', 'ฝ่าย', 'สังกัด', 'department', 'dept', 'section'])) {
@@ -6124,7 +6314,7 @@ async function processExcelImport(file) {
           const nickname = getMappedValue(row, 'nickname');
           const phone = getMappedValue(row, 'phone');
           const email = getMappedValue(row, 'email');
-          const line_id = getMappedValue(row, 'line_id');
+          const line_contact = getMappedValue(row, 'line_contact');
           const role = getMappedValue(row, 'role') || 'user';
           const department_val = getMappedValue(row, 'department_val');
           const position_val = getMappedValue(row, 'position_val');
@@ -6151,7 +6341,7 @@ async function processExcelImport(file) {
             nickname,
             phone,
             email,
-            line_id,
+            line_contact,
             role: role.toLowerCase(),
             department_val,
             position_val,
@@ -6289,7 +6479,6 @@ async function executeDatabaseImport(rows) {
         nickname: row.nickname || null,
         phone: row.phone || null,
         email: row.email || null,
-        line_id: row.line_id || null,
         role: row.role,
         department_id: deptId,
         position_id: posId,
@@ -6299,6 +6488,13 @@ async function executeDatabaseImport(rows) {
         status: row.status || 'active',
         updated_at: new Date().toISOString()
       };
+      // ช่อง LINE ในไฟล์: รหัสผู้ใช้ LINE จริง (U…) → ใช้รับแจ้งเตือน · อย่างอื่น → เก็บเป็นข้อมูลติดต่อ
+      // ช่องว่าง = ไม่แตะของเดิม (กันการผูก LINE เดิมหายตอนอัปเดตด้วย Excel)
+      const lineVal = String(row.line_contact || '').trim();
+      if (lineVal) {
+        if (PVT_LINE_UID_RE.test(lineVal)) empPayload.line_id = lineVal;
+        else empPayload.line_contact = lineVal;
+      }
 
       if (row.start_date) {
         try {
@@ -6320,10 +6516,10 @@ async function executeDatabaseImport(rows) {
           empPayload.password = row.password;
         }
 
-        const { error } = await supabase
+        const { error } = await pvtEmployeesWrite((p) => supabase
           .from('employees')
-          .update(empPayload)
-          .eq('employee_code', row.employee_code);
+          .update(p)
+          .eq('employee_code', row.employee_code), empPayload);
 
         if (error) throw error;
         updateCount++;
@@ -6332,9 +6528,9 @@ async function executeDatabaseImport(rows) {
       } else {
         empPayload.password = row.password || row.employee_code;
 
-        const { error } = await supabase
+        const { error } = await pvtEmployeesWrite((p) => supabase
           .from('employees')
-          .insert([empPayload]);
+          .insert([p]), empPayload);
 
         if (error) throw error;
         insertCount++;

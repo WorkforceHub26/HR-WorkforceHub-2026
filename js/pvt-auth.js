@@ -245,7 +245,10 @@
           allowOutsideClick: false,
           allowEscapeKey: false,
           reverseButtons: false,
-          customClass: { popup: 'pvt-dev-popup' }
+          customClass: { popup: 'pvt-dev-popup' },
+          // หน้าต่าง "กำลังตรวจสอบ..." ก่อนหน้า (สแกน QR) อาจสั่ง showLoading ตามมาทีหลัง → ปุ่มหาย กดตอบไม่ได้
+          didOpen: () => { try { Swal.hideLoading(); } catch (e) {} },
+          didRender: () => { try { Swal.hideLoading(); } catch (e) {} }
         });
         own = !!r.isConfirmed;
       }
