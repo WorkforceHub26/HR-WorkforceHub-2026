@@ -1012,6 +1012,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           return;
         }
         user = srv.user;
+        // ช่วงที่ 2: เครื่องใหม่ → ถามครั้งเดียวว่าเป็นเครื่องของตัวเองหรือเครื่องยืม
+        await window.PVTAuth.askDeviceIfNeeded(srv);
       }
 
       // 2. (ระบบเดิม) Direct Query: ค้นหาในตาราง employees โดยตรง — ใช้เฉพาะก่อนรัน SQL ชุดใหม่
@@ -1160,6 +1162,12 @@ function saveUserSession(userData) {
   const rememberCheckbox = document.getElementById("rememberMe");
   const isRemember = rememberCheckbox ? rememberCheckbox.checked : true;
   const expireHours = isRemember ? (30 * 24) : 12; // 30 วัน ถ้าจดจำระบบ, 12 ชม. ถ้าไม่
+  // ระบบใหม่: อายุการเข้าระบบ = อายุบัตรผ่าน (เครื่องของฉัน 90 วัน · เครื่องยืม 2 ชม.)
+  const tokenExp = window.PVTAuth?.tokenExpiresAt ? window.PVTAuth.tokenExpiresAt() : 0;
+  // เครื่องยืม: ไม่จำรหัสพนักงานไว้ในช่องเข้าระบบ
+  if (window.PVTAuth?.isSharedDevice && window.PVTAuth.isSharedDevice()) {
+    try { localStorage.removeItem("pvt_remembered_username"); } catch (e) {}
+  }
   
   const deptName = userData.departments?.department_name || userData.department_name || "";
   const posName = userData.positions?.position_name || userData.position_name || "";
@@ -1180,7 +1188,7 @@ function saveUserSession(userData) {
     l1_approver_id: userData.l1_approver_id || null,
     l2_approver_id: userData.l2_approver_id || null,
     l3_approver_id: userData.l3_approver_id || null,
-    expireAt: new Date().getTime() + (expireHours * 60 * 60 * 1000)
+    expireAt: tokenExp || (new Date().getTime() + (expireHours * 60 * 60 * 1000))
   };
   localStorage.setItem("currentUser", JSON.stringify(sessionPayload));
 }
@@ -1314,6 +1322,7 @@ async function executeSecureQrLogin(scannedData) {
       if (!srvQr.ok) {
         throw new Error(srvQr.reason === 'not_found' ? `ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ` : window.PVTAuth.reasonText(srvQr));
       }
+      await window.PVTAuth.askDeviceIfNeeded(srvQr);
       return finishQrLogin(srvQr.user, scannedData);
     }
 

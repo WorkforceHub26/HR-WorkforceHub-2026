@@ -3529,8 +3529,14 @@ window.executePvtLogout = async function() {
     localStorage.removeItem('pvt_user');
     localStorage.removeItem('pvt_auth_token');
     localStorage.removeItem('supabase_session');
+    // ค่าที่ต้องอยู่ต่อหลังออกจากระบบ: รหัสเครื่อง (เครื่องของฉัน/เครื่องยืม) + ค่าที่ผู้ใช้ตั้งไว้ (แบบอักษร / ภาษา / อ่านแจ้งเตือนแล้ว / จำรหัส)
+    //   (เดิม localStorage.clear() ล้างค่าที่ตั้งใจเก็บไว้ไปด้วย)
+    const KEEP = /^(pvt_device_id|pvt_user_notification_read_state_.+|userReadNotifIds|pvt_user_font|pvt_user_font_size|pvt_user_theme|pvt_remembered_username|pvt_login_lang|pvt_language|preferred_lang|pvt_sound_enabled|pvt_reduced_motion|pvt_privacy_shield|pvt_high_contrast|pvt_eyecare_mode|pvt_compact_mode|pvt_auto_refresh|pvt_double_confirm|pvt_webauthn_credentials)$/;
+    const kept = [];
+    try { Object.keys(localStorage).forEach((k) => { if (KEEP.test(k)) kept.push([k, localStorage.getItem(k)]); }); } catch (e) {}
     localStorage.clear();
     sessionStorage.clear();
+    try { kept.forEach(([k, v]) => { if (v !== null) localStorage.setItem(k, v); }); } catch (e) {}
   } catch (err) {}
 
   window.location.replace('/index.html?logout=true');
@@ -3867,4 +3873,44 @@ document.addEventListener('click', function(e) {
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else setTimeout(start, 0);
+})();
+
+/* ==========================================================================
+   📱 เครื่องยืม (ช่วงที่ 2): แสดงป้ายบอก + ออกจากระบบอัตโนมัติเมื่อไม่ได้ใช้งาน 10 นาที / บัตรผ่านหมดอายุ
+   (หลังยื่นใบลาบนเครื่องยืม js/leave-user.js จะออกจากระบบให้ทันที)
+   ========================================================================== */
+(function pvtSharedDeviceGuard() {
+  const IDLE_MS = 10 * 60 * 1000;
+  const isLoginPage = () => /\/(index\.html)?$/.test(location.pathname) && !!document.getElementById('loginForm');
+  function start() {
+    try {
+      if (isLoginPage() || !window.PVTAuth || !window.PVTAuth.isSharedDevice() || !localStorage.getItem('currentUser')) return;
+    } catch (e) { return; }
+    if (document.getElementById('pvtSharedChip')) return;
+    const chip = document.createElement('div');
+    chip.id = 'pvtSharedChip';
+    chip.setAttribute('role', 'status');
+    chip.innerHTML = '<span aria-hidden="true">📱</span><span>เครื่องยืม · ออกจากระบบอัตโนมัติ</span>'
+      + '<button type="button">ออกจากระบบ</button>';
+    chip.style.cssText = 'position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:9998;'
+      + 'display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border-radius:999px;background:#1e293b;color:#fff;'
+      + 'font:600 12.5px/1.2 Sarabun,system-ui,sans-serif;box-shadow:0 4px 14px rgba(15,23,42,.25);max-width:calc(100vw - 24px);';
+    const btn = chip.querySelector('button');
+    btn.style.cssText = 'border:0;border-radius:999px;padding:6px 12px;background:#f97316;color:#fff;font:700 12.5px Sarabun,system-ui,sans-serif;cursor:pointer;';
+    btn.addEventListener('click', () => { window.executePvtLogout && window.executePvtLogout(); });
+    if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) chip.style.bottom = 'calc(76px + env(safe-area-inset-bottom, 0px))';
+    document.body.appendChild(chip);
+
+    let last = Date.now();
+    const bump = () => { last = Date.now(); };
+    ['pointerdown', 'keydown', 'touchstart', 'scroll', 'wheel'].forEach((ev) => window.addEventListener(ev, bump, { passive: true }));
+    setInterval(() => {
+      const expired = window.PVTAuth.tokenExpiresAt() && window.PVTAuth.tokenExpiresAt() < Date.now();
+      if (expired || Date.now() - last > IDLE_MS) {
+        try { sessionStorage.setItem('pvt_logout_reason', expired ? 'expired' : 'idle'); } catch (e) {}
+        window.executePvtLogout && window.executePvtLogout();
+      }
+    }, 30000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

@@ -13,6 +13,21 @@
   if (global.PVTAuth) return;
 
   const TOKEN_KEY = 'pvt_session_token';
+  // รหัสเครื่อง (ช่วงที่ 2): ค่าสุ่มของเบราว์เซอร์นี้ ใช้แยก "เครื่องของฉัน" กับ "เครื่องยืม" — ไม่ลบตอนออกจากระบบ
+  const DEVICE_KEY = 'pvt_device_id';
+
+  function deviceId() {
+    try {
+      let id = localStorage.getItem(DEVICE_KEY);
+      if (!id || id.length < 16) {
+        const rnd = (global.crypto && global.crypto.randomUUID) ? global.crypto.randomUUID()
+          : 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        id = 'pvt-' + rnd;
+        localStorage.setItem(DEVICE_KEY, id);
+      }
+      return id;
+    } catch (e) { return ''; }
+  }
 
   function client() {
     try {
@@ -28,18 +43,24 @@
       /Could not find the function|function .* does not exist|schema cache/i.test(msg);
   }
 
-  function readToken() {
+  function readTokenObj() {
     try {
       const raw = localStorage.getItem(TOKEN_KEY);
-      if (!raw) return '';
+      if (!raw) return null;
       const t = JSON.parse(raw);
-      if (!t || !t.token) return '';
-      if (t.expires_at && new Date(t.expires_at).getTime() < Date.now()) { localStorage.removeItem(TOKEN_KEY); return ''; }
-      return String(t.token);
-    } catch (e) { return ''; }
+      if (!t || !t.token) return null;
+      if (t.expires_at && new Date(t.expires_at).getTime() < Date.now()) { localStorage.removeItem(TOKEN_KEY); return null; }
+      return t;
+    } catch (e) { return null; }
   }
-  function saveToken(token, expiresAt) {
-    try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, expires_at: expiresAt || null })); } catch (e) {}
+  function readToken() { const t = readTokenObj(); return t ? String(t.token) : ''; }
+  function saveToken(token, expiresAt, deviceKind) {
+    try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, expires_at: expiresAt || null, device_kind: deviceKind || 'unknown' })); } catch (e) {}
+  }
+  function patchToken(fields) {
+    const t = readTokenObj();
+    if (!t) return;
+    try { localStorage.setItem(TOKEN_KEY, JSON.stringify(Object.assign(t, fields))); } catch (e) {}
   }
   function clearToken() { try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
 
@@ -89,13 +110,27 @@
   }
 
   function finishLogin(data) {
-    if (data && data.ok && data.token) saveToken(data.token, data.expires_at);
+    if (data && data.ok && data.token) saveToken(data.token, data.expires_at, data.device_kind);
     return data;
+  }
+
+  // เรียกพร้อมรหัสเครื่อง · ถ้าฐานข้อมูลยังเป็นช่วงที่ 1 (ไม่รู้จัก p_device_id) → เรียกซ้ำแบบไม่มีรหัสเครื่อง
+  async function rpcWithDevice(name, args) {
+    let res = await rpc(name, Object.assign({}, args, { p_device_id: deviceId() }));
+    if (res.error && isMissingFunction(res.error)) res = await rpc(name, args);
+    return res;
   }
 
   const PVTAuth = {
     TOKEN_KEY,
+    DEVICE_KEY,
+    deviceId,
     token: readToken,
+    // 'own' (เครื่องของฉัน) · 'shared' (เครื่องยืม) · 'ask' (ยังไม่ได้ตอบ) · 'unknown' (ระบบเดิม)
+    deviceKind() { const t = readTokenObj(); return t ? (t.device_kind || 'unknown') : ''; },
+    isSharedDevice() { const t = readTokenObj(); return !!t && (t.device_kind === 'shared' || t.device_kind === 'ask'); },
+    // วันหมดอายุของบัตรผ่าน (ms) — ใช้เป็นวันหมดอายุของ currentUser
+    tokenExpiresAt() { const t = readTokenObj(); return t && t.expires_at ? new Date(t.expires_at).getTime() : 0; },
     hasToken: () => !!readToken(),
     clearToken,
     reasonText,
@@ -103,7 +138,7 @@
 
     // { ok, user, token, expires_at } | { ok:false, reason, ... } | { legacy:true } (ยังไม่ได้ติดตั้งฟังก์ชัน)
     async login(login, password, remember = true) {
-      const { data, error } = await rpc('pvt_login', {
+      const { data, error } = await rpcWithDevice('pvt_login', {
         p_login: String(login || ''), p_password: String(password || ''),
         p_remember: remember !== false, p_user_agent: (navigator.userAgent || '').slice(0, 300)
       });
@@ -112,8 +147,17 @@
     },
 
     async qrLogin(code, remember = true) {
-      const { data, error } = await rpc('pvt_qr_login', {
+      const { data, error } = await rpcWithDevice('pvt_qr_login', {
         p_code: String(code || ''), p_remember: remember !== false, p_user_agent: (navigator.userAgent || '').slice(0, 300)
+      });
+      if (error) return isMissingFunction(error) ? { legacy: true } : { ok: false, reason: 'error', message: error.message };
+      return finishLogin(data);
+    },
+
+    // ลิงก์ใช้ครั้งเดียวจากปุ่มใน LINE (ช่วงที่ 3) → { ok, user, token, leave_id, still_pending } | { ok:false, reason }
+    async lineLinkLogin(link) {
+      const { data, error } = await rpc('pvt_line_link_login', {
+        p_link: String(link || ''), p_device_id: deviceId(), p_user_agent: (navigator.userAgent || '').slice(0, 300)
       });
       if (error) return isMissingFunction(error) ? { legacy: true } : { ok: false, reason: 'error', message: error.message };
       return finishLogin(data);
@@ -150,6 +194,66 @@
       const { data, error } = await rpc('pvt_set_password', { p_token: t, p_employee_id: employeeId, p_new: String(next || '') });
       if (error) return isMissingFunction(error) ? { legacy: true } : { ok: false, reason: 'error', message: error.message };
       return data;
+    },
+
+    // ตอบ "นี่เป็นเครื่องของคุณใช่ไหม" → { ok, device_kind: 'own'|'shared', expires_at, reason? }
+    async setDevice(isOwn) {
+      const t = readToken();
+      const { data, error } = await rpc('pvt_set_device', { p_token: t, p_device_id: deviceId(), p_own: !!isOwn });
+      if (error) return isMissingFunction(error) ? { legacy: true } : { ok: false, reason: 'error', message: error.message };
+      if (data && data.ok) patchToken({ device_kind: data.device_kind, expires_at: data.expires_at });
+      return data;
+    },
+
+    // ล้างเครื่องที่จำไว้ของพนักงาน + ให้ออกจากระบบทุกเครื่อง → { ok, devices, sessions }
+    async releaseDevices(employeeId) {
+      const t = readToken();
+      const { data, error } = await rpc('pvt_release_devices', { p_token: t, p_employee_id: employeeId });
+      if (error) return isMissingFunction(error) ? { legacy: true } : { ok: false, reason: 'error', message: error.message };
+      return data;
+    },
+
+    // ถามครั้งแรกบนเครื่องใหม่ (ใช้ SweetAlert2) · คืนชนิดเครื่องหลังตอบ
+    async askDeviceIfNeeded(loginResult) {
+      if (!loginResult || !loginResult.ok) return '';
+      if (!loginResult.ask_device) return loginResult.device_kind || '';
+      const Swal = global.Swal;
+      let own = false;
+      // ตัวหนังสือ/ปุ่มใหญ่ กดง่าย (ผู้ใช้สูงอายุ) — หน้าเข้าระบบตั้งขนาดของ SweetAlert ไว้เล็ก จึงต้องใช้ !important
+      if (!document.getElementById('pvtDevPopupCss')) {
+        const css = document.createElement('style');
+        css.id = 'pvtDevPopupCss';
+        css.textContent = '.pvt-dev-popup{width:min(30em,94vw)!important}'
+          + '.pvt-dev-popup .swal2-title{font-size:22px!important;line-height:1.35!important}'
+          + '.pvt-dev-popup .swal2-html-container{font-size:16px!important;line-height:1.75!important}'
+          + '.pvt-dev-popup .swal2-actions{flex-direction:column!important;gap:8px!important;width:100%!important}'
+          + '.pvt-dev-popup .swal2-actions button{font-size:17px!important;padding:13px 20px!important;width:85%!important;margin:0!important}';
+        document.head.appendChild(css);
+      }
+      if (Swal) {
+        const r = await Swal.fire({
+          icon: 'question',
+          title: 'นี่เป็นเครื่องของคุณใช่ไหม?',
+          html: '<div style="text-align:left;font-size:16px;line-height:1.75;">'
+            + '<b>ใช่ เครื่องของฉัน</b> — ระบบจำไว้ 90 วัน เปิดแอปมาก็เข้าได้เลย<br>'
+            + '<b>ไม่ใช่ ยืมเครื่องคนอื่น</b> — ยื่นใบลาเสร็จแล้ว ระบบจะออกจากระบบให้อัตโนมัติ เพื่อนจะได้เข้าบัญชีคุณไม่ได้</div>',
+          showDenyButton: true,
+          confirmButtonText: 'ใช่ เครื่องของฉัน',
+          denyButtonText: 'ไม่ใช่ ยืมเครื่องคนอื่น',
+          confirmButtonColor: 'var(--th-p-700, #0f766e)',
+          denyButtonColor: '#475569',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          reverseButtons: false,
+          customClass: { popup: 'pvt-dev-popup' }
+        });
+        own = !!r.isConfirmed;
+      }
+      const res = await PVTAuth.setDevice(own);
+      if (res && res.ok && own && res.device_kind === 'shared' && Swal) {
+        await Swal.fire({ icon: 'info', title: 'ใช้เป็นเครื่องยืม', text: 'เครื่องนี้มีคนอื่นใช้เข้าระบบอยู่ ระบบจึงถือเป็นเครื่องยืม (ออกจากระบบอัตโนมัติหลังยื่นใบลา)', confirmButtonText: 'รับทราบ' });
+      }
+      return res && res.ok ? res.device_kind : (own ? 'own' : 'shared');
     },
 
     // { ok, states: { [employee_id]: 'set' | 'none' } }

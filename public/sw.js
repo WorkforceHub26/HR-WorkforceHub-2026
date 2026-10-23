@@ -2,7 +2,7 @@
 // - หน้าเว็บ/ไฟล์ของระบบ: "เน็ตก่อน" (ได้เวอร์ชันล่าสุดเสมอ) ถ้าเน็ตหลุดค่อยใช้สำเนาที่เก็บไว้
 // - ไลบรารีจาก CDN / ฟอนต์: ใช้สำเนาก่อนแล้วอัปเดตเบื้องหลัง (เปิดเร็วขึ้น)
 // - ข้อมูล Supabase / /api/ : ไม่แตะเลย (ข้อมูลสดเสมอ)
-const VERSION = 'pvt-v20261023-authphase1';
+const VERSION = 'pvt-v20261025-authphase3';
 const CACHE_PAGES = VERSION + '-app';
 const CACHE_CDN = VERSION + '-cdn';
 const OFFLINE_URL = '/offline.html';

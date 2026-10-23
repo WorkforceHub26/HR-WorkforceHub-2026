@@ -1,0 +1,3317 @@
+/**
+ * ============================================================================
+ * PVT SUPABASE ENTERPRISE HR SDK (v3.0 Ultra)
+ * Full-featured, Resilient & Modular Client Engine for Supabase
+ * ============================================================================
+ */
+
+(function (global) {
+  "use strict";
+
+  // ==========================================================================
+  // 0. DUAL-ENVIRONMENT ENGINE: DEV vs MAIN (Production)
+  // ==========================================================================
+  const ENV_CONFIGS = {
+    // 🌐 MAIN: Production Environment
+    MAIN: {
+      key: "MAIN",
+      label: "MAIN (Production)",
+      URL: "https://pgogmhqjdchakcytsomx.supabase.co",
+      ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnb2dtaHFqZGNoYWtjeXRzb214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzYsImV4cCI6MjA5NzM0MTEzNn0.Ah-uFFvTK_qMiIyJN9Ddid6cXqjrZRtLbs14QXUa_m8",
+      CACHE_PREFIX: "pvt_hr_cache_main_",
+      OFFLINE_QUEUE_KEY: "pvt_offline_queue_main"
+    },
+    // 🧪 DEV: Development & Staging Environment
+    DEV: {
+      key: "DEV",
+      label: "DEV (Development / Staging)",
+      URL: "https://nfksbyptpfvoihybejjt.supabase.co", // Default fallback URL (customizable via UI / env / localStorage)
+      ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ma3NieXB0cGZ2b2loeWJlamp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjUxMzAsImV4cCI6MjA5NzM0MTEzMH0.hzUQn-OyF0JRWVbdUnPj8XB-YIXyVI_yOd4nNwblhOM",
+      CACHE_PREFIX: "pvt_hr_cache_dev_",
+      OFFLINE_QUEUE_KEY: "pvt_offline_queue_dev"
+    }
+  };
+
+  function resolveActiveEnvironment() {
+    // 1. Check URL Parameter: ?env=dev or ?env=main
+    try {
+      if (typeof window !== "undefined" && window.location && window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        const queryEnv = params.get("env");
+        if (queryEnv) {
+          const upper = queryEnv.trim().toUpperCase();
+          if (upper === "DEV" || upper === "MAIN") {
+            try { localStorage.setItem("pvt_app_env", upper); } catch (e) {}
+            return upper;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2. Check localStorage persistence
+    try {
+      if (typeof localStorage !== "undefined") {
+        const saved = localStorage.getItem("pvt_app_env");
+        if (saved) {
+          const upper = saved.trim().toUpperCase();
+          if (upper === "DEV" || upper === "MAIN") {
+            return upper;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 3. Check explicit global variable: window.PVT_ENV or window.__APP_ENV__
+    if (typeof global !== "undefined") {
+      const explicit = global.PVT_ENV || global.__APP_ENV__;
+      if (explicit) {
+        const upper = String(explicit).trim().toUpperCase();
+        if (upper === "DEV" || upper === "MAIN") return upper;
+      }
+    }
+
+    // 4. Hostname / Domain heuristic:
+    //    Localhost or Google Cloud Run dev container (ais-dev-*.run.app) -> DEV
+    //    Otherwise -> MAIN
+    try {
+      if (typeof window !== "undefined" && window.location && window.location.hostname) {
+        const host = window.location.hostname.toLowerCase();
+        if (
+          host === "localhost" ||
+          host === "127.0.0.1" ||
+          host.startsWith("ais-dev-") ||
+          host.endsWith(".local") ||
+          host.includes("-dev")
+        ) {
+          return "DEV";
+        }
+      }
+    } catch (e) {}
+
+    return "MAIN";
+  }
+
+  const ACTIVE_ENV = resolveActiveEnvironment();
+  const SELECTED_ENV_CONFIG = { ...ENV_CONFIGS[ACTIVE_ENV] };
+
+  // Allow custom URL/Key overrides from localStorage or global window variables
+  try {
+    const customUrl = localStorage.getItem(`pvt_supabase_url_${ACTIVE_ENV.toLowerCase()}`);
+    const customKey = localStorage.getItem(`pvt_supabase_key_${ACTIVE_ENV.toLowerCase()}`);
+    if (customUrl && customUrl.trim()) SELECTED_ENV_CONFIG.URL = customUrl.trim();
+    if (customKey && customKey.trim()) SELECTED_ENV_CONFIG.ANON_KEY = customKey.trim();
+  } catch (e) {}
+
+  if (ACTIVE_ENV === "DEV") {
+    if (global.PVT_SUPABASE_DEV_URL) SELECTED_ENV_CONFIG.URL = global.PVT_SUPABASE_DEV_URL;
+    if (global.PVT_SUPABASE_DEV_KEY) SELECTED_ENV_CONFIG.ANON_KEY = global.PVT_SUPABASE_DEV_KEY;
+  } else {
+    if (global.PVT_SUPABASE_MAIN_URL) SELECTED_ENV_CONFIG.URL = global.PVT_SUPABASE_MAIN_URL;
+    if (global.PVT_SUPABASE_MAIN_KEY) SELECTED_ENV_CONFIG.ANON_KEY = global.PVT_SUPABASE_MAIN_KEY;
+  }
+
+  // Configuration Constants
+  const CONFIG = {
+    ENV: ACTIVE_ENV,
+    ENV_LABEL: SELECTED_ENV_CONFIG.label,
+    URL: SELECTED_ENV_CONFIG.URL,
+    ANON_KEY: SELECTED_ENV_CONFIG.ANON_KEY,
+    CACHE_PREFIX: SELECTED_ENV_CONFIG.CACHE_PREFIX,
+    OFFLINE_QUEUE_KEY: SELECTED_ENV_CONFIG.OFFLINE_QUEUE_KEY,
+    DEFAULT_TTL: 5 * 1000, // 5 วินาที เพื่อให้ข้อมูลสดใหม่อยู่เสมอและไม่อมแคชเก่า
+    MAX_RETRIES: 3,
+    RETRY_DELAY: 1000,
+  };
+
+  // Console Telemetry Log
+  try {
+    console.log(
+      `%c[PVT Supabase SDK]%c Active Environment: %c${CONFIG.ENV}%c (${CONFIG.ENV_LABEL}) | URL: ${CONFIG.URL}`,
+      "background: #1e293b; color: var(--th-k-400, #38bdf8); font-weight: bold; padding: 2px 6px; border-radius: 4px;",
+      "color: #64748b;",
+      CONFIG.ENV === 'DEV' ? "color: #f59e0b; font-weight: bold;" : "color: #10b981; font-weight: bold;",
+      "color: #64748b;"
+    );
+  } catch (e) {}
+
+  // --------------------------------------------------------------------------
+  // ดัชนีคำนำหน้าพนักงาน (ชื่อ/รหัส/id → คำนำหน้า) — หลายหน้าดึงข้อมูลพนักงานโดยไม่มีคอลัมน์ title/prefix
+  // รูปเริ่มต้นจึงเดาเพศจากชื่อไม่ได้ → ผู้หญิงได้รูปผู้ชาย ดัชนีนี้ให้ทุกจุดหาคำนำหน้าเจอ
+  // --------------------------------------------------------------------------
+  const GIDX_KEY = 'pvt_avatar_title_idx_v3';
+  // ชื่อสำหรับจับคู่: ตัดช่องว่าง ตัวพิมพ์เล็ก และตัดคำนำหน้าที่พิมพ์ติดชื่อ (เช่น "นางสาวนฤมล" = "นฤมล")
+  const NAME_TITLE_RE = /^(นางสาว|นาง|นาย|น\.ส\.?|นส\.?|ด\.ญ\.?|ด\.ช\.?|เด็กหญิง|เด็กชาย|คุณ|miss\.?|mrs\.?|ms\.?|mr\.?)/i;
+  const normName = (n) => String(n || '').replace(/\s+/g, '').toLowerCase().replace(NAME_TITLE_RE, '');
+  const emptyIndex = () => ({ byName: {}, byId: {}, byCode: {}, photo: { byName: {}, byId: {}, byCode: {} }, at: 0 });
+  global.PVT_TITLE_INDEX = global.PVT_TITLE_INDEX || emptyIndex();
+  try {
+    const cached = JSON.parse(localStorage.getItem(GIDX_KEY) || 'null');
+    if (cached && cached.byName && cached.photo) global.PVT_TITLE_INDEX = cached;
+  } catch (e) {}
+  function ixGet(map, key) {
+    if (!map || !key) return '';
+    const k = String(key);
+    return (map.byId && map.byId[k]) || (map.byCode && map.byCode[k.toLowerCase()]) || (map.byName && map.byName[normName(k)]) || '';
+  }
+  // รูปที่อัปโหลดจริงของพนักงาน (คีย์ = id / รหัสพนักงาน / ชื่อ)
+  global.pvtLookupPhoto = function (key) { return ixGet((global.PVT_TITLE_INDEX || {}).photo, key); };
+  global.pvtLookupTitle = function (key) { return ixGet(global.PVT_TITLE_INDEX, key); };
+  // หน้าไหนบันทึก/ลบรูปพนักงาน → อัปเดตดัชนีทันที ทุกจุดจะได้รูปเดียวกัน
+  global.pvtAvatarIndexUpdate = function (emp) {
+    try {
+      if (!emp) return;
+      const ix = global.PVT_TITLE_INDEX || (global.PVT_TITLE_INDEX = emptyIndex());
+      ix.photo = ix.photo || { byName: {}, byId: {}, byCode: {} };
+      const ph = String(emp.image_url || '').trim();
+      const real = ph && !global.pvtIsPlaceholderAvatar(ph);
+      const put = (m, k, v) => { if (!k) return; if (v) m[k] = v; else delete m[k]; };
+      put(ix.photo.byId, emp.id && String(emp.id), real ? ph : '');
+      put(ix.photo.byCode, emp.employee_code && String(emp.employee_code).toLowerCase(), real ? ph : '');
+      put(ix.photo.byName, emp.full_name && normName(emp.full_name), real ? ph : '');
+      const t = String(emp.title || emp.prefix || '').trim();
+      if (t) {
+        put(ix.byId, emp.id && String(emp.id), t);
+        put(ix.byCode, emp.employee_code && String(emp.employee_code).toLowerCase(), t);
+        put(ix.byName, emp.full_name && normName(emp.full_name), t);
+      }
+      try { localStorage.setItem(GIDX_KEY, JSON.stringify(ix)); } catch (e) {}
+      document.querySelectorAll('img[data-av-photo-tried]').forEach((img) => { delete img.dataset.avPhotoTried; delete img.dataset.avPhotoFailed; });
+      if (global.pvtRescanAvatars) global.pvtRescanAvatars();
+    } catch (e) {}
+  };
+
+  if (typeof global.getDefaultAvatarUrl !== "function") {
+    global.getDefaultAvatarUrl = function(title = "", gender = "", fullName = "") {
+      if (!String(title || '').trim() && !String(gender || '').trim() && fullName) title = global.pvtLookupTitle(fullName);
+      const cleanTitle = String(title || "").trim().toLowerCase();
+      const cleanGender = String(gender || "").trim().toLowerCase();
+      const cleanName = String(fullName || "").trim().toLowerCase();
+
+      // ตัดสินจาก "คำนำหน้า" เป็นหลัก แล้วค่อยดูเพศ / คำนำหน้าที่พิมพ์ติดมากับชื่อ
+      // (เดิมค้น "f" / "m" / "นาง" ในชื่อทั้งชื่อ → ชื่อที่มีตัวอักษรเหล่านี้เลือกเพศผิด)
+      const femaleTitles = ["นางสาว", "นาง", "น.ส.", "น.ส", "นส.", "นส", "คุณหญิง", "ด.ญ.", "ด.ญ", "เด็กหญิง", "ms.", "ms", "mrs.", "mrs", "miss"];
+      const maleTitles = ["นาย", "ด.ช.", "ด.ช", "เด็กชาย", "mr.", "mr", "master"];
+      const startsWithAny = (text, list) => list.some(t => text === t || text.startsWith(t));
+
+      if (cleanTitle) {
+        if (startsWithAny(cleanTitle, femaleTitles)) return "/assets/img/avatar-female.jpg?v=2";
+        if (startsWithAny(cleanTitle, maleTitles)) return "/assets/img/avatar-male.jpg?v=2";
+      }
+      if (["female", "f", "หญิง", "w", "woman"].includes(cleanGender)) return "/assets/img/avatar-female.jpg?v=2";
+      if (["male", "m", "ชาย", "man"].includes(cleanGender)) return "/assets/img/avatar-male.jpg?v=2";
+      // คำนำหน้าที่พิมพ์ติดมากับชื่อ เช่น "นางสาวสมใจ ใจดี"
+      if (startsWithAny(cleanName, femaleTitles.filter(t => t.length > 2))) return "/assets/img/avatar-female.jpg?v=2";
+      if (startsWithAny(cleanName, maleTitles.filter(t => t.length > 2))) return "/assets/img/avatar-male.jpg?v=2";
+
+      return "/assets/img/avatar-male.jpg?v=2";
+    };
+  }
+
+  // ==========================================================================
+  // 0.1 รูปโปรไฟล์เริ่มต้นตามเพศ (ใช้ทั้งระบบ)
+  //   - รูปจริงไม่มี/เสีย หรือเป็นรูปการ์ตูนเริ่มต้น → avatar-male.jpg / avatar-female.jpg ตามคำนำหน้า
+  //   - <img> ใส่ data-av-title / data-av-name (และ data-av-gender) เพื่อบอกเพศ
+  //   - กันพลาดทั้งระบบ: รูปใดที่ยังเป็น default-avatar.jpg จะถูกเปลี่ยนเป็นรูปตามเพศอัตโนมัติ
+  // ==========================================================================
+  global.PVT_AVATAR_PLACEHOLDER_RE = /(^|\/)(assets\/img\/)?(default-avatar|avatar-male|avatar-female)\.(jpe?g|png|webp)(\?.*)?$/i;
+  global.pvtIsPlaceholderAvatar = function(url) {
+    const u = String(url || '').trim();
+    return !u || u === 'null' || u === 'undefined' || global.PVT_AVATAR_PLACEHOLDER_RE.test(u);
+  };
+
+  const SELF_AVATAR_IDS = /^(userAvatar|userAvatarHeader|headerUserAvatar|userProfileAvatar|profileAvatarImg|drawerAvatar|pvtDrawerAvatar)$/;
+  const GENERIC_ALT_RE = /^(profile|avatar|pvt|employee photo|รูป|$)/i;
+  function sessionPerson() {
+    try {
+      const s = JSON.parse(localStorage.getItem('currentUser') || 'null') || {};
+      const e = s.employees || s;
+      return { id: e.id || s.employee_id || s.id || '', code: e.employee_code || s.employee_code || '', title: s.title || e.title || s.prefix || e.prefix || '', gender: s.gender || e.gender || '', name: s.full_name || e.full_name || s.name || '' };
+    } catch (e) { return { id: '', code: '', title: '', gender: '', name: '' }; }
+  }
+  // เจ้าของรูป: data-av-id → data-av-code → data-av-name → alt (ชื่อ) → ผู้ใช้ที่ล็อกอิน (รูปหัวเว็บ/โปรไฟล์)
+  function avatarOwner(img) {
+    const d = (img && img.dataset) || {};
+    const alt = (img && img.alt && !GENERIC_ALT_RE.test(img.alt)) ? img.alt : '';
+    const o = { id: d.avId || '', code: d.avCode || '', name: d.avName || alt || '', title: d.avTitle || '', gender: d.avGender || '' };
+    if (!o.id && !o.code && !o.name && img && SELF_AVATAR_IDS.test(img.id || '')) {
+      const p = sessionPerson();
+      // เฉพาะพนักงาน (บัญชีผู้ดูแลที่ไม่มีข้อมูลพนักงานไม่ต้องแตะ)
+      o.id = p.id && String(p.id).length > 8 ? p.id : ''; o.code = p.code; o.name = p.name; o.title = o.title || p.title; o.gender = o.gender || p.gender;
+    }
+    return o;
+  }
+  function ownerPhoto(o) { return global.pvtLookupPhoto(o.id) || global.pvtLookupPhoto(o.code) || global.pvtLookupPhoto(o.name) || ''; }
+  function ownerTitle(o) { return o.title || global.pvtLookupTitle(o.id) || global.pvtLookupTitle(o.code) || global.pvtLookupTitle(o.name) || ''; }
+  function genderedDefaultFor(img) {
+    const o = avatarOwner(img);
+    return global.getDefaultAvatarUrl(ownerTitle(o), o.gender, o.name);
+  }
+  // ใช้ใน onerror="pvtAvatarError(this)" — รูปจริงโหลดไม่ได้ → รูปการ์ตูนตามเพศ (ไม่วนกลับไปลองรูปเดิม)
+  global.pvtAvatarError = function(img) {
+    if (!img) return;
+    img.onerror = null;
+    img.dataset.avPhotoFailed = '1';
+    const url = genderedDefaultFor(img);
+    if (img.getAttribute('src') !== url) img.setAttribute('src', url);
+  };
+  // กติกาเดียวทั้งระบบ: มีรูปที่อัปโหลด → แสดงรูปนั้น / ไม่มี → การ์ตูนตามคำนำหน้า
+  function fixDefaultAvatarImg(img) {
+    if (!img || img.tagName !== 'IMG') return;
+    const src = img.getAttribute('src') || '';
+    if (!global.PVT_AVATAR_PLACEHOLDER_RE.test(src)) return;   // เป็นรูปจริงอยู่แล้ว (ข้อมูลสดของหน้านั้น) → ไม่แตะ
+    if (/preview/i.test(img.id || '') || img.dataset.avSkip !== undefined) return; // ช่องตัวอย่างรูปในฟอร์มแก้ไข
+    const o = avatarOwner(img);
+    if (!o.id && !o.code && !o.name) {
+      if (/default-avatar\.jpe?g/i.test(src)) img.setAttribute('src', global.getDefaultAvatarUrl('', '', ''));
+      return;
+    }
+    if (!img.dataset.avPhotoFailed && !img.dataset.avPhotoTried) {
+      const photo = ownerPhoto(o);
+      if (photo) {
+        img.dataset.avPhotoTried = '1';
+        const real = global.getAvatarUrl ? global.getAvatarUrl(photo) : photo;
+        if (real && !global.PVT_AVATAR_PLACEHOLDER_RE.test(real)) { img.setAttribute('src', real); return; }
+      }
+    }
+    const url = global.getDefaultAvatarUrl(ownerTitle(o), o.gender, o.name);
+    if (url && src.replace(/\?.*$/, '') !== url.replace(/\?.*$/, '')) img.setAttribute('src', url);
+  }
+  function rescanAvatars() {
+    try { document.querySelectorAll('img[src*="avatar-male"], img[src*="avatar-female"], img[src*="default-avatar"]').forEach(fixDefaultAvatarImg); } catch (e) {}
+  }
+  global.pvtRescanAvatars = rescanAvatars;
+  let gidxLoading = false;
+  global.PVT_AVATAR_INDEX_STATUS = 'ยังไม่โหลด';
+  async function loadTitleIndex(force) {
+    const ix = global.PVT_TITLE_INDEX;
+    if (gidxLoading || (!force && ix && ix.at && Date.now() - ix.at < 30 * 60 * 1000)) return;
+    gidxLoading = true;
+    try {
+      let sb = null;
+      for (let i = 0; i < 60 && !sb; i++) {
+        try { sb = global.pvtSupabase && global.pvtSupabase.getClient && global.pvtSupabase.getClient(); } catch (e) {}
+        if (!sb) await new Promise((r) => setTimeout(r, 250));
+      }
+      if (!sb) { global.PVT_AVATAR_INDEX_STATUS = 'ไม่พบตัวเชื่อมฐานข้อมูล'; console.warn('[avatar] ไม่พบตัวเชื่อมฐานข้อมูล'); return; }
+      // ดึงเฉพาะคอลัมน์ที่ใช้ ถ้าฐานข้อมูลไม่มีบางคอลัมน์ (เช่น prefix) ให้ลองดึงทั้งหมดแทน
+      let { data, error } = await sb.from('employees').select('id, employee_code, full_name, title, prefix, image_url').range(0, 4999);
+      if (error) ({ data, error } = await sb.from('employees').select('*').range(0, 4999));
+      if (error || !Array.isArray(data)) { global.PVT_AVATAR_INDEX_STATUS = 'โหลดไม่สำเร็จ: ' + (error && error.message); console.warn('[avatar] โหลดดัชนีรูป/คำนำหน้าไม่สำเร็จ', error); return; }
+      const next = emptyIndex(); next.at = Date.now();
+      data.forEach((e) => {
+        const ph = String(e.image_url || '').trim();
+        if (ph && !global.pvtIsPlaceholderAvatar(ph)) {
+          next.photo.byId[String(e.id)] = ph;
+          if (e.employee_code) next.photo.byCode[String(e.employee_code).toLowerCase()] = ph;
+          if (e.full_name) next.photo.byName[normName(e.full_name)] = ph;
+        }
+        const t = String(e.title || e.prefix || '').trim();
+        if (!t) return;
+        next.byId[String(e.id)] = t;
+        if (e.employee_code) next.byCode[String(e.employee_code).toLowerCase()] = t;
+        if (e.full_name) next.byName[normName(e.full_name)] = t;
+      });
+      global.PVT_TITLE_INDEX = next;
+      global.PVT_AVATAR_INDEX_STATUS = 'พร้อม (' + data.length + ' คน, มีรูปอัปโหลด ' + Object.keys(next.photo.byId).length + ' คน)';
+      try { localStorage.setItem(GIDX_KEY, JSON.stringify(next)); } catch (e) {}
+      document.querySelectorAll('img[data-av-photo-tried]').forEach((img) => { if (!img.dataset.avPhotoFailed) delete img.dataset.avPhotoTried; });
+      rescanAvatars();
+    } catch (e) { global.PVT_AVATAR_INDEX_STATUS = 'ผิดพลาด: ' + e.message; } finally { gidxLoading = false; }
+  }
+  global.pvtReloadAvatarIndex = () => loadTitleIndex(true);
+  // ตรวจสอบจาก Console: pvtAvatarDebug('ชื่อ หรือ รหัสพนักงาน')
+  global.pvtAvatarDebug = function (key) {
+    const out = { status: global.PVT_AVATAR_INDEX_STATUS, cacheAgeMin: Math.round((Date.now() - ((global.PVT_TITLE_INDEX || {}).at || 0)) / 60000) };
+    if (key) { out.title = global.pvtLookupTitle(key); out.photo = global.pvtLookupPhoto(key); out.shows = out.photo ? global.getAvatarUrl(out.photo) : global.getDefaultAvatarUrl(out.title, '', key); }
+    console.table ? console.table(out) : console.log(out);
+    return out;
+  };
+  function startAvatarGuard() {
+    if (global.__pvtAvatarGuard || typeof document === 'undefined' || !document.body) return;
+    global.__pvtAvatarGuard = true;
+    rescanAvatars();
+    loadTitleIndex();
+    try {
+      new MutationObserver((muts) => {
+        for (const m of muts) {
+          if (m.type === 'attributes') { fixDefaultAvatarImg(m.target); continue; }
+          m.addedNodes.forEach((n) => {
+            if (n.nodeType !== 1) return;
+            if (n.tagName === 'IMG') fixDefaultAvatarImg(n);
+            else if (n.querySelectorAll) n.querySelectorAll('img[src*="default-avatar"], img[src*="avatar-male"], img[src*="avatar-female"]').forEach(fixDefaultAvatarImg);
+          });
+        }
+      }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
+    } catch (e) {}
+    // รูปโปรไฟล์จริงโหลดไม่ได้ (ไฟล์หาย/ลิงก์เสีย) → รูปตามเพศ
+    document.addEventListener('error', (ev) => {
+      const img = ev.target;
+      if (!img || img.tagName !== 'IMG') return;
+      const src = img.getAttribute('src') || '';
+      if (global.PVT_AVATAR_PLACEHOLDER_RE.test(src)) return;
+      if (/preview/i.test(img.id || '') || img.dataset.avSkip !== undefined) return;
+      const d = img.dataset;
+      const looksAvatar = d.avName !== undefined || d.avTitle !== undefined || d.avId !== undefined || d.avCode !== undefined || SELF_AVATAR_IDS.test(img.id || '') ||
+        /employee-images|self-avatars/i.test(src) || /avatar/i.test(img.className || '');
+      if (looksAvatar) global.pvtAvatarError(img);
+    }, true);
+  }
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startAvatarGuard); else startAvatarGuard();
+  }
+
+  // ==========================================================================
+  // 1. SMART CACHE ENGINE (Storage + Memory + Tag Invalidation)
+  // ==========================================================================
+  class CacheEngine {
+    constructor() {
+      this.memoryCache = new Map();
+    }
+
+    _getKey(key) {
+      return CONFIG.CACHE_PREFIX + key;
+    }
+
+    set(key, value, ttlMs = CONFIG.DEFAULT_TTL, tags = []) {
+      const payload = {
+        value,
+        expiry: Date.now() + ttlMs,
+        tags,
+      };
+      this.memoryCache.set(key, payload);
+      try {
+        localStorage.setItem(this._getKey(key), JSON.stringify(payload));
+      } catch (e) {
+        console.warn("[SDK Cache] LocalStorage quota exceeded, using memory cache.");
+      }
+    }
+
+    get(key) {
+      // 1. Check Memory
+      if (this.memoryCache.has(key)) {
+        const item = this.memoryCache.get(key);
+        if (Date.now() <= item.expiry) return item.value;
+        this.memoryCache.delete(key);
+      }
+
+      // 2. Check Storage
+      try {
+        const raw = localStorage.getItem(this._getKey(key));
+        if (!raw) return null;
+        const item = JSON.parse(raw);
+        if (Date.now() > item.expiry) {
+          this.remove(key);
+          return null;
+        }
+        this.memoryCache.set(key, item);
+        return item.value;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    remove(key) {
+      this.memoryCache.delete(key);
+      localStorage.removeItem(this._getKey(key));
+    }
+
+    invalidateByTag(tag) {
+      // Clear memory
+      for (const [key, item] of this.memoryCache.entries()) {
+        if (item.tags && item.tags.includes(tag)) {
+          this.memoryCache.delete(key);
+        }
+      }
+      // Clear storage
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith(CONFIG.CACHE_PREFIX)) {
+          try {
+            const item = JSON.parse(localStorage.getItem(k));
+            if (item?.tags?.includes(tag)) {
+              localStorage.removeItem(k);
+            }
+          } catch (e) {}
+        }
+      });
+    }
+
+    clearAll() {
+      this.memoryCache.clear();
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith(CONFIG.CACHE_PREFIX)) {
+          localStorage.removeItem(k);
+        }
+      });
+    }
+  }
+
+  // ==========================================================================
+  // 2. RESILIENT NETWORK ENGINE (Auto Retry + Offline Detection)
+  // ==========================================================================
+  class NetworkEngine {
+    constructor() {
+      this.isOnline = navigator.onLine;
+      window.addEventListener("online", () => this._handleOnlineStatus(true));
+      window.addEventListener("offline", () => this._handleOnlineStatus(false));
+    }
+
+    _handleOnlineStatus(status) {
+      this.isOnline = status;
+      console.log(`[SDK Network] Connection Status: ${status ? "ONLINE" : "OFFLINE"}`);
+      if (status) {
+        global.PVTSDK.offline.processQueue();
+      }
+    }
+
+    async retry(fn, maxRetries = CONFIG.MAX_RETRIES, delay = CONFIG.RETRY_DELAY) {
+      let lastError;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await fn();
+        } catch (err) {
+          lastError = err;
+          console.warn(`[SDK Network] Attempt ${attempt} failed. Retrying in ${delay}ms...`);
+          if (attempt < maxRetries) {
+            await new Promise((res) => setTimeout(res, delay * Math.pow(2, attempt - 1)));
+          }
+        }
+      }
+      throw lastError;
+    }
+  }
+
+  // ==========================================================================
+  // 3. AUTH & RBAC ENGINE
+  // ==========================================================================
+  class AuthEngine {
+    constructor(client, cache) {
+      this.client = client;
+      this.cache = cache;
+    }
+
+    async getSession() {
+      if (!this.client?.auth) return null;
+      const { data, error } = await this.client.auth.getSession();
+      if (error) return null;
+      return data?.session || null;
+    }
+
+    async getUser() {
+      const session = await this.getSession();
+      return session?.user || null;
+    }
+
+    parseJwt(token) {
+      try {
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join("")
+        );
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async hasRole(roles = []) {
+      const profile = await global.PVTSDK.hr.getProfile();
+      if (!profile) return false;
+      const userRole = profile.role || "employee";
+      if (Array.isArray(roles)) {
+        return roles.includes(userRole);
+      }
+      return userRole === roles;
+    }
+  }
+
+  // ==========================================================================
+  // 4. HR & PROFILE ENGINE
+  // ==========================================================================
+  class HREngine {
+    constructor(client, cache, network) {
+      this.client = client;
+      this.cache = cache;
+      this.network = network;
+    }
+
+      // ค้นหาฟังก์ชัน getProfile() ในไฟล์ pvt-supabase-sdk.js แล้วปรับเป็นแบบนี้:
+      // ใน class HREngine (pvt-supabase-sdk.js)
+        async getProfile(forceRefresh = false) {
+          const cacheKey = "user_profile";
+          if (!forceRefresh) {
+            const cached = this.cache.get(cacheKey);
+            if (cached) return cached;
+          }
+
+          let userId = null;
+          let empCode = null;
+
+          // 1. เช็ก Supabase Auth Session ก่อน
+          const session = await global.PVTSDK.auth.getSession();
+          if (session?.user) {
+            userId = session.user.id;
+          } else {
+            // 2. ถ้าไม่มี Supabase Auth ให้ดึงจาก LocalStorage (รองรับ RPC Login)
+            try {
+              const rawLocal = localStorage.getItem("currentUser");
+              if (rawLocal) {
+                const localUser = JSON.parse(rawLocal);
+                // ตรวจสอบว่า session หมดอายุหรือยัง (12 ชั่วโมง)
+                if (localUser.expireAt && Date.now() > localUser.expireAt) {
+                  localStorage.removeItem("currentUser");
+                  return null;
+                }
+                userId = localUser.id;
+                empCode = localUser.employee_code;
+              }
+            } catch (e) {
+              console.warn("[SDK getProfile] Failed to parse local session:", e);
+            }
+          }
+
+          if (!userId && !empCode) return null;
+
+          // 3. Query ดึงข้อมูลพนักงานพร้อมแผนกและตำแหน่ง
+          let query = this.client.from("employees").select(`
+            *,
+            departments!department_id (department_name),
+            positions (position_name)
+          `);
+
+          if (userId) {
+            query = query.eq("id", userId);
+          } else if (empCode) {
+            query = query.eq("employee_code", empCode);
+          }
+
+          const { data: employeeData, error } = await query.maybeSingle();
+
+          if (error || !employeeData) return null;
+
+          const fullProfile = {
+            ...employeeData,
+            department_name: employeeData.departments?.department_name || 'ไม่ระบุแผนก',
+            position_name: employeeData.positions?.position_name || 'ไม่ระบุตำแหน่ง'
+          };
+
+          this.cache.set(cacheKey, fullProfile, CONFIG.DEFAULT_TTL, ["profile"]);
+          return fullProfile;
+        }
+
+    async getEmployeesList(options = {}) {
+      const { search = "", departmentId = null, role = null, page = 1, limit = 20, status = "active" } = options;
+      const cacheKey = `employees_list_${search}_${departmentId}_${role}_${page}_${status}`;
+      const cached = this.cache.get(cacheKey);
+      if (cached) return cached;
+
+      let query = this.client
+        .from("employees")
+        .select(`*, departments!department_id(department_name), positions(position_name)`, { count: "exact" });
+
+      if (search) {
+        query = query.or(`full_name.ilike.%${search}%,employee_code.ilike.%${search}%,nickname.ilike.%${search}%`);
+      }
+      if (departmentId) query = query.eq("department_id", departmentId);
+      if (role) query = query.eq("role", role);
+      if (status) query = query.eq("status", status); // กรองสถานะพนักงาน (ค่าเริ่มต้นเป็น active)
+
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to).order("employee_code", { ascending: true });
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+
+      const result = { data, total: count, page, limit };
+      this.cache.set(cacheKey, result, 5 * 60 * 1000, ["employees"]);
+      return result;
+    }
+  }
+
+  // ==========================================================================
+  // 5. LEAVE & THAI DATE ENGINE
+  // ==========================================================================
+  window.getCurrentLeaveYear = function() {
+    const d = new Date();
+    const y = d.getFullYear();
+    return d.getMonth() === 11 ? y + 1 : y; // เดือนธันวาคม (1 ธ.ค. เป็นต้นไป) นับเป็นรอบปีการลาถัดไป (1 ธ.ค. – 30 พ.ย.)
+  };
+
+  window.getADYear = function(dateOrYear) {
+    if (!dateOrYear) {
+      return window.getCurrentLeaveYear();
+    }
+    if (typeof dateOrYear === 'number') {
+      return dateOrYear > 2400 ? dateOrYear - 543 : dateOrYear;
+    }
+    const str = String(dateOrYear).trim();
+    const parts = str.split('T')[0].split('-');
+    let yearPart = parseInt(parts[0], 10);
+    if (isNaN(yearPart)) {
+      return window.getCurrentLeaveYear();
+    }
+    if (yearPart > 2400) yearPart -= 543;
+    if (parts.length >= 2) {
+      const monthPart = parseInt(parts[1], 10);
+      if (monthPart === 12) {
+        yearPart += 1; // 1 ธันวาคม เป็นต้นไป เป็นรอบปีการลาถัดไป (1 ธ.ค. – 30 พ.ย.)
+      }
+    }
+    return yearPart;
+  };
+
+  // ปีการลาที่ใบลานี้ "หักสิทธิ์" — ใบลาจากรอบแลกวันหยุดที่ยืมปีหน้าจะมี charge_year กำกับ
+  window.getLeaveChargeYear = function(req) {
+    const cy = Number(req && req.charge_year);
+    if (cy && cy > 1900) return cy > 2400 ? cy - 543 : cy;
+    return window.getADYear(req && req.start_date);
+  };
+
+  class LeaveEngine {
+    constructor(client, cache) {
+      this.client = client;
+      this.cache = cache;
+    }
+
+    async getDashboardData(targetYear = window.getCurrentLeaveYear()) {
+      const yearAD = window.getADYear(targetYear);
+      const cacheKey = `dashboard_data_${yearAD}`;
+      const cached = this.cache.get(cacheKey);
+      if (cached) return cached;
+
+      try {
+        const { data, error } = await this.client.rpc("get_my_dashboard_data", { p_year: yearAD });
+        if (!error && data) {
+          this.cache.set(cacheKey, data, CONFIG.DEFAULT_TTL, ["leaves", "profile"]);
+          return data;
+        }
+      } catch (e) {}
+
+      // Fallback Manual
+      const profile = await global.PVTSDK.hr.getProfile();
+      if (!profile) return null;
+
+      const leaveBalances = await this.getLeaveBalances(profile.id, yearAD);
+
+      const result = {
+        profile,
+        leave_balances: leaveBalances || [],
+        year: yearAD,
+      };
+
+      this.cache.set(cacheKey, result, CONFIG.DEFAULT_TTL, ["leaves"]);
+      return result;
+    }
+
+    calculateWorkingDays(startDateStr, endDateStr, excludeWeekends = true) {
+      const start = new Date(global.PVTSDK.utils.toISODate(startDateStr));
+      const end = new Date(global.PVTSDK.utils.toISODate(endDateStr));
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return 0;
+
+      let count = 0;
+      const cur = new Date(start);
+      while (cur <= end) {
+        const dayOfWeek = cur.getDay();
+        if (!excludeWeekends || (dayOfWeek !== 0 && dayOfWeek !== 6)) {
+          count++;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      return count;
+    }
+  }
+
+  // ==========================================================================
+  // 6. STORAGE & MEDIA COMPRESSOR ENGINE
+  // ==========================================================================
+  class StorageEngine {
+    constructor(client) {
+      this.client = client;
+    }
+
+    getAvatarUrl(imageUrl, title = "", gender = "", fullName = "") {
+      if (typeof imageUrl === 'object' && imageUrl !== null) {
+        const obj = imageUrl;
+        imageUrl = obj.image_url || obj.avatar_url || obj.avatar || obj.employees?.image_url || null;
+        title = title || obj.title || obj.prefix || obj.employees?.title || "";
+        gender = gender || obj.gender || obj.employees?.gender || "";
+        fullName = fullName || obj.full_name || obj.name || obj.employees?.full_name || "";
+        if (!title && !gender) title = global.pvtLookupTitle(obj.id || obj.employees?.id) || global.pvtLookupTitle(obj.employee_code || obj.employees?.employee_code) || "";
+        // ไม่มีรูปในข้อมูลที่หน้านี้ดึงมา แต่พนักงานอัปโหลดรูปไว้ → ใช้รูปจริง
+        if (global.pvtIsPlaceholderAvatar(imageUrl)) {
+          imageUrl = global.pvtLookupPhoto(obj.id || obj.employees?.id) || global.pvtLookupPhoto(obj.employee_code || obj.employees?.employee_code) || global.pvtLookupPhoto(fullName) || imageUrl;
+        }
+      }
+      // หน้านี้ไม่ได้ส่งรูปมา แต่รู้ชื่อเจ้าของ → ใช้รูปที่อัปโหลดไว้ (ดัชนีกลาง)
+      if (global.pvtIsPlaceholderAvatar(imageUrl) && fullName) imageUrl = global.pvtLookupPhoto(fullName) || imageUrl;
+      // รูปการ์ตูนเริ่มต้นที่เคยถูกบันทึกลงฐานข้อมูล (avatar-male / avatar-female / default-avatar) ไม่นับเป็นรูปจริง
+      // → เลือกใหม่ตามคำนำหน้า (เดิมถ้าบันทึกรูปผู้ชายไว้ ผู้หญิงจะได้รูปผู้ชายตลอด)
+      const isPlaceholderAvatar = global.pvtIsPlaceholderAvatar(imageUrl);
+      if (!imageUrl || !String(imageUrl).trim() || imageUrl === "null" || imageUrl === "undefined" || isPlaceholderAvatar) {
+        return typeof window.getDefaultAvatarUrl === "function" 
+          ? window.getDefaultAvatarUrl(title, gender, fullName) 
+          : (title.includes('สาว') || title.includes('นาง') || title.includes('น.ส.') || gender === 'female' || fullName.includes('นาง') || fullName.includes('น.ส.') ? '/assets/img/avatar-female.jpg?v=2' : '/assets/img/avatar-male.jpg?v=2');
+      }
+      let url = String(imageUrl).trim();
+      if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+      return `${CONFIG.URL}/storage/v1/object/public/employee-images/${url.replace(/^\//, "")}`;
+    }
+
+    async compressImage(file, maxWidth = 1000, maxHeight = 1000, quality = 0.8) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error("Canvas compression failed"));
+              }
+            },
+            "image/jpeg",
+            quality
+          );
+        };
+        img.onerror = (err) => reject(err);
+      });
+    }
+
+    async uploadEmployeeAvatar(employeeId, file) {
+      const compressed = await this.compressImage(file, 800, 800, 0.85);
+      const fileExt = "jpg";
+      const filePath = `avatars/${employeeId}_${Date.now()}.${fileExt}`;
+
+      const { data, error } = await this.client.storage
+        .from("employee-images")
+        .upload(filePath, compressed, { upsert: true });
+
+      if (error) throw error;
+      const avatarUrl = this.getAvatarUrl(filePath);
+
+      // Update Database
+      await this.client.from("employees").update({ image_url: filePath }).eq("id", employeeId);
+      global.PVTSDK.cache.invalidateByTag("profile");
+
+      return avatarUrl;
+    }
+  }
+
+      // ==========================================================================
+      // 7. REALTIME SYNCHRONIZATION ENGINE
+      // ==========================================================================
+      class RealtimeEngine {
+        constructor(client) {
+          this.client = client;
+          this.channels = new Map();
+        }
+
+        subscribeLeaveUpdates(employeeId, onUpdateCallback) {
+          const channelName = `realtime_leaves_${employeeId}`;
+          if (this.channels.has(channelName)) return this.channels.get(channelName);
+
+          const channel = this.client
+            .channel(channelName)
+            .on(
+              "postgres_changes",
+              {
+                event: "*",
+                schema: "public",
+                table: "leave_requests",
+                filter: `employee_id=eq.${employeeId}`,
+              },
+              (payload) => {
+                console.log("[SDK Realtime] Leave Request Change Detected:", payload);
+                global.PVTSDK.cache.invalidateByTag("leaves");
+                if (typeof onUpdateCallback === "function") {
+                  onUpdateCallback(payload);
+                }
+              }
+            )
+            .subscribe();
+
+          this.channels.set(channelName, channel);
+          return channel;
+        }
+
+        unsubscribeAll() {
+          for (const [name, channel] of this.channels.entries()) {
+            this.client.removeChannel(channel);
+          }
+          this.channels.clear();
+        }
+      }
+
+      // ==========================================================================
+      // 8. OFFLINE QUEUE ENGINE
+      // ==========================================================================
+      class OfflineEngine {
+        getQueue() {
+          try {
+            return JSON.parse(localStorage.getItem(CONFIG.OFFLINE_QUEUE_KEY) || "[]");
+          } catch (e) {
+            return [];
+          }
+        }
+
+        enqueue(action) {
+          const queue = this.getQueue();
+          queue.push({ ...action, timestamp: Date.now() });
+          localStorage.setItem(CONFIG.OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+          console.log("[SDK Offline] Action queued:", action);
+        }
+
+        async processQueue() {
+          const queue = this.getQueue();
+          if (queue.length === 0) return;
+
+          console.log(`[SDK Offline] Processing ${queue.length} pending actions...`);
+          const remaining = [];
+
+          for (const item of queue) {
+            try {
+              // Process action based on table & payload
+              await global.PVTSDK.client.from(item.table).insert(item.payload);
+            } catch (err) {
+              console.error("[SDK Offline] Failed to process queued item:", item, err);
+              remaining.push(item);
+            }
+          }
+
+          localStorage.setItem(CONFIG.OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
+        }
+      }
+
+      // ==========================================================================
+      // 9. UTILITIES & SANITIZER ENGINE
+      // ==========================================================================
+      class UtilsEngine {
+        toISODate(input) {
+          if (!input) return null;
+          const str = String(input).trim();
+          if (!str) return null;
+
+          const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+          if (dmyMatch) {
+            let [, day, month, year] = dmyMatch.map(Number);
+            if (year > 2400) year -= 543;
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          }
+
+          const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+          if (ymdMatch) {
+            let [, year, month, day] = ymdMatch.map(Number);
+            if (year > 2400) year -= 543;
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          }
+
+          const parsed = new Date(str);
+          if (!isNaN(parsed.getTime())) {
+            let year = parsed.getFullYear();
+            if (year > 2400) year -= 543;
+            return `${year}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+          }
+          return null;
+        }
+
+        formatThaiDate(dateValue, format = "short") {
+          if (!dateValue) return "-";
+          const iso = this.toISODate(dateValue);
+          if (!iso) return dateValue;
+
+          const d = new Date(`${iso}T00:00:00`);
+          if (isNaN(d.getTime())) return dateValue;
+
+          const yearType = format === "full" ? "numeric" : "2-digit";
+          const monthType = format === "full" ? "long" : "short";
+
+          return new Intl.DateTimeFormat("th-TH", {
+            day: "2-digit",
+            month: monthType,
+            year: yearType,
+          }).format(d);
+        }
+
+        escapeHtml(value) {
+          return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+        }
+
+        validateThaiCitizenId(id) {
+          if (!id || id.length !== 13 || !/^\d+$/.test(id)) return false;
+          let sum = 0;
+          for (let i = 0; i < 12; i++) {
+            sum += parseInt(id.charAt(i)) * (13 - i);
+          }
+          const check = (11 - (sum % 11)) % 10;
+          return check === parseInt(id.charAt(12));
+        }
+
+        formatPhoneNumber(phone) {
+          const clean = String(phone).replace(/\D/g, "");
+          if (clean.length === 10) {
+            return `${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`;
+          }
+          return phone;
+        }
+      }
+
+    // ==========================================================================
+    // 10. SDK INITIALIZER & BOOTSTRAP
+    // ==========================================================================
+    class PVTHRSdk {
+      constructor() {
+        this.client = null;
+        this.cache = new CacheEngine();
+        this.network = new NetworkEngine();
+        this.utils = new UtilsEngine();
+        this.offline = new OfflineEngine();
+
+        this._initClient();
+
+        this.auth = new AuthEngine(this.client, this.cache);
+        this.hr = new HREngine(this.client, this.cache, this.network);
+        this.leave = new LeaveEngine(this.client, this.cache);
+        this.storage = new StorageEngine(this.client);
+        this.realtime = new RealtimeEngine(this.client);
+        
+        // Modules
+        this.user = new UserEngine(this.client, this.cache, this.network);
+        this.card = new CardEngine(this.client);
+        this.attendance = new AttendanceEngine(this.client, this.cache);
+        this.loginAudit = new LoginAuditEngine(this.client, this.cache);
+        this.notification = new NotificationEngine(this.client);
+        this.line = new LineOAEngine(this.client);
+        this.viewport = new ViewportEngine(); // ✅ เพิ่มเรียบร้อย
+      }
+      
+      getClient() {
+        if (!this.client) {
+          this._initClient(true);
+        }
+        return this.client;
+      }
+
+      _initClient(silent = false) {
+        if (window.supabaseClient) {
+          this.client = window.supabaseClient;
+          return this.client;
+        }
+        const sb = global.supabase || (typeof window !== 'undefined' ? window.supabase : null);
+        if (sb?.createClient) {
+          this.client = sb.createClient(CONFIG.URL, CONFIG.ANON_KEY);
+          window.supabaseClient = this.client;
+          this._propagateClient();
+          return this.client;
+        }
+
+        // Automatic fallback: inject CDN script if not present
+        if (typeof document !== 'undefined' && !this._scriptInjected) {
+          this._scriptInjected = true;
+          let script = document.querySelector('script[src*="supabase-js"]');
+          if (!script) {
+            script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            script.async = false;
+            document.head.appendChild(script);
+          }
+          script.addEventListener('load', () => {
+            const loadedSb = global.supabase || (typeof window !== 'undefined' ? window.supabase : null);
+            if (loadedSb?.createClient) {
+              this.client = loadedSb.createClient(CONFIG.URL, CONFIG.ANON_KEY);
+              window.supabaseClient = this.client;
+              this._propagateClient();
+              console.log("[SDK Engine] Supabase JS Client loaded and initialized successfully.");
+            }
+          });
+        }
+
+        // Check again once DOM is ready or after brief delays
+        if (typeof window !== 'undefined' && !this._listenerAttached) {
+          this._listenerAttached = true;
+          const retryInit = () => {
+            if (!this.client) {
+              const loadedSb = global.supabase || window.supabase;
+              if (loadedSb?.createClient) {
+                this.client = loadedSb.createClient(CONFIG.URL, CONFIG.ANON_KEY);
+                window.supabaseClient = this.client;
+                this._propagateClient();
+              }
+            }
+          };
+          window.addEventListener('DOMContentLoaded', retryInit);
+          window.addEventListener('load', retryInit);
+          setTimeout(retryInit, 400);
+          setTimeout(retryInit, 1200);
+        }
+
+        if (!silent) {
+          setTimeout(() => {
+            if (!this.client && !window.supabaseClient && !(global.supabase?.createClient || (typeof window !== 'undefined' && window.supabase?.createClient))) {
+              console.warn("[SDK Warning] Supabase JS Client is still loading or not loaded on window.");
+            }
+          }, 3000);
+        }
+        return this.client;
+      }
+
+      _propagateClient() {
+        if (!this.client) return;
+        const engines = [
+          this.auth, this.hr, this.leave, this.storage, this.realtime,
+          this.user, this.card, this.attendance, this.loginAudit,
+          this.notification, this.line
+        ];
+        engines.forEach(eng => {
+          if (eng && typeof eng === 'object') {
+            eng.client = this.client;
+          }
+        });
+      }
+    }
+
+    // ==========================================================================
+  // 11. USER & CENTRAL SERVICE ENGINE
+  // ==========================================================================
+  class UserEngine {
+    constructor(client, cache, network) {
+      this.client = client;
+      this.cache = cache;
+      this.network = network;
+      this._leaveBalanceInsertForbidden = false;
+      this._inflightBalances = new Map();
+    }
+
+    // ตรวจสอบว่าระบบถูกบล็อกสิทธิ์ INSERT ลง employee_leave_balances (401/403/RLS) หรือไม่
+    isElbInsertBlocked() {
+      if (this._leaveBalanceInsertForbidden) return true;
+      try {
+        if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('pvt_elb_insert_forbidden') === 'true') {
+          this._leaveBalanceInsertForbidden = true;
+          return true;
+        }
+      } catch(e) {}
+      return false;
+    }
+
+    markElbInsertBlocked() {
+      this._leaveBalanceInsertForbidden = true;
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('pvt_elb_insert_forbidden', 'true');
+        }
+      } catch(e) {}
+    }
+
+    // ดึงโปรไฟล์พนักงาน + แผนก + ตำแหน่ง (พร้อมระบบ Cache)
+    async getFullProfile(employeeId, forceRefresh = false) {
+      if (!employeeId) throw new Error("ไม่พบ Employee ID");
+      const cacheKey = `full_profile_${employeeId}`;
+
+      if (!forceRefresh) {
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+      }
+
+      const { data, error } = await this.client
+        .from('employees')
+        .select(`
+          id, employee_code, role, status,
+          title, first_name, last_name, full_name, nickname,
+          phone, email, line_id, image_url,
+          department_id, position_id, employment_type, hospital, bank_account,
+          start_date, converted_date, resign_date, created_at, updated_at,
+          departments!department_id ( id, department_code, department_name, department_name_en, status, created_at ),
+          positions ( id, position_name, department_id, status, created_at )
+        `)
+        .eq('id', employeeId)
+        .maybeSingle();
+
+      if (error) throw new Error("ดึงข้อมูลพนักงานไม่สำเร็จ: " + error.message);
+      if (!data) throw new Error("ไม่พบข้อมูลพนักงานในระบบ");
+
+      const result = {
+        ...data,
+        department_name: data.departments?.department_name || 'ไม่ระบุแผนก',
+        position_name: data.positions?.position_name || 'ไม่ระบุตำแหน่ง'
+      };
+
+      this.cache.set(cacheKey, result, CONFIG.DEFAULT_TTL, ["profile"]);
+      return result;
+    }
+
+    // Helper แปลง employee_leave_balances แถวเดียว ให้เป็นอาร์เรย์รายการวันลาตามประเภท
+    transformEmployeeLeaveBalanceToItems(row, leaveTypesList) {
+      if (!row) return [];
+      const yr = row.year;
+      const empId = row.employee_id;
+
+      let typesToUse = leaveTypesList;
+      if (!typesToUse || typesToUse.length === 0) {
+        typesToUse = [
+          { id: 'sick_type', leave_code: 'SICK', leave_name: 'ลาป่วย' },
+          { id: 'personal_type', leave_code: 'PERSONAL', leave_name: 'ลากิจ' },
+          { id: 'vacation_type', leave_code: 'VACATION', leave_name: 'ลาพักร้อน' },
+          { id: 'maternity_type', leave_code: 'MATERNITY', leave_name: 'ลาคลอดบุตร' },
+          { id: 'other_type', leave_code: 'OTHER', leave_name: 'ลาอื่นๆ' }
+        ];
+      }
+
+      return typesToUse.map(lt => {
+        const code = String(lt.leave_code || '').toUpperCase();
+        const name = String(lt.leave_name || '').toLowerCase();
+
+        let total = 0;
+        let used = 0;
+
+        if (code === 'SICK' || code === '01' || name.includes('ป่วย')) {
+          total = Number(row.sick_total ?? 30);
+          used = Number(row.sick_used ?? 0);
+        } else if (code === 'PERSONAL' || code === '02' || name.includes('กิจ')) {
+          total = Number(row.personal_total ?? 6);
+          used = Number(row.personal_used ?? 0);
+        } else if (code === 'VACATION' || code === '03' || name.includes('พักร้อน') || name.includes('พักผ่อน')) {
+          total = Number(row.vacation_total ?? 6);
+          used = Number(row.vacation_used ?? 0);
+        } else if (code === 'MATERNITY' || name.includes('คลอด')) {
+          total = Number(row.maternity_total ?? 98);
+          used = Number(row.maternity_used ?? 0);
+        } else {
+          total = Number(row.other_total ?? 30);
+          used = Number(row.other_used ?? 0);
+        }
+
+        return {
+          id: `${row.id}_${lt.id}`,
+          row_id: row.id,
+          employee_id: empId,
+          leave_type_id: lt.id,
+          year: yr,
+          entitlement_days: total,
+          used_days: used,
+          remaining_days: Math.max(0, total - used),
+          quota: total,
+          leave_types: {
+            id: lt.id,
+            leave_code: lt.leave_code || code,
+            leave_name: lt.leave_name || name
+          }
+        };
+      });
+    }
+
+    // ดึงวันลาคงเหลือ
+    async getLeaveBalances(employeeId, year = window.getCurrentLeaveYear()) {
+      if (!this.client || !employeeId) return [];
+      const yearAD = window.getADYear(year);
+      const thaiYear = yearAD + 543;
+
+      const cacheKey = `user_leave_balances_${employeeId}_${yearAD}`;
+      const cached = this.cache.get(cacheKey);
+      if (cached) return cached;
+
+      // In-flight deduplication: หากมีคำขอเดียวกันกำลังทำงานอยู่ ให้รอผลจาก promise เดียวกัน
+      if (!this._inflightBalances) this._inflightBalances = new Map();
+      if (this._inflightBalances.has(cacheKey)) {
+        return await this._inflightBalances.get(cacheKey);
+      }
+
+      const fetchPromise = (async () => {
+        let result = [];
+        try {
+          // ดึงประเภทการลาไปพร้อมกับโควตา (เดิมรอโควตาเสร็จก่อนแล้วค่อยดึง = ช้า 2 รอบ)
+          const lTypesPromise = this.client
+            .from('leave_types')
+            .select('*')
+            .then((r) => r, () => ({ data: null }));
+
+          const { data: empBalList, error: empBalErr } = await this.client
+            .from('employee_leave_balances')
+            .select('*')
+            .eq('employee_id', employeeId)
+            .in('year', [yearAD, thaiYear])
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          const empBal = (empBalList && empBalList.length > 0) ? empBalList[0] : null;
+
+          if (!empBalErr && empBal) {
+            const { data: lTypes } = await lTypesPromise;
+            result = this.transformEmployeeLeaveBalanceToItems(empBal, lTypes || []);
+          }
+        } catch (e) {
+          console.warn("employee_leave_balances fetch notice:", e);
+        }
+
+        // 🛡️ หากยังไม่มีข้อมูลโควตาใน employee_leave_balances
+        // เช็กก่อนว่า client มีสิทธิ์ INSERT หรือไม่ ถ้าไม่มีให้ข้ามไปคำนวณ Virtual ทันที (ป้องกัน Error 401 ใน Console)
+        if (!result || result.length === 0) {
+          if (!this.isElbInsertBlocked()) {
+            try {
+              const ensureRes = await this.ensureLeaveBalances(employeeId, yearAD);
+              if (ensureRes?.status === 'created') {
+                const { data: empBalList } = await this.client
+                  .from('employee_leave_balances')
+                  .select('*')
+                  .eq('employee_id', employeeId)
+                  .in('year', [yearAD, thaiYear])
+                  .limit(1);
+
+                if (empBalList && empBalList.length > 0) {
+                  const { data: lTypes } = await this.client.from('leave_types').select('*');
+                  result = this.transformEmployeeLeaveBalanceToItems(empBalList[0], lTypes || []);
+                }
+              }
+            } catch (e) {
+              // Silently handle
+            }
+          }
+        }
+
+        // 🛡️ Fallback: หากยังไม่มี record ใน employee_leave_balances (เช่น Client ยังไม่ได้ล็อกอิน Supabase Auth หรือ RLS 401)
+        // คำนวณยอดโควตาจริงบนระบบทันทีโดยอิงจาก leave_types, อายุงาน และประวัติการลาจริง
+        if (!result || result.length === 0) {
+          try {
+            let vacationDays = 6.0;
+            try {
+              const { data: empData } = await this.client
+                .from('employees')
+                .select('start_date, created_at')
+                .eq('id', employeeId)
+                .maybeSingle();
+              if (empData) {
+                const sDate = empData.start_date || empData.created_at;
+                if (sDate && (Date.now() - new Date(sDate).getTime()) / (1000 * 3600 * 24) < 365) {
+                  vacationDays = 0.0;
+                }
+              }
+            } catch(e) {}
+
+            const virtualRow = {
+              id: `v_${employeeId}_${yearAD}`,
+              employee_id: employeeId,
+              year: yearAD,
+              sick_total: 30.0,
+              sick_used: 0.0,
+              personal_total: 6.0,
+              personal_used: 0.0,
+              vacation_total: vacationDays,
+              vacation_used: 0.0,
+              maternity_total: 98.0,
+              maternity_used: 0.0,
+              other_total: 30.0,
+              other_used: 0.0
+            };
+
+            const { data: reqs } = await this.client
+              .from('leave_requests')
+              .select('*')
+              .eq('employee_id', employeeId)
+              .not('status', 'eq', 'rejected')
+              .not('status', 'eq', 'cancelled');
+
+            const { data: lTypes } = await this.client.from('leave_types').select('*');
+            const typesMap = {};
+            (lTypes || []).forEach(lt => { typesMap[String(lt.id)] = lt; });
+
+            (reqs || []).forEach(r => {
+              const reqYear = window.getLeaveChargeYear(r);
+              if (reqYear === yearAD) {
+                const lt = typesMap[String(r.leave_type_id)];
+                const code = String(lt?.leave_code || '').toUpperCase();
+                const name = String(lt?.leave_name || '').toLowerCase();
+                const days = parseFloat(r.total_days) || 0;
+                if (code === 'SICK' || code === '01' || name.includes('ป่วย')) virtualRow.sick_used += days;
+                else if (code === 'PERSONAL' || code === '02' || name.includes('กิจ')) virtualRow.personal_used += days;
+                else if (code === 'VACATION' || code === '03' || name.includes('พัก')) virtualRow.vacation_used += days;
+                else if (code === 'MATERNITY' || name.includes('คลอด')) virtualRow.maternity_used += days;
+                else virtualRow.other_used += days;
+              }
+            });
+
+            result = this.transformEmployeeLeaveBalanceToItems(virtualRow, lTypes || []);
+          } catch(fbErr) {
+            console.warn("Virtual balance calculation fallback notice:", fbErr);
+          }
+        }
+
+        this.cache.set(cacheKey, result || [], CONFIG.DEFAULT_TTL, ["leaves"]);
+        return result || [];
+      })();
+
+      this._inflightBalances.set(cacheKey, fetchPromise);
+      try {
+        return await fetchPromise;
+      } finally {
+        this._inflightBalances.delete(cacheKey);
+      }
+    }
+
+    // ตรวจสอบและสร้างโควตาวันลาอัตโนมัติหากยังไม่มีในปีนั้นๆ (ใช้ AD เป็นมาตรฐาน)
+    async ensureLeaveBalances(employeeId, yearOrDate = window.getCurrentLeaveYear()) {
+      if (!this.client || !employeeId) return { status: 'skipped', message: 'Missing parameters' };
+      if (this.isElbInsertBlocked()) {
+        return { status: 'skipped', message: 'Insert unauthorized for client' };
+      }
+
+      try {
+        const yearAD = window.getADYear(yearOrDate);
+        const thaiYear = yearAD + 543;
+        
+        // 1. ตรวจสอบตารางหลัก employee_leave_balances (อ่านได้เสมอ)
+        const { data: empBalList } = await this.client
+          .from('employee_leave_balances')
+          .select('id')
+          .eq('employee_id', employeeId)
+          .in('year', [yearAD, thaiYear])
+          .limit(1);
+
+        if (empBalList && empBalList.length > 0) {
+          return { status: 'existed', message: 'มีข้อมูลแล้ว', id: empBalList[0].id };
+        }
+
+        // 🎯 เช็กอายุงานของพนักงาน (ถ้าทำงานไม่ถึง 1 ปี / 365 วัน ให้ vacation_total = 0.0)
+        let vacationTotalDays = 6.0;
+        try {
+          const { data: empData } = await this.client
+            .from('employees')
+            .select('start_date, created_at')
+            .eq('id', employeeId)
+            .maybeSingle();
+
+          if (empData) {
+            const startDateStr = empData.start_date || empData.created_at;
+            if (startDateStr) {
+              const startDate = new Date(startDateStr);
+              const now = new Date();
+              const diffMs = now.getTime() - startDate.getTime();
+              const diffDays = diffMs / (1000 * 3600 * 24);
+              if (diffDays < 365) {
+                vacationTotalDays = 0.0;
+              }
+            }
+          }
+        } catch(e) {}
+
+        const { error: insertError } = await this.client
+          .from('employee_leave_balances')
+          .insert([{
+            employee_id: employeeId,
+            year: yearAD,
+            sick_total: 30.0,
+            sick_used: 0.0,
+            personal_total: 6.0,
+            personal_used: 0.0,
+            vacation_total: vacationTotalDays,
+            vacation_used: 0.0,
+            maternity_total: 98.0,
+            maternity_used: 0.0,
+            other_total: 30.0,
+            other_used: 0.0
+          }]);
+
+        if (insertError) {
+          // หากติด RLS หรือสิทธิ์ 401 Unauthorized ให้บันทึกสถานะไว้เพื่อไม่ส่ง Request ซ้ำ
+          this.markElbInsertBlocked();
+          return { status: 'error', message: insertError.message || insertError };
+        }
+
+        console.log("✅ Auto-created missing employee_leave_balances for year", yearAD);
+        return { status: 'created', message: 'สร้างข้อมูลเรียบร้อยแล้ว' };
+      } catch (err) {
+        this.markElbInsertBlocked();
+        return { status: 'error', message: err.message || err };
+      }
+    }
+
+    // อัปเดต/หัก ยอดวันลาในตารางหลัก employee_leave_balances
+    async updateLeaveBalance(employeeId, leaveTypeId, leaveCode, yearAD, deltaUsedDays, absoluteUsedDays = null, absoluteTotalDays = null) {
+      if (!this.client || !employeeId) return;
+      try {
+        let code = (leaveCode || '').toUpperCase();
+        if (!code && leaveTypeId) {
+          const { data: lt } = await this.client.from('leave_types').select('leave_code, leave_name').eq('id', leaveTypeId).maybeSingle();
+          if (lt) {
+            code = (lt.leave_code || '').toUpperCase();
+            if (!code && (lt.leave_name || '').includes('ป่วย')) code = 'SICK';
+            if (!code && (lt.leave_name || '').includes('กิจ')) code = 'PERSONAL';
+            if (!code && (lt.leave_name || '').includes('พัก')) code = 'VACATION';
+          }
+        }
+
+        let usedCol = 'other_used';
+        let totalCol = 'other_total';
+        if (code === 'SICK' || code === '01' || code.includes('SICK') || code.includes('ป่วย')) {
+          usedCol = 'sick_used'; totalCol = 'sick_total';
+        } else if (code === 'PERSONAL' || code === '02' || code.includes('PERSONAL') || code.includes('กิจ')) {
+          usedCol = 'personal_used'; totalCol = 'personal_total';
+        } else if (code === 'VACATION' || code === '03' || code.includes('VACATION') || code.includes('พัก')) {
+          usedCol = 'vacation_used'; totalCol = 'vacation_total';
+        } else if (code === 'MATERNITY' || code.includes('MATERNITY') || code.includes('คลอด')) {
+          usedCol = 'maternity_used'; totalCol = 'maternity_total';
+        } else {
+          usedCol = 'other_used'; totalCol = 'other_total';
+        }
+
+        const { data: row } = await this.client
+          .from('employee_leave_balances')
+          .select('*')
+          .eq('employee_id', employeeId)
+          .eq('year', yearAD)
+          .maybeSingle();
+
+        const updates = { updated_at: new Date().toISOString() };
+        if (absoluteTotalDays !== null) {
+          updates[totalCol] = Math.max(0, absoluteTotalDays);
+        }
+
+        if (row) {
+          const currentUsed = Number(row[usedCol] || 0);
+          const newUsed = absoluteUsedDays !== null 
+            ? Math.max(0, absoluteUsedDays)
+            : Math.max(0, Math.round((currentUsed + deltaUsedDays) * 100) / 100);
+          updates[usedCol] = newUsed;
+
+          await this.client
+            .from('employee_leave_balances')
+            .update(updates)
+            .eq('id', row.id);
+        } else {
+          if (this.isElbInsertBlocked()) return;
+          const initialUsed = absoluteUsedDays !== null ? absoluteUsedDays : Math.max(0, deltaUsedDays);
+          const initialTotal = absoluteTotalDays !== null ? absoluteTotalDays : 30;
+          const { error: insErr } = await this.client
+            .from('employee_leave_balances')
+            .insert([{
+              employee_id: employeeId,
+              year: yearAD,
+              sick_used: 0,
+              sick_total: 30,
+              personal_used: 0,
+              personal_total: 6,
+              vacation_used: 0,
+              vacation_total: 6,
+              maternity_used: 0,
+              maternity_total: 98,
+              other_used: 0,
+              other_total: 30,
+              [usedCol]: initialUsed,
+              [totalCol]: initialTotal
+            }]);
+          if (insErr) {
+            this.markElbInsertBlocked();
+          }
+        }
+      } catch(err) {
+        console.warn("⚠️ updateLeaveBalance error:", err);
+      }
+    }
+
+    // ระบบ Logout กลาง (ล้างทั้ง Session และ SDK Cache)
+    async logout() {
+      try {
+        sessionStorage.setItem('pvt_explicit_logout', 'true');
+        localStorage.setItem('pvt_explicit_logout', 'true');
+      } catch (e) {}
+      this.cache.clearAll();
+      try {
+        if (this.client?.auth) {
+          await this.client.auth.signOut().catch(() => {});
+        }
+      } catch (e) {}
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("/index.html?logout=true");
+    }
+  }
+
+    // ==========================================================================
+    // 12. DIGITAL CARD ENGINE (PERMANENT INDIVIDUAL QR)
+    // ==========================================================================
+    class CardEngine {
+      constructor(client) {
+        this.client = client;
+        this.timerInstance = null;
+      }
+
+      // สร้าง URL สำหรับ QR Code ถาวรประจำตัวพนักงาน
+      getSecureToken(employeeCode) {
+        const cleanCode = String(employeeCode || "").trim();
+        const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+        const autoLoginUrl = `${origin}/index.html?auto_login=${encodeURIComponent(cleanCode)}`;
+        return {
+          qr_token: autoLoginUrl,
+          employee_code: cleanCode
+        };
+      }
+
+      // สั่งแสดง QR Code ถาวรประจำตัวพนักงาน
+      async init(employeeCode, qrContainerId = "qrcode", countdownElementId = "qr-countdown") {
+        if (!employeeCode) return;
+        this.stop();
+
+        try {
+          const container = document.getElementById(qrContainerId);
+          if (!container) return;
+
+          const { qr_token } = this.getSecureToken(employeeCode);
+          container.innerHTML = "";
+
+          if (typeof QRCode !== 'undefined') {
+            try {
+              new QRCode(container, {
+                text: qr_token,
+                width: 160,
+                height: 160,
+                correctLevel: QRCode.CorrectLevel.M
+              });
+            } catch (qrErr) {
+              console.warn("⚠️ [CardEngine] QRCode instance creation error, using img fallback:", qrErr);
+              const qrImg = document.createElement('img');
+              qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qr_token)}`;
+              qrImg.alt = "Employee QR Code";
+              qrImg.style.width = "160px";
+              qrImg.style.height = "160px";
+              qrImg.style.borderRadius = "8px";
+              container.appendChild(qrImg);
+            }
+          } else {
+            const qrImg = document.createElement('img');
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qr_token)}`;
+            qrImg.alt = "Employee QR Code";
+            qrImg.style.width = "160px";
+            qrImg.style.height = "160px";
+            qrImg.style.borderRadius = "8px";
+            container.appendChild(qrImg);
+          }
+
+          const countdownEl = document.getElementById(countdownElementId);
+          if (countdownEl) {
+            countdownEl.textContent = "QR Code ถาวรประจำตัวพนักงาน";
+          }
+        } catch (err) {
+          console.error("⚠️ [CardEngine] QR Error:", err);
+          const container = document.getElementById(qrContainerId);
+          if (container) {
+            const origin = window.location.origin || "";
+            const fallbackUrl = `${origin}/index.html?auto_login=${encodeURIComponent(employeeCode)}`;
+            container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(fallbackUrl)}" style="width:160px; height:160px; border-radius:8px;" />`;
+          }
+        }
+      }
+
+      stop() {
+        if (this.timerInstance) {
+          clearInterval(this.timerInstance);
+          this.timerInstance = null;
+        }
+      }
+    }
+
+    // ==========================================================================
+    // 12.1 ATTENDANCE & QR LOG ENGINE
+    // ==========================================================================
+    class AttendanceEngine {
+      constructor(client, cache) {
+        this.client = client;
+        this.cache = cache;
+      }
+
+      /**
+       * Record successful QR code scans into 'qr_attendance_logs' table in Supabase.
+       * Captures employee ID and timestamp for audit purposes.
+       * 
+       * @param {string} employeeId - UUID or Employee ID
+       * @param {Object} [metadata={}] - Optional metadata (scanned_data, scan_type, status, etc.)
+       * @returns {Promise<Object|null>} Inserted record or null
+       */
+      async recordQrAttendanceLog(employeeId, metadata = {}) {
+        if (!employeeId) {
+          console.warn("⚠️ [AttendanceEngine] Missing employeeId for QR attendance log");
+          return null;
+        }
+
+        const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
+        if (!client) {
+          console.error("❌ [AttendanceEngine] Supabase client is not available");
+          return null;
+        }
+
+        const scannedAt = metadata.scanned_at || metadata.timestamp || new Date().toISOString();
+        const payload = {
+          employee_id: employeeId,
+          scanned_at: scannedAt,
+          status: metadata.status || 'success',
+          scanned_data: metadata.scanned_data || metadata.scannedData || null,
+          scan_type: metadata.scan_type || metadata.scanType || 'qr_scan',
+          created_at: new Date().toISOString()
+        };
+
+        try {
+          let { data, error } = await client
+            .from('qr_attendance_logs')
+            .insert([payload])
+            .select();
+
+          if (error) {
+            console.warn("⚠️ [AttendanceEngine] Full insert into qr_attendance_logs failed, attempting fallback:", error.message);
+            const minimalPayload = {
+              employee_id: employeeId,
+              scanned_at: scannedAt
+            };
+            const fallbackRes = await client
+              .from('qr_attendance_logs')
+              .insert([minimalPayload])
+              .select();
+
+            if (fallbackRes.error) {
+              console.error("❌ [AttendanceEngine] Fallback insert failed:", fallbackRes.error.message);
+              return null;
+            }
+            data = fallbackRes.data;
+          }
+
+          console.log("✅ [AttendanceEngine] QR attendance log recorded successfully:", { employeeId, scannedAt, data });
+          return data ? (Array.isArray(data) ? data[0] : data) : null;
+        } catch (err) {
+          console.error("❌ [AttendanceEngine] Unexpected error recording QR scan:", err);
+          return null;
+        }
+      }
+    }
+
+    // ==========================================================================
+    // 12.2 LOGIN ACTIVITY & AUDIT TRACKING ENGINE
+    // Records user ID, timestamp, and device info into 'login_logs' table
+    // ==========================================================================
+    class LoginAuditEngine {
+      constructor(client, cache) {
+        this.client = client;
+        this.cache = cache;
+      }
+
+      /**
+       * Collects comprehensive client device information for audit logging
+       */
+      getDeviceInfo() {
+        const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+
+        // Operating System detection
+        let os = 'Unknown OS';
+        if (/windows phone/i.test(ua)) os = 'Windows Phone';
+        else if (/win/i.test(ua)) os = 'Windows';
+        else if (/android/i.test(ua)) os = 'Android';
+        else if (/ipad|iphone|ipod/i.test(ua)) os = 'iOS';
+        else if (/mac/i.test(ua)) os = 'macOS';
+        else if (/linux/i.test(ua)) os = 'Linux';
+
+        // Browser detection
+        let browser = 'Unknown Browser';
+        if (/Line\//i.test(ua)) browser = 'LINE In-App Browser';
+        else if (/FBAV|FBAN/i.test(ua)) browser = 'Facebook In-App Browser';
+        else if (/Instagram/i.test(ua)) browser = 'Instagram In-App Browser';
+        else if (/edg/i.test(ua)) browser = 'Microsoft Edge';
+        else if (/chrome|crios/i.test(ua)) browser = 'Google Chrome';
+        else if (/firefox|fxios/i.test(ua)) browser = 'Mozilla Firefox';
+        else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = 'Apple Safari';
+        else if (/opera|opr/i.test(ua)) browser = 'Opera';
+
+        // Form Factor / Device Category
+        let deviceType = 'Desktop';
+        if (/tablet|ipad/i.test(ua) || (typeof screen !== 'undefined' && Math.min(screen.width, screen.height) >= 600 && Math.min(screen.width, screen.height) <= 900)) {
+          deviceType = 'Tablet';
+        } else if (/mobile|iphone|ipod|android/i.test(ua) || (typeof screen !== 'undefined' && Math.min(screen.width, screen.height) < 600)) {
+          deviceType = 'Mobile';
+        }
+
+        const screenRes = typeof screen !== 'undefined' ? `${screen.width}x${screen.height}` : 'N/A';
+        const viewportRes = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'N/A';
+        const lang = typeof navigator !== 'undefined' ? (navigator.language || 'th-TH') : 'th-TH';
+        let timezone = 'Asia/Bangkok';
+        try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Bangkok'; } catch (e) {}
+
+        return {
+          os,
+          browser,
+          device_type: deviceType,
+          screen: screenRes,
+          viewport: viewportRes,
+          language: lang,
+          timezone,
+          user_agent: ua
+        };
+      }
+
+      /**
+       * Records login activity into Supabase 'login_logs' table.
+       * Captures User ID, Timestamp, and Device Info for audit purposes.
+       * 
+       * @param {Object|string} user - Employee object or User ID string
+       * @param {Object} [options={}] - Additional metadata (method: 'password'|'qr_code'|'auto_token', status, etc.)
+       * @returns {Promise<Object|null>}
+       */
+      async recordLoginLog(user, options = {}) {
+        try {
+          const userId = typeof user === 'object' && user ? (user.id || user.employee_code || user.employee_id) : user;
+          if (!userId) {
+            console.warn("⚠️ [LoginAuditEngine] Missing user identifier for login log");
+            return null;
+          }
+
+          const timestamp = options.timestamp || new Date().toISOString();
+          const deviceInfo = options.device_info || this.getDeviceInfo();
+          const loginMethod = options.method || options.login_method || 'password';
+          const status = options.status || 'success';
+
+          const empCode = typeof user === 'object' && user ? (user.employee_code || '') : '';
+          const fullName = typeof user === 'object' && user ? (user.full_name || '') : '';
+          const role = typeof user === 'object' && user ? (user.role || '') : '';
+          const employeeId = typeof user === 'object' && user && user.id ? user.id : (String(userId).length === 36 ? userId : null);
+
+          const payload = {
+            user_id: String(userId),
+            employee_id: employeeId,
+            employee_code: empCode,
+            full_name: fullName,
+            role: role,
+            timestamp: timestamp,
+            device_info: deviceInfo,
+            login_method: loginMethod,
+            status: status,
+            metadata: options.metadata || { source: 'web_portal' },
+            created_at: timestamp
+          };
+
+          // 1. Try server-side API first (best for capturing real client IP and using service_role)
+          try {
+            const apiRes = await fetch('/api/record-login-log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (apiRes.ok) {
+              const resJson = await apiRes.json();
+              console.log("✅ [LoginAuditEngine] Login activity logged via server API:", resJson);
+              this._bufferLocalLog(payload);
+              return resJson;
+            }
+          } catch (apiErr) {
+            // Proceed to direct SDK call
+          }
+
+          // 2. Direct Supabase SDK insert into 'login_logs' table
+          //    (ไม่ขอข้อมูลกลับ เพราะตาราง login_logs อ่านได้เฉพาะผู้ดูแลระบบขั้นสูง)
+          const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
+          if (client) {
+            try {
+              const { error } = await client.from('login_logs').insert([payload]);
+              if (!error) {
+                console.log("✅ [LoginAuditEngine] Login activity recorded in Supabase 'login_logs'");
+              } else {
+                console.warn("⚠️ [LoginAuditEngine] Direct insert into 'login_logs' notice:", error?.message);
+              }
+            } catch (sdkErr) {
+              console.warn("⚠️ [LoginAuditEngine] SDK error:", sdkErr);
+            }
+          }
+
+          // 3. Keep local storage buffer
+          this._bufferLocalLog(payload);
+          return payload;
+        } catch (err) {
+          console.error("❌ [LoginAuditEngine] Unexpected error recording login log:", err);
+          return null;
+        }
+      }
+
+      _bufferLocalLog(payload) {
+        try {
+          const localLogs = JSON.parse(localStorage.getItem('pvt_login_logs_history') || '[]');
+          localLogs.unshift({ ...payload, buffered_at: new Date().toISOString() });
+          if (localLogs.length > 50) localLogs.length = 50;
+          localStorage.setItem('pvt_login_logs_history', JSON.stringify(localLogs));
+        } catch (e) {}
+      }
+
+      /**
+       * อ่านประวัติการเข้าสู่ระบบ — เฉพาะผู้ดูแลระบบขั้นสูง (superadmin)
+       * ต้องส่งรหัสพนักงาน + รหัสผ่าน ซึ่งตรวจในฐานข้อมูลผ่าน admin_get_login_logs()
+       * ไม่ส่ง credentials → คืนค่า null (ไม่มีสิทธิ์ดู)
+       */
+      async getLoginLogs(limit = 500, credentials = null) {
+        if (!credentials || !credentials.code || !credentials.password) return null;
+        const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
+        if (!client) throw new Error('ยังเชื่อมต่อฐานข้อมูลไม่ได้');
+        const { data, error } = await client.rpc('admin_get_login_logs', {
+          p_code: credentials.code,
+          p_password: credentials.password,
+          p_limit: limit,
+          p_from: credentials.from || null,
+          p_to: credentials.to || null
+        });
+        if (error) {
+          const msg = String(error.message || '');
+          if (error.code === '42501' || /not_authorized/.test(msg)) {
+            const e = new Error('รหัสผ่านไม่ถูกต้อง หรือบัญชีนี้ไม่ใช่ผู้ดูแลระบบขั้นสูง');
+            e.code = 'not_authorized';
+            throw e;
+          }
+          if (error.code === 'PGRST202' || /admin_get_login_logs/.test(msg)) {
+            throw new Error('ยังไม่ได้รัน supabase/migrations/20261020_login_logs_superadmin_only.sql');
+          }
+          throw new Error(msg || 'โหลดประวัติไม่สำเร็จ');
+        }
+        return Array.isArray(data) ? data : [];
+      }
+
+      /** ลบประวัติที่เก่ากว่า N วัน — เฉพาะผู้ดูแลระบบขั้นสูง */
+      async purgeLoginLogs(credentials, days = 90) {
+        const client = this.client || window.supabaseClient || window.pvtSupabase?.getClient?.();
+        if (!client || !credentials) throw new Error('ไม่มีสิทธิ์');
+        const { data, error } = await client.rpc('admin_purge_login_logs', {
+          p_code: credentials.code, p_password: credentials.password, p_days: days
+        });
+        if (error) throw new Error(/not_authorized/.test(error.message || '') ? 'ไม่มีสิทธิ์ลบประวัติ' : (error.message || 'ลบไม่สำเร็จ'));
+        return Number(data) || 0;
+      }
+    }
+class NotificationEngine {
+  constructor(client) {
+    this.client = client;
+  }
+
+  // 1. ดึงรายการแจ้งเตือนที่ยังไม่ได้อ่าน
+  async getUnread(userId) {
+    if (!userId) return [];
+    const { data, error } = await this.client
+      .from('notifications')
+      .select('id, employee_id, title, message, is_read, type, link_url, created_at')
+      .eq('employee_id', userId)
+      .eq('is_read', false)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn("⚠️ [Notification] Fetch error:", error.message);
+      return [];
+    }
+    return data || [];
+  }
+
+  // 2. เปลี่ยนสถานะเป็นอ่านแล้ว (Mark as Read)
+  async markAsRead(notificationId) {
+    if (!notificationId) return false;
+    const { error } = await this.client
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error("❌ [Notification] Mark read error:", error.message);
+      return false;
+    }
+    return true;
+  }
+
+  // 3. รับแจ้งเตือนแบบ Realtime เมื่อมีข้อความใหม่เด้งเข้า DB
+  subscribe(userId, callback) {
+    if (!userId) return null;
+    return this.client
+      .channel(`realtime_notifications_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `employee_id=eq.${userId}`
+        },
+        (payload) => {
+          if (typeof callback === 'function') {
+            callback(payload.new);
+          }
+        }
+      )
+      .subscribe();
+  }
+}
+
+// ==========================================================================
+// 💬 LINE OA NOTIFICATION ENGINE (หัวหน้า -> ผู้จัดการ -> พนักงาน)
+// ==========================================================================
+class LineOAEngine {
+  constructor(client) {
+    this.client = client;
+    this.webhookUrl = "";
+    this.channelAccessToken = "";
+    this._loadConfig(); // โหลดคอนฟิกจาก DB ทันที
+  }
+
+  async _loadConfig() {
+    if (!this.client) return;
+    try {
+      const { data } = await this.client
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'line_oa_config')
+        .maybeSingle();
+      
+      if (data?.setting_value) {
+        this.webhookUrl = data.setting_value.webhook_url || "";
+        this.channelAccessToken = data.setting_value.channel_access_token || "";
+      }
+    } catch (e) {
+      console.warn("⚠️ [LINE OA] Failed to load config from system_settings:", e);
+    }
+  }
+
+  async setConfig(webhookUrl, channelToken) {
+    this.webhookUrl = webhookUrl;
+    this.channelAccessToken = channelToken;
+    if (this.client) {
+      await this.client.from('system_settings').upsert({
+        setting_key: 'line_oa_config',
+        setting_value: { webhook_url: webhookUrl, channel_access_token: channelToken },
+        updated_at: new Date().toISOString()
+      });
+    }
+  }
+
+  /**
+   * แปลงจำนวนวัน/ชั่วโมงให้เป็นข้อความภาษาไทยที่อ่านเข้าใจง่าย
+   * เช่น 0.0625 วัน -> 30 นาที, 0.125 วัน -> 1 ชั่วโมง, 5.875 วัน -> 5 วัน 7 ชั่วโมง
+   */
+  formatLeaveDurationFriendly(totalDays, totalHours = 0, options = {}) {
+    const d = parseFloat(totalDays) || 0;
+    const h = parseFloat(totalHours) || 0;
+    const isCompact = Boolean(options.compact);
+
+    const uDays = isCompact ? "วัน" : "วัน";
+    const uHours = isCompact ? "ชม." : "ชั่วโมง";
+    const uMins = "นาที";
+
+    // 1) กรณีระบุ totalHours ชัดเจน
+    if (h > 0) {
+      const totalMinutes = Math.round(h * 60);
+      const daysFromHours = Math.floor(totalMinutes / 480);
+      const remMinutes = totalMinutes % 480;
+      const wholeH = Math.floor(remMinutes / 60);
+      const mins = remMinutes % 60;
+
+      let parts = [];
+      if (daysFromHours > 0) parts.push(`${daysFromHours} ${uDays}`);
+      if (wholeH > 0) parts.push(`${wholeH} ${uHours}`);
+      if (mins > 0) parts.push(`${mins} ${uMins}`);
+
+      return parts.length > 0 ? parts.join(" ") : `${h} ${uHours}`;
+    }
+
+    if (d <= 0) return `0 ${uDays}`;
+
+    // 2) คำนวณตามสูตร 1 วันทำงาน = 8 ชั่วโมง = 480 นาที (เพื่อความแม่นยำ 100% ป้องกันทศนิยมลอยน้ำ)
+    const totalMinutes = Math.round(d * 480);
+    const wholeDays = Math.floor(totalMinutes / 480);
+    const remainingMinutes = totalMinutes % 480;
+    const wholeH = Math.floor(remainingMinutes / 60);
+    const mins = remainingMinutes % 60;
+
+    // กรณีค่าน้อยกว่า 1 วัน
+    if (wholeDays === 0) {
+      if (wholeH === 4 && mins === 0) {
+        return isCompact ? "4 ชม. (ครึ่งวัน)" : "4 ชั่วโมง (ลาครึ่งวัน)";
+      }
+      if (wholeH === 0 && mins === 30) return "30 นาที";
+      if (wholeH === 0 && mins > 0) return `${mins} นาที`;
+      if (wholeH > 0 && mins === 0) return `${wholeH} ${uHours}`;
+      if (wholeH > 0 && mins > 0) return `${wholeH} ${uHours} ${mins} ${uMins}`;
+      return `${Number(d.toFixed(2))} ${uDays}`;
+    }
+
+    // กรณีตั้งแต่ 1 วันขึ้นไป (เช่น 5.875 วัน -> 5 วัน 7 ชั่วโมง)
+    let parts = [`${wholeDays} ${uDays}`];
+    if (wholeH === 4 && mins === 0) {
+      parts.push(isCompact ? `4 ชม. (ครึ่งวัน)` : `4 ชั่วโมง (ลาครึ่งวัน)`);
+    } else {
+      if (wholeH > 0) parts.push(`${wholeH} ${uHours}`);
+      if (mins > 0) parts.push(`${mins} ${uMins}`);
+    }
+
+    return parts.join(" ");
+  }
+
+  /**
+   * แปลงโควต้าวันลาคงเหลือให้มนุษย์เข้าใจง่ายทันที
+   * เช่น 5.875 -> '5 วัน 7 ชม.'
+   */
+  formatLeaveQuotaFriendly(days) {
+    const num = parseFloat(days) || 0;
+    if (num <= 0) return "0 วัน";
+    if (Number.isInteger(num)) return `${num} วัน`;
+    return this.formatLeaveDurationFriendly(num, 0, { compact: true });
+  }
+
+  formatThaiDateShort(dateStr) {
+    if (!dateStr) return '-';
+    if (dateStr.includes('ม.ค.') || dateStr.includes('ก.พ.') || dateStr.includes('ส.ค.')) return dateStr;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    const day = d.getDate();
+    const month = thaiMonths[d.getMonth()];
+    const year = d.getFullYear() + 543;
+    return `${day} ${month} ${year}`;
+  }
+
+  // ช่วงวันที่แบบกระชับ: "9–10 ต.ค. 2569", "30 ต.ค. – 2 พ.ย. 2569", "6 ต.ค. 2569"
+  formatThaiDateRange(startDate, endDate) {
+    const M = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    const a = new Date(startDate), b = new Date(endDate || startDate);
+    if (isNaN(a.getTime())) return this.formatThaiDateShort(startDate);
+    if (isNaN(b.getTime()) || a.toDateString() === b.toDateString()) return `${a.getDate()} ${M[a.getMonth()]} ${a.getFullYear() + 543}`;
+    if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()) return `${a.getDate()}–${b.getDate()} ${M[a.getMonth()]} ${a.getFullYear() + 543}`;
+    if (a.getFullYear() === b.getFullYear()) return `${a.getDate()} ${M[a.getMonth()]} – ${b.getDate()} ${M[b.getMonth()]} ${b.getFullYear() + 543}`;
+    return `${this.formatThaiDateShort(startDate)} – ${this.formatThaiDateShort(endDate)}`;
+  }
+
+  // ข้อความ/สีของแต่ละประเภทแจ้งเตือน (ใช้ร่วมกันทั้งการ์ด LINE และแจ้งเตือนในระบบ)
+  lineNoticeMeta(type, stepTitle = '') {
+    const T = {
+      NEW_REQUEST:      { title: 'ใบลารอท่านอนุมัติ', pill: 'รออนุมัติ', step: stepTitle || 'ลำดับที่ 1', c1: '#4f46e5', c2: '#0ea5e9', soft: '#eef2ff', ink: '#3730a3', act: true },
+      LEADER_APPROVED:  { title: 'ใบลารอท่านอนุมัติ', pill: 'รออนุมัติ', step: stepTitle || 'ลำดับที่ 2 · ผ่านลำดับที่ 1 แล้ว', c1: '#4f46e5', c2: '#0ea5e9', soft: '#eef2ff', ink: '#3730a3', act: true, commentLabel: 'ความเห็นลำดับก่อนหน้า' },
+      MANAGER_APPROVED: { title: 'ใบลารอท่านอนุมัติ', pill: 'รออนุมัติ', step: stepTitle || 'ลำดับที่ 3 · ผ่านลำดับที่ 2 แล้ว', c1: '#4f46e5', c2: '#0ea5e9', soft: '#eef2ff', ink: '#3730a3', act: true, commentLabel: 'ความเห็นลำดับก่อนหน้า' },
+      EXECUTIVE_APPROVED: { title: 'ใบลารอ HR ตรวจสอบ', pill: 'รอ HR', step: stepTitle, c1: '#0d9488', c2: '#14b8a6', soft: '#f0fdfa', ink: '#0f766e', commentLabel: 'ความเห็น' },
+      HR_REVIEW:        { title: 'ใบลารอ HR ตรวจสอบ', pill: 'รอ HR', step: stepTitle, c1: '#0d9488', c2: '#14b8a6', soft: '#f0fdfa', ink: '#0f766e', commentLabel: 'ความเห็น' },
+      PENDING_HR:       { title: 'ใบลารอ HR ตรวจสอบ', pill: 'รอ HR', step: stepTitle, c1: '#0d9488', c2: '#14b8a6', soft: '#f0fdfa', ink: '#0f766e', commentLabel: 'ความเห็น' },
+      HR_NOTIFY:        { title: 'ใบลาอนุมัติแล้ว', pill: 'อนุมัติ', step: stepTitle, c1: '#0284c7', c2: '#06b6d4', soft: '#f0f9ff', ink: '#075985', commentLabel: 'ความเห็น' },
+      REQUEST_APPROVED: { title: 'ใบลาของคุณได้รับอนุมัติ', pill: 'อนุมัติแล้ว', step: stepTitle, c1: '#16a34a', c2: '#22c55e', soft: '#f0fdf4', ink: '#166534' },
+      FINAL_APPROVED:   { title: 'ใบลาของคุณได้รับอนุมัติ', pill: 'อนุมัติแล้ว', step: stepTitle, c1: '#16a34a', c2: '#22c55e', soft: '#f0fdf4', ink: '#166534' },
+      REJECTED:         { title: 'ใบลาไม่ได้รับอนุมัติ', pill: 'ไม่อนุมัติ', step: stepTitle, c1: '#dc2626', c2: '#f97316', soft: '#fef2f2', ink: '#991b1b', commentLabel: 'เหตุผลที่ไม่อนุมัติ', commentStrong: true },
+      CANCELLATION:     { title: 'คำขอยกเลิกใบลา', pill: 'รอพิจารณา', step: stepTitle, c1: '#d97706', c2: '#f59e0b', soft: '#fffbeb', ink: '#92400e', act: true },
+      TEST:             { title: 'ทดสอบการแจ้งเตือน', pill: 'ทดสอบ', step: stepTitle, c1: '#4f46e5', c2: '#0ea5e9', soft: '#eef2ff', ink: '#3730a3' }
+    };
+    return T[type] || { title: 'แจ้งเตือนระบบใบลา', pill: 'แจ้งเตือน', step: stepTitle, c1: '#475569', c2: '#64748b', soft: '#f8fafc', ink: '#334155' };
+  }
+
+  /**
+   * การ์ด LINE (Flex Message) แบบกระชับ — ข้อมูลแต่ละอย่างแสดงครั้งเดียว
+   * หัว: ชื่อระบบ + สถานะ + หัวเรื่อง + ลำดับที่
+   * เนื้อ: ผู้ขอลา → ประเภท/ระยะเวลา/วันที่ → เหตุผล (+ความเห็น, รูปแนบ)
+   * ท้าย: [อนุมัติ] [ไม่อนุมัติ] สำหรับผู้อนุมัติ หรือปุ่มเดียวสำหรับผลการพิจารณา
+   */
+  formatLineFlexCard(type, opts = {}) {
+    const {
+      leaveId = '',
+      employeeName = 'พนักงาน',
+      employeeCode = '',
+      departmentName = '',
+      leaveType = 'ใบลา',
+      durationFormatted = '1 วัน',
+      dateFormatted = '',
+      reason = '',
+      comment = '',
+      nowStr = '',
+      approvalUrl = '',
+      historyUrl = '',
+      attachmentUrl = '',
+      stepTitle = '',
+      employeeNickname = ''
+    } = opts;
+    const m = this.lineNoticeMeta(type, stepTitle);
+    const txt = (v, d = '-') => { const t = String(v ?? '').trim(); return t || d; }; // LINE ไม่รับข้อความว่าง
+    const sub = [employeeNickname ? `ชื่อเล่น ${String(employeeNickname).trim()}` : '', departmentName].filter((x) => String(x || '').trim()).join(' · ');
+    const isImage = attachmentUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(attachmentUrl.split('?')[0]);
+    const showComment = comment && m.commentLabel && !/^รอ.+พิจารณา$/.test(String(comment).trim());
+    const sep = (margin = 'lg') => ({ type: 'separator', margin, color: '#eef2f7' });
+    const row = (label, value, opt = {}) => ({
+      type: 'box', layout: 'baseline', spacing: 'md', margin: opt.margin || 'md',
+      contents: [
+        { type: 'text', text: label, size: 'sm', color: '#94a3b8', flex: 2 },
+        { type: 'text', text: txt(value), size: 'sm', color: opt.color || '#334155', weight: opt.bold ? 'bold' : 'regular', flex: 5, wrap: true }
+      ]
+    });
+
+    const body = [
+      // ผู้ขอลา: ชื่อ-นามสกุล / ชื่อเล่น · แผนก
+      {
+        type: 'box', layout: 'vertical',
+        contents: [
+          { type: 'text', text: txt(employeeName, 'พนักงาน'), size: 'md', weight: 'bold', color: '#0f172a', wrap: true },
+          ...(sub ? [{ type: 'text', text: sub, size: 'sm', color: '#64748b', wrap: true, margin: 'xs' }] : [])
+        ]
+      },
+      // ประเภท + ระยะเวลา + วันที่ (กล่องเดียว)
+      {
+        type: 'box', layout: 'vertical', margin: 'lg', paddingAll: '14px', cornerRadius: '14px', backgroundColor: m.soft,
+        contents: [
+          {
+            type: 'box', layout: 'horizontal', alignItems: 'center',
+            contents: [
+              { type: 'text', text: txt(leaveType, 'ใบลา'), size: 'sm', weight: 'bold', color: m.ink, flex: 1, wrap: true },
+              { type: 'text', text: txt(durationFormatted), size: 'lg', weight: 'bold', color: m.ink, align: 'end', flex: 0 }
+            ]
+          },
+          { type: 'text', text: txt(dateFormatted), size: 'sm', color: '#475569', margin: 'sm', wrap: true }
+        ]
+      }
+    ];
+    if (String(reason || '').trim()) body.push(row('เหตุผล', reason, { margin: 'lg' }));
+    if (showComment) body.push(row(m.commentStrong ? 'สาเหตุ' : 'ความเห็น', comment, { color: m.commentStrong ? '#b91c1c' : '#334155', bold: !!m.commentStrong }));
+    if (isImage) {
+      body.push({
+        type: 'image', url: attachmentUrl, size: 'full', aspectMode: 'cover', aspectRatio: '16:9', margin: 'lg',
+        action: { type: 'uri', label: 'ดูไฟล์แนบ', uri: attachmentUrl }
+      });
+    }
+    body.push(sep('lg'), {
+      type: 'box', layout: 'horizontal', margin: 'md',
+      contents: [
+        { type: 'text', text: m.act ? '⏱ พิจารณาภายใน 2 วันทำการ' : 'PVT HR · ใบลาออนไลน์', size: 'xxs', color: m.act ? '#ea580c' : '#94a3b8', flex: 1 },
+        { type: 'text', text: txt(nowStr, ' '), size: 'xxs', color: '#94a3b8', align: 'end', flex: 0 }
+      ]
+    });
+
+    // ปุ่มใน LINE → หน้าเข้าระบบด้วยลิงก์ใช้ครั้งเดียว (Edge Function line-send ใส่รหัสแทน PVTLINKTOKEN ให้เฉพาะผู้อนุมัติ)
+    //   ไม่ได้รหัส (ส่งผ่านเซิร์ฟเวอร์สำรอง / ไม่ใช่ผู้อนุมัติ) → หน้าเข้าระบบให้ล็อกอินตามปกติ แล้วพาไปที่ใบลานี้
+    const actUrl = (act) => {
+      try {
+        const u = new URL(approvalUrl);
+        return `${u.origin}/index.html?line_link=PVTLINKTOKEN&next=${encodeURIComponent(`${u.pathname}?id=${leaveId}&action=${act}`)}`;
+      } catch (e) {
+        return `${approvalUrl}?id=${leaveId}&action=${act}`;
+      }
+    };
+    const footer = (m.act && leaveId)
+      ? [{
+          type: 'box', layout: 'horizontal', spacing: 'sm',
+          contents: [
+            { type: 'button', style: 'primary', height: 'sm', color: '#16a34a', action: { type: 'uri', label: 'อนุมัติ', uri: actUrl('approve') } },
+            { type: 'button', style: 'primary', height: 'sm', color: '#e11d48', action: { type: 'uri', label: 'ไม่อนุมัติ', uri: actUrl('reject') } }
+          ]
+        }]
+      : [{
+          type: 'button', style: 'link', height: 'sm', color: m.ink,
+          action: { type: 'uri', label: ['REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED'].includes(type) ? 'ดูประวัติการลา' : 'เปิดระบบใบลา', uri: ['REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED'].includes(type) ? historyUrl : approvalUrl }
+        }];
+
+    return {
+      type: 'flex',
+      altText: `${m.title}: ${txt(employeeName, 'พนักงาน')} · ${txt(leaveType, 'ใบลา')} ${txt(durationFormatted, '')}`.slice(0, 380),
+      contents: {
+        type: 'bubble',
+        size: 'mega',
+        header: {
+          type: 'box', layout: 'vertical', paddingAll: '18px', paddingBottom: '16px',
+          background: { type: 'linearGradient', angle: '135deg', startColor: m.c1, endColor: m.c2 },
+          contents: [
+            {
+              type: 'box', layout: 'horizontal', alignItems: 'center',
+              contents: [
+                { type: 'text', text: 'PVT HR · ใบลาออนไลน์', size: 'xxs', color: '#ffffffcc', weight: 'bold', flex: 1 },
+                {
+                  type: 'box', layout: 'vertical', flex: 0, paddingStart: '10px', paddingEnd: '10px', paddingTop: '3px', paddingBottom: '3px',
+                  cornerRadius: '20px', backgroundColor: '#ffffff33',
+                  contents: [{ type: 'text', text: m.pill, size: 'xxs', color: '#ffffff', weight: 'bold' }]
+                }
+              ]
+            },
+            { type: 'text', text: m.title, size: 'xl', weight: 'bold', color: '#ffffff', margin: 'md', wrap: true },
+            ...(m.step ? [{ type: 'text', text: m.step, size: 'sm', color: '#ffffffd9', margin: 'xs', wrap: true }] : [])
+          ]
+        },
+        body: { type: 'box', layout: 'vertical', paddingAll: '18px', contents: body },
+        footer: { type: 'box', layout: 'vertical', paddingAll: '14px', paddingTop: '0px', contents: footer },
+        styles: { footer: { separator: false } }
+      }
+    };
+  }
+
+  async sendWorkflowNotification(opts = {}) {
+    const {
+      type = 'NEW_REQUEST',
+      leaveId = '',
+      employeeName = 'พนักงาน',
+      employeeCode = '',
+      departmentName = '',
+      recipientId = '',
+      recipientRole = 'leader',
+      recipientLineId = '',
+      leaveType = 'ใบลา',
+      startDate = '',
+      endDate = '',
+      totalDays = 1,
+      leaveHours = 0,
+      reason = '',
+      comment = '',
+      attachmentUrl = '',
+      stepTitle = ''
+    } = opts;
+    // ชื่อเล่นผู้ขอลา: ใช้ค่าที่ส่งมา หรือดึงจากใบลา
+    let employeeNickname = String(opts.employeeNickname || '').trim();
+    if (!employeeNickname && leaveId && this.client) {
+      try {
+        const { data: lv } = await this.client.from('leave_requests').select('employee_id').eq('id', leaveId).maybeSingle();
+        if (lv && lv.employee_id) {
+          const { data: em } = await this.client.from('employees').select('nickname').eq('id', lv.employee_id).maybeSingle();
+          employeeNickname = String(em?.nickname || '').trim();
+        }
+      } catch (e) {}
+    }
+
+    const nowStr = new Date().toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const origin = (typeof window !== 'undefined' && window.location.origin) 
+      ? window.location.origin 
+      : 'https://ais-dev-65m6k5jsxexajsrlv3c3x6-414501392488.asia-southeast1.run.app';
+    const recipientRoleLower = String(recipientRole || '').toLowerCase();
+    const usesApproverPortal = ['leader', 'manager', 'supervisor', 'head', 'approver'].some(r => recipientRoleLower === r || recipientRoleLower.includes(r));
+    const approvalPath = usesApproverPortal ? '/pages/approver/leave-approvals.html' : '/pages/hr/hr.html';
+    const approvalUrl = `${origin}${approvalPath}`;
+    const historyUrl = `${origin}/pages/user/leave-history.html`;
+
+    // แปลงระยะเวลาลาและวันที่ให้เป็นข้อความเข้าใจง่าย
+    const durationFormatted = this.formatLeaveDurationFriendly(totalDays, leaveHours);
+    const dateFormatted = this.formatThaiDateRange(startDate, endDate);
+
+    // ข้อความในระบบ (กระดิ่งแจ้งเตือน) + สำรองกรณีส่งการ์ดไม่ได้ — กระชับ ไม่ซ้ำ
+    const meta = this.lineNoticeMeta(type, stepTitle);
+    const isApprovalType = ['NEW_REQUEST', 'LEADER_APPROVED', 'MANAGER_APPROVED', 'CANCELLATION'].includes(type);
+    const isResultType = ['REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED'].includes(type);
+    const title = isResultType || type === 'TEST'
+      ? meta.title
+      : `${meta.title}: ${employeeName}${meta.step ? ` (${meta.step})` : ''}`;
+    const commentLine = comment && meta.commentLabel && !/^รอ.+พิจารณา$/.test(String(comment).trim())
+      ? `${meta.commentStrong ? '⚠️ เหตุผลที่ไม่อนุมัติ' : '💬 ความเห็น'}: ${comment}\n` : '';
+    const messageText =
+      `${meta.title}${meta.step ? ` · ${meta.step}` : ''}\n` +
+      `👤 ${employeeName}${employeeNickname ? ` (${employeeNickname})` : ''}${departmentName ? ` · ${departmentName}` : ''}\n` +
+      `📝 ${leaveType} · ${durationFormatted}\n` +
+      `📅 ${dateFormatted}\n` +
+      (reason ? `💬 ${type === 'CANCELLATION' ? 'เหตุผลยกเลิก' : 'เหตุผล'}: ${reason}\n` : '') +
+      commentLine +
+      (isApprovalType ? `⏱ กรุณาพิจารณาภายใน 2 วันทำการ\n` : '') +
+      `🔗 ${isResultType ? historyUrl : approvalUrl}`;
+
+    console.log(`💬 [LINE OA Engine] Processing [${type}] for ${recipientRole}:`, messageText);
+
+    // 1. บันทึกแจ้งเตือนลงฐานข้อมูล (In-App Notifications)
+    const isApprovalNotice = ['NEW_REQUEST', 'LEADER_APPROVED', 'MANAGER_APPROVED', 'CANCELLATION'].includes(type);
+    const targetLinkUrl = isApprovalNotice ? approvalPath : '/pages/user/leave-history.html';
+
+    if (this.client && recipientId) {
+      try {
+        await this.client.from('notifications').insert([{
+          employee_id: recipientId,
+          title: title,
+          message: messageText.replace(/\*\*/g, ''),
+          type: 'leave',
+          link_url: targetLinkUrl,
+          is_read: false
+        }]);
+      } catch (err) {
+        console.warn("⚠️ [LINE OA Engine] DB notification log fallback:", err);
+      }
+    }
+
+    // 2. 💬 กรองให้ส่งแจ้งเตือน LINE ภายนอกครอบคลุมทั้งกระบวนการลา:
+    //   - ส่งคำขอลาใหม่ -> แจ้งเตือนผู้อนุมัติ (L1)
+    //   - อนุมัติเบื้องต้น -> แจ้งเตือนผู้จัดการ (L2)
+    //   - อนุมัติระดับผู้จัดการ -> แจ้งเตือนผู้บริหาร (L3) / HR
+    //   - อนุมัติสมบูรณ์ / ปฏิเสธ -> แจ้งเตือนพนักงานผู้ขอลา
+    //   - ขอยกเลิกใบลา -> แจ้งเตือนผู้อนุมัติ
+    const allowedLineTypes = [
+      'NEW_REQUEST', 
+      'LEADER_APPROVED', 
+      'MANAGER_APPROVED', 
+      'EXECUTIVE_APPROVED',
+      'PENDING_HR',
+      'HR_REVIEW',
+      'HR_NOTIFY',
+      'REQUEST_APPROVED', 
+      'FINAL_APPROVED', 
+      'REJECTED', 
+      'CANCELLATION', 
+      'TEST'
+    ];
+    if (!allowedLineTypes.includes(type)) {
+      console.log(`ℹ️ [LINE OA Engine] Skip external LINE message for [${type}] per workflow setting.`);
+      return { success: true, title, message: messageText, lineSent: false };
+    }
+
+    // 🎛️ ตรวจสอบการตั้งค่าสวิตช์ LINE Notification Steps จากตาราง system_settings
+    if (this.client) {
+      try {
+        const { data: notifSettingsRes } = await this.client
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', 'line_notification_settings')
+          .maybeSingle();
+
+        if (notifSettingsRes?.setting_value) {
+          const settings = notifSettingsRes.setting_value;
+          let isEnabled = true;
+
+          if (type === 'NEW_REQUEST') {
+            if (recipientRole === 'leader' && settings.new_request === false) {
+              isEnabled = false;
+            } else if (recipientRole === 'manager' && settings.new_request_l2 === false) {
+              isEnabled = false;
+            } else if ((recipientRole === 'hr' || recipientRole === 'admin') && settings.hr_review === false) {
+              isEnabled = false;
+            } else if (settings.new_request === false) {
+              isEnabled = false;
+            }
+          } else if (type === 'LEADER_APPROVED' || type === 'MANAGER_APPROVED' || type === 'EXECUTIVE_APPROVED' || type === 'PENDING_HR' || type === 'HR_REVIEW') {
+            if ((recipientRole === 'hr' || recipientRole === 'admin' || type === 'HR_REVIEW') && settings.hr_review === false) {
+              isEnabled = false;
+            } else if (type === 'LEADER_APPROVED' && settings.leader_approved === false) {
+              isEnabled = false;
+            } else if (type === 'MANAGER_APPROVED' && settings.manager_approved === false) {
+              isEnabled = false;
+            }
+          } else if (type === 'HR_NOTIFY') {
+            if (settings.hr_notify === false) {
+              isEnabled = false;
+            }
+          } else if (type === 'REQUEST_APPROVED' || type === 'FINAL_APPROVED') {
+            if ((recipientRole === 'hr' || recipientRole === 'admin') && settings.hr_notify === false) {
+              isEnabled = false;
+            } else if (settings.final_approved === false) {
+              isEnabled = false;
+            }
+          } else if (type === 'REJECTED') {
+            if (settings.rejected === false) isEnabled = false;
+          } else if (type === 'CANCELLATION') {
+            if ((recipientRole === 'hr' || recipientRole === 'admin') && settings.hr_notify === false) {
+              isEnabled = false;
+            } else if (settings.cancellation === false) {
+              isEnabled = false;
+            }
+          }
+
+          if (!isEnabled) {
+            console.log(`ℹ️ [LINE OA Engine] Skip external LINE message for [${type}] to [${recipientRole}] per LINE Notification settings.`);
+            return { success: true, title, message: messageText, lineSent: false, disabledBySetting: true };
+          }
+        }
+      } catch (err) {
+        console.warn("⚠️ [LINE OA Engine] Failed to evaluate LINE notification settings:", err);
+      }
+    }
+
+    // Auto-lookup line_id if recipientLineId is missing but recipientId is provided
+    let targetLineId = recipientLineId;
+    if (!targetLineId && recipientId && this.client) {
+      try {
+        const { data: empData } = await this.client.from('employees').select('line_id').eq('id', recipientId).maybeSingle();
+        if (empData && empData.line_id) {
+          targetLineId = empData.line_id;
+        }
+      } catch (lookupErr) {
+        console.warn("⚠️ [LINE OA Engine] Failed to lookup recipient line_id:", recipientId, lookupErr);
+      }
+    }
+
+    // สร้าง Flex Message Card สไตล์เดียวกับสลิปธนาคาร (SCB Slip Card UI)
+    const flexCardObj = this.formatLineFlexCard(type, {
+      leaveId,
+      employeeName,
+      employeeCode,
+      departmentName,
+      leaveType,
+      durationFormatted,
+      dateFormatted,
+      reason,
+      comment,
+      nowStr,
+      approvalUrl,
+      historyUrl,
+      attachmentUrl,
+      stepTitle,
+      employeeNickname
+    });
+
+    // 📊 บันทึกการส่ง LINE (นับจำนวนต่อเดือนในคอนโซลผู้ดูแลระบบ) — ตาราง line_message_logs
+    const logLine = async (result, via, error) => {
+      if (!this.client) return;
+      try {
+        let senderId = null;
+        try { senderId = JSON.parse(localStorage.getItem('currentUser') || '{}').id || null; } catch (e) {}
+        const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
+        await this.client.from('line_message_logs').insert([{
+          msg_type: type,
+          result,
+          via: via || null,
+          recipient_id: isUuid(recipientId) ? recipientId : null,
+          recipient_role: recipientRole || null,
+          leave_id: isUuid(leaveId) ? leaveId : null,
+          error: error ? String(error).slice(0, 500) : null,
+          sender_id: isUuid(senderId) ? senderId : null
+        }]);
+      } catch (e) { /* ยังไม่มีตาราง / บันทึกไม่ได้ ไม่กระทบการส่ง */ }
+    };
+
+    // 3. ส่ง LINE ผ่าน Supabase Edge Function: line-send หรือ Server API: /api/send-notification
+    if (!targetLineId) {
+      console.warn(
+        "⚠️ [LINE OA] ผู้รับยังไม่ได้ผูก LINE User ID (หรือไม่มีในระบบ):",
+        recipientId
+      );
+      await logLine('no_line', null, null);
+
+      return {
+        success: true,
+        title,
+        message: messageText,
+        lineSent: false,
+        warning: "ผู้รับยังไม่ได้ผูกบัญชี LINE ID ในโปรไฟล์"
+      };
+    }
+
+    try {
+      const LINE_SEND_URL = `${CONFIG.URL}/functions/v1/line-send`;
+
+      let via = 'edge';
+      let response = await fetch(LINE_SEND_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": CONFIG.ANON_KEY,
+          "Authorization": `Bearer ${CONFIG.ANON_KEY}`
+        },
+        body: JSON.stringify({
+          to: targetLineId,
+          message: messageText.replace(/\*\*/g, ""),
+          flexMessage: flexCardObj,
+          leave_id: isUuid(leaveId) ? leaveId : null   // ใช้ออกลิงก์อนุมัติจาก LINE แบบใช้ครั้งเดียว
+        })
+      });
+
+      if (!response.ok) {
+        console.warn("⚠️ [LINE OA] line-send Edge Function fallback to /api/send-notification");
+        via = 'server';
+        response = await fetch('/api/send-notification', {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientLineId: targetLineId,
+            employee_id: recipientId,
+            title: title,
+            message: messageText.replace(/\*\*/g, ""),
+            flexMessage: flexCardObj
+          })
+        });
+      }
+
+      if (!response.ok) {
+        const resultText = await response.text();
+        console.error(
+          "❌ [LINE OA] line-send & API Error:",
+          response.status,
+          resultText
+        );
+        await logLine('failed', via, `HTTP ${response.status}: ${resultText}`);
+
+        return {
+          success: false,
+          title,
+          message: messageText,
+          lineSent: false
+        };
+      }
+
+      console.log(
+        "✅ [LINE OA] Push Flex Card message sent successfully to:",
+        targetLineId
+      );
+      await logLine('sent', via, null);
+
+      return {
+        success: true,
+        title,
+        message: messageText,
+        lineSent: true
+      };
+
+    } catch (lineErr) {
+      console.error(
+        "❌ [LINE OA] line-send failed, trying server endpoint fallback:",
+        lineErr
+      );
+      try {
+        const fb = await fetch('/api/send-notification', {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientLineId: targetLineId,
+            employee_id: recipientId,
+            title: title,
+            message: messageText.replace(/\*\*/g, ""),
+            flexMessage: flexCardObj
+          })
+        });
+        await logLine(fb.ok ? 'sent' : 'failed', 'server', fb.ok ? null : `HTTP ${fb.status}`);
+      } catch (fallbackErr) {
+        console.error("❌ Fallback server notification also failed:", fallbackErr);
+        await logLine('failed', 'server', fallbackErr?.message || String(fallbackErr));
+      }
+
+      return {
+        success: false,
+        title,
+        message: messageText,
+        lineSent: false
+      };
+    }
+  }
+
+  // 🚀 สะดวกเรียกใช้ส่งแจ้งเตือนใบลาทั่วไป
+  async notifyLeaveRequest(leaveReq = {}) {
+    const role = leaveReq.recipientRole || leaveReq.approver_role || 'leader';
+    return await this.sendWorkflowNotification({
+      type: 'NEW_REQUEST',
+      leaveId: leaveReq.id,
+      employeeName: leaveReq.applicant_name || leaveReq.employee_name || 'พนักงาน',
+      employeeCode: leaveReq.employee_code || '',
+      departmentName: leaveReq.department_name || '',
+      recipientId: leaveReq.approver_id || leaveReq.recipientId,
+      recipientRole: role,
+      leaveType: leaveReq.leave_type_name || 'ใบลา',
+      startDate: leaveReq.start_date,
+      endDate: leaveReq.end_date,
+      totalDays: leaveReq.total_days || 1,
+      leaveHours: leaveReq.leave_hours || 0,
+      reason: leaveReq.reason || '',
+      attachmentUrl: leaveReq.attachment_url || ''
+    });
+  }
+
+  // 👥 ดึงรายชื่อฝ่ายบุคคล (HR / Admin) ที่เชื่อมต่อ LINE ไว้
+  async getHrRecipients() {
+    if (!this.client) return [];
+    try {
+      const sb = this.client;
+      
+      // 1. ตรวจสอบการกำหนดเฉพาะใน system_settings (leave_hr_approver)
+      const { data: hrSetting } = await sb
+        .from('system_settings')
+        .select('setting_value, employee_id')
+        .eq('setting_key', 'leave_hr_approver')
+        .maybeSingle();
+
+      if (hrSetting?.employee_id) {
+        const { data: specificHr } = await sb
+          .from('employees')
+          .select('id, full_name, employee_code, line_id, role')
+          .eq('id', hrSetting.employee_id)
+          .maybeSingle();
+        if (specificHr && specificHr.line_id && specificHr.line_id.trim()) {
+          return [specificHr];
+        }
+      }
+
+      // 2. ดึงจากพนักงาน role = 'hr', 'admin', 'superadmin' ที่มี line_id
+      const { data: hrList, error: hrErr } = await sb
+        .from('employees')
+        .select('id, full_name, employee_code, line_id, role, departments(department_name)')
+        .in('role', ['hr', 'admin', 'superadmin'])
+        .not('line_id', 'is', null);
+
+      if (!hrErr && Array.isArray(hrList) && hrList.length > 0) {
+        const valid = hrList.filter(e => e.line_id && e.line_id.trim().length > 0);
+        if (valid.length > 0) return valid;
+      }
+
+      // 3. Fallback: หาพนักงานในแผนกบุคคล (HR/Human Resources)
+      const { data: deptEmps } = await sb
+        .from('employees')
+        .select('id, full_name, employee_code, line_id, role, departments(department_name)')
+        .not('line_id', 'is', null);
+
+      if (Array.isArray(deptEmps)) {
+        const matched = deptEmps.filter(e => {
+          const dName = String(e.departments?.department_name || '').toLowerCase();
+          return (dName.includes('hr') || dName.includes('บุคคล') || dName.includes('human')) && e.line_id && e.line_id.trim().length > 0;
+        });
+        if (matched.length > 0) return matched;
+      }
+
+      return [];
+    } catch (err) {
+      console.warn("⚠️ [LINE OA Engine] getHrRecipients failed:", err);
+      return [];
+    }
+  }
+
+  // 📢 ส่งแจ้งเตือนไปยังฝ่ายบุคคล (HR) ทุกท่านที่เชื่อมต่อ LINE ไว้
+  async notifyHrWorkflow(leaveReq = {}, notifType = 'HR_NOTIFY') {
+    const hrRecipients = await this.getHrRecipients();
+    console.log(`📢 [LINE OA Engine] Dispatches [${notifType}] to ${hrRecipients.length} HR recipients.`);
+
+    const results = [];
+    for (const hr of hrRecipients) {
+      if (!hr.line_id) continue;
+      try {
+        const res = await this.sendWorkflowNotification({
+          type: notifType,
+          recipientId: hr.id,
+          recipientLineId: hr.line_id,
+          recipientRole: 'hr',
+          leaveId: leaveReq.id,
+          employeeName: leaveReq.applicant_name || leaveReq.employee_name || leaveReq.employees?.full_name || 'พนักงาน',
+          employeeCode: leaveReq.employee_code || leaveReq.employees?.employee_code || '',
+          departmentName: leaveReq.department_name || leaveReq.departments?.department_name || leaveReq.employees?.departments?.department_name || '',
+          leaveType: leaveReq.leave_type_name || leaveReq.leave_types?.leave_name || 'ใบลา',
+          startDate: leaveReq.start_date,
+          endDate: leaveReq.end_date,
+          totalDays: leaveReq.total_days || 1,
+          leaveHours: leaveReq.leave_hours || 0,
+          reason: leaveReq.reason || '',
+          comment: leaveReq.comment || leaveReq.approval_comment || '',
+          attachmentUrl: leaveReq.attachment_url || ''
+        });
+        results.push({ recipient: hr.full_name, ...res });
+      } catch (e) {
+        console.warn(`⚠️ [LINE OA Engine] Failed notifying HR (${hr.full_name}):`, e);
+      }
+    }
+    return results;
+  }
+}
+
+// ==========================================================================
+  // 14. VIEWPORT & RESPONSIVE ENGINE
+  // ==========================================================================
+  class ViewportEngine {
+    constructor() {
+      this.isMobile = window.innerWidth <= 768;
+      this.init();
+    }
+
+    init() {
+      this.updateVh();
+      // ลิสเซนเนอร์ตรวจจับการหมุนจอหรือย่อขยายเบราว์เซอร์
+      window.addEventListener('resize', () => {
+        this.updateVh();
+        this.isMobile = window.innerWidth <= 768;
+      });
+    }
+
+    // แก้ปัญหา 100vh บนมือถือ (แถบ URL บัง)
+    updateVh() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+
+    // คำนวณขนาด QR Code ให้เหมาะสมกับขนาดจออัตโนมัติ
+    getAdaptiveQrSize() {
+      const width = window.innerWidth;
+      if (width < 360) return 130; // จอเล็กมาก (iPhone SE)
+      if (width < 768) return 160; // จอมือถือทั่วไป
+      return 200;                  // จอแท็บเล็ต / คอมพิวเตอร์
+    }
+  }
+
+  // Export Global Instance & Central Constants
+  global.PVTSDK = new PVTHRSdk();
+  global.pvtSupabase = global.PVTSDK; // Backward Compatibility
+
+  // Active Environment Attributes
+  global.PVT_ENV = CONFIG.ENV;
+  global.PVTSDK.env = CONFIG.ENV;
+  global.PVTSDK.envLabel = CONFIG.ENV_LABEL;
+  global.PVTSDK.envConfig = CONFIG;
+  global.PVTSDK.allEnvs = ENV_CONFIGS;
+
+  global.SUPABASE_URL = CONFIG.URL;
+  global.SUPABASE_ANON_KEY = CONFIG.ANON_KEY;
+  global.SUPABASE_KEY = CONFIG.ANON_KEY;
+  global.PVT_SUPABASE_URL = CONFIG.URL;
+  global.PVT_SUPABASE_ANON_KEY = CONFIG.ANON_KEY;
+
+  global.getSupabaseEnv = function() {
+    return CONFIG.ENV;
+  };
+
+  global.getSupabaseConfigs = function() {
+    return {
+      activeEnv: CONFIG.ENV,
+      activeConfig: CONFIG,
+      allConfigs: ENV_CONFIGS
+    };
+  };
+
+  global.setSupabaseEnv = function(targetEnv, options = {}) {
+    const cleanEnv = String(targetEnv || "").trim().toUpperCase();
+    if (cleanEnv !== "DEV" && cleanEnv !== "MAIN") {
+      console.warn(`[SDK Env] Unknown environment: "${targetEnv}". Only 'DEV' or 'MAIN' are allowed.`);
+      return false;
+    }
+
+    try {
+      localStorage.setItem("pvt_app_env", cleanEnv);
+      if (options.url) {
+        localStorage.setItem(`pvt_supabase_url_${cleanEnv.toLowerCase()}`, options.url.trim());
+      }
+      if (options.key) {
+        localStorage.setItem(`pvt_supabase_key_${cleanEnv.toLowerCase()}`, options.key.trim());
+      }
+    } catch (e) {
+      console.error("[SDK Env] Failed to store environment configuration:", e);
+    }
+
+    if (options.reload !== false && typeof window !== "undefined" && window.location) {
+      window.location.reload();
+    }
+    return true;
+  };
+
+  global.switchSupabaseEnv = global.setSupabaseEnv;
+  global.PVTSDK.setEnv = global.setSupabaseEnv;
+  global.PVTSDK.getEnv = global.getSupabaseEnv;
+  global.PVTSDK.switchEnv = global.setSupabaseEnv;
+
+  // Environment Switcher Modal UI Helper
+  global.openSupabaseEnvModal = function() {
+    if (typeof document === 'undefined') return;
+    
+    // Check if modal already exists
+    let modalEl = document.getElementById('pvt-env-modal');
+    if (modalEl) {
+      modalEl.style.display = 'flex';
+      return;
+    }
+
+    const currentEnv = CONFIG.ENV;
+    const devUrl = localStorage.getItem('pvt_supabase_url_dev') || ENV_CONFIGS.DEV.URL;
+    const devKey = localStorage.getItem('pvt_supabase_key_dev') || ENV_CONFIGS.DEV.ANON_KEY;
+    const mainUrl = localStorage.getItem('pvt_supabase_url_main') || ENV_CONFIGS.MAIN.URL;
+    const mainKey = localStorage.getItem('pvt_supabase_key_main') || ENV_CONFIGS.MAIN.ANON_KEY;
+
+    modalEl = document.createElement('div');
+    modalEl.id = 'pvt-env-modal';
+    modalEl.style.cssText = `
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+      z-index: 999999; display: flex; align-items: center; justify-content: center;
+      padding: 16px; font-family: system-ui, -apple-system, sans-serif;
+    `;
+
+    modalEl.innerHTML = `
+      <div style="background: #ffffff; border-radius: 16px; max-width: 520px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; border: 1px solid #e2e8f0;">
+        <div style="background: #0f172a; color: #ffffff; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">⚙️</span>
+            <div>
+              <div style="font-size: 16px; font-weight: 700;">Supabase Environment Selector</div>
+              <div style="font-size: 12px; color: #94a3b8;">สลับสภาพแวดล้อมระหว่าง DEV และ MAIN</div>
+            </div>
+          </div>
+          <button id="pvt-env-modal-close" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+        </div>
+
+        <div style="padding: 24px; max-height: 80vh; overflow-y: auto;">
+          <div style="margin-bottom: 20px;">
+            <label style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 8px;">เลือกสภาพแวดล้อม (Active Environment)</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 2px solid ${currentEnv === 'DEV' ? '#f59e0b' : '#e2e8f0'}; border-radius: 10px; cursor: pointer; background: ${currentEnv === 'DEV' ? '#fffbeb' : '#f8fafc'}; transition: all 0.2s;">
+                <input type="radio" name="pvt_selected_env" value="DEV" ${currentEnv === 'DEV' ? 'checked' : ''} style="accent-color: #f59e0b; width: 18px; height: 18px;">
+                <div>
+                  <div style="font-weight: 700; color: #b45309; font-size: 14px;">🧪 DEV</div>
+                  <div style="font-size: 11px; color: #64748b;">Development & Test</div>
+                </div>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 2px solid ${currentEnv === 'MAIN' ? '#10b981' : '#e2e8f0'}; border-radius: 10px; cursor: pointer; background: ${currentEnv === 'MAIN' ? '#f0fdf4' : '#f8fafc'}; transition: all 0.2s;">
+                <input type="radio" name="pvt_selected_env" value="MAIN" ${currentEnv === 'MAIN' ? 'checked' : ''} style="accent-color: #10b981; width: 18px; height: 18px;">
+                <div>
+                  <div style="font-weight: 700; color: #047857; font-size: 14px;">🌐 MAIN</div>
+                  <div style="font-size: 11px; color: #64748b;">Production Hub</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; margin-bottom: 16px;">
+            <div style="font-size: 12px; font-weight: 700; color: #b45309; margin-bottom: 8px;">🧪 ตั้งค่า Supabase สำหรับ DEV (Custom URL/Key)</div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 11px; color: #64748b; display: block; margin-bottom: 4px;">DEV Supabase Project URL</label>
+              <input id="pvt-input-dev-url" type="text" value="${devUrl}" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;" placeholder="https://your-dev-id.supabase.co">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #64748b; display: block; margin-bottom: 4px;">DEV Supabase Anon Key</label>
+              <input id="pvt-input-dev-key" type="password" value="${devKey}" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;" placeholder="eyJhbGci...">
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid #f1f5f9; padding-top: 16px;">
+            <div style="font-size: 12px; font-weight: 700; color: #047857; margin-bottom: 8px;">🌐 ตั้งค่า Supabase สำหรับ MAIN (Production URL/Key)</div>
+            <div style="margin-bottom: 10px;">
+              <label style="font-size: 11px; color: #64748b; display: block; margin-bottom: 4px;">MAIN Supabase Project URL</label>
+              <input id="pvt-input-main-url" type="text" value="${mainUrl}" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;" placeholder="https://pgogmhqjdchakcytsomx.supabase.co">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #64748b; display: block; margin-bottom: 4px;">MAIN Supabase Anon Key</label>
+              <input id="pvt-input-main-key" type="password" value="${mainKey}" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-family: monospace;" placeholder="eyJhbGci...">
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 14px 24px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <button id="pvt-env-btn-reset" type="button" style="padding: 8px 14px; background: transparent; border: 1px solid #cbd5e1; color: #64748b; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+            คืนค่าเริ่มต้น
+          </button>
+          <div style="display: flex; gap: 10px;">
+            <button id="pvt-env-btn-cancel" type="button" style="padding: 8px 16px; background: #e2e8f0; border: none; color: #475569; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">
+              ยกเลิก
+            </button>
+            <button id="pvt-env-btn-save" type="button" style="padding: 8px 20px; background: var(--th-k-600, #0284c7); border: none; color: #ffffff; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(var(--th-k-600-rgb, 2, 132, 199), 0.3);">
+              บันทึกและสลับ (Save & Switch)
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modalEl);
+
+    const closeModal = () => { modalEl.style.display = 'none'; };
+    document.getElementById('pvt-env-modal-close').onclick = closeModal;
+    document.getElementById('pvt-env-btn-cancel').onclick = closeModal;
+    modalEl.onclick = (e) => { if (e.target === modalEl) closeModal(); };
+
+    // Reset Defaults button
+    document.getElementById('pvt-env-btn-reset').onclick = () => {
+      localStorage.removeItem('pvt_app_env');
+      localStorage.removeItem('pvt_supabase_url_dev');
+      localStorage.removeItem('pvt_supabase_key_dev');
+      localStorage.removeItem('pvt_supabase_url_main');
+      localStorage.removeItem('pvt_supabase_key_main');
+      window.location.reload();
+    };
+
+    // Save & Switch button
+    document.getElementById('pvt-env-btn-save').onclick = () => {
+      const selectedRadio = document.querySelector('input[name="pvt_selected_env"]:checked');
+      const targetEnv = selectedRadio ? selectedRadio.value : 'MAIN';
+
+      const dUrl = document.getElementById('pvt-input-dev-url').value.trim();
+      const dKey = document.getElementById('pvt-input-dev-key').value.trim();
+      const mUrl = document.getElementById('pvt-input-main-url').value.trim();
+      const mKey = document.getElementById('pvt-input-main-key').value.trim();
+
+      if (dUrl) localStorage.setItem('pvt_supabase_url_dev', dUrl);
+      if (dKey) localStorage.setItem('pvt_supabase_key_dev', dKey);
+      if (mUrl) localStorage.setItem('pvt_supabase_url_main', mUrl);
+      if (mKey) localStorage.setItem('pvt_supabase_key_main', mKey);
+
+      localStorage.setItem('pvt_app_env', targetEnv);
+      window.location.reload();
+    };
+  };
+
+  // Discreet Floating Indicator for DEV mode
+  if (typeof document !== 'undefined') {
+    const renderEnvBadge = () => {
+      if (CONFIG.ENV !== 'DEV' && !window.location.search.includes('env_badge=1')) return;
+      if (document.getElementById('pvt-env-floating-badge')) return;
+
+      const badge = document.createElement('div');
+      badge.id = 'pvt-env-floating-badge';
+      badge.title = `Active Environment: ${CONFIG.ENV_LABEL}\nคลิกเพื่อดูรายละเอียดหรือสลับไป MAIN`;
+      badge.style.cssText = `
+        position: fixed; bottom: 12px; left: 12px; z-index: 99998;
+        background: #fef3c7; color: #b45309; border: 1.5px solid #f59e0b;
+        font-family: system-ui, -apple-system, sans-serif; font-size: 11px;
+        font-weight: 800; padding: 4px 10px; border-radius: 9999px;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); cursor: pointer;
+        display: flex; align-items: center; gap: 6px; user-select: none;
+        transition: transform 0.15s ease;
+      `;
+      badge.innerHTML = `
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; display: inline-block; box-shadow: 0 0 6px #f59e0b;"></span>
+        <span>DEV MODE</span>
+      `;
+      badge.onmouseover = () => { badge.style.transform = 'scale(1.05)'; };
+      badge.onmouseout = () => { badge.style.transform = 'scale(1)'; };
+      badge.onclick = () => {
+        if (typeof global.openSupabaseEnvModal === 'function') {
+          global.openSupabaseEnvModal();
+        }
+      };
+      document.body.appendChild(badge);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderEnvBadge);
+    } else {
+      renderEnvBadge();
+    }
+  }
+
+  global.getSupabase = function() {
+    if (window.supabaseClient) return window.supabaseClient;
+    if (global.PVTSDK?.client) return global.PVTSDK.client;
+    return global.PVTSDK?.getClient() || null;
+  };
+
+  global.getAvatarUrl = function(imageUrl, title = "", gender = "", fullName = "") {
+    if (global.PVTSDK?.storage?.getAvatarUrl) {
+      return global.PVTSDK.storage.getAvatarUrl(imageUrl, title, gender, fullName);
+    }
+    if (global.pvtIsPlaceholderAvatar(imageUrl)) {
+      return global.getDefaultAvatarUrl(title, gender, fullName);
+    }
+    let url = String(imageUrl).trim();
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+    return `${CONFIG.URL}/storage/v1/object/public/employee-images/${url.replace(/^\//, "")}`;
+  };
+
+  // Global Function for Recording QR Attendance Logs
+  global.recordQrAttendanceLog = async function(employeeId, metadata = {}) {
+    if (global.PVTSDK?.attendance?.recordQrAttendanceLog) {
+      return await global.PVTSDK.attendance.recordQrAttendanceLog(employeeId, metadata);
+    }
+    return null;
+  };
+
+  // Global Function for Recording Login Activity Audit Logs ('login_logs')
+  global.recordLoginLog = async function(user, options = {}) {
+    if (global.PVTSDK?.loginAudit?.recordLoginLog) {
+      return await global.PVTSDK.loginAudit.recordLoginLog(user, options);
+    }
+    return null;
+  };
+
+  // Global Function for Retrieving Login Activity Logs
+  // (เฉพาะผู้ดูแลระบบขั้นสูง: ต้องส่ง credentials = { code, password } — ไม่ส่งจะได้ null)
+  global.getLoginLogs = async function(limit = 500, credentials = null) {
+    if (global.PVTSDK?.loginAudit?.getLoginLogs) {
+      return await global.PVTSDK.loginAudit.getLoginLogs(limit, credentials);
+    }
+    return null;
+  };
+
+  // Global Helpers for Friendly Leave Duration & Quotas
+  global.formatLeaveDurationFriendly = function(totalDays, totalHours = 0, options = {}) {
+    return global.PVTSDK?.formatLeaveDurationFriendly
+      ? global.PVTSDK.formatLeaveDurationFriendly(totalDays, totalHours, options)
+      : `${totalDays} วัน`;
+  };
+
+  global.formatLeaveQuotaFriendly = function(days) {
+    return global.PVTSDK?.formatLeaveQuotaFriendly
+      ? global.PVTSDK.formatLeaveQuotaFriendly(days)
+      : `${days} วัน`;
+  };
+
+  global.formatLeaveDurationText = global.formatLeaveDurationFriendly;
+
+  /**
+   * ⏱️ GLOBAL AUTOMATIC SLA 2-DAY EXPIRE SERVICE
+   * ตรวจสอบและปรับสถานะใบลาที่รออนุมัติเกิน 2 วัน (48 ชั่วโมง) ให้เป็น "ไม่อนุมัติ" อัตโนมัติ
+   * เหตุผล: "เนื่องจากหัวหน้าไม่อนุมัติในเวลาที่กำหนด (เกิน 2 วัน)"
+   */
+  /**
+   * 🧾 PVTLeaveAudit — หลักฐานการพิจารณาใบลา + แจ้ง HR (ในระบบเท่านั้น ไม่ส่ง LINE)
+   *   log(req, action, opts)            บันทึก 1 แถวลง leave_approval_logs (เพิ่มอย่างเดียว ห้ามแก้/ลบ)
+   *   notifyHr(req, outcome, opts)      แจ้ง HR/Admin ทุกคนทาง 🔔 (notifications)
+   *   recordOutcome(req, outcome, opts) = log + notifyHr  ← ใช้เมื่อใบลา "จบ" (อนุมัติ/ไม่อนุมัติ/ยกเลิก/หมดเวลา)
+   *   history(leaveId)                  ประวัติทุกขั้นของใบลา (เรียงตามเวลา)
+   *   ต้องรัน supabase/migrations/20261005_leave_approval_logs.sql ก่อน (ถ้ายังไม่รัน ระบบยังทำงานได้ แต่ไม่มีบันทึกรายขั้น)
+   */
+  const AUDIT_TABLE = 'leave_approval_logs';
+  const OUTCOME_TEXT = {
+    approved: '✅ อนุมัติแล้ว (ขั้นสุดท้าย)',
+    rejected: '❌ ไม่อนุมัติ',
+    auto_rejected: '⏱️ ไม่อนุมัติอัตโนมัติ (ค้างเกิน 48 ชม.)',
+    cancelled: '🚫 พนักงานยกเลิกใบลา',
+    cancel_requested: '↩️ พนักงานขอยกเลิกใบลาที่อนุมัติแล้ว (รอ HR พิจารณา)',
+    cancel_approved: '🚫 HR อนุมัติการยกเลิกใบลา',
+    cancel_rejected: '↩️ HR ไม่อนุมัติการยกเลิกใบลา'
+  };
+  let auditTableMissing = false;
+
+  function auditClient() {
+    return global.PVTSDK?.client || global.pvtSupabase?.client || global.pvtSupabase?.getClient?.() || null;
+  }
+  function auditActor() {
+    try {
+      const u = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null') || {};
+      const e = u.employees || u;
+      return {
+        id: e.id || u.employee_id || null,
+        name: e.full_name || u.full_name || u.name || e.employee_code || 'ไม่ทราบชื่อ',
+        role: String(u.role || e.role || '').toLowerCase()
+      };
+    } catch (err) { return { id: null, name: 'ไม่ทราบชื่อ', role: '' }; }
+  }
+  function leaveSummary(req) {
+    const emp = req.employees || {};
+    return {
+      employee_id: req.employee_id || emp.id || null,
+      employee_code: emp.employee_code || req.employee_code || null,
+      employee_name: emp.full_name || req.applicant_name || req.employee_name || null,
+      department_name: emp.departments?.department_name || req.department_name || null,
+      leave_type: req.leave_types?.leave_name || req.leave_type_name || null,
+      start_date: req.start_date || null,
+      end_date: req.end_date || null,
+      total_days: req.total_days ?? null,
+      leave_hours: req.leave_hours ?? null,
+      reason: req.reason || null,
+      status: req.status || null,
+      manager_status: req.manager_status || null,
+      director_status: req.director_status || null,
+      executive_status: req.executive_status || null
+    };
+  }
+
+  const PVTLeaveAudit = {
+    actor: auditActor,
+
+    async log(req, action, opts = {}) {
+      const sb = auditClient();
+      if (!sb || !req || auditTableMissing) return false;
+      const actor = opts.actor || auditActor();
+      const snap = leaveSummary(req);
+      const row = {
+        leave_id: req.id || req.leave_id,
+        employee_id: snap.employee_id,
+        employee_code: snap.employee_code,
+        employee_name: snap.employee_name,
+        action,
+        step_level: opts.stepLevel || null,
+        step_label: opts.stepLabel || null,
+        actor_id: opts.system ? null : (actor.id || null),
+        actor_name: opts.system ? 'ระบบอัตโนมัติ' : (actor.name || null),
+        actor_role: opts.system ? 'system' : (actor.role || null),
+        status_before: opts.statusBefore || snap.status || null,
+        status_after: opts.statusAfter || null,
+        comment: opts.comment || null,
+        leave_snapshot: Object.assign(snap, opts.meta ? { meta: opts.meta } : {})
+      };
+      try {
+        const { error } = await sb.from(AUDIT_TABLE).insert(row);
+        if (error) {
+          if (/does not exist|PGRST205|42P01|Could not find the table/i.test(`${error.code} ${error.message}`)) {
+            auditTableMissing = true;
+            console.warn('⚠️ [Leave Audit] ยังไม่มีตาราง leave_approval_logs — รัน supabase/migrations/20261005_leave_approval_logs.sql');
+          } else {
+            console.warn('⚠️ [Leave Audit] บันทึกไม่สำเร็จ:', error.message);
+          }
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.warn('⚠️ [Leave Audit] บันทึกไม่สำเร็จ:', err);
+        return false;
+      }
+    },
+
+    async hrRecipients() {
+      const sb = auditClient();
+      if (!sb) return [];
+      try {
+        const { data, error } = await sb
+          .from('employees')
+          .select('id, role, employee_code, status')
+          .or('role.in.(hr,admin,hr_manager,superadmin),employee_code.ilike.HR-%');
+        if (error) throw error;
+        return (data || []).filter((e) => !e.status || String(e.status).toLowerCase() === 'active');
+      } catch (err) {
+        console.warn('⚠️ [Leave Audit] หา HR ไม่สำเร็จ:', err);
+        return [];
+      }
+    },
+
+    async notifyHr(req, outcome, opts = {}) {
+      const sb = auditClient();
+      if (!sb || !req) return 0;
+      const snap = leaveSummary(req);
+      const actor = opts.system ? { name: 'ระบบอัตโนมัติ', id: null } : (opts.actor || auditActor());
+      const recipients = (await this.hrRecipients()).filter((h) => String(h.id) !== String(actor.id || ''));
+      if (!recipients.length) return 0;
+      const head = OUTCOME_TEXT[outcome] || outcome;
+      const lines = [
+        `พนักงาน: ${snap.employee_name || '-'}${snap.employee_code ? ` (${snap.employee_code})` : ''}`,
+        snap.department_name ? `แผนก: ${snap.department_name}` : '',
+        `ประเภท: ${snap.leave_type || '-'}  วันที่: ${snap.start_date || '-'}${snap.end_date && snap.end_date !== snap.start_date ? ` ถึง ${snap.end_date}` : ''}`,
+        opts.stepLabel ? `ขั้นที่พิจารณา: ${opts.stepLabel}` : '',
+        `ดำเนินการโดย: ${actor.name || '-'}`,
+        opts.comment ? `ความเห็น/เหตุผล: ${opts.comment}` : ''
+      ].filter(Boolean);
+      const rows = recipients.map((h) => ({
+        employee_id: h.id,
+        title: `[บันทึก HR] ${head} — ${snap.employee_name || 'พนักงาน'}`,
+        message: lines.join('\n'),
+        type: 'leave_hr_record',
+        link_url: `/pages/hr/hr.html?id=${encodeURIComponent(req.id || req.leave_id || '')}`
+      }));
+      try {
+        const { error } = await sb.from('notifications').insert(rows);
+        if (error) throw error;
+        return rows.length;
+      } catch (err) {
+        console.warn('⚠️ [Leave Audit] แจ้ง HR ไม่สำเร็จ:', err);
+        return 0;
+      }
+    },
+
+    async recordOutcome(req, outcome, opts = {}) {
+      const [logged, notified] = await Promise.all([
+        this.log(req, outcome, opts),
+        this.notifyHr(req, outcome, opts)
+      ]);
+      return { logged, notified };
+    },
+
+    async history(leaveId) {
+      const sb = auditClient();
+      if (!sb || !leaveId || auditTableMissing) return [];
+      try {
+        const { data, error } = await sb.from(AUDIT_TABLE).select('*').eq('leave_id', leaveId).order('created_at', { ascending: true });
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        return [];
+      }
+    }
+  };
+  global.PVTLeaveAudit = PVTLeaveAudit;
+
+  /**
+   * ⏱️ ใบลาค้างพิจารณาเกิน 48 ชม. → ไม่อนุมัติอัตโนมัติ + บันทึกหลักฐาน + แจ้งพนักงานและ HR
+   *   - ระบุขั้นที่ค้าง (L1 / L2 / L3 / HR) ทั้งในสถานะรายขั้นและเหตุผล
+   *   - อัปเดตแบบมีเงื่อนไข (ต้องยัง pending อยู่) → หลายเครื่องรันพร้อมกันก็แจ้งเพียงครั้งเดียว
+   *   - หมายเหตุ: ทำงานเมื่อมีผู้ใช้เปิดระบบ (ระยะ 3 จะย้ายไปตั้งเวลาที่เซิร์ฟเวอร์)
+   */
+  const SLA_MS = 48 * 60 * 60 * 1000;
+  const SLA_LOCK_KEY = 'pvt_sla_autoreject_lock';
+  global.autoRejectOverdueLeaves = async function() {
+    try {
+      const sb = auditClient();
+      if (!sb) return [];
+      // ต้องเป็นผู้ใช้ที่ล็อกอินแล้ว และไม่รันซ้ำถี่เกินไป (ทุกแท็บ/ทุกหน้าในเครื่องเดียวกัน)
+      if (!localStorage.getItem('currentUser')) return [];
+      try {
+        const last = +localStorage.getItem(SLA_LOCK_KEY) || 0;
+        if (Date.now() - last < 4 * 60 * 1000) return [];
+        localStorage.setItem(SLA_LOCK_KEY, String(Date.now()));
+      } catch (e) {}
+
+      const cutoff = new Date(Date.now() - SLA_MS).toISOString();
+      const { data: overdue, error } = await sb
+        .from('leave_requests')
+        .select(`id, created_at, status, manager_status, director_status, executive_status, employee_id, leave_type_id,
+                 start_date, end_date, total_days, leave_hours, reason,
+                 employees!employee_id ( id, full_name, employee_code, departments!department_id ( department_name ) ),
+                 leave_types!leave_type_id ( leave_name )`)
+        .eq('status', 'pending')
+        .lt('created_at', cutoff);
+      if (error || !overdue || !overdue.length) return [];
+
+      const expired = [];
+      for (const req of overdue) {
+        const pend = (v) => !v || String(v).toLowerCase() === 'pending';
+        let stepField = null, stepLevel = 'HR', stepLabel = 'ฝ่ายบุคคล (HR)';
+        if (pend(req.manager_status)) { stepField = 'manager_status'; stepLevel = 'L1'; stepLabel = 'ผู้อนุมัติ ลำดับที่ 1'; }
+        else if (pend(req.director_status)) { stepField = 'director_status'; stepLevel = 'L2'; stepLabel = 'ผู้อนุมัติ ลำดับที่ 2'; }
+        else if (pend(req.executive_status)) { stepField = 'executive_status'; stepLevel = 'L3'; stepLabel = 'ผู้อนุมัติ ลำดับสูง'; }
+
+        // ใบลาที่มีขั้นอนุมัติ (ระยะ 2): ใช้ชื่อขั้นจริง
+        let hasSteps = false;
+        {
+          const { data: stepRows, error: stepErr } = await sb.from('leave_approval_steps').select('id, step_no, step_label, status, approver_names, hr_any').eq('leave_id', req.id);
+          const cur = (!stepErr && stepRows || []).find((st) => st.status === 'pending');
+          hasSteps = Boolean(!stepErr && stepRows && stepRows.length);
+          if (cur) {
+            stepLevel = `S${cur.step_no}`;
+            stepLabel = `${cur.step_label || 'ผู้อนุมัติ'} (${cur.hr_any ? 'HR' : (cur.approver_names || []).join(' หรือ ')})`;
+            stepField = cur.step_no === 1 ? 'manager_status' : cur.step_no === 2 ? 'director_status' : 'executive_status';
+          }
+        }
+        const reason = `ไม่อนุมัติอัตโนมัติ: ${stepLabel} ไม่พิจารณาภายในเวลาที่กำหนด (48 ชั่วโมง)`;
+        const fields = { status: 'rejected', approval_comment: reason, updated_at: new Date().toISOString() };
+        if (stepField) fields[stepField] = 'rejected';
+
+        // อัปเดตเฉพาะเมื่อยัง pending (กันซ้ำเมื่อหลายเครื่องรันพร้อมกัน)
+        const { data: changed, error: upErr } = await sb
+          .from('leave_requests')
+          .update(fields)
+          .eq('id', req.id)
+          .eq('status', 'pending')
+          .select('id');
+        if (upErr) { console.warn(`⚠️ [SLA Auto-Expire] อัปเดตใบลา ${req.id} ไม่สำเร็จ:`, upErr.message); continue; }
+        if (!changed || !changed.length) continue; // อีกเครื่องทำไปแล้ว / มีคนพิจารณาไปแล้ว
+
+        expired.push(req.id);
+        if (hasSteps) {
+          await sb.from('leave_approval_steps').update({ status: 'expired', acted_at: new Date().toISOString(), comment: reason }).eq('leave_id', req.id).eq('status', 'pending');
+          await sb.from('leave_approval_steps').update({ status: 'cancelled' }).eq('leave_id', req.id).eq('status', 'waiting');
+          await sb.from('leave_requests').update({ current_step: null }).eq('id', req.id);
+        }
+        const opts = { system: true, stepLevel, stepLabel, comment: reason, statusBefore: 'pending', statusAfter: 'rejected' };
+        await PVTLeaveAudit.recordOutcome(req, 'auto_rejected', opts);
+        try {
+          await sb.from('notifications').insert({
+            employee_id: req.employee_id,
+            title: 'ใบลาของคุณไม่ได้รับการอนุมัติ (หมดเวลาพิจารณา)',
+            message: `ใบลาประเภท ${req.leave_types?.leave_name || 'ใบลา'} วันที่ ${req.start_date} ${reason}\nหากยังต้องการลา กรุณายื่นใบลาใหม่ หรือติดต่อหัวหน้างาน/HR`,
+            type: 'leave',
+            link_url: '/pages/user/leave-history.html'
+          });
+        } catch (e) {}
+      }
+      if (expired.length) console.log(`⏱️ [SLA Auto-Expire] ไม่อนุมัติอัตโนมัติ ${expired.length} รายการ (บันทึกและแจ้ง HR แล้ว)`, expired);
+      return expired;
+    } catch (err) {
+      console.error('💥 [SLA Auto-Expire Error]:', err);
+      return [];
+    }
+  };
+
+  // เรียกทำงานครั้งแรกเมื่อโหลดระบบเสร็จ และตรวจซ้ำทุก 5 นาที (มีตัวล็อกกันรันถี่)
+  setTimeout(() => {
+    if (typeof global.autoRejectOverdueLeaves === 'function') {
+      global.autoRejectOverdueLeaves();
+    }
+  }, 3000);
+
+  setInterval(() => {
+    if (typeof global.autoRejectOverdueLeaves === 'function') {
+      global.autoRejectOverdueLeaves();
+    }
+  }, 5 * 60 * 1000);
+
+})(typeof window !== "undefined" ? window : this);

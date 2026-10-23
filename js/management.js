@@ -2142,6 +2142,9 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
                 <div class="pvt-field-group" style="margin-bottom: 12px;">
                   <label for="inline-edit-password">รหัสผ่านใหม่ <span style="font-size:11px; color:#64748b;">(ว่างไว้เพื่อคงเดิม)</span></label>
                   <input type="text" id="inline-edit-password" class="pvt-input" placeholder="ปล่อยว่างหากใช้รหัสผ่านเดิม">
+                  <button type="button" onclick="window.pvtReleaseEmployeeDevices && window.pvtReleaseEmployeeDevices('${escapeHtml(String(emp.id))}', '${escapeHtml(String(emp.full_name || '').replace(/'/g, ''))}')" style="margin-top:6px; font-size:12px; padding:5px 10px; border:1px solid #cbd5e1; background:#fff; color:#334155; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="ใช้เมื่อเครื่องหาย / เปลี่ยนเครื่อง / มีคนอื่นลงทะเบียนเครื่องของพนักงานคนนี้ผิด">
+                    <span class="material-symbols-outlined" style="font-size:15px;">phonelink_erase</span> ล้างเครื่องที่จำไว้ + ออกจากระบบทุกเครื่อง
+                  </button>
                 </div>
                 <div class="pvt-field-group">
                   <label for="inline-edit-system-role" style="color: var(--th-p-600, #0d9488);">👑 สิทธิ์ในระบบ <span class="req">*</span></label>
@@ -6968,3 +6971,19 @@ async function exportHospitalExcel(rows, list, missing) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => window.URL.revokeObjectURL(a.href), 4000);
 }
+
+// 📱 ล้างเครื่องที่จำไว้ของพนักงาน (ช่วงที่ 2 ความปลอดภัยการเข้าระบบ) — เครื่องหาย / เปลี่ยนเครื่อง / ลงทะเบียนผิดคน
+window.pvtReleaseEmployeeDevices = async function (employeeId, name) {
+  if (!window.PVTAuth || !window.PVTAuth.releaseDevices) return;
+  const ok = await Swal.fire({
+    icon: 'question', title: 'ล้างเครื่องที่จำไว้?',
+    html: `<b>${name || 'พนักงานคนนี้'}</b> จะถูกออกจากระบบทุกเครื่อง<br>เข้าระบบครั้งถัดไป ระบบจะถามใหม่ว่าเป็นเครื่องของตัวเองหรือเครื่องยืม`,
+    showCancelButton: true, confirmButtonText: 'ล้างเครื่อง', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#0f766e'
+  });
+  if (!ok.isConfirmed) return;
+  const r = await window.PVTAuth.releaseDevices(employeeId);
+  if (r.legacy) { Swal.fire('ยังไม่พร้อมใช้งาน', 'ต้องรันไฟล์ SQL ช่วงที่ 2 (20261024_auth_phase2_devices.sql) ก่อน', 'info'); return; }
+  if (!r.ok) { Swal.fire('ล้างไม่สำเร็จ', window.PVTAuth.reasonText(r), 'error'); return; }
+  try { await saveHRActivityLog('EMPLOYEE', 'UPDATE', employeeId, `ล้างเครื่องที่จำไว้ของ ${name || employeeId} (${r.devices} เครื่อง · ออกจากระบบ ${r.sessions} ครั้ง)`); } catch (e) {}
+  Swal.fire({ icon: 'success', title: 'ล้างเครื่องแล้ว', text: `ล้าง ${r.devices} เครื่อง · ให้ออกจากระบบ ${r.sessions} เครื่อง`, timer: 2200, showConfirmButton: false });
+};

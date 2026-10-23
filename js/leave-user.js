@@ -2396,6 +2396,30 @@ async function saveLeave() {
       }
     }
 
+    // 📱 เครื่องยืม: ยื่นเสร็จแล้วออกจากระบบให้อัตโนมัติ (เพื่อนจะได้เข้าบัญชีต่อไม่ได้)
+    if (window.PVTAuth?.isSharedDevice && window.PVTAuth.isSharedDevice()) {
+      await Swal.fire({
+        title: 'ส่งคำขอลาสำเร็จ!',
+        html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br>
+          <span style="color:var(--th-p-700, #0f766e); font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span><br><br>
+          <span style="color:#9a3412; font-weight:700;">📱 เครื่องนี้เป็นเครื่องยืม — ระบบจะออกจากระบบให้อัตโนมัติใน <b id="pvtShareCountdown">8</b> วินาที</span>`,
+        icon: 'success',
+        confirmButtonColor: 'var(--th-p-700, #0f766e)',
+        confirmButtonText: 'ออกจากระบบเลย',
+        allowOutsideClick: false,
+        timer: 8000,
+        timerProgressBar: true,
+        didOpen: () => {
+          const el = document.getElementById('pvtShareCountdown');
+          const t = setInterval(() => { const left = Math.ceil((Swal.getTimerLeft() || 0) / 1000); if (el) el.textContent = String(left); if (!Swal.isVisible()) clearInterval(t); }, 250);
+        }
+      });
+      if (typeof window.executePvtLogout === 'function') { await window.executePvtLogout(); return; }
+      try { localStorage.removeItem('currentUser'); window.PVTAuth.clearToken(); } catch (e) {}
+      window.location.replace('/index.html?logout=true');
+      return;
+    }
+
     Swal.fire({
       title: 'ส่งคำขอลาสำเร็จ!',
       html: `ระบบได้ทำการบันทึกข้อมูลเรียบร้อยแล้ว<br><br><span style="color:var(--th-p-700, #0f766e); font-weight:600; font-size:14px;">📌 กรุณากลับเข้ามาติดตามผลการอนุมัติใบลาภายใน 3 วันนะครับ</span>`,

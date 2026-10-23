@@ -1,6 +1,32 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const LINE_CHANNEL_ACCESS_TOKEN = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN") ?? "";
+// ใช้ออก "ลิงก์อนุมัติจาก LINE แบบใช้ครั้งเดียว" (ช่วงที่ 3) — Supabase ใส่ค่าทั้งสองให้ Edge Function อัตโนมัติ
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const LINK_PLACEHOLDER = "PVTLINKTOKEN";
+
+// ขอลิงก์ใช้ครั้งเดียวจากฐานข้อมูล (ออกให้เฉพาะผู้อนุมัติของลำดับที่รออยู่จริง) — ไม่ได้ → คืน "none"
+async function mintActionLink(leaveId: string, lineUserId: string): Promise<string> {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !leaveId || !lineUserId) return "none";
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/pvt_mint_action_link`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SERVICE_ROLE_KEY,
+        "Authorization": `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ p_leave_id: leaveId, p_line_id: lineUserId }),
+    });
+    if (!res.ok) { console.warn("mint link failed:", res.status, await res.text()); return "none"; }
+    const token = await res.json();
+    return typeof token === "string" && /^[0-9a-f]{64}$/.test(token) ? token : "none";
+  } catch (e) {
+    console.warn("mint link error:", (e as Error).message);
+    return "none";
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,7 +63,8 @@ serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { to, message, flexMessage } = body;
+    const { to, message, leave_id } = body;
+    let { flexMessage } = body;
 
     if (!to) {
       throw new Error("Missing 'to' parameter (LINE User ID)");
@@ -45,6 +72,15 @@ serve(async (req) => {
 
     if (!LINE_CHANNEL_ACCESS_TOKEN) {
       throw new Error("LINE_CHANNEL_ACCESS_TOKEN is not configured.");
+    }
+
+    // ปุ่มอนุมัติ/ไม่อนุมัติ: แทนที่ PVTLINKTOKEN ด้วยลิงก์ใช้ครั้งเดียวของผู้รับ (ผู้รับต้องเป็นผู้อนุมัติของใบลานั้น)
+    if (flexMessage && leave_id) {
+      const raw = JSON.stringify(flexMessage);
+      if (raw.includes(LINK_PLACEHOLDER)) {
+        const link = await mintActionLink(String(leave_id), String(to));
+        flexMessage = JSON.parse(raw.split(LINK_PLACEHOLDER).join(link));
+      }
     }
 
     const messages = [];
