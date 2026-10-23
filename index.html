@@ -134,7 +134,7 @@
                 <span
                   id="biometricCameraAlertTitle"
                   style="font-weight: 700; font-size: 13.5px; color: #92400e"
-                  >⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก</span
+                  >⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องสแกนบัตร</span
                 >
                 <button
                   aria-label="ปิดการแจ้งเตือน"
@@ -456,35 +456,7 @@
                     >วิธีถือบัตรสแกน (How-to Guide)</span
                   >
                 </button>
-                <button
-                  class="biometric-btn"
-                  id="biometricLoginBtn"
-                  onclick="loginByBiometrics()"
-                  style="display: none"
-                  type="button"
-                >
-                  <span class="material-symbols-outlined">fingerprint</span>
-                  <span id="i18nBiometricLoginBtn"
-                    >เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า</span
-                  >
-                </button>
-                <button
-                  class="biometric-guide-btn"
-                  id="biometricGuideBtn"
-                  onclick="showBiometricGuideModal()"
-                  style="display: none"
-                  title="ดูวิธีตั้งค่าและใช้งานระบบสแกนนิ้ว/ใบหน้า"
-                  type="button"
-                >
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px"
-                    >help_outline</span
-                  >
-                  <span id="i18nBiometricGuideLink"
-                    >วิธีใช้สแกนนิ้ว/ใบหน้า (Biometric Guide)</span
-                  >
-                </button>
+                <!-- เข้าสู่ระบบด้วยลายนิ้วมือ / ใบหน้า: เอาออก (พนักงานสับสน) — ใช้รหัสพนักงาน หรือสแกน QR บนบัตร -->
               </div>
             </div>
             <!-- 🌐 Language & Settings Switcher Pill (Above Divider Line) -->

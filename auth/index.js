@@ -506,7 +506,7 @@ const loginTranslations = {
     errDbConn: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
     errMultipleUsers: "พบชื่อ-นามสกุลนี้ซ้ำกันในระบบ กรุณาใช้รหัสพนักงานเข้าสู่ระบบแทน",
     camWarnTitleOutdated: "⚠️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า",
-    camWarnTitleUnsupported: "⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก",
+    camWarnTitleUnsupported: "⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องสแกนบัตร",
     camDiagBtn: "ผลตรวจวินิจฉัย & วิธีแก้ไข"
   },
   lo: {
@@ -738,7 +738,7 @@ function setLanguage(lang) {
   if (camBtnEl && t.camDiagBtn) camBtnEl.textContent = t.camDiagBtn;
   if (camTitleEl) {
     const isOutdated = window.SystemDiagnostics?.lastCameraResult?.isOutdated;
-    camTitleEl.textContent = isOutdated ? (t.camWarnTitleOutdated || "⚠️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า") : (t.camWarnTitleUnsupported || "⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องไบโอเมตริก");
+    camTitleEl.textContent = isOutdated ? (t.camWarnTitleOutdated || "⚠️ คำเตือน: เบราว์เซอร์ของคุณเป็นรุ่นเก่า") : (t.camWarnTitleUnsupported || "⚠️ คำเตือน: เบราว์เซอร์ไม่รองรับกล้องสแกนบัตร");
   }
 
   const btnTh = document.getElementById("langThBtn");
