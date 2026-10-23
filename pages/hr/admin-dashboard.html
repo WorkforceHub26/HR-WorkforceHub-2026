@@ -917,10 +917,25 @@
       const sb = window.pvtSupabase?.getClient();
       const bc = window.dcodeIO?.bcrypt || window.bcrypt;
       if (!sb || !session.id) { showToast('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่', 'error'); return; }
-      if (!bc) { showToast('โหลดตัวเข้ารหัสไม่สำเร็จ กรุณารีเฟรชหน้า', 'error'); return; }
       if (next.length < 8) { showToast('รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร', 'error'); return; }
       if (next !== confirmPass) { showToast('ยืนยันรหัสผ่านใหม่ไม่ตรงกัน', 'error'); return; }
       btn.disabled = true;
+      // ระบบใหม่: ตรวจและบันทึกในฐานข้อมูล (หน้าเว็บอ่านรหัสผ่านไม่ได้แล้ว) — ดู js/pvt-auth.js
+      if (window.PVTAuth) {
+        const r = await window.PVTAuth.changeOwnPassword(cur, next);
+        if (!r.legacy) {
+          btn.disabled = false;
+          if (r.ok) {
+            e.target.reset();
+            if (typeof admLog === 'function') { try { await admLog('change_own_password', session.employee_code, `เปลี่ยนรหัสผ่านของตัวเอง (${session.employee_code})`); } catch (err) {} }
+            showToast('เปลี่ยนรหัสผ่านเรียบร้อย ครั้งหน้าใช้รหัสใหม่เข้าสู่ระบบ');
+          } else {
+            showToast('เปลี่ยนรหัสผ่านไม่สำเร็จ: ' + window.PVTAuth.reasonText(r), 'error');
+          }
+          return;
+        }
+      }
+      if (!bc) { btn.disabled = false; showToast('โหลดตัวเข้ารหัสไม่สำเร็จ กรุณารีเฟรชหน้า', 'error'); return; }
       try {
         const { data: me, error } = await sb.from('employees').select('id, employee_code, password').eq('id', session.id).maybeSingle();
         if (error || !me) throw new Error(error?.message || 'ไม่พบบัญชี');
@@ -1130,15 +1145,27 @@
       const sb = window.pvtSupabase?.getClient();
       if (!sb || window.PVT_ADMIN_LEVEL !== 'super') return;
       const { data, error } = await sb.from('employees')
-        .select('id, employee_code, full_name, role, status, password')
+        .select('id, employee_code, full_name, role, status')
         .in('role', ['admin', 'superadmin']).order('role', { ascending: false }).order('employee_code');
       if (error) { body.innerHTML = `<tr><td colspan="6" style="color:#dc2626;">โหลดไม่สำเร็จ: ${ADM_ESC(error.message)}</td></tr>`; return; }
       admAccounts = data || [];
+      // สถานะรหัสผ่าน: ถามฐานข้อมูล (หน้าเว็บอ่านรหัสผ่านไม่ได้แล้ว) · ยังไม่ได้ติดตั้ง SQL ชุดใหม่ → อ่านแบบเดิม
+      let pwStates = null;
+      if (window.PVTAuth && admAccounts.length) {
+        const st = await window.PVTAuth.passwordStates(admAccounts.map((a) => a.id));
+        if (st && st.ok) pwStates = st.states || {};
+        else if (st && st.legacy) {
+          const { data: legacy } = await sb.from('employees').select('id, password').in('id', admAccounts.map((a) => a.id));
+          (legacy || []).forEach((r) => { const a = admAccounts.find((x) => String(x.id) === String(r.id)); if (a) a.password = r.password; });
+        }
+      }
       const meId = admSession().id;
       body.innerHTML = admAccounts.map((a) => {
         const isSuper = String(a.role).toLowerCase() === 'superadmin';
         const active = !a.status || String(a.status).toLowerCase() === 'active';
-        const pw = !a.password || String(a.password).trim() === String(a.employee_code).trim()
+        const pw = pwStates
+          ? (pwStates[a.id] === 'set' ? '<span style="color:#16a34a;">ตั้งแล้ว (เข้ารหัส)</span>' : '<span style="color:#dc2626; font-weight:700;">ยังไม่ได้ตั้ง</span>')
+          : !a.password || String(a.password).trim() === String(a.employee_code).trim()
           ? '<span style="color:#dc2626; font-weight:700;">ยังไม่ได้ตั้ง</span>'
           : (admIsHashed(a.password) ? '<span style="color:#16a34a;">ตั้งแล้ว (เข้ารหัส)</span>' : '<span style="color:#d97706;">ตั้งแล้ว (ยังไม่เข้ารหัส)</span>');
         const actions = isSuper
@@ -1190,21 +1217,33 @@
           return { code, name, p1 };
         }
       });
-      if (!value || !bc) return;
+      if (!value) return;
       const sb = window.pvtSupabase.getClient();
+      // ระบบใหม่: สร้าง/ตั้งสิทธิ์ก่อน แล้วตั้งรหัสผ่านผ่านฐานข้อมูล (ต้องใช้บัตรผ่านของผู้ดูแลระบบขั้นสูง)
+      //   ยังไม่ได้ติดตั้ง SQL ชุดใหม่ (legacy) → เข้ารหัสในเบราว์เซอร์แล้วบันทึกแบบเดิม
+      const setPw = async (id) => {
+        const r = window.PVTAuth ? await window.PVTAuth.setPassword(id, value.p1) : { legacy: true };
+        if (r.legacy) {
+          if (!bc) throw new Error('โหลดตัวเข้ารหัสไม่สำเร็จ กรุณารีเฟรชหน้า');
+          const { error } = await sb.from('employees').update({ password: bc.hashSync(value.p1, 10) }).eq('id', id);
+          if (error) throw error;
+        } else if (!r.ok) throw new Error(window.PVTAuth.reasonText(r));
+      };
       try {
         const { data: exist } = await sb.from('employees').select('id, employee_code, full_name, role').ilike('employee_code', value.code).maybeSingle();
-        const hash = bc.hashSync(value.p1, 10);
+        const hash = null; // ตั้งรหัสผ่านใน setPw() หลังสร้าง/ตั้งสิทธิ์บัญชี
         if (exist) {
           if (String(exist.role).toLowerCase() === 'superadmin') throw new Error('รหัสนี้เป็นผู้ดูแลระบบขั้นสูงอยู่แล้ว');
           const ok = await Swal.fire({ icon: 'question', title: 'มีรหัสนี้ในระบบแล้ว', text: `${exist.employee_code} · ${exist.full_name || '-'} (สิทธิ์เดิม: ${exist.role || 'user'}) — ตั้งเป็นผู้ดูแลระบบขั้นต้นและเปลี่ยนรหัสผ่าน?`, showCancelButton: true, confirmButtonText: 'ตั้งเป็นผู้ดูแลระบบ', cancelButtonText: 'ยกเลิก' });
           if (!ok.isConfirmed) return;
-          const { error } = await sb.from('employees').update({ role: 'admin', status: 'active', password: hash, updated_at: new Date().toISOString() }).eq('id', exist.id);
+          const { error } = await sb.from('employees').update(Object.assign({ role: 'admin', status: 'active', updated_at: new Date().toISOString() }, hash ? { password: hash } : {})).eq('id', exist.id);
           if (error) throw error;
+          await setPw(exist.id);
           await admLog('promote_admin', exist.employee_code, `ตั้ง ${exist.employee_code} เป็นผู้ดูแลระบบขั้นต้น`, { role: exist.role }, { role: 'admin' });
         } else {
-          const { error } = await sb.from('employees').insert([{ employee_code: value.code, full_name: value.name, role: 'admin', status: 'active', password: hash }]);
+          const { data: created, error } = await sb.from('employees').insert([Object.assign({ employee_code: value.code, full_name: value.name, role: 'admin', status: 'active' }, hash ? { password: hash } : {})]).select('id').single();
           if (error) throw error;
+          await setPw(created.id);
           await admLog('create_admin', value.code, `สร้างผู้ดูแลระบบขั้นต้น ${value.code}`, null, { role: 'admin', full_name: value.name });
         }
         showToast(`สร้างผู้ดูแลระบบ ${value.code} เรียบร้อย`);
@@ -1229,9 +1268,15 @@
               return err ? Swal.showValidationMessage(err) : p1;
             }
           });
-          if (!value || !bc) return;
-          const { error } = await sb.from('employees').update({ password: bc.hashSync(value, 10), updated_at: new Date().toISOString() }).eq('id', a.id).eq('role', 'admin');
-          if (error) throw error;
+          if (!value) return;
+          const r = window.PVTAuth ? await window.PVTAuth.setPassword(a.id, value) : { legacy: true };
+          if (r.legacy) {
+            if (!bc) return;
+            const { error } = await sb.from('employees').update({ password: bc.hashSync(value, 10), updated_at: new Date().toISOString() }).eq('id', a.id).eq('role', 'admin');
+            if (error) throw error;
+          } else if (!r.ok) {
+            throw new Error(window.PVTAuth.reasonText(r));
+          }
           await admLog('reset_admin_password', a.employee_code, `รีเซ็ตรหัสผ่าน ${a.employee_code}`);
           showToast(`รีเซ็ตรหัสผ่าน ${a.employee_code} แล้ว`);
         } else if (kind === 'toggle') {

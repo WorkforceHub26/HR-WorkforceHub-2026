@@ -27,7 +27,8 @@ set role = 'superadmin', status = 'active', password = excluded.password, update
 -- ✅ ตรวจสอบ
 select employee_code, full_name, role, status,
        case when role = 'superadmin' then 'ขั้นสูง' when role = 'admin' then 'ขั้นต้น' end as admin_level,
-       case when password like '$2%' then 'เข้ารหัสแล้ว' else 'ยังไม่เข้ารหัส/ยังไม่ตั้ง' end as password_state
-from public.employees
+       case when exists (select 1 from public.employee_secrets s where s.employee_id = e.id) or e.password like '$2%'
+            then 'ตั้งแล้ว (เข้ารหัส)' else 'ยังไม่ตั้ง' end as password_state   -- หลังรัน 20261023_auth_phase1: รหัสอยู่ใน employee_secrets
+from public.employees e
 where role in ('admin', 'superadmin')
 order by role desc, employee_code;

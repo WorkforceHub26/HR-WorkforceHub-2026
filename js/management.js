@@ -2419,7 +2419,9 @@ async function saveEmployeeInlineEdit(employeeId) {
   }
 
   const newPass = document.getElementById('inline-edit-password')?.value.trim();
-  if (newPass) {
+  // รหัสผ่านใหม่: ตั้งผ่านฐานข้อมูลหลังบันทึกข้อมูล (js/pvt-auth.js) — ยังไม่ได้ติดตั้ง SQL ชุดใหม่ → บันทึกแบบเดิม
+  const passViaServer = !!(newPass && window.PVTAuth);
+  if (newPass && !passViaServer) {
     updateData.password = newPass;
   }
 
@@ -2477,6 +2479,15 @@ async function saveEmployeeInlineEdit(employeeId) {
     const supabase = getSupabase();
     const { error } = await supabase.from('employees').update(updateData).eq('id', emp.id);
     if (error) throw error;
+    if (passViaServer) {
+      const pr = await window.PVTAuth.setPassword(emp.id, newPass);
+      if (pr.legacy) {
+        const { error: pwErr } = await supabase.from('employees').update({ password: newPass }).eq('id', emp.id);
+        if (pwErr) throw pwErr;
+      } else if (!pr.ok && window.Swal) {
+        await Swal.fire({ icon: 'warning', title: 'บันทึกข้อมูลแล้ว แต่ยังไม่ได้เปลี่ยนรหัสผ่าน', text: window.PVTAuth.reasonText(pr) });
+      }
+    }
     // รูป/คำนำหน้าเปลี่ยน → อัปเดตดัชนีรูปกลาง ทุกจุดในระบบได้รูปเดียวกันทันที
     try { window.pvtAvatarIndexUpdate && window.pvtAvatarIndexUpdate(Object.assign({}, emp, updateData, { id: emp.id })); } catch (_) {}
 
@@ -3370,9 +3381,16 @@ window.addNewEmployee = async function addNewEmployee() {
       const customFields = formValues.custom_fields || {};
       delete formValues.custom_fields;
 
-      const { error } = await supabase.from('employees').insert([formValues]);
+      const { data: createdRow, error } = await supabase.from('employees').insert([formValues]).select('id').single();
       if (error) throw error;
       try { window.pvtReloadAvatarIndex && window.pvtReloadAvatarIndex(); } catch (_) {}
+      // บัญชีผู้ดูแลระบบ (HR / ผู้บริหาร ฯลฯ): ฐานข้อมูลไม่รับรหัสผ่านที่เขียนตรงจากหน้าเว็บ → ตั้งผ่านฐานข้อมูลด้วยบัตรผ่านของผู้ใช้
+      if (createdRow?.id && formValues.password && window.PVTAuth && window.pvtIsAdminAccount && window.pvtIsAdminAccount(formValues)) {
+        const pr = await window.PVTAuth.setPassword(createdRow.id, formValues.password);
+        if (!pr.legacy && !pr.ok && window.Swal) {
+          await Swal.fire({ icon: 'warning', title: 'เพิ่มพนักงานแล้ว แต่ยังไม่ได้ตั้งรหัสผ่าน', text: window.PVTAuth.reasonText(pr) + ' — ตั้งได้ภายหลังที่ "แก้ไขข้อมูล"' });
+        }
+      }
 
       if (Object.keys(customFields).length > 0) {
         await saveEmployeeCustomFields(supabase, formValues.employee_code, customFields);

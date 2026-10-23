@@ -1,6 +1,8 @@
 /* ==========================================================================
    🔒 PVT HR LEAVE - auth/index.js (เวอร์ชันเสถียรสูงสุด: ป้องกัน Loop & Auto Refresh)
    ========================================================================== */
+// ตรวจรหัสผ่านในฐานข้อมูล (pvt_login / pvt_qr_login) — ดู js/pvt-auth.js
+import '../js/pvt-auth.js';
 
 function getSbClient() {
   return window.pvtSupabase?.client 
@@ -984,7 +986,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       let user = null;
 
-      // 2. Direct Query: ค้นหาในตาราง employees โดยตรง
+      // 1. ตรวจในฐานข้อมูล (pvt_login): หน้าเว็บไม่ต้องอ่านรหัสผ่าน · ได้บัตรผ่านไว้ใช้งานที่ต้องยืนยันตัวตน
+      //    ถ้ายังไม่ได้ติดตั้งฟังก์ชันในฐานข้อมูล (legacy) → ใช้วิธีเดิมด้านล่าง
+      const remember = rememberCheckbox ? rememberCheckbox.checked : true;
+      const srv = window.PVTAuth ? await window.PVTAuth.login(loginInput, password, remember) : { legacy: true };
+      if (!srv.legacy) {
+        if (!srv.ok) {
+          isLoginAuthenticating = false;
+          setLoginBtnLoading(false);
+          const r = srv.reason;
+          const msg = r === 'not_found' ? (i18n.errUserNotFound || window.PVTAuth.reasonText(srv))
+            : r === 'multiple' ? (i18n.errMultipleUsers || window.PVTAuth.reasonText(srv))
+            : r === 'wrong' && typeof srv.attempts_left !== 'number' ? (i18n.errPassWrong || window.PVTAuth.reasonText(srv))
+            : r === 'inactive' ? (i18n.errInactive || window.PVTAuth.reasonText(srv))
+            : window.PVTAuth.reasonText(srv);
+          const userSide = r === 'not_found' || r === 'multiple' || r === 'inactive';
+          showLoginValidationError(msg, {
+            type: r === 'multiple' || r === 'locked' ? 'warning' : 'error',
+            highlightUser: userSide || r === 'error',
+            highlightPass: !userSide,
+            userHint: userSide ? msg : undefined,
+            passHint: !userSide ? msg : undefined,
+            focusTarget: userSide ? usernameInput : passwordInput
+          });
+          return;
+        }
+        user = srv.user;
+      }
+
+      // 2. (ระบบเดิม) Direct Query: ค้นหาในตาราง employees โดยตรง — ใช้เฉพาะก่อนรัน SQL ชุดใหม่
       if (!user) {
         let baseQuery = sb.from("employees").select("id, employee_code, full_name, role, status, password, department_id, position_id, image_url, departments!department_id(department_name), positions(position_name, level_type, duty_name)");
         let queryRes;
@@ -1278,7 +1308,16 @@ async function executeSecureQrLogin(scannedData) {
       throw new Error("ไม่พบรหัสพนักงานใน QR Code กรุณาลองใหม่อีกครั้ง");
     }
 
-    // ค้นหาพนักงานในฐานข้อมูลด้วย employee_code (Case-Insensitive)
+    // ตรวจในฐานข้อมูล (pvt_qr_login) — ได้บัตรผ่าน · ถ้ายังไม่ได้ติดตั้งฟังก์ชัน → วิธีเดิม
+    const srvQr = window.PVTAuth ? await window.PVTAuth.qrLogin(empCode, true) : { legacy: true };
+    if (!srvQr.legacy) {
+      if (!srvQr.ok) {
+        throw new Error(srvQr.reason === 'not_found' ? `ไม่พบข้อมูลพนักงานรหัส "${empCode}" ในระบบ` : window.PVTAuth.reasonText(srvQr));
+      }
+      return finishQrLogin(srvQr.user, scannedData);
+    }
+
+    // (ระบบเดิม) ค้นหาพนักงานในฐานข้อมูลด้วย employee_code (Case-Insensitive)
     let { data: users, error } = await sb
       .from('employees')
       .select('id, employee_code, full_name, role, status, department_id, position_id, l1_approver_id, l2_approver_id, l3_approver_id, image_url, departments!department_id(department_name), positions(position_name, duty_name)')
@@ -1312,40 +1351,7 @@ async function executeSecureQrLogin(scannedData) {
       throw new Error("บัญชีนี้ถูกปิดการใช้งาน (ระงับ / พ้นสภาพพนักงาน) กรุณาติดต่อฝ่ายบุคคล (HR)");
     }
 
-    // บันทึก Session สำเร็จ
-    saveUserSession(user);
-
-    // 🔒 บันทึกประวัติการเข้าสู่ระบบผ่าน QR Code ไปยัง Supabase 'login_logs' สำหรับตรวจสอบ (Audit Purposes)
-    try {
-      if (typeof recordLoginLog === 'function') {
-        recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
-      } else if (window.PVTSDK?.loginAudit?.recordLoginLog) {
-        window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
-      }
-    } catch (logErr) {
-      console.warn("⚠️ [Login Audit Log] Notice recording QR login:", logErr);
-    }
-
-    // Store a pending professional toast for the next page load
-    sessionStorage.setItem("login_toast_pending", JSON.stringify({
-      title: "เข้าสู่ระบบด้วย QR Code สำเร็จ",
-      message: `ยินดีต้อนรับคุณ ${user.full_name || 'ผู้ใช้งาน'} (รหัส: ${user.employee_code || ''})`,
-      isBiometric: false
-    }));
-
-    // ย้ายหน้าจอ
-    Swal.fire({
-      icon: 'success',
-      title: 'ยินดีต้อนรับ',
-      html: `
-        <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-top: 4px;">${user.full_name}</div>
-        <div style="font-size: 13px; color: #0fa472; margin-top: 2px;">รหัสพนักงาน: ${user.employee_code}</div>
-      `,
-      timer: 1000,
-      showConfirmButton: false
-    }).then(() => {
-      redirectToDashboard(user.role);
-    });
+    return finishQrLogin(user, scannedData);
 
   } catch (err) {
     Swal.fire({
@@ -1355,6 +1361,44 @@ async function executeSecureQrLogin(scannedData) {
       confirmButtonColor: '#ef4444'
     });
   }
+}
+
+// เข้าสู่ระบบด้วย QR สำเร็จ: บันทึก session + ประวัติ + ย้ายหน้า (ใช้ทั้งระบบใหม่และระบบเดิม)
+function finishQrLogin(user, scannedData) {
+  // บันทึก Session สำเร็จ
+  saveUserSession(user);
+
+  // 🔒 บันทึกประวัติการเข้าสู่ระบบผ่าน QR Code ไปยัง Supabase 'login_logs' สำหรับตรวจสอบ (Audit Purposes)
+  try {
+    if (typeof recordLoginLog === 'function') {
+      recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
+    } else if (window.PVTSDK?.loginAudit?.recordLoginLog) {
+      window.PVTSDK.loginAudit.recordLoginLog(user, { method: 'qr_code', metadata: { scanned_data: scannedData } });
+    }
+  } catch (logErr) {
+    console.warn("⚠️ [Login Audit Log] Notice recording QR login:", logErr);
+  }
+
+  // Store a pending professional toast for the next page load
+  sessionStorage.setItem("login_toast_pending", JSON.stringify({
+    title: "เข้าสู่ระบบด้วย QR Code สำเร็จ",
+    message: `ยินดีต้อนรับคุณ ${user.full_name || 'ผู้ใช้งาน'} (รหัส: ${user.employee_code || ''})`,
+    isBiometric: false
+  }));
+
+  // ย้ายหน้าจอ
+  Swal.fire({
+    icon: 'success',
+    title: 'ยินดีต้อนรับ',
+    html: `
+      <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-top: 4px;">${user.full_name}</div>
+      <div style="font-size: 13px; color: #0fa472; margin-top: 2px;">รหัสพนักงาน: ${user.employee_code}</div>
+    `,
+    timer: 1000,
+    showConfirmButton: false
+  }).then(() => {
+    redirectToDashboard(user.role);
+  });
 }
 
 // 🔊 Web Audio API: สังเคราะห์เสียง 'Ding' สั้นๆ เมื่อสแกนสำเร็จ

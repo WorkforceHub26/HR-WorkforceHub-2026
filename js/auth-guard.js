@@ -1,6 +1,8 @@
 /* ==========================================================================
    🔒 PVT HR LEAVE - auth-guard.js (ระบบความปลอดภัยและการควบคุมสิทธิ์สูงสุด)
    ========================================================================== */
+// บัตรผ่านเข้าระบบ / เปลี่ยนรหัสผ่านผ่านฐานข้อมูล — ดู js/pvt-auth.js
+import './pvt-auth.js';
 
 // 🔐 นโยบายรหัสผ่าน (ตามที่เจ้าของงานกำหนด)
 //   • พนักงานทั่วไป / หัวหน้า / ผู้จัดการ: รหัสผ่าน = รหัสพนักงาน (พนักงานลืมรหัสบ่อย จึงไม่ให้เปลี่ยน)
@@ -3496,6 +3498,9 @@ window.executePvtLogout = async function() {
     sessionStorage.setItem('pvt_explicit_logout', 'true');
     localStorage.setItem('pvt_explicit_logout', 'true');
   } catch (e) {}
+
+  // ยกเลิกบัตรผ่านของเครื่องนี้ในฐานข้อมูล (รอไม่เกิน 1 วินาที)
+  try { if (window.PVTAuth?.logout) await window.PVTAuth.logout(); } catch (e) {}
 
   try {
     const sb = window.supabaseClient 
