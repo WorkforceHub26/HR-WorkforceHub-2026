@@ -1953,15 +1953,16 @@ async function saveLeave() {
       // 🛡️ ตรวจสอบอายุงานพนักงาน (ต้องทำงานครบ 1 ปี / 365 วันขึ้นไป จึงจะมีสิทธิลาพักร้อน/พักผ่อน)
       const empStartStr = currentProfile?.start_date || currentProfile?.join_date || currentProfile?.created_at;
       if (empStartStr) {
+        // ใช้ลาพักร้อนได้ตั้งแต่วันครบอายุงาน 1 ปี (วันเดียวกันของปีถัดไป)
         const empStartObj = parseLocalDate(empStartStr);
         const reqStartObj = parseLocalDate(startDate);
-        const diffMs = reqStartObj.getTime() - empStartObj.getTime();
-        const diffDays = diffMs / (1000 * 3600 * 24);
-        if (diffDays < 365) {
+        const annObj = new Date(empStartObj.getFullYear() + 1, empStartObj.getMonth(), empStartObj.getDate());
+        if (reqStartObj.getTime() < annObj.getTime()) {
+          const annStr = `${annObj.getFullYear()}-${String(annObj.getMonth() + 1).padStart(2, '0')}-${String(annObj.getDate()).padStart(2, '0')}`;
           Swal.fire({
             icon: 'warning',
             title: 'ยังไม่มีสิทธิลาพักผ่อนประจำปี',
-            html: `รายการที่ ${index + 1}: พนักงานที่ทำงานยังไม่ครบ <b>1 ปี (365 วัน)</b> ตามรอบปีบริษัท (1 ธ.ค. – 30 พ.ย.) จะยังไม่มีสิทธิลาพักผ่อนประจำปี (ลาพักร้อน) ครับ<br><span style="color: #64748b; font-size: 13px;">(วันที่เริ่มงานของคุณ: ${formatThaiDate(empStartStr)})</span>`,
+            html: `รายการที่ ${index + 1}: ลาพักร้อนได้เมื่อทำงานครบ <b>1 ปี</b> คุณใช้สิทธิ์ได้ตั้งแต่วันที่ <b>${formatThaiDate(annStr)}</b> ครับ<br><span style="color: #64748b; font-size: 13px;">(วันที่เริ่มงานของคุณ: ${formatThaiDate(empStartStr)})</span>`,
             confirmButtonColor: '#f59e0b'
           });
           hasError = true; break;

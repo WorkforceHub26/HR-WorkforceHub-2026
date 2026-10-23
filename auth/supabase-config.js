@@ -641,6 +641,76 @@
     return d.getMonth() === 11 ? y + 1 : y; // เดือนธันวาคม (1 ธ.ค. เป็นต้นไป) นับเป็นรอบปีการลาถัดไป (1 ธ.ค. – 30 พ.ย.)
   };
 
+  // ==========================================================================
+  // 📅 โควตาวันลาประจำปี (ใช้ร่วมกันทุกจุดที่สร้างโควตา)
+  //   ปีการลา Y (ค.ศ.) = 1 ธ.ค. (Y-1) – 30 พ.ย. Y
+  //   ค่าโควตา = "ตั้งค่าโควตากลาง" (leave_types.yearly_quota) · ไม่ได้ตั้ง → ค่าเดิม ป่วย 30 กิจ 6 พักร้อน 6 คลอด 98 อื่นๆ 30
+  //   พักร้อน: ได้ในปีการลาที่อายุงานครบ 1 ปี (ครบกลางรอบก็ได้ทั้งก้อน) แต่ใช้ได้ตั้งแต่วันครบ 1 ปี (ตรวจตอนยื่นใบลา)
+  //   วันลาที่เหลือไม่ยกยอดไปปีใหม่
+  // ==========================================================================
+  window.PVTQuota = (function () {
+    const DEFAULTS = { sick: 30, personal: 6, vacation: 6, maternity: 98, other: 30 };
+    const pad = (n) => String(n).padStart(2, '0');
+    const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const parse = (v) => {
+      if (!v) return null;
+      const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    };
+    function kindOf(lt) {
+      const code = String(lt?.leave_code || '').toUpperCase();
+      const name = String(lt?.leave_name || '').toLowerCase();
+      if (code === 'SICK' || code === '01' || name.includes('ป่วย')) return 'sick';
+      if (code === 'PERSONAL' || code === '02' || name.includes('กิจ')) return 'personal';
+      if (code === 'VACATION' || code === '03' || name.includes('พักร้อน') || name.includes('พักผ่อน')) return 'vacation';
+      if (code === 'MATERNITY' || name.includes('คลอด')) return 'maternity';
+      return 'other';
+    }
+    // ค่าโควตาต่อปีจากตั้งค่าโควตากลาง (ประเภทที่ปิดใช้งานไม่นับ)
+    function standard(leaveTypes) {
+      const out = Object.assign({}, DEFAULTS);
+      const seen = {};
+      (leaveTypes || []).forEach((lt) => {
+        if (String(lt?.status || 'active').toLowerCase() !== 'active') return;
+        const k = kindOf(lt);
+        if (k === 'other' || seen[k]) return;
+        const q = Number(lt.yearly_quota);
+        if (Number.isFinite(q) && q > 0) { out[k] = q; seen[k] = true; }
+      });
+      return out;
+    }
+    function cycle(yearAD) {
+      const y = Number(yearAD);
+      return { start: `${y - 1}-12-01`, end: `${y}-11-30`, startDate: new Date(y - 1, 11, 1), endDate: new Date(y, 10, 30) };
+    }
+    // วันครบอายุงาน 1 ปี (วันเดียวกันของปีถัดไป)
+    function anniversary(startStr) {
+      const d = parse(startStr);
+      if (!d) return null;
+      return new Date(d.getFullYear() + 1, d.getMonth(), d.getDate());
+    }
+    // สิทธิ์พักร้อนในปีการลานั้น: { eligible, from (YYYY-MM-DD วันที่เริ่มใช้ได้), midCycle }
+    function vacationRight(startStr, yearAD) {
+      const c = cycle(yearAD);
+      const ann = anniversary(startStr);
+      if (!ann) return { eligible: true, from: c.start, midCycle: false, unknownStart: true };
+      if (ann > c.endDate) return { eligible: false, from: ymd(ann), midCycle: false };
+      if (ann > c.startDate) return { eligible: true, from: ymd(ann), midCycle: true };
+      return { eligible: true, from: c.start, midCycle: false };
+    }
+    function totalsFor(emp, yearAD, std) {
+      const s = std || DEFAULTS;
+      const v = vacationRight(emp?.start_date || emp?.join_date || emp?.created_at, yearAD);
+      return {
+        sick_total: s.sick, personal_total: s.personal, vacation_total: v.eligible ? s.vacation : 0,
+        maternity_total: s.maternity, other_total: s.other, _vacation: v
+      };
+    }
+    return { DEFAULTS, kindOf, standard, cycle, anniversary, vacationRight, totalsFor, ymd, parse };
+  })();
+
   window.getADYear = function(dateOrYear) {
     if (!dateOrYear) {
       return window.getCurrentLeaveYear();
@@ -1306,34 +1376,28 @@
         // คำนวณยอดโควตาจริงบนระบบทันทีโดยอิงจาก leave_types, อายุงาน และประวัติการลาจริง
         if (!result || result.length === 0) {
           try {
-            let vacationDays = 6.0;
+            let empData = null;
             try {
-              const { data: empData } = await this.client
-                .from('employees')
-                .select('start_date, created_at')
-                .eq('id', employeeId)
-                .maybeSingle();
-              if (empData) {
-                const sDate = empData.start_date || empData.created_at;
-                if (sDate && (Date.now() - new Date(sDate).getTime()) / (1000 * 3600 * 24) < 365) {
-                  vacationDays = 0.0;
-                }
-              }
+              const r = await this.client.from('employees').select('start_date, created_at').eq('id', employeeId).maybeSingle();
+              empData = r.data || null;
             } catch(e) {}
+            let ltAll = [];
+            try { const r = await this.client.from('leave_types').select('leave_code, leave_name, yearly_quota, status'); ltAll = r?.data || []; } catch (e) {}
+            const vt = window.PVTQuota.totalsFor(empData || {}, yearAD, window.PVTQuota.standard(ltAll));
 
             const virtualRow = {
               id: `v_${employeeId}_${yearAD}`,
               employee_id: employeeId,
               year: yearAD,
-              sick_total: 30.0,
+              sick_total: vt.sick_total,
               sick_used: 0.0,
-              personal_total: 6.0,
+              personal_total: vt.personal_total,
               personal_used: 0.0,
-              vacation_total: vacationDays,
+              vacation_total: vt.vacation_total,
               vacation_used: 0.0,
-              maternity_total: 98.0,
+              maternity_total: vt.maternity_total,
               maternity_used: 0.0,
-              other_total: 30.0,
+              other_total: vt.other_total,
               other_used: 0.0
             };
 
@@ -1404,43 +1468,32 @@
           return { status: 'existed', message: 'มีข้อมูลแล้ว', id: empBalList[0].id };
         }
 
-        // 🎯 เช็กอายุงานของพนักงาน (ถ้าทำงานไม่ถึง 1 ปี / 365 วัน ให้ vacation_total = 0.0)
-        let vacationTotalDays = 6.0;
+        // 🎯 ค่าโควตาจากตั้งค่าโควตากลาง + สิทธิ์พักร้อนตามอายุงาน ณ ปีการลานั้น (window.PVTQuota)
+        let empData = null, ltAll = [];
         try {
-          const { data: empData } = await this.client
-            .from('employees')
-            .select('start_date, created_at')
-            .eq('id', employeeId)
-            .maybeSingle();
-
-          if (empData) {
-            const startDateStr = empData.start_date || empData.created_at;
-            if (startDateStr) {
-              const startDate = new Date(startDateStr);
-              const now = new Date();
-              const diffMs = now.getTime() - startDate.getTime();
-              const diffDays = diffMs / (1000 * 3600 * 24);
-              if (diffDays < 365) {
-                vacationTotalDays = 0.0;
-              }
-            }
-          }
+          const [eRes, lRes] = await Promise.all([
+            this.client.from('employees').select('start_date, created_at').eq('id', employeeId).maybeSingle(),
+            this.client.from('leave_types').select('leave_code, leave_name, yearly_quota, status')
+          ]);
+          empData = eRes?.data || null;
+          ltAll = lRes?.data || [];
         } catch(e) {}
+        const qt = window.PVTQuota.totalsFor(empData || {}, yearAD, window.PVTQuota.standard(ltAll));
 
         const { error: insertError } = await this.client
           .from('employee_leave_balances')
           .insert([{
             employee_id: employeeId,
             year: yearAD,
-            sick_total: 30.0,
+            sick_total: qt.sick_total,
             sick_used: 0.0,
-            personal_total: 6.0,
+            personal_total: qt.personal_total,
             personal_used: 0.0,
-            vacation_total: vacationTotalDays,
+            vacation_total: qt.vacation_total,
             vacation_used: 0.0,
-            maternity_total: 98.0,
+            maternity_total: qt.maternity_total,
             maternity_used: 0.0,
-            other_total: 30.0,
+            other_total: qt.other_total,
             other_used: 0.0
           }]);
 
@@ -2203,12 +2256,22 @@ class LineOAEngine {
       ]
     });
 
+    // ปุ่มใน LINE → หน้าเข้าระบบด้วยลิงก์ใช้ครั้งเดียว (Edge Function line-send ใส่รหัสแทน PVTLINKTOKEN ให้เฉพาะผู้อนุมัติ)
+    //   ไม่ได้รหัส (ส่งผ่านเซิร์ฟเวอร์สำรอง / ไม่ใช่ผู้อนุมัติ) → หน้าเข้าระบบให้ล็อกอินตามปกติ แล้วพาไปที่ใบลานี้
+    const actUrl = (act) => {
+      try {
+        const u = new URL(approvalUrl);
+        return `${u.origin}/index.html?line_link=PVTLINKTOKEN&next=${encodeURIComponent(`${u.pathname}?id=${leaveId}&action=${act}`)}`;
+      } catch (e) {
+        return `${approvalUrl}?id=${leaveId}&action=${act}`;
+      }
+    };
     const footer = (m.act && leaveId)
       ? [{
           type: 'box', layout: 'horizontal', spacing: 'sm',
           contents: [
-            { type: 'button', style: 'primary', height: 'sm', color: '#16a34a', action: { type: 'uri', label: 'อนุมัติ', uri: `${approvalUrl}?id=${leaveId}&action=approve` } },
-            { type: 'button', style: 'primary', height: 'sm', color: '#e11d48', action: { type: 'uri', label: 'ไม่อนุมัติ', uri: `${approvalUrl}?id=${leaveId}&action=reject` } }
+            { type: 'button', style: 'primary', height: 'sm', color: '#16a34a', action: { type: 'uri', label: 'อนุมัติ', uri: actUrl('approve') } },
+            { type: 'button', style: 'primary', height: 'sm', color: '#e11d48', action: { type: 'uri', label: 'ไม่อนุมัติ', uri: actUrl('reject') } }
           ]
         }]
       : [{
@@ -2503,7 +2566,8 @@ class LineOAEngine {
         body: JSON.stringify({
           to: targetLineId,
           message: messageText.replace(/\*\*/g, ""),
-          flexMessage: flexCardObj
+          flexMessage: flexCardObj,
+          leave_id: isUuid(leaveId) ? leaveId : null   // ใช้ออกลิงก์อนุมัติจาก LINE แบบใช้ครั้งเดียว
         })
       });
 

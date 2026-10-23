@@ -568,11 +568,11 @@ async function resetYearlyLeave(isForce = false) {
           <input type="checkbox" id="swal-force-reset" ${isForce ? 'checked' : ''} style="flex-shrink:0; width:18px; height:18px; margin-top:2px; accent-color:#e11d48; cursor:pointer;">
           <span style="font-size:13px; font-weight:700; color:#be123c;">
             รีเซ็ตโควตาเป็นค่าเริ่มต้นทั้งหมด
-            <span style="display:block; font-weight:400; font-size:12px; color:#9f1239;">ติ๊กเมื่อต้องการให้สิทธิ์วันลากลับไปเป็นค่าเริ่มต้นตามนโยบายบริษัท (ทับค่าที่ HR ปรับไว้รายคน)</span>
+            <span style="display:block; font-weight:400; font-size:12px; color:#9f1239;">ติ๊ก = ทุกคนกลับไปใช้ "ตั้งค่าโควตากลาง" (ทับค่าที่ HR ปรับไว้รายคน) · ไม่ติ๊ก = คนที่มีโควตาปีนั้นแล้วคงสิทธิ์เดิม สร้างใหม่เฉพาะคนที่ยังไม่มี</span>
           </span>
         </label>
         <div style="font-size:12px; color:var(--th-p-700, #0f766e); background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:10px 12px; border-radius:4px;">
-          <strong>ยอดวันลาที่ใช้ไปจะไม่ถูกล้างเป็น 0</strong> — ระบบนับจากใบลาที่อนุมัติแล้วในรอบปีนั้นให้อัตโนมัติ สิทธิ์คงเหลือจึงตรงกับความจริง
+          <strong>ยอดวันลาที่ใช้ไปจะไม่ถูกล้างเป็น 0</strong> — ระบบนับจากใบลาที่อนุมัติแล้วในรอบปีนั้นให้อัตโนมัติ · พักร้อนนับอายุงานถึง 30 พ.ย. ของปีการลา · กดแล้วจะมีหน้าสรุปให้ตรวจก่อนบันทึก
         </div>
       </div>
     `,
@@ -591,42 +591,34 @@ async function resetYearlyLeave(isForce = false) {
   if (!formValues) return;
 
   try {
-    Swal.fire({ 
-      title: `กำลังคำนวณโควตาปีการลา ${formValues.year + 543}...`, 
+    Swal.fire({
+      title: `กำลังคำนวณโควตาปีการลา ${formValues.year + 543}...`,
       text: 'ระบบกำลังนำประวัติใบลามาประมวลผลคำนวณยอดให้พนักงานทุกคน',
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading() 
+      allowOutsideClick: false
     });
+    Swal.showLoading(); // เรียกทันที (ไม่ใช้ didOpen) — คำนวณเสร็จเร็ว didOpen จะไปซ่อนปุ่มของหน้าสรุป
 
-    const actorName = window.state?.currentUserProfile?.full_name || 'HR Admin'; 
-    const actorId = window.state?.currentUserProfile?.id || null; 
+    const Q = window.PVTQuota;
+    if (!Q) throw new Error('ไม่พบตัวคำนวณโควตา (auth/supabase-config.js เวอร์ชันเก่า) กรุณารีเฟรชหน้า');
 
-    // ดำเนินการผ่านสคริปต์ JS ฝั่ง Client เพื่อการันตีความอัจฉริยะในการคำนวณความสอดคล้อง (Self-Healing)
     let targetYearAD = formValues.year;
-    if (targetYearAD > 2400) {
-      targetYearAD = targetYearAD - 543;
-    }
+    if (targetYearAD > 2400) targetYearAD = targetYearAD - 543;
     const targetYearBE = targetYearAD + 543;
-    const yearsToCreate = [targetYearAD, targetYearBE];
+    const force = !!formValues.force;
+    const cyc = Q.cycle(targetYearAD); // 1 ธ.ค. ปีก่อน – 30 พ.ย. ปีเป้าหมาย
 
-    // คำนวณขอบเขตวันของรอบปีนั้นๆ (1 ธ.ค. ปีก่อน - 30 พ.ย. ปีเป้าหมาย)
-    const startDateStr = `${targetYearAD - 1}-12-01`;
-    const endDateStr = `${targetYearAD}-11-30`;
-
-    // ดึงข้อมูลในครั้งเดียวเพื่อประสิทธิภาพสูงสุด (Parallel queries)
     const [empRes, ltRes, leavesRes, balRes] = await Promise.all([
       supabaseClient.from('employees').select('id, employee_code, full_name, start_date, created_at').eq('status', 'active'),
-      supabaseClient.from('leave_types').select('id, leave_code, leave_name, yearly_quota, default_days'),
+      supabaseClient.from('leave_types').select('id, leave_code, leave_name, yearly_quota, default_days, status'),
       supabaseClient.from('leave_requests')
         .select('employee_id, leave_type_id, total_days, start_date')
         .eq('status', 'approved')
-        .gte('start_date', startDateStr)
-        .lte('start_date', endDateStr),
+        .gte('start_date', cyc.start)
+        .lte('start_date', cyc.end),
       supabaseClient.from('employee_leave_balances')
         .select('*')
-        .in('year', yearsToCreate)
+        .in('year', [targetYearAD, targetYearBE])
     ]);
-
     if (empRes.error) throw empRes.error;
     if (ltRes.error) throw ltRes.error;
     if (leavesRes.error) throw leavesRes.error;
@@ -634,101 +626,121 @@ async function resetYearlyLeave(isForce = false) {
 
     const employeesList = empRes.data || [];
     const typesList = ltRes.data || [];
-    const approvedLeavesList = leavesRes.data || [];
-    const existingBalances = balRes.data || [];
+    const std = Q.standard(typesList); // ตั้งค่าโควตากลาง
+    const kindById = {};
+    typesList.forEach((lt) => { kindById[lt.id] = Q.kindOf(lt); });
 
-    // แผนผังยอดรวมวันลาที่ใช้ไปของแต่ละพนักงาน แยกตามประเภทการลา
-    const leaveSumMap = {};
-    for (const req of approvedLeavesList) {
-      const key = `${req.employee_id}_${req.leave_type_id}`;
-      const days = Number(req.total_days || 0);
-      leaveSumMap[key] = (leaveSumMap[key] || 0) + days;
+    // วันลาที่ใช้ไป (ใบลาที่อนุมัติแล้วในรอบปีนั้น) แยกตามหมวด
+    const usedMap = {};
+    for (const req of (leavesRes.data || [])) {
+      const k = kindById[req.leave_type_id] || 'other';
+      const m = usedMap[req.employee_id] || (usedMap[req.employee_id] = { sick: 0, personal: 0, vacation: 0, maternity: 0, other: 0 });
+      m[k] += Number(req.total_days || 0);
     }
+    // โควตาเดิมของปีนั้น (เคยสร้างไว้ / HR ปรับรายคน)
+    const balMap = {};
+    for (const b of (balRes.data || [])) balMap[`${b.employee_id}_${b.year}`] = b;
 
-    // แผนผังข้อมูลโควตาเดิมที่มีอยู่แล้วในระบบ
-    const balanceMap = {};
-    for (const bal of existingBalances) {
-      const key = `${bal.employee_id}_${bal.leave_type_id}_${bal.year}`;
-      balanceMap[key] = bal;
-    }
-
+    const KINDS = ['sick', 'personal', 'vacation', 'maternity', 'other'];
     const toUpsert = [];
-    let createdCount = 0;
-    let updatedCount = 0;
+    const stat = { newRows: 0, kept: 0, reset: 0, noVacation: [], midCycle: [], changedVsStd: 0 };
 
     for (const emp of employeesList) {
-      for (const yr of yearsToCreate) {
-        let sickUsed = 0, personalUsed = 0, vacationUsed = 0, maternityUsed = 0, otherUsed = 0;
-        let vacationQuota = 6;
-        
-        // เช็คอายุงาน 1 ปี
-        const empStartStr = emp.start_date || emp.created_at;
-        if (empStartStr) {
-          const empStart = new Date(empStartStr);
-          const diffDays = (new Date().getTime() - empStart.getTime()) / (1000 * 3600 * 24);
-          if (diffDays < 365) vacationQuota = 0;
-        }
+      const calc = Q.totalsFor(emp, targetYearAD, std);
+      const used = usedMap[emp.id] || { sick: 0, personal: 0, vacation: 0, maternity: 0, other: 0 };
+      const existingAD = balMap[`${emp.id}_${targetYearAD}`];
+      const existingBE = balMap[`${emp.id}_${targetYearBE}`];
+      // เขียนปี ค.ศ. เสมอ · ปี พ.ศ. เฉพาะที่มีแถวอยู่แล้ว (ระบบเก่าเคยสร้างไว้) เพื่อไม่ให้ตัวเลขสองแถวไม่ตรงกัน
+      const years = [targetYearAD].concat(existingBE ? [targetYearBE] : []);
+      const keepSource = existingAD || existingBE;
+      const keep = !force && !!keepSource;
+      if (!keepSource) stat.newRows++; else if (keep) stat.kept++; else stat.reset++;
+      if (!calc._vacation.eligible) stat.noVacation.push(emp);
+      else if (calc._vacation.midCycle) stat.midCycle.push({ emp, from: calc._vacation.from });
 
-        for (const lt of typesList) {
-          const approvedKey = `${emp.id}_${lt.id}`;
-          const used = leaveSumMap[approvedKey] || 0;
-          const leaveCode = String(lt.leave_code || '').toUpperCase();
-          const leaveName = String(lt.leave_name || '').toLowerCase();
-
-          if (leaveCode === 'SICK' || leaveCode === '01' || leaveName.includes('ป่วย')) sickUsed += used;
-          else if (leaveCode === 'PERSONAL' || leaveCode === '02' || leaveName.includes('กิจ')) personalUsed += used;
-          else if (leaveCode === 'VACATION' || leaveCode === '03' || leaveName.includes('พัก')) vacationUsed += used;
-          else if (leaveCode === 'MATERNITY' || leaveName.includes('คลอด')) maternityUsed += used;
-          else otherUsed += used;
-        }
-
-        toUpsert.push({
-          employee_id: emp.id,
-          year: yr,
-          sick_total: 30,
-          sick_used: sickUsed,
-          personal_total: 6,
-          personal_used: personalUsed,
-          vacation_total: vacationQuota,
-          vacation_used: vacationUsed,
-          maternity_total: 98,
-          maternity_used: maternityUsed,
-          other_total: 30,
-          other_used: otherUsed
+      let differs = false;
+      for (const yr of years) {
+        const row = { employee_id: emp.id, year: yr };
+        KINDS.forEach((k) => {
+          const keptTotal = keep ? Number(keepSource[`${k}_total`]) : NaN;
+          row[`${k}_total`] = Number.isFinite(keptTotal) ? keptTotal : calc[`${k}_total`];
+          row[`${k}_used`] = used[k];
         });
-        createdCount++;
+        if (keep && KINDS.some((k) => Number(row[`${k}_total`]) !== Number(calc[`${k}_total`]))) differs = true;
+        toUpsert.push(row);
       }
+      if (differs) stat.changedVsStd++;
     }
 
-    // บันทึกแบบ Batch Upsert ไปยัง employee_leave_balances
+    // ── หน้าสรุปก่อนบันทึก ──
+    const esc = (v) => (typeof escapeHtml === 'function' ? escapeHtml(String(v ?? '')) : String(v ?? ''));
+    const thai = (d) => (window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(d) : d);
+    const listOf = (arr, fmt, max = 12) => arr.length
+      ? `<ul style="margin:4px 0 0 18px; padding:0; max-height:150px; overflow:auto;">${arr.slice(0, max).map(fmt).join('')}${arr.length > max ? `<li>และอีก ${arr.length - max} คน</li>` : ''}</ul>`
+      : '<div style="color:#64748b;">-</div>';
+    const preview = await Swal.fire({
+      title: `สรุปก่อนบันทึก · ปีการลา ${targetYearBE}`,
+      width: 'min(94vw, 640px)',
+      html: `<div style="text-align:left; font-size:13.5px; line-height:1.6;">
+        <div style="color:#475569;">รอบ ${thai(cyc.start)} – ${thai(cyc.end)} · พนักงาน ${employeesList.length} คน</div>
+        <table style="width:100%; border-collapse:collapse; margin:10px 0; font-size:13px;">
+          <tr style="background:#f1f5f9;"><th style="text-align:left; padding:6px;">ตั้งค่าโควตากลาง (วัน/ปี)</th><th>ป่วย</th><th>กิจ</th><th>พักร้อน</th><th>คลอด</th><th>อื่นๆ</th></tr>
+          <tr><td style="padding:6px;">ค่าที่ใช้</td><td align="center">${std.sick}</td><td align="center">${std.personal}</td><td align="center">${std.vacation}</td><td align="center">${std.maternity}</td><td align="center">${std.other}</td></tr>
+        </table>
+        <div>➕ สร้างใหม่ <b>${stat.newRows}</b> คน · ${force
+          ? `🔁 รีเซ็ตเป็นค่ากลาง <b>${stat.reset}</b> คน (ทับค่าที่ HR ปรับรายคน)`
+          : `✋ คงสิทธิ์เดิมไว้ <b>${stat.kept}</b> คน (อัปเดตเฉพาะวันที่ใช้ไป)${stat.changedVsStd ? ` · ในนี้ <b>${stat.changedVsStd}</b> คนมีสิทธิ์ต่างจากค่ากลาง` : ''}`}</div>
+        <div style="margin-top:10px;"><b>พักร้อน 0 วัน</b> (อายุงานยังไม่ครบ 1 ปีภายใน 30 พ.ย.): ${stat.noVacation.length} คน
+          ${listOf(stat.noVacation, (e) => `<li>${esc(e.employee_code)} ${esc(e.full_name)} <span style="color:#64748b;">เริ่มงาน ${esc(thai(e.start_date || '-'))}</span></li>`)}</div>
+        <div style="margin-top:10px;"><b>ครบ 1 ปีกลางรอบ</b> (ได้พักร้อน ใช้ได้ตั้งแต่วันครบ): ${stat.midCycle.length} คน
+          ${listOf(stat.midCycle, (x) => `<li>${esc(x.emp.employee_code)} ${esc(x.emp.full_name)} <span style="color:#64748b;">ใช้ได้ตั้งแต่ ${esc(thai(x.from))}</span></li>`)}</div>
+        <div style="margin-top:10px; color:#0f766e;">วันลาที่ใช้ไปนับจากใบลาที่อนุมัติแล้วในรอบนี้ · วันที่เหลือของปีก่อนไม่ยกยอด</div>
+      </div>`,
+      showCancelButton: true,
+      confirmButtonText: 'บันทึกโควตา',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: 'var(--th-p-600, #0d9488)',
+      cancelButtonColor: '#64748b',
+      didOpen: () => { try { Swal.hideLoading(); } catch (e) {} }
+    });
+    if (!preview.isConfirmed) return;
+
+    Swal.fire({ title: 'กำลังบันทึกโควตา...', allowOutsideClick: false });
+    Swal.showLoading();
+
     const chunkSize = 100;
+    const failures = [];
     for (let i = 0; i < toUpsert.length; i += chunkSize) {
       const chunk = toUpsert.slice(i, i + chunkSize);
       try {
         const { error: upsertErr } = await supabaseClient
           .from('employee_leave_balances')
           .upsert(chunk, { onConflict: 'employee_id,year' });
-
-        if (upsertErr) {
-          console.warn("Notice during upsert of employee_leave_balances chunk:", upsertErr);
-        }
+        if (upsertErr) failures.push(upsertErr.message || String(upsertErr));
       } catch (chunkErr) {
-        console.warn("Batch upsert chunk fallback:", chunkErr);
+        failures.push(chunkErr.message || String(chunkErr));
       }
     }
 
-    const successMessage = `ประสานและซิงค์ข้อมูลโควตาปีการลา ${formValues.year + 543} สำเร็จ! ประมวลผลพนักงาน ${employeesList.length} คน (สร้างใหม่ ${createdCount} รายการ, ปรับยอดถูกต้องแล้ว ${updatedCount} รายการ)`;
+    await saveHRActivityLog('LEAVE_SYSTEM', 'RESET_QUOTA', `ปี ${targetYearBE}`,
+      `สร้าง/ปรับโควตาปีการลา ${targetYearBE}: ใหม่ ${stat.newRows} · คงเดิม ${stat.kept} · รีเซ็ต ${stat.reset}${failures.length ? ` · ผิดพลาด ${failures.length} ชุด` : ''}`);
 
-    await saveHRActivityLog('LEAVE_SYSTEM', 'RESET_QUOTA', `ปี ${formValues.year}`, `รีเซ็ตและคำนวณซิงค์ยอดโควตาประจำปี ${formValues.year} (Force: ${formValues.force})`);
+    if (failures.length) {
+      Swal.fire({
+        icon: 'error',
+        title: 'บันทึกโควตาไม่ครบ',
+        html: `บันทึกไม่สำเร็จ ${failures.length} ชุด (ชุดละไม่เกิน ${chunkSize} รายการ) กรุณากดสร้างโควตาอีกครั้ง<br><small style="color:#64748b;">${esc(failures[0]).slice(0, 200)}</small>`,
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
+      });
+    } else {
+      Swal.fire({
+        icon: 'success',
+        title: 'บันทึกโควตาสำเร็จ',
+        text: `ปีการลา ${targetYearBE}: พนักงาน ${employeesList.length} คน (สร้างใหม่ ${stat.newRows} · คงสิทธิ์เดิม ${stat.kept} · รีเซ็ต ${stat.reset})`,
+        confirmButtonColor: 'var(--th-p-600, #0d9488)'
+      });
+    }
 
-    Swal.fire({
-      icon: 'success',
-      title: 'รีเซ็ตและซิงค์โควตาสำเร็จ!',
-      text: successMessage,
-      confirmButtonColor: 'var(--th-p-600, #0d9488)'
-    });
-
-    // ดึงข้อมูลปีล่าสุดมาแสดงผลบน Dashboard ทันที
     await fetchLeaveBalances(formValues.year);
     if (typeof renderSummary === 'function') renderSummary();
 
@@ -6649,8 +6661,10 @@ async function checkAndCreateMissingQuotas() {
       return;
     }
 
-    // 3. กำหนดปีที่จะตรวจสอบ (รองรับทั้ง ค.ศ. และ พ.ศ.)
-    const currentYear = new Date().getFullYear();
+    // 3. กำหนดปีที่จะตรวจสอบ = ปีการลาปัจจุบัน (1 ธ.ค. – 30 พ.ย. · เดือนธันวาคมนับเป็นปีถัดไป) รองรับทั้ง ค.ศ. และ พ.ศ.
+    const currentYear = typeof window.getCurrentLeaveYear === 'function'
+      ? Number(window.getCurrentLeaveYear())
+      : (new Date().getMonth() === 11 ? new Date().getFullYear() + 1 : new Date().getFullYear());
     const thaiYear = currentYear + 543;
 
     // 4. ดึงรายการที่มีอยู่ใน employee_leave_balances
