@@ -1430,7 +1430,7 @@ window.openLeaveApprovalOrDetail = function(leaveId) {
   if (btnApproval) {
     if (isApprover) {
       btnApproval.href = `/pages/approver/leave-approvals.html?search=${encodeURIComponent(empName)}&tab=${leave.status === 'pending' ? 'pending' : 'history'}`;
-      btnApproval.innerHTML = `<span class="material-symbols-outlined" style="font-size: 16px;">fact_check</span> ไปหน้าตรวจใบลา / อนุมัติ`;
+      btnApproval.innerHTML = `<span class="material-symbols-outlined" style="font-size: 16px;">fact_check</span> ไปหน้าสถานะใบลา / อนุมัติ`;
       btnApproval.title = 'ไปยังหน้าระบบอนุมัติใบลา';
     } else {
       btnApproval.href = `/pages/user/leave-history.html`;

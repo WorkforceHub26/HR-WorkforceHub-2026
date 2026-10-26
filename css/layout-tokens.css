@@ -40,7 +40,7 @@
   --pvt-sidebar-w-collapsed: 76px;   /* ตอนพับเหลือไอคอน */
 
   /* ขนาดแถบหัว */
-  --pvt-topbar-h: 65px;
+  --pvt-topbar-h: 74px;   /* เดิม 65px: สระ/วรรณยุกต์ไทยด้านบนของชื่อหน้าถูกตัด */
   /* ความสูงรวมจริง = ความสูงแถบ + safe-area (รอยบากบน iPhone) */
   --pvt-topbar-total: calc(var(--pvt-topbar-h) + env(safe-area-inset-top, 0px));
 

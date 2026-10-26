@@ -269,7 +269,7 @@ aside a[href*="home"] .material-symbols-outlined {
   color: var(--th-k-400, #38bdf8) !important; /* Sky Blue */
 }
 
-/* 2. ตรวจใบลา (Leave Checks & Approvals) */
+/* 2. สถานะใบลา (Leave Checks & Approvals) */
 .sidebar a[href*="hr.html"] .material-symbols-outlined,
 .sidebar #navItemLeaveCheck .material-symbols-outlined,
 .nav-menu a[href*="hr.html"] .material-symbols-outlined,

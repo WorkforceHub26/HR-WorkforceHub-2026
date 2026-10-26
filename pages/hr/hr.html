@@ -51,9 +51,9 @@
           <span class="material-symbols-outlined">dashboard</span>
           <span class="pvt-nav__label">หน้าหลัก</span>
         </a>
-        <a href="/pages/hr/hr.html" class="pvt-nav__item active" title="ตรวจใบลา" id="navItemLeaveCheck" aria-current="page">
+        <a href="/pages/hr/hr.html" class="pvt-nav__item active" title="สถานะใบลา" id="navItemLeaveCheck" aria-current="page">
           <span class="material-symbols-outlined">fact_check</span>
-          <span class="pvt-nav__label">ตรวจใบลา</span>
+          <span class="pvt-nav__label">สถานะใบลา</span>
           <span class="pvt-nav__badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
         <a href="/pages/hr/management.html" class="pvt-nav__item" title="ระบบจัดการส่วนกลาง">
@@ -109,7 +109,7 @@
             <span class="material-symbols-outlined">menu</span>
           </button>
           <div class="pvt-topbar__title">
-            <h1 id="pageMainTitle">ระบบอนุมัติใบลา</h1>
+            <h1 id="pageMainTitle">สถานะอนุมัติใบลา</h1>
             <p id="pageSubTitle">LEAVE APPROVALS</p>
           </div>
         </div>
@@ -138,8 +138,8 @@
           <div class="ap-hero-info">
             <span class="ap-hero-icon material-symbols-outlined">fact_check</span>
             <div>
-              <h2>ตรวจและอนุมัติใบลา</h2>
-              <p>ติดตามใบลาที่รอพิจารณา คำร้องขอยกเลิก และประวัติการอนุมัติทั้งหมด (กำหนดพิจารณาภายใน 2 วัน)</p>
+              <h2>ตรวจสอบและอนุมัติใบลา</h2>
+              <p>ติดตามสถานะ คำร้องขอยกเลิก และประวัติการอนุมัติทั้งหมด (กำหนดพิจารณาภายใน 2 วัน)</p>
             </div>
           </div>
           <div class="ap-hero-actions">
@@ -160,11 +160,11 @@
           <button type="button" class="tab-btn ap-stat-tab is-amber active" onclick="switchLeaveTab('pending', this)">
             <span class="ap-stat-tab__label"><span class="material-symbols-outlined">hourglass_top</span>รอพิจารณา</span>
             <span class="ap-stat-tab__value" id="statPendingCount">0 <small>รายการ</small></span>
-            <span class="ap-stat-tab__sub">รอคุณหรือขั้นถัดไป</span>
+            <span class="ap-stat-tab__sub">รอขั้นตอนถัดไป</span>
             <span id="pendingCountBadge" hidden>0</span>
           </button>
           <button type="button" class="tab-btn ap-stat-tab is-violet" onclick="switchLeaveTab('cancellation', this)">
-            <span class="ap-stat-tab__label"><span class="material-symbols-outlined">published_with_changes</span>คำร้องขอยกเลิก</span>
+            <span class="ap-stat-tab__label"><span class="material-symbols-outlined">published_with_changes</span>คำร้องขอยกเลิกใบลา</span>
             <span class="ap-stat-tab__value" id="statCancelCount">0 <small>รายการ</small></span>
             <span class="ap-stat-tab__sub">ขอยกเลิกหลังอนุมัติ</span>
             <span id="cancelCountBadge" hidden>0</span>

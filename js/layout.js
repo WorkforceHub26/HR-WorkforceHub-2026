@@ -157,6 +157,41 @@
   }
 
   /* ------------------------------------------------------------------
+     7.1) อ่านบัญชีที่เข้าระบบอยู่ (localStorage.currentUser) แล้วใส่ที่มุมขวาบน
+          บรรทัดล่าง = แผนก (ถ้ามี) · รหัสพนักงาน
+     ------------------------------------------------------------------ */
+  var ROLE_LABEL = {
+    superadmin: 'ผู้ดูแลระบบขั้นสูง', admin: 'ผู้ดูแลระบบ', hr: 'ฝ่ายบุคคล (HR)', hr_manager: 'ผู้จัดการฝ่ายบุคคล',
+    executive: 'ผู้บริหาร', director: 'ผู้บริหาร', owner: 'เจ้าของ',
+    manager: 'ผู้อนุมัติ', leader: 'ผู้อนุมัติ', supervisor: 'ผู้อนุมัติ', user: 'พนักงาน'
+  };
+  function readCurrentUser() {
+    try {
+      var raw = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+      var u = raw ? JSON.parse(raw) : null;
+      return (u && (u.employees || u)) || null;
+    } catch (e) { return null; }
+  }
+  function fillCurrentUser() {
+    var u = readCurrentUser();
+    if (!u || !(u.full_name || u.employee_code)) return;
+    var role = String(u.role || '').toLowerCase().trim();
+    var dept = u.department_name || (u.departments && u.departments.department_name) || '';
+    var parts = [dept, u.employee_code ? 'รหัส ' + u.employee_code : ''];   // บรรทัดล่าง: แผนก · รหัส (สิทธิ์ยาวไป ไม่แสดง)
+    var roleDept = parts.filter(function (x) { return x; }).join(' · ');
+    var avatarUrl = '';
+    try {
+      var placeholder = typeof window.pvtIsPlaceholderAvatar === 'function' ? window.pvtIsPlaceholderAvatar(u.image_url) : !u.image_url;
+      if (u.image_url && !placeholder && typeof window.getAvatarUrl === 'function') avatarUrl = window.getAvatarUrl(u.image_url);
+    } catch (e) { avatarUrl = ''; }
+    var avatarEl = $('#headerUserAvatar');
+    if (avatarEl && avatarEl.querySelector('img') && !avatarUrl) avatarUrl = avatarEl.querySelector('img').src; // คงรูปที่ใส่ไว้แล้ว
+    setUser({ name: u.full_name || u.employee_code, roleDept: roleDept, avatarUrl: avatarUrl });
+    var box = $('#headerUserProfile');
+    if (box) box.title = (u.full_name || '') + (u.employee_code ? ' (รหัส ' + u.employee_code + ')' : '');
+  }
+
+  /* ------------------------------------------------------------------
      8) API: เปลี่ยนชื่อหน้าบนแถบหัว (และชื่อแท็บของเบราว์เซอร์)
      ------------------------------------------------------------------ */
   function setPageTitle(title, subtitle) {
@@ -272,6 +307,11 @@
     window.matchMedia(MOBILE_QUERY).addEventListener('change', function (e) { if (!e.matches) closeMobile(); });
 
     highlightActiveNav();
+
+    // 10.5.1 โปรไฟล์มุมขวาบน = บัญชีที่เข้าระบบอยู่ (เดิมเป็นข้อความตายตัว "ผู้ดูแลระบบ / เจ้าหน้าที่ HR")
+    fillCurrentUser();
+    window.addEventListener('load', fillCurrentUser);        // รอบสอง: ตอนนี้มีตัวแปลงรูปโปรไฟล์ (supabase-config.js) แล้ว
+    window.addEventListener('storage', function (e) { if (e.key === 'currentUser') fillCurrentUser(); });
 
     // 10.6 เปิดแอนิเมชันหลังจัดสถานะเสร็จ (รอ 2 เฟรมให้เบราว์เซอร์วาดสถานะเริ่มต้นก่อน)
     window.requestAnimationFrame(function () {

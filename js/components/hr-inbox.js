@@ -17,7 +17,7 @@
    - เข้าระบบครั้งแรกของรอบ (session) ถ้ามีงานค้าง → การ์ดแจ้งมุมขวาล่าง
    - อัปเดตทุก 1 นาที + ทันทีเมื่อฐานข้อมูลเปลี่ยน (Supabase Realtime ถ้าเปิดไว้)
    - มีรายการใหม่ระหว่างเปิดหน้า → การ์ดแจ้ง "รายการใหม่"
-   - ตัวเลขบนเมนู "ตรวจใบลา" / "ระบบจัดการส่วนกลาง" และบนชื่อแท็บเบราว์เซอร์
+   - ตัวเลขบนเมนู "สถานะใบลา" / "ระบบจัดการส่วนกลาง" และบนชื่อแท็บเบราว์เซอร์
    ========================================================================== */
 (function () {
   'use strict';
@@ -316,9 +316,9 @@
   const ICON_CLOSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
 
   const GROUPS = [
-    { id: 'mine', title: 'ใบลารอคุณอนุมัติ', more: '/pages/hr/hr.html', moreText: 'ไปหน้าตรวจใบลา' },
-    { id: 'hrstep', title: 'ใบลารอฝ่ายบุคคลพิจารณา', more: '/pages/hr/hr.html', moreText: 'ไปหน้าตรวจใบลา' },
-    { id: 'cancel', title: 'คำขอยกเลิกใบลา', more: '/pages/hr/hr.html', moreText: 'ไปหน้าตรวจใบลา' },
+    { id: 'mine', title: 'ใบลารอคุณอนุมัติ', more: '/pages/hr/hr.html', moreText: 'ไปหน้าสถานะใบลา' },
+    { id: 'hrstep', title: 'ใบลารอฝ่ายบุคคลพิจารณา', more: '/pages/hr/hr.html', moreText: 'ไปหน้าสถานะใบลา' },
+    { id: 'cancel', title: 'คำขอยกเลิกใบลา', more: '/pages/hr/hr.html', moreText: 'ไปหน้าสถานะใบลา' },
     { id: 'profile', title: 'คำขอแก้ไขข้อมูลพนักงาน', more: '/pages/hr/management.html?open=change-requests', moreText: 'เปิดรายการคำขอ' },
     { id: 'confirm', title: 'พนักงานแจ้งแก้ไขสรุปวันลา', more: '/pages/hr/management.html?open=leave-confirm', moreText: 'เปิดหน้าติดตาม' }
   ];

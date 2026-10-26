@@ -18,7 +18,7 @@
    01. Base — พื้นหลังและฟอนต์
    02. Layout adapter — .pvt-page + ปรับ Sidebar
    03. ปุ่ม (.hm-btn)
-   04. หัวหน้า (คำอธิบาย + ปุ่มซิงค์ / ไปตรวจใบลา)
+   04. หัวหน้า (คำอธิบาย + ปุ่มซิงค์ / ไปสถานะใบลา)
    05. กระดิ่งแจ้งเตือน + dropdown (Topbar)
    06. แถบเตือน SLA 2 วัน
    07. การ์ดตัวเลข 4 ใบ
@@ -1337,7 +1337,7 @@
 #page-hr-home .summary-grid .stat-val.warning { color: var(--hm-amber); }
 #page-hr-home .summary-grid .stat-val.primary { color: var(--hm-primary); }
 
-/* การ์ดที่คลิกไปหน้าตรวจใบลาได้ */
+/* การ์ดที่คลิกไปหน้าสถานะใบลาได้ */
 #page-hr-home .summary-grid > .is-clickable {
   cursor: pointer;
 }

@@ -42,7 +42,7 @@
         <div class="pvt-sidebar__logo">
           <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" />
         </div>
-        <div class="pvt-sidebar__name">PVTT WORKFORCE HUB</div>
+        <div class="pvt-sidebar__name">PVT&T WORKFORCE HUB</div>
         <div class="pvt-sidebar__subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
         <button type="button" class="pvt-sidebar__close" aria-label="ปิดเมนู" title="ปิดเมนู">
           <span class="material-symbols-outlined">close</span>
@@ -56,9 +56,9 @@
           <span class="material-symbols-outlined">dashboard</span>
           <span class="pvt-nav__label">หน้าหลัก</span>
         </a>
-        <a href="/pages/hr/hr.html" class="pvt-nav__item" title="ตรวจใบลา" id="navItemLeaveCheck">
+        <a href="/pages/hr/hr.html" class="pvt-nav__item" title="สถานะใบลา" id="navItemLeaveCheck">
           <span class="material-symbols-outlined">fact_check</span>
-          <span class="pvt-nav__label">ตรวจใบลา</span>
+          <span class="pvt-nav__label">สถานะใบลา</span>
           <span class="pvt-nav__badge" id="sidebarSlaPendingBadge" style="display: none;">0</span>
         </a>
         <a href="/pages/hr/management.html" class="pvt-nav__item active" title="ระบบจัดการส่วนกลาง" aria-current="page">
@@ -115,7 +115,7 @@
           </button>
           <div class="pvt-topbar__title">
             <h1>ระบบจัดการส่วนกลาง</h1>
-            <p>HR DASHBOARD</p>
+            <p>Central Administration System</p>
           </div>
         </div>
 
@@ -137,45 +137,45 @@
 
       <!-- SECTION 1: เมนูบริหารจัดการ HR — 3 กลุ่ม รายการแบบเดียวกันทั้งหมด (css/hr-menu.css)
            คงคลาส action-btn และ onclick เดิมไว้ (management.js ใช้ซ่อนปุ่มในโหมดดูอย่างเดียว) -->
-      <div class="section-title">
+      <!-- <div class="section-title">
         <span class="material-symbols-outlined">admin_panel_settings</span>
         <span>เมนูบริหารจัดการ HR</span>
-      </div>
+      </div> -->
       <div class="hr-menu">
         <section class="hr-menu__group is-people">
           <header class="hr-menu__head">
             <span class="material-symbols-outlined">group</span>
-            <div><h3>จัดการบุคลากร</h3><p>ข้อมูลพนักงาน แผนก และสายอนุมัติ</p></div>
+            <div><h3>การจัดการบุคลากร</h3><p>ข้อมูลพนักงาน แผนก และสายอนุมัติ</p></div>
           </header>
           <div class="hr-menu__list">
             <button type="button" onclick="addNewEmployee()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">person_add</span>
-              <span class="hr-menu__text"><strong>เพิ่มพนักงานใหม่</strong><small>สร้างบัญชีพนักงานทีละคน</small></span>
+              <span class="hr-menu__text"><strong>เพิ่มพนักงานใหม่</strong><small>สร้างบัญชีใหม่(พนักงานใหม่)</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="editEmployeeData()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">manage_accounts</span>
-              <span class="hr-menu__text"><strong>แก้ไขข้อมูล / ตำแหน่ง</strong><small>ชื่อ แผนก ตำแหน่ง บทบาท สถานะ</small></span>
+              <span class="hr-menu__text"><strong>แก้ไขข้อมูลพนักงาน</strong><small>แก้ไขบัญชีพนักงาน(ปรับเปลี่ยนอัพเดทข้อมูล)</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="manageDepartments()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">corporate_fare</span>
-              <span class="hr-menu__text"><strong>จัดการแผนก / ตำแหน่ง</strong><small>เพิ่ม แก้ไข โครงสร้างองค์กร</small></span>
+              <span class="hr-menu__text"><strong>แก้ไขโครงสร้างองค์กร</strong><small>เพิ่ม แก้ไข เปลี่ยนชื่อแผนก/ตำแหน่ง</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="importEmployeesExcel()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">upload_file</span>
-              <span class="hr-menu__text"><strong>อัปเดต / เพิ่มพนักงานด้วย Excel</strong><small>นำเข้าหลายคนพร้อมกัน</small></span>
+              <span class="hr-menu__text"><strong>นำเข้าข้อมูลพนักงานจาก Excel</strong><small>นำเข้าหลายคนพร้อมกัน</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <a href="/pages/hr/approval-chains.html" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">account_tree</span>
-              <span class="hr-menu__text"><strong>ตั้งค่าสายอนุมัติ</strong><small>เลือกผู้อนุมัติแต่ละลำดับ</small></span>
+              <span class="hr-menu__text"><strong>ตั้งค่า/แก้ไข สายอนุมัติ</strong><small>ตั้งค่า แก้ไข ปรับเปลี่ยน ผู้อนุมัติแต่ละลำดับ</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </a>
             <a href="/pages/hr/approval-settings.html" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">notifications_active</span>
-              <span class="hr-menu__text"><strong>แจ้งเตือน LINE & ผู้อนุมัติแทน</strong><small>สิทธิ์ LINE และการมอบหมายแทน</small></span>
+              <span class="hr-menu__text"><strong>ตั้งค่าการแจ้งเตือน LINE</strong><small>ตั้งค่าการแจ้งเตือน LINE และการมอบหมายแทน</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </a>
           </div>
@@ -183,7 +183,7 @@
         <section class="hr-menu__group is-rules">
           <header class="hr-menu__head">
             <span class="material-symbols-outlined">fact_check</span>
-            <div><h3>วันลา กฎระเบียบ & ข่าวสาร</h3><p>โควตา เงื่อนไขการลา วันหยุด และประกาศ</p></div>
+            <div><h3>การจัดการวันลา กฎระเบียบ & ข่าวสาร</h3><p>โควตา เงื่อนไขการลา วันหยุด และประกาศ</p></div>
           </header>
           <div class="hr-menu__list">
             <button type="button" onclick="openLeaveRulesManagerModal()" class="action-btn hr-menu__item">
@@ -193,17 +193,17 @@
             </button>
             <button type="button" onclick="editGlobalLeaveRules()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">rule</span>
-              <span class="hr-menu__text"><strong>ตั้งค่าโควตากลาง</strong><small>สิทธิ์วันลาเริ่มต้นของทุกคน</small></span>
+              <span class="hr-menu__text"><strong>ตั้งค่าโควตาวันหยุด-วันลา</strong><small>ตั้งค่าสิทธิ์วันลาเริ่มต้นของทุกคน</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="editIndividualLeaveBalance()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">tune</span>
-              <span class="hr-menu__text"><strong>ปรับโควตารายบุคคล</strong><small>แก้สิทธิ์วันลาเฉพาะคน</small></span>
+              <span class="hr-menu__text"><strong>ปรับโควตาวันลารายบุคคล</strong><small>แก้สิทธิ์วันลาเฉพาะบุคคล</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="checkAndCreateMissingQuotas()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">sync_saved_locally</span>
-              <span class="hr-menu__text"><strong>ตรวจสอบและสร้างโควตาวันลา</strong><small>สร้างให้คนที่ยังไม่มีโควตา</small></span>
+              <span class="hr-menu__text"><strong>อัพเดทโควตาวันลา</strong><small>อัพเดทให้คนที่ยังไม่มีโควตา</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="resetYearlyLeave()" class="action-btn hr-menu__item">
@@ -213,45 +213,45 @@
             </button>
             <button type="button" onclick="openHolidayManagerModal()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">calendar_month</span>
-              <span class="hr-menu__text"><strong>ปฏิทินวันหยุด</strong><small>วันหยุดประจำปีของบริษัท</small></span>
+              <span class="hr-menu__text"><strong>ตั้งค่าวันหยุดประจำปี</strong><small>ตั้งค่า ปรับเปลี่ยน แก้ไข วันหยุดประจำปีของบริษัท</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <a href="/pages/hr/holiday-swap.html" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">event_repeat</span>
-              <span class="hr-menu__text"><strong>ข้อตกลงวันหยุดพิเศษ</strong><small>แลกวันหยุด ย้ายวันหยุด ทำงานวันหยุด</small></span>
+              <span class="hr-menu__text"><strong>ข้อตกลงวันหยุดพิเศษ</strong><small>แลกวันหยุด ย้ายวันหยุด ทำงานวันหยุด(ตกลงกรณีพิเศษ)</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </a>
             <a href="/pages/hr/news-management.html" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">feed</span>
-              <span class="hr-menu__text"><strong>ศูนย์จัดการข่าวสารองค์กร</strong><small>เปิดแบบเต็มหน้า</small></span>
+              <span class="hr-menu__text"><strong>ศูนย์จัดการข่าวสารองค์กร</strong><small>แจ้งข่าวสารและประกาศขององค์กร แสดงที่หน้าแรก (พนักงาน)</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </a>
-            <button type="button" onclick="openNewsManagerModal()" class="action-btn hr-menu__item">
+            <!-- <button type="button" onclick="openNewsManagerModal()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">campaign</span>
               <span class="hr-menu__text"><strong>จัดการข่าวสารด่วน</strong><small>เพิ่ม/แก้ประกาศในหน้าต่างนี้</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
-            </button>
+            </button> -->
           </div>
         </section>
         <section class="hr-menu__group is-reports">
           <header class="hr-menu__head">
             <span class="material-symbols-outlined">monitoring</span>
-            <div><h3>รายงาน & ตรวจสอบ</h3><p>ส่งออกข้อมูล และประวัติการใช้งานระบบ</p></div>
+            <div><h3>ส่งออกรายงาน & การตรวจสอบข้อมูล</h3><p>ส่งออกข้อมูล และประวัติการใช้งานระบบ</p></div>
           </header>
           <div class="hr-menu__list">
             <button type="button" onclick="exportAllLeaveHistoryExcel()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">table_view</span>
-              <span class="hr-menu__text"><strong>ดึงรายงานโควตา (Excel)</strong><small>โควตาวันลาและประวัติการลาทั้งหมด</small></span>
+              <span class="hr-menu__text"><strong>ดึงรายงานประวัติการลา (Excel)</strong><small>ส่งออกข้อมูลประวัติการลาทั้งหมด</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="window.PVTLeaveConfirm && window.PVTLeaveConfirm.openHrTracker()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">fact_check</span>
-              <span class="hr-menu__text"><strong>ติดตามการยืนยันสรุปการลา</strong><small>รายเดือนแจ้งให้ทราบ · รายปีกดยืนยันก่อนสรุปสิ้นปี · คำแจ้งแก้ไข</small></span>
+              <span class="hr-menu__text"><strong>ยืนยันสรุปการลา</strong><small> (ยืนยันและตรวจสอบข้อมูลการลา) กดยืนยันก่อนสรุปสิ้นปี · คำแจ้งแก้ไข</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="openChangeRequests()" class="action-btn hr-menu__item">
               <span class="hr-menu__icon material-symbols-outlined">rule</span>
-              <span class="hr-menu__text"><strong>คำขอแก้ไขข้อมูลพนักงาน <span id="hrChangeReqBadge" hidden style="margin-left:6px; padding:1px 8px; border-radius:4px; background:#fef3c7; color:#92400e; font-size:12px;"></span></strong><small>ชื่อ · คำนำหน้า · เลขบัญชี · รพ.ที่ล็อกแล้ว</small></span>
+              <span class="hr-menu__text"><strong>คำขอแก้ไขข้อมูลส่วนตัวพนักงาน <span id="hrChangeReqBadge" hidden style="margin-left:6px; padding:1px 8px; border-radius:4px; background:#fef3c7; color:#92400e; font-size:12px;"></span></strong><small>ชื่อ · คำนำหน้า · เลขบัญชี · รพ. ที่ยืนยันแล้ว</small></span>
               <span class="hr-menu__go material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
             <button type="button" onclick="openHospitalReport()" class="action-btn hr-menu__item">
@@ -274,10 +274,10 @@
       </div>
 
         <!-- SECTION 4: ตารางข้อมูลพนักงาน & ประวัติการลา -->
-        <div class="section-title">
+        <!-- <div class="section-title">
           <span class="material-symbols-outlined">badge</span>
           <span>ประวัติพนักงาน</span>
-        </div>
+        </div> -->
         <section class="panel">
           <div class="panel-head">
             <h2>รายชื่อพนักงาน</h2>

@@ -702,7 +702,9 @@
     }
     function totalsFor(emp, yearAD, std) {
       const s = std || DEFAULTS;
-      const v = vacationRight(emp?.start_date || emp?.join_date || emp?.created_at, yearAD);
+      // ใช้วันเริ่มงานเท่านั้น (ไม่ใช้วันที่สร้างบัญชี — บัญชีที่เพิ่งเพิ่มเข้าระบบจะถูกนับเป็นพนักงานใหม่ผิดๆ)
+      // ไม่มีวันเริ่มงาน → ให้สิทธิ์พักร้อนตามปกติ และหน้าสรุปจะแสดงรายชื่อให้ HR ตรวจ
+      const v = vacationRight(emp?.start_date || emp?.join_date, yearAD);
       return {
         sick_total: s.sick, personal_total: s.personal, vacation_total: v.eligible ? s.vacation : 0,
         maternity_total: s.maternity, other_total: s.other, _vacation: v

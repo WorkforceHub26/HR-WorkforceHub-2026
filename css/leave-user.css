@@ -1441,3 +1441,164 @@ div:nth-of-type(3) > button#form-leave-guide-fab:nth-of-type(1),
   }
 }
 
+/* ==========================================================================
+   ✏️ ฟอร์มยื่นใบลา: ช่องกรอบเส้นบาง ชื่อช่องอยู่บนเส้นกรอบ (2026-10-27)
+   - ทุกช่องหน้าตาเหมือนกัน: พื้นขาว เส้นเทาบาง
+   - ช่องที่กำลังกรอก: เส้นและชื่อช่องเป็นสีหลัก + เงาจางๆ · ออกจากช่อง = กลับเป็นสีปกติ
+   - ช่องที่ยังกรอกไม่ได้ (ต้องกรอกช่องก่อนหน้า): พื้นเทาอ่อน ตัวหนังสือจาง
+   - ยกเลิกสีไฮไลท์ "ขั้นตอนถัดไป" / "กรอกแล้ว" / กรอบการ์ดวันที่ (ลายตา)
+   ========================================================================== */
+#page-user-leave .leave-box-item {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 20px 16px !important;
+  gap: 18px !important;
+  box-shadow: none !important;
+}
+#page-user-leave .leave-box-item:hover { border-color: #e2e8f0 !important; box-shadow: none !important; }
+
+/* หัวข้อหมวด: ตัวหนังสือเล็ก สีเทา ไม่มีเส้นสี */
+#page-user-leave .leave-box-item .row-divider {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding-bottom: 6px !important;
+  margin-top: 4px;
+  text-transform: none !important;
+}
+#page-user-leave .leave-box-item .row-divider .material-symbols-outlined { display: none !important; }
+
+/* การ์ดวันที่ → ไม่มีกรอบการ์ด เหลือแค่ช่องกรอก */
+#page-user-leave .leave-box-item .date-input-card,
+#page-user-leave .leave-box-item .date-input-card:hover,
+#page-user-leave .leave-box-item .date-input-card:focus-within,
+#page-user-leave .leave-box-item .date-input-card.highlight-start-card,
+#page-user-leave .leave-box-item .date-input-card.highlight-end-card {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+#page-user-leave .leave-box-item .date-picker-large-grid { gap: 18px !important; }
+
+/* ช่องกรอก: ชื่อช่องวางบนเส้นกรอบ */
+#page-user-leave .leave-box-item .input-group {
+  position: relative !important;
+  gap: 0 !important;
+  margin-top: 8px;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+#page-user-leave .leave-box-item .input-group > label,
+#page-user-leave .leave-box-item .date-input-card > label {
+  position: absolute !important;
+  top: -9px !important;
+  left: 10px !important;
+  z-index: 2;
+  margin: 0 !important;
+  padding: 0 6px !important;
+  max-width: calc(100% - 20px);
+  background: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 18px !important;
+  color: #475569 !important;
+  display: inline-flex !important;
+  gap: 2px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  transition: color .15s ease;
+}
+#page-user-leave .leave-box-item .input-group > label .material-symbols-outlined { display: none !important; }
+
+#page-user-leave .leave-box-item .input-group input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+#page-user-leave .leave-box-item .input-group select,
+#page-user-leave .leave-box-item .input-group textarea,
+#page-user-leave .leave-box-item .input-group .file-upload-label,
+#page-user-leave .leave-box-item .input-group input.large-date-field,
+#page-user-leave .leave-box-item .input-group input.flatpickr-input {
+  height: 50px !important;
+  min-height: 50px;
+  border: 1.5px solid #cbd5e1 !important;
+  border-style: solid !important;
+  border-radius: 8px !important;
+  background-color: #ffffff !important;
+  box-shadow: none !important;
+  padding: 0 14px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  color: #0f172a !important;
+  opacity: 1 !important;
+  transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+#page-user-leave .leave-box-item .input-group select { padding-right: 40px !important; }
+#page-user-leave .leave-box-item .input-group .file-upload-label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+#page-user-leave .leave-box-item .input-group input::placeholder { color: #94a3b8 !important; font-weight: 400 !important; }
+
+/* ช่องที่กำลังกรอก → ไฮไลท์บางๆ */
+#page-user-leave .leave-box-item .input-group:focus-within > label { color: var(--primary, #0d9488) !important; }
+#page-user-leave .leave-box-item .input-group:focus-within input:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+#page-user-leave .leave-box-item .input-group:focus-within select,
+#page-user-leave .leave-box-item .input-group:focus-within textarea,
+#page-user-leave .leave-box-item .input-group input.flatpickr-input.active {
+  border-color: var(--primary, #0d9488) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #0d9488) 12%, transparent) !important;
+}
+
+/* ช่องที่ยังกรอกไม่ได้ / อ่านอย่างเดียว */
+#page-user-leave .leave-box-item .input-group input:disabled:not([type="radio"]):not([type="file"]):not([type="hidden"]),
+#page-user-leave .leave-box-item .input-group select:disabled:not([multiple]):not([size]),
+#page-user-leave .leave-box-item .input-group .custom-file-upload:has(input:disabled) .file-upload-label,
+#page-user-leave .leave-box-item .input-group input[name="write_date"]:not([type="radio"]):not([type="file"]):not([type="hidden"]) {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+}
+#page-user-leave .leave-box-item .input-group:has(input:disabled:not([type="hidden"]):not([type="radio"])) > label,
+#page-user-leave .leave-box-item .input-group:has(select:disabled) > label { color: #94a3b8 !important; }
+/* ชื่อช่องของช่องพื้นเทา: ครึ่งบนขาว ครึ่งล่างเทา ให้กลืนกับเส้นกรอบ */
+#page-user-leave .leave-box-item .input-group:has(input:disabled:not([type="hidden"]):not([type="radio"])) > label,
+#page-user-leave .leave-box-item .input-group:has(select:disabled) > label,
+#page-user-leave .leave-box-item .input-group:has(.custom-file-upload input:disabled) > label,
+#page-user-leave .leave-box-item .input-group:has(input[name="write_date"]) > label {
+  background: linear-gradient(#ffffff 50%, #f8fafc 50%) !important;
+}
+#page-user-leave .leave-box-item .input-group:has(.custom-file-upload input:disabled) > label { color: #94a3b8 !important; }
+#page-user-leave .leave-box-item .input-group input[name="write_date"]:not([type="radio"]):not([type="file"]):not([type="hidden"]) { color: #475569 !important; }
+#page-user-leave .leave-box-item .input-group:has(input[name="write_date"]) > label { color: #475569 !important; }
+
+
+/* ยกเลิกสีไฮไลท์ "ขั้นตอนถัดไป" และ "กรอกแล้ว" ของระบบเดิม */
+#page-user-leave .leave-box-item .leave-field-active,
+#page-user-leave .leave-box-item .leave-field-completed {
+  outline: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+#page-user-leave .leave-box-item .leave-field-active::before,
+#page-user-leave .leave-box-item .leave-field-active::after,
+#page-user-leave .leave-box-item .leave-field-completed::before,
+#page-user-leave .leave-box-item .leave-field-completed::after { display: none !important; content: none !important; }
+
+/* รูปแบบการลา (เต็มวัน / ไม่เต็มวัน) ให้เข้าชุดกัน */
+#page-user-leave .leave-box-item .leave-duration-option { border-radius: 8px !important; border-width: 1.5px !important; border-style: solid !important; }
+#page-user-leave .leave-box-item .leave-duration-option:has(input:disabled) { background: #f8fafc !important; border-color: #e2e8f0 !important; }
+#page-user-leave .leave-box-item .leave-duration-mode-options.leave-field-active,
+#page-user-leave .leave-box-item .leave-duration-mode-options.leave-field-completed { background: transparent !important; border: 0 !important; padding: 0 !important; }
+
+/* ช่องสรุปและสถานะอนุมัติ: อ่านอย่างเดียว ไม่ต้องเด่น */
+#page-user-leave .leave-box-item .badge-status { height: 44px !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; background: #f8fafc !important; font-size: 14px !important; }

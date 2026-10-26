@@ -1164,7 +1164,7 @@ async function addLeaveRow() {
   boxItem.innerHTML = `
     <div class="row-divider" style="display: flex; align-items: center; gap: 6px;">
       <span class="material-symbols-outlined" style="font-size: 18px; color: var(--primary);">calendar_month</span>
-      <span>หมวดหมู่ที่ 1: วันที่และกรอบเวลาการลา (คลิกเพื่อเลือกวันเต็มจอ)</span>
+      <span>1. วันที่ลา</span>
     </div>
     <div class="date-picker-large-grid">
       <div class="input-group date-input-card">
@@ -1176,19 +1176,19 @@ async function addLeaveRow() {
       <div class="input-group date-input-card highlight-start-card">
         <label><span class="material-symbols-outlined" style="font-size: 18px; color: var(--th-s-600, #0891b2);">calendar_today</span> เริ่มวันที่ลา <span style="color:#ef4444;">*</span></label>
         <div class="large-date-input-wrapper">
-          <input type="text" name="start_date" placeholder="📅 คลิกเพื่อเลือกวันเริ่มลา..." readonly class="large-date-field start-date-picker" style="background-color: #fff; cursor: pointer;">
+          <input type="text" name="start_date" placeholder="แตะเพื่อเลือกวัน" readonly class="large-date-field start-date-picker" style="background-color: #fff; cursor: pointer;">
         </div>
       </div>
       <div class="input-group date-input-card highlight-end-card">
         <label><span class="material-symbols-outlined" style="font-size: 18px; color: #059669;">event</span> สิ้นสุดวันที่ลา <span style="color:#ef4444;">*</span></label>
         <div class="large-date-input-wrapper">
-          <input type="text" name="end_date" placeholder="📅 คลิกเพื่อเลือกวันสิ้นสุด..." readonly class="large-date-field end-date-picker" style="background-color: #fff; cursor: pointer;">
+          <input type="text" name="end_date" placeholder="แตะเพื่อเลือกวัน" readonly class="large-date-field end-date-picker" style="background-color: #fff; cursor: pointer;">
         </div>
       </div>
     </div>
 
     <div class="row-divider">
-      <span>หมวดหมู่ที่ 2: รายละเอียดประเภทการลาและหลักฐาน</span>
+      <span>2. ประเภทและเหตุผล</span>
     </div>
     <div class="grid-row-3">
       <div class="input-group">
@@ -1198,19 +1198,19 @@ async function addLeaveRow() {
         </select>
       </div>
       <div class="input-group">
-        <label>สาเหตุ / เหตุผลการลา <span style="color:#ef4444;">*</span></label>
-        <input type="text" placeholder="ระบุเหตุผลความจำเป็น..." name="reason" disabled required>
+        <label>เหตุผลการลา <span style="color:#ef4444;">*</span></label>
+        <input type="text" placeholder="เช่น ไปหาหมอ" name="reason" disabled required>
       </div>
       <div class="input-group">
-        <label>แนบหลักฐานรูปภาพ</label>
+        <label>รูปหลักฐาน</label>
         <div class="custom-file-upload">
-          <label class="file-upload-label" id="label_${uniqueId}" for="${uniqueId}" style="opacity:0.5; pointer-events:none;">📁 เลือกรูปภาพหลักฐาน</label>
+          <label class="file-upload-label" id="label_${uniqueId}" for="${uniqueId}" style="opacity:0.5; pointer-events:none;">แตะเพื่อเลือกรูป (ถ้ามี)</label>
           <input type="file" id="${uniqueId}" accept="image/*" disabled onchange="handleFileChange(this, 'label_${uniqueId}')">
         </div>
       </div>
     </div>
 
-    <div class="row-divider">หมวดหมู่ที่ 3: รูปแบบและช่วงเวลาที่ขอลา</div>
+    <div class="row-divider">3. ลาเต็มวัน หรือไม่เต็มวัน</div>
 
     <div class="leave-duration-mode-options" style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:2px 0 12px;">
       <label class="leave-duration-option" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:1.5px solid #cbd5e1; border-radius:12px; background:#ffffff; cursor:pointer; min-width:0;">
@@ -1259,7 +1259,7 @@ async function addLeaveRow() {
 
     <div class="split-preview-container" style="display:none; margin-top:15px;"></div>
 
-    <div class="row-divider">หมวดหมู่ที่ 4: สถานะผลการพิจารณาและอนุมัติ</div>
+    <div class="row-divider">4. ผลการพิจารณา</div>
     ${(() => {
       const formSteps = getLeaveFormSteps();
       const gridCols = formSteps.length;
@@ -1468,7 +1468,7 @@ function handleFileChange(input, labelId) {
         confirmButtonColor: '#f59e0b'
       });
       input.value = "";
-      label.innerText = '📁 เลือกรูปภาพหลักฐาน';
+      label.innerText = 'แตะเพื่อเลือกรูป (ถ้ามี)';
       label.style.borderColor = 'var(--border)';
       label.style.color = 'var(--muted)';
       refreshLeaveFieldStates(boxItem);
@@ -1565,7 +1565,7 @@ function handleFileChange(input, labelId) {
     };
     reader.readAsDataURL(file);
   } else {
-    label.innerText = '📁 เลือกรูปภาพหลักฐาน';
+    label.innerText = 'แตะเพื่อเลือกรูป (ถ้ามี)';
     label.style.borderColor = 'var(--border)';
     label.style.color = 'var(--muted)';
     refreshLeaveFieldStates(boxItem);

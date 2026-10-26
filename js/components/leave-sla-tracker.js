@@ -414,7 +414,7 @@
             </div>
             <div class="sla-tracker-title-text">
               <h3>
-                ระบบติดตามกรอบเวลาอนุมัติใบลา (2-Day SLA Countdown)
+                รายการใบลาตามกรอบเวลาอนุมัติใบลา (2-Day SLA Countdown)
                 ${overdueCount > 0 ? `<span class="sla-overdue-badge" style="background: #ef4444; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 700; white-space: nowrap;">เกินกำหนด ${overdueCount} รายการ</span>` : ''}
               </h3>
               <p>นโยบายกำหนดให้ผู้อนุมัติ ลำดับที่ 1 และผู้อนุมัติ ลำดับที่ 2 พิจารณาอนุมัติภายใน 48 ชั่วโมง (2 วันทำการ)</p>
@@ -938,7 +938,7 @@
         showCancelButton: true,
         cancelButtonText: 'ปิด',
         cancelButtonColor: '#94a3b8',
-        confirmButtonText: '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">fact_check</span> ไปที่หน้าตรวจใบลา',
+        confirmButtonText: '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">fact_check</span> ไปที่หน้าสถานะใบลา',
         confirmButtonColor: 'var(--th-p-600, #0d9488)'
       }).then((res) => {
         if (res.isConfirmed) {
@@ -968,7 +968,7 @@
         window.showSlaLeaveDetails(leaveId);
       }
     } else {
-      // หน้า home.html หรือหน้าอื่นๆ -> ส่งต่อไปยังหน้าตรวจใบลาพร้อมเปิดพิจารณา
+      // หน้า home.html หรือหน้าอื่นๆ -> ส่งต่อไปยังหน้าสถานะใบลาพร้อมเปิดพิจารณา
       window.location.href = `${getApprovalPageUrl()}?id=${leaveId}&action=review`;
     }
   };

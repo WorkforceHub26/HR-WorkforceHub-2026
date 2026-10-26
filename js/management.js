@@ -154,7 +154,8 @@ function downloadBlob(filename, content, mimeType = "text/plain;charset=utf-8") 
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  // ปล่อยหน่วยความจำทีหลัง (ปล่อยทันทีบางเบราว์เซอร์ยกเลิกการดาวน์โหลด)
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
 // ==========================================
@@ -643,7 +644,7 @@ async function resetYearlyLeave(isForce = false) {
 
     const KINDS = ['sick', 'personal', 'vacation', 'maternity', 'other'];
     const toUpsert = [];
-    const stat = { newRows: 0, kept: 0, reset: 0, noVacation: [], midCycle: [], changedVsStd: 0 };
+    const stat = { newRows: 0, kept: 0, reset: 0, noVacation: [], midCycle: [], noStart: [], changedVsStd: 0 };
 
     for (const emp of employeesList) {
       const calc = Q.totalsFor(emp, targetYearAD, std);
@@ -655,7 +656,8 @@ async function resetYearlyLeave(isForce = false) {
       const keepSource = existingAD || existingBE;
       const keep = !force && !!keepSource;
       if (!keepSource) stat.newRows++; else if (keep) stat.kept++; else stat.reset++;
-      if (!calc._vacation.eligible) stat.noVacation.push(emp);
+      if (calc._vacation.unknownStart) stat.noStart.push(emp);
+      else if (!calc._vacation.eligible) stat.noVacation.push({ emp, from: calc._vacation.from });
       else if (calc._vacation.midCycle) stat.midCycle.push({ emp, from: calc._vacation.from });
 
       let differs = false;
@@ -672,36 +674,63 @@ async function resetYearlyLeave(isForce = false) {
       if (differs) stat.changedVsStd++;
     }
 
-    // ── หน้าสรุปก่อนบันทึก ──
+    // ── หน้าสรุปก่อนบันทึก (สูงไม่เกินจอ · รายชื่อพับเก็บได้ · เลื่อนดูในกล่อง) ──
     const esc = (v) => (typeof escapeHtml === 'function' ? escapeHtml(String(v ?? '')) : String(v ?? ''));
-    const thai = (d) => (window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(d) : d);
-    const listOf = (arr, fmt, max = 12) => arr.length
-      ? `<ul style="margin:4px 0 0 18px; padding:0; max-height:150px; overflow:auto;">${arr.slice(0, max).map(fmt).join('')}${arr.length > max ? `<li>และอีก ${arr.length - max} คน</li>` : ''}</ul>`
-      : '<div style="color:#64748b;">-</div>';
+    const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    const thai = (d) => {
+      const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m ? `${Number(m[3])} ${TH_M[Number(m[2]) - 1]} ${Number(m[1]) + 543}` : '-';
+    };
+    const rowsBox = (items, cols) => items.length
+      ? `<div style="max-height:190px !important; overflow-y:auto !important; border:1px solid #e2e8f0; border-radius:6px; margin-top:6px;">
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            ${items.map((it, k) => `<tr style="background:${k % 2 ? '#f8fafc' : '#fff'};">${cols(it).map((c, ci) => `<td style="padding:5px 10px; ${ci === 0 ? 'width:90px; color:#64748b;' : ''} ${ci === 2 ? 'text-align:right; white-space:nowrap; color:#475569;' : ''}">${c}</td>`).join('')}</tr>`).join('')}
+          </table></div>`
+      : '';
+    const section = (title, hint, items, cols, open) => `
+      <details ${open && items.length ? 'open' : ''} style="margin-top:10px; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; background:#fff;">
+        <summary style="cursor:pointer; font-weight:700; color:#0f172a; list-style:revert;">${title} <span style="display:inline-block; min-width:26px; text-align:center; padding:0 8px; margin-left:4px; border-radius:999px; background:${items.length ? '#e0f2fe' : '#f1f5f9'}; color:${items.length ? '#0369a1' : '#94a3b8'}; font-size:12px;">${items.length}</span>
+          <span style="display:block; font-weight:400; font-size:12px; color:#64748b; margin-top:2px;">${hint}</span></summary>
+        ${rowsBox(items, cols) || '<div style="font-size:13px; color:#94a3b8; margin-top:6px;">ไม่มี</div>'}
+      </details>`;
+    const chip = (label, val) => `<div style="flex:1 1 90px; text-align:center; padding:8px 6px; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc;">
+        <div style="font-size:12px; color:#64748b;">${label}</div><div style="font-size:18px; font-weight:700; color:#0f172a;">${val}</div></div>`;
+    const empCols = (e) => [esc(e.employee_code), esc(e.full_name)];
+
     const preview = await Swal.fire({
       title: `สรุปก่อนบันทึก · ปีการลา ${targetYearBE}`,
-      width: 'min(94vw, 640px)',
-      html: `<div style="text-align:left; font-size:13.5px; line-height:1.6;">
-        <div style="color:#475569;">รอบ ${thai(cyc.start)} – ${thai(cyc.end)} · พนักงาน ${employeesList.length} คน</div>
-        <table style="width:100%; border-collapse:collapse; margin:10px 0; font-size:13px;">
-          <tr style="background:#f1f5f9;"><th style="text-align:left; padding:6px;">ตั้งค่าโควตากลาง (วัน/ปี)</th><th>ป่วย</th><th>กิจ</th><th>พักร้อน</th><th>คลอด</th><th>อื่นๆ</th></tr>
-          <tr><td style="padding:6px;">ค่าที่ใช้</td><td align="center">${std.sick}</td><td align="center">${std.personal}</td><td align="center">${std.vacation}</td><td align="center">${std.maternity}</td><td align="center">${std.other}</td></tr>
-        </table>
-        <div>➕ สร้างใหม่ <b>${stat.newRows}</b> คน · ${force
-          ? `🔁 รีเซ็ตเป็นค่ากลาง <b>${stat.reset}</b> คน (ทับค่าที่ HR ปรับรายคน)`
-          : `✋ คงสิทธิ์เดิมไว้ <b>${stat.kept}</b> คน (อัปเดตเฉพาะวันที่ใช้ไป)${stat.changedVsStd ? ` · ในนี้ <b>${stat.changedVsStd}</b> คนมีสิทธิ์ต่างจากค่ากลาง` : ''}`}</div>
-        <div style="margin-top:10px;"><b>พักร้อน 0 วัน</b> (อายุงานยังไม่ครบ 1 ปีภายใน 30 พ.ย.): ${stat.noVacation.length} คน
-          ${listOf(stat.noVacation, (e) => `<li>${esc(e.employee_code)} ${esc(e.full_name)} <span style="color:#64748b;">เริ่มงาน ${esc(thai(e.start_date || '-'))}</span></li>`)}</div>
-        <div style="margin-top:10px;"><b>ครบ 1 ปีกลางรอบ</b> (ได้พักร้อน ใช้ได้ตั้งแต่วันครบ): ${stat.midCycle.length} คน
-          ${listOf(stat.midCycle, (x) => `<li>${esc(x.emp.employee_code)} ${esc(x.emp.full_name)} <span style="color:#64748b;">ใช้ได้ตั้งแต่ ${esc(thai(x.from))}</span></li>`)}</div>
-        <div style="margin-top:10px; color:#0f766e;">วันลาที่ใช้ไปนับจากใบลาที่อนุมัติแล้วในรอบนี้ · วันที่เหลือของปีก่อนไม่ยกยอด</div>
+      width: 'min(94vw, 720px)',
+      customClass: { htmlContainer: 'pvt-quota-preview' },
+      didOpen: (popup) => {
+        try { Swal.hideLoading(); } catch (e) {}
+        const hc = popup.querySelector('.swal2-html-container');
+        if (hc) { hc.style.maxHeight = 'calc(100vh - 230px)'; hc.style.overflowY = 'auto'; hc.style.margin = '8px 0 0'; hc.style.padding = '0 16px'; }
+      },
+      html: `<div style="text-align:left; font-size:14px; line-height:1.55;">
+        <div style="color:#475569;">รอบ ${thai(cyc.start)} – ${thai(cyc.end)} · พนักงานที่ทำงานอยู่ ${employeesList.length} คน</div>
+
+        <div style="margin-top:12px; font-size:12.5px; font-weight:700; color:#475569;">โควตาที่ใช้ (วัน/ปี) · จากตั้งค่าโควตากลาง</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+          ${chip('ป่วย', std.sick)}${chip('กิจ', std.personal)}${chip('พักร้อน', std.vacation)}${chip('คลอด', std.maternity)}${chip('อื่นๆ', std.other)}
+        </div>
+
+        <div style="margin-top:12px; padding:10px 12px; border-radius:8px; background:${force ? '#fff7ed' : '#f0fdfa'}; border:1px solid ${force ? '#fed7aa' : '#99f6e4'}; font-size:13.5px;">
+          สร้างใหม่ <b>${stat.newRows}</b> คน · ${force
+            ? `รีเซ็ตเป็นค่ากลาง <b>${stat.reset}</b> คน <span style="color:#9a3412;">(ทับค่าที่ HR ปรับรายคน)</span>`
+            : `คงสิทธิ์เดิม <b>${stat.kept}</b> คน (อัปเดตเฉพาะวันที่ใช้ไป)${stat.changedVsStd ? ` · ในนี้ ${stat.changedVsStd} คนมีสิทธิ์ต่างจากค่ากลาง` : ''}`}
+        </div>
+
+        ${section('ยังไม่ได้กรอกวันเริ่มงาน', 'ได้พักร้อนตามปกติ · ควรกรอกวันเริ่มงานที่ "แก้ไขข้อมูล" เพื่อให้นับอายุงานถูก', stat.noStart, empCols, true)}
+        ${section('พักร้อน 0 วัน', 'อายุงานยังไม่ครบ 1 ปีภายใน 30 พ.ย. · ขวา = วันที่ครบ 1 ปี', stat.noVacation, (x) => [esc(x.emp.employee_code), esc(x.emp.full_name), thai(x.from)], false)}
+        ${section('ครบ 1 ปีกลางรอบ', 'ได้พักร้อนปีนี้ ใช้ได้ตั้งแต่วันที่ครบ 1 ปี (ขวา)', stat.midCycle, (x) => [esc(x.emp.employee_code), esc(x.emp.full_name), thai(x.from)], false)}
+
+        <div style="margin-top:12px; font-size:12.5px; color:#0f766e;">วันลาที่ใช้ไปนับจากใบลาที่อนุมัติแล้วในรอบนี้ · วันที่เหลือของปีก่อนไม่ยกยอด</div>
       </div>`,
       showCancelButton: true,
       confirmButtonText: 'บันทึกโควตา',
       cancelButtonText: 'ยกเลิก',
       confirmButtonColor: 'var(--th-p-600, #0d9488)',
-      cancelButtonColor: '#64748b',
-      didOpen: () => { try { Swal.hideLoading(); } catch (e) {} }
+      cancelButtonColor: '#64748b'
     });
     if (!preview.isConfirmed) return;
 
@@ -1958,7 +1987,8 @@ function exportIndividualLeaveExcel(employeeId) {
   });
 
   const filename = `ประวัติการลา_${emp.employee_code}_${emp.full_name}.csv`;
-  window.pvtSupabase.downloadBlob(filename, csvContent, "text/csv;charset=utf-8;");
+  // ใช้ตัวดาวน์โหลดในไฟล์นี้ (pvtSupabase ไม่มี downloadBlob)
+  downloadBlob(filename, csvContent, "text/csv;charset=utf-8;");
 }
 
 // ==========================================================================
@@ -4392,46 +4422,61 @@ async function editGlobalLeaveRules() {
   if (!supabase || !window.Swal) return;
 
   try {
-    Swal.fire({ title: 'กำลังโหลดประเภทวันลา...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังโหลดประเภทวันลา...', allowOutsideClick: false });
+    Swal.showLoading();
     const { data: rules, error } = await supabase.from('leave_types').select('*').order('created_at', { ascending: true });
     if (error) throw error;
-    Swal.close();
 
-    let tableRowsHTML = rules.map(r => `
-      <tr style="border-bottom:1px solid #e2e8f0;" id="rule-row-${r.id}">
-        <td style="padding:8px; border:1px solid #cbd5e1;">
-          <input type="text" id="rule-name-${r.id}" class="swal2-input" value="${escapeHtml(r.leave_name)}" style="margin:0; height:36px; font-size:13px; width:100%;">
-          <small style="color:#64748b; font-size:10px;">รหัส: ${escapeHtml(r.leave_code)}</small>
+    const isActive = (r) => String(r.status || 'active').toLowerCase() === 'active';
+    const btn = (bg, color, border) => `padding:6px 10px; background:${bg}; color:${color}; border:1px solid ${border}; border-radius:4px; cursor:pointer; font-size:12.5px; font-weight:600; white-space:nowrap;`;
+    // เรียงประเภทที่เปิดใช้ก่อน ที่ปิดไว้อยู่ท้าย
+    const sorted = (rules || []).slice().sort((a, b) => (isActive(b) - isActive(a)));
+    const tableRowsHTML = sorted.map(r => {
+      const on = isActive(r);
+      const q = Number(r.yearly_quota) || 0;
+      return `
+      <tr style="border-bottom:1px solid #e2e8f0; ${on ? '' : 'background:#f8fafc; color:#94a3b8;'}" id="rule-row-${r.id}">
+        <td style="padding:10px 12px; border:1px solid #e2e8f0;">
+          <div style="font-weight:600; ${on ? 'color:#0f172a;' : ''}">${escapeHtml(r.leave_name)}${on ? '' : ' <span style="font-size:11px; font-weight:600; color:#64748b; background:#e2e8f0; border-radius:999px; padding:1px 8px; margin-left:4px;">ปิดใช้งาน</span>'}</div>
+          <small style="color:#94a3b8; font-size:11px;">รหัส: ${escapeHtml(r.leave_code || '-')}</small>
         </td>
-        <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
-          <input type="number" id="rule-quota-${r.id}" class="swal2-input" value="${r.yearly_quota || 0}" step="0.5" min="0" style="margin:0; height:36px; font-size:13px; text-align:center; width:80px;">
+        <td style="padding:10px 12px; border:1px solid #e2e8f0; text-align:center; font-weight:600;">
+          ${q > 0 ? `${q} วัน` : '<span style="color:#94a3b8; font-weight:400;">ยังไม่ตั้ง</span>'}
         </td>
-        <td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">
-          <button type="button" onclick="saveSingleLeaveRule('${r.id}')" style="padding:4px 8px; background:var(--th-p-600, #0d9488); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px;">💾 บันทึก</button>
+        <td style="padding:8px; border:1px solid #e2e8f0; text-align:center;">
+          <div style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+            <button type="button" onclick="editLeaveTypeModal('${r.id}')" style="${btn('#ffffff', 'var(--th-p-700, #0f766e)', 'var(--th-p-300, #5eead4)')}">✏️ แก้ไข</button>
+            ${on
+              ? `<button type="button" onclick="actionDeleteLeaveType('${r.id}')" style="${btn('#ffffff', '#dc2626', '#fca5a5')}">🗑 ลบ</button>`
+              : `<button type="button" onclick="actionRestoreLeaveType('${r.id}')" style="${btn('#ffffff', '#475569', '#cbd5e1')}">↩ เปิดใช้อีกครั้ง</button>`}
+          </div>
         </td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
+    window.__pvtLeaveTypeRows = {};
+    (rules || []).forEach((r) => { window.__pvtLeaveTypeRows[r.id] = r; });
 
     await Swal.fire({
       title: '⚙️ ตั้งค่าโควตากลาง & แก้ไขชื่อประเภทวันลา',
-      width: 'min(92vw, 650px)',
+      width: 'min(94vw, 760px)',
       html: `
-        <div style="font-family:'Sarabun', sans-serif; text-align:left; margin-bottom:12px;">
-          <button type="button" onclick="addNewLeaveTypeModal()" class="action-btn success-zone" style="font-size:12px; padding:6px 12px;">
+        <div style="font-family:'Sarabun', sans-serif; text-align:left; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <button type="button" onclick="addNewLeaveTypeModal()" class="action-btn success-zone" style="font-size:12.5px; padding:7px 14px;">
             ➕ เพิ่มประเภทการลาใหม่
           </button>
+          <span style="font-size:12px; color:#64748b;">โควตา "ยังไม่ตั้ง" = ระบบใช้ค่าเริ่มต้น (ป่วย 30 · กิจ 6 · พักร้อน 6 · คลอด 98 · อื่นๆ 30)</span>
         </div>
-        <div style="max-height: 350px; overflow-y: auto; font-family:'Sarabun', sans-serif;">
-          <table style="width:100%; text-align:left; font-size:13px; border-collapse:collapse;">
+        <div style="max-height: 420px; overflow-y: auto; font-family:'Sarabun', sans-serif;">
+          <table style="width:100%; text-align:left; font-size:13.5px; border-collapse:collapse;">
             <thead>
               <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
-                <th style="padding:8px; border:1px solid #cbd5e1;">ชื่อประเภทการลา</th>
-                <th style="padding:8px; border:1px solid #cbd5e1; width:100px; text-align:center;">โควตา (วัน/ปี)</th>
-                <th style="padding:8px; border:1px solid #cbd5e1; width:80px; text-align:center;">จัดการ</th>
+                <th style="padding:10px 12px; border:1px solid #e2e8f0;">ชื่อประเภทการลา</th>
+                <th style="padding:10px 12px; border:1px solid #e2e8f0; width:120px; text-align:center;">โควตา (วัน/ปี)</th>
+                <th style="padding:10px 12px; border:1px solid #e2e8f0; width:200px; text-align:center;">จัดการ</th>
               </tr>
             </thead>
             <tbody>
-              ${tableRowsHTML}
+              ${tableRowsHTML || '<tr><td colspan="3" style="padding:16px; text-align:center; color:#94a3b8;">ยังไม่มีประเภทการลา</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -4446,30 +4491,46 @@ async function editGlobalLeaveRules() {
   }
 }
 
-// ฟังก์ชันบันทึกชื่อและโควตา
-async function saveSingleLeaveRule(ruleId) {
+// ✏️ แก้ไขชื่อ / โควตา ของประเภทการลา (หน้าต่างแยก)
+async function editLeaveTypeModal(ruleId) {
+  const r = (window.__pvtLeaveTypeRows || {})[ruleId];
+  if (!r || !window.Swal) return;
+  const { value: v } = await Swal.fire({
+    title: '✏️ แก้ไขประเภทการลา',
+    html: `
+      <div style="text-align:left; font-family:'Sarabun', sans-serif;">
+        <label style="font-size:13px; font-weight:600;">ชื่อประเภทการลา *</label>
+        <input id="edit-lt-name" class="swal2-input" value="${escapeHtml(r.leave_name || '')}" style="margin:4px 0 12px; height:40px; font-size:14px; width:100%;">
+        <label style="font-size:13px; font-weight:600;">โควตากลาง (วัน/ปี)</label>
+        <input type="number" id="edit-lt-quota" class="swal2-input" value="${Number(r.yearly_quota) || 0}" step="0.5" min="0" style="margin:4px 0 4px; height:40px; font-size:14px; width:100%;">
+        <div style="font-size:12px; color:#64748b;">ใส่ 0 = ใช้ค่าเริ่มต้นของระบบ · รหัส ${escapeHtml(r.leave_code || '-')} (แก้ไม่ได้)</div>
+      </div>`,
+    showCancelButton: true,
+    confirmButtonText: '💾 บันทึก',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
+    focusConfirm: false,
+    preConfirm: () => {
+      const name = document.getElementById('edit-lt-name').value.trim();
+      const quota = parseFloat(document.getElementById('edit-lt-quota').value);
+      if (!name) { Swal.showValidationMessage('กรุณาระบุชื่อประเภทการลา'); return false; }
+      if (!Number.isFinite(quota) || quota < 0) { Swal.showValidationMessage('โควตาต้องเป็นตัวเลข 0 ขึ้นไป'); return false; }
+      return { name, quota };
+    }
+  });
+  if (!v) { editGlobalLeaveRules(); return; }
+  await saveSingleLeaveRule(ruleId, v.name, v.quota);
+}
+
+// ฟังก์ชันบันทึกชื่อและโควตา (เรียกจากหน้าต่างแก้ไข · ยังรองรับแบบเดิมที่อ่านจากช่องในตาราง)
+async function saveSingleLeaveRule(ruleId, nameArg, quotaArg) {
   const supabase = getSupabase();
-  const newName = document.getElementById(`rule-name-${ruleId}`)?.value.trim();
-  const newQuota = parseFloat(document.getElementById(`rule-quota-${ruleId}`)?.value) || 0;
+  const newName = (nameArg != null ? String(nameArg) : document.getElementById(`rule-name-${ruleId}`)?.value || '').trim();
+  const newQuota = quotaArg != null ? Number(quotaArg) || 0 : parseFloat(document.getElementById(`rule-quota-${ruleId}`)?.value) || 0;
 
   if (!newName) {
     Swal.fire('ข้อผิดพลาด', 'กรุณาระบุชื่อประเภทการลา', 'warning');
     return;
-  }
-
-  // 🛑 ยืนยันก่อนบันทึกโควตา/กฎการลา
-  if (window.Swal) {
-    const confirmResult = await Swal.fire({
-      title: 'ยืนยันการปรับโควตาประเภทการลา?',
-      text: `ต้องการปรับเปลี่ยนชื่อเป็น "${newName}" และโควตาเป็น ${newQuota} วัน ใช่หรือไม่`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#0fa472',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: '✔️ ยืนยันบันทึก',
-      cancelButtonText: 'ยกเลิก'
-    });
-    if (!confirmResult.isConfirmed) return;
   }
 
   try {
@@ -4481,8 +4542,9 @@ async function saveSingleLeaveRule(ruleId) {
     if (error) throw error;
 
     await saveHRActivityLog('LEAVE_RULE', 'UPDATE', newName, `ปรับแก้ไขชื่อประเภทวันลาเป็น "${newName}" และโควตาเป็น ${newQuota} วัน`);
-    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: `อัปเดตข้อมูล "${newName}" เรียบร้อยแล้ว`, timer: 1500, showConfirmButton: false });
+    await Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: `อัปเดต "${newName}" เรียบร้อยแล้ว`, timer: 1300, showConfirmButton: false });
     refreshDashboard();
+    editGlobalLeaveRules();
   } catch (err) {
     showAppError("บันทึกโควตากลางไม่สำเร็จ", err.message);
   }
@@ -4507,51 +4569,105 @@ async function addNewLeaveTypeModal() {
     confirmButtonText: 'บันทึกประเภทใหม่',
     cancelButtonText: 'ยกเลิก',
     preConfirm: () => {
-      const code = document.getElementById('new-lt-code').value.trim();
+      const code = document.getElementById('new-lt-code').value.trim().toUpperCase();
       const name = document.getElementById('new-lt-name').value.trim();
       const quota = parseFloat(document.getElementById('new-lt-quota').value) || 0;
       if (!code || !name) {
         Swal.showValidationMessage('กรุณากรอกรหัสและชื่อประเภทวันลาให้ครบถ้วน');
         return false;
       }
-      return { leave_code: code, leave_name: name, yearly_quota: quota };
+      const dup = Object.values(window.__pvtLeaveTypeRows || {}).find((r) => String(r.leave_code || '').toUpperCase() === code);
+      if (dup) {
+        Swal.showValidationMessage(`รหัส "${code}" มีแล้ว (${dup.leave_name}) — ใช้รหัสอื่น หรือกด "เปิดใช้อีกครั้ง" ที่แถวนั้น`);
+        return false;
+      }
+      return { leave_code: code, leave_name: name, yearly_quota: quota, status: 'active' };
     }
   });
 
-  if (formValues) {
-    const { error } = await supabase.from('leave_types').insert([formValues]);
-    if (error) {
-      showAppError('ไม่สามารถเพิ่มประเภทการลาได้', error.message);
-    } else {
-      Swal.fire('สำเร็จ', 'เพิ่มประเภทวันลาเรียบร้อยแล้ว', 'success');
-      editGlobalLeaveRules();
-    }
+  if (!formValues) { editGlobalLeaveRules(); return; }
+  const { error } = await supabase.from('leave_types').insert([formValues]);
+  if (error) {
+    showAppError('ไม่สามารถเพิ่มประเภทการลาได้', error.message);
+  } else {
+    await saveHRActivityLog('LEAVE_RULE', 'CREATE', formValues.leave_name, `เพิ่มประเภทวันลา "${formValues.leave_name}" (${formValues.leave_code}) โควตา ${formValues.yearly_quota} วัน`);
+    await Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'เพิ่มประเภทวันลาเรียบร้อยแล้ว', timer: 1300, showConfirmButton: false });
+    editGlobalLeaveRules();
   }
 }
 
-async function actionDeleteLeaveType(id, name) {
+// 🗑 ลบประเภทการลา
+//   มีใบลาใช้ประเภทนี้แล้ว → ปิดใช้งานได้อย่างเดียว (ใบลาเก่ายังแสดงชื่อถูกต้อง เปิดกลับมาใช้ได้)
+//   ยังไม่เคยมีใบลาใช้ → เลือกได้ว่าจะปิดใช้งาน หรือลบทิ้งถาวร
+async function actionDeleteLeaveType(id, nameArg) {
   const supabase = getSupabase();
   if (!supabase || !window.Swal) return;
+  const r = (window.__pvtLeaveTypeRows || {})[id] || { id, leave_name: nameArg || '' };
+  const name = r.leave_name || nameArg || '';
 
+  Swal.fire({ title: 'กำลังตรวจสอบการใช้งาน...', allowOutsideClick: false });
+  Swal.showLoading();
+  let used = null;
+  try {
+    const { count, error } = await supabase.from('leave_requests').select('id', { count: 'exact', head: true }).eq('leave_type_id', id);
+    if (!error) used = Number(count) || 0;
+  } catch (e) {}
+
+  const canHardDelete = used === 0;
   const confirm = await Swal.fire({
-    title: '⚠️ ยืนยันปิดสถานะระบบการลานี้?',
-    html: `คุณต้องการระงับประเภทการลาชื่อ "<b>${escapeHtml(name)}</b>" หรือไม่?`,
+    title: `ลบ "${escapeHtml(name)}"?`,
+    html: `<div style="text-align:left; font-size:14.5px; line-height:1.7;">`
+      + (used > 0
+        ? `มีใบลาใช้ประเภทนี้อยู่ <b>${used}</b> ใบ จึงลบทิ้งไม่ได้ (ใบลาเก่าจะไม่มีชื่อประเภท)<br>ระบบจะ <b>ปิดใช้งาน</b> แทน: พนักงานเลือกประเภทนี้ไม่ได้อีก ใบลาเก่ายังแสดงตามเดิม เปิดกลับมาใช้ได้`
+        : used === 0
+          ? `ยังไม่มีใบลาใช้ประเภทนี้<br>• <b>ปิดใช้งาน</b> = ซ่อนจากพนักงาน เปิดกลับมาใช้ได้<br>• <b>ลบถาวร</b> = ลบออกจากระบบ กู้คืนไม่ได้`
+          : `ตรวจสอบการใช้งานไม่สำเร็จ ระบบจะ <b>ปิดใช้งาน</b> แทนการลบ (เปิดกลับมาใช้ได้)`)
+      + `</div>`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonText: 'ระงับการใช้งาน',
-    confirmButtonColor: '#ef4444'
+    showDenyButton: canHardDelete,
+    confirmButtonText: 'ปิดใช้งาน',
+    denyButtonText: 'ลบถาวร',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#ea580c',
+    denyButtonColor: '#dc2626',
+    cancelButtonColor: '#64748b',
+    reverseButtons: false
   });
 
+  if (confirm.isDenied && canHardDelete) {
+    const { error } = await supabase.from('leave_types').delete().eq('id', id);
+    if (error) {
+      showAppError('ลบประเภทวันลาไม่สำเร็จ', `${error.message} — ใช้ "ปิดใช้งาน" แทนได้`);
+      return;
+    }
+    await saveHRActivityLog('LEAVE_RULE', 'DELETE', name, `ลบประเภทวันลา "${name}" (${r.leave_code || ''}) ถาวร`);
+    await Swal.fire({ icon: 'success', title: 'ลบแล้ว', text: `ลบ "${name}" ออกจากระบบแล้ว`, timer: 1300, showConfirmButton: false });
+    editGlobalLeaveRules();
+    return;
+  }
   if (!confirm.isConfirmed) { editGlobalLeaveRules(); return; }
 
   const { error } = await supabase.from('leave_types').update({ status: 'inactive' }).eq('id', id);
   if (error) {
-    showAppError('ไม่สามารถระงับประเภทวันลาได้', error.message);
-    editGlobalLeaveRules();
-  } else {
-    await saveHRActivityLog('LEAVE_QUOTA', 'DELETE', name, `ปิดการใช้งานรหัสเกณฑ์วันลา: ${name}`);
-    Swal.fire('ลบเสร็จสิ้น', 'อัปเดตสถานะเรียบร้อย', 'success').then(() => editGlobalLeaveRules());
+    showAppError('ไม่สามารถปิดใช้งานประเภทวันลาได้', error.message);
+    return;
   }
+  await saveHRActivityLog('LEAVE_RULE', 'DEACTIVATE', name, `ปิดใช้งานประเภทวันลา "${name}" (${r.leave_code || ''})`);
+  await Swal.fire({ icon: 'success', title: 'ปิดใช้งานแล้ว', text: `พนักงานจะเลือก "${name}" ไม่ได้อีก`, timer: 1500, showConfirmButton: false });
+  editGlobalLeaveRules();
+}
+
+// ↩ เปิดใช้ประเภทการลาที่ปิดไว้
+async function actionRestoreLeaveType(id) {
+  const supabase = getSupabase();
+  if (!supabase || !window.Swal) return;
+  const r = (window.__pvtLeaveTypeRows || {})[id] || {};
+  const { error } = await supabase.from('leave_types').update({ status: 'active' }).eq('id', id);
+  if (error) { showAppError('เปิดใช้งานไม่สำเร็จ', error.message); return; }
+  await saveHRActivityLog('LEAVE_RULE', 'ACTIVATE', r.leave_name || '', `เปิดใช้ประเภทวันลา "${r.leave_name || ''}" อีกครั้ง`);
+  await Swal.fire({ icon: 'success', title: 'เปิดใช้งานแล้ว', timer: 1200, showConfirmButton: false });
+  editGlobalLeaveRules();
 }
 
 async function editIndividualLeaveBalance(presetEmpCode = null) {
@@ -5104,6 +5220,30 @@ window.deleteHoliday = deleteHoliday;
  * 3. รวมทุกข้อมูลในไฟล์เดียว (All-in-One Workbook: ทุกคน + คนที่ลา + ประวัติใบลาดิบ + ตาราง Supabase 1:1)
  * 4. ประวัติใบลาแบบละเอียดรายใบ (Raw Leave Requests)
  */
+// 🏢 ชื่อบริษัทที่แสดงบนหัวรายงาน Excel (แก้ตรงนี้ที่เดียว)
+const PVT_EXPORT_COMPANY_NAME = 'บริษัท พี.วี.ที. แอนด์ ที.พลาส จำกัด';
+
+// ↕️ ตัวเลือกการเรียงลำดับในรายงาน Excel
+const PVT_EXPORT_SORTS = [
+  { value: 'code', label: 'รหัสพนักงาน (น้อย → มาก)' },
+  { value: 'name', label: 'ชื่อ (ก → ฮ)' },
+  { value: 'dept', label: 'แผนก แล้วตามรหัสพนักงาน' },
+  { value: 'used_desc', label: 'ใช้วันลามากที่สุดก่อน' },
+  { value: 'system', label: 'ตามลำดับในระบบ (แบบเดิม)' }
+];
+
+function pvtExportSortRows(rows, sortBy) {
+  const list = rows.slice();
+  const byCode = (a, b) => String(a.employee_code || '').localeCompare(String(b.employee_code || ''), 'th', { numeric: true });
+  const byName = (a, b) => String(a.full_name || '').localeCompare(String(b.full_name || ''), 'th');
+  if (sortBy === 'code') list.sort(byCode);
+  else if (sortBy === 'name') list.sort((a, b) => byName(a, b) || byCode(a, b));
+  else if (sortBy === 'dept') list.sort((a, b) => String(a.department_name || '').localeCompare(String(b.department_name || ''), 'th') || byCode(a, b));
+  else if (sortBy === 'used_desc') list.sort((a, b) => (b.total_used - a.total_used) || (b.leave_requests_count - a.leave_requests_count) || byCode(a, b));
+  // เลขลำดับเริ่ม 1 ใหม่ทุกชีต
+  return list.map((r, i) => ({ ...r, no: i + 1 }));
+}
+
 async function exportAllLeaveHistoryExcel() {
   if (typeof ExcelJS === "undefined") {
     showAppError("ไลบรารีไม่พร้อมใช้งาน", "ยังไม่ได้โหลด ExcelJS กรุณารีเฟรชหน้าเว็บ");
@@ -5126,7 +5266,11 @@ async function exportAllLeaveHistoryExcel() {
   const empCount = employees.length;
   const leaveCount = Array.isArray(leaveRequests) ? leaveRequests.length : 0;
 
-  const { value: exportType } = await Swal.fire({
+  let lastSort = 'code';
+  try { lastSort = localStorage.getItem('pvt_export_sort') || 'code'; } catch (_) {}
+  if (!PVT_EXPORT_SORTS.some(o => o.value === lastSort)) lastSort = 'code';
+
+  const { value: exportChoice } = await Swal.fire({
     title: '📊 ส่งออกรายงานการลา & โควตาพนักงาน (Excel)',
     html: `
       <div style="text-align: left; font-family: 'Sarabun', sans-serif; font-size: 13.5px; color: #334155;">
@@ -5185,6 +5329,13 @@ async function exportAllLeaveHistoryExcel() {
             </div>
           </label>
         </div>
+
+        <div style="margin-top: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <label for="exportSortSelect" style="font-weight: 700; color: #0f172a; font-size: 14px;">↕️ เรียงลำดับตาม</label>
+          <select id="exportSortSelect" style="flex: 1; min-width: 220px; padding: 8px 10px; border: 1.5px solid #cbd5e1; border-radius: 4px; font-family: inherit; font-size: 13.5px; background: #fff;">
+            ${PVT_EXPORT_SORTS.map(o => `<option value="${o.value}" ${o.value === lastSort ? 'selected' : ''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
       </div>
     `,
     showCancelButton: true,
@@ -5195,20 +5346,22 @@ async function exportAllLeaveHistoryExcel() {
     width: 'min(94vw, 580px)',
     preConfirm: () => {
       const selected = document.querySelector('input[name="exportChoiceRadio"]:checked');
-      return selected ? selected.value : 'all_employees';
+      const sortBy = document.getElementById('exportSortSelect')?.value || 'code';
+      return { mode: selected ? selected.value : 'all_employees', sortBy };
     }
   });
 
-  if (!exportType) return; // กดยกเลิก
+  if (!exportChoice) return; // กดยกเลิก
+  try { localStorage.setItem('pvt_export_sort', exportChoice.sortBy); } catch (_) {}
 
-  await generateAndDownloadLeaveBalancesExcel(exportType);
+  await generateAndDownloadLeaveBalancesExcel(exportChoice.mode, exportChoice.sortBy);
 }
 
 /**
  * ⚡ ฟังก์ชันประมวลผลข้อมูลและสร้างไฟล์ Excel ตามตัวเลือกที่ระบุ
  * @param {'all_employees' | 'active_only' | 'all_in_one' | 'raw_leaves'} mode 
  */
-async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees') {
+async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees', sortBy = 'code') {
   Swal.fire({
     title: 'กำลังสร้างไฟล์ Excel...',
     text: 'กำลังรวบรวมข้อมูลจากตาราง employee_leave_balances และจัดรูปแบบรายงาน',
@@ -5270,7 +5423,7 @@ async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees') {
     });
 
     // 4. รวบรวมข้อมูลโควตาวันลาของพนักงานทุกคน (All Employees Dataset)
-    const allEmployeesData = (employees || []).map((emp, index) => {
+    const allEmployeesDataRaw = (employees || []).map((emp, index) => {
       const eid = String(emp.id);
       const bal = balancesMap.get(eid);
       const empRequests = requestsByEmp.get(eid) || [];
@@ -5380,8 +5533,16 @@ async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees') {
       };
     });
 
-    // พนักงานเฉพาะคนที่มีประวัติการลา
-    const activeOnlyData = allEmployeesData.filter(e => e.isLeaveActive);
+    // เรียงลำดับตามที่เลือก แล้วคัดเฉพาะคนที่มีประวัติการลา (ใช้วันลาไปแล้ว หรือมีใบลาในระบบ)
+    const allEmployeesData = pvtExportSortRows(allEmployeesDataRaw, sortBy);
+    const activeOnlyData = pvtExportSortRows(allEmployeesData.filter(e => e.isLeaveActive), sortBy);
+
+    // ประวัติใบลาเรียงตามลำดับพนักงานเดียวกัน แล้วตามวันที่เริ่มลา
+    const empRank = new Map(allEmployeesData.map((e, i) => [String(e.employee_id), i]));
+    const sortedLeaveRequests = (leaveRequests || []).slice().sort((a, b) =>
+      ((empRank.get(String(a.employee_id)) ?? 1e9) - (empRank.get(String(b.employee_id)) ?? 1e9)) ||
+      String(a.start_date || '').localeCompare(String(b.start_date || '')));
+    const noActiveNote = 'ไม่มีพนักงานที่มีประวัติการลา';
 
     // 5. สร้าง Workbook ด้วย ExcelJS
     const workbook = new ExcelJS.Workbook();
@@ -5403,32 +5564,32 @@ async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees') {
     else if (mode === 'active_only') {
       // 2. เอาเฉพาะคนที่ลา
       fileName = `โควตาวันลาเฉพาะคนที่มีการลา_PVT_${thaiYear}_${dateStr}.xlsx`;
-      const activeList = activeOnlyData.length > 0 ? activeOnlyData : allEmployeesData;
-      const subtitle = activeOnlyData.length > 0 
-        ? `เฉพาะพนักงานที่มีการลา (${activeOnlyData.length} คน)` 
-        : `ไม่พบพนักงานที่มีการลา แสดงพนักงานทั้งหมด (${allEmployeesData.length} คน)`;
-      
-      addLeaveBalancesWorksheet(workbook, `เฉพาะคนที่มีการลา (${activeOnlyData.length})`, activeList, subtitle);
-      addRawLeaveRequestsWorksheet(workbook, "ประวัติใบลาทั้งหมด", leaveRequests, employees);
+      // ไม่มีคนลา = ชีตว่างพร้อมข้อความแจ้ง (ไม่ดึงพนักงานทุกคนมาแทนแล้ว)
+      const subtitle = activeOnlyData.length > 0
+        ? `เฉพาะพนักงานที่มีการลา (${activeOnlyData.length} คน)`
+        : noActiveNote;
+      addLeaveBalancesWorksheet(workbook, `เฉพาะคนที่มีการลา (${activeOnlyData.length})`, activeOnlyData, subtitle);
+      addRawLeaveRequestsWorksheet(workbook, "ประวัติใบลาทั้งหมด", sortedLeaveRequests, employees);
     } 
     else if (mode === 'all_in_one') {
       // 3. รวมทุกชีตในเล่มเดียว
       fileName = `รายงานโควตาและประวัติการลารวมเล่ม_PVT_${thaiYear}_${dateStr}.xlsx`;
       addLeaveBalancesWorksheet(workbook, "1.พนักงานทุกคน (All)", allEmployeesData, `พนักงานทั้งหมดในระบบ (${allEmployeesData.length} คน)`);
-      addLeaveBalancesWorksheet(workbook, "2.เฉพาะคนลา (Active)", activeOnlyData.length > 0 ? activeOnlyData : allEmployeesData, `เฉพาะคนที่มีการลา (${activeOnlyData.length} คน)`);
-      addRawLeaveRequestsWorksheet(workbook, "3.ประวัติใบลาละเอียด", leaveRequests, employees);
+      addLeaveBalancesWorksheet(workbook, "2.เฉพาะคนลา (Active)", activeOnlyData, activeOnlyData.length > 0 ? `เฉพาะคนที่มีการลา (${activeOnlyData.length} คน)` : noActiveNote);
+      addRawLeaveRequestsWorksheet(workbook, "3.ประวัติใบลาละเอียด", sortedLeaveRequests, employees);
       addSupabaseFormatWorksheet(workbook, "4.Supabase Format (1-1)", allEmployeesData);
     } 
     else if (mode === 'raw_leaves') {
       // 4. ประวัติใบลาดิบ
       fileName = `ประวัติการลาดิบ_PVT_${dateStr}.xlsx`;
-      addRawLeaveRequestsWorksheet(workbook, "ประวัติใบลาทั้งหมด", leaveRequests, employees);
+      addRawLeaveRequestsWorksheet(workbook, "ประวัติใบลาทั้งหมด", sortedLeaveRequests, employees);
       addLeaveBalancesWorksheet(workbook, "สรุปโควตาพนักงานทุกคน", allEmployeesData, `ข้อมูลสรุปพนักงานทั้งหมด (${allEmployeesData.length} คน)`);
     }
 
     // 6. ดาวน์โหลดไฟล์
     const buffer = await workbook.xlsx.writeBuffer();
-    window.pvtSupabase.downloadBlob(
+    // ใช้ตัวดาวน์โหลดในไฟล์นี้ (เดิมเรียก window.pvtSupabase.downloadBlob ซึ่งไม่มีอยู่ → "is not a function")
+    downloadBlob(
       fileName,
       buffer,
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -5469,7 +5630,7 @@ function addLeaveBalancesWorksheet(workbook, sheetTitle, dataList, scopeSubtitle
   // 1. หัวข้อรายงาน (Banner Rows)
   sheet.mergeCells("A1:AA1");
   const titleCell = sheet.getCell("A1");
-  titleCell.value = `🏢 บริษัท ปัญจวัฒนา จำกัด - รายงานสรุปโควตาวันลาพนักงาน (employee_leave_balances)`;
+  titleCell.value = `🏢 ${PVT_EXPORT_COMPANY_NAME} - รายงานสรุปโควตาวันลาพนักงาน (employee_leave_balances)`;
   titleCell.font = { name: "Sarabun", size: 15, bold: true, color: { argb: "FFFFFFFF" } };
   titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
   titleCell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
@@ -5604,6 +5765,14 @@ function addLeaveBalancesWorksheet(workbook, sheetTitle, dataList, scopeSubtitle
   });
 
   // 4. บันทึกข้อมูลแถว (Data Rows)
+  if (!dataList.length) {
+    sheet.mergeCells("A5:AA5");
+    const emptyCell = sheet.getCell("A5");
+    emptyCell.value = `— ${scopeSubtitle || 'ไม่มีข้อมูล'} —`;
+    emptyCell.font = { name: "Sarabun", size: 11, italic: true, color: { argb: "FF64748B" } };
+    emptyCell.alignment = { horizontal: "center", vertical: "middle" };
+    sheet.getRow(5).height = 28;
+  }
   dataList.forEach((item, rIdx) => {
     const rowNumber = rIdx + 5;
     const row = sheet.getRow(rowNumber);
@@ -5616,7 +5785,8 @@ function addLeaveBalancesWorksheet(workbook, sheetTitle, dataList, scopeSubtitle
       item.nickname,
       item.department_name,
       item.position_name,
-      item.year,
+      // หัวคอลัมน์เป็น "ปี พ.ศ." → แปลง ค.ศ. เป็น พ.ศ.
+      (Number(item.year) > 0 && Number(item.year) < 2400) ? Number(item.year) + 543 : item.year,
       
       item.sick_total,
       item.sick_used,
@@ -6927,6 +7097,9 @@ window.closeEmployeeModal = closeEmployeeModal;
 window.editSingleLeaveRequest = typeof editSingleLeaveRequest !== 'undefined' ? editSingleLeaveRequest : window.editSingleLeaveRequest;
 window.saveSingleLeaveRule = typeof saveSingleLeaveRule !== 'undefined' ? saveSingleLeaveRule : window.saveSingleLeaveRule;
 window.addNewLeaveTypeModal = typeof addNewLeaveTypeModal !== 'undefined' ? addNewLeaveTypeModal : window.addNewLeaveTypeModal;
+window.editLeaveTypeModal = editLeaveTypeModal;
+window.actionDeleteLeaveType = actionDeleteLeaveType;
+window.actionRestoreLeaveType = actionRestoreLeaveType;
 window.openEditHolidayModal = typeof openEditHolidayModal !== 'undefined' ? openEditHolidayModal : window.openEditHolidayModal;
 window.openAddHolidayModal = typeof openAddHolidayModal !== 'undefined' ? openAddHolidayModal : window.openAddHolidayModal;
 window.removeCustomColumnField = typeof removeCustomColumnField !== 'undefined' ? removeCustomColumnField : window.removeCustomColumnField;

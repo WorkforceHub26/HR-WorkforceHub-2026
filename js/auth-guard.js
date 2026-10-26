@@ -3890,19 +3890,90 @@ document.addEventListener('click', function(e) {
       if (isLoginPage() || !window.PVTAuth || !window.PVTAuth.isSharedDevice() || !localStorage.getItem('currentUser')) return;
     } catch (e) { return; }
     if (document.getElementById('pvtSharedChip')) return;
+    // บัญชีผู้ดูแลระบบ (HR / Admin / ผู้บริหาร ใช้รหัสผ่านเฉพาะ) และหน้าฝั่ง HR → ไม่แสดงป้าย
+    //   (ยังออกจากระบบอัตโนมัติเมื่อไม่ได้ใช้ 10 นาที / บัตรผ่านหมดอายุ เหมือนเดิม)
+    let hideChip = /^\/pages\/(hr|admin)\//i.test(location.pathname);
+    try {
+      const cu = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (typeof window.pvtIsAdminAccount === 'function' && window.pvtIsAdminAccount(cu)) hideChip = true;
+    } catch (e) {}
     const chip = document.createElement('div');
     chip.id = 'pvtSharedChip';
     chip.setAttribute('role', 'status');
-    chip.innerHTML = '<span aria-hidden="true">📱</span><span>เครื่องยืม · ออกจากระบบอัตโนมัติ</span>'
-      + '<button type="button">ออกจากระบบ</button>';
-    chip.style.cssText = 'position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:9998;'
-      + 'display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border-radius:999px;background:#1e293b;color:#fff;'
-      + 'font:600 12.5px/1.2 Sarabun,system-ui,sans-serif;box-shadow:0 4px 14px rgba(15,23,42,.25);max-width:calc(100vw - 24px);';
+    // ป้ายบอกสถานะ (ไม่ใช่ปุ่มออก): "ไม่ใช่บัญชีของคุณ" · แตะ = คำอธิบาย + เลือกใช้งานต่อ / ออกจากระบบตอนนี้
+    //   วางเหนือแถบเมนูล่าง (รวมปุ่ม + ที่ยื่นขึ้นมา) ชิดซ้าย ไม่ทับปุ่มแชตด้านขวา
+    chip.innerHTML = '<button type="button" aria-label="ไม่ใช่บัญชีของคุณ — แตะเพื่อดูรายละเอียด">'
+      + '<span aria-hidden="true">📱</span><span>ไม่ใช่บัญชีของคุณ</span></button>';
+    chip.style.cssText = 'position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:9998;';
     const btn = chip.querySelector('button');
-    btn.style.cssText = 'border:0;border-radius:999px;padding:6px 12px;background:#f97316;color:#fff;font:700 12.5px Sarabun,system-ui,sans-serif;cursor:pointer;';
-    btn.addEventListener('click', () => { window.executePvtLogout && window.executePvtLogout(); });
-    if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) chip.style.bottom = 'calc(76px + env(safe-area-inset-bottom, 0px))';
+    btn.style.cssText = 'display:flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.18);padding:7px 13px 7px 10px;'
+      + 'background:rgba(30,41,59,.92);color:#fff;font:600 13px/1.2 Sarabun,system-ui,sans-serif;cursor:pointer;white-space:nowrap;'
+      + 'box-shadow:0 3px 10px rgba(15,23,42,.25);';
+    // หน้าเว็บบางหน้าตั้งขนาด/มุมปุ่มไว้ทั้งหน้า → บังคับให้เป็นป้ายเม็ดยาเล็ก
+    ['border-radius:999px', 'min-height:0', 'height:auto', 'width:auto', 'margin:0'].forEach((d) => { const [k, v] = d.split(':'); btn.style.setProperty(k, v, 'important'); });
+    btn.addEventListener('click', async () => {
+      let name = '';
+      try { name = JSON.parse(localStorage.getItem('currentUser') || '{}').full_name || ''; } catch (e) {}
+      if (!window.Swal) { if (confirm('ไม่ใช่บัญชีของคุณ ออกจากระบบตอนนี้ไหม?')) window.executePvtLogout && window.executePvtLogout(); return; }
+      const r = await Swal.fire({
+        // ไม่ใช้ icon 'info' — global.css ซ่อนปุ่มที่ 2 ของหน้าต่างแบบ info
+        icon: 'question',
+        title: 'ไม่ใช่บัญชีของคุณ',
+        html: `<div style="text-align:left; font-size:16px; line-height:1.7;">ตอนนี้กำลังใช้บัญชี <b>${String(name).replace(/[<>&]/g, '')}</b> บนเครื่องยืม<br>`
+          + 'ยื่นใบลาเสร็จ หรือไม่ได้ใช้ 10 นาที ระบบจะออกจากระบบให้เอง เจ้าของเครื่องจะเข้าบัญชีคุณต่อไม่ได้</div>',
+        showDenyButton: true,
+        confirmButtonText: 'ใช้งานต่อ',
+        denyButtonText: 'ออกจากระบบตอนนี้',
+        confirmButtonColor: 'var(--th-p-700, #0f766e)',
+        denyButtonColor: '#ea580c'
+      });
+      if (r.isDenied && window.executePvtLogout) window.executePvtLogout();
+    });
+    if (hideChip) chip.style.display = 'none';
     document.body.appendChild(chip);
+
+    // หาที่ว่าง: สิ่งที่ลอยติดขอบล่างจอ (แถบเมนู, ปุ่ม +, ปุ่มแชต) → ป้ายอยู่เหนือแถบเมนู และสั้นลงให้พ้นปุ่มด้านขวา
+    const placeChip = () => {
+      if (hideChip) return;
+      try {
+        const vh = window.innerHeight, vw = window.innerWidth;
+        const fixedBottom = [...document.querySelectorAll('body *')].filter((el) => {
+          if (el === chip || chip.contains(el)) return false;
+          const cs = getComputedStyle(el);
+          if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && r.bottom > vh * 0.6 && r.top < vh;
+        });
+        // แถบเกือบเต็มความกว้าง = แถบเมนูล่าง → ป้ายอยู่เหนือมัน (รวมลูกที่ยื่นขึ้นมา เช่น ปุ่ม +)
+        let floor = vh;
+        fixedBottom.filter((el) => el.getBoundingClientRect().width >= vw * 0.6).forEach((bar) => {
+          let top = bar.getBoundingClientRect().top;
+          bar.querySelectorAll('*').forEach((c) => { const r = c.getBoundingClientRect(); if (r.width > 0 && r.height > 0) top = Math.min(top, r.top); });
+          floor = Math.min(floor, top);
+        });
+        let bottomPx = Math.max(12, Math.round(vh - floor + 10));
+        // ปุ่มลอยเล็กด้านซ้าย (เช่น ปุ่ม ? แนะนำการกรอกฟอร์ม) ที่ระดับเดียวกับป้าย → ยกป้ายขึ้นไปเหนือปุ่ม
+        const chipW = chip.offsetWidth || 180;
+        fixedBottom.filter((el) => el.getBoundingClientRect().width < vw * 0.6).forEach((el) => {
+          const r = el.getBoundingClientRect();
+          const top = vh - bottomPx - chip.offsetHeight, bot = vh - bottomPx;
+          if (r.left < 12 + chipW && r.right > 12 && r.left < vw * 0.4 && r.bottom > top - 4 && r.top < bot + 4) bottomPx = Math.round(vh - r.top + 8);
+        });
+        chip.style.bottom = (floor < vh || bottomPx > 12) ? bottomPx + 'px' : 'calc(12px + env(safe-area-inset-bottom, 0px))';
+        // ปุ่มลอยเล็ก (เช่น ปุ่มแชต) ที่อยู่ระดับเดียวกับป้าย → ป้ายจบก่อนถึงปุ่ม
+        const chipTop = vh - bottomPx - chip.offsetHeight, chipBottom = vh - bottomPx;
+        let right = vw - 12;
+        fixedBottom.filter((el) => el.getBoundingClientRect().width < vw * 0.6).forEach((el) => {
+          const r = el.getBoundingClientRect();
+          if (r.bottom > chipTop - 4 && r.top < chipBottom + 4 && r.left > vw * 0.4) right = Math.min(right, r.left - 8);
+        });
+        chip.style.maxWidth = Math.max(120, right - 12) + 'px';
+      } catch (e) {}
+    };
+    placeChip();
+    [300, 1200, 3000].forEach((ms) => setTimeout(placeChip, ms));
+    window.addEventListener('resize', placeChip, { passive: true });
+    setInterval(placeChip, 4000);
 
     let last = Date.now();
     const bump = () => { last = Date.now(); };

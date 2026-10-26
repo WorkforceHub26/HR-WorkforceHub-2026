@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (window.__PVT_ACCESS_DENIED__) {
     // ต้องแสดงหน้าก่อน ไม่งั้นกล่องแจ้งเตือนถูกซ่อนไปด้วย (หน้าว่างค้าง)
     document.documentElement.style.visibility = 'visible';
-    console.warn('[HR] บัญชีนี้ไม่มีสิทธิ์เข้าหน้าตรวจใบลา', { role: (JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || '{}') || {}).role });
+    console.warn('[HR] บัญชีนี้ไม่มีสิทธิ์เข้าหน้าสถานะใบลา', { role: (JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || '{}') || {}).role });
     if (typeof Swal !== 'undefined') {
       await Swal.fire({
         title: '<span style="color: #0f172a; font-size: 20px; font-weight: 700;">⛔ ปฏิเสธการเข้าถึง</span>',
@@ -1122,8 +1122,8 @@ async function loadPendingLeavesHR(isSilent = false) {
           myDeptNameStr = String(window.allDepartmentsMap[myDeptId] || '').toLowerCase();
         }
 
-        // 🚫 ซ่อนใบลาของตนเองในหน้าตรวจใบลา (Self-Leave Exclusion):
-        // ผู้จัดการหรือหัวหน้างานไม่ต้องเห็นใบลาของตนเองในหน้าตรวจใบลา
+        // 🚫 ซ่อนใบลาของตนเองในหน้าสถานะใบลา (Self-Leave Exclusion):
+        // ผู้จัดการหรือหัวหน้างานไม่ต้องเห็นใบลาของตนเองในหน้าสถานะใบลา
         // เพราะใบลาของผู้จัดการ/หัวหน้าฝ่ายจะต้องส่งให้ผู้บริหาร (Executive L3) เป็นผู้อนุมัติ
         // หากต้องการดูข้อมูลบริษัทในภาพรวม ให้เข้าสู่ระบบผ่านแอคเคาต์แยก
         const isSelf = currentEmpIdStr && (reqEmpId === currentEmpIdStr || String(req.employee_id || '') === currentEmpIdStr);

@@ -45,7 +45,7 @@
 }
 
 /* ======================================================
-   การ์ดตัวเลข: แบบเดียวกับหน้าตรวจใบลา (/pages/hr/hr.html)
+   การ์ดตัวเลข: แบบเดียวกับหน้าสถานะใบลา (/pages/hr/hr.html)
    แถบขาวแถวเดียว แบ่งช่องด้วยเส้นบาง · ไอคอนเล็กสีหน้าชื่อ · ตัวเลขใหญ่ · ไม่มีเส้นสี/พื้นสีรายการ์ด
    ====================================================== */
 :is(#page-hr-leave-stats .ls-kpi-grid, #page-hr-holidays .admin-stats-grid, #page-hr-home .hm-kpi-grid,
@@ -155,7 +155,7 @@
   border: 1px solid color-mix(in srgb, var(--cat-color, #94a3b8) 35%, #e2e8f0) !important;
 }
 
-/* มือถือ: แถบตัวเลขเป็น 2 คอลัมน์ เหมือนหน้าตรวจใบลา */
+/* มือถือ: แถบตัวเลขเป็น 2 คอลัมน์ เหมือนหน้าสถานะใบลา */
 @media (max-width: 900px) {
   :is(#page-hr-leave-stats .ls-kpi-grid, #page-hr-holidays .admin-stats-grid, #page-hr-home .hm-kpi-grid,
       #page-hr-news-management .nm-stats-grid, #page-hr-employee-cards .ec-stats-grid) {

@@ -357,7 +357,7 @@ window.refreshDashboardData = async function(isManualClick = false) {
       const isSelf = myEmpId ? (String(r.employee_id) === String(myEmpId) || String(r.employees?.id) === String(myEmpId)) : false;
       if (isSelf) return false;
 
-      // กรองเฉพาะใบลาค้างพิจารณาที่รอสิทธิ์อนุมัติของบทบาทเราจริงๆ เพื่อให้ตัวเลขหน้า Home ตรงกับหน้า "ตรวจใบลา"
+      // กรองเฉพาะใบลาค้างพิจารณาที่รอสิทธิ์อนุมัติของบทบาทเราจริงๆ เพื่อให้ตัวเลขหน้า Home ตรงกับหน้า "สถานะใบลา"
       return isPendingForRoleHome(r, myRole);
     }).length;
     
@@ -1036,7 +1036,7 @@ function computeSlaStats(requests) {
 function updateSlaBadges(slaStats) {
   const { totalPending, overdueCount, urgentCount, normalCount } = slaStats;
 
-  // 1. 📌 Sidebar Badge บนเมนู "ตรวจใบลา"
+  // 1. 📌 Sidebar Badge บนเมนู "สถานะใบลา"
   const sidebarBadge = document.getElementById("sidebarSlaPendingBadge");
   if (sidebarBadge) {
     if (totalPending > 0) {

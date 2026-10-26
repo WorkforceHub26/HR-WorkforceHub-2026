@@ -3857,3 +3857,12 @@ body {
 @media (min-width: 641px) {
   .pvt-qr-modal-overlay.is-simple .pvt-qr-modal-window { height: min(760px, 92vh); }
 }
+
+/* ปุ่มรูปตาในช่องรหัสผ่าน: ให้รูปตาอยู่กลางปุ่ม
+   (ฟอนต์ไอคอนของ Google ตั้ง display: inline-block ทับ display: flex ด้านบน รูปตาจึงลอยชิดขอบบน) */
+.password-wrapper .toggle-password.material-symbols-outlined {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
