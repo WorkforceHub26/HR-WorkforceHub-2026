@@ -610,7 +610,7 @@ async function resetYearlyLeave(isForce = false) {
 
     const [empRes, ltRes, leavesRes, balRes] = await Promise.all([
       supabaseClient.from('employees').select('id, employee_code, full_name, start_date, created_at').eq('status', 'active'),
-      supabaseClient.from('leave_types').select('id, leave_code, leave_name, yearly_quota, default_days, status'),
+      supabaseClient.from('leave_types').select('*'),
       supabaseClient.from('leave_requests')
         .select('employee_id, leave_type_id, total_days, start_date')
         .eq('status', 'approved')
@@ -1047,7 +1047,7 @@ async function fetchLeaveTypes() {
   try {
     const { data, error } = await sb
       .from("leave_types")
-      .select("id, leave_code, leave_name, yearly_quota, require_advance_days, max_days_per_request, paid_leave")
+      .select("*") // * = มี gender_scope ด้วยเมื่อรัน SQL แล้ว (ยังไม่รันก็ไม่พัง)
       .order("leave_name", { ascending: true });
 
     if (error) throw error;
@@ -1697,10 +1697,56 @@ function updateEmployeeSortHeader(key) {
   });
 }
 
+// ⏳ อายุงาน ปี เดือน วัน นับจากวันเริ่มงาน ถึงวันนี้ (ลาออกแล้ว = ถึงวันที่ลาออก)
+function pvtTenureParts(startStr, endStr) {
+  const p = (v) => { const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const a = p(startStr);
+  if (!a) return null;
+  const now = new Date();
+  const b = p(endStr) || new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (b < a) return { y: 0, m: 0, d: 0, future: true };
+  // นับเดือนเต็ม แล้วนับวันที่เหลือ (วันที่ 31 ในเดือนที่ไม่มี 31 = วันสุดท้ายของเดือน)
+  const addMonths = (d0, n) => {
+    const t = new Date(d0.getFullYear(), d0.getMonth() + n, 1);
+    const last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    t.setDate(Math.min(d0.getDate(), last));
+    return t;
+  };
+  let months = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  if (addMonths(a, months) > b) months -= 1;
+  const anchor = addMonths(a, months);
+  const d = Math.round((b - anchor) / 86400000);
+  return { y: Math.floor(months / 12), m: months % 12, d };
+}
+function pvtTenureText(emp) {
+  const resigned = emp && (emp.status === 'inactive' || emp.status === 'resigned');
+  const t = pvtTenureParts(emp?.start_date, resigned ? emp?.resign_date : null);
+  if (!t) return '-';
+  if (t.future) return 'ยังไม่เริ่มงาน';
+  const parts = [];
+  if (t.y) parts.push(`${t.y} ปี`);
+  if (t.m) parts.push(`${t.m} เดือน`);
+  if (t.d || !parts.length) parts.push(`${t.d} วัน`);
+  return parts.join(' ');
+}
+window.pvtTenureText = pvtTenureText;
+
+// หัวคอลัมน์ "อายุงาน" (ใส่ให้อัตโนมัติ ไม่ต้องแก้ไฟล์ HTML)
+function pvtEnsureTenureHeader() {
+  const head = document.querySelector('#page-hr-management .employee-list-header');
+  if (!head || head.querySelector('.col-tenure')) return;
+  const start = head.querySelector('.col-start');
+  const el = document.createElement('div');
+  el.className = 'col-tenure';
+  el.textContent = 'อายุงาน';
+  if (start) start.after(el); else head.appendChild(el);
+}
+
 function renderEmployeeTable() {
   const container = document.getElementById("employeeTableBody");
   if (!container) return;
   initEmployeeSortControl();
+  pvtEnsureTenureHeader();
 
   const searchInputEl = document.getElementById("empSearchInput");
   const search = searchInputEl?.value.trim().toLowerCase() || "";
@@ -1914,6 +1960,12 @@ function renderEmployeeTable() {
           <span class="emp-start-date">
             <span class="material-symbols-outlined" style="font-size: 14px; color: #64748b;">calendar_today</span>
             ${thaiStartDate}
+          </span>
+        </div>
+        <div class="col-tenure">
+          <span class="emp-tenure" title="อายุงานนับจากวันเริ่มงาน${emp.status === 'inactive' || emp.status === 'resigned' ? ' ถึงวันที่ลาออก' : ' ถึงวันนี้'}">
+            <span class="material-symbols-outlined" aria-hidden="true">hourglass_top</span>
+            <span class="emp-tenure__label">อายุงาน</span>${escapeHtml(pvtTenureText(emp))}
           </span>
         </div>
         <div class="col-status">
@@ -2145,7 +2197,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
           <div style="flex:1; min-width:180px;">
             <div style="font-size:15px; font-weight:700; color:#1e293b;">${escapeHtml(emp.full_name || "-")} ${emp.nickname ? `<span style="font-weight:400; color:#64748b;">(${escapeHtml(emp.nickname)})</span>` : ''}</div>
             <div style="font-size:13px; color:var(--th-p-600, #0d9488); font-weight:600; margin-top:2px;">${escapeHtml(emp.positions?.position_name || "-")} · ${escapeHtml(emp.departments?.department_name || "-")}</div>
-            <div style="font-size:12px; color:#64748b; margin-top:2px;">ประเภท: ${formatEmploymentType(emp.employment_type)}</div>
+            <div style="font-size:12px; color:#64748b; margin-top:2px;">ประเภท: ${formatEmploymentType(emp.employment_type)} · เพศ: ${(() => { const g = window.PVTQuota?.genderOf ? window.PVTQuota.genderOf(emp) : ''; return g === 'male' ? 'ชาย' : g === 'female' ? 'หญิง' : '<span style="color:#b45309;">ไม่ทราบ (ไม่มีคำนำหน้าชื่อ)</span>'; })()}</div>
           </div>
         </div>
 
@@ -2154,7 +2206,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
           ${detail("LINE (ไว้ติดต่อ)", emp.line_contact || "-")}
           ${detail("แจ้งเตือนทาง LINE", emp.line_id ? "ผูกแล้ว" : "ยังไม่ผูก")}
           ${detail("อีเมล", emp.email || "-")}
-          ${detail("วันเริ่มงาน", window.pvtSupabase?.formatThaiDate ? window.pvtSupabase.formatThaiDate(emp.start_date) : (emp.start_date || "-"))}
+          ${detail("วันเริ่มงาน", (() => { const m = String(emp.start_date || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${Number(m[1]) + 543}` : "-"; })())}
           ${detail("โรงพยาบาลประกันสังคม", emp.hospital || "-")}
           ${detail("เลขบัญชีธนาคาร", emp.bank_account || "-")}
         </div>
@@ -2164,7 +2216,7 @@ async function openEmployeeDetail(employeeId, isEditMode = false) {
           <strong style="font-size:14px; display:flex; align-items:center; gap:6px; margin-bottom:10px; color:var(--th-p-700, #0f766e);">
             <span class="material-symbols-outlined" style="font-size:18px;">analytics</span> สิทธิวันลาคงเหลือประจำปี
           </strong>
-          ${renderBalanceCards(balances)}
+          ${renderBalanceCards(balances, emp)}
         </div>
 
         <div style="margin-top: 20px;">
@@ -2721,7 +2773,14 @@ function detail(label, value) {
   </div>`;
 }
 
-function renderBalanceCards(rows) {
+function renderBalanceCards(rows, emp) {
+  // 👫 ซ่อนประเภทที่ไม่ตรงเพศ (ตั้งที่ ตั้งค่าโควตากลาง → ใช้กับ) · ถ้าเคยใช้ไปแล้วยังแสดงไว้
+  if (emp && window.PVTQuota?.appliesTo) {
+    rows = rows.filter((row) => {
+      const lt = getLeaveType(row.leave_type_id) || row.leave_types;
+      return !lt || window.PVTQuota.appliesTo(lt, emp) || Number(row.used_days) > 0;
+    });
+  }
   if (!rows.length) return `<div class="empty">ยังไม่มีข้อมูลโควตาวันลาในระบบ</div>`;
   return `<div class="detail-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">${rows.map((row) => {
     const typeObj = getLeaveType(row.leave_type_id);
@@ -4443,6 +4502,9 @@ async function editGlobalLeaveRules() {
         <td style="padding:10px 12px; border:1px solid #e2e8f0; text-align:center; font-weight:600;">
           ${q > 0 ? `${q} วัน` : '<span style="color:#94a3b8; font-weight:400;">ยังไม่ตั้ง</span>'}
         </td>
+        <td style="padding:8px; border:1px solid #e2e8f0; text-align:center;" id="rule-gender-${r.id}">
+          ${pvtLeaveGenderToggleHTML(r)}
+        </td>
         <td style="padding:8px; border:1px solid #e2e8f0; text-align:center;">
           <div style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:center;">
             <button type="button" onclick="editLeaveTypeModal('${r.id}')" style="${btn('#ffffff', 'var(--th-p-700, #0f766e)', 'var(--th-p-300, #5eead4)')}">✏️ แก้ไข</button>
@@ -4458,7 +4520,7 @@ async function editGlobalLeaveRules() {
 
     await Swal.fire({
       title: '⚙️ ตั้งค่าโควตากลาง & แก้ไขชื่อประเภทวันลา',
-      width: 'min(94vw, 760px)',
+      width: 'min(96vw, 860px)',
       html: `
         <div style="font-family:'Sarabun', sans-serif; text-align:left; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
           <button type="button" onclick="addNewLeaveTypeModal()" class="action-btn success-zone" style="font-size:12.5px; padding:7px 14px;">
@@ -4471,14 +4533,19 @@ async function editGlobalLeaveRules() {
             <thead>
               <tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">
                 <th style="padding:10px 12px; border:1px solid #e2e8f0;">ชื่อประเภทการลา</th>
-                <th style="padding:10px 12px; border:1px solid #e2e8f0; width:120px; text-align:center;">โควตา (วัน/ปี)</th>
-                <th style="padding:10px 12px; border:1px solid #e2e8f0; width:200px; text-align:center;">จัดการ</th>
+                <th style="padding:10px 12px; border:1px solid #e2e8f0; width:110px; text-align:center;">โควตา (วัน/ปี)</th>
+                <th style="padding:10px 12px; border:1px solid #e2e8f0; width:150px; text-align:center;">ใช้กับ</th>
+                <th style="padding:10px 12px; border:1px solid #e2e8f0; width:190px; text-align:center;">จัดการ</th>
               </tr>
             </thead>
             <tbody>
-              ${tableRowsHTML || '<tr><td colspan="3" style="padding:16px; text-align:center; color:#94a3b8;">ยังไม่มีประเภทการลา</td></tr>'}
+              ${tableRowsHTML || '<tr><td colspan="4" style="padding:16px; text-align:center; color:#94a3b8;">ยังไม่มีประเภทการลา</td></tr>'}
             </tbody>
           </table>
+        </div>
+        <div style="font-family:'Sarabun', sans-serif; text-align:left; font-size:12px; color:#64748b; margin-top:8px; line-height:1.6;">
+          👫 <b>ใช้กับ</b>: กดปุ่ม ชาย / หญิง เพื่อเปิด-ปิด · ปิดฝั่งไหน พนักงานเพศนั้นจะไม่เห็นประเภทนี้ (ทั้งช่องเลือกตอนยื่นใบลาและสิทธิ์คงเหลือ)<br>
+          เพศดูจากคำนำหน้าชื่อ (นาย = ชาย · นาง/นางสาว = หญิง) · ไม่มีคำนำหน้า = เห็นทุกประเภท
         </div>
       `,
       showConfirmButton: false,
@@ -4489,6 +4556,53 @@ async function editGlobalLeaveRules() {
   } catch (err) {
     showAppError("ไม่สามารถดึงข้อมูลโควตากลางได้", err.message);
   }
+}
+
+// 👫 ปุ่มเปิด-ปิด ชาย / หญิง ของประเภทการลา
+function pvtLeaveGenderToggleHTML(r) {
+  const scope = window.PVTQuota?.genderScope ? window.PVTQuota.genderScope(r) : (r.gender_scope || 'all');
+  const maleOn = scope === 'all' || scope === 'male';
+  const femaleOn = scope === 'all' || scope === 'female';
+  const pill = (on, g, label, onColor, onBg, onBorder) => `<button type="button" onclick="toggleLeaveTypeGender('${r.id}', '${g}')" aria-pressed="${on}" title="${on ? 'เปิดอยู่ · กดเพื่อปิด' : 'ปิดอยู่ · กดเพื่อเปิด'}"
+      style="padding:5px 10px; border-radius:999px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;
+      ${on ? `background:${onBg}; color:${onColor}; border:1.5px solid ${onBorder};` : 'background:#f1f5f9; color:#94a3b8; border:1.5px dashed #cbd5e1; text-decoration:line-through;'}">${on ? '✓ ' : ''}${label}</button>`;
+  return `<div style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+    ${pill(maleOn, 'male', 'ชาย', '#1d4ed8', '#eff6ff', '#93c5fd')}
+    ${pill(femaleOn, 'female', 'หญิง', '#be185d', '#fdf2f8', '#f9a8d4')}
+  </div>`;
+}
+
+async function toggleLeaveTypeGender(ruleId, g) {
+  const supabase = getSupabase();
+  const r = (window.__pvtLeaveTypeRows || {})[ruleId];
+  if (!supabase || !r) return;
+  const scope = window.PVTQuota?.genderScope ? window.PVTQuota.genderScope(r) : (r.gender_scope || 'all');
+  let maleOn = scope === 'all' || scope === 'male';
+  let femaleOn = scope === 'all' || scope === 'female';
+  if (g === 'male') maleOn = !maleOn; else femaleOn = !femaleOn;
+  if (!maleOn && !femaleOn) {
+    Swal.showValidationMessage('ต้องเปิดไว้อย่างน้อย 1 เพศ · ถ้าไม่ใช้ประเภทนี้แล้ว ให้กด "ลบ" (ปิดใช้งาน) แทน');
+    setTimeout(() => { try { Swal.resetValidationMessage(); } catch (_) {} }, 3500);
+    return;
+  }
+  const next = maleOn && femaleOn ? 'all' : (maleOn ? 'male' : 'female');
+  const cell = document.getElementById(`rule-gender-${ruleId}`);
+  if (cell) cell.style.opacity = '0.5';
+  const { error } = await supabase.from('leave_types').update({ gender_scope: next }).eq('id', ruleId);
+  if (cell) cell.style.opacity = '';
+  if (error) {
+    const missing = /gender_scope/i.test(error.message || '');
+    showAppError('บันทึกไม่สำเร็จ', missing
+      ? 'ฐานข้อมูลยังไม่มีช่อง "ใช้กับเพศ" — ให้รันไฟล์ supabase/migrations/20261027_leave_type_gender.sql ใน Supabase SQL Editor ก่อน'
+      : error.message);
+    return;
+  }
+  r.gender_scope = next;
+  try { const lt = (leaveTypes || []).find((t) => String(t.id) === String(ruleId)); if (lt) lt.gender_scope = next; } catch (_) {}
+  if (cell) cell.innerHTML = pvtLeaveGenderToggleHTML(r);
+  const label = next === 'all' ? 'ทุกคน' : (next === 'male' ? 'เฉพาะชาย' : 'เฉพาะหญิง');
+  try { await saveHRActivityLog('LEAVE_RULE', 'UPDATE', r.leave_name, `ตั้ง "${r.leave_name}" ใช้กับ: ${label}`); } catch (_) {}
+  try { window.PVTSDK?.cache?.invalidateByTag?.('leaves'); } catch (_) {}
 }
 
 // ✏️ แก้ไขชื่อ / โควตา ของประเภทการลา (หน้าต่างแยก)
@@ -4533,6 +4647,12 @@ async function saveSingleLeaveRule(ruleId, nameArg, quotaArg) {
     return;
   }
 
+  // ค่ากลางเดิมก่อนแก้ (ไว้หาว่าใครยังใช้ค่าเดิมอยู่)
+  const rowsBefore = Object.values(window.__pvtLeaveTypeRows || {});
+  const ruleBefore = (window.__pvtLeaveTypeRows || {})[ruleId] || null;
+  const kind = window.PVTQuota && ruleBefore ? window.PVTQuota.kindOf(ruleBefore) : 'other';
+  const oldStd = window.PVTQuota ? window.PVTQuota.standard(rowsBefore)[kind] : null;
+
   try {
     const { error } = await supabase
       .from('leave_types')
@@ -4542,12 +4662,81 @@ async function saveSingleLeaveRule(ruleId, nameArg, quotaArg) {
     if (error) throw error;
 
     await saveHRActivityLog('LEAVE_RULE', 'UPDATE', newName, `ปรับแก้ไขชื่อประเภทวันลาเป็น "${newName}" และโควตาเป็น ${newQuota} วัน`);
-    await Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: `อัปเดต "${newName}" เรียบร้อยแล้ว`, timer: 1300, showConfirmButton: false });
+
+    // โควตากลางใช้กับ "โควตาที่จะสร้างใหม่" · คนที่มีโควตารอบนี้แล้วต้องปรับตาม → ถามก่อน
+    const newStd = window.PVTQuota ? window.PVTQuota.standard(rowsBefore.map((r) => r.id === ruleId ? { ...r, leave_name: newName, yearly_quota: newQuota } : r))[kind] : null;
+    let applied = null;
+    if (kind !== 'other' && newStd != null && oldStd != null && Number(newStd) !== Number(oldStd)) {
+      applied = await pvtApplyQuotaToCurrentYear(kind, newName, Number(oldStd), Number(newStd));
+    }
+    if (!applied) {
+      await Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: `อัปเดต "${newName}" เรียบร้อยแล้ว`, timer: 1300, showConfirmButton: false });
+    }
     refreshDashboard();
     editGlobalLeaveRules();
   } catch (err) {
     showAppError("บันทึกโควตากลางไม่สำเร็จ", err.message);
   }
+}
+
+// 🔁 ปรับโควตาของพนักงานที่มีโควตารอบปีการลานี้แล้ว ให้เป็นค่ากลางใหม่
+//   แบบปกติ: ปรับเฉพาะคนที่ยังเป็นค่ากลางเดิม (คนที่ HR ตั้งให้เป็นรายบุคคลไม่ถูกทับ)
+//   พักร้อน: ไม่ให้คนที่อายุงานยังไม่ถึง (โควตา 0)
+async function pvtApplyQuotaToCurrentYear(kind, typeName, oldStd, newStd) {
+  const supabase = getSupabase();
+  const col = `${kind}_total`;
+  const yearAD = typeof window.getCurrentLeaveYear === 'function' ? window.getCurrentLeaveYear() : new Date().getFullYear();
+  const years = [yearAD, yearAD + 543];
+  const base = () => {
+    let q = supabase.from('employee_leave_balances').select('id', { count: 'exact', head: true }).in('year', years);
+    if (kind === 'vacation') q = q.gt(col, 0);
+    return q;
+  };
+  let sameCount = 0, allCount = 0;
+  try {
+    const [a, b] = await Promise.all([base().eq(col, oldStd), base()]);
+    sameCount = a.count || 0; allCount = b.count || 0;
+  } catch (e) { return false; }
+  if (!allCount) return false;
+
+  const customCount = allCount - sameCount;
+  const res = await Swal.fire({
+    icon: 'question',
+    title: `ปรับโควตา "${typeName}" ของรอบปีนี้ด้วยไหม?`,
+    html: `<div style="text-align:left; font-size:14px; line-height:1.7;">
+      ค่ากลางเปลี่ยนจาก <b>${oldStd}</b> เป็น <b>${newStd}</b> วัน<br>
+      ค่ากลางใช้กับ <b>โควตาที่สร้างใหม่</b> · พนักงานที่มีโควตารอบปีการลา ${yearAD + 543} แล้วยังเป็นค่าเดิม<br><br>
+      • ยังใช้ค่ากลางเดิม (${oldStd} วัน): <b>${sameCount} คน</b><br>
+      ${customCount > 0 ? `• ตั้งค่ารายบุคคลไว้ (ไม่ใช่ ${oldStd} วัน): <b>${customCount} คน</b><br>` : ''}
+      ${kind === 'vacation' ? '<span style="font-size:12.5px; color:#64748b;">คนที่อายุงานยังไม่ถึง (พักร้อน 0 วัน) ไม่ถูกปรับ</span><br>' : ''}
+      <span style="font-size:12.5px; color:#64748b;">วันที่ใช้ไปแล้วไม่เปลี่ยน · คงเหลือคำนวณใหม่ตามสิทธิ์ใหม่</span>
+    </div>`,
+    showConfirmButton: sameCount > 0,
+    confirmButtonText: `ปรับ ${sameCount} คนที่ใช้ค่าเดิม`,
+    showDenyButton: customCount > 0,
+    denyButtonText: `ปรับทุกคน (${allCount} คน)`,
+    showCancelButton: true,
+    cancelButtonText: 'ไม่ปรับ (ใช้กับโควตาใหม่เท่านั้น)',
+    confirmButtonColor: 'var(--th-p-600, #0d9488)',
+    denyButtonColor: '#b45309',
+    reverseButtons: false
+  });
+  if (!res.isConfirmed && !res.isDenied) return false;
+
+  Swal.fire({ title: 'กำลังปรับโควตา...', allowOutsideClick: false });
+  Swal.showLoading();
+  let q = supabase.from('employee_leave_balances').update({ [col]: newStd, updated_at: new Date().toISOString() }).in('year', years);
+  if (kind === 'vacation') q = q.gt(col, 0);
+  if (res.isConfirmed) q = q.eq(col, oldStd);
+  const { error } = await q;
+  if (error) { showAppError('ปรับโควตาไม่สำเร็จ', error.message); return true; }
+
+  const n = res.isConfirmed ? sameCount : allCount;
+  try { await saveHRActivityLog('LEAVE_RULE', 'UPDATE', typeName, `ปรับโควตา "${typeName}" รอบปี ${yearAD + 543} จาก ${oldStd} เป็น ${newStd} วัน (${n} คน)`); } catch (_) {}
+  try { window.PVTSDK?.cache?.invalidateByTag?.('leaves'); } catch (_) {}
+  try { if (typeof fetchLeaveBalances === 'function') await fetchLeaveBalances(); } catch (_) {}
+  await Swal.fire({ icon: 'success', title: 'ปรับโควตาแล้ว', text: `"${typeName}" = ${newStd} วัน · ${n} คน`, timer: 1600, showConfirmButton: false });
+  return true;
 }
 
 // ฟังก์ชันเพิ่มประเภทการลาใหม่
@@ -4562,7 +4751,12 @@ async function addNewLeaveTypeModal() {
         <label style="font-size:12px; font-weight:600;">ชื่อประเภทการลา *</label>
         <input id="new-lt-name" class="swal2-input" placeholder="เช่น ลาพักร้อนประจำปี" style="margin:4px 0 10px; height:38px; font-size:13px; width:100%;">
         <label style="font-size:12px; font-weight:600;">โควตากลาง (วัน/ปี)</label>
-        <input type="number" id="new-lt-quota" class="swal2-input" value="6" step="0.5" style="margin:4px 0 0; height:38px; font-size:13px; width:100%;">
+        <input type="number" id="new-lt-quota" class="swal2-input" value="6" step="0.5" style="margin:4px 0 10px; height:38px; font-size:13px; width:100%;">
+        <label style="font-size:12px; font-weight:600; display:block;">ใช้กับ</label>
+        <div style="display:flex; gap:18px; margin-top:6px; font-size:14px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="new-lt-male" checked style="transform:scale(1.2);"> ชาย</label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="new-lt-female" checked style="transform:scale(1.2);"> หญิง</label>
+        </div>
       </div>
     `,
     showCancelButton: true,
@@ -4581,7 +4775,13 @@ async function addNewLeaveTypeModal() {
         Swal.showValidationMessage(`รหัส "${code}" มีแล้ว (${dup.leave_name}) — ใช้รหัสอื่น หรือกด "เปิดใช้อีกครั้ง" ที่แถวนั้น`);
         return false;
       }
-      return { leave_code: code, leave_name: name, yearly_quota: quota, status: 'active' };
+      const m = document.getElementById('new-lt-male').checked;
+      const f = document.getElementById('new-lt-female').checked;
+      if (!m && !f) { Swal.showValidationMessage('เลือกอย่างน้อย 1 เพศ'); return false; }
+      const row = { leave_code: code, leave_name: name, yearly_quota: quota, status: 'active' };
+      // ส่ง gender_scope เฉพาะเมื่อไม่ใช่ "ทุกคน" (ฐานข้อมูลที่ยังไม่รัน SQL ก็ยังเพิ่มประเภททั่วไปได้)
+      if (!(m && f)) row.gender_scope = m ? 'male' : 'female';
+      return row;
     }
   });
 
@@ -7099,6 +7299,7 @@ window.saveSingleLeaveRule = typeof saveSingleLeaveRule !== 'undefined' ? saveSi
 window.addNewLeaveTypeModal = typeof addNewLeaveTypeModal !== 'undefined' ? addNewLeaveTypeModal : window.addNewLeaveTypeModal;
 window.editLeaveTypeModal = editLeaveTypeModal;
 window.actionDeleteLeaveType = actionDeleteLeaveType;
+window.toggleLeaveTypeGender = toggleLeaveTypeGender;
 window.actionRestoreLeaveType = actionRestoreLeaveType;
 window.openEditHolidayModal = typeof openEditHolidayModal !== 'undefined' ? openEditHolidayModal : window.openEditHolidayModal;
 window.openAddHolidayModal = typeof openAddHolidayModal !== 'undefined' ? openAddHolidayModal : window.openAddHolidayModal;
@@ -7370,3 +7571,74 @@ window.pvtReleaseEmployeeDevices = async function (employeeId, name) {
   try { await saveHRActivityLog('EMPLOYEE', 'UPDATE', employeeId, `ล้างเครื่องที่จำไว้ของ ${name || employeeId} (${r.devices} เครื่อง · ออกจากระบบ ${r.sessions} ครั้ง)`); } catch (e) {}
   Swal.fire({ icon: 'success', title: 'ล้างเครื่องแล้ว', text: `ล้าง ${r.devices} เครื่อง · ให้ออกจากระบบ ${r.sessions} เครื่อง`, timer: 2200, showConfirmButton: false });
 };
+
+// ==========================================
+// 🛡️ ประกาศความเป็นส่วนตัว (PDPA) — ย้ายมาจากคอนโซลผู้ดูแลระบบ
+//   ปุ่มอยู่ในการ์ด "จัดการบุคลากร" · ใช้ได้ผู้ดูแลระบบ (admin) และผู้ดูแลระบบขั้นสูง (superadmin)
+//   ฐานข้อมูลตรวจสิทธิ์ซ้ำอีกชั้น (pvt_privacy_report / pvt_privacy_publish)
+// ==========================================
+function pvtCurrentRole() {
+  try {
+    const s = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || '{}');
+    return String(s.role || s.employees?.role || '').trim().toLowerCase();
+  } catch (e) { return ''; }
+}
+function pvtCanManagePrivacy() {
+  return ['admin', 'superadmin'].includes(pvtCurrentRole());
+}
+
+// ซ่อนปุ่มที่ใส่ data-requires="admin" สำหรับคนที่ไม่ใช่ผู้ดูแลระบบ
+function pvtApplyAdminOnlyItems() {
+  const ok = pvtCanManagePrivacy();
+  document.querySelectorAll('[data-requires="admin"]').forEach((el) => {
+    if (ok) el.style.removeProperty('display'); else el.style.setProperty('display', 'none', 'important');
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pvtApplyAdminOnlyItems); else pvtApplyAdminOnlyItems();
+
+function openPrivacyNoticeManager() {
+  if (!pvtCanManagePrivacy()) {
+    Swal.fire('ไม่มีสิทธิ์', 'ประกาศความเป็นส่วนตัวแก้ได้เฉพาะผู้ดูแลระบบ', 'warning');
+    return;
+  }
+  if (!window.PVTPrivacy || typeof window.PVTPrivacy.renderAdmin !== 'function') {
+    Swal.fire('ยังไม่พร้อมใช้งาน', 'ระบบประกาศความเป็นส่วนตัวยังโหลดไม่เสร็จ ลองรีเฟรชหน้าอีกครั้ง', 'info');
+    return;
+  }
+  document.getElementById('pvtPrivacyMgr')?.remove();
+  // ใช้หน้าต่างของตัวเอง (ไม่ใช้ SweetAlert) เพราะในนี้มีหน้าต่างยืนยันของ SweetAlert ซ้อนอีกชั้น
+  const wrap = document.createElement('div');
+  wrap.id = 'pvtPrivacyMgr';
+  wrap.innerHTML = `
+    <style>
+      #pvtPrivacyMgr{position:fixed;inset:0;z-index:1050;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:'Sarabun',system-ui,sans-serif}
+      #pvtPrivacyMgr .pm-box{background:#fff;border-radius:8px;width:min(960px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(15,23,42,.3)}
+      #pvtPrivacyMgr .pm-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #e2e8f0;background:linear-gradient(135deg,var(--th-b-50,#eff6ff) 0%,var(--th-b-100,#dbeafe) 100%);border-radius:8px 8px 0 0}
+      #pvtPrivacyMgr .pm-head .material-symbols-outlined{width:40px;height:40px;display:grid;place-items:center;border-radius:6px;background:#fff;color:var(--th-b-600,#2563eb);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+      #pvtPrivacyMgr .pm-head h3{margin:0;font-size:16px;font-weight:800;color:var(--th-b-900,#1e3a8a)}
+      #pvtPrivacyMgr .pm-head p{margin:2px 0 0;font-size:12.5px;color:#475569}
+      #pvtPrivacyMgr .pm-x{margin-left:auto;border:0;background:#fff;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;color:#475569}
+      #pvtPrivacyMgr .pm-body{padding:16px 20px;overflow:auto}
+      #pvtPrivacyMgr button.secondary,#pvtPrivacyMgr button[data-pna]{border:1px solid #cbd5e1;background:#fff;color:#0f172a;border-radius:4px;cursor:pointer;font-family:inherit;font-weight:600}
+      #pvtPrivacyMgr button[data-pna="publish"]{background:var(--th-p-600,#0d9488);border-color:var(--th-p-600,#0d9488);color:#fff}
+      #pvtPrivacyMgr input[type=text],#pvtPrivacyMgr textarea{box-sizing:border-box;border:1px solid #cbd5e1;border-radius:4px;padding:8px 10px;font-family:inherit;font-size:14px}
+    </style>
+    <div class="pm-box" role="dialog" aria-modal="true" aria-labelledby="pvtPrivacyMgrTitle">
+      <div class="pm-head">
+        <span class="material-symbols-outlined">policy</span>
+        <div><h3 id="pvtPrivacyMgrTitle">ประกาศความเป็นส่วนตัว (PDPA)</h3>
+        <p>พนักงานต้องอ่านและกดยอมรับฉบับล่าสุดก่อนใช้งาน · บันทึกการยอมรับแก้ไขไม่ได้ (ใช้เป็นหลักฐาน)</p></div>
+        <button type="button" class="pm-x" aria-label="ปิด" title="ปิด">✕</button>
+      </div>
+      <div class="pm-body"><div id="pvtPrivacyMgrBody"></div></div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('.swal2-container, .pvt-pn')) close(); };
+  wrap.querySelector('.pm-x').addEventListener('click', close);
+  wrap.addEventListener('mousedown', (e) => { if (e.target === wrap) close(); });
+  document.addEventListener('keydown', onKey);
+  window.PVTPrivacy.renderAdmin(document.getElementById('pvtPrivacyMgrBody'));
+}
+window.openPrivacyNoticeManager = openPrivacyNoticeManager;
+

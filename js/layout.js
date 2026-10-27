@@ -242,12 +242,20 @@
     var nav = $('.pvt-sidebar__nav', sidebar);
     if (!nav) return;
 
-    if (/\/pages\/hr\//.test(window.location.pathname) && !$('a[href="/pages/hr/approval-chains.html"]', nav)) {
+    // ✏️ ชื่อเมนูสายอนุมัติ (แก้ตรงนี้ที่เดียว ใช้กับทุกหน้า HR รวมหน้าที่เขียนเมนูไว้ใน HTML)
+    var CHAINS_LABEL = 'ตั้งค่าสายอนุมัติ';
+    var existingChains = $('a[href="/pages/hr/approval-chains.html"]', nav);
+    if (existingChains) {
+      var lbl = $('.pvt-nav__label', existingChains);
+      if (lbl) lbl.textContent = CHAINS_LABEL;
+      existingChains.title = CHAINS_LABEL;
+    }
+    if (/\/pages\/hr\//.test(window.location.pathname) && !existingChains) {
       var chains = document.createElement('a');
       chains.href = '/pages/hr/approval-chains.html';
       chains.className = 'pvt-nav__item';
-      chains.title = 'สายอนุมัติใบลา';
-      chains.innerHTML = navItemHtml('account_tree', 'สายอนุมัติ');
+      chains.title = CHAINS_LABEL;
+      chains.innerHTML = navItemHtml('account_tree', CHAINS_LABEL);
       var after = $('a[href="/pages/hr/management.html"]', nav);
       if (after && after.nextSibling) nav.insertBefore(chains, after.nextSibling); else nav.appendChild(chains);
     }

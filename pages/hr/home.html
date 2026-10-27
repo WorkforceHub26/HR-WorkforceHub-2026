@@ -40,7 +40,7 @@
         <div class="pvt-sidebar__logo">
           <img src="/assets/icons/PVTT_LEAVE.png" alt="PVTT Logo" />
         </div>
-        <div class="pvt-sidebar__name">PVT&T WORKFORCE HUB</div>
+        <div class="pvt-sidebar__name">PVTT WORKFORCE HUB</div>
         <div class="pvt-sidebar__subname">บริษัท พี.วี.ที. แอนด์ ที. พลาส จำกัด</div>
         <button type="button" class="pvt-sidebar__close" aria-label="ปิดเมนู" title="ปิดเมนู">
           <span class="material-symbols-outlined">close</span>
@@ -49,7 +49,9 @@
 
       <!-- รายการเมนู (layout.js ไฮไลต์เมนูปัจจุบันจาก URL ให้อัตโนมัติ) -->
       <nav class="pvt-sidebar__nav" aria-label="เมนูนำทาง">
-        <a href="/pages/hr/home.html" class="pvt-nav__item active" title="ภาพรวมระบบ" aria-current="page">
+        <!-- ✏️ เมนูด้านข้างฝั่ง HR: ชุดนี้เหมือนกันทุกหน้า (10 หน้าใน pages/hr/) · แก้ชื่อที่ <span class="pvt-nav__label">
+             แก้แล้วต้องแก้ให้ครบทุกหน้า · เมนูที่กำลังเปิดอยู่ ระบบไฮไลต์ให้เองจาก URL -->
+        <a href="/pages/hr/home.html" class="pvt-nav__item" title="ภาพรวมระบบ">
           <span class="material-symbols-outlined">dashboard</span>
           <span class="pvt-nav__label">หน้าหลัก</span>
         </a>
@@ -62,6 +64,10 @@
           <span class="material-symbols-outlined">tune</span>
           <span class="pvt-nav__label">ระบบจัดการส่วนกลาง</span>
         </a>
+        <a href="/pages/hr/approval-chains.html" class="pvt-nav__item" title="ตั้งค่าสายอนุมัติใบลา">
+          <span class="material-symbols-outlined">account_tree</span>
+          <span class="pvt-nav__label">ตั้งค่าสายอนุมัติ</span>
+        </a>
         <a href="/pages/hr/leave-stats.html" class="pvt-nav__item" title="สถิติวันลา">
           <span class="material-symbols-outlined">analytics</span>
           <span class="pvt-nav__label">สถิติวันลา</span>
@@ -72,11 +78,16 @@
         </a>
         <a href="/pages/hr/news-management.html" class="pvt-nav__item" title="จัดการข่าวสารองค์กร">
           <span class="material-symbols-outlined">campaign</span>
-          <span class="pvt-nav__label">ข่าวสาร</span>
+          <span class="pvt-nav__label">ข่าวสารองค์กร</span>
         </a>
         <a href="/pages/hr/employee-cards.html" class="pvt-nav__item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
           <span class="material-symbols-outlined">badge</span>
           <span class="pvt-nav__label">บัตรพนักงาน (Admin)</span>
+        </a>
+        <!-- แสดงเฉพาะผู้ดูแลระบบขั้นสูง (superadmin) · คนอื่นซ่อนไว้ -->
+        <a href="/pages/hr/admin-dashboard.html#login-logs" class="pvt-nav__item" id="pvtNavLoginLogs" title="ประวัติการเข้าสู่ระบบ (เฉพาะผู้ดูแลระบบขั้นสูง)" style="display: none;">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>
         </a>
         <button type="button" class="pvt-nav__item pvt-nav__item--settings" id="pvtNavSettings" title="ตั้งค่า (ธีมสี ขนาดตัวอักษร การแสดงผล)" style="-webkit-appearance:none;appearance:none;width:calc(100% - 24px);border:0;background:transparent;box-shadow:none;color:rgba(241,245,249,.92);font:inherit;text-align:left;cursor:pointer;">
           <span class="material-symbols-outlined">settings</span>
@@ -111,9 +122,8 @@
             <span class="material-symbols-outlined">menu</span>
           </button>
           <div class="pvt-topbar__title">
-            <h1>ระบบบริหารจัดการ ฝ่ายทรัพยากรบุคคล</h1>
-            <!-- <p>PVT HR Live Tracking System</p> -->
-            <p>DASHBOARD SYSTEM</p>
+            <h1>ภาพรวมระบบ</h1>
+            <p>PVT HR Live Tracking System</p>
           </div>
         </div>
 
@@ -143,7 +153,7 @@
           <div class="hm-hero-info">
             <span class="hm-hero-icon material-symbols-outlined">space_dashboard</span>
             <div>
-              <h2>ภาพรวมระบบ</h2>
+              <h2>ภาพรวมระบบ HR</h2>
               <p>สรุปพนักงาน ใบลารอพิจารณา และสถิติการลาทั้งบริษัท ข้อมูลดึงจากระบบแบบเรียลไทม์</p>
             </div>
           </div>
@@ -155,7 +165,7 @@
             </button>
             <a href="/pages/hr/hr.html" class="hm-btn hm-btn--primary">
               <span class="material-symbols-outlined">fact_check</span>
-              <span>ไปสถานะใบลา</span>
+              <span>ไปตรวจใบลา</span>
             </a>
           </div>
         </section>
@@ -192,7 +202,7 @@
               <span class="material-symbols-outlined">timer</span> ดูตัวนับถอยหลัง
             </button>
             <a href="/pages/hr/hr.html" class="btn-sla-action btn-sla-goto">
-              <span class="material-symbols-outlined">fact_check</span> สถานะใบลาทันที
+              <span class="material-symbols-outlined">fact_check</span> ตรวจใบลาทันที
             </a>
           </div>
         </div>
@@ -201,17 +211,17 @@
         <section class="hm-kpi-grid">
           <article class="hm-kpi stat-blue">
             <div class="hm-kpi-content">
-              <span class="hm-kpi-label">พนักงานในระบบ</span>
+              <span class="hm-kpi-label">พนักงานทั้งหมด</span>
               <span class="hm-kpi-value" id="statTotalEmployees">0</span>
-              <span class="hm-kpi-sub">คน</span>
+              <span class="hm-kpi-sub">คนในระบบ</span>
             </div>
             <span class="hm-kpi-icon material-symbols-outlined">group</span>
           </article>
 
-          <a href="/pages/hr/hr.html" class="hm-kpi stat-amber" id="statCardPendingLeaves" title="ไปหน้าสถานะใบลา">
+          <a href="/pages/hr/hr.html" class="hm-kpi stat-amber" id="statCardPendingLeaves" title="ไปหน้าตรวจใบลา">
             <div class="hm-kpi-content">
               <div class="hm-kpi-label-row">
-                <span class="hm-kpi-label">รอพิจารณา (ตามลำดับ)</span>
+                <span class="hm-kpi-label">รอพิจารณา (ลำดับที่ 1/2)</span>
                 <span class="stat-sla-badge" id="statSlaBadgeWarning" style="display: none;">เกิน SLA</span>
               </div>
               <span class="hm-kpi-value" id="statPendingLeaves">0</span>
@@ -219,7 +229,7 @@
                 <span class="sub-pill red" id="subStatOverdue">เกิน 2 วัน: 0</span>
                 <span class="sub-pill orange" id="subStatUrgent">ใกล้ครบ: 0</span>
               </div>
-              <span class="hm-kpi-sub">รายการ</span>
+              <span class="hm-kpi-sub">รายการที่รอคุณพิจารณา</span>
             </div>
             <span class="hm-kpi-icon material-symbols-outlined">pending_actions</span>
           </a>
@@ -317,7 +327,7 @@
         <!-- ===== 6) แนวโน้มรายวันประจำเดือน (recharts-summary.js วาดให้) ===== -->
         <div class="section-title">
           <span class="material-symbols-outlined">monitoring</span>
-          <span>แนวโน้มการเข้าใช้งานและการลาประจำเดือนนี้</span>
+          <span>วิเคราะห์แนวโน้มการเข้าใช้งานและการลาประจำเดือนนี้</span>
         </div>
         <div id="rechartsSummaryPanel"></div>
 

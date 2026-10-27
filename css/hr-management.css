@@ -2048,3 +2048,43 @@
 .pvt-field-hint.is-bad { color: var(--danger, #dc2626); font-weight: 600; }
 .pvt-input.is-invalid { border-color: var(--danger, #dc2626); }
 .pvt-input.is-invalid:focus { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
+
+/* ---- หัวการ์ด (รายชื่อพนักงาน ฯลฯ): ไอคอนหน้าหัวข้อมีกรอบขาว แบบเดียวกับหัวเมนูบริหารจัดการ HR ---- */
+#page-hr-management .panel-head h2 > .material-symbols-outlined,
+#page-hr-management .panel-head > .material-symbols-outlined:first-child {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: grid !important;
+  place-items: center;
+  border-radius: 6px;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  color: var(--th-b-600, #2563eb) !important;
+  font-size: 22px !important;
+  line-height: 1;
+}
+#page-hr-management .panel-head h2 { gap: 12px; }
+
+/* ⏳ คอลัมน์อายุงาน (ปี เดือน วัน) · หัวคอลัมน์ใส่ด้วย JS */
+#page-hr-management .employee-list-header,
+#page-hr-management .emp-card-item {
+  /* รูป · รหัส · ชื่อ/ตำแหน่ง · แผนก · วันเริ่มงาน · อายุงาน · สถานะ · จัดการ */
+  grid-template-columns: 60px 104px minmax(0, 2fr) minmax(0, 1.2fr) 112px 140px 92px 196px;
+  gap: 12px;
+}
+#page-hr-management .emp-card-item .col-tenure { display: flex; align-items: center; margin: 0; min-width: 0; }
+/* อายุงาน: ตัวหนังสือสีธีม (ไม่มีกรอบ) */
+#page-hr-management .emp-tenure { display: inline-flex; align-items: center; gap: 6px; color: var(--th-p-700, #0f766e); font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#page-hr-management .emp-tenure .material-symbols-outlined { font-size: 15px; color: var(--th-p-600, #0d9488); }
+#page-hr-management .emp-tenure__label { display: none; }
+@media (max-width: 1400px) and (min-width: 1025px) {
+  #page-hr-management .employee-list-header,
+  #page-hr-management .emp-card-item { grid-template-columns: 52px 92px minmax(0, 2fr) minmax(0, 1.2fr) 100px 128px 84px 170px; gap: 10px; }
+  #page-hr-management .emp-tenure { font-size: 12.5px; white-space: normal; }
+}
+/* การ์ด (จอแคบ): แสดงคำว่า "อายุงาน" นำหน้า */
+@media (max-width: 1024px) {
+  #page-hr-management .emp-card-item .col-tenure { justify-content: center; }
+  #page-hr-management .emp-tenure__label { display: inline; font-weight: 500; color: var(--th-p-600, #0d9488); margin-right: 2px; }
+}

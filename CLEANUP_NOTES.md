@@ -683,3 +683,48 @@
 - ชื่อบริษัทบนหัวรายงาน: ค่าคงที่ PVT_EXPORT_COMPANY_NAME ใน js/management.js
 - คอลัมน์ "ปี พ.ศ." แปลง ค.ศ. เป็น พ.ศ. (ชีต Supabase Format ยังเป็นค่าดิบ)
 - public/sw.js: VERSION = pvt-v20261027-exportsort
+
+## 2026-10-27 · ประเภทการลาแยกตามเพศ (ปุ่ม ชาย / หญิง)
+- supabase/migrations/20261027_leave_type_gender.sql: leave_types.gender_scope (all/male/female) + ตั้งลาคลอด = female
+- auth/supabase-config.js: PVTQuota.genderScope / genderOf (จากคำนำหน้าชื่อ) / appliesTo · getLeaveBalances กรองประเภทที่ไม่ตรงเพศ (ถ้าเคยใช้ไปแล้วยังแสดง)
+- js/management.js: ตั้งค่าโควตากลางมีคอลัมน์ "ใช้กับ" กดเปิด-ปิด ชาย/หญิง · หน้าเพิ่มประเภทมีช่องติ๊ก · การ์ดสิทธิ์ในรายละเอียดพนักงานกรองตามเพศ + แสดงเพศ · ดึง leave_types ด้วย select('*')
+- js/leave-user.js, js/index-user.js: ช่องเลือกประเภทการลาและการ์ดสิทธิ์กรองตามเพศ
+- ยังไม่รัน SQL: ลาคลอดถือเป็นเฉพาะหญิงอยู่แล้ว แต่กดปุ่มเปลี่ยนจะขึ้นให้รัน SQL ก่อน
+- public/sw.js: VERSION = pvt-v20261027-gender
+
+## 2026-10-27 · ไอคอนหัวการ์ด "รายชื่อพนักงาน" มีกรอบขาว
+- css/hr-management.css: ไอคอนใน .panel-head h2 = กล่องขาว 40px มุมมน แบบเดียวกับหัวเมนูบริหารจัดการ HR (ต่อท้ายไฟล์)
+- pages/hr/management.html: ?v=20261027-iconbox · public/sw.js: VERSION = pvt-v20261027-iconbox
+
+## 2026-10-27 · แก้โควตากลางแล้วการ์ดพนักงานไม่เปลี่ยน
+- สาเหตุ: โควตากลาง (leave_types.yearly_quota) ใช้ตอนสร้างโควตาใหม่ · คนที่มีโควตารอบนี้แล้วเก็บค่าไว้ใน employee_leave_balances ของแต่ละคน
+- js/management.js: saveSingleLeaveRule → pvtApplyQuotaToCurrentYear ถามหลังบันทึก: ปรับเฉพาะคนที่ยังใช้ค่าเดิม / ปรับทุกคน / ไม่ปรับ (ไม่ใช้กับ "ลาอื่นๆ" · พักร้อนข้ามคนที่ได้ 0)
+- supabase/fix_maternity_quota_now.sql: ปรับลาคลอด 98 → 90 ของรอบปีนี้ (ใช้ครั้งเดียว)
+- public/sw.js: VERSION = pvt-v20261027-quotaapply
+
+## 2026-10-27 · ตารางพนักงาน: คอลัมน์อายุงาน (ปี เดือน วัน)
+- js/management.js: pvtTenureParts/pvtTenureText (นับเดือนเต็มแล้วนับวันที่เหลือ · ลาออก = ถึงวันที่ลาออก) · คอลัมน์ .col-tenure ในแถว · หัวคอลัมน์ใส่ด้วย JS (pvtEnsureTenureHeader) ไม่ต้องแก้ HTML
+- css/hr-management.css: กริด 8 คอลัมน์ (ยืดหยุ่น minmax(0,…)) · จอแคบ/การ์ดแสดง "อายุงาน …"
+- pages/hr/management.html: ?v=20261027-tenure · public/sw.js: VERSION = pvt-v20261027-tenure
+- อายุงานไฮไลท์เป็นป้ายสีตามธีม (--th-p-50 / --th-p-200 / --th-p-700) · ?v=20261027-tenure2 · VERSION = pvt-v20261027-tenure2
+- อายุงาน: เอากรอบ/พื้นออก เหลือตัวหนังสือสีธีม · ?v=20261027-tenure3 · VERSION = pvt-v20261027-tenure3
+- รายละเอียดพนักงาน: วันเริ่มงานแสดงเป็น วว/ดด/ปปปป พ.ศ. (เดิมแสดง 2000-04-16) · VERSION = pvt-v20261027-thdate
+
+## 2026-10-27 · ชื่อเมนู "ตั้งค่าสายอนุมัติ"
+- js/layout.js: CHAINS_LABEL ตั้งชื่อเมนูสายอนุมัติที่เดียว ใช้ทุกหน้า HR (เปลี่ยนชื่อในลิงก์ที่เขียนไว้ใน HTML ให้ด้วย) · VERSION = pvt-v20261027-navlabel
+
+## 2026-10-27 · ชื่อเมนู Sidebar ฝั่ง HR ตั้งที่เดียว
+- js/layout.js: PVT_HR_NAV (href → label/icon) ใช้กับทุกหน้า /pages/hr/ ทั้งเมนูใน HTML และเมนูที่สคริปต์เติม (MutationObserver) · แทน CHAINS_LABEL เดิม
+- public/sw.js: VERSION = pvt-v20261027-navmap
+
+## 2026-10-27 · เมนู Sidebar ฝั่ง HR เขียนใน HTML ครบทุกตัว (แทน PVT_HR_NAV ใน JS)
+- pages/hr/*.html (10 หน้า): <nav class="pvt-sidebar__nav"> ชุดเดียวกันทุกหน้า รวม ตั้งค่าสายอนุมัติ / ประวัติเข้าสู่ระบบ (#pvtNavLoginLogs ซ่อนไว้) / ตั้งค่า
+- js/layout.js: เอา PVT_HR_NAV ออก · ไฮไลต์เมนูข้ามลิงก์ที่มี #hash ถ้า hash ไม่ตรง · เติมสายอนุมัติให้เฉพาะหน้าที่ยังไม่มี
+- js/auth-guard.js: #pvtNavLoginLogs ที่อยู่ใน HTML → แสดงเฉพาะ superadmin
+- public/sw.js: VERSION = pvt-v20261027-navhtml
+
+## 2026-10-27 · ย้ายประกาศความเป็นส่วนตัว (PDPA) ไประบบจัดการส่วนกลาง > จัดการบุคลากร
+- pages/hr/management.html: ปุ่ม "ประกาศความเป็นส่วนตัว (PDPA)" (data-requires="admin" แสดงเฉพาะ admin/superadmin)
+- js/management.js: openPrivacyNoticeManager() หน้าต่างของตัวเอง (ไม่ใช่ SweetAlert) ใช้ PVTPrivacy.renderAdmin · pvtApplyAdminOnlyItems()
+- pages/hr/admin-dashboard.html: เอาแผง PDPA ออก (คอนโซลขั้นสูงเหลือส่วนที่เสี่ยงต่อระบบ)
+- public/sw.js: VERSION = pvt-v20261027-pdpa

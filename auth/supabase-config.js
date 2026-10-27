@@ -710,7 +710,43 @@
         maternity_total: s.maternity, other_total: s.other, _vacation: v
       };
     }
-    return { DEFAULTS, kindOf, standard, cycle, anniversary, vacationRight, totalsFor, ymd, parse };
+    // 👫 ประเภทการลาใช้กับเพศไหน (ตั้งที่ "ตั้งค่าโควตากลาง" → leave_types.gender_scope = all | male | female)
+    //   ยังไม่ได้ตั้ง/ยังไม่รัน SQL: ลาคลอด = เฉพาะหญิง · ประเภทอื่น = ทุกคน
+    function genderScope(lt) {
+      const g = String(lt?.gender_scope || '').trim().toLowerCase();
+      if (g === 'all' || g === 'male' || g === 'female') return g;
+      return kindOf(lt) === 'maternity' ? 'female' : 'all';
+    }
+    // เพศของพนักงาน ดูจากคำนำหน้าชื่อเป็นหลัก → 'male' | 'female' | '' (ไม่ทราบ)
+    function genderOf(emp) {
+      if (!emp) return '';
+      const FEMALE = ['นางสาว', 'นาง', 'น.ส', 'นส.', 'คุณหญิง', 'ด.ญ', 'เด็กหญิง', 'ms', 'mrs', 'miss'];
+      const MALE = ['นาย', 'ด.ช', 'เด็กชาย', 'mr', 'master'];
+      const starts = (t, list) => list.some((x) => t === x || t.startsWith(x));
+      let title = String(emp.title || emp.prefix || '').trim().toLowerCase();
+      if (!title && typeof window.pvtLookupTitle === 'function') {
+        try { title = String(window.pvtLookupTitle(emp.id) || window.pvtLookupTitle(emp.employee_code) || '').trim().toLowerCase(); } catch (e) {}
+      }
+      if (title) {
+        if (starts(title, FEMALE)) return 'female';
+        if (starts(title, MALE)) return 'male';
+      }
+      const g = String(emp.gender || '').trim().toLowerCase();
+      if (['female', 'f', 'หญิง', 'woman'].includes(g)) return 'female';
+      if (['male', 'm', 'ชาย', 'man'].includes(g)) return 'male';
+      const name = String(emp.full_name || '').trim().toLowerCase();
+      if (starts(name, ['นางสาว', 'นาง', 'น.ส.'])) return 'female';
+      if (starts(name, ['นาย'])) return 'male';
+      return '';
+    }
+    // พนักงานคนนี้ใช้ประเภทการลานี้ได้ไหม (ไม่ทราบเพศ = แสดงทุกประเภท)
+    function appliesTo(lt, emp) {
+      const scope = genderScope(lt);
+      if (scope === 'all') return true;
+      const g = genderOf(emp);
+      return !g || g === scope;
+    }
+    return { DEFAULTS, kindOf, standard, cycle, anniversary, vacationRight, totalsFor, ymd, parse, genderScope, genderOf, appliesTo };
   })();
 
   window.getADYear = function(dateOrYear) {
@@ -1300,7 +1336,9 @@
           leave_types: {
             id: lt.id,
             leave_code: lt.leave_code || code,
-            leave_name: lt.leave_name || name
+            leave_name: lt.leave_name || name,
+            gender_scope: lt.gender_scope || null,
+            status: lt.status || 'active'
           }
         };
       });
@@ -1433,6 +1471,14 @@
           } catch(fbErr) {
             console.warn("Virtual balance calculation fallback notice:", fbErr);
           }
+        }
+
+        // 👫 ซ่อนประเภทที่ไม่ตรงเพศ (เช่น ลาคลอดของพนักงานชาย) · ถ้าเคยใช้ไปแล้วยังแสดงไว้
+        if (result && result.length && window.PVTQuota?.appliesTo) {
+          try {
+            const { data: g } = await this.client.from('employees').select('id, employee_code, title, prefix, full_name').eq('id', employeeId).maybeSingle();
+            if (g) result = result.filter((it) => window.PVTQuota.appliesTo(it.leave_types, g) || Number(it.used_days) > 0);
+          } catch (e) {}
         }
 
         this.cache.set(cacheKey, result || [], CONFIG.DEFAULT_TTL, ["leaves"]);

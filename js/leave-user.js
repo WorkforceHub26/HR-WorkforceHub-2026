@@ -539,7 +539,10 @@ function renderLeaveTypeOptions(selectEl) {
   selectEl.innerHTML = `<option value="" disabled ${!currentValue ? 'selected' : ''}>${placeholderText}</option>`;
 
   if (leaveTypes && leaveTypes.length > 0) {
+    // 👫 ซ่อนประเภทที่ไม่ตรงเพศ (ตั้งที่ ตั้งค่าโควตากลาง → ใช้กับ) เช่น ลาคลอดไม่แสดงให้พนักงานชาย
+    const me = pvtLeaveEmpForGender();
     leaveTypes.forEach(type => {
+      if (me && window.PVTQuota?.appliesTo && !window.PVTQuota.appliesTo(type, me) && String(type.id) !== String(currentValue)) return;
       const opt = document.createElement("option");
       opt.value = type.id;
       opt.textContent = getTranslatedLeaveTypeName(type.leave_name);
@@ -551,6 +554,12 @@ function renderLeaveTypeOptions(selectEl) {
   }
 }
 
+// พนักงานที่กำลังยื่นใบลา (ใช้ดูเพศจากคำนำหน้าชื่อ)
+function pvtLeaveEmpForGender() {
+  if (window.__pvtLeaveEmp) return window.__pvtLeaveEmp;
+  try { return JSON.parse(localStorage.getItem("currentUser") || "null"); } catch (e) { return null; }
+}
+
 async function loadLeaveTypes() {
   const sb = window.pvtSupabase?.getClient();
   if (!sb) return;
@@ -558,7 +567,7 @@ async function loadLeaveTypes() {
   try {
     const { data, error } = await sb
       .from("leave_types")
-      .select("id, leave_name")
+      .select("*") // มี gender_scope เมื่อรัน SQL แล้ว
       .eq("status", "active")
       .order("created_at", { ascending: true });
 
@@ -637,6 +646,9 @@ async function fetchCurrentUserData() {
 
     const leaveData = await balancesPromise;
     window.employeeLeaveBalances = leaveData || [];
+    // จำข้อมูลพนักงานไว้ดูเพศ แล้ววาดช่องเลือกประเภทการลาใหม่
+    window.__pvtLeaveEmp = { id: empData.id, employee_code: empData.employee_code, title: empData.title, prefix: empData.prefix, full_name: empData.full_name };
+    document.querySelectorAll('select[name="leave_type_id"]').forEach((el) => renderLeaveTypeOptions(el));
 
     if (typeof window.renderAllLeaveBalances === 'function') {
       window.renderAllLeaveBalances();
@@ -1001,7 +1013,8 @@ window.renderAllLeaveBalances = function() {
       };
     });
   } else if (systemLeaveTypes && systemLeaveTypes.length > 0) {
-    displayItems = systemLeaveTypes.map(type => {
+    const me = pvtLeaveEmpForGender();
+    displayItems = systemLeaveTypes.filter(type => !me || !window.PVTQuota?.appliesTo || window.PVTQuota.appliesTo(type, me)).map(type => {
       return {
         rawName: type.leave_name || "สิทธิ์การลา",
         typeName: typeof getTranslatedLeaveTypeName === 'function' ? getTranslatedLeaveTypeName(type.leave_name) : (type.leave_name || "สิทธิ์การลา"),

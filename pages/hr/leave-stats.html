@@ -44,8 +44,9 @@
         </button>
       </div>
 
-      <!-- รายการเมนู (layout.js ไฮไลต์เมนูปัจจุบันจาก URL ให้อัตโนมัติ) -->
       <nav class="pvt-sidebar__nav" aria-label="เมนูนำทาง">
+        <!-- ✏️ เมนูด้านข้างฝั่ง HR: ชุดนี้เหมือนกันทุกหน้า (10 หน้าใน pages/hr/) · แก้ชื่อที่ <span class="pvt-nav__label">
+             แก้แล้วต้องแก้ให้ครบทุกหน้า · เมนูที่กำลังเปิดอยู่ ระบบไฮไลต์ให้เองจาก URL -->
         <a href="/pages/hr/home.html" class="pvt-nav__item" title="ภาพรวมระบบ">
           <span class="material-symbols-outlined">dashboard</span>
           <span class="pvt-nav__label">หน้าหลัก</span>
@@ -59,7 +60,11 @@
           <span class="material-symbols-outlined">tune</span>
           <span class="pvt-nav__label">ระบบจัดการส่วนกลาง</span>
         </a>
-        <a href="/pages/hr/leave-stats.html" class="pvt-nav__item active" title="สถิติวันลา" aria-current="page">
+        <a href="/pages/hr/approval-chains.html" class="pvt-nav__item" title="ตั้งค่าสายอนุมัติใบลา">
+          <span class="material-symbols-outlined">account_tree</span>
+          <span class="pvt-nav__label">ตั้งค่าสายอนุมัติ</span>
+        </a>
+        <a href="/pages/hr/leave-stats.html" class="pvt-nav__item" title="สถิติวันลา">
           <span class="material-symbols-outlined">analytics</span>
           <span class="pvt-nav__label">สถิติวันลา</span>
         </a>
@@ -69,11 +74,16 @@
         </a>
         <a href="/pages/hr/news-management.html" class="pvt-nav__item" title="จัดการข่าวสารองค์กร">
           <span class="material-symbols-outlined">campaign</span>
-          <span class="pvt-nav__label">ข่าวสาร</span>
+          <span class="pvt-nav__label">ข่าวสารองค์กร</span>
         </a>
         <a href="/pages/hr/employee-cards.html" class="pvt-nav__item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
           <span class="material-symbols-outlined">badge</span>
           <span class="pvt-nav__label">บัตรพนักงาน (Admin)</span>
+        </a>
+        <!-- แสดงเฉพาะผู้ดูแลระบบขั้นสูง (superadmin) · คนอื่นซ่อนไว้ -->
+        <a href="/pages/hr/admin-dashboard.html#login-logs" class="pvt-nav__item" id="pvtNavLoginLogs" title="ประวัติการเข้าสู่ระบบ (เฉพาะผู้ดูแลระบบขั้นสูง)" style="display: none;">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>
         </a>
         <button type="button" class="pvt-nav__item pvt-nav__item--settings" id="pvtNavSettings" title="ตั้งค่า (ธีมสี ขนาดตัวอักษร การแสดงผล)" style="-webkit-appearance:none;appearance:none;width:calc(100% - 24px);border:0;background:transparent;box-shadow:none;color:rgba(241,245,249,.92);font:inherit;text-align:left;cursor:pointer;">
           <span class="material-symbols-outlined">settings</span>

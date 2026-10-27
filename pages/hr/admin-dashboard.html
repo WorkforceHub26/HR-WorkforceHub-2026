@@ -40,6 +40,8 @@
 
       <!-- รายการเมนู (layout.js ไฮไลต์เมนูปัจจุบันจาก URL ให้อัตโนมัติ) -->
       <nav class="pvt-sidebar__nav" aria-label="เมนูนำทาง">
+        <!-- ✏️ เมนูด้านข้างฝั่ง HR: ชุดนี้เหมือนกันทุกหน้า (10 หน้าใน pages/hr/) · แก้ชื่อที่ <span class="pvt-nav__label">
+             แก้แล้วต้องแก้ให้ครบทุกหน้า · เมนูที่กำลังเปิดอยู่ ระบบไฮไลต์ให้เองจาก URL -->
         <a href="/pages/hr/home.html" class="pvt-nav__item" title="ภาพรวมระบบ">
           <span class="material-symbols-outlined">dashboard</span>
           <span class="pvt-nav__label">หน้าหลัก</span>
@@ -53,9 +55,9 @@
           <span class="material-symbols-outlined">tune</span>
           <span class="pvt-nav__label">ระบบจัดการส่วนกลาง</span>
         </a>
-        <a href="/pages/hr/approval-chains.html" class="pvt-nav__item" title="ตั้งค่าสายอนุมัติ">
+        <a href="/pages/hr/approval-chains.html" class="pvt-nav__item" title="ตั้งค่าสายอนุมัติใบลา">
           <span class="material-symbols-outlined">account_tree</span>
-          <span class="pvt-nav__label">สายอนุมัติ</span>
+          <span class="pvt-nav__label">ตั้งค่าสายอนุมัติ</span>
         </a>
         <a href="/pages/hr/leave-stats.html" class="pvt-nav__item" title="สถิติวันลา">
           <span class="material-symbols-outlined">analytics</span>
@@ -67,11 +69,16 @@
         </a>
         <a href="/pages/hr/news-management.html" class="pvt-nav__item" title="จัดการข่าวสารองค์กร">
           <span class="material-symbols-outlined">campaign</span>
-          <span class="pvt-nav__label">ข่าวสาร</span>
+          <span class="pvt-nav__label">ข่าวสารองค์กร</span>
         </a>
         <a href="/pages/hr/employee-cards.html" class="pvt-nav__item" title="ศูนย์จัดการบัตรพนักงานดิจิทัล (Admin)">
           <span class="material-symbols-outlined">badge</span>
           <span class="pvt-nav__label">บัตรพนักงาน (Admin)</span>
+        </a>
+        <!-- แสดงเฉพาะผู้ดูแลระบบขั้นสูง (superadmin) · คนอื่นซ่อนไว้ -->
+        <a href="/pages/hr/admin-dashboard.html#login-logs" class="pvt-nav__item" id="pvtNavLoginLogs" title="ประวัติการเข้าสู่ระบบ (เฉพาะผู้ดูแลระบบขั้นสูง)" style="display: none;">
+          <span class="material-symbols-outlined">shield_person</span>
+          <span class="pvt-nav__label">ประวัติเข้าสู่ระบบ</span>
         </a>
         <button type="button" class="pvt-nav__item pvt-nav__item--settings" id="pvtNavSettings" title="ตั้งค่า (ธีมสี ขนาดตัวอักษร การแสดงผล)" style="-webkit-appearance:none;appearance:none;width:calc(100% - 24px);border:0;background:transparent;box-shadow:none;color:rgba(241,245,249,.92);font:inherit;text-align:left;cursor:pointer;">
           <span class="material-symbols-outlined">settings</span>
@@ -211,17 +218,7 @@
         <pre id="console-output" style="height: 380px; font-size: 12.5px;"></pre>
       </section>
 
-      <!-- 🛡️ ประกาศความเป็นส่วนตัว (PDPA) — js/components/privacy-notice.js -->
-      <section class="panel" id="privacy-notice-panel" style="grid-column: span 3;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h2 style="margin:0;"><span class="material-symbols-outlined">policy</span> ประกาศความเป็นส่วนตัว (PDPA)</h2>
-            <p style="margin: 4px 0 0; font-size: 12.5px; color: #64748b;">พนักงานต้องอ่านและกดยอมรับฉบับล่าสุดก่อนใช้งาน · บันทึกการยอมรับแก้ไขไม่ได้ (ใช้เป็นหลักฐาน)</p>
-          </div>
-          <button type="button" class="secondary" onclick="window.PVTPrivacy && window.PVTPrivacy.renderAdmin(document.getElementById('privacyNoticeAdmin'))" style="width:auto; padding:6px 12px; font-size:12px;"><span class="material-symbols-outlined" style="font-size:16px;">refresh</span> รีเฟรช</button>
-        </div>
-        <div id="privacyNoticeAdmin"></div>
-      </section>
+      <!-- 🛡️ ประกาศความเป็นส่วนตัว (PDPA): ย้ายไปที่ ระบบจัดการส่วนกลาง > จัดการบุคลากร (ผู้ดูแลระบบแก้ได้) -->
 
       <!-- 💬 การส่งข้อความ LINE ต่อเดือน (js/components/line-usage.js) -->
       <section class="panel" id="line-usage-panel" style="grid-column: span 3;">

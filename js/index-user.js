@@ -1583,7 +1583,7 @@ async function loadQuotaData(targetYear) {
     // 2. ประเภทการลาทั้งหมด
     const { data: types } = await sb
       .from("leave_types")
-      .select("id, leave_name, yearly_quota, default_days")
+      .select("*") // มี leave_code, status, gender_scope ด้วย
       .order("created_at", { ascending: true });
 
     // 3. รายการลาเพื่อนับครั้งและวันที่ "อนุมัติแล้ว" ในปีนี้
@@ -1658,6 +1658,9 @@ async function loadQuotaData(targetYear) {
       types.forEach((t, idx) => {
         const typeIdStr = String(t.id);
         const q = quotaMap.get(typeIdStr);
+        // 👫 ซ่อนประเภทที่ไม่ตรงเพศ (เช่น ลาคลอดของพนักงานชาย) · ถ้าเคยใช้ไปแล้วยังแสดงไว้
+        if (window.PVTQuota?.appliesTo && window.currentProfile && !window.PVTQuota.appliesTo(t, window.currentProfile)
+            && !((q && Number(q.used_days) > 0) || (approvedDaysMap[typeIdStr] || 0) > 0)) return;
         const typeInfo = typeMap[typeIdStr] || {};
         const leaveName = typeInfo.name || t.leave_name || "สิทธิ์การลา";
         const isVacation = leaveName.includes("พักผ่อน") || leaveName.includes("พักร้อน") || String(t.leave_code || '').toUpperCase() === 'VACATION';
