@@ -552,7 +552,7 @@
               <div class="setting-card-item">
                 <div class="setting-section-head">
                   <h4>ขนาดตัวอักษร</h4>
-                  <p>ขยายข้อความทั้งหน้าให้อ่านง่ายขึ้น</p>
+                  <p class="st-m-hide">ขยายข้อความทั้งหน้าให้อ่านง่ายขึ้น</p>
                 </div>
                 <div class="font-size-options-grid">
                   <button type="button" class="font-size-btn" id="fontBtnNormal" onclick="changeSystemFontSize('normal')">
@@ -573,7 +573,7 @@
               <div class="setting-card-item">
                 <div class="setting-section-head">
                   <h4>แบบอักษร</h4>
-                  <p>เลือกแบบตัวหนังสือที่อ่านสบายตา</p>
+                  <p class="st-m-hide">เลือกแบบตัวหนังสือที่อ่านสบายตา</p>
                 </div>
                 <div id="fontFamilyOptions" class="font-family-list"></div>
                 <div id="fontFamilyPreview" class="font-preview-box">
@@ -585,7 +585,7 @@
               <div class="setting-card-item">
                 <div class="setting-section-head">
                   <h4>สีของระบบ</h4>
-                  <p>สีหลักของปุ่มและเมนู</p>
+                  <p class="st-m-hide">สีหลักของปุ่มและเมนู</p>
                 </div>
                 <div class="theme-options-grid" id="themeOptionsGrid"></div>
               </div>
@@ -594,7 +594,7 @@
                 <label class="setting-toggle-row" for="settingsEyeCareToggle">
                   <div class="setting-toggle-info">
                     <h5>ถนอมสายตา</h5>
-                    <p>ปรับหน้าจอให้โทนอุ่นขึ้นเล็กน้อย เหมาะกับการใช้ตอนกลางคืน</p>
+                    <p><span class="st-long">ปรับหน้าจอให้โทนอุ่นขึ้นเล็กน้อย เหมาะกับการใช้ตอนกลางคืน</span><span class="st-short">โทนอุ่น สบายตาตอนกลางคืน</span></p>
                   </div>
                   <span class="setting-switch">
                     <input type="checkbox" id="settingsEyeCareToggle" onchange="toggleSystemEyeCare(this.checked)">
@@ -604,7 +604,7 @@
                 <label class="setting-toggle-row" for="settingsHighContrastToggle">
                   <div class="setting-toggle-info">
                     <h5>ตัวหนังสือเข้มชัด</h5>
-                    <p>ทำตัวอักษรหนาและเข้มขึ้น เส้นขอบชัดขึ้น</p>
+                    <p><span class="st-long">ทำตัวอักษรหนาและเข้มขึ้น เส้นขอบชัดขึ้น</span><span class="st-short">ตัวหนาและเข้มขึ้น</span></p>
                   </div>
                   <span class="setting-switch">
                     <input type="checkbox" id="settingsHighContrastToggle" onchange="toggleSystemHighContrast(this.checked)">
@@ -614,7 +614,7 @@
                 <label class="setting-toggle-row" for="settingsCompactToggle">
                   <div class="setting-toggle-info">
                     <h5>ตารางแบบกระชับ</h5>
-                    <p>ลดช่องว่างในตาราง เพื่อเห็นข้อมูลได้มากขึ้นในหน้าเดียว</p>
+                    <p><span class="st-long">ลดช่องว่างในตาราง เพื่อเห็นข้อมูลได้มากขึ้นในหน้าเดียว</span><span class="st-short">เห็นข้อมูลมากขึ้นในหน้าเดียว</span></p>
                   </div>
                   <span class="setting-switch">
                     <input type="checkbox" id="settingsCompactToggle" onchange="toggleSystemCompactMode(this.checked)">
@@ -631,7 +631,7 @@
               <div class="setting-card-item">
                 <div class="setting-section-head">
                   <h4>ภาษาของระบบ</h4>
-                  <p>ใช้กับเมนูและแบบฟอร์มทั้งหมด</p>
+                  <p class="st-m-hide">ใช้กับเมนูและแบบฟอร์มทั้งหมด</p>
                 </div>
                 <div class="lang-options-grid lang-main-grid">
                   <button type="button" class="lang-pills-btn" id="langBtnTh" onclick="changeSystemLanguage('th')">
@@ -652,10 +652,10 @@
               <div class="setting-card-item magic-translate-card">
                 <div class="setting-section-head">
                   <h4>ภาษาอื่น ๆ (แปลด้วย Google)</h4>
-                  <p>ถ้าไม่มีภาษาที่ต้องการด้านบน ให้เลือกจากรายการนี้ ระบบจะแปลหน้าจอให้อัตโนมัติ</p>
+                  <p><span class="st-long">ถ้าไม่มีภาษาที่ต้องการด้านบน ให้เลือกจากรายการนี้ ระบบจะแปลหน้าจอให้อัตโนมัติ</span><span class="st-short">แปลหน้าจอให้อัตโนมัติ</span></p>
                 </div>
                 <div id="google_translate_element_visible" class="translate-slot"></div>
-                <p class="setting-hint">
+                <p class="setting-hint st-m-hide">
                   <span class="material-symbols-outlined">info</span>
                   แนะนำให้ตั้ง "ภาษาของระบบ" เป็นภาษาไทยก่อนใช้ตัวแปลนี้
                 </p>
@@ -670,7 +670,7 @@
               <div class="setting-card-item" data-line-entry>
                 <div class="setting-section-head">
                   <h4>แจ้งเตือนผ่าน LINE</h4>
-                  <p>รับผลการอนุมัติใบลาเข้า LINE บนมือถือ</p>
+                  <p class="st-m-hide">รับผลการอนุมัติใบลาเข้า LINE บนมือถือ</p>
                 </div>
                 <div class="line-status-banner">
                   <div class="line-status-left">
@@ -686,7 +686,7 @@
                   </button>
                 </div>
                 <details class="line-advanced">
-                  <summary>ใส่ LINE User ID เอง (สำหรับผู้ที่มีรหัสอยู่แล้ว)</summary>
+                  <summary>ใส่ LINE User ID เอง<span class="st-long"> (สำหรับผู้ที่มีรหัสอยู่แล้ว)</span></summary>
                   <div class="line-manual-box">
                     <input type="text" id="settingsLineIdInput" class="line-manual-input" placeholder="เช่น U1234567890abcdef..." aria-label="LINE User ID" />
                     <button type="button" class="line-manual-save-btn" onclick="saveLineIdFromSettings()">บันทึก</button>
@@ -698,7 +698,7 @@
                 <label class="setting-toggle-row" for="settingsSoundToggle">
                   <div class="setting-toggle-info">
                     <h5>เสียงเมื่อกดปุ่ม</h5>
-                    <p>มีเสียงสั้น ๆ เมื่อกดปุ่มหรือบันทึกสำเร็จ</p>
+                    <p><span class="st-long">มีเสียงสั้น ๆ เมื่อกดปุ่มหรือบันทึกสำเร็จ</span><span class="st-short">เสียงสั้น ๆ เมื่อกดปุ่ม</span></p>
                   </div>
                   <span class="setting-switch">
                     <input type="checkbox" id="settingsSoundToggle" onchange="toggleSystemSound(this.checked)">
@@ -710,7 +710,7 @@
               <div class="setting-card-item">
                 <div class="setting-section-head">
                   <h4>อัปเดตข้อมูลอัตโนมัติ</h4>
-                  <p>ดึงคำขอและสถิติล่าสุดเองโดยไม่ต้องรีเฟรชหน้า</p>
+                  <p><span class="st-long">ดึงคำขอและสถิติล่าสุดเองโดยไม่ต้องรีเฟรชหน้า</span><span class="st-short">ไม่ต้องรีเฟรชหน้าเอง</span></p>
                 </div>
                 <div class="lang-options-grid segmented">
                   <button type="button" class="lang-pills-btn" id="refreshBtnOff" onclick="changeAutoRefresh('off')">
@@ -734,7 +734,7 @@
                 <label class="setting-toggle-row" for="settingsPrivacyToggle">
                   <div class="setting-toggle-info">
                     <h5>ซ่อนตัวเลขสำคัญ</h5>
-                    <p>เบลอจำนวนวันลาและข้อมูลส่วนตัว ชี้เมาส์หรือแตะค้างเพื่อดู</p>
+                    <p><span class="st-long">เบลอจำนวนวันลาและข้อมูลส่วนตัว ชี้เมาส์หรือแตะค้างเพื่อดู</span><span class="st-short">เบลอยอดวันลา แตะค้างเพื่อดู</span></p>
                   </div>
                   <span class="setting-switch">
                     <input type="checkbox" id="settingsPrivacyToggle" onchange="toggleSystemPrivacyShield(this.checked)">
@@ -744,7 +744,7 @@
                 <label class="setting-toggle-row" for="settingsMotionToggle">
                   <div class="setting-toggle-info">
                     <h5>ลดภาพเคลื่อนไหว</h5>
-                    <p>ปิดแอนิเมชัน ช่วยให้เครื่องเร็วขึ้นและประหยัดแบตเตอรี่</p>
+                    <p><span class="st-long">ปิดแอนิเมชัน ช่วยให้เครื่องเร็วขึ้นและประหยัดแบตเตอรี่</span><span class="st-short">เร็วขึ้น ประหยัดแบต</span></p>
                   </div>
                   <span class="setting-switch">
                     <input type="checkbox" id="settingsMotionToggle" onchange="toggleSystemReducedMotion(this.checked)">
@@ -754,7 +754,7 @@
                 <label class="setting-toggle-row" for="settingsConfirmToggle">
                   <div class="setting-toggle-info">
                     <h5>อนุมัติทันทีไม่ต้องยืนยัน <span class="setting-tag">สำหรับหัวหน้างาน</span></h5>
-                    <p>กดอนุมัติแล้วบันทึกเลย ไม่มีหน้าต่างถามซ้ำ (ระวังกดพลาด)</p>
+                    <p><span class="st-long">กดอนุมัติแล้วบันทึกเลย ไม่มีหน้าต่างถามซ้ำ (ระวังกดพลาด)</span><span class="st-short">ไม่ถามซ้ำ ระวังกดพลาด</span></p>
                   </div>
                   <span class="setting-switch">
                     <input type="checkbox" id="settingsConfirmToggle" onchange="toggleSystemDoubleConfirm(this.checked)">
@@ -766,7 +766,7 @@
               <div class="setting-card-item">
                 <div class="setting-toggle-info">
                   <h5>ประกาศความเป็นส่วนตัว (PDPA)</h5>
-                  <p>ระบบเก็บข้อมูลอะไร ใช้ทำอะไร ใครเห็นบ้าง และสิทธิ์ของคุณ · ดูวันที่คุณกดยอมรับ</p>
+                  <p><span class="st-long">ระบบเก็บข้อมูลอะไร ใช้ทำอะไร ใครเห็นบ้าง และสิทธิ์ของคุณ · ดูวันที่คุณกดยอมรับ</span><span class="st-short">ข้อมูลที่เก็บและสิทธิ์ของคุณ</span></p>
                 </div>
                 <button type="button" class="btn-settings-reset" style="margin-top:10px;" onclick="window.PVTPrivacy ? window.PVTPrivacy.view() : alert('ยังไม่มีประกาศความเป็นส่วนตัวในระบบ')">
                   <span class="material-symbols-outlined" aria-hidden="true">policy</span> อ่านประกาศความเป็นส่วนตัว
