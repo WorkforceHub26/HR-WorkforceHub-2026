@@ -981,3 +981,45 @@ html, body {
   top: 0px !important;
   margin-top: 0px !important;
 }
+
+/* 📱 มือถือ (2026-10-28): ยังเป็นเมนูซ้ายเหมือนคอม แต่ย่อเป็นแถบไอคอนแคบ (ไอคอน + ชื่อสั้นใต้ไอคอน)
+   เพื่อให้เนื้อหาด้านขวากว้างพอ · ไม่ใช่แถบด้านบนแบบเดิมที่ตัดออกเมื่อ 22/10 */
+@media (max-width: 720px) {
+  .settings-nav {
+    width: 78px;
+    padding: 10px 6px;
+    gap: 4px;
+  }
+  .settings-nav-btn {
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-height: 64px;
+    padding: 8px 2px;
+    font-size: 11.5px;
+    line-height: 1.25;
+    text-align: center;
+  }
+  .settings-nav-btn .material-symbols-outlined { font-size: 22px; }
+  .settings-nav-ext { display: none; }
+
+  .settings-panels { padding: 14px 12px 20px; }
+  .settings-panel { gap: 12px; }
+  .settings-panel-title { font-size: 17px; }
+  .setting-card-item { padding: 14px 12px; border-radius: 12px; }
+  .setting-list { padding: 2px 12px; }
+  .setting-section-head h4 { font-size: 15px; }
+  .setting-section-head p,
+  .setting-toggle-info p { font-size: 13px; }
+  .setting-toggle-row { gap: 10px; }
+
+  .font-size-options-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .font-size-btn { min-height: 64px; padding: 8px 4px; }
+  .font-size-label { font-size: 13px; }
+  .font-family-list,
+  .lang-options-grid,
+  .lang-main-grid { grid-template-columns: minmax(0, 1fr); }
+  .theme-options-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+
+  .settings-modal-footer { padding: 10px 12px; }
+}

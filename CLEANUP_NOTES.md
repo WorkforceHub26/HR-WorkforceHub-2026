@@ -728,3 +728,14 @@
 - js/management.js: openPrivacyNoticeManager() หน้าต่างของตัวเอง (ไม่ใช่ SweetAlert) ใช้ PVTPrivacy.renderAdmin · pvtApplyAdminOnlyItems()
 - pages/hr/admin-dashboard.html: เอาแผง PDPA ออก (คอนโซลขั้นสูงเหลือส่วนที่เสี่ยงต่อระบบ)
 - public/sw.js: VERSION = pvt-v20261027-pdpa
+
+## 2026-10-27 · หน้าต่างหลัง "กำลังโหลด..." ไม่มีปุ่ม (management.js)
+- 19 จุด: didOpen: () => Swal.showLoading() → willOpen (เรียกทันทีตอนเปิด ไม่ไปค้างกับหน้าต่างถัดไป เช่น Audit Log / โครงสร้างองค์กร / ทดสอบ LINE ที่ปุ่มกลายเป็นวงหมุน)
+- ไฟล์อื่นยังมีรูปแบบเดิม: hr.js 6 · holiday-swap.js 7 · approval-settings.js 3 · home.js 2 · อื่นๆ 1 จุด
+- public/sw.js: VERSION = pvt-v20261027-loadfix
+
+## 2026-10-28 · หน้าต่างตั้งค่าบนมือถือแสดงผลเพี้ยน
+- อาการ: บนมือถือเมนูซ้ายกว้าง 220px กินครึ่งจอ เนื้อหาด้านขวาแคบจนตัวหนังสือตกบรรทัดทีละคำ ปุ่มขนาดตัวอักษรล้นจอ
+- สาเหตุ: 22/10 ตัดบล็อก @media ของมือถือออก (ตามที่ขอให้ไม่ใช้แถบด้านบน)
+- แก้: เพิ่ม @media (max-width: 720px) ท้าย css/system-settings.css ยังเป็นเมนูซ้ายเหมือนเดิม แต่ย่อเป็นแถบไอคอนแคบ 78px (ไอคอน + ชื่อใต้ไอคอน) และปรับตารางปุ่มให้พอดีจอ · คอมพิวเตอร์ไม่เปลี่ยน
+- ไฟล์: `css/system-settings.css`, `public/sw.js` (VERSION pvt-v20261028-setmobile)
