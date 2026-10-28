@@ -745,3 +745,20 @@
 - คำอธิบายส่วนอื่น: บนมือถือซ่อนคำอธิบายหัวข้อ และใช้ข้อความสั้นแทนข้อความยาว (span.st-long / span.st-short, p.st-m-hide) · ซ่อนบรรทัดรองใต้ชื่อ "ตั้งค่า"
 - จอแคบมาก (≤ 380px) ย่อระยะและตัวอักษรอีกขั้น · คอมพิวเตอร์ยังแสดงข้อความเต็มเหมือนเดิม
 - ไฟล์: `js/system-settings.js`, `css/system-settings.css`, `public/sw.js` (VERSION pvt-v20261028-setmobile2)
+
+## 2026-10-28 · เว็บ Dev ใช้ฐานข้อมูล MAIN + ตรวจ LINE ไม่แจ้งเตือนบน MAIN
+- สาเหตุข้อมูลปนกัน: auth/supabase-config.js เลือก DEV จากชื่อเว็บที่มี "-dev" / localhost เท่านั้น · hr-workforcehub.pages.dev ไม่เข้าเงื่อนไข → ใช้ MAIN ข้อมูลที่ทดสอบบนเว็บ Dev จึงลงฐานจริง
+- แก้: PVT_KNOWN_HOSTS กำหนดตายตัว workforcehub.pages.dev = MAIN · hr-workforcehub.pages.dev และลิงก์ preview *.pages.dev = DEV · เว็บที่รู้จักไม่สน ?env= / pvt_app_env / URL ที่ตั้งไว้ในเครื่อง
+- .env.example: ค่า DEV เดิมชี้ไป MAIN → แก้เป็นโปรเจกต์ nfksbyptpfvoihybejjt
+- เพิ่ม supabase/check_line_and_testdata.sql (อ่านอย่างเดียว) ตรวจผลส่ง LINE / การผูก LINE / รหัสผูกที่ไม่ถูกใช้ และรายการข้อมูลทดสอบใน MAIN
+- ไฟล์: `auth/supabase-config.js`, `public/sw.js` (VERSION pvt-v20261028-envfix), `.env.example`, `supabase/check_line_and_testdata.sql`
+
+## 2026-10-28 · บันทึกสาเหตุจริงเมื่อส่ง LINE ไม่สำเร็จ
+- อาการบน MAIN: line_message_logs ขึ้น failed / via server / HTTP 405 · 405 มาจากทางสำรอง /api/send-notification ที่ไม่มีบน Cloudflare Pages สาเหตุจริงอยู่ที่ Edge Function line-send แต่ไม่ได้บันทึก
+- แก้: เก็บสถานะ + ข้อความตอบกลับของ line-send (edge HTTP ...) ไว้หน้า error ทุกกรณี
+- ไฟล์: `auth/supabase-config.js`, `public/sw.js` (VERSION pvt-v20261028-linelog)
+
+## 2026-10-28 · แก้ LINE ไม่ส่งเลย (ReferenceError: isUuid is not defined)
+- สาเหตุจริง: `isUuid` ประกาศไว้ใน `logLine` แต่ถูกเรียกตอนสร้าง body ของ line-send → ReferenceError ก่อน fetch ทุกครั้ง → ตกไปทางสำรอง /api/send-notification → 405 บน Cloudflare · line-send จึงไม่เคยถูกเรียกจากเว็บ (Logs ของฟังก์ชันว่าง)
+- แก้: ย้าย `isUuid` ขึ้นมาระดับ sendWorkflowNotification · ดึงชื่อเล่นเฉพาะเมื่อ leaveId เป็น UUID (ปุ่มทดสอบเคยทำให้ GET 400)
+- ไฟล์: `auth/supabase-config.js`, `public/sw.js` (VERSION pvt-v20261028-linefix)

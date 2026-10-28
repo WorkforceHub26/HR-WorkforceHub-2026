@@ -32,7 +32,32 @@
     }
   };
 
+  // 🔒 เว็บที่รู้จัก: ชื่อเว็บกำหนดฐานข้อมูลตายตัว (ไม่สนค่าที่จำไว้ในเครื่อง / ?env=)
+  //    เดิม hr-workforcehub.pages.dev ไม่เข้าเงื่อนไข DEV → ไปใช้ MAIN ข้อมูลทดสอบจึงลงฐานจริง (แก้ 28/10/2569)
+  //    ลิงก์ preview ของ Cloudflare (เช่น abc123.workforcehub.pages.dev) = DEV เพื่อไม่ให้ทดสอบลงฐานจริง
+  const PVT_KNOWN_HOSTS = {
+    'workforcehub.pages.dev': 'MAIN',
+    'hr-workforcehub.pages.dev': 'DEV'
+  };
+  function knownHostEnv(host) {
+    if (PVT_KNOWN_HOSTS[host]) return PVT_KNOWN_HOSTS[host];
+    if (host.endsWith('.hr-workforcehub.pages.dev')) return 'DEV';
+    if (host.endsWith('.workforcehub.pages.dev')) return 'DEV';
+    return null;
+  }
+
   function resolveActiveEnvironment() {
+    // 0. เว็บที่รู้จัก → ใช้ฐานข้อมูลตามชื่อเว็บเสมอ
+    try {
+      if (typeof window !== "undefined" && window.location && window.location.hostname) {
+        const fixed = knownHostEnv(window.location.hostname.toLowerCase());
+        if (fixed) {
+          try { localStorage.removeItem("pvt_app_env"); } catch (e) {}
+          return fixed;
+        }
+      }
+    } catch (e) {}
+
     // 1. Check URL Parameter: ?env=dev or ?env=main
     try {
       if (typeof window !== "undefined" && window.location && window.location.search) {
@@ -95,7 +120,9 @@
   const SELECTED_ENV_CONFIG = { ...ENV_CONFIGS[ACTIVE_ENV] };
 
   // Allow custom URL/Key overrides from localStorage or global window variables
-  try {
+  //   (เว็บที่รู้จักไม่รับค่าที่ตั้งไว้ในเครื่อง — กันกรณีเคยตั้ง URL ของ DEV ให้ชี้ไป MAIN)
+  const PVT_ON_KNOWN_HOST = (() => { try { return !!knownHostEnv(window.location.hostname.toLowerCase()); } catch (e) { return false; } })();
+  if (!PVT_ON_KNOWN_HOST) try {
     const customUrl = localStorage.getItem(`pvt_supabase_url_${ACTIVE_ENV.toLowerCase()}`);
     const customKey = localStorage.getItem(`pvt_supabase_key_${ACTIVE_ENV.toLowerCase()}`);
     if (customUrl && customUrl.trim()) SELECTED_ENV_CONFIG.URL = customUrl.trim();
@@ -2381,7 +2408,7 @@ class LineOAEngine {
     } = opts;
     // ชื่อเล่นผู้ขอลา: ใช้ค่าที่ส่งมา หรือดึงจากใบลา
     let employeeNickname = String(opts.employeeNickname || '').trim();
-    if (!employeeNickname && leaveId && this.client) {
+    if (!employeeNickname && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(leaveId || '')) && this.client) {
       try {
         const { data: lv } = await this.client.from('leave_requests').select('employee_id').eq('id', leaveId).maybeSingle();
         if (lv && lv.employee_id) {
@@ -2563,13 +2590,15 @@ class LineOAEngine {
       employeeNickname
     });
 
+    // ใช้ทั้งตอนบันทึก log และตอนเรียก line-send (เดิมประกาศไว้ใน logLine → เรียก line-send แล้ว ReferenceError ไม่เคยส่งถึง LINE)
+    const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
+
     // 📊 บันทึกการส่ง LINE (นับจำนวนต่อเดือนในคอนโซลผู้ดูแลระบบ) — ตาราง line_message_logs
     const logLine = async (result, via, error) => {
       if (!this.client) return;
       try {
         let senderId = null;
         try { senderId = JSON.parse(localStorage.getItem('currentUser') || '{}').id || null; } catch (e) {}
-        const isUuid = (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
         await this.client.from('line_message_logs').insert([{
           msg_type: type,
           result,
@@ -2619,8 +2648,10 @@ class LineOAEngine {
         })
       });
 
+      let edgeError = null;   // สาเหตุจริงจาก Edge Function (เดิมบันทึกแค่ผลของทางสำรอง)
       if (!response.ok) {
-        console.warn("⚠️ [LINE OA] line-send Edge Function fallback to /api/send-notification");
+        try { edgeError = `edge HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`; } catch (e) { edgeError = `edge HTTP ${response.status}`; }
+        console.warn("⚠️ [LINE OA] line-send Edge Function fallback to /api/send-notification", edgeError);
         via = 'server';
         response = await fetch('/api/send-notification', {
           method: "POST",
@@ -2642,7 +2673,7 @@ class LineOAEngine {
           response.status,
           resultText
         );
-        await logLine('failed', via, `HTTP ${response.status}: ${resultText}`);
+        await logLine('failed', via, `${edgeError ? edgeError + ' | ' : ''}${via} HTTP ${response.status}: ${resultText}`.slice(0, 500));
 
         return {
           success: false,
@@ -2682,10 +2713,10 @@ class LineOAEngine {
             flexMessage: flexCardObj
           })
         });
-        await logLine(fb.ok ? 'sent' : 'failed', 'server', fb.ok ? null : `HTTP ${fb.status}`);
+        await logLine(fb.ok ? 'sent' : 'failed', 'server', fb.ok ? null : `edge error: ${lineErr?.message || lineErr} | server HTTP ${fb.status}`);
       } catch (fallbackErr) {
         console.error("❌ Fallback server notification also failed:", fallbackErr);
-        await logLine('failed', 'server', fallbackErr?.message || String(fallbackErr));
+        await logLine('failed', 'server', `edge error: ${lineErr?.message || lineErr} | ${fallbackErr?.message || String(fallbackErr)}`);
       }
 
       return {
