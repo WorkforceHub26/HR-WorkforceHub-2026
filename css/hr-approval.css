@@ -570,3 +570,18 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
     padding: 0 16px;
   }
 }
+
+/* ปุ่ม "รายละเอียด" / "พิมพ์" ที่มีตัวหนังสือ (แท็บอนุมัติแล้ว / ประวัติ) — เดิมถูกบีบเหลือ 42px ตัวหนังสือล้นทับกัน */
+#page-hr-approval .action-btn-group .btn-act-preview:has(.btn-text),
+#page-hr-approval .action-btn-group .btn-act-print:has(.btn-text) {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  padding: 0 14px;
+  gap: 6px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+#page-hr-approval .action-btn-group:not(:has(.btn-act-approve, .btn-act-reject, .btn-act-cancel)) {
+  justify-content: flex-end;
+}
