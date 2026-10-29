@@ -430,7 +430,7 @@ window.loadRecentLeaves = async function(profile) {
     let totalUsed = 0;
 
     (userBalances || []).forEach(b => {
-      totalRemaining += parseFloat(b.remaining_days) || 0;
+      if (!b.unlimited) totalRemaining += parseFloat(b.remaining_days) || 0;   // ไม่จำกัดจำนวนวัน ไม่นับรวม
       totalUsed += parseFloat(b.used_days) || 0;
     });
 
@@ -1944,10 +1944,11 @@ function renderQuotaCards(quotas) {
     else if (typeName.includes("คลอด")) typeName = "ลาคลอดบุตร";
     else if (typeName.includes("บวช") || typeName.includes("อุปสมบท")) typeName = "ลาอุปสมบท";
 
-    const total = parseFloat(item.entitlement_days) || parseFloat(item.quota) || 0;
+    const total = item.unlimited ? '∞' : (parseFloat(item.entitlement_days) || parseFloat(item.quota) || 0);
     const used = parseFloat(item.used_days) || 0;
-    const remaining = parseFloat(item.remaining_days) ?? (total - used);
-    const usedPercent = total > 0 ? Math.min(Math.round((used / total) * 100), 100) : 0;
+    // ไม่จำกัดจำนวนวัน → แสดง ∞ (ไม่มีหลอดเปอร์เซ็นต์)
+    const remaining = item.unlimited ? '∞' : (parseFloat(item.remaining_days) ?? (total - used));
+    const usedPercent = item.unlimited ? 0 : (total > 0 ? Math.min(Math.round((used / total) * 100), 100) : 0);
     const cardColor = item.card_color || (typeName.includes("พักร้อน") ? "#0d9488" : typeName.includes("ป่วย") ? "#ef4444" : "#2563eb");
     const leaveTypeId = item.leave_type_id || `type-${index}`;
     const approvedTimes = item.approved_times || 0;
@@ -2909,9 +2910,9 @@ window.initQuickForm = async function(profile, quotas) {
         const name = safeEscapeHtml(item.leave_type_name || "วันลา");
         const remaining = item.remaining_days ?? 0;
         const cardColor = item.card_color || "#0d9488";
-        const remainingText = window.PVTSDK?.formatLeaveQuotaFriendly
+        const remainingText = item.unlimited ? 'ไม่จำกัด' : (window.PVTSDK?.formatLeaveQuotaFriendly
           ? window.PVTSDK.formatLeaveQuotaFriendly(remaining)
-          : `${remaining} วัน`;
+          : `${remaining} วัน`);
 
         return `
           <button type="button"

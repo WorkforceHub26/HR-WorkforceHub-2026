@@ -1009,7 +1009,8 @@ window.renderAllLeaveBalances = function() {
       return {
         rawName: name,
         typeName: typeof getTranslatedLeaveTypeName === 'function' ? getTranslatedLeaveTypeName(name) : name,
-        remaining: Math.max(0, remaining)
+        remaining: Math.max(0, remaining),
+        unlimited: !!b.unlimited
       };
     });
   } else if (systemLeaveTypes && systemLeaveTypes.length > 0) {
@@ -1041,7 +1042,7 @@ window.renderAllLeaveBalances = function() {
 
     const box = document.createElement("div");
     box.className = `leave-quota-box ${colorClass}`;
-    const formattedQuota = formatLeaveDurationText(remaining);
+    const formattedQuota = item.unlimited ? 'ไม่จำกัด' : formatLeaveDurationText(remaining);
     box.innerHTML = `
       <div class="leave-quota-name">${typeName}</div>
       <div class="leave-quota-days" title="คงเหลือ: ${remaining} วัน">${formattedQuota}</div>

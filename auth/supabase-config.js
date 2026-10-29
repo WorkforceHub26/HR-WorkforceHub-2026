@@ -1365,10 +1365,78 @@
             leave_code: lt.leave_code || code,
             leave_name: lt.leave_name || name,
             gender_scope: lt.gender_scope || null,
-            status: lt.status || 'active'
-          }
+            status: lt.status || 'active',
+            yearly_quota: lt.yearly_quota ?? null,
+            paid_leave: lt.paid_leave,
+            unlimited: lt.unlimited === true
+          },
+          // สิทธิ์รายคนของประเภทที่เพิ่มเอง (employee_leave_balances.custom_totals)
+          custom_total: (row.custom_totals && row.custom_totals[String(lt.id)] != null) ? Number(row.custom_totals[String(lt.id)]) : null
         };
       });
+    }
+
+    // 🧩 ประเภทการลาที่เพิ่มเอง (ไม่ใช่ ป่วย/กิจ/พักร้อน/คลอด) ใช้ช่อง other_total/other_used ร่วมกันในตาราง
+    //   → สิทธิ์ = โควตาที่ตั้งไว้ใน "ตั้งค่าโควตากลาง" ของประเภทนั้น (yearly_quota) · ใช้ไป = ใบลาที่อนุมัติของประเภทนั้นเอง
+    //   (เดิมทุกประเภทแบบนี้ขึ้น 30 วัน และใช้ยอดใช้ไปรวมกัน)
+    //   usedByType = { [leave_type_id]: วันที่ใช้ไป } (ใบลาที่อนุมัติในรอบปีนั้น)
+    applyOtherTypeQuotas(items, usedByType) {
+      if (!Array.isArray(items) || !window.PVTQuota?.kindOf) return items;
+      return items.map((it) => {
+        const lt = it.leave_types || {};
+        const isOther = window.PVTQuota.kindOf(lt) === 'other';
+        let next = it;
+        if (isOther) {
+          const q = Number(lt.yearly_quota);
+          const custom = it.custom_total != null && Number.isFinite(Number(it.custom_total)) ? Number(it.custom_total) : null;
+          const total = custom != null ? custom : (Number.isFinite(q) && q > 0 ? q : Number(it.entitlement_days || 0));
+          const used = usedByType ? Math.round((Number(usedByType[String(it.leave_type_id)]) || 0) * 100) / 100 : Number(it.used_days || 0);
+          next = Object.assign({}, it, { entitlement_days: total, quota: total, used_days: used, remaining_days: Math.max(0, Math.round((total - used) * 100) / 100) });
+        }
+        // ไม่จำกัดจำนวนวัน: ไม่ตรวจสิทธิ์คงเหลือ (คงเหลือ = 9999 ให้ทุกจุดที่ตรวจผ่าน) · หน้าจอแสดงคำว่า "ไม่จำกัด"
+        if (lt.unlimited === true) {
+          next = Object.assign({}, next, { unlimited: true, entitlement_days: 9999, quota: 9999, remaining_days: 9999 });
+        }
+        return next;
+      });
+    }
+
+    // ใบลาที่อนุมัติแล้วในรอบปีการลา yearAD → { [employee_id]: { [leave_type_id]: วัน } } · employeeId = null → ทุกคน
+    async approvedDaysByType(employeeId, yearAD) {
+      const out = {};
+      if (!this.client) return out;
+      const y = Number(yearAD);
+      const pageSize = 1000;
+      for (let from = 0; from < 50000; from += pageSize) {
+        let q = this.client.from('leave_requests')
+          .select('employee_id, leave_type_id, total_days, start_date, charge_year')
+          .eq('status', 'approved')
+          .gte('start_date', `${y - 2}-12-01`)
+          .lte('start_date', `${y}-11-30`)
+          .range(from, from + pageSize - 1);
+        if (employeeId) q = q.eq('employee_id', employeeId);
+        let { data, error } = await q;
+        if (error) {
+          // ฐานที่ยังไม่มีคอลัมน์ charge_year
+          let q2 = this.client.from('leave_requests')
+            .select('employee_id, leave_type_id, total_days, start_date')
+            .eq('status', 'approved')
+            .gte('start_date', `${y - 1}-12-01`)
+            .lte('start_date', `${y}-11-30`)
+            .range(from, from + pageSize - 1);
+          if (employeeId) q2 = q2.eq('employee_id', employeeId);
+          ({ data, error } = await q2);
+          if (error) return out;
+        }
+        (data || []).forEach((r) => {
+          if (window.getLeaveChargeYear(r) !== y) return;
+          const e = String(r.employee_id), t = String(r.leave_type_id);
+          out[e] = out[e] || {};
+          out[e][t] = (out[e][t] || 0) + (Number(r.total_days) || 0);
+        });
+        if (!data || data.length < pageSize) break;
+      }
+      return out;
     }
 
     // ดึงวันลาคงเหลือ
@@ -1498,6 +1566,14 @@
           } catch(fbErr) {
             console.warn("Virtual balance calculation fallback notice:", fbErr);
           }
+        }
+
+        // 🧩 ประเภทที่เพิ่มเอง: สิทธิ์ตามโควตากลางของประเภทนั้น + ใช้ไปเฉพาะประเภทนั้น
+        if (result && result.length) {
+          try {
+            const byEmp = await this.approvedDaysByType(employeeId, yearAD);
+            result = this.applyOtherTypeQuotas(result, byEmp[String(employeeId)] || {});
+          } catch (e) {}
         }
 
         // 👫 ซ่อนประเภทที่ไม่ตรงเพศ (เช่น ลาคลอดของพนักงานชาย) · ถ้าเคยใช้ไปแล้วยังแสดงไว้
@@ -1656,7 +1732,12 @@
           .maybeSingle();
 
         const updates = { updated_at: new Date().toISOString() };
-        if (absoluteTotalDays !== null) {
+        // ประเภทที่เพิ่มเอง (หมวด other): สิทธิ์รายคนเก็บแยกต่อประเภทใน custom_totals (ไม่ทับ other_total ที่ใช้ร่วมกัน)
+        const useCustomTotal = usedCol === 'other_used' && !!leaveTypeId && absoluteTotalDays !== null
+          && row && Object.prototype.hasOwnProperty.call(row, 'custom_totals');
+        if (useCustomTotal) {
+          updates.custom_totals = Object.assign({}, row.custom_totals || {}, { [String(leaveTypeId)]: Math.max(0, absoluteTotalDays) });
+        } else if (absoluteTotalDays !== null) {
           updates[totalCol] = Math.max(0, absoluteTotalDays);
         }
 
@@ -1670,6 +1751,9 @@
 
         if (row) {
           const currentUsed = Number(row[usedCol] || 0);
+          // หมวด other ที่แยกรายประเภทแล้ว: "ใช้ไป" นับจากใบลาเสมอ (ไม่รับค่าที่พิมพ์เอง)
+          if (useCustomTotal) absoluteUsedDays = null;
+          if (useCustomTotal && recomputed === null) recomputed = await this.computeUsedFromLeaves(employeeId, usedCol, yearAD);
           const newUsed = absoluteUsedDays !== null 
             ? Math.max(0, absoluteUsedDays)
             : recomputed !== null

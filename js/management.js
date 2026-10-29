@@ -1077,9 +1077,15 @@ async function fetchLeaveBalances(selectedYear = null) {
       const { data: lTypes } = await sb.from("leave_types").select("*");
       const activeTypes = lTypes || leaveTypes || [];
       
+      // ประเภทที่เพิ่มเอง (เช่น หยุดพิเศษ): สิทธิ์ตามโควตากลางของประเภทนั้น + ใช้ไปเฉพาะประเภทนั้น
+      let usedByEmp = null;
+      try { usedByEmp = await window.PVTSDK?.user?.approvedDaysByType?.(null, yearAD); } catch (_) { usedByEmp = null; }
       empBalList.forEach(empBal => {
         if (window.PVTSDK?.user?.transformEmployeeLeaveBalanceToItems) {
-          const items = window.PVTSDK.user.transformEmployeeLeaveBalanceToItems(empBal, activeTypes);
+          let items = window.PVTSDK.user.transformEmployeeLeaveBalanceToItems(empBal, activeTypes);
+          if (usedByEmp && window.PVTSDK.user.applyOtherTypeQuotas) {
+            items = window.PVTSDK.user.applyOtherTypeQuotas(items, usedByEmp[String(empBal.employee_id)] || {});
+          }
           formattedBalances.push(...items);
         }
       });
@@ -2800,7 +2806,7 @@ function renderBalanceCards(rows, emp) {
       <div style="background:var(--th-p-50, #f0fdfa); border:1px solid var(--th-p-100, #ccfbf1); padding:10px 14px; border-radius:4px;">
         <span style="font-size:12px; color:var(--th-p-600, #0d9488); font-weight:600; display:block; margin-bottom:4px;">${escapeHtml(type)}</span>
         <div style="font-size:18px; font-weight:700; color:var(--th-p-700, #0f766e);">
-          ${remaining} <span style="font-size:12px; font-weight:normal; color:#475569;">/ ${entitlement} วัน (ใช้ไป ${used})</span>
+          ${row.unlimited ? `ไม่จำกัด <span style="font-size:12px; font-weight:normal; color:#475569;">(ใช้ไป ${used} วัน)</span>` : `${remaining} <span style="font-size:12px; font-weight:normal; color:#475569;">/ ${entitlement} วัน (ใช้ไป ${used})</span>`}
         </div>
       </div>
     `;
@@ -4509,11 +4515,11 @@ async function editGlobalLeaveRules() {
       return `
       <tr style="border-bottom:1px solid #e2e8f0; ${on ? '' : 'background:#f8fafc; color:#94a3b8;'}" id="rule-row-${r.id}">
         <td style="padding:10px 12px; border:1px solid #e2e8f0;">
-          <div style="font-weight:600; ${on ? 'color:#0f172a;' : ''}">${escapeHtml(r.leave_name)}${on ? '' : ' <span style="font-size:11px; font-weight:600; color:#64748b; background:#e2e8f0; border-radius:999px; padding:1px 8px; margin-left:4px;">ปิดใช้งาน</span>'}</div>
+          <div style="font-weight:600; ${on ? 'color:#0f172a;' : ''}">${escapeHtml(r.leave_name)}${on ? '' : ' <span style="font-size:11px; font-weight:600; color:#64748b; background:#e2e8f0; border-radius:999px; padding:1px 8px; margin-left:4px;">ปิดใช้งาน</span>'}${r.paid_leave === false ? ' <span style="font-size:11px; font-weight:600; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:999px; padding:1px 8px; margin-left:4px;">ไม่รับค่าจ้าง</span>' : ''}</div>
           <small style="color:#94a3b8; font-size:11px;">รหัส: ${escapeHtml(r.leave_code || '-')}</small>
         </td>
         <td style="padding:10px 12px; border:1px solid #e2e8f0; text-align:center; font-weight:600;">
-          ${q > 0 ? `${q} วัน` : '<span style="color:#94a3b8; font-weight:400;">ยังไม่ตั้ง</span>'}
+          ${r.unlimited === true ? '<span style="color:#0369a1;">ไม่จำกัด</span>' : (q > 0 ? `${q} วัน` : '<span style="color:#94a3b8; font-weight:400;">ยังไม่ตั้ง</span>')}
         </td>
         <td style="padding:8px; border:1px solid #e2e8f0; text-align:center;" id="rule-gender-${r.id}">
           ${pvtLeaveGenderToggleHTML(r)}
@@ -4539,7 +4545,7 @@ async function editGlobalLeaveRules() {
           <button type="button" onclick="addNewLeaveTypeModal()" class="action-btn success-zone" style="font-size:12.5px; padding:7px 14px;">
             ➕ เพิ่มประเภทการลาใหม่
           </button>
-          <span style="font-size:12px; color:#64748b;">โควตา "ยังไม่ตั้ง" = ระบบใช้ค่าเริ่มต้น (ป่วย 30 · กิจ 6 · พักร้อน 6 · คลอด 98 · อื่นๆ 30)</span>
+          <span style="font-size:12px; color:#64748b;">โควตา "ยังไม่ตั้ง" = ระบบใช้ค่าเริ่มต้น (ป่วย 30 · กิจ 6 · พักร้อน 6 · คลอด 98 · ประเภทที่เพิ่มเอง 30) · แก้ไขเพื่อตั้ง "ไม่รับค่าจ้าง" หรือ "ไม่จำกัดจำนวนวัน"</span>
         </div>
         <div style="max-height: 420px; overflow-y: auto; font-family:'Sarabun', sans-serif;">
           <table style="width:100%; text-align:left; font-size:13.5px; border-collapse:collapse;">
@@ -4618,6 +4624,28 @@ async function toggleLeaveTypeGender(ruleId, g) {
   try { window.PVTSDK?.cache?.invalidateByTag?.('leaves'); } catch (_) {}
 }
 
+// ⚙️ ตัวเลือก "ได้รับค่าจ้าง" / "ไม่จำกัดจำนวนวัน" (ใช้ทั้งหน้าต่างเพิ่มและแก้ไข)
+function pvtLeaveTypeOptionsHTML(prefix, r) {
+  const paid = !r || r.paid_leave !== false;
+  const unlimited = !!(r && r.unlimited === true);
+  return `
+    <div style="margin:10px 0 4px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; display:flex; flex-direction:column; gap:8px; font-size:14px;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="${prefix}-paid" ${paid ? 'checked' : ''} style="transform:scale(1.2);"> ได้รับค่าจ้าง <span style="font-size:12px; color:#64748b;">(ไม่ติ๊ก = ลาไม่รับค่าจ้าง)</span></label>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="${prefix}-unlimited" ${unlimited ? 'checked' : ''} onchange="(function(c){var q=document.getElementById('${prefix}-quota'); if(q){q.disabled=c.checked; q.style.opacity=c.checked?0.5:1;}})(this)" style="transform:scale(1.2);"> ไม่จำกัดจำนวนวัน <span style="font-size:12px; color:#64748b;">(ไม่ตรวจสิทธิ์คงเหลือ · ยังนับวันที่ใช้)</span></label>
+    </div>`;
+}
+function pvtReadLeaveTypeOptions(prefix) {
+  return {
+    paid_leave: !!document.getElementById(`${prefix}-paid`)?.checked,
+    unlimited: !!document.getElementById(`${prefix}-unlimited`)?.checked
+  };
+}
+// ฐานข้อมูลยังไม่มีคอลัมน์ paid_leave / unlimited → บันทึกส่วนอื่นได้ และบอกให้รัน SQL
+function pvtIsMissingLeaveOptionCol(error) {
+  const msg = String(error?.message || '');
+  return /unlimited|paid_leave|custom_totals/.test(msg) && /column|schema cache/i.test(msg);
+}
+
 // ✏️ แก้ไขชื่อ / โควตา ของประเภทการลา (หน้าต่างแยก)
 async function editLeaveTypeModal(ruleId) {
   const r = (window.__pvtLeaveTypeRows || {})[ruleId];
@@ -4629,8 +4657,9 @@ async function editLeaveTypeModal(ruleId) {
         <label style="font-size:13px; font-weight:600;">ชื่อประเภทการลา *</label>
         <input id="edit-lt-name" class="swal2-input" value="${escapeHtml(r.leave_name || '')}" style="margin:4px 0 12px; height:40px; font-size:14px; width:100%;">
         <label style="font-size:13px; font-weight:600;">โควตากลาง (วัน/ปี)</label>
-        <input type="number" id="edit-lt-quota" class="swal2-input" value="${Number(r.yearly_quota) || 0}" step="0.5" min="0" style="margin:4px 0 4px; height:40px; font-size:14px; width:100%;">
+        <input type="number" id="edit-lt-quota" class="swal2-input" value="${Number(r.yearly_quota) || 0}" step="0.5" min="0" ${r.unlimited === true ? 'disabled style="opacity:.5; margin:4px 0 4px; height:40px; font-size:14px; width:100%;"' : 'style="margin:4px 0 4px; height:40px; font-size:14px; width:100%;"'}>
         <div style="font-size:12px; color:#64748b;">ใส่ 0 = ใช้ค่าเริ่มต้นของระบบ · รหัส ${escapeHtml(r.leave_code || '-')} (แก้ไม่ได้)</div>
+        ${pvtLeaveTypeOptionsHTML('edit-lt', r)}
       </div>`,
     showCancelButton: true,
     confirmButtonText: '💾 บันทึก',
@@ -4641,16 +4670,17 @@ async function editLeaveTypeModal(ruleId) {
       const name = document.getElementById('edit-lt-name').value.trim();
       const quota = parseFloat(document.getElementById('edit-lt-quota').value);
       if (!name) { Swal.showValidationMessage('กรุณาระบุชื่อประเภทการลา'); return false; }
-      if (!Number.isFinite(quota) || quota < 0) { Swal.showValidationMessage('โควตาต้องเป็นตัวเลข 0 ขึ้นไป'); return false; }
-      return { name, quota };
+      const opts = pvtReadLeaveTypeOptions('edit-lt');
+      if (!opts.unlimited && (!Number.isFinite(quota) || quota < 0)) { Swal.showValidationMessage('โควตาต้องเป็นตัวเลข 0 ขึ้นไป'); return false; }
+      return { name, quota: Number.isFinite(quota) ? quota : 0, opts };
     }
   });
   if (!v) { editGlobalLeaveRules(); return; }
-  await saveSingleLeaveRule(ruleId, v.name, v.quota);
+  await saveSingleLeaveRule(ruleId, v.name, v.quota, v.opts);
 }
 
 // ฟังก์ชันบันทึกชื่อและโควตา (เรียกจากหน้าต่างแก้ไข · ยังรองรับแบบเดิมที่อ่านจากช่องในตาราง)
-async function saveSingleLeaveRule(ruleId, nameArg, quotaArg) {
+async function saveSingleLeaveRule(ruleId, nameArg, quotaArg, optsArg) {
   const supabase = getSupabase();
   const newName = (nameArg != null ? String(nameArg) : document.getElementById(`rule-name-${ruleId}`)?.value || '').trim();
   const newQuota = quotaArg != null ? Number(quotaArg) || 0 : parseFloat(document.getElementById(`rule-quota-${ruleId}`)?.value) || 0;
@@ -4667,14 +4697,22 @@ async function saveSingleLeaveRule(ruleId, nameArg, quotaArg) {
   const oldStd = window.PVTQuota ? window.PVTQuota.standard(rowsBefore)[kind] : null;
 
   try {
-    const { error } = await supabase
-      .from('leave_types')
-      .update({ leave_name: newName, yearly_quota: newQuota })
-      .eq('id', ruleId);
+    const patch = Object.assign({ leave_name: newName, yearly_quota: newQuota }, optsArg || {});
+    let { error } = await supabase.from('leave_types').update(patch).eq('id', ruleId);
+    let optsSkipped = false;
+    if (error && optsArg && pvtIsMissingLeaveOptionCol(error)) {
+      ({ error } = await supabase.from('leave_types').update({ leave_name: newName, yearly_quota: newQuota }).eq('id', ruleId));
+      optsSkipped = true;
+    }
 
     if (error) throw error;
+    if (optsSkipped) {
+      await Swal.fire({ icon: 'warning', title: 'บันทึกชื่อและโควตาแล้ว', html: `ยังบันทึก "ได้รับค่าจ้าง / ไม่จำกัดจำนวนวัน" ไม่ได้<br>ให้รันไฟล์ <code>supabase/migrations/20261029_leave_type_options.sql</code> ใน Supabase SQL Editor ก่อน` });
+    }
+    try { window.PVTSDK?.cache?.invalidateByTag?.('leaves'); } catch (_) {}
 
-    await saveHRActivityLog('LEAVE_RULE', 'UPDATE', newName, `ปรับแก้ไขชื่อประเภทวันลาเป็น "${newName}" และโควตาเป็น ${newQuota} วัน`);
+    const optText = optsArg ? ` · ${optsArg.paid_leave ? 'ได้รับค่าจ้าง' : 'ไม่รับค่าจ้าง'}${optsArg.unlimited ? ' · ไม่จำกัดวัน' : ''}` : '';
+    await saveHRActivityLog('LEAVE_RULE', 'UPDATE', newName, `ปรับแก้ไขชื่อประเภทวันลาเป็น "${newName}" และโควตาเป็น ${newQuota} วัน${optText}`);
 
     // โควตากลางใช้กับ "โควตาที่จะสร้างใหม่" · คนที่มีโควตารอบนี้แล้วต้องปรับตาม → ถามก่อน
     const newStd = window.PVTQuota ? window.PVTQuota.standard(rowsBefore.map((r) => r.id === ruleId ? { ...r, leave_name: newName, yearly_quota: newQuota } : r))[kind] : null;
@@ -4765,6 +4803,7 @@ async function addNewLeaveTypeModal() {
         <input id="new-lt-name" class="swal2-input" placeholder="เช่น ลาพักร้อนประจำปี" style="margin:4px 0 10px; height:38px; font-size:13px; width:100%;">
         <label style="font-size:12px; font-weight:600;">โควตากลาง (วัน/ปี)</label>
         <input type="number" id="new-lt-quota" class="swal2-input" value="6" step="0.5" style="margin:4px 0 10px; height:38px; font-size:13px; width:100%;">
+        ${pvtLeaveTypeOptionsHTML('new-lt', null)}
         <label style="font-size:12px; font-weight:600; display:block;">ใช้กับ</label>
         <div style="display:flex; gap:18px; margin-top:6px; font-size:14px;">
           <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="new-lt-male" checked style="transform:scale(1.2);"> ชาย</label>
@@ -4791,7 +4830,10 @@ async function addNewLeaveTypeModal() {
       const m = document.getElementById('new-lt-male').checked;
       const f = document.getElementById('new-lt-female').checked;
       if (!m && !f) { Swal.showValidationMessage('เลือกอย่างน้อย 1 เพศ'); return false; }
-      const row = { leave_code: code, leave_name: name, yearly_quota: quota, status: 'active' };
+      const opts = pvtReadLeaveTypeOptions('new-lt');
+      const row = { leave_code: code, leave_name: name, yearly_quota: opts.unlimited ? 0 : quota, status: 'active' };
+      if (!opts.paid_leave) row.paid_leave = false;   // ส่งเฉพาะค่าที่ไม่ใช่ค่าเริ่มต้น (ฐานที่ยังไม่รัน SQL ก็ยังเพิ่มได้)
+      if (opts.unlimited) row.unlimited = true;
       // ส่ง gender_scope เฉพาะเมื่อไม่ใช่ "ทุกคน" (ฐานข้อมูลที่ยังไม่รัน SQL ก็ยังเพิ่มประเภททั่วไปได้)
       if (!(m && f)) row.gender_scope = m ? 'male' : 'female';
       return row;
@@ -4799,7 +4841,12 @@ async function addNewLeaveTypeModal() {
   });
 
   if (!formValues) { editGlobalLeaveRules(); return; }
-  const { error } = await supabase.from('leave_types').insert([formValues]);
+  let { error } = await supabase.from('leave_types').insert([formValues]);
+  if (error && pvtIsMissingLeaveOptionCol(error)) {
+    const { paid_leave, unlimited, ...basic } = formValues;
+    ({ error } = await supabase.from('leave_types').insert([basic]));
+    if (!error) await Swal.fire({ icon: 'warning', title: 'เพิ่มประเภทแล้ว', html: `ยังบันทึก "ไม่รับค่าจ้าง / ไม่จำกัดจำนวนวัน" ไม่ได้<br>ให้รันไฟล์ <code>supabase/migrations/20261029_leave_type_options.sql</code> ใน Supabase SQL Editor ก่อน แล้วแก้ไขประเภทนี้อีกครั้ง` });
+  }
   if (error) {
     showAppError('ไม่สามารถเพิ่มประเภทการลาได้', error.message);
   } else {
@@ -4934,6 +4981,14 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
       const ent = Number(b.entitlement_days ?? 0);
       const used = Number(b.used_days ?? 0);
       const rem = Number(b.remaining_days ?? (ent - used));
+      // ไม่จำกัดจำนวนวัน → ไม่มีสิทธิ์ให้ปรับ · ประเภทที่เพิ่มเอง → ใช้ไปนับจากใบลาอัตโนมัติ (ปรับได้เฉพาะสิทธิ์)
+      if (b.unlimited) {
+        formHTML += `<div style="margin-bottom:12px; padding:10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:4px;">
+          <div style="font-weight:700; color:#0369a1; font-size:14px;">${escapeHtml(typeName)}</div>
+          <div style="font-size:12.5px; color:#475569; margin-top:2px;">ไม่จำกัดจำนวนวัน · ใช้ไป ${used} วัน</div></div>`;
+        return;
+      }
+      const usedAuto = window.PVTQuota?.kindOf ? window.PVTQuota.kindOf(b.leave_types || {}) === 'other' : false;
 
       formHTML += `
         <div style="margin-bottom:12px; padding:10px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px;">
@@ -4952,9 +5007,9 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
             <div>
               <span style="font-size:11px; color:#64748b; display:block;">ใช้ไปแล้ว (วัน)</span>
               <div style="display:flex; gap:2px; margin-top:2px;">
-                <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('used-${b.id}'); el.value=Math.max(0, (parseFloat(el.value)||0)-0.5); window.calcRem('${b.id}');" style="padding:2px 6px;">-</button>
-                <input type="number" id="used-${b.id}" class="swal2-input" step="0.5" style="width:100%; height:32px; margin:0; font-size:12px; text-align:center; padding:0;" value="${used}" oninput="window.calcRem('${b.id}')">
-                <button type="button" class="btn-light btn-sm" onclick="let el=document.getElementById('used-${b.id}'); el.value=(parseFloat(el.value)||0)+0.5; window.calcRem('${b.id}');" style="padding:2px 6px;">+</button>
+                <button type="button" class="btn-light btn-sm" ${usedAuto ? 'hidden' : ''} onclick="let el=document.getElementById('used-${b.id}'); el.value=Math.max(0, (parseFloat(el.value)||0)-0.5); window.calcRem('${b.id}');" style="padding:2px 6px;">-</button>
+                <input type="number" id="used-${b.id}" class="swal2-input" step="0.5" style="width:100%; height:32px; margin:0; font-size:12px; text-align:center; padding:0;${usedAuto ? ' background:#f1f5f9;' : ''}" value="${used}" ${usedAuto ? 'readonly title="นับจากใบลาที่อนุมัติอัตโนมัติ"' : ''} oninput="window.calcRem('${b.id}')">
+                <button type="button" class="btn-light btn-sm" ${usedAuto ? 'hidden' : ''} onclick="let el=document.getElementById('used-${b.id}'); el.value=(parseFloat(el.value)||0)+0.5; window.calcRem('${b.id}');" style="padding:2px 6px;">+</button>
               </div>
             </div>
 
@@ -4988,6 +5043,7 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
       preConfirm: () => {
         const listBalances = [];
         balances.forEach(b => {
+          if (!document.getElementById(`entit-${b.id}`)) return; // ไม่จำกัดจำนวนวัน
           const newEntit = parseFloat(document.getElementById(`entit-${b.id}`).value) || 0;
           const newUsed = parseFloat(document.getElementById(`used-${b.id}`).value) || 0;
           const newRemain = parseFloat(document.getElementById(`remain-${b.id}`).value) || 0;
