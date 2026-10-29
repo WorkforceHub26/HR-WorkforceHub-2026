@@ -355,52 +355,70 @@ window.getUserRoleCategory = function(userSession) {
 })();
 
 // 🚫 ตรวจสถานะบัญชีซ้ำระหว่างใช้งาน: ถ้า HR ปิดบัญชี (ระงับ / ลาออก) ไปแล้ว ให้ออกจากระบบทันที
-// (คนที่ล็อกอินค้างไว้แบบ "จำรหัส" 30 วัน จะไม่ใช้งานต่อได้) · ตรวจไม่เกินทุก 5 นาทีต่อแท็บ
+//   ตรวจตอนเปิดหน้า · ทุก 60 วินาทีระหว่างเปิดหน้าค้าง · และเมื่อกลับมาที่แท็บ/แอป
+//   (เดิมตรวจครั้งเดียวต่อหน้า และเว้น 5 นาที → คนที่เปิดหน้าค้างไว้ยังใช้งานต่อได้)
 (function verifyAccountStillActive() {
   const BLOCKED = ['inactive', 'resigned', 'terminated', 'suspended'];
-  let session = null;
-  try { session = JSON.parse(localStorage.getItem("currentUser") || "null"); } catch (e) { session = null; }
-  if (!session || !session.id) return;
   const p = String(window.location.pathname || '').toLowerCase();
   if (!p.includes('/pages/')) return; // หน้า Login ตรวจเองอยู่แล้ว
-  try {
-    const last = parseInt(sessionStorage.getItem('pvt_status_checked_at') || '0', 10) || 0;
-    if (Date.now() - last < 5 * 60 * 1000) return;
-  } catch (e) {}
-
+  const MIN_GAP = 30 * 1000;
+  let busy = false;
+  let kicked = false;
   let tries = 0;
-  const run = async () => {
+
+  const kick = () => {
+    if (kicked) return;
+    kicked = true;
+    const clear = () => ['currentUser', 'pvt_user_session', 'pvt_employee_session'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+    clear();
+    try { window.PVTAuth?.clearToken?.(); } catch (e) {}
+    const go = () => { clear(); window.location.replace('/index.html'); };
+    if (window.Swal && typeof window.Swal.fire === 'function') {
+      window.Swal.fire({
+        icon: 'warning',
+        title: 'บัญชีนี้ถูกปิดการใช้งาน',
+        text: 'บัญชีถูกระงับหรือพ้นสภาพพนักงานแล้ว กรุณาติดต่อฝ่ายบุคคล (HR)',
+        confirmButtonText: 'ตกลง',
+        allowOutsideClick: false
+      }).then(go, go);
+      setTimeout(go, 8000);
+    } else {
+      go();
+    }
+  };
+
+  const check = async (force) => {
+    if (busy || kicked) return;
+    let session = null;
+    try { session = JSON.parse(localStorage.getItem("currentUser") || "null"); } catch (e) { session = null; }
+    if (!session || !session.id) return;
+    try {
+      const last = parseInt(sessionStorage.getItem('pvt_status_checked_at') || '0', 10) || 0;
+      if (!force && Date.now() - last < MIN_GAP) return;
+    } catch (e) {}
     const sb = getSbClient();
     if (!sb || typeof sb.from !== 'function') {
-      if (++tries < 40) setTimeout(run, 250);
+      if (++tries < 40) setTimeout(() => check(force), 250);
       return;
     }
+    busy = true;
     try {
       const { data, error } = await sb.from('employees').select('status').eq('id', session.id).maybeSingle();
       if (error || !data) return; // เน็ตหลุด/อ่านไม่ได้ → ไม่เตะออก
       try { sessionStorage.setItem('pvt_status_checked_at', String(Date.now())); } catch (e) {}
-      if (BLOCKED.indexOf(String(data.status || '').toLowerCase().trim()) === -1) return;
-      ['currentUser', 'pvt_user_session', 'pvt_employee_session'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
-      const go = () => {
-        ['currentUser', 'pvt_user_session', 'pvt_employee_session'].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
-        window.location.replace('/index.html');
-      };
-      if (window.Swal && typeof window.Swal.fire === 'function') {
-        window.Swal.fire({
-          icon: 'warning',
-          title: 'บัญชีนี้ถูกปิดการใช้งาน',
-          text: 'บัญชีถูกระงับหรือพ้นสภาพพนักงานแล้ว กรุณาติดต่อฝ่ายบุคคล (HR)',
-          confirmButtonText: 'ตกลง',
-          allowOutsideClick: false
-        }).then(go, go);
-        setTimeout(go, 8000);
-      } else {
-        go();
-      }
+      if (BLOCKED.indexOf(String(data.status || '').toLowerCase().trim()) !== -1) kick();
     } catch (e) { /* ไม่ให้หน้าพัง */ }
+    finally { busy = false; }
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
-  else run();
+
+  const start = () => {
+    check(false);
+    setInterval(() => { if (document.visibilityState === 'visible') check(true); }, 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(false); });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) check(true); });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })();
 
 // 🎨 ซ่อนเมนูที่ไม่มีสิทธิ์เข้าถึงออกจาก UI ทันที
@@ -492,7 +510,21 @@ function applyNavPermissions() {
 
     // 🔒 เมนู "ประวัติเข้าสู่ระบบ" — แสดงเฉพาะผู้ดูแลระบบขั้นสูง (superadmin)
     //    ข้อมูลจริงอยู่ในคอนโซลผู้ดูแลระบบ ส่วน "ประวัติการเข้าสู่ระบบ" และฐานข้อมูลตรวจสิทธิ์ซ้ำอีกชั้น
-    if (rawRoleVal === 'superadmin' && !document.getElementById('pvtNavLoginLogs')) {
+    //    เมนูนี้เขียนไว้ใน HTML แล้ว (ซ่อนไว้) → แสดงเฉพาะ superadmin · หน้าที่ยังไม่มี ค่อยสร้างให้
+    const staticLogs = document.getElementById('pvtNavLoginLogs');
+    if (staticLogs) {
+      if (rawRoleVal === 'superadmin') {
+        staticLogs.style.removeProperty('display');
+        if (location.pathname.includes('admin-dashboard') && location.hash === '#login-logs') {
+          document.querySelectorAll('.pvt-nav__item.active').forEach(el => { el.classList.remove('active'); el.removeAttribute('aria-current'); });
+          staticLogs.classList.add('active');
+          staticLogs.setAttribute('aria-current', 'page');
+        }
+      } else {
+        staticLogs.style.setProperty('display', 'none', 'important');
+      }
+    }
+    if (rawRoleVal === 'superadmin' && !staticLogs) {
       const anchor = document.querySelector('a.pvt-nav__item[href*="/pages/hr/employee-cards.html"]');
       if (anchor && anchor.parentNode) {
         const a = document.createElement('a');
@@ -3900,10 +3932,10 @@ document.addEventListener('click', function(e) {
     const chip = document.createElement('div');
     chip.id = 'pvtSharedChip';
     chip.setAttribute('role', 'status');
-    // ป้ายบอกสถานะ (ไม่ใช่ปุ่มออก): "ไม่ใช่บัญชีของคุณ" · แตะ = คำอธิบาย + เลือกใช้งานต่อ / ออกจากระบบตอนนี้
+    // ป้ายบอกสถานะ (ไม่ใช่ปุ่มออก): "ไม่ใช่เครื่องของคุณ" · แตะ = คำอธิบาย + เลือกใช้งานต่อ / ออกจากระบบตอนนี้
     //   วางเหนือแถบเมนูล่าง (รวมปุ่ม + ที่ยื่นขึ้นมา) ชิดซ้าย ไม่ทับปุ่มแชตด้านขวา
-    chip.innerHTML = '<button type="button" aria-label="ไม่ใช่บัญชีของคุณ — แตะเพื่อดูรายละเอียด">'
-      + '<span aria-hidden="true">📱</span><span>ไม่ใช่บัญชีของคุณ</span></button>';
+    chip.innerHTML = '<button type="button" aria-label="ไม่ใช่เครื่องของคุณ — แตะเพื่อดูรายละเอียด">'
+      + '<span aria-hidden="true">📱</span><span>ไม่ใช่เครื่องของคุณ</span></button>';
     chip.style.cssText = 'position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom, 0px));z-index:9998;';
     const btn = chip.querySelector('button');
     btn.style.cssText = 'display:flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.18);padding:7px 13px 7px 10px;'
@@ -3914,11 +3946,11 @@ document.addEventListener('click', function(e) {
     btn.addEventListener('click', async () => {
       let name = '';
       try { name = JSON.parse(localStorage.getItem('currentUser') || '{}').full_name || ''; } catch (e) {}
-      if (!window.Swal) { if (confirm('ไม่ใช่บัญชีของคุณ ออกจากระบบตอนนี้ไหม?')) window.executePvtLogout && window.executePvtLogout(); return; }
+      if (!window.Swal) { if (confirm('เครื่องนี้ไม่ใช่เครื่องของคุณ ออกจากระบบตอนนี้ไหม?')) window.executePvtLogout && window.executePvtLogout(); return; }
       const r = await Swal.fire({
         // ไม่ใช้ icon 'info' — global.css ซ่อนปุ่มที่ 2 ของหน้าต่างแบบ info
         icon: 'question',
-        title: 'ไม่ใช่บัญชีของคุณ',
+        title: 'ไม่ใช่เครื่องของคุณ',
         html: `<div style="text-align:left; font-size:16px; line-height:1.7;">ตอนนี้กำลังใช้บัญชี <b>${String(name).replace(/[<>&]/g, '')}</b> บนเครื่องยืม<br>`
           + 'ยื่นใบลาเสร็จ หรือไม่ได้ใช้ 10 นาที ระบบจะออกจากระบบให้เอง เจ้าของเครื่องจะเข้าบัญชีคุณต่อไม่ได้</div>',
         showDenyButton: true,

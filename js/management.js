@@ -2680,6 +2680,12 @@ async function saveEmployeeInlineEdit(employeeId) {
 
     await saveHRActivityLog('EMPLOYEE', 'UPDATE', code, `แก้ไขข้อมูลพนักงาน: ${name}`);
 
+    // ⏸️ ระงับ / ลาออก → ให้ออกจากระบบทุกเครื่องทันที (ยกเลิกบัตรผ่านที่ฐานข้อมูล + ลืมเครื่องที่จำไว้)
+    if (updateData.status && updateData.status !== 'active' && String(emp.status || 'active').toLowerCase() !== String(updateData.status).toLowerCase()
+        && window.PVTAuth?.releaseDevices) {
+      try { await window.PVTAuth.releaseDevices(emp.id); } catch (relErr) { console.warn('⚠️ ให้ออกจากระบบทุกเครื่องไม่สำเร็จ:', relErr); }
+    }
+
     // 🔁 ลาออก/ระงับ แต่เคย "ยืมพักร้อนปีหน้า" จากรอบแลกวันหยุด → แจ้ง HR ให้สรุป (ปรับในค่าจ้างงวดสุดท้าย / ไม่เรียกคืน)
     let borrowedDays = 0;
     if (updateData.status && updateData.status !== 'active') {
