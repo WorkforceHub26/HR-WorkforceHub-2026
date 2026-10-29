@@ -585,3 +585,100 @@ div#appShell > main#mainContent > header > div > div > button#mobileMenuBtn {
 #page-hr-approval .action-btn-group:not(:has(.btn-act-approve, .btn-act-reject, .btn-act-cancel)) {
   justify-content: flex-end;
 }
+
+/* 🚚 สถานะการอนุมัติแบบจุดเชื่อมต่อ (js/hr.js renderApprovalTimelineHTML) */
+.ap-track {
+  list-style: none;
+  margin: 0;
+  padding: 14px 6px 10px;
+  display: grid;
+  grid-template-columns: repeat(var(--ap-n, 3), minmax(0, 1fr));
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+.ap-track-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 0 4px;
+}
+/* เส้นเชื่อมจากจุดก่อนหน้า */
+.ap-track-node + .ap-track-node::before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  right: calc(50% + 19px);
+  width: calc(100% - 38px);
+  height: 3px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #cbd5e1 0 6px, transparent 6px 11px);
+}
+.ap-track-node.is-linked::before {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+.ap-track-dot {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  color: #94a3b8;
+}
+.ap-track-dot .material-symbols-outlined { font-size: 18px; font-weight: 700; }
+.ap-track-lbl {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.ap-track-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+/* สถานะ */
+.ap-track-node.is-done .ap-track-dot { background: #22c55e; border-color: #22c55e; color: #fff; }
+.ap-track-node.is-done .ap-track-sub { color: #15803d; font-weight: 600; }
+.ap-track-node.is-final .ap-track-dot { background: #15803d; border-color: #15803d; box-shadow: 0 0 0 4px #dcfce7; }
+.ap-track-node.is-current .ap-track-dot {
+  background: #f59e0b; border-color: #f59e0b; color: #fff;
+  animation: apTrackPulse 1.6s ease-out infinite;
+}
+.ap-track-node.is-current .ap-track-lbl { color: #b45309; }
+.ap-track-node.is-current .ap-track-sub { color: #d97706; font-weight: 700; }
+.ap-track-node.is-rejected .ap-track-dot { background: #ef4444; border-color: #ef4444; color: #fff; }
+.ap-track-node.is-rejected .ap-track-sub { color: #dc2626; font-weight: 700; }
+.ap-track-node.is-cancelled .ap-track-dot,
+.ap-track-node.is-skipped .ap-track-dot { background: #e2e8f0; border-color: #cbd5e1; color: #64748b; }
+.ap-track-node.is-idle .ap-track-lbl { color: #94a3b8; }
+@keyframes apTrackPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, .45); }
+  70%  { box-shadow: 0 0 0 9px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ap-track-node.is-current .ap-track-dot { animation: none; box-shadow: 0 0 0 4px #fef3c7; }
+}
+@media (max-width: 480px) {
+  .ap-track { padding: 12px 2px 8px; }
+  .ap-track-node { padding: 0 2px; }
+  .ap-track-dot { width: 28px; height: 28px; }
+  .ap-track-dot .material-symbols-outlined { font-size: 16px; }
+  .ap-track-node + .ap-track-node::before { top: 13px; right: calc(50% + 17px); width: calc(100% - 34px); }
+  .ap-track-lbl { font-size: 10.5px; }
+  .ap-track-sub { font-size: 10px; }
+}
+@media (max-width: 600px) {
+  .ap-track-pre { display: none; }   /* มือถือ: "ลำดับที่ 1" แทน "ผู้อนุมัติ ลำดับที่ 1 (L1)" */
+}

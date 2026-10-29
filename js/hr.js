@@ -802,6 +802,64 @@ function getLeaveApprovalSLA(req) {
 }
 window.getLeaveApprovalSLA = getLeaveApprovalSLA;
 
+/**
+ * 🚚 สถานะการอนุมัติแบบ "จุดเชื่อมต่อ" (เหมือนติดตามพัสดุ)
+ *   ยื่นใบลา → ลำดับที่ 1 → ลำดับที่ 2 → … · จุดเขียว = อนุมัติแล้ว · จุดส้มกะพริบ = กำลังรอ · จุดเทา = ยังไม่ถึง · จุดแดง = ไม่อนุมัติ
+ */
+function renderApprovalTimelineHTML(req, workflowSteps) {
+  const norm = (v) => {
+    const st = String(v || 'pending').toLowerCase();
+    if (st === 'approved' || st === 'อนุมัติแล้ว') return 'done';
+    if (st === 'rejected' || st === 'ไม่อนุมัติ') return 'rejected';
+    if (st === 'cancelled' || st === 'ยกเลิก') return 'cancelled';
+    if (st === 'skipped') return 'skipped';
+    return 'pending';
+  };
+  const leaveSt = String(req.status || '').toLowerCase();
+  const fmt = (iso) => {
+    if (!iso) return '';
+    try { return new Date(iso).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+  };
+  let currentFound = false;
+  const nodes = [{ cls: 'done', icon: 'edit_document', label: 'ยื่นใบลา', sub: fmt(req.created_at) }];
+  (workflowSteps || []).forEach((step, idx) => {
+    let k = norm(step.status);
+    if (k === 'pending') {
+      if (leaveSt === 'approved') k = 'done';   // ใบลาอนุมัติครบแล้ว แต่คอลัมน์สถานะขั้นเก่าไม่ได้อัปเดต
+      else if (leaveSt === 'rejected' || leaveSt === 'cancelled') k = 'idle';
+      else if (!currentFound) { k = 'current'; currentFound = true; }
+      else k = 'idle';
+    }
+    const meta = {
+      done:      { icon: 'check',          sub: 'อนุมัติแล้ว' },
+      rejected:  { icon: 'close',          sub: 'ไม่อนุมัติ' },
+      cancelled: { icon: 'block',          sub: 'ยกเลิก' },
+      skipped:   { icon: 'redo',           sub: 'ข้ามขั้นตอน' },
+      current:   { icon: 'hourglass_top',  sub: 'รอพิจารณา' },
+      idle:      { icon: 'more_horiz',     sub: leaveSt === 'rejected' || leaveSt === 'cancelled' ? '—' : 'ยังไม่ถึง' }
+    }[k];
+    const name = String(step.shortName || `ผู้อนุมัติ ลำดับที่ ${idx + 1}`);
+    const pre = name.startsWith('ผู้อนุมัติ ') ? 'ผู้อนุมัติ ' : '';
+    nodes.push({ cls: k, icon: meta.icon, pre, label: name.slice(pre.length), tail: ` (L${idx + 1})`, sub: meta.sub });
+  });
+  if (leaveSt === 'approved') {
+    nodes.push({ cls: 'done final', icon: 'verified', label: 'อนุมัติครบ', sub: fmt(req.approved_at) || 'เสร็จสิ้น' });
+  } else if (leaveSt === 'rejected') {
+    if (!nodes.some((n) => n.cls === 'rejected')) nodes.push({ cls: 'rejected', icon: 'close', label: 'ไม่อนุมัติ', sub: fmt(req.approved_at || req.updated_at) });
+  } else if (leaveSt === 'cancelled') {
+    nodes.push({ cls: 'cancelled', icon: 'block', label: 'ยกเลิกใบลา', sub: fmt(req.updated_at) });
+  }
+  return `
+    <ol class="ap-track" style="--ap-n:${nodes.length}">
+      ${nodes.map((n, i) => `
+        <li class="ap-track-node is-${n.cls.split(' ').join(' is-')}${i > 0 && nodes[i - 1].cls.startsWith('done') ? ' is-linked' : ''}">
+          <span class="ap-track-dot"><span class="material-symbols-outlined">${n.icon}</span></span>
+          <span class="ap-track-lbl">${n.pre ? `<span class="ap-track-pre">${escapeHtml(n.pre)}</span>` : ''}${escapeHtml(n.label)}${n.tail ? `<span class="ap-track-pre">${escapeHtml(n.tail)}</span>` : ''}</span>
+          ${n.sub ? `<span class="ap-track-sub">${escapeHtml(n.sub)}</span>` : ''}
+        </li>`).join('')}
+    </ol>`;
+}
+
 function getStatusBadgeHTML(status) {
   const st = (status || 'pending').toLowerCase();
   if (st === 'approved' || st === 'อนุมัติแล้ว') {
@@ -1817,18 +1875,8 @@ function renderLeaveTable() {
         <div class="card-zone status-zone">
           ${(() => {
             const workflowSteps = getApprovalWorkflowSteps(req);
-            const gridStyle = workflowSteps.length <= 2 
-              ? `grid-template-columns: repeat(${workflowSteps.length}, 1fr);` 
-              : '';
             return `
-              <div class="status-steps-grid" style="${gridStyle}">
-                ${workflowSteps.map((step, idx) => `
-                  <div class="step-item">
-                    <span class="step-lbl">${step.shortName} (L${idx + 1})</span>
-                    ${getStatusBadgeHTML(step.status)}
-                  </div>
-                `).join('')}
-              </div>
+              ${renderApprovalTimelineHTML(req, workflowSteps)}
               ${isOverdue ? `
                 <div style="margin-top: 6px; text-align: center;">
                   <span class="status-badge status-overdue" style="font-size: 11px; padding: 2px 8px;" title="เกินกรอบเวลาพิจารณา 2 วัน">
