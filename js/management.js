@@ -437,7 +437,7 @@ async function viewAuditLogs() {
 
   try {
     if (window.Swal) {
-      Swal.fire({ title: 'กำลังโหลดประวัติการปรับปรุงระบบ...', didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังโหลดประวัติการปรับปรุงระบบ...', willOpen: () => Swal.showLoading() });
     }
 
     const { data: logs, error } = await supabase
@@ -2932,7 +2932,7 @@ async function editSingleLeaveRequest(requestId) {
   });
 
   if (formValues) {
-    Swal.fire({ title: 'กำลังปรับปรุงข้อมูลคำขอ...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังปรับปรุงข้อมูลคำขอ...', willOpen: () => Swal.showLoading() });
     if (window.PVTSDK?.user?.ensureLeaveBalances) {
       await window.PVTSDK.user.ensureLeaveBalances(req.employee_id, req.start_date);
     }
@@ -2941,6 +2941,13 @@ async function editSingleLeaveRequest(requestId) {
       showAppError('ปรับปรุงข้อมูลคำขอล้มเหลว', error.message);
     } else {
       await saveHRActivityLog('LEAVE_REQUEST', 'UPDATE', `คำขอID:${req.id}`, `HR ปรับแก้จำนวนวันลาเป็น ${formValues.total_days} วัน สถานะ: ${formValues.status}`);
+      // คำนวณยอด "ใช้ไป" ของประเภทนี้ใหม่จากใบลาที่อนุมัติ (แก้จำนวนวัน/สถานะแล้ว ยอดคงเหลือต้องตามด้วย)
+      if (window.PVTSDK?.user?.updateLeaveBalance) {
+        try {
+          const yr = typeof window.getLeaveChargeYear === 'function' ? window.getLeaveChargeYear(req) : new Date(req.start_date).getFullYear();
+          await window.PVTSDK.user.updateLeaveBalance(req.employee_id, req.leave_type_id, null, yr, 0);
+        } catch (balErr) { console.warn('⚠️ คำนวณยอดวันลาใหม่ไม่สำเร็จ:', balErr); }
+      }
       Swal.fire('สำเร็จ', 'ปรับแก้ไขวันลาเรียบร้อยแล้ว', 'success');
       await refreshDashboard();
       openEmployeeDetail(req.employee_id);
@@ -3651,7 +3658,7 @@ window.addNewEmployee = async function addNewEmployee(prefill) {
         return;
       }
 
-      Swal.fire({ title: 'กำลังบันทึกข้อมูลพนักงาน...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังบันทึกข้อมูลพนักงาน...', allowOutsideClick: false, willOpen: () => Swal.showLoading() });
 
       // รูปอัปโหลด "หลัง" บันทึกสำเร็จ — กันรูปไปทับของพนักงานเดิมถ้ารหัสชน
       const imageFile = formValues.imageFile;
@@ -3930,7 +3937,7 @@ window.unlinkLineAccount = async function(employeeId, employeeName) {
 
   if (!confirm.isConfirmed) return;
 
-  Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, willOpen: () => Swal.showLoading() });
   
   try {
     const client = window.pvtSupabase.getClient();
@@ -4035,7 +4042,7 @@ async function manageDepartments() {
   if (!supabase || !window.Swal) return;
 
   try {
-    Swal.fire({ title: 'กำลังโหลดโครงสร้างองค์กร...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังโหลดโครงสร้างองค์กร...', willOpen: () => Swal.showLoading() });
     
     const [deptRes, posRes, empRes] = await Promise.all([
       supabase.from('departments').select('id, department_name, department_code, status').order('department_name', { ascending: true }),
@@ -4307,7 +4314,7 @@ window.quickAddPositionOrDept = async function() {
     if (deptName && deptName.trim()) {
       const cleanName = deptName.trim();
       const code = generateDeptCode(cleanName);
-      Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังบันทึก...', willOpen: () => Swal.showLoading() });
       const { error } = await supabase.from('departments').insert([{ department_name: cleanName, department_code: code }]);
       if (error) throw error;
       await saveHRActivityLog('DEPARTMENT', 'INSERT', cleanName, `เพิ่มแผนกงานใหม่: ${cleanName}`);
@@ -4337,7 +4344,7 @@ window.quickAddPositionOrDept = async function() {
 
     if (posName && posName.trim()) {
       const cleanName = posName.trim();
-      Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังบันทึก...', willOpen: () => Swal.showLoading() });
       const { error } = await supabase.from('positions').insert([{ 
         position_name: cleanName,
         level_type: activePosModalTab,
@@ -4367,7 +4374,7 @@ window.editPositionName = async function(posId, currentName) {
 
   if (newName && newName.trim() && newName.trim() !== currentName) {
     const cleanName = newName.trim();
-    Swal.fire({ title: 'กำลังอัปเดต...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังอัปเดต...', willOpen: () => Swal.showLoading() });
     const { error } = await supabase.from('positions').update({ position_name: cleanName }).eq('id', posId);
     if (error) {
       showAppError("แก้ไขตำแหน่งล้มเหลว", error.message);
@@ -4395,7 +4402,7 @@ window.editDepartmentName = async function(deptId, currentName) {
 
   if (newName && newName.trim() && newName.trim() !== currentName) {
     const cleanName = newName.trim();
-    Swal.fire({ title: 'กำลังอัปเดต...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังอัปเดต...', willOpen: () => Swal.showLoading() });
     const { error } = await supabase.from('departments').update({ department_name: cleanName }).eq('id', deptId);
     if (error) {
       showAppError("แก้ไขแผนกล้มเหลว", error.message);
@@ -4428,7 +4435,7 @@ window.deleteDepartmentItem = async function(deptId, deptName, empCount) {
   });
 
   if (confirm.isConfirmed) {
-    Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังลบ...', willOpen: () => Swal.showLoading() });
     const { error } = await supabase.from('departments').delete().eq('id', deptId);
     if (error) {
       showAppError("ลบแผนกล้มเหลว", error.message);
@@ -4461,7 +4468,7 @@ window.deletePositionItem = async function(posId, posName, empCount) {
   });
 
   if (confirm.isConfirmed) {
-    Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังลบ...', willOpen: () => Swal.showLoading() });
     const { error } = await supabase.from('positions').delete().eq('id', posId);
     if (error) {
       showAppError("ลบตำแหน่งล้มเหลว", error.message);
@@ -4892,7 +4899,7 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
 
     if (!empCode) return;
 
-    Swal.fire({ title: 'กำลังค้นหาข้อมูลพนักงาน...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังค้นหาข้อมูลพนักงาน...', willOpen: () => Swal.showLoading() });
 
     const { data: emp, error: empErr } = await supabase.from('employees').select('id, full_name, employee_code').eq('employee_code', empCode.trim()).maybeSingle();
     if (empErr) throw empErr;
@@ -4995,7 +5002,7 @@ async function editIndividualLeaveBalance(presetEmpCode = null) {
     });
 
     if (updatedBalances) {
-      Swal.fire({ title: 'กำลังปรับปรุงยอดโควตา...', didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังปรับปรุงยอดโควตา...', willOpen: () => Swal.showLoading() });
       for (const b of updatedBalances) {
         if (b.new_entit !== b.old_entit || b.new_used !== b.old_used || b.new_remain !== b.old_remain) {
           if (window.PVTSDK?.user?.updateLeaveBalance) {
@@ -5055,7 +5062,7 @@ async function openHolidayManagerModal() {
   Swal.fire({
     title: 'กำลังโหลดข้อมูลวันหยุด...',
     allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
+    willOpen: () => Swal.showLoading()
   });
 
   const holidays = (await fetchCompanyHolidaysData()).slice().sort((a, b) => String(a.holiday_date).localeCompare(String(b.holiday_date)));
@@ -5239,7 +5246,7 @@ async function openAddHolidayModal() {
   if (formValues) {
     try {
       const supabase = getSupabase();
-      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', willOpen: () => Swal.showLoading() });
       const { error } = await supabase.from('holidays').insert([formValues]);
       if (error) throw error;
 
@@ -5565,7 +5572,7 @@ async function generateAndDownloadLeaveBalancesExcel(mode = 'all_employees', sor
   Swal.fire({
     title: 'กำลังสร้างไฟล์ Excel...',
     text: 'กำลังรวบรวมข้อมูลจากตาราง employee_leave_balances และจัดรูปแบบรายงาน',
-    didOpen: () => Swal.showLoading(),
+    willOpen: () => Swal.showLoading(),
     allowOutsideClick: false
   });
 
@@ -6605,7 +6612,7 @@ async function processExcelImport(file) {
     title: '⚙️ กำลังประมวลผลไฟล์...',
     html: '<div style="font-size:14px; color:var(--th-p-600, #0d9488); font-weight:600;">⌛ ระบบกำลังเปิดและอ่านโครงสร้างไฟล์ Excel...</div>',
     allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
+    willOpen: () => Swal.showLoading()
   });
 
   try {
@@ -7120,7 +7127,7 @@ async function testLineNotificationFromHR() {
   Swal.fire({
     title: 'กำลังดึงข้อมูลพนักงานที่เชื่อมต่อ LINE...',
     allowOutsideClick: false,
-    didOpen: () => { Swal.showLoading(); }
+    willOpen: () => { Swal.showLoading(); }
   });
 
   let linkedEmployees = [];
@@ -7232,7 +7239,7 @@ async function testLineNotificationFromHR() {
     title: 'กำลังส่งข้อความสลิปทดสอบ...',
     text: 'กรุณารอสักครู่ ระบบกำลังส่ง Flex Message ไปยัง LINE OA',
     allowOutsideClick: false,
-    didOpen: () => { Swal.showLoading(); }
+    willOpen: () => { Swal.showLoading(); }
   });
 
   try {

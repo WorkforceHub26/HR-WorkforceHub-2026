@@ -1586,34 +1586,67 @@
       }
     }
 
+    // หมวดของประเภทการลา → คอลัมน์ใน employee_leave_balances (ใช้เกณฑ์เดียวกับ updateLeaveBalance)
+    leaveUsedColumn(code, name) {
+      const c = String(code || '').toUpperCase();
+      const n = String(name || '');
+      if (c === 'SICK' || c === '01' || c.includes('SICK') || n.includes('ป่วย')) return 'sick_used';
+      if (c === 'PERSONAL' || c === '02' || c.includes('PERSONAL') || n.includes('กิจ')) return 'personal_used';
+      if (c === 'VACATION' || c === '03' || c.includes('VACATION') || n.includes('พัก')) return 'vacation_used';
+      if (c === 'MATERNITY' || c.includes('MATERNITY') || n.includes('คลอด')) return 'maternity_used';
+      return 'other_used';
+    }
+
+    // รวม total_days ของใบลาที่อนุมัติแล้ว (หมวด usedCol · รอบปีการลา yearAD) → ตัวเลข หรือ null ถ้าอ่านไม่ได้
+    async computeUsedFromLeaves(employeeId, usedCol, yearAD) {
+      if (!this.client || !employeeId) return null;
+      try {
+        const { data, error } = await this.client
+          .from('leave_requests')
+          .select('id, total_days, start_date, charge_year, swap_round_id, leave_type_id, leave_types!leave_type_id(leave_code, leave_name, paid_leave)')
+          .eq('employee_id', employeeId)
+          .eq('status', 'approved');
+        let rows = data;
+        if (error) {
+          // ฐานที่ยังไม่มีคอลัมน์ charge_year / swap_round_id
+          const r2 = await this.client
+            .from('leave_requests')
+            .select('id, total_days, start_date, leave_type_id, leave_types!leave_type_id(leave_code, leave_name)')
+            .eq('employee_id', employeeId)
+            .eq('status', 'approved');
+          if (r2.error) return null;
+          rows = r2.data;
+        }
+        let sum = 0;
+        (rows || []).forEach((r) => {
+          const lt = r.leave_types || {};
+          if (r.swap_round_id && lt.paid_leave === false) return; // แลกวันหยุดแบบไม่รับค่าจ้าง ไม่หักโควตา (เหมือน holiday-swap.js)
+          if (this.leaveUsedColumn(lt.leave_code, lt.leave_name) !== usedCol) return;
+          if (window.getLeaveChargeYear(r) !== yearAD) return;
+          sum += Number(r.total_days) || 0;
+        });
+        return Math.max(0, Math.round(sum * 100) / 100);
+      } catch (e) {
+        return null;
+      }
+    }
+
     // อัปเดต/หัก ยอดวันลาในตารางหลัก employee_leave_balances
     async updateLeaveBalance(employeeId, leaveTypeId, leaveCode, yearAD, deltaUsedDays, absoluteUsedDays = null, absoluteTotalDays = null) {
       if (!this.client || !employeeId) return;
       try {
+        // หมวดตามรหัส + ชื่อประเภท (เกณฑ์เดียวกับหน้าแสดงยอด transformEmployeeLeaveBalanceToItems)
         let code = (leaveCode || '').toUpperCase();
-        if (!code && leaveTypeId) {
+        let ltName = '';
+        if (leaveTypeId) {
           const { data: lt } = await this.client.from('leave_types').select('leave_code, leave_name').eq('id', leaveTypeId).maybeSingle();
           if (lt) {
-            code = (lt.leave_code || '').toUpperCase();
-            if (!code && (lt.leave_name || '').includes('ป่วย')) code = 'SICK';
-            if (!code && (lt.leave_name || '').includes('กิจ')) code = 'PERSONAL';
-            if (!code && (lt.leave_name || '').includes('พัก')) code = 'VACATION';
+            if (!code) code = (lt.leave_code || '').toUpperCase();
+            ltName = lt.leave_name || '';
           }
         }
-
-        let usedCol = 'other_used';
-        let totalCol = 'other_total';
-        if (code === 'SICK' || code === '01' || code.includes('SICK') || code.includes('ป่วย')) {
-          usedCol = 'sick_used'; totalCol = 'sick_total';
-        } else if (code === 'PERSONAL' || code === '02' || code.includes('PERSONAL') || code.includes('กิจ')) {
-          usedCol = 'personal_used'; totalCol = 'personal_total';
-        } else if (code === 'VACATION' || code === '03' || code.includes('VACATION') || code.includes('พัก')) {
-          usedCol = 'vacation_used'; totalCol = 'vacation_total';
-        } else if (code === 'MATERNITY' || code.includes('MATERNITY') || code.includes('คลอด')) {
-          usedCol = 'maternity_used'; totalCol = 'maternity_total';
-        } else {
-          usedCol = 'other_used'; totalCol = 'other_total';
-        }
+        const usedCol = this.leaveUsedColumn(code, ltName);
+        const totalCol = usedCol.replace('_used', '_total');
 
         const { data: row } = await this.client
           .from('employee_leave_balances')
@@ -1627,11 +1660,24 @@
           updates[totalCol] = Math.max(0, absoluteTotalDays);
         }
 
+        // 🧮 ยอด "ใช้ไป" = ผลรวมใบลาที่อนุมัติแล้วของหมวดนี้ในรอบปีนี้ (คำนวณใหม่ทุกครั้งที่อนุมัติ/ยกเลิก)
+        //   เดิมบวก/ลบทีละครั้ง (delta) → ถ้ามีครั้งไหนหักซ้ำหรือคืนไม่ครบ ยอดจะเพี้ยนสะสม (เช่น ควรเป็น 1.5 แต่เก็บ 2)
+        //   HR ตั้งยอดเอง (absoluteUsedDays) ยังใช้ค่าที่ HR ตั้ง · นับไม่ได้ (ออฟไลน์/สิทธิ์) → ใช้วิธีเดิม
+        let recomputed = null;
+        if (absoluteUsedDays === null) {
+          recomputed = await this.computeUsedFromLeaves(employeeId, usedCol, yearAD);
+        }
+
         if (row) {
           const currentUsed = Number(row[usedCol] || 0);
           const newUsed = absoluteUsedDays !== null 
             ? Math.max(0, absoluteUsedDays)
-            : Math.max(0, Math.round((currentUsed + deltaUsedDays) * 100) / 100);
+            : recomputed !== null
+              ? recomputed
+              : Math.max(0, Math.round((currentUsed + deltaUsedDays) * 100) / 100);
+          if (recomputed !== null && Math.abs(recomputed - Math.max(0, Math.round((currentUsed + deltaUsedDays) * 100) / 100)) > 0.001) {
+            console.warn(`⚠️ [Leave Balance] ${usedCol} ปี ${yearAD}: ยอดเดิม ${currentUsed} ${deltaUsedDays >= 0 ? '+' : ''}${deltaUsedDays} ไม่ตรงกับใบลาที่อนุมัติ (${recomputed}) → ใช้ ${recomputed}`);
+          }
           updates[usedCol] = newUsed;
 
           await this.client
@@ -1640,7 +1686,7 @@
             .eq('id', row.id);
         } else {
           if (this.isElbInsertBlocked()) return;
-          const initialUsed = absoluteUsedDays !== null ? absoluteUsedDays : Math.max(0, deltaUsedDays);
+          const initialUsed = absoluteUsedDays !== null ? absoluteUsedDays : (recomputed !== null ? recomputed : Math.max(0, deltaUsedDays));
           const initialTotal = absoluteTotalDays !== null ? absoluteTotalDays : 30;
           const { error: insErr } = await this.client
             .from('employee_leave_balances')
