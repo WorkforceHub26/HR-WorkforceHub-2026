@@ -349,7 +349,10 @@ async function initSystemAndPermissions() {
             renderLeaveTable();
           }
 
-          if (actionParam === "approve") {
+          if ((actionParam === "approve" || actionParam === "reject") && (isHistory || isCancel)) {
+            // ลิงก์ปุ่มอนุมัติ/ไม่อนุมัติจาก LINE แต่ใบลาดำเนินการไปแล้ว → แจ้งผลชัด ๆ
+            showLeaveAlreadyHandled(leaveIdParam, found);
+          } else if (actionParam === "approve") {
             approveLeave(leaveIdParam);
           } else if (actionParam === "reject") {
             rejectLeave(leaveIdParam);
@@ -358,20 +361,8 @@ async function initSystemAndPermissions() {
           }
         } else {
           console.warn(`⚠️ [Query Param]: Leave ID ${leaveIdParam} not found in the loaded requests.`);
-          // ลิงก์จาก LINE แต่ไม่พบใบลานี้ในรายการของท่าน (พิจารณาไปแล้ว / ยกเลิกแล้ว / ไม่ได้อยู่ในสายอนุมัติของบัญชีนี้)
-          //   → แจ้งให้รู้ และพาไปที่รายการ "รออนุมัติ" แทนการเงียบ
-          if (window.Swal) {
-            Swal.fire({
-              icon: 'info',
-              title: 'ไม่พบใบลานี้ในรายการของท่าน',
-              html: 'ใบลานี้อาจพิจารณาไปแล้ว ผู้ยื่นยกเลิกแล้ว หรือไม่ได้รอบัญชีนี้พิจารณา<br>ดูใบลาที่รอท่านอนุมัติได้ที่แท็บ <b>รออนุมัติ</b>',
-              confirmButtonText: 'ดูใบลารออนุมัติ'
-            }).then(() => {
-              const pendBtn = document.querySelector('.tab-btn[onclick*="switchLeaveTab(\'pending\'"]');
-              if (pendBtn) pendBtn.click();
-              try { history.replaceState(null, '', `${location.pathname}?tab=pending`); } catch (e) {}
-            });
-          }
+          // ลิงก์จาก LINE แต่ไม่พบใบลานี้ในรายการของท่าน → ดึงสถานะจริงจากฐานข้อมูลแล้วแจ้งว่าดำเนินการแล้ว
+          showLeaveAlreadyHandled(leaveIdParam, null);
         }
       }, 800);
     }
@@ -379,6 +370,96 @@ async function initSystemAndPermissions() {
   } catch (err) {
     console.error("💥 Error during HR System Init:", err);
   }
+}
+
+/* ==========================================================================
+   📨 เปิดลิงก์จาก LINE แต่ใบลาดำเนินการไปแล้ว (อนุมัติ / ไม่อนุมัติ / ยกเลิก / ไม่ได้รอท่าน)
+   → แจ้งผลชัด ๆ ว่า "ดำเนินการแล้ว" พร้อมรายละเอียด แทนการเปิดหน้าที่ไม่มีใบลา
+   ========================================================================== */
+async function showLeaveAlreadyHandled(leaveId, found) {
+  if (!window.Swal) return;
+  const sb = window.pvtSupabase?.getClient?.() || window.supabaseClient;
+  let lv = found || null;
+  let last = null;
+  if (sb) {
+    try {
+      if (!lv) {
+        const { data } = await sb.from('leave_requests')
+          .select('id, status, start_date, end_date, total_days, leave_hours, approved_at, updated_at, cancel_reason, approval_comment, employees!employee_id(full_name, nickname), leave_types!leave_type_id(leave_name)')
+          .eq('id', leaveId).maybeSingle();
+        lv = data || null;
+      }
+      const { data: logs } = await sb.from('leave_approval_logs')
+        .select('action, actor_name, step_label, created_at')
+        .eq('leave_id', leaveId).order('created_at', { ascending: false }).limit(1);
+      last = (logs && logs[0]) || null;
+    } catch (e) {}
+  }
+
+  const goPending = () => {
+    const pendBtn = document.querySelector('.tab-btn[onclick*="switchLeaveTab(\'pending\'"]');
+    if (pendBtn) pendBtn.click();
+    try { history.replaceState(null, '', `${location.pathname}?tab=pending`); } catch (e) {}
+  };
+
+  if (!lv) {
+    await Swal.fire({
+      icon: 'info', title: 'ไม่พบใบลานี้',
+      html: 'ใบลานี้อาจถูกลบออกจากระบบแล้ว<br>ดูใบลาที่รอท่านอนุมัติได้ที่แท็บ <b>รออนุมัติ</b>',
+      confirmButtonText: 'ดูใบลารออนุมัติ'
+    });
+    return goPending();
+  }
+
+  const st = String(lv.status || '').toLowerCase();
+  const S = {
+    approved:         { icon: 'success', head: 'ใบลานี้อนุมัติแล้ว',             color: '#15803d' },
+    rejected:         { icon: 'error',   head: 'ใบลานี้ไม่ได้รับอนุมัติ',        color: '#b91c1c' },
+    cancelled:        { icon: 'warning', head: 'ใบลานี้ถูกยกเลิกแล้ว',            color: '#b45309' },
+    cancel_requested: { icon: 'warning', head: 'ผู้ยื่นขอยกเลิกใบลานี้',          color: '#b45309' },
+    pending:          { icon: 'info',    head: 'ใบลานี้ไม่ได้รอท่านพิจารณาแล้ว', color: '#1d4ed8' }
+  }[st] || { icon: 'info', head: 'ใบลานี้ดำเนินการแล้ว', color: '#334155' };
+
+  const esc = (v) => escapeHtml(String(v ?? ''));
+  const name = lv.employees?.full_name || '';
+  const nick = lv.employees?.nickname ? ` (${lv.employees.nickname})` : '';
+  const type = lv.leave_types?.leave_name || 'ใบลา';
+  const range = lv.start_date === lv.end_date
+    ? formatThaiDate(lv.start_date)
+    : `${formatThaiDate(lv.start_date)} – ${formatThaiDate(lv.end_date)}`;
+  const actionText = {
+    approved: 'อนุมัติ', step_approved: 'อนุมัติ', rejected: 'ไม่อนุมัติ', auto_rejected: 'ไม่อนุมัติ (อัตโนมัติ)',
+    cancelled: 'ยกเลิก', cancel_requested: 'ขอยกเลิก', cancel_approved: 'อนุมัติการยกเลิก', cancel_rejected: 'ไม่อนุมัติการยกเลิก'
+  };
+  const whoLine = last
+    ? `${esc(actionText[last.action] || last.action)}โดย <b>${esc(last.actor_name || 'ระบบ')}</b>${last.created_at ? ` · ${esc(formatThaiDate(last.created_at, true))}` : ''}`
+    : (lv.approved_at ? `เมื่อ ${esc(formatThaiDate(lv.approved_at, true))}` : '');
+  const sub = st === 'pending'
+    ? 'มีผู้อนุมัติดำเนินการลำดับนี้ไปแล้ว หรือใบลาอยู่ในลำดับของผู้อนุมัติคนอื่น'
+    : st === 'cancel_requested'
+      ? 'ใบลานี้รอ HR ตรวจสอบคำขอยกเลิก ท่านไม่ต้องดำเนินการ'
+      : 'ท่านไม่ต้องดำเนินการกับใบลานี้แล้ว';
+  const reason = (st === 'cancelled' || st === 'rejected') && (lv.cancel_reason || lv.approval_comment)
+    ? `<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:13px;text-align:left">เหตุผล: ${esc(lv.cancel_reason || lv.approval_comment)}</div>` : '';
+
+  const res = await Swal.fire({
+    icon: S.icon,
+    title: S.head,
+    html: `
+      <div style="font-size:14.5px;line-height:1.7;color:#334155">
+        <div style="font-weight:700;color:#0f172a">${esc(name)}${esc(nick)}</div>
+        <div>${esc(type)} · ${esc(range)}</div>
+        ${whoLine ? `<div style="margin-top:6px;color:${S.color}">${whoLine}</div>` : ''}
+        ${reason}
+        <div style="margin-top:10px;font-size:13px;color:#64748b">${esc(sub)}</div>
+      </div>`,
+    showCancelButton: !!found,
+    confirmButtonText: 'ดูใบลารออนุมัติ',
+    cancelButtonText: 'ดูรายละเอียดใบลานี้',
+    reverseButtons: false
+  });
+  if (res.dismiss === Swal.DismissReason.cancel && found) return previewLeaveModal(leaveId);
+  goPending();
 }
 
 function applyRoleBasedUI() {

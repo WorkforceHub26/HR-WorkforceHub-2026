@@ -1401,9 +1401,7 @@ async function handleLineActionLink(link, nextRaw) {
   if (res && res.ok && res.user) {
     saveUserSession(res.user);
     try { window.PVTSDK?.loginAudit?.recordLoginLog?.(res.user, { method: 'line_link' }); } catch (e) {}
-    if (!res.still_pending && window.Swal) {
-      await Swal.fire({ icon: 'info', title: 'ใบลานี้พิจารณาแล้ว', text: 'ใบลานี้ไม่ได้รอท่านพิจารณาแล้ว (อาจมีผู้อนุมัติคนอื่นกดไปก่อน หรือผู้ยื่นยกเลิกแล้ว) — เปิดดูรายละเอียดได้', confirmButtonText: 'เปิดดู' });
-    }
+    // ใบลาไม่ได้รอท่านแล้ว → หน้าอนุมัติ (js/hr.js showLeaveAlreadyHandled) แจ้งสถานะจริงให้เอง ไม่ต้องแจ้งซ้ำที่นี่
     return goNext();
   }
   if (window.Swal) Swal.close();
