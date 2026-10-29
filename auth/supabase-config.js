@@ -2275,7 +2275,8 @@ class LineOAEngine {
       historyUrl = '',
       attachmentUrl = '',
       stepTitle = '',
-      employeeNickname = ''
+      employeeNickname = '',
+      pendingCount = 0
     } = opts;
     const m = this.lineNoticeMeta(type, stepTitle);
     const txt = (v, d = '-') => { const t = String(v ?? '').trim(); return t || d; }; // LINE ไม่รับข้อความว่าง
@@ -2341,6 +2342,33 @@ class LineOAEngine {
         return `${approvalUrl}?id=${leaveId}&action=${act}`;
       }
     };
+    // ปุ่ม "ใบลารออนุมัติ" → หน้ารายการรออนุมัติ (ใช้ลิงก์ใช้ครั้งเดียวชุดเดียวกัน) · ป้ายแดง = จำนวนที่รอท่าน ณ เวลาที่ส่ง
+    //   เผื่อหน้ายืนยันไม่เด้งจากปุ่มอนุมัติ/ไม่อนุมัติ หัวหน้ายังเข้าไปกดจากรายการได้
+    const pendingUrl = (() => {
+      try {
+        const u = new URL(approvalUrl);
+        return `${u.origin}/index.html?line_link=PVTLINKTOKEN&next=${encodeURIComponent(`${u.pathname}?tab=pending`)}`;
+      } catch (e) {
+        return `${approvalUrl}?tab=pending`;
+      }
+    })();
+    const pendingN = Math.max(0, parseInt(pendingCount, 10) || 0);
+    const pendingBox = {
+      type: 'box', layout: 'horizontal', alignItems: 'center', margin: 'md', spacing: 'sm',
+      paddingAll: '10px', paddingStart: '14px', cornerRadius: '10px',
+      backgroundColor: m.soft, borderWidth: '1px', borderColor: '#c7d2fe',
+      action: { type: 'uri', label: 'ใบลารออนุมัติ', uri: pendingUrl },
+      contents: [
+        { type: 'text', text: '📋 ใบลารออนุมัติ', size: 'sm', weight: 'bold', color: m.ink, flex: 1 },
+        ...(pendingN > 0 ? [{
+          type: 'box', layout: 'vertical', flex: 0, justifyContent: 'center',
+          backgroundColor: '#ef4444', cornerRadius: '12px',
+          paddingStart: '9px', paddingEnd: '9px', paddingTop: '2px', paddingBottom: '2px',
+          contents: [{ type: 'text', text: pendingN > 99 ? '99+' : String(pendingN), size: 'xs', weight: 'bold', color: '#ffffff', align: 'center' }]
+        }] : []),
+        { type: 'text', text: '›', size: 'lg', weight: 'bold', color: m.ink, flex: 0 }
+      ]
+    };
     const footer = (m.act && leaveId)
       ? [{
           type: 'box', layout: 'horizontal', spacing: 'sm',
@@ -2348,7 +2376,7 @@ class LineOAEngine {
             { type: 'button', style: 'primary', height: 'sm', color: '#16a34a', action: { type: 'uri', label: 'อนุมัติ', uri: actUrl('approve') } },
             { type: 'button', style: 'primary', height: 'sm', color: '#e11d48', action: { type: 'uri', label: 'ไม่อนุมัติ', uri: actUrl('reject') } }
           ]
-        }]
+        }, pendingBox]
       : [{
           type: 'button', style: 'link', height: 'sm', color: m.ink,
           action: { type: 'uri', label: ['REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED'].includes(type) ? 'ดูประวัติการลา' : 'เปิดระบบใบลา', uri: ['REQUEST_APPROVED', 'FINAL_APPROVED', 'REJECTED'].includes(type) ? historyUrl : approvalUrl }
@@ -2571,8 +2599,21 @@ class LineOAEngine {
       }
     }
 
+    // จำนวนใบลาที่รอผู้รับคนนี้พิจารณา (ป้ายแดงบนปุ่ม "ใบลารออนุมัติ" ในการ์ด LINE) — นับอย่างน้อย 1 (ใบนี้)
+    let pendingCount = 0;
+    if (meta.act && leaveId && this.client && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(recipientId || ''))) {
+      try {
+        const { count } = await this.client.from('leave_approval_steps')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .contains('approver_ids', [recipientId]);
+        pendingCount = Math.max(1, count || 0);
+      } catch (e) { pendingCount = 1; }
+    }
+
     // สร้าง Flex Message Card สไตล์เดียวกับสลิปธนาคาร (SCB Slip Card UI)
     const flexCardObj = this.formatLineFlexCard(type, {
+      pendingCount,
       leaveId,
       employeeName,
       employeeCode,

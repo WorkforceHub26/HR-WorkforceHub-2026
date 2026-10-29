@@ -762,3 +762,18 @@
 - สาเหตุจริง: `isUuid` ประกาศไว้ใน `logLine` แต่ถูกเรียกตอนสร้าง body ของ line-send → ReferenceError ก่อน fetch ทุกครั้ง → ตกไปทางสำรอง /api/send-notification → 405 บน Cloudflare · line-send จึงไม่เคยถูกเรียกจากเว็บ (Logs ของฟังก์ชันว่าง)
 - แก้: ย้าย `isUuid` ขึ้นมาระดับ sendWorkflowNotification · ดึงชื่อเล่นเฉพาะเมื่อ leaveId เป็น UUID (ปุ่มทดสอบเคยทำให้ GET 400)
 - ไฟล์: `auth/supabase-config.js`, `public/sw.js` (VERSION pvt-v20261028-linefix)
+
+## 2026-10-29 · ปุ่ม "ใบลารออนุมัติ" + ป้ายจำนวนในการ์ด LINE
+- ปัญหา: หัวหน้าบางคนกดอนุมัติ/ไม่อนุมัติจาก LINE แล้วหน้ายืนยันไม่เด้ง — hr.js หาใบลาในรายการไม่เจอ (พิจารณาแล้ว / ยกเลิกแล้ว / ไม่อยู่ในสายของบัญชีนี้) แล้วเงียบ
+- เพิ่ม: การ์ด LINE ที่ต้องพิจารณา มีปุ่ม "📋 ใบลารออนุมัติ" ใต้ปุ่มอนุมัติ/ไม่อนุมัติ + ป้ายแดงจำนวนใบลาที่รอผู้รับ ณ เวลาที่ส่ง (นับจาก leave_approval_steps status=pending ที่มีผู้รับใน approver_ids · อย่างน้อย 1)
+  ใช้ลิงก์ใช้ครั้งเดียวชุดเดียวกับปุ่มอนุมัติ → หน้า leave-approvals.html?tab=pending (หรือ hr.html สำหรับ HR)
+- เพิ่ม: เปิดจากลิงก์แล้วไม่พบใบลา → แจ้ง "ไม่พบใบลานี้ในรายการของท่าน" + ปุ่มไปแท็บรออนุมัติ
+- ไฟล์: `auth/supabase-config.js`, `js/hr.js`, `public/sw.js` (VERSION pvt-v20261029-linepending)
+
+## 2026-10-29 · ปุ่ม "ใบลารออนุมัติ" ที่หน้าหลักพนักงาน (เฉพาะผู้อนุมัติ)
+- ใหม่: `js/components/approver-pending-button.js` + `<div id="apPendingBtn">` ใต้ปุ่ม "ยื่นใบลาออนไลน์" ใน pages/user/index-user.html
+- แสดงเมื่อ: อยู่ใน approval_chain_steps.approver_ids · เป็น supervisor/manager ใน department_approvers · หรือมีใบลารอตัวเอง (leave_approval_steps pending)
+- ป้ายแดง = จำนวนใบลา (pending) ที่รอตัวเอง · อัปเดตทุก 60 วินาที + เมื่อกลับมาที่หน้า · ส่งค่าเดียวกันให้ป้ายปุ่ม "อนุมัติ" บนแถบล่าง (PVTShell.setBadge)
+- กด → /pages/approver/leave-approvals.html?tab=pending
+- หมายเหตุ: หน้าหลักเรียงด้วย flex order → ตั้ง #apPendingBtn{order:3} · ใช้ class `apb-hero` เพื่อเลี่ยงกฎ button:not([class*="hero"]) ใน global.css
+- ไฟล์: `pages/user/index-user.html`, `js/components/approver-pending-button.js`, `public/sw.js` (VERSION pvt-v20261029-apbtn)

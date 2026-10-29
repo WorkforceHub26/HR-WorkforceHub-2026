@@ -348,6 +348,9 @@
           </button>
         </div>
 
+        <!-- 📋 ปุ่มใบลารออนุมัติ (แสดงเฉพาะผู้มีหน้าที่อนุมัติ + ป้ายจำนวน) — js/components/approver-pending-button.js -->
+        <div id="apPendingBtn" hidden></div>
+
         <!-- 🔁 ประกาศรอบแลกวันหยุด (แสดงเฉพาะพนักงานที่อยู่ในรอบ) — js/components/holiday-swap-notice.js -->
         <div id="hsNotice" hidden></div>
 
@@ -614,6 +617,7 @@
   <!-- 📱 Mobile UX fixes (ต้องอยู่หลัง index-user.js) -->
   <script type="module" src="/js/index-user-mobile.js"></script>
   <script type="module" src="/js/system-diagnostics.js"></script>
+  <script src="/js/components/approver-pending-button.js" defer></script>
   <script src="/js/components/holiday-swap-notice.js" defer></script>
   <script src="/js/components/leave-confirm.js" defer></script>
 
