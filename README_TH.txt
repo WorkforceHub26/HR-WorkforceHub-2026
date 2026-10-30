@@ -1,18 +1,11 @@
-PVT Workforce Hub — ตั้งค่าประเภทการลาเพิ่มเติม (pvt_ltopts.zip)
-ใช้แทน pvt_othertype.zip (รวมไว้แล้ว) · ติดตั้งต่อจาก pvt_suspend.zip
+PVT Workforce Hub — แก้การ์ดใบลาในหน้าอนุมัติของหัวหน้า (pvt_apcards.zip)
+ติดตั้งต่อจาก pvt_nocache.zip
 
-ของใหม่ (หน้า ตั้งค่าโควตากลาง)
-- เพิ่ม/แก้ไขประเภทการลา ติ๊กได้ว่า "ได้รับค่าจ้าง" และ "ไม่จำกัดจำนวนวัน"
-- ประเภทที่เพิ่มเอง (เช่น หยุดพิเศษ) ใช้โควตาของตัวเอง และ HR ปรับสิทธิ์รายคนได้ที่ "ปรับโควตาพิเศษรายบุคคล"
+ปัญหา: หน้าอนุมัติใบลาของหัวหน้า (มือถือ) แท็บ "ประวัติรายการ" / "คำร้องขอยกเลิก" การ์ดไม่มีรูปแบบ รูปโปรไฟล์ใหญ่เต็มจอ
 
 ไฟล์ที่แก้
-- auth/supabase-config.js
-- js/management.js
-- js/index-user.js
-- js/leave-user.js
-- public/sw.js                                         VERSION = pvt-v20261029-ltopts
-- supabase/migrations/20261029_leave_type_options.sql  (ใหม่ · รันใน SQL Editor)
+- css/approver-cards.css                (ใหม่) รูปแบบการ์ดใบลาสำหรับหน้าอนุมัติของหัวหน้า
+- pages/approver/leave-approvals.html   โหลดไฟล์ด้านบน
+- public/sw.js                          VERSION = pvt-v20261030-apcards
 
-ติดตั้ง
-1) Supabase SQL Editor: รัน 20261029_leave_type_options.sql (DEV ก่อน แล้ว MAIN · รันซ้ำได้ · ไม่แก้ข้อมูลเดิม)
-2) วางไฟล์ทับของเดิม → deploy MAIN และ DEV → Ctrl+F5
+ติดตั้ง: วางทับไฟล์เดิม → deploy MAIN และ DEV → Ctrl+F5
